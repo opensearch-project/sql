@@ -17,7 +17,9 @@ import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_D
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_MAIN;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_SUBSEARCH;
+import static org.opensearch.sql.calcite.utils.PlanUtils.getInputRefs;
 import static org.opensearch.sql.calcite.utils.PlanUtils.getRelation;
+import static org.opensearch.sql.calcite.utils.PlanUtils.getRexCall;
 import static org.opensearch.sql.calcite.utils.PlanUtils.transformPlanToAttachChild;
 
 import com.google.common.base.Strings;
@@ -53,6 +55,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindowBounds;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -813,6 +816,22 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.rename(expectedRenameFields);
   }
 
+  private List<RexInputRef> extractInputRefFromCountCalls(List<RelBuilder.AggCall> aggCalls) {
+    return aggCalls.stream()
+        .map(RelBuilder.AggCall::over)
+        .map(RelBuilder.OverCall::toRex)
+        .flatMap(node -> getRexCall(node, this::isCountField).stream())
+        .flatMap(rex -> getInputRefs(rex).stream())
+        .toList();
+  }
+
+  /** Is count(FIELD) */
+  private boolean isCountField(RexCall call) {
+    return call.isA(SqlKind.COUNT)
+        && call.getOperands().size() == 1 // count(FIELD)
+        && call.getOperands().get(0) instanceof RexInputRef;
+  }
+
   /**
    * Resolve the aggregation with trimming unused fields to avoid bugs in {@link
    * org.apache.calcite.sql2rel.RelDecorrelator#decorrelateRel(Aggregate, boolean)}
@@ -826,6 +845,48 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       List<UnresolvedExpression> groupExprList,
       List<UnresolvedExpression> aggExprList,
       CalcitePlanContext context) {
+    Pair<List<RexNode>, List<AggCall>> resolved =
+        resolveAttributesForAggregation(groupExprList, aggExprList, context);
+    // Adding filter(isNotNull(RexInputRef)) before count(FIELD) aggregation
+    // could help on doc_count pushdown:
+    //
+    // Example 1: source=t | stats count(a)
+    // Before: Aggregate(count(a))
+    //         \- Scan t
+    // After: Aggregate(count)
+    //        \- Filter(isNotNull(a))
+    //              \- Scan t
+    //
+    // Example 2: source=t | stats count(): no change for count()
+    // Before: Aggregate(count())
+    //           \- Scan t
+    // After: Aggregate(count())
+    //           \- Scan t
+    //
+    // Example 3: source=t | stats count(), count(a): no change for multiple fields
+    // Before: Aggregate(count(), count(a))
+    //           \- Scan t
+    // After: Aggregate(count(), count(a))
+    //           \- Scan t
+    //
+    // Example 4: source=t | stats count(a), count(b): no filter added for multiple fields
+    // Before: Aggregate(count(a), count(b))
+    //           \- Scan t
+    // After: Aggregate(count(a), count(b))
+    //           \- Scan t
+    //
+    // Example 5: source=t | stats count(a+1): no filter added for expression
+    // Before: Aggregate(count(a+1))
+    //           \- Scan t
+    // After: Aggregate(count(a+1))
+    //           \- Scan t
+    List<RexInputRef> refsInCountCall = extractInputRefFromCountCalls(resolved.getRight());
+    if (refsInCountCall.size() == 1 && resolved.getRight().size() == refsInCountCall.size()) {
+      context.relBuilder.filter(context.relBuilder.isNotNull(refsInCountCall.getFirst()));
+    }
+
+    // Add project before aggregate:
+    //
     // Example 1: source=t | where a > 1 | stats avg(b + 1) by c
     // Before: Aggregate(avg(b + 1))
     //         \- Filter(a > 1)
@@ -843,15 +904,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     //        \- Project([c, b])
     //           \- Filter(a > 1)
     //              \- Scan t
+    //
     // Example 3: source=t | stats count(): no project added for count()
-    // Before: Aggregate(count)
+    // Before: Aggregate(count())
     //           \- Scan t
-    // After: Aggregate(count)
+    // After: Aggregate(count())
     //           \- Scan t
-    Pair<List<RexNode>, List<AggCall>> resolved =
-        resolveAttributesForAggregation(groupExprList, aggExprList, context);
     List<RexInputRef> trimmedRefs = new ArrayList<>();
-    trimmedRefs.addAll(PlanUtils.getInputRefs(resolved.getLeft())); // group-by keys first
+    trimmedRefs.addAll(getInputRefs(resolved.getLeft())); // group-by keys first
     trimmedRefs.addAll(PlanUtils.getInputRefsFromAggCall(resolved.getRight()));
     context.relBuilder.project(trimmedRefs);
 

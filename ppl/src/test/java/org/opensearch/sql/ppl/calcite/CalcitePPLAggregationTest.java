@@ -59,6 +59,67 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testCountField() {
+    String ppl = "source=EMP | stats count(COMM) as c";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        ""
+            + "LogicalAggregate(group=[{}], c=[COUNT($0)])\n"
+            + "  LogicalProject(COMM=[$6])\n"
+            + "    LogicalFilter(condition=[IS NOT NULL($6)])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedResult = "c=4\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT COUNT(`COMM`) `c`\nFROM `scott`.`EMP`\nWHERE `COMM` IS NOT NULL";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+
+    ppl = "source=EMP | stats count(), count(COMM) as c";
+    root = getRelNode(ppl);
+    expectedLogical =
+        ""
+            + "LogicalAggregate(group=[{}], count()=[COUNT()], c=[COUNT($0)])\n"
+            + "  LogicalProject(COMM=[$6])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    expectedResult = "count()=14; c=4\n";
+    verifyResult(root, expectedResult);
+    expectedSparkSql = "SELECT COUNT(*) `count()`, COUNT(`COMM`) `c`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+
+    ppl = "source=EMP | stats count(COMM + 1.0) as c";
+    root = getRelNode(ppl);
+    expectedLogical =
+        ""
+            + "LogicalAggregate(group=[{}], c=[COUNT($0)])\n"
+            + "  LogicalProject($f1=[+($6, 1.0:DECIMAL(2, 1))])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    expectedResult = "c=4\n";
+    verifyResult(root, expectedResult);
+
+    expectedSparkSql = "SELECT COUNT(`COMM` + 1.0) `c`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+
+    ppl = "source=EMP | stats count(eval(COMM >= 500)) as c";
+    root = getRelNode(ppl);
+    expectedLogical =
+        ""
+            + "LogicalAggregate(group=[{}], c=[COUNT($0)])\n"
+            + "  LogicalProject($f1=[CASE(>=($6, 500), 1, null:NULL)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    expectedResult = "c=2\n";
+    verifyResult(root, expectedResult);
+
+    expectedSparkSql =
+        "SELECT COUNT(CASE WHEN `COMM` >= 500 THEN 1 ELSE NULL END) `c`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
   public void testTakeAgg() {
     String ppl = "source=EMP | stats take(JOB, 2) as c";
     RelNode root = getRelNode(ppl);
@@ -374,7 +435,8 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + "LogicalProject(distinct_count(JOB)=[$1], DEPTNO=[$0])\n"
             + "  LogicalAggregate(group=[{0}], distinct_count(JOB)=[COUNT(DISTINCT $1)])\n"
             + "    LogicalProject(DEPTNO=[$7], JOB=[$2])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+            + "      LogicalFilter(condition=[IS NOT NULL($2)])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
@@ -387,6 +449,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
         ""
             + "SELECT COUNT(DISTINCT `JOB`) `distinct_count(JOB)`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
+            + "WHERE `JOB` IS NOT NULL\n"
             + "GROUP BY `DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -400,7 +463,8 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + "LogicalProject(dc=[$1], DEPTNO=[$0])\n"
             + "  LogicalAggregate(group=[{0}], dc=[COUNT(DISTINCT $1)])\n"
             + "    LogicalProject(DEPTNO=[$7], JOB=[$2])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+            + "      LogicalFilter(condition=[IS NOT NULL($2)])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult = "dc=3; DEPTNO=20\ndc=3; DEPTNO=10\ndc=3; DEPTNO=30\n";
     verifyResult(root, expectedResult);
@@ -409,6 +473,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
         ""
             + "SELECT COUNT(DISTINCT `JOB`) `dc`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
+            + "WHERE `JOB` IS NOT NULL\n"
             + "GROUP BY `DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }

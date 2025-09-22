@@ -210,17 +210,33 @@ public class AggregateAnalyzer {
             AggregationBuilders.composite("composite_buckets", buckets)
                 .size(AGGREGATION_BUCKET_SIZE);
 
-        Pair<List<String>, Builder> pair = removeValueCountAggregationBuilders(metricBuilder);
-        List<String> removedCountAggNameList = pair.getLeft();
+        Pair<List<ValueCountAggregationBuilder>, Builder> pair =
+            removeValueCountAggregationBuilders(metricBuilder);
+        List<ValueCountAggregationBuilder> removedCountAggBuilders = pair.getLeft();
         Builder newMetricBuilder = pair.getRight();
+        // no count aggregator or multiple count aggregators on different fields,
+        // fallback to original ValueCountAggregation.
+        if (removedCountAggBuilders.isEmpty()
+            || removedCountAggBuilders.stream()
+                    .map(ValuesSourceAggregationBuilder::fieldName)
+                    .distinct()
+                    .count()
+                > 1) {
+          aggregationBuilder.subAggregations(metricBuilder);
+          return Pair.of(
+              Collections.singletonList(aggregationBuilder),
+              new CompositeAggregationParser(metricParserList));
+        }
         // No need to register sub-factories if no aggregator factories left after removing all
         // ValueCountAggregationBuilder.
         if (!newMetricBuilder.getAggregatorFactories().isEmpty()) {
           aggregationBuilder.subAggregations(newMetricBuilder);
         }
+        List<String> countAggNameList =
+            removedCountAggBuilders.stream().map(ValuesSourceAggregationBuilder::getName).toList();
         return Pair.of(
             Collections.singletonList(aggregationBuilder),
-            new CompositeAggregationParser(metricParserList, removedCountAggNameList));
+            new CompositeAggregationParser(metricParserList, countAggNameList));
       }
     } catch (Throwable e) {
       Throwables.throwIfInstanceOf(e, UnsupportedOperationException.class);
@@ -229,25 +245,25 @@ public class AggregateAnalyzer {
   }
 
   /**
-   * Remove all ValueCountAggregationBuilder from metric builder, and return the name list of
-   * removed ValueCountAggregationBuilder.
+   * Remove all ValueCountAggregationBuilder from metric builder, and return the removed
+   * ValueCountAggregationBuilder list.
    *
    * @param metricBuilder metrics builder
-   * @return a pair of removed ValueCountAggregationBuilder name list and updated metric builder
+   * @return a pair of removed ValueCountAggregationBuilder and updated metric builder
    */
-  private static Pair<List<String>, Builder> removeValueCountAggregationBuilders(
-      Builder metricBuilder) {
-    List<AggregationBuilder> countAggregatorFactories =
+  private static Pair<List<ValueCountAggregationBuilder>, Builder>
+      removeValueCountAggregationBuilders(Builder metricBuilder) {
+    List<ValueCountAggregationBuilder> countAggregatorFactories =
         metricBuilder.getAggregatorFactories().stream()
             .filter(ValueCountAggregationBuilder.class::isInstance)
+            .map(ValueCountAggregationBuilder.class::cast)
+            .filter(vc -> vc.script() == null)
             .toList();
-    List<String> countAggList =
-        countAggregatorFactories.stream().map(AggregationBuilder::getName).toList();
     List<AggregationBuilder> copy = new ArrayList<>(metricBuilder.getAggregatorFactories());
     copy.removeAll(countAggregatorFactories);
     Builder newMetricBuilder = new AggregatorFactories.Builder();
     copy.forEach(newMetricBuilder::addAggregator);
-    return Pair.of(countAggList, newMetricBuilder);
+    return Pair.of(countAggregatorFactories, newMetricBuilder);
   }
 
   private static Pair<Builder, List<MetricParser>> processAggregateCalls(

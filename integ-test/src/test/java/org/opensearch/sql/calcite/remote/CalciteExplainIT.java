@@ -22,6 +22,7 @@ import org.opensearch.sql.ppl.ExplainIT;
 public class CalciteExplainIT extends ExplainIT {
   @Override
   public void init() throws Exception {
+    GlobalPushdownConfig.enabled = false;
     super.init();
     enableCalcite();
     loadIndex(Index.BANK_WITH_STRING_VALUES);
@@ -648,14 +649,58 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testExplainCountsByAgg() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
-    String expected = loadExpectedPlan("explain_agg_counts_by.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_agg_counts_by1.yaml");
+    // case of only count(): doc_count works
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             String.format(
-                "source=%s | eval b_1 = balance + 1 | stats count(), count() as c1,"
-                    + " count(account_number), count(lastname) as c2, count(balance/10),"
-                    + " count(pow(balance, 2)) as c3, count(b_1) by gender",
+                "source=%s | stats count(), count() as c1 by gender", TEST_INDEX_ACCOUNT)));
+
+    // case of only one count(FIELD): doc_count works
+    expected = loadExpectedPlan("explain_agg_counts_by2.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | stats count(balance) as c1, count(balance) as c2 by gender",
+                TEST_INDEX_ACCOUNT)));
+
+    // case of only one count(FIELD): doc_count works
+    expected = loadExpectedPlan("explain_agg_counts_by3.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | eval account_number_alias = account_number"
+                    + " | stats count(account_number), count(account_number_alias) as c2 by gender",
+                TEST_INDEX_ACCOUNT)));
+
+    // case of count() + count(FIELD)): doc_count doesn't work
+    expected = loadExpectedPlan("explain_agg_counts_by4.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | stats count(), count(account_number) by gender", TEST_INDEX_ACCOUNT)));
+
+    // case of count(FIELD1) + count(FIELD2)): doc_count doesn't work
+    expected = loadExpectedPlan("explain_agg_counts_by5.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | stats count(balance), count(account_number) by gender",
+                TEST_INDEX_ACCOUNT)));
+
+    // case of count(EXPRESSION): doc_count doesn't work
+    expected = loadExpectedPlan("explain_agg_counts_by6.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | eval b_1 = balance + 1"
+                    + " | stats count(b_1), count(pow(balance, 2)) as c3 by gender",
                 TEST_INDEX_ACCOUNT)));
   }
 
