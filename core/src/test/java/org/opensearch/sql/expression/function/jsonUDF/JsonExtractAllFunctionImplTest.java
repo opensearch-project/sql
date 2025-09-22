@@ -70,7 +70,7 @@ class JsonExtractAllFunctionImplTest {
     assertEquals("Charlie", result.get("name"));
 
     @SuppressWarnings("unchecked")
-    List<Object> hobbies = (List<Object>) result.get("hobbies");
+    List<Object> hobbies = (List<Object>) result.get("hobbies{}");
     assertEquals(3, hobbies.size());
     assertEquals("reading", hobbies.get(0));
     assertEquals("swimming", hobbies.get(1));
@@ -88,7 +88,7 @@ class JsonExtractAllFunctionImplTest {
     assertEquals(1, result.size());
 
     @SuppressWarnings("unchecked")
-    List<Object> users = (List<Object>) result.get("users");
+    List<Object> users = (List<Object>) result.get("users{}");
     assertEquals(2, users.size());
 
     // Array elements that are objects should be preserved as maps
@@ -166,7 +166,7 @@ class JsonExtractAllFunctionImplTest {
     assertEquals(1.2, result.get("metadata.version"));
 
     @SuppressWarnings("unchecked")
-    List<Object> roles = (List<Object>) result.get("user.roles");
+    List<Object> roles = (List<Object>) result.get("user.roles{}");
     assertEquals(2, roles.size());
     assertEquals("admin", roles.get(0));
     assertEquals("user", roles.get(1));
@@ -204,7 +204,7 @@ class JsonExtractAllFunctionImplTest {
     assertEquals(1, result.size());
 
     @SuppressWarnings("unchecked")
-    List<Object> mixed = (List<Object>) result.get("mixed");
+    List<Object> mixed = (List<Object>) result.get("mixed{}");
     assertEquals(5, mixed.size());
     assertEquals("string", mixed.get(0));
     assertEquals(42, mixed.get(1));

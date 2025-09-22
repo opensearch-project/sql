@@ -131,6 +131,7 @@ import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.BinUtils;
 import org.opensearch.sql.calcite.utils.DynamicColumnProcessor;
+import org.opensearch.sql.calcite.utils.DynamicColumnReferenceDetector;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -799,15 +800,18 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     System.out.println("=== DEBUG visitEval ===");
     System.out.println("Processing eval expressions: " + node.getExpressionList().size());
+    System.out.println(
+        "Processing eval expressions: "
+            + node.getExpressionList().stream()
+                .map(Object::toString)
+                .collect(Collectors.joining(", ")));
 
-    // CRITICAL FIX: Check if any expressions reference _dynamic_columns and ensure it exists
-    // TODO: fix logic not to use toString for expression analysis
     boolean needsDynamicColumns =
         node.getExpressionList().stream()
             .anyMatch(
-                expr -> expr.toString().contains(DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD));
+                expr ->
+                    DynamicColumnReferenceDetector.containsDynamicColumnReference(expr, context));
 
-    // TOOD: extract
     if (needsDynamicColumns) {
       List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
       if (!currentFields.contains(DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD)) {

@@ -7,10 +7,10 @@ package org.opensearch.sql.calcite.utils;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprTupleValue;
@@ -60,7 +60,7 @@ public class DynamicColumnProcessor {
   }
 
   private static Set<String> collectDynamicColumnNames(List<ExprValue> results) {
-    Set<String> columnNames = new LinkedHashSet<>();
+    Set<String> columnNames = new TreeSet<>(); // Use TreeSet for consistent ordering
 
     for (ExprValue row : results) {
       if (row instanceof ExprTupleValue) {
