@@ -64,7 +64,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         table,
         osIndex,
         table.getRowType(),
-        new PushDownContext());
+        new PushDownContext(osIndex));
   }
 
   protected CalciteLogicalIndexScan(
@@ -127,15 +127,12 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               filter.getCondition(), schema, fieldTypes, rowType, getCluster());
       // TODO: handle the case where condition contains a score function
       newScan.pushDownContext.add(
-          PushDownAction.of(
-              QueryExpression.containsScript(queryExpression)
-                  ? PushDownType.SCRIPT
-                  : PushDownType.FILTER,
-              queryExpression.isPartial()
-                  ? constructCondition(
-                      queryExpression.getAnalyzedNodes(), getCluster().getRexBuilder())
-                  : filter.getCondition(),
-              requestBuilder -> requestBuilder.pushDownFilter(queryExpression.builder())));
+          queryExpression.getScriptCount() > 0 ? PushDownType.SCRIPT : PushDownType.FILTER,
+          queryExpression.isPartial()
+              ? constructCondition(queryExpression.getAnalyzedNodes(), getCluster().getRexBuilder())
+              : filter.getCondition(),
+          (OSRequestBuilderAction)
+              requestBuilder -> requestBuilder.pushDownFilter(queryExpression.builder()));
 
       // If the query expression is partial, we need to replace the input of the filter with the
       // partial pushed scan and the filter condition with non-pushed-down conditions.
@@ -191,10 +188,9 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     }
     CalciteLogicalIndexScan newScan = this.copyWithNewSchema(finalOutput.getRowType());
     newScan.pushDownContext.add(
-        PushDownAction.of(
-            PushDownType.COLLAPSE,
-            fieldName,
-            requestBuilder -> requestBuilder.pushDownCollapse(field)));
+        PushDownType.COLLAPSE,
+        fieldName,
+        (OSRequestBuilderAction) requestBuilder -> requestBuilder.pushDownCollapse(field));
     return newScan;
   }
 
@@ -235,7 +231,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     AbstractAction action;
     if (pushDownContext.isAggregatePushed()) {
       // For aggregate, we do nothing on query builder but only change the schema of the scan.
-      action = requestBuilder -> {};
+      action = (AggregationBuilderAction) aggAction -> {};
     } else {
       Map<String, String> aliasMapping = this.osIndex.getAliasMapping();
       // For alias types, we need to push down its original path instead of the alias name.
@@ -243,10 +239,11 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
           newSchema.getFieldNames().stream()
               .map(fieldName -> aliasMapping.getOrDefault(fieldName, fieldName))
               .toList();
-      action = requestBuilder -> requestBuilder.pushDownProjectStream(projectedFields.stream());
+      action =
+          (OSRequestBuilderAction)
+              requestBuilder -> requestBuilder.pushDownProjectStream(projectedFields.stream());
     }
-    newScan.pushDownContext.add(
-        PushDownAction.of(PushDownType.PROJECT, newSchema.getFieldNames(), action));
+    newScan.pushDownContext.add(PushDownType.PROJECT, newSchema.getFieldNames(), action);
     return newScan;
   }
 
@@ -279,7 +276,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               osIndex,
               aggregate.getRowType(),
               // Aggregation will eliminate all collations.
-              cloneWithoutSort(pushDownContext));
+              pushDownContext.cloneWithoutSort());
       Map<String, ExprType> fieldTypes = this.osIndex.getFieldTypes();
       List<String> outputFields = aggregate.getRowType().getFieldNames();
       final Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder =
@@ -299,7 +296,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               aggregationBuilder,
               extendedTypeMapping,
               outputFields.subList(0, aggregate.getGroupSet().length()));
-      newScan.pushDownContext.add(PushDownAction.of(PushDownType.AGGREGATION, aggregate, action));
+      newScan.pushDownContext.add(PushDownType.AGGREGATION, aggregate, action);
       return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
@@ -312,22 +309,27 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
   public AbstractRelNode pushDownLimit(LogicalSort sort, Integer limit, Integer offset) {
     try {
       if (pushDownContext.isAggregatePushed()) {
-        // Push down the limit into the aggregation bucket
-        boolean pushed =
+        // Push down the limit into the aggregation bucket in advance to detect whether the limit
+        // can update the aggregation builder
+        boolean updated =
             pushDownContext.getAggPushDownAction().pushDownLimitIntoBucketSize(limit + offset);
-        if (!pushed && offset > 0) return null;
+        if (!updated && offset > 0) return null;
         CalciteLogicalIndexScan newScan = this.copyWithNewSchema(getRowType());
-        newScan.pushDownContext.add(
-            PushDownAction.of(
-                PushDownType.LIMIT, new LimitDigest(limit, offset), requestBuilder -> {}));
+        // Simplify the action if it doesn't update the aggregation builder, otherwise keep the
+        // original action
+        // It won't change the aggregation builder by do this action again since it's idempotent
+        AggregationBuilderAction action =
+            updated
+                ? aggAction -> aggAction.pushDownLimitIntoBucketSize(limit + offset)
+                : aggAction -> {};
+        newScan.pushDownContext.add(PushDownType.LIMIT, new LimitDigest(limit, offset), action);
         return offset > 0 ? sort.copy(sort.getTraitSet(), List.of(newScan)) : newScan;
       } else {
         CalciteLogicalIndexScan newScan = this.copyWithNewSchema(getRowType());
         newScan.pushDownContext.add(
-            PushDownAction.of(
-                PushDownType.LIMIT,
-                new LimitDigest(limit, offset),
-                requestBuilder -> requestBuilder.pushDownLimit(limit, offset)));
+            PushDownType.LIMIT,
+            new LimitDigest(limit, offset),
+            (OSRequestBuilderAction) requestBuilder -> requestBuilder.pushDownLimit(limit, offset));
         return newScan;
       }
     } catch (Exception e) {

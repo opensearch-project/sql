@@ -8,9 +8,12 @@ package org.opensearch.sql.opensearch.storage.scan;
 import static java.util.Objects.requireNonNull;
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR;
 
+import com.google.common.collect.Iterators;
+import java.util.AbstractCollection;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
@@ -19,6 +22,8 @@ import lombok.Getter;
 import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
 import org.apache.calcite.adapter.enumerable.EnumerableSort;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollations;
@@ -40,6 +45,8 @@ import org.apache.calcite.util.NumberUtil;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jetbrains.annotations.NotNull;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.AggregatorFactories.Builder;
@@ -98,9 +105,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
 
   @Override
   public RelWriter explainTerms(RelWriter pw) {
-    OpenSearchRequestBuilder requestBuilder = osIndex.createRequestBuilder();
-    pushDownContext.forEach(action -> action.apply(requestBuilder));
-    String explainString = pushDownContext + ", " + requestBuilder;
+    String explainString = pushDownContext + ", " + pushDownContext.getRequestBuilder();
     return super.explainTerms(pw)
         .itemIf("PushDownContext", explainString, !pushDownContext.isEmpty());
   }
@@ -141,10 +146,46 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
             (a, b) -> null);
   }
 
+  // @Override
+  public double estimateRowCount2(RelMetadataQuery mq) {
+    return pushDownContext.stream()
+        .reduce(
+            osIndex.getMaxResultWindow().doubleValue(),
+            (rowCount, action) ->
+                switch (action.type) {
+                  case AGGREGATION -> mq.getRowCount((RelNode) action.digest);
+                  case PROJECT, SORT -> rowCount;
+                    // Refer the org.apache.calcite.rel.core.Aggregate.estimateRowCount
+                  case COLLAPSE -> rowCount * (1.0 - Math.pow(.5, 1));
+                  case FILTER, SCRIPT -> NumberUtil.multiply(
+                      rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest));
+                  case LIMIT -> Math.min(rowCount, ((LimitDigest) action.digest).limit());
+                },
+            (a, b) -> null);
+  }
+
+  // @Override
+  public @Nullable RelOptCost computeSelfCost2(RelOptPlanner planner, RelMetadataQuery mq) {
+    /*
+     The impact factor to estimate the row count after push down an operator.
+
+     <p>It will be multiplied to the original estimated row count of the operator, and it's set to
+     less than 1 by default to make the result always less than the row count of operator without
+     push down. As a result, the optimizer will prefer the plan with push down.
+    */
+    double estimateRowCountFactor =
+        osIndex.getSettings().getSettingValue(CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR);
+
+    double dRows = mq.getRowCount(this);
+    double dCpu = dRows + 1.0;
+    double dIo = 0.0;
+    return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
+  }
+
   /** See source in {@link org.apache.calcite.rel.core.Aggregate::computeSelfCost} */
-  private static float getAggMultiplier(PushDownAction action) {
+  private static float getAggMultiplier(PushDownOperation operation) {
     // START CALCITE
-    List<AggregateCall> aggCalls = ((Aggregate) action.digest).getAggCallList();
+    List<AggregateCall> aggCalls = ((Aggregate) operation.digest).getAggCallList();
     float multiplier = 1f + (float) aggCalls.size() * 0.125f;
     for (AggregateCall aggCall : aggCalls) {
       if (aggCall.getAggregation().getName().equals("SUM")) {
@@ -157,38 +198,104 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
 
     // For script aggregation, we need to multiply the multiplier by 2.2 to make up the cost. As we
     // prefer to have non-script agg push down after optimized by {@link PPLAggregateConvertRule}
-    if (((AggPushDownAction) action.action).isScriptPushed) {
+    if (((AggPushDownAction) operation.action).isScriptPushed) {
       multiplier *= 2.2f;
     }
     return multiplier;
   }
 
   // TODO: should we consider equivalent among PushDownContexts with different push down sequence?
-  public static class PushDownContext extends ArrayDeque<PushDownAction> {
+  @Getter
+  public static class PushDownContext extends AbstractCollection<PushDownOperation> {
+    private final OpenSearchIndex osIndex;
+    private final OpenSearchRequestBuilder requestBuilder;
+    private ArrayDeque<PushDownOperation> operationsForRequestBuilder;
 
-    @Getter private boolean isAggregatePushed = false;
-    @Getter private AggPushDownAction aggPushDownAction;
-    @Getter private boolean isLimitPushed = false;
-    @Getter private boolean isProjectPushed = false;
+    private boolean isAggregatePushed = false;
+    private AggPushDownAction aggPushDownAction;
+    private ArrayDeque<PushDownOperation> operationsForAgg;
 
-    @Override
-    public PushDownContext clone() {
-      return (PushDownContext) super.clone();
+    private boolean isLimitPushed = false;
+    private boolean isProjectPushed = false;
+
+    public PushDownContext(OpenSearchIndex osIndex) {
+      this.osIndex = osIndex;
+      this.requestBuilder = osIndex.createRequestBuilder();
     }
 
     @Override
-    public boolean add(PushDownAction pushDownAction) {
-      if (pushDownAction.type == PushDownType.AGGREGATION) {
-        isAggregatePushed = true;
-        this.aggPushDownAction = (AggPushDownAction) pushDownAction.action;
+    public PushDownContext clone() {
+      PushDownContext newContext = new PushDownContext(osIndex);
+      newContext.addAll(this);
+      return newContext;
+    }
+
+    /**
+     * Create a new {@link PushDownContext} without the collation action.
+     *
+     * @return A new push-down context without the collation action.
+     */
+    public PushDownContext cloneWithoutSort() {
+      PushDownContext newContext = new PushDownContext(osIndex);
+      for (PushDownOperation action : this) {
+        if (action.type() != PushDownType.SORT) {
+          newContext.add(action);
+        }
       }
-      if (pushDownAction.type == PushDownType.LIMIT) {
+      return newContext;
+    }
+
+    @NotNull
+    @Override
+    public Iterator<PushDownOperation> iterator() {
+      if (operationsForRequestBuilder == null) {
+        return Collections.emptyIterator();
+      } else if (operationsForAgg == null) {
+        return operationsForRequestBuilder.iterator();
+      } else {
+        return Iterators.concat(
+            operationsForRequestBuilder.iterator(), operationsForAgg.iterator());
+      }
+    }
+
+    @Override
+    public int size() {
+      return (operationsForRequestBuilder == null ? 0 : operationsForRequestBuilder.size())
+          + (operationsForAgg == null ? 0 : operationsForAgg.size());
+    }
+
+    private ArrayDeque<PushDownOperation> getOperationsForRequestBuilder() {
+      if (operationsForRequestBuilder == null) {
+        this.operationsForRequestBuilder = new ArrayDeque<>();
+      }
+      return operationsForRequestBuilder;
+    }
+
+    private ArrayDeque<PushDownOperation> getOperationsForAgg() {
+      if (operationsForAgg == null) {
+        this.operationsForAgg = new ArrayDeque<>();
+      }
+      return operationsForAgg;
+    }
+
+    @Override
+    public boolean add(PushDownOperation operation) {
+      if (operation.type == PushDownType.AGGREGATION) {
+        isAggregatePushed = true;
+        this.aggPushDownAction = (AggPushDownAction) operation.action;
+      }
+      if (operation.type == PushDownType.LIMIT) {
         isLimitPushed = true;
       }
-      if (pushDownAction.type == PushDownType.PROJECT) {
+      if (operation.type == PushDownType.PROJECT) {
         isProjectPushed = true;
       }
-      return super.add(pushDownAction);
+      operation.action.transform(this, operation);
+      return true;
+    }
+
+    public void add(PushDownType type, Object digest, AbstractAction<?> action) {
+      add(new PushDownOperation(type, digest, action));
     }
 
     public boolean containsDigest(Object digest) {
@@ -243,22 +350,6 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
   }
 
   /**
-   * Create a new {@link PushDownContext} without the collation action.
-   *
-   * @param pushDownContext The original push-down context.
-   * @return A new push-down context without the collation action.
-   */
-  protected PushDownContext cloneWithoutSort(PushDownContext pushDownContext) {
-    PushDownContext newContext = new PushDownContext();
-    for (PushDownAction action : pushDownContext) {
-      if (action.type() != PushDownType.SORT) {
-        newContext.add(action);
-      }
-    }
-    return newContext;
-  }
-
-  /**
    * The sort pushdown is not only applied in logical plan side, but also should be applied in
    * physical plan side. Because we could push down the {@link EnumerableSort} of {@link
    * EnumerableMergeJoin} to OpenSearch.
@@ -283,15 +374,16 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
               osIndex,
               getRowType(),
               // Existing collations are overridden (discarded) by the new collations,
-              cloneWithoutSort(pushDownContext));
+              pushDownContext.cloneWithoutSort());
 
-      AbstractAction action;
+      AbstractAction<?> action;
       Object digest;
       if (pushDownContext.isAggregatePushed) {
         // Push down the sort into the aggregation bucket
-        this.pushDownContext.aggPushDownAction.pushDownSortIntoAggBucket(
-            collations, getRowType().getFieldNames());
-        action = requestBuilder -> {};
+        action =
+            (AggregationBuilderAction)
+                aggAction ->
+                    aggAction.pushDownSortIntoAggBucket(collations, getRowType().getFieldNames());
         digest = collations;
       } else {
         List<SortBuilder<?>> builders = new ArrayList<>();
@@ -320,10 +412,10 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
           }
           builders.add(sortBuilder.order(order));
         }
-        action = requestBuilder -> requestBuilder.pushDownSort(builders);
+        action = (OSRequestBuilderAction) requestBuilder -> requestBuilder.pushDownSort(builders);
         digest = builders.toString();
       }
-      newScan.pushDownContext.add(PushDownAction.of(PushDownType.SORT, digest, action));
+      newScan.pushDownContext.add(PushDownType.SORT, digest, action);
       return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
@@ -333,7 +425,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     return null;
   }
 
-  protected enum PushDownType {
+  public enum PushDownType {
     FILTER,
     PROJECT,
     AGGREGATION,
@@ -346,28 +438,36 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
   }
 
   /**
-   * Represents a push down action that can be applied to an OpenSearchRequestBuilder.
+   * Represents a push down operation that can be applied to an OpenSearchRequestBuilder.
    *
    * @param type PushDownType enum
    * @param digest the digest of the pushed down operator
    * @param action the lambda action to apply on the OpenSearchRequestBuilder
    */
-  public record PushDownAction(PushDownType type, Object digest, AbstractAction action) {
-    static PushDownAction of(PushDownType type, Object digest, AbstractAction action) {
-      return new PushDownAction(type, digest, action);
-    }
-
+  public record PushDownOperation(PushDownType type, Object digest, AbstractAction<?> action) {
     public String toString() {
       return type + "->" + digest;
     }
+  }
 
-    public void apply(OpenSearchRequestBuilder requestBuilder) {
-      action.apply(requestBuilder);
+  public interface AbstractAction<T> {
+    void apply(T target);
+
+    void transform(PushDownContext context, PushDownOperation operation);
+  }
+
+  public interface OSRequestBuilderAction extends AbstractAction<OpenSearchRequestBuilder> {
+    default void transform(PushDownContext context, PushDownOperation operation) {
+      apply(context.getRequestBuilder());
+      context.getOperationsForRequestBuilder().add(operation);
     }
   }
 
-  public interface AbstractAction {
-    void apply(OpenSearchRequestBuilder requestBuilder);
+  public interface AggregationBuilderAction extends AbstractAction<AggPushDownAction> {
+    default void transform(PushDownContext context, PushDownOperation operation) {
+      apply(context.getAggPushDownAction());
+      context.getOperationsForAgg().add(operation);
+    }
   }
 
   public record LimitDigest(int limit, int offset) {
@@ -378,7 +478,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
   }
 
   // TODO: shall we do deep copy for this action since it's mutable?
-  public static class AggPushDownAction implements AbstractAction {
+  public static class AggPushDownAction implements OSRequestBuilderAction {
 
     private Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder;
     private final Map<String, OpenSearchDataType> extendedTypeMapping;
