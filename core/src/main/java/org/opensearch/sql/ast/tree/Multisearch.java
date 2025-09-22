@@ -9,48 +9,39 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
-import org.opensearch.sql.ast.Node;
 
-/**
- * Logical plan node of Multisearch, which combines results from multiple search queries. Similar to
- * UNION ALL operation, it executes multiple subsearches and combines their results.
- */
+/** Logical plan node for Multisearch operation. Combines results from multiple search queries. */
 @Getter
-@Setter
 @ToString
 @EqualsAndHashCode(callSuper = false)
-@RequiredArgsConstructor
 public class Multisearch extends UnresolvedPlan {
 
-  /** List of subsearch plans to execute and combine. */
+  private UnresolvedPlan child;
   private final List<UnresolvedPlan> subsearches;
 
-  /** The main query/child that multisearch attaches to (if any). */
-  private UnresolvedPlan child;
+  public Multisearch(List<UnresolvedPlan> subsearches) {
+    this.subsearches = subsearches;
+  }
 
   @Override
-  public UnresolvedPlan attach(UnresolvedPlan child) {
+  public Multisearch attach(UnresolvedPlan child) {
     this.child = child;
     return this;
   }
 
   @Override
-  public List<? extends Node> getChild() {
-    // If there's a child (main query), return it along with subsearches
-    // Otherwise just return subsearches
+  public List<UnresolvedPlan> getChild() {
     if (this.child == null) {
-      return subsearches;
+      return ImmutableList.copyOf(subsearches);
     } else {
-      return ImmutableList.<Node>builder().add(this.child).addAll(subsearches).build();
+      return ImmutableList.<UnresolvedPlan>builder().add(this.child).addAll(subsearches).build();
     }
   }
 
   @Override
-  public <T, C> T accept(AbstractNodeVisitor<T, C> visitor, C context) {
-    return visitor.visitMultisearch(this, context);
+  public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {
+    return nodeVisitor.visitMultisearch(this, context);
   }
 }
