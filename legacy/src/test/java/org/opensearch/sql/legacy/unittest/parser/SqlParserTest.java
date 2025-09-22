@@ -1784,4 +1784,134 @@ public class SqlParserTest {
     }
     return false;
   }
+
+  /** JOIN Aggregation Validation Tests */
+  private void expectJoinAggregationException() {
+    thrown.expect(SqlParseException.class);
+    thrown.expectMessage("JOIN queries do not support aggregations on the joined result.");
+  }
+
+  @Test
+  public void joinWithGroupByShouldThrowException() throws SqlParseException {
+    expectJoinAggregationException();
+
+    String query =
+        String.format(
+            Locale.ROOT,
+            "SELECT a.firstname FROM %s/account a "
+                + "JOIN %s/account b ON a.account_number = b.account_number "
+                + "GROUP BY a.firstname",
+            TestsConstants.TEST_INDEX_ACCOUNT,
+            TestsConstants.TEST_INDEX_ACCOUNT);
+
+    parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
+  }
+
+  @Test
+  public void joinWithCountFunctionShouldThrowException() throws SqlParseException {
+    expectJoinAggregationException();
+
+    String query =
+        String.format(
+            Locale.ROOT,
+            "SELECT COUNT(*) FROM %s/account a "
+                + "JOIN %s/account b ON a.account_number = b.account_number",
+            TestsConstants.TEST_INDEX_ACCOUNT,
+            TestsConstants.TEST_INDEX_ACCOUNT);
+
+    parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
+  }
+
+  @Test
+  public void joinWithSumFunctionShouldThrowException() throws SqlParseException {
+    expectJoinAggregationException();
+
+    String query =
+        String.format(
+            Locale.ROOT,
+            "SELECT SUM(a.balance) FROM %s/account a "
+                + "JOIN %s/account b ON a.account_number = b.account_number",
+            TestsConstants.TEST_INDEX_ACCOUNT,
+            TestsConstants.TEST_INDEX_ACCOUNT);
+
+    parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
+  }
+
+  @Test
+  public void joinWithAvgFunctionShouldThrowException() throws SqlParseException {
+    expectJoinAggregationException();
+
+    String query =
+        String.format(
+            Locale.ROOT,
+            "SELECT AVG(a.age) FROM %s/account a "
+                + "JOIN %s/account b ON a.account_number = b.account_number",
+            TestsConstants.TEST_INDEX_ACCOUNT,
+            TestsConstants.TEST_INDEX_ACCOUNT);
+
+    parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
+  }
+
+  @Test
+  public void joinWithMaxFunctionShouldThrowException() throws SqlParseException {
+    expectJoinAggregationException();
+
+    String query =
+        String.format(
+            Locale.ROOT,
+            "SELECT MAX(a.balance) FROM %s/account a "
+                + "JOIN %s/account b ON a.account_number = b.account_number",
+            TestsConstants.TEST_INDEX_ACCOUNT,
+            TestsConstants.TEST_INDEX_ACCOUNT);
+
+    parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
+  }
+
+  @Test
+  public void joinWithMinFunctionShouldThrowException() throws SqlParseException {
+    expectJoinAggregationException();
+
+    String query =
+        String.format(
+            Locale.ROOT,
+            "SELECT MIN(a.age) FROM %s/account a "
+                + "JOIN %s/account b ON a.account_number = b.account_number",
+            TestsConstants.TEST_INDEX_ACCOUNT,
+            TestsConstants.TEST_INDEX_ACCOUNT);
+
+    parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
+  }
+
+  @Test
+  public void joinWithBothGroupByAndAggregateShouldThrowException() throws SqlParseException {
+    expectJoinAggregationException();
+
+    String query =
+        String.format(
+            Locale.ROOT,
+            "SELECT a.gender, COUNT(*) FROM %s/account a "
+                + "JOIN %s/account b ON a.account_number = b.account_number "
+                + "GROUP BY a.gender",
+            TestsConstants.TEST_INDEX_ACCOUNT,
+            TestsConstants.TEST_INDEX_ACCOUNT);
+
+    parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
+  }
+
+  @Test
+  public void regularJoinWithoutAggregationShouldWork() throws SqlParseException {
+    String query =
+        String.format(
+            Locale.ROOT,
+            "SELECT a.firstname, b.lastname FROM %s/account a "
+                + "JOIN %s/account b ON a.account_number = b.account_number "
+                + "WHERE a.age > 20 LIMIT 10",
+            TestsConstants.TEST_INDEX_ACCOUNT,
+            TestsConstants.TEST_INDEX_ACCOUNT);
+
+    JoinSelect joinSelect = parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
+    Assert.assertNotNull("Join select should be parsed successfully", joinSelect);
+    Assert.assertNotNull("First table should not be null", joinSelect.getFirstTable());
+    Assert.assertNotNull("Second table should not be null", joinSelect.getSecondTable());
+  }
 }
