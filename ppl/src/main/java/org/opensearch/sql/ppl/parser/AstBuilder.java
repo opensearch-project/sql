@@ -82,7 +82,6 @@ import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SpanBin;
-import org.opensearch.sql.ast.tree.StreamingCommandClassifier;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Timechart;
@@ -1040,9 +1039,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
           subsearchCtx.commands().stream()
               .map(this::visit)
               .reduce(searchCommandInSubSearch, (r, e) -> e.attach(r));
-
-      // Validate that all commands in this subsearch are streaming
-      StreamingCommandClassifier.validateStreamingCommands(fullSubsearch);
 
       subsearches.add(fullSubsearch);
     }
