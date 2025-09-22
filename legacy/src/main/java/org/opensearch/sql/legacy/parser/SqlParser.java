@@ -11,6 +11,7 @@ import com.alibaba.druid.sql.ast.SQLCommentHint;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLOrderBy;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
+import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
@@ -399,8 +400,59 @@ public class SqlParser {
 
     updateJoinLimit(query.getLimit(), joinSelect);
 
-    // todo: throw error feature not supported:  no group bys on joins ?
+    validateJoinWithoutAggregations(query);
+
     return joinSelect;
+  }
+
+  /**
+   * Validates that JOIN queries do not use aggregations (GROUP BY or aggregate functions).
+   * This limitation is documented in the official OpenSearch SQL documentation.
+   */
+  private void validateJoinWithoutAggregations(MySqlSelectQueryBlock query) throws SqlParseException {
+    String errorMessage = "JOIN queries do not support aggregations on the joined result. "
+        + "For more information, see https://docs.opensearch.org/latest/search-plugins/sql/limitation/#join-does-not-support-aggregations-on-the-joined-result";
+
+    if (query.getGroupBy() != null && !query.getGroupBy().getItems().isEmpty()) {
+      throw new SqlParseException(errorMessage);
+    }
+
+    if (query.getSelectList() != null) {
+      for (SQLSelectItem selectItem : query.getSelectList()) {
+        if (containsAggregateFunction(selectItem.getExpr())) {
+          throw new SqlParseException(errorMessage);
+        }
+      }
+    }
+  }
+
+  /**
+   * Recursively checks if an SQL expression contains aggregate functions.
+   * Uses the same AGGREGATE_FUNCTIONS set as the Select class for consistency.
+   */
+  private boolean containsAggregateFunction(SQLExpr expr) {
+    if (expr == null) {
+      return false;
+    }
+
+    String methodName = null;
+    if (expr instanceof SQLAggregateExpr) {
+      methodName = ((SQLAggregateExpr) expr).getMethodName();
+    } else if (expr instanceof SQLMethodInvokeExpr) {
+      methodName = ((SQLMethodInvokeExpr) expr).getMethodName();
+    }
+
+    if (methodName != null && Select.AGGREGATE_FUNCTIONS.contains(methodName.toUpperCase())) {
+      return true;
+    }
+
+    if (expr instanceof SQLBinaryOpExpr) {
+      SQLBinaryOpExpr binaryExpr = (SQLBinaryOpExpr) expr;
+      return containsAggregateFunction(binaryExpr.getLeft())
+          || containsAggregateFunction(binaryExpr.getRight());
+    }
+
+    return false;
   }
 
   private Map<String, List<SQLSelectOrderByItem>> splitAndFindOrder(
