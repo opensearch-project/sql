@@ -853,7 +853,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Example 1: source=t | stats count(a)
     // Before: Aggregate(count(a))
     //         \- Scan t
-    // After: Aggregate(count)
+    // After: Aggregate(count(a))
     //        \- Filter(isNotNull(a))
     //              \- Scan t
     //
@@ -869,13 +869,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // After: Aggregate(count(), count(a))
     //           \- Scan t
     //
-    // Example 4: source=t | stats count(a), count(b): no filter added for multiple fields
+    // Example 4: source=t | stats count(a), count(b): no change for multiple fields
     // Before: Aggregate(count(a), count(b))
     //           \- Scan t
     // After: Aggregate(count(a), count(b))
     //           \- Scan t
     //
-    // Example 5: source=t | stats count(a+1): no filter added for expression
+    // Example 5: source=t | stats count(a+1): no change for expression
     // Before: Aggregate(count(a+1))
     //           \- Scan t
     // After: Aggregate(count(a+1))
@@ -897,15 +897,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     //              \- Scan t
     //
     // Example 2: source=t | where a > 1 | top b by c
-    // Before: Aggregate(count)
-    //         \-Filter(a > 1)
+    // Before: Aggregate(count(b) by c)
+    //         \-Filter(a > 1 && isNotNull(b))
     //           \- Scan t
-    // After: Aggregate(count)
+    // After: Aggregate(count(b) by c)
     //        \- Project([c, b])
-    //           \- Filter(a > 1)
+    //           \- Filter(a > 1 && isNotNull(b))
     //              \- Scan t
     //
-    // Example 3: source=t | stats count(): no project added for count()
+    // Example 3: source=t | stats count(): no change for count()
     // Before: Aggregate(count())
     //           \- Scan t
     // After: Aggregate(count())
