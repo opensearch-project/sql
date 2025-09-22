@@ -24,6 +24,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.opensearch.sql.opensearch.request;
 
 import static java.util.Objects.requireNonNull;
@@ -77,7 +78,6 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
 import org.opensearch.sql.opensearch.response.agg.ArgMaxMinParser;
-import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
@@ -131,6 +131,7 @@ public class AggregateAnalyzer {
     final RelDataType rowType;
     final Map<String, ExprType> fieldTypes;
     final RelOptCluster cluster;
+    final boolean bucketNullable;
 
     <T extends ValuesSourceAggregationBuilder<T>> T build(RexNode node, T aggBuilder) {
       return build(node, aggBuilder::field, aggBuilder::script);
@@ -190,7 +191,8 @@ public class AggregateAnalyzer {
                   .findFirst()
                   .orElseGet(() -> "true"));
       List<Integer> groupList = aggregate.getGroupSet().asList();
-      AggregateBuilderHelper helper = new AggregateBuilderHelper(rowType, fieldTypes, cluster);
+      AggregateBuilderHelper helper =
+          new AggregateBuilderHelper(rowType, fieldTypes, cluster, bucketNullable);
       List<String> aggFieldNames = outputFields.subList(groupList.size(), outputFields.size());
       // Process all aggregate calls
       Pair<Builder, List<MetricParser>> builderAndParser =
@@ -202,14 +204,6 @@ public class AggregateAnalyzer {
         return Pair.of(
             ImmutableList.copyOf(metricBuilder.getAggregatorFactories()),
             new NoBucketAggregationParser(metricParserList));
-      } else if (aggregate.getGroupSet().length() == 1 && !bucketNullable) {
-        // one bucket, use values source bucket builder for getting better performance
-        // TODO for multiple buckets, use MultiTermsAggregationBuilder
-        ValuesSourceAggregationBuilder<?> bucketBuilder =
-            createBucketAggregation(groupList.getFirst(), project, helper);
-        return Pair.of(
-            Collections.singletonList(bucketBuilder.subAggregations(metricBuilder)),
-            new BucketAggregationParser(metricParserList));
       } else if (aggregate.getGroupSet().length() == 1
           && isAutoDateSpan(project.getProjects().get(groupList.getFirst()))) {
         RexCall rexCall = (RexCall) project.getProjects().get(groupList.getFirst());
@@ -502,7 +496,8 @@ public class AggregateAnalyzer {
           helper.inferNamedField(rexInputRef).getRootName(),
           valueLiteral.getValueAs(Double.class),
           SpanUnit.of(unitLiteral.getValueAs(String.class)),
-          MissingOrder.FIRST);
+          MissingOrder.FIRST,
+          helper.bucketNullable);
     } else if (isAutoDateSpan(rex)) {
       throw new UnsupportedOperationException(
           "auto_date_histogram is not supported in composite agg.");
@@ -513,13 +508,12 @@ public class AggregateAnalyzer {
 
   private static CompositeValuesSourceBuilder<?> createTermsSourceBuilder(
       String bucketName, RexNode group, AggregateBuilderHelper helper) {
-    CompositeValuesSourceBuilder<?> sourceBuilder =
-        helper.build(
-            group,
-            new TermsValuesSourceBuilder(bucketName)
-                .missingBucket(true)
-                .missingOrder(MissingOrder.FIRST)
-                .order(SortOrder.ASC));
+    TermsValuesSourceBuilder termsBuilder =
+        new TermsValuesSourceBuilder(bucketName).order(SortOrder.ASC);
+    if (helper.bucketNullable) {
+      termsBuilder.missingBucket(true).missingOrder(MissingOrder.FIRST);
+    }
+    CompositeValuesSourceBuilder<?> sourceBuilder = helper.build(group, termsBuilder);
 
     // Time types values are converted to LONG in ExpressionAggregationScript::execute
     if (List.of(TIMESTAMP, TIME, DATE)

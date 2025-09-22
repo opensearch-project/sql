@@ -433,13 +433,16 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
               NullDirection nullDirection = collation.nullDirection;
               SortOrder order =
                   Direction.DESCENDING.equals(direction) ? SortOrder.DESC : SortOrder.ASC;
-              MissingOrder missingOrder =
-                  switch (nullDirection) {
-                    case FIRST -> MissingOrder.FIRST;
-                    case LAST -> MissingOrder.LAST;
-                    default -> MissingOrder.DEFAULT;
-                  };
-              newBuckets.add(bucket.order(order).missingOrder(missingOrder));
+              if (bucket.missingBucket()) {
+                MissingOrder missingOrder =
+                    switch (nullDirection) {
+                      case FIRST -> MissingOrder.FIRST;
+                      case LAST -> MissingOrder.LAST;
+                      default -> MissingOrder.DEFAULT;
+                    };
+                bucket.missingOrder(missingOrder);
+              }
+              newBuckets.add(bucket.order(order));
               newBucketNames.add(bucketName);
               selected.add(bucketName);
             });

@@ -2,6 +2,7 @@
  * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 package org.opensearch.sql.opensearch.planner.physical;
 
 import static org.opensearch.sql.expression.function.PPLBuiltinOperators.WIDTH_BUCKET;

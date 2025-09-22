@@ -59,8 +59,7 @@ stats [bucket_nullable=bool] <aggregation>... [by-clause]
 * span-expression: optional, at most one.
 
  * Syntax: span(field_expr, interval_expr)
- * Description: The unit of the interval expression is the natural unit by default. If the field is a date and time type field, and the interval is in date/time units, you will need to specify the unit in the interval expression. For example, to split the field ``age`` into buckets by 10 years, it looks like ``span(age, 10)``. And here is another example of time span, the span to split a ``timestamp`` field into hourly intervals, it looks like ``span(timestamp, 1h)``.
-
+ * Description: The unit of the interval expression is the natural unit by default. **If the field is a date/time type field, the aggregation results always ignore null bucket**. And the interval is in date/time units, you will need to specify the unit in the interval expression. For example, to split the field ``age`` into buckets by 10 years, it looks like ``span(age, 10)``. And here is another example of time span, the span to split a ``timestamp`` field into hourly intervals, it looks like ``span(timestamp, 1h)``.
 * Available time unit:
 
 +----------------------------+
@@ -923,3 +922,58 @@ PPL query::
     |-------------------------------------|
     | ["Amber","Dale","Hattie","Nanette"] |
     +-------------------------------------+
+
+
+Example 17: Span on date/time field always ignore null bucket
+=============================================================
+
+Index example data:
+
++-------+--------+------------+
+| Name  | DEPTNO | birthday   |
++=======+========+============+
+| Alice | 1      | 2024-04-21 |
++-------+--------+------------+
+| Bob   | 2      | 2025-08-21 |
++-------+--------+------------+
+| Jeff  | null   | 2025-04-22 |
++-------+--------+------------+
+| Adam  | 2      | null       |
++-------+--------+------------+
+
+PPL query::
+
+    PPL> source=example | stats count() as cnt by span(birthday, 1y) as year;
+    fetched rows / total rows = 3/3
+    +-----+------------+
+    | cnt | year       |
+    |-----+------------|
+    | 1   | 2024-01-01 |
+    | 2   | 2025-01-01 |
+    +-----+------------+
+
+
+PPL query::
+
+    PPL> source=example | stats count() as cnt by span(birthday, 1y) as year, DEPTNO;
+    fetched rows / total rows = 3/3
+    +-----+------------+--------+
+    | cnt | year       | DEPTNO |
+    |-----+------------+--------|
+    | 1   | 2024-01-01 | 1      |
+    | 1   | 2025-01-01 | 2      |
+    | 1   | 2025-01-01 | null   |
+    +-----+------------+--------+
+
+
+PPL query::
+
+    PPL> source=example | stats bucket_nullable=false count() as cnt by span(birthday, 1y) as year, DEPTNO;
+    fetched rows / total rows = 3/3
+    +-----+------------+--------+
+    | cnt | year       | DEPTNO |
+    |-----+------------+--------|
+    | 1   | 2024-01-01 | 1      |
+    | 1   | 2025-01-01 | 2      |
+    +-----+------------+--------+
+
