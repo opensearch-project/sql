@@ -48,10 +48,9 @@ public class RareTopNArguments {
       switch (arg.getArgName()) {
         case NUMBER_RESULTS:
           noOfResults = (int) arg.getValue().getValue();
-          if (noOfResults < 1) {
+          if (noOfResults < 0) {
             throw new IllegalArgumentException(
-                "Illegal number of results requested for top/rare: must return at least one"
-                    + " result");
+                "Illegal number of results requested for top/rare: must be non-negative");
           }
           break;
         case COUNT_FIELD:
