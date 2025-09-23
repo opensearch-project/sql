@@ -128,9 +128,12 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       // TODO: handle the case where condition contains a score function
       newScan.pushDownContext.add(
           queryExpression.getScriptCount() > 0 ? PushDownType.SCRIPT : PushDownType.FILTER,
-          queryExpression.isPartial()
-              ? constructCondition(queryExpression.getAnalyzedNodes(), getCluster().getRexBuilder())
-              : filter.getCondition(),
+          new FilterDigest(
+              queryExpression.getScriptCount(),
+              queryExpression.isPartial()
+                  ? constructCondition(
+                      queryExpression.getAnalyzedNodes(), getCluster().getRexBuilder())
+                  : filter.getCondition()),
           (OSRequestBuilderAction)
               requestBuilder -> requestBuilder.pushDownFilter(queryExpression.builder()));
 
@@ -295,7 +298,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
           new AggPushDownAction(
               aggregationBuilder,
               extendedTypeMapping,
-              outputFields.subList(0, aggregate.getGroupSet().length()));
+              outputFields.subList(0, aggregate.getGroupSet().cardinality()));
       newScan.pushDownContext.add(PushDownType.AGGREGATION, aggregate, action);
       return newScan;
     } catch (Exception e) {

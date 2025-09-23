@@ -255,9 +255,9 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryToString("source=events | timechart span=1m avg(cpu_usage) by host");
     String expected =
         !isPushdownDisabled()
-            ? loadFromFile("expectedOutput/calcite/explain_timechart.json")
+            ? loadFromFile("expectedOutput/calcite/explain_timechart.yaml")
             : loadFromFile("expectedOutput/calcite/explain_timechart_no_pushdown.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
   @Test
@@ -265,9 +265,9 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryToString("source=events | timechart span=1m count() by host");
     String expected =
         !isPushdownDisabled()
-            ? loadFromFile("expectedOutput/calcite/explain_timechart_count.json")
+            ? loadFromFile("expectedOutput/calcite/explain_timechart_count.yaml")
             : loadFromFile("expectedOutput/calcite/explain_timechart_count_no_pushdown.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
   @Test
@@ -303,8 +303,8 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainBinWithSpan() throws IOException {
-    String expected = loadExpectedPlan("explain_bin_span.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_bin_span.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | bin age span=10 | head 5"));
@@ -330,8 +330,8 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainBinWithAligntime() throws IOException {
-    String expected = loadExpectedPlan("explain_bin_aligntime.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_bin_aligntime.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_time_data | bin @timestamp span=2h aligntime=latest |"
@@ -381,8 +381,8 @@ public class CalciteExplainIT extends ExplainIT {
   // Only for Calcite, as v2 gets unstable serialized string for function
   @Test
   public void testExplainOnAggregationWithSumEnhancement() throws IOException {
-    String expected = loadExpectedPlan("explain_agg_with_sum_enhancement.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_agg_with_sum_enhancement.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             String.format(
@@ -513,16 +513,16 @@ public class CalciteExplainIT extends ExplainIT {
     String query =
         "source=opensearch-sql_test_index_account | regex lastname='^[A-Z][a-z]+$' | head 5";
     var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_regex.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    String expected = loadExpectedPlan("explain_regex.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
   @Test
   public void testRegexNegatedExplain() throws IOException {
     String query = "source=opensearch-sql_test_index_account | regex lastname!='.*son$' | head 5";
     var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_regex_negated.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    String expected = loadExpectedPlan("explain_regex_negated.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
   @Test
@@ -549,8 +549,8 @@ public class CalciteExplainIT extends ExplainIT {
         "source=opensearch-sql_test_index_account | rex field=lastname \\\"(?<initial>^[A-Z])\\\" |"
             + " head 5";
     var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_rex.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    String expected = loadExpectedPlan("explain_rex.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
   @Test
@@ -585,8 +585,8 @@ public class CalciteExplainIT extends ExplainIT {
         expected,
         explainQueryToString("source=opensearch-sql_test_index_account | stats count() by state"));
 
-    expected = loadExpectedPlan("explain_limit_agg_pushdown2.json");
-    assertJsonEqualsIgnoreId(
+    expected = loadExpectedPlan("explain_limit_agg_pushdown2.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | stats count() by state | head 100"));

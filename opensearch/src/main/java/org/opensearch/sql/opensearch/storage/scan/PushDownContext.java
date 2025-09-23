@@ -18,6 +18,7 @@ import lombok.Getter;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelFieldCollation.Direction;
 import org.apache.calcite.rel.RelFieldCollation.NullDirection;
+import org.apache.calcite.rex.RexNode;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.opensearch.search.aggregations.AggregationBuilder;
@@ -124,7 +125,7 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
     return true;
   }
 
-  public void add(PushDownType type, Object digest, AbstractAction<?> action) {
+  void add(PushDownType type, Object digest, AbstractAction<?> action) {
     add(new PushDownOperation(type, digest, action));
   }
 
@@ -178,6 +179,13 @@ interface AggregationBuilderAction extends AbstractAction<AggPushDownAction> {
   }
 }
 
+record FilterDigest(int scriptCount, RexNode condition) {
+  @Override
+  public String toString() {
+    return condition.toString();
+  }
+}
+
 record LimitDigest(int limit, int offset) {
   @Override
   public String toString() {
@@ -190,7 +198,7 @@ class AggPushDownAction implements OSRequestBuilderAction {
 
   private Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder;
   private final Map<String, OpenSearchDataType> extendedTypeMapping;
-  @Getter private final boolean isScriptPushed;
+  @Getter private final long scriptCount;
   // Record the output field names of all buckets as the sequence of buckets
   private List<String> bucketNames;
 
@@ -200,7 +208,8 @@ class AggPushDownAction implements OSRequestBuilderAction {
       List<String> bucketNames) {
     this.aggregationBuilder = aggregationBuilder;
     this.extendedTypeMapping = extendedTypeMapping;
-    this.isScriptPushed = aggregationBuilder.getLeft().stream().anyMatch(this::isScriptAggBuilder);
+    this.scriptCount =
+        aggregationBuilder.getLeft().stream().filter(this::isScriptAggBuilder).count();
     this.bucketNames = bucketNames;
   }
 

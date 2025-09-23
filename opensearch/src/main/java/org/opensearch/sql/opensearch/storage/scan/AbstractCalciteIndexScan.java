@@ -33,7 +33,6 @@ import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.NumberUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -92,58 +91,84 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     return osIndex.getSettings().getSettingValue(Key.QUERY_SIZE_LIMIT);
   }
 
+  /**
+   * Compute the final row count of the scan operator with the given push down operations.
+   *
+   * <p>The calculation logic tries to follow the same logic in Calcite.
+   */
   @Override
   public double estimateRowCount(RelMetadataQuery mq) {
-    /*
-     The impact factor to estimate the row count after push down an operator.
-
-     <p>It will be multiplied to the original estimated row count of the operator, and it's set to
-     less than 1 by default to make the result always less than the row count of operator without
-     push down. As a result, the optimizer will prefer the plan with push down.
-    */
-    double estimateRowCountFactor =
-        osIndex.getSettings().getSettingValue(CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR);
     return pushDownContext.stream()
         .reduce(
             osIndex.getMaxResultWindow().doubleValue(),
-            (rowCount, action) ->
-                switch (action.type()) {
-                      case AGGREGATION -> mq.getRowCount((RelNode) action.digest())
-                          * getAggMultiplier(action);
-                      case PROJECT, SORT -> rowCount;
-                        // Refer the org.apache.calcite.rel.core.Aggregate.estimateRowCount
-                      case COLLAPSE -> rowCount * (1.0 - Math.pow(.5, 1));
-                      case FILTER -> NumberUtil.multiply(
-                          rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest()));
-                      case SCRIPT -> NumberUtil.multiply(
-                              rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest()))
-                          * 1.1;
-                      case LIMIT -> Math.min(rowCount, ((LimitDigest) action.digest()).limit());
-                    }
-                    * estimateRowCountFactor,
-            (a, b) -> null);
-  }
-
-  // @Override
-  public double estimateRowCount2(RelMetadataQuery mq) {
-    return pushDownContext.stream()
-        .reduce(
-            osIndex.getMaxResultWindow().doubleValue(),
-            (rowCount, action) ->
-                switch (action.type()) {
-                  case AGGREGATION -> mq.getRowCount((RelNode) action.digest());
+            (rowCount, operation) ->
+                switch (operation.type()) {
+                  case AGGREGATION -> mq.getRowCount((RelNode) operation.digest());
                   case PROJECT, SORT -> rowCount;
-                    // Refer the org.apache.calcite.rel.core.Aggregate.estimateRowCount
-                  case COLLAPSE -> rowCount * (1.0 - Math.pow(.5, 1));
+                    // Refer the org.apache.calcite.rel.metadata.RelMdRowCount
+                  case COLLAPSE -> rowCount / 10;
                   case FILTER, SCRIPT -> NumberUtil.multiply(
-                      rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest()));
-                  case LIMIT -> Math.min(rowCount, ((LimitDigest) action.digest()).limit());
+                      rowCount,
+                      RelMdUtil.guessSelectivity(((FilterDigest) operation.digest()).condition()));
+                  case LIMIT -> Math.min(rowCount, ((LimitDigest) operation.digest()).limit());
                 },
             (a, b) -> null);
   }
 
-  // @Override
-  public @Nullable RelOptCost computeSelfCost2(RelOptPlanner planner, RelMetadataQuery mq) {
+  /**
+   * Compute the cost of the scan operator with the given push down operations.
+   *
+   * <p>We compute the final cost of the scan operator by accumulating the cost of each push down
+   * operation including aggregation, collapse, sort and script filter, and plus an external cost.
+   * The calculation logic tries to follow the same logic in Calcite.
+   *
+   * <p>While the left operations like project, filter, limit will be ignored in the accumulation
+   * process. But they will also affect the cost of cost-counted operations after them and the final
+   * external cost, which is calculated by `rows count * fields count`.
+   *
+   * <p>In the end, we still need to multiply the total cost by a factor to make the cost cheaper
+   * than non-pushdown operators.
+   */
+  @Override
+  public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+    double dRows = osIndex.getMaxResultWindow().doubleValue(), dCpu = 0.0d;
+    for (PushDownOperation operation : pushDownContext) {
+      switch (operation.type()) {
+        case AGGREGATION -> {
+          dRows = mq.getRowCount((RelNode) operation.digest());
+          dCpu += dRows * getAggMultiplier(operation);
+        }
+          // Ignored Project in cost accumulation, but it will affect the external cost
+        case PROJECT -> {}
+        case SORT -> dCpu += dRows;
+          // Refer the org.apache.calcite.rel.metadata.RelMdRowCount.getRowCount(Aggregate rel,...)
+        case COLLAPSE -> {
+          dRows = dRows / 10;
+          dCpu += dRows;
+        }
+          // Ignore cost the primitive filter but it will affect the rows count.
+        case FILTER -> dRows =
+            NumberUtil.multiply(
+                dRows, RelMdUtil.guessSelectivity(((FilterDigest) operation.digest()).condition()));
+        case SCRIPT -> {
+          FilterDigest filterDigest = (FilterDigest) operation.digest();
+          // Calculate the cost of script filter by multiplying the selectivity of the filter and
+          // the factor amplified by script count.
+          dCpu +=
+              NumberUtil.multiply(
+                  NumberUtil.multiply(dRows, RelMdUtil.guessSelectivity(filterDigest.condition())),
+                  Math.pow(1.1, filterDigest.scriptCount()));
+        }
+          // Ignore cost the LIMIT but it will affect the rows count.
+          // Try to reduce the rows count by 1 to make the cost cheaper slightly than non-push down.
+          // Because we'd like to push down LIMIT even when the fetch in LIMIT is greater than
+          // dRows.
+        case LIMIT -> dRows = Math.min(dRows, ((LimitDigest) operation.digest()).limit()) - 1;
+      }
+      ;
+    }
+    // Add the external cost to introduce the effect from FILTER, LIMIT and PROJECT.
+    dCpu += dRows * getRowType().getFieldList().size();
     /*
      The impact factor to estimate the row count after push down an operator.
 
@@ -153,11 +178,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     */
     double estimateRowCountFactor =
         osIndex.getSettings().getSettingValue(CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR);
-
-    double dRows = mq.getRowCount(this);
-    double dCpu = dRows + 1.0;
-    double dIo = 0.0;
-    return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
+    return planner.getCostFactory().makeCost(dCpu * estimateRowCountFactor, 0, 0);
   }
 
   /** See source in {@link org.apache.calcite.rel.core.Aggregate::computeSelfCost} */
@@ -174,11 +195,9 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     }
     // END CALCITE
 
-    // For script aggregation, we need to multiply the multiplier by 2.2 to make up the cost. As we
+    // For script aggregation, we need to multiply the multiplier by 1.1 to make up the cost. As we
     // prefer to have non-script agg push down after optimized by {@link PPLAggregateConvertRule}
-    if (((AggPushDownAction) operation.action()).isScriptPushed()) {
-      multiplier *= 2.2f;
-    }
+    multiplier *= (float) Math.pow(1.1f, ((AggPushDownAction) operation.action()).getScriptCount());
     return multiplier;
   }
 
