@@ -393,4 +393,32 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
       throw new RuntimeException(e);
     }
   }
+
+  /**
+   * Creates a document with specified ID and JSON field content. This is a shared utility method
+   * for integration tests that need to create test data with JSON content in specific fields.
+   *
+   * @param index the index name where the document will be created
+   * @param id the numeric ID value to include in the document (also used as document ID)
+   * @param fieldName the name of the field that will contain the JSON content
+   * @param jsonContent the JSON content as a string (will be escaped automatically)
+   * @throws IOException if the document creation fails
+   */
+  protected void createDocumentWithIdAndJsonField(
+      String index, int id, String fieldName, String jsonContent) throws IOException {
+    Request request = new Request("PUT", String.format("/%s/_doc/%d?refresh=true", index, id));
+    request.setJsonEntity(
+        String.format("{\"id\": %d, \"%s\": \"%s\"}", id, fieldName, escapeForJson(jsonContent)));
+    client().performRequest(request);
+  }
+
+  protected String escapeForJson(String jsonContent) {
+    return jsonContent.replace("\"", "\\\"");
+  }
+
+  protected void debug(JSONObject result) {
+    System.out.println("=== DEBUG: Query Result ===");
+    System.out.println(result.toString(2));
+    System.out.println("=== END DEBUG ===");
+  }
 }

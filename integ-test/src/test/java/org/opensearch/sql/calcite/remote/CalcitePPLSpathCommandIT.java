@@ -37,18 +37,11 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
 
   private void createDynamicColumnsTestData() throws IOException {
     createDocumentWithIdAndJsonData(
-        TEST_INDEX_DYNAMIC_COLUMNS,
-        "1",
-        1,
-        "{\"name\": \"John\", \"age\": 30, \"city\": \"New York\"}");
+        TEST_INDEX_DYNAMIC_COLUMNS, 1, "{\"name\": \"John\", \"age\": 30, \"city\": \"New York\"}");
+    createDocumentWithIdAndJsonData(
+        TEST_INDEX_DYNAMIC_COLUMNS, 2, "{\"name\": \"Jane\", \"age\": 25, \"country\": \"USA\"}");
     createDocumentWithIdAndJsonData(
         TEST_INDEX_DYNAMIC_COLUMNS,
-        "2",
-        2,
-        "{\"name\": \"Jane\", \"age\": 25, \"country\": \"USA\"}");
-    createDocumentWithIdAndJsonData(
-        TEST_INDEX_DYNAMIC_COLUMNS,
-        "3",
         3,
         "{\"product\": \"laptop\", \"price\": 999.99, \"brand\": \"Dell\"}");
   }
@@ -56,21 +49,18 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
   private void createComplexJsonTestData() throws IOException {
     createDocumentWithIdAndJsonField(
         TEST_INDEX_COMPLEX_JSON,
-        "1",
         1,
         "data",
         "{\"user\": {\"name\": \"Alice\", \"profile\": {\"age\": 28, \"location\": \"Seattle\"}},"
             + " \"preferences\": [\"music\", \"travel\"]}");
     createDocumentWithIdAndJsonField(
         TEST_INDEX_COMPLEX_JSON,
-        "2",
         2,
         "data",
         "{\"user\": {\"name\": \"Bob\", \"profile\": {\"age\": 35, \"location\": \"Portland\"}},"
             + " \"settings\": {\"theme\": \"dark\", \"notifications\": true}}");
     createDocumentWithIdAndJsonField(
         TEST_INDEX_COMPLEX_JSON,
-        "3",
         3,
         "data",
         "{\"user\": {\"name\": \"James\", \"profile\": {\"age\": 40, \"location\": \"Kirkland\"}},"
@@ -97,18 +87,9 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
         "{\"city\": \"Boston\", \"country\": \"USA\"}");
   }
 
-  private void createDocumentWithIdAndJsonData(
-      String index, String docId, int id, String jsonContent) throws IOException {
-    createDocumentWithIdAndJsonField(index, docId, id, "json_data", jsonContent);
-  }
-
-  private void createDocumentWithIdAndJsonField(
-      String index, String docId, int id, String fieldName, String jsonContent) throws IOException {
-    Request request = new Request("PUT", String.format("/%s/_doc/%s?refresh=true", index, docId));
-    String escapedJson = jsonContent.replace("\"", "\\\"");
-    request.setJsonEntity(
-        String.format("{\"id\": %d, \"%s\": \"%s\"}", id, fieldName, escapedJson));
-    client().performRequest(request);
+  private void createDocumentWithIdAndJsonData(String index, int id, String jsonContent)
+      throws IOException {
+    createDocumentWithIdAndJsonField(index, id, "json_data", jsonContent);
   }
 
   private void createDocumentWithMultipleJsonFields(
@@ -128,13 +109,6 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
             "{\"id\": %d, \"%s\": \"%s\", \"%s\": \"%s\"}",
             id, field1Name, escapedJson1, field2Name, escapedJson2));
     client().performRequest(request);
-  }
-
-  /** Debug helper method to print query results. */
-  private void debug(JSONObject result) {
-    System.out.println("=== DEBUG: Actual query result ===");
-    System.out.println(result.toString(2));
-    System.out.println("=== END DEBUG ===");
   }
 
   @Test
@@ -547,7 +521,7 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
 
     debug(result);
     verifySchema(result, schema("id", "bigint"), schema("preferences{}", "string"));
-    verifyDataRows(result, rows(1L, "[music, travel]"));
+    verifyDataRows(result, rows(1L, "[\"music\",\"travel\"]"));
   }
 
   @Test
@@ -565,6 +539,6 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
         schema("id", "bigint"),
         schema("nested{}.a", "string"),
         schema("nested{}.arr{}", "string"));
-    verifyDataRows(result, rows(3L, "[v1, v2]", "[1, 2, 3, 4, 5]"));
+    verifyDataRows(result, rows(3L, "[\"v1\",\"v2\"]", "[\"1\",\"2\",\"3\",\"4\",\"5\"]"));
   }
 }

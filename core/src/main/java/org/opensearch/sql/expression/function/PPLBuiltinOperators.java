@@ -124,6 +124,14 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator MAP_GET =
       new org.opensearch.sql.expression.function.mapUDF.MapGetFunctionImpl().toUDF("MAP_GET");
 
+  // Dynamic wildcard functions
+  public static final SqlOperator DYNAMIC_WILDCARD_EXPAND =
+      new org.opensearch.sql.expression.function.dynamicWildcard.DynamicWildcardExpandFunction()
+          .toUDF("DYNAMIC_WILDCARD_EXPAND");
+  public static final SqlOperator DYNAMIC_WILDCARD_EXCLUDE =
+      new org.opensearch.sql.expression.function.dynamicWildcard.DynamicWildcardExcludeFunction()
+          .toUDF("DYNAMIC_WILDCARD_EXCLUDE");
+
   // Math functions
   public static final SqlOperator SPAN = new SpanFunction().toUDF("SPAN");
   public static final SqlOperator E = new EulerFunction().toUDF("E");

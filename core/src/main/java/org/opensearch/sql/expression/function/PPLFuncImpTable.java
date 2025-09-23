@@ -58,6 +58,8 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DEGREES;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDEFUNCTION;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DYNAMIC_WILDCARD_EXCLUDE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DYNAMIC_WILDCARD_EXPAND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.E;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EARLIEST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EQUAL;
@@ -871,6 +873,10 @@ public class PPLFuncImpTable {
       // Register Map functions
       registerOperator(MAP_GET, PPLBuiltinOperators.MAP_GET);
       registerOperator(MAP_MERGE, PPLBuiltinOperators.MAP_MERGE);
+
+      // Register Dynamic Wildcard functions
+      registerOperator(DYNAMIC_WILDCARD_EXPAND, PPLBuiltinOperators.DYNAMIC_WILDCARD_EXPAND);
+      registerOperator(DYNAMIC_WILDCARD_EXCLUDE, PPLBuiltinOperators.DYNAMIC_WILDCARD_EXCLUDE);
 
       // Register operators with a different type checker
 

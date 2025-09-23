@@ -132,6 +132,7 @@ import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.BinUtils;
 import org.opensearch.sql.calcite.utils.DynamicColumnProcessor;
 import org.opensearch.sql.calcite.utils.DynamicColumnReferenceDetector;
+import org.opensearch.sql.calcite.utils.DynamicWildcardProcessor;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -340,8 +341,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           expandProjectFields(node.getProjectList(), currentFields, context);
 
       if (node.isExcluded()) {
-        validateExclusion(expandedFields, currentFields);
-        context.relBuilder.projectExcept(expandedFields);
+        // Handle exclusion patterns with dynamic wildcard support
+        List<RexNode> fieldsToExclude =
+            DynamicWildcardProcessor.handleExclusionWildcards(
+                node.getProjectList(), currentFields, context);
+        validateExclusion(fieldsToExclude, currentFields);
+        context.relBuilder.projectExcept(fieldsToExclude);
       } else {
         if (!context.isResolvingSubquery()) {
           context.setProjectVisited(true);
@@ -375,48 +380,20 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       List<UnresolvedExpression> projectList,
       List<String> currentFields,
       CalcitePlanContext context) {
-    List<RexNode> expandedFields = new ArrayList<>();
-    Set<String> addedFields = new HashSet<>();
 
     System.out.println("=== DEBUG expandProjectFields ===");
     System.out.println("Project list: " + projectList);
     System.out.println("Current fields: " + currentFields);
 
-    for (UnresolvedExpression expr : projectList) {
-      switch (expr) {
-        case Field field -> {
-          String fieldName = field.getField().toString();
-          System.out.println("Processing field: " + fieldName);
-
-          if (WildcardUtils.containsWildcard(fieldName)) {
-            List<String> matchingFields =
-                WildcardUtils.expandWildcardPattern(fieldName, currentFields).stream()
-                    .filter(f -> !isMetadataField(f))
-                    .filter(addedFields::add)
-                    .toList();
-            if (matchingFields.isEmpty()) {
-              continue;
-            }
-            matchingFields.forEach(f -> expandedFields.add(context.relBuilder.field(f)));
-          } else if (addedFields.add(fieldName)) {
-            RexNode analyzedField = rexVisitor.analyze(field, context);
-            System.out.println("Analyzed field " + fieldName + " -> " + analyzedField);
-            expandedFields.add(analyzedField);
-          }
-        }
-        case AllFields ignored -> {
-          currentFields.stream()
-              .filter(field -> !isMetadataField(field))
-              .filter(addedFields::add)
-              .forEach(field -> expandedFields.add(context.relBuilder.field(field)));
-        }
-        default -> throw new IllegalStateException(
-            "Unexpected expression type in project list: " + expr.getClass().getSimpleName());
-      }
-    }
+    // Use DynamicWildcardProcessor for enhanced wildcard handling with dynamic columns
+    List<RexNode> expandedFields =
+        DynamicWildcardProcessor.expandWildcardFields(projectList, currentFields, context);
 
     if (expandedFields.isEmpty()) {
-      validateWildcardPatterns(projectList, currentFields);
+      boolean hasDynamicColumns =
+          currentFields.contains(DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD);
+      DynamicWildcardProcessor.validateWildcardPatterns(
+          projectList, currentFields, hasDynamicColumns);
     }
 
     return expandedFields;
