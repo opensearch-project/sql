@@ -44,7 +44,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.script.Script;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.AggregatorFactories.Builder;
@@ -64,6 +63,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
+import org.opensearch.sql.opensearch.request.PredicateAnalyzer.ScriptQueryExpression;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
@@ -179,7 +179,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     @Getter private boolean isScriptProjectPushed = false;
 
     @Getter @Setter
-    private Map<String, Triple<RexNode, RelDataType, Script>> derivedScriptsByName =
+    private Map<String, Triple<RexNode, RelDataType, ScriptQueryExpression>> derivedScriptsByName =
         new HashMap<>();
 
     @Override
@@ -275,6 +275,13 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     return newContext;
   }
 
+  /**
+   * Create a new {@link PushDownContext} without the project actions. Since new project will override
+   * the old project, there is no need to keep multiple projects in digested plan.
+   *
+   * @param pushDownContext The original push-down context.
+   * @return A new push-down context without the project actions.
+   */
   protected PushDownContext cloneWithoutProject(PushDownContext pushDownContext) {
     PushDownContext newContext = new PushDownContext();
     for (PushDownAction action : pushDownContext) {
@@ -307,7 +314,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
         String outputCollationName = collationNames.get(i);
         RelFieldCollation collation = collations.get(i);
         if (this.getPushDownContext().getDerivedScriptsByName().containsKey(outputCollationName)) {
-          Triple<RexNode, RelDataType, Script> derivedScriptInfo =
+          Triple<RexNode, RelDataType, ScriptQueryExpression> derivedScriptInfo =
               this.getPushDownContext().getDerivedScriptsByName().get(outputCollationName);
           RexNode targetExpr = derivedScriptInfo.getLeft();
           Optional<Pair<Integer, Boolean>> equalOrderInfo =

@@ -554,9 +554,8 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testScriptProjectPushDownWithMultipleProjectPush() throws IOException {
-    String expected =
-        loadExpectedPlan("explain_script_project_push_with_filter_on_pushed_field.json");
+  public void testScriptProjectMultiplePush() throws IOException {
+    String expected = loadExpectedPlan("explain_script_project_multiple_push.json");
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
@@ -564,7 +563,7 @@ public class CalciteExplainIT extends ExplainIT {
                 + "| eval age2 = age + 2"
                 + "| where age2 > 20"
                 + "| eval upper_name = upper(firstname)"
-                + "| where upper_name = \\\"JOHN\\\""
+                + "| where firstname = \\\"John\\\""
                 + "| rex field=lastname \\\"(?<initial>^[A-Z])\\\""
                 + "| fields age2, upper_name, initial, lastname"));
   }

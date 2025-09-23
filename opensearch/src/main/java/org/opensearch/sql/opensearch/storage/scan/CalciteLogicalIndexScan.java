@@ -39,7 +39,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.script.Script;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.common.setting.Settings;
@@ -56,6 +55,7 @@ import org.opensearch.sql.opensearch.request.PredicateAnalyzer.ScriptQueryExpres
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.scan.SelectedColumn.Kind;
+import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
 
 /** The logical relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
@@ -220,16 +220,12 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     final List<String> newPhysicalNames = new ArrayList<>();
     final List<String> derivedNames = new ArrayList<>();
     final List<String> derivedTypes = new ArrayList<>();
-    final List<Triple<RexNode, RelDataType, Script>> derivedScripts = new ArrayList<>();
-    final Map<String, Triple<RexNode, RelDataType, Script>> previousDerivedScriptsByName =
-        this.getPushDownContext().getDerivedScriptsByName();
+    final List<Triple<RexNode, RelDataType, ScriptQueryExpression>> derivedScripts =
+        new ArrayList<>();
+    final Map<String, Triple<RexNode, RelDataType, ScriptQueryExpression>>
+        previousDerivedScriptsByName = this.getPushDownContext().getDerivedScriptsByName();
     // selected physical columns used for reindex sort collations
     final List<Integer> selectedColumns = new ArrayList<>();
-    // TODO: Consider minimizing the input rowType for the derived field RexNode
-    final Map<String, ExprType> fieldTypes =
-        this.osIndex.getFieldTypes().entrySet().stream()
-            .filter(entry -> this.schema.getFieldNames().contains(entry.getKey()))
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
     for (SelectedColumn item : selected) {
       switch (item.getKind()) {
@@ -238,7 +234,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
             RelDataTypeField field = scanFields.get(item.getOldIdx());
             builder.add(field);
             String fieldName = field.getName();
-            if (item.getKind() == Kind.PHYSICAL) {
+            if (this.getPushDownContext().isAggregatePushed() || item.getKind() == Kind.PHYSICAL) {
               newPhysicalNames.add(fieldName);
             } else {
               derivedNames.add(fieldName);
@@ -258,22 +254,23 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
             RelDataTypeField outputField = projFields.get(item.getProjIdx());
             builder.add(alias, outputField.getType());
 
-            Script script =
+            Pair<RexNode, RelDataType> remappedRexInfo =
+                OpenSearchRelOptUtil.getRemappedRexAndType(
+                    project.getProjects().get(item.getProjIdx()), project.getInput().getRowType());
+            RexNode reMappedRex = remappedRexInfo.getLeft();
+            RelDataType reMappedRowType = remappedRexInfo.getRight();
+            Map<String, ExprType> fieldTypes =
+                this.osIndex.getFieldTypes().entrySet().stream()
+                    .filter(entry -> reMappedRowType.getFieldNames().contains(entry.getKey()))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            ScriptQueryExpression script =
                 new ScriptQueryExpression(
-                        project.getProjects().get(item.getProjIdx()),
-                        project.getInput().getRowType(),
-                        fieldTypes,
-                        this.getCluster())
-                    .getScript();
+                    reMappedRex, reMappedRowType, fieldTypes, this.getCluster());
             derivedNames.add(alias);
             derivedTypes.add(
                 OpenSearchTypeFactory.convertRelDataTypeToSupportedDerivedFieldType(
                     outputField.getType()));
-            derivedScripts.add(
-                Triple.of(
-                    project.getProjects().get(item.getProjIdx()),
-                    project.getInput().getRowType(),
-                    script));
+            derivedScripts.add(Triple.of(reMappedRex, reMappedRowType, script));
           }
           break;
       }
@@ -327,7 +324,9 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
                   requestBuilder.pushDownScriptProjects(
                       derivedNames,
                       derivedTypes,
-                      derivedScripts.stream().map(Triple::getRight).collect(Collectors.toList()))));
+                      derivedScripts.stream()
+                          .map(scriptExpr -> scriptExpr.getRight().getScript())
+                          .collect(Collectors.toList()))));
       // For handling idempotency of next round of pushDownProject, we record which derived names
       // are already generated
       newScan.pushDownContext.setDerivedScriptsByName(
