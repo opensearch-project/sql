@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NULL_MISSING;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -22,6 +23,7 @@ public class CalcitePPLEvalMaxMinFunctionIT extends PPLIntegTestCase {
     enableCalcite();
 
     loadIndex(Index.DOG);
+    loadIndex(Index.NULL_MISSING);
   }
 
   @Test
@@ -90,5 +92,46 @@ public class CalcitePPLEvalMaxMinFunctionIT extends PPLIntegTestCase {
     verifySchema(
         result, schema("holdersName", "string"), schema("age", "bigint"), schema("new", "bigint"));
     verifyDataRows(result, rows(2, "Daenerys", 2), rows(4, "Hattie", 4));
+  }
+
+  @Test
+  public void testEvalMaxIgnoresNulls() throws Exception {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval new = max(`int`, 3) | fields `int`, new",
+                TEST_INDEX_NULL_MISSING));
+    verifySchema(result, schema("int", "int"), schema("new", "int"));
+    verifyDataRows(
+        result,
+        rows(42, 42),
+        rows(null, 3),
+        rows(null, 3),
+        rows(null, 3),
+        rows(null, 3),
+        rows(null, 3),
+        rows(null, 3),
+        rows(null, 3),
+        rows(null, 3));
+  }
+
+  @Test
+  public void testEvalMinIgnoresNulls() throws Exception {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval new = min(dbl, 5) | fields dbl, new", TEST_INDEX_NULL_MISSING));
+    verifySchema(result, schema("dbl", "double"), schema("new", "double"));
+    verifyDataRows(
+        result,
+        rows(3.1415, 3.1415),
+        rows(null, 5),
+        rows(null, 5),
+        rows(null, 5),
+        rows(null, 5),
+        rows(null, 5),
+        rows(null, 5),
+        rows(null, 5),
+        rows(null, 5));
   }
 }
