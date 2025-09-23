@@ -11,6 +11,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TELEMETRY;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -41,6 +42,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     loadIndex(Index.DATE_FORMATS);
     loadIndex(Index.DATA_TYPE_NUMERIC);
     loadIndex(Index.LOGS);
+    loadIndex(Index.TELEMETRY);
     loadIndex(Index.TIME_TEST_DATA);
   }
 
@@ -1245,5 +1247,55 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
                 "source=%s | stats count() by age | sort -age | head 3", TEST_INDEX_BANK));
     verifySchema(response, schema("count()", "bigint"), schema("age", "int"));
     verifyDataRows(response, rows(1, 39), rows(2, 36), rows(1, 34));
+  }
+
+  @Test
+  public void testFirstLastWithSimpleField() throws IOException {
+    // This should work - testing simple field first
+    JSONObject actual =
+        executeQuery(
+            String.format("source=%s | stats first(severityNumber)", TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("first(severityNumber)", "int"));
+    verifyDataRows(actual, rows(9));
+  }
+
+  @Test
+  public void testFirstLastWithDeepNestedField() throws IOException {
+    // This test should now work with the fix for ClassCastException
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(`resource.attributes.telemetry.sdk.language`)",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("first(`resource.attributes.telemetry.sdk.language`)", "string"));
+    verifyDataRows(actual, rows("java"));
+  }
+
+  @Test
+  public void testLastWithDeepNestedField() throws IOException {
+    // This test should now work with the fix for ClassCastException
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats last(`resource.attributes.telemetry.sdk.language`)",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("last(`resource.attributes.telemetry.sdk.language`)", "string"));
+    verifyDataRows(actual, rows("rust"));
+  }
+
+  @Test
+  public void testFirstLastWithDeepNestedFieldByGroup() throws IOException {
+    // This test should now work with the fix for ClassCastException
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(`resource.attributes.telemetry.sdk.language`) by"
+                    + " severityNumber",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(
+        actual,
+        schema("first(`resource.attributes.telemetry.sdk.language`)", "string"),
+        schema("severityNumber", "int"));
+    verifyDataRows(actual, rows("java", 9), rows("python", 12), rows("go", 16));
   }
 }
