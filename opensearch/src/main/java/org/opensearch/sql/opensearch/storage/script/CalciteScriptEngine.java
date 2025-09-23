@@ -30,6 +30,7 @@ package org.opensearch.sql.opensearch.storage.script;
 import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.IP;
 import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
 
 import com.google.common.collect.ImmutableList;
@@ -79,6 +80,8 @@ import org.opensearch.script.FilterScript;
 import org.opensearch.script.ScriptContext;
 import org.opensearch.script.ScriptEngine;
 import org.opensearch.search.lookup.SourceLookup;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -128,8 +131,7 @@ public class CalciteScriptEngine implements ScriptEngine {
     Map<String, ExprType> fieldTypes =
         (Map<String, ExprType>) objectMap.get(RelJsonSerializer.FIELD_TYPES);
 
-    JavaTypeFactoryImpl typeFactory =
-        new JavaTypeFactoryImpl(relJsonSerializer.getCluster().getTypeFactory().getTypeSystem());
+    JavaTypeFactory typeFactory = OpenSearchTypeFactory.TYPE_FACTORY;
     RexToLixTranslator.InputGetter getter = new ScriptInputGetter(typeFactory, rowType, fieldTypes);
     String code =
         CalciteScriptEngine.translate(
@@ -221,6 +223,11 @@ public class CalciteScriptEngine implements ScriptEngine {
           case FLOAT:
             docValue = EnumUtils.convert(docValueExpr, Double.class);
             break;
+        // IP is scanned in as a string but used as ExprIpValue later. We call the constructor
+        // beforehand.
+            case IP:
+                docValue = Expressions.new_(
+                ExprIpValue.class, EnumUtils.convert(docValueExpr, String.class));
           default:
             // fallthrough
         }
