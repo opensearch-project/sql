@@ -112,6 +112,8 @@ DELIM:                              'DELIM';
 CURRENT:                            'CURRENT';
 WINDOW:                             'WINDOW';
 GLOBAL:                             'GLOBAL';
+RESET_BEFORE:                       'RESET_BEFORE';
+RESET_AFTER:                        'RESET_AFTER';
 BUCKET_NULLABLE:                    'BUCKET_NULLABLE';
 CENTROIDS:                          'CENTROIDS';
 ITERATIONS:                         'ITERATIONS';

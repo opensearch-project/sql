@@ -239,7 +239,7 @@ streamstatsCommand
    ;
 
 streamstatsArgs
-   : (currentArg | windowArg | globalArg)*
+   : (currentArg | windowArg | globalArg | resetBeforeArg | resetAfterArg)*
    ;
 
 currentArg
@@ -252,6 +252,14 @@ windowArg
 
 globalArg
    : GLOBAL EQUAL global = booleanLiteral
+   ;
+
+resetBeforeArg
+   : RESET_BEFORE EQUAL logicalExpression
+   ;
+
+resetAfterArg
+   : RESET_AFTER EQUAL logicalExpression
    ;
 
 dedupCommand

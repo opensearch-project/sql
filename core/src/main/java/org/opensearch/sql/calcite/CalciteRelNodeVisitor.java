@@ -1328,10 +1328,143 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitStreamWindow(StreamWindow node, CalcitePlanContext context) {
     visitChildren(node, context);
+
+    List<UnresolvedExpression> groupList = node.getGroupList();
+    boolean hasGroup = groupList != null && !groupList.isEmpty();
+    boolean hasWindow = node.getWindow() > 0;
+
+    // CASE: global=true + window>0 + has group
+    if (node.isGlobal() && hasWindow && hasGroup) {
+      // 1. Add global sequence column for sliding window
+      final String SEQ_COL = "__stream_seq__";
+      RexNode streamSeq =
+          PlanUtils.makeOver(
+              context,
+              BuiltinFunctionName.ROW_NUMBER,
+              null,
+              List.of(),
+              List.of(),
+              List.of(),
+              WindowFrame.toCurrentRow());
+      context.relBuilder.projectPlus(context.relBuilder.alias(streamSeq, SEQ_COL));
+      RelNode leftWithSeq = context.relBuilder.build();
+
+      // 2. Prepare correlation variable
+      final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+      context.relBuilder.push(leftWithSeq);
+      context.relBuilder.variable(v::set);
+
+      // 3. Build right side (same as leftWithSeq) and apply filters
+      context.relBuilder.push(leftWithSeq);
+      RexNode rightSeq = context.relBuilder.field(SEQ_COL);
+      RexNode outerSeq = context.relBuilder.field(v.get(), SEQ_COL);
+      RexNode frameFilter = buildFrameFilter(context, node, outerSeq, rightSeq);
+      RexNode groupFilter = buildGroupFilter(context, groupList, v.get());
+      RexNode finalFilter = context.relBuilder.and(frameFilter, groupFilter);
+      context.relBuilder.filter(finalFilter);
+
+      // 4. Aggregate all window functions on right side
+      List<AggCall> aggCalls =
+          buildAggCallsForWindowFunctions(node.getWindowFunctionList(), context);
+      context.relBuilder.aggregate(context.relBuilder.groupKey(), aggCalls);
+      RelNode rightAgg = context.relBuilder.build();
+
+      // 5. Correlate LEFT with RIGHT using seq + group fields
+      context.relBuilder.push(leftWithSeq);
+      context.relBuilder.push(rightAgg);
+      List<RexNode> requiredLeft = buildRequiredLeft(context, SEQ_COL, groupList);
+      context.relBuilder.correlate(JoinRelType.LEFT, v.get().id, requiredLeft);
+
+      // 6. Cleanup helper column and return
+      context.relBuilder.projectExcept(context.relBuilder.field(SEQ_COL));
+      return context.relBuilder.peek();
+    }
+
+    // Default behavior
     List<RexNode> overExpressions =
         node.getWindowFunctionList().stream().map(w -> rexVisitor.analyze(w, context)).toList();
     context.relBuilder.projectPlus(overExpressions);
     return context.relBuilder.peek();
+  }
+
+  private RexNode buildFrameFilter(
+      CalcitePlanContext context, StreamWindow node, RexNode outerSeq, RexNode rightSeq) {
+    // frame: either [outer-(w-1), outer] or [outer-w, outer-1]
+    if (node.isCurrent()) {
+      RexNode lower =
+          context.relBuilder.call(
+              SqlStdOperatorTable.MINUS,
+              outerSeq,
+              context.relBuilder.literal(node.getWindow() - 1));
+      return context.relBuilder.between(rightSeq, lower, outerSeq);
+    } else {
+      RexNode lower =
+          context.relBuilder.call(
+              SqlStdOperatorTable.MINUS, outerSeq, context.relBuilder.literal(node.getWindow()));
+      RexNode upper =
+          context.relBuilder.call(
+              SqlStdOperatorTable.MINUS, outerSeq, context.relBuilder.literal(1));
+      return context.relBuilder.between(rightSeq, lower, upper);
+    }
+  }
+
+  private RexNode buildGroupFilter(
+      CalcitePlanContext context, List<UnresolvedExpression> groupList, RexCorrelVariable correl) {
+    // build conjunctive equality filters: right.g_i = outer.g_i
+    RexNode groupFilter = null;
+    for (UnresolvedExpression groupExpr : groupList) {
+      String groupName = extractGroupFieldName(groupExpr);
+      RexNode rightGroup = context.relBuilder.field(groupName); // on right side
+      RexNode outerGroup =
+          context.relBuilder.field(correl, groupName); // correlated reference to left
+      RexNode equal = context.relBuilder.equals(rightGroup, outerGroup);
+      groupFilter = (groupFilter == null) ? equal : context.relBuilder.and(groupFilter, equal);
+    }
+    return groupFilter;
+  }
+
+  private String extractGroupFieldName(UnresolvedExpression groupExpr) {
+    if (groupExpr instanceof Alias groupAlias
+        && groupAlias.getDelegated() instanceof Field groupField) {
+      return groupField.getField().toString();
+    } else if (groupExpr instanceof Field groupField) {
+      return groupField.getField().toString();
+    } else {
+      throw new IllegalArgumentException(
+          "Unsupported group expression: only field or alias(field) is supported");
+    }
+  }
+
+  private List<AggCall> buildAggCallsForWindowFunctions(
+      List<UnresolvedExpression> windowExprs, CalcitePlanContext context) {
+    List<AggCall> aggCalls = new ArrayList<>();
+    for (UnresolvedExpression expr : windowExprs) {
+      if (expr instanceof Alias a && a.getDelegated() instanceof WindowFunction wf) {
+        Function func = (Function) wf.getFunction();
+        List<UnresolvedExpression> args = func.getFuncArgs();
+        UnresolvedExpression field = args.isEmpty() ? null : args.get(0);
+        List<UnresolvedExpression> rest =
+            args.size() <= 1 ? List.of() : args.subList(1, args.size());
+        AggregateFunction aggFunc = new AggregateFunction(func.getFuncName(), field, rest);
+        AggCall call = aggVisitor.analyze(new Alias(a.getName(), aggFunc), context);
+        aggCalls.add(call);
+      } else {
+        throw new IllegalArgumentException("Unsupported window function in streamstats");
+      }
+    }
+    return aggCalls;
+  }
+
+  private List<RexNode> buildRequiredLeft(
+      CalcitePlanContext context, String seqCol, List<UnresolvedExpression> groupList) {
+    List<RexNode> requiredLeft = new ArrayList<>();
+    // reference to left seq column
+    requiredLeft.add(context.relBuilder.field(2, 0, seqCol));
+    for (UnresolvedExpression groupExpr : groupList) {
+      String groupName = extractGroupFieldName(groupExpr);
+      requiredLeft.add(context.relBuilder.field(2, 0, groupName));
+    }
+    return requiredLeft;
   }
 
   @Override
