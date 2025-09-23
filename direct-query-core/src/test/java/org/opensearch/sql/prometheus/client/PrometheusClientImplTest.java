@@ -578,4 +578,73 @@ public class PrometheusClientImplTest {
     assertTrue(exception.getMessage().contains("Alertmanager request failed with code: 500"));
     assertTrue(exception.getMessage().contains("No response body"));
   }
+
+  @Test
+  public void testCreateAlertmanagerSilencesSuccess() throws IOException {
+    // Setup
+    String silenceJson = "{\"matchers\":[{\"name\":\"alertname\",\"value\":\"HighCPU\",\"isRegex\":false}],\"startsAt\":\"2023-01-01T00:00:00Z\",\"endsAt\":\"2023-01-02T00:00:00Z\",\"comment\":\"Planned maintenance\",\"createdBy\":\"admin\"}";
+    String expectedResponse = "{\"silenceID\":\"silence-12345\"}";
+    mockWebServer.enqueue(new MockResponse().setBody(expectedResponse).setResponseCode(200));
+
+    // Test
+    String result = client.createAlertmanagerSilences(silenceJson);
+
+    // Verify
+    assertNotNull(result);
+    assertEquals(expectedResponse, result);
+  }
+
+  @Test
+  public void testCreateAlertmanagerSilencesHttpError() {
+    // Setup
+    String silenceJson = "{\"matchers\":[{\"name\":\"alertname\",\"value\":\"HighCPU\",\"isRegex\":false}],\"startsAt\":\"2023-01-01T00:00:00Z\",\"endsAt\":\"2023-01-02T00:00:00Z\",\"comment\":\"Planned maintenance\",\"createdBy\":\"admin\"}";
+    mockWebServer.enqueue(new MockResponse().setResponseCode(400).setBody("Bad Request: Invalid silence format"));
+
+    // Test & Verify
+    PrometheusClientException exception =
+        assertThrows(
+            PrometheusClientException.class,
+            () -> client.createAlertmanagerSilences(silenceJson));
+    assertTrue(exception.getMessage().contains("Alertmanager request failed with code: 400"));
+    assertTrue(exception.getMessage().contains("Bad Request: Invalid silence format"));
+  }
+
+  @Test
+  public void testCreateAlertmanagerSilencesHttpErrorWithNullBody() throws IOException {
+    // Setup - Create a mock response with null body
+    Request dummyRequest = new Request.Builder().url(mockWebServer.url("/")).build();
+    Response nullBodyResponse =
+        new Response.Builder()
+            .request(dummyRequest)
+            .protocol(Protocol.HTTP_1_1)
+            .code(400)
+            .message("Bad Request")
+            .body(null)
+            .build();
+
+    // Create spy client that returns our custom response
+    OkHttpClient spyClient = spy(new OkHttpClient());
+    Call mockCall = mock(Call.class);
+    when(mockCall.execute()).thenReturn(nullBodyResponse);
+    doAnswer(invocation -> mockCall).when(spyClient).newCall(any(Request.class));
+
+    // Create client with our spy
+    PrometheusClientImpl nullBodyClient =
+        new PrometheusClientImpl(
+            new OkHttpClient(),
+            URI.create(String.format("http://%s:%s", "localhost", mockWebServer.getPort())),
+            spyClient,
+            URI.create(
+                String.format("http://%s:%s/alertmanager", "localhost", mockWebServer.getPort())));
+
+    String silenceJson = "{\"matchers\":[{\"name\":\"alertname\",\"value\":\"HighCPU\",\"isRegex\":false}]}";
+
+    // Test & Verify
+    PrometheusClientException exception =
+        assertThrows(
+            PrometheusClientException.class,
+            () -> nullBodyClient.createAlertmanagerSilences(silenceJson));
+    assertTrue(exception.getMessage().contains("Alertmanager request failed with code: 400"));
+    assertTrue(exception.getMessage().contains("No response body"));
+  }
 }

@@ -99,4 +99,12 @@ public interface PrometheusClient extends DataSourceClient {
    * @throws IOException If there is an issue with the request
    */
   JSONArray getAlertmanagerSilences() throws IOException;
+
+  /**
+   * Creates a silence in Alertmanager.
+   *
+   * @return String containing the create silence response
+   * @throws IOException If there is an issue with the request
+   */
+  String createAlertmanagerSilences(String silenceJson) throws IOException;
 }

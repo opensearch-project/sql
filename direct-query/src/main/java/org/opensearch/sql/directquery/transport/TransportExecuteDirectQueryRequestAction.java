@@ -28,7 +28,7 @@ public class TransportExecuteDirectQueryRequestAction
 
   private final DirectQueryExecutorService directQueryExecutorService;
 
-  public static final String NAME = "indices:data/read/direct_query";
+  public static final String NAME = "cluster:admin/opensearch/direct_query/read/query";
   public static final ActionType<ExecuteDirectQueryActionResponse> ACTION_TYPE =
       new ActionType<>(NAME, ExecuteDirectQueryActionResponse::new);
 

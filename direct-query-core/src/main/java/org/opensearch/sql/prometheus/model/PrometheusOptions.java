@@ -9,12 +9,15 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.opensearch.sql.directquery.model.DataSourceOptions;
 
-/** Prometheus-specific options for direct queries. */
+/**
+ *
+ * @opensearch.experimental
+ *
+ * Prometheus-specific options for direct queries.
+ *
+ */
 @Data
 @NoArgsConstructor
-/*
- * @opensearch.experimental
- */
 public class PrometheusOptions implements DataSourceOptions {
   private PrometheusQueryType queryType;
   private String step; // Duration string in seconds

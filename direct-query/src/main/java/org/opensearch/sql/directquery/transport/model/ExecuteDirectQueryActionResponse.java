@@ -20,10 +20,10 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.sql.directquery.transport.model.datasource.DataSourceResult;
 import org.opensearch.sql.directquery.transport.model.datasource.PrometheusResult;
 
-@RequiredArgsConstructor
 /*
  * @opensearch.experimental
  */
+@RequiredArgsConstructor
 public class ExecuteDirectQueryActionResponse extends ActionResponse {
 
   private static final ObjectMapper OBJECT_MAPPER =

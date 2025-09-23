@@ -19,12 +19,14 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.opensearch.sql.prometheus.exception.PrometheusClientException;
 import org.opensearch.sql.prometheus.model.MetricMetadata;
 
 /*
@@ -281,11 +283,37 @@ public class PrometheusClientImpl implements PrometheusClient {
     String baseUrl = alertmanagerUri.toString().replaceAll("/$", "");
     String queryUrl = String.format("%s/api/v2/silences", baseUrl);
 
-    logger.debug("Making Alertmanager silences request: {}", queryUrl);
+    logger.debug("Making Get Alertmanager silences request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
     Response response = this.alertmanagerHttpClient.newCall(request).execute();
 
     return readAlertmanagerResponse(response);
+  }
+
+  @Override
+  public String createAlertmanagerSilences(String silenceJson) throws IOException {
+    String baseUrl = alertmanagerUri.toString().replaceAll("/$", "");
+    String queryUrl = String.format("%s/api/v2/silences", baseUrl);
+
+    logger.debug("Making Create Alertmanager silences request: {}", queryUrl);
+    Request request = new Request.Builder()
+            .url(queryUrl)
+            .header("Content-Type", "application/json")
+            .post(RequestBody.create(silenceJson.getBytes(StandardCharsets.UTF_8)))
+            .build();
+    Response response = this.alertmanagerHttpClient.newCall(request).execute();
+
+    if (response.isSuccessful()) {
+      return Objects.requireNonNull(response.body()).string();
+    } else {
+      String errorBody = response.body() != null ? response.body().string() : "No response body";
+      logger.error(
+              "create Alertmanager Silence request failed with code: {}, error body: {}", response.code(), errorBody);
+      throw new PrometheusClientException(
+              String.format(
+                      "Alertmanager request failed with code: %s. Error details: %s",
+                      response.code(), errorBody));
+    }
   }
 
   /**
@@ -306,7 +334,7 @@ public class PrometheusClientImpl implements PrometheusClient {
       String errorBody = response.body() != null ? response.body().string() : "No response body";
       logger.error(
           "Alertmanager request failed with code: {}, error body: {}", response.code(), errorBody);
-      throw new org.opensearch.sql.prometheus.exception.PrometheusClientException(
+      throw new PrometheusClientException(
           String.format(
               "Alertmanager request failed with code: %s. Error details: %s",
               response.code(), errorBody));
@@ -354,7 +382,7 @@ public class PrometheusClientImpl implements PrometheusClient {
         jsonObject = new JSONObject(bodyString);
       } catch (JSONException jsonException) {
         logger.error("Failed to parse Prometheus response as JSON", jsonException);
-        throw new org.opensearch.sql.prometheus.exception.PrometheusClientException(
+        throw new PrometheusClientException(
             "Prometheus returned unexpected body, "
                 + "please verify your prometheus server setup.");
       }
@@ -367,13 +395,13 @@ public class PrometheusClientImpl implements PrometheusClient {
       } else {
         String errorMessage = jsonObject.getString("error");
         logger.error("Prometheus returned error status: {}", errorMessage);
-        throw new org.opensearch.sql.prometheus.exception.PrometheusClientException(errorMessage);
+        throw new PrometheusClientException(errorMessage);
       }
     } else {
       String errorBody = response.body() != null ? response.body().string() : "No response body";
       logger.error(
           "Prometheus request failed with code: {}, error body: {}", response.code(), errorBody);
-      throw new org.opensearch.sql.prometheus.exception.PrometheusClientException(
+      throw new PrometheusClientException(
           String.format(
               "Request to Prometheus is Unsuccessful with code: %s. Error details: %s",
               response.code(), errorBody));

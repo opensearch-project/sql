@@ -14,8 +14,12 @@ import org.opensearch.sql.directquery.DirectQueryExecutorService;
 import org.opensearch.sql.directquery.DirectQueryExecutorServiceImpl;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesResponse;
+import org.opensearch.sql.directquery.rest.model.WriteDirectQueryResourcesRequest;
+import org.opensearch.sql.directquery.rest.model.WriteDirectQueryResourcesResponse;
 import org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesActionRequest;
 import org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesActionResponse;
+import org.opensearch.sql.directquery.transport.model.WriteDirectQueryResourcesActionRequest;
+import org.opensearch.sql.directquery.transport.model.WriteDirectQueryResourcesActionResponse;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
@@ -23,44 +27,44 @@ import org.opensearch.transport.TransportService;
 /*
  * @opensearch.experimental
  */
-public class TransportGetDirectQueryResourcesRequestAction
+public class TransportWriteDirectQueryResourcesRequestAction
     extends HandledTransportAction<
-        GetDirectQueryResourcesActionRequest, GetDirectQueryResourcesActionResponse> {
+        WriteDirectQueryResourcesActionRequest, WriteDirectQueryResourcesActionResponse> {
 
   private final DirectQueryExecutorService directQueryExecutorService;
 
-  public static final String NAME = "cluster:admin/opensearch/direct_query/read/resources";
-  public static final ActionType<GetDirectQueryResourcesActionResponse> ACTION_TYPE =
-      new ActionType<>(NAME, GetDirectQueryResourcesActionResponse::new);
+  public static final String NAME = "cluster:admin/opensearch/direct_query/write/resources";
+  public static final ActionType<WriteDirectQueryResourcesActionResponse> ACTION_TYPE =
+      new ActionType<>(NAME, WriteDirectQueryResourcesActionResponse::new);
 
   @Inject
-  public TransportGetDirectQueryResourcesRequestAction(
+  public TransportWriteDirectQueryResourcesRequestAction(
       TransportService transportService,
       ActionFilters actionFilters,
       DirectQueryExecutorServiceImpl directQueryExecutorService) {
-    super(NAME, transportService, actionFilters, GetDirectQueryResourcesActionRequest::new);
+    super(NAME, transportService, actionFilters, WriteDirectQueryResourcesActionRequest::new);
     this.directQueryExecutorService = (DirectQueryExecutorService) directQueryExecutorService;
   }
 
   @Override
   protected void doExecute(
       Task task,
-      GetDirectQueryResourcesActionRequest request,
-      ActionListener<GetDirectQueryResourcesActionResponse> listener) {
+      WriteDirectQueryResourcesActionRequest request,
+      ActionListener<WriteDirectQueryResourcesActionResponse> listener) {
     try {
-      GetDirectQueryResourcesRequest directQueryRequest = request.getDirectQueryRequest();
+      WriteDirectQueryResourcesRequest directQueryRequest = request.getDirectQueryRequest();
 
-      GetDirectQueryResourcesResponse response =
-          directQueryExecutorService.getDirectQueryResources(directQueryRequest);
+      WriteDirectQueryResourcesResponse response =
+          directQueryExecutorService.writeDirectQueryResources(directQueryRequest);
       String responseContent =
-          new JsonResponseFormatter<GetDirectQueryResourcesResponse>(
+          new JsonResponseFormatter<WriteDirectQueryResourcesResponse>(
               JsonResponseFormatter.Style.PRETTY) {
             @Override
-            protected Object buildJsonObject(GetDirectQueryResourcesResponse response) {
+            protected Object buildJsonObject(WriteDirectQueryResourcesResponse response) {
               return response;
             }
           }.format(response);
-      listener.onResponse(new GetDirectQueryResourcesActionResponse(responseContent));
+      listener.onResponse(new WriteDirectQueryResourcesActionResponse(responseContent));
     } catch (Exception e) {
       listener.onFailure(e);
     }

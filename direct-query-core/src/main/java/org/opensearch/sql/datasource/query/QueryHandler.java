@@ -11,6 +11,8 @@ import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.directquery.rest.model.ExecuteDirectQueryRequest;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesResponse;
+import org.opensearch.sql.directquery.rest.model.WriteDirectQueryResourcesRequest;
+import org.opensearch.sql.directquery.rest.model.WriteDirectQueryResourcesResponse;
 
 /**
  * Interface for handling queries for specific data source types.
@@ -48,6 +50,17 @@ public interface QueryHandler<T extends DataSourceClient> {
    */
   GetDirectQueryResourcesResponse<?> getResources(T client, GetDirectQueryResourcesRequest request)
       throws IOException;
+
+  /**
+   * Writes resources to the data source.
+   *
+   * @param client The client instance to use
+   * @param request The resources request
+   * @return Response containing the requested resources
+   * @throws IOException If resource retrieval fails
+   */
+  WriteDirectQueryResourcesResponse<?> writeResources(T client, WriteDirectQueryResourcesRequest request)
+          throws IOException;
 
   /**
    * Checks if this handler can handle the given client type.
