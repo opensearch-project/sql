@@ -1218,6 +1218,26 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testStatsGroupByDate() throws IOException {
+    JSONObject resonse =
+        executeQuery(
+            String.format(
+                "source=%s | eval t = date_add(birthdate, interval 1 day) | stats count() by"
+                    + " span(t, 1d)",
+                TEST_INDEX_BANK));
+    verifySchema(resonse, schema("count()", "bigint"), schema("span(t,1d)", "timestamp"));
+    verifyDataRows(
+        resonse,
+        rows(1, "2017-10-24 00:00:00"),
+        rows(1, "2017-11-21 00:00:00"),
+        rows(1, "2018-06-24 00:00:00"),
+        rows(1, "2018-06-28 00:00:00"),
+        rows(1, "2018-08-12 00:00:00"),
+        rows(1, "2018-08-20 00:00:00"),
+        rows(1, "2018-11-14 00:00:00"));
+  }
+
+  @Test
   public void testLimitAfterAggregation() throws IOException {
     JSONObject response =
         executeQuery(

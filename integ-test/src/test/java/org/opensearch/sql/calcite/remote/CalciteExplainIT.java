@@ -705,5 +705,13 @@ public class CalciteExplainIT extends ExplainIT {
                 "source=%s | eval t = unix_timestamp(birthdate) | stats count() by t | sort t |"
                     + " head 3",
                 TEST_INDEX_BANK)));
+
+    assertJsonEqualsIgnoreId(
+        loadExpectedPlan("explain_agg_script_udt_arg_push.json"),
+        explainQueryToString(
+            String.format(
+                "source=%s | eval t = date_add(birthdate, interval 1 day) | stats count() by"
+                    + " span(t, 1d)",
+                TEST_INDEX_BANK)));
   }
 }

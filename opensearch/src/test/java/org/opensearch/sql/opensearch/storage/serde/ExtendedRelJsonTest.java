@@ -7,18 +7,42 @@ package org.opensearch.sql.opensearch.storage.serde;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.mockito.Mockito.mock;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.fun.SqlLibrary;
+import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.util.JsonBuilder;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
 public class ExtendedRelJsonTest {
-  private final ExtendedRelJson relJson = ExtendedRelJson.create(new JsonBuilder());
+  private static final SqlOperatorTable pplSqlOperatorTable =
+      SqlOperatorTables.chain(
+          PPLBuiltinOperators.instance(),
+          SqlStdOperatorTable.instance(),
+          // Add a list of necessary SqlLibrary if needed
+          SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+              SqlLibrary.MYSQL, SqlLibrary.BIG_QUERY, SqlLibrary.SPARK, SqlLibrary.POSTGRESQL));
+  private final ExtendedRelJson relJson =
+      (ExtendedRelJson)
+          ExtendedRelJson.create(new JsonBuilder())
+              .withInputTranslator(new OpenSearchRelInputTranslator(mock(RelDataType.class)))
+              .withOperatorTable(pplSqlOperatorTable);
   private final OpenSearchTypeFactory typeFactory = OpenSearchTypeFactory.TYPE_FACTORY;
 
   @Test
@@ -321,5 +345,83 @@ public class ExtendedRelJsonTest {
     assertEquals(
         typeFactory.createUDT(OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP),
         deserialized.getComponentType().getValueType());
+  }
+
+  @Test
+  void testSerializeAndDeserializeRexCallWithUDT() {
+    // Create a cluster for building RexNodes
+    VolcanoPlanner planner = new VolcanoPlanner();
+    RelOptCluster cluster = RelOptCluster.create(planner, new RexBuilder(typeFactory));
+    RexBuilder rexBuilder = cluster.getRexBuilder();
+    ExtendedRelJson relJson =
+        (ExtendedRelJson)
+            this.relJson.withInputTranslator(
+                new OpenSearchRelInputTranslator(mock(RelDataType.class)));
+
+    // Create UDT types for operands
+    RelDataType timestampType = typeFactory.createUDT(OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP);
+    RelDataType dateType = typeFactory.createUDT(OpenSearchTypeFactory.ExprUDT.EXPR_DATE);
+
+    // Create RexNodes with UDT types - using literal values
+    RexNode timestamp =
+        rexBuilder.makeCall(
+            timestampType,
+            PPLBuiltinOperators.TIMESTAMP,
+            List.of(rexBuilder.makeLiteral("2023-01-01 12:00:00")));
+    RexNode date =
+        rexBuilder.makeCall(
+            dateType, PPLBuiltinOperators.DATE, List.of(rexBuilder.makeLiteral("2023-01-01")));
+
+    // Create a RexCall using PLUS operator (as an example operation between UDTs)
+    RexCall rexCall =
+        (RexCall)
+            cluster
+                .getRexBuilder()
+                .makeCall(
+                    timestampType, // result type
+                    PPLBuiltinOperators.DATE_ADD,
+                    java.util.Arrays.asList(timestamp, date));
+
+    // Serialize the RexCall
+    Object serializedRexCall = relJson.toJson(rexCall);
+
+    // Verify the serialized structure contains basic call information
+    assertInstanceOf(Map.class, serializedRexCall);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> serializedMap = (Map<String, Object>) serializedRexCall;
+
+    // Check that it's a call operation
+    assertInstanceOf(Map.class, serializedMap.get("op"));
+    @SuppressWarnings("unchecked")
+    Map<String, Object> opMap = (Map<String, Object>) serializedMap.get("op");
+    assertEquals("DATE_ADD", opMap.get("name"));
+
+    // Check that operands exist
+    assertInstanceOf(java.util.List.class, serializedMap.get("operands"));
+    @SuppressWarnings("unchecked")
+    java.util.List<Object> operands = (java.util.List<Object>) serializedMap.get("operands");
+    assertEquals(2, operands.size());
+
+    // Verify operands are literal structures
+    assertInstanceOf(Map.class, operands.get(0));
+    assertInstanceOf(Map.class, operands.get(1));
+
+    // Most importantly, test that deserialization works and preserves UDT types
+    RexNode deserializedRexCall = relJson.toRex(cluster, serializedRexCall);
+
+    // Verify the deserialized RexCall
+    assertInstanceOf(RexCall.class, deserializedRexCall);
+    RexCall deserializedCall = (RexCall) deserializedRexCall;
+
+    // Check operator is preserved
+    assertEquals(PPLBuiltinOperators.DATE_ADD, deserializedCall.getOperator());
+
+    // Check operand count is preserved
+    assertEquals(2, deserializedCall.getOperands().size());
+
+    // Most importantly: Check that UDT type information is preserved through round-trip
+    assertEquals(timestampType, deserializedCall.getType());
+    assertEquals(timestampType, deserializedCall.getOperands().get(0).getType());
+    assertEquals(dateType, deserializedCall.getOperands().get(1).getType());
   }
 }
