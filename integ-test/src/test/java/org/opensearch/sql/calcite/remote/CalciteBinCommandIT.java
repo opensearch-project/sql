@@ -200,8 +200,6 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  @Ignore
-  // https://github.com/opensearch-project/sql/issues/4063
   public void testBinWithTimestampAggregation() throws IOException {
     // Test bin operation with fields only - no aggregation
     JSONObject result =

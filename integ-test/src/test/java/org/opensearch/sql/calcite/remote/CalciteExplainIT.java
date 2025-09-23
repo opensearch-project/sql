@@ -9,6 +9,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STRINGS;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 import static org.opensearch.sql.util.MatcherUtils.assertYamlEqualsJsonIgnoreId;
 
@@ -685,5 +686,32 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_strftime_function.json");
     assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  // Script generation is not stable in v2
+  @Test
+  public void testExplainPushDownScriptsContainingUDT() throws IOException {
+    assertJsonEqualsIgnoreId(
+        loadExpectedPlan("explain_filter_script_ip_push.json"),
+        explainQueryToString(
+            String.format(
+                "source=%s | where cidrmatch(host, '0.0.0.0/24') | fields host",
+                TEST_INDEX_WEBLOGS)));
+
+    assertJsonEqualsIgnoreId(
+        loadExpectedPlan("explain_agg_script_timestamp_push.json"),
+        explainQueryToString(
+            String.format(
+                "source=%s | eval t = unix_timestamp(birthdate) | stats count() by t | sort t |"
+                    + " head 3",
+                TEST_INDEX_BANK)));
+
+    assertJsonEqualsIgnoreId(
+        loadExpectedPlan("explain_agg_script_udt_arg_push.json"),
+        explainQueryToString(
+            String.format(
+                "source=%s | eval t = date_add(birthdate, interval 1 day) | stats count() by"
+                    + " span(t, 1d)",
+                TEST_INDEX_BANK)));
   }
 }
