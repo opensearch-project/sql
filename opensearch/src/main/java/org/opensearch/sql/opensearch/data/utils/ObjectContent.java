@@ -56,7 +56,37 @@ public class ObjectContent implements Content {
 
   @Override
   public String stringValue() {
+    if (value instanceof Map) {
+      // Handle nested field Maps by recursively extracting the final primitive value
+      @SuppressWarnings("unchecked")
+      Map<String, Object> map = (Map<String, Object>) value;
+      Object finalValue = extractFinalPrimitiveValue(map);
+      if (finalValue != null && !(finalValue instanceof Map)) {
+        return finalValue.toString();
+      }
+      // Fallback to map string representation if we can't extract a primitive
+      return map.toString();
+    }
     return (String) value;
+  }
+
+  /**
+   * Recursively extracts the final primitive value from nested Map structures. For example:
+   * {attributes={telemetry={sdk={language=java}}}} -> "java"
+   */
+  @SuppressWarnings("unchecked")
+  private Object extractFinalPrimitiveValue(Object value) {
+    if (value == null || !(value instanceof Map)) {
+      return value;
+    }
+
+    Map<String, Object> map = (Map<String, Object>) value;
+    if (map.size() == 1) {
+      Object singleValue = map.values().iterator().next();
+      return extractFinalPrimitiveValue(singleValue);
+    }
+
+    return value;
   }
 
   @Override

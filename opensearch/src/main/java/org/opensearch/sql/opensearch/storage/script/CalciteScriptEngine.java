@@ -275,67 +275,7 @@ public class CalciteScriptEngine implements ScriptEngine {
     }
 
     public Object getFromSource(String name) {
-      Object rawValue = this.sourceLookup.get(name);
-      return extractNestedFieldValue(rawValue, name);
-    }
-
-    /**
-     * Extracts the actual value from nested field structures. Handles cases where
-     * sourceLookup.get() returns a HashMap for nested fields like
-     * "resource.attributes.telemetry.sdk.language" instead of the final String value.
-     */
-    private Object extractNestedFieldValue(Object value, String fieldName) {
-      if (value == null) {
-        return null;
-      }
-
-      // If it's already a primitive type, return as-is
-      if (!(value instanceof Map)) {
-        return value;
-      }
-
-      // For nested field paths, try to drill down to extract the final value
-      if (fieldName.contains(".")) {
-        return drillDownNestedPath(value, fieldName);
-      }
-
-      // For Map objects that aren't nested paths, try to extract meaningful values
-      @SuppressWarnings("unchecked")
-      Map<String, Object> map = (Map<String, Object>) value;
-
-      // If it's a single-value map, extract the value
-      if (map.size() == 1) {
-        Object singleValue = map.values().iterator().next();
-        // Recursively extract in case of nested maps
-        return extractNestedFieldValue(singleValue, fieldName);
-      }
-
-      // For multi-value maps or other cases, return the original value
-      // The downstream processing will handle it appropriately
-      return value;
-    }
-
-    /**
-     * Attempts to drill down into nested field paths to extract the final value. For example, for
-     * "resource.attributes.telemetry.sdk.language", it will navigate through the nested Maps to
-     * find the final String value.
-     */
-    @SuppressWarnings("unchecked")
-    private Object drillDownNestedPath(Object value, String fieldPath) {
-      String[] pathParts = fieldPath.split("\\.");
-      Object current = value;
-
-      for (String part : pathParts) {
-        if (current == null || !(current instanceof Map)) {
-          // Path doesn't exist or we can't drill down further
-          return null;
-        }
-
-        Map<String, Object> currentMap = (Map<String, Object>) current;
-        current = currentMap.get(part);
-      }
-
-      return current;
+      return this.sourceLookup.get(name);
     }
   }
 
