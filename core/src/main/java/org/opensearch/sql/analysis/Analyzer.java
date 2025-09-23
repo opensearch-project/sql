@@ -95,6 +95,7 @@ import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.ast.tree.args.RareTopNArguments;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -376,10 +377,10 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     fields.forEach(
         field -> newEnv.define(new Symbol(Namespace.FIELD_NAME, field.toString()), field.type()));
 
-    List<Argument> options = node.getArguments();
-    Integer noOfResults = (Integer) options.get(0).getValue().getValue();
+    RareTopNArguments options = node.getArguments();
 
-    return new LogicalRareTopN(child, node.getCommandType(), noOfResults, fields, groupBys);
+    return new LogicalRareTopN(
+        child, node.getCommandType(), options.getNoOfResults(), fields, groupBys);
   }
 
   /**

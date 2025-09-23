@@ -126,6 +126,8 @@ ANOMALY_SCORE_THRESHOLD:            'ANOMALY_SCORE_THRESHOLD';
 APPEND:                             'APPEND';
 COUNTFIELD:                         'COUNTFIELD';
 SHOWCOUNT:                          'SHOWCOUNT';
+SHOWPERC:                           'SHOWPERC';
+PERCENTFIELD:                       'PERCENTFIELD';
 LIMIT:                              'LIMIT';
 USEOTHER:                           'USEOTHER';
 INPUT:                              'INPUT';

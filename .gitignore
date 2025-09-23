@@ -56,3 +56,7 @@ http-client.env.json
 .claude
 .clinerules
 memory-bank
+
+# uv environment config (helps with IDE plugins depending on Python)
+pyproject.toml
+uv.lock
