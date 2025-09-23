@@ -365,7 +365,7 @@ public class PrometheusQueryHandlerTest {
     String errorMessage = "Prometheus server error";
     when(prometheusClient.query(eq("up"), eq(1609459200L), eq(null), eq(null)))
         .thenThrow(
-            new org.opensearch.sql.prometheus.exception.PrometheusClientException(errorMessage));
+            new PrometheusClientException(errorMessage));
 
     // Test
     String result = handler.executeQuery(prometheusClient, request);

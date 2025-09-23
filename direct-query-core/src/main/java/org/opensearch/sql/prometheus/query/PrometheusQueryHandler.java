@@ -187,7 +187,7 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
                 }
               } catch (IOException e) {
                 LOG.error("Error getting resources", e);
-                throw new org.opensearch.sql.prometheus.exception.PrometheusClientException(
+                throw new PrometheusClientException(
                     String.format(
                         "Error while getting resources for %s: %s",
                         request.getResourceType(), e.getMessage()));
@@ -217,7 +217,7 @@ public class PrometheusQueryHandler implements QueryHandler<PrometheusClient> {
                     }
                   } catch (IOException e) {
                     LOG.error("Error getting resources", e);
-                    throw new org.opensearch.sql.prometheus.exception.PrometheusClientException(
+                    throw new PrometheusClientException(
                             String.format(
                                     "Error while getting resources for %s: %s",
                                     request.getResourceType(), e.getMessage()));

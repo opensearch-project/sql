@@ -29,7 +29,7 @@ public class TransportGetDirectQueryResourcesRequestAction
 
   private final DirectQueryExecutorService directQueryExecutorService;
 
-  public static final String NAME = "indices:data/read/direct_query_resources";
+  public static final String NAME = "cluster:admin/opensearch/direct_query/read/resources";
   public static final ActionType<GetDirectQueryResourcesActionResponse> ACTION_TYPE =
       new ActionType<>(NAME, GetDirectQueryResourcesActionResponse::new);
 

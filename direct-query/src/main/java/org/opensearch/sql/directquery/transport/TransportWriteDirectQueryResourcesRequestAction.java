@@ -33,7 +33,7 @@ public class TransportWriteDirectQueryResourcesRequestAction
 
   private final DirectQueryExecutorService directQueryExecutorService;
 
-  public static final String NAME = "indices:data/write/direct_query_resources";
+  public static final String NAME = "cluster:admin/opensearch/direct_query/write/resources";
   public static final ActionType<WriteDirectQueryResourcesActionResponse> ACTION_TYPE =
       new ActionType<>(NAME, WriteDirectQueryResourcesActionResponse::new);
 
