@@ -33,7 +33,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -1714,189 +1713,112 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitMultisearch(Multisearch node, CalcitePlanContext context) {
-    List<RelNode> subsearchNodes = processSubsearches(node, context);
-    validateSubsearches(subsearchNodes);
-
-    // Handle single subsearch case
-    if (subsearchNodes.size() == 1) {
-      return handleSingleSubsearch(subsearchNodes.get(0), context);
-    }
-
-    // Handle multiple subsearches with schema unification
-    return handleMultipleSubsearches(subsearchNodes, context);
-  }
-
-  private List<RelNode> processSubsearches(Multisearch node, CalcitePlanContext context) {
+    // Process each subsearch using existing visit logic
     List<RelNode> subsearchNodes = new ArrayList<>();
-
     for (UnresolvedPlan subsearch : node.getSubsearches()) {
       UnresolvedPlan prunedSubSearch = subsearch.accept(new EmptySourcePropagateVisitor(), null);
       prunedSubSearch.accept(this, context);
       subsearchNodes.add(context.relBuilder.build());
     }
 
-    return subsearchNodes;
-  }
-
-  private void validateSubsearches(List<RelNode> subsearchNodes) {
-    if (subsearchNodes.isEmpty()) {
-      throw new IllegalArgumentException("Multisearch requires at least one subsearch");
+    if (subsearchNodes.size() == 1) {
+      context.relBuilder.push(subsearchNodes.get(0));
+      return context.relBuilder.peek();
     }
-  }
 
-  private RelNode handleSingleSubsearch(RelNode subsearchNode, CalcitePlanContext context) {
-    context.relBuilder.push(subsearchNode);
+    // Align schemas for union compatibility
+    List<RelNode> alignedNodes = alignSchemasForUnion(subsearchNodes, context);
+
+    // Create union
+    context.relBuilder.push(alignedNodes.get(0));
+    for (int i = 1; i < alignedNodes.size(); i++) {
+      context.relBuilder.push(alignedNodes.get(i));
+    }
+    context.relBuilder.union(true, alignedNodes.size());
+
+    // Add timestamp ordering if timestamp field exists
+    RelDataType rowType = context.relBuilder.peek().getRowType();
+    String timestampField = findTimestampField(rowType);
+    if (timestampField != null) {
+      RelDataTypeField timestampFieldRef = rowType.getField(timestampField, false, false);
+      if (timestampFieldRef != null) {
+        RexNode timestampRef =
+            context.rexBuilder.makeInputRef(
+                context.relBuilder.peek(), timestampFieldRef.getIndex());
+        context.relBuilder.sort(context.relBuilder.desc(timestampRef));
+      }
+    }
+
     return context.relBuilder.peek();
   }
 
-  private RelNode handleMultipleSubsearches(
+  private List<RelNode> alignSchemasForUnion(
       List<RelNode> subsearchNodes, CalcitePlanContext context) {
-    Map<String, RelDataType> unifiedFieldTypes = createUnifiedSchema(subsearchNodes);
-    List<RelNode> projectedNodes =
-        projectToUnifiedSchema(subsearchNodes, unifiedFieldTypes, context);
-    RelNode unionResult = createUnion(projectedNodes, context);
-    return addTimestampOrdering(unionResult, context);
-  }
+    // Collect all unique field names in order of first appearance
+    Set<String> allFieldNames = new java.util.LinkedHashSet<>();
+    for (RelNode node : subsearchNodes) {
+      for (RelDataTypeField field : node.getRowType().getFieldList()) {
+        allFieldNames.add(field.getName());
+      }
+    }
 
-  private Map<String, RelDataType> createUnifiedSchema(List<RelNode> subsearchNodes) {
-    Map<String, RelDataType> unifiedFieldTypes = new LinkedHashMap<>();
+    List<String> fieldOrder = new ArrayList<>(allFieldNames);
+    List<RelNode> alignedNodes = new ArrayList<>();
 
-    for (RelNode relNode : subsearchNodes) {
-      for (RelDataTypeField field : relNode.getRowType().getFieldList()) {
-        String fieldName = field.getName();
-        RelDataType fieldType = field.getType();
-        if (!unifiedFieldTypes.containsKey(fieldName)) {
-          unifiedFieldTypes.put(fieldName, fieldType);
+    // Project each node to have the same field order and missing fields as NULL
+    for (RelNode node : subsearchNodes) {
+      Map<String, Integer> fieldMap = new HashMap<>();
+      List<RelDataTypeField> nodeFields = node.getRowType().getFieldList();
+      for (int i = 0; i < nodeFields.size(); i++) {
+        fieldMap.put(nodeFields.get(i).getName(), i);
+      }
+
+      List<RexNode> projections = new ArrayList<>();
+      for (String fieldName : fieldOrder) {
+        if (fieldMap.containsKey(fieldName)) {
+          projections.add(context.rexBuilder.makeInputRef(node, fieldMap.get(fieldName)));
+        } else {
+          // Find the type from another node that has this field
+          RelDataType fieldType = findFieldTypeInNodes(fieldName, subsearchNodes);
+          projections.add(context.rexBuilder.makeNullLiteral(fieldType));
         }
       }
+
+      RelNode aligned = context.relBuilder.push(node).project(projections, fieldOrder).build();
+      alignedNodes.add(aligned);
     }
 
-    return unifiedFieldTypes;
+    return alignedNodes;
   }
 
-  private List<RelNode> projectToUnifiedSchema(
-      List<RelNode> subsearchNodes,
-      Map<String, RelDataType> unifiedFieldTypes,
-      CalcitePlanContext context) {
-    List<String> unifiedFieldNames = new ArrayList<>(unifiedFieldTypes.keySet());
-    List<RelNode> projectedNodes = new ArrayList<>();
-
-    for (RelNode relNode : subsearchNodes) {
-      List<RexNode> projections =
-          createProjections(relNode, unifiedFieldNames, unifiedFieldTypes, context);
-      RelNode projectedNode =
-          context.relBuilder.push(relNode).project(projections, unifiedFieldNames).build();
-      projectedNodes.add(projectedNode);
-    }
-
-    return projectedNodes;
-  }
-
-  private List<RexNode> createProjections(
-      RelNode relNode,
-      List<String> unifiedFieldNames,
-      Map<String, RelDataType> unifiedFieldTypes,
-      CalcitePlanContext context) {
-    List<RexNode> projections = new ArrayList<>();
-    Map<String, Integer> nodeFieldMap = createFieldIndexMap(relNode);
-
-    for (String unifiedFieldName : unifiedFieldNames) {
-      if (nodeFieldMap.containsKey(unifiedFieldName)) {
-        int fieldIndex = nodeFieldMap.get(unifiedFieldName);
-        projections.add(context.rexBuilder.makeInputRef(relNode, fieldIndex));
-      } else {
-        RelDataType fieldType = unifiedFieldTypes.get(unifiedFieldName);
-        projections.add(context.rexBuilder.makeNullLiteral(fieldType));
+  private RelDataType findFieldTypeInNodes(String fieldName, List<RelNode> nodes) {
+    for (RelNode node : nodes) {
+      RelDataTypeField field = node.getRowType().getField(fieldName, false, false);
+      if (field != null) {
+        return field.getType();
       }
     }
-
-    return projections;
-  }
-
-  private Map<String, Integer> createFieldIndexMap(RelNode relNode) {
-    Map<String, Integer> nodeFieldMap = new HashMap<>();
-    List<RelDataTypeField> nodeFields = relNode.getRowType().getFieldList();
-
-    for (int i = 0; i < nodeFields.size(); i++) {
-      nodeFieldMap.put(nodeFields.get(i).getName(), i);
-    }
-
-    return nodeFieldMap;
-  }
-
-  private RelNode createUnion(List<RelNode> projectedNodes, CalcitePlanContext context) {
-    context.relBuilder.push(projectedNodes.get(0));
-    for (int i = 1; i < projectedNodes.size(); i++) {
-      context.relBuilder.push(projectedNodes.get(i));
-    }
-    context.relBuilder.union(true, projectedNodes.size());
-    return context.relBuilder.peek();
-  }
-
-  private RelNode addTimestampOrdering(RelNode unionResult, CalcitePlanContext context) {
-    String timestampField = findTimestampField(unionResult.getRowType());
-    if (timestampField != null) {
-      addTimestampSort(unionResult, timestampField, context);
-    }
-    return context.relBuilder.peek();
-  }
-
-  private void addTimestampSort(
-      RelNode unionResult, String timestampField, CalcitePlanContext context) {
-    RelDataTypeField timestampFieldRef =
-        unionResult.getRowType().getField(timestampField, false, false);
-    if (timestampFieldRef != null) {
-      RexNode timestampRef =
-          context.rexBuilder.makeInputRef(unionResult, timestampFieldRef.getIndex());
-      context.relBuilder.sort(context.relBuilder.desc(timestampRef));
-    }
+    // Fallback to VARCHAR if not found (shouldn't happen in practice)
+    return nodes.get(0).getCluster().getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
   }
 
   /**
-   * Finds the timestamp field in the row type for multisearch ordering. Looks for common timestamp
-   * field names used in OpenSearch/Splunk.
+   * Finds the timestamp field for multisearch ordering.
    *
    * @param rowType The row type to search for timestamp fields
    * @return The name of the timestamp field, or null if not found
    */
   private String findTimestampField(RelDataType rowType) {
-    // Common timestamp field names in order of preference
-    String[] timestampFieldNames = {
-      "_time", // SPL standard timestamp field
-      "@timestamp", // OpenSearch/Elasticsearch standard timestamp field
-      "timestamp", // Common generic timestamp field
-      "time", // Common generic time field
-      "_timestamp" // Alternative timestamp field
-    };
+    // Look for common timestamp field names
+    String[] timestampFieldNames = {"_time", "@timestamp", "timestamp", "time"};
 
     for (String fieldName : timestampFieldNames) {
       RelDataTypeField field = rowType.getField(fieldName, false, false);
       if (field != null) {
-        // Verify it's a proper timestamp/date/time type
-        SqlTypeName typeName = field.getType().getSqlTypeName();
-        if (typeName == SqlTypeName.TIMESTAMP
-            || typeName == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
-            || typeName == SqlTypeName.DATE
-            || typeName == SqlTypeName.TIME
-            || typeName == SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE) {
-          return fieldName;
-        }
+        return fieldName;
       }
     }
-
-    // If no proper timestamp field found, check for string fields that might contain timestamps
-    // This is more conservative - only applies to commonly used timestamp field names
-    for (String fieldName : new String[] {"_time", "@timestamp"}) {
-      RelDataTypeField field = rowType.getField(fieldName, false, false);
-      if (field != null) {
-        SqlTypeName typeName = field.getType().getSqlTypeName();
-        if (typeName == SqlTypeName.VARCHAR || typeName == SqlTypeName.CHAR) {
-          return fieldName;
-        }
-      }
-    }
-
-    return null; // No timestamp field found
+    return null;
   }
 
   /*
