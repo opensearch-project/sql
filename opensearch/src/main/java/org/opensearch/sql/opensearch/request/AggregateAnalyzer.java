@@ -24,6 +24,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.opensearch.sql.opensearch.request;
 
 import static java.util.Objects.requireNonNull;
@@ -69,8 +70,10 @@ import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
 import org.opensearch.sql.opensearch.response.agg.ArgMaxMinParser;
 import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
@@ -127,6 +130,7 @@ public class AggregateAnalyzer {
     final RelDataType rowType;
     final Map<String, ExprType> fieldTypes;
     final RelOptCluster cluster;
+    final boolean bucketNullable;
 
     <T extends ValuesSourceAggregationBuilder<T>> T build(RexNode node, T aggBuilder) {
       return build(node, aggBuilder::field, aggBuilder::script);
@@ -186,7 +190,8 @@ public class AggregateAnalyzer {
                   .findFirst()
                   .orElseGet(() -> "true"));
       List<Integer> groupList = aggregate.getGroupSet().asList();
-      AggregateBuilderHelper helper = new AggregateBuilderHelper(rowType, fieldTypes, cluster);
+      AggregateBuilderHelper helper =
+          new AggregateBuilderHelper(rowType, fieldTypes, cluster, bucketNullable);
       List<String> aggFieldNames = outputFields.subList(groupList.size(), outputFields.size());
       // Process all aggregate calls
       Pair<Builder, List<MetricParser>> builderAndParser =
@@ -298,12 +303,46 @@ public class AggregateAnalyzer {
           helper.build(
               !args.isEmpty() ? args.getFirst() : null, AggregationBuilders.count(aggFieldName)),
           new SingleValueParser(aggFieldName));
-      case MIN -> Pair.of(
-          helper.build(args.getFirst(), AggregationBuilders.min(aggFieldName)),
-          new SingleValueParser(aggFieldName));
-      case MAX -> Pair.of(
-          helper.build(args.getFirst(), AggregationBuilders.max(aggFieldName)),
-          new SingleValueParser(aggFieldName));
+      case MIN -> {
+        String fieldName = helper.inferNamedField(args.getFirst()).getRootName();
+        ExprType fieldType = helper.fieldTypes.get(fieldName);
+
+        if (supportsMaxMinAggregation(fieldType)) {
+          yield Pair.of(
+              helper.build(args.getFirst(), AggregationBuilders.min(aggFieldName)),
+              new SingleValueParser(aggFieldName));
+        } else {
+          yield Pair.of(
+              AggregationBuilders.topHits(aggFieldName)
+                  .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
+                  .size(1)
+                  .from(0)
+                  .sort(
+                      helper.inferNamedField(args.getFirst()).getReferenceForTermQuery(),
+                      SortOrder.ASC),
+              new TopHitsParser(aggFieldName, true));
+        }
+      }
+      case MAX -> {
+        String fieldName = helper.inferNamedField(args.getFirst()).getRootName();
+        ExprType fieldType = helper.fieldTypes.get(fieldName);
+
+        if (supportsMaxMinAggregation(fieldType)) {
+          yield Pair.of(
+              helper.build(args.getFirst(), AggregationBuilders.max(aggFieldName)),
+              new SingleValueParser(aggFieldName));
+        } else {
+          yield Pair.of(
+              AggregationBuilders.topHits(aggFieldName)
+                  .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
+                  .size(1)
+                  .from(0)
+                  .sort(
+                      helper.inferNamedField(args.getFirst()).getReferenceForTermQuery(),
+                      SortOrder.DESC),
+              new TopHitsParser(aggFieldName, true));
+        }
+      }
       case VAR_SAMP -> Pair.of(
           helper.build(args.getFirst(), AggregationBuilders.extendedStats(aggFieldName)),
           new StatsParser(ExtendedStats::getVarianceSampling, aggFieldName));
@@ -383,6 +422,18 @@ public class AggregateAnalyzer {
     };
   }
 
+  private static boolean supportsMaxMinAggregation(ExprType fieldType) {
+    ExprType coreType =
+        (fieldType instanceof OpenSearchDataType)
+            ? ((OpenSearchDataType) fieldType).getExprType()
+            : fieldType;
+
+    return ExprCoreType.numberTypes().contains(coreType)
+        || coreType == ExprCoreType.DATE
+        || coreType == ExprCoreType.TIME
+        || coreType == ExprCoreType.TIMESTAMP;
+  }
+
   private static ValuesSourceAggregationBuilder<?> createBucketAggregation(
       Integer group, Project project, AggregateAnalyzer.AggregateBuilderHelper helper) {
     return createBucket(group, project, helper);
@@ -433,7 +484,8 @@ public class AggregateAnalyzer {
           helper.inferNamedField(rexInputRef).getRootName(),
           valueLiteral.getValueAs(Double.class),
           SpanUnit.of(unitLiteral.getValueAs(String.class)),
-          MissingOrder.FIRST);
+          MissingOrder.FIRST,
+          helper.bucketNullable);
     } else {
       return createTermsSourceBuilder(bucketName, rex, helper);
     }
@@ -441,13 +493,12 @@ public class AggregateAnalyzer {
 
   private static CompositeValuesSourceBuilder<?> createTermsSourceBuilder(
       String bucketName, RexNode group, AggregateBuilderHelper helper) {
-    CompositeValuesSourceBuilder<?> sourceBuilder =
-        helper.build(
-            group,
-            new TermsValuesSourceBuilder(bucketName)
-                .missingBucket(true)
-                .missingOrder(MissingOrder.FIRST)
-                .order(SortOrder.ASC));
+    TermsValuesSourceBuilder termsBuilder =
+        new TermsValuesSourceBuilder(bucketName).order(SortOrder.ASC);
+    if (helper.bucketNullable) {
+      termsBuilder.missingBucket(true).missingOrder(MissingOrder.FIRST);
+    }
+    CompositeValuesSourceBuilder<?> sourceBuilder = helper.build(group, termsBuilder);
 
     // Time types values are converted to LONG in ExpressionAggregationScript::execute
     if (List.of(TIMESTAMP, TIME, DATE)

@@ -42,6 +42,11 @@ public enum SpanUnit {
     SPAN_UNITS = builder.add(SpanUnit.values()).build();
   }
 
+  /** Util method to check if the unit is time unit. */
+  public static boolean isTimeUnit(SpanUnit unit) {
+    return unit != UNKNOWN && unit != NONE;
+  }
+
   /** Util method to get span unit given the unit name. */
   public static SpanUnit of(String unit) {
     switch (unit) {
