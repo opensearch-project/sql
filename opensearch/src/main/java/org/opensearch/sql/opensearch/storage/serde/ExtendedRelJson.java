@@ -83,7 +83,7 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 /**
  * An extension to {@link RelJson} to allow serialization & deserialization of UDTs
  *
- * <p>It copies a lot of methods from {@link RelJson} because we can not override some private
+ * <p>It replicates a lot of methods from {@link RelJson} because we can not override some private
  * methods and because we cannot create an instance of ExtendedRelJson with the custom values for
  * private final fields not included in public constructors of RelJson. For example, there is no
  * public constructor with inputTranslator and operatorTable. As a result, every method that make
