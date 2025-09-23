@@ -49,6 +49,17 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testScriptProjectPushDownExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_script_project_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| eval age2 = age + 2, upper_name = upper(firstname)"
+                + "| fields age2, upper_name, firstname, lastname"));
+  }
+
+  @Test
   public void testScriptProjectHasLiteralPartialPushDownExplain() throws IOException {
     String expected = loadExpectedPlan("explain_script_project_has_literal_partial_push.json");
     assertJsonEqualsIgnoreId(
@@ -57,6 +68,22 @@ public class ExplainIT extends PPLIntegTestCase {
             "source=opensearch-sql_test_index_account"
                 + "| eval age2 = age + 2, upper_name = upper(firstname), age3 = 3"
                 + "| fields age2, upper_name, gender, lastname, age3"));
+  }
+
+  // TODO: Optimize it with less scripts. For now, filter and two derived fields are all scripts.
+  // We can translate it to two derived script field with filter on the field result. Reduce from
+  // three scripts to two scripts with better cost computing logic
+  @Test
+  public void testScriptProjectPushDownWithFilterOnPushedFieldExplain() throws IOException {
+    String expected =
+        loadExpectedPlan("explain_script_project_push_with_filter_on_pushed_field.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| eval age2 = age + 2, upper_name = upper(firstname)"
+                + "| where age2 > 20"
+                + "| fields age2, upper_name, firstname, lastname"));
   }
 
   @Test

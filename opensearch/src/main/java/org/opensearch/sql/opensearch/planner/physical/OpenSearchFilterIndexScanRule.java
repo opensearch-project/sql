@@ -66,7 +66,7 @@ public class OpenSearchFilterIndexScanRule extends RelRule<OpenSearchFilterIndex
                                         // limit-after-filter DSL.
                                         Predicate.not(OpenSearchIndexScanRule::isLimitPushed)
                                             // TODO: Support partial filter pushdown for script
-                                            // project columns
+                                            // project columns to reduce scripts
                                             // Script filter of derived field input is not supported
                                             .and(
                                                 Predicate.not(

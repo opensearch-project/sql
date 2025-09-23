@@ -275,6 +275,17 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     return newContext;
   }
 
+  protected PushDownContext cloneWithoutProject(PushDownContext pushDownContext) {
+    PushDownContext newContext = new PushDownContext();
+    for (PushDownAction action : pushDownContext) {
+      if (action.type() != PushDownType.PROJECT && action.type() != PushDownType.SCRIPT_PROJECT) {
+        newContext.add(action);
+      }
+    }
+    newContext.setDerivedScriptsByName(new HashMap<>(pushDownContext.derivedScriptsByName));
+    return newContext;
+  }
+
   /**
    * The sort pushdown is not only applied in logical plan side, but also should be applied in
    * physical plan side. Because we could push down the {@link EnumerableSort} of {@link

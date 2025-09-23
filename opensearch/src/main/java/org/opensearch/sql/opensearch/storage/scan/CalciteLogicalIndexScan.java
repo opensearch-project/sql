@@ -302,7 +302,9 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
             table,
             osIndex,
             newSchema,
-            pushDownContext.clone());
+            getPushDownContext().isAggregatePushed()
+                ? pushDownContext.clone()
+                : cloneWithoutProject(pushDownContext));
 
     // For aggregate, we do nothing on query builder but only change the schema of the scan.
     AbstractAction action =

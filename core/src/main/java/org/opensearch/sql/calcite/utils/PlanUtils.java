@@ -26,7 +26,6 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexVisitorImpl;
@@ -409,14 +408,5 @@ public interface PlanUtils {
             .map(Objects::toString)
             .collect(Collectors.joining(","))
         + "]";
-  }
-
-  static boolean containsRexLiteral(LogicalProject project) {
-    return project.getProjects().stream().anyMatch(e -> e instanceof RexLiteral);
-  }
-
-  /** Check if contains pure RexCall */
-  static boolean containsRexCall(LogicalProject project) {
-    return project.getProjects().stream().anyMatch(e -> e instanceof RexCall);
   }
 }

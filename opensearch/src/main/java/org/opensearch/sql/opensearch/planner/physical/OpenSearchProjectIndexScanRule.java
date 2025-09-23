@@ -211,6 +211,7 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
       RexNode node, BitSet derivedIndexSet, CalciteLogicalIndexScan scan) {
     boolean isValidExpr =
         node instanceof RexCall
+            // After aggregation, it's not necessary to pushdown complex expressions on fewer rows
             && !scan.getPushDownContext().isAggregatePushed()
             && !RexOver.containsOver(node)
             && !OpenSearchTypeFactory.findUDTType(node)
