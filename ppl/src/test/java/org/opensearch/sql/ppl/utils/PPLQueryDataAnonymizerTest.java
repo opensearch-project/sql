@@ -562,13 +562,13 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testCaseWhen() {
     assertEquals(
-        "source=table | eval identifier=cast(identifier >= ***,***,identifier >= *** and identifier"
+        "source=table | eval identifier=case(identifier >= ***,***,identifier >= *** and identifier"
             + " < ***,*** else ***) | fields + identifier",
         anonymize(
             "source=t | eval level=CASE(score >= 90, 'A', score >= 80 AND score < 90, 'B' else 'C')"
                 + " | fields level"));
     assertEquals(
-        "source=table | eval identifier=cast(identifier >= ***,***,identifier >= *** and identifier"
+        "source=table | eval identifier=case(identifier >= ***,***,identifier >= *** and identifier"
             + " < ***,***) | fields + identifier",
         anonymize(
             "source=t | eval level=CASE(score >= 90, 'A', score >= 80 AND score < 90, 'B')"

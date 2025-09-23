@@ -831,7 +831,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     @Override
     public String visitCase(Case node, String context) {
       StringBuilder builder = new StringBuilder();
-      builder.append("cast(");
+      builder.append("case(");
       for (When when : node.getWhenClauses()) {
         builder.append(analyze(when.getCondition(), context));
         builder.append(",");
