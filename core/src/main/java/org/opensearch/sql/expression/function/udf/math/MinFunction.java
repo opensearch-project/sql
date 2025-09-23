@@ -26,7 +26,7 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
 public class MinFunction extends ImplementorUDF {
 
   public MinFunction() {
-    super(new MinImplementor(), NullPolicy.ANY);
+    super(new MinImplementor(), NullPolicy.ALL);
   }
 
   @Override

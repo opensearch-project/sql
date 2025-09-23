@@ -26,7 +26,7 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
 public class MaxFunction extends ImplementorUDF {
 
   public MaxFunction() {
-    super(new MaxImplementor(), NullPolicy.ANY);
+    super(new MaxImplementor(), NullPolicy.ALL);
   }
 
   @Override
