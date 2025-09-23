@@ -1298,4 +1298,62 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         schema("severityNumber", "int"));
     verifyDataRows(actual, rows("java", 9), rows("python", 12), rows("go", 16));
   }
+
+  @Test
+  public void testMinWithDeepNestedField() throws IOException {
+    // Test that min() works with deeply nested fields after the ClassCastException fix
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats min(`resource.attributes.telemetry.sdk.language`)",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("min(`resource.attributes.telemetry.sdk.language`)", "string"));
+    verifyDataRows(
+        actual, rows("go")); // Alphabetically first: go < java < javascript < python < rust
+  }
+
+  @Test
+  public void testMaxWithDeepNestedField() throws IOException {
+    // Test that max() works with deeply nested fields after the ClassCastException fix
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats max(`resource.attributes.telemetry.sdk.language`)",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("max(`resource.attributes.telemetry.sdk.language`)", "string"));
+    verifyDataRows(
+        actual, rows("rust")); // Alphabetically last: go < java < javascript < python < rust
+  }
+
+  @Test
+  public void testMinMaxWithDeepNestedFieldByGroup() throws IOException {
+    // Test that min() and max() work with deeply nested fields and grouping
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats min(`resource.attributes.telemetry.sdk.language`) by"
+                    + " severityNumber | sort severityNumber",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(
+        actual,
+        schema("min(`resource.attributes.telemetry.sdk.language`)", "string"),
+        schema("severityNumber", "int"));
+    // severityNumber 9: java, javascript -> min = java
+    // severityNumber 12: python, rust -> min = python
+    // severityNumber 16: go -> min = go
+    verifyDataRows(actual, rows("java", 9), rows("python", 12), rows("go", 16));
+  }
+
+  @Test
+  public void testMinMaxMultipleNestedFields() throws IOException {
+    // Test min/max with multiple nested field aggregations in one query
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats min(`resource.attributes.telemetry.sdk.language`) as min_lang,"
+                    + " max(`resource.attributes.telemetry.sdk.language`) as max_lang",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("min_lang", "string"), schema("max_lang", "string"));
+    verifyDataRows(actual, rows("go", "rust"));
+  }
 }
