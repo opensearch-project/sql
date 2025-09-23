@@ -8,7 +8,6 @@ package org.opensearch.sql.expression.function.jsonUDF;
 import static org.apache.calcite.sql.SqlJsonQueryEmptyOrErrorBehavior.NULL;
 import static org.apache.calcite.sql.SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY;
 import static org.opensearch.sql.calcite.utils.PPLReturnTypes.STRING_FORCE_NULLABLE;
-import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;

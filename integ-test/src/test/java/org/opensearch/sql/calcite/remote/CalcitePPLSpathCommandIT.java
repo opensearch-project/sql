@@ -556,8 +556,8 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
         executeQuery(
             source(
                 TEST_INDEX_COMPLEX_JSON,
-                "spath input=data")); // | where isnotnull(`nested{}.a`) | fields id, `nested{}.a`,
-    // `nested{}.arr{}`"));
+                "spath input=data | where isnotnull(`nested{}.a`) | fields id, `nested{}.a`,"
+                    + " `nested{}.arr{}`"));
 
     debug(result);
     verifySchema(
@@ -565,6 +565,6 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
         schema("id", "bigint"),
         schema("nested{}.a", "string"),
         schema("nested{}.arr{}", "string"));
-    verifyDataRows(result, rows(1L, "[v1, v2]", "[[1, 2, 3], [4, 5]]"));
+    verifyDataRows(result, rows(3L, "[v1, v2]", "[1, 2, 3, 4, 5]"));
   }
 }

@@ -28,10 +28,6 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
  * function retrieves a value from a map using a string key.
  *
  * <p>Usage: MAP_GET(map, key) -> value
- *
- * <p>Examples: - MAP_GET({'name': 'John', 'age': 30}, 'name') -> 'John' - MAP_GET({'name': 'John',
- * 'age': 30}, 'age') -> 30 - MAP_GET({'name': 'John'}, 'missing') -> null - MAP_GET(null, 'key') ->
- * null
  */
 public class MapGetFunctionImpl extends ImplementorUDF {
 
@@ -41,6 +37,7 @@ public class MapGetFunctionImpl extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
+    // Value type is always String for simplicity right now.
     return STRING_FORCE_NULLABLE;
   }
 
@@ -98,7 +95,6 @@ public class MapGetFunctionImpl extends ImplementorUDF {
     Map<String, Object> map = (Map<String, Object>) mapObj;
     String key = (String) keyObj;
 
-    // Return the value for the key, or null if not found
     return map.get(key);
   }
 }

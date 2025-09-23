@@ -185,14 +185,12 @@ public class DynamicColumnProcessor {
       return Map.of();
     }
 
-    // If it's a tuple value, treat it as a map
     if (mapValue instanceof ExprTupleValue) {
       return mapValue.tupleValue();
     }
 
-    // TODO: Handle other MAP representations if needed
-    // For now, return empty map for unsupported types
-    return Map.of();
+    throw new IllegalStateException(
+        "Expected MAP type for dynamic columns field, got: " + mapValue.type());
   }
 
   /**
@@ -207,13 +205,10 @@ public class DynamicColumnProcessor {
       return false;
     }
 
-    // Check if field is not in current schema
     if (currentFields.contains(fieldName)) {
       return false;
     }
 
-    // CRITICAL FIX: Check if _dynamic_columns field exists in current schema
-    // This is more reliable than the flag approach
     boolean hasDynamicColumnsField =
         currentFields.contains(DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD);
 
@@ -226,10 +221,6 @@ public class DynamicColumnProcessor {
   /**
    * Resolves a field as dynamic column access by rewriting it to MAP access. Converts: fieldName ->
    * _dynamic_columns['fieldName']
-   *
-   * <p>CONTEXT-AWARE FIELD RESOLUTION: - For fields command: Apply aliasing to preserve field names
-   * - For GROUP BY context: Apply VARCHAR casting to avoid UNDEFINED type issues - For other
-   * commands: Use direct MAP access preserving original types
    */
   public static RexNode resolveDynamicField(String fieldName, CalcitePlanContext context) {
     System.out.println("=== DEBUG resolveDynamicField === fieldName=" + fieldName);
@@ -237,30 +228,14 @@ public class DynamicColumnProcessor {
     RexNode dynamicColumnsField =
         context.relBuilder.field(DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD);
 
-    // Create MAP access: _dynamic_columns[fieldName]
     RexNode mapAccess =
         MapAccessOperations.mapGet(context.rexBuilder, dynamicColumnsField, fieldName);
 
-    // SELECTIVE VARCHAR CASTING: Only apply in GROUP BY contexts to avoid UNDEFINED type issues
-    // For other contexts, preserve original types (int, double, etc.) for better type inference
-    RexNode finalMapAccess;
-    if (context.isInGroupByContext()) {
-      finalMapAccess =
-          context.rexBuilder.makeCast(
-              context
-                  .rexBuilder
-                  .getTypeFactory()
-                  .createSqlType(org.apache.calcite.sql.type.SqlTypeName.VARCHAR),
-              mapAccess);
-    } else {
-      finalMapAccess = mapAccess;
-    }
-
     // CONDITIONAL ALIASING: Apply aliasing when in fields command context
     if (context.isInFieldsCommand()) {
-      return context.relBuilder.alias(finalMapAccess, fieldName);
+      return context.relBuilder.alias(mapAccess, fieldName);
     } else {
-      return finalMapAccess;
+      return mapAccess;
     }
   }
 }

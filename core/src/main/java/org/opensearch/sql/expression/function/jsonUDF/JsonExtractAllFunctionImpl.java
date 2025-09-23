@@ -76,47 +76,53 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
 
       Map<String, Object> resultMap = new HashMap<>();
       extractJsonValueRecursively(jsonNode, "", resultMap);
-      return resultMap;
+      return convertArraysToStrings(resultMap);
     } catch (JsonProcessingException e) {
       return null;
     }
   }
 
   /**
-   * Recursively extracts all attributes from a JSON node, creating path-based field names for
-   * nested attributes.
+   * Recursively extracts all attributes from a JSON node using simplified path tracking logic.
    *
    * @param node The JSON node to extract from
-   * @param pathPrefix The current path prefix (empty for root level)
+   * @param currentPath The current path (empty for root level)
    * @param resultMap The map to store extracted key-value pairs
    */
   private static void extractJsonValueRecursively(
-      JsonNode node, String pathPrefix, Map<String, Object> resultMap) {
+      JsonNode node, String currentPath, Map<String, Object> resultMap) {
     if (node.isObject()) {
       Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
       while (fields.hasNext()) {
         Map.Entry<String, JsonNode> field = fields.next();
         String fieldName = field.getKey();
-        String fullPath = pathPrefix.isEmpty() ? fieldName : pathPrefix + "." + fieldName;
+        String newPath = currentPath.isEmpty() ? fieldName : currentPath + "." + fieldName;
         JsonNode value = field.getValue();
 
-        if (value.isObject()) {
-          // Recursively extract nested object
-          extractJsonValueRecursively(value, fullPath, resultMap);
+        visitValue(value, newPath, resultMap);
+      }
+    } else if (node.isArray()) {
+      String arrayPath = currentPath + ARRAY_SUFFIX;
+      for (JsonNode element : node) {
+        if (element.isObject() || element.isArray()) {
+          extractJsonValueRecursively(element, arrayPath, resultMap);
         } else {
-          // Extract primitive value or array
-          Object extractedValue = extractJsonValue(value);
-          if (extractedValue instanceof List) {
-            resultMap.put(fullPath + ARRAY_SUFFIX, extractedValue);
-          } else {
-            resultMap.put(fullPath, convertType(extractedValue));
-          }
+          visitValue(element, arrayPath, resultMap);
         }
       }
     }
   }
 
-  private static Object extractJsonValue(JsonNode node) {
+  private static void visitValue(JsonNode node, String path, Map<String, Object> resultMap) {
+    if (node.isObject() || node.isArray()) {
+      extractJsonValueRecursively(node, path, resultMap);
+    } else {
+      Object value = extractPrimitiveValue(node);
+      addValueToResult(path, value, resultMap);
+    }
+  }
+
+  private static Object extractPrimitiveValue(JsonNode node) {
     if (node.isNull()) {
       return null;
     } else if (node.isBoolean()) {
@@ -129,48 +135,65 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
       return node.doubleValue();
     } else if (node.isTextual()) {
       return node.textValue();
-    } else if (node.isArray()) {
-      // Extract array as array (not flattened)
-      return extractArrayValue(node);
-    } else if (node.isObject()) {
-      // For objects that are values (not recursively extracted), return as JSON string
-      return node.toString();
     } else {
       return node.asText();
     }
   }
 
-  private static Object convertType(Object value) {
-    if (value == null) {
-      return null;
-    } else if (value instanceof List) {
-      return value;
+  @SuppressWarnings("unchecked")
+  private static void addValueToResult(String path, Object value, Map<String, Object> resultMap) {
+    if (resultMap.containsKey(path)) {
+      Object existing = resultMap.get(path);
+      if (existing instanceof java.util.List) {
+        // Already an array, add to it
+        ((java.util.List<Object>) existing).add(convertToString(value));
+      } else {
+        // Convert to array and add both values
+        java.util.List<Object> arrayList = new java.util.ArrayList<>();
+        arrayList.add(existing);
+        arrayList.add(convertToString(value));
+        resultMap.put(path, arrayList);
+      }
+    } else {
+      // First value at this path
+      resultMap.put(path, convertToString(value));
     }
-    return value.toString();
+  }
+
+  // Currently, we convert all primitive types to String
+  private static String convertToString(Object obj) {
+    return obj != null ? obj.toString() : null;
   }
 
   /**
-   * Extracts array values, preserving the array structure.
-   *
-   * @param arrayNode The JSON array node
-   * @return List containing the array elements
+   * Converts any arrays in the result map to string representations. This ensures all values in the
+   * result are either String or null.
    */
-  private static Object extractArrayValue(JsonNode arrayNode) {
-    java.util.List<Object> arrayList = new java.util.ArrayList<>();
-    for (JsonNode element : arrayNode) {
-      if (element.isObject()) {
-        // For objects in arrays, convert to Map instead of JSON string
-        Map<String, Object> objectMap = new HashMap<>();
-        Iterator<Map.Entry<String, JsonNode>> fields = element.fields();
-        while (fields.hasNext()) {
-          Map.Entry<String, JsonNode> field = fields.next();
-          objectMap.put(field.getKey(), extractJsonValue(field.getValue()));
-        }
-        arrayList.add(objectMap);
+  @SuppressWarnings("unchecked")
+  private static Map<String, Object> convertArraysToStrings(Map<String, Object> resultMap) {
+    Map<String, Object> convertedMap = new HashMap<>();
+    for (Map.Entry<String, Object> entry : resultMap.entrySet()) {
+      Object value = entry.getValue();
+      if (value instanceof java.util.List) {
+        convertedMap.put(entry.getKey(), convertArrayToString((java.util.List<Object>) value));
       } else {
-        arrayList.add(extractJsonValue(element));
+        convertedMap.put(entry.getKey(), value);
       }
     }
-    return arrayList;
+    return convertedMap;
+  }
+
+  /** Converts a list to its JSON array string representation. */
+  private static String convertArrayToString(java.util.List<Object> list) {
+    if (list == null || list.isEmpty()) {
+      return "[]";
+    }
+
+    try {
+      return OBJECT_MAPPER.writeValueAsString(list);
+    } catch (JsonProcessingException e) {
+      // Fallback to empty array if serialization fails
+      return "[]";
+    }
   }
 }

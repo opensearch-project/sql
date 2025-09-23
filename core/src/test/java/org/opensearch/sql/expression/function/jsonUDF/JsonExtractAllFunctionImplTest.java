@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -24,8 +23,8 @@ class JsonExtractAllFunctionImplTest {
 
     assertEquals(3, result.size());
     assertEquals("John", result.get("name"));
-    assertEquals(30, result.get("age"));
-    assertEquals(true, result.get("active"));
+    assertEquals("30", result.get("age"));
+    assertEquals("true", result.get("active"));
   }
 
   @Test
@@ -38,7 +37,7 @@ class JsonExtractAllFunctionImplTest {
 
     assertEquals(3, result.size());
     assertEquals("Alice", result.get("user.name"));
-    assertEquals(28, result.get("user.profile.age"));
+    assertEquals("28", result.get("user.profile.age"));
     assertEquals("Seattle", result.get("user.profile.location"));
   }
 
@@ -52,9 +51,9 @@ class JsonExtractAllFunctionImplTest {
     Map<String, Object> result = (Map<String, Object>) JsonExtractAllFunctionImpl.eval(json);
 
     assertEquals(5, result.size());
-    assertEquals(1, result.get("id"));
+    assertEquals("1", result.get("id"));
     assertEquals("Bob", result.get("user.name"));
-    assertEquals(35, result.get("user.details.age"));
+    assertEquals("35", result.get("user.details.age"));
     assertEquals("Portland", result.get("user.details.city"));
     assertEquals("active", result.get("status"));
   }
@@ -69,12 +68,9 @@ class JsonExtractAllFunctionImplTest {
     assertEquals(2, result.size());
     assertEquals("Charlie", result.get("name"));
 
-    @SuppressWarnings("unchecked")
-    List<Object> hobbies = (List<Object>) result.get("hobbies{}");
-    assertEquals(3, hobbies.size());
-    assertEquals("reading", hobbies.get(0));
-    assertEquals("swimming", hobbies.get(1));
-    assertEquals("coding", hobbies.get(2));
+    // Arrays are now converted to JSON string representations
+    String hobbies = (String) result.get("hobbies{}");
+    assertEquals("[\"reading\",\"swimming\",\"coding\"]", hobbies);
   }
 
   @Test
@@ -85,22 +81,31 @@ class JsonExtractAllFunctionImplTest {
     @SuppressWarnings("unchecked")
     Map<String, Object> result = (Map<String, Object>) JsonExtractAllFunctionImpl.eval(json);
 
-    assertEquals(1, result.size());
+    assertEquals(2, result.size());
+
+    // Arrays are now converted to JSON string representations
+    String nameValues = (String) result.get("users{}.name");
+    assertEquals("[\"Alice\",\"Bob\"]", nameValues);
+
+    String ageValues = (String) result.get("users{}.age");
+    assertEquals("[\"25\",\"30\"]", ageValues);
+  }
+
+  @Test
+  void testNestedArray() {
+    String json = "{\"arr\": [1, [2, 3], [4, 5], 6]}";
 
     @SuppressWarnings("unchecked")
-    List<Object> users = (List<Object>) result.get("users{}");
-    assertEquals(2, users.size());
+    Map<String, Object> result = (Map<String, Object>) JsonExtractAllFunctionImpl.eval(json);
 
-    // Array elements that are objects should be preserved as maps
-    @SuppressWarnings("unchecked")
-    Map<String, Object> user1 = (Map<String, Object>) users.get(0);
-    assertEquals("Alice", user1.get("name"));
-    assertEquals(25, user1.get("age"));
+    assertEquals(2, result.size());
 
-    @SuppressWarnings("unchecked")
-    Map<String, Object> user2 = (Map<String, Object>) users.get(1);
-    assertEquals("Bob", user2.get("name"));
-    assertEquals(30, user2.get("age"));
+    // Arrays are now converted to JSON string representations
+    String primitiveValues = (String) result.get("arr{}");
+    assertEquals("[\"1\",\"6\"]", primitiveValues);
+
+    String nestedArrayValues = (String) result.get("arr{}{}");
+    assertEquals("[\"2\",\"3\",\"4\",\"5\"]", nestedArrayValues);
   }
 
   @Test
@@ -125,9 +130,9 @@ class JsonExtractAllFunctionImplTest {
 
     assertEquals(5, result.size());
     assertEquals("text", result.get("string"));
-    assertEquals(42, result.get("integer"));
-    assertEquals(3.14, result.get("double"));
-    assertEquals(false, result.get("boolean"));
+    assertEquals("42", result.get("integer"));
+    assertEquals("3.14", result.get("double"));
+    assertEquals("false", result.get("boolean"));
     assertNull(result.get("null_value"));
   }
 
@@ -157,19 +162,17 @@ class JsonExtractAllFunctionImplTest {
     Map<String, Object> result = (Map<String, Object>) JsonExtractAllFunctionImpl.eval(json);
 
     assertEquals(8, result.size());
-    assertEquals(123, result.get("user.id"));
+    assertEquals("123", result.get("user.id"));
     assertEquals("John Doe", result.get("user.profile.name"));
     assertEquals("john@example.com", result.get("user.profile.email"));
     assertEquals("dark", result.get("user.profile.preferences.theme"));
-    assertEquals(true, result.get("user.profile.preferences.notifications"));
+    assertEquals("true", result.get("user.profile.preferences.notifications"));
     assertEquals("2023-01-01", result.get("metadata.created"));
-    assertEquals(1.2, result.get("metadata.version"));
+    assertEquals("1.2", result.get("metadata.version"));
 
-    @SuppressWarnings("unchecked")
-    List<Object> roles = (List<Object>) result.get("user.roles{}");
-    assertEquals(2, roles.size());
-    assertEquals("admin", roles.get(0));
-    assertEquals("user", roles.get(1));
+    // Arrays are now converted to JSON string representations
+    String roles = (String) result.get("user.roles{}");
+    assertEquals("[\"admin\",\"user\"]", roles);
   }
 
   @Test
@@ -190,8 +193,7 @@ class JsonExtractAllFunctionImplTest {
     Map<String, Object> result = (Map<String, Object>) JsonExtractAllFunctionImpl.eval(json);
 
     assertEquals(1, result.size());
-    assertEquals(42, result.get("value"));
-    // Empty nested objects should not contribute any fields
+    assertEquals("42", result.get("value"));
   }
 
   @Test
@@ -201,19 +203,10 @@ class JsonExtractAllFunctionImplTest {
     @SuppressWarnings("unchecked")
     Map<String, Object> result = (Map<String, Object>) JsonExtractAllFunctionImpl.eval(json);
 
-    assertEquals(1, result.size());
+    assertEquals(2, result.size());
 
-    @SuppressWarnings("unchecked")
-    List<Object> mixed = (List<Object>) result.get("mixed{}");
-    assertEquals(5, mixed.size());
-    assertEquals("string", mixed.get(0));
-    assertEquals(42, mixed.get(1));
-    assertEquals(true, mixed.get(2));
-    assertNull(mixed.get(3));
-
-    @SuppressWarnings("unchecked")
-    Map<String, Object> nestedObj = (Map<String, Object>) mixed.get(4);
-    assertEquals("object", nestedObj.get("nested"));
+    // Since array contains objects, values from objects are collected
+    assertEquals("object", result.get("mixed{}.nested"));
   }
 
   @Test
@@ -287,17 +280,56 @@ class JsonExtractAllFunctionImplTest {
   }
 
   @Test
-  void testLargeNumbers() {
-    String json =
-        "{\"small_int\": 42, \"large_long\": 9223372036854775807, \"big_double\":"
-            + " 1.7976931348623157E308}";
+  void testArrayWithObjectsCollectsValues() {
+    String json = "{\"a\": [{\"b\": 1, \"c\": [2, 3]}, {\"b\": 4, \"c\": [5, 6, 7], \"d\": 8}]}";
 
     @SuppressWarnings("unchecked")
     Map<String, Object> result = (Map<String, Object>) JsonExtractAllFunctionImpl.eval(json);
 
     assertEquals(3, result.size());
-    assertEquals(42, result.get("small_int"));
-    assertEquals(9223372036854775807L, result.get("large_long"));
-    assertEquals(1.7976931348623157E308, result.get("big_double"));
+
+    // Arrays are now converted to JSON string representations
+    String bValues = (String) result.get("a{}.b");
+    assertEquals("[\"1\",\"4\"]", bValues);
+
+    String cValues = (String) result.get("a{}.c{}");
+    assertEquals("[\"2\",\"3\",\"5\",\"6\",\"7\"]", cValues);
+
+    // Check single "d" value
+    assertEquals("8", result.get("a{}.d"));
+  }
+
+  @Test
+  void testArrayWithObjectsAndPrimitives() {
+    String json =
+        "{\"mixed\": [{\"name\": \"Alice\", \"age\": 25}, \"primitive\", {\"name\": \"Bob\"}]}";
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> result = (Map<String, Object>) JsonExtractAllFunctionImpl.eval(json);
+
+    assertEquals(3, result.size());
+
+    // Arrays are now converted to JSON string representations
+    String nameValues = (String) result.get("mixed{}.name");
+    assertEquals("[\"Alice\",\"Bob\"]", nameValues);
+
+    assertEquals("25", result.get("mixed{}.age"));
+  }
+
+  @Test
+  void testNestedArraysWithObjects() {
+    String json = "{\"outer\": {\"inner\": [{\"x\": 1}, {\"x\": 2, \"y\": 3}]}}";
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> result = (Map<String, Object>) JsonExtractAllFunctionImpl.eval(json);
+
+    assertEquals(2, result.size());
+
+    // Arrays are now converted to JSON string representations
+    String xValues = (String) result.get("outer.inner{}.x");
+    assertEquals("[\"1\",\"2\"]", xValues);
+
+    // Check single "y" value
+    assertEquals("3", result.get("outer.inner{}.y"));
   }
 }
