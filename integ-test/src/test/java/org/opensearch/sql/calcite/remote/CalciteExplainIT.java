@@ -646,6 +646,85 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  @Override
+  public void testCountAggPushDownExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // should be optimized by hits.total.value
+    String expected = loadExpectedPlan("explain_count_agg_push1.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString("source=opensearch-sql_test_index_account | stats count() as cnt"));
+
+    // should be optimized
+    expected = loadExpectedPlan("explain_count_agg_push2.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats count(lastname) as cnt"));
+
+    // should be optimized
+    expected = loadExpectedPlan("explain_count_agg_push3.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | eval name = lastname | stats count(name) as"
+                + " cnt"));
+
+    // should be optimized
+    expected = loadExpectedPlan("explain_count_agg_push4.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats count() as c1, count() as c2"));
+
+    // should be optimized
+    expected = loadExpectedPlan("explain_count_agg_push5.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats count(lastname) as c1,"
+                + " count(lastname) as c2"));
+
+    // should be optimized
+    expected = loadExpectedPlan("explain_count_agg_push6.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | eval name = lastname | stats"
+                + " count(lastname), count(name)"));
+
+    // should not be optimized
+    expected = loadExpectedPlan("explain_count_agg_push7.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats count(balance + 1) as cnt"));
+
+    // should not be optimized
+    expected = loadExpectedPlan("explain_count_agg_push8.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats count() as c1, count(lastname) as"
+                + " c2"));
+
+    // should not be optimized
+    expected = loadExpectedPlan("explain_count_agg_push9.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats count(firstname), count(lastname)"));
+
+    // should not be optimized
+    expected = loadExpectedPlan("explain_count_agg_push10.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | eval name = lastname | stats"
+                + " count(firstname), count(name)"));
+  }
+
+  @Test
   public void testExplainCountsByAgg() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_agg_counts_by1.yaml");

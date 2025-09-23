@@ -78,6 +78,7 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
 import org.opensearch.sql.opensearch.response.agg.ArgMaxMinParser;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
+import org.opensearch.sql.opensearch.response.agg.CountAsTotalHitsParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
@@ -199,10 +200,38 @@ public class AggregateAnalyzer {
       Builder metricBuilder = builderAndParser.getLeft();
       List<MetricParser> metricParserList = builderAndParser.getRight();
 
+      // both count() and count(FIELD) can apply doc_count optimization in non-bucket aggregation,
+      // but only count() can apply doc_count optimization in bucket aggregation.
+      boolean countAllOnly = !aggregate.getGroupSet().isEmpty();
+      Pair<List<ValueCountAggregationBuilder>, Builder> pair =
+          removeCountAggregationBuilders(metricBuilder, countAllOnly);
+      List<ValueCountAggregationBuilder> removedCountAggBuilders = pair.getLeft();
+      Builder newMetricBuilder = pair.getRight();
+
+      boolean removedCountAggBuildersHaveSomeField =
+          removedCountAggBuilders.stream()
+                  .map(ValuesSourceAggregationBuilder::fieldName)
+                  .distinct()
+                  .count()
+              == 1;
+      boolean allCountAggRemoved =
+          removedCountAggBuilders.size() == metricBuilder.getAggregatorFactories().size();
       if (aggregate.getGroupSet().isEmpty()) {
-        return Pair.of(
-            ImmutableList.copyOf(metricBuilder.getAggregatorFactories()),
-            new NoBucketAggregationParser(metricParserList));
+        if (allCountAggRemoved && removedCountAggBuildersHaveSomeField) {
+          // The optimization must require all count aggregations are removed,
+          // and they have only one field name
+          List<String> countAggNameList =
+              removedCountAggBuilders.stream()
+                  .map(ValuesSourceAggregationBuilder::getName)
+                  .toList();
+          return Pair.of(
+              ImmutableList.copyOf(newMetricBuilder.getAggregatorFactories()),
+              new CountAsTotalHitsParser(countAggNameList));
+        } else {
+          return Pair.of(
+              ImmutableList.copyOf(metricBuilder.getAggregatorFactories()),
+              new NoBucketAggregationParser(metricParserList));
+        }
       } else {
         List<CompositeValuesSourceBuilder<?>> buckets =
             createCompositeBuckets(groupList, project, helper);
@@ -210,15 +239,10 @@ public class AggregateAnalyzer {
             AggregationBuilders.composite("composite_buckets", buckets)
                 .size(AGGREGATION_BUCKET_SIZE);
 
-        Pair<List<ValueCountAggregationBuilder>, Builder> pair =
-            removeCountStarAggregationBuilders(metricBuilder);
-        List<ValueCountAggregationBuilder> removedCountStarAggBuilders = pair.getLeft();
-        Builder newMetricBuilder = pair.getRight();
         // For bucket aggregation, no count() aggregator or not all aggregators are count(),
         // fallback to original ValueCountAggregation.
-        if (removedCountStarAggBuilders.isEmpty()
-            || removedCountStarAggBuilders.size()
-                != metricBuilder.getAggregatorFactories().size()) {
+        if (removedCountAggBuilders.isEmpty()
+            || removedCountAggBuilders.size() != metricBuilder.getAggregatorFactories().size()) {
           aggregationBuilder.subAggregations(metricBuilder);
           return Pair.of(
               Collections.singletonList(aggregationBuilder),
@@ -230,9 +254,7 @@ public class AggregateAnalyzer {
           aggregationBuilder.subAggregations(newMetricBuilder);
         }
         List<String> countAggNameList =
-            removedCountStarAggBuilders.stream()
-                .map(ValuesSourceAggregationBuilder::getName)
-                .toList();
+            removedCountAggBuilders.stream().map(ValuesSourceAggregationBuilder::getName).toList();
         return Pair.of(
             Collections.singletonList(aggregationBuilder),
             new CompositeAggregationParser(metricParserList, countAggNameList));
@@ -248,15 +270,17 @@ public class AggregateAnalyzer {
    * ValueCountAggregationBuilder list.
    *
    * @param metricBuilder metrics builder
+   * @param countAllOnly remove count() only, or count(FIELD) will be removed.
    * @return a pair of removed ValueCountAggregationBuilder and updated metric builder
    */
-  private static Pair<List<ValueCountAggregationBuilder>, Builder>
-      removeCountStarAggregationBuilders(Builder metricBuilder) {
+  private static Pair<List<ValueCountAggregationBuilder>, Builder> removeCountAggregationBuilders(
+      Builder metricBuilder, boolean countAllOnly) {
     List<ValueCountAggregationBuilder> countAggregatorFactories =
         metricBuilder.getAggregatorFactories().stream()
             .filter(ValueCountAggregationBuilder.class::isInstance)
             .map(ValueCountAggregationBuilder.class::cast)
-            .filter(vc -> vc.script() == null && vc.fieldName().equals("_index"))
+            .filter(vc -> vc.script() == null)
+            .filter(vc -> !countAllOnly || vc.fieldName().equals("_index"))
             .toList();
     List<AggregationBuilder> copy = new ArrayList<>(metricBuilder.getAggregatorFactories());
     copy.removeAll(countAggregatorFactories);

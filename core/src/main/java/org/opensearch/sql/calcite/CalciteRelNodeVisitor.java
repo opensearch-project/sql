@@ -888,8 +888,22 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     //                 \- Scan t
     if (resolvedGroupByList.isEmpty()) {
       List<List<RexInputRef>> refsPerCount = extractInputRefList(resolvedAggCallList);
-      List<RexInputRef> distinctRefsOfCounts =
-          refsPerCount.stream().flatMap(List::stream).distinct().toList();
+      List<RexInputRef> distinctRefsOfCounts;
+      if (context.relBuilder.peek() instanceof org.apache.calcite.rel.core.Project project) {
+        List<RexNode> mappedInProject =
+            refsPerCount.stream()
+                .flatMap(List::stream)
+                .map(ref -> project.getProjects().get(ref.getIndex()))
+                .toList();
+        if (mappedInProject.stream().allMatch(RexInputRef.class::isInstance)) {
+          distinctRefsOfCounts =
+              mappedInProject.stream().map(RexInputRef.class::cast).distinct().toList();
+        } else {
+          distinctRefsOfCounts = List.of();
+        }
+      } else {
+        distinctRefsOfCounts = refsPerCount.stream().flatMap(List::stream).distinct().toList();
+      }
       if (distinctRefsOfCounts.size() == 1 && refsPerCount.stream().noneMatch(List::isEmpty)) {
         context.relBuilder.filter(context.relBuilder.isNotNull(distinctRefsOfCounts.getFirst()));
       }

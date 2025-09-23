@@ -172,6 +172,27 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   }
 
   @Override
+  public void forceCleanup(OpenSearchRequest request) {
+    if (request instanceof OpenSearchScrollRequest) {
+      request.forceClean(
+          scrollId -> {
+            try {
+              client.prepareClearScroll().addScrollId(scrollId).get();
+            } catch (Exception e) {
+              throw new IllegalStateException(
+                  "Failed to clean up resources for search request " + request, e);
+            }
+          });
+    } else {
+      request.forceClean(
+          pitId -> {
+            DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
+            deletePit(deletePitRequest);
+          });
+    }
+  }
+
+  @Override
   public void cleanup(OpenSearchRequest request) {
     if (request instanceof OpenSearchScrollRequest) {
       request.clean(

@@ -134,6 +134,41 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     expectedSparkSql =
         "SELECT COUNT(CASE WHEN `COMM` >= 500 THEN 1 ELSE NULL END) `c`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
+
+    ppl = "source=EMP | eval COMM1 = COMM | stats count(COMM) as c, count(COMM1) as c1";
+    root = getRelNode(ppl);
+    expectedLogical =
+        "LogicalAggregate(group=[{}], c=[COUNT($0)], c1=[COUNT($1)])\n"
+            + "  LogicalProject(COMM=[$6], COMM1=[$8])\n"
+            + "    LogicalFilter(condition=[IS NOT NULL($6)])\n"
+            + "      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], COMM1=[$6])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    expectedResult = "c=4; c1=4\n";
+    verifyResult(root, expectedResult);
+
+    expectedSparkSql =
+        "SELECT COUNT(`COMM`) `c`, COUNT(`COMM1`) `c1`\n"
+            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
+            + " `COMM` `COMM1`\n"
+            + "FROM `scott`.`EMP`) `t12`\n"
+            + "WHERE `COMM` IS NOT NULL";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+
+    ppl = "source=EMP | eval COMM1 = COMM + 1 | stats count(COMM) as c, count(COMM1) as c1";
+    root = getRelNode(ppl);
+    expectedLogical =
+        ""
+            + "LogicalAggregate(group=[{}], c=[COUNT($0)], c1=[COUNT($1)])\n"
+            + "  LogicalProject(COMM=[$6], COMM1=[+($6, 1)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    expectedResult = "c=4; c1=4\n";
+    verifyResult(root, expectedResult);
+
+    expectedSparkSql = "SELECT COUNT(`COMM`) `c`, COUNT(`COMM` + 1) `c1`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test

@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import org.opensearch.search.SearchHits;
 import org.opensearch.search.aggregations.Aggregations;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregation;
 
@@ -55,5 +56,11 @@ public class CompositeAggregationParser implements OpenSearchAggregationResponse
     resultMap.putAll(metricsParser.parse(bucket.getAggregations()));
     countAggNameList.forEach(name -> resultMap.put(name, bucket.getDocCount()));
     return resultMap;
+  }
+
+  @Override
+  public List<Map<String, Object>> parse(SearchHits hits) {
+    throw new UnsupportedOperationException(
+        "CompositeAggregationParser doesn't support parse(SearchHits)");
   }
 }
