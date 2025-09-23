@@ -1,12 +1,11 @@
 root:
   name: ProjectOperator
   description:
-    fields: "[ageMinus]"
+    fields: "[age]"
   children:
-    - name: OpenSearchEvalOperator
+    - name: FilterOperator
       description:
-        expressions:
-          ageMinus: "-(age, 30)"
+        conditions: ">(age, 30)"
       children:
         - name: OpenSearchIndexScan
           description:

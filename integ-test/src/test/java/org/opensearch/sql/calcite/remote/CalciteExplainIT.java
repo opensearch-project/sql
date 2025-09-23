@@ -256,7 +256,7 @@ public class CalciteExplainIT extends ExplainIT {
     String expected =
         !isPushdownDisabled()
             ? loadFromFile("expectedOutput/calcite/explain_timechart.yaml")
-            : loadFromFile("expectedOutput/calcite/explain_timechart_no_pushdown.json");
+            : loadFromFile("expectedOutput/calcite/explain_timechart_no_pushdown.yaml");
     assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
@@ -266,7 +266,7 @@ public class CalciteExplainIT extends ExplainIT {
     String expected =
         !isPushdownDisabled()
             ? loadFromFile("expectedOutput/calcite/explain_timechart_count.yaml")
-            : loadFromFile("expectedOutput/calcite/explain_timechart_count_no_pushdown.json");
+            : loadFromFile("expectedOutput/calcite/explain_timechart_count_no_pushdown.yaml");
     assertYamlEqualsJsonIgnoreId(expected, result);
   }
 

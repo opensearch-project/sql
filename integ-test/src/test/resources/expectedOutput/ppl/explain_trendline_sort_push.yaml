@@ -1,17 +1,21 @@
 root:
   name: ProjectOperator
   description:
-    fields: "[ageMinus]"
+    fields: "[ageTrend]"
   children:
-    - name: OpenSearchEvalOperator
+    - name: TrendlineOperator
       description:
-        expressions:
-          ageMinus: "-(age, 30)"
+        computations:
+          - computationType: sma
+            numberOfDataPoints: "2"
+            dataField: age
+            alias: ageTrend
       children:
         - name: OpenSearchIndexScan
           description:
             request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account,\
-              \ sourceBuilder={\"from\":0,\"size\":5,\"timeout\":\"1m\"}, needClean=true,\
+              \ sourceBuilder={\"from\":0,\"size\":5,\"timeout\":\"1m\",\"sort\":[{\"\
+              age\":{\"order\":\"asc\",\"missing\":\"_first\"}}]}, needClean=true,\
               \ searchDone=false, pitId=*, cursorKeepAlive=null, searchAfter=null,\
               \ searchResponse=null)"
           children: []
