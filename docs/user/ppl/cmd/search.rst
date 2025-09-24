@@ -69,6 +69,10 @@ The search expression syntax supports:
 
 Read more details on time modifiers `here <https://github.com/opensearch-project/opensearch-spark/blob/main/docs/ppl-lang/functions/ppl-datetime.md#relative_timestamp>`_.
 
+**Notes:**
+
+* **Column name conflicts**: If your data contains columns named "earliest" or "latest", use backticks to access them as regular fields (e.g., ```earliest`="value"``) to avoid conflicts with time modifier syntax.
+* **Time snap syntax**: Time modifiers with time snaps must be wrapped in quotes (e.g., ``latest='+1d@d'``) for proper query parsing.
 
 Default Field Configuration
 ===========================
@@ -437,7 +441,7 @@ Time modifiers filter search results by time range using the implicit ``@timesta
 **Relative Time Filtering** (before 30 seconds ago)::
 
     os> search latest=-30s source=otellogs | sort @timestamp | fields @timestamp, severityText | head 3;
-    fetched rows / total rows = 3/30
+    fetched rows / total rows = 3/3
     +-------------------------------+--------------+
     | @timestamp                    | severityText |
     |-------------------------------+--------------|
@@ -449,12 +453,12 @@ Time modifiers filter search results by time range using the implicit ``@timesta
 **Time Snapping** (before start of current minute)::
 
     os> search latest='@m' source=otellogs | fields @timestamp, severityText | head 2;
-    fetched rows / total rows = 2/30
+    fetched rows / total rows = 2/2
     +-------------------------------+--------------+
     | @timestamp                    | severityText |
     |-------------------------------+--------------|
-    | 2024-01-15 10:30:16.789012345 | ERROR3       |
-    | 2024-01-15 10:30:17.890123456 | INFO3        |
+    | 2024-01-15 10:30:00.123456789 | INFO         |
+    | 2024-01-15 10:30:01.23456789  | ERROR        |
     +-------------------------------+--------------+
 
 **Unix Timestamp Filtering**::
