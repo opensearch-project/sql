@@ -729,13 +729,9 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
     @Override
     public String visitSpan(Span node, String context) {
-      String field = node.getField() != null ? analyze(node.getField(), context) : null;
+      String field = analyze(node.getField(), context);
       String value = analyze(node.getValue(), context);
-      if (field != null) {
-        return StringUtils.format("span(%s, %s %s)", field, value, node.getUnit().getName());
-      } else {
-        return StringUtils.format("span(%s %s)", value, node.getUnit().getName());
-      }
+      return StringUtils.format("span(%s, %s %s)", field, value, node.getUnit().getName());
     }
 
     @Override
