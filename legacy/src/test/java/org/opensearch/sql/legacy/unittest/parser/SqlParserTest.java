@@ -51,6 +51,7 @@ import org.opensearch.sql.legacy.query.maker.QueryMaker;
 import org.opensearch.sql.legacy.query.multi.MultiQuerySelect;
 import org.opensearch.sql.legacy.util.CheckScriptContents;
 import org.opensearch.sql.legacy.util.TestsConstants;
+import org.opensearch.sql.legacy.utils.Util;
 import org.opensearch.transport.client.Client;
 
 public class SqlParserTest {
@@ -1788,7 +1789,7 @@ public class SqlParserTest {
   /** JOIN Aggregation Validation Tests */
   private void expectJoinAggregationException() {
     thrown.expect(SqlParseException.class);
-    thrown.expectMessage("JOIN queries do not support aggregations on the joined result.");
+    thrown.expectMessage(Util.JOIN_AGGREGATION_ERROR_PREFIX);
   }
 
   @Test
