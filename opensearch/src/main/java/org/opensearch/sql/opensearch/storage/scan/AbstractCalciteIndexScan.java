@@ -11,11 +11,14 @@ import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_RO
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import lombok.Getter;
+import lombok.Setter;
 import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
 import org.apache.calcite.adapter.enumerable.EnumerableSort;
 import org.apache.calcite.plan.RelOptCluster;
@@ -38,6 +41,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.NumberUtil;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.search.aggregations.AggregationBuilder;
@@ -59,8 +63,10 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
+import org.opensearch.sql.opensearch.request.PredicateAnalyzer.ScriptQueryExpression;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
+import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
 
 /** An abstract relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
@@ -127,7 +133,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                 switch (action.type) {
                       case AGGREGATION -> mq.getRowCount((RelNode) action.digest)
                           * getAggMultiplier(action);
-                      case PROJECT, SORT -> rowCount;
+                      case PROJECT, SCRIPT_PROJECT, SORT -> rowCount;
                         // Refer the org.apache.calcite.rel.core.Aggregate.estimateRowCount
                       case COLLAPSE -> rowCount * (1.0 - Math.pow(.5, 1));
                       case FILTER -> NumberUtil.multiply(
@@ -170,10 +176,17 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     @Getter private AggPushDownAction aggPushDownAction;
     @Getter private boolean isLimitPushed = false;
     @Getter private boolean isProjectPushed = false;
+    @Getter private boolean isScriptProjectPushed = false;
+
+    @Getter @Setter
+    private Map<String, Triple<RexNode, RelDataType, ScriptQueryExpression>> derivedScriptsByName =
+        new HashMap<>();
 
     @Override
     public PushDownContext clone() {
-      return (PushDownContext) super.clone();
+      PushDownContext cloned = (PushDownContext) super.clone();
+      cloned.derivedScriptsByName = new HashMap<>(derivedScriptsByName);
+      return cloned;
     }
 
     @Override
@@ -187,6 +200,9 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       }
       if (pushDownAction.type == PushDownType.PROJECT) {
         isProjectPushed = true;
+      }
+      if (pushDownAction.type == PushDownType.SCRIPT_PROJECT) {
+        isScriptProjectPushed = true;
       }
       return super.add(pushDownAction);
     }
@@ -255,6 +271,25 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
         newContext.add(action);
       }
     }
+    newContext.setDerivedScriptsByName(new HashMap<>(pushDownContext.derivedScriptsByName));
+    return newContext;
+  }
+
+  /**
+   * Create a new {@link PushDownContext} without the project actions. Since new project will
+   * override the old project, there is no need to keep multiple projects in digested plan.
+   *
+   * @param pushDownContext The original push-down context.
+   * @return A new push-down context without the project actions.
+   */
+  protected PushDownContext cloneWithoutProject(PushDownContext pushDownContext) {
+    PushDownContext newContext = new PushDownContext();
+    for (PushDownAction action : pushDownContext) {
+      if (action.type() != PushDownType.PROJECT && action.type() != PushDownType.SCRIPT_PROJECT) {
+        newContext.add(action);
+      }
+    }
+    newContext.setDerivedScriptsByName(new HashMap<>(pushDownContext.derivedScriptsByName));
     return newContext;
   }
 
@@ -271,8 +306,45 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
         // aggregators.
         return null;
       }
+      // Due to sort by simple expression optimization, it's possible to deduce a new collation set
+      // that is simply sort by original scan fields.
+      // Use this deduced collations for opensearch request internally in such case.
+      List<Pair<RelFieldCollation, String>> deducedCollations = new ArrayList<>();
+      for (int i = 0; i < collations.size(); i++) {
+        String outputCollationName = collationNames.get(i);
+        RelFieldCollation collation = collations.get(i);
+        if (this.getPushDownContext().getDerivedScriptsByName().containsKey(outputCollationName)) {
+          Triple<RexNode, RelDataType, ScriptQueryExpression> derivedScriptInfo =
+              this.getPushDownContext().getDerivedScriptsByName().get(outputCollationName);
+          RexNode targetExpr = derivedScriptInfo.getLeft();
+          Optional<Pair<Integer, Boolean>> equalOrderInfo =
+              OpenSearchRelOptUtil.getOrderEquivalentInputInfo(targetExpr);
+          if (equalOrderInfo.isPresent()) {
+            // If simple derived field expression can be translated to sort by scan field, we can
+            // still pushdown equivalent sort.
+            // i.e. sort by 2 * (a + 1) is equal to sort by a
+            String exprInputName =
+                derivedScriptInfo.getMiddle().getFieldNames().get(equalOrderInfo.get().getKey());
+            Direction equalDir =
+                equalOrderInfo.get().getValue()
+                    ? collation.getDirection().reverse()
+                    : collation.getDirection();
+            deducedCollations.add(
+                Pair.of(
+                    new RelFieldCollation(-1, equalDir, collation.nullDirection), exprInputName));
+          } else {
+            // Don't push down sort in case of sorting complex derived field because derived field
+            // sort is not supported.
+            return null;
+          }
+        } else {
+          deducedCollations.add(Pair.of(collation, ""));
+        }
+      }
 
       // Propagate the sort to the new scan
+      // In case of sort by simple expression, still use the original collations to let Calcite
+      // planner understand simple expression is already sorted.
       RelTraitSet traitsWithCollations = getTraitSet().plus(RelCollations.of(collations));
       AbstractCalciteIndexScan newScan =
           buildScan(
@@ -295,9 +367,13 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
         digest = collations;
       } else {
         List<SortBuilder<?>> builders = new ArrayList<>();
-        for (RelFieldCollation collation : collations) {
+        for (Pair<RelFieldCollation, String> collationInfo : deducedCollations) {
+          RelFieldCollation collation = collationInfo.getKey();
           int index = collation.getFieldIndex();
-          String fieldName = this.getRowType().getFieldNames().get(index);
+          String fieldName =
+              collationInfo.getValue().isEmpty()
+                  ? this.getRowType().getFieldNames().get(index)
+                  : collationInfo.getValue();
           Direction direction = collation.getDirection();
           NullDirection nullDirection = collation.nullDirection;
           // Default sort order is ASCENDING
@@ -336,6 +412,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
   protected enum PushDownType {
     FILTER,
     PROJECT,
+    SCRIPT_PROJECT,
     AGGREGATION,
     SORT,
     LIMIT,

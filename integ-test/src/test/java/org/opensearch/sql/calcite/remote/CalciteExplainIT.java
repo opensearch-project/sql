@@ -403,7 +403,7 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testExplainRegexMatchInEvalWithOutScriptPushdown() throws IOException {
+  public void testExplainRegexMatchInEvalWithScriptPushdown() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String query =
         String.format(
@@ -552,6 +552,21 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_rex.json");
     assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testScriptProjectMultiplePush() throws IOException {
+    String expected = loadExpectedPlan("explain_script_project_multiple_push.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| eval age2 = age + 2"
+                + "| where age2 > 20"
+                + "| eval upper_name = upper(firstname)"
+                + "| where firstname = \\\"John\\\""
+                + "| rex field=lastname \\\"(?<initial>^[A-Z])\\\""
+                + "| fields age2, upper_name, initial, lastname"));
   }
 
   @Test

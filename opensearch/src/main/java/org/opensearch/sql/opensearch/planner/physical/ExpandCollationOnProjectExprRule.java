@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.planner.physical;
 
 import java.util.Optional;
+import java.util.function.Predicate;
 import org.apache.calcite.adapter.enumerable.EnumerableProject;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
@@ -108,8 +109,9 @@ public class ExpandCollationOnProjectExprRule
                         .oneInput(
                             b1 ->
                                 b1.operand(EnumerableProject.class)
-                                    .predicate(OpenSearchIndexScanRule::projectContainsExpr)
-                                    .predicate(p -> !p.containsOver())
+                                    .predicate(
+                                        Predicate.not(Project::containsOver)
+                                            .and(OpenSearchIndexScanRule::projectContainsExpr))
                                     .anyInputs()));
 
     @Override

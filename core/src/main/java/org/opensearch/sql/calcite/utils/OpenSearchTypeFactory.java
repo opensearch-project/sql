@@ -33,11 +33,13 @@ import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import java.lang.reflect.Type;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Predicate;
 import lombok.Getter;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
@@ -45,10 +47,12 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.type.ExprBinaryType;
 import org.opensearch.sql.calcite.type.ExprDateType;
 import org.opensearch.sql.calcite.type.ExprIPType;
+import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.type.ExprTimeStampType;
 import org.opensearch.sql.calcite.type.ExprTimeType;
 import org.opensearch.sql.data.model.ExprValue;
@@ -67,6 +71,21 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   private OpenSearchTypeFactory(RelDataTypeSystem typeSystem) {
     super(typeSystem);
   }
+
+  // Float is not supported well in OpenSearch core. See reported bug:
+  // https://github.com/opensearch-project/OpenSearch/issues/19271
+  private static final List<Pair<Predicate<RelDataType>, String>>
+      SUPPORTED_DSL_DERIVED_FIELD_TYPE_RULES =
+          Arrays.asList(
+              Pair.of(
+                  t -> t instanceof ExprSqlType && ((ExprSqlType) t).getJavaType() == String.class,
+                  "keyword"),
+              Pair.of(t -> SqlTypeName.INT_TYPES.contains(t.getSqlTypeName()), "long"),
+              // TODO: Support BigDecimal and other complex objects. A workaround is to wrap it in
+              // JSON object so that response can parse it
+              Pair.of(t -> SqlTypeName.DOUBLE.equals(t.getSqlTypeName()), "double"),
+              Pair.of(t -> SqlTypeName.BOOLEAN_TYPES.contains(t.getSqlTypeName()), "boolean"),
+              Pair.of(t -> SqlTypeName.CHAR_TYPES.contains(t.getSqlTypeName()), "keyword"));
 
   @Getter
   public enum ExprUDT {
@@ -336,5 +355,22 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
    */
   public static boolean isUserDefinedType(RelDataType type) {
     return type instanceof AbstractExprRelDataType<?>;
+  }
+
+  public static boolean isTypeSupportedForDerivedField(RelDataType type) {
+    return SUPPORTED_DSL_DERIVED_FIELD_TYPE_RULES.stream()
+        .anyMatch(pair -> pair.getKey().test(type));
+  }
+
+  public static String convertRelDataTypeToSupportedDerivedFieldType(RelDataType type) {
+    return SUPPORTED_DSL_DERIVED_FIELD_TYPE_RULES.stream()
+        .filter(pair -> pair.getKey().test(type))
+        .findFirst()
+        .map(Pair::getValue)
+        .orElseThrow(
+            () ->
+                new IllegalArgumentException(
+                    String.format(
+                        Locale.ROOT, "Unsupported RelDataType for derived field: %s", type)));
   }
 }
