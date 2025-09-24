@@ -223,7 +223,6 @@ public class DynamicColumnProcessor {
    * _dynamic_columns['fieldName']
    */
   public static RexNode resolveDynamicField(String fieldName, CalcitePlanContext context) {
-    // Access the _dynamic_columns MAP field
     RexNode dynamicColumnsField =
         context.relBuilder.field(DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD);
 

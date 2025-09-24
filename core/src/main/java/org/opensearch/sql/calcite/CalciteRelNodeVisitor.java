@@ -326,7 +326,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       return handleAllFieldsProject(node, context);
     }
 
-    // CRITICAL FIX: Set fields command context for proper dynamic field resolution
     boolean wasInFieldsCommand = context.isInFieldsCommand();
     context.setInFieldsCommand(true);
 
@@ -796,7 +795,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 String alias =
                     ((RexLiteral) ((RexCall) eval).getOperands().get(1)).getValueAs(String.class);
 
-                // CRITICAL FIX: Use projectPlusOverriding to properly handle field replacement
+                // Use projectPlusOverriding to properly handle field replacement
                 // This ensures that if _dynamic_columns already exists, it gets updated instead of
                 // creating _dynamic_columns0
                 projectPlusOverriding(List.of(eval), List.of(alias), context);
@@ -985,7 +984,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<AggCall> aggCallList =
         aggExprList.stream().map(expr -> aggVisitor.analyze(expr, context)).toList();
 
-    // CRITICAL FIX: Set both fields command and GROUP BY context for proper field resolution
     // This ensures dynamic fields in GROUP BY clauses get proper aliasing and type handling
     boolean wasInFieldsCommand = context.isInFieldsCommand();
     boolean wasInGroupByContext = context.isInGroupByContext();
@@ -1388,7 +1386,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       throw new UnsupportedOperationException("Consecutive deduplication is not supported");
     }
 
-    // CRITICAL FIX: Set GROUP BY context for dedup fields to ensure proper type handling
     // Dedup uses partitioning which is similar to GROUP BY and needs VARCHAR casting for dynamic
     // fields
     boolean wasInGroupByContext = context.isInGroupByContext();

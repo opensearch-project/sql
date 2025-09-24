@@ -38,8 +38,6 @@ public class CalciteAggCallVisitor extends AbstractNodeVisitor<AggCall, CalciteP
 
   @Override
   public AggCall visitAggregateFunction(AggregateFunction node, CalcitePlanContext context) {
-    // CRITICAL FIX: Set aggregation context for proper dynamic field type handling
-    // Aggregation functions like AVG need proper type inference for dynamic fields
     boolean wasInGroupByContext = context.isInGroupByContext();
     context.setInGroupByContext(true);
 
@@ -61,7 +59,6 @@ public class CalciteAggCallVisitor extends AbstractNodeVisitor<AggCall, CalciteP
                   new UnsupportedOperationException(
                       "Unexpected aggregation: " + node.getFuncName()));
     } finally {
-      // Restore previous context state
       context.setInGroupByContext(wasInGroupByContext);
     }
   }
@@ -70,8 +67,6 @@ public class CalciteAggCallVisitor extends AbstractNodeVisitor<AggCall, CalciteP
   // brain function.
   @Override
   public AggCall visitFunction(Function node, CalcitePlanContext context) {
-    // CRITICAL FIX: Set aggregation context for proper dynamic field type handling
-    // Special aggregation functions also need proper type inference for dynamic fields
     boolean wasInGroupByContext = context.isInGroupByContext();
     context.setInGroupByContext(true);
 
