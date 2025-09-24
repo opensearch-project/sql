@@ -6,6 +6,7 @@
 package org.opensearch.sql.ast.expression;
 
 import lombok.Getter;
+import lombok.Setter;
 
 public abstract class WindowBound {
   private WindowBound() {}
@@ -25,11 +26,13 @@ public abstract class WindowBound {
     }
   }
 
+  @Getter
   public static class DynamicOffSetWindowBound extends WindowBound {
-    private final long offset;
+    private final UnresolvedExpression offset;
     private final boolean isPreceding;
+    @Setter private Object resolvedOffset;
 
-    DynamicOffSetWindowBound(long offset, boolean isPreceding) {
+    public DynamicOffSetWindowBound(UnresolvedExpression offset, boolean isPreceding) {
       this.offset = offset;
       this.isPreceding = isPreceding;
     }

@@ -1332,8 +1332,63 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<UnresolvedExpression> groupList = node.getGroupList();
     boolean hasGroup = groupList != null && !groupList.isEmpty();
     boolean hasWindow = node.getWindow() > 0;
+    boolean hasReset = node.getResetBefore() != null || node.getResetAfter() != null;
 
-    // CASE: global=true + window>0 + has group
+    // CASE: reset
+    if (hasReset) {
+      final String SEQ_COL = "__stream_seq__";
+      final String FLAG_COL = "__reset_flag__";
+      final String SEG_COL = "__seg_id__";
+      RelNode leftWithSeg = buildResetHelperColumns(context, node);
+
+      // 相关变量
+      final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+      context.relBuilder.push(leftWithSeg);
+      context.relBuilder.variable(v::set);
+
+      context.relBuilder.push(leftWithSeg);
+      RexNode rightSeq = context.relBuilder.field("__stream_seq__");
+      RexNode outerSeq = context.relBuilder.field(v.get(), "__stream_seq__");
+      RexNode segIdRight = context.relBuilder.field("__seg_id__");
+      RexNode segIdOuter = context.relBuilder.field(v.get(), "__seg_id__");
+
+      // 构建 frameFilter
+      RexNode frameFilter =
+          buildResetFrameFilter(context, node, outerSeq, rightSeq, segIdOuter, segIdRight);
+
+      // group filter
+      RexNode groupFilter = buildGroupFilter(context, groupList, v.get());
+      if (groupFilter != null) {
+        context.relBuilder.filter(context.relBuilder.and(frameFilter, groupFilter));
+      } else {
+        context.relBuilder.filter(frameFilter);
+      }
+
+      // 4. Aggregate all window functions on right side
+      List<AggCall> aggCalls =
+          buildAggCallsForWindowFunctions(node.getWindowFunctionList(), context);
+      context.relBuilder.aggregate(context.relBuilder.groupKey(), aggCalls);
+      RelNode rightAgg = context.relBuilder.build();
+
+      // 5. Correlate LEFT with RIGHT using seq + group fields
+      context.relBuilder.push(leftWithSeg);
+      context.relBuilder.push(rightAgg);
+      List<RexNode> requiredLeft = buildRequiredLeft(context, SEQ_COL, groupList);
+      // also require seg_id for reset segmentation equality
+      requiredLeft = new ArrayList<>(requiredLeft);
+      requiredLeft.add(context.relBuilder.field(2, 0, "__seg_id__"));
+      context.relBuilder.correlate(JoinRelType.LEFT, v.get().id, requiredLeft);
+
+      // 6. Cleanup helper columns and return
+      context.relBuilder.projectExcept(
+          context.relBuilder.field(SEQ_COL),
+          context.relBuilder.field("__reset_before_flag__"),
+          context.relBuilder.field("__reset_after_flag__"),
+          context.relBuilder.field(SEG_COL));
+      return context.relBuilder.peek();
+    }
+
+    // CASE: 1. global=true + window>0 + has group
     if (node.isGlobal() && hasWindow && hasGroup) {
       // 1. Add global sequence column for sliding window
       final String SEQ_COL = "__stream_seq__";
@@ -1380,7 +1435,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       return context.relBuilder.peek();
     }
 
-    // Default behavior
+    // Default
     List<RexNode> overExpressions =
         node.getWindowFunctionList().stream().map(w -> rexVisitor.analyze(w, context)).toList();
     context.relBuilder.projectPlus(overExpressions);
@@ -1406,6 +1461,117 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               SqlStdOperatorTable.MINUS, outerSeq, context.relBuilder.literal(1));
       return context.relBuilder.between(rightSeq, lower, upper);
     }
+  }
+
+  private RelNode buildResetHelperColumns(CalcitePlanContext context, StreamWindow node) {
+    // 1) global sequence (no partition) to define order
+    RexNode rowNum =
+        PlanUtils.makeOver(
+            context,
+            BuiltinFunctionName.ROW_NUMBER,
+            null,
+            List.of(),
+            List.of(),
+            List.of(),
+            WindowFrame.toCurrentRow());
+    context.relBuilder.projectPlus(context.relBuilder.alias(rowNum, "__stream_seq__"));
+
+    // 2) before/after flags
+    RexNode beforePred =
+        (node.getResetBefore() == null)
+            ? context.relBuilder.literal(false)
+            : rexVisitor.analyze(node.getResetBefore(), context);
+    RexNode afterPred =
+        (node.getResetAfter() == null)
+            ? context.relBuilder.literal(false)
+            : rexVisitor.analyze(node.getResetAfter(), context);
+    RexNode beforeFlag =
+        context.relBuilder.call(
+            SqlStdOperatorTable.CASE,
+            beforePred,
+            context.relBuilder.literal(1),
+            context.relBuilder.literal(0));
+    RexNode afterFlag =
+        context.relBuilder.call(
+            SqlStdOperatorTable.CASE,
+            afterPred,
+            context.relBuilder.literal(1),
+            context.relBuilder.literal(0));
+    context.relBuilder.projectPlus(context.relBuilder.alias(beforeFlag, "__reset_before_flag__"));
+    context.relBuilder.projectPlus(context.relBuilder.alias(afterFlag, "__reset_after_flag__"));
+
+    // 3) session id = SUM(beforeFlag) over (to current) + SUM(afterFlag) over (to 1 preceding)
+    RexNode sumBefore =
+        context
+            .relBuilder
+            .aggregateCall(
+                SqlStdOperatorTable.SUM, context.relBuilder.field("__reset_before_flag__"))
+            .over()
+            .rowsTo(RexWindowBounds.CURRENT_ROW)
+            .toRex();
+    RexNode sumAfterPrev =
+        context
+            .relBuilder
+            .aggregateCall(
+                SqlStdOperatorTable.SUM, context.relBuilder.field("__reset_after_flag__"))
+            .over()
+            .rowsBetween(
+                RexWindowBounds.UNBOUNDED_PRECEDING,
+                RexWindowBounds.preceding(context.relBuilder.literal(1)))
+            .toRex();
+    sumBefore =
+        context.relBuilder.call(
+            SqlStdOperatorTable.COALESCE, sumBefore, context.relBuilder.literal(0));
+    sumAfterPrev =
+        context.relBuilder.call(
+            SqlStdOperatorTable.COALESCE, sumAfterPrev, context.relBuilder.literal(0));
+
+    RexNode segId = context.relBuilder.call(SqlStdOperatorTable.PLUS, sumBefore, sumAfterPrev);
+    context.relBuilder.projectPlus(context.relBuilder.alias(segId, "__seg_id__"));
+    return context.relBuilder.build();
+  }
+
+  private RexNode buildResetFrameFilter(
+      CalcitePlanContext context,
+      StreamWindow node,
+      RexNode outerSeq,
+      RexNode rightSeq,
+      RexNode segIdOuter,
+      RexNode segIdRight) {
+    // 1. 计算 seq 范围
+    // 1. 计算 seq 范围（处理 window==0 的运行累计语义）
+    RexNode seqFilter;
+    if (node.getWindow() == 0) {
+      // running: current => rightSeq <= outerSeq; excluding current => rightSeq < outerSeq
+      seqFilter =
+          node.isCurrent()
+              ? context.relBuilder.lessThanOrEqual(rightSeq, outerSeq)
+              : context.relBuilder.lessThan(rightSeq, outerSeq);
+    } else {
+      RexNode lower, upper;
+      if (node.isCurrent()) {
+        lower =
+            context.relBuilder.call(
+                SqlStdOperatorTable.MINUS,
+                outerSeq,
+                context.relBuilder.literal(node.getWindow() - 1));
+        upper = outerSeq;
+      } else {
+        lower =
+            context.relBuilder.call(
+                SqlStdOperatorTable.MINUS, outerSeq, context.relBuilder.literal(node.getWindow()));
+        upper =
+            context.relBuilder.call(
+                SqlStdOperatorTable.MINUS, outerSeq, context.relBuilder.literal(1));
+      }
+      seqFilter = context.relBuilder.between(rightSeq, lower, upper);
+    }
+
+    // 2. 同 seg_id 保证 reset 分段
+    RexNode segFilter = context.relBuilder.equals(segIdRight, segIdOuter);
+
+    // 3. 合并
+    return context.relBuilder.and(seqFilter, segFilter);
   }
 
   private RexNode buildGroupFilter(

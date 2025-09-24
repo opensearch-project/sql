@@ -239,6 +239,10 @@ public interface PlanUtils {
       } else {
         return following(context.relBuilder.literal(offset.getOffset()));
       }
+    } else if (windowBound instanceof WindowBound.DynamicOffSetWindowBound dynamicOffset) {
+      Object resolvedOffset = dynamicOffset.getResolvedOffset();
+      RexNode rex = (RexNode) resolvedOffset;
+      return dynamicOffset.isPreceding() ? preceding(rex) : following(rex);
     } else {
       throw new UnsupportedOperationException("Unexpected window bound: " + windowBound);
     }

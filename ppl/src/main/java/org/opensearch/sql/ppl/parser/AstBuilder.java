@@ -484,8 +484,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     }
 
     // reset_before, reset_after
-    UnresolvedExpression resetBeforeExpr = booleanLiteral(false);
-    UnresolvedExpression resetAfterExpr = booleanLiteral(false);
+    UnresolvedExpression resetBeforeExpr = null;
+    UnresolvedExpression resetAfterExpr = null;
     if (ctx.streamstatsArgs() != null
         && ctx.streamstatsArgs().resetBeforeArg() != null
         && !ctx.streamstatsArgs().resetBeforeArg().isEmpty()) {
