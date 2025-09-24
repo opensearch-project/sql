@@ -1721,18 +1721,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       subsearchNodes.add(context.relBuilder.build());
     }
 
-    if (subsearchNodes.size() == 1) {
-      context.relBuilder.push(subsearchNodes.get(0));
-      return context.relBuilder.peek();
-    }
-
     // Align schemas for union compatibility
     List<RelNode> alignedNodes = alignSchemasForUnion(subsearchNodes, context);
 
     // Create union
-    context.relBuilder.push(alignedNodes.get(0));
-    for (int i = 1; i < alignedNodes.size(); i++) {
-      context.relBuilder.push(alignedNodes.get(i));
+    for (RelNode alignedNode : alignedNodes) {
+      context.relBuilder.push(alignedNode);
     }
     context.relBuilder.union(true, alignedNodes.size());
 
