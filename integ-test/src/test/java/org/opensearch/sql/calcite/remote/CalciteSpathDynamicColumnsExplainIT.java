@@ -39,8 +39,8 @@ public class CalciteSpathDynamicColumnsExplainIT extends ExplainIT {
   public void testSpathDynamicColumnsWithExplicitFields() throws IOException {
     // Test with explicit field selection to see how column names are handled
     String query =
-        "source=opensearch-sql_test_index_bank | spath input=address | fields address.name as"
-            + " person_name, address.age as person_age";
+        "source=opensearch-sql_test_index_bank | spath input=address | fields address.name,"
+            + " address.age";
     var result = explainQueryToString(query);
 
     System.out.println("=== SPATH WITH EXPLICIT FIELDS PHYSICAL PLAN ===");
