@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
+import org.opensearch.search.SearchHits;
 import org.opensearch.search.aggregations.Aggregation;
 import org.opensearch.search.aggregations.Aggregations;
 import org.opensearch.search.aggregations.bucket.MultiBucketsAggregation;
@@ -43,5 +44,11 @@ public class BucketAggregationParser implements OpenSearchAggregationResponsePar
     resultMap.put(keyName, bucket.getKey());
     resultMap.putAll(metricsParser.parse(bucket.getAggregations()));
     return resultMap;
+  }
+
+  @Override
+  public List<Map<String, Object>> parse(SearchHits hits) {
+    throw new UnsupportedOperationException(
+        "BucketAggregationParser doesn't support parse(SearchHits)");
   }
 }
