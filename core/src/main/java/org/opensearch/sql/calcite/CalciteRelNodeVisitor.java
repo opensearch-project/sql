@@ -195,7 +195,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitFilter(Filter node, CalcitePlanContext context) {
-    System.out.println("=== DEBUG visitFilter === node=" + node);
     visitChildren(node, context);
     boolean containsSubqueryExpression = containsSubqueryExpression(node.getCondition());
     final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
@@ -204,16 +203,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       context.pushCorrelVar(v.get());
     }
     RexNode condition = rexVisitor.analyze(node.getCondition(), context);
-    System.out.println("=== DEBUG condition === condition=" + condition);
     if (containsSubqueryExpression) {
-      System.out.println("=== DEBUG containsSubqueryExpression ===");
       context.relBuilder.filter(ImmutableList.of(v.get().id), condition);
       context.popCorrelVar();
     } else {
-      System.out.println("=== DEBUG !containsSubqueryExpression ===");
       context.relBuilder.filter(condition);
     }
-    System.out.println("=== DEBUG " + context.relBuilder.toString());
     return context.relBuilder.peek();
   }
 
@@ -380,10 +375,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       List<UnresolvedExpression> projectList,
       List<String> currentFields,
       CalcitePlanContext context) {
-
-    System.out.println("=== DEBUG expandProjectFields ===");
-    System.out.println("Project list: " + projectList);
-    System.out.println("Current fields: " + currentFields);
 
     // Use DynamicWildcardProcessor for enhanced wildcard handling with dynamic columns
     List<RexNode> expandedFields =
@@ -783,8 +774,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     node.getExpressionList()
         .forEach(
             expr -> {
-              System.out.println("Processing expression: " + expr);
-
               boolean containsSubqueryExpression = containsSubqueryExpression(expr);
               final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
               if (containsSubqueryExpression) {
@@ -792,7 +781,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 context.pushCorrelVar(v.get());
               }
               RexNode eval = rexVisitor.analyze(expr, context);
-              System.out.println("Analyzed RexNode: " + eval);
 
               if (containsSubqueryExpression) {
                 // RelBuilder.projectPlus doesn't have a parameter with variablesSet:
@@ -807,24 +795,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 // Overriding the existing field if the alias has the same name with original field.
                 String alias =
                     ((RexLiteral) ((RexCall) eval).getOperands().get(1)).getValueAs(String.class);
-                System.out.println("Adding field with alias: " + alias);
-
-                // DEBUG: Check current fields before and after
-                List<String> fieldsBefore = context.relBuilder.peek().getRowType().getFieldNames();
-                System.out.println("Fields before projectPlusOverriding: " + fieldsBefore);
 
                 // CRITICAL FIX: Use projectPlusOverriding to properly handle field replacement
                 // This ensures that if _dynamic_columns already exists, it gets updated instead of
                 // creating _dynamic_columns0
                 projectPlusOverriding(List.of(eval), List.of(alias), context);
 
-                List<String> fieldsAfter = context.relBuilder.peek().getRowType().getFieldNames();
-                System.out.println("Fields after adding eval: " + fieldsAfter);
-
-                // CRITICAL FIX: Mark that dynamic columns are available for field resolution
                 if (DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD.equals(alias)) {
-                  System.out.println(
-                      "Dynamic columns field added - enabling dynamic field resolution");
                   context.setDynamicColumnsAvailable(true);
                 }
               }

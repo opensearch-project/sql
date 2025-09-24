@@ -481,10 +481,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     List<RexNode> arguments = new ArrayList<>();
 
     boolean isCoalesce = "coalesce".equalsIgnoreCase(node.getFuncName());
-    // boolean isNotNull = "is not null".equalsIgnoreCase(node.getFuncName()) ||
-    //                    "isnotnull".equalsIgnoreCase(node.getFuncName());
-    // System.out.println("=== DEBUG visitFunction === node=" + node + ", isCoalesce=" + isCoalesce
-    // + ", isNotNull=" + isNotNull);
 
     if (isCoalesce) {
       context.setInCoalesceFunction(true);
