@@ -460,9 +460,8 @@ class AggregationQueryBuilderTest {
     assertEquals(
         format(
             "{%n"
-                + "  \"gender\" : {%n"
-                + "    \"terms\" : {%n"
-                + "      \"field\" : \"gender\",%n"
+                + "  \"composite_buckets\" : {%n"
+                + "    \"composite\" : {%n"
                 + "      \"size\" : 1000,%n"
                 + "      \"sources\" : [ {%n"
                 + "        \"gender\" : {%n"
