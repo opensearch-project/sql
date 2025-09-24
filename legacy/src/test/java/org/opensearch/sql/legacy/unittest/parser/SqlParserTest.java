@@ -1809,78 +1809,25 @@ public class SqlParserTest {
   }
 
   @Test
-  public void joinWithCountFunctionShouldThrowException() throws SqlParseException {
-    expectJoinAggregationException();
+  public void joinWithAggregateFunctionsShouldThrowException() throws SqlParseException {
+    String[] aggregateFunctions = {
+      "COUNT(*)", "SUM(a.balance)", "AVG(a.age)", "MAX(a.balance)", "MIN(a.age)"
+    };
 
-    String query =
-        String.format(
-            Locale.ROOT,
-            "SELECT COUNT(*) FROM %s/account a "
-                + "JOIN %s/account b ON a.account_number = b.account_number",
-            TestsConstants.TEST_INDEX_ACCOUNT,
-            TestsConstants.TEST_INDEX_ACCOUNT);
+    for (String aggregateFunction : aggregateFunctions) {
+      expectJoinAggregationException();
 
-    parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
-  }
+      String query =
+          String.format(
+              Locale.ROOT,
+              "SELECT %s FROM %s/account a "
+                  + "JOIN %s/account b ON a.account_number = b.account_number",
+              aggregateFunction,
+              TestsConstants.TEST_INDEX_ACCOUNT,
+              TestsConstants.TEST_INDEX_ACCOUNT);
 
-  @Test
-  public void joinWithSumFunctionShouldThrowException() throws SqlParseException {
-    expectJoinAggregationException();
-
-    String query =
-        String.format(
-            Locale.ROOT,
-            "SELECT SUM(a.balance) FROM %s/account a "
-                + "JOIN %s/account b ON a.account_number = b.account_number",
-            TestsConstants.TEST_INDEX_ACCOUNT,
-            TestsConstants.TEST_INDEX_ACCOUNT);
-
-    parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
-  }
-
-  @Test
-  public void joinWithAvgFunctionShouldThrowException() throws SqlParseException {
-    expectJoinAggregationException();
-
-    String query =
-        String.format(
-            Locale.ROOT,
-            "SELECT AVG(a.age) FROM %s/account a "
-                + "JOIN %s/account b ON a.account_number = b.account_number",
-            TestsConstants.TEST_INDEX_ACCOUNT,
-            TestsConstants.TEST_INDEX_ACCOUNT);
-
-    parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
-  }
-
-  @Test
-  public void joinWithMaxFunctionShouldThrowException() throws SqlParseException {
-    expectJoinAggregationException();
-
-    String query =
-        String.format(
-            Locale.ROOT,
-            "SELECT MAX(a.balance) FROM %s/account a "
-                + "JOIN %s/account b ON a.account_number = b.account_number",
-            TestsConstants.TEST_INDEX_ACCOUNT,
-            TestsConstants.TEST_INDEX_ACCOUNT);
-
-    parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
-  }
-
-  @Test
-  public void joinWithMinFunctionShouldThrowException() throws SqlParseException {
-    expectJoinAggregationException();
-
-    String query =
-        String.format(
-            Locale.ROOT,
-            "SELECT MIN(a.age) FROM %s/account a "
-                + "JOIN %s/account b ON a.account_number = b.account_number",
-            TestsConstants.TEST_INDEX_ACCOUNT,
-            TestsConstants.TEST_INDEX_ACCOUNT);
-
-    parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
+      parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
+    }
   }
 
   @Test
