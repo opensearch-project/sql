@@ -12,6 +12,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OTEL_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TIME_DATA;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
+import static org.opensearch.sql.util.MatcherUtils.assertYamlEqualsJsonIgnoreId;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -638,8 +639,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testSearchCommandWithAbsoluteTimeRange() throws IOException {
-    String expected = loadExpectedPlan("explain_search_with_absolute_time_range.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_search_with_absolute_time_range.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             String.format(
@@ -649,8 +650,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testSearchCommandWithRelativeTimeRange() throws IOException {
-    String expected = loadExpectedPlan("explain_search_with_relative_time_range.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_search_with_relative_time_range.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             String.format("source=%s earliest='-1q@year' latest=now", TEST_INDEX_TIME_DATA)));
@@ -658,8 +659,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testSearchCommandWithNumericTimeRange() throws IOException {
-    String expected = loadExpectedPlan("explain_search_with_numeric_time_range.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_search_with_numeric_time_range.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             String.format("source=%s earliest=1 latest=1754020061.123456", TEST_INDEX_TIME_DATA)));
