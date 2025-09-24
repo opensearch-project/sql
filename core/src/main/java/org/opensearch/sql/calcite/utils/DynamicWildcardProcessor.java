@@ -9,12 +9,14 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
 import org.apache.calcite.rex.RexNode;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.CalciteRexNodeVisitor;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
@@ -37,6 +39,7 @@ public class DynamicWildcardProcessor {
    * @return List of RexNode expressions with wildcards expanded
    */
   public static List<RexNode> expandWildcardFields(
+      CalciteRexNodeVisitor rexVisitor,
       List<UnresolvedExpression> projectList,
       List<String> currentFields,
       CalcitePlanContext context) {
@@ -53,6 +56,12 @@ public class DynamicWildcardProcessor {
       switch (expr) {
         case Field field -> {
           String fieldName = field.getField().toString();
+          System.out.println("Processing field: " + fieldName);
+          System.out.println(
+              "Current fields: " + currentFields.stream().collect(Collectors.joining(",")));
+          System.out.println(
+              "ProjectList: "
+                  + projectList.stream().map(Object::toString).collect(Collectors.joining(",")));
 
           if (WildcardUtils.containsWildcard(fieldName)) {
             // Handle wildcard patterns
@@ -72,13 +81,15 @@ public class DynamicWildcardProcessor {
           } else {
             // Handle non-wildcard fields
             if (addedFields.add(fieldName)) {
-              if (currentFields.contains(fieldName)) {
+              RexNode node = rexVisitor.analyze(field, context);
+              System.out.println("Resolved RexNode: " + node);
+              if (node != null) {
                 // Static field
-                expandedFields.add(context.relBuilder.field(fieldName));
+                expandedFields.add(node);
               } else if (hasDynamicColumns) {
                 // Potential dynamic field
                 RexNode dynamicField =
-                    DynamicColumnProcessor.resolveDynamicField(fieldName, context);
+                    DynamicColumnProcessor.resolveDynamicField(fieldName, context, fieldName);
                 expandedFields.add(dynamicField);
               } else {
                 // Field not found - let normal error handling take care of this

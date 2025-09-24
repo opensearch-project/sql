@@ -387,7 +387,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // Use DynamicWildcardProcessor for enhanced wildcard handling with dynamic columns
     List<RexNode> expandedFields =
-        DynamicWildcardProcessor.expandWildcardFields(projectList, currentFields, context);
+        DynamicWildcardProcessor.expandWildcardFields(
+            rexVisitor, projectList, currentFields, context);
 
     if (expandedFields.isEmpty()) {
       boolean hasDynamicColumns =

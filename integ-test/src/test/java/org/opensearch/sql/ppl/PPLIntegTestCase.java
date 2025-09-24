@@ -15,6 +15,7 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Locale;
+import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
@@ -394,22 +395,32 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     }
   }
 
-  /**
-   * Creates a document with specified ID and JSON field content. This is a shared utility method
-   * for integration tests that need to create test data with JSON content in specific fields.
-   *
-   * @param index the index name where the document will be created
-   * @param id the numeric ID value to include in the document (also used as document ID)
-   * @param fieldName the name of the field that will contain the JSON content
-   * @param jsonContent the JSON content as a string (will be escaped automatically)
-   * @throws IOException if the document creation fails
-   */
   protected void createDocumentWithIdAndJsonField(
       String index, int id, String fieldName, String jsonContent) throws IOException {
+    createDocumentWithIdAndJsonField(index, id, fieldName, jsonContent, Map.of());
+  }
+
+  protected void createDocumentWithIdAndJsonField(
+      String index,
+      int id,
+      String fieldName,
+      String jsonContent,
+      Map<String, String> additionalFields)
+      throws IOException {
     Request request = new Request("PUT", String.format("/%s/_doc/%d?refresh=true", index, id));
     request.setJsonEntity(
-        String.format("{\"id\": %d, \"%s\": \"%s\"}", id, fieldName, escapeForJson(jsonContent)));
+        String.format(
+            "{\"id\": %d, \"%s\": \"%s\" %s}",
+            id, fieldName, escapeForJson(jsonContent), formatAdditionalFields(additionalFields)));
     client().performRequest(request);
+  }
+
+  private String formatAdditionalFields(Map<String, String> additionalFields) {
+    StringBuilder sb = new StringBuilder();
+    for (Map.Entry<String, String> entry : additionalFields.entrySet()) {
+      sb.append(String.format(", \"%s\": \"%s\"", entry.getKey(), escapeForJson(entry.getValue())));
+    }
+    return sb.toString();
   }
 
   protected String escapeForJson(String jsonContent) {
