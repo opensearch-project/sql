@@ -5,10 +5,13 @@
 
 package org.opensearch.sql.calcite.utils;
 
+import java.util.List;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.opensearch.sql.data.type.ExprCoreType;
 
 /**
@@ -38,5 +41,26 @@ public final class PPLReturnTypes {
           return UserDefinedFunctionUtils.NULLABLE_TIME_UDT;
         }
         return UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT;
+      };
+  public static SqlReturnTypeInference ARG0_ARRAY =
+      opBinding -> {
+        RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+
+        // Get argument types
+        List<RelDataType> argTypes = opBinding.collectOperandTypes();
+
+        if (argTypes.isEmpty()) {
+          throw new IllegalArgumentException("Function requires at least one argument.");
+        }
+        RelDataType firstArgType = argTypes.getFirst();
+        return SqlTypeUtil.createArrayType(typeFactory, firstArgType, true);
+      };
+  public static final SqlReturnTypeInference STRING_ARRAY =
+      opBinding -> {
+        RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+        // Always return array of strings since multivalue functions convert everything to strings
+        RelDataType stringType =
+            typeFactory.createSqlType(org.apache.calcite.sql.type.SqlTypeName.VARCHAR);
+        return SqlTypeUtil.createArrayType(typeFactory, stringType, true);
       };
 }

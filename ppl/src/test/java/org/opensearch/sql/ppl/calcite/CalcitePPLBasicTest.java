@@ -117,7 +117,8 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testFilterQueryWithOr2() {
-    String ppl = "source=EMP (DEPTNO = 20 or MGR = 30) and SAL > 1000 | fields EMPNO, ENAME";
+    String ppl =
+        "source=EMP | where (DEPTNO = 20 or MGR = 30) and SAL > 1000 | fields EMPNO, ENAME";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"

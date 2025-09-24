@@ -66,7 +66,7 @@ class RegexExpressionTest extends ExpressionTestBase {
             "userAgent",
             "Mozilla/5.0 (X11; Linux x86_64; rv:6.0a1) Gecko/20110421 Firefox/6.0a1");
     List<String> identifiers = new ArrayList<>(expected.keySet());
-    assertEquals(identifiers, RegexExpression.getNamedGroupCandidates(rawPattern));
+    assertEquals(identifiers, RegexCommonUtils.getNamedGroupCandidates(rawPattern));
     identifiers.forEach(
         identifier ->
             assertEquals(

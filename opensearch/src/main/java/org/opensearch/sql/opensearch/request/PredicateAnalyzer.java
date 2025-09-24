@@ -24,6 +24,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.opensearch.sql.opensearch.request;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -294,6 +295,7 @@ public class PredicateAnalyzer {
           return true;
         case POSTFIX:
           switch (call.getKind()) {
+            case IS_TRUE:
             case IS_NOT_NULL:
             case IS_NULL:
               return true;
@@ -559,10 +561,18 @@ public class PredicateAnalyzer {
     }
 
     private QueryExpression postfix(RexCall call) {
-      checkArgument(call.getKind() == SqlKind.IS_NULL || call.getKind() == SqlKind.IS_NOT_NULL);
+      checkArgument(
+          call.getKind() == SqlKind.IS_TRUE
+              || call.getKind() == SqlKind.IS_NULL
+              || call.getKind() == SqlKind.IS_NOT_NULL);
       if (call.getOperands().size() != 1) {
         String message = format(Locale.ROOT, "Unsupported operator: [%s]", call);
         throw new PredicateAnalyzerException(message);
+      }
+
+      if (call.getKind() == SqlKind.IS_TRUE) {
+        Expression qe = call.getOperands().get(0).accept(this);
+        return ((QueryExpression) qe).isTrue();
       }
 
       // OpenSearch DSL does not handle IS_NULL / IS_NOT_NULL on nested fields correctly
@@ -1381,7 +1391,8 @@ public class PredicateAnalyzer {
 
     @Override
     public QueryExpression isTrue() {
-      builder = termQuery(getFieldReferenceForTermQuery(), true);
+      // Ignore istrue if ISTRUE(predicate) and will support ISTRUE(field) later.
+      // builder = termQuery(getFieldReferenceForTermQuery(), true);
       return this;
     }
 

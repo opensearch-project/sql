@@ -7,7 +7,7 @@ package org.opensearch.sql.analysis;
 
 import static org.opensearch.sql.ast.dsl.AstDSL.and;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
-import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENABLED;
+import static org.opensearch.sql.calcite.utils.CalciteUtils.getOnlyForCalciteException;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import org.opensearch.sql.analysis.symbol.Namespace;
@@ -53,6 +54,7 @@ import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
+import org.opensearch.sql.calcite.utils.CalciteUtils;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -191,6 +193,7 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
   @Override
   public Expression visitFunction(Function node, AnalysisContext context) {
     FunctionName functionName = FunctionName.of(node.getFuncName());
+    validateCalciteOnlyFunction(functionName);
     List<Expression> arguments =
         node.getFuncArgs().stream()
             .map(
@@ -206,6 +209,34 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
             .collect(Collectors.toList());
     return (Expression)
         repository.compile(context.getFunctionProperties(), functionName, arguments);
+  }
+
+  /**
+   * Validates that functions requiring Calcite engine are not used without it.
+   *
+   * @param functionName The function name to validate
+   */
+  private void validateCalciteOnlyFunction(FunctionName functionName) {
+    if (isCalciteOnlyFunction(functionName)) {
+      throw CalciteUtils.getOnlyForCalciteException(functionName.getFunctionName().toUpperCase());
+    }
+  }
+
+  /**
+   * Checks if a function requires Calcite engine to be enabled.
+   *
+   * @param functionName The function name to check
+   * @return true if the function requires Calcite, false otherwise
+   */
+  private boolean isCalciteOnlyFunction(FunctionName functionName) {
+    // Set of functions that are only supported with Calcite engine
+    Set<String> calciteOnlyFunctions =
+        ImmutableSet.of(
+            BuiltinFunctionName.REGEX_MATCH.getName().getFunctionName(),
+            BuiltinFunctionName.STRFTIME.getName().getFunctionName());
+
+    return calciteOnlyFunctions.stream()
+        .anyMatch(f -> f.equalsIgnoreCase(functionName.getFunctionName()));
   }
 
   @SuppressWarnings("unchecked")
@@ -435,20 +466,17 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
 
   @Override
   public Expression visitScalarSubquery(ScalarSubquery node, AnalysisContext context) {
-    throw new UnsupportedOperationException(
-        "Subsearch is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+    throw getOnlyForCalciteException("Subsearch");
   }
 
   @Override
   public Expression visitExistsSubquery(ExistsSubquery node, AnalysisContext context) {
-    throw new UnsupportedOperationException(
-        "Subsearch is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+    throw getOnlyForCalciteException("Subsearch");
   }
 
   @Override
   public Expression visitInSubquery(InSubquery node, AnalysisContext context) {
-    throw new UnsupportedOperationException(
-        "Subsearch is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+    throw getOnlyForCalciteException("Subsearch");
   }
 
   /**

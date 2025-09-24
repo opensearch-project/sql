@@ -2,6 +2,7 @@
  * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 package org.opensearch.sql.ppl.parser;
 
 import static java.util.Collections.emptyList;
@@ -13,6 +14,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.and;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.caseWhen;
 import static org.opensearch.sql.ast.dsl.AstDSL.cast;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
 import static org.opensearch.sql.ast.dsl.AstDSL.decimalLiteral;
@@ -39,9 +41,11 @@ import static org.opensearch.sql.ast.dsl.AstDSL.or;
 import static org.opensearch.sql.ast.dsl.AstDSL.projectWithArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
+import static org.opensearch.sql.ast.dsl.AstDSL.search;
 import static org.opensearch.sql.ast.dsl.AstDSL.sort;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
+import static org.opensearch.sql.ast.dsl.AstDSL.when;
 import static org.opensearch.sql.ast.dsl.AstDSL.xor;
 
 import com.google.common.collect.ImmutableMap;
@@ -61,40 +65,47 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   @Test
   public void testLogicalNotExpr() {
     assertEqual(
-        "source=t not a=1", filter(relation("t"), not(compare("=", field("a"), intLiteral(1)))));
+        "source=t | where not a=1",
+        filter(relation("t"), not(compare("=", field("a"), intLiteral(1)))));
+    assertEqual("source=t not a=1", search(relation("t"), "NOT(a:1)"));
   }
 
   @Test
   public void testLogicalOrExpr() {
     assertEqual(
-        "source=t a=1 or b=2",
+        "source=t | where a=1 or b=2",
         filter(
             relation("t"),
             or(compare("=", field("a"), intLiteral(1)), compare("=", field("b"), intLiteral(2)))));
+    assertEqual("source=t a=1 or b=2", search(relation("t"), "(a:1 OR b:2)"));
   }
 
   @Test
   public void testLogicalAndExpr() {
     assertEqual(
-        "source=t a=1 and b=2",
+        "source=t | where a=1 and b=2",
         filter(
             relation("t"),
             and(compare("=", field("a"), intLiteral(1)), compare("=", field("b"), intLiteral(2)))));
+    assertEqual("source=t a=1 and b=2", search(relation("t"), "(a:1 AND b:2)"));
   }
 
   @Test
   public void testLogicalAndExprWithoutKeywordAnd() {
     assertEqual(
-        "source=t a=1 b=2",
+        "source=t | where a=1 and b=2",
         filter(
             relation("t"),
             and(compare("=", field("a"), intLiteral(1)), compare("=", field("b"), intLiteral(2)))));
+    assertEqual("source=t a=1 b=2", search(relation("t"), "(a:1) AND (b:2)"));
+    assertEqual(
+        "source=t a=1 b=2 c=2 text", search(relation("t"), "(a:1) AND (b:2) AND (c:2) AND (text)"));
   }
 
   @Test
   public void testLogicalXorExpr() {
     assertEqual(
-        "source=t a=1 xor b=2",
+        "source=t | where a=1 xor b=2",
         filter(
             relation("t"),
             xor(compare("=", field("a"), intLiteral(1)), compare("=", field("b"), intLiteral(2)))));
@@ -103,7 +114,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   @Test
   public void testLogicalAndOr() {
     assertEqual(
-        "source=t a=1 and b=2 and c=3 or d=4",
+        "source=t | where a=1 and b=2 and c=3 or d=4",
         filter(
             relation("t"),
             or(
@@ -113,12 +124,15 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                         compare("=", field("b"), intLiteral(2))),
                     compare("=", field("c"), intLiteral(3))),
                 compare("=", field("d"), intLiteral(4)))));
+    assertEqual(
+        "source=t  a=1 and b=2 and c=3 or d=4",
+        search(relation("t"), "((a:1 AND b:2) AND (c:3 OR d:4))"));
   }
 
   @Test
   public void testLogicalParenthetic() {
     assertEqual(
-        "source=t (a=1 or b=2) and (c=3 or d=4)",
+        "source=t | where (a=1 or b=2) and (c=3 or d=4)",
         filter(
             relation("t"),
             and(
@@ -128,12 +142,16 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                 or(
                     compare("=", field("c"), intLiteral(3)),
                     compare("=", field("d"), intLiteral(4))))));
+
+    assertEqual(
+        "source=t (a=1 or b=2) and (c=3 or d=4)",
+        search(relation("t"), "(((a:1 OR b:2)) AND ((c:3 OR d:4)))"));
   }
 
   @Test
   public void testLogicalNotAndXorOr() {
     assertEqual(
-        "source=t a=1 xor b=2 and not c=3 or d=4",
+        "source=t | where a=1 xor b=2 and not c=3 or d=4",
         filter(
             relation("t"),
             or(
@@ -187,23 +205,27 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
 
   @Test
   public void testBooleanIsNullFunction() {
-    assertEqual("source=t isnull(a)", filter(relation("t"), function("is null", field("a"))));
-    assertEqual("source=t ISNULL(a)", filter(relation("t"), function("is null", field("a"))));
+    assertEqual(
+        "source=t | where isnull(a)", filter(relation("t"), function("is null", field("a"))));
+    assertEqual(
+        "source=t | where ISNULL(a)", filter(relation("t"), function("is null", field("a"))));
   }
 
   @Test
   public void testBooleanIsNotNullFunction() {
     assertEqual(
-        "source=t isnotnull(a)", filter(relation("t"), function("is not null", field("a"))));
+        "source=t | where isnotnull(a)",
+        filter(relation("t"), function("is not null", field("a"))));
     assertEqual(
-        "source=t ISNOTNULL(a)", filter(relation("t"), function("is not null", field("a"))));
+        "source=t | where ISNOTNULL(a)",
+        filter(relation("t"), function("is not null", field("a"))));
   }
 
   /** Todo. search operator should not include functionCall, need to change antlr. */
   @Ignore("search operator should not include functionCall, need to change antlr")
   public void testEvalExpr() {
     assertEqual(
-        "source=t f=abs(a)",
+        "source=t | where f=abs(a)",
         filter(relation("t"), equalTo(field("f"), function("abs", field("a")))));
   }
 
@@ -386,34 +408,40 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   @Test
   public void testCompareExpr() {
     assertEqual(
-        "source=t a='b'", filter(relation("t"), compare("=", field("a"), stringLiteral("b"))));
+        "source=t | where a='b'",
+        filter(relation("t"), compare("=", field("a"), stringLiteral("b"))));
+    assertEqual("source=t a='b'", search(relation("t"), "a:b"));
   }
 
   @Test
   public void testCompareFieldsExpr() {
-    assertEqual("source=t a>b", filter(relation("t"), compare(">", field("a"), field("b"))));
+    assertEqual(
+        "source=t | where a>b", filter(relation("t"), compare(">", field("a"), field("b"))));
+    assertEqual("source=t a>b", search(relation("t"), "a:>b"));
   }
 
   @Test
   public void testDoubleEqualCompareExpr() {
     // Test that == is correctly mapped to = operator internally
-    assertEqual("source=t a==1", filter(relation("t"), compare("=", field("a"), intLiteral(1))));
     assertEqual(
-        "source=t a=='hello'",
+        "source=t | where a==1", filter(relation("t"), compare("=", field("a"), intLiteral(1))));
+    assertEqual(
+        "source=t | where a=='hello'",
         filter(relation("t"), compare("=", field("a"), stringLiteral("hello"))));
-    assertEqual("source=t a==b", filter(relation("t"), compare("=", field("a"), field("b"))));
+    assertEqual(
+        "source=t | where a==b", filter(relation("t"), compare("=", field("a"), field("b"))));
   }
 
   @Test
   public void testMixedEqualOperators() {
     // Test that both = and == can be used in the same expression
     assertEqual(
-        "source=t a=1 and b==2",
+        "source=t | where a=1 and b==2",
         filter(
             relation("t"),
             and(compare("=", field("a"), intLiteral(1)), compare("=", field("b"), intLiteral(2)))));
     assertEqual(
-        "source=t a==1 or b=2",
+        "source=t | where a==1 or b=2",
         filter(
             relation("t"),
             or(compare("=", field("a"), intLiteral(1)), compare("=", field("b"), intLiteral(2)))));
@@ -421,8 +449,10 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
 
   @Test
   public void testInExpr() {
+    assertEqual("source=t f in (1, 2, 3)", search(relation("t"), "f:( 1 OR 2 OR 3 )"));
+
     assertEqual(
-        "source=t f in (1, 2, 3)",
+        "source=t | where f in (1, 2, 3)",
         filter(relation("t"), in(field("f"), intLiteral(1), intLiteral(2), intLiteral(3))));
   }
 
@@ -602,6 +632,24 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         agg(
             relation("t"),
             exprList(alias("count()", aggregate("count", AllFields.of()))),
+            emptyList(),
+            exprList(alias("b", field("b"))),
+            defaultStatsArgs()));
+  }
+
+  @Test
+  public void testCountEvalFuncCallExpr() {
+    assertEqual(
+        "source=t | stats count(eval(a > 0)) by b",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "count(eval(a > 0))",
+                    aggregate(
+                        "count",
+                        caseWhen(
+                            null, when(compare(">", field("a"), intLiteral(0)), intLiteral(1)))))),
             emptyList(),
             exprList(alias("b", field("b"))),
             defaultStatsArgs()));
@@ -860,26 +908,33 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
 
   @Test
   public void testStringLiteralExpr() {
+    assertEqual("source=t a=\"string\"", search(relation("t"), "a:string"));
     assertEqual(
-        "source=t a=\"string\"",
+        "source=t | where a=\"string\"",
         filter(relation("t"), compare("=", field("a"), stringLiteral("string"))));
   }
 
   @Test
   public void testIntegerLiteralExpr() {
     assertEqual(
-        "source=t a=1 b=-1",
+        "source=t | where a=1 and b=-1",
         filter(
             relation("t"),
             and(
                 compare("=", field("a"), intLiteral(1)),
                 compare("=", field("b"), intLiteral(-1)))));
+
+    assertEqual("source=t a=1 b=-1", search(relation("t"), "(a:1) AND (b:-1)"));
   }
 
   @Test
   public void testLongLiteralExpr() {
     assertEqual(
         "source=t a=1234567890123 b=-1234567890123",
+        search(relation("t"), "(a:1234567890123) AND (b:-1234567890123)"));
+
+    assertEqual(
+        "source=t | where a=1234567890123 and b=-1234567890123",
         filter(
             relation("t"),
             and(
@@ -889,32 +944,48 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
 
   @Test
   public void testDoubleLiteralExpr() {
+    assertEqual("source=t b=0.1d", search(relation("t"), "b:0.1"));
     assertEqual(
-        "source=t b=0.1d", filter(relation("t"), compare("=", field("b"), doubleLiteral(0.1))));
+        "source=t | where b=0.1d",
+        filter(relation("t"), compare("=", field("b"), doubleLiteral(0.1))));
   }
 
   @Test
   public void testFloatLiteralExpr() {
+    assertEqual("source=t b=0.1f", search(relation("t"), "b:0.1"));
     assertEqual(
-        "source=t b=0.1f", filter(relation("t"), compare("=", field("b"), floatLiteral(0.1f))));
+        "source=t | where b=0.1f",
+        filter(relation("t"), compare("=", field("b"), floatLiteral(0.1f))));
   }
 
   @Test
   public void testDecimalLiteralExpr() {
+    assertEqual("source=t b=0.1", search(relation("t"), "b:0.1"));
     assertEqual(
-        "source=t b=0.1", filter(relation("t"), compare("=", field("b"), decimalLiteral(0.1))));
+        "source=t | where b=0.1",
+        filter(relation("t"), compare("=", field("b"), decimalLiteral(0.1))));
   }
 
   @Test
   public void testBooleanLiteralExpr() {
+    assertEqual("source=t a=true", search(relation("t"), "a:true"));
     assertEqual(
-        "source=t a=true", filter(relation("t"), compare("=", field("a"), booleanLiteral(true))));
+        "source=t | where a=true",
+        filter(relation("t"), compare("=", field("a"), booleanLiteral(true))));
+  }
+
+  @Test
+  public void testBackQuotedFieldNames() {
+    assertEqual("source=t `first name`=true", search(relation("t"), "first\\ name:true"));
+    assertEqual(
+        "source=t | where `first name`=true",
+        filter(relation("t"), compare("=", field("first name"), booleanLiteral(true))));
   }
 
   @Test
   public void testIntervalLiteralExpr() {
     assertEqual(
-        "source=t a = interval 1 day",
+        "source=t | where a = interval 1 day",
         filter(
             relation("t"), compare("=", field("a"), intervalLiteral(1, DataType.INTEGER, "day"))));
   }
@@ -1277,5 +1348,17 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
     assertThrows(
         SyntaxCheckException.class,
         () -> assertEqual("source=t | stats perc100.1(a)", (Node) null));
+  }
+
+  @Test
+  public void testMedianAggFuncExpr() {
+    assertEqual(
+        "source=t | stats median(a)",
+        agg(
+            relation("t"),
+            exprList(alias("median(a)", aggregate("median", field("a")))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
   }
 }

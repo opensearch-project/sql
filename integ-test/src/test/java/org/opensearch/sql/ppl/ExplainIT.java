@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl;
 import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OTEL_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
@@ -28,6 +29,7 @@ public class ExplainIT extends PPLIntegTestCase {
     loadIndex(Index.BANK);
     loadIndex(Index.DATE_FORMATS);
     loadIndex(Index.WEBLOG);
+    loadIndex(Index.OTELLOGS);
   }
 
   @Test
@@ -222,8 +224,6 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testSortThenAggregatePushDownExplain() throws IOException {
-    // TODO: Remove pushed-down sort in DSL in expectedOutput/ppl/explain_sort_then_agg_push.json
-    //  existing collations should be eliminated when pushing down aggregations (v2)
     String expected = loadExpectedPlan("explain_sort_then_agg_push.json");
     assertJsonEqualsIgnoreId(
         expected,
@@ -454,6 +454,17 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testStatsBySpanNonBucketNullable() throws IOException {
+    String expected = loadExpectedPlan("explain_stats_by_span_non_bucket_nullable.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | stats bucket_nullable=false count() by span(age,10)",
+                TEST_INDEX_BANK)));
+  }
+
+  @Test
   public void testStatsByTimeSpan() throws IOException {
     String expected = loadExpectedPlan("explain_stats_by_timespan.json");
     assertJsonEqualsIgnoreId(
@@ -466,9 +477,17 @@ public class ExplainIT extends PPLIntegTestCase {
         expected,
         explainQueryToString(
             String.format("source=%s | stats count() by span(birthdate,1M)", TEST_INDEX_BANK)));
+
+    // bucket_nullable doesn't impact by-span-time
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | stats bucket_nullable=false count() by span(birthdate,1M)",
+                TEST_INDEX_BANK)));
   }
 
-  @Test
+  @Ignore("https://github.com/opensearch-project/OpenSearch/issues/3725")
   public void testDedupPushdown() throws IOException {
     String expected = loadExpectedPlan("explain_dedup_push.json");
     assertJsonEqualsIgnoreId(
@@ -488,7 +507,7 @@ public class ExplainIT extends PPLIntegTestCase {
                 + " | dedup gender KEEPEMPTY=true"));
   }
 
-  @Test
+  @Ignore("https://github.com/opensearch-project/OpenSearch/issues/3725")
   public void testDedupKeepEmptyFalsePushdown() throws IOException {
     String expected = loadExpectedPlan("explain_dedup_keepempty_false_push.json");
     assertJsonEqualsIgnoreId(
@@ -500,11 +519,7 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testSingleFieldRelevanceQueryFunctionExplain() throws IOException {
-    // This test is only applicable if pushdown is enabled
-    if (!isPushdownEnabled()) {
-      return;
-    }
-
+    enabledOnlyWhenPushdownIsEnabled();
     String expected =
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_single_field_relevance_push.json")
@@ -519,11 +534,7 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testMultiFieldsRelevanceQueryFunctionExplain() throws IOException {
-    // This test is only applicable if pushdown is enabled
-    if (!isPushdownEnabled()) {
-      return;
-    }
-
+    enabledOnlyWhenPushdownIsEnabled();
     String expected =
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_multi_fields_relevance_push.json")
@@ -626,14 +637,45 @@ public class ExplainIT extends PPLIntegTestCase {
   protected String loadExpectedPlan(String fileName) throws IOException {
     String prefix;
     if (isCalciteEnabled()) {
-      if (isPushdownEnabled()) {
-        prefix = "expectedOutput/calcite/";
-      } else {
+      if (isPushdownDisabled()) {
         prefix = "expectedOutput/calcite_no_pushdown/";
+      } else {
+        prefix = "expectedOutput/calcite/";
       }
     } else {
       prefix = "expectedOutput/ppl/";
     }
     return loadFromFile(prefix + fileName);
+  }
+
+  // Search command explain examples - 3 core use cases
+
+  @Test
+  public void testExplainSearchBasicText() throws IOException {
+    // Example 1: Basic text search without field specification
+    String expected = loadExpectedPlan("explain_search_basic_text.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(String.format("search source=%s ERROR", TEST_INDEX_OTEL_LOGS)));
+  }
+
+  @Test
+  public void testExplainSearchNumericComparison() throws IOException {
+    // Example 2: Numeric field comparison with greater than
+    String expected = loadExpectedPlan("explain_search_numeric_comparison.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format("search source=%s severityNumber>15", TEST_INDEX_OTEL_LOGS)));
+  }
+
+  @Test
+  public void testExplainSearchWildcardStar() throws IOException {
+    // Example 3: Wildcard search with asterisk for pattern matching
+    String expected = loadExpectedPlan("explain_search_wildcard_star.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format("search source=%s severityText=ERR*", TEST_INDEX_OTEL_LOGS)));
   }
 }

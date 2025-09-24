@@ -2,12 +2,14 @@
  * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 package org.opensearch.sql.opensearch.planner.physical;
 
 import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelRule;
@@ -52,7 +54,7 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
 
     // TODO: support script pushdown for project instead of only reference
     // https://github.com/opensearch-project/sql/issues/3387
-    final List<Integer> selectedColumns = new ArrayList<>();
+    final SelectedColumns selectedColumns = new SelectedColumns();
     final RexVisitorImpl<Void> visitor =
         new RexVisitorImpl<Void>(true) {
           @Override
@@ -65,16 +67,36 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
         };
     visitor.visitEach(project.getProjects());
     // Only do push down when an actual projection happens
-    if (!selectedColumns.isEmpty() && selectedColumns.size() != scan.getRowType().getFieldCount()) {
+    if (!selectedColumns.isEmpty()
+        && !selectedColumns.isIdentity(scan.getRowType().getFieldCount())) {
       Mapping mapping = Mappings.target(selectedColumns, scan.getRowType().getFieldCount());
       CalciteLogicalIndexScan newScan = scan.pushDownProject(selectedColumns);
-      final List<RexNode> newProjectRexNodes = RexUtil.apply(mapping, project.getProjects());
+      if (newScan != null) {
+        final List<RexNode> newProjectRexNodes = RexUtil.apply(mapping, project.getProjects());
 
-      if (RexUtil.isIdentity(newProjectRexNodes, newScan.getRowType())) {
-        call.transformTo(newScan);
-      } else {
-        call.transformTo(call.builder().push(newScan).project(newProjectRexNodes).build());
+        if (RexUtil.isIdentity(newProjectRexNodes, newScan.getRowType())) {
+          call.transformTo(newScan);
+        } else {
+          call.transformTo(call.builder().push(newScan).project(newProjectRexNodes).build());
+        }
       }
+    }
+  }
+
+  static final class SelectedColumns extends ArrayList<Integer> {
+    private boolean isSequential = true;
+    private Integer current = 0;
+
+    @Override
+    public boolean add(Integer integer) {
+      if (isSequential && !Objects.equals(integer, current++)) {
+        isSequential = false;
+      }
+      return super.add(integer);
+    }
+
+    public boolean isIdentity(Integer size) {
+      return isSequential && size == size();
     }
   }
 
@@ -88,11 +110,7 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
             .withOperandSupplier(
                 b0 ->
                     b0.operand(LogicalProject.class)
-                        .oneInput(
-                            b1 ->
-                                b1.operand(CalciteLogicalIndexScan.class)
-                                    .predicate(OpenSearchIndexScanRule::noAggregatePushed)
-                                    .noInputs()));
+                        .oneInput(b1 -> b1.operand(CalciteLogicalIndexScan.class).noInputs()));
 
     @Override
     default OpenSearchProjectIndexScanRule toRule() {

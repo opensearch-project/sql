@@ -60,6 +60,7 @@ public class TestsConstants {
   public static final String TEST_INDEX_MULTI_NESTED_TYPE = TEST_INDEX + "_multi_nested";
   public static final String TEST_INDEX_NESTED_WITH_NULLS = TEST_INDEX + "_nested_with_nulls";
   public static final String TEST_INDEX_GEOPOINT = TEST_INDEX + "_geopoint";
+  public static final String TEST_INDEX_COMPLEX_GEO = TEST_INDEX + "_complex_geo";
   public static final String TEST_INDEX_JSON_TEST = TEST_INDEX + "_json_test";
   public static final String TEST_INDEX_ALIAS = TEST_INDEX + "_alias";
   public static final String TEST_INDEX_FLATTENED_VALUE = TEST_INDEX + "_flattened_value";
@@ -79,6 +80,9 @@ public class TestsConstants {
   public static final String TEST_INDEX_MERGE_TEST_WILDCARD = TEST_INDEX + "_merge_test_*";
   public static final String TEST_INDEX_ARRAY = TEST_INDEX + "_array";
   public static final String TEST_INDEX_HDFS_LOGS = TEST_INDEX + "_hdfs_logs";
+  public static final String TEST_INDEX_LOGS = TEST_INDEX + "_logs";
+  public static final String TEST_INDEX_OTEL_LOGS = TEST_INDEX + "_otel_logs";
+  public static final String TEST_INDEX_TIME_DATE_NULL = TEST_INDEX + "_time_date_null";
 
   public static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
   public static final String TS_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";

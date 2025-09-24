@@ -1,9 +1,6 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
  */
 
 package org.opensearch.sql.executor;
@@ -265,7 +262,11 @@ public class QueryService {
 
   private boolean isCalciteFallbackAllowed() {
     if (settings != null) {
-      return settings.getSettingValue(Settings.Key.CALCITE_FALLBACK_ALLOWED);
+      Boolean fallback_allowed = settings.getSettingValue(Settings.Key.CALCITE_FALLBACK_ALLOWED);
+      if (fallback_allowed == null) {
+        return false;
+      }
+      return fallback_allowed;
     } else {
       return true;
     }

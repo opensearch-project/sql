@@ -14,17 +14,14 @@
     "user/ppl/cmd/showdatasources.rst",
     "user/ppl/cmd/information_schema.rst",
     "user/ppl/cmd/eval.rst",
-    "user/ppl/cmd/fields.rst",
     "user/ppl/cmd/fillnull.rst",
     "user/ppl/cmd/grok.rst",
     "user/ppl/cmd/head.rst",
     "user/ppl/cmd/parse.rst",
     "user/ppl/cmd/patterns.rst",
     "user/ppl/cmd/rare.rst",
-    "user/ppl/cmd/rename.rst",
     "user/ppl/cmd/search.rst",
     "user/ppl/cmd/sort.rst",
-    "user/ppl/cmd/stats.rst",
     "user/ppl/cmd/syntax.rst",
     "user/ppl/cmd/trendline.rst",
     "user/ppl/cmd/top.rst",
@@ -34,7 +31,6 @@
     "user/ppl/cmd/subquery.rst",
     "user/ppl/general/identifiers.rst",
     "user/ppl/general/datatypes.rst",
-    "user/ppl/functions/condition.rst",
     "user/ppl/functions/datetime.rst",
     "user/ppl/functions/expressions.rst",
     "user/ppl/functions/ip.rst",
@@ -56,5 +52,17 @@
     "user/dql/aggregations.rst",
     "user/dql/complex.rst",
     "user/dql/metadata.rst"
+  ],
+  "ppl_cli_calcite": [
+    "user/ppl/cmd/append.rst",
+    "user/ppl/functions/condition.rst",
+    "user/ppl/cmd/eventstats.rst",
+    "user/ppl/cmd/fields.rst",
+    "user/ppl/cmd/regex.rst",
+    "user/ppl/cmd/rename.rst",
+    "user/ppl/cmd/rex.rst",
+    "user/ppl/cmd/stats.rst",
+    "user/ppl/cmd/timechart.rst",
+    "user/ppl/cmd/search.rst"
   ]
 }

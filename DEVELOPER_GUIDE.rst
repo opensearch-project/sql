@@ -100,20 +100,14 @@ connect to that port. For IntelliJ, see `attaching to a remote process <https://
 License Header
 --------------
 
-Because our code is licensed under Apache 2, you need to add the following license header to all new source code files. To automate this whenever creating new file, you can follow instructions for your IDE::
+Because our code is licensed under Apache 2, you need to add the following license header to all new source code files. To automate this whenever creating new file, you can follow instructions for your IDE.
 
-   /*
-    * Licensed under the Apache License, Version 2.0 (the "License").
-    * You may not use this file except in compliance with the License.
-    * A copy of the License is located at
-    * 
-    *    http://www.apache.org/licenses/LICENSE-2.0
-    * 
-    * or in the "license" file accompanying this file. This file is distributed 
-    * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either 
-    * express or implied. See the License for the specific language governing 
-    * permissions and limitations under the License.
-    */
+.. code:: java
+
+  /*
+   * Copyright OpenSearch Contributors
+   * SPDX-License-Identifier: Apache-2.0
+   */
 
 For example, `here are the instructions for adding copyright profiles in IntelliJ IDEA <https://www.jetbrains.com/help/idea/copyright.html>`__.
 
@@ -179,6 +173,7 @@ Here are other files and sub-folders that you are likely to touch:
 - ``build.gradle``: Gradle build script.
 - ``docs``: documentation for developers and reference manual for users.
 - ``doc-test``: code that run .rst docs in ``docs`` folder by Python doctest library.
+- ``language-grammar``: centralized package for ANTLR grammar files. See `Language Grammar Package`_ for details.
 
 Note that other related project code has already merged into this single repository together:
 
@@ -217,55 +212,13 @@ Java files are formatted using `Spotless <https://github.com/diffplug/spotless>`
    * - Javadoc format can be maintained by wrapping javadoc with `<pre></pre>` HTML tags
    * - Strings can be formatted on multiple lines with a `+` with the correct indentation for the string.
 
-New PPL Command Checklist
-=========================
+Development Guidelines
+----------------------
 
-If you are working on contributing a new PPL command, please read this guide and review all items in the checklist are done before code review. You also can leverage this checklist to guide how to add new PPL command.
+For detailed development documentation, please refer to the `development documentation <docs/dev/index.md>`_. For specific guidance on implementing PPL components, see the following resources:
 
-Prerequisite
-------------
-
-| ✅ Open an RFC issue before starting to code:
-- Describe the purpose of the new command
-- Include at least syntax definition, usage and examples
-- Implementation options are welcome if you have multiple ways to implement it
-| ✅ Obtain PM review approval for the RFC:
-- If PM unavailable, consult repository maintainers as alternative
-- An offline meeting might be required to discuss the syntax and usage
-
-Coding & Tests
---------------
-
-| ✅ Lexer/Parser Updates:
-- Add new keywords to OpenSearchPPLLexer.g4
-- Add grammar rules to OpenSearchPPLParser.g4
-- Update ``commandName`` and ``keywordsCanBeId``
-| ✅ AST Implementation:
-- Add new tree nodes under package ``org.opensearch.sql.ast.tree``
-- Prefer reusing ``Argument`` for command arguments **over** creating new expression nodes under ``org.opensearch.sql.ast.expression``
-| ✅ Visitor Pattern:
-- Add ``visit*`` in ``AbstractNodeVisitor``
-- Overriding ``visit*`` in ``Analyzer``, ``CalciteRelNodeVisitor`` and ``PPLQueryDataAnonymizer``
-| ✅ Unit Tests:
-- Extend ``CalcitePPLAbstractTest``
-- Keep test queries minimal
-- Include ``verifyLogical()`` and ``verifyPPLToSparkSQL()``
-| ✅ Integration tests (pushdown):
-- Extend ``PPLIntegTestCase``
-- Use complex real-world queries
-- Include ``verifySchema()`` and ``verifyDataRows()``
-| ✅ Integration tests (Non-pushdown):
-- Add test class to ``CalciteNoPushdownIT``
-| ✅ Explain tests:
-- Add tests to ``ExplainIT`` or ``CalciteExplainIT``
-| ✅ Unsupported in v2 test:
-- Add a test in ``NewAddedCommandsIT``
-| ✅ Anonymizer tests:
-- Add a test in ``PPLQueryDataAnonymizerTest``
-| ✅ Cross-cluster Tests (optional, nice to have):
-- Add a test in ``CrossClusterSearchIT``
-| ✅ User doc:
-- Add a xxx.rst under ``docs/user/ppl/cmd`` and link the new doc to ``docs/user/ppl/index.rst``
+- `PPL Commands <docs/dev/ppl-commands.md>`_: Guidelines for adding new commands to PPL
+- `PPL Functions <docs/dev/ppl-functions.md>`_: Instructions for implementing and integrating custom functions
 
 Building and Running Tests
 ==========================
@@ -273,7 +226,9 @@ Building and Running Tests
 Gradle Build
 ------------
 
-Most of the time you just need to run ./gradlew build which will make sure you pass all checks and testing. While you're developing, you may want to run specific Gradle task only. In this case, you can run ./gradlew with task name which only triggers the task along with those it depends on. Here is a list for common tasks:
+Most of the time you just need to run ``./gradlew build`` which will make sure you pass all checks and testing. While you're developing, you may want to run specific Gradle task only. In this case, you can run ./gradlew with task name which only triggers the task along with those it depends on. Here is a list for common tasks:
+
+For faster local iterations, skip integration tests. ``./gradlew build -x integTest``.
 
 .. list-table::
    :widths: 30 50
@@ -487,3 +442,29 @@ with an appropriate label `backport <backport-branch-name>` is merged to main wi
 PR. For example, if a PR on main needs to be backported to `1.x` branch, add a label `backport 1.x` to the PR and make sure the
 backport workflow runs on the PR along with other checks. Once this PR is merged to main, the workflow will create a backport PR
 to the `1.x` branch.
+
+Language Grammar Package
+========================
+
+The ``language-grammar`` package serves as a centralized repository for all ANTLR grammar files used throughout the OpenSearch SQL project. This package contains the definitive versions of grammar files for:
+
+- SQL parsing (``OpenSearchSQLParser.g4``, ``OpenSearchSQLLexer.g4``)
+- PPL parsing (``OpenSearchPPLParser.g4``, ``OpenSearchPPLLexer.g4``)
+- Legacy SQL parsing (``OpenSearchLegacySqlParser.g4``, ``OpenSearchLegacySqlLexer.g4``)
+- Spark SQL extensions (``SparkSqlBase.g4``, ``FlintSparkSqlExtensions.g4``, ``SqlBaseParser.g4``, ``SqlBaseLexer.g4``)
+
+Purpose
+-------
+
+The language-grammar package enables sharing of grammar files between the main SQL repository and the Spark repository, ensuring consistency and reducing duplication. Once updated, the package automatically triggers CI to upload the new version to Maven Central for consumption by other projects.
+
+Updating Grammar Files
+----------------------
+
+When grammar files are modified in their respective modules (``sql/``, ``ppl/``, ``legacy/``, ``async-query-core/``), they must be manually copied to the ``language-grammar/src/main/antlr4/`` directory.
+
+**Workflow:**
+
+1. Modify grammar files in their source locations (e.g., ``sql/src/main/antlr/``)
+2. Copy updated files to ``language-grammar/src/main/antlr4/``
+3. Commit changes to trigger automatic Maven publication via CI

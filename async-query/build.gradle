@@ -53,6 +53,7 @@ dependencies {
 }
 
 test {
+    maxParallelForks = Runtime.runtime.availableProcessors()
     useJUnitPlatform {
         includeEngines("junit-jupiter")
     }
@@ -62,6 +63,7 @@ test {
     }
 }
 task junit4(type: Test) {
+    maxParallelForks = Runtime.runtime.availableProcessors()
     useJUnitPlatform {
         includeEngines("junit-vintage")
     }
