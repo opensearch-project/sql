@@ -40,7 +40,8 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
       "/_plugins/_ppl/_explain?format=extended";
   private static final Logger LOG = LogManager.getLogger();
   @Rule public final RetryProcessor retryProcessor = new RetryProcessor();
-  private static final boolean DEBUG_EXPLAIN = true;
+  // flag for debugging explain and response
+  private static final boolean DEBUG_EXPLAIN = false;
 
   @Override
   protected void init() throws Exception {
