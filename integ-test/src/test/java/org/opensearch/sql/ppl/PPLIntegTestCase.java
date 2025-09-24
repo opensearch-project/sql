@@ -42,7 +42,7 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   @Rule public final RetryProcessor retryProcessor = new RetryProcessor();
 
   // Enable debug by -DdebugExplain=true option.
-  private static final boolean DEBUG_EXPLAIN = System.getProperty("debugExplain").equals("true");
+  private static final boolean DEBUG_EXPLAIN = "true".equals(System.getProperty("debugExplain"));
 
   protected static boolean isDebugExplainEnabled() {
     return DEBUG_EXPLAIN;
