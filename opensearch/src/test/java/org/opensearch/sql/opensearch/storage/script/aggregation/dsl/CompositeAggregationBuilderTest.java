@@ -194,7 +194,7 @@ class CompositeAggregationBuilderTest {
     XContentBuilder builder = XContentFactory.jsonBuilder().prettyPrint();
     builder.startObject();
     CompositeValuesSourceBuilder<?> sourceBuilder =
-        compositeBuilder.build(groupByExpressions).get(0);
+        compositeBuilder.build(groupByExpressions, true).get(0);
     sourceBuilder.toXContent(builder, EMPTY_PARAMS);
     builder.endObject();
     return BytesReference.bytes(builder).utf8ToString();
