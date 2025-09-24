@@ -89,6 +89,9 @@ public class OpenSearchNodeClient implements OpenSearchClient {
     try {
       GetMappingsResponse mappingsResponse =
           client.admin().indices().prepareGetMappings(indexExpression).setLocal(true).get();
+      if (mappingsResponse.mappings().isEmpty()) {
+        throw new IndexNotFoundException(indexExpression[0]);
+      }
       return mappingsResponse.mappings().entrySet().stream()
           .collect(
               Collectors.toUnmodifiableMap(
