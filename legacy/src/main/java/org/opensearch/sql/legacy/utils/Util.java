@@ -280,4 +280,23 @@ public class Util {
     }
     return expr;
   }
+
+  /**
+   * Gets the OpenSearch major.minor version for documentation links.
+   * Converts "x.y.z" format to "x.y".
+   *
+   * @param clazz The class to get package implementation version from
+   * @return The major.minor version string, or "latest" if version cannot be determined
+   */
+  public static String getDocumentationVersion(Class<?> clazz) {
+    String version = clazz.getPackage().getImplementationVersion();
+    if (version == null) {
+      return "latest";
+    }
+    String[] parts = version.split("\\.");
+    if (parts.length >= 2) {
+      return parts[0] + "." + parts[1];
+    }
+    return "latest";
+  }
 }
