@@ -779,43 +779,6 @@ timeModifierValue
 timeSnap
   : AT timeModifierUnit;
 
-timeModifierUnit
-   : S
-   | SEC
-   | SECS
-   | SECOND
-   | SECONDS
-   | M
-   | MIN
-   | MINS
-   | MINUTE
-   | MINUTES
-   | H
-   | HR
-   | HRS
-   | HOUR
-   | HOURS
-   | D
-   | DAY
-   | DAYS
-   | W
-   | WEEK
-   | WEEKS
-   | MON
-   | MONTH
-   | MONTHS
-   | Q
-   | QTR
-   | QTRS
-   | QUARTER
-   | QUARTERS
-   | Y
-   | YR
-   | YRS
-   | YEAR
-   | YEARS
-   ;
-
 // tables
 tableSource
    : tableQualifiedName
@@ -1397,6 +1360,43 @@ timespanUnit
    | DS
    ;
 
+timeModifierUnit
+   : S
+   | SEC
+   | SECS
+   | SECOND
+   | SECONDS
+   | M
+   | MIN
+   | MINS
+   | MINUTE
+   | MINUTES
+   | H
+   | HR
+   | HRS
+   | HOUR
+   | HOURS
+   | D
+   | DAY
+   | DAYS
+   | W
+   | WEEK
+   | WEEKS
+   | MON
+   | MONTH
+   | MONTHS
+   | Q
+   | QTR
+   | QTRS
+   | QUARTER
+   | QUARTERS
+   | Y
+   | YR
+   | YRS
+   | YEAR
+   | YEARS
+   ;
+
 valueList
    : LT_PRTHS literalValue (COMMA literalValue)* RT_PRTHS
    ;
@@ -1443,7 +1443,7 @@ keywordsCanBeId
 
 searchableKeyWord
    : D // OD SQL and ODBC special
-   | timespanUnit
+   | timeModifierUnit
    | SPAN
    | evalFunctionName
    | jsonFunctionName
