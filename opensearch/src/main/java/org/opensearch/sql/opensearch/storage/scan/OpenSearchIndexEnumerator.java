@@ -5,11 +5,14 @@
 
 package org.opensearch.sql.opensearch.storage.scan;
 
+import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_BACKGROUND_THREAD_POOL_NAME;
+
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.apache.calcite.linq4j.Enumerator;
@@ -32,6 +35,8 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
   /** OpenSearch client. */
   private final OpenSearchClient client;
+
+  private final Executor backgroundExecutor;
 
   private final List<String> fields;
 
@@ -71,7 +76,6 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
       int maxResultWindow,
       OpenSearchRequest request,
       ResourceMonitor monitor) {
-    this.client = client;
     this.fields = fields;
     this.request = request;
     this.maxResponseSize = maxResponseSize;
@@ -82,7 +86,12 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
     if (!this.monitor.isHealthy()) {
       throw new NonFallbackCalciteException("insufficient resources to run the query, quit.");
     }
-    this.nextBatchFuture = CompletableFuture.supplyAsync(() -> client.search(request));
+
+    this.client = client;
+    this.backgroundExecutor =
+        client.getNodeClient().threadPool().executor(SQL_BACKGROUND_THREAD_POOL_NAME);
+    this.nextBatchFuture =
+        CompletableFuture.supplyAsync(() -> client.search(request), backgroundExecutor);
   }
 
   private void fetchNextBatch() {
@@ -101,7 +110,8 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
         // If we haven't hit the end, start pre-fetching next batch
         if (!isLastBatch && !fetchOnce) {
-          nextBatchFuture = CompletableFuture.supplyAsync(() -> client.search(request));
+          nextBatchFuture =
+              CompletableFuture.supplyAsync(() -> client.search(request), backgroundExecutor);
         }
       } else {
         if (iterator == null) {
@@ -157,7 +167,8 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   @Override
   public void reset() {
     isLastBatch = false;
-    nextBatchFuture = CompletableFuture.supplyAsync(() -> client.search(request));
+    nextBatchFuture =
+        CompletableFuture.supplyAsync(() -> client.search(request), backgroundExecutor);
     OpenSearchResponse response = client.search(request);
     if (!response.isEmpty()) {
       iterator = response.iterator();
