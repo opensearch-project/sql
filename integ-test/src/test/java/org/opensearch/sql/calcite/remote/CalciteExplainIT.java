@@ -869,4 +869,23 @@ public class CalciteExplainIT extends ExplainIT {
                     + " span(t, 1d)",
                 TEST_INDEX_BANK)));
   }
+
+  @Test
+  public void testSpathWithoutPath() throws IOException {
+    String query = source(TEST_INDEX_BANK, "spath input=address | fields name, age, city");
+    var result = explainQueryToString(query);
+
+    String expected = loadExpectedPlan("explain_spath_without_path.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testSpathWithPath() throws IOException {
+    String query =
+        source(TEST_INDEX_BANK, "spath input=address path=name | fields name, age, city");
+    var result = explainQueryToString(query);
+
+    String expected = loadExpectedPlan("explain_spath_with_path.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
+  }
 }
