@@ -588,23 +588,25 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
     for (UnresolvedPlan subsearch : node.getSubsearches()) {
       String anonymizedSubsearch = anonymizeData(subsearch);
-      // For multisearch, apply additional anonymization to match CI expectations
+      // For multisearch, prepend 'search' keyword and apply additional anonymization to match CI
+      // expectations
+      anonymizedSubsearch = "search " + anonymizedSubsearch;
       anonymizedSubsearch =
           anonymizedSubsearch
               .replaceAll("\\bsource=\\w+", "source=table") // Replace table names after source=
               .replaceAll(
-                  "\\b(?!source|fields|where|stats|head|tail|sort|eval|rename|multisearch|table|identifier|\\*\\*\\*)\\w+(?=\\s*[<>=!])",
+                  "\\b(?!source|fields|where|stats|head|tail|sort|eval|rename|multisearch|search|table|identifier|\\*\\*\\*)\\w+(?=\\s*[<>=!])",
                   "identifier") // Replace field names before operators
               .replaceAll(
-                  "\\b(?!source|fields|where|stats|head|tail|sort|eval|rename|multisearch|table|identifier|\\*\\*\\*)\\w+(?=\\s*,)",
+                  "\\b(?!source|fields|where|stats|head|tail|sort|eval|rename|multisearch|search|table|identifier|\\*\\*\\*)\\w+(?=\\s*,)",
                   "identifier") // Replace field names before commas
               .replaceAll(
                   "fields"
-                      + " \\+\\s*\\b(?!source|fields|where|stats|head|tail|sort|eval|rename|multisearch|table|identifier|\\*\\*\\*)\\w+",
+                      + " \\+\\s*\\b(?!source|fields|where|stats|head|tail|sort|eval|rename|multisearch|search|table|identifier|\\*\\*\\*)\\w+",
                   "fields + identifier") // Replace field names after 'fields +'
               .replaceAll(
                   "fields"
-                      + " \\+\\s*identifier,\\s*\\b(?!source|fields|where|stats|head|tail|sort|eval|rename|multisearch|table|identifier|\\*\\*\\*)\\w+",
+                      + " \\+\\s*identifier,\\s*\\b(?!source|fields|where|stats|head|tail|sort|eval|rename|multisearch|search|table|identifier|\\*\\*\\*)\\w+",
                   "fields + identifier,identifier"); // Handle multiple fields
       anonymizedSubsearches.add(StringUtils.format("[%s]", anonymizedSubsearch));
     }

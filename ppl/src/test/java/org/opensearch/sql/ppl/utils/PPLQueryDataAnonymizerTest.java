@@ -689,25 +689,25 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testMultisearch() {
     assertEquals(
-        "source=table | multisearch [source=table | where identifier < ***] [source=table | where"
-            + " identifier >= ***]",
+        "source=table | multisearch [search source=table | where identifier < ***] [search"
+            + " source=table | where identifier >= ***]",
         anonymize(
-            "source=accounts | multisearch [source=accounts | where age < 30] [source=accounts |"
-                + " where age >= 30]"));
+            "source=accounts | multisearch [search source=accounts | where age < 30] [search"
+                + " source=accounts | where age >= 30]"));
 
     assertEquals(
-        "source=table | multisearch [source=table | where identifier > ***] [source=table | where"
-            + " identifier = ***]",
+        "source=table | multisearch [search source=table | where identifier > ***] [search"
+            + " source=table | where identifier = ***]",
         anonymize(
-            "source=accounts | multisearch [source=accounts | where balance > 20000]"
-                + " [source=accounts | where state = 'CA']"));
+            "source=accounts | multisearch [search source=accounts | where balance > 20000]"
+                + " [search source=accounts | where state = 'CA']"));
 
     assertEquals(
-        "source=table | multisearch [source=table | fields + identifier,identifier] [source=table |"
-            + " where identifier = ***]",
+        "source=table | multisearch [search source=table | fields + identifier,identifier] [search"
+            + " source=table | where identifier = ***]",
         anonymize(
-            "source=accounts | multisearch [source=accounts | fields firstname, lastname]"
-                + " [source=accounts | where age = 25]"));
+            "source=accounts | multisearch [search source=accounts | fields firstname, lastname]"
+                + " [search source=accounts | where age = 25]"));
   }
 
   private String anonymize(String query) {

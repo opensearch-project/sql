@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -1713,7 +1714,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitMultisearch(Multisearch node, CalcitePlanContext context) {
-    // Process each subsearch using existing visit logic
     List<RelNode> subsearchNodes = new ArrayList<>();
     for (UnresolvedPlan subsearch : node.getSubsearches()) {
       UnresolvedPlan prunedSubSearch = subsearch.accept(new EmptySourcePropagateVisitor(), null);
@@ -1721,16 +1721,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       subsearchNodes.add(context.relBuilder.build());
     }
 
-    // Align schemas for union compatibility
     List<RelNode> alignedNodes = alignSchemasForUnion(subsearchNodes, context);
 
-    // Create union
     for (RelNode alignedNode : alignedNodes) {
       context.relBuilder.push(alignedNode);
     }
     context.relBuilder.union(true, alignedNodes.size());
 
-    // Add timestamp ordering if timestamp field exists
     RelDataType rowType = context.relBuilder.peek().getRowType();
     String timestampField = findTimestampField(rowType);
     if (timestampField != null) {
@@ -1748,52 +1745,49 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   private List<RelNode> alignSchemasForUnion(
       List<RelNode> subsearchNodes, CalcitePlanContext context) {
-    // Collect all unique field names in order of first appearance
-    Set<String> allFieldNames = new java.util.LinkedHashSet<>();
+    // Single pass: collect field names and create field type map
+    Set<String> allFieldNames = new LinkedHashSet<>();
+    Map<String, RelDataType> fieldTypeMap = new HashMap<>();
+
     for (RelNode node : subsearchNodes) {
       for (RelDataTypeField field : node.getRowType().getFieldList()) {
-        allFieldNames.add(field.getName());
+        String fieldName = field.getName();
+        if (allFieldNames.add(fieldName)) {
+          // First time seeing this field, store its type
+          fieldTypeMap.put(fieldName, field.getType());
+        }
       }
     }
 
-    List<String> fieldOrder = new ArrayList<>(allFieldNames);
+    // Project each node to have the same field order and missing fields as NULL
     List<RelNode> alignedNodes = new ArrayList<>();
 
-    // Project each node to have the same field order and missing fields as NULL
     for (RelNode node : subsearchNodes) {
-      Map<String, Integer> fieldMap = new HashMap<>();
+      Map<String, Integer> nodeFieldIndexMap = new HashMap<>();
       List<RelDataTypeField> nodeFields = node.getRowType().getFieldList();
       for (int i = 0; i < nodeFields.size(); i++) {
-        fieldMap.put(nodeFields.get(i).getName(), i);
+        nodeFieldIndexMap.put(nodeFields.get(i).getName(), i);
       }
 
       List<RexNode> projections = new ArrayList<>();
-      for (String fieldName : fieldOrder) {
-        if (fieldMap.containsKey(fieldName)) {
-          projections.add(context.rexBuilder.makeInputRef(node, fieldMap.get(fieldName)));
+      for (String fieldName : allFieldNames) {
+        if (nodeFieldIndexMap.containsKey(fieldName)) {
+          projections.add(context.rexBuilder.makeInputRef(node, nodeFieldIndexMap.get(fieldName)));
         } else {
-          // Find the type from another node that has this field
-          RelDataType fieldType = findFieldTypeInNodes(fieldName, subsearchNodes);
-          projections.add(context.rexBuilder.makeNullLiteral(fieldType));
+          projections.add(context.rexBuilder.makeNullLiteral(fieldTypeMap.get(fieldName)));
         }
       }
 
-      RelNode aligned = context.relBuilder.push(node).project(projections, fieldOrder).build();
+      RelNode aligned =
+          context
+              .relBuilder
+              .push(node)
+              .project(projections, new ArrayList<>(allFieldNames))
+              .build();
       alignedNodes.add(aligned);
     }
 
     return alignedNodes;
-  }
-
-  private RelDataType findFieldTypeInNodes(String fieldName, List<RelNode> nodes) {
-    for (RelNode node : nodes) {
-      RelDataTypeField field = node.getRowType().getField(fieldName, false, false);
-      if (field != null) {
-        return field.getType();
-      }
-    }
-    // Fallback to VARCHAR if not found (shouldn't happen in practice)
-    return nodes.get(0).getCluster().getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
   }
 
   /**
