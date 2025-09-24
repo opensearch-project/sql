@@ -44,13 +44,6 @@ import lombok.Getter;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
-import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexLambda;
-import org.apache.calcite.rex.RexLambdaRef;
-import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -59,6 +52,7 @@ import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.type.ExprBinaryType;
 import org.opensearch.sql.calcite.type.ExprDateType;
 import org.opensearch.sql.calcite.type.ExprIPType;
+import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.type.ExprTimeStampType;
 import org.opensearch.sql.calcite.type.ExprTimeType;
 import org.opensearch.sql.data.model.ExprValue;
@@ -78,13 +72,14 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     super(typeSystem);
   }
 
-  // 1. Timestamp related UDT is not supported because derived field expects LONG but our UDT is
-  // actually STRING
-  // 2. Float is not supported well in OpenSearch core. See reported bug:
+  // Float is not supported well in OpenSearch core. See reported bug:
   // https://github.com/opensearch-project/OpenSearch/issues/19271
   private static final List<Pair<Predicate<RelDataType>, String>>
       SUPPORTED_DSL_DERIVED_FIELD_TYPE_RULES =
           Arrays.asList(
+              Pair.of(
+                  t -> t instanceof ExprSqlType && ((ExprSqlType) t).getJavaType() == String.class,
+                  "keyword"),
               Pair.of(t -> SqlTypeName.INT_TYPES.contains(t.getSqlTypeName()), "long"),
               // TODO: Support BigDecimal and other complex objects. A workaround is to wrap it in
               // JSON object so that response can parse it
@@ -360,67 +355,6 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
    */
   public static boolean isUserDefinedType(RelDataType type) {
     return type instanceof AbstractExprRelDataType<?>;
-  }
-
-  /**
-   * Find whether an expression contains UDT in its operands, inputs or output
-   *
-   * <p>Not support user defined RelDataType because RelJson deserialization doesn't recognize it.
-   *
-   * @param node the expression to check
-   * @return true if the RexNode contains UDT in its operands, input or output
-   */
-  public static Boolean findUDTType(RexNode node) {
-    Boolean found =
-        node.accept(
-            new RexVisitorImpl<>(true) {
-              @Override
-              public Boolean visitInputRef(RexInputRef inputRef) {
-                return OpenSearchTypeFactory.isUserDefinedType(inputRef.getType());
-              }
-
-              @Override
-              public Boolean visitLiteral(RexLiteral literal) {
-                return OpenSearchTypeFactory.isUserDefinedType(literal.getType());
-              }
-
-              @Override
-              public Boolean visitCall(RexCall call) {
-                boolean isUdtType = OpenSearchTypeFactory.isUserDefinedType(call.getType());
-                if (!deep) {
-                  return isUdtType;
-                }
-                if (isUdtType) {
-                  return true;
-                }
-
-                boolean isDeepUdtType = false;
-                for (RexNode operand : call.operands) {
-                  Boolean foundInNestedNode = operand.accept(this);
-                  isDeepUdtType = isDeepUdtType || (foundInNestedNode != null && foundInNestedNode);
-                }
-                return isDeepUdtType;
-              }
-
-              @Override
-              public Boolean visitLambdaRef(RexLambdaRef lambdaRef) {
-                return OpenSearchTypeFactory.isUserDefinedType(lambdaRef.getType());
-              }
-
-              @Override
-              public Boolean visitLambda(RexLambda lambda) {
-                boolean isUdtType = OpenSearchTypeFactory.isUserDefinedType(lambda.getType());
-                for (RexLambdaRef ref : lambda.getParameters()) {
-                  isUdtType = isUdtType || ref.accept(this);
-                }
-                if (isUdtType) {
-                  return true;
-                }
-                Boolean isLambdaExprUdtType = lambda.getExpression().accept(this);
-                return isLambdaExprUdtType != null && isLambdaExprUdtType;
-              }
-            });
-    return found != null && found;
   }
 
   public static boolean isTypeSupportedForDerivedField(RelDataType type) {

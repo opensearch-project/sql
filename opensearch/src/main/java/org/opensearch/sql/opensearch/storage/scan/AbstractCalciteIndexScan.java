@@ -276,8 +276,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
   }
 
   /**
-   * Create a new {@link PushDownContext} without the project actions. Since new project will override
-   * the old project, there is no need to keep multiple projects in digested plan.
+   * Create a new {@link PushDownContext} without the project actions. Since new project will
+   * override the old project, there is no need to keep multiple projects in digested plan.
    *
    * @param pushDownContext The original push-down context.
    * @return A new push-down context without the project actions.

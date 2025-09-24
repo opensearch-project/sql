@@ -214,7 +214,6 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
             // After aggregation, it's not necessary to pushdown complex expressions on fewer rows
             && !scan.getPushDownContext().isAggregatePushed()
             && !RexOver.containsOver(node)
-            && !OpenSearchTypeFactory.findUDTType(node)
             && OpenSearchTypeFactory.isTypeSupportedForDerivedField(node.getType());
     if (!isValidExpr) {
       return false;
