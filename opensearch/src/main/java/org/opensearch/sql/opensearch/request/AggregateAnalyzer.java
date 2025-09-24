@@ -235,9 +235,6 @@ public class AggregateAnalyzer {
               ImmutableList.copyOf(metricBuilder.getAggregatorFactories()),
               new NoBucketAggregationParser(metricParserList));
         }
-        return Pair.of(
-            ImmutableList.copyOf(metricBuilder.getAggregatorFactories()),
-            new NoBucketAggregationParser(metricParserList));
       } else if (aggregate.getGroupSet().length() == 1
           && isAutoDateSpan(project.getProjects().get(groupList.getFirst()))) {
         RexCall rexCall = (RexCall) project.getProjects().get(groupList.getFirst());
