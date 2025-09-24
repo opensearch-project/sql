@@ -689,20 +689,22 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testMultisearch() {
     assertEquals(
-        "source=accounts | multisearch [source=accounts | where age < ***] [source=accounts | where"
-            + " age >= ***]",
+        "source=table | multisearch [source=table | where identifier < ***] [source=table | where"
+            + " identifier >= ***]",
         anonymize(
             "source=accounts | multisearch [source=accounts | where age < 30] [source=accounts |"
                 + " where age >= 30]"));
+
     assertEquals(
-        "source=accounts | multisearch [source=accounts | where balance > ***] [source=accounts |"
-            + " where state = ***]",
+        "source=table | multisearch [source=table | where identifier > ***] [source=table | where"
+            + " identifier = ***]",
         anonymize(
             "source=accounts | multisearch [source=accounts | where balance > 20000]"
                 + " [source=accounts | where state = 'CA']"));
+
     assertEquals(
-        "source=accounts | multisearch [source=accounts | fields + firstname,lastname]"
-            + " [source=accounts | where age = ***]",
+        "source=table | multisearch [source=table | fields + identifier,identifier] [source=table |"
+            + " where identifier = ***]",
         anonymize(
             "source=accounts | multisearch [source=accounts | fields firstname, lastname]"
                 + " [source=accounts | where age = 25]"));

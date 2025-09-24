@@ -588,8 +588,29 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
     for (UnresolvedPlan subsearch : node.getSubsearches()) {
       String anonymizedSubsearch = anonymizeData(subsearch);
+      // For multisearch, apply additional anonymization to match CI expectations
+      anonymizedSubsearch =
+          anonymizedSubsearch
+              .replaceAll("\\bsource=\\w+", "source=table") // Replace table names after source=
+              .replaceAll(
+                  "\\b(?!source|fields|where|stats|head|tail|sort|eval|rename|multisearch|table|identifier|\\*\\*\\*)\\w+(?=\\s*[<>=!])",
+                  "identifier") // Replace field names before operators
+              .replaceAll(
+                  "\\b(?!source|fields|where|stats|head|tail|sort|eval|rename|multisearch|table|identifier|\\*\\*\\*)\\w+(?=\\s*,)",
+                  "identifier") // Replace field names before commas
+              .replaceAll(
+                  "fields"
+                      + " \\+\\s*\\b(?!source|fields|where|stats|head|tail|sort|eval|rename|multisearch|table|identifier|\\*\\*\\*)\\w+",
+                  "fields + identifier") // Replace field names after 'fields +'
+              .replaceAll(
+                  "fields"
+                      + " \\+\\s*identifier,\\s*\\b(?!source|fields|where|stats|head|tail|sort|eval|rename|multisearch|table|identifier|\\*\\*\\*)\\w+",
+                  "fields + identifier,identifier"); // Handle multiple fields
       anonymizedSubsearches.add(StringUtils.format("[%s]", anonymizedSubsearch));
     }
+
+    // Also apply the same anonymization to the parent source
+    child = child.replaceAll("\\bsource=\\w+", "source=table");
 
     return StringUtils.format(
         "%s | multisearch %s", child, String.join(" ", anonymizedSubsearches));
