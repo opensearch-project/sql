@@ -49,6 +49,7 @@ import org.opensearch.sql.legacy.domain.hints.Hint;
 import org.opensearch.sql.legacy.domain.hints.HintFactory;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.query.multi.MultiQuerySelect;
+import org.opensearch.sql.legacy.utils.Util;
 
 /**
  * OpenSearch sql support
@@ -411,9 +412,10 @@ public class SqlParser {
    */
   private void validateJoinWithoutAggregations(MySqlSelectQueryBlock query)
       throws SqlParseException {
+    String version = Util.getDocumentationVersion(SqlParser.class);
     String errorMessage =
-        "JOIN queries do not support aggregations on the joined result. For more information, see"
-            + " https://docs.opensearch.org/latest/search-plugins/sql/limitation/#join-does-not-support-aggregations-on-the-joined-result";
+        "JOIN queries do not support aggregations on the joined result. For more information, see "
+            + "https://docs.opensearch.org/" + version + "/search-plugins/sql/limitation/#join-does-not-support-aggregations-on-the-joined-result";
 
     if (query.getGroupBy() != null && !query.getGroupBy().getItems().isEmpty()) {
       throw new SqlParseException(errorMessage);
