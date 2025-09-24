@@ -25,6 +25,7 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -32,10 +33,13 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.search.aggregations.AggregationBuilder;
+import org.opensearch.search.aggregations.bucket.histogram.AutoDateHistogramAggregationBuilder;
+import org.opensearch.search.aggregations.metrics.ValueCountAggregationBuilder;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -49,6 +53,9 @@ import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.QueryExpression;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
+import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan.LimitDigest;
+import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan.PushDownAction;
+import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan.PushDownType;
 
 /** The logical relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
@@ -210,6 +217,12 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     }
     RelDataType newSchema = builder.build();
 
+    // To prevent circular pushdown for some edge cases where plan has pattern(see TPCH Q1):
+    // `Project($1, $0) -> Sort(sort0=[1]) -> Project($1, $0) -> Aggregate(group={0},...)...`
+    // We don't support pushing down the duplicated project here otherwise it will cause dead-loop.
+    // `ProjectMergeRule` will help merge the duplicated projects.
+    if (this.getPushDownContext().containsDigest(newSchema.getFieldNames())) return null;
+
     // Projection may alter indicies in the collations.
     // E.g. When sorting age
     // `Project(age) - TableScan(schema=[name, age], collation=[$1 ASC])` should become
@@ -226,18 +239,21 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
             newSchema,
             pushDownContext.clone());
 
-    Map<String, String> aliasMapping = this.osIndex.getAliasMapping();
-    // For alias types, we need to push down its original path instead of the alias name.
-    List<String> projectedFields =
-        newSchema.getFieldNames().stream()
-            .map(fieldName -> aliasMapping.getOrDefault(fieldName, fieldName))
-            .toList();
-
+    AbstractAction action;
+    if (pushDownContext.isAggregatePushed()) {
+      // For aggregate, we do nothing on query builder but only change the schema of the scan.
+      action = requestBuilder -> {};
+    } else {
+      Map<String, String> aliasMapping = this.osIndex.getAliasMapping();
+      // For alias types, we need to push down its original path instead of the alias name.
+      List<String> projectedFields =
+          newSchema.getFieldNames().stream()
+              .map(fieldName -> aliasMapping.getOrDefault(fieldName, fieldName))
+              .toList();
+      action = requestBuilder -> requestBuilder.pushDownProjectStream(projectedFields.stream());
+    }
     newScan.pushDownContext.add(
-        PushDownAction.of(
-            PushDownType.PROJECT,
-            newSchema.getFieldNames(),
-            requestBuilder -> requestBuilder.pushDownProjectStream(projectedFields.stream())));
+        PushDownAction.of(PushDownType.PROJECT, newSchema.getFieldNames(), action));
     return newScan;
   }
 
@@ -259,7 +275,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     return newTraitSet;
   }
 
-  public CalciteLogicalIndexScan pushDownAggregate(Aggregate aggregate, Project project) {
+  public AbstractRelNode pushDownAggregate(Aggregate aggregate, Project project) {
     try {
       CalciteLogicalIndexScan newScan =
           new CalciteLogicalIndexScan(
@@ -285,8 +301,30 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
                           OpenSearchDataType.of(
                               OpenSearchTypeFactory.convertRelDataTypeToExprType(
                                   field.getType()))));
-      AggPushDownAction action = new AggPushDownAction(aggregationBuilder, extendedTypeMapping);
+      AggPushDownAction action =
+          new AggPushDownAction(
+              aggregationBuilder,
+              extendedTypeMapping,
+              outputFields.subList(0, aggregate.getGroupSet().length()));
       newScan.pushDownContext.add(PushDownAction.of(PushDownType.AGGREGATION, aggregate, action));
+      if (aggregationBuilder.getLeft().size() == 1
+          && aggregationBuilder.getLeft().getFirst()
+              instanceof AutoDateHistogramAggregationBuilder autoDateHistogram) {
+        // If it's auto_date_histogram, filter the empty bucket by using the first aggregate metrics
+        RexBuilder rexBuilder = getCluster().getRexBuilder();
+        AggregationBuilder aggregationBuilders =
+            autoDateHistogram.getSubAggregations().stream().toList().getFirst();
+        RexNode condition =
+            aggregationBuilders instanceof ValueCountAggregationBuilder
+                ? rexBuilder.makeCall(
+                    SqlStdOperatorTable.GREATER_THAN,
+                    rexBuilder.makeInputRef(newScan, 1),
+                    rexBuilder.makeLiteral(
+                        0, rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER)))
+                : rexBuilder.makeCall(
+                    SqlStdOperatorTable.IS_NOT_NULL, rexBuilder.makeInputRef(newScan, 1));
+        return LogicalFilter.create(newScan, condition);
+      }
       return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {

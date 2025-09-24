@@ -518,15 +518,20 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | head 5 | stats count(datetime0), count(datetime1) by span(datetime1,"
-                    + " 15 minute) as datetime_span",
+                "source=%s | head 5 | stats count(datetime0), count(datetime1) by span(time1,"
+                    + " 15 minute) as time_span",
                 TEST_INDEX_CALCS));
     verifySchema(
         actual,
-        schema("datetime_span", "timestamp"),
+        schema("time_span", "time"),
         schema("count(datetime0)", "bigint"),
         schema("count(datetime1)", "bigint"));
-    verifyDataRows(actual, rows(5, 0, null));
+    verifyDataRows(
+        actual,
+        rows(1, 0, "19:30:00"),
+        rows(1, 0, "02:00:00"),
+        rows(1, 0, "09:30:00"),
+        rows(1, 0, "22:45:00"));
   }
 
   @Test
@@ -1175,5 +1180,70 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         executeQuery(String.format("source=%s | stats median(balance)", TEST_INDEX_BANK));
     verifySchema(actual, schema("median(balance)", "bigint"));
     verifyDataRows(actual, rows(32838));
+  }
+
+  @Test
+  public void testStatsMaxOnStringField() throws IOException {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats max(firstname)", TEST_INDEX_BANK));
+    verifySchema(actual, schema("max(firstname)", "string"));
+    verifyDataRows(actual, rows("Virginia"));
+  }
+
+  @Test
+  public void testStatsMinOnStringField() throws IOException {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats min(firstname)", TEST_INDEX_BANK));
+    verifySchema(actual, schema("min(firstname)", "string"));
+    verifyDataRows(actual, rows("Amber JOHnny"));
+  }
+
+  @Test
+  public void testStatsCountOnFunctionsWithUDTArg() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | eval t = unix_timestamp(birthdate) | stats count() by t | sort -t",
+                TEST_INDEX_BANK));
+    verifySchema(response, schema("count()", "bigint"), schema("t", "double"));
+    verifyDataRows(
+        response,
+        rows(1, 1542152000),
+        rows(1, 1534636800),
+        rows(1, 1533945600),
+        rows(1, 1530057600),
+        rows(1, 1529712000),
+        rows(1, 1511136000),
+        rows(1, 1508716800));
+  }
+
+  @Test
+  public void testStatsGroupByDate() throws IOException {
+    JSONObject resonse =
+        executeQuery(
+            String.format(
+                "source=%s | eval t = date_add(birthdate, interval 1 day) | stats count() by"
+                    + " span(t, 1d)",
+                TEST_INDEX_BANK));
+    verifySchema(resonse, schema("count()", "bigint"), schema("span(t,1d)", "timestamp"));
+    verifyDataRows(
+        resonse,
+        rows(1, "2017-10-24 00:00:00"),
+        rows(1, "2017-11-21 00:00:00"),
+        rows(1, "2018-06-24 00:00:00"),
+        rows(1, "2018-06-28 00:00:00"),
+        rows(1, "2018-08-12 00:00:00"),
+        rows(1, "2018-08-20 00:00:00"),
+        rows(1, "2018-11-14 00:00:00"));
+  }
+
+  @Test
+  public void testLimitAfterAggregation() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() by age | sort -age | head 3", TEST_INDEX_BANK));
+    verifySchema(response, schema("count()", "bigint"), schema("age", "int"));
+    verifyDataRows(response, rows(1, 39), rows(2, 36), rows(1, 34));
   }
 }
