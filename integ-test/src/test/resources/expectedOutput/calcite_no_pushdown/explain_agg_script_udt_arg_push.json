@@ -1,0 +1,6 @@
+{
+  "calcite": {
+    "logical": "LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])\n  LogicalProject(count()=[$1], span(t,1d)=[$0])\n    LogicalAggregate(group=[{0}], count()=[COUNT()])\n      LogicalProject(span(t,1d)=[SPAN($19, 1, 'd')])\n        LogicalFilter(condition=[IS NOT NULL($19)])\n          LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12], _id=[$13], _index=[$14], _score=[$15], _maxscore=[$16], _sort=[$17], _routing=[$18], t=[DATE_ADD($3, 1:INTERVAL DAY)])\n            CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])\n",
+    "physical": "EnumerableLimit(fetch=[10000])\n  EnumerableCalc(expr#0..1=[{inputs}], count()=[$t1], span(t,1d)=[$t0])\n    EnumerableAggregate(group=[{0}], count()=[COUNT()])\n      EnumerableCalc(expr#0..18=[{inputs}], expr#19=[1:INTERVAL DAY], expr#20=[DATE_ADD($t3, $t19)], expr#21=[1], expr#22=['d'], expr#23=[SPAN($t20, $t21, $t22)], expr#24=[IS NOT NULL($t20)], span(t,1d)=[$t23], $condition=[$t24])\n        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])\n"
+  }
+}

@@ -1218,4 +1218,53 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     verifySchema(actual, schema("min(firstname)", "string"));
     verifyDataRows(actual, rows("Amber JOHnny"));
   }
+
+  @Test
+  public void testStatsCountOnFunctionsWithUDTArg() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | eval t = unix_timestamp(birthdate) | stats count() by t | sort -t",
+                TEST_INDEX_BANK));
+    verifySchema(response, schema("count()", "bigint"), schema("t", "double"));
+    verifyDataRows(
+        response,
+        rows(1, 1542152000),
+        rows(1, 1534636800),
+        rows(1, 1533945600),
+        rows(1, 1530057600),
+        rows(1, 1529712000),
+        rows(1, 1511136000),
+        rows(1, 1508716800));
+  }
+
+  @Test
+  public void testStatsGroupByDate() throws IOException {
+    JSONObject resonse =
+        executeQuery(
+            String.format(
+                "source=%s | eval t = date_add(birthdate, interval 1 day) | stats count() by"
+                    + " span(t, 1d)",
+                TEST_INDEX_BANK));
+    verifySchema(resonse, schema("count()", "bigint"), schema("span(t,1d)", "timestamp"));
+    verifyDataRows(
+        resonse,
+        rows(1, "2017-10-24 00:00:00"),
+        rows(1, "2017-11-21 00:00:00"),
+        rows(1, "2018-06-24 00:00:00"),
+        rows(1, "2018-06-28 00:00:00"),
+        rows(1, "2018-08-12 00:00:00"),
+        rows(1, "2018-08-20 00:00:00"),
+        rows(1, "2018-11-14 00:00:00"));
+  }
+
+  @Test
+  public void testLimitAfterAggregation() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() by age | sort -age | head 3", TEST_INDEX_BANK));
+    verifySchema(response, schema("count()", "bigint"), schema("age", "int"));
+    verifyDataRows(response, rows(1, 39), rows(2, 36), rows(1, 34));
+  }
 }

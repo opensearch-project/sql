@@ -410,6 +410,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
 
     public void pushDownSortIntoAggBucket(
         List<RelFieldCollation> collations, List<String> fieldNames) {
+      // aggregationBuilder.getLeft() could be empty when count agg optimization works
+      if (aggregationBuilder.getLeft().isEmpty()) return;
       AggregationBuilder builder = aggregationBuilder.getLeft().getFirst();
       List<String> selected = new ArrayList<>(collations.size());
       if (builder instanceof CompositeAggregationBuilder compositeAggBuilder) {
@@ -477,6 +479,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
      * than bucket number.
      */
     public boolean pushDownLimitIntoBucketSize(Integer size) {
+      // aggregationBuilder.getLeft() could be empty when count agg optimization works
+      if (aggregationBuilder.getLeft().isEmpty()) return false;
       AggregationBuilder builder = aggregationBuilder.getLeft().getFirst();
       if (builder instanceof CompositeAggregationBuilder compositeAggBuilder) {
         if (size < compositeAggBuilder.size()) {
