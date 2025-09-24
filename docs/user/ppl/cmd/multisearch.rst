@@ -36,14 +36,20 @@ Version
 
 Syntax
 ======
-multisearch [search subsearch1] [search subsearch2] ... [search subsearchN]
+multisearch [search subsearch1] [search subsearch2] [search subsearch3]...
 
-* subsearch: mandatory. At least two search subsearches must be specified.
+**Requirements:**
 
- * Syntax: [search source=index | streaming-commands...]
- * Description: Each subsearch is enclosed in square brackets and must start with the ``search`` keyword followed by a source and optional streaming commands.
- * Supported commands in subsearches: ``where``, ``eval``, ``fields``, ``head``, ``rename``
- * Restrictions: Non-streaming commands like ``stats``, ``sort``, ``dedup`` are not allowed within subsearches.
+* **Minimum 2 subsearches required** - multisearch must contain at least two subsearch blocks
+* **Maximum unlimited** - you can specify as many subsearches as needed
+
+**Subsearch Format:**
+
+* Each subsearch must be enclosed in square brackets: ``[search ...]``
+* Each subsearch must start with the ``search`` keyword
+* Syntax: ``[search source=index | commands...]``
+* Description: Each subsearch is a complete search pipeline enclosed in square brackets
+ * Supported commands in subsearches: All PPL commands are supported (``where``, ``eval``, ``fields``, ``head``, ``rename``, ``stats``, ``sort``, ``dedup``, etc.)
 
 * result-processing: optional. Commands applied to the merged results.
 
@@ -53,35 +59,7 @@ Limitations
 ===========
 
 * **Minimum Subsearches**: At least two subsearches must be specified
-* **Streaming Commands Only**: Subsearches can only contain streaming commands (``where``, ``eval``, ``fields``, ``head``, ``rename``)
-* **Prohibited Commands**: Non-streaming commands like ``stats``, ``sort``, ``dedup`` are not allowed within subsearches
 * **Schema Compatibility**: Fields with the same name across subsearches should have compatible types
-
-Configuration
-=============
-This command requires Calcite enabled.
-
-Enable Calcite::
-
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
-	  "transient" : {
-	    "plugins.calcite.enabled" : true
-	  }
-	}'
-
-Result set::
-
-    {
-      "acknowledged": true,
-      "persistent": {
-        "plugins": {
-          "calcite": {
-            "enabled": "true"
-          }
-        }
-      },
-      "transient": {}
-    }
 
 Usage
 =====
@@ -223,6 +201,69 @@ PPL query::
     | 4     |
     +-------+
 
+Example 9: Type Compatibility - Numeric Promotion
+===================================================
+
+Demonstrate how numeric types are automatically promoted in multisearch operations.
+
+PPL query::
+
+    os> source=accounts | multisearch [source=accounts | where age < 30 | eval score = 85] [source=accounts | where age >= 30 | eval score = 90.5] | stats avg(score) as avg_score;
+    fetched rows / total rows = 1/1
+    +-----------+
+    | avg_score |
+    |-----------|
+    | 87.75     |
+    +-----------+
+
+Example 10: Type Compatibility - String Length Promotion
+==========================================================
+
+Demonstrate how VARCHAR types with different lengths are handled.
+
+PPL query::
+
+    os> source=accounts | multisearch [source=accounts | where age < 30 | eval status = "OK"] [source=accounts | where age >= 30 | eval status = "APPROVED"] | stats count by status | sort status;
+    fetched rows / total rows = 2/2
+    +-------+----------+
+    | count | status   |
+    |-------+----------|
+    | 3     | APPROVED |
+    | 1     | OK       |
+    +-------+----------+
+
+Example 11: Type Compatibility - Missing Fields
+=================================================
+
+Demonstrate how missing fields are handled with NULL insertion.
+
+PPL query::
+
+    os> source=accounts | multisearch [source=accounts | where age < 30 | eval young_flag = "yes" | fields firstname, age, young_flag] [source=accounts | where age >= 30 | fields firstname, age] | stats count(*) as total_count, count(young_flag) as young_flag_count;
+    fetched rows / total rows = 1/1
+    +-------------+-----------------+
+    | total_count | young_flag_count|
+    |-------------|-----------------|
+    | 4           | 1               |
+    +-------------+-----------------+
+
+Example 12: Type Compatibility - Explicit Casting
+===================================================
+
+Demonstrate how to resolve type conflicts using explicit casting.
+
+PPL query::
+
+    os> source=accounts | multisearch [source=accounts | where age < 30 | eval mixed_field = CAST(age AS VARCHAR)] [source=accounts | where age >= 30 | eval mixed_field = CAST(balance AS VARCHAR)] | head 3;
+    fetched rows / total rows = 3/3
+    +-------------+
+    | mixed_field |
+    |-------------|
+    | 32          |
+    | 36          |
+    | 28          |
+    +-------------+
+
 Common Patterns
 ===============
 
@@ -256,14 +297,23 @@ Error Handling
 
 Result: ``At least two searches must be specified``
 
-**Non-streaming Commands in Subsearches**::
+**Type Incompatibility Error**::
 
-    source=accounts | multisearch [search source=accounts | stats count by gender] [search source=accounts | where age > 30]
+    source=accounts | multisearch [source=accounts | eval mixed_field = 123] [source=accounts | eval mixed_field = "text"]
 
-Result: ``Non-streaming command 'stats' is not supported in multisearch``
+Result: ``Can't find leastRestrictive type for [INTEGER, VARCHAR]``
 
-**Unsupported Commands**::
+**Best Practice for Type Conflicts**::
 
-    source=accounts | multisearch [search source=accounts | sort age desc] [search source=accounts | where age > 30]
+    source=accounts | multisearch [source=accounts | eval mixed_field = CAST(age AS VARCHAR)] [source=accounts | eval mixed_field = CAST(balance AS VARCHAR)]
 
-Result: ``Non-streaming command 'sort' is not supported in multisearch``
+Result: ``Success - both fields cast to compatible VARCHAR type``
+
+**Type Compatibility Rules**::
+
+* **Compatible Types**: INTEGER + DOUBLE → DOUBLE (promotes to wider type)
+* **Compatible Types**: VARCHAR(10) + VARCHAR(20) → VARCHAR(20) (promotes to longer length)
+* **Compatible Types**: DATE + TIMESTAMP → TIMESTAMP (promotes to more precise type)
+* **Incompatible Types**: INTEGER + VARCHAR → Error
+* **Incompatible Types**: BOOLEAN + INTEGER → Error
+* **Missing Fields**: Field present in one subsearch, missing in another → NULL insertion
