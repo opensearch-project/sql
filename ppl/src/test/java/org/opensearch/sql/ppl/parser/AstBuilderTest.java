@@ -78,7 +78,6 @@ import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
-import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.utils.SystemIndexUtils;
 
@@ -1198,9 +1197,9 @@ public class AstBuilderTest {
             + "[ search source=test2 | where status=\"active\" | sort name ]");
   }
 
-  @Test(expected = SemanticCheckException.class)
+  @Test(expected = SyntaxCheckException.class)
   public void testMultisearchSingleSubsearchThrowsException() {
-    // Test multisearch with only one subsearch - should throw exception
+    // Test multisearch with only one subsearch - should throw parse exception
     plan("source=test | multisearch [ search source=test1 | fields name, age ]");
   }
 }
