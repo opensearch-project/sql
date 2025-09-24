@@ -412,12 +412,10 @@ public class SqlParser {
    */
   private void validateJoinWithoutAggregations(MySqlSelectQueryBlock query)
       throws SqlParseException {
-    String version = Util.getDocumentationVersion(SqlParser.class);
     String errorMessage =
-        "JOIN queries do not support aggregations on the joined result. For more information, see "
-            + "https://docs.opensearch.org/"
-            + version
-            + "/search-plugins/sql/limitation/#join-does-not-support-aggregations-on-the-joined-result";
+        Util.JOIN_AGGREGATION_ERROR_PREFIX
+            + Util.DOC_REDIRECT_MESSAGE
+            + Util.getJoinAggregationDocumentationUrl(SqlParser.class);
 
     if (query.getGroupBy() != null && !query.getGroupBy().getItems().isEmpty()) {
       throw new SqlParseException(errorMessage);
