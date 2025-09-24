@@ -282,8 +282,8 @@ public class Util {
   }
 
   /**
-   * Gets the OpenSearch major.minor version for documentation links.
-   * Converts "x.y.z" format to "x.y".
+   * Gets the OpenSearch major.minor version for documentation links. Converts "x.y.z" format to
+   * "x.y".
    *
    * @param clazz The class to get package implementation version from
    * @return The major.minor version string, or "latest" if version cannot be determined

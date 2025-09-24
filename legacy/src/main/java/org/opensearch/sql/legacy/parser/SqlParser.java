@@ -415,7 +415,9 @@ public class SqlParser {
     String version = Util.getDocumentationVersion(SqlParser.class);
     String errorMessage =
         "JOIN queries do not support aggregations on the joined result. For more information, see "
-            + "https://docs.opensearch.org/" + version + "/search-plugins/sql/limitation/#join-does-not-support-aggregations-on-the-joined-result";
+            + "https://docs.opensearch.org/"
+            + version
+            + "/search-plugins/sql/limitation/#join-does-not-support-aggregations-on-the-joined-result";
 
     if (query.getGroupBy() != null && !query.getGroupBy().getItems().isEmpty()) {
       throw new SqlParseException(errorMessage);
