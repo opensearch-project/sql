@@ -31,10 +31,20 @@ import org.opensearch.sql.common.utils.StringUtils;
 public class MetricParserHelper {
 
   private final Map<String, MetricParser> metricParserMap;
+  // countAggNameList dedicated the list of count aggregations which are filled by doc_count
+  private final List<String> countAggNameList;
 
   public MetricParserHelper(List<MetricParser> metricParserList) {
     metricParserMap =
         metricParserList.stream().collect(Collectors.toMap(MetricParser::getName, m -> m));
+    this.countAggNameList = List.of();
+  }
+
+  /** MetricParserHelper with count aggregation name list, used in v3 */
+  public MetricParserHelper(List<MetricParser> metricParserList, List<String> countAggNameList) {
+    metricParserMap =
+        metricParserList.stream().collect(Collectors.toMap(MetricParser::getName, m -> m));
+    this.countAggNameList = countAggNameList;
   }
 
   /**
@@ -54,6 +64,7 @@ public class MetricParserHelper {
                 "couldn't parse field %s in aggregation " + "response", aggregation.getName()));
       }
     }
+    //    countAggNameList.forEach(name -> resultMap.put(name, bucket.getDocCount()));
     return resultMap;
   }
 }
