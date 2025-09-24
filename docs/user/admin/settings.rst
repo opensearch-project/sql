@@ -219,7 +219,7 @@ Result set::
 Thread Pool Settings
 ====================
 
-The SQL plugin is integrated with the `OpenSearch Thread Pool Settings <https://docs.opensearch.org/latest/install-and-configure/configuring-opensearch/thread-pool-settings/>`.
+The SQL plugin is integrated with the `OpenSearch Thread Pool Settings <https://docs.opensearch.org/latest/install-and-configure/configuring-opensearch/thread-pool-settings/>`_.
 There are two thread pools which can be configured on cluster setup via `settings.yml`::
 
     thread_pool:
