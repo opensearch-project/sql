@@ -42,7 +42,6 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
   private final OpenSearchIndex osIndex;
   private final OpenSearchRequestBuilder requestBuilder;
   private ArrayDeque<PushDownOperation> operationsForRequestBuilder;
-  private boolean isRequestBuilderUsedByEnumerator = false;
 
   private boolean isAggregatePushed = false;
   private AggPushDownAction aggPushDownAction;
@@ -134,17 +133,13 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
     return this.stream().anyMatch(action -> action.digest().equals(digest));
   }
 
-  public synchronized OpenSearchRequestBuilder createOrGetRequestBuilder() {
-    if (isRequestBuilderUsedByEnumerator) {
-      OpenSearchRequestBuilder newRequestBuilder = osIndex.createRequestBuilder();
-      if (operationsForRequestBuilder != null) {
-        operationsForRequestBuilder.forEach(
-            operation -> ((OSRequestBuilderAction) operation.action()).apply(newRequestBuilder));
-      }
-      return newRequestBuilder;
+  public OpenSearchRequestBuilder createRequestBuilder() {
+    OpenSearchRequestBuilder newRequestBuilder = osIndex.createRequestBuilder();
+    if (operationsForRequestBuilder != null) {
+      operationsForRequestBuilder.forEach(
+          operation -> ((OSRequestBuilderAction) operation.action()).apply(newRequestBuilder));
     }
-    isRequestBuilderUsedByEnumerator = true;
-    return requestBuilder;
+    return newRequestBuilder;
   }
 }
 

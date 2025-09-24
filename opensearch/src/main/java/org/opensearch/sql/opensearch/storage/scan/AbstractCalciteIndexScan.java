@@ -152,12 +152,10 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                 dRows, RelMdUtil.guessSelectivity(((FilterDigest) operation.digest()).condition()));
         case SCRIPT -> {
           FilterDigest filterDigest = (FilterDigest) operation.digest();
+          dRows = NumberUtil.multiply(dRows, RelMdUtil.guessSelectivity(filterDigest.condition()));
           // Calculate the cost of script filter by multiplying the selectivity of the filter and
           // the factor amplified by script count.
-          dCpu +=
-              NumberUtil.multiply(
-                  NumberUtil.multiply(dRows, RelMdUtil.guessSelectivity(filterDigest.condition())),
-                  Math.pow(1.1, filterDigest.scriptCount()));
+          dCpu += NumberUtil.multiply(dRows, Math.pow(1.1, filterDigest.scriptCount()));
         }
           // Ignore cost the LIMIT but it will affect the rows count.
           // Try to reduce the rows count by 1 to make the cost cheaper slightly than non-push down.
