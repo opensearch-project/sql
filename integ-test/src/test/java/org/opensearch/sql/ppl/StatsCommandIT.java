@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TIME_DATE_NULL;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -27,6 +28,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
     loadIndex(Index.BANK);
+    loadIndex(Index.TIME_TEST_DATA_WITH_NULL);
   }
 
   @Test
@@ -748,5 +750,51 @@ public class StatsCommandIT extends PPLIntegTestCase {
               rows(48086D, 34),
               rows(null, 36));
         });
+  }
+
+  @Test
+  public void testStatsBySpanTimeWithNullBucket() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats percentile(value, 50) as p50 by span(@timestamp, 12h) as"
+                    + " half_day",
+                TEST_INDEX_TIME_DATE_NULL));
+    verifySchema(response, schema("p50", null, "int"), schema("half_day", null, "timestamp"));
+    verifyDataRows(
+        response,
+        rows(8523, "2025-07-28 00:00:00"),
+        rows(8094, "2025-07-28 12:00:00"),
+        rows(8429, "2025-07-29 00:00:00"),
+        rows(8216, "2025-07-29 12:00:00"),
+        rows(8493, "2025-07-30 00:00:00"),
+        rows(8426, "2025-07-30 12:00:00"),
+        rows(8213, "2025-07-31 00:00:00"),
+        rows(8490, "2025-07-31 12:00:00"));
+  }
+
+  @Test
+  public void testStatsByCounts() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | eval b_1 = balance + 1 | stats count(), count() as c1,"
+                    + " count(account_number), count(lastname) as c2, count(balance/10),"
+                    + " count(pow(balance, 2)) as c3, count(b_1) by gender",
+                TEST_INDEX_ACCOUNT));
+    verifySchema(
+        response,
+        schema("count()", null, isCalciteEnabled() ? "bigint" : "int"),
+        schema("c1", null, isCalciteEnabled() ? "bigint" : "int"),
+        schema("count(account_number)", null, isCalciteEnabled() ? "bigint" : "int"),
+        schema("c2", null, isCalciteEnabled() ? "bigint" : "int"),
+        schema("count(balance/10)", null, isCalciteEnabled() ? "bigint" : "int"),
+        schema("c3", null, isCalciteEnabled() ? "bigint" : "int"),
+        schema("count(b_1)", null, isCalciteEnabled() ? "bigint" : "int"),
+        schema("gender", null, "string"));
+    verifyDataRows(
+        response,
+        rows(493, 493, 493, 493, 493, 493, 493, "F"),
+        rows(507, 507, 507, 507, 507, 507, 507, "M"));
   }
 }

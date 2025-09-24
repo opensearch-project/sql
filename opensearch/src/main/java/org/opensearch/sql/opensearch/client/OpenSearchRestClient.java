@@ -181,6 +181,29 @@ public class OpenSearchRestClient implements OpenSearchClient {
   }
 
   @Override
+  public void forceCleanup(OpenSearchRequest request) {
+    if (request instanceof OpenSearchScrollRequest) {
+      request.forceClean(
+          scrollId -> {
+            try {
+              ClearScrollRequest clearRequest = new ClearScrollRequest();
+              clearRequest.addScrollId(scrollId);
+              client.clearScroll(clearRequest, RequestOptions.DEFAULT);
+            } catch (IOException e) {
+              throw new IllegalStateException(
+                  "Failed to clean up resources for search request " + request, e);
+            }
+          });
+    } else {
+      request.forceClean(
+          pitId -> {
+            DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
+            deletePit(deletePitRequest);
+          });
+    }
+  }
+
+  @Override
   public void cleanup(OpenSearchRequest request) {
     if (request instanceof OpenSearchScrollRequest) {
       request.clean(
