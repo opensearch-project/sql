@@ -71,7 +71,6 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
   private void createMultipleSpathTestData() throws IOException {
     createDocumentWithMultipleJsonFields(
         TEST_INDEX_OVERWRITE,
-        "1",
         1,
         "json_data1",
         "{\"name\": \"John\", \"age\": 30}",
@@ -79,7 +78,6 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
         "{\"city\": \"New York\", \"country\": \"USA\"}");
     createDocumentWithMultipleJsonFields(
         TEST_INDEX_OVERWRITE,
-        "2",
         2,
         "json_data1",
         "{\"name\": \"Jane\", \"age\": 25}",
@@ -94,14 +92,13 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
 
   private void createDocumentWithMultipleJsonFields(
       String index,
-      String docId,
       int id,
       String field1Name,
       String json1Content,
       String field2Name,
       String json2Content)
       throws IOException {
-    Request request = new Request("PUT", String.format("/%s/_doc/%s?refresh=true", index, docId));
+    Request request = new Request("PUT", String.format("/%s/_doc/%d?refresh=true", index, id));
     String escapedJson1 = json1Content.replace("\"", "\\\"");
     String escapedJson2 = json2Content.replace("\"", "\\\"");
     request.setJsonEntity(
