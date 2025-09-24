@@ -89,7 +89,7 @@ public class DynamicWildcardProcessor {
               } else if (hasDynamicColumns) {
                 // Potential dynamic field
                 RexNode dynamicField =
-                    DynamicColumnProcessor.resolveDynamicField(fieldName, context, fieldName);
+                    DynamicColumnProcessor.resolveDynamicField(fieldName, context);
                 expandedFields.add(dynamicField);
               } else {
                 // Field not found - let normal error handling take care of this
