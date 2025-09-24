@@ -469,7 +469,6 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
                 "spath input=data | fields id, user.name, user.profile.age,"
                     + " user.profile.location"));
 
-    debug(result);
     verifySchema(
         result,
         schema("id", "bigint"),
@@ -491,7 +490,6 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
                 TEST_INDEX_COMPLEX_JSON,
                 "spath input=data | where isnotnull(user.name) | fields id, user.name"));
 
-    debug(result);
     verifySchema(result, schema("id", "bigint"), schema("user.name", "string"));
     verifyDataRows(result, rows(1L, "Alice"), rows(2L, "Bob"), rows(3L, "James"));
   }
@@ -502,7 +500,6 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
         executeQuery(
             source(TEST_INDEX_COMPLEX_JSON, "spath input=data | stats count() as total_count"));
 
-    debug(result);
     verifySchema(result, schema("total_count", "bigint"));
     verifyDataRows(result, rows(3L));
   }
@@ -516,7 +513,6 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
                 "spath input=data | where isnotnull(`preferences{}`) | fields id,"
                     + " `preferences{}`"));
 
-    debug(result);
     verifySchema(result, schema("id", "bigint"), schema("preferences{}", "string"));
     verifyDataRows(result, rows(1L, "[\"music\",\"travel\"]"));
   }
@@ -530,12 +526,58 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
                 "spath input=data | where isnotnull(`nested{}.a`) | fields id, `nested{}.a`,"
                     + " `nested{}.arr{}`"));
 
-    debug(result);
     verifySchema(
         result,
         schema("id", "bigint"),
         schema("nested{}.a", "string"),
         schema("nested{}.arr{}", "string"));
     verifyDataRows(result, rows(3L, "[\"v1\",\"v2\"]", "[\"1\",\"2\",\"3\",\"4\",\"5\"]"));
+  }
+
+  @Test
+  public void testSpathWithJoin() throws IOException {
+    JSONObject result =
+        executeQuery(
+            source(
+                TEST_INDEX_COMPLEX_JSON,
+                "spath input=data | join id test_dynamic_columns | fields id, `nested{}.a`,"
+                    + " json_data"));
+
+    verifySchema(
+        result,
+        schema("id", "bigint"),
+        schema("nested{}.a", "string"),
+        schema("json_data", "string"));
+    verifyDataRows(
+        result,
+        rows(1L, null, "{\"name\": \"John\", \"age\": 30, \"city\": \"New York\"}"),
+        rows(2L, null, "{\"name\": \"Jane\", \"age\": 25, \"country\": \"USA\"}"),
+        rows(
+            3L,
+            "[\"v1\",\"v2\"]",
+            "{\"product\": \"laptop\", \"price\": 999.99, \"brand\": \"Dell\"}"));
+  }
+
+  @Test
+  public void testSpathJoinWithSpath() throws IOException {
+    JSONObject result =
+        executeQuery(
+            source(
+                TEST_INDEX_COMPLEX_JSON,
+                "spath input=data | join id [index=test_dynamic_columns | spath input=json_data ] |"
+                    + " fields id, `nested{}.a`, name, age"));
+
+    verifySchema(
+        result,
+        schema("id", "bigint"),
+        schema("nested{}.a", "string"),
+        schema("name", "string"),
+        schema("age", "string"));
+    // Current limitation: dynamic columns from left side won't be preserved after join
+    verifyDataRows(
+        result,
+        rows(1L, null, "John", "30"),
+        rows(2L, null, "Jane", "25"),
+        rows(3L, null, null, null));
   }
 }
