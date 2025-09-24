@@ -105,7 +105,7 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
     return new AbstractEnumerable<>() {
       @Override
       public Enumerator<Object> enumerator() {
-        OpenSearchRequestBuilder requestBuilder = pushDownContext.getRequestBuilder();
+        OpenSearchRequestBuilder requestBuilder = pushDownContext.createOrGetRequestBuilder();
         return new OpenSearchIndexEnumerator(
             osIndex.getClient(),
             getFieldPath(),
