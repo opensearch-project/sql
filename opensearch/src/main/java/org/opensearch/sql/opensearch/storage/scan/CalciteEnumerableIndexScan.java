@@ -111,6 +111,7 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
             osIndex.getClient(),
             getFieldPath(),
             requestBuilder.getMaxResponseSize(),
+            requestBuilder.getMaxResultWindow(),
             osIndex.buildRequest(requestBuilder),
             osIndex.createOpenSearchResourceMonitor());
       }

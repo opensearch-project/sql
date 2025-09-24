@@ -5,7 +5,7 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 ## Current Maintainers
 
 | Maintainer        | GitHub ID                                           | Affiliation |
-|-------------------|-----------------------------------------------------| ----------- |
+|-------------------|-----------------------------------------------------|-------------|
 | Eric Wei          | [mengweieric](https://github.com/mengweieric)       | Amazon      |
 | Joshua Li         | [joshuali925](https://github.com/joshuali925)       | Amazon      |
 | Shenoy Pratik     | [ps48](https://github.com/ps48)                     | Amazon      |
@@ -23,6 +23,7 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 | Louis Chu         | [noCharger](https://github.com/noCharger)           | Amazon      |
 | Heng Qian         | [qianheng-aws](https://github.com/qianheng-aws)     | Amazon      |
 | Yuanchun Shen     | [yuancu](https://github.com/yuancu)                 | Amazon      |
+| Ryan Liang        | [RyanL1997](https://github.com/RyanL1997)           | Amazon      |
 | Max Ksyunz        | [MaxKsyunz](https://github.com/MaxKsyunz)           | Improving   |
 | Yury Fridlyand    | [Yury-Fridlyand](https://github.com/Yury-Fridlyand) | Improving   |
 | Andrew Carbonetto | [acarbonetto](https://github.com/acarbonetto)       | Improving   |

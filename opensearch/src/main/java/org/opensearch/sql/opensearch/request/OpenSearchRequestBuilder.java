@@ -48,6 +48,7 @@ import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
+import org.opensearch.sql.opensearch.response.agg.CountAsTotalHitsParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 
 /** OpenSearch search request builder. */
@@ -198,6 +199,9 @@ public class OpenSearchRequestBuilder {
     // no need to sort docs for aggregation
     if (sourceBuilder.sorts() != null) {
       sourceBuilder.sorts().clear();
+    }
+    if (aggregationBuilder.getRight() instanceof CountAsTotalHitsParser) {
+      sourceBuilder.trackTotalHits(true);
     }
   }
 
