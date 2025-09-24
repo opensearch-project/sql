@@ -499,6 +499,8 @@ integTest {
         }
     }
 
+    systemProperty 'debugExplain', System.getProperty('debugExplain', 'false')
+
     if(getOSFamilyType() == "windows") {
         exclude 'org/opensearch/sql/ppl/PrometheusDataSourceCommandsIT.class'
         exclude 'org/opensearch/sql/ppl/ShowDataSourcesCommandIT.class'

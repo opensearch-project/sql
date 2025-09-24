@@ -40,8 +40,13 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
       "/_plugins/_ppl/_explain?format=extended";
   private static final Logger LOG = LogManager.getLogger();
   @Rule public final RetryProcessor retryProcessor = new RetryProcessor();
-  // flag for debugging explain and response
-  private static final boolean DEBUG_EXPLAIN = false;
+
+  // Enable debug by -DdebugExplain=true option.
+  private static final boolean DEBUG_EXPLAIN = System.getProperty("debugExplain").equals("true");
+
+  protected static boolean isDebugExplainEnabled() {
+    return DEBUG_EXPLAIN;
+  }
 
   @Override
   protected void init() throws Exception {
@@ -54,7 +59,7 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   }
 
   protected String debugExplain(String ppl) throws IOException {
-    if (DEBUG_EXPLAIN) {
+    if (isDebugExplainEnabled()) {
       try {
         System.out.println("=== QUERY ===");
         System.out.println(ppl);
@@ -77,7 +82,7 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   }
 
   protected String debugResponse(String response) {
-    if (DEBUG_EXPLAIN) {
+    if (isDebugExplainEnabled()) {
       try {
         System.out.println("=== QUERY RESPONSE ===");
         System.out.println(JsonToYamlConverter.convertJsonToYaml(response));
@@ -426,11 +431,5 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
 
   protected String escapeForJson(String jsonContent) {
     return jsonContent.replace("\"", "\\\"");
-  }
-
-  protected void debug(JSONObject result) {
-    System.out.println("=== DEBUG: Query Result ===");
-    System.out.println(result.toString(2));
-    System.out.println("=== END DEBUG ===");
   }
 }

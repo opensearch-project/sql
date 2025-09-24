@@ -27,6 +27,9 @@ spath input=<field> [output=<field>] [path=<path>]
 * path: optional. The path of the data to load for the object. For more information on path syntax, see `json_extract <../functions/json.rst#json_extract>`_.
   * When path param is omitted, all fields from the JSON are extracted as separate fields.
 
+* Limitation: The fields extracted by `spath` are always of type `text`. If you need to perform numeric operations on the extracted fields, you must cast them to the appropriate numeric type using the `eval` command.
+* Limitation: When `path` parameter is omitted, extracted fields cannot be used for `join` operations.
+
 Note
 =====
 The `spath` command currently does not support pushdown behavior for extraction. It will be slow on large datasets. It's generally better to index fields needed for filtering directly instead of using `spath` to filter nested fields.

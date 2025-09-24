@@ -63,7 +63,7 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
         TEST_INDEX_COMPLEX_JSON,
         3,
         "data",
-        "{\"user\": {\"name\": \"James\", \"profile\": {\"age\": 40, \"location\": \"Kirkland\"}},"
+        "{\"user\": {\"name\": \"John\", \"profile\": {\"age\": 40, \"location\": \"Kirkland\"}},"
             + " \"nested\": [{\"a\": \"v1\", \"arr\": [1, 2, 3]}, {\"a\": \"v2\", \"arr\": [4,"
             + " 5]}]}");
   }
@@ -479,7 +479,7 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
         result,
         rows(1L, "Alice", "28", "Seattle"),
         rows(2L, "Bob", "35", "Portland"),
-        rows(3L, "James", "40", "Kirkland"));
+        rows(3L, "John", "40", "Kirkland"));
   }
 
   @Test
@@ -491,7 +491,7 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
                 "spath input=data | where isnotnull(user.name) | fields id, user.name"));
 
     verifySchema(result, schema("id", "bigint"), schema("user.name", "string"));
-    verifyDataRows(result, rows(1L, "Alice"), rows(2L, "Bob"), rows(3L, "James"));
+    verifyDataRows(result, rows(1L, "Alice"), rows(2L, "Bob"), rows(3L, "John"));
   }
 
   @Test

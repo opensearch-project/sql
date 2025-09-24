@@ -88,7 +88,6 @@ public class CalcitePPLDynamicWildcardIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(source(TEST_INDEX, "spath input=details | fields nonexistent*"));
 
-    debug(result);
     verifyColumn(result);
   }
 }
