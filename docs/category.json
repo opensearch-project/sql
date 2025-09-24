@@ -31,7 +31,6 @@
     "user/ppl/cmd/subquery.rst",
     "user/ppl/general/identifiers.rst",
     "user/ppl/general/datatypes.rst",
-    "user/ppl/functions/condition.rst",
     "user/ppl/functions/datetime.rst",
     "user/ppl/functions/expressions.rst",
     "user/ppl/functions/ip.rst",
@@ -56,6 +55,7 @@
   ],
   "ppl_cli_calcite": [
     "user/ppl/cmd/append.rst",
+    "user/ppl/functions/condition.rst",
     "user/ppl/cmd/eventstats.rst",
     "user/ppl/cmd/fields.rst",
     "user/ppl/cmd/regex.rst",
