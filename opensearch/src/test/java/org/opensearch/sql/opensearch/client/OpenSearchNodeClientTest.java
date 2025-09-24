@@ -243,6 +243,12 @@ class OpenSearchNodeClientTest {
   }
 
   @Test
+  void get_index_mappings_with_index_patterns() {
+    mockNodeClientIndicesMappings("", null);
+    assertThrows(IndexNotFoundException.class, () -> client.getIndexMappings("test*"));
+  }
+
+  @Test
   void get_index_mappings_with_non_exist_index() {
     when(nodeClient.admin().indices().prepareGetMappings(any()).setLocal(anyBoolean()).get())
         .thenThrow(IndexNotFoundException.class);
@@ -495,7 +501,9 @@ class OpenSearchNodeClientTest {
         .thenReturn(mockResponse);
     try {
       Map<String, MappingMetadata> metadata;
-      if (mappings.isEmpty()) {
+      if (mappings == null) {
+        metadata = Map.of();
+      } else if (mappings.isEmpty()) {
         when(emptyMapping.getSourceAsMap()).thenReturn(Map.of());
         metadata = Map.of(indexName, emptyMapping);
       } else {
