@@ -65,6 +65,7 @@ import org.apache.calcite.util.Holder;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.EmptySourcePropagateVisitor;
 import org.opensearch.sql.ast.Node;
@@ -136,6 +137,7 @@ import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.WildcardUtils;
 import org.opensearch.sql.common.patterns.PatternUtils;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
@@ -148,10 +150,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   private final CalciteRexNodeVisitor rexVisitor;
   private final CalciteAggCallVisitor aggVisitor;
+  private final DataSourceService dataSourceService;
 
-  public CalciteRelNodeVisitor() {
+  public CalciteRelNodeVisitor(DataSourceService dataSourceService) {
     this.rexVisitor = new CalciteRexNodeVisitor(this);
     this.aggVisitor = new CalciteAggCallVisitor(rexVisitor);
+    this.dataSourceService = dataSourceService;
   }
 
   public RelNode analyze(UnresolvedPlan unresolved, CalcitePlanContext context) {
@@ -160,6 +164,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitRelation(Relation node, CalcitePlanContext context) {
+    DataSourceSchemaIdentifierNameResolver nameResolver =
+        new DataSourceSchemaIdentifierNameResolver(
+            dataSourceService, node.getTableQualifiedName().getParts());
+    if (!nameResolver
+        .getDataSourceName()
+        .equals(DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME)) {
+      throw new CalciteUnsupportedException(
+          "Datasource " + nameResolver.getDataSourceName() + " is unsupported in Calcite");
+    }
     context.relBuilder.scan(node.getTableQualifiedName().getParts());
     return context.relBuilder.peek();
   }
@@ -1364,7 +1377,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       throw new IllegalArgumentException("Number of duplicate events must be greater than 0");
     }
     if (consecutive) {
-      throw new UnsupportedOperationException("Consecutive deduplication is not supported");
+      throw new CalciteUnsupportedException("Consecutive deduplication is unsupported in Calcite");
     }
     // Columns to deduplicate
     List<RexNode> dedupeFields =
