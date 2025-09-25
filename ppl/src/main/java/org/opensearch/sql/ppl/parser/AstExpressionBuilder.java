@@ -584,7 +584,16 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     // via ExprDoubleValue.
     // In v3, a decimal literal will be kept in Calcite RexNode and converted back to double
     // in runtime.
-    return new Literal(BigDecimal.valueOf(Double.parseDouble(ctx.getText())), DataType.DECIMAL);
+    double tryDouble = Double.parseDouble(ctx.getText());
+    if (willUseScientificNotation(tryDouble)) {
+      return new Literal(new BigDecimal(ctx.getText()), DataType.DECIMAL);
+    } else {
+      return new Literal(BigDecimal.valueOf(Double.parseDouble(ctx.getText())), DataType.DECIMAL);
+    }
+  }
+
+  public boolean willUseScientificNotation(double value) {
+    return Math.abs(value) >= 1e7 || Math.abs(value) <= 1e-3;
   }
 
   @Override

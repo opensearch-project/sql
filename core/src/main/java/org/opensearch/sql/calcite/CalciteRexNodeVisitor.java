@@ -135,6 +135,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
             new BigDecimal(Double.toString((Double) value)),
             typeFactory.createSqlType(SqlTypeName.DOUBLE));
       case DECIMAL:
+        int sc = ((BigDecimal) value).scale();
         return rexBuilder.makeExactLiteral((BigDecimal) value);
       case BOOLEAN:
         return rexBuilder.makeLiteral((Boolean) value);

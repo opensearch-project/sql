@@ -240,14 +240,14 @@ Example 1: Basic numeric span
 
 PPL query::
 
-    ppl> source=accounts | bin age span=10 | fields age | head 3;
+    os> source=accounts | bin age span=10 | fields age | head 3;
     fetched rows / total rows = 3/3
     +-------+
     | age   |
     |-------|
     | 30-40 |
-    | 35-45 |
-    | 25-35 |
+    | 30-40 |
+    | 20-30 |
     +-------+
 
 Example 2: Large numeric span
@@ -255,42 +255,42 @@ Example 2: Large numeric span
 
 PPL query::
 
-    ppl> source=accounts | bin balance span=25000 | fields balance | head 2;
+    os> source=accounts | bin balance span=25000 | fields balance | head 2;
     fetched rows / total rows = 2/2
-    +---------------+
-    | balance       |
-    |---------------|
-    | 0-25000       |
-    | 25000-50000   |
-    +---------------+
+    +-------------+
+    | balance     |
+    |-------------|
+    | 25000-50000 |
+    | 0-25000     |
+    +-------------+
 
 Example 3: Floating point span
 ===============================
 
 PPL query::
 
-    ppl> source=accounts | bin age span=2.5 | fields age | head 3;
+    os> source=accounts | bin age span=2.5 | fields age | head 3;
     fetched rows / total rows = 3/3
-    +-------------+
-    | age         |
-    |-------------|
-    | 27.5-30.0   |
-    | 30.0-32.5   |
-    | 35.0-37.5   |
-    +-------------+
+    +-----------+
+    | age       |
+    |-----------|
+    | 30.0-32.5 |
+    | 35.0-37.5 |
+    | 27.5-30.0 |
+    +-----------+
 
 Example 4: Logarithmic span (log10)
 ====================================
 
 PPL query::
 
-    ppl> source=accounts | bin balance span=log10 | fields balance | head 2;
+    os> source=accounts | bin balance span=log10 | fields balance | head 2;
     fetched rows / total rows = 2/2
     +------------------+
     | balance          |
     |------------------|
-    | 1000.0-10000.0   |
     | 10000.0-100000.0 |
+    | 1000.0-10000.0   |
     +------------------+
 
 Example 5: Logarithmic span with coefficient
@@ -298,15 +298,15 @@ Example 5: Logarithmic span with coefficient
 
 PPL query::
 
-    ppl> source=accounts | bin balance span=2log10 | fields balance | head 3;
+    os> source=accounts | bin balance span=2log10 | fields balance | head 3;
     fetched rows / total rows = 3/3
-    +-------------------+
-    | balance           |
-    |-------------------|
-    | 200.0-2000.0      |
-    | 2000.0-20000.0    |
-    | 20000.0-200000.0  |
-    +-------------------+
+    +------------------+
+    | balance          |
+    |------------------|
+    | 20000.0-200000.0 |
+    | 2000.0-20000.0   |
+    | 20000.0-200000.0 |
+    +------------------+
 
 Bins Parameter Examples
 =======================
@@ -331,12 +331,12 @@ Example 7: Low bin count
 
 PPL query::
 
-    ppl> source=accounts | bin age bins=2 | fields age | head 1;
+    os> source=accounts | bin age bins=2 | fields age | head 1;
     fetched rows / total rows = 1/1
     +-------+
     | age   |
     |-------|
-    | 0-100 |
+    | 30-40 |
     +-------+
 
 Example 8: High bin count
@@ -344,14 +344,14 @@ Example 8: High bin count
 
 PPL query::
 
-    ppl> source=accounts | bin age bins=21 | fields age | head 3;
+    os> source=accounts | bin age bins=21 | fields age | head 3;
     fetched rows / total rows = 3/3
     +-------+
     | age   |
     |-------|
-    | 20-21 |
-    | 21-22 |
-    | 22-23 |
+    | 32-33 |
+    | 36-37 |
+    | 28-29 |
     +-------+
 
 Minspan Parameter Examples
@@ -362,14 +362,14 @@ Example 9: Basic minspan
 
 PPL query::
 
-    ppl> source=accounts | bin age minspan=5 | fields age | head 3;
+    os> source=accounts | bin age minspan=5 | fields age | head 3;
     fetched rows / total rows = 3/3
     +-------+
     | age   |
     |-------|
-    | 30-35 |
-    | 35-40 |
-    | 25-30 |
+    | 30-40 |
+    | 30-40 |
+    | 20-30 |
     +-------+
 
 Example 10: Large minspan
@@ -377,13 +377,13 @@ Example 10: Large minspan
 
 PPL query::
 
-    ppl> source=accounts | bin age minspan=101 | fields age | head 1;
+    os> source=accounts | bin age minspan=101 | fields age | head 1;
     fetched rows / total rows = 1/1
-    +---------+
-    | age     |
-    |---------|
-    | 0-1000  |
-    +---------+
+    +--------+
+    | age    |
+    |--------|
+    | 0-1000 |
+    +--------+
 
 Start/End Parameter Examples
 ============================
@@ -393,7 +393,7 @@ Example 11: Start and end range
 
 PPL query::
 
-    ppl> source=accounts | bin age start=0 end=101 | fields age | head 1;
+    os> source=accounts | bin age start=0 end=101 | fields age | head 1;
     fetched rows / total rows = 1/1
     +-------+
     | age   |
@@ -406,21 +406,21 @@ Example 12: Large end range
 
 PPL query::
 
-    ppl> source=accounts | bin balance start=0 end=100001 | fields balance | head 1;
+    os> source=accounts | bin balance start=0 end=100001 | fields balance | head 1;
     fetched rows / total rows = 1/1
-    +-----------+
-    | balance   |
-    |-----------|
-    | 0-100000  |
-    +-----------+
+    +----------+
+    | balance  |
+    |----------|
+    | 0-100000 |
+    +----------+
 
 Example 13: Span with start/end
 ================================
 
 PPL query::
 
-    ppl> source=bank | bin age span=1 start=25 end=35 | fields age | head 6;
-    fetched rows / total rows = 6/6
+    os> source=accounts | bin age span=1 start=25 end=35 | fields age | head 6;
+    fetched rows / total rows = 4/4
     +-------+
     | age   |
     |-------|
@@ -428,8 +428,6 @@ PPL query::
     | 36-37 |
     | 28-29 |
     | 33-34 |
-    | 36-37 |
-    | 39-40 |
     +-------+
 
 Time-based Examples
@@ -536,13 +534,13 @@ Example 20: Default behavior (no parameters)
 
 PPL query::
 
-    ppl> source=accounts | bin age | fields age | head 3;
+    os> source=accounts | bin age | fields age | head 3;
     fetched rows / total rows = 3/3
-    +-------+
-    | age   |
-    |-------|
-    | 20-30 |
-    | 30-40 |
-    | 40-50 |
-    +-------+
+    +-----------+
+    | age       |
+    |-----------|
+    | 32.0-33.0 |
+    | 36.0-37.0 |
+    | 28.0-29.0 |
+    +-----------+
 
