@@ -162,8 +162,8 @@ public class CalciteExplainIT extends ExplainIT {
             + " 'young'] [search source=opensearch-sql_test_index_account | where age >= 30 | eval"
             + " age_group = 'adult'] | stats count by age_group";
     var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_multisearch_basic.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    String expected = loadExpectedPlan("explain_multisearch_basic.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
   // Only for Calcite
@@ -175,8 +175,8 @@ public class CalciteExplainIT extends ExplainIT {
             + "[search source=opensearch-sql_test_index_time_data2 | where category IN ('E', 'F')] "
             + "| head 5";
     var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_multisearch_timestamp.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    String expected = loadExpectedPlan("explain_multisearch_timestamp.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
   // Only for Calcite
