@@ -46,26 +46,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.EmptySourcePropagateVisitor;
 import org.opensearch.sql.ast.dsl.AstDSL;
-import org.opensearch.sql.ast.expression.Alias;
-import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
-import org.opensearch.sql.ast.expression.Argument;
-import org.opensearch.sql.ast.expression.DataType;
-import org.opensearch.sql.ast.expression.EqualTo;
-import org.opensearch.sql.ast.expression.Field;
-import org.opensearch.sql.ast.expression.Let;
-import org.opensearch.sql.ast.expression.Literal;
-import org.opensearch.sql.ast.expression.Map;
-import org.opensearch.sql.ast.expression.ParseMethod;
-import org.opensearch.sql.ast.expression.PatternMethod;
-import org.opensearch.sql.ast.expression.PatternMode;
-import org.opensearch.sql.ast.expression.QualifiedName;
-import org.opensearch.sql.ast.expression.SearchAnd;
-import org.opensearch.sql.ast.expression.SearchExpression;
-import org.opensearch.sql.ast.expression.SearchGroup;
-import org.opensearch.sql.ast.expression.SpanUnit;
-import org.opensearch.sql.ast.expression.UnresolvedArgument;
-import org.opensearch.sql.ast.expression.UnresolvedExpression;
-import org.opensearch.sql.ast.expression.WindowFunction;
+import org.opensearch.sql.ast.expression.*;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
@@ -520,12 +501,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         if (!seenParams.add("MINSPAN")) {
           throw new IllegalArgumentException("Duplicate MINSPAN parameter in bin command");
         }
-        String minspanValue = option.minspan.getText();
-        String minspanUnit = option.minspanUnit != null ? option.minspanUnit.getText() : null;
-        minspan =
-            minspanUnit != null
-                ? org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(minspanValue + minspanUnit)
-                : internalVisitExpression(option.minspan);
+        minspan = internalVisitExpression(option.minspan);
       }
 
       // ALIGNTIME parameter
@@ -625,14 +601,13 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         AstDSL.span(AstDSL.field("@timestamp"), AstDSL.intLiteral(1), SpanUnit.of("m"));
     Integer limit = 10;
     Boolean useOther = true;
-
     // Process timechart parameters
     for (OpenSearchPPLParser.TimechartParameterContext paramCtx : ctx.timechartParameter()) {
       if (paramCtx.spanClause() != null) {
         binExpression = internalVisitExpression(paramCtx.spanClause());
       } else if (paramCtx.spanLiteral() != null) {
-        // Convert span=1h to span(@timestamp, 1h)
-        binExpression = internalVisitExpression(paramCtx.spanLiteral());
+        Literal literal = (Literal) internalVisitExpression(paramCtx.spanLiteral());
+        binExpression = AstDSL.spanFromSpanLengthLiteral(AstDSL.field("@timestamp"), literal);
       } else if (paramCtx.timechartArg() != null) {
         OpenSearchPPLParser.TimechartArgContext argCtx = paramCtx.timechartArg();
         if (argCtx.LIMIT() != null && argCtx.integerLiteral() != null) {
