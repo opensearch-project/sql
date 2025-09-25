@@ -1797,10 +1797,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
    * @return The name of the timestamp field, or null if not found
    */
   private String findTimestampField(RelDataType rowType) {
-    // Look for common timestamp field names
-    String[] timestampFieldNames = {"_time", "@timestamp", "timestamp", "time"};
+    // First priority: check for @timestamp
+    RelDataTypeField timestampField = rowType.getField("@timestamp", false, false);
+    if (timestampField != null) {
+      return "@timestamp";
+    }
 
-    for (String fieldName : timestampFieldNames) {
+    // Fallback: check other common timestamp field names
+    String[] fallbackTimestampNames = {"_time", "timestamp", "time"};
+    for (String fieldName : fallbackTimestampNames) {
       RelDataTypeField field = rowType.getField(fieldName, false, false);
       if (field != null) {
         return fieldName;
