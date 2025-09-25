@@ -11,7 +11,6 @@ import com.alibaba.druid.sql.ast.SQLCommentHint;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLOrderBy;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
-import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
@@ -49,7 +48,6 @@ import org.opensearch.sql.legacy.domain.hints.Hint;
 import org.opensearch.sql.legacy.domain.hints.HintFactory;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.query.multi.MultiQuerySelect;
-import org.opensearch.sql.legacy.utils.Util;
 
 /**
  * OpenSearch sql support
@@ -373,7 +371,7 @@ public class SqlParser {
     }
 
     JoinSelect joinSelect =
-        createBasicJoinSelectAccordingToTableSource((SQLJoinTableSource) query.getFrom());
+        createBasicJoinSelectAccordingToTableSource((SQLJoinTableSource) query.getFrom(), query);
     List<Hint> hints = parseHints(query.getHints());
     joinSelect.setHints(hints);
     String firstTableAlias = joinedFrom.get(0).getAlias();
@@ -401,62 +399,7 @@ public class SqlParser {
 
     updateJoinLimit(query.getLimit(), joinSelect);
 
-    validateJoinWithoutAggregations(query);
-
     return joinSelect;
-  }
-
-  /**
-   * Validates that JOIN queries do not use aggregations (GROUP BY or aggregate functions). This
-   * limitation is documented in the official OpenSearch SQL documentation.
-   */
-  private void validateJoinWithoutAggregations(MySqlSelectQueryBlock query)
-      throws SqlParseException {
-    String errorMessage =
-        Util.JOIN_AGGREGATION_ERROR_PREFIX
-            + Util.DOC_REDIRECT_MESSAGE
-            + Util.getJoinAggregationDocumentationUrl(SqlParser.class);
-
-    if (query.getGroupBy() != null && !query.getGroupBy().getItems().isEmpty()) {
-      throw new SqlParseException(errorMessage);
-    }
-
-    if (query.getSelectList() != null) {
-      for (SQLSelectItem selectItem : query.getSelectList()) {
-        if (containsAggregateFunction(selectItem.getExpr())) {
-          throw new SqlParseException(errorMessage);
-        }
-      }
-    }
-  }
-
-  /**
-   * Recursively checks if an SQL expression contains aggregate functions. Uses the same
-   * AGGREGATE_FUNCTIONS set as the Select class for consistency.
-   */
-  private boolean containsAggregateFunction(SQLExpr expr) {
-    if (expr == null) {
-      return false;
-    }
-
-    String methodName = null;
-    if (expr instanceof SQLAggregateExpr) {
-      methodName = ((SQLAggregateExpr) expr).getMethodName();
-    } else if (expr instanceof SQLMethodInvokeExpr) {
-      methodName = ((SQLMethodInvokeExpr) expr).getMethodName();
-    }
-
-    if (methodName != null && Select.AGGREGATE_FUNCTIONS.contains(methodName.toUpperCase())) {
-      return true;
-    }
-
-    if (expr instanceof SQLBinaryOpExpr) {
-      SQLBinaryOpExpr binaryExpr = (SQLBinaryOpExpr) expr;
-      return containsAggregateFunction(binaryExpr.getLeft())
-          || containsAggregateFunction(binaryExpr.getRight());
-    }
-
-    return false;
   }
 
   private Map<String, List<SQLSelectOrderByItem>> splitAndFindOrder(
@@ -501,9 +444,9 @@ public class SqlParser {
     return hints;
   }
 
-  private JoinSelect createBasicJoinSelectAccordingToTableSource(SQLJoinTableSource joinTableSource)
-      throws SqlParseException {
-    JoinSelect joinSelect = new JoinSelect();
+  private JoinSelect createBasicJoinSelectAccordingToTableSource(
+      SQLJoinTableSource joinTableSource, MySqlSelectQueryBlock query) throws SqlParseException {
+    JoinSelect joinSelect = JoinSelect.withValidation(query);
     if (joinTableSource.getCondition() != null) {
       Where where = Where.newInstance();
       WhereParser whereParser = new WhereParser(this, joinTableSource.getCondition());
