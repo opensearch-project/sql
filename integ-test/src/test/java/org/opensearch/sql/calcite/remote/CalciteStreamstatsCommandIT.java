@@ -306,7 +306,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   @Test
   public void testStreamstatsWindowError() {
     Throwable e =
-        assertThrows(
+        assertThrowsWithReplace(
             IllegalArgumentException.class,
             () ->
                 executeQuery(
@@ -346,7 +346,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         rows("Hello", "USA", "New York", 4, 2023, 30, 70),
         rows("John", "Canada", "Ontario", 4, 2023, 25, 50),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 27.5),
-        rows(null, "Canada", null, 4, 2023, 10, 1, 22.5),
+        rows(null, "Canada", null, 4, 2023, 10, 22.5),
         rows("Kevin", null, null, 4, 2023, null, 15));
   }
 

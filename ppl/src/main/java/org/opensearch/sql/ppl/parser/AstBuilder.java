@@ -484,20 +484,17 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     }
 
     // reset_before, reset_after
-    UnresolvedExpression resetBeforeExpr = null;
-    UnresolvedExpression resetAfterExpr = null;
-    if (ctx.streamstatsArgs() != null
-        && ctx.streamstatsArgs().resetBeforeArg() != null
-        && !ctx.streamstatsArgs().resetBeforeArg().isEmpty()) {
-      resetBeforeExpr =
-          expressionBuilder.visit(ctx.streamstatsArgs().resetBeforeArg(0).logicalExpression());
-    }
-    if (ctx.streamstatsArgs() != null
-        && ctx.streamstatsArgs().resetAfterArg() != null
-        && !ctx.streamstatsArgs().resetAfterArg().isEmpty()) {
-      resetAfterExpr =
-          expressionBuilder.visit(ctx.streamstatsArgs().resetAfterArg(0).logicalExpression());
-    }
+    UnresolvedExpression resetBeforeExpr =
+        Optional.ofNullable(ctx.streamstatsArgs())
+            .filter(args -> args.resetBeforeArg() != null && !args.resetBeforeArg().isEmpty())
+            .map(args -> expressionBuilder.visit(args.resetBeforeArg(0).logicalExpression()))
+            .orElse(null);
+
+    UnresolvedExpression resetAfterExpr =
+        Optional.ofNullable(ctx.streamstatsArgs())
+            .filter(args -> args.resetAfterArg() != null && !args.resetAfterArg().isEmpty())
+            .map(args -> expressionBuilder.visit(args.resetAfterArg(0).logicalExpression()))
+            .orElse(null);
 
     // 2.1 Build a WindowFrame from the provided arguments
     WindowFrame frame = buildFrameFromArgs(current, window);
