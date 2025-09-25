@@ -55,3 +55,9 @@ PPL query for searching PROMETHEUS TABLES::
     | my_prometheus | default      | promhttp_metric_handler_requests_total     | counter    |      | Total number of scrapes by HTTP status code.       |
     | my_prometheus | default      | prometheus_http_response_size_bytes        | histogram  |      | Histogram of response size for HTTP requests.      |
     +---------------+--------------+--------------------------------------------+------------+------+----------------------------------------------------+
+
+
+Limitations
+===========
+The ``information_schema`` command can only work with ``plugins.calcite.enabled=false``.
+It means ``information_schema``  command cannot work together with new PPL commands/functions introduced in 3.0.0 and above.

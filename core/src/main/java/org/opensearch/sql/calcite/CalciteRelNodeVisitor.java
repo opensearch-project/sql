@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite;
 
 import static org.apache.calcite.sql.SqlKind.AS;
+import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.INFORMATION_SCHEMA_NAME;
 import static org.opensearch.sql.ast.tree.Join.JoinType.ANTI;
 import static org.opensearch.sql.ast.tree.Join.JoinType.SEMI;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
@@ -20,6 +21,7 @@ import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_
 import static org.opensearch.sql.calcite.utils.PlanUtils.getRelation;
 import static org.opensearch.sql.calcite.utils.PlanUtils.getRexCall;
 import static org.opensearch.sql.calcite.utils.PlanUtils.transformPlanToAttachChild;
+import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -172,6 +174,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         .equals(DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME)) {
       throw new CalciteUnsupportedException(
           "Datasource " + nameResolver.getDataSourceName() + " is unsupported in Calcite");
+    }
+    if (nameResolver.getIdentifierName().equals(DATASOURCES_TABLE_NAME)) {
+      throw new CalciteUnsupportedException("SHOW DATASOURCES is unsupported in Calcite");
+    }
+    if (nameResolver.getSchemaName().equals(INFORMATION_SCHEMA_NAME)) {
+      throw new CalciteUnsupportedException("information_schema is unsupported in Calcite");
     }
     context.relBuilder.scan(node.getTableQualifiedName().getParts());
     return context.relBuilder.peek();
