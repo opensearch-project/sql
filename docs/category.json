@@ -7,6 +7,22 @@
     "user/admin/settings.rst"
   ],
   "ppl_cli": [
+  ],
+  "sql_cli": [
+    "user/dql/expressions.rst",
+    "user/general/comments.rst",
+    "user/general/datatypes.rst",
+    "user/general/identifiers.rst",
+    "user/general/values.rst",
+    "user/dql/basics.rst",
+    "user/dql/functions.rst",
+    "user/dql/window.rst",
+    "user/beyond/partiql.rst",
+    "user/dql/aggregations.rst",
+    "user/dql/complex.rst",
+    "user/dql/metadata.rst"
+  ],
+  "ppl_cli_calcite": [
     "user/ppl/cmd/ad.rst",
     "user/ppl/cmd/bin.rst",
     "user/ppl/cmd/dedup.rst",
@@ -37,23 +53,7 @@
     "user/ppl/functions/json.rst",
     "user/ppl/functions/math.rst",
     "user/ppl/functions/relevance.rst",
-    "user/ppl/functions/string.rst"
-  ],
-  "sql_cli": [
-    "user/dql/expressions.rst",
-    "user/general/comments.rst",
-    "user/general/datatypes.rst",
-    "user/general/identifiers.rst",
-    "user/general/values.rst",
-    "user/dql/basics.rst",
-    "user/dql/functions.rst",
-    "user/dql/window.rst",
-    "user/beyond/partiql.rst",
-    "user/dql/aggregations.rst",
-    "user/dql/complex.rst",
-    "user/dql/metadata.rst"
-  ],
-  "ppl_cli_calcite": [
+    "user/ppl/functions/string.rst",
     "user/ppl/cmd/append.rst",
     "user/ppl/functions/condition.rst",
     "user/ppl/cmd/eventstats.rst",
