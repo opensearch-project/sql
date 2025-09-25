@@ -399,4 +399,69 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
     // Verify we get data from both time series indices
     verifyDataRows(result, rows(26L, 10L)); // Both A and E categories should have data
   }
+
+  @Test
+  public void testMultisearchNullFillingForMissingFields() throws IOException {
+    // Test NULL filling behavior when subsearches have different fields
+    // First subsearch: has firstname, age, balance
+    // Second subsearch: has lastname, city, employer
+    // Result should have all fields with NULLs where fields are missing
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "| multisearch [search source=%s | where account_number = 1 | fields firstname,"
+                    + " age, balance] [search source=%s | where account_number = 1 | fields"
+                    + " lastname, city, employer] | head 2",
+                TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT));
+
+    // Verify schema has all fields from both subsearches
+    verifySchema(
+        result,
+        schema("firstname", null, "string"),
+        schema("age", null, "bigint"), // age is bigint in this context
+        schema("balance", null, "bigint"), // balance is also bigint
+        schema("lastname", null, "string"),
+        schema("city", null, "string"),
+        schema("employer", null, "string"));
+
+    // Verify NULL filling:
+    // Row 1: has firstname, age, balance but NULL for lastname, city, employer
+    // Row 2: has lastname, city, employer but NULL for firstname, age, balance
+    verifyDataRows(
+        result,
+        rows("Amber", 32L, 39225L, null, null, null), // First subsearch result
+        rows(null, null, null, "Duke", "Brogan", "Pyrami")); // Second subsearch result
+  }
+
+  @Test
+  public void testMultisearchNullFillingAcrossIndices() throws IOException {
+    // Test NULL filling when using completely different indices with no overlapping fields
+    // ACCOUNT has: account_number, firstname, lastname, age, balance, etc.
+    // BANK has similar fields but potentially different field names
+    // This test uses different subsets to ensure no overlap
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "| multisearch [search source=%s | where account_number = 1 | fields"
+                    + " account_number, firstname, balance] [search source=%s | where"
+                    + " account_number = 1 | fields city, employer, email] | head 2",
+                TEST_INDEX_ACCOUNT, TEST_INDEX_BANK));
+
+    // Verify all fields from both subsearches are present
+    verifySchema(
+        result,
+        schema("account_number", null, "bigint"),
+        schema("firstname", null, "string"),
+        schema("balance", null, "bigint"),
+        schema("city", null, "string"),
+        schema("employer", null, "string"),
+        schema("email", null, "string"));
+
+    // Row 1: ACCOUNT data with NULLs for BANK-specific fields
+    // Row 2: BANK data with NULLs for ACCOUNT-specific fields
+    verifyDataRows(
+        result,
+        rows(1L, "Amber", 39225L, null, null, null), // From ACCOUNT
+        rows(null, null, null, "Brogan", "Pyrami", "amberduke@pyrami.com")); // From BANK
+  }
 }
