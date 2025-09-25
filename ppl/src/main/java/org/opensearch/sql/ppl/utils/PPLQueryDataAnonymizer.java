@@ -583,13 +583,10 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitMultisearch(Multisearch node, String context) {
-    String child = node.getChild().get(0).accept(this, context);
     List<String> anonymizedSubsearches = new ArrayList<>();
 
     for (UnresolvedPlan subsearch : node.getSubsearches()) {
       String anonymizedSubsearch = anonymizeData(subsearch);
-      // For multisearch, prepend 'search' keyword and apply additional anonymization to match CI
-      // expectations
       anonymizedSubsearch = "search " + anonymizedSubsearch;
       anonymizedSubsearch =
           anonymizedSubsearch
@@ -611,11 +608,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
       anonymizedSubsearches.add(StringUtils.format("[%s]", anonymizedSubsearch));
     }
 
-    // Also apply the same anonymization to the parent source
-    child = child.replaceAll("\\bsource=\\w+", "source=table");
-
-    return StringUtils.format(
-        "%s | multisearch %s", child, String.join(" ", anonymizedSubsearches));
+    return StringUtils.format("| multisearch %s", String.join(" ", anonymizedSubsearches));
   }
 
   @Override
