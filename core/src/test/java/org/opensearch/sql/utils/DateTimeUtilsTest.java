@@ -181,6 +181,8 @@ public class DateTimeUtilsTest {
     assertEquals("2025-10-22T10:32:12Z", DateTimeUtils.resolveTimeModifier("2025-10-22 10:32:12"));
     // Test "direct" format
     assertEquals("2025-10-22T10:32:12Z", DateTimeUtils.resolveTimeModifier("10/22/2025:10:32:12"));
+    // Test ISO 8601 format
+    assertEquals("2025-10-22T10:32:12Z", DateTimeUtils.resolveTimeModifier("2025-10-22T10:32:12Z"));
   }
 
   @Test
@@ -369,7 +371,9 @@ public class DateTimeUtilsTest {
       {"-1d@d", "now-1d/d"},
       {"-30m@h", "now-30m/h"},
       {"-2w+1d", "now-2w+1d"},
-      {"-1month@mon", "now-1M/M"}
+      {"-1month@mon", "now-1M/M"},
+      {"2025-10-22 10:32:12", "2025-10-22T10:32:12Z"},
+      {"2025-10-22T10:32:12Z", "2025-10-22T10:32:12Z"}
     };
 
     for (Object[] testCase : testCases) {

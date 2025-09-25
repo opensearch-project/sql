@@ -172,9 +172,14 @@ public class DateTimeUtils {
       try {
         parsed = LocalDateTime.parse(input, DIRECT_FORMATTER).toInstant(ZoneOffset.UTC);
       } catch (DateTimeParseException ignored) {
-        parsed =
-            LocalDateTime.parse(input, DateTimeFormatters.DATE_TIMESTAMP_FORMATTER)
-                .toInstant(ZoneOffset.UTC);
+        try {
+          parsed =
+              LocalDateTime.parse(input, DateTimeFormatters.DATE_TIMESTAMP_FORMATTER)
+                  .toInstant(ZoneOffset.UTC);
+        } catch (DateTimeParseException ignored2) {
+          ZonedDateTime zdt = ZonedDateTime.parse(input, DateTimeFormatter.ISO_DATE_TIME);
+          parsed = zdt.withZoneSameInstant(ZoneOffset.UTC).toInstant();
+        }
       }
       return parsed.atZone(baseTime.getZone());
     } catch (DateTimeParseException ignored) {
@@ -361,7 +366,12 @@ public class DateTimeUtils {
       try {
         parsed = LocalDateTime.parse(input, DIRECT_FORMATTER);
       } catch (DateTimeParseException ignored) {
-        parsed = LocalDateTime.parse(input, DateTimeFormatters.DATE_TIMESTAMP_FORMATTER);
+        try {
+          parsed = LocalDateTime.parse(input, DateTimeFormatters.DATE_TIMESTAMP_FORMATTER);
+        } catch (DateTimeParseException ignored2) {
+          ZonedDateTime zdt = ZonedDateTime.parse(input, DateTimeFormatter.ISO_DATE_TIME);
+          parsed = zdt.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime();
+        }
       }
       return parsed.atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);
     } catch (DateTimeParseException ignored) {
