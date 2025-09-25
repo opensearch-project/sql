@@ -41,7 +41,9 @@ TEST_DATA = {
     'worker': 'worker.json',
     'work_information': 'work_information.json',
     'events': 'events.json',
-    'otellogs': 'otellogs.json'
+    'otellogs': 'otellogs.json',
+    'time_test': 'time_test.json',
+    'bank': 'bank.json'
 }
 
 DEBUG_MODE = os.environ.get('DOCTEST_DEBUG', 'false').lower() == 'true'
