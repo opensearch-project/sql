@@ -234,7 +234,7 @@ The ``sql_worker`` pool corresponds to compute resources related to running quer
 This directly maps to the number of queries that can be run concurrently.
 This is the primary pool you interact with externally.
 ``sql_background_io`` is a low-footprint pool for IO requests the plugin makes,
-and can be used to partially the search load SQL places on your cluster for some types of expensive operations.
+and can be used to limit indirect load that SQL places on your cluster for Calcite-enabled operations.
 A ``sql_worker`` thread may spawn multiple background threads.
 
 plugins.query.executionengine.spark.session.limit
