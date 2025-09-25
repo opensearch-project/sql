@@ -15,10 +15,8 @@ public class JsonToYamlConverter {
 
   public static String convertJsonToYaml(String jsonString) {
     try {
-      // Parse the JSON string into an object
       Object parsedJson = JSON_MAPPER.readValue(jsonString, Object.class);
 
-      // Use YamlFormatter to convert the parsed object to YAML
       return YamlFormatter.formatToYaml(parsedJson);
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Failed to parse JSON string: " + jsonString, e);

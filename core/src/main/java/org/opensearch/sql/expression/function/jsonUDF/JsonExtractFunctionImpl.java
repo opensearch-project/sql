@@ -93,7 +93,7 @@ public class JsonExtractFunctionImpl extends ImplementorUDF {
 
   private static String doJsonize(Object candidate) {
     if (candidate == null) {
-      return null; // FIXED: Return actual null instead of "null" string
+      return null;
     } else if (isScalarObject(candidate)) {
       return candidate.toString();
     } else {

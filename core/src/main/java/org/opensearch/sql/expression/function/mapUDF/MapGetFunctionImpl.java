@@ -70,30 +70,26 @@ public class MapGetFunctionImpl extends ImplementorUDF {
           "MAP_GET function requires exactly 2 arguments: map and key");
     }
 
-    Object mapObj = args[0];
-    Object keyObj = args[1];
-
-    // Handle null inputs
-    if (mapObj == null || keyObj == null) {
+    if (args[0] == null || args[1] == null) {
       return null;
     }
 
     // Ensure the first argument is a Map
-    if (!(mapObj instanceof Map)) {
+    if (!(args[0] instanceof Map)) {
       throw new IllegalArgumentException(
-          "First argument to MAP_GET must be a Map, got: " + mapObj.getClass().getSimpleName());
+          "First argument to MAP_GET must be a Map, got: " + args[0].getClass().getSimpleName());
     }
 
     // Ensure the second argument is a String (key)
-    if (!(keyObj instanceof String)) {
+    if (!(args[1] instanceof String)) {
       throw new IllegalArgumentException(
           "Second argument to MAP_GET must be a String key, got: "
-              + keyObj.getClass().getSimpleName());
+              + args[1].getClass().getSimpleName());
     }
 
     @SuppressWarnings("unchecked")
-    Map<String, Object> map = (Map<String, Object>) mapObj;
-    String key = (String) keyObj;
+    Map<String, Object> map = (Map<String, Object>) args[0];
+    String key = (String) args[1];
 
     return map.get(key);
   }
