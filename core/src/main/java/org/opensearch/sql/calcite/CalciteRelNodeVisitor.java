@@ -136,7 +136,6 @@ import org.opensearch.sql.calcite.utils.DynamicWildcardProcessor;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
-import org.opensearch.sql.calcite.utils.WildcardUtils;
 import org.opensearch.sql.common.patterns.PatternUtils;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
@@ -397,24 +396,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (fieldsToExclude.size() >= nonMetaFields.size()) {
       throw new IllegalArgumentException(
           "Invalid field exclusion: operation would exclude all fields from the result set");
-    }
-  }
-
-  private void validateWildcardPatterns(
-      List<UnresolvedExpression> projectList, List<String> currentFields) {
-    String firstWildcardPattern =
-        projectList.stream()
-            .filter(
-                expr ->
-                    expr instanceof Field field
-                        && WildcardUtils.containsWildcard(field.getField().toString()))
-            .map(expr -> ((Field) expr).getField().toString())
-            .findFirst()
-            .orElse(null);
-
-    if (firstWildcardPattern != null) {
-      throw new IllegalArgumentException(
-          String.format("wildcard pattern [%s] matches no fields", firstWildcardPattern));
     }
   }
 

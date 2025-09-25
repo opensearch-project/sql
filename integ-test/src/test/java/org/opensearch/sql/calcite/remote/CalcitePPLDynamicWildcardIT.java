@@ -11,6 +11,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Map;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
@@ -36,7 +37,8 @@ public class CalcitePPLDynamicWildcardIT extends PPLIntegTestCase {
         1,
         "details",
         "{\"user_id\": \"123\", \"user_name\": \"john\", \"session_token\": \"abc\","
-            + " \"error_code\": \"404\"}");
+            + " \"error_code\": \"404\"}",
+        Map.of("test_id", "1"));
   }
 
   @Test
@@ -66,11 +68,17 @@ public class CalcitePPLDynamicWildcardIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(source(TEST_INDEX, "spath input=details | fields - user*, *_code"));
 
-    verifyColumn(result, columnName("details"), columnName("id"), columnName("session_token"));
+    verifyColumn(
+        result,
+        columnName("details"),
+        columnName("id"),
+        columnName("test_id"),
+        columnName("session_token"));
     verifySchema(
         result,
         schema("details", "string"),
         schema("id", "bigint"),
+        schema("test_id", "string"),
         schema("session_token", "string"));
   }
 
@@ -89,5 +97,13 @@ public class CalcitePPLDynamicWildcardIT extends PPLIntegTestCase {
         executeQuery(source(TEST_INDEX, "spath input=details | fields nonexistent*"));
 
     verifyColumn(result);
+  }
+
+  @Test
+  public void testWildcardMatchBothStaticAndDynamic() throws IOException {
+    JSONObject result = executeQuery(source(TEST_INDEX, "spath input=details | fields *_id"));
+
+    verifyColumn(result, columnName("test_id"), columnName("user_id"));
+    verifySchema(result, schema("test_id", "string"), schema("user_id", "string"));
   }
 }

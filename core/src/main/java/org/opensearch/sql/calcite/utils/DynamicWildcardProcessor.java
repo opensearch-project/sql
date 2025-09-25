@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
 import org.apache.calcite.rex.RexNode;
 import org.opensearch.sql.ast.expression.AllFields;
@@ -56,12 +55,6 @@ public class DynamicWildcardProcessor {
       switch (expr) {
         case Field field -> {
           String fieldName = field.getField().toString();
-          System.out.println("Processing field: " + fieldName);
-          System.out.println(
-              "Current fields: " + currentFields.stream().collect(Collectors.joining(",")));
-          System.out.println(
-              "ProjectList: "
-                  + projectList.stream().map(Object::toString).collect(Collectors.joining(",")));
 
           if (WildcardUtils.containsWildcard(fieldName)) {
             // Handle wildcard patterns
@@ -74,8 +67,7 @@ public class DynamicWildcardProcessor {
             // Add static matches
             staticMatches.forEach(f -> expandedFields.add(context.relBuilder.field(f)));
 
-            // Collect dynamic wildcard patterns if we have dynamic columns and no static matches
-            if (hasDynamicColumns && staticMatches.isEmpty()) {
+            if (hasDynamicColumns) {
               dynamicWildcardPatterns.add(fieldName);
             }
           } else {
@@ -158,26 +150,19 @@ public class DynamicWildcardProcessor {
 
           // Add static matches to exclusion list
           staticMatches.forEach(f -> fieldsToExclude.add(context.relBuilder.field(f)));
-
-          // Collect dynamic exclusion patterns if we have dynamic columns
-          if (hasDynamicColumns) {
-            dynamicExclusionPatterns.add(fieldName);
-          }
         } else {
           // Handle non-wildcard exclusion fields
           if (currentFields.contains(fieldName)) {
             // Static field
             fieldsToExclude.add(context.relBuilder.field(fieldName));
-          } else if (hasDynamicColumns) {
-            // Dynamic field - add to exclusion patterns
-            dynamicExclusionPatterns.add(fieldName);
           }
         }
+        dynamicExclusionPatterns.add(fieldName);
       }
     }
 
     // Process dynamic exclusion patterns in batch if any exist
-    if (!dynamicExclusionPatterns.isEmpty()) {
+    if (hasDynamicColumns && !dynamicExclusionPatterns.isEmpty()) {
       // For exclusion, we need to modify the _dynamic_columns field itself
       // This will be handled by applying the exclusion function to the dynamic columns
       RexNode dynamicColumnsField =
@@ -233,7 +218,6 @@ public class DynamicWildcardProcessor {
   private static RexNode createDynamicWildcardExclusion(
       List<String> exclusionPatterns, RexNode dynamicColumnsField, CalcitePlanContext context) {
 
-    // Always pass patterns as array for consistent function signature
     List<RexNode> patternLiterals =
         exclusionPatterns.stream()
             .map(pattern -> (RexNode) context.rexBuilder.makeLiteral(pattern))
@@ -260,7 +244,6 @@ public class DynamicWildcardProcessor {
       List<String> currentFields,
       boolean hasDynamicColumns) {
 
-    boolean hasValidPattern = false;
     String firstWildcardPattern = null;
 
     for (UnresolvedExpression expr : projectList) {
@@ -275,18 +258,16 @@ public class DynamicWildcardProcessor {
           List<String> staticMatches =
               WildcardUtils.expandWildcardPattern(fieldName, currentFields);
 
-          // If we have static matches or dynamic columns available, the pattern is potentially
-          // valid
           if (!staticMatches.isEmpty() || hasDynamicColumns) {
-            hasValidPattern = true;
-            break;
+            // just ensure at lease one valid pattern found
+            return;
           }
         }
       }
     }
 
     // If no valid patterns found and we have wildcard patterns, throw error
-    if (!hasValidPattern && firstWildcardPattern != null) {
+    if (firstWildcardPattern != null) {
       throw new IllegalArgumentException(
           String.format("wildcard pattern [%s] matches no fields", firstWildcardPattern));
     }
