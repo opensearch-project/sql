@@ -292,7 +292,7 @@ public class SQLPlugin extends Plugin
             settings,
             SQL_BACKGROUND_THREAD_POOL_NAME,
             OpenSearchExecutors.allocatedProcessors(settings),
-            100, // No external API connects to this, we should have sane resource usage
+            1000,
             "thread_pool." + SQL_BACKGROUND_THREAD_POOL_NAME));
   }
 
