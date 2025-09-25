@@ -9,11 +9,10 @@ import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 import static org.opensearch.index.query.QueryBuilders.*;
-import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
-import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.SORT_FIELD_SHARD_DOC;
 
 import java.util.Collections;
 import java.util.List;
@@ -225,7 +224,7 @@ class OpenSearchRequestBuilderTest {
                   .size(MAX_RESULT_WINDOW)
                   .timeout(DEFAULT_QUERY_TIMEOUT)
                   .query(query)
-                  .sort(DOC_FIELD_NAME, ASC),
+                  .sort(SORT_FIELD_SHARD_DOC, ASC),
               searchRequest.source());
           return mock();
         };
@@ -296,7 +295,7 @@ class OpenSearchRequestBuilderTest {
   void test_push_down_query_not_null() {
     SearchSourceBuilder sourceBuilder = requestBuilder.getSourceBuilder();
     sourceBuilder.query(QueryBuilders.termQuery("name", "John"));
-    sourceBuilder.sort(DOC_FIELD_NAME, SortOrder.ASC);
+    sourceBuilder.sort(SORT_FIELD_SHARD_DOC, SortOrder.ASC);
 
     QueryBuilder query = QueryBuilders.termQuery("intA", 1);
     requestBuilder.pushDownFilter(query);
@@ -310,7 +309,7 @@ class OpenSearchRequestBuilderTest {
             .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT)
             .query(expectedQuery)
-            .sort(DOC_FIELD_NAME, SortOrder.ASC);
+            .sort(SORT_FIELD_SHARD_DOC, SortOrder.ASC);
 
     assertSearchSourceBuilder(expectedSourceBuilder, requestBuilder);
   }
@@ -332,7 +331,7 @@ class OpenSearchRequestBuilderTest {
             .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT)
             .query(initialBoolQuery)
-            .sort(DOC_FIELD_NAME, SortOrder.ASC);
+            .sort(SORT_FIELD_SHARD_DOC, SortOrder.ASC);
 
     assertSearchSourceBuilder(expectedSourceBuilder, requestBuilder);
   }
@@ -412,8 +411,7 @@ class OpenSearchRequestBuilderTest {
             .from(DEFAULT_OFFSET)
             .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT)
-            .sort(DOC_FIELD_NAME, ASC)
-            .sort(METADATA_FIELD_ID, ASC)
+            .sort(SORT_FIELD_SHARD_DOC, ASC)
             .pointInTimeBuilder(new PointInTimeBuilder("samplePITId"))
             .fetchSource(new String[] {"intA"}, new String[0]),
         requestBuilder);
@@ -425,8 +423,7 @@ class OpenSearchRequestBuilderTest {
                 .from(DEFAULT_OFFSET)
                 .size(MAX_RESULT_WINDOW)
                 .timeout(DEFAULT_QUERY_TIMEOUT)
-                .sort(DOC_FIELD_NAME, ASC)
-                .sort(METADATA_FIELD_ID, ASC)
+                .sort(SORT_FIELD_SHARD_DOC, ASC)
                 .pointInTimeBuilder(new PointInTimeBuilder("samplePITId"))
                 .fetchSource("intA", null),
             exprValueFactory,
@@ -540,8 +537,7 @@ class OpenSearchRequestBuilderTest {
             .from(DEFAULT_OFFSET)
             .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT)
-            .sort(DOC_FIELD_NAME, ASC)
-            .sort(METADATA_FIELD_ID, ASC)
+            .sort(SORT_FIELD_SHARD_DOC)
             .pointInTimeBuilder(new PointInTimeBuilder("samplePITId"))
             .fetchSource(new String[] {"intA"}, new String[0]),
         requestBuilder);
@@ -553,8 +549,7 @@ class OpenSearchRequestBuilderTest {
                 .from(DEFAULT_OFFSET)
                 .size(MAX_RESULT_WINDOW)
                 .timeout(DEFAULT_QUERY_TIMEOUT)
-                .sort(DOC_FIELD_NAME, ASC)
-                .sort(METADATA_FIELD_ID, ASC)
+                .sort(SORT_FIELD_SHARD_DOC, ASC)
                 .pointInTimeBuilder(new PointInTimeBuilder("samplePITId"))
                 .fetchSource("intA", null),
             exprValueFactory,

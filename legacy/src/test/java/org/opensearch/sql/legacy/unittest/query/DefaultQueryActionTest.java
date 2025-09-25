@@ -7,6 +7,7 @@ package org.opensearch.sql.legacy.unittest.query;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.*;
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.SORT_FIELD_SHARD_DOC;
 
 import java.util.*;
 import org.junit.After;
@@ -17,7 +18,6 @@ import org.mockito.Mockito;
 import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.script.Script;
-import org.opensearch.search.sort.FieldSortBuilder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.domain.Field;
@@ -142,7 +142,7 @@ public class DefaultQueryActionTest {
     queryAction.setFormat(Format.JDBC);
     queryAction.checkAndSetScroll();
     Mockito.verify(mockRequestBuilder).setSize(settingFetchSize);
-    Mockito.verify(mockRequestBuilder).addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
+    Mockito.verify(mockRequestBuilder).addSort(SORT_FIELD_SHARD_DOC, SortOrder.ASC);
     Mockito.verify(mockRequestBuilder, never()).setScroll(timeValue);
   }
 
@@ -162,7 +162,7 @@ public class DefaultQueryActionTest {
     mockLocalClusterStateAndInitializeMetrics(timeValue);
     queryAction.checkAndSetScroll();
     Mockito.verify(mockRequestBuilder).setSize(settingFetchSize);
-    Mockito.verify(mockRequestBuilder).addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
+    Mockito.verify(mockRequestBuilder).addSort(SORT_FIELD_SHARD_DOC, SortOrder.ASC);
     Mockito.verify(mockRequestBuilder, never()).setScroll(timeValue);
   }
 
@@ -190,7 +190,7 @@ public class DefaultQueryActionTest {
     doReturn(mockRequestBuilder).when(mockRequestBuilder).setSize(userFetchSize);
     queryAction.checkAndSetScroll();
     Mockito.verify(mockRequestBuilder).setSize(20);
-    Mockito.verify(mockRequestBuilder).addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
+    Mockito.verify(mockRequestBuilder).addSort(SORT_FIELD_SHARD_DOC, SortOrder.ASC);
     Mockito.verify(mockRequestBuilder, never()).setScroll(timeValue);
   }
 
