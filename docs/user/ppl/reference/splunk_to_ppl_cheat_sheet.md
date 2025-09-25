@@ -59,8 +59,8 @@ This table provides a mapping between Splunk SPL commands and their OpenSearch P
 - PPL: `... | stats count() by host, status | sort - count`
 
 **Time-based query:**
-- Splunk: `... earliest=-7d | timechart span=1h count BY host`
-- PPL: `... | where timestamp >= date_sub(now(), INTERVAL 1 DAY) | stats count() by span(timestamp, 1h), host`
+- Splunk: `... | timechart span=1h count BY host`
+- PPL: `... | timechart span=1h count BY host`
 
 **Complex calculation:**
 - Splunk: `... | eval mb=bytes/1024/1024 | stats avg(mb) AS avg_mb BY host | where avg_mb > 100`
