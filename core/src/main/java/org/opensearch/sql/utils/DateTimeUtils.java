@@ -296,7 +296,7 @@ public class DateTimeUtils {
   }
 
   /**
-   * Convert a PPL time modifier expression to a <a
+   * Translate a PPL time modifier expression to a <a
    * href="https://docs.opensearch.org/latest/field-types/supported-field-types/date/#date-math"
    * >OpenSearch date math expression</a>.
    *
@@ -310,11 +310,11 @@ public class DateTimeUtils {
    *   <li>2020-12-10 12:00:00.123@month -> 2020-12-10T12:00:00.123Z/M
    * </ul>
    *
-   * @param input The time string in PPL format
+   * @param timeModifier The time modifier string in PPL format
    * @return The time string in OpenSearch date math format
    */
-  public static String parseRelativeTime(String input) {
-    return parseRelativeTime(input, ZonedDateTime.now(ZoneOffset.UTC));
+  public static String resolveTimeModifier(String timeModifier) {
+    return resolveTimeModifier(timeModifier, ZonedDateTime.now(ZoneOffset.UTC));
   }
 
   /**
@@ -326,7 +326,7 @@ public class DateTimeUtils {
    * month then subtracting 0 to 2 months from it. In order to know how many months to subtract, it
    * is useful to know when is it now.
    */
-  static String parseRelativeTime(String input, ZonedDateTime nowReference) {
+  static String resolveTimeModifier(String input, ZonedDateTime nowReference) {
     if (input == null || input.isEmpty()) {
       return null;
     }

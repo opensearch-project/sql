@@ -929,7 +929,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
               ? (String) ((Literal) visit(ctx.stringLiteral())).getValue()
               : ctx.getText().strip();
       // Parse a PPL time modifier to OpenSearch date math expression
-      osDateMathExpression = DateTimeUtils.parseRelativeTime(pplTimeModifier);
+      osDateMathExpression = DateTimeUtils.resolveTimeModifier(pplTimeModifier);
     }
     return AstDSL.stringLiteral(osDateMathExpression);
   }
