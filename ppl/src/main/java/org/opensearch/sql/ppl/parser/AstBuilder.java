@@ -88,6 +88,7 @@ import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -1031,6 +1032,12 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       // Use the existing visitSubSearch logic
       UnresolvedPlan fullSubsearch = visitSubSearch(subsearchCtx);
       subsearches.add(fullSubsearch);
+    }
+
+    // Validate minimum number of subsearches
+    if (subsearches.size() < 2) {
+      throw new SyntaxCheckException(
+          "Multisearch command requires at least two subsearches. Provided: " + subsearches.size());
     }
 
     return new Multisearch(subsearches);

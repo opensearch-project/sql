@@ -463,7 +463,7 @@ appendCommand
    ;
 
 multisearchCommand
-   : MULTISEARCH LT_SQR_PRTHS subSearch RT_SQR_PRTHS LT_SQR_PRTHS subSearch RT_SQR_PRTHS (LT_SQR_PRTHS subSearch RT_SQR_PRTHS)*
+   : MULTISEARCH (LT_SQR_PRTHS subSearch RT_SQR_PRTHS)+
    ;
 
 kmeansCommand

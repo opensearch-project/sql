@@ -337,12 +337,10 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
                         "| multisearch " + "[search source=%s | where age > 30]",
                         TEST_INDEX_ACCOUNT)));
 
-    // Should throw a parse error since grammar now enforces at least two subsearches
+    // Should throw a parse error since runtime validation enforces at least two subsearches
     assertTrue(
-        "Error message should indicate syntax error",
-        exception.getMessage().contains("SyntaxCheckException")
-            || exception.getMessage().contains("Expecting")
-            || exception.getMessage().contains("At least two searches must be specified"));
+        "Error message should indicate minimum subsearch requirement",
+        exception.getMessage().contains("Multisearch command requires at least two subsearches"));
   }
 
   // ========================================================================

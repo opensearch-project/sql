@@ -1197,9 +1197,17 @@ public class AstBuilderTest {
             + "[ search source=test2 | where status=\"active\" | sort name ]");
   }
 
-  @Test(expected = SyntaxCheckException.class)
+  @Test
   public void testMultisearchSingleSubsearchThrowsException() {
-    // Test multisearch with only one subsearch - should throw parse exception
-    plan("| multisearch [ search source=test1 | fields name, age ]");
+    // Test multisearch with only one subsearch - should throw descriptive runtime exception
+    SyntaxCheckException exception =
+        assertThrows(
+            SyntaxCheckException.class,
+            () -> plan("| multisearch [ search source=test1 | fields name, age ]"));
+
+    // Now we should get our descriptive runtime validation error message
+    assertEquals(
+        "Multisearch command requires at least two subsearches. Provided: 1",
+        exception.getMessage());
   }
 }
