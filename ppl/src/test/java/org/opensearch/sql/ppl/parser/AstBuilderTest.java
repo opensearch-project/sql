@@ -1022,6 +1022,7 @@ public class AstBuilderTest {
             PatternMode.LABEL,
             AstDSL.intLiteral(10),
             AstDSL.intLiteral(100000),
+            AstDSL.booleanLiteral(false),
             ImmutableMap.of(
                 "new_field", AstDSL.stringLiteral("custom_field"),
                 "pattern", AstDSL.stringLiteral("custom_pattern"))));
@@ -1045,6 +1046,7 @@ public class AstBuilderTest {
             PatternMode.LABEL,
             AstDSL.intLiteral(10),
             AstDSL.intLiteral(100000),
+            AstDSL.booleanLiteral(false),
             ImmutableMap.of(
                 "frequency_threshold_percentage", new Literal(0.1, DataType.DECIMAL),
                 "variable_count_threshold", new Literal(2, DataType.INTEGER))));
@@ -1067,6 +1069,7 @@ public class AstBuilderTest {
             PatternMode.LABEL,
             AstDSL.intLiteral(10),
             AstDSL.intLiteral(100000),
+            AstDSL.booleanLiteral(false),
             ImmutableMap.of()));
   }
 

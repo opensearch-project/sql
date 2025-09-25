@@ -224,7 +224,7 @@ public class BrainLogParser {
    * @return list of token lists
    */
   public List<List<String>> preprocessAllLogs(List<String> logMessages) {
-    List<List<String>> preprocessedLogs = new ArrayList<>();
+    List<List<String>> preprocessedLogs = new ArrayList<>(logMessages.size());
 
     for (int i = 0; i < logMessages.size(); i++) {
       String logId = String.valueOf(i);
@@ -291,7 +291,8 @@ public class BrainLogParser {
     String groupCandidateStr = logIdGroupCandidateMap.get(logId);
     String[] groupCandidate = groupCandidateStr.split(",");
     Long repFreq = Long.parseLong(groupCandidate[0]); // representative frequency of the group
-    return IntStream.range(0, tokens.size() - 1)
+    int tokenCapacity = Math.max(0, tokens.size() - 1);
+    return IntStream.range(0, tokenCapacity)
         .mapToObj(i -> new AbstractMap.SimpleEntry<>(i, tokens.get(i)))
         .map(
             entry -> {
@@ -334,7 +335,7 @@ public class BrainLogParser {
               }
               return token;
             })
-        .collect(Collectors.toList());
+        .collect(Collectors.toCollection(() -> new ArrayList<>(tokenCapacity)));
   }
 
   /**
@@ -349,7 +350,10 @@ public class BrainLogParser {
 
     Map<String, Map<String, Object>> logPatternMap = new HashMap<>();
     for (int i = 0; i < processedMessages.size(); i++) {
-      List<String> logPattern = this.parseLogPattern(processedMessages.get(i));
+      List<String> logPattern =
+          this.parseLogPattern(processedMessages.get(i)).stream()
+              .map(BrainLogParser::collapseContinuousWildcards)
+              .collect(Collectors.toList());
       String patternKey = String.join(" ", logPattern);
       String sampleLog = logMessages.get(i);
       logPatternMap.compute(
@@ -377,6 +381,29 @@ public class BrainLogParser {
           });
     }
     return logPatternMap;
+  }
+
+  private static String collapseContinuousWildcards(String part) {
+    // The minimum of continuous wildcards are 6 characters: <*><*>
+    if (part == null || part.length() < 6) {
+      return part;
+    }
+    int tokenLen = VARIABLE_DENOTER.length();
+    StringBuilder sb = new StringBuilder(part.length());
+    int i = 0;
+    while (i < part.length()) {
+      int j = part.indexOf(VARIABLE_DENOTER, i);
+      if (j < 0) {
+        sb.append(part, i, part.length());
+        break;
+      }
+      sb.append(part, i, j).append(VARIABLE_DENOTER);
+      do {
+        j += tokenLen;
+      } while (j <= part.length() - tokenLen && part.startsWith(VARIABLE_DENOTER, j));
+      i = j;
+    }
+    return sb.toString();
   }
 
   private Map<Long, Integer> getWordOccurrences(List<String> tokens) {
