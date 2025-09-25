@@ -14,8 +14,8 @@ import org.opensearch.sql.directquery.DirectQueryExecutorService;
 import org.opensearch.sql.directquery.DirectQueryExecutorServiceImpl;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesResponse;
-import org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesActionRequest;
-import org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesActionResponse;
+import org.opensearch.sql.directquery.transport.model.ReadDirectQueryResourcesActionRequest;
+import org.opensearch.sql.directquery.transport.model.ReadDirectQueryResourcesActionResponse;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
@@ -25,28 +25,28 @@ import org.opensearch.transport.TransportService;
  */
 public class TransportGetDirectQueryResourcesRequestAction
     extends HandledTransportAction<
-        GetDirectQueryResourcesActionRequest, GetDirectQueryResourcesActionResponse> {
+    ReadDirectQueryResourcesActionRequest, ReadDirectQueryResourcesActionResponse> {
 
   private final DirectQueryExecutorService directQueryExecutorService;
 
   public static final String NAME = "cluster:admin/opensearch/direct_query/read/resources";
-  public static final ActionType<GetDirectQueryResourcesActionResponse> ACTION_TYPE =
-      new ActionType<>(NAME, GetDirectQueryResourcesActionResponse::new);
+  public static final ActionType<ReadDirectQueryResourcesActionResponse> ACTION_TYPE =
+      new ActionType<>(NAME, ReadDirectQueryResourcesActionResponse::new);
 
   @Inject
   public TransportGetDirectQueryResourcesRequestAction(
       TransportService transportService,
       ActionFilters actionFilters,
       DirectQueryExecutorServiceImpl directQueryExecutorService) {
-    super(NAME, transportService, actionFilters, GetDirectQueryResourcesActionRequest::new);
+    super(NAME, transportService, actionFilters, ReadDirectQueryResourcesActionRequest::new);
     this.directQueryExecutorService = (DirectQueryExecutorService) directQueryExecutorService;
   }
 
   @Override
   protected void doExecute(
       Task task,
-      GetDirectQueryResourcesActionRequest request,
-      ActionListener<GetDirectQueryResourcesActionResponse> listener) {
+      ReadDirectQueryResourcesActionRequest request,
+      ActionListener<ReadDirectQueryResourcesActionResponse> listener) {
     try {
       GetDirectQueryResourcesRequest directQueryRequest = request.getDirectQueryRequest();
 
@@ -60,7 +60,7 @@ public class TransportGetDirectQueryResourcesRequestAction
               return response;
             }
           }.format(response);
-      listener.onResponse(new GetDirectQueryResourcesActionResponse(responseContent));
+      listener.onResponse(new ReadDirectQueryResourcesActionResponse(responseContent));
     } catch (Exception e) {
       listener.onFailure(e);
     }

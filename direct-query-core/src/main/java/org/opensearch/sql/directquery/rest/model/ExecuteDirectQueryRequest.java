@@ -21,12 +21,12 @@ import org.opensearch.sql.spark.rest.model.LangType;
 public class ExecuteDirectQueryRequest {
   // Required fields
   private String dataSources; // Required: From URI path parameter or request body
-  private String query; // Required: String for Prometheus, object for CloudWatch
+  private String query; // Required: String for Prometheus
   @Setter private LangType language; // Required: SQL, PPL, or PROMQL
   private String sourceVersion; // Required: API version
 
   // Optional fields
-  private Integer maxResults; // Optional: limit for Prometheus, maxDataPoints for CW
+  private Integer maxResults; // Optional: limit for Prometheus
   private Integer timeout; // Optional: number of seconds
   private DataSourceOptions options; // Optional: Source specific arguments
   private String sessionId; // For session management

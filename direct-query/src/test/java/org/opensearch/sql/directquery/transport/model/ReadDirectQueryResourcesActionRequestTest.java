@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -23,7 +22,7 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.sql.directquery.rest.model.DirectQueryResourceType;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
 
-public class GetDirectQueryResourcesActionRequestTest {
+public class ReadDirectQueryResourcesActionRequestTest {
 
     @Test
     public void testConstructorWithRequest() {
@@ -31,7 +30,7 @@ public class GetDirectQueryResourcesActionRequestTest {
         request.setDataSource("prometheus");
         request.setResourceType(DirectQueryResourceType.LABELS);
 
-        GetDirectQueryResourcesActionRequest actionRequest = new GetDirectQueryResourcesActionRequest(request);
+        ReadDirectQueryResourcesActionRequest actionRequest = new ReadDirectQueryResourcesActionRequest(request);
 
         assertNotNull(actionRequest.getDirectQueryRequest());
         assertEquals("prometheus", actionRequest.getDirectQueryRequest().getDataSource());
@@ -51,7 +50,7 @@ public class GetDirectQueryResourcesActionRequestTest {
 
         when(streamInput.readMap(any(), any())).thenReturn(queryParams);
 
-        GetDirectQueryResourcesActionRequest actionRequest = new GetDirectQueryResourcesActionRequest(streamInput);
+        ReadDirectQueryResourcesActionRequest actionRequest = new ReadDirectQueryResourcesActionRequest(streamInput);
 
         assertNotNull(actionRequest.getDirectQueryRequest());
         assertEquals("prometheus", actionRequest.getDirectQueryRequest().getDataSource());
@@ -72,7 +71,7 @@ public class GetDirectQueryResourcesActionRequestTest {
 
         when(streamInput.readMap(any(), any())).thenReturn(queryParams);
 
-        GetDirectQueryResourcesActionRequest actionRequest = new GetDirectQueryResourcesActionRequest(streamInput);
+        ReadDirectQueryResourcesActionRequest actionRequest = new ReadDirectQueryResourcesActionRequest(streamInput);
 
         assertNotNull(actionRequest.getDirectQueryRequest());
         assertEquals("prometheus", actionRequest.getDirectQueryRequest().getDataSource());
@@ -91,7 +90,7 @@ public class GetDirectQueryResourcesActionRequestTest {
         queryParams.put("filter", "instance");
         request.setQueryParams(queryParams);
 
-        GetDirectQueryResourcesActionRequest actionRequest = new GetDirectQueryResourcesActionRequest(request);
+        ReadDirectQueryResourcesActionRequest actionRequest = new ReadDirectQueryResourcesActionRequest(request);
         StreamOutput streamOutput = mock(StreamOutput.class);
 
         actionRequest.writeTo(streamOutput);
@@ -110,7 +109,7 @@ public class GetDirectQueryResourcesActionRequestTest {
         request.setResourceName("cpu_usage");
         request.setQueryParams(new HashMap<>());
 
-        GetDirectQueryResourcesActionRequest actionRequest = new GetDirectQueryResourcesActionRequest(request);
+        ReadDirectQueryResourcesActionRequest actionRequest = new ReadDirectQueryResourcesActionRequest(request);
         StreamOutput streamOutput = mock(StreamOutput.class);
 
         actionRequest.writeTo(streamOutput);
@@ -124,7 +123,7 @@ public class GetDirectQueryResourcesActionRequestTest {
     @Test
     public void testValidate() {
         GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
-        GetDirectQueryResourcesActionRequest actionRequest = new GetDirectQueryResourcesActionRequest(request);
+        ReadDirectQueryResourcesActionRequest actionRequest = new ReadDirectQueryResourcesActionRequest(request);
 
         assertNull(actionRequest.validate());
     }
@@ -133,7 +132,7 @@ public class GetDirectQueryResourcesActionRequestTest {
     public void testGetDirectQueryRequest() {
         GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
         request.setDataSource("test");
-        GetDirectQueryResourcesActionRequest actionRequest = new GetDirectQueryResourcesActionRequest(request);
+        ReadDirectQueryResourcesActionRequest actionRequest = new ReadDirectQueryResourcesActionRequest(request);
 
         GetDirectQueryResourcesRequest retrievedRequest = actionRequest.getDirectQueryRequest();
         assertEquals("test", retrievedRequest.getDataSource());

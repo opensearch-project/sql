@@ -20,13 +20,13 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 /*
  * @opensearch.experimental
  */
-public class GetDirectQueryResourcesActionResponseTest {
+public class ReadDirectQueryResourcesActionResponseTest {
 
   @Test
   public void testConstructorWithResult() {
     String testResult = "Successfully retrieved resources";
-    GetDirectQueryResourcesActionResponse response =
-        new GetDirectQueryResourcesActionResponse(testResult);
+    ReadDirectQueryResourcesActionResponse response =
+        new ReadDirectQueryResourcesActionResponse(testResult);
 
     assertEquals(testResult, response.getResult());
   }
@@ -34,8 +34,8 @@ public class GetDirectQueryResourcesActionResponseTest {
   @Test
   public void testConstructorWithEmptyResult() {
     String emptyResult = "";
-    GetDirectQueryResourcesActionResponse response =
-        new GetDirectQueryResourcesActionResponse(emptyResult);
+    ReadDirectQueryResourcesActionResponse response =
+        new ReadDirectQueryResourcesActionResponse(emptyResult);
 
     assertEquals(emptyResult, response.getResult());
   }
@@ -43,8 +43,8 @@ public class GetDirectQueryResourcesActionResponseTest {
   @Test
   public void testStreamSerializationWithResult() throws IOException {
     String testResult = "Test query execution successful";
-    GetDirectQueryResourcesActionResponse response =
-        new GetDirectQueryResourcesActionResponse(testResult);
+    ReadDirectQueryResourcesActionResponse response =
+        new ReadDirectQueryResourcesActionResponse(testResult);
 
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
     StreamOutput streamOutput = new OutputStreamStreamOutput(outputStream);
@@ -53,8 +53,8 @@ public class GetDirectQueryResourcesActionResponseTest {
 
     ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
     StreamInput streamInput = new InputStreamStreamInput(inputStream);
-    GetDirectQueryResourcesActionResponse deserializedResponse =
-        new GetDirectQueryResourcesActionResponse(streamInput);
+    ReadDirectQueryResourcesActionResponse deserializedResponse =
+        new ReadDirectQueryResourcesActionResponse(streamInput);
     streamInput.close();
 
     assertEquals(testResult, deserializedResponse.getResult());
@@ -62,8 +62,8 @@ public class GetDirectQueryResourcesActionResponseTest {
 
   @Test
   public void testStreamSerializationWithEmptyResult() throws IOException {
-    GetDirectQueryResourcesActionResponse response =
-        new GetDirectQueryResourcesActionResponse("");
+    ReadDirectQueryResourcesActionResponse response =
+        new ReadDirectQueryResourcesActionResponse("");
 
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
     StreamOutput streamOutput = new OutputStreamStreamOutput(outputStream);
@@ -72,8 +72,8 @@ public class GetDirectQueryResourcesActionResponseTest {
 
     ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
     StreamInput streamInput = new InputStreamStreamInput(inputStream);
-    GetDirectQueryResourcesActionResponse deserializedResponse =
-        new GetDirectQueryResourcesActionResponse(streamInput);
+    ReadDirectQueryResourcesActionResponse deserializedResponse =
+        new ReadDirectQueryResourcesActionResponse(streamInput);
     streamInput.close();
 
     assertEquals("", deserializedResponse.getResult());
@@ -82,8 +82,8 @@ public class GetDirectQueryResourcesActionResponseTest {
   @Test
   public void testStreamSerializationWithJsonResult() throws IOException {
     String jsonResult = "{\"data\": [{\"metric\": \"cpu_usage\", \"value\": 85.2}, {\"metric\": \"memory_usage\", \"value\": 67.8}]}";
-    GetDirectQueryResourcesActionResponse response =
-        new GetDirectQueryResourcesActionResponse(jsonResult);
+    ReadDirectQueryResourcesActionResponse response =
+        new ReadDirectQueryResourcesActionResponse(jsonResult);
 
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
     StreamOutput streamOutput = new OutputStreamStreamOutput(outputStream);
@@ -92,8 +92,8 @@ public class GetDirectQueryResourcesActionResponseTest {
 
     ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
     StreamInput streamInput = new InputStreamStreamInput(inputStream);
-    GetDirectQueryResourcesActionResponse deserializedResponse =
-        new GetDirectQueryResourcesActionResponse(streamInput);
+    ReadDirectQueryResourcesActionResponse deserializedResponse =
+        new ReadDirectQueryResourcesActionResponse(streamInput);
     streamInput.close();
 
     assertEquals(jsonResult, deserializedResponse.getResult());
@@ -107,8 +107,8 @@ public class GetDirectQueryResourcesActionResponseTest {
     }
     String largeResult = largeResultBuilder.toString();
 
-    GetDirectQueryResourcesActionResponse response =
-        new GetDirectQueryResourcesActionResponse(largeResult);
+    ReadDirectQueryResourcesActionResponse response =
+        new ReadDirectQueryResourcesActionResponse(largeResult);
 
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
     StreamOutput streamOutput = new OutputStreamStreamOutput(outputStream);
@@ -117,8 +117,8 @@ public class GetDirectQueryResourcesActionResponseTest {
 
     ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
     StreamInput streamInput = new InputStreamStreamInput(inputStream);
-    GetDirectQueryResourcesActionResponse deserializedResponse =
-        new GetDirectQueryResourcesActionResponse(streamInput);
+    ReadDirectQueryResourcesActionResponse deserializedResponse =
+        new ReadDirectQueryResourcesActionResponse(streamInput);
     streamInput.close();
 
     assertEquals(largeResult, deserializedResponse.getResult());
@@ -127,8 +127,8 @@ public class GetDirectQueryResourcesActionResponseTest {
   @Test
   public void testStreamSerializationWithSpecialChars() throws IOException {
     String specialCharsResult = "Results with symbols: !@#$%^&*()_+-=[]{}|;':\",./<>?";
-    GetDirectQueryResourcesActionResponse response =
-        new GetDirectQueryResourcesActionResponse(specialCharsResult);
+    ReadDirectQueryResourcesActionResponse response =
+        new ReadDirectQueryResourcesActionResponse(specialCharsResult);
 
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
     StreamOutput streamOutput = new OutputStreamStreamOutput(outputStream);
@@ -137,8 +137,8 @@ public class GetDirectQueryResourcesActionResponseTest {
 
     ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
     StreamInput streamInput = new InputStreamStreamInput(inputStream);
-    GetDirectQueryResourcesActionResponse deserializedResponse =
-        new GetDirectQueryResourcesActionResponse(streamInput);
+    ReadDirectQueryResourcesActionResponse deserializedResponse =
+        new ReadDirectQueryResourcesActionResponse(streamInput);
     streamInput.close();
 
     assertEquals(specialCharsResult, deserializedResponse.getResult());
@@ -147,8 +147,8 @@ public class GetDirectQueryResourcesActionResponseTest {
   @Test
   public void testStreamSerializationWithMultilineResult() throws IOException {
     String multilineResult = "Resource List:\nMetric 1: cpu_usage\r\nMetric 2: memory_usage\n\tDetails:\n  - Instance: web-server-1\n  - Value: 75.3%";
-    GetDirectQueryResourcesActionResponse response =
-        new GetDirectQueryResourcesActionResponse(multilineResult);
+    ReadDirectQueryResourcesActionResponse response =
+        new ReadDirectQueryResourcesActionResponse(multilineResult);
 
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
     StreamOutput streamOutput = new OutputStreamStreamOutput(outputStream);
@@ -157,8 +157,8 @@ public class GetDirectQueryResourcesActionResponseTest {
 
     ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
     StreamInput streamInput = new InputStreamStreamInput(inputStream);
-    GetDirectQueryResourcesActionResponse deserializedResponse =
-        new GetDirectQueryResourcesActionResponse(streamInput);
+    ReadDirectQueryResourcesActionResponse deserializedResponse =
+        new ReadDirectQueryResourcesActionResponse(streamInput);
     streamInput.close();
 
     assertEquals(multilineResult, deserializedResponse.getResult());
@@ -167,8 +167,8 @@ public class GetDirectQueryResourcesActionResponseTest {
   @Test
   public void testGetterMethod() {
     String testResult = "Getter test for resources";
-    GetDirectQueryResourcesActionResponse response =
-        new GetDirectQueryResourcesActionResponse(testResult);
+    ReadDirectQueryResourcesActionResponse response =
+        new ReadDirectQueryResourcesActionResponse(testResult);
 
     assertNotNull(response.getResult());
     assertEquals(testResult, response.getResult());
@@ -177,8 +177,8 @@ public class GetDirectQueryResourcesActionResponseTest {
   @Test
   public void testResponseWithErrorMessage() throws IOException {
     String errorResult = "Error: Unable to fetch resources - Connection timeout";
-    GetDirectQueryResourcesActionResponse response =
-        new GetDirectQueryResourcesActionResponse(errorResult);
+    ReadDirectQueryResourcesActionResponse response =
+        new ReadDirectQueryResourcesActionResponse(errorResult);
 
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
     StreamOutput streamOutput = new OutputStreamStreamOutput(outputStream);
@@ -187,8 +187,8 @@ public class GetDirectQueryResourcesActionResponseTest {
 
     ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
     StreamInput streamInput = new InputStreamStreamInput(inputStream);
-    GetDirectQueryResourcesActionResponse deserializedResponse =
-        new GetDirectQueryResourcesActionResponse(streamInput);
+    ReadDirectQueryResourcesActionResponse deserializedResponse =
+        new ReadDirectQueryResourcesActionResponse(streamInput);
     streamInput.close();
 
     assertEquals(errorResult, deserializedResponse.getResult());
@@ -197,8 +197,8 @@ public class GetDirectQueryResourcesActionResponseTest {
   @Test
   public void testResponseWithPrometheusData() throws IOException {
     String prometheusResult = "# TYPE cpu_usage gauge\ncpu_usage{instance=\"localhost:9090\"} 45.2\n# TYPE memory_usage gauge\nmemory_usage{instance=\"localhost:9090\"} 67.8";
-    GetDirectQueryResourcesActionResponse response =
-        new GetDirectQueryResourcesActionResponse(prometheusResult);
+    ReadDirectQueryResourcesActionResponse response =
+        new ReadDirectQueryResourcesActionResponse(prometheusResult);
 
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
     StreamOutput streamOutput = new OutputStreamStreamOutput(outputStream);
@@ -207,8 +207,8 @@ public class GetDirectQueryResourcesActionResponseTest {
 
     ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
     StreamInput streamInput = new InputStreamStreamInput(inputStream);
-    GetDirectQueryResourcesActionResponse deserializedResponse =
-        new GetDirectQueryResourcesActionResponse(streamInput);
+    ReadDirectQueryResourcesActionResponse deserializedResponse =
+        new ReadDirectQueryResourcesActionResponse(streamInput);
     streamInput.close();
 
     assertEquals(prometheusResult, deserializedResponse.getResult());

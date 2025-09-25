@@ -17,15 +17,15 @@ import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
  * @opensearch.experimental
  */
 @Getter
-public class GetDirectQueryResourcesActionRequest extends ActionRequest {
+public class ReadDirectQueryResourcesActionRequest extends ActionRequest {
   private final GetDirectQueryResourcesRequest directQueryRequest;
 
-  public GetDirectQueryResourcesActionRequest(GetDirectQueryResourcesRequest directQueryRequest) {
+  public ReadDirectQueryResourcesActionRequest(GetDirectQueryResourcesRequest directQueryRequest) {
     super();
     this.directQueryRequest = directQueryRequest;
   }
 
-  public GetDirectQueryResourcesActionRequest(StreamInput in) throws IOException {
+  public ReadDirectQueryResourcesActionRequest(StreamInput in) throws IOException {
     GetDirectQueryResourcesRequest request = new GetDirectQueryResourcesRequest();
     request.setDataSource(in.readOptionalString());
     String resourceTypeStr = in.readOptionalString();

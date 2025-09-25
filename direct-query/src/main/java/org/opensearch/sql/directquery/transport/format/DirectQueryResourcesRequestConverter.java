@@ -90,16 +90,6 @@ public class DirectQueryResourcesRequestConverter {
     } else {
       throw new IllegalArgumentException("The write direct resource request must have a request in the body");
     }
-
-
-//    Map<String, String> queryParams = new HashMap<>();
-//    for (String key : restRequest.params().keySet()) {
-//      if (!restRequest.consumedParams().contains(key)) {
-//        queryParams.put(key, restRequest.param(key));
-//      }
-//    }
-//    directQueryRequest.setQueryParams(queryParams);
-
     return directQueryRequest;
   }
 }

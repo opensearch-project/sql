@@ -17,11 +17,11 @@ import org.opensearch.core.common.io.stream.StreamOutput;
  */
 @Getter
 @RequiredArgsConstructor
-public class GetDirectQueryResourcesActionResponse extends ActionResponse {
+public class ReadDirectQueryResourcesActionResponse extends ActionResponse {
 
   private final String result;
 
-  public GetDirectQueryResourcesActionResponse(StreamInput in) throws IOException {
+  public ReadDirectQueryResourcesActionResponse(StreamInput in) throws IOException {
     super(in);
     result = in.readString();
   }

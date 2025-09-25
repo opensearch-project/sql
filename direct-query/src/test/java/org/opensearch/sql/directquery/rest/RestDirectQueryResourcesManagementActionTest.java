@@ -31,8 +31,8 @@ import org.opensearch.rest.RestResponse;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.client.exceptions.DataSourceClientException;
 import org.opensearch.sql.directquery.rest.model.DirectQueryResourceType;
-import org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesActionRequest;
-import org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesActionResponse;
+import org.opensearch.sql.directquery.transport.model.ReadDirectQueryResourcesActionRequest;
+import org.opensearch.sql.directquery.transport.model.ReadDirectQueryResourcesActionResponse;
 import org.opensearch.sql.directquery.transport.model.WriteDirectQueryResourcesActionRequest;
 import org.opensearch.sql.directquery.transport.model.WriteDirectQueryResourcesActionResponse;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
@@ -208,8 +208,8 @@ public class RestDirectQueryResourcesManagementActionTest {
   public void testSuccessfulResponse() {
     setDataSourcesEnabled(true);
     String successResponse = "{\"result\":\"success\"}";
-    GetDirectQueryResourcesActionResponse response =
-        new GetDirectQueryResourcesActionResponse(successResponse);
+    ReadDirectQueryResourcesActionResponse response =
+        new ReadDirectQueryResourcesActionResponse(successResponse);
 
     Mockito.when(request.method()).thenReturn(RestRequest.Method.GET);
     Map<String, String> requestParams =
@@ -249,7 +249,7 @@ public class RestDirectQueryResourcesManagementActionTest {
 
     Mockito.doAnswer(
             invocation -> {
-              GetDirectQueryResourcesActionRequest request = invocation.getArgument(1);
+              ReadDirectQueryResourcesActionRequest request = invocation.getArgument(1);
               Assertions.assertEquals(
                   "testDataSource", request.getDirectQueryRequest().getDataSource());
               Assertions.assertEquals(

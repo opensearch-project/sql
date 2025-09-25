@@ -33,8 +33,8 @@ import org.opensearch.sql.directquery.rest.model.WriteDirectQueryResourcesReques
 import org.opensearch.sql.directquery.transport.TransportGetDirectQueryResourcesRequestAction;
 import org.opensearch.sql.directquery.transport.TransportWriteDirectQueryResourcesRequestAction;
 import org.opensearch.sql.directquery.transport.format.DirectQueryResourcesRequestConverter;
-import org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesActionRequest;
-import org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesActionResponse;
+import org.opensearch.sql.directquery.transport.model.ReadDirectQueryResourcesActionRequest;
+import org.opensearch.sql.directquery.transport.model.ReadDirectQueryResourcesActionResponse;
 import org.opensearch.sql.directquery.transport.model.WriteDirectQueryResourcesActionRequest;
 import org.opensearch.sql.directquery.transport.model.WriteDirectQueryResourcesActionResponse;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
@@ -126,10 +126,10 @@ public class RestDirectQueryResourcesManagementAction extends BaseRestHandler {
             () ->
                 nodeClient.execute(
                     TransportGetDirectQueryResourcesRequestAction.ACTION_TYPE,
-                    new GetDirectQueryResourcesActionRequest(directQueryRequest),
+                    new ReadDirectQueryResourcesActionRequest(directQueryRequest),
                     new ActionListener<>() {
                       @Override
-                      public void onResponse(GetDirectQueryResourcesActionResponse response) {
+                      public void onResponse(ReadDirectQueryResourcesActionResponse response) {
                         restChannel.sendResponse(
                             new BytesRestResponse(
                                 RestStatus.OK,

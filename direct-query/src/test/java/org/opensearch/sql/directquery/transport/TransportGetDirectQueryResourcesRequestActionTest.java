@@ -19,8 +19,8 @@ import org.opensearch.sql.directquery.DirectQueryExecutorService;
 import org.opensearch.sql.directquery.DirectQueryExecutorServiceImpl;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesRequest;
 import org.opensearch.sql.directquery.rest.model.GetDirectQueryResourcesResponse;
-import org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesActionRequest;
-import org.opensearch.sql.directquery.transport.model.GetDirectQueryResourcesActionResponse;
+import org.opensearch.sql.directquery.transport.model.ReadDirectQueryResourcesActionRequest;
+import org.opensearch.sql.directquery.transport.model.ReadDirectQueryResourcesActionResponse;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
@@ -34,9 +34,9 @@ public class TransportGetDirectQueryResourcesRequestActionTest {
   @Mock private DirectQueryExecutorServiceImpl mockExecutorService;
   @Mock private DirectQueryExecutorService executorService;
   @Mock private Task task;
-  @Mock private GetDirectQueryResourcesActionRequest actionRequest;
+  @Mock private ReadDirectQueryResourcesActionRequest actionRequest;
   @Mock private GetDirectQueryResourcesRequest directQueryRequest;
-  @Mock private ActionListener<GetDirectQueryResourcesActionResponse> actionListener;
+  @Mock private ActionListener<ReadDirectQueryResourcesActionResponse> actionListener;
 
   private TransportGetDirectQueryResourcesRequestAction transportAction;
 
@@ -64,7 +64,7 @@ public class TransportGetDirectQueryResourcesRequestActionTest {
 
     // Verify correct execution
     verify(mockExecutorService).getDirectQueryResources(directQueryRequest);
-    verify(actionListener).onResponse(any(GetDirectQueryResourcesActionResponse.class));
+    verify(actionListener).onResponse(any(ReadDirectQueryResourcesActionResponse.class));
   }
 
   @Test
