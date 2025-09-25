@@ -26,6 +26,8 @@ import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.function.Function;
 import org.opensearch.sql.data.model.ExprValue;
@@ -36,7 +38,9 @@ import org.opensearch.sql.expression.function.FunctionProperties;
 
 public class ExpressionTestBase {
 
-  protected FunctionProperties functionProperties = new FunctionProperties();
+  // Use fixed timestamp to ensure timezone-independent tests
+  protected final FunctionProperties functionProperties =
+      new FunctionProperties(Instant.parse("2023-05-15T00:00:00Z"), ZoneOffset.UTC);
 
   protected Environment<Expression, ExprType> typeEnv;
 
