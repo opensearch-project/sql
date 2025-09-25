@@ -157,7 +157,7 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testExplainMultisearchBasic() throws IOException {
     String query =
-        "source=opensearch-sql_test_index_account | multisearch [search"
+        "| multisearch [search"
             + " source=opensearch-sql_test_index_account | where age < 30 | eval age_group ="
             + " 'young'] [search source=opensearch-sql_test_index_account | where age >= 30 | eval"
             + " age_group = 'adult'] | stats count by age_group";
@@ -170,7 +170,7 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testExplainMultisearchTimestampInterleaving() throws IOException {
     String query =
-        "source=opensearch-sql_test_index_time_data | multisearch "
+        "| multisearch "
             + "[search source=opensearch-sql_test_index_time_data | where category IN ('A', 'B')] "
             + "[search source=opensearch-sql_test_index_time_data2 | where category IN ('E', 'F')] "
             + "| head 5";
