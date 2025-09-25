@@ -72,7 +72,7 @@ Read more details on time modifiers `here <https://github.com/opensearch-project
 **Notes:**
 
 * **Column name conflicts**: If your data contains columns named "earliest" or "latest", use backticks to access them as regular fields (e.g., ```earliest`="value"``) to avoid conflicts with time modifier syntax.
-* **Time snap syntax**: Time modifiers with time snaps must be wrapped in quotes (e.g., ``latest='+1d@d'``) for proper query parsing.
+* **Time snap syntax**: Time modifiers with chained time snaps must be wrapped in quotes (e.g., ``latest='+1d@month-10h@day'``) for proper query parsing.
 
 Default Field Configuration
 ===========================

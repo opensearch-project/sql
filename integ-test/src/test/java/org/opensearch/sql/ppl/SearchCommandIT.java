@@ -952,7 +952,7 @@ public class SearchCommandIT extends PPLIntegTestCase {
     JSONObject result1 =
         executeQuery(
             String.format(
-                "search source=%s earliest='2025-08-01 03:47:41' latest='+10months@year' | fields"
+                "search source=%s earliest='2025-08-01 03:47:41' latest=+10months@year | fields"
                     + " @timestamp",
                 TEST_INDEX_TIME_DATA));
     verifySchema(result1, schema("@timestamp", "timestamp"));

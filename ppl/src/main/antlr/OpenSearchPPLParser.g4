@@ -772,12 +772,9 @@ timeModifierValue
    | DECIMAL_LITERAL
    | INTEGER_LITERAL
    | stringLiteral
-   | timeSnap
-   | (PLUS | MINUS) (integerLiteral)? timeModifierUnit (timeSnap)?
+   | TIME_SNAP
+   | (PLUS | MINUS) (integerLiteral)? timeModifierUnit (TIME_SNAP)?
    ;
-
-timeSnap
-  : AT timeModifierUnit;
 
 // tables
 tableSource
@@ -1360,6 +1357,7 @@ timespanUnit
    | DS
    ;
 
+// It differs from TIME_SNAP_UNIT in that it supports plural forms
 timeModifierUnit
    : S
    | SEC
