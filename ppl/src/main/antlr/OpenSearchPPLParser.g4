@@ -140,6 +140,7 @@ searchLiteral
    : numericLiteral
    | booleanLiteral
    | ID
+   | NUMERIC_ID
    | stringLiteral
    | searchableKeyWord
    ;
@@ -259,8 +260,8 @@ timechartArg
    ;
 
 spanLiteral
-   : integerLiteral timespanUnit
-   | stringLiteral
+   : SPANLENGTH
+   | INTEGER_LITERAL
    ;
 
 evalCommand
@@ -276,9 +277,9 @@ binCommand
    ;
 
 binOption
-   : SPAN EQUAL span = spanValue
+   : SPAN EQUAL span = binSpanValue
    | BINS EQUAL bins = integerLiteral
-   | MINSPAN EQUAL minspan = literalValue (minspanUnit = timespanUnit)?
+   | MINSPAN EQUAL minspan = spanLiteral
    | ALIGNTIME EQUAL aligntime = aligntimeValue
    | START EQUAL start = numericLiteral
    | END EQUAL end = numericLiteral
@@ -290,11 +291,9 @@ aligntimeValue
    | literalValue
    ;
 
-spanValue
-   : literalValue (timespanUnit)?           # numericSpanValue
+binSpanValue
+   : spanLiteral                            # numericSpanValue
    | logSpanValue                           # logBasedSpanValue
-   | ident timespanUnit                     # extendedTimeSpanValue
-   | ident                                  # identifierSpanValue
    ;
 
 logSpanValue
@@ -598,7 +597,7 @@ bySpanClause
    ;
 
 spanClause
-   : SPAN LT_PRTHS fieldExpression COMMA value = literalValue (unit = timespanUnit)? RT_PRTHS
+   : SPAN LT_PRTHS fieldExpression COMMA value = spanLiteral RT_PRTHS
    ;
 
 sortbyClause
@@ -1308,40 +1307,6 @@ intervalUnit
    | YEAR_MONTH
    ;
 
-timespanUnit
-   : MS
-   | S
-   | M
-   | H
-   | D
-   | W
-   | Q
-   | Y
-   | MILLISECOND
-   | SECOND
-   | MINUTE
-   | HOUR
-   | DAY
-   | WEEK
-   | MONTH
-   | QUARTER
-   | YEAR
-   | SEC
-   | SECS  
-   | SECONDS
-   | MINS
-   | MINUTES
-   | HR
-   | HRS
-   | HOURS
-   | DAYS
-   | MON
-   | MONTHS
-   | US
-   | CS
-   | DS
-   ;
-
 valueList
    : LT_PRTHS literalValue (COMMA literalValue)* RT_PRTHS
    ;
@@ -1388,8 +1353,8 @@ keywordsCanBeId
 
 searchableKeyWord
    : D // OD SQL and ODBC special
-   | timespanUnit
    | SPAN
+   | SPANLENGTH
    | evalFunctionName
    | jsonFunctionName
    | relevanceArgName
