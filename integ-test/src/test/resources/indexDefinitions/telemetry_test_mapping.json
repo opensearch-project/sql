@@ -18,8 +18,10 @@
                         "ignore_above": 256
                       },
                       "version": {
-                        "type": "keyword",
-                        "ignore_above": 256
+                        "type": "integer"
+                      },
+                      "enabled": {
+                        "type": "boolean"
                       }
                     }
                   }
