@@ -9,7 +9,6 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
-import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -89,36 +88,23 @@ public class CalcitePPLParseIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source = %s | parse address '(?<streetNumber>\\\\d+)'"
+                "source = %s | parse address '(?<streetNumber>\\\\d+) (?<street>.+)'"
                     + "| eval streetNumberInt = cast(streetNumber as integer)"
                     + "| where streetNumberInt > 500"
                     + "| sort streetNumberInt"
-                    + "| fields streetNumberInt, address",
+                    + "| fields streetNumberInt, address, street",
                 TEST_INDEX_BANK));
-    verifySchema(result, schema("streetNumberInt", "int"), schema("address", "string"));
+    verifySchema(
+        result,
+        schema("streetNumberInt", "int"),
+        schema("address", "string"),
+        schema("street", "string"));
     verifyDataRows(
         result,
-        rows(671, "671 Bristol Street"),
-        rows(702, "702 Quentin Street"),
-        rows(789, "789 Madison Street"),
-        rows(880, "880 Holmes Lane"));
-  }
-
-  // TODO Multiple capturing groups are not allowed in Calcite REGEXP_EXTRACT function.
-  // https://github.com/opensearch-project/sql/issues/3472
-  @Test
-  public void testParseMultipleGroups() {
-    Throwable e =
-        assertThrowsWithReplace(
-            RuntimeException.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        "source = %s | parse address '(?<streetNumber>\\\\d+) (?<street>.+)'"
-                            + "| fields streetNumber, street",
-                        TEST_INDEX_BANK)));
-    verifyErrorMessageContains(
-        e, "Multiple capturing groups (count=2) not allowed in regex input for REGEXP_EXTRACT");
+        rows(671, "671 Bristol Street", "Bristol Street"),
+        rows(702, "702 Quentin Street", "Quentin Street"),
+        rows(789, "789 Madison Street", "Madison Street"),
+        rows(880, "880 Holmes Lane", "Holmes Lane"));
   }
 
   @Test
