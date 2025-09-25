@@ -113,7 +113,7 @@ public class CalcitePPLMultisearchTest extends CalcitePPLAbstractTest {
   @Test
   public void testBasicMultisearch() {
     String ppl =
-        "source=EMP | multisearch "
+        "| multisearch "
             + "[search source=EMP | where DEPTNO = 10] "
             + "[search source=EMP | where DEPTNO = 20]";
     RelNode root = getRelNode(ppl);
@@ -141,7 +141,7 @@ public class CalcitePPLMultisearchTest extends CalcitePPLAbstractTest {
   public void testMultisearchCrossIndices() {
     // Test multisearch with different tables (indices)
     String ppl =
-        "source=EMP | multisearch [search source=EMP | where DEPTNO = 10 | fields EMPNO, ENAME,"
+        "| multisearch [search source=EMP | where DEPTNO = 10 | fields EMPNO, ENAME,"
             + " DEPTNO] [search source=DEPT | where DEPTNO = 10 | fields DEPTNO, DNAME | eval EMPNO"
             + " = DEPTNO, ENAME = DNAME]";
     RelNode root = getRelNode(ppl);
@@ -170,7 +170,7 @@ public class CalcitePPLMultisearchTest extends CalcitePPLAbstractTest {
   @Test
   public void testMultisearchWithStats() {
     String ppl =
-        "source=EMP | multisearch "
+        "| multisearch "
             + "[search source=EMP | where DEPTNO = 10 | eval type = \"accounting\"] "
             + "[search source=EMP | where DEPTNO = 20 | eval type = \"research\"] "
             + "| stats count by type";
@@ -209,7 +209,7 @@ public class CalcitePPLMultisearchTest extends CalcitePPLAbstractTest {
   @Test
   public void testMultisearchThreeSubsearches() {
     String ppl =
-        "source=EMP | multisearch "
+        "| multisearch "
             + "[search source=EMP | where DEPTNO = 10] "
             + "[search source=EMP | where DEPTNO = 20] "
             + "[search source=EMP | where DEPTNO = 30]";
@@ -247,7 +247,7 @@ public class CalcitePPLMultisearchTest extends CalcitePPLAbstractTest {
   @Test
   public void testMultisearchTimestampInterleaving() {
     String ppl =
-        "source=TIME_DATA1 | multisearch "
+        "| multisearch "
             + "[search source=TIME_DATA1 | where category IN (\"A\", \"B\")] "
             + "[search source=TIME_DATA2 | where category IN (\"E\", \"F\")] "
             + "| head 6";
@@ -278,7 +278,7 @@ public class CalcitePPLMultisearchTest extends CalcitePPLAbstractTest {
   @Test
   public void testMultisearchWithTimestampFiltering() {
     String ppl =
-        "source=TIME_DATA1 | multisearch "
+        "| multisearch "
             + "[search source=TIME_DATA1 | where @timestamp > \"2025-07-31 23:00:00\"] "
             + "[search source=TIME_DATA2 | where @timestamp > \"2025-07-31 23:00:00\"] "
             + "| sort @timestamp desc";

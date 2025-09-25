@@ -20,7 +20,7 @@ pplStatement
    ;
 
 queryStatement
-   : pplCommands (PIPE commands)*
+   : (PIPE)? pplCommands (PIPE commands)*
    ;
 
 explainStatement
@@ -43,6 +43,7 @@ pplCommands
    : describeCommand
    | showDataSourcesCommand
    | searchCommand
+   | multisearchCommand
    ;
 
 commands
@@ -72,7 +73,6 @@ commands
    | trendlineCommand
    | appendcolCommand
    | appendCommand
-   | multisearchCommand
    | expandCommand
    | flattenCommand
    | reverseCommand
