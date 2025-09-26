@@ -8,6 +8,9 @@ head
    :local:
    :depth: 2
 
+.. versionadded:: 1.0.0
+.. versionchanged:: 3.3.0
+    Added support for the `limit=` argument name.
 
 Description
 ============
@@ -16,9 +19,10 @@ Description
 
 Syntax
 ============
-head [<size>] [from <offset>]
+head [limit=][<size>] [from <offset>]
 
 * <size>: optional integer. number of results to return. **Default:** 10
+  * For readability or convenience, this can be prefixed by `limit=`.
 * <offset>: integer after optional ``from``. number of results to skip. **Default:** 0
 
 Example 1: Get first 10 results
