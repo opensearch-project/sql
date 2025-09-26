@@ -6,6 +6,8 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -245,5 +247,144 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
         rows("::1", "GET", null, "6245", "301", "/history/apollo/"),
         rows("0.0.0.2", "GET", null, "4085", "500", "/shuttle/missions/sts-73/mission-sts-73.html"),
         rows("::3", "GET", null, "3985", "403", "/shuttle/countdown/countdown.html"));
+  }
+
+  @Test
+  public void testCaseRangeAggregationPushdown() throws IOException {
+    // Test CASE expression that can be optimized to range aggregation
+    // Note: This has an implicit ELSE NULL, so it won't be optimized
+    // But it should still work correctly
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval range_bucket = case("
+                    + "  cast(bytes as int) < 1000, 'small',"
+                    + "  cast(bytes as int) >= 1000 AND cast(bytes as int) < 5000, 'medium',"
+                    + "  cast(bytes as int) >= 5000, 'large'"
+                    + ") | stats count() as total by range_bucket | sort range_bucket",
+                TEST_INDEX_WEBLOGS));
+
+    verifySchema(
+        actual,
+        schema("range_bucket", "string"),
+        schema("total", "long"));
+
+    // This should work but won't be optimized due to implicit NULL bucket
+    assertTrue(actual.getJSONArray("datarows").length() > 0);
+  }
+
+  @Test
+  public void testCaseRangeAggregationWithMetrics() throws IOException {
+    // Test CASE-to-range with additional aggregations
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval size_category = case("
+                    + "  cast(bytes as int) < 2000, 'small',"
+                    + "  cast(bytes as int) >= 2000 AND cast(bytes as int) < 5000, 'medium',"
+                    + "  cast(bytes as int) >= 5000, 'large'"
+                    + ") | stats count() as total, avg(cast(bytes as int)) as avg_bytes by size_category"
+                    + " | sort size_category",
+                TEST_INDEX_WEBLOGS));
+
+    verifySchema(
+        actual,
+        schema("size_category", "string"),
+        schema("total", "long"),
+        schema("avg_bytes", "double"));
+
+    // Verify we get results for each category
+    // The exact values may vary based on test data, but structure should be correct
+    assertEquals(3, actual.getJSONArray("datarows").length());
+  }
+
+  @Test
+  public void testCaseRangeAggregationWithElse() throws IOException {
+    // Test CASE with explicit ELSE clause
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval status_category = case("
+                    + "  cast(response as int) < 300, 'success',"
+                    + "  cast(response as int) >= 300 AND cast(response as int) < 400, 'redirect',"
+                    + "  cast(response as int) >= 400 AND cast(response as int) < 500, 'client_error',"
+                    + "  cast(response as int) >= 500, 'server_error'"
+                    + "  else 'unknown'"
+                    + ") | stats count() by status_category | sort status_category",
+                TEST_INDEX_WEBLOGS));
+
+    verifySchema(
+        actual,
+        schema("status_category", "string"),
+        schema("count()", "long"));
+
+    // Should handle the ELSE case for null/non-numeric responses
+    assertTrue(actual.getJSONArray("datarows").length() > 0);
+  }
+
+  @Test
+  public void testNonOptimizableCaseExpression() throws IOException {
+    // Test CASE that cannot be optimized (different fields)
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval mixed_condition = case("
+                    + "  cast(bytes as int) < 1000, 'small_bytes',"
+                    + "  cast(response as int) >= 400, 'error_response'"
+                    + "  else 'other'"
+                    + ") | stats count() by mixed_condition",
+                TEST_INDEX_WEBLOGS));
+
+    verifySchema(
+        actual,
+        schema("mixed_condition", "string"),
+        schema("count()", "long"));
+
+    // This should work but won't be optimized
+    assertTrue(actual.getJSONArray("datarows").length() > 0);
+  }
+
+  @Test
+  public void testCaseWithNonLiteralResult() throws IOException {
+    // Test CASE that cannot be optimized (non-literal results)
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval computed_result = case("
+                    + "  cast(bytes as int) < 1000, concat('small_', host),"
+                    + "  cast(bytes as int) >= 1000, concat('large_', host)"
+                    + ") | stats count() by computed_result | head 3",
+                TEST_INDEX_WEBLOGS));
+
+    verifySchema(
+        actual,
+        schema("computed_result", "string"),
+        schema("count()", "long"));
+
+    // This should work but won't be optimized to range aggregation
+    assertTrue(actual.getJSONArray("datarows").length() > 0);
+  }
+
+  @Test
+  public void testOptimizableCaseRangeAggregation() throws IOException {
+    // Test CASE that could be optimized if all ranges are covered with explicit ELSE
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval size_bucket = case("
+                    + "  cast(bytes as int) < 2000, 'small',"
+                    + "  cast(bytes as int) >= 2000 AND cast(bytes as int) < 5000, 'medium',"
+                    + "  cast(bytes as int) >= 5000, 'large'"
+                    + "  else 'unknown'"
+                    + ") | stats count() by size_bucket | sort size_bucket",
+                TEST_INDEX_WEBLOGS));
+
+    verifySchema(
+        actual,
+        schema("size_bucket", "string"),
+        schema("count()", "long"));
+
+    // This should work - the explicit ELSE makes it potentially optimizable
+    assertTrue(actual.getJSONArray("datarows").length() > 0);
   }
 }
