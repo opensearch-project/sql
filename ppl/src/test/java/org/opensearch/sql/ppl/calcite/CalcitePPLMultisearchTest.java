@@ -147,20 +147,25 @@ public class CalcitePPLMultisearchTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalUnion(all=[true])\n"
-            + "  LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7], DNAME=[null:VARCHAR(14)])\n"
+            + "  LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7], DEPTNO0=[null:TINYINT],"
+            + " DNAME=[null:VARCHAR(14)], EMPNO0=[null:TINYINT], ENAME0=[null:VARCHAR(14)])\n"
             + "    LogicalFilter(condition=[=($7, 10)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n"
-            + "  LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$0], DNAME=[$1])\n"
+            + "  LogicalProject(EMPNO=[null:SMALLINT], ENAME=[null:VARCHAR(10)],"
+            + " DEPTNO=[null:TINYINT], DEPTNO0=[$0], DNAME=[$1], EMPNO0=[$0], ENAME0=[$1])\n"
             + "    LogicalFilter(condition=[=($0, 10)])\n"
             + "      LogicalTableScan(table=[[scott, DEPT]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, `ENAME`, `DEPTNO`, CAST(NULL AS STRING) `DNAME`\n"
+        "SELECT `EMPNO`, `ENAME`, `DEPTNO`, CAST(NULL AS TINYINT) `DEPTNO0`, CAST(NULL AS STRING)"
+            + " `DNAME`, CAST(NULL AS TINYINT) `EMPNO0`, CAST(NULL AS STRING) `ENAME0`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `DEPTNO` = 10\n"
             + "UNION ALL\n"
-            + "SELECT `DEPTNO` `EMPNO`, `DNAME` `ENAME`, `DEPTNO`, `DNAME`\n"
+            + "SELECT CAST(NULL AS SMALLINT) `EMPNO`, CAST(NULL AS STRING) `ENAME`, CAST(NULL AS"
+            + " TINYINT) `DEPTNO`, `DEPTNO` `DEPTNO0`, `DNAME`, `DEPTNO` `EMPNO0`, `DNAME`"
+            + " `ENAME0`\n"
             + "FROM `scott`.`DEPT`\n"
             + "WHERE `DEPTNO` = 10";
     verifyPPLToSparkSQL(root, expectedSparkSql);
