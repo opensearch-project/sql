@@ -239,10 +239,10 @@ public class AggregateAnalyzer {
               new NoBucketAggregationParser(metricParserList));
         }
       } else if (aggregate.getGroupSet().length() == 1
-          && isAutoDateSpan(project.getProjects().get(groupList.getFirst()))) {
-        RexCall rexCall = (RexCall) project.getProjects().get(groupList.getFirst());
-        String bucketName = project.getRowType().getFieldList().get(groupList.getFirst()).getName();
-        RexInputRef rexInputRef = (RexInputRef) rexCall.getOperands().getFirst();
+          && isAutoDateSpan(project.getProjects().get(groupList.get(0)))) {
+        RexCall rexCall = (RexCall) project.getProjects().get(groupList.get(0));
+        String bucketName = project.getRowType().getFieldList().get(groupList.get(0)).getName();
+        RexInputRef rexInputRef = (RexInputRef) rexCall.getOperands().get(0);
         RexLiteral valueLiteral = (RexLiteral) rexCall.getOperands().get(1);
         ValuesSourceAggregationBuilder<?> bucketBuilder =
             new AutoDateHistogramAggregationBuilder(bucketName)
@@ -538,9 +538,9 @@ public class AggregateAnalyzer {
   }
 
   private static boolean isAutoDateSpan(RexNode rex) {
-    return rex instanceof RexCall rexCall
-        && rexCall.getKind() == SqlKind.OTHER_FUNCTION
-        && rexCall.getOperator().equals(WIDTH_BUCKET);
+    return rex instanceof RexCall
+        && ((RexCall)rex).getKind() == SqlKind.OTHER_FUNCTION
+        && ((RexCall)rex).getOperator().equals(WIDTH_BUCKET);
   }
 
   private static ValuesSourceAggregationBuilder<?> createBucket(

@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -54,9 +55,6 @@ import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.QueryExpression;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
-import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan.LimitDigest;
-import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan.PushDownAction;
-import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan.PushDownType;
 
 /** The logical relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
@@ -309,12 +307,14 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               outputFields.subList(0, aggregate.getGroupSet().length()));
       newScan.pushDownContext.add(new PushDownAction(PushDownType.AGGREGATION, aggregate, action));
       if (aggregationBuilder.getLeft().size() == 1
-          && aggregationBuilder.getLeft().getFirst()
-              instanceof AutoDateHistogramAggregationBuilder autoDateHistogram) {
+          && aggregationBuilder.getLeft().get(0)
+              instanceof AutoDateHistogramAggregationBuilder) {
         // If it's auto_date_histogram, filter the empty bucket by using the first aggregate metrics
+        AutoDateHistogramAggregationBuilder autoDateHistogram =
+            (AutoDateHistogramAggregationBuilder) aggregationBuilder.getLeft().get(0);
         RexBuilder rexBuilder = getCluster().getRexBuilder();
         AggregationBuilder aggregationBuilders =
-            autoDateHistogram.getSubAggregations().stream().toList().getFirst();
+            new ArrayList<>(autoDateHistogram.getSubAggregations()).get(0);
         RexNode condition =
             aggregationBuilders instanceof ValueCountAggregationBuilder
                 ? rexBuilder.makeCall(

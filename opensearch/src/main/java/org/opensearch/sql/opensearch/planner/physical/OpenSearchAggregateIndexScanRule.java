@@ -132,15 +132,15 @@ public class OpenSearchAggregateIndexScanRule
       return project.getProjects().stream()
           .anyMatch(
               expr ->
-                  expr instanceof RexCall rexCall
-                      && rexCall.getOperator().equals(WIDTH_BUCKET)
-                      && dateRelatedType(rexCall.getOperands().getFirst().getType()));
+                  expr instanceof RexCall
+                      && ((RexCall)expr).getOperator().equals(WIDTH_BUCKET)
+                      && dateRelatedType(((RexCall)expr).getOperands().get(0).getType()));
     }
 
     static boolean dateRelatedType(RelDataType type) {
-      return type instanceof ExprSqlType exprSqlType
+      return type instanceof ExprSqlType
           && List.of(ExprUDT.EXPR_DATE, ExprUDT.EXPR_TIME, ExprUDT.EXPR_TIMESTAMP)
-              .contains(exprSqlType.getUdt());
+              .contains(((ExprSqlType)type).getUdt());
     }
   }
 }
