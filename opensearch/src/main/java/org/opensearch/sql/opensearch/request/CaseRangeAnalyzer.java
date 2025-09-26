@@ -40,17 +40,14 @@ public class CaseRangeAnalyzer {
   /** The default key to use if there isn't a key specified for the else case */
   public static final String DEFAULT_ELSE_KEY = "null";
 
-  /** The name for the range aggregation */
-  public static final String NAME = "case_range";
-
   private final RelDataType rowType;
   private final RangeSet<Double> takenRange;
   private final RangeAggregationBuilder builder;
 
-  public CaseRangeAnalyzer(RelDataType rowType) {
+  public CaseRangeAnalyzer(String name, RelDataType rowType) {
     this.rowType = rowType;
     this.takenRange = TreeRangeSet.create();
-    this.builder = AggregationBuilders.range(NAME);
+    this.builder = AggregationBuilders.range(name).keyed(true);
   }
 
   /**
@@ -59,8 +56,8 @@ public class CaseRangeAnalyzer {
    * @param rowType the row type information for field resolution
    * @return a new CaseRangeAnalyzer instance
    */
-  public static CaseRangeAnalyzer create(RelDataType rowType) {
-    return new CaseRangeAnalyzer(rowType);
+  public static CaseRangeAnalyzer create(String name, RelDataType rowType) {
+    return new CaseRangeAnalyzer(name, rowType);
   }
 
   /**

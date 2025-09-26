@@ -41,7 +41,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.core.Aggregate;
@@ -60,10 +59,10 @@ import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.AggregatorFactories;
 import org.opensearch.search.aggregations.AggregatorFactories.Builder;
 import org.opensearch.search.aggregations.BucketOrder;
-import org.opensearch.search.aggregations.bucket.range.RangeAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
+import org.opensearch.search.aggregations.bucket.range.RangeAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.ExtendedStats;
 import org.opensearch.search.aggregations.metrics.PercentilesAggregationBuilder;
@@ -81,11 +80,10 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
 import org.opensearch.sql.opensearch.response.agg.ArgMaxMinParser;
 import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
-import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
+import org.opensearch.sql.opensearch.response.agg.LeafBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
-import org.opensearch.sql.opensearch.response.agg.RangeParser;
 import org.opensearch.sql.opensearch.response.agg.SinglePercentileParser;
 import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
 import org.opensearch.sql.opensearch.response.agg.StatsParser;
@@ -204,11 +202,19 @@ public class AggregateAnalyzer {
       Builder metricBuilder = builderAndParser.getLeft();
       List<MetricParser> metricParsers = builderAndParser.getRight();
       // Find group by fields derived from CASE functions and convert them to range queries
-      CaseRangeAnalyzer rangeAnalyzer = CaseRangeAnalyzer.create(rowType);
-      List<Pair<Integer, RangeAggregationBuilder>> groupsByCase = groupList.stream()
-              .map(i -> Pair.of(i, project.getProjects().get(i)))
-              .filter(p -> p.getRight() instanceof RexCall rexCall && rexCall.getKind() == SqlKind.CASE)
-              .map(p -> Pair.of(p.getLeft(), rangeAnalyzer.analyze((RexCall) p.getRight())))
+      List<Pair<Integer, RangeAggregationBuilder>> groupsByCase =
+          groupList.stream()
+              .map(i -> Pair.of(i, project.getNamedProjects().get(i)))
+              .filter(
+                  p ->
+                      p.getRight().getKey() instanceof RexCall rexCall
+                          && rexCall.getKind() == SqlKind.CASE)
+              .map(
+                  p ->
+                      Pair.of(
+                          p.getLeft(),
+                          CaseRangeAnalyzer.create(p.getRight().getValue(), rowType)
+                              .analyze((RexCall) p.getRight().getKey())))
               .filter(p -> p.getRight().isPresent())
               .map(p -> Pair.of(p.getLeft(), p.getRight().get()))
               .toList();
@@ -220,28 +226,32 @@ public class AggregateAnalyzer {
       // Note that but a composite aggregation can not be a sub aggregation of range aggregation,
       // but range aggregation can be a sub aggregation of a composite aggregation.
       AggregationBuilder rangeAggregationBuilder = null;
+      BucketAggregationParser bucketAggregationParser = null;
       if (!groupsByCase.isEmpty()) {
         for (int i = 0; i < groupsByCase.size(); i++) {
           Pair<Integer, RangeAggregationBuilder> pair = groupsByCase.get(i);
           if (i == 0) {
             rangeAggregationBuilder = pair.getRight();
+            bucketAggregationParser =
+                new BucketAggregationParser(new LeafBucketAggregationParser(metricParsers));
           } else {
             groupsByCase.get(i - 1).getRight().subAggregation(pair.getRight());
+            bucketAggregationParser = new BucketAggregationParser(bucketAggregationParser);
           }
         }
         groupsByCase.getLast().getRight().subAggregations(metricBuilder);
-        metricParsers.add(new RangeParser("case_range"));
       }
 
       // Remove groups that are converted to ranges from groupList
       Set<Integer> toRemove = groupsByCase.stream().map(Pair::getLeft).collect(Collectors.toSet());
-      List<Integer> filteredGroupList = groupList.stream().filter(i -> !toRemove.contains(i)).toList();
+      List<Integer> filteredGroupList =
+          groupList.stream().filter(i -> !toRemove.contains(i)).toList();
 
       // The top-level query is a range query: stats count() by range_field
       // RangeAgg
       //   Metric
       if (!groupsByCase.isEmpty() && filteredGroupList.isEmpty()) {
-        return Pair.of(List.of(rangeAggregationBuilder), new BucketAggregationParser(metricParsers));
+        return Pair.of(List.of(rangeAggregationBuilder), bucketAggregationParser);
       }
       // No parent composite aggregation or range aggregation is attached: stats count()
       // Metric
@@ -250,21 +260,23 @@ public class AggregateAnalyzer {
             ImmutableList.copyOf(metricBuilder.getAggregatorFactories()),
             new NoBucketAggregationParser(metricParsers));
       }
-      // It has both composite aggregation and range aggregation: stats count() by range_field, non_range_field
+      // It has both composite aggregation and range aggregation: stats count() by range_field,
+      // non_range_field
       // CompositeAgg
       //   RangeAgg
       //     Metric
       else if (!groupsByCase.isEmpty()) {
         List<CompositeValuesSourceBuilder<?>> buckets =
-                createCompositeBuckets(filteredGroupList, project, helper);
+            createCompositeBuckets(filteredGroupList, project, helper);
         return Pair.of(
-                Collections.singletonList(
-                        AggregationBuilders.composite("composite_buckets", buckets)
-                                .subAggregation(rangeAggregationBuilder)
-                                .size(AGGREGATION_BUCKET_SIZE)),
-                new CompositeAggregationParser(metricParsers));
+            Collections.singletonList(
+                AggregationBuilders.composite("composite_buckets", buckets)
+                    .subAggregation(rangeAggregationBuilder)
+                    .size(AGGREGATION_BUCKET_SIZE)),
+            new BucketAggregationParser(bucketAggregationParser));
       }
-      // It does not have range aggregation, but has composite aggregation: stats count() by non_range_field
+      // It does not have range aggregation, but has composite aggregation: stats count() by
+      // non_range_field
       // CompositeAgg
       //   Metric
       else {
@@ -275,7 +287,7 @@ public class AggregateAnalyzer {
                 AggregationBuilders.composite("composite_buckets", buckets)
                     .subAggregations(metricBuilder)
                     .size(AGGREGATION_BUCKET_SIZE)),
-            new CompositeAggregationParser(metricParsers));
+            new BucketAggregationParser(new LeafBucketAggregationParser(metricParsers)));
       }
     } catch (Throwable e) {
       Throwables.throwIfInstanceOf(e, UnsupportedOperationException.class);

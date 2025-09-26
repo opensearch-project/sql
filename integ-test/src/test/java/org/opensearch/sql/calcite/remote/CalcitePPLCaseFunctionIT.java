@@ -5,9 +5,9 @@
 
 package org.opensearch.sql.calcite.remote;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -264,10 +264,7 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
                     + ") | stats count() as total by range_bucket | sort range_bucket",
                 TEST_INDEX_WEBLOGS));
 
-    verifySchema(
-        actual,
-        schema("range_bucket", "string"),
-        schema("total", "long"));
+    verifySchema(actual, schema("range_bucket", "string"), schema("total", "long"));
 
     // This should work but won't be optimized due to implicit NULL bucket
     assertTrue(actual.getJSONArray("datarows").length() > 0);
@@ -279,12 +276,10 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval size_category = case("
-                    + "  cast(bytes as int) < 2000, 'small',"
-                    + "  cast(bytes as int) >= 2000 AND cast(bytes as int) < 5000, 'medium',"
-                    + "  cast(bytes as int) >= 5000, 'large'"
-                    + ") | stats count() as total, avg(cast(bytes as int)) as avg_bytes by size_category"
-                    + " | sort size_category",
+                "source=%s | eval size_category = case(  cast(bytes as int) < 2000, 'small', "
+                    + " cast(bytes as int) >= 2000 AND cast(bytes as int) < 5000, 'medium', "
+                    + " cast(bytes as int) >= 5000, 'large') | stats count() as total,"
+                    + " avg(cast(bytes as int)) as avg_bytes by size_category | sort size_category",
                 TEST_INDEX_WEBLOGS));
 
     verifySchema(
@@ -304,19 +299,14 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval status_category = case("
-                    + "  cast(response as int) < 300, 'success',"
-                    + "  cast(response as int) >= 300 AND cast(response as int) < 400, 'redirect',"
-                    + "  cast(response as int) >= 400 AND cast(response as int) < 500, 'client_error',"
-                    + "  cast(response as int) >= 500, 'server_error'"
-                    + "  else 'unknown'"
-                    + ") | stats count() by status_category | sort status_category",
+                "source=%s | eval status_category = case(  cast(response as int) < 300, 'success', "
+                    + " cast(response as int) >= 300 AND cast(response as int) < 400, 'redirect', "
+                    + " cast(response as int) >= 400 AND cast(response as int) < 500,"
+                    + " 'client_error',  cast(response as int) >= 500, 'server_error'  else"
+                    + " 'unknown') | stats count() by status_category | sort status_category",
                 TEST_INDEX_WEBLOGS));
 
-    verifySchema(
-        actual,
-        schema("status_category", "string"),
-        schema("count()", "long"));
+    verifySchema(actual, schema("status_category", "string"), schema("count()", "long"));
 
     // Should handle the ELSE case for null/non-numeric responses
     assertTrue(actual.getJSONArray("datarows").length() > 0);
@@ -335,10 +325,7 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
                     + ") | stats count() by mixed_condition",
                 TEST_INDEX_WEBLOGS));
 
-    verifySchema(
-        actual,
-        schema("mixed_condition", "string"),
-        schema("count()", "long"));
+    verifySchema(actual, schema("mixed_condition", "string"), schema("count()", "long"));
 
     // This should work but won't be optimized
     assertTrue(actual.getJSONArray("datarows").length() > 0);
@@ -356,10 +343,7 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
                     + ") | stats count() by computed_result | head 3",
                 TEST_INDEX_WEBLOGS));
 
-    verifySchema(
-        actual,
-        schema("computed_result", "string"),
-        schema("count()", "long"));
+    verifySchema(actual, schema("computed_result", "string"), schema("count()", "long"));
 
     // This should work but won't be optimized to range aggregation
     assertTrue(actual.getJSONArray("datarows").length() > 0);
@@ -379,10 +363,7 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
                     + ") | stats count() by size_bucket | sort size_bucket",
                 TEST_INDEX_WEBLOGS));
 
-    verifySchema(
-        actual,
-        schema("size_bucket", "string"),
-        schema("count()", "long"));
+    verifySchema(actual, schema("size_bucket", "string"), schema("count()", "long"));
 
     // This should work - the explicit ELSE makes it potentially optimizable
     assertTrue(actual.getJSONArray("datarows").length() > 0);
