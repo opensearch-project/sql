@@ -10,13 +10,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import lombok.Getter;
 import org.opensearch.search.aggregations.Aggregation;
 import org.opensearch.search.aggregations.Aggregations;
 import org.opensearch.search.aggregations.bucket.MultiBucketsAggregation;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregation;
 
 public class BucketAggregationParser implements OpenSearchAggregationResponseParser {
-  private final OpenSearchAggregationResponseParser subAggParser;
+  @Getter private final OpenSearchAggregationResponseParser subAggParser;
 
   public BucketAggregationParser(OpenSearchAggregationResponseParser subAggParser) {
     this.subAggParser = subAggParser;

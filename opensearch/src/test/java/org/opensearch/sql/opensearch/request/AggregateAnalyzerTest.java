@@ -46,8 +46,9 @@ import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer.ExpressionNotAnalyzableException;
-import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
+import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.FilterParser;
+import org.opensearch.sql.opensearch.response.agg.LeafBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParserHelper;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
@@ -281,9 +282,11 @@ class AggregateAnalyzerTest {
             + "{\"b\":{\"terms\":{\"field\":\"b.keyword\",\"missing_bucket\":true,\"missing_order\":\"first\",\"order\":\"asc\"}}}]},"
             + "\"aggregations\":{\"cnt\":{\"value_count\":{\"field\":\"_index\"}}}}}]",
         result.getLeft().toString());
-    assertInstanceOf(CompositeAggregationParser.class, result.getRight());
+    assertInstanceOf(BucketAggregationParser.class, result.getRight());
     MetricParserHelper metricsParser =
-        ((CompositeAggregationParser) result.getRight()).getMetricsParser();
+        ((LeafBucketAggregationParser)
+                ((BucketAggregationParser) result.getRight()).getSubAggParser())
+            .getMetricsParser();
     assertEquals(1, metricsParser.getMetricParserMap().size());
     metricsParser
         .getMetricParserMap()
@@ -592,8 +595,11 @@ class AggregateAnalyzerTest {
       when(ref.getType()).thenReturn(typeFactory.createSqlType(SqlTypeName.INTEGER));
       rexNodes.add(ref);
     }
+    List<org.apache.calcite.util.Pair<RexNode, String>> namedProjects =
+        rexNodes.stream().map(n -> org.apache.calcite.util.Pair.of(n, n.toString())).toList();
     when(project.getProjects()).thenReturn(rexNodes);
     when(project.getRowType()).thenReturn(rowType);
+    when(project.getNamedProjects()).thenReturn(namedProjects);
     return project;
   }
 

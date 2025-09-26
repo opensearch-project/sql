@@ -204,6 +204,7 @@ public class AggregateAnalyzer {
       // Find group by fields derived from CASE functions and convert them to range queries
       List<Pair<Integer, RangeAggregationBuilder>> groupsByCase =
           groupList.stream()
+              .filter(i -> project != null && i < project.getProjects().size())
               .map(i -> Pair.of(i, project.getNamedProjects().get(i)))
               .filter(
                   p ->
