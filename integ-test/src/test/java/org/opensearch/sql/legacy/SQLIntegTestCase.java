@@ -565,6 +565,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "location2",
         getLocationIndexMapping(),
         "src/test/resources/locations2.json"),
+    LOCATIONS_TYPE_CONFLICT(
+        TestsConstants.TEST_INDEX_LOCATIONS_TYPE_CONFLICT,
+        "locations",
+        getLocationsTypeConflictIndexMapping(),
+        "src/test/resources/locations_type_conflict.json"),
     NESTED(
         TestsConstants.TEST_INDEX_NESTED_TYPE,
         "nestedType",

@@ -52,9 +52,9 @@ SQL query::
     | docTestCluster | null        | otellogs         | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | people           | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | state_country    | BASE TABLE | null    | null     | null       | null      | null                      | null           |
-    | docTestCluster | null        | time_test        | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | time_data        | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | time_data2       | BASE TABLE | null    | null     | null       | null      | null                      | null           |
+    | docTestCluster | null        | time_test        | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | weblogs          | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | wildcard         | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | work_information | BASE TABLE | null    | null     | null       | null      | null                      | null           |

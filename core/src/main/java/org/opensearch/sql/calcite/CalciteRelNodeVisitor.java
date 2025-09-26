@@ -31,9 +31,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -1653,61 +1651,21 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         node.getSubSearch().accept(new EmptySourcePropagateVisitor(), null);
     prunedSubSearch.accept(this, context);
 
-    // 3. Merge two query schemas
+    // 3. Merge two query schemas using shared logic
     RelNode subsearchNode = context.relBuilder.build();
     RelNode mainNode = context.relBuilder.build();
-    List<RelDataTypeField> mainFields = mainNode.getRowType().getFieldList();
-    List<RelDataTypeField> subsearchFields = subsearchNode.getRowType().getFieldList();
-    Map<String, RelDataTypeField> subsearchFieldMap =
-        subsearchFields.stream()
-            .map(typeField -> Pair.of(typeField.getName(), typeField))
-            .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
-    boolean[] isSelected = new boolean[subsearchFields.size()];
-    List<String> names = new ArrayList<>();
-    List<RexNode> mainUnionProjects = new ArrayList<>();
-    List<RexNode> subsearchUnionProjects = new ArrayList<>();
 
-    // 3.1 Start with main query's schema. If subsearch plan doesn't have matched column,
-    // add same type column in place with NULL literal
-    for (int i = 0; i < mainFields.size(); i++) {
-      mainUnionProjects.add(context.rexBuilder.makeInputRef(mainNode, i));
-      RelDataTypeField mainField = mainFields.get(i);
-      RelDataTypeField subsearchField = subsearchFieldMap.get(mainField.getName());
-      names.add(mainField.getName());
-      if (subsearchFieldMap.containsKey(mainField.getName())
-          && subsearchField != null
-          && subsearchField.getType().equals(mainField.getType())) {
-        subsearchUnionProjects.add(
-            context.rexBuilder.makeInputRef(subsearchNode, subsearchField.getIndex()));
-        isSelected[subsearchField.getIndex()] = true;
-      } else {
-        subsearchUnionProjects.add(context.rexBuilder.makeNullLiteral(mainField.getType()));
-      }
+    // Use shared schema merging logic that handles type conflicts via field renaming
+    List<RelNode> nodesToMerge = Arrays.asList(mainNode, subsearchNode);
+    SchemaUnificationResult unificationResult =
+        buildUnifiedSchemaWithConflictResolution(nodesToMerge, context);
+
+    List<RelNode> projectedNodes = unificationResult.getProjectedNodes();
+
+    // 4. Union the projected plans
+    for (RelNode projectedNode : projectedNodes) {
+      context.relBuilder.push(projectedNode);
     }
-
-    // 3.2 Add remaining subsearch columns to the merged schema
-    for (int j = 0; j < subsearchFields.size(); j++) {
-      RelDataTypeField subsearchField = subsearchFields.get(j);
-      if (!isSelected[j]) {
-        mainUnionProjects.add(context.rexBuilder.makeNullLiteral(subsearchField.getType()));
-        subsearchUnionProjects.add(context.rexBuilder.makeInputRef(subsearchNode, j));
-        names.add(subsearchField.getName());
-      }
-    }
-
-    // 3.3 Uniquify names in case the merged names have duplicates
-    List<String> uniqNames =
-        SqlValidatorUtil.uniquify(names, SqlValidatorUtil.EXPR_SUGGESTER, true);
-
-    // 4. Apply new schema over two query plans
-    RelNode projectedMainNode =
-        context.relBuilder.push(mainNode).project(mainUnionProjects, uniqNames).build();
-    RelNode projectedSubsearchNode =
-        context.relBuilder.push(subsearchNode).project(subsearchUnionProjects, uniqNames).build();
-
-    // 5. Union all two projected plans
-    context.relBuilder.push(projectedMainNode);
-    context.relBuilder.push(projectedSubsearchNode);
     context.relBuilder.union(true);
     return context.relBuilder.peek();
   }
@@ -1721,7 +1679,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       subsearchNodes.add(context.relBuilder.build());
     }
 
-    List<RelNode> alignedNodes = alignSchemasForUnion(subsearchNodes, context);
+    // Use shared schema merging logic that handles type conflicts via field renaming
+    SchemaUnificationResult unificationResult =
+        buildUnifiedSchemaWithConflictResolution(subsearchNodes, context);
+    List<RelNode> alignedNodes = unificationResult.getProjectedNodes();
 
     for (RelNode alignedNode : alignedNodes) {
       context.relBuilder.push(alignedNode);
@@ -1743,51 +1704,129 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-  private List<RelNode> alignSchemasForUnion(
-      List<RelNode> subsearchNodes, CalcitePlanContext context) {
-    // Single pass: collect field names and create field type map
-    Set<String> allFieldNames = new LinkedHashSet<>();
-    Map<String, RelDataType> fieldTypeMap = new HashMap<>();
+  /** Result of schema unification with conflict resolution. */
+  private static class SchemaUnificationResult {
+    private final List<RelNode> projectedNodes;
+    private final List<String> unifiedFieldNames;
 
-    for (RelNode node : subsearchNodes) {
-      for (RelDataTypeField field : node.getRowType().getFieldList()) {
-        String fieldName = field.getName();
-        if (allFieldNames.add(fieldName)) {
-          // First time seeing this field, store its type
-          fieldTypeMap.put(fieldName, field.getType());
-        }
-      }
+    public SchemaUnificationResult(List<RelNode> projectedNodes, List<String> unifiedFieldNames) {
+      this.projectedNodes = projectedNodes;
+      this.unifiedFieldNames = unifiedFieldNames;
     }
 
-    // Project each node to have the same field order and missing fields as NULL
-    List<RelNode> alignedNodes = new ArrayList<>();
+    public List<RelNode> getProjectedNodes() {
+      return projectedNodes;
+    }
 
-    for (RelNode node : subsearchNodes) {
-      Map<String, Integer> nodeFieldIndexMap = new HashMap<>();
-      List<RelDataTypeField> nodeFields = node.getRowType().getFieldList();
-      for (int i = 0; i < nodeFields.size(); i++) {
-        nodeFieldIndexMap.put(nodeFields.get(i).getName(), i);
-      }
+    public List<String> getUnifiedFieldNames() {
+      return unifiedFieldNames;
+    }
+  }
 
-      List<RexNode> projections = new ArrayList<>();
-      for (String fieldName : allFieldNames) {
-        if (nodeFieldIndexMap.containsKey(fieldName)) {
-          projections.add(context.rexBuilder.makeInputRef(node, nodeFieldIndexMap.get(fieldName)));
+  /**
+   * Builds a unified schema for multiple nodes with type conflict resolution. Uses the same
+   * strategy as append command - renames conflicting fields to avoid type conflicts.
+   *
+   * @param nodes List of RelNodes to unify schemas for
+   * @param context Calcite plan context
+   * @return SchemaUnificationResult containing projected nodes and unified field names
+   */
+  private SchemaUnificationResult buildUnifiedSchemaWithConflictResolution(
+      List<RelNode> nodes, CalcitePlanContext context) {
+    if (nodes.isEmpty()) {
+      return new SchemaUnificationResult(new ArrayList<>(), new ArrayList<>());
+    }
+
+    if (nodes.size() == 1) {
+      return new SchemaUnificationResult(nodes, nodes.get(0).getRowType().getFieldNames());
+    }
+
+    // Strategy: Use first node as the "main" schema, then merge others one by one
+    // This mimics append behavior where there's a main query + subsearches
+
+    RelNode firstNode = nodes.get(0);
+    List<RelDataTypeField> baseFields = firstNode.getRowType().getFieldList();
+    List<String> names = new ArrayList<>();
+    List<List<RexNode>> allProjections = new ArrayList<>();
+
+    // Initialize with first node's schema
+    for (RelDataTypeField field : baseFields) {
+      names.add(field.getName());
+    }
+
+    // Create projection for first node (identity projection)
+    List<RexNode> firstProjection = new ArrayList<>();
+    for (int i = 0; i < baseFields.size(); i++) {
+      firstProjection.add(context.rexBuilder.makeInputRef(firstNode, i));
+    }
+    allProjections.add(firstProjection);
+
+    // Process each additional node
+    for (int nodeIndex = 1; nodeIndex < nodes.size(); nodeIndex++) {
+      RelNode currentNode = nodes.get(nodeIndex);
+      List<RelDataTypeField> currentFields = currentNode.getRowType().getFieldList();
+
+      // Create field map for current node
+      Map<String, RelDataTypeField> currentFieldMap =
+          currentFields.stream()
+              .collect(
+                  Collectors.toMap(
+                      RelDataTypeField::getName,
+                      field -> field,
+                      (existing, replacement) -> existing)); // Keep first occurrence if duplicates
+
+      boolean[] isSelected = new boolean[currentFields.size()];
+      List<RexNode> currentProjection = new ArrayList<>();
+
+      // 1. Match existing fields in base schema
+      for (int i = 0; i < names.size(); i++) {
+        String baseName = names.get(i);
+        RelDataTypeField baseField = baseFields.get(Math.min(i, baseFields.size() - 1));
+        RelDataTypeField currentField = currentFieldMap.get(baseName);
+
+        if (currentField != null && currentField.getType().equals(baseField.getType())) {
+          // Types match - use the field from current node
+          currentProjection.add(
+              context.rexBuilder.makeInputRef(currentNode, currentField.getIndex()));
+          isSelected[currentField.getIndex()] = true;
         } else {
-          projections.add(context.rexBuilder.makeNullLiteral(fieldTypeMap.get(fieldName)));
+          // Type mismatch or missing field - fill with NULL
+          currentProjection.add(context.rexBuilder.makeNullLiteral(baseField.getType()));
         }
       }
 
-      RelNode aligned =
-          context
-              .relBuilder
-              .push(node)
-              .project(projections, new ArrayList<>(allFieldNames))
-              .build();
-      alignedNodes.add(aligned);
+      // 2. Add remaining fields from current node that weren't matched
+      for (int j = 0; j < currentFields.size(); j++) {
+        if (!isSelected[j]) {
+          RelDataTypeField unmatchedField = currentFields.get(j);
+          names.add(unmatchedField.getName());
+
+          // Add NULL projection for this field in all previous nodes
+          for (List<RexNode> prevProjection : allProjections) {
+            prevProjection.add(context.rexBuilder.makeNullLiteral(unmatchedField.getType()));
+          }
+
+          // Add actual field reference for current node
+          currentProjection.add(context.rexBuilder.makeInputRef(currentNode, j));
+        }
+      }
+
+      allProjections.add(currentProjection);
     }
 
-    return alignedNodes;
+    // 3. Uniquify names to handle conflicts (this creates age0, age1, etc.)
+    List<String> uniqNames =
+        SqlValidatorUtil.uniquify(names, SqlValidatorUtil.EXPR_SUGGESTER, true);
+
+    // 4. Create projected nodes with unified schema
+    List<RelNode> projectedNodes = new ArrayList<>();
+    for (int i = 0; i < nodes.size(); i++) {
+      RelNode projectedNode =
+          context.relBuilder.push(nodes.get(i)).project(allProjections.get(i), uniqNames).build();
+      projectedNodes.add(projectedNode);
+    }
+
+    return new SchemaUnificationResult(projectedNodes, uniqNames);
   }
 
   /**
