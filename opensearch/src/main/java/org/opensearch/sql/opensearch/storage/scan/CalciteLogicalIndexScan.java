@@ -49,14 +49,10 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.planner.physical.EnumerableIndexScanRule;
 import org.opensearch.sql.opensearch.planner.physical.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
-import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.QueryExpression;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
-import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan.LimitDigest;
-import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan.PushDownAction;
-import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan.PushDownType;
 
 /** The logical relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
@@ -355,13 +351,6 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         return offset > 0 ? sort.copy(sort.getTraitSet(), List.of(newScan)) : newScan;
       } else {
         CalciteLogicalIndexScan newScan = this.copyWithNewSchema(getRowType());
-        int newStartFrom = newScan.pushDownContext.getStartFrom() + offset;
-        if (newStartFrom >= newScan.osIndex.getMaxResultWindow()) {
-          throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
-              String.format(
-                  "Requested offset %d should be less than the max result window %d",
-                  newStartFrom, newScan.osIndex.getMaxResultWindow()));
-        }
         newScan.pushDownContext.add(
             PushDownType.LIMIT,
             new LimitDigest(limit, offset),
