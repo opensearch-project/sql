@@ -187,6 +187,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     @Getter private AggPushDownAction aggPushDownAction;
     @Getter private boolean isLimitPushed = false;
     @Getter private boolean isProjectPushed = false;
+    @Getter private int startFrom = 0;
 
     @Override
     public PushDownContext clone() {
@@ -201,6 +202,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       }
       if (pushDownAction.type == PushDownType.LIMIT) {
         isLimitPushed = true;
+        startFrom += ((LimitDigest) pushDownAction.digest).offset();
       }
       if (pushDownAction.type == PushDownType.PROJECT) {
         isProjectPushed = true;
