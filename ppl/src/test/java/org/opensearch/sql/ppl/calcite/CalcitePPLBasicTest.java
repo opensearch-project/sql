@@ -207,9 +207,7 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
             () -> {
               RelNode root = getRelNode(ppl);
             });
-    assertThat(
-        e.getMessage(),
-        is("field [DEPTNO] not found; input fields are: [EMPNO, ENAME, JOB, MGR, HIREDATE, COMM]"));
+    assertThat(e.getMessage(), is("Field [DEPTNO] not found."));
   }
 
   @Test
