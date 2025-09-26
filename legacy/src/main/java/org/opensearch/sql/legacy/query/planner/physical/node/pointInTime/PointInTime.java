@@ -5,14 +5,13 @@
 
 package org.opensearch.sql.legacy.query.planner.physical.node.pointInTime;
 
-import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.SORT_FIELD_SHARD_DOC;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.PointInTimeBuilder;
-import org.opensearch.search.sort.FieldSortBuilder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.query.join.TableInJoinRequestBuilder;
@@ -64,8 +63,7 @@ public class PointInTime extends Paginate {
     searchResponse =
         request
             .getRequestBuilder()
-            .addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC)
-            .addSort(METADATA_FIELD_ID, SortOrder.ASC)
+            .addSort(SORT_FIELD_SHARD_DOC, SortOrder.ASC)
             .setSize(pageSize)
             .setTimeout(TimeValue.timeValueSeconds(timeout))
             .setPointInTime(new PointInTimeBuilder(pitId))
