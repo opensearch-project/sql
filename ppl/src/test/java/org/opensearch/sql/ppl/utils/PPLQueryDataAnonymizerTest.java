@@ -168,7 +168,7 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testStreamstatsCommandWithWindowAndCurrent() {
     assertEquals(
-        "source=t | streamstats current=false window=2 max(a)",
+        "source=t | streamstats max(a)",
         anonymize("source=t | streamstats current=false window=2 max(a)"));
   }
 

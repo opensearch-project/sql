@@ -47,7 +47,7 @@ Version
 
 Syntax
 ======
-streamstats [current=<bool>] [window=<int>] <function>... [by-clause]
+streamstats [current=<bool>] [window=<int>] [global=<bool>] [reset_before="("<eval-expression>")"] [reset_after="("<eval-expression>")"] <function>... [by-clause]
 
 
 * function: mandatory. A aggregation function or window function.
@@ -63,6 +63,24 @@ streamstats [current=<bool>] [window=<int>] <function>... [by-clause]
  * Syntax: window=<integer>
  * Description: Specifies the number of events to use when computing the statistics.
  * Default: 0, which means that all previous and current events are used.
+
+* global: optional.
+
+ * Syntax: global=<boolean>
+ * Description: Used only when the window argument is set. Defines whether to use a single window, global=true, or to use separate windows based on the by clause. If global=false and window is set to a non-zero value, a separate window is used for each group of values of the field specified in the by clause.
+ * Default: true
+
+* reset_before: optional.
+
+ * Syntax: reset_before="("<eval-expression>")"
+ * Description: Before streamstats calculates for an event, reset_before resets all accumulated statistics when the eval-expressionevaluates to true. If used with window, the window is also reset.
+ * Default: false
+
+* reset_after: optional.
+
+ * Syntax: reset_after="("<eval-expression>")"
+ * Description: After streamstats calculations for an event, reset_after resets all accumulated statistics when the eval-expressionevaluates to true. This expression can reference fields returned by streamstats. If used with window, the window is also reset.
+ * Default: false
 
 * by-clause: optional.
 
@@ -359,6 +377,9 @@ Streamstats::
     source = table | streamstats count(c) as count_by by b | where count_by > 1000
     source = table | streamstats dc(field) as distinct_count
     source = table | streamstats distinct_count(category) by region
+    source = table | streamstats current=false window=2 global=false avg(a) by b
+    source = table | streamstats window=2 reset_before=a>31 avg(b)
+    source = table | streamstats current=false reset_after=a>31 avg(b) by c
 
 
 Example 1: Calculate the running average, sum, and count of a field by group
