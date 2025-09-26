@@ -57,7 +57,7 @@ import org.opensearch.sql.expression.function.jsonUDF.JsonFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonKeysFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonSetFunctionImpl;
 import org.opensearch.sql.expression.function.udf.CryptographicFunction;
-import org.opensearch.sql.expression.function.udf.GrokFunction;
+import org.opensearch.sql.expression.function.udf.ParseFunction;
 import org.opensearch.sql.expression.function.udf.RelevanceQueryFunction;
 import org.opensearch.sql.expression.function.udf.RexExtractFunction;
 import org.opensearch.sql.expression.function.udf.RexExtractMultiFunction;
@@ -369,7 +369,10 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               PPLOperandTypes.NONE)
           .toUDF("UTC_TIMESTAMP");
   public static final SqlOperator WEEK = new WeekFunction().toUDF("WEEK");
-  public static final SqlOperator GROK = new GrokFunction().toUDF("GROK");
+  public static final SqlOperator GROK = new ParseFunction().toUDF("GROK");
+  // TODO: Figure out if there is other option to perform multiple group match in Calcite
+  // For now, keep V2's regexExpression logic to avoid breaking change
+  public static final SqlOperator PARSE = new ParseFunction().toUDF("PARSE");
   public static final SqlOperator PATTERN_PARSER =
       new PatternParserFunctionImpl().toUDF("PATTERN_PARSER");
 
