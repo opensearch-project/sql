@@ -240,15 +240,15 @@ Example 1: Basic numeric span
 
 PPL query::
 
-    os> source=accounts | bin age span=10 | fields age | head 3;
+    os> source=accounts | bin age span=10 | fields age, account_number | head 3;
     fetched rows / total rows = 3/3
-    +-------+
-    | age   |
-    |-------|
-    | 30-40 |
-    | 30-40 |
-    | 20-30 |
-    +-------+
+    +-------+----------------+
+    | age   | account_number |
+    |-------+----------------|
+    | 30-40 | 1              |
+    | 30-40 | 6              |
+    | 20-30 | 13             |
+    +-------+----------------+
 
 Example 2: Large numeric span
 ==============================
@@ -330,15 +330,15 @@ Example 7: High bin count
 
 PPL query::
 
-    os> source=accounts | bin age bins=21 | fields age | head 3;
+    os> source=accounts | bin age bins=21 | fields age, account_number | head 3;
     fetched rows / total rows = 3/3
-    +-------+
-    | age   |
-    |-------|
-    | 32-33 |
-    | 36-37 |
-    | 28-29 |
-    +-------+
+    +-------+----------------+
+    | age   | account_number |
+    |-------+----------------|
+    | 32-33 | 1              |
+    | 36-37 | 6              |
+    | 28-29 | 13             |
+    +-------+----------------+
 
 Minspan Parameter Examples
 ==========================
@@ -348,15 +348,15 @@ Example 8: Basic minspan
 
 PPL query::
 
-    os> source=accounts | bin age minspan=5 | fields age | head 3;
+    os> source=accounts | bin age minspan=5 | fields age, account_number | head 3;
     fetched rows / total rows = 3/3
-    +-------+
-    | age   |
-    |-------|
-    | 30-40 |
-    | 30-40 |
-    | 20-30 |
-    +-------+
+    +-------+----------------+
+    | age   | account_number |
+    |-------+----------------|
+    | 30-40 | 1              |
+    | 30-40 | 6              |
+    | 20-30 | 13             |
+    +-------+----------------+
 
 Example 9: Large minspan
 ==========================
@@ -405,8 +405,8 @@ Example 12: Span with start/end
 
 PPL query::
 
-    os> source=bank | bin age span=1 start=25 end=35 | fields age | head 6;
-    fetched rows / total rows = 6/6
+    os> source=accounts | bin age span=1 start=25 end=35 | fields age | head 6;
+    fetched rows / total rows = 4/4
     +-------+
     | age   |
     |-------|
@@ -414,8 +414,6 @@ PPL query::
     | 36-37 |
     | 28-29 |
     | 33-34 |
-    | 29-30 |
-    | 39-40 |
     +-------+
 
 Time-based Examples
@@ -522,13 +520,13 @@ Example 19: Default behavior (no parameters)
 
 PPL query::
 
-    os> source=accounts | bin age | fields age | head 3;
+    os> source=accounts | bin age | fields age, account_number | head 3;
     fetched rows / total rows = 3/3
-    +-----------+
-    | age       |
-    |-----------|
-    | 32.0-33.0 |
-    | 36.0-37.0 |
-    | 28.0-29.0 |
-    +-----------+
+    +-----------+----------------+
+    | age       | account_number |
+    |-----------+----------------|
+    | 32.0-33.0 | 1              |
+    | 36.0-37.0 | 6              |
+    | 28.0-29.0 | 13             |
+    +-----------+----------------+
 
