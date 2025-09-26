@@ -328,7 +328,8 @@ public class SQLPlugin extends Plugin
         new FixedExecutorBuilder(
             settings,
             SQL_BACKGROUND_THREAD_POOL_NAME,
-            OpenSearchExecutors.allocatedProcessors(settings),
+            settings.getAsInt(
+                "thread_pool.search.size", OpenSearchExecutors.allocatedProcessors(settings)),
             1000,
             "thread_pool." + SQL_BACKGROUND_THREAD_POOL_NAME));
   }
