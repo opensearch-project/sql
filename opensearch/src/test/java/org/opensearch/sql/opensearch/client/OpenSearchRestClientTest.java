@@ -62,6 +62,7 @@ import org.opensearch.core.common.Strings;
 import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.builder.SearchSourceBuilder;
@@ -223,6 +224,15 @@ class OpenSearchRestClientTest {
         () ->
             assertEquals(
                 OpenSearchTextType.of(MappingType.Long), parsedTypes.get("manager.salary")));
+  }
+
+  @Test
+  void get_index_mappings_with_index_patterns() throws IOException {
+    GetMappingsResponse response = mock(GetMappingsResponse.class);
+    when(response.mappings()).thenReturn(Map.of());
+    when(restClient.indices().getMapping(any(GetMappingsRequest.class), any()))
+        .thenReturn(response);
+    assertThrows(IndexNotFoundException.class, () -> client.getIndexMappings("test*"));
   }
 
   @Test
