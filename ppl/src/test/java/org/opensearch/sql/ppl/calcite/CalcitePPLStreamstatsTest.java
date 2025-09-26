@@ -86,4 +86,84 @@ public class CalcitePPLStreamstatsTest extends CalcitePPLAbstractTest {
             + " `$cor0`.`__stream_seq__` AND `DEPTNO` = `$cor0`.`DEPTNO`) `t2`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testStreamstatsGlobal() {
+    String ppl = "source=EMP | streamstats window = 5 global= false max(SAL) by DEPTNO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], max(SAL)=[MAX($5) OVER (PARTITION BY $7 ROWS 4"
+            + " PRECEDING)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, MAX(`SAL`)"
+            + " OVER (PARTITION BY `DEPTNO` ROWS BETWEEN 4 PRECEDING AND CURRENT ROW) `max(SAL)`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testStreamstatsReset() {
+    String ppl =
+        "source=EMP | streamstats reset_before=SAL>100 reset_after=SAL<50 avg(SAL) by DEPTNO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], avg(SAL)=[$12])\n"
+            + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7, 8,"
+            + " 11}])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], __stream_seq__=[$8], __reset_before_flag__=[$9],"
+            + " __reset_after_flag__=[$10], __seg_id__=[+(SUM($9) OVER (ROWS UNBOUNDED PRECEDING),"
+            + " COALESCE(SUM($10) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0))])\n"
+            + "      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], __stream_seq__=[ROW_NUMBER() OVER ()],"
+            + " __reset_before_flag__=[CASE(>($5, 100), 1, 0)], __reset_after_flag__=[CASE(<($5,"
+            + " 50), 1, 0)])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalAggregate(group=[{}], avg(SAL)=[AVG($5)])\n"
+            + "      LogicalFilter(condition=[AND(<=($8, $cor0.__stream_seq__), =($11,"
+            + " $cor0.__seg_id__), =($7, $cor0.DEPTNO))])\n"
+            + "        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], __stream_seq__=[$8], __reset_before_flag__=[$9],"
+            + " __reset_after_flag__=[$10], __seg_id__=[+(SUM($9) OVER (ROWS UNBOUNDED PRECEDING),"
+            + " COALESCE(SUM($10) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0))])\n"
+            + "          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], __stream_seq__=[ROW_NUMBER() OVER ()],"
+            + " __reset_before_flag__=[CASE(>($5, 100), 1, 0)], __reset_after_flag__=[CASE(<($5,"
+            + " 50), 1, 0)])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `$cor0`.`EMPNO`, `$cor0`.`ENAME`, `$cor0`.`JOB`, `$cor0`.`MGR`, `$cor0`.`HIREDATE`,"
+            + " `$cor0`.`SAL`, `$cor0`.`COMM`, `$cor0`.`DEPTNO`, `t4`.`avg(SAL)`\n"
+            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
+            + " `__stream_seq__`, `__reset_before_flag__`, `__reset_after_flag__`,"
+            + " (SUM(`__reset_before_flag__`) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT"
+            + " ROW)) + COALESCE(SUM(`__reset_after_flag__`) OVER (ROWS BETWEEN UNBOUNDED PRECEDING"
+            + " AND 1 PRECEDING), 0) `__seg_id__`\n"
+            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
+            + " ROW_NUMBER() OVER () `__stream_seq__`, CASE WHEN `SAL` > 100 THEN 1 ELSE 0 END"
+            + " `__reset_before_flag__`, CASE WHEN `SAL` < 50 THEN 1 ELSE 0 END"
+            + " `__reset_after_flag__`\n"
+            + "FROM `scott`.`EMP`) `t`) `$cor0`,\n"
+            + "LATERAL (SELECT AVG(`SAL`) `avg(SAL)`\n"
+            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
+            + " `__stream_seq__`, `__reset_before_flag__`, `__reset_after_flag__`,"
+            + " (SUM(`__reset_before_flag__`) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT"
+            + " ROW)) + COALESCE(SUM(`__reset_after_flag__`) OVER (ROWS BETWEEN UNBOUNDED PRECEDING"
+            + " AND 1 PRECEDING), 0) `__seg_id__`\n"
+            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
+            + " ROW_NUMBER() OVER () `__stream_seq__`, CASE WHEN `SAL` > 100 THEN 1 ELSE 0 END"
+            + " `__reset_before_flag__`, CASE WHEN `SAL` < 50 THEN 1 ELSE 0 END"
+            + " `__reset_after_flag__`\n"
+            + "FROM `scott`.`EMP`) `t1`) `t2`\n"
+            + "WHERE `__stream_seq__` <= `$cor0`.`__stream_seq__` AND `__seg_id__` ="
+            + " `$cor0`.`__seg_id__` AND `DEPTNO` = `$cor0`.`DEPTNO`) `t4`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }

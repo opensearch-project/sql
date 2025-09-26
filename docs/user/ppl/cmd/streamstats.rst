@@ -419,3 +419,52 @@ PPL query::
     | 4  | 2025-09-04 | 30          | 25            |
     | 5  | 2025-09-05 | 28          | 30            |
     +----+------------+-------------+---------------+
+
+
+Example 3: Use the global argument to calculate running statistics
+==================================================================
+
+The global argument is only applicable when a window argument is set. It defines how the window is applied in relation to the grouping fields:
+
+* global=true: a global window is applied across all rows, but the calculations inside the window still respect the by groups.
+* global=false: the window itself is created per group, meaning each group gets its own independent window.
+
+This example shows how to calculate the running average of age across accounts by gender, using a global window.
+
+PPL query::
+
+    PPL> source=accounts | streamstats window=2 global=true avg(age) as running_avg by gender ;
+    fetched rows / total rows = 7/7
+    +----------------+-----------+-------------------+---------+--------+--------------+----------+-------+-----+----------+-------------+
+    | account_number | firstname | address           | balance | gender | city         | employer | state | age | lastname | running_avg |
+    |----------------+-----------+-------------------+---------+--------+--------------+----------+-------+-----+----------+-------------+
+    | 969            | Briggs    | 952 Lester Court  | 22214   | M      | Roland       | Quinex   | ID    | 30  | Lynn     | 30          |
+    | 971            | Gabrielle | 964 Tudor Terrace | 22772   | F      | Falmouth     | Blanet   | AL    | 32  | Reilly   | 32          |
+    | 976            | Mullen    | 711 Whitney Avenue| 31707   | M      | Mooresburg   | Pulze    | MA    | 26  | Tanner   | 26          |
+    | 983            | Mattie    | 418 Allen Avenue  | 47205   | F      | Dupuyer      | Trasola  | NJ    | 24  | Eaton    | 24          |
+    | 988            | Lucy      | 425 Fleet Walk    | 17803   | F      | Mulino       | Geekfarm | VA    | 34  | Castro   | 29          |
+    | 990            | Kelly     | 809 Hoyt Street   | 44456   | M      | Stewartville | Eschoir  | ID    | 35  | Steele   | 35          |
+    | 995            | Phelps    | 666 Miller Place  | 21153   | M      | Brecon       | Pearlessa| ME    | 25  | Parrish  | 30          |
+    +----------------+-----------+-------------------+---------+--------+--------------+----------+-------+-----+----------+-------------+
+
+
+Example 4: Use the reset_before and reset_after arguments to reset statistics
+=============================================================================
+
+This example calculates the running average of age across accounts by gender, with resets applied.
+
+PPL query::
+
+    PPL> source=accounts | streamstats current=false reset_before=age>34 reset_after=age<25 avg(age) as avg_age by gender;
+    fetched rows / total rows = 7/7
+    +----------------+-----------+-------------------+---------+--------+--------------+----------+-------+-----+----------+---------+
+    | account_number | firstname | address           | balance | gender | city         | employer | state | age | lastname | avg_age |
+    |----------------+-----------+-------------------+---------+--------+--------------+----------+-------+-----+----------+---------|
+    | 969            | Briggs    | 952 Lester Court  | 22214   | M      | Roland       | Quinex   | ID    | 30  | Lynn     | null    |
+    | 971            | Gabrielle | 964 Tudor Terrace | 22772   | F      | Falmouth     | Blanet   | AL    | 32  | Reilly   | null    |
+    | 976            | Mullen    | 711 Whitney Avenue| 31707   | M      | Mooresburg   | Pulze    | MA    | 26  | Tanner   | 30      |
+    | 983            | Mattie    | 418 Allen Avenue  | 47205   | F      | Dupuyer      | Trasola  | NJ    | 24  | Eaton    | 32      |
+    | 988            | Lucy      | 425 Fleet Walk    | 17803   | F      | Mulino       | Geekfarm | VA    | 34  | Castro   | null    |
+    | 990            | Kelly     | 809 Hoyt Street   | 44456   | M      | Stewartville | Eschoir  | ID    | 35  | Steele   | null    |
+    | 995            | Phelps    | 666 Miller Place  | 21153   | M      | Brecon       | Pearlessa| ME    | 25  | Parrish  | 35      |
+    +----------------+-----------+-------------------+---------+--------+--------------+----------+-------+-----+----------+---------+

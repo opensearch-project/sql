@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.List;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.client.Request;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
@@ -289,6 +290,24 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testStreamstatsCurrentWithNUll() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | streamstats current=false avg(age) as prev_avg",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifyDataRows(
+        actual,
+        rows("Jake", "USA", "California", 4, 2023, 70, null),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 70),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 50),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 41.666666666666664),
+        rows(null, "Canada", null, 4, 2023, 10, 36.25),
+        rows("Kevin", null, null, 4, 2023, null, 31));
+  }
+
+  @Test
   public void testStreamstatsWindow() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -301,6 +320,24 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         rows("Hello", "USA", "New York", 4, 2023, 30, 50),
         rows("John", "Canada", "Ontario", 4, 2023, 25, 41.666666666666664),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 25));
+  }
+
+  @Test
+  public void testStreamstatsWindowWithNull() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | streamstats window = 3 avg(age) as avg",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifyDataRows(
+        actual,
+        rows("Jake", "USA", "California", 4, 2023, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 50),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 41.666666666666664),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 25),
+        rows(null, "Canada", null, 4, 2023, 10, 18.333333333333332),
+        rows("Kevin", null, null, 4, 2023, null, 15));
   }
 
   @Test
@@ -348,6 +385,202 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 27.5),
         rows(null, "Canada", null, 4, 2023, 10, 22.5),
         rows("Kevin", null, null, 4, 2023, null, 15));
+  }
+
+  @Test
+  public void testStreamstatsGlobal() throws IOException {
+    final int docId = 5;
+    Request insertRequest =
+        new Request(
+            "PUT", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY, docId));
+    insertRequest.setJsonEntity(
+        "{\"name\": \"Jay\",\"age\": 40,\"state\":"
+            + " \"Quebec\",\"country\": \"USA\",\"year\": 2023,\"month\":"
+            + " 4}\n");
+    client().performRequest(insertRequest);
+
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | streamstats window=2 global=false avg(age) as avg by country",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifyDataRows(
+        actual,
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
+        rows("Jake", "USA", "California", 4, 2023, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 50),
+        rows("Jay", "USA", "Quebec", 4, 2023, 40, 35));
+
+    JSONObject actual2 =
+        executeQuery(
+            String.format(
+                "source=%s | streamstats window=2 global=true avg(age) as avg by country",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifyDataRows(
+        actual2,
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
+        rows("Jake", "USA", "California", 4, 2023, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 50),
+        rows("Jay", "USA", "Quebec", 4, 2023, 40, 40));
+
+    Request deleteRequest =
+        new Request(
+            "DELETE", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY, docId));
+    client().performRequest(deleteRequest);
+  }
+
+  @Test
+  public void testStreamstatsGlobalWithNull() throws IOException {
+    final int docId = 7;
+    Request insertRequest =
+        new Request(
+            "PUT",
+            String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY_WITH_NULL, docId));
+    insertRequest.setJsonEntity(
+        "{\"name\": \"Jay\",\"age\": 40,\"state\":"
+            + " \"Quebec\",\"country\": \"USA\",\"year\": 2023,\"month\":"
+            + " 4}\n");
+    client().performRequest(insertRequest);
+
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | streamstats window=2 global=false avg(age) as avg by country",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifyDataRows(
+        actual,
+        rows("Kevin", null, null, 4, 2023, null, null),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
+        rows(null, "Canada", null, 4, 2023, 10, 15),
+        rows("Jake", "USA", "California", 4, 2023, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 50),
+        rows("Jay", "USA", "Quebec", 4, 2023, 40, 35));
+
+    JSONObject actual2 =
+        executeQuery(
+            String.format(
+                "source=%s | streamstats window=2 global=true avg(age) as avg by country",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifyDataRows(
+        actual2,
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
+        rows(null, "Canada", null, 4, 2023, 10, 15),
+        rows("Jake", "USA", "California", 4, 2023, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 50),
+        rows("Jay", "USA", "Quebec", 4, 2023, 40, 40),
+        rows("Kevin", null, null, 4, 2023, null, null));
+
+    Request deleteRequest =
+        new Request(
+            "DELETE",
+            String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY_WITH_NULL, docId));
+    client().performRequest(deleteRequest);
+  }
+
+  @Test
+  public void testStreamstatsReset() throws IOException {
+    final int docId = 5;
+    Request insertRequest =
+        new Request(
+            "PUT", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY, docId));
+    insertRequest.setJsonEntity(
+        "{\"name\": \"Jay\",\"age\": 28,\"state\":"
+            + " \"Quebec\",\"country\": \"USA\",\"year\": 2023,\"month\":"
+            + " 4}\n");
+    client().performRequest(insertRequest);
+
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | streamstats window=2 reset_before=age>29 avg(age) as avg by country",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifyDataRows(
+        actual,
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
+        rows("Jake", "USA", "California", 4, 2023, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 30),
+        rows("Jay", "USA", "Quebec", 4, 2023, 28, 28));
+
+    JSONObject actual2 =
+        executeQuery(
+            String.format(
+                "source=%s | streamstats window=2 reset_after=age>22 avg(age) as avg by country",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifyDataRows(
+        actual2,
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20),
+        rows("Jake", "USA", "California", 4, 2023, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 30),
+        rows("Jay", "USA", "Quebec", 4, 2023, 28, 28));
+
+    Request deleteRequest =
+        new Request(
+            "DELETE", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY, docId));
+    client().performRequest(deleteRequest);
+  }
+
+  @Test
+  public void testStreamstatsResetWithNull() throws IOException {
+    final int docId = 7;
+    Request insertRequest =
+        new Request(
+            "PUT",
+            String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY_WITH_NULL, docId));
+    insertRequest.setJsonEntity(
+        "{\"name\": \"Jay\",\"age\": 28,\"state\":"
+            + " \"Quebec\",\"country\": \"USA\",\"year\": 2023,\"month\":"
+            + " 4}\n");
+    client().performRequest(insertRequest);
+
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | streamstats window=2 reset_before=age>29 avg(age) as avg by country",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifyDataRows(
+        actual,
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
+        rows(null, "Canada", null, 4, 2023, 10, 15),
+        rows("Jake", "USA", "California", 4, 2023, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 30),
+        rows("Jay", "USA", "Quebec", 4, 2023, 28, 28),
+        rows("Kevin", null, null, 4, 2023, null, null));
+
+    JSONObject actual2 =
+        executeQuery(
+            String.format(
+                "source=%s | streamstats window=2 reset_after=age>22 avg(age) as avg by country",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifyDataRows(
+        actual2,
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20),
+        rows(null, "Canada", null, 4, 2023, 10, 15),
+        rows("Jake", "USA", "California", 4, 2023, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 30),
+        rows("Jay", "USA", "Quebec", 4, 2023, 28, 28),
+        rows("Kevin", null, null, 4, 2023, null, null));
+
+    Request deleteRequest =
+        new Request(
+            "DELETE",
+            String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY_WITH_NULL, docId));
+    client().performRequest(deleteRequest);
   }
 
   @Test
