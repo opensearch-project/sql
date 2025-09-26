@@ -21,6 +21,18 @@ public class OpenSearchTypeSystem extends RelDataTypeSystemImpl {
   private OpenSearchTypeSystem() {}
 
   @Override
+  public int getMaxNumericPrecision() {
+    // same with Spark DecimalType.MAX_PRECISION
+    return 38;
+  }
+
+  @Override
+  public int getMaxNumericScale() {
+    // same with Spark DecimalType.MAX_SCALE
+    return 38;
+  }
+
+  @Override
   public RelDataType deriveAvgAggType(RelDataTypeFactory typeFactory, RelDataType argumentType) {
     if (SqlTypeName.DECIMAL == argumentType.getSqlTypeName()) {
       return typeFactory.createTypeWithNullability(highPrecision(typeFactory, argumentType), false);

@@ -212,3 +212,10 @@ Disabling a datasource to block new queries
         "name" : "my_prometheus",
         "status" : "disabled"
     }
+
+
+Limitations
+===========
+
+In using PPL, data sources except OpenSearch can only work with ``plugins.calcite.enabled=false``.
+When Calcite is enabled, queries against non-OpenSearch data sources will implicit fallback to v2, which means new PPL commands/functions introduced in 3.0.0 and above cannot work together with non-OpenSearch data sources.

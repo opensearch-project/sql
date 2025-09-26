@@ -11,9 +11,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Search;
+import org.opensearch.sql.datasource.DataSourceService;
 
 /**
  * Simple tests for CalciteRelNodeVisitor.visitSearch method. Tests basic functionality without
@@ -22,10 +24,11 @@ import org.opensearch.sql.ast.tree.Search;
 public class CalciteRelNodeVisitorSearchSimpleTest {
 
   private CalciteRelNodeVisitor visitor;
+  @Mock DataSourceService dataSourceService;
 
   @BeforeEach
   public void setUp() {
-    visitor = new CalciteRelNodeVisitor();
+    visitor = new CalciteRelNodeVisitor(dataSourceService);
   }
 
   @Test

@@ -94,17 +94,14 @@ This example counts events for each hour and groups them by host.
 
 PPL query::
 
-    PPL> source=events | timechart span=1h count() by host
-
-Result::
-
-    +---------------------+--------+-------+
-    | @timestamp          | host   | count |
-    +---------------------+--------+-------+
-    | 2024-07-01 00:00:00 | db-01  | 1     |
-    | 2024-07-01 00:00:00 | web-01 | 2     |
-    | 2024-07-01 00:00:00 | web-02 | 2     |
-    +---------------------+--------+-------+
+    os> source=events | timechart span=1h count() by host
+    fetched rows / total rows = 2/2
+    +---------------------+---------+-------+
+    | @timestamp          | host    | count |
+    |---------------------+---------+-------|
+    | 2023-01-01 10:00:00 | server1 | 4     |
+    | 2023-01-01 10:00:00 | server2 | 4     |
+    +---------------------+---------+-------+
 
 Example 2: Count events by minute with zero-filled results
 ==========================================================
@@ -113,29 +110,28 @@ This example counts events for each minute and groups them by host, showing zero
 
 PPL query::
 
-    PPL> source=events | timechart span=1m count() by host
-
-Result::
-
-    +---------------------+--------+-------+
-    | @timestamp          | host   | count |
-    +---------------------+--------+-------+
-    | 2024-07-01 00:00:00 | web-01 | 1     |
-    | 2024-07-01 00:00:00 | web-02 | 0     |
-    | 2024-07-01 00:00:00 | db-01  | 0     |
-    | 2024-07-01 00:01:00 | web-01 | 0     |
-    | 2024-07-01 00:01:00 | web-02 | 1     |
-    | 2024-07-01 00:01:00 | db-01  | 0     |
-    | 2024-07-01 00:02:00 | web-01 | 1     |
-    | 2024-07-01 00:02:00 | web-02 | 0     |
-    | 2024-07-01 00:02:00 | db-01  | 0     |
-    | 2024-07-01 00:03:00 | web-01 | 0     |
-    | 2024-07-01 00:03:00 | web-02 | 0     |
-    | 2024-07-01 00:03:00 | db-01  | 1     |
-    | 2024-07-01 00:04:00 | web-01 | 0     |
-    | 2024-07-01 00:04:00 | web-02 | 1     |
-    | 2024-07-01 00:04:00 | db-01  | 0     |
-    +---------------------+--------+-------+
+    os> source=events | timechart span=1m count() by host
+    fetched rows / total rows = 16/16
+    +---------------------+---------+-------+
+    | @timestamp          | host    | count |
+    |---------------------+---------+-------|
+    | 2023-01-01 10:00:00 | server1 | 1     |
+    | 2023-01-01 10:00:00 | server2 | 0     |
+    | 2023-01-01 10:05:00 | server1 | 0     |
+    | 2023-01-01 10:05:00 | server2 | 1     |
+    | 2023-01-01 10:10:00 | server1 | 1     |
+    | 2023-01-01 10:10:00 | server2 | 0     |
+    | 2023-01-01 10:15:00 | server1 | 0     |
+    | 2023-01-01 10:15:00 | server2 | 1     |
+    | 2023-01-01 10:20:00 | server1 | 1     |
+    | 2023-01-01 10:20:00 | server2 | 0     |
+    | 2023-01-01 10:25:00 | server1 | 0     |
+    | 2023-01-01 10:25:00 | server2 | 1     |
+    | 2023-01-01 10:30:00 | server1 | 1     |
+    | 2023-01-01 10:30:00 | server2 | 0     |
+    | 2023-01-01 10:35:00 | server1 | 0     |
+    | 2023-01-01 10:35:00 | server2 | 1     |
+    +---------------------+---------+-------+
 
 Example 3: Calculate average CPU usage by minute
 ================================================
@@ -145,9 +141,7 @@ This example calculates the average CPU usage for each minute without grouping b
 PPL query::
 
     PPL> source=events | timechart span=1m avg(cpu_usage)
-
-Result::
-
+    fetched rows / total rows = 5/5
     +---------------------+------------------+
     | @timestamp          | avg(cpu_usage)   |
     +---------------------+------------------+
@@ -166,9 +160,7 @@ This example calculates the average CPU usage for each second and groups them by
 PPL query::
 
     PPL> source=events | timechart span=1s avg(cpu_usage) by region
-
-Result::
-
+    fetched rows / total rows = 5/5
     +---------------------+---------+------------------+
     | @timestamp          | region  | avg(cpu_usage)   |
     +---------------------+---------+------------------+
@@ -187,9 +179,7 @@ This example counts events for each second and groups them by region, showing ze
 PPL query::
 
     PPL> source=events | timechart span=1s count() by region
-
-Result::
-
+    fetched rows / total rows = 15/15
     +---------------------+---------+-------+
     | @timestamp          | region  | count |
     +---------------------+---------+-------+
@@ -218,29 +208,28 @@ This query will display the top 2 hosts with the highest count values, and group
 
 PPL query::
 
-    PPL> source=events | timechart span=1m limit=2 count() by host
-
-Result::
-
-    +---------------------+--------+-------+
-    | @timestamp          | host   | count |
-    +---------------------+--------+-------+
-    | 2024-07-01 00:00:00 | web-01 | 1     |
-    | 2024-07-01 00:00:00 | web-02 | 0     |
-    | 2024-07-01 00:00:00 | OTHER  | 0     |
-    | 2024-07-01 00:01:00 | web-01 | 0     |
-    | 2024-07-01 00:01:00 | web-02 | 1     |
-    | 2024-07-01 00:01:00 | OTHER  | 0     |
-    | 2024-07-01 00:02:00 | web-01 | 1     |
-    | 2024-07-01 00:02:00 | web-02 | 0     |
-    | 2024-07-01 00:02:00 | OTHER  | 0     |
-    | 2024-07-01 00:03:00 | web-01 | 0     |
-    | 2024-07-01 00:03:00 | web-02 | 0     |
-    | 2024-07-01 00:03:00 | OTHER  | 1     |
-    | 2024-07-01 00:04:00 | web-01 | 0     |
-    | 2024-07-01 00:04:00 | web-02 | 1     |
-    | 2024-07-01 00:04:00 | OTHER  | 0     |
-    +---------------------+--------+-------+
+    os> source=events | timechart span=1m limit=2 count() by host
+    fetched rows / total rows = 16/16
+    +---------------------+---------+-------+
+    | @timestamp          | host    | count |
+    |---------------------+---------+-------|
+    | 2023-01-01 10:00:00 | server1 | 1     |
+    | 2023-01-01 10:00:00 | server2 | 0     |
+    | 2023-01-01 10:05:00 | server1 | 0     |
+    | 2023-01-01 10:05:00 | server2 | 1     |
+    | 2023-01-01 10:10:00 | server1 | 1     |
+    | 2023-01-01 10:10:00 | server2 | 0     |
+    | 2023-01-01 10:15:00 | server1 | 0     |
+    | 2023-01-01 10:15:00 | server2 | 1     |
+    | 2023-01-01 10:20:00 | server1 | 1     |
+    | 2023-01-01 10:20:00 | server2 | 0     |
+    | 2023-01-01 10:25:00 | server1 | 0     |
+    | 2023-01-01 10:25:00 | server2 | 1     |
+    | 2023-01-01 10:30:00 | server1 | 1     |
+    | 2023-01-01 10:30:00 | server2 | 0     |
+    | 2023-01-01 10:35:00 | server1 | 0     |
+    | 2023-01-01 10:35:00 | server2 | 1     |
+    +---------------------+---------+-------+
 
 Example 7: Using limit=0 with count() to show all values
 ========================================================
@@ -250,9 +239,7 @@ To display all distinct values without any limit, set limit=0:
 PPL query::
 
     PPL> source=events_many_hosts | timechart span=1h limit=0 count() by host
-
-Result::
-
+    fetched rows / total rows = 11/11
     +---------------------+--------+-------+
     | @timestamp          | host   | count |
     +---------------------+--------+-------+
@@ -279,9 +266,7 @@ Limit to top 10 hosts without OTHER category (useother=false):
 PPL query::
 
     PPL> source=events_many_hosts | timechart span=1h useother=false count() by host
-
-Result::
-
+    fetched rows / total rows = 10/10
     +---------------------+--------+-------+
     | @timestamp          | host   | count |
     +---------------------+--------+-------+
@@ -305,9 +290,7 @@ Limit to top 3 hosts with OTHER category (default useother=true):
 PPL query::
 
     PPL> source=events_many_hosts | timechart span=1h limit=3 avg(cpu_usage) by host
-
-Result::
-
+    fetched rows / total rows = 4/4
     +---------------------+--------+------------------+
     | @timestamp          | host   | avg(cpu_usage)   |
     +---------------------+--------+------------------+
@@ -322,9 +305,7 @@ Limit to top 3 hosts without OTHER category (useother=false):
 PPL query::
 
     PPL> source=events_many_hosts | timechart span=1h limit=3 useother=false avg(cpu_usage) by host
-
-Result::
-
+    fetched rows / total rows = 3/3
     +---------------------+--------+------------------+
     | @timestamp          | host   | avg(cpu_usage)   |
     +---------------------+--------+------------------+
@@ -341,9 +322,7 @@ This example shows how null values in the "by" field are treated as a separate c
 PPL query::
 
     PPL> source=events_null | timechart span=1h count() by host
-
-Result::
-
+    fetched rows / total rows = 4/4
     +---------------------+--------+-------+
     | @timestamp          | host   | count |
     +---------------------+--------+-------+

@@ -135,9 +135,11 @@ Limitations on Calcite Engine
 =============================
 
 Since 3.0.0, we introduce Apache Calcite as an experimental query engine. Please see `introduce v3 engine <../../../dev/intro-v3-engine.md>`_.
-For the following functionalities, the query will be forwarded to the V2 query engine.
+For the following functionalities, the query will be forwarded to the V2 query engine. It means following functionalities cannot work together with new PPL commands/functions introduced in 3.0.0 and above.
 
 * All SQL queries
+
+* PPL queries against non-OpenSearch data sources
 
 * ``dedup`` with ``consecutive=true``
 
@@ -147,14 +149,6 @@ For the following functionalities, the query will be forwarded to the V2 query e
     * ML
     * Kmeans
 
+* ``show datasources`` command
+
 * Commands with ``fetch_size`` parameter
-
-* Search relevant functions
-
-    * match
-    * match_phrase
-    * match_bool_prefix
-    * match_phrase_prefix
-    * simple_query_string
-    * query_string
-    * multi_match
