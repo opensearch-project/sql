@@ -15,6 +15,7 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Locale;
+import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
@@ -31,7 +32,7 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.util.RetryProcessor;
-import org.opensearch.sql.utils.YamlFormatter;
+import org.opensearch.sql.utils.JsonToYamlConverter;
 
 /** OpenSearch Rest integration test base for PPL testing. */
 public abstract class PPLIntegTestCase extends SQLIntegTestCase {
@@ -40,6 +41,13 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   private static final Logger LOG = LogManager.getLogger();
   @Rule public final RetryProcessor retryProcessor = new RetryProcessor();
 
+  // Enable debug by -DdebugExplain=true option.
+  private static final boolean DEBUG_EXPLAIN = "true".equals(System.getProperty("debugExplain"));
+
+  protected static boolean isDebugExplainEnabled() {
+    return DEBUG_EXPLAIN;
+  }
+
   @Override
   protected void init() throws Exception {
     super.init();
@@ -47,13 +55,45 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   }
 
   protected JSONObject executeQuery(String query) throws IOException {
-    return jsonify(executeQueryToString(query));
+    return jsonify(executeQueryToString(debugExplain(query)));
+  }
+
+  protected String debugExplain(String ppl) throws IOException {
+    if (isDebugExplainEnabled()) {
+      try {
+        System.out.println("=== QUERY ===");
+        System.out.println(ppl);
+        System.out.println("=== EXPLAIN OUTPUT ===");
+        System.out.println(explainQueryToYaml(ppl));
+      } catch (Exception e) {
+        System.out.println("Failed to convert explain output to YAML format.");
+        // won't raise error
+      } finally {
+        System.out.println("=== END EXPLAIN OUTPUT ===");
+      }
+    }
+    return ppl;
   }
 
   protected String executeQueryToString(String query) throws IOException {
     Response response = client().performRequest(buildRequest(query, QUERY_API_ENDPOINT));
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-    return getResponseBody(response, true);
+    return debugResponse(getResponseBody(response, true));
+  }
+
+  protected String debugResponse(String response) {
+    if (isDebugExplainEnabled()) {
+      try {
+        System.out.println("=== QUERY RESPONSE ===");
+        System.out.println(JsonToYamlConverter.convertJsonToYaml(response));
+      } catch (Exception e) {
+        System.out.println("Failed to convert response to YAML format. raw response:" + response);
+        // won't raise error
+      } finally {
+        System.out.println("=== END QUERY RESPONSE ===");
+      }
+    }
+    return response;
   }
 
   protected String explainQueryToString(String query) throws IOException {
@@ -62,8 +102,8 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
 
   protected String explainQueryToYaml(String query) throws IOException {
     String jsonResponse = explainQueryToString(query);
-    JSONObject jsonObject = jsonify(jsonResponse);
-    return YamlFormatter.formatToYaml(jsonObject);
+    // Use JsonToYamlConverter to properly convert JSON string to YAML
+    return JsonToYamlConverter.convertJsonToYaml(jsonResponse);
   }
 
   protected String explainQueryToString(String query, boolean extended) throws IOException {
@@ -359,5 +399,37 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+  }
+
+  protected void createDocumentWithIdAndJsonField(
+      String index, int id, String fieldName, String jsonContent) throws IOException {
+    createDocumentWithIdAndJsonField(index, id, fieldName, jsonContent, Map.of());
+  }
+
+  protected void createDocumentWithIdAndJsonField(
+      String index,
+      int id,
+      String fieldName,
+      String jsonContent,
+      Map<String, String> additionalFields)
+      throws IOException {
+    Request request = new Request("PUT", String.format("/%s/_doc/%d?refresh=true", index, id));
+    request.setJsonEntity(
+        String.format(
+            "{\"id\": %d, \"%s\": \"%s\" %s}",
+            id, fieldName, escapeForJson(jsonContent), formatAdditionalFields(additionalFields)));
+    client().performRequest(request);
+  }
+
+  private String formatAdditionalFields(Map<String, String> additionalFields) {
+    StringBuilder sb = new StringBuilder();
+    for (Map.Entry<String, String> entry : additionalFields.entrySet()) {
+      sb.append(String.format(", \"%s\": \"%s\"", entry.getKey(), escapeForJson(entry.getValue())));
+    }
+    return sb.toString();
+  }
+
+  protected String escapeForJson(String jsonContent) {
+    return jsonContent.replace("\"", "\\\"");
   }
 }

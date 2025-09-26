@@ -9,16 +9,19 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.dsl.AstDSL;
+import org.opensearch.sql.calcite.utils.DynamicColumnProcessor;
 
 @ToString
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
 @AllArgsConstructor
+@Getter
 public class SPath extends UnresolvedPlan {
   private UnresolvedPlan child;
 
@@ -26,7 +29,7 @@ public class SPath extends UnresolvedPlan {
 
   @Nullable private final String outField;
 
-  private final String path;
+  @Nullable private final String path;
 
   @Override
   public UnresolvedPlan attach(UnresolvedPlan child) {
@@ -45,6 +48,30 @@ public class SPath extends UnresolvedPlan {
   }
 
   public Eval rewriteAsEval() {
+    if (this.path == null) {
+      return rewriteAsDynamicColumns();
+    } else {
+      return rewriteAsSpecificPath();
+    }
+  }
+
+  private Eval rewriteAsDynamicColumns() {
+    return AstDSL.eval(
+        this.child,
+        AstDSL.let(
+            AstDSL.field(DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD),
+            // Merge if the dynamic columns field already exists (using coalesce to let optimizer
+            // remove map_merge)
+            AstDSL.function(
+                "coalesce",
+                AstDSL.function(
+                    "map_merge",
+                    AstDSL.field(DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD),
+                    AstDSL.function("json_extract_all", AstDSL.field(inField))),
+                AstDSL.function("json_extract_all", AstDSL.field(inField)))));
+  }
+
+  private Eval rewriteAsSpecificPath() {
     String outField = this.outField;
     if (outField == null) {
       outField = this.path;
@@ -56,5 +83,9 @@ public class SPath extends UnresolvedPlan {
             AstDSL.field(outField),
             AstDSL.function(
                 "json_extract", AstDSL.field(inField), AstDSL.stringLiteral(this.path))));
+  }
+
+  public boolean isDynamicColumns() {
+    return this.path == null;
   }
 }

@@ -67,6 +67,7 @@ import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.calcite.utils.DynamicColumnProcessor;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -290,7 +291,9 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     }
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
 
-    if (!currentFields.contains(qualifiedName) && context.isInCoalesceFunction()) {
+    if (!currentFields.contains(qualifiedName)
+        && context.isInCoalesceFunction()
+        && !context.isDynamicColumnsAvailable()) {
       return context.rexBuilder.makeNullLiteral(
           context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR));
     }
@@ -300,6 +303,10 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       // Note: QualifiedName with multiple parts also could be applied in step 2.1,
       // for example `n2.n_name` or `nation2.n_name` in the output of join can be resolved here.
       return context.relBuilder.field(qualifiedName);
+    } else if (DynamicColumnProcessor.tryResolveDynamicField(
+        qualifiedName, currentFields, context)) {
+      // 2.1.5 Try to resolve unknown field as dynamic column access
+      return DynamicColumnProcessor.resolveDynamicField(qualifiedName, context);
     } else if (node.getParts().size() == 2) {
       // 2.2 resolve QualifiedName with an alias or table name
       List<String> parts = node.getParts();
@@ -474,6 +481,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     List<RexNode> arguments = new ArrayList<>();
 
     boolean isCoalesce = "coalesce".equalsIgnoreCase(node.getFuncName());
+
     if (isCoalesce) {
       context.setInCoalesceFunction(true);
     }

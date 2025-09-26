@@ -1,0 +1,8 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(name=[MAP_GET(COALESCE(MAP_MERGE(null:(VARCHAR NOT NULL, ANY NOT NULL) MAP, JSON_EXTRACT_ALL($2)), JSON_EXTRACT_ALL($2)), 'name')], age=[$10], city=[$5])
+        CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
+  physical: |
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[null:(VARCHAR NOT NULL, ANY NOT NULL) MAP], expr#4=[JSON_EXTRACT_ALL($t0)], expr#5=[MAP_MERGE($t3, $t4)], expr#6=[COALESCE($t5, $t4)], expr#7=['name'], expr#8=[MAP_GET($t6, $t7)], $f0=[$t8], age=[$t1], city=[$t2])
+      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]], PushDownContext=[[PROJECT->[address, age, city], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10000,"timeout":"1m","_source":{"includes":["address","age","city"],"excludes":[]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])

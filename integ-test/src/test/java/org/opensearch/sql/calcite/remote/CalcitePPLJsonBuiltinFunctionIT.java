@@ -48,6 +48,21 @@ public class CalcitePPLJsonBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testJsonWithJsonTestIndex() throws IOException {
+    // Test json() function using JSON_TEST index data
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where test_name = 'json object' | eval parsed = json(json_string) |"
+                    + " fields test_name, parsed",
+                TEST_INDEX_JSON_TEST));
+
+    verifySchema(actual, schema("test_name", "string"), schema("parsed", "string"));
+
+    verifyDataRows(actual, rows("json object", "{\"a\":\"1\",\"b\":\"2\"}"));
+  }
+
+  @Test
   public void testJsonObject() throws IOException {
     JSONObject actual =
         executeQuery(

@@ -47,6 +47,7 @@ SQL query::
     | docTestCluster | null        | events           | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | json_test        | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | nested           | BASE TABLE | null    | null     | null       | null      | null                      | null           |
+    | docTestCluster | null        | nested_json      | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | nyc_taxi         | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | occupation       | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | otellogs         | BASE TABLE | null    | null     | null       | null      | null                      | null           |

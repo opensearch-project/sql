@@ -130,10 +130,12 @@ import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.BinUtils;
+import org.opensearch.sql.calcite.utils.DynamicColumnProcessor;
+import org.opensearch.sql.calcite.utils.DynamicColumnReferenceDetector;
+import org.opensearch.sql.calcite.utils.DynamicWildcardProcessor;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
-import org.opensearch.sql.calcite.utils.WildcardUtils;
 import org.opensearch.sql.common.patterns.PatternUtils;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
@@ -323,20 +325,32 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       return handleAllFieldsProject(node, context);
     }
 
-    List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
-    List<RexNode> expandedFields =
-        expandProjectFields(node.getProjectList(), currentFields, context);
+    boolean wasInFieldsCommand = context.isInFieldsCommand();
+    context.setInFieldsCommand(true);
 
-    if (node.isExcluded()) {
-      validateExclusion(expandedFields, currentFields);
-      context.relBuilder.projectExcept(expandedFields);
-    } else {
-      if (!context.isResolvingSubquery()) {
-        context.setProjectVisited(true);
+    try {
+      List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
+      List<RexNode> expandedFields =
+          expandProjectFields(node.getProjectList(), currentFields, context);
+
+      if (node.isExcluded()) {
+        // Handle exclusion patterns with dynamic wildcard support
+        List<RexNode> fieldsToExclude =
+            DynamicWildcardProcessor.handleExclusionWildcards(
+                node.getProjectList(), currentFields, context);
+        validateExclusion(fieldsToExclude, currentFields);
+        context.relBuilder.projectExcept(fieldsToExclude);
+      } else {
+        if (!context.isResolvingSubquery()) {
+          context.setProjectVisited(true);
+        }
+        context.relBuilder.project(expandedFields);
       }
-      context.relBuilder.project(expandedFields);
+      return context.relBuilder.peek();
+    } finally {
+      // Restore previous context state
+      context.setInFieldsCommand(wasInFieldsCommand);
     }
-    return context.relBuilder.peek();
   }
 
   private boolean isSingleAllFieldsProject(Project node) {
@@ -359,40 +373,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       List<UnresolvedExpression> projectList,
       List<String> currentFields,
       CalcitePlanContext context) {
-    List<RexNode> expandedFields = new ArrayList<>();
-    Set<String> addedFields = new HashSet<>();
 
-    for (UnresolvedExpression expr : projectList) {
-      switch (expr) {
-        case Field field -> {
-          String fieldName = field.getField().toString();
-          if (WildcardUtils.containsWildcard(fieldName)) {
-            List<String> matchingFields =
-                WildcardUtils.expandWildcardPattern(fieldName, currentFields).stream()
-                    .filter(f -> !isMetadataField(f))
-                    .filter(addedFields::add)
-                    .toList();
-            if (matchingFields.isEmpty()) {
-              continue;
-            }
-            matchingFields.forEach(f -> expandedFields.add(context.relBuilder.field(f)));
-          } else if (addedFields.add(fieldName)) {
-            expandedFields.add(rexVisitor.analyze(field, context));
-          }
-        }
-        case AllFields ignored -> {
-          currentFields.stream()
-              .filter(field -> !isMetadataField(field))
-              .filter(addedFields::add)
-              .forEach(field -> expandedFields.add(context.relBuilder.field(field)));
-        }
-        default -> throw new IllegalStateException(
-            "Unexpected expression type in project list: " + expr.getClass().getSimpleName());
-      }
-    }
+    // Use DynamicWildcardProcessor for enhanced wildcard handling with dynamic columns
+    List<RexNode> expandedFields =
+        DynamicWildcardProcessor.expandWildcardFields(
+            rexVisitor, projectList, currentFields, context);
 
     if (expandedFields.isEmpty()) {
-      validateWildcardPatterns(projectList, currentFields);
+      boolean hasDynamicColumns =
+          currentFields.contains(DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD);
+      DynamicWildcardProcessor.validateWildcardPatterns(
+          projectList, currentFields, hasDynamicColumns);
     }
 
     return expandedFields;
@@ -405,24 +396,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (fieldsToExclude.size() >= nonMetaFields.size()) {
       throw new IllegalArgumentException(
           "Invalid field exclusion: operation would exclude all fields from the result set");
-    }
-  }
-
-  private void validateWildcardPatterns(
-      List<UnresolvedExpression> projectList, List<String> currentFields) {
-    String firstWildcardPattern =
-        projectList.stream()
-            .filter(
-                expr ->
-                    expr instanceof Field field
-                        && WildcardUtils.containsWildcard(field.getField().toString()))
-            .map(expr -> ((Field) expr).getField().toString())
-            .findFirst()
-            .orElse(null);
-
-    if (firstWildcardPattern != null) {
-      throw new IllegalArgumentException(
-          String.format("wildcard pattern [%s] matches no fields", firstWildcardPattern));
     }
   }
 
@@ -773,6 +746,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitEval(Eval node, CalcitePlanContext context) {
     visitChildren(node, context);
+
+    if (DynamicColumnReferenceDetector.containsDynamicColumnReference(node, context)) {
+      DynamicColumnProcessor.ensureDynamicColumnsFieldExists(context);
+    }
+
     node.getExpressionList()
         .forEach(
             expr -> {
@@ -783,6 +761,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 context.pushCorrelVar(v.get());
               }
               RexNode eval = rexVisitor.analyze(expr, context);
+
               if (containsSubqueryExpression) {
                 // RelBuilder.projectPlus doesn't have a parameter with variablesSet:
                 // projectPlus(Iterable<CorrelationId> variablesSet, RexNode... nodes)
@@ -796,7 +775,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 // Overriding the existing field if the alias has the same name with original field.
                 String alias =
                     ((RexLiteral) ((RexCall) eval).getOperands().get(1)).getValueAs(String.class);
+
+                // Use projectPlusOverriding to properly handle field replacement
+                // This ensures that if _dynamic_columns already exists, it gets updated instead of
+                // creating _dynamic_columns0
                 projectPlusOverriding(List.of(eval), List.of(alias), context);
+
+                if (DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD.equals(alias)) {
+                  context.setDynamicColumnsAvailable(true);
+                }
               }
             });
     return context.relBuilder.peek();
@@ -977,9 +964,22 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       CalcitePlanContext context) {
     List<AggCall> aggCallList =
         aggExprList.stream().map(expr -> aggVisitor.analyze(expr, context)).toList();
-    List<RexNode> groupByList =
-        groupExprList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
-    return Pair.of(groupByList, aggCallList);
+
+    // This ensures dynamic fields in GROUP BY clauses get proper aliasing and type handling
+    boolean wasInFieldsCommand = context.isInFieldsCommand();
+    boolean wasInGroupByContext = context.isInGroupByContext();
+    context.setInFieldsCommand(true);
+    context.setInGroupByContext(true);
+
+    try {
+      List<RexNode> groupByList =
+          groupExprList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
+      return Pair.of(groupByList, aggCallList);
+    } finally {
+      // Restore previous context state
+      context.setInFieldsCommand(wasInFieldsCommand);
+      context.setInGroupByContext(wasInGroupByContext);
+    }
   }
 
   @Override
@@ -1366,13 +1366,24 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (consecutive) {
       throw new UnsupportedOperationException("Consecutive deduplication is not supported");
     }
-    // Columns to deduplicate
-    List<RexNode> dedupeFields =
-        node.getFields().stream().map(f -> rexVisitor.analyze(f, context)).toList();
-    if (keepEmpty) {
-      buildDedupOrNull(context, dedupeFields, allowedDuplication);
-    } else {
-      buildDedupNotNull(context, dedupeFields, allowedDuplication);
+
+    // Dedup uses partitioning which is similar to GROUP BY and needs VARCHAR casting for dynamic
+    // fields
+    boolean wasInGroupByContext = context.isInGroupByContext();
+    context.setInGroupByContext(true);
+
+    try {
+      // Columns to deduplicate
+      List<RexNode> dedupeFields =
+          node.getFields().stream().map(f -> rexVisitor.analyze(f, context)).toList();
+      if (keepEmpty) {
+        buildDedupOrNull(context, dedupeFields, allowedDuplication);
+      } else {
+        buildDedupNotNull(context, dedupeFields, allowedDuplication);
+      }
+    } finally {
+      // Restore previous context state
+      context.setInGroupByContext(wasInGroupByContext);
     }
     return context.relBuilder.peek();
   }

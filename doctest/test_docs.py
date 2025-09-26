@@ -36,6 +36,7 @@ TEST_DATA = {
     '.ql-datasources': 'datasources.json',
     'weblogs': 'weblogs.json',
     'json_test': 'json_test.json',
+    'nested_json': 'nested_json.json',
     'state_country': 'state_country.json',
     'occupation': 'occupation.json',
     'worker': 'worker.json',

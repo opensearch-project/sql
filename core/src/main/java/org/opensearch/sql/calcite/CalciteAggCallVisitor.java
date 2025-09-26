@@ -38,39 +38,56 @@ public class CalciteAggCallVisitor extends AbstractNodeVisitor<AggCall, CalciteP
 
   @Override
   public AggCall visitAggregateFunction(AggregateFunction node, CalcitePlanContext context) {
-    RexNode field =
-        node.getField() == null ? null : rexNodeVisitor.analyze(node.getField(), context);
-    List<RexNode> argList = new ArrayList<>();
-    for (UnresolvedExpression arg : node.getArgList()) {
-      argList.add(rexNodeVisitor.analyze(arg, context));
+    boolean wasInGroupByContext = context.isInGroupByContext();
+    context.setInGroupByContext(true);
+
+    try {
+      RexNode field =
+          node.getField() == null ? null : rexNodeVisitor.analyze(node.getField(), context);
+      List<RexNode> argList = new ArrayList<>();
+      for (UnresolvedExpression arg : node.getArgList()) {
+        argList.add(rexNodeVisitor.analyze(arg, context));
+      }
+      return BuiltinFunctionName.ofAggregation(node.getFuncName())
+          .map(
+              functionName -> {
+                return PlanUtils.makeAggCall(
+                    context, functionName, node.getDistinct(), field, argList);
+              })
+          .orElseThrow(
+              () ->
+                  new UnsupportedOperationException(
+                      "Unexpected aggregation: " + node.getFuncName()));
+    } finally {
+      context.setInGroupByContext(wasInGroupByContext);
     }
-    return BuiltinFunctionName.ofAggregation(node.getFuncName())
-        .map(
-            functionName -> {
-              return PlanUtils.makeAggCall(
-                  context, functionName, node.getDistinct(), field, argList);
-            })
-        .orElseThrow(
-            () ->
-                new UnsupportedOperationException("Unexpected aggregation: " + node.getFuncName()));
   }
 
   // Visit special UDAFs that are derived from command. For example, patterns command generates
   // brain function.
   @Override
   public AggCall visitFunction(Function node, CalcitePlanContext context) {
-    List<RexNode> argList = new ArrayList<>();
-    RexNode field =
-        node.getFuncArgs().isEmpty()
-            ? null
-            : rexNodeVisitor.analyze(node.getFuncArgs().get(0), context);
-    for (int i = 1; i < node.getFuncArgs().size(); i++) {
-      argList.add(rexNodeVisitor.analyze(node.getFuncArgs().get(i), context));
+    boolean wasInGroupByContext = context.isInGroupByContext();
+    context.setInGroupByContext(true);
+
+    try {
+      List<RexNode> argList = new ArrayList<>();
+      RexNode field =
+          node.getFuncArgs().isEmpty()
+              ? null
+              : rexNodeVisitor.analyze(node.getFuncArgs().get(0), context);
+      for (int i = 1; i < node.getFuncArgs().size(); i++) {
+        argList.add(rexNodeVisitor.analyze(node.getFuncArgs().get(i), context));
+      }
+      return BuiltinFunctionName.ofAggregation(node.getFuncName())
+          .map(functionName -> PlanUtils.makeAggCall(context, functionName, false, field, argList))
+          .orElseThrow(
+              () ->
+                  new UnsupportedOperationException(
+                      "Unexpected aggregation: " + node.getFuncName()));
+    } finally {
+      // Restore previous context state
+      context.setInGroupByContext(wasInGroupByContext);
     }
-    return BuiltinFunctionName.ofAggregation(node.getFuncName())
-        .map(functionName -> PlanUtils.makeAggCall(context, functionName, false, field, argList))
-        .orElseThrow(
-            () ->
-                new UnsupportedOperationException("Unexpected aggregation: " + node.getFuncName()));
   }
 }

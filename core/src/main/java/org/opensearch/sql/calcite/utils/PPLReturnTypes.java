@@ -21,6 +21,8 @@ import org.opensearch.sql.data.type.ExprCoreType;
 public final class PPLReturnTypes {
   private PPLReturnTypes() {}
 
+  public static final SqlReturnTypeInference ANY_FORCE_NULLABLE =
+      ReturnTypes.explicit(UserDefinedFunctionUtils.NULLABLE_ANY);
   public static final SqlReturnTypeInference DATE_FORCE_NULLABLE =
       ReturnTypes.explicit(UserDefinedFunctionUtils.NULLABLE_DATE_UDT);
   public static final SqlReturnTypeInference TIME_FORCE_NULLABLE =
@@ -62,5 +64,20 @@ public final class PPLReturnTypes {
         RelDataType stringType =
             typeFactory.createSqlType(org.apache.calcite.sql.type.SqlTypeName.VARCHAR);
         return SqlTypeUtil.createArrayType(typeFactory, stringType, true);
+      };
+  public static final SqlReturnTypeInference MAP_STRING_ANY_FORCE_NULLABLE =
+      opBinding -> {
+        RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+        if (typeFactory instanceof OpenSearchTypeFactory) {
+          OpenSearchTypeFactory osTypeFactory = (OpenSearchTypeFactory) typeFactory;
+          RelDataType stringType =
+              typeFactory.createSqlType(org.apache.calcite.sql.type.SqlTypeName.VARCHAR);
+          RelDataType anyType =
+              typeFactory.createSqlType(org.apache.calcite.sql.type.SqlTypeName.ANY);
+          RelDataType mapType = osTypeFactory.createMapType(stringType, anyType);
+          return typeFactory.createTypeWithNullability(mapType, true);
+        }
+        // Fallback for non-OpenSearch type factories
+        return typeFactory.createSqlType(org.apache.calcite.sql.type.SqlTypeName.ANY);
       };
 }

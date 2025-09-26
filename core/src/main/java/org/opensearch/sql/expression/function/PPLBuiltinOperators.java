@@ -52,6 +52,7 @@ import org.opensearch.sql.expression.function.jsonUDF.JsonAppendFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonArrayLengthFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonDeleteFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonExtendFunctionImpl;
+import org.opensearch.sql.expression.function.jsonUDF.JsonExtractAllFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonExtractFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonKeysFunctionImpl;
@@ -109,11 +110,27 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       new JsonArrayLengthFunctionImpl().toUDF("JSON_ARRAY_LENGTH");
   public static final SqlOperator JSON_EXTRACT =
       new JsonExtractFunctionImpl().toUDF("JSON_EXTRACT");
+  public static final SqlOperator JSON_EXTRACT_ALL =
+      new JsonExtractAllFunctionImpl().toUDF("JSON_EXTRACT_ALL");
   public static final SqlOperator JSON_KEYS = new JsonKeysFunctionImpl().toUDF("JSON_KEYS");
   public static final SqlOperator JSON_SET = new JsonSetFunctionImpl().toUDF("JSON_SET");
   public static final SqlOperator JSON_DELETE = new JsonDeleteFunctionImpl().toUDF("JSON_DELETE");
   public static final SqlOperator JSON_APPEND = new JsonAppendFunctionImpl().toUDF("JSON_APPEND");
   public static final SqlOperator JSON_EXTEND = new JsonExtendFunctionImpl().toUDF("JSON_EXTEND");
+
+  // Map functions
+  public static final SqlOperator MAP_MERGE =
+      new org.opensearch.sql.expression.function.mapUDF.MapMergeFunctionImpl().toUDF("MAP_MERGE");
+  public static final SqlOperator MAP_GET =
+      new org.opensearch.sql.expression.function.mapUDF.MapGetFunctionImpl().toUDF("MAP_GET");
+
+  // Dynamic wildcard functions
+  public static final SqlOperator DYNAMIC_WILDCARD_EXPAND =
+      new org.opensearch.sql.expression.function.dynamicWildcard.DynamicWildcardExpandFunction()
+          .toUDF("DYNAMIC_WILDCARD_EXPAND");
+  public static final SqlOperator DYNAMIC_WILDCARD_EXCLUDE =
+      new org.opensearch.sql.expression.function.dynamicWildcard.DynamicWildcardExcludeFunction()
+          .toUDF("DYNAMIC_WILDCARD_EXCLUDE");
 
   // Math functions
   public static final SqlOperator SPAN = new SpanFunction().toUDF("SPAN");

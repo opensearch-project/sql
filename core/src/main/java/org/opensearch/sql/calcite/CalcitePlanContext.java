@@ -51,6 +51,21 @@ public class CalcitePlanContext {
    */
   @Getter @Setter private boolean isProjectVisited = false;
 
+  /**
+   * The flag used to determine whether dynamic columns are available for field resolution. This is
+   * set to true when the _dynamic_columns field is added to the schema.
+   */
+  @Getter @Setter private boolean dynamicColumnsAvailable = false;
+
+  /**
+   * The flag used to determine whether we are currently resolving fields within a fields command.
+   * This affects how dynamic field resolution is handled - fields command uses aliasing while other
+   * commands use direct MAP access.
+   */
+  @Getter @Setter private boolean inFieldsCommand = false;
+
+  @Getter @Setter private boolean inGroupByContext = false;
+
   private final Stack<RexCorrelVariable> correlVar = new Stack<>();
   private final Stack<List<RexNode>> windowPartitions = new Stack<>();
 
