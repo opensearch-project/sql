@@ -11,6 +11,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TELEMETRY;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -41,6 +42,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     loadIndex(Index.DATE_FORMATS);
     loadIndex(Index.DATA_TYPE_NUMERIC);
     loadIndex(Index.LOGS);
+    loadIndex(Index.TELEMETRY);
     loadIndex(Index.TIME_TEST_DATA);
   }
 
@@ -518,15 +520,20 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | head 5 | stats count(datetime0), count(datetime1) by span(datetime1,"
-                    + " 15 minute) as datetime_span",
+                "source=%s | head 5 | stats count(datetime0), count(datetime1) by span(time1,"
+                    + " 15 minute) as time_span",
                 TEST_INDEX_CALCS));
     verifySchema(
         actual,
-        schema("datetime_span", "timestamp"),
+        schema("time_span", "time"),
         schema("count(datetime0)", "bigint"),
         schema("count(datetime1)", "bigint"));
-    verifyDataRows(actual, rows(5, 0, null));
+    verifyDataRows(
+        actual,
+        rows(1, 0, "19:30:00"),
+        rows(1, 0, "02:00:00"),
+        rows(1, 0, "09:30:00"),
+        rows(1, 0, "22:45:00"));
   }
 
   @Test
@@ -1191,5 +1198,305 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         executeQuery(String.format("source=%s | stats min(firstname)", TEST_INDEX_BANK));
     verifySchema(actual, schema("min(firstname)", "string"));
     verifyDataRows(actual, rows("Amber JOHnny"));
+  }
+
+  @Test
+  public void testStatsCountOnFunctionsWithUDTArg() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | eval t = unix_timestamp(birthdate) | stats count() by t | sort -t",
+                TEST_INDEX_BANK));
+    verifySchema(response, schema("count()", "bigint"), schema("t", "double"));
+    verifyDataRows(
+        response,
+        rows(1, 1542152000),
+        rows(1, 1534636800),
+        rows(1, 1533945600),
+        rows(1, 1530057600),
+        rows(1, 1529712000),
+        rows(1, 1511136000),
+        rows(1, 1508716800));
+  }
+
+  @Test
+  public void testStatsGroupByDate() throws IOException {
+    JSONObject resonse =
+        executeQuery(
+            String.format(
+                "source=%s | eval t = date_add(birthdate, interval 1 day) | stats count() by"
+                    + " span(t, 1d)",
+                TEST_INDEX_BANK));
+    verifySchema(resonse, schema("count()", "bigint"), schema("span(t,1d)", "timestamp"));
+    verifyDataRows(
+        resonse,
+        rows(1, "2017-10-24 00:00:00"),
+        rows(1, "2017-11-21 00:00:00"),
+        rows(1, "2018-06-24 00:00:00"),
+        rows(1, "2018-06-28 00:00:00"),
+        rows(1, "2018-08-12 00:00:00"),
+        rows(1, "2018-08-20 00:00:00"),
+        rows(1, "2018-11-14 00:00:00"));
+  }
+
+  @Test
+  public void testLimitAfterAggregation() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() by age | sort -age | head 3", TEST_INDEX_BANK));
+    verifySchema(response, schema("count()", "bigint"), schema("age", "int"));
+    verifyDataRows(response, rows(1, 39), rows(2, 36), rows(1, 34));
+  }
+
+  @Test
+  public void testFirstLastWithSimpleField() throws IOException {
+    // This should work - testing simple field first
+    JSONObject actual =
+        executeQuery(
+            String.format("source=%s | stats first(severityNumber)", TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("first(severityNumber)", "int"));
+    verifyDataRows(actual, rows(9));
+  }
+
+  @Test
+  public void testFirstLastWithDeepNestedField() throws IOException {
+    // This test should now work with the fix for ClassCastException
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(`resource.attributes.telemetry.sdk.language`)",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("first(`resource.attributes.telemetry.sdk.language`)", "string"));
+    verifyDataRows(actual, rows("java"));
+  }
+
+  @Test
+  public void testLastWithDeepNestedField() throws IOException {
+    // This test should now work with the fix for ClassCastException
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats last(`resource.attributes.telemetry.sdk.language`)",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("last(`resource.attributes.telemetry.sdk.language`)", "string"));
+    verifyDataRows(actual, rows("rust"));
+  }
+
+  @Test
+  public void testFirstLastWithDeepNestedFieldByGroup() throws IOException {
+    // This test should now work with the fix for ClassCastException
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(`resource.attributes.telemetry.sdk.language`) by"
+                    + " severityNumber",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(
+        actual,
+        schema("first(`resource.attributes.telemetry.sdk.language`)", "string"),
+        schema("severityNumber", "int"));
+    verifyDataRows(actual, rows("java", 9), rows("python", 12), rows("go", 16));
+  }
+
+  @Test
+  public void testMinWithDeepNestedField() throws IOException {
+    // Test that min() works with deeply nested fields after the ClassCastException fix
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats min(`resource.attributes.telemetry.sdk.language`)",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("min(`resource.attributes.telemetry.sdk.language`)", "string"));
+    verifyDataRows(
+        actual, rows("go")); // Alphabetically first: go < java < javascript < python < rust
+  }
+
+  @Test
+  public void testMaxWithDeepNestedField() throws IOException {
+    // Test that max() works with deeply nested fields after the ClassCastException fix
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats max(`resource.attributes.telemetry.sdk.language`)",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("max(`resource.attributes.telemetry.sdk.language`)", "string"));
+    verifyDataRows(
+        actual, rows("rust")); // Alphabetically last: go < java < javascript < python < rust
+  }
+
+  @Test
+  public void testMinMaxWithDeepNestedFieldByGroup() throws IOException {
+    // Test that min() and max() work with deeply nested fields and grouping
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats min(`resource.attributes.telemetry.sdk.language`) by"
+                    + " severityNumber | sort severityNumber",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(
+        actual,
+        schema("min(`resource.attributes.telemetry.sdk.language`)", "string"),
+        schema("severityNumber", "int"));
+    // severityNumber 9: java, javascript -> min = java
+    // severityNumber 12: python, rust -> min = python
+    // severityNumber 16: go -> min = go
+    verifyDataRows(actual, rows("java", 9), rows("python", 12), rows("go", 16));
+  }
+
+  @Test
+  public void testMinMaxMultipleNestedFields() throws IOException {
+    // Test min/max with multiple nested field aggregations in one query
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats min(`resource.attributes.telemetry.sdk.language`) as min_lang,"
+                    + " max(`resource.attributes.telemetry.sdk.language`) as max_lang",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("min_lang", "string"), schema("max_lang", "string"));
+    verifyDataRows(actual, rows("go", "rust"));
+  }
+
+  @Test
+  public void testMinWithIntegerNestedField() throws IOException {
+    // Test that min() works with deeply nested integer fields
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats min(`resource.attributes.telemetry.sdk.version`)",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("min(`resource.attributes.telemetry.sdk.version`)", "int"));
+    verifyDataRows(actual, rows(10)); // Minimum version is 10
+  }
+
+  @Test
+  public void testMaxWithIntegerNestedField() throws IOException {
+    // Test that max() works with deeply nested integer fields
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats max(`resource.attributes.telemetry.sdk.version`)",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("max(`resource.attributes.telemetry.sdk.version`)", "int"));
+    verifyDataRows(actual, rows(14)); // Maximum version is 14
+  }
+
+  @Test
+  public void testMinMaxIntegerNestedFieldsByGroup() throws IOException {
+    // Test min/max on integer nested fields with grouping
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats min(`resource.attributes.telemetry.sdk.version`) as min_ver,"
+                    + " max(`resource.attributes.telemetry.sdk.version`) as max_ver by"
+                    + " severityNumber",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(
+        actual,
+        schema("min_ver", "int"),
+        schema("max_ver", "int"),
+        schema("severityNumber", "int"));
+    // severityNumber 9: versions 10, 12 -> min=10, max=12
+    // severityNumber 12: versions 11, 14 -> min=11, max=14
+    // severityNumber 16: version 13 -> min=13, max=13
+    verifyDataRows(actual, rows(10, 12, 9), rows(11, 14, 12), rows(13, 13, 16));
+  }
+
+  @Test
+  public void testFirstLastWithIntegerNestedField() throws IOException {
+    // Test first/last with deeply nested integer fields
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(`resource.attributes.telemetry.sdk.version`) as first_ver,"
+                    + " last(`resource.attributes.telemetry.sdk.version`) as last_ver",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("first_ver", "int"), schema("last_ver", "int"));
+    verifyDataRows(actual, rows(10, 14));
+  }
+
+  @Test
+  public void testFirstLastWithBooleanNestedField() throws IOException {
+    // Test first/last with deeply nested boolean fields
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(`resource.attributes.telemetry.sdk.enabled`) as"
+                    + " first_enabled, last(`resource.attributes.telemetry.sdk.enabled`) as"
+                    + " last_enabled",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("first_enabled", "boolean"), schema("last_enabled", "boolean"));
+    verifyDataRows(actual, rows(true, true)); // First record is true, last record is true
+  }
+
+  @Test
+  public void testCountWithBooleanNestedFieldGroupBy() throws IOException {
+    // Test count aggregation grouped by boolean nested field
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() as cnt by `resource.attributes.telemetry.sdk.enabled`",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(
+        actual,
+        schema("cnt", "bigint"),
+        schema("resource.attributes.telemetry.sdk.enabled", "boolean"));
+    verifyDataRows(actual, rows(2L, false), rows(3L, true)); // 2 false, 3 true values
+  }
+
+  @Test
+  public void testMinMaxWithBooleanNestedField() throws IOException {
+    // Test min/max with deeply nested boolean fields
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats min(`resource.attributes.telemetry.sdk.enabled`) as min_enabled,"
+                    + " max(`resource.attributes.telemetry.sdk.enabled`) as max_enabled",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("min_enabled", "boolean"), schema("max_enabled", "boolean"));
+    verifyDataRows(actual, rows(false, true)); // Min is false, max is true
+  }
+
+  @Test
+  public void testBooleanNestedFieldByGroup() throws IOException {
+    // Test boolean nested fields with grouping by other fields
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() as cnt,"
+                    + " first(`resource.attributes.telemetry.sdk.enabled`) as enabled by"
+                    + " severityNumber",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(
+        actual,
+        schema("cnt", "bigint"),
+        schema("enabled", "boolean"),
+        schema("severityNumber", "int"));
+    // severityNumber 9: java (true), javascript (true) -> 2 records, first is true
+    // severityNumber 12: python (false), rust (true) -> 2 records, first is false
+    // severityNumber 16: go (false) -> 1 record, first is false
+    verifyDataRows(actual, rows(2L, true, 9), rows(2L, false, 12), rows(1L, false, 16));
+  }
+
+  @Test
+  public void testMixedTypesNestedFieldAggregations() throws IOException {
+    // Test aggregating multiple nested field types in one query
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats min(`resource.attributes.telemetry.sdk.version`) as min_ver,"
+                    + " max(`resource.attributes.telemetry.sdk.version`) as max_ver,"
+                    + " min(`resource.attributes.telemetry.sdk.enabled`) as min_enabled,"
+                    + " max(`resource.attributes.telemetry.sdk.enabled`) as max_enabled,"
+                    + " first(`resource.attributes.telemetry.sdk.language`) as first_lang",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(
+        actual,
+        schema("min_ver", "int"),
+        schema("max_ver", "int"),
+        schema("min_enabled", "boolean"),
+        schema("max_enabled", "boolean"),
+        schema("first_lang", "string"));
+    verifyDataRows(actual, rows(10, 14, false, true, "java"));
   }
 }

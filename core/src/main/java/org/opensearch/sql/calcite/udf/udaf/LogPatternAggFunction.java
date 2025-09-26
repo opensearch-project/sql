@@ -184,7 +184,8 @@ public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAc
                     PatternUtils.PATTERN,
                         parseResult.toTokenOrderString(PatternUtils.WILDCARD_PREFIX),
                     PatternUtils.PATTERN_COUNT, count,
-                    PatternUtils.TOKENS, tokensMap);
+                    PatternUtils.TOKENS, tokensMap,
+                    PatternUtils.SAMPLE_LOGS, sampleLogs);
               })
           .collect(Collectors.toList());
     }

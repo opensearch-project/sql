@@ -53,6 +53,7 @@ SQL query::
     | docTestCluster | null        | people           | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | state_country    | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | structured       | BASE TABLE | null    | null     | null       | null      | null                      | null           |
+    | docTestCluster | null        | time_test        | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | weblogs          | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | wildcard         | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | work_information | BASE TABLE | null    | null     | null       | null      | null                      | null           |

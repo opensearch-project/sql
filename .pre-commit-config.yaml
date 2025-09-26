@@ -1,8 +1,13 @@
 repos:
   - repo: local
     hooks:
+      - id: spotless-format
+        name: Spotless Format
+        entry: bash -c './gradlew spotlessApply && git add -u'
+        language: system
+        pass_filenames: false
       - id: spotless-check
-        name: Spotless Check
-        entry: ./gradlew spotlessCheck
+        name: Spotless Post-format Check
+        entry: bash -c './gradlew spotlessCheck'
         language: system
         pass_filenames: false
