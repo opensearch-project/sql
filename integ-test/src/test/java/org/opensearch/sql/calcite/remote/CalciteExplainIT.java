@@ -239,6 +239,19 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testFilterWithSearchCall() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_filter_with_search.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | where birthdate >= '2023-01-01 00:00:00' and birthdate < '2023-01-03"
+                    + " 00:00:00' | stats count() by span(birthdate, 1d)",
+                TEST_INDEX_BANK)));
+  }
+
+  @Test
   public void testExplainWithReverse() throws IOException {
     String result =
         executeWithReplace(
@@ -594,6 +607,17 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_mvjoin.json");
     assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testPreventLimitPushdown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    setMaxResultWindow("opensearch-sql_test_index_account", 1);
+    String query = "source=opensearch-sql_test_index_account | head 1 from 1";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_prevent_limit_push.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
+    resetMaxResultWindow("opensearch-sql_test_index_account");
   }
 
   @Test
