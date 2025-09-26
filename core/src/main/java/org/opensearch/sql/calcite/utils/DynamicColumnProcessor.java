@@ -45,8 +45,7 @@ public class DynamicColumnProcessor {
     }
 
     Set<String> dynamicColumnNames = collectDynamicColumnNames(response.getResults());
-    Schema expandedSchema =
-        createExpandedSchema(response.getSchema(), dynamicColumnNames, response.getResults());
+    Schema expandedSchema = createExpandedSchema(response.getSchema(), dynamicColumnNames);
     List<ExprValue> expandedResults =
         expandResultRowsWithDynamicColumns(response.getResults(), dynamicColumnNames);
 
@@ -100,13 +99,8 @@ public class DynamicColumnProcessor {
     for (ExprValue row : results) {
       if (row instanceof ExprTupleValue) {
         ExprValue dynamicColumnsValue = row.tupleValue().get(DYNAMIC_COLUMNS_FIELD);
-        if (dynamicColumnsValue != null
-            && !dynamicColumnsValue.isNull()
-            && !dynamicColumnsValue.isMissing()) {
-          // Extract keys from the MAP
-          Map<String, ExprValue> mapValue = extractMapValue(dynamicColumnsValue);
-          columnNames.addAll(mapValue.keySet());
-        }
+        Map<String, ExprValue> mapValue = extractMapValue(dynamicColumnsValue);
+        columnNames.addAll(mapValue.keySet());
       }
     }
 
@@ -115,7 +109,7 @@ public class DynamicColumnProcessor {
 
   /** It will deduplicate columns if dynamic column name conflicts with original schema */
   private static Schema createExpandedSchema(
-      Schema originalSchema, Set<String> dynamicColumnNames, List<ExprValue> results) {
+      Schema originalSchema, Set<String> dynamicColumnNames) {
     Set<String> originalColumnNames = collectColumnNames(originalSchema);
     List<Column> expandedColumns = getColumnsExcludingDynamic(originalSchema);
 

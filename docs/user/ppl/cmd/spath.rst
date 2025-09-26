@@ -29,6 +29,7 @@ spath input=<field> [output=<field>] [path=<path>]
 
 * Limitation: The fields extracted by `spath` are always of type `text`. If you need to perform numeric operations on the extracted fields, you must cast them to the appropriate numeric type using the `eval` command.
 * Limitation: When `path` parameter is omitted, extracted fields cannot be used for `join` operations.
+* Limitation: When `path` parameter is omitted, `_dynamic_columns` field is used to store the extracted fields internally, and you cannot use this field name in that query.
 
 Note
 =====

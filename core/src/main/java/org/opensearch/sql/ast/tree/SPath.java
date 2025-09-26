@@ -60,7 +60,8 @@ public class SPath extends UnresolvedPlan {
         this.child,
         AstDSL.let(
             AstDSL.field(DynamicColumnProcessor.DYNAMIC_COLUMNS_FIELD),
-            // Merge if the dynamic columns field already exists
+            // Merge if the dynamic columns field already exists (using coalesce to let optimizer
+            // remove map_merge)
             AstDSL.function(
                 "coalesce",
                 AstDSL.function(
