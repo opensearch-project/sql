@@ -42,6 +42,7 @@ TEST_DATA = {
     'work_information': 'work_information.json',
     'events': 'events.json',
     'otellogs': 'otellogs.json',
+    'structured': 'structured.json',
     'time_test': 'time_test.json'
 }
 
