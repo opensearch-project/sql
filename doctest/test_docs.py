@@ -43,8 +43,7 @@ TEST_DATA = {
     'events': 'events.json',
     'otellogs': 'otellogs.json',
     'time_data': 'time_test_data.json',
-    'time_data2': 'time_test_data2.json'
-    'otellogs': 'otellogs.json',
+    'time_data2': 'time_test_data2.json',
     'time_test': 'time_test.json'
 }
 
