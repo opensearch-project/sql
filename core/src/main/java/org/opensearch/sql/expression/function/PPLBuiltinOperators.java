@@ -370,6 +370,8 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
           .toUDF("UTC_TIMESTAMP");
   public static final SqlOperator WEEK = new WeekFunction().toUDF("WEEK");
   public static final SqlOperator GROK = new ParseFunction().toUDF("GROK");
+  // TODO: Figure out if there is other option to perform multiple group match in Calcite
+  // For now, keep V2's regexExpression logic to avoid breaking change
   public static final SqlOperator PARSE = new ParseFunction().toUDF("PARSE");
   public static final SqlOperator PATTERN_PARSER =
       new PatternParserFunctionImpl().toUDF("PATTERN_PARSER");

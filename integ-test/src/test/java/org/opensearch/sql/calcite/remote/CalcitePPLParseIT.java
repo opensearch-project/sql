@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -25,6 +26,7 @@ public class CalcitePPLParseIT extends PPLIntegTestCase {
 
     loadIndex(Index.BANK);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
+    loadIndex(Index.WEBLOG);
   }
 
   @Test
@@ -122,5 +124,17 @@ public class CalcitePPLParseIT extends PPLIntegTestCase {
         executeQuery(
             "source = test | parse email '.+@(?<email>.+)' | fields email, email0, email1");
     verifyDataRows(result, rows("a.com", "b@b.com", "c@c.com"));
+  }
+
+  @Test
+  public void testParseNullInput() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | parse message '.*HTTP/1.1\\\" (?<httpstatus>\\\\d+).*' | where"
+                    + " isnull(message) | fields message, httpstatus",
+                TEST_INDEX_WEBLOGS));
+    verifySchema(result, schema("message", "string"), schema("httpstatus", "string"));
+    verifyDataRows(result, rows(null, ""), rows(null, ""));
   }
 }
