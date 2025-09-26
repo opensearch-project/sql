@@ -304,6 +304,23 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testExplainStatsWithBinsOnTimeField() throws IOException {
+    // TODO:  Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_stats_bins_on_time.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=events | bin @timestamp bins=3 | stats count() by @timestamp"));
+
+    expected = loadExpectedPlan("explain_stats_bins_on_time2.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=events | bin @timestamp bins=3 | stats avg(cpu_usage) by @timestamp"));
+  }
+
+  @Test
   public void testExplainBinWithSpan() throws IOException {
     String expected = loadExpectedPlan("explain_bin_span.json");
     assertJsonEqualsIgnoreId(
@@ -577,6 +594,17 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_mvjoin.json");
     assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testPreventLimitPushdown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    setMaxResultWindow("opensearch-sql_test_index_account", 1);
+    String query = "source=opensearch-sql_test_index_account | head 1 from 1";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_prevent_limit_push.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
+    resetMaxResultWindow("opensearch-sql_test_index_account");
   }
 
   @Test
