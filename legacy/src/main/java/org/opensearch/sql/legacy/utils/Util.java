@@ -48,8 +48,7 @@ public class Util {
 
   public static final String OPENSEARCH_DOC_BASE_URL = "https://docs.opensearch.org/";
 
-  public static final String JOIN_AGGREGATION_DOC_PATH =
-      "/search-plugins/sql/limitation/#join-does-not-support-aggregations-on-the-joined-result";
+  public static final String LIMITATION_DOC_PATH = "/search-plugins/sql/limitation/";
 
   public static String joiner(List<KVValue> lists, String oper) {
 
@@ -317,6 +316,6 @@ public class Util {
    * @return Complete documentation URL with version
    */
   public static String getJoinAggregationDocumentationUrl(Class<?> clazz) {
-    return OPENSEARCH_DOC_BASE_URL + getDocumentationVersion(clazz) + JOIN_AGGREGATION_DOC_PATH;
+    return OPENSEARCH_DOC_BASE_URL + getDocumentationVersion(clazz) + LIMITATION_DOC_PATH;
   }
 }

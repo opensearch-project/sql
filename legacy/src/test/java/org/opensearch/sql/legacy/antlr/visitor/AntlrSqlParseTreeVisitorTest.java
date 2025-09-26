@@ -18,6 +18,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.opensearch.sql.legacy.antlr.OpenSearchLegacySqlAnalyzer;
 import org.opensearch.sql.legacy.antlr.SqlAnalysisConfig;
+import org.opensearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser;
 import org.opensearch.sql.legacy.antlr.semantic.scope.SemanticContext;
 import org.opensearch.sql.legacy.antlr.semantic.types.Type;
 import org.opensearch.sql.legacy.antlr.semantic.types.special.Product;
@@ -106,6 +107,62 @@ public class AntlrSqlParseTreeVisitorTest {
     exceptionRule.expect(SqlFeatureNotImplementedException.class);
     exceptionRule.expectMessage("Operator [DIV] is not supported yet");
     visit("SELECT balance DIV age FROM test");
+  }
+
+  private final AntlrSqlParseTreeVisitor<Type> testVisitor =
+      new AntlrSqlParseTreeVisitor<>(analyzer);
+
+  @Test
+  public void hasJoinInQueryShouldReturnFalseForSingleTable() {
+    OpenSearchLegacySqlParser.GroupByItemContext groupByCtx =
+        findGroupByItemContext("SELECT age FROM accounts GROUP BY age");
+    Assert.assertNotNull("Should find GROUP BY item context", groupByCtx);
+
+    boolean hasJoin = testVisitor.hasJoinInQuery(groupByCtx);
+    Assert.assertFalse("Single table query should not have JOIN", hasJoin);
+  }
+
+  @Test
+  public void hasJoinInQueryShouldReturnTrueForImplicitJoin() {
+    OpenSearchLegacySqlParser.GroupByItemContext groupByCtx =
+        findGroupByItemContext("SELECT a.age FROM accounts a, users u GROUP BY a.age");
+    Assert.assertNotNull("Should find GROUP BY item context", groupByCtx);
+
+    boolean hasJoin = testVisitor.hasJoinInQuery(groupByCtx);
+    Assert.assertTrue("Implicit join query should have JOIN", hasJoin);
+  }
+
+  @Test
+  public void hasJoinInQueryShouldReturnFalseForMultipleGroupByItems() {
+    OpenSearchLegacySqlParser.GroupByItemContext groupByCtx =
+        findGroupByItemContext("SELECT age, balance FROM accounts GROUP BY age, balance");
+    Assert.assertNotNull("Should find GROUP BY item context", groupByCtx);
+
+    boolean hasJoin = testVisitor.hasJoinInQuery(groupByCtx);
+    Assert.assertFalse("Single table with multiple GROUP BY should not have JOIN", hasJoin);
+  }
+
+  private OpenSearchLegacySqlParser.GroupByItemContext findGroupByItemContext(String sql) {
+    ParseTree parseTree = createParseTree(sql);
+    return findGroupByItemContextInTree(parseTree);
+  }
+
+  private OpenSearchLegacySqlParser.GroupByItemContext findGroupByItemContextInTree(
+      ParseTree tree) {
+    if (tree instanceof OpenSearchLegacySqlParser.GroupByItemContext) {
+      return (OpenSearchLegacySqlParser.GroupByItemContext) tree;
+    }
+
+    int childCount = tree.getChildCount();
+    for (int i = 0; i < childCount; i++) {
+      OpenSearchLegacySqlParser.GroupByItemContext result =
+          findGroupByItemContextInTree(tree.getChild(i));
+      if (result != null) {
+        return result;
+      }
+    }
+
+    return null;
   }
 
   private ParseTree createParseTree(String sql) {

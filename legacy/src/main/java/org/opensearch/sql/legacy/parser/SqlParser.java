@@ -48,6 +48,7 @@ import org.opensearch.sql.legacy.domain.hints.Hint;
 import org.opensearch.sql.legacy.domain.hints.HintFactory;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.query.multi.MultiQuerySelect;
+import org.opensearch.sql.legacy.utils.Util;
 
 /**
  * OpenSearch sql support
@@ -365,13 +366,22 @@ public class SqlParser {
 
     MySqlSelectQueryBlock query = (MySqlSelectQueryBlock) sqlExpr.getSubQuery().getQuery();
 
+    // Check for JOIN + GROUP BY combination and throw error
+    if (query.getGroupBy() != null && !query.getGroupBy().getItems().isEmpty()) {
+      String errorMessage =
+          Util.JOIN_AGGREGATION_ERROR_PREFIX
+              + Util.DOC_REDIRECT_MESSAGE
+              + Util.getJoinAggregationDocumentationUrl(SqlParser.class);
+      throw new SqlParseException(errorMessage);
+    }
+
     List<From> joinedFrom = findJoinedFrom(query.getFrom());
     if (joinedFrom.size() != 2) {
       throw new RuntimeException("currently supports only 2 tables join");
     }
 
     JoinSelect joinSelect =
-        createBasicJoinSelectAccordingToTableSource((SQLJoinTableSource) query.getFrom(), query);
+        createBasicJoinSelectAccordingToTableSource((SQLJoinTableSource) query.getFrom());
     List<Hint> hints = parseHints(query.getHints());
     joinSelect.setHints(hints);
     String firstTableAlias = joinedFrom.get(0).getAlias();
@@ -444,9 +454,9 @@ public class SqlParser {
     return hints;
   }
 
-  private JoinSelect createBasicJoinSelectAccordingToTableSource(
-      SQLJoinTableSource joinTableSource, MySqlSelectQueryBlock query) throws SqlParseException {
-    JoinSelect joinSelect = JoinSelect.withValidation(query);
+  private JoinSelect createBasicJoinSelectAccordingToTableSource(SQLJoinTableSource joinTableSource)
+      throws SqlParseException {
+    JoinSelect joinSelect = new JoinSelect();
     if (joinTableSource.getCondition() != null) {
       Where where = Where.newInstance();
       WhereParser whereParser = new WhereParser(this, joinTableSource.getCondition());

@@ -53,6 +53,8 @@ import org.opensearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.SelectCo
 import org.opensearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.SubqueryTableItemContext;
 import org.opensearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.TableNamePatternContext;
 import org.opensearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParserBaseVisitor;
+import org.opensearch.sql.legacy.exception.SqlParseException;
+import org.opensearch.sql.legacy.utils.Util;
 
 /** ANTLR parse tree visitor to drive the analysis process. */
 public class AntlrSqlParseTreeVisitor<T extends Reducible>
@@ -262,6 +264,75 @@ public class AntlrSqlParseTreeVisitor<T extends Reducible>
   @Override
   public T visitFunctionNameBase(FunctionNameBaseContext ctx) {
     return visitor.visitFunctionName(ctx.getText());
+  }
+
+  @Override
+  public T visitGroupByItem(OpenSearchLegacySqlParser.GroupByItemContext ctx) {
+    if (hasJoinInQuery(ctx)) {
+      String errorMessage =
+          Util.JOIN_AGGREGATION_ERROR_PREFIX
+              + Util.DOC_REDIRECT_MESSAGE
+              + Util.getJoinAggregationDocumentationUrl(AntlrSqlParseTreeVisitor.class);
+      throw new RuntimeException(new SqlParseException(errorMessage));
+    }
+    return super.visitGroupByItem(ctx);
+  }
+
+  /**
+   * Traverse up the parse tree from GROUP BY context to detect JOINs. This method looks for JOIN
+   * patterns in the query specification's FROM clause.
+   */
+  boolean hasJoinInQuery(OpenSearchLegacySqlParser.GroupByItemContext groupByCtx) {
+    ParserRuleContext current = groupByCtx.getParent();
+
+    while (current != null && !(current instanceof QuerySpecificationContext)) {
+      current = current.getParent();
+    }
+
+    if (current instanceof QuerySpecificationContext) {
+      QuerySpecificationContext querySpec = (QuerySpecificationContext) current;
+      FromClauseContext fromClause = querySpec.fromClause();
+
+      if (fromClause != null && fromClause.tableSources() != null) {
+        return hasJoinInTableSources(fromClause.tableSources());
+      }
+    }
+
+    return false;
+  }
+
+  /** Check if table sources contain JOIN operations. */
+  private boolean hasJoinInTableSources(TableSourcesContext tableSourcesCtx) {
+    if (tableSourcesCtx.tableSource().size() > 1) {
+      return true;
+    }
+
+    for (int i = 0; i < tableSourcesCtx.getChildCount(); i++) {
+      ParseTree child = tableSourcesCtx.getChild(i);
+      if (hasJoinInParseTree(child)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /** Recursively check if a parse tree contains JOIN operations by examining all children. */
+  private boolean hasJoinInParseTree(ParseTree tree) {
+    if (tree instanceof TableSourceBaseContext) {
+      TableSourceBaseContext baseCtx = (TableSourceBaseContext) tree;
+      if (!baseCtx.joinPart().isEmpty()) {
+        return true;
+      }
+    }
+
+    for (int i = 0; i < tree.getChildCount(); i++) {
+      if (hasJoinInParseTree(tree.getChild(i))) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   @Override
