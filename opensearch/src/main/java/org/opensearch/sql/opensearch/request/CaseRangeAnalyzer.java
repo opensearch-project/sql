@@ -5,16 +5,14 @@
 
 package org.opensearch.sql.opensearch.request;
 
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-
 import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
-import lombok.RequiredArgsConstructor;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
@@ -26,26 +24,33 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.util.Sarg;
 import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.bucket.range.RangeAggregationBuilder;
-import org.opensearch.search.aggregations.bucket.range.RangeAggregator;
 
 /**
  * Analyzer to detect CASE expressions that can be converted to OpenSearch range aggregations.
  *
  * <p>Strict validation rules:
+ *
  * <ul>
- *   <li>All conditions must compare the same field with literals</li>
- *   <li>Only simple comparison operators (>, >=, <, <=) are allowed</li>
- *   <li>Ranges must be non-overlapping and contiguous</li>
- *   <li>Return values must be string literals</li>
+ *   <li>All conditions must compare the same field with literals
+ *   <li>Only closed-open, at-least, and less-than ranges are allowed
+ *   <li>Return values must be string literals
  * </ul>
  */
 public class CaseRangeAnalyzer {
+  /** The default key to use if there isn't a key specified for the else case */
+  public static final String DEFAULT_ELSE_KEY = "null";
+
+  /** The name for the range aggregation */
+  public static final String NAME = "case_range";
+
   private final RelDataType rowType;
-  private final RangeSet<BigDecimal> rangeSet;
+  private final RangeSet<Double> takenRange;
+  private final RangeAggregationBuilder builder;
 
   public CaseRangeAnalyzer(RelDataType rowType) {
     this.rowType = rowType;
-    this.rangeSet = TreeRangeSet.create();
+    this.takenRange = TreeRangeSet.create();
+    this.builder = AggregationBuilders.range(NAME);
   }
 
   /**
@@ -70,28 +75,34 @@ public class CaseRangeAnalyzer {
     }
 
     List<RexNode> operands = caseCall.getOperands();
-    RangeAggregationBuilder aggregationBuilder = AggregationBuilders.range("case_range");
 
     // Process WHEN-THEN pairs
     for (int i = 0; i < operands.size() - 1; i += 2) {
       RexNode condition = operands.get(i);
-      RexNode result = operands.get(i + 1);
+      RexNode expr = operands.get(i + 1);
       // Result must be a literal
-      if (!(result instanceof RexLiteral)) {
+      if (!(expr instanceof RexLiteral)) {
         return Optional.empty();
       }
-      String key = ((RexLiteral) result).getValueAs(String.class);
-      analyzeCondition(aggregationBuilder, condition, key);
+      String key = ((RexLiteral) expr).getValueAs(String.class);
+      analyzeCondition(condition, key);
     }
 
     // Check ELSE clause
-    // TODO: Currently, we ignore else clause
-    //  Process the case without else clause and check range completeness later
-    return Optional.of(aggregationBuilder);
+    RexNode elseExpr = operands.getLast();
+    String elseKey;
+    if (RexLiteral.isNullLiteral(elseExpr)) {
+      // range key doesn't support values of type: VALUE_NULL
+      elseKey = DEFAULT_ELSE_KEY;
+    } else {
+      elseKey = ((RexLiteral) elseExpr).getValueAs(String.class);
+    }
+    addRangeSet(elseKey, takenRange.complement());
+    return Optional.of(builder);
   }
 
   /** Analyzes a single condition in the CASE WHEN clause. */
-  private void analyzeCondition(RangeAggregationBuilder builder, RexNode condition, String key) {
+  private void analyzeCondition(RexNode condition, String key) {
     if (!(condition instanceof RexCall)) {
       throwUnsupported("condition must be a RexCall");
     }
@@ -100,28 +111,35 @@ public class CaseRangeAnalyzer {
     SqlKind kind = call.getKind();
 
     // Handle simple comparisons
-    if (kind == SqlKind.GREATER_THAN_OR_EQUAL || kind == SqlKind.LESS_THAN || kind == SqlKind.LESS_THAN_OR_EQUAL || kind == SqlKind.GREATER_THAN) {
-      builder.addRange(analyzeSimpleComparison(builder, call, key));
-    }
-    // Handle AND conditions (for range conditions like x >= 10 AND x < 100)
-    else if (kind == SqlKind.AND || kind == SqlKind.OR) {
-      analyzeCompositeCondition(builder, call, key);
+    if (kind == SqlKind.GREATER_THAN_OR_EQUAL
+        || kind == SqlKind.LESS_THAN
+        || kind == SqlKind.LESS_THAN_OR_EQUAL
+        || kind == SqlKind.GREATER_THAN) {
+      analyzeSimpleComparison(call, key);
     } else if (kind == SqlKind.SEARCH) {
-      analyzeSearchCondition(builder, call, key);
+      analyzeSearchCondition(call, key);
+    }
+    // AND / OR will only appear when users try to create a complex condition on multiple fields
+    // E.g. (a > 3 and b < 5). Otherwise, the complex conditions will be converted to a SEARCH call.
+    else if (kind == SqlKind.AND || kind == SqlKind.OR) {
+      throwUnsupported("Range queries must be performed on the same field");
+    } else {
+      throwUnsupported("Can not analyze condition as a range query: " + call);
     }
   }
 
-  private RangeAggregator.Range analyzeSimpleComparison(RangeAggregationBuilder builder, RexCall call, String key) {
+  private void analyzeSimpleComparison(RexCall call, String key) {
     List<RexNode> operands = call.getOperands();
     if (operands.size() != 2 || !(call.getOperator() instanceof SqlBinaryOperator)) {
       throwUnsupported();
     }
     RexNode left = operands.get(0);
     RexNode right = operands.get(1);
-    SqlOperator operator =  call.getOperator();
+    SqlOperator operator = call.getOperator();
     RexInputRef inputRef = null;
     RexLiteral literal = null;
 
+    // Swap inputRef to the left if necessary
     if (left instanceof RexInputRef && right instanceof RexLiteral) {
       inputRef = (RexInputRef) left;
       literal = (RexLiteral) right;
@@ -145,91 +163,93 @@ public class CaseRangeAnalyzer {
     }
 
     Double value = literal.getValueAs(Double.class);
-    return switch (operator.getKind()) {
-      case GREATER_THAN_OR_EQUAL -> new RangeAggregator.Range(key, value, null);
-      case LESS_THAN -> new RangeAggregator.Range(key, null, value);
-      default -> throw new UnsupportedOperationException("ranges must equivalents of field >= constant or field < constant");
-    };
+    if (value == null) {
+      throwUnsupported("Cannot parse value for comparison");
+    }
+    switch (operator.getKind()) {
+      case GREATER_THAN_OR_EQUAL -> {
+        addFrom(key, value);
+      }
+      case LESS_THAN -> {
+        addTo(key, value);
+      }
+      default -> throw new UnsupportedOperationException(
+          "ranges must equivalents of field >= constant or field < constant");
+    }
+    ;
   }
 
-  private void analyzeCompositeCondition(RangeAggregationBuilder builder, RexCall compositeCall, String key) {
-    RexNode left = compositeCall.getOperands().get(0);
-    RexNode right = compositeCall.getOperands().get(1);
-
-    if (!(left instanceof RexCall && right instanceof RexCall && ((RexCall) left).getOperator() instanceof SqlBinaryOperator && ((RexCall) right).getOperator() instanceof SqlBinaryOperator)) {
-      throwUnsupported("cannot analyze deep nested comparison");
-    }
-
-    // For AND conditions, we need to analyze them separately and combine
-    // Create temporary ranges to analyze the conditions
-    RangeAggregator.Range leftRange = analyzeSimpleComparison(builder, (RexCall) left, key);
-    RangeAggregator.Range rightRange = analyzeSimpleComparison(builder, (RexCall) right, key);
-
-    // Combine into single range
-    if (compositeCall.getKind() == SqlKind.AND) {
-      and(builder, leftRange, rightRange, key);
-    } else if (compositeCall.getKind() == SqlKind.OR) {
-      or(builder, leftRange, rightRange, key);
-    }
-  }
-
-  private void analyzeSearchCondition(RangeAggregationBuilder builder, RexCall searchCall, String key) {
+  private void analyzeSearchCondition(RexCall searchCall, String key) {
     RexNode field = searchCall.getOperands().getFirst();
-    if (!(field instanceof RexInputRef) || !Objects.equals(getFieldName((RexInputRef) field), builder.field())) {
+    if (!(field instanceof RexInputRef)) {
+      throwUnsupported("Range query must be performed on a field");
+    }
+    String fieldName = getFieldName((RexInputRef) field);
+    if (builder.field() == null) {
+      builder.field(fieldName);
+    } else if (!Objects.equals(builder.field(), fieldName)) {
       throwUnsupported("Range query must be performed on the same field");
     }
     RexLiteral literal = (RexLiteral) searchCall.getOperands().getLast();
     Sarg<?> sarg = literal.getValueAs(Sarg.class);
-    for(Object r: sarg.rangeSet.asRanges()){
+    for (Object r : sarg.rangeSet.asRanges()) {
       Range<BigDecimal> range = (Range<BigDecimal>) r;
-      if ((range.hasLowerBound() && range.lowerBoundType() != BoundType.CLOSED) || (range.hasUpperBound() && range.upperBoundType() != BoundType.OPEN)){
-        throwUnsupported("Range query only supports closed-open ranges");
-      }
+      validateRange(range);
       if (!range.hasLowerBound() && range.hasUpperBound()) {
-        builder.addUnboundedTo(key, range.upperEndpoint().doubleValue());
+        // It will be Double.MAX_VALUE if be big decimal is greater than Double.MAX_VALUE
+        double upper = range.upperEndpoint().doubleValue();
+        addTo(key, upper);
       } else if (range.hasLowerBound() && !range.hasUpperBound()) {
-        builder.addUnboundedFrom(key, range.lowerEndpoint().doubleValue());
+        double lower = range.lowerEndpoint().doubleValue();
+        addFrom(key, lower);
       } else if (range.hasLowerBound()) {
-        builder.addRange(key, range.lowerEndpoint().doubleValue(), range.upperEndpoint().doubleValue());
+        double lower = range.lowerEndpoint().doubleValue();
+        double upper = range.upperEndpoint().doubleValue();
+        addBetween(key, lower, upper);
       } else {
-        builder.addRange(key, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
+        addBetween(key, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
       }
     }
   }
 
-  private static void and(
-          RangeAggregationBuilder builder, RangeAggregator.Range left, RangeAggregator.Range right, String key) {
-    double mergedFrom = Math.max(left.getFrom(), right.getFrom());
-    double mergedTo = Math.min(left.getTo(), right.getTo());
-    if (mergedFrom > Double.NEGATIVE_INFINITY && mergedTo < Double.POSITIVE_INFINITY) {
-      // Closed range: both bounds are finite
-      builder.addRange(key, mergedFrom, mergedTo);
-    } else if (mergedFrom > Double.NEGATIVE_INFINITY) {
-      // Unbounded from: only lower bound (e.g., x >= 10)
-      builder.addUnboundedFrom(key, mergedFrom);
-    } else if (mergedTo < Double.POSITIVE_INFINITY) {
-      // Unbounded to: only upper bound (e.g., x < 50)
-      builder.addUnboundedTo(key, mergedTo);
-    } // If no overlapping, do nothing
+  private void addFrom(String key, Double value) {
+    var from = Range.atLeast(value);
+    updateRange(key, from);
   }
 
-  private static void or(
-          RangeAggregationBuilder builder, RangeAggregator.Range left, RangeAggregator.Range right, String key) {
-    // sort left and right by swapping if necessary
-    if(right.getFrom() < left.getFrom() || (left.getFrom() == right.getFrom() && right.getTo() < left.getTo())) {
-      var tmp = right;
-      right = left;
-      left = tmp;
-    }
-    boolean overlap = left.getTo() > right.getFrom();
-    if (overlap) {
-      // Ranges overlap, meaning they cover all ranges - add both unbounded ranges
-      double mergedFrom = Math.min(left.getFrom(), right.getFrom());
-      double mergedTo = Math.max(left.getTo(), right.getTo());
-      builder.addRange(key, mergedFrom, mergedTo);
+  private void addTo(String key, Double value) {
+    var to = Range.lessThan(value);
+    updateRange(key, to);
+  }
+
+  private void addBetween(String key, Double from, Double to) {
+    var range = Range.closedOpen(from, to);
+    updateRange(key, range);
+  }
+
+  private void updateRange(String key, Range<Double> range) {
+    // The range to add: remaining space ∩ new range
+    RangeSet<Double> toAdd = takenRange.complement().subRangeSet(range);
+    addRangeSet(key, toAdd);
+    takenRange.add(range);
+  }
+
+  // Add range set without updating taken range
+  private void addRangeSet(String key, RangeSet<Double> rangeSet) {
+    rangeSet.asRanges().forEach(range -> addRange(key, range));
+  }
+
+  // Add range without updating taken range
+  private void addRange(String key, Range<Double> range) {
+    validateRange(range);
+    if (range.hasLowerBound() && range.hasUpperBound()) {
+      builder.addRange(key, range.lowerEndpoint(), range.upperEndpoint());
+    } else if (range.hasLowerBound()) {
+      builder.addUnboundedFrom(key, range.lowerEndpoint());
+    } else if (range.hasUpperBound()) {
+      builder.addUnboundedTo(key, range.upperEndpoint());
     } else {
-      builder.addRange(left);
-      builder.addRange(right);
+      builder.addRange(key, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
     }
   }
 
@@ -237,8 +257,15 @@ public class CaseRangeAnalyzer {
     return rowType.getFieldNames().get(field.getIndex());
   }
 
+  private static void validateRange(Range<?> range) {
+    if ((range.hasLowerBound() && range.lowerBoundType() != BoundType.CLOSED)
+        || (range.hasUpperBound() && range.upperBoundType() != BoundType.OPEN)) {
+      throwUnsupported("Range query only supports closed-open ranges");
+    }
+  }
+
   private static void throwUnsupported() {
-    throw new UnsupportedOperationException("Cannot create range aggregator");
+    throw new UnsupportedOperationException("Cannot create range aggregator from case");
   }
 
   private static void throwUnsupported(String message) {
