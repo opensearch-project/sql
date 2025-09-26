@@ -663,17 +663,28 @@ public class PredicateAnalyzer {
         case SEARCH:
           QueryExpression expression = constructQueryExpressionForSearch(call, pair);
           RexUnknownAs nullAs = getNullAsForSearch(call);
+          QueryExpression finalExpression;
           switch (nullAs) {
+            case FALSE:
               // e.g. where isNotNull(a) and (a = 1 or a = 2)
               // TODO: For this case, seems return `expression` should be equivalent
-            case FALSE: return CompoundQueryExpression.and(
+              finalExpression = CompoundQueryExpression.and(
                 false, expression, QueryExpression.create(pair.getKey()).exists());
+              break;
+            case TRUE:
               // e.g. where isNull(a) or a = 1 or a = 2
-            case TRUE: return CompoundQueryExpression.or(
+              finalExpression = CompoundQueryExpression.or(
                 expression, QueryExpression.create(pair.getKey()).notExists());
+              break;
+            case UNKNOWN:
               // e.g. where a = 1 or a = 2
-            case UNKNOWN: return expression;
+              finalExpression = expression;
+              break;
+            default:
+              finalExpression = expression;
           }
+          finalExpression.updateAnalyzedNodes(call);
+          return finalExpression;
         default:
           break;
       }
@@ -1227,7 +1238,7 @@ public class PredicateAnalyzer {
 
     @Override
     public List<RexNode> getAnalyzedNodes() {
-      return List.of(analyzedRexNode);
+      return analyzedRexNode == null ? List.of() : List.of(analyzedRexNode);
     }
 
     @Override
@@ -1506,7 +1517,7 @@ public class PredicateAnalyzer {
 
     @Override
     public List<RexNode> getAnalyzedNodes() {
-      return List.of(analyzedNode);
+      return analyzedNode == null ? List.of() : List.of(analyzedNode);
     }
 
     @Override
