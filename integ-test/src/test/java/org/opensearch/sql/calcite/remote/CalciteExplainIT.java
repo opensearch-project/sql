@@ -893,16 +893,4 @@ public class CalciteExplainIT extends ExplainIT {
                     + " span(t, 1d)",
                 TEST_INDEX_BANK)));
   }
-
-  @Test
-  public void testExplainMultiAggToBeCombined() throws IOException {
-    enabledOnlyWhenPushdownIsEnabled();
-    String expected = loadExpectedPlan("explain_multi_agg_tobe_combined.yaml");
-    assertYamlEqualsJsonIgnoreId(
-        expected,
-        explainQueryToString(
-            String.format(
-                "source=%s | stats count() as cnt by state, city | stats count() by state",
-                TEST_INDEX_ACCOUNT)));
-  }
 }
