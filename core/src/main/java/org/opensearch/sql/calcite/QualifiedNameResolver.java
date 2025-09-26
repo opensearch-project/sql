@@ -98,7 +98,7 @@ public class QualifiedNameResolver {
         inputCount);
 
     if (parts.size() >= 2) {
-      // It could contain relation alias
+      // Consider first part as table alias
       String alias = parts.get(0);
       log.debug("resolveFieldWithAlias() trying alias={}", alias);
 
@@ -219,7 +219,6 @@ public class QualifiedNameResolver {
     return fieldName.substring(fieldName.indexOf(".") + 1);
   }
 
-  /** Try to resolve correlation field. */
   private static Optional<RexNode> resolveCorrelationField(
       QualifiedName nameNode, CalcitePlanContext context) {
     log.debug("resolveCorrelationField() called with nameNode={}", nameNode);
