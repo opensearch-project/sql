@@ -202,7 +202,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       }
       if (pushDownAction.type == PushDownType.LIMIT) {
         isLimitPushed = true;
-        startFrom += ((LimitDigest) pushDownAction.digest).offset();
+        startFrom += ((LimitDigest) pushDownAction.digest).getOffset();
       }
       if (pushDownAction.type == PushDownType.PROJECT) {
         isProjectPushed = true;
@@ -372,19 +372,20 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     // NESTED
   }
 
-  /**
-   * Represents a push down action that can be applied to an OpenSearchRequestBuilder.
-   *
-   * @param type PushDownType enum
-   * @param digest the digest of the pushed down operator
-   * @param action the lambda action to apply on the OpenSearchRequestBuilder
-   */
+  /** Represents a push down action that can be applied to an OpenSearchRequestBuilder. */
   public class PushDownAction {
 
     private final PushDownType type;
     private final Object digest;
     private final AbstractAction action;
 
+    /**
+     * Represents a push down action that can be applied to an OpenSearchRequestBuilder.
+     *
+     * @param type PushDownType enum
+     * @param digest the digest of the pushed down operator
+     * @param action the lambda action to apply on the OpenSearchRequestBuilder
+     */
     PushDownAction(PushDownType type, Object digest, AbstractAction action) {
       this.type = type;
       this.digest = digest;
