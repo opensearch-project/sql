@@ -25,6 +25,7 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -32,10 +33,13 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.search.aggregations.AggregationBuilder;
+import org.opensearch.search.aggregations.bucket.histogram.AutoDateHistogramAggregationBuilder;
+import org.opensearch.search.aggregations.metrics.ValueCountAggregationBuilder;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -45,10 +49,14 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.planner.physical.EnumerableIndexScanRule;
 import org.opensearch.sql.opensearch.planner.physical.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.QueryExpression;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
+import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan.LimitDigest;
+import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan.PushDownAction;
+import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan.PushDownType;
 
 /** The logical relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
@@ -268,7 +276,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     return newTraitSet;
   }
 
-  public CalciteLogicalIndexScan pushDownAggregate(Aggregate aggregate, Project project) {
+  public AbstractRelNode pushDownAggregate(Aggregate aggregate, Project project) {
     try {
       CalciteLogicalIndexScan newScan =
           new CalciteLogicalIndexScan(
@@ -300,6 +308,24 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               extendedTypeMapping,
               outputFields.subList(0, aggregate.getGroupSet().cardinality()));
       newScan.pushDownContext.add(PushDownType.AGGREGATION, aggregate, action);
+      if (aggregationBuilder.getLeft().size() == 1
+          && aggregationBuilder.getLeft().getFirst()
+              instanceof AutoDateHistogramAggregationBuilder autoDateHistogram) {
+        // If it's auto_date_histogram, filter the empty bucket by using the first aggregate metrics
+        RexBuilder rexBuilder = getCluster().getRexBuilder();
+        AggregationBuilder aggregationBuilders =
+            autoDateHistogram.getSubAggregations().stream().toList().getFirst();
+        RexNode condition =
+            aggregationBuilders instanceof ValueCountAggregationBuilder
+                ? rexBuilder.makeCall(
+                    SqlStdOperatorTable.GREATER_THAN,
+                    rexBuilder.makeInputRef(newScan, 1),
+                    rexBuilder.makeLiteral(
+                        0, rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER)))
+                : rexBuilder.makeCall(
+                    SqlStdOperatorTable.IS_NOT_NULL, rexBuilder.makeInputRef(newScan, 1));
+        return LogicalFilter.create(newScan, condition);
+      }
       return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
@@ -329,6 +355,13 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         return offset > 0 ? sort.copy(sort.getTraitSet(), List.of(newScan)) : newScan;
       } else {
         CalciteLogicalIndexScan newScan = this.copyWithNewSchema(getRowType());
+        int newStartFrom = newScan.pushDownContext.getStartFrom() + offset;
+        if (newStartFrom >= newScan.osIndex.getMaxResultWindow()) {
+          throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
+              String.format(
+                  "Requested offset %d should be less than the max result window %d",
+                  newStartFrom, newScan.osIndex.getMaxResultWindow()));
+        }
         newScan.pushDownContext.add(
             PushDownType.LIMIT,
             new LimitDigest(limit, offset),

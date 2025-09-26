@@ -13,6 +13,7 @@ import static org.opensearch.sql.opensearch.storage.script.aggregation.Aggregati
 import java.util.List;
 import java.util.stream.Collectors;
 import org.opensearch.search.aggregations.BucketOrder;
+import org.opensearch.search.aggregations.bucket.histogram.AutoDateHistogramAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.histogram.DateHistogramAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.histogram.DateHistogramInterval;
 import org.opensearch.search.aggregations.bucket.histogram.HistogramAggregationBuilder;
@@ -98,6 +99,11 @@ public class BucketAggregationBuilder {
       default:
         return buildDateHistogram(name, field, value.intValue(), unit);
     }
+  }
+
+  public static ValuesSourceAggregationBuilder<?> buildAutoDateHistogram(
+      String name, String field, Integer bucketSize) {
+    return new AutoDateHistogramAggregationBuilder(name).field(field).setNumBuckets(bucketSize);
   }
 
   public static ValuesSourceAggregationBuilder<?> buildDateHistogram(
