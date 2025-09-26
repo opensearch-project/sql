@@ -47,6 +47,7 @@ import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Interval;
 import org.opensearch.sql.ast.expression.LambdaFunction;
@@ -56,6 +57,7 @@ import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
+import org.opensearch.sql.ast.expression.ScoreFunction;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
@@ -647,6 +649,16 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   @Override
   public RexNode visitWhen(When node, CalcitePlanContext context) {
     throw new CalciteUnsupportedException("CastWhen function is unsupported in Calcite");
+  }
+
+  @Override
+  public RexNode visitHighlightFunction(HighlightFunction node, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("Highlight function is unsupported in Calcite");
+  }
+
+  @Override
+  public RexNode visitScoreFunction(ScoreFunction node, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("Score function is unsupported in Calcite");
   }
 
   @Override

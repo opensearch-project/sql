@@ -1,6 +1,6 @@
-=============
+==
 ml
-=============
+==
 
 .. rubric:: Table of contents
 
@@ -134,3 +134,9 @@ PPL query::
     | 5.6                | 3.0               | 4.1                | 1.3               | 0         |
     | 6.7                | 2.5               | 5.8                | 1.8               | 2         |
     +--------------------+-------------------+--------------------+-------------------+-----------+
+
+
+Limitations
+===========
+The ``ml`` command can only work with ``plugins.calcite.enabled=false``.
+It means ``ml``  command cannot work together with new PPL commands/functions introduced in 3.0.0 and above.

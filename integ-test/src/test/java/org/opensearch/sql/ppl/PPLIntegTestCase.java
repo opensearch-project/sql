@@ -44,6 +44,7 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   protected void init() throws Exception {
     super.init();
     updatePushdownSettings();
+    disableCalcite(); // calcite is enabled by default from 3.3.0
   }
 
   protected JSONObject executeQuery(String query) throws IOException {

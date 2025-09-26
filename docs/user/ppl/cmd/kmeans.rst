@@ -1,6 +1,6 @@
-=============
+=================================
 kmeans (deprecated by ml command)
-=============
+=================================
 
 .. rubric:: Table of contents
 
@@ -10,7 +10,7 @@ kmeans (deprecated by ml command)
 
 
 Description
-============
+===========
 | The ``kmeans`` command applies the kmeans algorithm in the ml-commons plugin on the search result returned by a PPL command.
 
 
@@ -38,3 +38,9 @@ PPL query::
     | 5.6                | 3.0               | 4.1                | 1.3               | 0         |
     | 6.7                | 2.5               | 5.8                | 1.8               | 2         |
     +--------------------+-------------------+--------------------+-------------------+-----------+
+
+
+Limitations
+===========
+The ``kmeans`` command can only work with ``plugins.calcite.enabled=false``.
+It means ``kmeans``  command cannot work together with new PPL commands/functions introduced in 3.0.0 and above.

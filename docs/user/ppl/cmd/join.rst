@@ -175,8 +175,8 @@ PPL query::
     | 70000.0     | 30       | USA     |
     +-------------+----------+---------+
 
-Limitation
-==========
+Limitations
+===========
 For basic syntax in 3.0.0, if fields in the left outputs and right outputs have the same name. Typically, in the join criteria
 ``ON t1.id = t2.id``, the names ``id`` in output are ambiguous. To avoid ambiguous, the ambiguous
 fields in output rename to ``<alias>.id``, or else ``<tableName>.id`` if no alias existing.
