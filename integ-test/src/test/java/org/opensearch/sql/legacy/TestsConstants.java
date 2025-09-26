@@ -47,6 +47,7 @@ public class TestsConstants {
   public static final String TEST_INDEX_DATE = TEST_INDEX + "_date";
   public static final String TEST_INDEX_DATE_TIME = TEST_INDEX + "_datetime";
   public static final String TEST_INDEX_DEEP_NESTED = TEST_INDEX + "_deep_nested";
+  public static final String TEST_INDEX_TELEMETRY = TEST_INDEX + "_telemetry";
   public static final String TEST_INDEX_STRINGS = TEST_INDEX + "_strings";
   public static final String TEST_INDEX_DATATYPE_NUMERIC = TEST_INDEX + "_datatypes_numeric";
   public static final String TEST_INDEX_DATATYPE_NONNUMERIC = TEST_INDEX + "_datatypes_nonnumeric";
