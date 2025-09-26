@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -46,7 +47,9 @@ import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
@@ -93,6 +96,7 @@ import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
@@ -206,6 +210,21 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     } else {
       context.relBuilder.filter(condition);
     }
+    return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitAppendPipe(AppendPipe node, CalcitePlanContext context){
+    visitChildren(node, context);
+    final RelNode base = context.relBuilder.peek();
+    node.getSubQuery().accept(this, context);
+    RelNode sub = context.relBuilder.peek();
+
+    sub = alignToBaseSchemaOrThrow(base, sub, context);
+
+    context.relBuilder.push(base);
+    context.relBuilder.union(true);
+
     return context.relBuilder.peek();
   }
 
@@ -2575,4 +2594,47 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       throw new RuntimeException("Failed to optimize sed expression: " + sedExpression, e);
     }
   }
+
+  private RelNode alignToBaseSchemaOrThrow(RelNode base, RelNode sub, CalcitePlanContext context) {
+    final List<RelDataTypeField> baseFields = base.getRowType().getFieldList();
+    final Map<String, RelDataTypeField> subFieldByName = sub.getRowType().getFieldList().stream()
+            .collect(Collectors.toMap(RelDataTypeField::getName, f -> f, (a, b) -> a, LinkedHashMap::new));
+
+    final RexBuilder rex = context.rexBuilder;
+    final RelBuilder b = context.relBuilder;
+
+    // 把 builder 栈顶替换成 sub，便于用 field(name) 构造投影
+    // （此时栈顶本来就是 sub；如果你在其它地方用过 build() 清栈，则先 push(sub)）
+    // 这里稳妥起见，确保一下：
+    if (b.peek() != sub) {
+      b.push(sub);
+    }
+
+    List<RexNode> projects = new ArrayList<>(baseFields.size());
+    List<String> names = new ArrayList<>(baseFields.size());
+
+    for (RelDataTypeField bf : baseFields) {
+      final String name = bf.getName();
+      final RelDataType targetType = bf.getType();
+      RexNode expr;
+      RelDataTypeField sf = subFieldByName.get(name);
+      if (sf != null) {
+        // 有同名列：取之并必要时 CAST 到 base 的类型
+        expr = b.field(name);
+        if (!expr.getType().equals(targetType)) {
+          expr = rex.makeCast(targetType, expr, /* matchNullability */ true);
+        }
+      } else {
+        // 缺列：补 NULL 并 CAST 到目标类型
+        RexNode nullLit = rex.makeNullLiteral(targetType);
+        expr = nullLit;
+      }
+      projects.add(expr);
+      names.add(name);
+    }
+
+    b.project(projects, names);
+    return b.peek();
+  }
+
 }

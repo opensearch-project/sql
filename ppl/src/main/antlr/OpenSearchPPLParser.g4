@@ -19,6 +19,10 @@ pplStatement
    | queryStatement
    ;
 
+subPipeline
+   : commands (PIPE commands)*
+   ;
+
 queryStatement
    : pplCommands (PIPE commands)*
    ;
@@ -78,6 +82,7 @@ commands
    | regexCommand
    | timechartCommand
    | rexCommand
+   | appendPipeCommand
    ;
 
 commandName
@@ -115,6 +120,7 @@ commandName
    | REGEX
    | APPEND
    | REX
+   | APPENDPIPE
    ;
 
 searchCommand
@@ -202,6 +208,10 @@ renameCommand
 
 statsCommand
    : STATS statsArgs statsAggTerm (COMMA statsAggTerm)* (statsByClause)? (dedupSplitArg)?
+   ;
+
+appendPipeCommand
+   : APPENDPIPE LT_SQR_PRTHS subPipeline RT_SQR_PRTHS
    ;
 
 statsArgs

@@ -59,6 +59,7 @@ OFFSET_FIELD:                       'OFFSET_FIELD';
 BUFFER_LIMIT:                       'BUFFER_LIMIT';
 LABEL:                              'LABEL';
 AGGREGATION:                        'AGGREGATION';
+APPENDPIPE:                         'APPENDPIPE';
 
 //Native JOIN KEYWORDS
 JOIN:                               'JOIN';
