@@ -8,17 +8,15 @@ package org.opensearch.sql.opensearch.storage.scan;
 import static java.util.Objects.requireNonNull;
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import lombok.Getter;
 import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
 import org.apache.calcite.adapter.enumerable.EnumerableSort;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollations;
@@ -35,31 +33,17 @@ import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.NumberUtil;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.search.aggregations.AggregationBuilder;
-import org.opensearch.search.aggregations.AggregationBuilders;
-import org.opensearch.search.aggregations.AggregatorFactories.Builder;
-import org.opensearch.search.aggregations.BucketOrder;
-import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationBuilder;
-import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder;
-import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
-import org.opensearch.search.aggregations.bucket.terms.MultiTermsAggregationBuilder;
-import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
-import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.search.sort.ScoreSortBuilder;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.data.type.ExprType;
-import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
-import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
-import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
 /** An abstract relational operator representing a scan of an OpenSearchIndex type. */
@@ -98,9 +82,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
 
   @Override
   public RelWriter explainTerms(RelWriter pw) {
-    OpenSearchRequestBuilder requestBuilder = osIndex.createRequestBuilder();
-    pushDownContext.forEach(action -> action.apply(requestBuilder));
-    String explainString = pushDownContext + ", " + requestBuilder;
+    String explainString = pushDownContext + ", " + pushDownContext.getRequestBuilder();
     return super.explainTerms(pw)
         .itemIf("PushDownContext", explainString, !pushDownContext.isEmpty());
   }
@@ -109,8 +91,82 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     return osIndex.getSettings().getSettingValue(Key.QUERY_SIZE_LIMIT);
   }
 
+  /**
+   * Compute the final row count of the scan operator with the given push down operations.
+   *
+   * <p>The calculation logic tries to follow the same logic in Calcite.
+   */
   @Override
   public double estimateRowCount(RelMetadataQuery mq) {
+    return pushDownContext.stream()
+        .reduce(
+            osIndex.getMaxResultWindow().doubleValue(),
+            (rowCount, operation) ->
+                switch (operation.type()) {
+                  case AGGREGATION -> mq.getRowCount((RelNode) operation.digest());
+                  case PROJECT, SORT -> rowCount;
+                    // Refer the org.apache.calcite.rel.metadata.RelMdRowCount
+                  case COLLAPSE -> rowCount / 10;
+                  case FILTER, SCRIPT -> NumberUtil.multiply(
+                      rowCount,
+                      RelMdUtil.guessSelectivity(((FilterDigest) operation.digest()).condition()));
+                  case LIMIT -> Math.min(rowCount, ((LimitDigest) operation.digest()).limit());
+                },
+            (a, b) -> null);
+  }
+
+  /**
+   * Compute the cost of the scan operator with the given push down operations.
+   *
+   * <p>We compute the final cost of the scan operator by accumulating the cost of each push down
+   * operation including aggregation, collapse, sort and script filter, and plus an external cost.
+   * The calculation logic tries to follow the same logic in Calcite.
+   *
+   * <p>While the left operations like project, filter, limit will be ignored in the accumulation
+   * process. But they will also affect the cost of cost-counted operations after them and the final
+   * external cost, which is calculated by `rows count * fields count`.
+   *
+   * <p>In the end, we still need to multiply the total cost by a factor to make the cost cheaper
+   * than non-pushdown operators.
+   */
+  @Override
+  public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+    double dRows = osIndex.getMaxResultWindow().doubleValue(), dCpu = 0.0d;
+    for (PushDownOperation operation : pushDownContext) {
+      switch (operation.type()) {
+        case AGGREGATION -> {
+          dRows = mq.getRowCount((RelNode) operation.digest());
+          dCpu += dRows * getAggMultiplier(operation);
+        }
+          // Ignored Project in cost accumulation, but it will affect the external cost
+        case PROJECT -> {}
+        case SORT -> dCpu += dRows;
+          // Refer the org.apache.calcite.rel.metadata.RelMdRowCount.getRowCount(Aggregate rel,...)
+        case COLLAPSE -> {
+          dRows = dRows / 10;
+          dCpu += dRows;
+        }
+          // Ignore cost the primitive filter but it will affect the rows count.
+        case FILTER -> dRows =
+            NumberUtil.multiply(
+                dRows, RelMdUtil.guessSelectivity(((FilterDigest) operation.digest()).condition()));
+        case SCRIPT -> {
+          FilterDigest filterDigest = (FilterDigest) operation.digest();
+          dRows = NumberUtil.multiply(dRows, RelMdUtil.guessSelectivity(filterDigest.condition()));
+          // Calculate the cost of script filter by multiplying the selectivity of the filter and
+          // the factor amplified by script count.
+          dCpu += NumberUtil.multiply(dRows, Math.pow(1.1, filterDigest.scriptCount()));
+        }
+          // Ignore cost the LIMIT but it will affect the rows count.
+          // Try to reduce the rows count by 1 to make the cost cheaper slightly than non-push down.
+          // Because we'd like to push down LIMIT even when the fetch in LIMIT is greater than
+          // dRows.
+        case LIMIT -> dRows = Math.min(dRows, ((LimitDigest) operation.digest()).limit()) - 1;
+      }
+      ;
+    }
+    // Add the external cost to introduce the effect from FILTER, LIMIT and PROJECT.
+    dCpu += dRows * getRowType().getFieldList().size();
     /*
      The impact factor to estimate the row count after push down an operator.
 
@@ -120,31 +176,13 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     */
     double estimateRowCountFactor =
         osIndex.getSettings().getSettingValue(CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR);
-    return pushDownContext.stream()
-        .reduce(
-            osIndex.getMaxResultWindow().doubleValue(),
-            (rowCount, action) ->
-                switch (action.type) {
-                      case AGGREGATION -> mq.getRowCount((RelNode) action.digest)
-                          * getAggMultiplier(action);
-                      case PROJECT, SORT -> rowCount;
-                        // Refer the org.apache.calcite.rel.core.Aggregate.estimateRowCount
-                      case COLLAPSE -> rowCount * (1.0 - Math.pow(.5, 1));
-                      case FILTER -> NumberUtil.multiply(
-                          rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest));
-                      case SCRIPT -> NumberUtil.multiply(
-                              rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest))
-                          * 1.1;
-                      case LIMIT -> Math.min(rowCount, ((LimitDigest) action.digest).limit());
-                    }
-                    * estimateRowCountFactor,
-            (a, b) -> null);
+    return planner.getCostFactory().makeCost(dCpu * estimateRowCountFactor, 0, 0);
   }
 
   /** See source in {@link org.apache.calcite.rel.core.Aggregate::computeSelfCost} */
-  private static float getAggMultiplier(PushDownAction action) {
+  private static float getAggMultiplier(PushDownOperation operation) {
     // START CALCITE
-    List<AggregateCall> aggCalls = ((Aggregate) action.digest).getAggCallList();
+    List<AggregateCall> aggCalls = ((Aggregate) operation.digest()).getAggCallList();
     float multiplier = 1f + (float) aggCalls.size() * 0.125f;
     for (AggregateCall aggCall : aggCalls) {
       if (aggCall.getAggregation().getName().equals("SUM")) {
@@ -155,47 +193,10 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     }
     // END CALCITE
 
-    // For script aggregation, we need to multiply the multiplier by 2.2 to make up the cost. As we
+    // For script aggregation, we need to multiply the multiplier by 1.1 to make up the cost. As we
     // prefer to have non-script agg push down after optimized by {@link PPLAggregateConvertRule}
-    if (((AggPushDownAction) action.action).isScriptPushed) {
-      multiplier *= 2.2f;
-    }
+    multiplier *= (float) Math.pow(1.1f, ((AggPushDownAction) operation.action()).getScriptCount());
     return multiplier;
-  }
-
-  // TODO: should we consider equivalent among PushDownContexts with different push down sequence?
-  public static class PushDownContext extends ArrayDeque<PushDownAction> {
-
-    @Getter private boolean isAggregatePushed = false;
-    @Getter private AggPushDownAction aggPushDownAction;
-    @Getter private boolean isLimitPushed = false;
-    @Getter private boolean isProjectPushed = false;
-    @Getter private int startFrom = 0;
-
-    @Override
-    public PushDownContext clone() {
-      return (PushDownContext) super.clone();
-    }
-
-    @Override
-    public boolean add(PushDownAction pushDownAction) {
-      if (pushDownAction.type == PushDownType.AGGREGATION) {
-        isAggregatePushed = true;
-        this.aggPushDownAction = (AggPushDownAction) pushDownAction.action;
-      }
-      if (pushDownAction.type == PushDownType.LIMIT) {
-        isLimitPushed = true;
-        startFrom += ((LimitDigest) pushDownAction.digest).offset();
-      }
-      if (pushDownAction.type == PushDownType.PROJECT) {
-        isProjectPushed = true;
-      }
-      return super.add(pushDownAction);
-    }
-
-    public boolean containsDigest(Object digest) {
-      return this.stream().anyMatch(action -> action.digest.equals(digest));
-    }
   }
 
   protected abstract AbstractCalciteIndexScan buildScan(
@@ -245,22 +246,6 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
   }
 
   /**
-   * Create a new {@link PushDownContext} without the collation action.
-   *
-   * @param pushDownContext The original push-down context.
-   * @return A new push-down context without the collation action.
-   */
-  protected PushDownContext cloneWithoutSort(PushDownContext pushDownContext) {
-    PushDownContext newContext = new PushDownContext();
-    for (PushDownAction action : pushDownContext) {
-      if (action.type() != PushDownType.SORT) {
-        newContext.add(action);
-      }
-    }
-    return newContext;
-  }
-
-  /**
    * The sort pushdown is not only applied in logical plan side, but also should be applied in
    * physical plan side. Because we could push down the {@link EnumerableSort} of {@link
    * EnumerableMergeJoin} to OpenSearch.
@@ -285,15 +270,16 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
               osIndex,
               getRowType(),
               // Existing collations are overridden (discarded) by the new collations,
-              cloneWithoutSort(pushDownContext));
+              pushDownContext.cloneWithoutSort());
 
-      AbstractAction action;
+      AbstractAction<?> action;
       Object digest;
-      if (pushDownContext.isAggregatePushed) {
+      if (pushDownContext.isAggregatePushed()) {
         // Push down the sort into the aggregation bucket
-        this.pushDownContext.aggPushDownAction.pushDownSortIntoAggBucket(
-            collations, getRowType().getFieldNames());
-        action = requestBuilder -> {};
+        action =
+            (AggregationBuilderAction)
+                aggAction ->
+                    aggAction.pushDownSortIntoAggBucket(collations, getRowType().getFieldNames());
         digest = collations;
       } else {
         List<SortBuilder<?>> builders = new ArrayList<>();
@@ -322,10 +308,10 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
           }
           builders.add(sortBuilder.order(order));
         }
-        action = requestBuilder -> requestBuilder.pushDownSort(builders);
+        action = (OSRequestBuilderAction) requestBuilder -> requestBuilder.pushDownSort(builders);
         digest = builders.toString();
       }
-      newScan.pushDownContext.add(PushDownAction.of(PushDownType.SORT, digest, action));
+      newScan.pushDownContext.add(PushDownType.SORT, digest, action);
       return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
@@ -333,189 +319,5 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       }
     }
     return null;
-  }
-
-  protected enum PushDownType {
-    FILTER,
-    PROJECT,
-    AGGREGATION,
-    SORT,
-    LIMIT,
-    SCRIPT,
-    COLLAPSE
-    // HIGHLIGHT,
-    // NESTED
-  }
-
-  /**
-   * Represents a push down action that can be applied to an OpenSearchRequestBuilder.
-   *
-   * @param type PushDownType enum
-   * @param digest the digest of the pushed down operator
-   * @param action the lambda action to apply on the OpenSearchRequestBuilder
-   */
-  public record PushDownAction(PushDownType type, Object digest, AbstractAction action) {
-    static PushDownAction of(PushDownType type, Object digest, AbstractAction action) {
-      return new PushDownAction(type, digest, action);
-    }
-
-    public String toString() {
-      return type + "->" + digest;
-    }
-
-    public void apply(OpenSearchRequestBuilder requestBuilder) {
-      action.apply(requestBuilder);
-    }
-  }
-
-  public interface AbstractAction {
-    void apply(OpenSearchRequestBuilder requestBuilder);
-  }
-
-  public record LimitDigest(int limit, int offset) {
-    @Override
-    public String toString() {
-      return offset == 0 ? String.valueOf(limit) : "[" + limit + " from " + offset + "]";
-    }
-  }
-
-  // TODO: shall we do deep copy for this action since it's mutable?
-  public static class AggPushDownAction implements AbstractAction {
-
-    private Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder;
-    private final Map<String, OpenSearchDataType> extendedTypeMapping;
-    @Getter private final boolean isScriptPushed;
-    // Record the output field names of all buckets as the sequence of buckets
-    private List<String> bucketNames;
-
-    public AggPushDownAction(
-        Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder,
-        Map<String, OpenSearchDataType> extendedTypeMapping,
-        List<String> bucketNames) {
-      this.aggregationBuilder = aggregationBuilder;
-      this.extendedTypeMapping = extendedTypeMapping;
-      this.isScriptPushed =
-          aggregationBuilder.getLeft().stream().anyMatch(this::isScriptAggBuilder);
-      this.bucketNames = bucketNames;
-    }
-
-    private boolean isScriptAggBuilder(AggregationBuilder aggBuilder) {
-      return aggBuilder instanceof ValuesSourceAggregationBuilder<?> valueSourceAgg
-          && valueSourceAgg.script() != null;
-    }
-
-    @Override
-    public void apply(OpenSearchRequestBuilder requestBuilder) {
-      requestBuilder.pushDownAggregation(aggregationBuilder);
-      requestBuilder.pushTypeMapping(extendedTypeMapping);
-    }
-
-    public void pushDownSortIntoAggBucket(
-        List<RelFieldCollation> collations, List<String> fieldNames) {
-      // aggregationBuilder.getLeft() could be empty when count agg optimization works
-      if (aggregationBuilder.getLeft().isEmpty()) return;
-      AggregationBuilder builder = aggregationBuilder.getLeft().getFirst();
-      List<String> selected = new ArrayList<>(collations.size());
-      if (builder instanceof CompositeAggregationBuilder compositeAggBuilder) {
-        // It will always use a single CompositeAggregationBuilder for the aggregation with GroupBy
-        // See {@link AggregateAnalyzer}
-        List<CompositeValuesSourceBuilder<?>> buckets = compositeAggBuilder.sources();
-        List<CompositeValuesSourceBuilder<?>> newBuckets = new ArrayList<>(buckets.size());
-        List<String> newBucketNames = new ArrayList<>(buckets.size());
-        // Have to put the collation required buckets first, then the rest of buckets.
-        collations.forEach(
-            collation -> {
-              /*
-               Must find the bucket by field name because:
-                 1. The sequence of buckets may have changed after sort push-down.
-                 2. The schema of scan operator may be inconsistent with the sequence of buckets
-                 after project push-down.
-              */
-              String bucketName = fieldNames.get(collation.getFieldIndex());
-              CompositeValuesSourceBuilder<?> bucket = buckets.get(bucketNames.indexOf(bucketName));
-              Direction direction = collation.getDirection();
-              NullDirection nullDirection = collation.nullDirection;
-              SortOrder order =
-                  Direction.DESCENDING.equals(direction) ? SortOrder.DESC : SortOrder.ASC;
-              if (bucket.missingBucket()) {
-                MissingOrder missingOrder =
-                    switch (nullDirection) {
-                      case FIRST -> MissingOrder.FIRST;
-                      case LAST -> MissingOrder.LAST;
-                      default -> MissingOrder.DEFAULT;
-                    };
-                bucket.missingOrder(missingOrder);
-              }
-              newBuckets.add(bucket.order(order));
-              newBucketNames.add(bucketName);
-              selected.add(bucketName);
-            });
-        IntStream.range(0, buckets.size())
-            .mapToObj(fieldNames::get)
-            .filter(name -> !selected.contains(name))
-            .forEach(
-                name -> {
-                  newBuckets.add(buckets.get(bucketNames.indexOf(name)));
-                  newBucketNames.add(name);
-                });
-        Builder newAggBuilder = new Builder();
-        compositeAggBuilder.getSubAggregations().forEach(newAggBuilder::addAggregator);
-        aggregationBuilder =
-            Pair.of(
-                Collections.singletonList(
-                    AggregationBuilders.composite("composite_buckets", newBuckets)
-                        .subAggregations(newAggBuilder)
-                        .size(compositeAggBuilder.size())),
-                aggregationBuilder.getRight());
-        bucketNames = newBucketNames;
-      }
-      if (builder instanceof TermsAggregationBuilder termsAggBuilder) {
-        termsAggBuilder.order(
-            BucketOrder.key(!collations.getFirst().getDirection().isDescending()));
-      }
-      // TODO for MultiTermsAggregationBuilder
-    }
-
-    /**
-     * Check if the limit can be pushed down into aggregation bucket when the limit size is less
-     * than bucket number.
-     */
-    public boolean pushDownLimitIntoBucketSize(Integer size) {
-      // aggregationBuilder.getLeft() could be empty when count agg optimization works
-      if (aggregationBuilder.getLeft().isEmpty()) return false;
-      AggregationBuilder builder = aggregationBuilder.getLeft().getFirst();
-      if (builder instanceof CompositeAggregationBuilder compositeAggBuilder) {
-        if (size < compositeAggBuilder.size()) {
-          compositeAggBuilder.size(size);
-          return true;
-        } else {
-          return false;
-        }
-      }
-      if (builder instanceof TermsAggregationBuilder termsAggBuilder) {
-        if (size < termsAggBuilder.size()) {
-          termsAggBuilder.size(size);
-          return true;
-        } else {
-          return false;
-        }
-      }
-      if (builder instanceof MultiTermsAggregationBuilder multiTermsAggBuilder) {
-        if (size < multiTermsAggBuilder.size()) {
-          multiTermsAggBuilder.size(size);
-          return true;
-        } else {
-          return false;
-        }
-      }
-      // now we only have Composite, Terms and MultiTerms bucket aggregations,
-      // add code here when we could support more in the future.
-      if (builder instanceof ValuesSourceAggregationBuilder.LeafOnly<?, ?>) {
-        // Note: all metric aggregations will be treated as pushed since it generates only one row.
-        return true;
-      }
-      throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
-          "Unknown aggregation builder " + builder.getClass().getSimpleName());
-    }
   }
 }

@@ -58,7 +58,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import lombok.Getter;
-import lombok.Setter;
 import org.apache.calcite.DataContext.Variable;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.RelNode;
@@ -915,7 +914,13 @@ public class PredicateAnalyzer {
   interface Expression {}
 
   /** Main expression operators (like {@code equals}, {@code gt}, {@code exists} etc.) */
+  @Getter
   public abstract static class QueryExpression implements Expression {
+    private int scriptCount;
+
+    protected void accumulateScriptCount(int count) {
+      scriptCount += count;
+    }
 
     public abstract QueryBuilder builder();
 
@@ -1058,12 +1063,6 @@ public class PredicateAnalyzer {
         throw new PredicateAnalyzerException(message);
       }
     }
-
-    public static boolean containsScript(QueryExpression expression) {
-      return expression instanceof ScriptQueryExpression
-          || (expression instanceof CompoundQueryExpression
-              && ((CompoundQueryExpression) expression).containsScript());
-    }
   }
 
   @Getter
@@ -1103,15 +1102,12 @@ public class PredicateAnalyzer {
     private final BoolQueryBuilder builder;
     @Getter private List<RexNode> analyzedNodes = new ArrayList<>();
     @Getter private final List<RexNode> unAnalyzableNodes = new ArrayList<>();
-    @Setter private boolean containsScript;
 
     public static CompoundQueryExpression or(QueryExpression... expressions) {
       CompoundQueryExpression bqe = new CompoundQueryExpression(false);
       for (QueryExpression expression : expressions) {
         bqe.builder.should(expression.builder());
-        if (QueryExpression.containsScript(expression)) {
-          bqe.setContainsScript(true);
-        }
+        bqe.accumulateScriptCount(expression.getScriptCount());
       }
       return bqe;
     }
@@ -1130,36 +1126,24 @@ public class PredicateAnalyzer {
         bqe.unAnalyzableNodes.addAll(expression.getUnAnalyzableNodes());
         if (!(expression instanceof UnAnalyzableQueryExpression)) {
           bqe.builder.must(expression.builder());
-          if (QueryExpression.containsScript(expression)) {
-            bqe.setContainsScript(true);
-          }
+          bqe.accumulateScriptCount(expression.getScriptCount());
         }
       }
       return bqe;
     }
 
     private CompoundQueryExpression(boolean partial) {
-      this(partial, boolQuery(), false);
+      this(partial, boolQuery());
     }
 
     private CompoundQueryExpression(boolean partial, BoolQueryBuilder builder) {
-      this(partial, builder, false);
-    }
-
-    private CompoundQueryExpression(
-        boolean partial, BoolQueryBuilder builder, boolean containsScript) {
       this.partial = partial;
       this.builder = requireNonNull(builder, "builder");
-      this.containsScript = containsScript;
     }
 
     @Override
     public boolean isPartial() {
       return partial;
-    }
-
-    public boolean containsScript() {
-      return containsScript;
     }
 
     @Override
@@ -1474,6 +1458,7 @@ public class PredicateAnalyzer {
               || rexNode.getKind().equals(SqlKind.IS_NOT_NULL))) {
         checkForNestedFieldOperands((RexCall) rexNode);
       }
+      accumulateScriptCount(1);
       RelJsonSerializer serializer = new RelJsonSerializer(cluster);
       this.codeGenerator =
           () ->

@@ -1,0 +1,13 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(age=[$8])
+        LogicalSort(offset=[2], fetch=[10])
+          LogicalSort(offset=[1], fetch=[10])
+            CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..16=[{inputs}], age=[$t8])
+        EnumerableLimit(offset=[2], fetch=[10])
+          EnumerableLimit(offset=[1], fetch=[10])
+            CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])

@@ -1,0 +1,13 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10])
+        LogicalSort(fetch=[5])
+          LogicalFilter(condition=[NOT(REGEXP_CONTAINS($10, '.*son$':VARCHAR))])
+            CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..16=[{inputs}], proj#0..10=[{exprs}])
+        EnumerableLimit(fetch=[5])
+          EnumerableCalc(expr#0..16=[{inputs}], expr#17=['.*son$':VARCHAR], expr#18=[REGEXP_CONTAINS($t10, $t17)], expr#19=[NOT($t18)], proj#0..16=[{exprs}], $condition=[$t19])
+            CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])

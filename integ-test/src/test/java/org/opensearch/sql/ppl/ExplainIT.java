@@ -11,6 +11,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OTEL_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
+import static org.opensearch.sql.util.MatcherUtils.assertYamlEqualsJsonIgnoreId;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -34,8 +35,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_output.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_output.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -50,8 +51,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testFilterPushDownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_filter_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_filter_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -63,8 +64,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testFilterByCompareStringTimestampPushDownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_filter_push_compare_timestamp_string.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_filter_push_compare_timestamp_string.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_bank"
@@ -74,8 +75,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testFilterByCompareStringDatePushDownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_filter_push_compare_date_string.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_filter_push_compare_date_string.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_date_formats | fields yyyy-MM-dd"
@@ -85,8 +86,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testFilterByCompareStringTimePushDownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_filter_push_compare_time_string.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_filter_push_compare_time_string.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_date_formats | fields custom_time"
@@ -137,8 +138,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testFilterAndAggPushDownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_filter_agg_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_filter_agg_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -168,8 +169,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testSortWithCountPushDownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_sort_count_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_sort_count_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString("source=opensearch-sql_test_index_account | sort 5 age | fields age"));
   }
@@ -252,8 +253,8 @@ public class ExplainIT extends PPLIntegTestCase {
    */
   @Test
   public void testSortThenLimitExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_sort_then_limit_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_sort_then_limit_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -270,8 +271,8 @@ public class ExplainIT extends PPLIntegTestCase {
   public void testLimitThenSortExplain() throws IOException {
     // TODO: Fix the expected output in expectedOutput/ppl/explain_limit_then_sort_push.json (v2)
     //  limit-then-sort should not be pushed down.
-    String expected = loadExpectedPlan("explain_limit_then_sort_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_limit_then_sort_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -282,8 +283,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testLimitPushDownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_limit_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_limit_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -294,8 +295,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testLimitWithFilterPushdownExplain() throws IOException {
-    String expectedFilterThenLimit = loadExpectedPlan("explain_filter_then_limit_push.json");
-    assertJsonEqualsIgnoreId(
+    String expectedFilterThenLimit = loadExpectedPlan("explain_filter_then_limit_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expectedFilterThenLimit,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -305,8 +306,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
     // The filter in limit-then-filter queries should not be pushed since the current DSL will
     // execute it as filter-then-limit
-    String expectedLimitThenFilter = loadExpectedPlan("explain_limit_then_filter_push.json");
-    assertJsonEqualsIgnoreId(
+    String expectedLimitThenFilter = loadExpectedPlan("explain_limit_then_filter_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expectedLimitThenFilter,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -317,8 +318,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testMultipleLimitExplain() throws IOException {
-    String expected5Then10 = loadExpectedPlan("explain_limit_5_10_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected5Then10 = loadExpectedPlan("explain_limit_5_10_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected5Then10,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -326,8 +327,8 @@ public class ExplainIT extends PPLIntegTestCase {
                 + "| head 10 "
                 + "| fields age"));
 
-    String expected10Then5 = loadExpectedPlan("explain_limit_10_5_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected10Then5 = loadExpectedPlan("explain_limit_10_5_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected10Then5,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -335,8 +336,8 @@ public class ExplainIT extends PPLIntegTestCase {
                 + "| head 5 "
                 + "| fields age"));
 
-    String expected10from1then10from2 = loadExpectedPlan("explain_limit_10from1_10from2_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected10from1then10from2 = loadExpectedPlan("explain_limit_10from1_10from2_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected10from1then10from2,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -345,8 +346,8 @@ public class ExplainIT extends PPLIntegTestCase {
                 + "| fields age"));
 
     // The second limit should not be pushed down for limit-filter-limit queries
-    String expected10ThenFilterThen5 = loadExpectedPlan("explain_limit_10_filter_5_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected10ThenFilterThen5 = loadExpectedPlan("explain_limit_10_filter_5_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected10ThenFilterThen5,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -358,8 +359,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testLimitWithMultipleOffsetPushdownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_limit_offsets_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_limit_offsets_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -380,8 +381,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testTrendlinePushDownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_trendline_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_trendline_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -392,9 +393,9 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testTrendlineWithSortPushDownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_trendline_sort_push.json");
+    String expected = loadExpectedPlan("explain_trendline_sort_push.yaml");
     // Sort will not be pushed down because there's a head before it.
-    assertJsonEqualsIgnoreId(
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -426,8 +427,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testPatternsSimplePatternMethodWithAggPushDownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_patterns_simple_pattern_agg_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_patterns_simple_pattern_agg_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | patterns email mode=aggregation"));
