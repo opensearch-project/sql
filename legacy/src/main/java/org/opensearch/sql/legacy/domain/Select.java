@@ -23,7 +23,7 @@ import org.opensearch.sql.legacy.parser.SubQueryExpression;
 public class Select extends Query {
 
   /** Using this functions will cause query to execute as aggregation. */
-  public static final Set<String> AGGREGATE_FUNCTIONS =
+  private static final Set<String> AGGREGATE_FUNCTIONS =
       ImmutableSet.of(
           "SUM",
           "MAX",

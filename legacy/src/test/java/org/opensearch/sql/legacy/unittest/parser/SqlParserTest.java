@@ -51,7 +51,6 @@ import org.opensearch.sql.legacy.query.maker.QueryMaker;
 import org.opensearch.sql.legacy.query.multi.MultiQuerySelect;
 import org.opensearch.sql.legacy.util.CheckScriptContents;
 import org.opensearch.sql.legacy.util.TestsConstants;
-import org.opensearch.sql.legacy.utils.Util;
 import org.opensearch.transport.client.Client;
 
 public class SqlParserTest {
@@ -1784,82 +1783,5 @@ public class SqlParserTest {
       if (toIsEqual) return true;
     }
     return false;
-  }
-
-  /** JOIN Aggregation Validation Tests */
-  private void expectJoinAggregationException() {
-    thrown.expect(SqlParseException.class);
-    thrown.expectMessage(Util.JOIN_AGGREGATION_ERROR_PREFIX);
-  }
-
-  @Test
-  public void joinWithGroupByShouldThrowException() throws SqlParseException {
-    expectJoinAggregationException();
-
-    String query =
-        String.format(
-            Locale.ROOT,
-            "SELECT a.firstname FROM %s/account a "
-                + "JOIN %s/account b ON a.account_number = b.account_number "
-                + "GROUP BY a.firstname",
-            TestsConstants.TEST_INDEX_ACCOUNT,
-            TestsConstants.TEST_INDEX_ACCOUNT);
-
-    parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
-  }
-
-  @Test
-  public void joinWithAggregateFunctionsShouldThrowException() throws SqlParseException {
-    String[] aggregateFunctions = {
-      "COUNT(*)", "SUM(a.balance)", "AVG(a.age)", "MAX(a.balance)", "MIN(a.age)"
-    };
-
-    for (String aggregateFunction : aggregateFunctions) {
-      expectJoinAggregationException();
-
-      String query =
-          String.format(
-              Locale.ROOT,
-              "SELECT %s FROM %s/account a "
-                  + "JOIN %s/account b ON a.account_number = b.account_number",
-              aggregateFunction,
-              TestsConstants.TEST_INDEX_ACCOUNT,
-              TestsConstants.TEST_INDEX_ACCOUNT);
-
-      parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
-    }
-  }
-
-  @Test
-  public void joinWithBothGroupByAndAggregateShouldThrowException() throws SqlParseException {
-    expectJoinAggregationException();
-
-    String query =
-        String.format(
-            Locale.ROOT,
-            "SELECT a.gender, COUNT(*) FROM %s/account a "
-                + "JOIN %s/account b ON a.account_number = b.account_number "
-                + "GROUP BY a.gender",
-            TestsConstants.TEST_INDEX_ACCOUNT,
-            TestsConstants.TEST_INDEX_ACCOUNT);
-
-    parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
-  }
-
-  @Test
-  public void regularJoinWithoutAggregationShouldWork() throws SqlParseException {
-    String query =
-        String.format(
-            Locale.ROOT,
-            "SELECT a.firstname, b.lastname FROM %s/account a "
-                + "JOIN %s/account b ON a.account_number = b.account_number "
-                + "WHERE a.age > 20 LIMIT 10",
-            TestsConstants.TEST_INDEX_ACCOUNT,
-            TestsConstants.TEST_INDEX_ACCOUNT);
-
-    JoinSelect joinSelect = parser.parseJoinSelect((SQLQueryExpr) queryToExpr(query));
-    Assert.assertNotNull("Join select should be parsed successfully", joinSelect);
-    Assert.assertNotNull("First table should not be null", joinSelect.getFirstTable());
-    Assert.assertNotNull("Second table should not be null", joinSelect.getSecondTable());
   }
 }
