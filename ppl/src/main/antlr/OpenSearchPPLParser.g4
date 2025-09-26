@@ -122,7 +122,8 @@ searchCommand
    ;
 
 searchExpression
- : LT_PRTHS searchExpression RT_PRTHS                 # groupedExpression
+ : timeModifier                                       # timeModifierExpression
+ | LT_PRTHS searchExpression RT_PRTHS                 # groupedExpression
  | NOT searchExpression                               # notExpression
  | searchExpression OR searchExpression               # orExpression
  | searchExpression AND searchExpression              # andExpression
@@ -761,6 +762,20 @@ multiFieldRelevanceFunction
    : multiFieldRelevanceFunctionName LT_PRTHS (LT_SQR_PRTHS field = relevanceFieldAndWeight (COMMA field = relevanceFieldAndWeight)* RT_SQR_PRTHS COMMA)? query = relevanceQuery (COMMA relevanceArg)* RT_PRTHS
    ;
 
+timeModifier
+   : (EARLIEST | LATEST) EQUAL timeModifierValue
+   ;
+
+timeModifierValue
+   : NOW
+   | NOW LT_PRTHS RT_PRTHS
+   | DECIMAL_LITERAL
+   | INTEGER_LITERAL
+   | stringLiteral
+   | TIME_SNAP
+   | (PLUS | MINUS) (integerLiteral)? timeModifierUnit (TIME_SNAP)?
+   ;
+
 // tables
 tableSource
    : tableQualifiedName
@@ -1327,7 +1342,7 @@ timespanUnit
    | QUARTER
    | YEAR
    | SEC
-   | SECS  
+   | SECS
    | SECONDS
    | MINS
    | MINUTES
@@ -1340,6 +1355,44 @@ timespanUnit
    | US
    | CS
    | DS
+   ;
+
+// It differs from TIME_SNAP_UNIT in that it supports plural forms
+timeModifierUnit
+   : S
+   | SEC
+   | SECS
+   | SECOND
+   | SECONDS
+   | M
+   | MIN
+   | MINS
+   | MINUTE
+   | MINUTES
+   | H
+   | HR
+   | HRS
+   | HOUR
+   | HOURS
+   | D
+   | DAY
+   | DAYS
+   | W
+   | WEEK
+   | WEEKS
+   | MON
+   | MONTH
+   | MONTHS
+   | Q
+   | QTR
+   | QTRS
+   | QUARTER
+   | QUARTERS
+   | Y
+   | YR
+   | YRS
+   | YEAR
+   | YEARS
    ;
 
 valueList
@@ -1388,7 +1441,7 @@ keywordsCanBeId
 
 searchableKeyWord
    : D // OD SQL and ODBC special
-   | timespanUnit
+   | timeModifierUnit
    | SPAN
    | evalFunctionName
    | jsonFunctionName

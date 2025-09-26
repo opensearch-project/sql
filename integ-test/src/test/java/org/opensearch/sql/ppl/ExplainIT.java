@@ -9,8 +9,10 @@ import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OTEL_LOGS;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TIME_DATA;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
+import static org.opensearch.sql.util.MatcherUtils.assertYamlEqualsJsonIgnoreId;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -30,6 +32,7 @@ public class ExplainIT extends PPLIntegTestCase {
     loadIndex(Index.DATE_FORMATS);
     loadIndex(Index.WEBLOG);
     loadIndex(Index.OTELLOGS);
+    loadIndex(Index.TIME_TEST_DATA);
   }
 
   @Test
@@ -632,6 +635,35 @@ public class ExplainIT extends PPLIntegTestCase {
                 "source=%s | eval len = length(gender) | stats sum(balance + 100) as sum by len,"
                     + " gender ",
                 TEST_INDEX_BANK)));
+  }
+
+  @Test
+  public void testSearchCommandWithAbsoluteTimeRange() throws IOException {
+    String expected = loadExpectedPlan("explain_search_with_absolute_time_range.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s earliest='2022-12-10 13:11:04' latest='2025-09-03 15:10:00'",
+                TEST_INDEX_TIME_DATA)));
+  }
+
+  @Test
+  public void testSearchCommandWithRelativeTimeRange() throws IOException {
+    String expected = loadExpectedPlan("explain_search_with_relative_time_range.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format("source=%s earliest='-1q@year' latest=now", TEST_INDEX_TIME_DATA)));
+  }
+
+  @Test
+  public void testSearchCommandWithNumericTimeRange() throws IOException {
+    String expected = loadExpectedPlan("explain_search_with_numeric_time_range.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format("source=%s earliest=1 latest=1754020061.123456", TEST_INDEX_TIME_DATA)));
   }
 
   protected String loadExpectedPlan(String fileName) throws IOException {

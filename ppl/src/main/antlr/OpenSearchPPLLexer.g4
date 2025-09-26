@@ -227,6 +227,7 @@ SINGLE_QUOTE:                       '\'';
 DOUBLE_QUOTE:                       '"';
 BACKTICK:                           '`';
 ARROW:                              '->';
+fragment AT:                        '@';
 
 // Operators. Bit
 
@@ -514,12 +515,18 @@ HR:                                 'HR';
 HRS:                                'HRS';
 HOURS:                              'HOURS';
 DAYS:                               'DAYS';
+WEEKS:                              'WEEKS';
 MON:                                'MON';
 MONTHS:                             'MONTHS';
+QTR:                                'QTR';
+QTRS:                               'QTRS';
+QUARTERS:                           'QUARTERS';
+YR:                                 'YR';
+YRS:                                'YRS';
+YEARS:                              'YEARS';
 US:                                 'US';
 CS:                                 'CS';
 DS:                                 'DS';
-
 
 // PERCENTILE SHORTCUT FUNCTIONS
 // Must precede ID to avoid conflicts with identifier matching
@@ -527,6 +534,15 @@ PERCENTILE_SHORTCUT:                PERC(INTEGER_LITERAL | DECIMAL_LITERAL) | 'P
 
 // LITERALS AND VALUES
 //STRING_LITERAL:                     DQUOTA_STRING | SQUOTA_STRING | BQUOTA_STRING;
+fragment TIME_SNAP_UNIT:              S | SEC | SECOND
+                                    | M | MIN | MINUTE
+                                    | H | HR | HOUR | HOURS
+                                    | D | DAY
+                                    | W | WEEK
+                                    | MON | MONTH
+                                    | Q | QTR | QUARTER
+                                    | Y | YR | YEAR;
+TIME_SNAP:                          AT TIME_SNAP_UNIT;
 ID:                                 ID_LITERAL;
 CLUSTER:                            CLUSTER_PREFIX_LITERAL;
 INTEGER_LITERAL:                    DEC_DIGIT+;
