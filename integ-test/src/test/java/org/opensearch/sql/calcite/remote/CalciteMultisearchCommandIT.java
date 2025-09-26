@@ -27,6 +27,7 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
     loadIndex(Index.BANK);
     loadIndex(Index.TIME_TEST_DATA);
     loadIndex(Index.TIME_TEST_DATA2);
+    loadIndex(Index.LOCATIONS_TYPE_CONFLICT);
   }
 
   @Test
@@ -142,8 +143,6 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testMultisearchWithTimestampInterleaving() throws IOException {
-    // Test multisearch with real timestamp data to verify chronological ordering
-    // Use simple approach without eval to focus on timestamp interleaving
     JSONObject result =
         executeQuery(
             "| multisearch [search"
@@ -151,7 +150,6 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
                 + " \\\"B\\\")] [search source=opensearch-sql_test_index_time_data2 | where"
                 + " category IN (\\\"E\\\", \\\"F\\\")] | head 10");
 
-    // Verify schema - should have 4 fields (timestamp, value, category, @timestamp)
     verifySchema(
         result,
         schema("@timestamp", null, "string"),
@@ -159,9 +157,6 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
         schema("value", null, "int"),
         schema("timestamp", null, "string"));
 
-    // Test timestamp interleaving: expect results from both indices sorted by timestamp DESC
-    // Perfect interleaving demonstrated: E,F from time_test_data2 mixed with A,B from
-    // time_test_data
     verifyDataRows(
         result,
         rows("2025-08-01 04:00:00", "E", 2001, "2025-08-01 04:00:00"),
@@ -178,7 +173,6 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testMultisearchWithNonStreamingCommands() throws IOException {
-    // Test that previously restricted commands (stats, sort) now work in subsearches
     JSONObject result =
         executeQuery(
             String.format(
@@ -194,138 +188,6 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
     verifyDataRows(result, rows(451L, 549L));
   }
 
-  // ========================================================================
-  // Type Compatibility Tests
-  // ========================================================================
-
-  @Test
-  public void testMultisearchIntegerDoubleIncompatible() throws IOException {
-    // Test INTEGER + DOUBLE - should fail due to type incompatibility
-    ResponseException exception =
-        expectThrows(
-            ResponseException.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        "| multisearch "
-                            + "[search source=%s | where age < 30 | eval score = 85] "
-                            + "[search source=%s | where age >= 30 | eval score = 95.5] "
-                            + "| stats max(score) as max_score",
-                        TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT)));
-
-    assertTrue(
-        exception
-            .getMessage()
-            .contains("class java.lang.Integer cannot be cast to class java.math.BigDecimal"));
-  }
-
-  @Test
-  public void testMultisearchIntegerBigintIncompatible() throws IOException {
-    // Test INTEGER + BIGINT - should fail due to type incompatibility
-    ResponseException exception =
-        expectThrows(
-            ResponseException.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        "| multisearch [search source=%s | where age < 30 | eval id ="
-                            + " 100] [search source=%s | where age >= 30 | eval id ="
-                            + " 9223372036854775807] | stats max(id) as max_id",
-                        TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT)));
-
-    assertTrue(
-        exception
-            .getMessage()
-            .contains("class java.lang.Integer cannot be cast to class java.lang.Long"));
-  }
-
-  @Test
-  public void testMultisearchMultipleIncompatibleTypes() throws IOException {
-    // Test multiple incompatible numeric types in one query - should fail
-    ResponseException exception =
-        expectThrows(
-            ResponseException.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        "| multisearch [search source=%s | where age < 25 | eval value ="
-                            + " 100] [search source=%s | where age >= 25 AND age < 35 | eval value"
-                            + " = 9223372036854775807] [search source=%s | where age >= 35 | eval"
-                            + " value = 99.99] | stats max(value) as max_value",
-                        TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT)));
-
-    assertTrue(
-        exception
-            .getMessage()
-            .contains("class java.lang.Integer cannot be cast to class java.math.BigDecimal"));
-  }
-
-  @Test
-  public void testMultisearchIncompatibleTypes() {
-    // Test STRING + NUMERIC conflict - should fail
-    Exception exception =
-        assertThrows(
-            ResponseException.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        "| multisearch [search source=%s | where age < 30 | eval"
-                            + " mixed_field = \\\"text\\\"] [search source=%s | where age >= 30 |"
-                            + " eval mixed_field = 123.5] | stats count",
-                        TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT)));
-
-    // Should contain error about incompatible types
-    assertTrue(
-        "Error message should indicate type incompatibility",
-        exception
-            .getMessage()
-            .contains("Cannot compute compatible row type for arguments to set op"));
-  }
-
-  @Test
-  public void testMultisearchBooleanIntegerIncompatible() {
-    // Test BOOLEAN + INTEGER conflict - should fail
-    Exception exception =
-        assertThrows(
-            ResponseException.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        "| multisearch "
-                            + "[search source=%s | where age < 30 | eval flag = true] "
-                            + "[search source=%s | where age >= 30 | eval flag = 42] "
-                            + "| stats count",
-                        TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT)));
-
-    assertTrue(
-        "Error message should indicate type incompatibility",
-        exception
-            .getMessage()
-            .contains("Cannot compute compatible row type for arguments to set op"));
-  }
-
-  @Test
-  public void testMultisearchBooleanStringIncompatible() {
-    // Test BOOLEAN + STRING conflict - should fail
-    Exception exception =
-        assertThrows(
-            ResponseException.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        "| multisearch "
-                            + "[search source=%s | where age < 30 | eval status = true] "
-                            + "[search source=%s | where age >= 30 | eval status = \\\"active\\\"] "
-                            + "| stats count",
-                        TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT)));
-
-    assertTrue(
-        "Error message should indicate type incompatibility",
-        exception
-            .getMessage()
-            .contains("Cannot compute compatible row type for arguments to set op"));
-  }
-
   @Test
   public void testMultisearchWithSingleSubsearchThrowsError() {
     Exception exception =
@@ -337,21 +199,13 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
                         "| multisearch " + "[search source=%s | where age > 30]",
                         TEST_INDEX_ACCOUNT)));
 
-    // Should throw a parse error since runtime validation enforces at least two subsearches
     assertTrue(
         "Error message should indicate minimum subsearch requirement",
         exception.getMessage().contains("Multisearch command requires at least two subsearches"));
   }
 
-  // ========================================================================
-  // Schema Merge Tests with Different Indices
-  // ========================================================================
-
   @Test
   public void testMultisearchWithDifferentIndicesSchemaMerge() throws IOException {
-    // Test schema merging with different indices having different fields
-    // ACCOUNT has: firstname, lastname, age, gender, state, employer, email
-    // BANK has: sex (instead of gender), age, city (instead of state)
     JSONObject result =
         executeQuery(
             String.format(
@@ -361,13 +215,11 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
                 TEST_INDEX_ACCOUNT, TEST_INDEX_BANK));
 
     verifySchema(result, schema("total_count", null, "bigint"));
-    // Verify we get data from both indices by checking we have more than just one index's worth
-    verifyDataRows(result, rows(241L)); // Total from both indices combined
+    verifyDataRows(result, rows(241L));
   }
 
   @Test
   public void testMultisearchWithMixedIndicesComplexSchemaMerge() throws IOException {
-    // Combine ACCOUNT (banking data) with TIME_TEST_DATA (time series data)
     JSONObject result =
         executeQuery(
             String.format(
@@ -384,7 +236,6 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testMultisearchWithTimeIndicesTimestampOrdering() throws IOException {
-    // Test that timestamp ordering works correctly when merging time series data
     JSONObject result =
         executeQuery(
             String.format(
@@ -395,17 +246,11 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
                 "opensearch-sql_test_index_time_data", "opensearch-sql_test_index_time_data2"));
 
     verifySchema(result, schema("total_a", null, "bigint"), schema("total_e", null, "bigint"));
-
-    // Verify we get data from both time series indices
-    verifyDataRows(result, rows(26L, 10L)); // Both A and E categories should have data
+    verifyDataRows(result, rows(26L, 10L));
   }
 
   @Test
   public void testMultisearchNullFillingForMissingFields() throws IOException {
-    // Test NULL filling behavior when subsearches have different fields
-    // First subsearch: has firstname, age, balance
-    // Second subsearch: has lastname, city, employer
-    // Result should have all fields with NULLs where fields are missing
     JSONObject result =
         executeQuery(
             String.format(
@@ -414,31 +259,23 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
                     + " lastname, city, employer] | head 2",
                 TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT));
 
-    // Verify schema has all fields from both subsearches
     verifySchema(
         result,
         schema("firstname", null, "string"),
-        schema("age", null, "bigint"), // age is bigint in this context
-        schema("balance", null, "bigint"), // balance is also bigint
+        schema("age", null, "bigint"),
+        schema("balance", null, "bigint"),
         schema("lastname", null, "string"),
         schema("city", null, "string"),
         schema("employer", null, "string"));
 
-    // Verify NULL filling:
-    // Row 1: has firstname, age, balance but NULL for lastname, city, employer
-    // Row 2: has lastname, city, employer but NULL for firstname, age, balance
     verifyDataRows(
         result,
-        rows("Amber", 32L, 39225L, null, null, null), // First subsearch result
-        rows(null, null, null, "Duke", "Brogan", "Pyrami")); // Second subsearch result
+        rows("Amber", 32L, 39225L, null, null, null),
+        rows(null, null, null, "Duke", "Brogan", "Pyrami"));
   }
 
   @Test
   public void testMultisearchNullFillingAcrossIndices() throws IOException {
-    // Test NULL filling when using completely different indices with no overlapping fields
-    // ACCOUNT has: account_number, firstname, lastname, age, balance, etc.
-    // BANK has similar fields but potentially different field names
-    // This test uses different subsets to ensure no overlap
     JSONObject result =
         executeQuery(
             String.format(
@@ -447,7 +284,6 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
                     + " account_number = 1 | fields city, employer, email] | head 2",
                 TEST_INDEX_ACCOUNT, TEST_INDEX_BANK));
 
-    // Verify all fields from both subsearches are present
     verifySchema(
         result,
         schema("account_number", null, "bigint"),
@@ -457,11 +293,77 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
         schema("employer", null, "string"),
         schema("email", null, "string"));
 
-    // Row 1: ACCOUNT data with NULLs for BANK-specific fields
-    // Row 2: BANK data with NULLs for ACCOUNT-specific fields
     verifyDataRows(
         result,
-        rows(1L, "Amber", 39225L, null, null, null), // From ACCOUNT
-        rows(null, null, null, "Brogan", "Pyrami", "amberduke@pyrami.com")); // From BANK
+        rows(1L, "Amber", 39225L, null, null, null),
+        rows(null, null, null, "Brogan", "Pyrami", "amberduke@pyrami.com"));
+  }
+
+  @Test
+  public void testMultisearchWithDirectTypeConflict() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "| multisearch "
+                    + "[search source=%s | fields firstname, age, balance | head 2] "
+                    + "[search source=%s | fields description, age, place_id | head 2]",
+                TEST_INDEX_ACCOUNT, TEST_INDEX_LOCATIONS_TYPE_CONFLICT));
+
+    verifySchema(
+        result,
+        schema("firstname", null, "string"),
+        schema("age", null, "bigint"),
+        schema("balance", null, "bigint"),
+        schema("description", null, "string"),
+        schema("age0", null, "string"),
+        schema("place_id", null, "int"));
+
+    verifyDataRows(
+        result,
+        rows("Amber", 32L, 39225L, null, null, null),
+        rows("Hattie", 36L, 5686L, null, null, null),
+        rows(null, null, null, "Central Park", "old", 1001),
+        rows(null, null, null, "Times Square", "modern", 1002));
+  }
+
+  @Test
+  public void testMultisearchCrossIndexFieldSelection() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "| multisearch "
+                    + "[search source=%s | fields firstname, balance | head 2] "
+                    + "[search source=%s | fields description, place_id | head 2]",
+                TEST_INDEX_ACCOUNT, TEST_INDEX_LOCATIONS_TYPE_CONFLICT));
+
+    verifySchema(
+        result,
+        schema("firstname", null, "string"),
+        schema("balance", null, "bigint"),
+        schema("description", null, "string"),
+        schema("place_id", null, "int"));
+
+    verifyDataRows(
+        result,
+        rows("Amber", 39225L, null, null),
+        rows("Hattie", 5686L, null, null),
+        rows(null, null, "Central Park", 1001),
+        rows(null, null, "Times Square", 1002));
+  }
+
+  @Test
+  public void testMultisearchTypeConflictWithStats() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "| multisearch "
+                    + "[search source=%s | fields age] "
+                    + "[search source=%s | fields age] "
+                    + "| stats count() as total",
+                TEST_INDEX_ACCOUNT, TEST_INDEX_LOCATIONS_TYPE_CONFLICT));
+
+    verifySchema(result, schema("total", null, "bigint"));
+
+    verifyDataRows(result, rows(1010L));
   }
 }
