@@ -54,8 +54,8 @@ public class QualifiedNameResolver {
       QualifiedName nameNode, CalcitePlanContext context) {
     log.debug("resolveInJoinCondition() called with nameNode={}", nameNode);
 
-    return resolveAttributeWithAlias(nameNode, context, 2)
-        .or(() -> resolveAttributeWithoutAlias(nameNode, context, 2))
+    return resolveFieldWithAlias(nameNode, context, 2)
+        .or(() -> resolveFieldWithoutAlias(nameNode, context, 2))
         .orElseThrow(() -> getNotFoundException(nameNode));
   }
 
@@ -65,11 +65,11 @@ public class QualifiedNameResolver {
     log.debug("resolveInNonJoinCondition() called with nameNode={}", nameNode);
 
     return resolveLambdaVariable(nameNode, context)
-        .or(() -> resolveAttributeWithAlias(nameNode, context, 1))
-        .or(() -> resolveAttributeWithoutAlias(nameNode, context, 1))
-        .or(() -> resolveRenamedAttribute(nameNode, context))
-        .or(() -> resolveCorrelationAttribute(nameNode, context))
-        .or(() -> nullLiteralInCoalesce(context))
+        .or(() -> resolveFieldWithAlias(nameNode, context, 1))
+        .or(() -> resolveFieldWithoutAlias(nameNode, context, 1))
+        .or(() -> resolveRenamedField(nameNode, context))
+        .or(() -> resolveCorrelationField(nameNode, context))
+        .or(() -> replaceWithNullLiteralInCoalesce(context))
         .orElseThrow(() -> getNotFoundException(nameNode));
   }
 
@@ -88,11 +88,11 @@ public class QualifiedNameResolver {
     return joinParts(parts, start, parts.size() - start);
   }
 
-  private static Optional<RexNode> resolveAttributeWithAlias(
+  private static Optional<RexNode> resolveFieldWithAlias(
       QualifiedName nameNode, CalcitePlanContext context, int inputCount) {
     List<String> parts = nameNode.getParts();
     log.debug(
-        "resolveAttributeWithAlias() called with nameNode={}, parts={}, inputCount={}",
+        "resolveFieldWithAlias() called with nameNode={}, parts={}, inputCount={}",
         nameNode,
         parts,
         inputCount);
@@ -100,12 +100,12 @@ public class QualifiedNameResolver {
     if (parts.size() >= 2) {
       // It could contain relation alias
       String alias = parts.get(0);
-      log.debug("resolveAttributeWithAlias() trying alias={}", alias);
+      log.debug("resolveFieldWithAlias() trying alias={}", alias);
 
       // Try to resolve the longest match first
       for (int length = parts.size() - 1; 1 <= length; length--) {
         String field = joinParts(parts, 1, length);
-        log.debug("resolveAttributeWithAlias() trying field={} with length={}", field, length);
+        log.debug("resolveFieldWithAlias() trying field={} with length={}", field, length);
 
         Optional<RexNode> fieldNode = tryToResolveField(alias, field, context, inputCount);
         if (fieldNode.isPresent()) {
@@ -131,23 +131,20 @@ public class QualifiedNameResolver {
     return Optional.empty();
   }
 
-  private static Optional<RexNode> resolveAttributeWithoutAlias(
+  private static Optional<RexNode> resolveFieldWithoutAlias(
       QualifiedName nameNode, CalcitePlanContext context, int inputCount) {
     log.debug(
-        "resolveAttributeWithoutAlias() called with nameNode={}, inputCount={}",
-        nameNode,
-        inputCount);
+        "resolveFieldWithoutAlias() called with nameNode={}, inputCount={}", nameNode, inputCount);
 
     List<Set<String>> inputFieldNames = collectInputFieldNames(context, inputCount);
 
     List<String> parts = nameNode.getParts();
     for (int length = parts.size(); 1 <= length; length--) {
       String fieldName = joinParts(parts, 0, length);
-      log.debug(
-          "resolveAttributeWithoutAlias() trying fieldName={} with length={}", fieldName, length);
+      log.debug("resolveFieldWithoutAlias() trying fieldName={} with length={}", fieldName, length);
 
       int foundInput = findInputContainingFieldName(inputCount, inputFieldNames, fieldName);
-      log.debug("resolveAttributeWithoutAlias() foundInput={}", foundInput);
+      log.debug("resolveFieldWithoutAlias() foundInput={}", foundInput);
       if (foundInput != -1) {
         RexNode fieldNode = context.relBuilder.field(inputCount, foundInput, fieldName);
         return Optional.of(resolveFieldAccess(context, parts, 0, length, fieldNode));
@@ -186,12 +183,10 @@ public class QualifiedNameResolver {
     return inputFieldNames;
   }
 
-  /**
-   * Try to resolve renamed attribute due to duplicate field name while join. e.g. alias.fieldName
-   */
-  private static Optional<RexNode> resolveRenamedAttribute(
+  /** Try to resolve renamed field due to duplicate field name while join. e.g. alias.fieldName */
+  private static Optional<RexNode> resolveRenamedField(
       QualifiedName nameNode, CalcitePlanContext context) {
-    log.debug("resolveRenamedAttribute() called with nameNode={}", nameNode);
+    log.debug("resolveRenamedField() called with nameNode={}", nameNode);
 
     List<String> parts = nameNode.getParts();
     if (parts.size() >= 2) {
@@ -224,10 +219,10 @@ public class QualifiedNameResolver {
     return fieldName.substring(fieldName.indexOf(".") + 1);
   }
 
-  /** Try to resolve correlation attribute. */
-  private static Optional<RexNode> resolveCorrelationAttribute(
+  /** Try to resolve correlation field. */
+  private static Optional<RexNode> resolveCorrelationField(
       QualifiedName nameNode, CalcitePlanContext context) {
-    log.debug("resolveCorrelationAttribute() called with nameNode={}", nameNode);
+    log.debug("resolveCorrelationField() called with nameNode={}", nameNode);
     List<String> parts = nameNode.getParts();
     return context
         .peekCorrelVar()
@@ -239,7 +234,7 @@ public class QualifiedNameResolver {
                 // Try to resolve the longest match first
                 for (int length = parts.size() - start; 1 <= length; length--) {
                   String fieldName = joinParts(parts, start, length);
-                  log.debug("resolveCorrelationAttribute() trying fieldName={}", fieldName);
+                  log.debug("resolveCorrelationField() trying fieldName={}", fieldName);
                   if (fieldNameList.contains(fieldName)) {
                     RexNode field = context.relBuilder.field(correlation, fieldName);
                     return resolveFieldAccess(context, parts, start, length, field);
@@ -277,8 +272,8 @@ public class QualifiedNameResolver {
     return Optional.ofNullable(context.getRexLambdaRefMap().get(qualifiedName));
   }
 
-  private static Optional<RexNode> nullLiteralInCoalesce(CalcitePlanContext context) {
-    log.debug("nullLiteralInCoalesce() called");
+  private static Optional<RexNode> replaceWithNullLiteralInCoalesce(CalcitePlanContext context) {
+    log.debug("replaceWithNullLiteralInCoalesce() called");
     if (context.isInCoalesceFunction()) {
       return Optional.of(
           context.rexBuilder.makeNullLiteral(
