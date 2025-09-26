@@ -24,6 +24,6 @@ public class CalciteQueryAnalysisIT extends QueryAnalysisIT {
             IllegalArgumentException.class,
             () ->
                 executeQuery(String.format("search source=%s | fields name", TEST_INDEX_ACCOUNT)));
-    verifyErrorMessageContains(e, "Field [nonexistent] not found.");
+    verifyErrorMessageContains(e, "Field [name] not found.");
   }
 }
