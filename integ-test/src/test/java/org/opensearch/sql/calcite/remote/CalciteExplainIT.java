@@ -597,6 +597,17 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testPreventLimitPushdown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    setMaxResultWindow("opensearch-sql_test_index_account", 1);
+    String query = "source=opensearch-sql_test_index_account | head 1 from 1";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_prevent_limit_push.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
+    resetMaxResultWindow("opensearch-sql_test_index_account");
+  }
+
+  @Test
   public void testPushdownLimitIntoAggregation() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_limit_agg_pushdown.json");
