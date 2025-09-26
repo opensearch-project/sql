@@ -133,6 +133,16 @@ public class AntlrSqlParseTreeVisitorTest {
   }
 
   @Test
+  public void hasJoinInQueryShouldReturnFalseForNestedFieldQuery() {
+    OpenSearchLegacySqlParser.GroupByItemContext groupByCtx =
+        findGroupByItemContext("SELECT * FROM semantics s, s.projects p GROUP BY city");
+    Assert.assertNotNull("Should find GROUP BY item context", groupByCtx);
+
+    boolean hasJoin = testVisitor.hasJoinInQuery(groupByCtx);
+    Assert.assertFalse("Nested field query should not be treated as JOIN", hasJoin);
+  }
+
+  @Test
   public void hasJoinInQueryShouldReturnFalseForMultipleGroupByItems() {
     OpenSearchLegacySqlParser.GroupByItemContext groupByCtx =
         findGroupByItemContext("SELECT age, balance FROM accounts GROUP BY age, balance");
