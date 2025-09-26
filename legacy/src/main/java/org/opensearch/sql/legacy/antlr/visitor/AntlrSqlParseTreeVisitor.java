@@ -321,9 +321,6 @@ public class AntlrSqlParseTreeVisitor<T extends Reducible>
    * Check if this is a nested field query pattern that should be allowed. Patterns like "semantics
    * s, s.projects p" or "semantics s, s.projects p, p.members m" are nested field access within the
    * same document, not real JOINs.
-   *
-   * <p>Use a simple but reliable heuristic: check if any table source contains a dot, which
-   * indicates nested field access pattern.
    */
   boolean isNestedFieldQuery(TableSourcesContext tableSourcesCtx) {
     // Check if any table source contains a dot (nested field pattern)
