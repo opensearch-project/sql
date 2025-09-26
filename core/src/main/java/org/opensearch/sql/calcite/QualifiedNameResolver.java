@@ -209,8 +209,8 @@ public class QualifiedNameResolver {
   }
 
   /**
-   * Find the original name before fieldName is renamed due to duplicate field name. Renamed field
-   * name: "alias.fieldName" Original field name: "fieldName"
+   * Find the original name before fieldName is renamed due to duplicate field name. Example:
+   * renamedFieldname = "alias.fieldName", originalFieldName = "fieldName"
    */
   private static List<String> findCandidatesByRenamedFieldName(
       QualifiedName renamedFieldName, CalcitePlanContext context) {
