@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.Getter;
@@ -45,6 +46,7 @@ import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.read.TableScanBuilder;
+import org.opensearch.transport.client.node.NodeClient;
 
 /** OpenSearch table (index) implementation. */
 public class OpenSearchIndex extends AbstractOpenSearchTable {
@@ -231,27 +233,43 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
 
     @Override
     public PhysicalPlan visitMLCommons(LogicalMLCommons node, OpenSearchIndexScan context) {
+      Optional<NodeClient> nc = client.getNodeClient();
+      if (nc.isEmpty()) {
+        throw new UnsupportedOperationException(
+            "Unable to run Machine Learning operators on clients outside of the local node");
+      }
       return new MLCommonsOperator(
-          visitChild(node, context),
-          node.getAlgorithm(),
-          node.getArguments(),
-          client.getNodeClient());
+          visitChild(node, context), node.getAlgorithm(), node.getArguments(), nc.get());
     }
 
     @Override
     public PhysicalPlan visitAD(LogicalAD node, OpenSearchIndexScan context) {
-      return new ADOperator(visitChild(node, context), node.getArguments(), client.getNodeClient());
+      Optional<NodeClient> nc = client.getNodeClient();
+      if (nc.isEmpty()) {
+        throw new UnsupportedOperationException(
+            "Unable to run Anomaly Detector operators on clients outside of the local node");
+      }
+      return new ADOperator(visitChild(node, context), node.getArguments(), nc.get());
     }
 
     @Override
     public PhysicalPlan visitML(LogicalML node, OpenSearchIndexScan context) {
-      return new MLOperator(visitChild(node, context), node.getArguments(), client.getNodeClient());
+      Optional<NodeClient> nc = client.getNodeClient();
+      if (nc.isEmpty()) {
+        throw new UnsupportedOperationException(
+            "Unable to run Machine Learning operators on clients outside of the local node");
+      }
+      return new MLOperator(visitChild(node, context), node.getArguments(), nc.get());
     }
 
     @Override
     public PhysicalPlan visitEval(LogicalEval node, OpenSearchIndexScan context) {
-      return new OpenSearchEvalOperator(
-          visitChild(node, context), node.getExpressions(), client.getNodeClient());
+      Optional<NodeClient> nc = client.getNodeClient();
+      if (nc.isEmpty()) {
+        throw new UnsupportedOperationException(
+            "Unable to run Eval operators on clients outside of the local node");
+      }
+      return new OpenSearchEvalOperator(visitChild(node, context), node.getExpressions(), nc.get());
     }
   }
 
