@@ -457,7 +457,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
   @Test
   public void testAvgByTimeSpanAndFields() {
     String ppl =
-        "source=EMP | stats avg(SAL) by span(HIREDATE, 1 year) as hiredate_span, DEPTNO | sort"
+        "source=EMP | stats avg(SAL) by span(HIREDATE, 1year) as hiredate_span, DEPTNO | sort"
             + " DEPTNO, hiredate_span";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
