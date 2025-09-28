@@ -83,7 +83,6 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
 import org.opensearch.sql.opensearch.response.agg.ArgMaxMinParser;
 import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
-import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.CountAsTotalHitsParser;
 import org.opensearch.sql.opensearch.response.agg.LeafBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
@@ -225,29 +224,6 @@ public class AggregateAnalyzer {
               .map(p -> Pair.of(p.getLeft(), p.getRight().get()))
               .toList();
 
-      // Cascade aggregations in such a way:
-      // RangeAggregation
-      //   ...Any other range aggregations
-      //      Metric Aggregation comes at last
-      // Note that but a composite aggregation can not be a sub aggregation of range aggregation,
-      // but range aggregation can be a sub aggregation of a composite aggregation.
-      AggregationBuilder rangeAggregationBuilder = null;
-      BucketAggregationParser bucketAggregationParser = null;
-      if (!groupsByCase.isEmpty()) {
-        for (int i = 0; i < groupsByCase.size(); i++) {
-          Pair<Integer, RangeAggregationBuilder> pair = groupsByCase.get(i);
-          if (i == 0) {
-            rangeAggregationBuilder = pair.getRight();
-            bucketAggregationParser =
-                new BucketAggregationParser(new LeafBucketAggregationParser(metricParsers));
-          } else {
-            groupsByCase.get(i - 1).getRight().subAggregation(pair.getRight());
-            bucketAggregationParser = new BucketAggregationParser(bucketAggregationParser);
-          }
-        }
-        groupsByCase.getLast().getRight().subAggregations(metricBuilder);
-      }
-
       // TODO: Rename toRemove to express removing case()
       // Remove groups that are converted to ranges from groupList
       Set<Integer> toRemove = groupsByCase.stream().map(Pair::getLeft).collect(Collectors.toSet());
@@ -262,6 +238,33 @@ public class AggregateAnalyzer {
           removeCountAggregationBuilders(metricBuilder, countAllOnly);
       List<ValueCountAggregationBuilder> removedCountAggBuilders = pair.getLeft();
       Builder newMetricBuilder = pair.getRight();
+      List<String> countAggNameList =
+          removedCountAggBuilders.stream().map(ValuesSourceAggregationBuilder::getName).toList();
+
+      // Cascade aggregations in such a way:
+      // RangeAggregation
+      //   ...Any other range aggregations
+      //      Metric Aggregation comes at last
+      // Note that but a composite aggregation can not be a sub aggregation of range aggregation,
+      // but range aggregation can be a sub aggregation of a composite aggregation.
+      AggregationBuilder rangeAggregationBuilder = null;
+      BucketAggregationParser bucketAggregationParser = null;
+      if (!groupsByCase.isEmpty()) {
+        for (int i = 0; i < groupsByCase.size(); i++) {
+          Pair<Integer, RangeAggregationBuilder> p = groupsByCase.get(i);
+          if (i == 0) {
+            rangeAggregationBuilder = p.getRight();
+            bucketAggregationParser =
+                new BucketAggregationParser(
+                    new LeafBucketAggregationParser(metricParsers, countAggNameList));
+          } else {
+            groupsByCase.get(i - 1).getRight().subAggregation(p.getRight());
+            bucketAggregationParser = new BucketAggregationParser(bucketAggregationParser);
+          }
+        }
+
+        groupsByCase.getLast().getRight().subAggregations(newMetricBuilder);
+      }
 
       boolean removedCountAggBuildersHaveSameField =
           removedCountAggBuilders.stream()
@@ -272,23 +275,23 @@ public class AggregateAnalyzer {
       boolean allCountAggRemoved =
           removedCountAggBuilders.size() == metricBuilder.getAggregatorFactories().size();
 
-      // The top-level query is a range query: stats avg() by range_field
+      // The top-level query is a range query:
+      //   - stats avg() by range_field
+      //   - stats count() by range_field
+      //   - stats avg(), count() by range_field
       // RangeAgg
       //   Metric
       if (!groupsByCase.isEmpty() && filteredGroupList.isEmpty()) {
         return Pair.of(List.of(rangeAggregationBuilder), bucketAggregationParser);
       }
-      // No parent composite aggregation or range aggregation is attached: stats count(), stats
-      // avg()
+      // No parent composite aggregation or range aggregation is attached:
+      //   - stats count()
+      //   - stats avg()
       // Metric
       else if (aggregate.getGroupSet().isEmpty() && filteredGroupList.isEmpty()) {
         if (allCountAggRemoved && removedCountAggBuildersHaveSameField) {
           // The optimization must require all count aggregations are removed,
           // and they have only one field name
-          List<String> countAggNameList =
-              removedCountAggBuilders.stream()
-                  .map(ValuesSourceAggregationBuilder::getName)
-                  .toList();
           return Pair.of(
               ImmutableList.copyOf(newMetricBuilder.getAggregatorFactories()),
               new CountAsTotalHitsParser(countAggNameList));
@@ -316,8 +319,8 @@ public class AggregateAnalyzer {
             Collections.singletonList(bucketBuilder.subAggregations(metricBuilder)),
             new LeafBucketAggregationParser(metricParsers));
       }
-      // It has both composite aggregation and range aggregation: stats avg() by range_field,
-      // non_range_field
+      // It has both composite aggregation and range aggregation:
+      //   - stats avg() by range_field, non_range_field
       // CompositeAgg
       //   RangeAgg
       //     Metric
@@ -331,8 +334,8 @@ public class AggregateAnalyzer {
                     .size(AGGREGATION_BUCKET_SIZE)),
             new BucketAggregationParser(bucketAggregationParser));
       }
-      // It does not have range aggregation, but has composite aggregation: stats avg() by
-      // non_range_field
+      // It does not have range aggregation, but has composite aggregation:
+      //  - stats avg() by non_range_field
       // CompositeAgg
       //   Metric
       else {
@@ -349,18 +352,17 @@ public class AggregateAnalyzer {
           aggregationBuilder.subAggregations(metricBuilder);
           return Pair.of(
               Collections.singletonList(aggregationBuilder),
-              new CompositeAggregationParser(metricParsers));
+              new BucketAggregationParser(new LeafBucketAggregationParser(metricParsers)));
         }
         // No need to register sub-factories if no aggregator factories left after removing all
         // ValueCountAggregationBuilder.
         if (!newMetricBuilder.getAggregatorFactories().isEmpty()) {
           aggregationBuilder.subAggregations(newMetricBuilder);
         }
-        List<String> countAggNameList =
-            removedCountAggBuilders.stream().map(ValuesSourceAggregationBuilder::getName).toList();
         return Pair.of(
             Collections.singletonList(aggregationBuilder),
-            new CompositeAggregationParser(metricParsers, countAggNameList));
+            new BucketAggregationParser(
+                new LeafBucketAggregationParser(metricParsers, countAggNameList)));
       }
     } catch (Throwable e) {
       Throwables.throwIfInstanceOf(e, UnsupportedOperationException.class);

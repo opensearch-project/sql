@@ -6,8 +6,6 @@
 package org.opensearch.sql.opensearch.response.agg;
 
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -28,6 +26,8 @@ import org.opensearch.search.aggregations.bucket.range.Range;
 @EqualsAndHashCode
 public class LeafBucketAggregationParser implements OpenSearchAggregationResponseParser {
   @Getter private final MetricParserHelper metricsParser;
+  // countAggNameList dedicated the list of count aggregations which are filled by doc_count
+  private List<String> countAggNameList = List.of();
 
   public LeafBucketAggregationParser(MetricParser... metricParserList) {
     metricsParser = new MetricParserHelper(Arrays.asList(metricParserList));
@@ -35,6 +35,13 @@ public class LeafBucketAggregationParser implements OpenSearchAggregationRespons
 
   public LeafBucketAggregationParser(List<MetricParser> metricParserList) {
     metricsParser = new MetricParserHelper(metricParserList);
+  }
+
+  /** CompositeAggregationParser with count aggregation name list, used in v3 */
+  public LeafBucketAggregationParser(
+      List<MetricParser> metricParserList, List<String> countAggNameList) {
+    metricsParser = new MetricParserHelper(metricParserList);
+    this.countAggNameList = countAggNameList;
   }
 
   @Override
@@ -54,22 +61,14 @@ public class LeafBucketAggregationParser implements OpenSearchAggregationRespons
   }
 
   private Map<String, Object> parse(MultiBucketsAggregation.Bucket bucket, String name) {
+    Map<String, Object> result = metricsParser.parse(bucket.getAggregations());
     if (bucket instanceof CompositeAggregation.Bucket compositeBucket) {
-      return parse(compositeBucket);
-    }
-    if (bucket instanceof Range.Bucket && bucket.getDocCount() == 0) {
+      result.putAll(compositeBucket.getKey());
+    } else if (bucket instanceof Range.Bucket && bucket.getDocCount() == 0) {
       return null;
     }
-    Map<String, Object> resultMap = new LinkedHashMap<>();
-    resultMap.put(name, bucket.getKey());
-    resultMap.putAll(metricsParser.parse(bucket.getAggregations()));
-    return resultMap;
-  }
-
-  private Map<String, Object> parse(CompositeAggregation.Bucket bucket) {
-    Map<String, Object> resultMap = new HashMap<>();
-    resultMap.putAll(bucket.getKey());
-    resultMap.putAll(metricsParser.parse(bucket.getAggregations()));
-    return resultMap;
+    result.put(name, bucket.getKey());
+    countAggNameList.forEach(n -> result.put(n, bucket.getDocCount()));
+    return result;
   }
 }

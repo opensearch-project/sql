@@ -188,8 +188,9 @@ public class CaseRangeAnalyzer {
       throwUnsupported("Range query must be performed on the same field");
     }
     RexLiteral literal = (RexLiteral) searchCall.getOperands().getLast();
-    Sarg<?> sarg = literal.getValueAs(Sarg.class);
-    for (Object r : sarg.rangeSet.asRanges()) {
+    Sarg<?> sarg = Objects.requireNonNull(literal.getValueAs(Sarg.class));
+    for (Range<?> r : sarg.rangeSet.asRanges()) {
+      @SuppressWarnings("unchecked")
       Range<BigDecimal> range = (Range<BigDecimal>) r;
       validateRange(range);
       if (!range.hasLowerBound() && range.hasUpperBound()) {
