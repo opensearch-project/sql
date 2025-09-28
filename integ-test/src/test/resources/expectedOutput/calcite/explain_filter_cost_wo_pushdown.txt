@@ -1,1 +1,1 @@
-CalciteEnumerableIndexScan(table=[[OpenSearch, test]]): rowcount = 10000.0, cumulative cost = {10000.0 rows, 10001.0 cpu, 0.0 io}
+CalciteEnumerableIndexScan(table=[[OpenSearch, test]]): rowcount = 10000.0, cumulative cost = {72000.0 rows, 0.0 cpu, 0.0 io}
