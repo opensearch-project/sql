@@ -9,7 +9,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.opensearch.search.SearchHits;
@@ -48,10 +47,7 @@ public class LeafBucketAggregationParser implements OpenSearchAggregationRespons
   public List<Map<String, Object>> parse(Aggregations aggregations) {
     Aggregation agg = aggregations.asList().getFirst();
     return ((MultiBucketsAggregation) agg)
-        .getBuckets().stream()
-            .map(b -> parse(b, agg.getName()))
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList());
+        .getBuckets().stream().map(b -> parse(b, agg.getName())).filter(Objects::nonNull).toList();
   }
 
   @Override
@@ -64,10 +60,12 @@ public class LeafBucketAggregationParser implements OpenSearchAggregationRespons
     Map<String, Object> result = metricsParser.parse(bucket.getAggregations());
     if (bucket instanceof CompositeAggregation.Bucket compositeBucket) {
       result.putAll(compositeBucket.getKey());
-    } else if (bucket instanceof Range.Bucket && bucket.getDocCount() == 0) {
-      return null;
+    } else if (bucket instanceof Range.Bucket) {
+      if (bucket.getDocCount() == 0) {
+        return null;
+      }
+      result.put(name, bucket.getKey());
     }
-    result.put(name, bucket.getKey());
     countAggNameList.forEach(n -> result.put(n, bucket.getDocCount()));
     return result;
   }
