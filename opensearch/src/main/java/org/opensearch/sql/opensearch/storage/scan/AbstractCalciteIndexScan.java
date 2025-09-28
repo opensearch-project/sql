@@ -7,9 +7,12 @@ package org.opensearch.sql.opensearch.storage.scan;
 
 import static java.util.Objects.requireNonNull;
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR;
+import static org.opensearch.sql.opensearch.storage.scan.PushDownType.AGGREGATION;
+import static org.opensearch.sql.opensearch.storage.scan.PushDownType.PROJECT;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.Getter;
 import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
@@ -101,17 +104,26 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     return pushDownContext.stream()
         .reduce(
             osIndex.getMaxResultWindow().doubleValue(),
-            (rowCount, operation) ->
-                switch (operation.type()) {
-                  case AGGREGATION -> mq.getRowCount((RelNode) operation.digest());
-                  case PROJECT, SORT -> rowCount;
-                    // Refer the org.apache.calcite.rel.metadata.RelMdRowCount
-                  case COLLAPSE -> rowCount / 10;
-                  case FILTER, SCRIPT -> NumberUtil.multiply(
+            (rowCount, operation) -> {
+              switch (operation.getType()) {
+                case AGGREGATION:
+                  return mq.getRowCount((RelNode) operation.getDigest());
+                case PROJECT:
+                case SORT:
+                  return rowCount;
+                case COLLAPSE:
+                  return rowCount / 10;
+                case FILTER:
+                case SCRIPT:
+                  return NumberUtil.multiply(
                       rowCount,
-                      RelMdUtil.guessSelectivity(((FilterDigest) operation.digest()).condition()));
-                  case LIMIT -> Math.min(rowCount, ((LimitDigest) operation.digest()).limit());
-                },
+                      RelMdUtil.guessSelectivity(((FilterDigest) operation.getDigest()).getCondition()));
+                case LIMIT:
+                  return Math.min(rowCount, ((LimitDigest) operation.getDigest()).getLimit());
+                default:
+                  return rowCount;
+              }
+            },
             (a, b) -> null);
   }
 
@@ -133,37 +145,46 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
   public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
     double dRows = osIndex.getMaxResultWindow().doubleValue(), dCpu = 0.0d;
     for (PushDownOperation operation : pushDownContext) {
-      switch (operation.type()) {
-        case AGGREGATION -> {
-          dRows = mq.getRowCount((RelNode) operation.digest());
+      switch (operation.getType()) {
+        case AGGREGATION:
+          dRows = mq.getRowCount((RelNode) operation.getDigest());
           dCpu += dRows * getAggMultiplier(operation);
-        }
-          // Ignored Project in cost accumulation, but it will affect the external cost
-        case PROJECT -> {}
-        case SORT -> dCpu += dRows;
-          // Refer the org.apache.calcite.rel.metadata.RelMdRowCount.getRowCount(Aggregate rel,...)
-        case COLLAPSE -> {
+          break;
+        // Ignored Project in cost accumulation, but it will affect the external cost
+        case PROJECT:
+          break;
+        case SORT:
+          dCpu += dRows;
+          break;
+        // Refer the org.apache.calcite.rel.metadata.RelMdRowCount.getRowCount(Aggregate rel,...)
+        case COLLAPSE:
           dRows = dRows / 10;
           dCpu += dRows;
-        }
-          // Ignore cost the primitive filter but it will affect the rows count.
-        case FILTER -> dRows =
-            NumberUtil.multiply(
-                dRows, RelMdUtil.guessSelectivity(((FilterDigest) operation.digest()).condition()));
-        case SCRIPT -> {
-          FilterDigest filterDigest = (FilterDigest) operation.digest();
-          dRows = NumberUtil.multiply(dRows, RelMdUtil.guessSelectivity(filterDigest.condition()));
+          break;
+        // Ignore cost the primitive filter but it will affect the rows count.
+        case FILTER:
+          dRows =
+              NumberUtil.multiply(
+                  dRows, RelMdUtil.guessSelectivity(((FilterDigest) operation.getDigest()).getCondition()));
+          break;
+        case SCRIPT:
+          FilterDigest filterDigest = (FilterDigest) operation.getDigest();
+          dRows = NumberUtil.multiply(dRows, RelMdUtil.guessSelectivity(filterDigest.getCondition()));
           // Calculate the cost of script filter by multiplying the selectivity of the filter and
           // the factor amplified by script count.
-          dCpu += NumberUtil.multiply(dRows, Math.pow(1.1, filterDigest.scriptCount()));
-        }
-          // Ignore cost the LIMIT but it will affect the rows count.
-          // Try to reduce the rows count by 1 to make the cost cheaper slightly than non-push down.
-          // Because we'd like to push down LIMIT even when the fetch in LIMIT is greater than
-          // dRows.
-        case LIMIT -> dRows = Math.min(dRows, ((LimitDigest) operation.digest()).limit()) - 1;
+          dCpu += NumberUtil.multiply(dRows, Math.pow(1.1, filterDigest.getScriptCount()));
+          break;
+        // Ignore cost the LIMIT but it will affect the rows count.
+        // Try to reduce the rows count by 1 to make the cost cheaper slightly than non-push down.
+        // Because we'd like to push down LIMIT even when the fetch in LIMIT is greater than
+        // dRows.
+        case LIMIT:
+          dRows = Math.min(dRows, ((LimitDigest) operation.getDigest()).getLimit()) - 1;
+          break;
+        default:
+          // No-op for unhandled cases
+          break;
       }
-      ;
     }
     // Add the external cost to introduce the effect from FILTER, LIMIT and PROJECT.
     dCpu += dRows * getRowType().getFieldList().size();
@@ -182,7 +203,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
   /** See source in {@link org.apache.calcite.rel.core.Aggregate::computeSelfCost} */
   private static float getAggMultiplier(PushDownOperation operation) {
     // START CALCITE
-    List<AggregateCall> aggCalls = ((Aggregate) operation.digest()).getAggCallList();
+    List<AggregateCall> aggCalls = ((Aggregate) operation.getDigest()).getAggCallList();
     float multiplier = 1f + (float) aggCalls.size() * 0.125f;
     for (AggregateCall aggCall : aggCalls) {
       if (aggCall.getAggregation().getName().equals("SUM")) {
@@ -195,7 +216,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
 
     // For script aggregation, we need to multiply the multiplier by 1.1 to make up the cost. As we
     // prefer to have non-script agg push down after optimized by {@link PPLAggregateConvertRule}
-    multiplier *= (float) Math.pow(1.1f, ((AggPushDownAction) operation.action()).getScriptCount());
+    multiplier *= (float) Math.pow(1.1f, ((AggPushDownAction) operation.getAction()).getScriptCount());
     return multiplier;
   }
 
@@ -225,7 +246,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
   private boolean hasAggregatorInSortBy(List<String> collations) {
     Stream<LogicalAggregate> aggregates =
         pushDownContext.stream()
-            .filter(action -> action.getType() == PushDownType.AGGREGATION)
+            .filter(action -> action.getType() == AGGREGATION)
             .map(action -> ((LogicalAggregate) action.getDigest()));
     return aggregates
         .map(aggregate -> isAnyCollationNameInAggregateOutput(aggregate, collations))

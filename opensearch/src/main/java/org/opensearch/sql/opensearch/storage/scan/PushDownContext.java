@@ -70,7 +70,7 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
   public PushDownContext cloneWithoutSort() {
     PushDownContext newContext = new PushDownContext(osIndex);
     for (PushDownOperation action : this) {
-      if (action.type() != PushDownType.SORT) {
+      if (action.getType() != PushDownType.SORT) {
         newContext.add(action);
       }
     }
@@ -111,17 +111,17 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
 
   @Override
   public boolean add(PushDownOperation operation) {
-    if (operation.type() == PushDownType.AGGREGATION) {
+    if (operation.getType() == PushDownType.AGGREGATION) {
       isAggregatePushed = true;
-      this.aggPushDownAction = (AggPushDownAction) operation.action();
+      this.aggPushDownAction = (AggPushDownAction) operation.getAction();
     }
-    if (operation.type() == PushDownType.LIMIT) {
+    if (operation.getType() == PushDownType.LIMIT) {
       isLimitPushed = true;
     }
-    if (operation.type() == PushDownType.PROJECT) {
+    if (operation.getType() == PushDownType.PROJECT) {
       isProjectPushed = true;
     }
-    operation.action().transform(this, operation);
+    operation.getAction().transform(this, operation);
     return true;
   }
 
@@ -130,14 +130,14 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
   }
 
   public boolean containsDigest(Object digest) {
-    return this.stream().anyMatch(action -> action.digest().equals(digest));
+    return this.stream().anyMatch(action -> action.getDigest().equals(digest));
   }
 
   public OpenSearchRequestBuilder createRequestBuilder() {
     OpenSearchRequestBuilder newRequestBuilder = osIndex.createRequestBuilder();
     if (operationsForRequestBuilder != null) {
       operationsForRequestBuilder.forEach(
-          operation -> ((OSRequestBuilderAction) operation.action()).apply(newRequestBuilder));
+          operation -> ((OSRequestBuilderAction) operation.getAction()).apply(newRequestBuilder));
     }
     return newRequestBuilder;
   }
@@ -158,11 +158,23 @@ enum PushDownType {
 /**
  * Represents a push down operation that can be applied to an OpenSearchRequestBuilder.
  *
- * @param type PushDownType enum
- * @param digest the digest of the pushed down operator
- * @param action the lambda action to apply on the OpenSearchRequestBuilder
+ * type PushDownType enum
+ * digest the digest of the pushed down operator
+ * action the lambda action to apply on the OpenSearchRequestBuilder
  */
-record PushDownOperation(PushDownType type, Object digest, AbstractAction<?> action) {
+@Getter
+class PushDownOperation {
+  private final PushDownType type;
+  private final Object digest;
+  private final AbstractAction<?> action;
+
+  public PushDownOperation(PushDownType type, Object digest, AbstractAction<?> action) {
+    this.type = type;
+    this.digest = digest;
+    this.action = action;
+  }
+
+  @Override
   public String toString() {
     return type + "->" + digest;
   }
@@ -188,14 +200,32 @@ interface AggregationBuilderAction extends AbstractAction<AggPushDownAction> {
   }
 }
 
-record FilterDigest(int scriptCount, RexNode condition) {
+@Getter
+class FilterDigest {
+  private final int scriptCount;
+  private final RexNode condition;
+
+  public FilterDigest(int scriptCount, RexNode condition) {
+    this.scriptCount = scriptCount;
+    this.condition = condition;
+  }
+
   @Override
   public String toString() {
     return condition.toString();
   }
 }
 
-record LimitDigest(int limit, int offset) {
+@Getter
+class LimitDigest {
+  private final int limit;
+  private final int offset;
+
+  public LimitDigest(int limit, int offset) {
+    this.limit = limit;
+    this.offset = offset;
+  }
+
   @Override
   public String toString() {
     return offset == 0 ? String.valueOf(limit) : "[" + limit + " from " + offset + "]";
@@ -223,8 +253,8 @@ class AggPushDownAction implements OSRequestBuilderAction {
   }
 
   private boolean isScriptAggBuilder(AggregationBuilder aggBuilder) {
-    return aggBuilder instanceof ValuesSourceAggregationBuilder<?> valueSourceAgg
-        && valueSourceAgg.script() != null;
+    return aggBuilder instanceof ValuesSourceAggregationBuilder<?>
+        && ((ValuesSourceAggregationBuilder<?>)aggBuilder).script() != null;
   }
 
   @Override
@@ -237,11 +267,12 @@ class AggPushDownAction implements OSRequestBuilderAction {
       List<RelFieldCollation> collations, List<String> fieldNames) {
     // aggregationBuilder.getLeft() could be empty when count agg optimization works
     if (aggregationBuilder.getLeft().isEmpty()) return;
-    AggregationBuilder builder = aggregationBuilder.getLeft().getFirst();
+    AggregationBuilder builder = aggregationBuilder.getLeft().get(0);
     List<String> selected = new ArrayList<>(collations.size());
-    if (builder instanceof CompositeAggregationBuilder compositeAggBuilder) {
+    if (builder instanceof CompositeAggregationBuilder) {
       // It will always use a single CompositeAggregationBuilder for the aggregation with GroupBy
       // See {@link AggregateAnalyzer}
+      CompositeAggregationBuilder compositeAggBuilder = (CompositeAggregationBuilder) builder;
       List<CompositeValuesSourceBuilder<?>> buckets = compositeAggBuilder.sources();
       List<CompositeValuesSourceBuilder<?>> newBuckets = new ArrayList<>(buckets.size());
       List<String> newBucketNames = new ArrayList<>(buckets.size());
@@ -261,12 +292,18 @@ class AggPushDownAction implements OSRequestBuilderAction {
             SortOrder order =
                 Direction.DESCENDING.equals(direction) ? SortOrder.DESC : SortOrder.ASC;
             if (bucket.missingBucket()) {
-              MissingOrder missingOrder =
-                  switch (nullDirection) {
-                    case FIRST -> MissingOrder.FIRST;
-                    case LAST -> MissingOrder.LAST;
-                    default -> MissingOrder.DEFAULT;
-                  };
+              MissingOrder missingOrder;
+              switch (nullDirection) {
+                case FIRST:
+                  missingOrder = MissingOrder.FIRST;
+                  break;
+                case LAST:
+                  missingOrder = MissingOrder.LAST;
+                  break;
+                default:
+                  missingOrder = MissingOrder.DEFAULT;
+                  break;
+              }
               bucket.missingOrder(missingOrder);
             }
             newBuckets.add(bucket.order(order));
@@ -292,8 +329,8 @@ class AggPushDownAction implements OSRequestBuilderAction {
               aggregationBuilder.getRight());
       bucketNames = newBucketNames;
     }
-    if (builder instanceof TermsAggregationBuilder termsAggBuilder) {
-      termsAggBuilder.order(BucketOrder.key(!collations.getFirst().getDirection().isDescending()));
+    if (builder instanceof TermsAggregationBuilder) {
+      ((TermsAggregationBuilder)builder).order(BucketOrder.key(!collations.get(0).getDirection().isDescending()));
     }
     // TODO for MultiTermsAggregationBuilder
   }
@@ -305,8 +342,9 @@ class AggPushDownAction implements OSRequestBuilderAction {
   public boolean pushDownLimitIntoBucketSize(Integer size) {
     // aggregationBuilder.getLeft() could be empty when count agg optimization works
     if (aggregationBuilder.getLeft().isEmpty()) return false;
-    AggregationBuilder builder = aggregationBuilder.getLeft().getFirst();
-    if (builder instanceof CompositeAggregationBuilder compositeAggBuilder) {
+    AggregationBuilder builder = aggregationBuilder.getLeft().get(0);
+    if (builder instanceof CompositeAggregationBuilder) {
+      CompositeAggregationBuilder compositeAggBuilder = (CompositeAggregationBuilder)builder;
       if (size < compositeAggBuilder.size()) {
         compositeAggBuilder.size(size);
         return true;
@@ -314,7 +352,8 @@ class AggPushDownAction implements OSRequestBuilderAction {
         return false;
       }
     }
-    if (builder instanceof TermsAggregationBuilder termsAggBuilder) {
+    if (builder instanceof TermsAggregationBuilder) {
+      TermsAggregationBuilder termsAggBuilder = (TermsAggregationBuilder) builder;
       if (size < termsAggBuilder.size()) {
         termsAggBuilder.size(size);
         return true;
@@ -322,7 +361,8 @@ class AggPushDownAction implements OSRequestBuilderAction {
         return false;
       }
     }
-    if (builder instanceof MultiTermsAggregationBuilder multiTermsAggBuilder) {
+    if (builder instanceof MultiTermsAggregationBuilder) {
+      MultiTermsAggregationBuilder multiTermsAggBuilder = (MultiTermsAggregationBuilder) builder;
       if (size < multiTermsAggBuilder.size()) {
         multiTermsAggBuilder.size(size);
         return true;
