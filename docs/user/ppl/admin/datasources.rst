@@ -24,7 +24,7 @@ Refer below sections for quick setup.
 
 
 Definitions of datasource and connector
-====================================
+=======================================
 * Connector is a component that adapts the query engine to a datastore. For example, Prometheus connector would adapt and help execute the queries to run on Prometheus datastore. connector name is enough in the datasource definition json.
 * Datasource is a construct to define how to connect to a data store and which connector to adapt by query engine.
 
@@ -56,7 +56,7 @@ Datasource configuration Restrictions.
 
 
 Datasource configuration APIs
-======================================
+=============================
 Datasource configuration can be managed using below REST APIs. All the examples below are for OpenSearch domains enabled with secure domain.
 we can remove authorization and other details in case of security disabled domains.
 
@@ -158,14 +158,14 @@ Master Key config for encrypting credential information
     print("Generated master key:", master_key)
 
 Datasource URI Hosts Deny Lists Config
-========================================================
+======================================
 * In the OpenSearch configuration file (opensearch.yml), the parameter "plugins.query.datasources.uri.hosts.denylist" can be utilized to control the permitted host ips within the datasource URI configuration.
 * By default, the value is set to empty list, which allows any domain to be accepted.
 * For instance, if you set the value to `127.0.0.0/8`, ppl plugins will deny all the query requests where the datasource URI resolves to the ip range from `127.0.0.0` to `127.255.255.255`
 
 
 Using a datasource in PPL command
-====================================
+=================================
 Datasource is referred in source command as show in the code block below.
 Based on the abstraction designed by the connector,
 one can refer the corresponding entity as table in the source command.
@@ -201,7 +201,7 @@ Moving from keystore datasource configuration
 * To port previously configured datasources from the keystore, users can use the `create datasource` REST API mentioned in the above section.
 
 Disabling a datasource to block new queries
-=============================================
+===========================================
 * We can disable a datasource using PATCH or PUT API. Below is the example request for disabling a datasource named "my_prometheus" using PATCH API. ::
 
     PATCH https://localhost:9200/_plugins/_query/_datasources
