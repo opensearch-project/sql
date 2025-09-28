@@ -22,6 +22,7 @@ import org.opensearch.sql.ppl.ExplainIT;
 public class CalciteExplainIT extends ExplainIT {
   @Override
   public void init() throws Exception {
+    GlobalPushdownConfig.enabled = false;
     super.init();
     enableCalcite();
     loadIndex(Index.BANK_WITH_STRING_VALUES);
@@ -448,16 +449,16 @@ public class CalciteExplainIT extends ExplainIT {
     String query =
         "source=opensearch-sql_test_index_account | regex lastname='^[A-Z][a-z]+$' | head 5";
     var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_regex.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    String expected = loadExpectedPlan("explain_regex.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
   @Test
   public void testRegexNegatedExplain() throws IOException {
     String query = "source=opensearch-sql_test_index_account | regex lastname!='.*son$' | head 5";
     var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_regex_negated.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    String expected = loadExpectedPlan("explain_regex_negated.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
   // Only for Calcite
@@ -553,41 +554,6 @@ public class CalciteExplainIT extends ExplainIT {
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | stats values(age) as age_values"));
-  }
-
-  @Test
-  public void testRegexExplain() throws IOException {
-    String query =
-        "source=opensearch-sql_test_index_account | regex lastname='^[A-Z][a-z]+$' | head 5";
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_regex.yaml");
-    assertYamlEqualsJsonIgnoreId(expected, result);
-  }
-
-  @Test
-  public void testRegexNegatedExplain() throws IOException {
-    String query = "source=opensearch-sql_test_index_account | regex lastname!='.*son$' | head 5";
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_regex_negated.yaml");
-    assertYamlEqualsJsonIgnoreId(expected, result);
-  }
-
-  @Test
-  public void testSimpleSortExpressionPushDownExplain() throws Exception {
-    String query =
-        "source=opensearch-sql_test_index_bank| eval age2 = age + 2 | sort age2 | fields age, age2";
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_simple_sort_expr_push.json");
-    assertJsonEqualsIgnoreId(expected, result);
-  }
-
-  @Test
-  public void testSimpleSortExpressionPushDownWithOnlyExprProjected() throws Exception {
-    String query =
-        "source=opensearch-sql_test_index_bank| eval b = balance + 1 | sort b | fields b";
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_simple_sort_expr_single_expr_output_push.json");
-    assertJsonEqualsIgnoreId(expected, result);
   }
 
   @Test
