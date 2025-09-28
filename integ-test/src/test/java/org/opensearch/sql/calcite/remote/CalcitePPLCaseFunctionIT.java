@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.remote;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
+import static org.opensearch.sql.util.MatcherUtils.closeTo;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -304,9 +305,9 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
     verifySchema(actual4, schema("avg(balance)", "double"), schema("age_range", "string"));
     verifyDataRows(
         actual4,
-        rows(32838.0, "u30"),
-        rows(30497.0, "null"),
-        rows(20881.333333333332, "30-40 or >=80"));
+        closeTo(32838.0, "u30"),
+        closeTo(30497.0, "null"),
+        closeTo(20881.333333333332, "30-40 or >=80"));
 
     // 1.5 Should not be pushed because the range is not closed-open
     JSONObject actual5 =

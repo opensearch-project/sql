@@ -64,8 +64,9 @@ public class LeafBucketAggregationParser implements OpenSearchAggregationRespons
       if (bucket.getDocCount() == 0) {
         return null;
       }
-      result.put(name, bucket.getKey());
     }
+    // TODO: Should we add all bucket key to agg name? It does not always seem necessary.
+    result.put(name, bucket.getKey());
     countAggNameList.forEach(n -> result.put(n, bucket.getDocCount()));
     return result;
   }
