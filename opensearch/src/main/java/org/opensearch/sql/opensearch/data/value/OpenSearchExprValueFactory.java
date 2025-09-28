@@ -18,7 +18,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER;
 import static org.opensearch.sql.utils.DateTimeFormatters.STRICT_HOUR_MINUTE_SECOND_FORMATTER;
 import static org.opensearch.sql.utils.DateTimeFormatters.STRICT_YEAR_MONTH_DAY_FORMATTER;
 import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
@@ -30,6 +29,7 @@ import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
@@ -331,6 +331,11 @@ public class OpenSearchExprValueFactory {
     }
     if (value.isString()) {
       return parseDateTimeString(value.stringValue(), dt);
+    }
+
+    if (value.objectValue() instanceof ZonedDateTime) {
+      ZonedDateTime zonedDateTime = (ZonedDateTime) value.objectValue();
+      return new ExprTimestampValue(zonedDateTime.withZoneSameLocal(ZoneOffset.UTC).toInstant());
     }
 
     return new ExprTimestampValue((Instant) value.objectValue());

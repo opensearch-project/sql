@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -25,6 +26,7 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -32,10 +34,13 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.search.aggregations.AggregationBuilder;
+import org.opensearch.search.aggregations.bucket.histogram.AutoDateHistogramAggregationBuilder;
+import org.opensearch.search.aggregations.metrics.ValueCountAggregationBuilder;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -269,7 +274,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     return newTraitSet;
   }
 
-  public CalciteLogicalIndexScan pushDownAggregate(Aggregate aggregate, Project project) {
+  public AbstractRelNode pushDownAggregate(Aggregate aggregate, Project project) {
     try {
       CalciteLogicalIndexScan newScan =
           new CalciteLogicalIndexScan(
@@ -301,6 +306,26 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               extendedTypeMapping,
               outputFields.subList(0, aggregate.getGroupSet().length()));
       newScan.pushDownContext.add(new PushDownAction(PushDownType.AGGREGATION, aggregate, action));
+      if (aggregationBuilder.getLeft().size() == 1
+          && aggregationBuilder.getLeft().get(0)
+              instanceof AutoDateHistogramAggregationBuilder) {
+        // If it's auto_date_histogram, filter the empty bucket by using the first aggregate metrics
+        AutoDateHistogramAggregationBuilder autoDateHistogram =
+            (AutoDateHistogramAggregationBuilder) aggregationBuilder.getLeft().get(0);
+        RexBuilder rexBuilder = getCluster().getRexBuilder();
+        AggregationBuilder aggregationBuilders =
+            new ArrayList<>(autoDateHistogram.getSubAggregations()).get(0);
+        RexNode condition =
+            aggregationBuilders instanceof ValueCountAggregationBuilder
+                ? rexBuilder.makeCall(
+                    SqlStdOperatorTable.GREATER_THAN,
+                    rexBuilder.makeInputRef(newScan, 1),
+                    rexBuilder.makeLiteral(
+                        0, rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER)))
+                : rexBuilder.makeCall(
+                    SqlStdOperatorTable.IS_NOT_NULL, rexBuilder.makeInputRef(newScan, 1));
+        return LogicalFilter.create(newScan, condition);
+      }
       return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
