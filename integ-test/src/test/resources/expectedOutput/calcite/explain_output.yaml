@@ -1,0 +1,21 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(age2=[$2])
+        LogicalFilter(condition=[<=($3, 1)])
+          LogicalProject(avg_age=[$0], state=[$1], age2=[$2], _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $2 ORDER BY $2)])
+            LogicalFilter(condition=[IS NOT NULL($2)])
+              LogicalProject(avg_age=[$0], state=[$1], age2=[+($0, 2)])
+                LogicalSort(sort0=[$1], dir0=[ASC-nulls-first])
+                  LogicalProject(avg_age=[$2], state=[$0], city=[$1])
+                    LogicalAggregate(group=[{0, 1}], avg_age=[AVG($2)])
+                      LogicalProject(state=[$7], city=[$5], age=[$8])
+                        LogicalFilter(condition=[>($8, 30)])
+                          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+  physical: |
+    EnumerableCalc(expr#0..1=[{inputs}], age2=[$t0])
+      EnumerableLimit(fetch=[10000])
+        EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[<=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])
+          EnumerableWindow(window#0=[window(partition {0} order by [0] rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
+            EnumerableCalc(expr#0=[{inputs}], expr#1=[2], expr#2=[+($t0, $t1)], expr#3=[IS NOT NULL($t0)], age2=[$t2], $condition=[$t3])
+              CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[city, state, age], FILTER->>($2, 30), AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0, 1},avg_age=AVG($2)), SORT->[0 ASC FIRST], PROJECT->[avg_age]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","query":{"range":{"age":{"from":30,"to":null,"include_lower":false,"include_upper":true,"boost":1.0}}},"_source":{"includes":["city","state","age"],"excludes":[]},"sort":[],"aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"state":{"terms":{"field":"state.keyword","missing_bucket":true,"missing_order":"first","order":"asc"}}},{"city":{"terms":{"field":"city.keyword","missing_bucket":true,"missing_order":"first","order":"asc"}}}]},"aggregations":{"avg_age":{"avg":{"field":"age"}}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
