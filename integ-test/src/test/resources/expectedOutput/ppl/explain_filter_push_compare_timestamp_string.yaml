@@ -14,8 +14,7 @@ root:
           include_lower\":false,\"include_upper\":true,\"boost\":1.0}}}],\"adjust_pure_negative\"\
           :true,\"boost\":1.0}},\"_source\":{\"includes\":[\"account_number\",\"firstname\"\
           ,\"address\",\"birthdate\",\"gender\",\"city\",\"lastname\",\"balance\"\
-          ,\"employer\",\"state\",\"age\",\"email\",\"male\"],\"excludes\":[]},\"\
-          sort\":[{\"_doc\":{\"order\":\"asc\"}}]}, needClean=true, searchDone=false,\
-          \ pitId=*,\
+          ,\"employer\",\"state\",\"age\",\"email\",\"male\"],\"excludes\":[]}}, needClean=true,\
+          \ searchDone=false, pitId=*,\
           \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
       children: []
