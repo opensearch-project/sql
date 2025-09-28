@@ -6,8 +6,6 @@
 package org.opensearch.sql.opensearch.request;
 
 import static org.opensearch.core.xcontent.DeprecationHandler.IGNORE_DEPRECATIONS;
-import static org.opensearch.search.sort.SortOrder.ASC;
-import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.SORT_FIELD_SHARD_DOC;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -30,6 +28,8 @@ import org.opensearch.search.SearchHits;
 import org.opensearch.search.SearchModule;
 import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.sort.ShardDocSortBuilder;
+import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
@@ -205,7 +205,10 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       // Add sort tiebreaker `_shard_doc` for PIT search.
       // Actually, we can remove it since `_shard_doc` should be added implicitly in PIT.
       // https://github.com/opensearch-project/OpenSearch/pull/18924#issuecomment-3342365950
-      this.sourceBuilder.sort(SORT_FIELD_SHARD_DOC, ASC);
+      if (this.sourceBuilder.sorts() == null
+          || this.sourceBuilder.sorts().stream().noneMatch(ShardDocSortBuilder.class::isInstance)) {
+        this.sourceBuilder.sort(SortBuilders.shardDocSort());
+      }
 
       SearchRequest searchRequest =
           new SearchRequest().indices(indexName.getIndexNames()).source(this.sourceBuilder);

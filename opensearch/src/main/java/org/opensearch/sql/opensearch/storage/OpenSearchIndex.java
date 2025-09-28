@@ -57,10 +57,6 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
 
   public static final String METADATA_FIELD_ROUTING = "_routing";
 
-  // _SHARD_DOC introduced since 3.3.0, and it is not a new metadate field.
-  // So we cannot read it directly, it can be used in sorting only.
-  public static final String SORT_FIELD_SHARD_DOC = "_shard_doc";
-
   public static final java.util.Map<String, ExprType> METADATAFIELD_TYPE_MAP =
       new LinkedHashMap<>() {
         {
