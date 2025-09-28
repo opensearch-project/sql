@@ -772,4 +772,29 @@ public class StatsCommandIT extends PPLIntegTestCase {
         rows(8213, "2025-07-31 00:00:00"),
         rows(8490, "2025-07-31 12:00:00"));
   }
+
+  @Test
+  public void testStatsByCounts() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | eval b_1 = balance + 1 | stats count(), count() as c1,"
+                    + " count(account_number), count(lastname) as c2, count(balance/10),"
+                    + " count(pow(balance, 2)) as c3, count(b_1) by gender",
+                TEST_INDEX_ACCOUNT));
+    verifySchema(
+        response,
+        schema("count()", null, isCalciteEnabled() ? "bigint" : "int"),
+        schema("c1", null, isCalciteEnabled() ? "bigint" : "int"),
+        schema("count(account_number)", null, isCalciteEnabled() ? "bigint" : "int"),
+        schema("c2", null, isCalciteEnabled() ? "bigint" : "int"),
+        schema("count(balance/10)", null, isCalciteEnabled() ? "bigint" : "int"),
+        schema("c3", null, isCalciteEnabled() ? "bigint" : "int"),
+        schema("count(b_1)", null, isCalciteEnabled() ? "bigint" : "int"),
+        schema("gender", null, "string"));
+    verifyDataRows(
+        response,
+        rows(493, 493, 493, 493, 493, 493, 493, "F"),
+        rows(507, 507, 507, 507, 507, 507, 507, "M"));
+  }
 }

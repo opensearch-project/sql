@@ -8,6 +8,7 @@ package org.opensearch.sql.expression.function;
 import com.google.common.collect.ImmutableMap;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -18,7 +19,6 @@ import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.function.Parameter;
-import org.apache.calcite.linq4j.function.Strict;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
@@ -37,8 +37,11 @@ import org.opensearch.sql.common.patterns.PatternUtils;
 import org.opensearch.sql.common.patterns.PatternUtils.ParseResult;
 
 public class PatternParserFunctionImpl extends ImplementorUDF {
+  private static final Map<String, Object> EMPTY_RESULT =
+      ImmutableMap.of(PatternUtils.PATTERN, "", PatternUtils.TOKENS, Collections.emptyMap());
+
   protected PatternParserFunctionImpl() {
-    super(new PatternParserImplementor(), NullPolicy.ARG0);
+    super(new PatternParserImplementor(), NullPolicy.NONE);
   }
 
   @Override
@@ -98,13 +101,12 @@ public class PatternParserFunctionImpl extends ImplementorUDF {
    * A simple and general label pattern algorithm given aggregated patterns, which is adopted from
    * Drain algorithm(see https://ieeexplore.ieee.org/document/8029742).
    */
-  @Strict
   public static Object evalAgg(
       @Parameter(name = "field") String field,
       @Parameter(name = "aggObject") Object aggObject,
       @Parameter(name = "showNumberedToken") Boolean showNumberedToken) {
     if (Strings.isBlank(field)) {
-      return ImmutableMap.of();
+      return EMPTY_RESULT;
     }
     List<Map<String, Object>> aggResult = (List<Map<String, Object>>) aggObject;
     List<String> preprocessedTokens =
@@ -137,11 +139,10 @@ public class PatternParserFunctionImpl extends ImplementorUDF {
     }
   }
 
-  @Strict
   public static Object evalField(
       @Parameter(name = "pattern") String pattern, @Parameter(name = "field") String field) {
     if (Strings.isBlank(field)) {
-      return ImmutableMap.of();
+      return EMPTY_RESULT;
     }
 
     Map<String, List<String>> tokensMap = new HashMap<>();
@@ -154,12 +155,11 @@ public class PatternParserFunctionImpl extends ImplementorUDF {
         tokensMap);
   }
 
-  @Strict
   public static Object evalSamples(
       @Parameter(name = "pattern") String pattern,
       @Parameter(name = "sample_logs") List<String> sampleLogs) {
     if (sampleLogs.isEmpty()) {
-      return ImmutableMap.of();
+      return EMPTY_RESULT;
     }
     Map<String, List<String>> tokensMap = new HashMap<>();
     ParseResult parseResult = PatternUtils.parsePattern(pattern, PatternUtils.WILDCARD_PATTERN);

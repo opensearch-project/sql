@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_HDFS_LOGS;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -67,6 +68,18 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
                 ImmutableList.of("pyrami"),
                 "<token3>",
                 ImmutableList.of("com"))));
+  }
+
+  @Test
+  public void testSimplePatternLabelMode_NullFieldReturnEmpty() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | patterns message | where isnull(message) | fields message,"
+                    + " patterns_field",
+                TEST_INDEX_WEBLOGS));
+    verifySchema(result, schema("message", "string"), schema("patterns_field", "string"));
+    verifyDataRows(result, rows(null, ""), rows(null, ""));
   }
 
   @Test

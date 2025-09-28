@@ -111,6 +111,6 @@ Expected result::
     | Dale          | 33  | Name: Dale, Age: 33           |
     +---------------+-----+-------------------------------+
 
-Limitation
-==========
+Limitations
+===========
 The ``eval`` command is not rewritten to OpenSearch DSL, it is only executed on the coordination node.
