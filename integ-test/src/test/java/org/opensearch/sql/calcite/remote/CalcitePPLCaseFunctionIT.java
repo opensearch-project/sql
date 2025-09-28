@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.calcite.remote;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.closeTo;
@@ -292,7 +291,7 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
     verifyDataRows(
         actual3,
         rows(32838.0, "u30", "high"),
-        rows(8761.333333333334, "u40", "medium"),
+        closeTo(8761.333333333334, "u40", "medium"),
         rows(42617.0, "u40", "high"));
 
     // 1.4 Range - Metric (With null & discontinuous ranges)
@@ -303,11 +302,20 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
                     + " >= 80, '30-40 or >=80') | stats avg(balance) by age_range",
                 TEST_INDEX_BANK));
     verifySchema(actual4, schema("avg(balance)", "double"), schema("age_range", "string"));
-    verifyDataRows(
-        actual4,
-        closeTo(32838.0, "u30"),
-        closeTo(30497.0, "null"),
-        closeTo(20881.333333333332, "30-40 or >=80"));
+    // There's such a discrepancy because null cannot be the key for a range query
+    if (isPushdownDisabled()) {
+      verifyDataRows(
+          actual4,
+          rows(32838.0, "u30"),
+          rows(30497.0, null),
+          closeTo(20881.333333333332, "30-40 or >=80"));
+    } else {
+      verifyDataRows(
+          actual4,
+          rows(32838.0, "u30"),
+          rows(30497.0, "null"),
+          closeTo(20881.333333333332, "30-40 or >=80"));
+    }
 
     // 1.5 Should not be pushed because the range is not closed-open
     JSONObject actual5 =
@@ -318,7 +326,10 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
                 TEST_INDEX_BANK));
     verifySchema(actual5, schema("avg_age", "double"), schema("age_range", "string"));
     verifyDataRows(actual5, rows(35.0, "u40"), rows(28.0, "u30"));
+  }
 
+  @Test
+  public void testCaseCanBePushedDownAsCompositeRangeQuery() throws IOException {
     // CASE 2: Composite - Range - Metric
     // 2.1 Composite (term) - Range - Metric
     JSONObject actual6 =
@@ -347,18 +358,19 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
         executeQuery(
             "source=opensearch-sql_test_index_time_data | eval value_range = case(value < 7000,"
                 + " 'small' else 'large') | stats avg(value) by value_range, span(@timestamp,"
-                + " 1h)");
+                + " 1month)");
     verifySchema(
         actual7,
         schema("avg(value)", "double"),
-        schema("span(@timestamp,1h)", "timestamp"),
+        schema("span(@timestamp,1month)", "timestamp"),
         schema("value_range", "string"));
-    // Verify we have results with both small and large ranges and timestamps
-    assertTrue(actual7.getJSONArray("datarows").length() == 100);
-    // Verify some sample rows to check data correctness
-    String resultStr = actual7.toString();
-    assertTrue(resultStr.contains("small") && resultStr.contains("large"));
-    assertTrue(resultStr.contains("2025-07-28") && resultStr.contains("2025-07-29"));
+
+    verifyDataRows(
+        actual7,
+        closeTo(6642.521739130435, "2025-07-01 00:00:00", "small"),
+        closeTo(8381.917808219177, "2025-07-01 00:00:00", "large"),
+        rows(6489.0, "2025-08-01 00:00:00", "small"),
+        rows(8375.0, "2025-08-01 00:00:00", "large"));
 
     // 2.3 Composite(2 fields) - Range - Metric (with count)
     JSONObject actual8 =
