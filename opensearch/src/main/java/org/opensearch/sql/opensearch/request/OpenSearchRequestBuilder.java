@@ -9,8 +9,8 @@ import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
 import static org.opensearch.index.query.QueryBuilders.matchAllQuery;
 import static org.opensearch.index.query.QueryBuilders.nestedQuery;
+import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
-import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.SORT_FIELD_SHARD_DOC;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -180,10 +180,6 @@ public class OpenSearchRequestBuilder {
         sourceBuilder.query(QueryBuilders.boolQuery().filter(current).filter(query));
       }
     }
-
-    if (sourceBuilder.sorts() == null) {
-      sourceBuilder.sort(SORT_FIELD_SHARD_DOC, ASC); // Make sure consistent order
-    }
   }
 
   /**
@@ -211,11 +207,6 @@ public class OpenSearchRequestBuilder {
    * @param sortBuilders sortBuilders.
    */
   public void pushDownSort(List<SortBuilder<?>> sortBuilders) {
-    // TODO: Sort by _doc is added when filter push down. Remove both logic once doctest fixed.
-    if (isSortByDocOnly()) {
-      sourceBuilder.sorts().clear();
-    }
-
     for (SortBuilder<?> sortBuilder : sortBuilders) {
       sourceBuilder.sort(sortBuilder);
     }
@@ -308,14 +299,6 @@ public class OpenSearchRequestBuilder {
 
   public void pushDownCollapse(String field) {
     sourceBuilder.collapse(new CollapseBuilder(field));
-  }
-
-  private boolean isSortByDocOnly() {
-    List<SortBuilder<?>> sorts = sourceBuilder.sorts();
-    if (sorts != null) {
-      return sorts.equals(List.of(SortBuilders.fieldSort(SORT_FIELD_SHARD_DOC)));
-    }
-    return false;
   }
 
   /**

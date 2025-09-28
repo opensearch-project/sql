@@ -6,7 +6,7 @@
 package org.opensearch.sql.legacy.executor.join;
 
 import static org.opensearch.core.xcontent.ToXContent.EMPTY_PARAMS;
-import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.SORT_FIELD_SHARD_DOC;
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
 
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
@@ -24,6 +24,7 @@ import org.opensearch.core.xcontent.ToXContent.Params;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
+import org.opensearch.search.sort.FieldSortBuilder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.legacy.domain.Select;
 import org.opensearch.sql.legacy.query.join.BackOffRetryStrategy;
@@ -38,7 +39,8 @@ public class ElasticUtils {
         requestBuilder.setScroll(new TimeValue(60000)).setSize(resultSize);
     boolean ordered = originalSelect.isOrderdSelect();
     if (!ordered) {
-      scrollRequest.addSort(SORT_FIELD_SHARD_DOC, SortOrder.ASC);
+      scrollRequest.addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
+      scrollRequest.addSort(METADATA_FIELD_ID, SortOrder.ASC);
     }
     SearchResponse responseWithHits = scrollRequest.get();
     // on ordered select - not using SCAN , elastic returns hits on first scroll

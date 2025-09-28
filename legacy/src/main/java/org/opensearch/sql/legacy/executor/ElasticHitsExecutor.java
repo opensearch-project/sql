@@ -5,8 +5,9 @@
 
 package org.opensearch.sql.legacy.executor;
 
+import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
-import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.SORT_FIELD_SHARD_DOC;
+import static org.opensearch.sql.calcite.plan.OpenSearchConstants.METADATA_FIELD_ID;
 
 import java.io.IOException;
 import org.apache.logging.log4j.LogManager;
@@ -64,7 +65,8 @@ public abstract class ElasticHitsExecutor {
     // Set sort field for search_after
     boolean ordered = select.isOrderdSelect();
     if (!ordered) {
-      request.addSort(SORT_FIELD_SHARD_DOC, ASC);
+      request.addSort(DOC_FIELD_NAME, ASC);
+      request.addSort(METADATA_FIELD_ID, ASC);
     }
     // Set PIT
     request.setPointInTime(new PointInTimeBuilder(pit.getPitId()));

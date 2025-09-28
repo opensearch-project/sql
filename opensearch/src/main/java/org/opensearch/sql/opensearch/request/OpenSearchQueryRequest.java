@@ -202,10 +202,11 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       if (searchAfter != null) {
         this.sourceBuilder.searchAfter(searchAfter);
       }
-      // Set sort field for search_after
-      if (this.sourceBuilder.sorts() == null) {
-        this.sourceBuilder.sort(SORT_FIELD_SHARD_DOC, ASC);
-      }
+      // Add sort tiebreaker `_shard_doc` for PIT search.
+      // Actually, we can remove it since `_shard_doc` should be added implicitly in PIT.
+      // https://github.com/opensearch-project/OpenSearch/pull/18924#issuecomment-3342365950
+      this.sourceBuilder.sort(SORT_FIELD_SHARD_DOC, ASC);
+
       SearchRequest searchRequest =
           new SearchRequest().indices(indexName.getIndexNames()).source(this.sourceBuilder);
       this.searchResponse = searchAction.apply(searchRequest);
