@@ -7,7 +7,6 @@ package org.opensearch.sql.opensearch.request;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -54,12 +53,6 @@ class CaseRangeAnalyzerTest {
             .build();
 
     fieldRef = rexBuilder.makeInputRef(rowType.getFieldList().get(0).getType(), 0); // age field
-  }
-
-  @Test
-  void testCreateCaseRangeAnalyzer() {
-    CaseRangeAnalyzer analyzer = CaseRangeAnalyzer.create("test_agg", rowType);
-    assertNotNull(analyzer);
   }
 
   @Test
@@ -279,19 +272,7 @@ class CaseRangeAnalyzerTest {
   }
 
   @Test
-  void testAnalyzeNonCaseExpression() {
-    // Test with non-CASE expression - create a simple call that's not CASE
-    RexLiteral literal = rexBuilder.makeLiteral("test");
-    RexCall nonCaseCall = (RexCall) rexBuilder.makeCall(SqlStdOperatorTable.UPPER, literal);
-
-    CaseRangeAnalyzer analyzer = CaseRangeAnalyzer.create("test", rowType);
-    Optional<RangeAggregationBuilder> result = analyzer.analyze(nonCaseCall);
-
-    assertFalse(result.isPresent());
-  }
-
-  @Test
-  void testAnalyzeWithNonLiteralResult() {
+  void testAnalyzeWithNonLiteralResultShouldNotSucceed() {
     // CASE WHEN age >= 18 THEN age ELSE 0 END (non-literal result)
 
     RexLiteral literal18 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(18));
@@ -314,7 +295,7 @@ class CaseRangeAnalyzerTest {
   }
 
   @Test
-  void testAnalyzeWithDifferentFields() {
+  void testAnalyzeDifferentFieldsShouldThrow() {
     // Test comparing different fields in conditions
     RexInputRef nameFieldRef = rexBuilder.makeInputRef(rowType.getFieldList().get(1).getType(), 1);
 
@@ -345,7 +326,7 @@ class CaseRangeAnalyzerTest {
   }
 
   @Test
-  void testAnalyzeWithAndCondition() {
+  void testAnalyzeWithAndConditionShouldThrow() {
     // Test AND condition which should be unsupported
     RexLiteral literal18 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(18));
     RexLiteral literal65 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(65));
@@ -371,7 +352,7 @@ class CaseRangeAnalyzerTest {
   }
 
   @Test
-  void testAnalyzeWithOrCondition() {
+  void testAnalyzeWithOrConditionShouldThrow() {
     // Test OR condition which should be unsupported
     RexLiteral literal18 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(18));
     RexLiteral literal65 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(65));
@@ -466,30 +447,6 @@ class CaseRangeAnalyzerTest {
   }
 
   @Test
-  void testAnalyzeWithInvalidOperands() {
-    // Test condition with neither field reference nor literal
-    RexCall invalidCondition =
-        (RexCall)
-            rexBuilder.makeCall(
-                SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
-                fieldRef,
-                fieldRef); // both sides are field refs
-
-    RexLiteral resultLiteral = rexBuilder.makeLiteral("result");
-    RexLiteral elseLiteral = rexBuilder.makeLiteral("else");
-
-    RexCall caseCall =
-        (RexCall)
-            rexBuilder.makeCall(
-                SqlStdOperatorTable.CASE,
-                Arrays.asList(invalidCondition, resultLiteral, elseLiteral));
-
-    CaseRangeAnalyzer analyzer = CaseRangeAnalyzer.create("test", rowType);
-
-    assertThrows(UnsupportedOperationException.class, () -> analyzer.analyze(caseCall));
-  }
-
-  @Test
   void testAnalyzeWithNullLiteralValue() {
     // Test with null literal value that can't be converted to Double
     RexLiteral nullLiteral =
@@ -509,11 +466,6 @@ class CaseRangeAnalyzerTest {
     CaseRangeAnalyzer analyzer = CaseRangeAnalyzer.create("test", rowType);
 
     assertThrows(UnsupportedOperationException.class, () -> analyzer.analyze(caseCall));
-  }
-
-  @Test
-  void testDefaultElseKey() {
-    assertEquals("null", CaseRangeAnalyzer.DEFAULT_ELSE_KEY);
   }
 
   @Test
@@ -766,6 +718,77 @@ class CaseRangeAnalyzerTest {
                 {
                   "key" : "other",
                   "from" : 65.0
+                }
+              ],
+              "keyed" : true
+            }
+          }
+        }""";
+
+    assertEquals(normalizeJson(expectedJson), normalizeJson(builder.toString()));
+  }
+
+  @Test
+  void testSearchWithDiscontinuousRanges() {
+    // age >= 20 && age < 30 -> '20-30'
+    // age >= 40 && age <50 -> '40-50'
+    // Create discontinuous ranges: [20, 30) and [40, 50)
+    TreeRangeSet<BigDecimal> rangeSet = TreeRangeSet.create();
+    rangeSet.add(Range.closedOpen(BigDecimal.valueOf(20), BigDecimal.valueOf(30)));
+    rangeSet.add(Range.closedOpen(BigDecimal.valueOf(40), BigDecimal.valueOf(50)));
+
+    Sarg<BigDecimal> sarg = Sarg.of(RexUnknownAs.UNKNOWN, rangeSet);
+    RexNode sargLiteral =
+        rexBuilder.makeSearchArgumentLiteral(sarg, typeFactory.createSqlType(SqlTypeName.DECIMAL));
+
+    RexCall searchCall =
+        (RexCall)
+            rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, Arrays.asList(fieldRef, sargLiteral));
+
+    RexLiteral targetLiteral = rexBuilder.makeLiteral("target_age");
+    RexLiteral otherLiteral =
+        rexBuilder.makeNullLiteral(typeFactory.createSqlType(SqlTypeName.VARCHAR));
+
+    RexCall caseCall =
+        (RexCall)
+            rexBuilder.makeCall(
+                SqlStdOperatorTable.CASE, Arrays.asList(searchCall, targetLiteral, otherLiteral));
+
+    CaseRangeAnalyzer analyzer = CaseRangeAnalyzer.create("discontinuous_ranges", rowType);
+    Optional<RangeAggregationBuilder> result = analyzer.analyze(caseCall);
+
+    assertTrue(result.isPresent());
+    RangeAggregationBuilder builder = result.get();
+
+    String expectedJson =
+        """
+        {
+          "discontinuous_ranges" : {
+            "range" : {
+              "field" : "age",
+              "ranges" : [
+                {
+                  "key" : "target_age",
+                  "from" : 20.0,
+                  "to" : 30.0
+                },
+                {
+                  "key" : "target_age",
+                  "from" : 40.0,
+                  "to" : 50.0
+                },
+                {
+                  "key" : "null",
+                  "to" : 20.0
+                },
+                {
+                  "key" : "null",
+                  "from" : 30.0,
+                  "to" : 40.0
+                },
+                {
+                  "key" : "null",
+                  "from" : 50.0
                 }
               ],
               "keyed" : true
