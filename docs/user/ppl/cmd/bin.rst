@@ -240,15 +240,15 @@ Example 1: Basic numeric span
 
 PPL query::
 
-    os> source=accounts | bin age span=10 | fields age | head 3;
+    os> source=accounts | bin age span=10 | fields age, account_number | head 3;
     fetched rows / total rows = 3/3
-    +-------+
-    | age   |
-    |-------|
-    | 30-40 |
-    | 30-40 |
-    | 20-30 |
-    +-------+
+    +-------+----------------+
+    | age   | account_number |
+    |-------+----------------|
+    | 30-40 | 1              |
+    | 30-40 | 6              |
+    | 20-30 | 13             |
+    +-------+----------------+
 
 Example 2: Large numeric span
 ==============================
@@ -264,22 +264,8 @@ PPL query::
     | 0-25000     |
     +-------------+
 
-Example 3: Floating point span
-===============================
 
-PPL query::
-
-    os> source=accounts | bin age span=2.5 | fields age | head 3;
-    fetched rows / total rows = 3/3
-    +-----------+
-    | age       |
-    |-----------|
-    | 30.0-32.5 |
-    | 35.0-37.5 |
-    | 27.5-30.0 |
-    +-----------+
-
-Example 4: Logarithmic span (log10)
+Example 3: Logarithmic span (log10)
 ====================================
 
 PPL query::
@@ -293,7 +279,7 @@ PPL query::
     | 1000.0-10000.0   |
     +------------------+
 
-Example 5: Logarithmic span with coefficient
+Example 4: Logarithmic span with coefficient
 =============================================
 
 PPL query::
@@ -311,22 +297,22 @@ PPL query::
 Bins Parameter Examples
 =======================
 
-Example 6: Basic bins parameter
+Example 5: Basic bins parameter
 ================================
 
 PPL query::
 
-    ppl> source=time_test | bin value bins=5 | fields value | head 3;
+    os> source=time_test | bin value bins=5 | fields value | head 3;
     fetched rows / total rows = 3/3
-    +-------------+
-    | value       |
-    |-------------|
-    | 8000-9000   |
-    | 7000-8000   |
-    | 9000-10000  |
-    +-------------+
+    +------------+
+    | value      |
+    |------------|
+    | 8000-9000  |
+    | 7000-8000  |
+    | 9000-10000 |
+    +------------+
 
-Example 7: Low bin count
+Example 6: Low bin count
 =========================
 
 PPL query::
@@ -339,40 +325,40 @@ PPL query::
     | 30-40 |
     +-------+
 
-Example 8: High bin count
+Example 7: High bin count
 ==========================
 
 PPL query::
 
-    os> source=accounts | bin age bins=21 | fields age | head 3;
+    os> source=accounts | bin age bins=21 | fields age, account_number | head 3;
     fetched rows / total rows = 3/3
-    +-------+
-    | age   |
-    |-------|
-    | 32-33 |
-    | 36-37 |
-    | 28-29 |
-    +-------+
+    +-------+----------------+
+    | age   | account_number |
+    |-------+----------------|
+    | 32-33 | 1              |
+    | 36-37 | 6              |
+    | 28-29 | 13             |
+    +-------+----------------+
 
 Minspan Parameter Examples
 ==========================
 
-Example 9: Basic minspan
+Example 8: Basic minspan
 =========================
 
 PPL query::
 
-    os> source=accounts | bin age minspan=5 | fields age | head 3;
+    os> source=accounts | bin age minspan=5 | fields age, account_number | head 3;
     fetched rows / total rows = 3/3
-    +-------+
-    | age   |
-    |-------|
-    | 30-40 |
-    | 30-40 |
-    | 20-30 |
-    +-------+
+    +-------+----------------+
+    | age   | account_number |
+    |-------+----------------|
+    | 30-40 | 1              |
+    | 30-40 | 6              |
+    | 20-30 | 13             |
+    +-------+----------------+
 
-Example 10: Large minspan
+Example 9: Large minspan
 ==========================
 
 PPL query::
@@ -388,7 +374,7 @@ PPL query::
 Start/End Parameter Examples
 ============================
 
-Example 11: Start and end range
+Example 10: Start and end range
 ================================
 
 PPL query::
@@ -401,7 +387,7 @@ PPL query::
     | 0-100 |
     +-------+
 
-Example 12: Large end range
+Example 11: Large end range
 ============================
 
 PPL query::
@@ -414,7 +400,7 @@ PPL query::
     | 0-100000 |
     +----------+
 
-Example 13: Span with start/end
+Example 12: Span with start/end
 ================================
 
 PPL query::
@@ -433,61 +419,61 @@ PPL query::
 Time-based Examples
 ===================
 
-Example 14: Hour span
+Example 13: Hour span
 ======================
 
 PPL query::
 
-    ppl> source=time_test | bin @timestamp span=1h | fields @timestamp, value | head 3;
+    os> source=time_test | bin @timestamp span=1h | fields @timestamp, value | head 3;
     fetched rows / total rows = 3/3
     +---------------------+-------+
     | @timestamp          | value |
-    |---------------------|-------|
+    |---------------------+-------|
     | 2025-07-28 00:00:00 | 8945  |
     | 2025-07-28 01:00:00 | 7623  |
     | 2025-07-28 02:00:00 | 9187  |
     +---------------------+-------+
 
-Example 15: Minute span
+Example 14: Minute span
 ========================
 
 PPL query::
 
-    ppl> source=time_test | bin @timestamp span=45minute | fields @timestamp, value | head 3;
+    os> source=time_test | bin @timestamp span=45minute | fields @timestamp, value | head 3;
     fetched rows / total rows = 3/3
     +---------------------+-------+
     | @timestamp          | value |
-    |---------------------|-------|
+    |---------------------+-------|
     | 2025-07-28 00:00:00 | 8945  |
     | 2025-07-28 01:30:00 | 7623  |
     | 2025-07-28 02:15:00 | 9187  |
     +---------------------+-------+
 
-Example 16: Second span
+Example 15: Second span
 ========================
 
 PPL query::
 
-    ppl> source=time_test | bin @timestamp span=30seconds | fields @timestamp, value | head 3;
+    os> source=time_test | bin @timestamp span=30seconds | fields @timestamp, value | head 3;
     fetched rows / total rows = 3/3
     +---------------------+-------+
     | @timestamp          | value |
-    |---------------------|-------|
-    | 2025-07-28 00:15:00 | 8945  |
+    |---------------------+-------|
+    | 2025-07-28 00:15:30 | 8945  |
     | 2025-07-28 01:42:00 | 7623  |
     | 2025-07-28 02:28:30 | 9187  |
     +---------------------+-------+
 
-Example 17: Daily span
+Example 16: Daily span
 =======================
 
 PPL query::
 
-    ppl> source=time_test | bin @timestamp span=7day | fields @timestamp, value | head 3;
+    os> source=time_test | bin @timestamp span=7day | fields @timestamp, value | head 3;
     fetched rows / total rows = 3/3
     +---------------------+-------+
     | @timestamp          | value |
-    |---------------------|-------|
+    |---------------------+-------|
     | 2025-07-24 00:00:00 | 8945  |
     | 2025-07-24 00:00:00 | 7623  |
     | 2025-07-24 00:00:00 | 9187  |
@@ -496,31 +482,31 @@ PPL query::
 Aligntime Parameter Examples
 ============================
 
-Example 18: Aligntime with time modifier
+Example 17: Aligntime with time modifier
 =========================================
 
 PPL query::
 
-    ppl> source=time_test | bin @timestamp span=2h aligntime='@d+3h' | fields @timestamp, value | head 3;
+    os> source=time_test | bin @timestamp span=2h aligntime='@d+3h' | fields @timestamp, value | head 3;
     fetched rows / total rows = 3/3
     +---------------------+-------+
     | @timestamp          | value |
-    |---------------------|-------|
+    |---------------------+-------|
     | 2025-07-27 23:00:00 | 8945  |
     | 2025-07-28 01:00:00 | 7623  |
     | 2025-07-28 01:00:00 | 9187  |
     +---------------------+-------+
 
-Example 19: Aligntime with epoch timestamp
+Example 18: Aligntime with epoch timestamp
 ===========================================
 
 PPL query::
 
-    ppl> source=time_test | bin @timestamp span=2h aligntime=1500000000 | fields @timestamp, value | head 3;
+    os> source=time_test | bin @timestamp span=2h aligntime=1500000000 | fields @timestamp, value | head 3;
     fetched rows / total rows = 3/3
     +---------------------+-------+
     | @timestamp          | value |
-    |---------------------|-------|
+    |---------------------+-------|
     | 2025-07-27 22:40:00 | 8945  |
     | 2025-07-28 00:40:00 | 7623  |
     | 2025-07-28 00:40:00 | 9187  |
@@ -529,18 +515,18 @@ PPL query::
 Default Binning Example
 =======================
 
-Example 20: Default behavior (no parameters)
+Example 19: Default behavior (no parameters)
 ==============================================
 
 PPL query::
 
-    os> source=accounts | bin age | fields age | head 3;
+    os> source=accounts | bin age | fields age, account_number | head 3;
     fetched rows / total rows = 3/3
-    +-----------+
-    | age       |
-    |-----------|
-    | 32.0-33.0 |
-    | 36.0-37.0 |
-    | 28.0-29.0 |
-    +-----------+
+    +-----------+----------------+
+    | age       | account_number |
+    |-----------+----------------|
+    | 32.0-33.0 | 1              |
+    | 36.0-37.0 | 6              |
+    | 28.0-29.0 | 13             |
+    +-----------+----------------+
 
