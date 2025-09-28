@@ -9,6 +9,7 @@ import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTOR
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
@@ -22,18 +23,20 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
-import org.opensearch.sql.expression.parse.GrokExpression;
+import org.opensearch.sql.expression.parse.ParseExpression;
+import org.opensearch.sql.utils.ParseUtils;
 
-public final class GrokFunction extends ImplementorUDF {
+public final class ParseFunction extends ImplementorUDF {
 
-  public GrokFunction() {
-    super(new GrokImplementor(), NullPolicy.ANY);
+  public ParseFunction() {
+    super(new ParseImplementor(), NullPolicy.NONE);
   }
 
   @Override
@@ -48,29 +51,33 @@ public final class GrokFunction extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return PPLOperandTypes.STRING_STRING;
+    return PPLOperandTypes.STRING_STRING_STRING;
   }
 
-  public static class GrokImplementor implements NotNullImplementor {
+  public static class ParseImplementor implements NotNullImplementor {
+
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
-      return Expressions.call(GrokFunction.GrokImplementor.class, "grok", translatedOperands);
+      return Expressions.call(ParseFunction.ParseImplementor.class, "parse", translatedOperands);
     }
 
-    public static Map<String, String> grok(String input, String regex) {
+    public static Map<String, String> parse(String input, String regex, String parseMethod) {
+      ParseMethod method = ParseMethod.valueOf(parseMethod.toUpperCase(Locale.ROOT));
+      List<String> namedFields =
+          ParseUtils.getNamedGroupCandidates(method, regex, Collections.emptyMap());
       if (input == null) {
-        return Collections.EMPTY_MAP;
+        return namedFields.stream().collect(Collectors.toMap(element -> element, element -> ""));
       }
       LiteralExpression inputExpr = DSL.literal(input);
       LiteralExpression regexExpr = DSL.literal(regex);
-      List<String> namedFields = GrokExpression.getNamedGroupCandidates(regex);
       return namedFields.stream()
           .map(
               namedField -> {
-                GrokExpression grokExpression =
-                    new GrokExpression(inputExpr, regexExpr, DSL.literal(namedField));
-                ExprValue parsedValue = grokExpression.parseValue(inputExpr.valueOf());
+                ParseExpression parseExpr =
+                    ParseUtils.createParseExpression(
+                        method, inputExpr, regexExpr, DSL.literal(namedField));
+                ExprValue parsedValue = parseExpr.parseValue(inputExpr.valueOf());
                 return Pair.of(namedField, parsedValue.stringValue());
               })
           .collect(Collectors.toMap(Pair::getKey, Pair::getValue));

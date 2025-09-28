@@ -14,6 +14,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import org.opensearch.search.SearchHits;
 import org.opensearch.search.aggregations.Aggregation;
 import org.opensearch.search.aggregations.Aggregations;
 import org.opensearch.search.aggregations.bucket.MultiBucketsAggregation;
@@ -44,6 +45,12 @@ public class LeafBucketAggregationParser implements OpenSearchAggregationRespons
             .map(b -> parse(b, agg.getName()))
             .filter(Objects::nonNull)
             .collect(Collectors.toList());
+  }
+
+  @Override
+  public List<Map<String, Object>> parse(SearchHits hits) {
+    throw new UnsupportedOperationException(
+        "LeafBucketAggregationParser doesn't support parse(SearchHits)");
   }
 
   private Map<String, Object> parse(MultiBucketsAggregation.Bucket bucket, String name) {
