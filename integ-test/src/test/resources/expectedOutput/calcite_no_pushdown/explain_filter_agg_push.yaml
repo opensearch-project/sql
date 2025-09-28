@@ -1,0 +1,14 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(avg_age=[$2], state=[$0], city=[$1])
+        LogicalAggregate(group=[{0, 1}], avg_age=[AVG($2)])
+          LogicalProject(state=[$7], city=[$5], age=[$8])
+            LogicalFilter(condition=[>($8, 30)])
+              CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[0], expr#5=[=($t3, $t4)], expr#6=[null:BIGINT], expr#7=[CASE($t5, $t6, $t2)], expr#8=[CAST($t7):DOUBLE], expr#9=[/($t8, $t3)], avg_age=[$t9], state=[$t1], city=[$t0])
+        EnumerableAggregate(group=[{5, 7}], agg#0=[$SUM0($8)], agg#1=[COUNT($8)])
+          EnumerableCalc(expr#0..16=[{inputs}], expr#17=[30], expr#18=[>($t8, $t17)], proj#0..16=[{exprs}], $condition=[$t18])
+            CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])

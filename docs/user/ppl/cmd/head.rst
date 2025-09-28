@@ -73,6 +73,6 @@ PPL query::
     | Dale      | 33  |
     +-----------+-----+
 
-Limitation
-==========
+Limitations
+===========
 The ``head`` command is not rewritten to OpenSearch DSL, it is only executed on the coordination node.
