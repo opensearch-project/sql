@@ -944,7 +944,7 @@ public class CalciteExplainIT extends ExplainIT {
                 TEST_INDEX_BANK)));
 
     // CASE 2: Composite - Range - Metric
-    // 2.1 Composite(1 field) - Range - Metric
+    // 2.1 Composite (term) - Range - Metric
     assertYamlEqualsJsonIgnoreId(
         loadExpectedPlan("agg_composite_range_metric_push.yaml"),
         explainQueryToString(
@@ -953,7 +953,15 @@ public class CalciteExplainIT extends ExplainIT {
                     + " by state, age_range",
                 TEST_INDEX_BANK)));
 
-    // 2.2 Composite(2 fields) - Range - Metric (with count)
+    // 2.2 Composite (date histogram) - Range - Metric
+    assertYamlEqualsJsonIgnoreId(
+        loadExpectedPlan("agg_composite_date_range_push.yaml"),
+        explainQueryToString(
+            "source=opensearch-sql_test_index_time_data | eval value_range = case(value < 7000,"
+                + " 'small' else 'large') | stats avg(value) by value_range, span(@timestamp,"
+                + " 1h)"));
+
+    // 2.3 Composite(2 fields) - Range - Metric (with count)
     assertYamlEqualsJsonIgnoreId(
         loadExpectedPlan("agg_composite2_range_count_push.yaml"),
         explainQueryToString(
@@ -962,7 +970,7 @@ public class CalciteExplainIT extends ExplainIT {
                     + " avg(balance), count() by age_range, state, gender",
                 TEST_INDEX_BANK)));
 
-    // 2.3 Composite (2 fields) - Range - Range - Metric (with count)
+    // 2.4 Composite (2 fields) - Range - Range - Metric (with count)
     assertYamlEqualsJsonIgnoreId(
         loadExpectedPlan("agg_composite2_range_range_count_push.yaml"),
         explainQueryToString(
@@ -972,7 +980,7 @@ public class CalciteExplainIT extends ExplainIT {
                     + " avg_balance by age_range, balance_range, state",
                 TEST_INDEX_BANK)));
 
-    // 2.4 Should not be pushed because case result expression is not constant
+    // 2.5 Should not be pushed because case result expression is not constant
     assertYamlEqualsJsonIgnoreId(
         loadExpectedPlan("agg_case_composite_cannot_push.yaml"),
         explainQueryToString(

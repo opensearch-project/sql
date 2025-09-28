@@ -19,8 +19,8 @@ import org.opensearch.search.aggregations.bucket.composite.CompositeAggregation;
 import org.opensearch.search.aggregations.bucket.range.Range;
 
 /**
- * Use BucketAggregationParser only when there is a single group-by key, it returns multiple
- * buckets. {@link CompositeAggregationParser} is used for multiple group by keys
+ * Use LeafBucketAggregationParser only when there is a single group-by key, it returns multiple
+ * buckets. {@link BucketAggregationParser} is used for multiple group by keys
  */
 @EqualsAndHashCode
 public class LeafBucketAggregationParser implements OpenSearchAggregationResponseParser {
@@ -36,7 +36,7 @@ public class LeafBucketAggregationParser implements OpenSearchAggregationRespons
     metricsParser = new MetricParserHelper(metricParserList);
   }
 
-  /** CompositeAggregationParser with count aggregation name list, used in v3 */
+  /** BucketAggregationParser with count aggregation name list, used in v3 */
   public LeafBucketAggregationParser(
       List<MetricParser> metricParserList, List<String> countAggNameList) {
     metricsParser = new MetricParserHelper(metricParserList);
