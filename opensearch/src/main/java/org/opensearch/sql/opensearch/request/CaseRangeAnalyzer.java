@@ -171,7 +171,7 @@ public class CaseRangeAnalyzer {
         addTo(key, value);
       }
       default -> throw new UnsupportedOperationException(
-          "ranges must equivalents of field >= constant or field < constant");
+          "ranges must be equivalents of field >= constant or field < constant");
     }
     ;
   }

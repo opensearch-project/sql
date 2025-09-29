@@ -29,7 +29,8 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
-import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
+import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
+import org.opensearch.sql.opensearch.response.agg.LeafBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
@@ -95,7 +96,7 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
                           bucketNullable))
                   .subAggregations(metrics.getLeft())
                   .size(AGGREGATION_BUCKET_SIZE)),
-          new CompositeAggregationParser(metrics.getRight()));
+          new BucketAggregationParser(new LeafBucketAggregationParser(metrics.getRight())));
     }
   }
 

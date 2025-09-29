@@ -8,6 +8,7 @@ package org.opensearch.sql.opensearch.response.agg;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.aggregations.Aggregation;
@@ -16,8 +17,10 @@ import org.opensearch.search.aggregations.bucket.MultiBucketsAggregation;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregation;
 import org.opensearch.search.aggregations.bucket.range.Range;
 
+@Getter
+@EqualsAndHashCode
 public class BucketAggregationParser implements OpenSearchAggregationResponseParser {
-  @Getter private final OpenSearchAggregationResponseParser subAggParser;
+  private final OpenSearchAggregationResponseParser subAggParser;
 
   public BucketAggregationParser(OpenSearchAggregationResponseParser subAggParser) {
     this.subAggParser = subAggParser;
