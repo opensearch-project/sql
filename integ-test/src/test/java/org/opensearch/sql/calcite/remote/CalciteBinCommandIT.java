@@ -25,6 +25,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     enableCalcite();
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK);
+    loadIndex(Index.EVENTS_NULL);
     loadIndex(Index.TIME_TEST_DATA);
   }
 
@@ -884,5 +885,87 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
 
     // Test floating point spans with stats aggregation - verify proper decimal formatting
     verifyDataRows(result, rows(279L, "0.0-15000.5"), rows(319L, "15000.5-30001.0"));
+  }
+
+  @Test
+  public void testStatsWithBinsOnTimeField_Count() throws IOException {
+    // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
+    enabledOnlyWhenPushdownIsEnabled();
+
+    JSONObject result =
+        executeQuery("source=events_null | bin @timestamp bins=3 | stats count() by @timestamp");
+    // TODO: @timestamp should keep date as its type, to be addressed by this issue:
+    // https://github.com/opensearch-project/sql/issues/4317
+    verifySchema(result, schema("count()", null, "bigint"), schema("@timestamp", null, "string"));
+    // auto_date_histogram will choose span=5m for bins=3
+    verifyDataRows(result, rows(5, "2024-07-01 00:00:00"), rows(1, "2024-07-01 00:05:00"));
+
+    result =
+        executeQuery("source=events_null | bin @timestamp bins=6 | stats count() by @timestamp");
+    // auto_date_histogram will choose span=1m for bins=6
+    verifyDataRows(
+        result,
+        rows(1, "2024-07-01 00:00:00"),
+        rows(1, "2024-07-01 00:01:00"),
+        rows(1, "2024-07-01 00:02:00"),
+        rows(1, "2024-07-01 00:03:00"),
+        rows(1, "2024-07-01 00:04:00"),
+        rows(1, "2024-07-01 00:05:00"));
+
+    result =
+        executeQuery("source=events_null | bin @timestamp bins=100 | stats count() by @timestamp");
+    // auto_date_histogram will choose span=5s for bins=100, it will produce many empty buckets but
+    // we will filter them and left only 6 buckets.
+    verifyDataRows(
+        result,
+        rows(1, "2024-07-01 00:00:00"),
+        rows(1, "2024-07-01 00:01:00"),
+        rows(1, "2024-07-01 00:02:00"),
+        rows(1, "2024-07-01 00:03:00"),
+        rows(1, "2024-07-01 00:04:00"),
+        rows(1, "2024-07-01 00:05:00"));
+  }
+
+  @Test
+  public void testStatsWithBinsOnTimeField_Avg() throws IOException {
+    // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
+    enabledOnlyWhenPushdownIsEnabled();
+
+    JSONObject result =
+        executeQuery(
+            "source=events_null | bin @timestamp bins=3 | stats avg(cpu_usage) by @timestamp");
+    // TODO: @timestamp should keep date as its type, to be addressed by this issue:
+    // https://github.com/opensearch-project/sql/issues/4317
+    verifySchema(
+        result, schema("avg(cpu_usage)", null, "double"), schema("@timestamp", null, "string"));
+    // auto_date_histogram will choose span=5m for bins=3
+    verifyDataRows(result, rows(44.62, "2024-07-01 00:00:00"), rows(50.0, "2024-07-01 00:05:00"));
+
+    result =
+        executeQuery(
+            "source=events_null | bin @timestamp bins=6 | stats avg(cpu_usage) by @timestamp");
+    // auto_date_histogram will choose span=1m for bins=6
+    verifyDataRows(
+        result,
+        rows(45.2, "2024-07-01 00:00:00"),
+        rows(38.7, "2024-07-01 00:01:00"),
+        rows(55.3, "2024-07-01 00:02:00"),
+        rows(42.1, "2024-07-01 00:03:00"),
+        rows(41.8, "2024-07-01 00:04:00"),
+        rows(50.0, "2024-07-01 00:05:00"));
+
+    result =
+        executeQuery(
+            "source=events_null | bin @timestamp bins=100 | stats avg(cpu_usage) by @timestamp");
+    // auto_date_histogram will choose span=5s for bins=100, it will produce many empty buckets but
+    // we will filter them and left only 6 buckets.
+    verifyDataRows(
+        result,
+        rows(45.2, "2024-07-01 00:00:00"),
+        rows(38.7, "2024-07-01 00:01:00"),
+        rows(55.3, "2024-07-01 00:02:00"),
+        rows(42.1, "2024-07-01 00:03:00"),
+        rows(41.8, "2024-07-01 00:04:00"),
+        rows(50.0, "2024-07-01 00:05:00"));
   }
 }

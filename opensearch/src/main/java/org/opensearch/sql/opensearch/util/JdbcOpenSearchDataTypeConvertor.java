@@ -98,6 +98,7 @@ public class JdbcOpenSearchDataTypeConvertor {
           return ExprValueUtils.fromObjectValue(rs.getFloat(i));
 
         case Types.DECIMAL:
+          return ExprValueUtils.fromObjectValue(rs.getBigDecimal(i));
         case Types.NUMERIC:
         case Types.DOUBLE:
           return ExprValueUtils.fromObjectValue(rs.getDouble(i));

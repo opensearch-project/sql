@@ -751,9 +751,10 @@ Description
 
 You can enable Calcite as new query optimizer and execution engine to all coming requests.
 
-1. The default value is false since 3.0.0.
-2. This setting is node scope.
-3. This setting can be updated dynamically.
+1. The default value is false in 3.0, 3.1 and 3.2.
+2. The default value is true since 3.3.0.
+3. This setting is node scope.
+4. This setting can be updated dynamically.
 
 Check `introduce v3 engine <../../../dev/intro-v3-engine.md>`_ for more details.
 Check `join doc <../../ppl/cmd/join.rst>`_ for example.

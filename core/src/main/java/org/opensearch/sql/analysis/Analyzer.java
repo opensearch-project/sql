@@ -86,6 +86,7 @@ import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
+import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
@@ -95,6 +96,7 @@ import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -756,8 +758,18 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   @Override
+  public LogicalPlan visitSpath(SPath node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Spath");
+  }
+
+  @Override
   public LogicalPlan visitTimechart(Timechart node, AnalysisContext context) {
     throw getOnlyForCalciteException("Timechart");
+  }
+
+  @Override
+  public LogicalPlan visitWindow(Window node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Window");
   }
 
   @Override

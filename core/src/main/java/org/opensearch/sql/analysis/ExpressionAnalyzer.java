@@ -38,6 +38,7 @@ import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Interval;
+import org.opensearch.sql.ast.expression.LambdaFunction;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
@@ -477,6 +478,11 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
   @Override
   public Expression visitInSubquery(InSubquery node, AnalysisContext context) {
     throw getOnlyForCalciteException("Subsearch");
+  }
+
+  @Override
+  public Expression visitLambdaFunction(LambdaFunction node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Lambda function");
   }
 
   /**
