@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -217,15 +218,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitAppendPipe(AppendPipe node, CalcitePlanContext context){
     visitChildren(node, context);
     final RelNode base = context.relBuilder.peek();
-    node.getSubQuery().accept(this, context);
-    RelNode sub = context.relBuilder.peek();
 
-    sub = alignToBaseSchemaOrThrow(base, sub, context);
+    CalcitePlanContext subqueryContext = context.clone();
+    node.getSubQuery().accept(this, subqueryContext);
 
-    context.relBuilder.push(base);
-    context.relBuilder.union(true);
+    RelNode sub = subqueryContext.relBuilder.peek();
 
-    return context.relBuilder.peek();
+    RelNode out = unionAllPreserveAllColumns(base, sub, context, subqueryContext);
+    return out;
   }
 
   @Override
@@ -2595,46 +2595,75 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
   }
 
-  private RelNode alignToBaseSchemaOrThrow(RelNode base, RelNode sub, CalcitePlanContext context) {
-    final List<RelDataTypeField> baseFields = base.getRowType().getFieldList();
-    final Map<String, RelDataTypeField> subFieldByName = sub.getRowType().getFieldList().stream()
-            .collect(Collectors.toMap(RelDataTypeField::getName, f -> f, (a, b) -> a, LinkedHashMap::new));
+  private RelNode unionAllPreserveAllColumns(RelNode base, RelNode sub, CalcitePlanContext baseContext, CalcitePlanContext subContext) {
+    LinkedHashMap<String, RelDataType> targetColumnNameToType = collectTargetColumnNameToType(base, sub, baseContext);
+    RelNode castedBase = projectToSchema(base, targetColumnNameToType, baseContext);
+    RelNode castedSub = projectToSchema(base, targetColumnNameToType, subContext);
 
-    final RexBuilder rex = context.rexBuilder;
-    final RelBuilder b = context.relBuilder;
+    baseContext.relBuilder.push(castedBase);
+    baseContext.relBuilder.push(castedSub);
+    baseContext.relBuilder.union(true, 2);
+    return baseContext.relBuilder.peek();
+  }
 
-    // 把 builder 栈顶替换成 sub，便于用 field(name) 构造投影
-    // （此时栈顶本来就是 sub；如果你在其它地方用过 build() 清栈，则先 push(sub)）
-    // 这里稳妥起见，确保一下：
-    if (b.peek() != sub) {
-      b.push(sub);
+  private LinkedHashMap<String, RelDataType> collectTargetColumnNameToType(RelNode left, RelNode right, CalcitePlanContext context) {
+    LinkedHashMap<String, RelDataType> cols = new LinkedHashMap<>(); // name to type
+    for (RelDataTypeField f : left.getRowType().getFieldList()) {
+      cols.put(f.getName(), f.getType());
     }
-
-    List<RexNode> projects = new ArrayList<>(baseFields.size());
-    List<String> names = new ArrayList<>(baseFields.size());
-
-    for (RelDataTypeField bf : baseFields) {
-      final String name = bf.getName();
-      final RelDataType targetType = bf.getType();
-      RexNode expr;
-      RelDataTypeField sf = subFieldByName.get(name);
-      if (sf != null) {
-        // 有同名列：取之并必要时 CAST 到 base 的类型
-        expr = b.field(name);
-        if (!expr.getType().equals(targetType)) {
-          expr = rex.makeCast(targetType, expr, /* matchNullability */ true);
-        }
+    for (RelDataTypeField f : right.getRowType().getFieldList()) {
+      if (!cols.containsKey(f.getName())) {
+        cols.put(f.getName(), f.getType());
       } else {
-        // 缺列：补 NULL 并 CAST 到目标类型
-        RexNode nullLit = rex.makeNullLiteral(targetType);
-        expr = nullLit;
+        RelDataType merged =
+                context.relBuilder.getTypeFactory().leastRestrictive(List.of(cols.get(f.getName()), f.getType()));
+        if (merged != null) cols.put(f.getName(), merged);
       }
-      projects.add(expr);
-      names.add(name);
+    }
+    return cols;
+  }
+
+
+
+  private RelNode projectToSchema(RelNode input,
+                                  LinkedHashMap<String, RelDataType> targetCols,
+                                  CalcitePlanContext context) {
+    RexBuilder rex = context.rexBuilder;
+    RelBuilder rel = context.relBuilder;
+    Map<String, Integer> idx =
+            new LinkedHashMap<>(); // name to index
+    List<RelDataTypeField> inFields = input.getRowType().getFieldList();
+    for (int i = 0; i < inFields.size(); i++) {
+      String n = inFields.get(i).getName();
+      idx.put(n, i);
     }
 
-    b.project(projects, names);
-    return b.peek();
+    List<RexNode> exprs = new ArrayList<>(targetCols.size());
+    List<String>  names = new ArrayList<>(targetCols.size());
+
+    for (Map.Entry<String, RelDataType> e : targetCols.entrySet()) {
+      String normName = e.getKey();
+      RelDataType toType = e.getValue();
+
+      RexNode expr;
+      Integer pos = idx.get(normName);
+      if (pos != null) {
+        RexNode ref = RexInputRef.of(pos, input.getRowType());
+        if (!ref.getType().equals(toType)) {
+          ref = rex.makeCast(toType, ref,  true);
+        }
+        expr = ref;
+        names.add(inFields.get(pos).getName());
+      } else {
+        expr = rex.makeNullLiteral(toType);
+        names.add(normName);
+      }
+      exprs.add(expr);
+    }
+
+    rel.project(exprs, names);
+
+    return rel.peek();
   }
 
 }
