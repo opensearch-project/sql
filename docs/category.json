@@ -36,7 +36,6 @@
     "user/ppl/cmd/fields.rst",
     "user/ppl/cmd/fillnull.rst",
     "user/ppl/cmd/head.rst",
-    "user/ppl/cmd/information_schema.rst",
     "user/ppl/cmd/join.rst",
     "user/ppl/cmd/lookup.rst",
     "user/ppl/cmd/rare.rst",
