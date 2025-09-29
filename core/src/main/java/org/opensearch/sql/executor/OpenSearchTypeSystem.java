@@ -14,11 +14,22 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.sql.utils.DecimalUtils;
 
 public class OpenSearchTypeSystem extends RelDataTypeSystemImpl {
   public static final RelDataTypeSystem INSTANCE = new OpenSearchTypeSystem();
 
   private OpenSearchTypeSystem() {}
+
+  @Override
+  public int getMaxNumericPrecision() {
+    return DecimalUtils.MAX_PRECISION;
+  }
+
+  @Override
+  public int getMaxNumericScale() {
+    return DecimalUtils.MAX_SCALE;
+  }
 
   @Override
   public RelDataType deriveAvgAggType(RelDataTypeFactory typeFactory, RelDataType argumentType) {

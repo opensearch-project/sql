@@ -6,11 +6,11 @@
 package org.opensearch.sql.ast.expression;
 
 import com.google.common.collect.ImmutableList;
-import java.math.BigDecimal;
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.utils.DecimalUtils;
 
 /**
  * Expression node of literal type Params include literal value (@value) and literal data type
@@ -25,7 +25,16 @@ public class Literal extends UnresolvedExpression {
 
   public Literal(Object value, DataType dataType) {
     if (dataType == DataType.DECIMAL && value instanceof Double) {
-      this.value = BigDecimal.valueOf((Double) value);
+      // For backward compatibility, we accept decimal literal by Literal(double, DataType.DECIMAL)
+      // The double value will be converted by DecimalUtils.safeBigDecimal((Double) value),
+      // some double values such as 0.0001 will be converted to string "1.0E-4" and finally
+      // generate decimal 0.00010. So here we parse a decimal text to Double then convert it
+      // to BigDecimal as well.
+      // In v2, a decimal literal will be converted back to double in resolving expression
+      // via ExprDoubleValue.
+      // In v3, a decimal literal will be kept in Calcite RexNode and converted back to double
+      // in runtime.
+      this.value = DecimalUtils.safeBigDecimal((Double) value);
     } else {
       this.value = value;
     }
