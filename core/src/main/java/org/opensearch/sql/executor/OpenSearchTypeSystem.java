@@ -14,21 +14,24 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.opensearch.sql.utils.DecimalUtils;
 
 public class OpenSearchTypeSystem extends RelDataTypeSystemImpl {
   public static final RelDataTypeSystem INSTANCE = new OpenSearchTypeSystem();
+  // same with Spark DecimalType.MAX_PRECISION
+  public static int MAX_PRECISION = 38;
+  // same with Spark DecimalType.MAX_SCALE
+  public static int MAX_SCALE = 38;
 
   private OpenSearchTypeSystem() {}
 
   @Override
   public int getMaxNumericPrecision() {
-    return DecimalUtils.MAX_PRECISION;
+    return MAX_PRECISION;
   }
 
   @Override
   public int getMaxNumericScale() {
-    return DecimalUtils.MAX_SCALE;
+    return MAX_SCALE;
   }
 
   @Override
