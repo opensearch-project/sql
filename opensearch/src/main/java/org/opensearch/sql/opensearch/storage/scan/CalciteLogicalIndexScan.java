@@ -9,6 +9,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import org.apache.calcite.plan.Convention;
@@ -309,10 +310,10 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               instanceof AutoDateHistogramAggregationBuilder autoDateHistogram) {
         // If it's auto_date_histogram, filter the empty bucket by using the first aggregate metrics
         RexBuilder rexBuilder = getCluster().getRexBuilder();
-        AggregationBuilder aggregationBuilders =
-            autoDateHistogram.getSubAggregations().stream().toList().getFirst();
+        Optional<AggregationBuilder> aggBuilderOpt =
+            autoDateHistogram.getSubAggregations().stream().toList().stream().findFirst();
         RexNode condition =
-            aggregationBuilders instanceof ValueCountAggregationBuilder
+            aggBuilderOpt.isEmpty() || aggBuilderOpt.get() instanceof ValueCountAggregationBuilder
                 ? rexBuilder.makeCall(
                     SqlStdOperatorTable.GREATER_THAN,
                     rexBuilder.makeInputRef(newScan, 1),
