@@ -16,7 +16,7 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.opensearch.sql.data.utils.MinTypeComparator;
+import org.opensearch.sql.data.utils.MixedTypeComparator;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
@@ -60,7 +60,7 @@ public class MinFunction extends ImplementorUDF {
 
       return Arrays.stream(args)
           .filter(Objects::nonNull)
-          .reduce(MinTypeComparator::min)
+          .min(MixedTypeComparator.INSTANCE)
           .orElse(null);
     }
   }
