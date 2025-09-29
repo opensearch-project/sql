@@ -33,8 +33,12 @@ patterns <field> [by byClause...] [method=simple_pattern | brain] [mode=label | 
 * show_numbered_token: optional. The flag to turn on numbered token output format (default: false). The show_numbered_token is configured by the setting ``plugins.ppl.pattern.show.numbered.token``.
 * new_field: Alias of the output pattern field. (default: "patterns_field").
 * algorithm parameters: optional. Algorithm-specific tuning:
-    - ``simple_pattern`` : Define regex via "pattern".
-    - ``brain`` : Adjust sensitivity with variable_count_threshold (int > 0) and frequency_threshold_percentage (double 0.0 - 1.0).
+
+  - ``simple_pattern`` : Define regex via "pattern".
+  - ``brain`` : Adjust sensitivity with variable_count_threshold (int > 0) and frequency_threshold_percentage (double 0.0 - 1.0).
+
+    - ``variable_count_threshold``: Optional integer(Default value is 5). Words(or we say tokens) are split by space. Algorithm will count how many distinct words are at specific position in initial log groups. Same log group's constant word ideally should be distinct at its position but it's not guaranteed because some words could be enums. Adjusting this threshold can primarily determine the sensitivity of constant words.
+    - ``frequency_threshold_percentage``: Optional double(Default value is 0.3). Brain's log pattern is selected based on longest word combination. A word combination is words with same frequency per message. To select longest word combination frequency, it needs a lower bound of frequency to ignore too low frequency words. The representative frequency of longest word combination should be >= highest token frequency of log * threshold percentage. Adjusting this threshold could prune some low frequency words.
 
 Change default pattern method
 ============
