@@ -7,9 +7,7 @@ package org.opensearch.sql.data.utils;
 
 import java.util.Comparator;
 
-/**
- * Comparator for MAX operations where strings have higher precedence than numbers.
- */
+/** Comparator for MAX operations where strings have higher precedence than numbers. */
 public class MaxTypeComparator implements Comparator<Object> {
 
   public static final MaxTypeComparator INSTANCE = new MaxTypeComparator();
@@ -34,9 +32,7 @@ public class MaxTypeComparator implements Comparator<Object> {
     return aIsNumeric ? -1 : 1;
   }
 
-  /**
-   * Returns the maximum value according to MAX precedence rules (strings > numbers).
-   */
+  /** Returns the maximum value according to MAX precedence rules (strings > numbers). */
   public static Object max(Object a, Object b) {
     return INSTANCE.compare(a, b) >= 0 ? a : b;
   }

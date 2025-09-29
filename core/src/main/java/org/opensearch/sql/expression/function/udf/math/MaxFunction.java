@@ -63,6 +63,5 @@ public class MaxFunction extends ImplementorUDF {
           .reduce(MaxTypeComparator::max)
           .orElse(null);
     }
-
   }
 }

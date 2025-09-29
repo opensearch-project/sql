@@ -7,9 +7,7 @@ package org.opensearch.sql.data.utils;
 
 import java.util.Comparator;
 
-/**
- * Comparator for MIN operations where numbers have higher precedence than strings.
- */
+/** Comparator for MIN operations where numbers have higher precedence than strings. */
 public class MinTypeComparator implements Comparator<Object> {
 
   public static final MinTypeComparator INSTANCE = new MinTypeComparator();
@@ -34,9 +32,7 @@ public class MinTypeComparator implements Comparator<Object> {
     return aIsNumeric ? -1 : 1;
   }
 
-  /**
-   * Returns the minimum value according to MIN precedence rules (numbers > strings).
-   */
+  /** Returns the minimum value according to MIN precedence rules (numbers > strings). */
   public static Object min(Object a, Object b) {
     return INSTANCE.compare(a, b) <= 0 ? a : b;
   }

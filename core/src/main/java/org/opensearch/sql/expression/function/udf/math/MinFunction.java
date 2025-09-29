@@ -63,6 +63,5 @@ public class MinFunction extends ImplementorUDF {
           .reduce(MinTypeComparator::min)
           .orElse(null);
     }
-
   }
 }
