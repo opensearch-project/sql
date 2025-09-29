@@ -458,7 +458,7 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
                     + "| stats avg(age) by age_category",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
     verifySchema(actual, schema("avg(age)", "double"), schema("age_category", "string"));
-    // TODO: There is such discrepancy because range aggregations will ignore null values
+    // There is such discrepancy because range aggregations will ignore null values
     if (isPushdownDisabled()) {
       verifyDataRows(
           actual,
