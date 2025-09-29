@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.closeTo;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -28,7 +29,7 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
 
     loadIndex(Index.WEBLOG);
     loadIndex(Index.TIME_TEST_DATA);
-    loadIndex(Index.TIME_TEST_DATA_WITH_NULL);
+    loadIndex(Index.STATE_COUNTRY_WITH_NULL);
     loadIndex(Index.BANK);
     appendDataForBadResponse();
   }
@@ -441,5 +442,32 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
         rows(39225.0, "u35", "IL"),
         rows(5686.0, "hattiebond@netagy.com", "TN"),
         rows(16418.0, "elinorratliff@scentric.com", "WA"));
+  }
+
+  @Test
+  public void testCaseAggWithNullValues() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s"
+                    + "| eval age_category = case("
+                    + "    age < 20, 'teenager',"
+                    + "    age < 70, 'adult',"
+                    + "    age >= 70, 'senior'"
+                    + "    else 'unknown')"
+                    + "| stats avg(age) by age_category",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+    verifySchema(actual, schema("avg(age)", "double"), schema("age_category", "string"));
+    // TODO: There is such discrepancy because range aggregations will ignore null values
+    if (isPushdownDisabled()) {
+      verifyDataRows(
+          actual,
+          rows(10, "teenager"),
+          rows(25, "adult"),
+          rows(70, "senior"),
+          rows(null, "unknown"));
+    } else {
+      verifyDataRows(actual, rows(10, "teenager"), rows(25, "adult"), rows(70, "senior"));
+    }
   }
 }
