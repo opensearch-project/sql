@@ -1,6 +1,0 @@
-{
-  "calcite": {
-    "logical": "LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])\n  LogicalProject(sum(balance)=[$1], sum(balance + 100)=[$2], sum(balance - 100)=[$3], sum(balance * 100)=[$4], sum(balance / 100)=[$5], gender=[$0])\n    LogicalAggregate(group=[{0}], sum(balance)=[SUM($1)], sum(balance + 100)=[SUM($2)], sum(balance - 100)=[SUM($3)], sum(balance * 100)=[SUM($4)], sum(balance / 100)=[SUM($5)])\n      LogicalProject(gender=[$4], balance=[$7], $f6=[+($7, 100)], $f7=[-($7, 100)], $f8=[*($7, 100)], $f9=[DIVIDE($7, 100)])\n        CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])\n",
-    "physical": "EnumerableLimit(fetch=[10000])\n  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[100], expr#5=[*($t2, $t4)], expr#6=[+($t1, $t5)], expr#7=[-($t1, $t5)], expr#8=[*($t1, $t4)], sum(balance)=[$t1], sum(balance + 100)=[$t6], sum(balance - 100)=[$t7], sum(balance * 100)=[$t8], sum(balance / 100)=[$t3], gender=[$t0])\n    EnumerableAggregate(group=[{0}], sum(balance)=[SUM($1)], sum(balance + 100)_COUNT=[COUNT($1)], sum(balance / 100)=[SUM($2)])\n      EnumerableCalc(expr#0..18=[{inputs}], expr#19=[100], expr#20=[DIVIDE($t7, $t19)], gender=[$t4], balance=[$t7], $f5=[$t20])\n        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])\n"
-  }
-}

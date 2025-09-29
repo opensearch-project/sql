@@ -660,6 +660,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "_doc",
         getDeepNestedIndexMapping(),
         "src/test/resources/deep_nested_index_data.json"),
+    TELEMETRY(
+        TestsConstants.TEST_INDEX_TELEMETRY,
+        "_doc",
+        getMappingFile("telemetry_test_mapping.json"),
+        "src/test/resources/telemetry_test_data.json"),
     DATA_TYPE_NUMERIC(
         TestsConstants.TEST_INDEX_DATATYPE_NUMERIC,
         "_doc",
@@ -872,6 +877,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "time_data",
         getMappingFile("time_test_data_index_mapping.json"),
         "src/test/resources/time_test_data.json"),
+    TIME_TEST_DATA_WITH_NULL(
+        TestsConstants.TEST_INDEX_TIME_DATE_NULL,
+        "time_data_with_null",
+        getMappingFile("time_test_data_index_mapping.json"),
+        "src/test/resources/time_test_data_with_null.json"),
     EVENTS(
         "events",
         "events",

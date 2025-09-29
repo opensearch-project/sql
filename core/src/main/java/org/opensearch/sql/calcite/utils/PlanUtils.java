@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.calcite.plan.RelOptTable;
@@ -255,6 +256,9 @@ public interface PlanUtils {
 
   /** Get all uniq input references from a RexNode. */
   static List<RexInputRef> getInputRefs(RexNode node) {
+    if (node == null) {
+      return List.of();
+    }
     List<RexInputRef> inputRefs = new ArrayList<>();
     node.accept(
         new RexVisitorImpl<Void>(true) {
@@ -272,6 +276,26 @@ public interface PlanUtils {
   /** Get all uniq input references from a list of RexNodes. */
   static List<RexInputRef> getInputRefs(List<RexNode> nodes) {
     return nodes.stream().flatMap(node -> getInputRefs(node).stream()).toList();
+  }
+
+  /** Get all uniq RexCall from RexNode with a predicate */
+  static List<RexCall> getRexCall(RexNode node, Predicate<RexCall> predicate) {
+    List<RexCall> list = new ArrayList<>();
+    node.accept(
+        new RexVisitorImpl<Void>(true) {
+          @Override
+          public Void visitCall(RexCall inputCall) {
+            if (predicate.test(inputCall)) {
+              if (!list.contains(inputCall)) {
+                list.add(inputCall);
+              }
+            } else {
+              inputCall.getOperands().forEach(call -> call.accept(this));
+            }
+            return null;
+          }
+        });
+    return list;
   }
 
   /** Get all uniq input references from a list of agg calls. */

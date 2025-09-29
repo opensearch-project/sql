@@ -83,9 +83,18 @@ ext {
         return repo + "opensearch-security-${securitySnapshotVersion}.zip"
     }
 
+    isSecurityTask = { ->
+        def taskName = gradle.startParameter.taskNames.join(' ')
+        return taskName.contains('Security') || System.getProperty('enableSecurity') == 'true'
+    }
+    
     var projectAbsPath = projectDir.getAbsolutePath()
     File downloadedSecurityPlugin = Paths.get(projectAbsPath, 'bin', 'opensearch-security-snapshot.zip').toFile()
+    
     configureSecurityPlugin = { OpenSearchCluster cluster ->
+        if (!isSecurityTask()) {
+            return
+        }
 
         cluster.getNodes().forEach { node ->
             var creds = node.getCredentials()
@@ -237,17 +246,17 @@ testClusters.all {
 
 def getJobSchedulerPlugin() {
     provider { (RegularFile) (() ->
-            configurations.zipArchive.asFileTree.matching {
-                include '**/opensearch-job-scheduler*'
-            }.singleFile )
+        configurations.zipArchive.asFileTree.matching {
+            include '**/opensearch-job-scheduler*'
+        }.singleFile )
     }
 }
 
 def getGeoSpatialPlugin() {
     provider { (RegularFile) (() ->
-            configurations.zipArchive.asFileTree.matching {
-                include '**/geospatia*'
-            }.singleFile )
+        configurations.zipArchive.asFileTree.matching {
+            include '**/geospatia*'
+        }.singleFile )
     }
 }
 
