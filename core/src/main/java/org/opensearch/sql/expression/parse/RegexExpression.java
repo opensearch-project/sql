@@ -36,7 +36,7 @@ public class RegexExpression extends ParseExpression {
   }
 
   @Override
-  ExprValue parseValue(ExprValue value) throws ExpressionEvaluationException {
+  public ExprValue parseValue(ExprValue value) throws ExpressionEvaluationException {
     String rawString = value.stringValue();
 
     String extracted = RegexCommonUtils.extractNamedGroup(rawString, regexPattern, identifierStr);

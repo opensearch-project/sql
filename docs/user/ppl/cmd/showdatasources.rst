@@ -34,3 +34,8 @@ PPL query for all PROMETHEUS DATASOURCES::
     | my_prometheus   | PROMETHEUS     |
     +-----------------+----------------+
 
+
+Limitations
+===========
+The ``show datasources`` command can only work with ``plugins.calcite.enabled=false``.
+It means ``show datasources``  command cannot work together with new PPL commands/functions introduced in 3.0.0 and above.

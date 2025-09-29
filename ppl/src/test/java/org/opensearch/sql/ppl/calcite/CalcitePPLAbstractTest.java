@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl.calcite;
 import static org.apache.calcite.test.Matchers.hasTree;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.opensearch.sql.executor.QueryType.PPL;
@@ -41,6 +42,7 @@ import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
+import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.parser.AstBuilder;
@@ -51,12 +53,13 @@ public class CalcitePPLAbstractTest {
   private final CalciteRelNodeVisitor planTransformer;
   private final RelToSqlConverter converter;
   protected final Settings settings;
+  private final DataSourceService dataSourceService;
   public PPLSyntaxParser pplParser = new PPLSyntaxParser();
-  ;
 
   public CalcitePPLAbstractTest(CalciteAssert.SchemaSpec... schemaSpecs) {
     this.config = config(schemaSpecs);
-    this.planTransformer = new CalciteRelNodeVisitor();
+    this.dataSourceService = mock(DataSourceService.class);
+    this.planTransformer = new CalciteRelNodeVisitor(dataSourceService);
     this.converter = new RelToSqlConverter(OpenSearchSparkSqlDialect.DEFAULT);
     this.settings = mock(Settings.class);
   }
@@ -66,6 +69,7 @@ public class CalcitePPLAbstractTest {
     doReturn(true).when(settings).getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED);
     doReturn(true).when(settings).getSettingValue(Settings.Key.CALCITE_SUPPORT_ALL_JOIN_TYPES);
     doReturn(true).when(settings).getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED);
+    doReturn(false).when(dataSourceService).dataSourceExists(any());
   }
 
   protected Frameworks.ConfigBuilder config(CalciteAssert.SchemaSpec... schemaSpecs) {
