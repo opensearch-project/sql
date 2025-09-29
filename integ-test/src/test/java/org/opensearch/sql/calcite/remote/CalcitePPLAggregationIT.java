@@ -458,7 +458,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats avg(balance) by span(birthdate, 1 month) as age_balance",
+                "source=%s | stats avg(balance) by span(birthdate, 1month) as age_balance",
                 TEST_INDEX_BANK));
     verifySchema(actual, schema("age_balance", "timestamp"), schema("avg(balance)", "double"));
     verifyDataRows(
@@ -475,7 +475,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | head 5 | stats count(datetime0) by span(datetime0, 15 minute) as"
+                "source=%s | head 5 | stats count(datetime0) by span(datetime0, 15minute) as"
                     + " datetime_span",
                 TEST_INDEX_CALCS));
     verifySchema(
@@ -491,7 +491,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
-                "source=%s | head 5 | stats count(datetime0) by span(datetime0, 5 second) as"
+                "source=%s | head 5 | stats count(datetime0) by span(datetime0, 5second) as"
                     + " datetime_span",
                 TEST_INDEX_CALCS));
     verifySchema(
@@ -507,7 +507,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
-                "source=%s | head 5 | stats count(datetime0) by span(datetime0, 3 month) as"
+                "source=%s | head 5 | stats count(datetime0) by span(datetime0, 3month) as"
                     + " datetime_span",
                 TEST_INDEX_CALCS));
     verifySchema(
@@ -521,7 +521,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | head 5 | stats count(datetime0), count(datetime1) by span(time1,"
-                    + " 15 minute) as time_span",
+                    + " 15minute) as time_span",
                 TEST_INDEX_CALCS));
     verifySchema(
         actual,
@@ -541,8 +541,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats count(strict_date) by span(strict_date, 1 day) as"
-                    + " date_span",
+                "source=%s | stats count(strict_date) by span(strict_date, 1day) as" + " date_span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(actual, schema("date_span", "date"), schema("count(strict_date)", "bigint"));
     verifyDataRows(actual, rows(2, "1984-04-12"));
@@ -550,7 +549,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
-                "source=%s | stats count(basic_date) by span(basic_date, 1 year) as" + " date_span",
+                "source=%s | stats count(basic_date) by span(basic_date, 1year) as" + " date_span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(actual, schema("date_span", "date"), schema("count(basic_date)", "bigint"));
     verifyDataRows(actual, rows(2, "1984-01-01"));
@@ -558,7 +557,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
-                "source=%s | stats count(year_month_day) by span(year_month_day, 1 month)"
+                "source=%s | stats count(year_month_day) by span(year_month_day, 1month)"
                     + " as date_span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(actual, schema("date_span", "date"), schema("count(year_month_day)", "bigint"));
@@ -571,7 +570,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | stats count(hour_minute_second) by span(hour_minute_second, 1"
-                    + " minute) as time_span",
+                    + "minute) as time_span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual, schema("time_span", "time"), schema("count(hour_minute_second)", "bigint"));
@@ -580,7 +579,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
-                "source=%s | stats count(custom_time) by span(custom_time, 1 second) as"
+                "source=%s | stats count(custom_time) by span(custom_time, 1second) as"
                     + " time_span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(actual, schema("time_span", "time"), schema("count(custom_time)", "bigint"));
@@ -589,7 +588,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
-                "source=%s | stats count(hour) by span(hour, 6 hour) as time_span",
+                "source=%s | stats count(hour) by span(hour, 6hour) as time_span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(actual, schema("time_span", "time"), schema("count(hour)", "bigint"));
     verifyDataRows(actual, rows(2, "06:00:00"));
@@ -689,7 +688,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | stats count(custom_date_or_date) by span(custom_date_or_date, 1"
-                    + " month) as date_span",
+                    + "month) as date_span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual, schema("date_span", "date"), schema("count(custom_date_or_date)", "bigint"));
@@ -699,7 +698,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | stats count(custom_date_or_custom_time) by"
-                    + " span(custom_date_or_custom_time, 1 hour) as timestamp_span",
+                    + " span(custom_date_or_custom_time, 1hour) as timestamp_span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
@@ -711,7 +710,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | stats count(custom_no_delimiter_ts) by span(custom_no_delimiter_ts, 1"
-                    + " hour) as timestamp_span",
+                    + "hour) as timestamp_span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
@@ -723,7 +722,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | stats count(incomplete_custom_time) by span(incomplete_custom_time, 12"
-                    + " hour) as time_span",
+                    + "hour) as time_span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual, schema("time_span", "time"), schema("count(incomplete_custom_time)", "bigint"));
