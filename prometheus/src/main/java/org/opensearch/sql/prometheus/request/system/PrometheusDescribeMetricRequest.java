@@ -27,7 +27,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
-import org.opensearch.sql.prometheus.exceptions.PrometheusClientException;
+import org.opensearch.sql.prometheus.exception.PrometheusClientException;
 import org.opensearch.sql.prometheus.storage.PrometheusMetricDefaultSchema;
 
 /**

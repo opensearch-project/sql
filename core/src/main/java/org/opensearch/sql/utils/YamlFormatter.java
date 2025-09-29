@@ -7,7 +7,6 @@ package org.opensearch.sql.utils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 
@@ -27,7 +26,6 @@ public class YamlFormatter {
         YAMLGenerator.Feature.ALWAYS_QUOTE_NUMBERS_AS_STRINGS); // Quote numeric strings
     yamlFactory.enable(YAMLGenerator.Feature.INDENT_ARRAYS_WITH_INDICATOR);
     YAML_MAPPER = new ObjectMapper(yamlFactory);
-    YAML_MAPPER.enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
   }
 
   /**

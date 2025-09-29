@@ -21,7 +21,7 @@ Syntax
 ============
 top [N] <field-list> [by-clause]
 
-top [limit=][N] <field-list> [top-options] [by-clause] ``(available from 3.1.0+)``
+top [limit=][N] [top-options] <field-list> [by-clause] ``(available from 3.1.0+)``
 
 * N: number of results to return. **Default**: 10
   * For readability or convenience, this can be prefixed by `limit=`.
@@ -39,7 +39,7 @@ The example finds most common gender of all the accounts.
 
 PPL query::
 
-    os> source=accounts | top gender;
+    os> source=accounts | top showcount=false gender;
     fetched rows / total rows = 2/2
     +--------+
     | gender |
@@ -55,7 +55,7 @@ The example finds most common gender of all the accounts.
 
 PPL query::
 
-    os> source=accounts | top 1 gender;
+    os> source=accounts | top 1 showcount=false gender;
     fetched rows / total rows = 1/1
     +--------+
     | gender |
@@ -70,7 +70,7 @@ The example finds most common age of all the accounts group by gender.
 
 PPL query::
 
-    os> source=accounts | top 1 age by gender;
+    os> source=accounts | top 1 showcount=false age by gender;
     fetched rows / total rows = 2/2
     +--------+-----+
     | gender | age |
@@ -92,7 +92,6 @@ PPL query::
     | gender | count |
     |--------+-------|
     | M      | 3     |
-    | F      | 1     |
     +--------+-------+
 
 
@@ -112,6 +111,6 @@ PPL query::
     | F      | 1   |
     +--------+-----+
 
-Limitation
-==========
+Limitations
+===========
 The ``top`` command is not rewritten to OpenSearch DSL, it is only executed on the coordination node.

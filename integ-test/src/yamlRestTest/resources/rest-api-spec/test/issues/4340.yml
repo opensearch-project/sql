@@ -1,0 +1,73 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"Fix bin with grouped stats on timestamp field":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      indices.create:
+        index: test-bin-stats
+        body:
+          mappings:
+            properties:
+              "@timestamp":
+                type: date
+              process:
+                properties:
+                  name:
+                    type: keyword
+
+  - do:
+      bulk:
+        index: test-bin-stats
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{ "@timestamp" : "2023-01-01T05:10:44.000Z", "process": { "name": "sshd" } }'
+          - '{"index": {}}'
+          - '{ "@timestamp" : "2023-01-01T07:18:55.000Z", "process": { "name": "cron" } }'
+          - '{"index": {}}'
+          - '{ "@timestamp" : "2023-01-01T04:33:24.000Z", "process": { "name": "kernel" } }'
+          - '{"index": {}}'
+          - '{ "@timestamp" : "2022-12-31T18:49:28.000Z", "process": { "name": "cron" } }'
+          - '{"index": {}}'
+          - '{ "@timestamp" : "2023-01-01T10:23:39.000Z", "process": { "name": "cron" } }'
+
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test-bin-stats | bin `@timestamp` span=1d | stats count() by `@timestamp`
+
+  - match: { total: 2 }
+  - length: { datarows: 2 }
+
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test-bin-stats | bin `@timestamp` span=1d | stats count() by `@timestamp`, process.name | sort `@timestamp`, process.name
+
+  - match: { total: 4 }
+  - length: { datarows: 4 }

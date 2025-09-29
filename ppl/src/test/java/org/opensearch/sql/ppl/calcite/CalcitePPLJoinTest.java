@@ -477,12 +477,12 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             | sort - DEPTNO
             | head 10
           ]
-        | stats count(MGR) as cnt by JOB
+        | stats sum(MGR) as sum by JOB
         """;
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(cnt=[$1], JOB=[$0])\n"
-            + "  LogicalAggregate(group=[{0}], cnt=[COUNT($1)])\n"
+        "LogicalProject(sum=[$1], JOB=[$0])\n"
+            + "  LogicalAggregate(group=[{0}], sum=[SUM($1)])\n"
             + "    LogicalProject(JOB=[$2], MGR=[$3])\n"
             + "      LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
             + "        LogicalTableScan(table=[[scott, EMP]])\n"
@@ -491,12 +491,12 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + "            LogicalFilter(condition=[AND(>($0, 10), =($2, 'CHICAGO':VARCHAR))])\n"
             + "              LogicalTableScan(table=[[scott, DEPT]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "cnt=4; JOB=SALESMAN\ncnt=1; JOB=CLERK\ncnt=1; JOB=MANAGER\n";
+    String expectedResult = "sum=30792; JOB=SALESMAN\nsum=7698; JOB=CLERK\nsum=7839; JOB=MANAGER\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
         ""
-            + "SELECT COUNT(`EMP`.`MGR`) `cnt`, `EMP`.`JOB`\n"
+            + "SELECT SUM(`EMP`.`MGR`) `sum`, `EMP`.`JOB`\n"
             + "FROM `scott`.`EMP`\n"
             + "INNER JOIN (SELECT `DEPTNO`, `DNAME`\n"
             + "FROM `scott`.`DEPT`\n"
