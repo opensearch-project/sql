@@ -16,6 +16,8 @@ repositories {
 dependencies {
     api project(':core')
     implementation project(':datasources')
+    implementation project(':direct-query-core')
+    testImplementation(testFixtures(project(":direct-query-core")))
 
     implementation group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
     implementation "io.github.resilience4j:resilience4j-retry:${resilience4j_version}"
@@ -28,7 +30,6 @@ dependencies {
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: "${hamcrest_version}"
     testImplementation group: 'org.mockito', name: 'mockito-core', version: "${mockito_version}"
     testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: "${mockito_version}"
-    testImplementation group: 'com.squareup.okhttp3', name: 'mockwebserver', version: '4.12.0'
 }
 
 test {

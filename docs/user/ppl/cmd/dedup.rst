@@ -109,6 +109,7 @@ PPL query::
     | 18             | M      |
     +----------------+--------+
 
-Limitation
-==========
-The ``dedup`` command is not rewritten to OpenSearch DSL, it is only executed on the coordination node.
+Limitations
+===========
+The ``dedup`` with ``consecutive=true`` command can only work with ``plugins.calcite.enabled=false``.
+It means ``dedup`` with ``consecutive=true`` command cannot work together with new PPL commands/functions introduced in 3.0.0 and above.
