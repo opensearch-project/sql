@@ -8,8 +8,6 @@ Statistical Functions
    :local:
    :depth: 1
 
-.. versionadded:: 3.3.0
-
 
 MAX
 ---
