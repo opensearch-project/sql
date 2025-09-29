@@ -16,6 +16,7 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.sql.data.utils.MaxTypeComparator;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
@@ -59,25 +60,9 @@ public class MaxFunction extends ImplementorUDF {
 
       return Arrays.stream(args)
           .filter(Objects::nonNull)
-          .reduce(MaxImplementor::compareMax)
+          .reduce(MaxTypeComparator::max)
           .orElse(null);
     }
 
-    private static Object compareMax(Object a, Object b) {
-      boolean aIsNumeric = isNumeric(a);
-      boolean bIsNumeric = isNumeric(b);
-
-      if (aIsNumeric != bIsNumeric) {
-        return aIsNumeric ? b : a;
-      }
-      if (aIsNumeric) {
-        return ((Number) a).doubleValue() >= ((Number) b).doubleValue() ? a : b;
-      }
-      return a.toString().compareTo(b.toString()) >= 0 ? a : b;
-    }
-
-    private static boolean isNumeric(Object obj) {
-      return obj instanceof Number;
-    }
   }
 }
