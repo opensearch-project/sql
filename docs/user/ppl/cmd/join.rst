@@ -116,7 +116,7 @@ Example 2: Join with subsearch
 
 PPL query::
 
-    os> source = state_country as a | where country = 'USA' OR country = 'England' | left join ON a.name = b.name [ source = occupation | where salary > 0 | fields name, country, salary | sort salary | head 3 ] as b | stats avg(salary) by span(age, 10) as age_span, b.country;
+    PPL> source = state_country as a | where country = 'USA' OR country = 'England' | left join ON a.name = b.name [ source = occupation | where salary > 0 | fields name, country, salary | sort salary | head 3 ] as b | stats avg(salary) by span(age, 10) as age_span, b.country;
     fetched rows / total rows = 3/3
     +-------------+----------+-----------+
     | avg(salary) | age_span | b.country |
@@ -131,7 +131,7 @@ Example 3: Join with field list
 
 PPL query::
 
-    os> source = state_country | where country = 'USA' OR country = 'England' | join type=left overwrite=true name [ source = occupation | where salary > 0 | fields name, country, salary | sort salary | head 3 ] | stats avg(salary) by span(age, 10) as age_span, country;
+    PPL> source = state_country | where country = 'USA' OR country = 'England' | join type=left overwrite=true name [ source = occupation | where salary > 0 | fields name, country, salary | sort salary | head 3 ] | stats avg(salary) by span(age, 10) as age_span, country;
     fetched rows / total rows = 3/3
     +-------------+----------+---------+
     | avg(salary) | age_span | country |
