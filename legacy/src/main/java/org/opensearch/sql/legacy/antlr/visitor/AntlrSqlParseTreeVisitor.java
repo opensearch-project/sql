@@ -268,89 +268,35 @@ public class AntlrSqlParseTreeVisitor<T extends Reducible>
 
   @Override
   public T visitGroupByItem(OpenSearchLegacySqlParser.GroupByItemContext ctx) {
-    if (hasJoinInQuery(ctx)) {
+    ParserRuleContext fromClause = ctx.getParent();
+
+    boolean hasJoin =
+        fromClause.accept(
+            new OpenSearchLegacySqlParserBaseVisitor<Boolean>() {
+              @Override
+              public Boolean visitTableSourceBase(TableSourceBaseContext ctx) {
+                return !ctx.joinPart().isEmpty();
+              }
+
+              @Override
+              protected Boolean defaultResult() {
+                return false;
+              }
+
+              @Override
+              protected Boolean aggregateResult(Boolean aggregate, Boolean nextResult) {
+                return aggregate || nextResult;
+              }
+            });
+
+    if (hasJoin) {
       String errorMessage =
           Util.JOIN_AGGREGATION_ERROR_PREFIX
               + Util.DOC_REDIRECT_MESSAGE
               + Util.getJoinAggregationDocumentationUrl(AntlrSqlParseTreeVisitor.class);
-      throw new RuntimeException(new SqlParseException(errorMessage));
+      throw new RuntimeException(errorMessage, new SqlParseException(errorMessage));
     }
     return super.visitGroupByItem(ctx);
-  }
-
-  /**
-   * Traverse up the parse tree from GROUP BY context to detect JOINs. This method looks for JOIN
-   * patterns in the query specification's FROM clause.
-   */
-  boolean hasJoinInQuery(OpenSearchLegacySqlParser.GroupByItemContext groupByCtx) {
-    ParserRuleContext current = groupByCtx.getParent();
-
-    while (current != null && !(current instanceof QuerySpecificationContext)) {
-      current = current.getParent();
-    }
-
-    if (current instanceof QuerySpecificationContext) {
-      QuerySpecificationContext querySpec = (QuerySpecificationContext) current;
-      FromClauseContext fromClause = querySpec.fromClause();
-
-      if (fromClause != null && fromClause.tableSources() != null) {
-        return hasJoinInTableSources(fromClause.tableSources());
-      }
-    }
-
-    return false;
-  }
-
-  /** Check if table sources contain JOIN operations. */
-  private boolean hasJoinInTableSources(TableSourcesContext tableSourcesCtx) {
-    for (int i = 0; i < tableSourcesCtx.getChildCount(); i++) {
-      ParseTree child = tableSourcesCtx.getChild(i);
-      if (hasJoinInParseTree(child)) {
-        return true;
-      }
-    }
-
-    if (tableSourcesCtx.tableSource().size() > 1) {
-      return !isNestedFieldQuery(tableSourcesCtx);
-    }
-
-    return false;
-  }
-
-  /**
-   * Check if this is a nested field query pattern that should be allowed. Patterns like "semantics
-   * s, s.projects p" or "semantics s, s.projects p, p.members m" are nested field access within the
-   * same document, not real JOINs.
-   */
-  boolean isNestedFieldQuery(TableSourcesContext tableSourcesCtx) {
-    // Check if any table source contains a dot (nested field pattern)
-    for (int i = 0; i < tableSourcesCtx.tableSource().size(); i++) {
-      String tableSourceText = tableSourcesCtx.tableSource(i).getText();
-
-      if (tableSourceText.contains(".")) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  /** Recursively check if a parse tree contains JOIN operations by examining all children. */
-  private boolean hasJoinInParseTree(ParseTree tree) {
-    if (tree instanceof TableSourceBaseContext) {
-      TableSourceBaseContext baseCtx = (TableSourceBaseContext) tree;
-      if (!baseCtx.joinPart().isEmpty()) {
-        return true;
-      }
-    }
-
-    for (int i = 0; i < tree.getChildCount(); i++) {
-      if (hasJoinInParseTree(tree.getChild(i))) {
-        return true;
-      }
-    }
-
-    return false;
   }
 
   @Override
