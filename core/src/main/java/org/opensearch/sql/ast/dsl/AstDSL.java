@@ -80,6 +80,7 @@ import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 
 /** Class of static methods to create specific node instances. */
 @UtilityClass
@@ -665,5 +666,10 @@ public class AstDSL {
       // 5. No parameters (default) -> DefaultBin
       return DefaultBin.builder().field(field).alias(alias).build();
     }
+  }
+
+  /** Get a reference to the implicit timestamp field {@code @timestamp} */
+  public static Field referImplicitTimestampField() {
+    return AstDSL.field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP);
   }
 }
