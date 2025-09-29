@@ -74,7 +74,6 @@ import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
-import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.LeafBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
@@ -804,8 +803,7 @@ class OpenSearchIndexScanOptimizationTest {
             .size(AggregationQueryBuilder.AGGREGATION_BUCKET_SIZE);
     List<AggregationBuilder> aggBuilders = Collections.singletonList(aggBuilder);
     responseParser =
-        new BucketAggregationParser(
-            new LeafBucketAggregationParser(new SingleValueParser(aggregation.aggregateName)));
+        new LeafBucketAggregationParser(new SingleValueParser(aggregation.aggregateName));
 
     return () -> {
       verify(requestBuilder, times(1)).pushDownAggregation(Pair.of(aggBuilders, responseParser));
