@@ -1,8 +1,6 @@
 /*
- *
- *  * Copyright OpenSearch Contributors
- *  * SPDX-License-Identifier: Apache-2.0
- *
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 package org.opensearch.sql.calcite.utils;
@@ -94,6 +92,10 @@ public class PPLOperandTypes {
       UDFOperandMetadata.wrap((FamilyOperandTypeChecker) OperandTypes.INTEGER_INTEGER);
   public static final UDFOperandMetadata STRING_STRING =
       UDFOperandMetadata.wrap((FamilyOperandTypeChecker) OperandTypes.CHARACTER_CHARACTER);
+  public static final UDFOperandMetadata STRING_STRING_STRING =
+      UDFOperandMetadata.wrap(
+          OperandTypes.family(
+              SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER));
   public static final UDFOperandMetadata NUMERIC_NUMERIC =
       UDFOperandMetadata.wrap((FamilyOperandTypeChecker) OperandTypes.NUMERIC_NUMERIC);
   public static final UDFOperandMetadata STRING_INTEGER =

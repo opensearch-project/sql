@@ -94,7 +94,7 @@ public class CalcitePPLGrokIT extends PPLIntegTestCase {
                 + " /architectures/convergence/niches/mindshare HTTP/1.0\" 100 28722",
             "28/Sep/2022:10:15:57 -0700",
             "100"),
-        rows(null, null, null),
+        rows(null, "", ""),
         rows(
             "118.223.210.105 - - [28/Sep/2022:10:15:57 -0700] \"PATCH /strategize/out-of-the-box"
                 + " HTTP/1.0\" 401 27439",
@@ -104,6 +104,6 @@ public class CalcitePPLGrokIT extends PPLIntegTestCase {
             "210.204.15.104 - - [28/Sep/2022:10:15:57 -0700] \"POST /users HTTP/1.1\" 301 9481",
             "28/Sep/2022:10:15:57 -0700",
             "301"),
-        rows(null, null, null));
+        rows(null, "", ""));
   }
 }
