@@ -222,6 +222,17 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testModDecimal() {
+    RelNode root = getRelNode("source=EMP | eval MOD = mod(3.1, 2) | fields MOD");
+    String expectedLogical =
+        "LogicalProject(MOD=[MOD(3.1:DECIMAL(2, 1), 2)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedSparkSql = "SELECT MOD(3.1, 2) `MOD`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
   public void testPi() {
     RelNode root = getRelNode("source=EMP | eval PI = pi() | fields PI");
     String expectedLogical = "LogicalProject(PI=[PI])\n  LogicalTableScan(table=[[scott, EMP]])\n";
