@@ -7,7 +7,6 @@ package org.opensearch.sql.opensearch.request;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.common.collect.Range;
@@ -295,7 +294,7 @@ class CaseRangeAnalyzerTest {
   }
 
   @Test
-  void testAnalyzeDifferentFieldsShouldThrow() {
+  void testAnalyzeDifferentFieldsShouldReturnEmpty() {
     // Test comparing different fields in conditions
     RexInputRef nameFieldRef = rexBuilder.makeInputRef(rowType.getFieldList().get(1).getType(), 1);
 
@@ -321,12 +320,13 @@ class CaseRangeAnalyzerTest {
                 Arrays.asList(condition1, result1, condition2, result2, elseResult));
 
     CaseRangeAnalyzer analyzer = CaseRangeAnalyzer.create("test", rowType);
+    Optional<RangeAggregationBuilder> result = analyzer.analyze(caseCall);
 
-    assertThrows(UnsupportedOperationException.class, () -> analyzer.analyze(caseCall));
+    assertFalse(result.isPresent());
   }
 
   @Test
-  void testAnalyzeWithAndConditionShouldThrow() {
+  void testAnalyzeWithAndConditionShouldReturnEmpty() {
     // Test AND condition which should be unsupported
     RexLiteral literal18 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(18));
     RexLiteral literal65 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(65));
@@ -347,12 +347,13 @@ class CaseRangeAnalyzerTest {
                 SqlStdOperatorTable.CASE, Arrays.asList(andCondition, resultLiteral, elseLiteral));
 
     CaseRangeAnalyzer analyzer = CaseRangeAnalyzer.create("test", rowType);
+    Optional<RangeAggregationBuilder> result = analyzer.analyze(caseCall);
 
-    assertThrows(UnsupportedOperationException.class, () -> analyzer.analyze(caseCall));
+    assertFalse(result.isPresent());
   }
 
   @Test
-  void testAnalyzeWithOrConditionShouldThrow() {
+  void testAnalyzeWithOrConditionShouldReturnEmpty() {
     // Test OR condition which should be unsupported
     RexLiteral literal18 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(18));
     RexLiteral literal65 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(65));
@@ -373,8 +374,9 @@ class CaseRangeAnalyzerTest {
                 SqlStdOperatorTable.CASE, Arrays.asList(orCondition, resultLiteral, elseLiteral));
 
     CaseRangeAnalyzer analyzer = CaseRangeAnalyzer.create("test", rowType);
+    Optional<RangeAggregationBuilder> result = analyzer.analyze(caseCall);
 
-    assertThrows(UnsupportedOperationException.class, () -> analyzer.analyze(caseCall));
+    assertFalse(result.isPresent());
   }
 
   @Test
@@ -395,8 +397,9 @@ class CaseRangeAnalyzerTest {
                 SqlStdOperatorTable.CASE, Arrays.asList(condition, resultLiteral, elseLiteral));
 
     CaseRangeAnalyzer analyzer = CaseRangeAnalyzer.create("test", rowType);
+    Optional<RangeAggregationBuilder> result = analyzer.analyze(caseCall);
 
-    assertThrows(UnsupportedOperationException.class, () -> analyzer.analyze(caseCall));
+    assertFalse(result.isPresent());
   }
 
   @Test
@@ -464,8 +467,9 @@ class CaseRangeAnalyzerTest {
                 SqlStdOperatorTable.CASE, Arrays.asList(condition, resultLiteral, elseLiteral));
 
     CaseRangeAnalyzer analyzer = CaseRangeAnalyzer.create("test", rowType);
+    Optional<RangeAggregationBuilder> result = analyzer.analyze(caseCall);
 
-    assertThrows(UnsupportedOperationException.class, () -> analyzer.analyze(caseCall));
+    assertFalse(result.isPresent());
   }
 
   @Test
@@ -833,7 +837,8 @@ class CaseRangeAnalyzerTest {
                 SqlStdOperatorTable.CASE, Arrays.asList(searchCall, resultLiteral, elseLiteral));
 
     CaseRangeAnalyzer analyzer = CaseRangeAnalyzer.create("test", rowType);
+    Optional<RangeAggregationBuilder> result = analyzer.analyze(caseCall);
 
-    assertThrows(UnsupportedOperationException.class, () -> analyzer.analyze(caseCall));
+    assertFalse(result.isPresent());
   }
 }

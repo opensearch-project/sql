@@ -943,6 +943,17 @@ public class CalciteExplainIT extends ExplainIT {
                     + " else 'u100') | stats avg(age) as avg_age by age_range",
                 TEST_INDEX_BANK)));
 
+    // 1.6 Should not be pushed as range query because the result expression is not a string
+    // literal.
+    // Range aggregation keys must be strings
+    assertYamlEqualsJsonIgnoreId(
+        loadExpectedPlan("agg_case_num_res_cannot_push.yaml"),
+        explainQueryToString(
+            String.format(
+                "source=%s | eval age_range = case(age < 30, 30 else 100) | stats count() by"
+                    + " age_range",
+                TEST_INDEX_BANK)));
+
     // CASE 2: Composite - Range - Metric
     // 2.1 Composite (term) - Range - Metric
     assertYamlEqualsJsonIgnoreId(
@@ -980,7 +991,7 @@ public class CalciteExplainIT extends ExplainIT {
                     + " avg_balance by age_range, balance_range, state",
                 TEST_INDEX_BANK)));
 
-    // 2.5 Should not be pushed because case result expression is not constant
+    // 2.5 Should not be pushed down as range query because case result expression is not constant
     assertYamlEqualsJsonIgnoreId(
         loadExpectedPlan("agg_case_composite_cannot_push.yaml"),
         explainQueryToString(

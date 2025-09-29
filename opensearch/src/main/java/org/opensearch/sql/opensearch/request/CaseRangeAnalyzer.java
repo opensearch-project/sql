@@ -77,12 +77,12 @@ public class CaseRangeAnalyzer {
     for (int i = 0; i < operands.size() - 1; i += 2) {
       RexNode condition = operands.get(i);
       RexNode expr = operands.get(i + 1);
-      // Result must be a literal
-      if (!(expr instanceof RexLiteral)) {
+      try {
+        String key = parseLiteralAsString(expr);
+        analyzeCondition(condition, key);
+      } catch (UnsupportedOperationException e) {
         return Optional.empty();
       }
-      String key = ((RexLiteral) expr).getValueAs(String.class);
-      analyzeCondition(condition, key);
     }
 
     // Check ELSE clause
@@ -92,7 +92,11 @@ public class CaseRangeAnalyzer {
       // range key doesn't support values of type: VALUE_NULL
       elseKey = DEFAULT_ELSE_KEY;
     } else {
-      elseKey = ((RexLiteral) elseExpr).getValueAs(String.class);
+      try {
+        elseKey = parseLiteralAsString(elseExpr);
+      } catch (UnsupportedOperationException e) {
+        return Optional.empty();
+      }
     }
     addRangeSet(elseKey, takenRange.complement());
     return Optional.of(builder);
@@ -260,6 +264,19 @@ public class CaseRangeAnalyzer {
         || (range.hasUpperBound() && range.upperBoundType() != BoundType.OPEN)) {
       throwUnsupported("Range query only supports closed-open ranges");
     }
+  }
+
+  private static String parseLiteralAsString(RexNode node) {
+    if (!(node instanceof RexLiteral)) {
+      throwUnsupported("Result expressions of range queries must be literals");
+    }
+    RexLiteral literal = (RexLiteral) node;
+    try {
+      return literal.getValueAs(String.class);
+    } catch (AssertionError ignore) {
+    }
+    throw new UnsupportedOperationException(
+        "Cannot parse result expression of type " + literal.getType());
   }
 
   private static void throwUnsupported() {
