@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.common.patterns;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,8 @@ public final class PatternUtils {
   public static final Pattern WILDCARD_PATTERN = Pattern.compile("<\\*[^>]*>");
   public static final String TOKEN_PREFIX = "<token";
   public static final Pattern TOKEN_PATTERN = Pattern.compile("<token\\d+>");
+  public static final List<String> VALID_BRAIN_PARAMETERS =
+      ImmutableList.of("variable_count_threshold", "frequency_threshold_percentage");
 
   public static Map<String, Map<String, Object>> mergePatternGroups(
       Map<String, Map<String, Object>> left,

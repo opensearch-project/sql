@@ -718,32 +718,28 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                   context.relBuilder.field(node.getAlias()),
                   context.relBuilder.field(PatternUtils.SAMPLE_LOGS));
           flattenParsedPattern(node.getAlias(), parsedNode, context, false, true);
-        }
-        // Reorder fields for consistency with Brain's output
-        List<RexNode> reorderedExprs = new ArrayList<>();
-        List<String> reorderedExprNames = new ArrayList<>();
-        reorderedExprs.add(context.relBuilder.field(node.getAlias()));
-        reorderedExprNames.add(node.getAlias());
-        reorderedExprs.add(context.relBuilder.field(PatternUtils.PATTERN_COUNT));
-        reorderedExprNames.add(PatternUtils.PATTERN_COUNT);
-        if (showNumberedToken) {
-          reorderedExprs.add(context.relBuilder.field(PatternUtils.TOKENS));
-          reorderedExprNames.add(PatternUtils.TOKENS);
-        }
-        reorderedExprs.add(context.relBuilder.field(PatternUtils.SAMPLE_LOGS));
-        reorderedExprNames.add(PatternUtils.SAMPLE_LOGS);
-
-        projectPlusOverriding(reorderedExprs, reorderedExprNames, context);
-      } else {
-        if (showNumberedToken) {
-          RexNode parsedNode =
-              PPLFuncImpTable.INSTANCE.resolve(
-                  context.rexBuilder,
-                  BuiltinFunctionName.INTERNAL_PATTERN_PARSER,
+          // Reorder fields for consistency with Brain's output
+          projectPlusOverriding(
+              List.of(
                   context.relBuilder.field(node.getAlias()),
-                  rexVisitor.analyze(node.getSourceField(), context));
-          flattenParsedPattern(node.getAlias(), parsedNode, context, false, true);
+                  context.relBuilder.field(PatternUtils.PATTERN_COUNT),
+                  context.relBuilder.field(PatternUtils.TOKENS),
+                  context.relBuilder.field(PatternUtils.SAMPLE_LOGS)),
+              List.of(
+                  node.getAlias(),
+                  PatternUtils.PATTERN_COUNT,
+                  PatternUtils.TOKENS,
+                  PatternUtils.SAMPLE_LOGS),
+              context);
         }
+      } else if (showNumberedToken) {
+        RexNode parsedNode =
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder,
+                BuiltinFunctionName.INTERNAL_PATTERN_PARSER,
+                context.relBuilder.field(node.getAlias()),
+                rexVisitor.analyze(node.getSourceField(), context));
+        flattenParsedPattern(node.getAlias(), parsedNode, context, false, true);
       }
     } else {
       List<UnresolvedExpression> funcParamList = new ArrayList<>();
@@ -753,7 +749,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       funcParamList.add(node.getShowNumberedToken());
       funcParamList.addAll(
           node.getArguments().entrySet().stream()
-              .filter(entry -> !Objects.equals(entry.getKey(), "new_field"))
+              .filter(entry -> PatternUtils.VALID_BRAIN_PARAMETERS.contains(entry.getKey()))
               .map(entry -> new Argument(entry.getKey(), entry.getValue()))
               .sorted(Comparator.comparing(Argument::getArgName))
               .toList());
@@ -2397,7 +2393,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 context.rexBuilder,
                 BuiltinFunctionName.INTERNAL_ITEM,
                 innerRex,
-                context.relBuilder.literal(groupCandidate)));
+                context.rexBuilder.makeLiteral(
+                    groupCandidate,
+                    context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
+                    true)));
       } else {
         RexNode emptyString =
             context.rexBuilder.makeLiteral(

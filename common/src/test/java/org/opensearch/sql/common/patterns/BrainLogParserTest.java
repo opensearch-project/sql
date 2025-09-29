@@ -134,14 +134,10 @@ public class BrainLogParserTest {
   public void testPreprocessWithIllegalInput() {
     String logMessage = "127.0.0.1 - 1234 something";
     String logId = "log1";
-    String exceptionMessage = "log message or logId must not be null";
+    String exceptionMessage = "logId must not be null";
+    assertEquals(ImmutableList.of("", logId), parser.preprocess(null, logId));
     Throwable throwable =
-        assertThrows(IllegalArgumentException.class, () -> parser.preprocess(null, logId));
-    assertEquals(exceptionMessage, throwable.getMessage());
-    throwable =
         assertThrows(IllegalArgumentException.class, () -> parser.preprocess(logMessage, null));
-    assertEquals(exceptionMessage, throwable.getMessage());
-    throwable = assertThrows(IllegalArgumentException.class, () -> parser.preprocess(null, null));
     assertEquals(exceptionMessage, throwable.getMessage());
   }
 
