@@ -172,8 +172,11 @@ public class BrainLogParser {
    * @return list of tokens by splitting preprocessed log message
    */
   public List<String> preprocess(String logMessage, String logId) {
-    if (logMessage == null || logId == null) {
-      throw new IllegalArgumentException("log message or logId must not be null");
+    if (logId == null) {
+      throw new IllegalArgumentException("logId must not be null");
+    }
+    if (logMessage == null) {
+      return Arrays.asList("", logId);
     }
 
     List<String> tokens = preprocess(logMessage, this.filterPatternVariableMap, this.delimiters);

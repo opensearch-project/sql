@@ -83,6 +83,18 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testSimplePatternLabelMode_EmptyStringReturnEmpty() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | eval message2 = '' | head 1 | patterns message2 | fields message2,"
+                    + " patterns_field",
+                TEST_INDEX_WEBLOGS));
+    verifySchema(result, schema("message2", "string"), schema("patterns_field", "string"));
+    verifyDataRows(result, rows("", ""));
+  }
+
+  @Test
   public void testSimplePatternLabelModeWithCustomPattern_ShowNumberedToken() throws IOException {
     JSONObject result =
         executeQuery(

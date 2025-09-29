@@ -19,8 +19,8 @@ public class CalcitePPLGrokTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | grok ENAME '.+@%{HOSTNAME:host}' | fields ENAME, host";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(ENAME=[$1], host=[ITEM(GROK($1, '.+@%{HOSTNAME:host}':VARCHAR, 'grok'),"
-            + " 'host')])\n"
+        "LogicalProject(ENAME=[$1], host=[ITEM(GROK($1, '.+@%{HOSTNAME:host}':VARCHAR,"
+            + " 'grok':VARCHAR), 'host')])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -35,8 +35,8 @@ public class CalcitePPLGrokTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | grok ENAME '%{NUMBER} %{GREEDYDATA:ENAME}' | fields ENAME";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(ENAME=[ITEM(GROK($1, '%{NUMBER} %{GREEDYDATA:ENAME}':VARCHAR, 'grok'),"
-            + " 'ENAME')])\n"
+        "LogicalProject(ENAME=[ITEM(GROK($1, '%{NUMBER} %{GREEDYDATA:ENAME}':VARCHAR,"
+            + " 'grok':VARCHAR), 'ENAME')])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 

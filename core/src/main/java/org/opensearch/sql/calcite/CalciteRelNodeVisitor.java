@@ -2370,9 +2370,21 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               pattern, context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), true)
         };
     if (ParseMethod.PATTERNS.equals(parseMethod)) {
-      rexNodeList = ArrayUtils.add(rexNodeList, context.relBuilder.literal("<*>"));
+      rexNodeList =
+          ArrayUtils.add(
+              rexNodeList,
+              context.rexBuilder.makeLiteral(
+                  "<*>",
+                  context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
+                  true));
     } else {
-      rexNodeList = ArrayUtils.add(rexNodeList, context.relBuilder.literal(parseMethod.getName()));
+      rexNodeList =
+          ArrayUtils.add(
+              rexNodeList,
+              context.rexBuilder.makeLiteral(
+                  parseMethod.getName(),
+                  context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
+                  true));
     }
     List<RexNode> newFields = new ArrayList<>();
     for (String groupCandidate : groupCandidates) {
@@ -2387,7 +2399,24 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 innerRex,
                 context.relBuilder.literal(groupCandidate)));
       } else {
-        newFields.add(innerRex);
+        RexNode emptyString =
+            context.rexBuilder.makeLiteral(
+                "", context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), true);
+        RexNode isEmptyCondition =
+            context.rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, sourceField, emptyString);
+        RexNode isNullCondition =
+            context.rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, sourceField);
+        // Calcite regexp_replace(string, string, string) doesn't accept empty string.
+        // So use case when condition here to handle corner cases
+        newFields.add(
+            context.rexBuilder.makeCall(
+                SqlStdOperatorTable.CASE, // case
+                isNullCondition,
+                emptyString, // when field is NULL then ''
+                isEmptyCondition,
+                emptyString, // when field = '' then ''
+                innerRex // else regexp_replace(field, regex, replace_string)
+                ));
       }
     }
     projectPlusOverriding(newFields, groupCandidates, context);

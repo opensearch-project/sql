@@ -158,7 +158,7 @@ public class PatternParserFunctionImpl extends ImplementorUDF {
   public static Object evalSamples(
       @Parameter(name = "pattern") String pattern,
       @Parameter(name = "sample_logs") List<String> sampleLogs) {
-    if (sampleLogs.isEmpty()) {
+    if (Strings.isBlank(pattern)) {
       return EMPTY_RESULT;
     }
     Map<String, List<String>> tokensMap = new HashMap<>();

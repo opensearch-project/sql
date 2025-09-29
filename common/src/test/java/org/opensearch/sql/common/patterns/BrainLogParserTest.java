@@ -10,6 +10,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.AbstractMap;
 import java.util.Arrays;
@@ -101,6 +102,15 @@ public class BrainLogParserTest {
     logId = "log2";
     expectedResult = Arrays.asList("<*IP*>=<*>", "something", "log2");
     result = parser.preprocess(logMessage, logId);
+    assertEquals(expectedResult, result);
+  }
+
+  @Test
+  public void testPreprocessNullString() {
+    String logMessage = null;
+    String logId = "log1";
+    List<String> expectedResult = Arrays.asList("", "log1");
+    List<String> result = parser.preprocess(logMessage, logId);
     assertEquals(expectedResult, result);
   }
 
@@ -207,6 +217,29 @@ public class BrainLogParserTest {
             "<*>");
     List<String> logPattern = parser.parseLogPattern(preprocessedLogs.get(0));
     assertEquals(expectedLogPattern, logPattern);
+  }
+
+  @Test
+  public void testParseAllLogPatternsWithNullInput() {
+    List<String> messages =
+        Arrays.asList(
+            null,
+            "PacketResponder failed for blk_6996194389878584395",
+            "PacketResponder failed for blk_-1547954353065580372");
+    Map<String, Map<String, Object>> logPatternMap = parser.parseAllLogPatterns(messages, 1);
+    Map<String, Map<String, Object>> expectedResult =
+        ImmutableMap.of(
+            "",
+            ImmutableMap.of("pattern_count", 1L, "pattern", "", "sample_logs", ImmutableList.of()),
+            "PacketResponder failed for blk_<*>",
+            ImmutableMap.of(
+                "pattern_count",
+                2L,
+                "pattern",
+                "PacketResponder failed for blk_<*>",
+                "sample_logs",
+                ImmutableList.of("PacketResponder failed for blk_6996194389878584395")));
+    assertEquals(expectedResult, logPatternMap);
   }
 
   @Test
