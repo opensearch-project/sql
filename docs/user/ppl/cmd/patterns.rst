@@ -18,11 +18,11 @@ Description
 
 * ``patterns`` command supports two modes, aka ``label`` and ``aggregation``. ``label`` mode is similar to previous 3.0.0 output. ``aggregation`` mode returns aggregated results on target field.
 * V2 Engine engine still have the same output in ``label`` mode as before. In ``aggregation`` mode, it returns aggregated pattern count on labeled pattern as well as sample logs (sample count is configurable) per pattern.
-* Calcite engine's ``label`` mode not only labels pattern of text but also labels variable tokens in map. In ``aggregation`` mode, it will also output labeled pattern as well as variable tokens per pattern.
+* If ``show_numbered_token`` option is turned on, Calcite engine's ``label`` mode not only labels pattern of text but also labels variable tokens in map. In ``aggregation`` mode, it will also output labeled pattern as well as variable tokens per pattern. The variable placeholder is in the format of '<token%d>' instead of '<*>'.
 
 Syntax
 ============
-patterns <field> [by byClause...] [method=simple_pattern | brain] [mode=label | aggregation] [max_sample_count=integer] [buffer_limit=integer] [new_field=<new-field-name>] (algorithm parameters...)
+patterns <field> [by byClause...] [method=simple_pattern | brain] [mode=label | aggregation] [max_sample_count=integer] [buffer_limit=integer] [show_numbered_token=boolean] [new_field=<new-field-name>] (algorithm parameters...)
 
 * field: mandatory. The text(string) field to analyze for patterns.
 * byClause: optional. Fields or scalar functions used to group logs for labeling/aggregation.
@@ -30,6 +30,7 @@ patterns <field> [by byClause...] [method=simple_pattern | brain] [mode=label | 
 * mode: optional. Output mode: ``label`` (default) or ``aggregation``. The mode is configured by the setting ``plugins.ppl.pattern.mode``.
 * max_sample_count: optional. Max sample logs returned per pattern in aggregation mode (default: 10). The max_sample_count is configured by the setting ``plugins.ppl.pattern.max.sample.count``.
 * buffer_limit: optional. Safeguard parameter for ``brain`` algorithm to limit internal temporary buffer size (default: 100,000, min: 50,000). The buffer_limit is configured by the setting ``plugins.ppl.pattern.buffer.limit``.
+* show_numbered_token: optional. The flag to turn on numbered token output format (default: false). The show_numbered_token is configured by the setting ``plugins.ppl.pattern.show.numbered.token``.
 * new_field: Alias of the output pattern field. (default: "patterns_field").
 * algorithm parameters: optional. Algorithm-specific tuning:
     - ``simple_pattern`` : Define regex via "pattern".
@@ -47,11 +48,12 @@ To override default pattern parameters, users can run following command
       "plugins.ppl.pattern.method": "brain",
       "plugins.ppl.pattern.mode": "aggregation",
       "plugins.ppl.pattern.max.sample.count": 5,
-      "plugins.ppl.pattern.buffer.limit": 50000
+      "plugins.ppl.pattern.buffer.limit": 50000,
+      "plugins.ppl.pattern.show.numbered.token": true
     }
   }
 
-Simple Pattern Example 1: Create the new field
+Simple Pattern Example 1: Create the new field(legacy V2 engine)
 ===============================
 
 The example shows how to use extract punctuations in ``email`` for each document. Parsing a null field will return an empty string.
@@ -69,7 +71,7 @@ PPL query::
     | daleadams@boink.com   | @.             |
     +-----------------------+----------------+
 
-Simple Pattern Example 2: Extract log patterns
+Simple Pattern Example 2: Extract log patterns(legacy V2 engine)
 ===============================
 
 The example shows how to extract punctuations from a raw log field using the default patterns.
@@ -87,7 +89,7 @@ PPL query::
     | 210.204.15.104 - - [28/Sep/2022:10:15:57 -0700] "POST /users HTTP/1.1" 301 9481                                             | ... - - [//::: -] " / /."       |
     +-----------------------------------------------------------------------------------------------------------------------------+---------------------------------+
 
-Simple Pattern Example 3: Extract log patterns with custom regex pattern
+Simple Pattern Example 3: Extract log patterns with custom regex pattern(legacy V2 engine)
 =========================================================
 
 The example shows how to extract punctuations from a raw log field using user defined patterns.
@@ -105,12 +107,8 @@ PPL query::
     | 210.204.15.104 - - [28/Sep/2022:10:15:57 -0700] "POST /users HTTP/1.1" 301 9481                                             | ... - - [/Sep/::: -] "POST /users HTTP/."                                            |
     +-----------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------+
 
-Simple Pattern Example 4: Return log patterns aggregation result
+Simple Pattern Example 4: Return log patterns aggregation result(legacy V2 engine)
 =========================================================
-
-Version
--------
-3.1.0
 
 Starting 3.1.0, patterns command support aggregation mode. The example shows how to get aggregated results from a raw log field.
 
@@ -127,30 +125,34 @@ PPL query::
     | ... - - [//::: -] " //--- /."   | 1             | [118.223.210.105 - - [28/Sep/2022:10:15:57 -0700] "PATCH /strategize/out-of-the-box HTTP/1.0" 401 27439]                      |
     +---------------------------------+---------------+-------------------------------------------------------------------------------------------------------------------------------+
 
-Simple Pattern Example 5: Return log patterns aggregation result with detected variable tokens
+Simple Pattern Example 5: Return log patterns aggregation result(Calcite engine)
 =========================================================
 
-Version
--------
-3.1.0
-
-Configuration
--------------
-New output format requires Calcite enabled.
-
-Enable Calcite:
-
-    >> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
-      "persistent" : {
-        "plugins.calcite.enabled" : true
-      }
-    }'
-
-Starting 3.1.0, patterns command support aggregation mode. With Calcite engine enabled, the output can detect variable tokens from the pattern field.
+Starting 3.1.0, patterns command support aggregation mode. Calcite engine by default labels the variables with '<*>' placeholder.
 
 PPL query::
 
-    PPL> source=apache | patterns message method=simple_pattern mode=aggregation | fields patterns_field, pattern_count, sample_logs | head 1 ;
+    PPL> source=apache | patterns message method=simple_pattern mode=aggregation | fields patterns_field, pattern_count | head 1 ;
+    fetched rows / total rows = 1/1
+    |--------------------------------------------------------------------------------------------------+---------------+
+    | patterns_field                                                                                   | pattern_count |
+    |--------------------------------------------------------------------------------------------------+---------------+
+    | <*>.<*>.<*>.<*> - <*> [<*>/<*>/<*>:<*>:<*>:<*> -<*>] "<*> /<*>-<*>/<*> <*>/<*>.<*>" <*> <*>      | 1             |
+    |--------------------------------------------------------------------------------------------------+---------------+
+
+
+Simple Pattern Example 6: Return log patterns aggregation result with detected variable tokens(Calcite engine)
+=========================================================
+
+Starting 3.1.0, patterns command support aggregation mode.
+
+Configuration
+-------------
+With Calcite specific option ``show_numbered_token`` enabled, the output can detect numbered variable tokens from the pattern field.
+
+PPL query::
+
+    PPL> source=apache | patterns message method=simple_pattern mode=aggregation show_numbered_token=true | fields patterns_field, pattern_count, tokens | head 1 ;
     fetched rows / total rows = 1/1
     |-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
     | patterns_field                                                                                                                                                                                                        | pattern_count | tokens                                                                                                                                                                                                                                                                                                                                                                                                                                     |
@@ -197,11 +199,7 @@ PPL query::
 Brain Example 3: Return log patterns aggregation result
 ===============================
 
-Version
--------
-3.1.0
-
-Starting 3.1.0, patterns command support aggregation mode. The example shows how to get aggregated results from a raw log field for brain algorithm.
+Starting 3.1.0, patterns command support aggregation mode.
 
 PPL query::
 
@@ -216,27 +214,15 @@ PPL query::
 Brain Example 4: Return log patterns aggregation result with detected variable tokens
 =========================================================
 
-Version
--------
-3.1.0
+Starting 3.1.0, patterns command support aggregation mode.
 
 Configuration
 -------------
-New output format requires Calcite enabled.
-
-Enable Calcite:
-
-    >> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
-      "persistent" : {
-        "plugins.calcite.enabled" : true
-      }
-    }'
-
-Starting 3.1.0, patterns command support aggregation mode. With Calcite engine enabled, the output can detect variable tokens from the pattern field.
+With Calcite specific option ``show_numbered_token`` enabled, the output can detect numbered variable tokens from the pattern field.
 
 PPL query::
 
-    PPL> source=apache | patterns message method=brain mode=aggregation variable_count_threshold=2 | fields patterns_field, pattern_count, tokens ;
+    PPL> source=apache | patterns message method=brain mode=aggregation show_numbered_token=true variable_count_threshold=2 | fields patterns_field, pattern_count, tokens ;
     fetched rows / total rows = 1/1
     |--------------------------------------------------------------------------------------------------------------------------------------------------+---------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
     | patterns_field                                                                                                                                   | pattern_count | tokens                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |

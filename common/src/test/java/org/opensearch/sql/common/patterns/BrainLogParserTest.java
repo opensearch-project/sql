@@ -315,6 +315,19 @@ public class BrainLogParserTest {
     assertTrue(parser.getGroupTokenSetMap().get("4-3,3-0").size() > 1);
   }
 
+  @Test
+  public void testCollapseContinuousWildcards() {
+    String correctTokenPattern =
+        "BLOCK* NameSystem.allocateBlock: /user/root/_temporary/_task_<*>_r_<*>";
+    String continuousTokenPattern =
+        "BLOCK* NameSystem.allocateBlock: /user/root/_temporary/_task_<*><*>_r_<*><*><*>";
+
+    assertEquals(
+        correctTokenPattern, BrainLogParser.collapseContinuousWildcards(continuousTokenPattern));
+    assertEquals(
+        correctTokenPattern, BrainLogParser.collapseContinuousWildcards(correctTokenPattern));
+  }
+
   private Map<String, Long> collectPatternByCountMap(
       Map<String, Map<String, Object>> logPatternMap) {
     return logPatternMap.entrySet().stream()

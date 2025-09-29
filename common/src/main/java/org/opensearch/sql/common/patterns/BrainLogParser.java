@@ -386,7 +386,7 @@ public class BrainLogParser {
     return logPatternMap;
   }
 
-  private static String collapseContinuousWildcards(String part) {
+  static String collapseContinuousWildcards(String part) {
     // The minimum of continuous wildcards are 6 characters: <*><*>
     if (part == null || part.length() < 6) {
       return part;
