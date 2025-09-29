@@ -11,6 +11,7 @@ multisearch
 
 Description
 ============
+| (Experimental)
 | Using ``multisearch`` command to run multiple search subsearches and merge their results together. The command allows you to combine data from different queries on the same or different sources, and optionally apply subsequent processing to the combined result set.
 
 | Key aspects of ``multisearch``:
