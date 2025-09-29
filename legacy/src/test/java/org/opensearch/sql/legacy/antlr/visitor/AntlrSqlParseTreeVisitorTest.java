@@ -108,29 +108,6 @@ public class AntlrSqlParseTreeVisitorTest {
     visit("SELECT balance DIV age FROM test");
   }
 
-  @Test
-  public void testJoinDetectionBooleanLogic() {
-    // Test the core boolean logic of our JOIN detection
-
-    // Simulate empty joinPart (no JOIN)
-    boolean hasJoinWhenEmpty = !java.util.Collections.emptyList().isEmpty();
-    Assert.assertFalse("Should not detect JOIN when joinPart is empty", hasJoinWhenEmpty);
-
-    // Simulate non-empty joinPart (has JOIN)
-    boolean hasJoinWhenNotEmpty = !java.util.Arrays.asList("INNER").isEmpty();
-    Assert.assertTrue("Should detect JOIN when joinPart is not empty", hasJoinWhenNotEmpty);
-
-    // Test OR aggregation logic
-    boolean result1 = false || false; // no joins found
-    Assert.assertFalse("false || false should be false", result1);
-
-    boolean result2 = false || true; // one join found
-    Assert.assertTrue("false || true should be true", result2);
-
-    boolean result3 = true || false; // one join found
-    Assert.assertTrue("true || false should be true", result3);
-  }
-
   private ParseTree createParseTree(String sql) {
     return new OpenSearchLegacySqlAnalyzer(new SqlAnalysisConfig(true, true, 1000))
         .analyzeSyntax(sql);
