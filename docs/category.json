@@ -8,7 +8,6 @@
   ],
   "ppl_cli": [
     "user/ppl/cmd/ad.rst",
-    "user/ppl/cmd/bin.rst",
     "user/ppl/cmd/dedup.rst",
     "user/ppl/cmd/describe.rst",
     "user/ppl/cmd/showdatasources.rst",
@@ -56,6 +55,8 @@
   ],
   "ppl_cli_calcite": [
     "user/ppl/cmd/append.rst",
+    "user/ppl/cmd/bin.rst",
+    "user/ppl/functions/condition.rst",
     "user/ppl/cmd/eventstats.rst",
     "user/ppl/cmd/fields.rst",
     "user/ppl/cmd/regex.rst",
