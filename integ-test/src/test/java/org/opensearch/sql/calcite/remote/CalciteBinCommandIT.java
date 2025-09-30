@@ -57,8 +57,9 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinWithBinsParameter() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=opensearch-sql_test_index_time_data"
-                + " | bin value bins=5 | fields value | sort value | head 3");
+            String.format(
+                "source=%s | bin value bins=5 | fields value | sort value | head 3",
+                TEST_INDEX_TIME_DATA));
     verifySchema(result, schema("value", null, "string"));
 
     verifyDataRows(result, rows("6000-7000"), rows("6000-7000"), rows("6000-7000"));
@@ -102,9 +103,8 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinValueFieldOnly() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=opensearch-sql_test_index_time_data"
-                + " | bin value span=2000"
-                + " | fields value | head 3");
+            String.format(
+                "source=%s | bin value span=2000 | fields value | head 3", TEST_INDEX_TIME_DATA));
     verifySchema(result, schema("value", null, "string"));
 
     verifyDataRows(result, rows("8000-10000"), rows("6000-8000"), rows("8000-10000"));
@@ -152,9 +152,10 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinWithTimestampSpan() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=opensearch-sql_test_index_time_data"
-                + " | bin @timestamp span=1h"
-                + " | fields `@timestamp`, value | sort `@timestamp` | head 3");
+            String.format(
+                "source=%s | bin @timestamp span=1h | fields `@timestamp`, value | sort"
+                    + " `@timestamp` | head 3",
+                TEST_INDEX_TIME_DATA));
     verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
 
     // With 1-hour spans
@@ -169,9 +170,11 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinWithTimestampStats() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=opensearch-sql_test_index_time_data"
-                + " | bin @timestamp span=4h"
-                + " | fields `@timestamp` | sort `@timestamp` | head 3");
+            String.format(
+                "source=%s"
+                    + " | bin @timestamp span=4h"
+                    + " | fields `@timestamp` | sort `@timestamp` | head 3",
+                TEST_INDEX_TIME_DATA));
     verifySchema(result, schema("@timestamp", null, "timestamp"));
 
     // With 4-hour spans and stats
@@ -187,9 +190,9 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     // Test just the bin operation without aggregation
     JSONObject binOnlyResult =
         executeQuery(
-            "source=opensearch-sql_test_index_time_data"
-                + " | bin @timestamp span=4h"
-                + " | fields `@timestamp` | head 3");
+            String.format(
+                "source=%s" + " | bin @timestamp span=4h" + " | fields `@timestamp` | head 3",
+                TEST_INDEX_TIME_DATA));
 
     // Verify schema and that binning works correctly
     verifySchema(binOnlyResult, schema("@timestamp", null, "timestamp"));
@@ -207,9 +210,11 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     // Test bin operation with fields only - no aggregation
     JSONObject result =
         executeQuery(
-            "source=opensearch-sql_test_index_time_data"
-                + " | bin @timestamp span=4h"
-                + " | fields `@timestamp` | sort `@timestamp` | head 3");
+            String.format(
+                "source=%s"
+                    + " | bin @timestamp span=4h"
+                    + " | fields `@timestamp` | sort `@timestamp` | head 3",
+                TEST_INDEX_TIME_DATA));
 
     // Verify schema
     verifySchema(result, schema("@timestamp", null, "timestamp"));
@@ -226,8 +231,10 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinWithMonthlySpan() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=opensearch-sql_test_index_time_data | bin @timestamp span=4mon as cate | fields"
-                + " cate, @timestamp | head 5");
+            String.format(
+                "source=%s | bin @timestamp span=4mon as cate | fields"
+                    + " cate, @timestamp | head 5",
+                TEST_INDEX_TIME_DATA));
     verifySchema(result, schema("cate", null, "string"), schema("@timestamp", null, "timestamp"));
 
     // With 4-month spans using 'mon' unit
@@ -389,8 +396,10 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinTimestampSpan30Seconds() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=opensearch-sql_test_index_time_data | bin @timestamp span=30seconds | fields"
-                + " @timestamp, value | sort @timestamp | head 3");
+            String.format(
+                "source=%s | bin @timestamp span=30seconds | fields"
+                    + " @timestamp, value | sort @timestamp | head 3",
+                TEST_INDEX_TIME_DATA));
     verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
     verifyDataRows(
         result,
@@ -403,8 +412,10 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinTimestampSpan45Minutes() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=opensearch-sql_test_index_time_data | bin @timestamp span=45minute | fields"
-                + " @timestamp, value | sort @timestamp | head 3");
+            String.format(
+                "source=%s | bin @timestamp span=45minute | fields"
+                    + " @timestamp, value | sort @timestamp | head 3",
+                TEST_INDEX_TIME_DATA));
     verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
     verifyDataRows(
         result,
@@ -417,8 +428,10 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinTimestampSpan7Days() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=opensearch-sql_test_index_time_data | bin @timestamp span=7day | fields"
-                + " @timestamp, value | sort @timestamp | head 3");
+            String.format(
+                "source=%s | bin @timestamp span=7day | fields"
+                    + " @timestamp, value | sort @timestamp | head 3",
+                TEST_INDEX_TIME_DATA));
     verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
     verifyDataRows(
         result,
@@ -431,8 +444,10 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinTimestampSpan6Days() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=opensearch-sql_test_index_time_data | bin @timestamp span=6day | fields"
-                + " @timestamp, value | sort @timestamp | head 3");
+            String.format(
+                "source=%s | bin @timestamp span=6day | fields"
+                    + " @timestamp, value | sort @timestamp | head 3",
+                TEST_INDEX_TIME_DATA));
     verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
     verifyDataRows(
         result,
@@ -445,8 +460,10 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinTimestampAligntimeHour() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=opensearch-sql_test_index_time_data | bin @timestamp span=2h"
-                + " aligntime='@d+3h' | fields @timestamp, value | sort @timestamp | head 3");
+            String.format(
+                "source=%s | bin @timestamp span=2h"
+                    + " aligntime='@d+3h' | fields @timestamp, value | sort @timestamp | head 3",
+                TEST_INDEX_TIME_DATA));
     verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
     verifyDataRows(
         result,
@@ -459,8 +476,10 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinTimestampAligntimeEpoch() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=opensearch-sql_test_index_time_data | bin @timestamp span=2h"
-                + " aligntime=1500000000 | fields @timestamp, value | sort @timestamp | head 3");
+            String.format(
+                "source=%s | bin @timestamp span=2h"
+                    + " aligntime=1500000000 | fields @timestamp, value | sort @timestamp | head 3",
+                TEST_INDEX_TIME_DATA));
     verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
     verifyDataRows(
         result,
@@ -541,8 +560,9 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinWithBinsParameterStatsCount() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=opensearch-sql_test_index_time_data"
-                + " | bin value bins=5 | stats count() by value | sort value | head 3");
+            String.format(
+                "source=%s" + " | bin value bins=5 | stats count() by value | sort value | head 3",
+                TEST_INDEX_TIME_DATA));
     verifySchema(result, schema("count()", null, "bigint"), schema("value", null, "string"));
 
     verifyDataRows(result, rows(24L, "6000-7000"), rows(25L, "7000-8000"), rows(33L, "8000-9000"));
@@ -625,9 +645,11 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     // Test bin operation with aggregation - this should now work correctly
     JSONObject result =
         executeQuery(
-            "source=opensearch-sql_test_index_time_data"
-                + " | bin @timestamp span=4h"
-                + " | stats count() by `@timestamp` | sort `@timestamp` | head 3");
+            String.format(
+                "source=%s"
+                    + " | bin @timestamp span=4h"
+                    + " | stats count() by `@timestamp` | sort `@timestamp` | head 3",
+                TEST_INDEX_TIME_DATA));
 
     // Verify schema
     verifySchema(

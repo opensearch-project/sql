@@ -68,6 +68,6 @@ public class LatestFunction extends ImplementorUDF {
     ZonedDateTime latest =
         getRelativeZonedDateTime(
             expression, ZonedDateTime.ofInstant(clock.instant(), clock.getZone()));
-    return latest.isAfter(candidateDatetime);
+    return !latest.isBefore(candidateDatetime);
   }
 }
