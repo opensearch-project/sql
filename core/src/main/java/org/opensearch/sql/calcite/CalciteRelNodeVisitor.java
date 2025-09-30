@@ -1769,11 +1769,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       // Create field map for current node
       Map<String, RelDataTypeField> currentFieldMap =
           currentFields.stream()
-              .collect(
-                  Collectors.toMap(
-                      RelDataTypeField::getName,
-                      field -> field,
-                      (existing, replacement) -> existing)); // Keep first occurrence if duplicates
+              .collect(Collectors.toMap(RelDataTypeField::getName, field -> field));
 
       boolean[] isSelected = new boolean[currentFields.size()];
       List<RexNode> currentProjection = new ArrayList<>();
