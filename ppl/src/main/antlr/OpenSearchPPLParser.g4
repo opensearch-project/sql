@@ -772,7 +772,7 @@ timeModifierValue
    | INTEGER_LITERAL
    | stringLiteral
    | TIME_SNAP
-   | (PLUS | MINUS) (integerLiteral)? timeModifierUnit (TIME_SNAP)?
+   | (PLUS | MINUS) SPANLENGTH (TIME_SNAP)?
    ;
 
 // tables
@@ -1320,44 +1320,6 @@ intervalUnit
    | DAY_MINUTE
    | DAY_HOUR
    | YEAR_MONTH
-   ;
-
-// It differs from TIME_SNAP_UNIT in that it supports plural forms
-timeModifierUnit
-   : S
-   | SEC
-   | SECS
-   | SECOND
-   | SECONDS
-   | M
-   | MIN
-   | MINS
-   | MINUTE
-   | MINUTES
-   | H
-   | HR
-   | HRS
-   | HOUR
-   | HOURS
-   | D
-   | DAY
-   | DAYS
-   | W
-   | WEEK
-   | WEEKS
-   | MON
-   | MONTH
-   | MONTHS
-   | Q
-   | QTR
-   | QTRS
-   | QUARTER
-   | QUARTERS
-   | Y
-   | YR
-   | YRS
-   | YEAR
-   | YEARS
    ;
 
 valueList
