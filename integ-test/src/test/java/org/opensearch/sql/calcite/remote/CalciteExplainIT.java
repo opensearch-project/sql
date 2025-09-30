@@ -865,4 +865,13 @@ public class CalciteExplainIT extends ExplainIT {
     String expected = loadExpectedPlan("explain_strftime_function.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
+
+  @Test
+  public void testPatternsSimplePatternMethodWithAggPushDownExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_patterns_simple_pattern_agg_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | patterns email mode=aggregation"));
+  }
 }
