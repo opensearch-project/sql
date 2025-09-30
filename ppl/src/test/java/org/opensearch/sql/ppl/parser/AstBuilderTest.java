@@ -856,24 +856,12 @@ public class AstBuilderTest {
   }
 
   @Test
-  public void testFillNullSPLDefaultAllFields() {
-    assertEqual("source=t | fillnull", fillNull(relation("t"), intLiteral(0)));
-  }
-
-  @Test
-  public void testFillNullSPLDefaultWithFields() {
-    assertEqual(
-        "source=t | fillnull a, b, c",
-        fillNull(relation("t"), intLiteral(0), field("a"), field("b"), field("c")));
-  }
-
-  @Test
-  public void testFillNullSPLValueAllFields() {
+  public void testFillNullValueAllFields() {
     assertEqual("source=t | fillnull value=\"N/A\"", fillNull(relation("t"), stringLiteral("N/A")));
   }
 
   @Test
-  public void testFillNullSPLValueWithFields() {
+  public void testFillNullValueWithFields() {
     assertEqual(
         "source=t | fillnull value=0 a, b, c",
         fillNull(relation("t"), intLiteral(0), field("a"), field("b"), field("c")));
