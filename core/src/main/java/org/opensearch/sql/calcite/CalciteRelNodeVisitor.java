@@ -2321,13 +2321,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         };
     if (ParseMethod.PATTERNS.equals(parseMethod)) {
       rexNodeList = ArrayUtils.add(rexNodeList, context.relBuilder.literal("<*>"));
+    } else {
+      rexNodeList = ArrayUtils.add(rexNodeList, context.relBuilder.literal(parseMethod.getName()));
     }
     List<RexNode> newFields = new ArrayList<>();
     for (String groupCandidate : groupCandidates) {
       RexNode innerRex =
           PPLFuncImpTable.INSTANCE.resolve(
               context.rexBuilder, ParseUtils.BUILTIN_FUNCTION_MAP.get(parseMethod), rexNodeList);
-      if (ParseMethod.GROK.equals(parseMethod)) {
+      if (!ParseMethod.PATTERNS.equals(parseMethod)) {
         newFields.add(
             PPLFuncImpTable.INSTANCE.resolve(
                 context.rexBuilder,
