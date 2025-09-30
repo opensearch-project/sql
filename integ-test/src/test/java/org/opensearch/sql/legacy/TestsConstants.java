@@ -46,6 +46,7 @@ public class TestsConstants {
   public static final String TEST_INDEX_WEBLOGS = TEST_INDEX + "_weblogs";
   public static final String TEST_INDEX_DATE = TEST_INDEX + "_date";
   public static final String TEST_INDEX_DATE_TIME = TEST_INDEX + "_datetime";
+  public static final String TEST_INDEX_DATE_TIME_NESTED = TEST_INDEX + "_datetime_nested";
 
   /** A test index with @timestamp field */
   public static final String TEST_INDEX_TIME_DATA = TEST_INDEX + "_time_data";
