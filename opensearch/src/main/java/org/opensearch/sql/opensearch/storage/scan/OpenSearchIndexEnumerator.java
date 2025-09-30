@@ -17,7 +17,6 @@ import org.opensearch.sql.exception.NonFallbackCalciteException;
 import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
-import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
 /**
  * Supports a simple iteration over a collection for OpenSearch index
@@ -126,12 +125,7 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   @Override
   public void reset() {
     bgScanner.reset(request);
-    OpenSearchResponse response = client.search(request);
-    if (!response.isEmpty()) {
-      iterator = response.iterator();
-    } else {
-      iterator = Collections.emptyIterator();
-    }
+    iterator = bgScanner.fetchNextBatch(request, maxResultWindow).iterator();
     queryCount = 0;
   }
 
