@@ -122,7 +122,8 @@ searchCommand
    ;
 
 searchExpression
- : LT_PRTHS searchExpression RT_PRTHS                 # groupedExpression
+ : timeModifier                                       # timeModifierExpression
+ | LT_PRTHS searchExpression RT_PRTHS                 # groupedExpression
  | NOT searchExpression                               # notExpression
  | searchExpression OR searchExpression               # orExpression
  | searchExpression AND searchExpression              # andExpression
@@ -767,6 +768,20 @@ singleFieldRelevanceFunction
 // Field is a list of columns
 multiFieldRelevanceFunction
    : multiFieldRelevanceFunctionName LT_PRTHS (LT_SQR_PRTHS field = relevanceFieldAndWeight (COMMA field = relevanceFieldAndWeight)* RT_SQR_PRTHS COMMA)? query = relevanceQuery (COMMA relevanceArg)* RT_PRTHS
+   ;
+
+timeModifier
+   : (EARLIEST | LATEST) EQUAL timeModifierValue
+   ;
+
+timeModifierValue
+   : NOW
+   | NOW LT_PRTHS RT_PRTHS
+   | DECIMAL_LITERAL
+   | INTEGER_LITERAL
+   | stringLiteral
+   | TIME_SNAP
+   | (PLUS | MINUS) SPANLENGTH (TIME_SNAP)?
    ;
 
 // tables
