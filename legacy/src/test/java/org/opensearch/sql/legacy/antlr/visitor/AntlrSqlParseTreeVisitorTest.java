@@ -108,13 +108,6 @@ public class AntlrSqlParseTreeVisitorTest {
   }
 
   @Test
-  public void visitImplicitJoinWithGroupByShouldThrowException() {
-    exceptionRule.expect(RuntimeException.class);
-    exceptionRule.expectMessage("JOIN queries do not support aggregations on the joined result.");
-    visit("SELECT COUNT(*) FROM testIndex t1, testIndex t2 WHERE t1.id = t2.id GROUP BY t1.field");
-  }
-
-  @Test
   public void visitExplicitJoinWithGroupByShouldThrowException() {
     exceptionRule.expect(RuntimeException.class);
     exceptionRule.expectMessage("JOIN queries do not support aggregations on the joined result.");

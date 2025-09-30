@@ -291,21 +291,6 @@ public class AntlrSqlParseTreeVisitor<T extends Reducible>
           }
 
           @Override
-          public Boolean visitTableSources(TableSourcesContext ctx) {
-            if (ctx.tableSource().size() > 1) {
-              return true;
-            }
-
-            for (int i = 0; i < ctx.tableSource().size(); i++) {
-              Boolean hasJoinInTableSource = visit(ctx.tableSource(i));
-              if (hasJoinInTableSource != null && hasJoinInTableSource) {
-                return true;
-              }
-            }
-            return false;
-          }
-
-          @Override
           protected Boolean defaultResult() {
             return false;
           }
