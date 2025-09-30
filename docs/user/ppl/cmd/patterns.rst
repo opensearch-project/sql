@@ -61,7 +61,7 @@ To override default pattern parameters, users can run following command
 Simple Pattern Example 1: Create the new field
 ===============================
 
-The example shows how to use extract punctuations in ``email`` for each document. Parsing a null field will return an empty string.
+The example shows how to extract patterns in ``email`` for each document. Parsing a null field will return an empty string.
 
 PPL query::
 
@@ -79,7 +79,7 @@ PPL query::
 Simple Pattern Example 2: Extract log patterns
 ===============================
 
-The example shows how to extract punctuations from a raw log field using the default patterns.
+The example shows how to extract patterns from a raw log field using the default patterns.
 
 PPL query::
 
@@ -97,7 +97,7 @@ PPL query::
 Simple Pattern Example 3: Extract log patterns with custom regex pattern
 =========================================================
 
-The example shows how to extract punctuations from a raw log field using user defined patterns.
+The example shows how to extract patterns from a raw log field using user defined patterns.
 
 PPL query::
 
