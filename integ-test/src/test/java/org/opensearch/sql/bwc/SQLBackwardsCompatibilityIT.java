@@ -187,7 +187,7 @@ public class SQLBackwardsCompatibilityIT extends SQLIntegTestCase {
         executeSQLQuery(
             endpoint,
             "SELECT COUNT(*) FILTER(WHERE age > 35) FROM " + TestsConstants.TEST_INDEX_ACCOUNT);
-    verifySchema(filterResponse, schema("COUNT(*) FILTER(WHERE age > 35)", null, "integer"));
+    verifySchema(filterResponse, schema("COUNT(*) FILTER(WHERE age > 35)", null, "long"));
     verifyDataRows(filterResponse, rows(238));
 
     JSONObject aggResponse =

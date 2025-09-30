@@ -73,7 +73,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsCount() throws IOException {
     JSONObject response =
         executeQuery(String.format("source=%s | stats count(account_number)", TEST_INDEX_ACCOUNT));
-    
+
     verifySchema(response, schema("count(account_number)", null, "bigint"));
 
     verifyDataRows(response, rows(1000));
@@ -83,12 +83,12 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsCountAll() throws IOException {
     JSONObject response =
         executeQuery(String.format("source=%s | stats count()", TEST_INDEX_ACCOUNT));
-    
+
     verifySchema(response, schema("count()", null, "bigint"));
     verifyDataRows(response, rows(1000));
 
     response = executeQuery(String.format("source=%s | stats c()", TEST_INDEX_ACCOUNT));
-    
+
     verifySchema(response, schema("c()", null, "bigint"));
     verifyDataRows(response, rows(1000));
 
@@ -97,7 +97,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
     verifyDataRows(response, rows(1000));
 
     response = executeQuery(String.format("source=%s | stats c", TEST_INDEX_ACCOUNT));
-    
+
     verifySchema(response, schema("c", null, "bigint"));
     verifyDataRows(response, rows(1000));
   }
@@ -105,7 +105,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
   @Test
   public void testStatsCBy() throws IOException {
     JSONObject response =
-    executeQuery(String.format("source=%s | stats c by gender", TEST_INDEX_ACCOUNT));
+        executeQuery(String.format("source=%s | stats c by gender", TEST_INDEX_ACCOUNT));
     verifySchema(response, schema("c", null, "bigint"), schema("gender", null, "string"));
     verifyDataRows(response, rows(493, "F"), rows(507, "M"));
   }
@@ -113,7 +113,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
   @Test
   public void testStatsDistinctCount() throws IOException {
     JSONObject response =
-    executeQuery(String.format("source=%s | stats distinct_count(gender)", TEST_INDEX_ACCOUNT));
+        executeQuery(String.format("source=%s | stats distinct_count(gender)", TEST_INDEX_ACCOUNT));
     verifySchema(response, schema("distinct_count(gender)", null, "bigint"));
     verifyDataRows(response, rows(2));
 
@@ -525,10 +525,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsBySpan() throws IOException {
     JSONObject response =
         executeQuery(String.format("source=%s | stats count() by span(age,10)", TEST_INDEX_BANK));
-    verifySchema(
-        response,
-        schema("count()", null, "bigint"),
-        schema("span(age,10)", null, "int"));
+    verifySchema(response, schema("count()", null, "bigint"), schema("span(age,10)", null, "int"));
     verifyDataRows(response, rows(1, 20), rows(6, 30));
   }
 
@@ -550,7 +547,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | stats count() by span(age,10) as age_bucket", TEST_INDEX_BANK));
-    
+
     verifySchema(response, schema("count()", null, "bigint"), schema("age_bucket", null, "int"));
     verifyDataRows(response, rows(1, 20), rows(6, 30));
   }
@@ -754,13 +751,13 @@ public class StatsCommandIT extends PPLIntegTestCase {
                 TEST_INDEX_ACCOUNT));
     verifySchema(
         response,
-        schema("count()", null, isCalciteEnabled() ? "bigint" : "int"),
-        schema("c1", null, isCalciteEnabled() ? "bigint" : "int"),
-        schema("count(account_number)", null, isCalciteEnabled() ? "bigint" : "int"),
-        schema("c2", null, isCalciteEnabled() ? "bigint" : "int"),
-        schema("count(balance/10)", null, isCalciteEnabled() ? "bigint" : "int"),
-        schema("c3", null, isCalciteEnabled() ? "bigint" : "int"),
-        schema("count(b_1)", null, isCalciteEnabled() ? "bigint" : "int"),
+        schema("count()", null, "bigint"),
+        schema("c1", null, "bigint"),
+        schema("count(account_number)", null, "bigint"),
+        schema("c2", null, "bigint"),
+        schema("count(balance/10)", null, "bigint"),
+        schema("c3", null, "bigint"),
+        schema("count(b_1)", null, "bigint"),
         schema("gender", null, "string"));
     verifyDataRows(
         response,

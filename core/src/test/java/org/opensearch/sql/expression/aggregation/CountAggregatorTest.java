@@ -68,8 +68,7 @@ class CountAggregatorTest extends AggregationTest {
         aggregation(
             DSL.count(
                 DSL.multiply(
-                    DSL.ref("long_value", LONG),
-                    DSL.literal(ExprValueUtils.longValue(10L)))),
+                    DSL.ref("long_value", LONG), DSL.literal(ExprValueUtils.longValue(10L)))),
             tuples);
     assertEquals(4L, result.value());
   }

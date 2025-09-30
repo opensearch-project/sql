@@ -81,14 +81,13 @@ public class Row implements Comparable<Row> {
     Row other = (Row) o;
     return valuesEqual(this.values, other.values);
   }
-  
 
   private boolean valuesEqual(Collection<Object> values1, Collection<Object> values2) {
     if (values1.size() != values2.size()) return false;
-    
+
     List<Object> list1 = new ArrayList<>(values1);
     List<Object> list2 = new ArrayList<>(values2);
-    
+
     for (int i = 0; i < list1.size(); i++) {
       if (!isValueEqual(list1.get(i), list2.get(i))) {
         return false;
@@ -96,23 +95,21 @@ public class Row implements Comparable<Row> {
     }
     return true;
   }
-  
 
   private boolean isValueEqual(Object val1, Object val2) {
     if (Objects.equals(val1, val2)) return true;
-    
 
     if (isIntegerOrLong(val1) && isIntegerOrLong(val2)) {
       return ((Number) val1).longValue() == ((Number) val2).longValue();
     }
-    
+
     return false;
   }
-  
+
   private boolean isIntegerOrLong(Object value) {
     return value instanceof Integer || value instanceof Long;
   }
-  
+
   @Override
   public int hashCode() {
 
