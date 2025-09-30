@@ -919,4 +919,77 @@ public class SearchCommandIT extends PPLIntegTestCase {
         rows("2024-01-15 10:30:00.123456789", "INFO"),
         rows("2024-01-15 10:30:01.23456789", "ERROR"));
   }
+
+  @Test
+  public void testSearchWithTraceId() throws IOException {
+    // Test 1: Search for specific traceId
+    JSONObject specificTraceId =
+        executeQuery(
+            String.format(
+                "search source=%s b3cb01a03c846973fd496b973f49be85 | fields" + " traceId, body",
+                TEST_INDEX_OTEL_LOGS));
+    verifyDataRows(
+        specificTraceId,
+        rows(
+            "b3cb01a03c846973fd496b973f49be85",
+            "User e1ce63e6-8501-11f0-930d-c2fcbdc05f14 adding 4 of product HQTGWGPNH4 to cart"));
+  }
+
+  @Test
+  public void testSearchWithSpanLength() throws IOException {
+    // Test searching for SPANLENGTH keyword in free text search
+    // This tests that SPANLENGTH tokens like "3month" are searchable
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s 3month | fields body, `attributes.span.duration`",
+                TEST_INDEX_OTEL_LOGS));
+    verifyDataRows(result, rows("Processing data for 3month period", "3month"));
+  }
+
+  @Test
+  public void testSearchWithSpanLengthInField() throws IOException {
+    // Test searching for SPANLENGTH value in a specific field
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s `attributes.span.duration`=\\\"3month\\\" | fields body,"
+                    + " `attributes.span.duration`",
+                TEST_INDEX_OTEL_LOGS));
+    verifyDataRows(result, rows("Processing data for 3month period", "3month"));
+  }
+
+  @Test
+  public void testSearchWithNumericIdVsSpanLength() throws IOException {
+    // Test that NUMERIC_ID tokens like "1s4f7" (which start with what could be a SPANLENGTH like
+    // "1s")
+    // are properly searchable as complete tokens
+    // This verifies that NUMERIC_ID takes precedence over SPANLENGTH when applicable
+
+    // Test 1: Search for the NUMERIC_ID token in free text
+    JSONObject numericIdResult =
+        executeQuery(
+            String.format(
+                "search source=%s 1s4f7 | fields body, `attributes.transaction.id`",
+                TEST_INDEX_OTEL_LOGS));
+    verifyDataRows(numericIdResult, rows("Transaction ID 1s4f7 processed successfully", "1s4f7"));
+
+    // Test 2: Search for NUMERIC_ID in specific field
+    JSONObject fieldSearchResult =
+        executeQuery(
+            String.format(
+                "search source=%s `attributes.transaction.id`=1s4f7 | fields body,"
+                    + " `attributes.transaction.id`",
+                TEST_INDEX_OTEL_LOGS));
+    verifyDataRows(fieldSearchResult, rows("Transaction ID 1s4f7 processed successfully", "1s4f7"));
+
+    // Test 3: Verify that searching for just "1s" (which would be a SPANLENGTH)
+    // does NOT match the "1s4f7" token
+    JSONObject spanLengthSearchResult =
+        executeQuery(
+            String.format(
+                "search source=%s `attributes.transaction.id`=1s | fields body",
+                TEST_INDEX_OTEL_LOGS));
+    verifyDataRows(spanLengthSearchResult); // Should return no results
+  }
 }
