@@ -265,6 +265,7 @@ EARLIEST:                           'EARLIEST';
 LATEST:                             'LATEST';
 TAKE:                               'TAKE';
 LIST:                               'LIST';
+VALUE:                              'VALUE';
 VALUES:                             'VALUES';
 PER_DAY:                            'PER_DAY';
 PER_HOUR:                           'PER_HOUR';

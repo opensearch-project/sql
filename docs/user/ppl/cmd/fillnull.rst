@@ -16,12 +16,24 @@ Using ``fillnull`` command to fill null with provided value in one or more field
 
 Syntax
 ============
+
 fillnull with <replacement> [in <field-list>]
 
 fillnull using <field> = <replacement> [, <field> = <replacement>]
 
-* replacement: mandatory. The value used to replace `null`s.
-* field-list: optional. The comma-delimited field list. The `null` values in the field will be replaced with the values from the replacement. From 3.1.0, when ``plugins.calcite.enabled`` is true, if no field specified, the replacement is applied to all fields.
+fillnull value=<replacement> [<field-list>]
+
+**Parameters:**
+
+* replacement: **Mandatory**. The value used to replace `null`s.
+
+* field-list: Optional. Comma-delimited (when using ``with`` or ``using``) or space-delimited (when using ``value=``) list of fields. The `null` values in the field will be replaced with the values from the replacement. From 3.1.0, when ``plugins.calcite.enabled`` is true, if no field specified, the replacement is applied to all fields.
+
+**Syntax Variations:**
+
+* ``with <replacement> in <field-list>`` - Apply same value to specified fields
+* ``using <field>=<replacement>, ...`` - Apply different values to different fields
+* ``value=<replacement> [<field-list>]`` - (Since 3.4) Alternative syntax with optional space-delimited field list
 
 Example 1: replace null values with a specified value on one field
 ==================================================================
@@ -90,7 +102,57 @@ PPL query::
     +-----------------------+---------------+
 
 
+Example 5: replace null with specified value on specific fields (value= syntax)
+===============================================================================
+
+Since 3.4.
+
+PPL query::
+
+    os> source=accounts | fields email, employer | fillnull value="<not found>" email employer;
+    fetched rows / total rows = 4/4
+    +-----------------------+-------------+
+    | email                 | employer    |
+    |-----------------------+-------------|
+    | amberduke@pyrami.com  | Pyrami      |
+    | hattiebond@netagy.com | Netagy      |
+    | <not found>           | Quility     |
+    | daleadams@boink.com   | <not found> |
+    +-----------------------+-------------+
+
+Example 6: replace null with specified value on all fields (value= syntax)
+==========================================================================
+
+Since 3.4. This example only works when Calcite enabled.
+
+PPL query::
+
+    os> source=accounts | fields age, balance | fillnull value=0;
+    fetched rows / total rows = 4/4
+    +-----+---------+
+    | age | balance |
+    |-----+---------|
+    | 32  | 39225   |
+    | 36  | 5686    |
+    | 28  | 32838   |
+    | 33  | 4180    |
+    +-----+---------+
+
+**Note:** When applying the same value to all fields, all fields must be the same type. For mixed types, use separate fillnull commands.
+
 Limitations
 ===========
 * The ``fillnull`` command is not rewritten to OpenSearch DSL, it is only executed on the coordination node.
 * Before 3.1.0, at least one field is required.
+* **Type Restrictions**:
+
+  The replacement value type must match ALL field types in the field list. When applying the same value to multiple fields, all fields must be the same type (all strings or all numeric).
+
+  **Example:**
+
+  .. code-block:: sql
+
+     # This FAILS - same value for mixed-type fields
+     source=accounts | fillnull value=0 firstname, age
+     # ERROR: Cannot infer return type for COALESCE; operand types: [VARCHAR, INTEGER]
+

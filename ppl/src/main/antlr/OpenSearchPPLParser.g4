@@ -417,8 +417,12 @@ lookupPair
    ;
 
 fillnullCommand
-   : FILLNULL fillNullWith
-   | FILLNULL fillNullUsing
+   : FILLNULL fillNullWith                                                          # fillNullWithClause
+   | FILLNULL fillNullUsing                                                         # fillNullUsingClause
+   | FILLNULL VALUE EQUAL replacement = valueExpression fieldList                   # fillNullSPLValueWithFields
+   | FILLNULL VALUE EQUAL replacement = valueExpression                             # fillNullSPLValueAllFields
+   | FILLNULL fieldList                                                             # fillNullSPLDefaultWithFields
+   | FILLNULL                                                                       # fillNullSPLDefaultAllFields
    ;
 
 fillNullWith

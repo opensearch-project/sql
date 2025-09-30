@@ -936,4 +936,14 @@ public class CalciteExplainIT extends ExplainIT {
                     + " span(t, 1d)",
                 TEST_INDEX_BANK)));
   }
+
+  @Test
+  public void testFillNullValueSyntaxExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_fillnull_value_syntax.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | fields age, balance | fillnull value=0", TEST_INDEX_ACCOUNT)));
+  }
 }

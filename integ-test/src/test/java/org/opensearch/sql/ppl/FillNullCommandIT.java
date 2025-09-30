@@ -212,4 +212,55 @@ public class FillNullCommandIT extends PPLIntegTestCase {
         rows("sixteen", 16.81),
         rows("unknown", 7.12));
   }
+
+  @Test
+  public void testAggregationSumWithNullValues() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source=%s | stats sum(num0) as total", TEST_INDEX_CALCS));
+    verifyDataRows(result, rows(10));
+  }
+
+  @Test
+  public void testAggregationSumAfterFillNull() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | fillnull with 0 in num0 | stats sum(num0) as total",
+                TEST_INDEX_CALCS));
+    verifyDataRows(result, rows(10));
+  }
+
+  @Test
+  public void testAggregationCountWithNullValues() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source=%s | stats count(num0) as total", TEST_INDEX_CALCS));
+    verifyDataRows(result, rows(8));
+  }
+
+  @Test
+  public void testAggregationCountAfterFillNull() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | fillnull with 0 in num0 | stats count(num0) as total",
+                TEST_INDEX_CALCS));
+    verifyDataRows(result, rows(17));
+  }
+
+  @Test
+  public void testAggregationAvgWithNullValues() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source=%s | stats avg(num0) as average", TEST_INDEX_CALCS));
+    verifyDataRows(result, rows(1.25));
+  }
+
+  @Test
+  public void testAggregationAvgAfterFillNull() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | fillnull with 0 in num0 | stats avg(num0) as average",
+                TEST_INDEX_CALCS));
+    verifyDataRows(result, rows(0.5882352941176471));
+  }
 }

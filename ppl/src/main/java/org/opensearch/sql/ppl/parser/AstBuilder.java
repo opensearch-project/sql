@@ -958,6 +958,42 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return FillNull.ofVariousValue(replacementsBuilder.build());
   }
 
+  /** fillnull command - SPL syntax: fillnull value=<expr> field1 field2 ... */
+  @Override
+  public UnresolvedPlan visitFillNullSPLValueWithFields(
+      OpenSearchPPLParser.FillNullSPLValueWithFieldsContext ctx) {
+    return FillNull.ofSameValue(
+        internalVisitExpression(ctx.replacement),
+        ctx.fieldList().fieldExpression().stream()
+            .map(f -> (Field) internalVisitExpression(f))
+            .toList());
+  }
+
+  /** fillnull command - SPL syntax: fillnull value=<expr> */
+  @Override
+  public UnresolvedPlan visitFillNullSPLValueAllFields(
+      OpenSearchPPLParser.FillNullSPLValueAllFieldsContext ctx) {
+    return FillNull.ofSameValue(internalVisitExpression(ctx.replacement), List.of());
+  }
+
+  /** fillnull command - SPL syntax: fillnull field1 field2 ... (default value 0) */
+  @Override
+  public UnresolvedPlan visitFillNullSPLDefaultWithFields(
+      OpenSearchPPLParser.FillNullSPLDefaultWithFieldsContext ctx) {
+    return FillNull.ofSameValue(
+        new Literal(0, DataType.INTEGER),
+        ctx.fieldList().fieldExpression().stream()
+            .map(f -> (Field) internalVisitExpression(f))
+            .toList());
+  }
+
+  /** fillnull command - SPL syntax: fillnull (default value 0, all fields) */
+  @Override
+  public UnresolvedPlan visitFillNullSPLDefaultAllFields(
+      OpenSearchPPLParser.FillNullSPLDefaultAllFieldsContext ctx) {
+    return FillNull.ofSameValue(new Literal(0, DataType.INTEGER), List.of());
+  }
+
   @Override
   public UnresolvedPlan visitFlattenCommand(OpenSearchPPLParser.FlattenCommandContext ctx) {
     Field field = (Field) internalVisitExpression(ctx.fieldExpression());

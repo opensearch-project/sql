@@ -855,6 +855,30 @@ public class AstBuilderTest {
                 Pair.of(field("c"), intLiteral(3)))));
   }
 
+  @Test
+  public void testFillNullSPLDefaultAllFields() {
+    assertEqual("source=t | fillnull", fillNull(relation("t"), intLiteral(0)));
+  }
+
+  @Test
+  public void testFillNullSPLDefaultWithFields() {
+    assertEqual(
+        "source=t | fillnull a, b, c",
+        fillNull(relation("t"), intLiteral(0), field("a"), field("b"), field("c")));
+  }
+
+  @Test
+  public void testFillNullSPLValueAllFields() {
+    assertEqual("source=t | fillnull value=\"N/A\"", fillNull(relation("t"), stringLiteral("N/A")));
+  }
+
+  @Test
+  public void testFillNullSPLValueWithFields() {
+    assertEqual(
+        "source=t | fillnull value=0 a, b, c",
+        fillNull(relation("t"), intLiteral(0), field("a"), field("b"), field("c")));
+  }
+
   public void testTrendline() {
     assertEqual(
         "source=t | trendline sma(5, test_field) as test_field_alias sma(1, test_field_2) as"
