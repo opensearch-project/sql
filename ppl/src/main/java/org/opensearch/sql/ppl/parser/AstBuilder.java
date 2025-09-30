@@ -46,26 +46,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.EmptySourcePropagateVisitor;
 import org.opensearch.sql.ast.dsl.AstDSL;
-import org.opensearch.sql.ast.expression.Alias;
-import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
-import org.opensearch.sql.ast.expression.Argument;
-import org.opensearch.sql.ast.expression.DataType;
-import org.opensearch.sql.ast.expression.EqualTo;
-import org.opensearch.sql.ast.expression.Field;
-import org.opensearch.sql.ast.expression.Let;
-import org.opensearch.sql.ast.expression.Literal;
-import org.opensearch.sql.ast.expression.Map;
-import org.opensearch.sql.ast.expression.ParseMethod;
-import org.opensearch.sql.ast.expression.PatternMethod;
-import org.opensearch.sql.ast.expression.PatternMode;
-import org.opensearch.sql.ast.expression.QualifiedName;
-import org.opensearch.sql.ast.expression.SearchAnd;
-import org.opensearch.sql.ast.expression.SearchExpression;
-import org.opensearch.sql.ast.expression.SearchGroup;
-import org.opensearch.sql.ast.expression.SpanUnit;
-import org.opensearch.sql.ast.expression.UnresolvedArgument;
-import org.opensearch.sql.ast.expression.UnresolvedExpression;
-import org.opensearch.sql.ast.expression.WindowFunction;
+import org.opensearch.sql.ast.expression.*;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
@@ -520,12 +501,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         if (!seenParams.add("MINSPAN")) {
           throw new IllegalArgumentException("Duplicate MINSPAN parameter in bin command");
         }
-        String minspanValue = option.minspan.getText();
-        String minspanUnit = option.minspanUnit != null ? option.minspanUnit.getText() : null;
-        minspan =
-            minspanUnit != null
-                ? org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(minspanValue + minspanUnit)
-                : internalVisitExpression(option.minspan);
+        minspan = internalVisitExpression(option.minspan);
       }
 
       // ALIGNTIME parameter
@@ -625,14 +601,13 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         AstDSL.span(AstDSL.field("@timestamp"), AstDSL.intLiteral(1), SpanUnit.of("m"));
     Integer limit = 10;
     Boolean useOther = true;
-
     // Process timechart parameters
     for (OpenSearchPPLParser.TimechartParameterContext paramCtx : ctx.timechartParameter()) {
       if (paramCtx.spanClause() != null) {
         binExpression = internalVisitExpression(paramCtx.spanClause());
       } else if (paramCtx.spanLiteral() != null) {
-        // Convert span=1h to span(@timestamp, 1h)
-        binExpression = internalVisitExpression(paramCtx.spanLiteral());
+        Literal literal = (Literal) internalVisitExpression(paramCtx.spanLiteral());
+        binExpression = AstDSL.spanFromSpanLengthLiteral(AstDSL.field("@timestamp"), literal);
       } else if (paramCtx.timechartArg() != null) {
         OpenSearchPPLParser.TimechartArgContext argCtx = paramCtx.timechartArg();
         if (argCtx.LIMIT() != null && argCtx.integerLiteral() != null) {
@@ -772,11 +747,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitPatternsCommand(OpenSearchPPLParser.PatternsCommandContext ctx) {
     UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
     ImmutableMap.Builder<String, Literal> builder = ImmutableMap.builder();
-    Literal newField = null;
-    if (ctx.new_field != null) {
-      newField = (Literal) internalVisitExpression(ctx.new_field);
-      builder.put("new_field", newField);
-    }
     ctx.patternsParameter()
         .forEach(
             x -> {
@@ -785,32 +755,48 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
               builder.put(argName, value);
             });
     java.util.Map<String, Literal> arguments = builder.build();
+
+    ImmutableMap.Builder<String, Literal> cmdOptionsBuilder = ImmutableMap.builder();
+    ctx.patternsCommandOption()
+        .forEach(
+            option -> {
+              String argName = option.children.get(0).toString();
+              Literal value = (Literal) internalVisitExpression(option.children.get(2));
+              cmdOptionsBuilder.put(argName, value);
+            });
+    java.util.Map<String, Literal> cmdOptions = cmdOptionsBuilder.build();
     String patternMethod =
-        ctx.method != null
-            ? StringUtils.unquoteIdentifier(ctx.method.getText()).toLowerCase(Locale.ROOT)
-            : settings.getSettingValue(Key.PATTERN_METHOD).toString().toLowerCase(Locale.ROOT);
+        cmdOptions
+            .getOrDefault(
+                "method", AstDSL.stringLiteral(settings.getSettingValue(Key.PATTERN_METHOD)))
+            .toString();
     String patternMode =
-        ctx.pattern_mode != null
-            ? StringUtils.unquoteIdentifier(ctx.pattern_mode.getText()).toLowerCase(Locale.ROOT)
-            : settings.getSettingValue(Key.PATTERN_MODE).toString().toLowerCase(Locale.ROOT);
+        cmdOptions
+            .getOrDefault("mode", AstDSL.stringLiteral(settings.getSettingValue(Key.PATTERN_MODE)))
+            .toString();
     Literal patternMaxSampleCount =
-        ctx.max_sample_count != null
-            ? (Literal) internalVisitExpression(ctx.max_sample_count)
-            : AstDSL.intLiteral(settings.getSettingValue(Key.PATTERN_MAX_SAMPLE_COUNT));
+        cmdOptions.getOrDefault(
+            "max_sample_count",
+            AstDSL.intLiteral(settings.getSettingValue(Key.PATTERN_MAX_SAMPLE_COUNT)));
     Literal patternBufferLimit =
-        ctx.buffer_limit != null
-            ? (Literal) internalVisitExpression(ctx.buffer_limit)
-            : AstDSL.intLiteral(settings.getSettingValue(Key.PATTERN_BUFFER_LIMIT));
+        cmdOptions.getOrDefault(
+            "max_sample_count",
+            AstDSL.intLiteral(settings.getSettingValue(Key.PATTERN_BUFFER_LIMIT)));
+    Literal showNumberedToken =
+        cmdOptions.getOrDefault(
+            "show_numbered_token",
+            AstDSL.booleanLiteral(settings.getSettingValue(Key.PATTERN_SHOW_NUMBERED_TOKEN)));
     List<UnresolvedExpression> partitionByList = getPartitionExprList(ctx.statsByClause());
 
     return new Patterns(
         sourceField,
         partitionByList,
-        newField != null ? newField.getValue().toString() : "patterns_field",
+        arguments.getOrDefault("new_field", AstDSL.stringLiteral("patterns_field")).toString(),
         PatternMethod.valueOf(patternMethod.toUpperCase(Locale.ROOT)),
         PatternMode.valueOf(patternMode.toUpperCase(Locale.ROOT)),
         patternMaxSampleCount,
         patternBufferLimit,
+        showNumberedToken,
         arguments);
   }
 

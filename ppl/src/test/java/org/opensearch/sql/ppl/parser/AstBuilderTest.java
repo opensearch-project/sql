@@ -1005,6 +1005,7 @@ public class AstBuilderTest extends AstPlanningTestBase {
     when(settings.getSettingValue(Key.PATTERN_MODE)).thenReturn("LABEL");
     when(settings.getSettingValue(Key.PATTERN_MAX_SAMPLE_COUNT)).thenReturn(10);
     when(settings.getSettingValue(Key.PATTERN_BUFFER_LIMIT)).thenReturn(100000);
+    when(settings.getSettingValue(Key.PATTERN_SHOW_NUMBERED_TOKEN)).thenReturn(false);
     assertEqual(
         "source=t | patterns raw new_field=\"custom_field\" " + "pattern=\"custom_pattern\"",
         patterns(
@@ -1016,6 +1017,7 @@ public class AstBuilderTest extends AstPlanningTestBase {
             PatternMode.LABEL,
             AstDSL.intLiteral(10),
             AstDSL.intLiteral(100000),
+            AstDSL.booleanLiteral(false),
             ImmutableMap.of(
                 "new_field", AstDSL.stringLiteral("custom_field"),
                 "pattern", AstDSL.stringLiteral("custom_pattern"))));
@@ -1027,6 +1029,7 @@ public class AstBuilderTest extends AstPlanningTestBase {
     when(settings.getSettingValue(Key.PATTERN_MODE)).thenReturn("LABEL");
     when(settings.getSettingValue(Key.PATTERN_MAX_SAMPLE_COUNT)).thenReturn(10);
     when(settings.getSettingValue(Key.PATTERN_BUFFER_LIMIT)).thenReturn(100000);
+    when(settings.getSettingValue(Key.PATTERN_SHOW_NUMBERED_TOKEN)).thenReturn(false);
     assertEqual(
         "source=t | patterns raw method=BRAIN variable_count_threshold=2"
             + " frequency_threshold_percentage=0.1",
@@ -1039,6 +1042,7 @@ public class AstBuilderTest extends AstPlanningTestBase {
             PatternMode.LABEL,
             AstDSL.intLiteral(10),
             AstDSL.intLiteral(100000),
+            AstDSL.booleanLiteral(false),
             ImmutableMap.of(
                 "frequency_threshold_percentage", new Literal(0.1, DataType.DECIMAL),
                 "variable_count_threshold", new Literal(2, DataType.INTEGER))));
@@ -1050,6 +1054,7 @@ public class AstBuilderTest extends AstPlanningTestBase {
     when(settings.getSettingValue(Key.PATTERN_MODE)).thenReturn("LABEL");
     when(settings.getSettingValue(Key.PATTERN_MAX_SAMPLE_COUNT)).thenReturn(10);
     when(settings.getSettingValue(Key.PATTERN_BUFFER_LIMIT)).thenReturn(100000);
+    when(settings.getSettingValue(Key.PATTERN_SHOW_NUMBERED_TOKEN)).thenReturn(false);
     assertEqual(
         "source=t | patterns raw",
         patterns(
@@ -1061,6 +1066,7 @@ public class AstBuilderTest extends AstPlanningTestBase {
             PatternMode.LABEL,
             AstDSL.intLiteral(10),
             AstDSL.intLiteral(100000),
+            AstDSL.booleanLiteral(false),
             ImmutableMap.of()));
   }
 
