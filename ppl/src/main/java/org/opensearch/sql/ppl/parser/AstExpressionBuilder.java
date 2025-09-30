@@ -27,6 +27,7 @@ import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
@@ -57,6 +58,8 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalNotContext
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalOrContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalXorContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.MultiFieldRelevanceFunctionContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PatternMethodContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PatternModeContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameFieldExpressionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SingleFieldRelevanceFunctionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
@@ -67,6 +70,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceContex
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WcFieldExpressionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
+import org.opensearch.sql.utils.DateTimeUtils;
 
 /** Class of building AST Expression nodes. */
 public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedExpression> {
@@ -233,6 +237,16 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     }
     // AUTO() case uses the field expression as-is
     return new Field(fieldExpression, ArgumentFactory.getArgumentList(ctx));
+  }
+
+  @Override
+  public UnresolvedExpression visitPatternMethod(PatternMethodContext ctx) {
+    return new Literal(StringUtils.unquoteText(ctx.getText()), DataType.STRING);
+  }
+
+  @Override
+  public UnresolvedExpression visitPatternMode(PatternModeContext ctx) {
+    return new Literal(StringUtils.unquoteText(ctx.getText()), DataType.STRING);
   }
 
   /** Aggregation function. */
@@ -575,16 +589,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitDecimalLiteral(DecimalLiteralContext ctx) {
-    // For backward compatibility, we accept decimal literal by `Literal(double, DataType.DECIMAL)`
-    // The double value will be converted to decimal by BigDecimal.valueOf((Double) value),
-    // some double values such as 0.0001 will be converted to string "1.0E-4" and finally
-    // generate decimal 0.00010. So here we parse a decimal text to Double then convert it
-    // to BigDecimal as well.
-    // In v2, a decimal literal will be converted back to double in resolving expression
-    // via ExprDoubleValue.
-    // In v3, a decimal literal will be kept in Calcite RexNode and converted back to double
-    // in runtime.
-    return new Literal(BigDecimal.valueOf(Double.parseDouble(ctx.getText())), DataType.DECIMAL);
+    return new Literal(new BigDecimal(ctx.getText()), DataType.DECIMAL);
   }
 
   @Override
@@ -612,29 +617,14 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitSpanClause(SpanClauseContext ctx) {
-    String unit = ctx.unit != null ? ctx.unit.getText() : "";
-    return new Span(visit(ctx.fieldExpression()), visit(ctx.value), SpanUnit.of(unit));
-  }
-
-  // Handle new syntax: span=1h
-  @Override
-  public UnresolvedExpression visitSpanLiteral(OpenSearchPPLParser.SpanLiteralContext ctx) {
-    if (ctx.integerLiteral() != null && ctx.timespanUnit() != null) {
-      return new Span(
-          AstDSL.field("@timestamp"),
-          new Literal(Integer.parseInt(ctx.integerLiteral().getText()), DataType.INTEGER),
-          SpanUnit.of(ctx.timespanUnit().getText()));
+    UnresolvedExpression fieldExpression;
+    if (ctx.fieldExpression() != null) {
+      fieldExpression = visit(ctx.fieldExpression());
+    } else {
+      fieldExpression = AstDSL.field("@timestamp");
     }
-
-    if (ctx.integerLiteral() != null) {
-      return new Span(
-          AstDSL.field("@timestamp"),
-          new Literal(Integer.parseInt(ctx.integerLiteral().getText()), DataType.INTEGER),
-          SpanUnit.of(""));
-    }
-
-    return new Span(
-        AstDSL.field("@timestamp"), new Literal(ctx.getText(), DataType.STRING), SpanUnit.of(""));
+    Literal literal = (Literal) visit(ctx.value);
+    return AstDSL.spanFromSpanLengthLiteral(fieldExpression, literal);
   }
 
   @Override
@@ -772,17 +762,19 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   // New visitor methods for spanValue grammar rules
 
   @Override
+  public UnresolvedExpression visitSpanLiteral(OpenSearchPPLParser.SpanLiteralContext ctx) {
+    if (ctx.INTEGER_LITERAL() != null) {
+      return AstDSL.intLiteral(Integer.parseInt(ctx.INTEGER_LITERAL().getText()));
+    } else {
+      return AstDSL.stringLiteral(ctx.getText());
+    }
+  }
+
+  @Override
   public UnresolvedExpression visitNumericSpanValue(
       OpenSearchPPLParser.NumericSpanValueContext ctx) {
-    String spanValue = ctx.literalValue().getText();
-    String spanUnit = ctx.timespanUnit() != null ? ctx.timespanUnit().getText() : null;
-
-    if (spanUnit != null) {
-      // Create combined span like "1h", "30m", etc.
-      return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(spanValue + spanUnit);
-    } else {
-      return visit(ctx.literalValue());
-    }
+    // This handles span values that come from spanLiteral rule
+    return visit(ctx.spanLiteral());
   }
 
   @Override
@@ -892,13 +884,60 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
       // Boolean literal
       Literal booleanLiteral = (Literal) visit(ctx.booleanLiteral());
       return new SearchLiteral(booleanLiteral, false);
-    } else if (ctx.ID() != null) {
-      return new SearchLiteral(new Literal(ctx.ID().getText(), DataType.STRING), false);
-    } else if (ctx.searchableKeyWord() != null) {
-      return new SearchLiteral(
-          new Literal(ctx.searchableKeyWord().getText(), DataType.STRING), false);
     }
     // Default
     return new SearchLiteral(new Literal(ctx.getText(), DataType.STRING), false);
+  }
+
+  @Override
+  public UnresolvedExpression visitTimeModifierValue(
+      OpenSearchPPLParser.TimeModifierValueContext ctx) {
+    String osDateMathExpression;
+    // Convert unix timestamp from seconds to milliseconds for decimal and integer
+    // as OpenSearch time range accepts unix milliseconds in place of timestamp values
+    if (ctx.DECIMAL_LITERAL() != null) {
+      String decimal = ctx.DECIMAL_LITERAL().getText();
+      BigDecimal unixSecondDecimal = new BigDecimal(decimal);
+      BigDecimal unixMilliDecimal =
+          unixSecondDecimal.multiply(BigDecimal.valueOf(1000)).stripTrailingZeros();
+      osDateMathExpression = unixMilliDecimal.toString();
+    } else if (ctx.INTEGER_LITERAL() != null) {
+      String integer = ctx.INTEGER_LITERAL().getText();
+      osDateMathExpression = String.valueOf(Long.parseLong(integer) * 1000);
+    } else if (ctx.NOW() != null) { // Converts both NOW and NOW()
+      // OpenSearch time range accepts "now" as a reference to the current time
+      osDateMathExpression = ctx.NOW().getText().toLowerCase(Locale.ROOT);
+    } else {
+      // Process absolute and relative time modifier values
+      String pplTimeModifier =
+          ctx.stringLiteral() != null
+              ? (String) ((Literal) visit(ctx.stringLiteral())).getValue()
+              : ctx.getText().strip();
+      // Parse a PPL time modifier to OpenSearch date math expression
+      osDateMathExpression = DateTimeUtils.resolveTimeModifier(pplTimeModifier);
+    }
+    return AstDSL.stringLiteral(osDateMathExpression);
+  }
+
+  /**
+   * Process time range expressions (EARLIEST='value' or LATEST='value') It creates a Comparison
+   * filter like @timestamp >= timeModifierValue
+   */
+  @Override
+  public UnresolvedExpression visitTimeModifierExpression(
+      OpenSearchPPLParser.TimeModifierExpressionContext ctx) {
+
+    Literal timeModifierValue =
+        (Literal) visitTimeModifierValue(ctx.timeModifier().timeModifierValue());
+
+    SearchLiteral osDateMathLiteral = new SearchLiteral(timeModifierValue, false);
+
+    Field implicitTimestampField =
+        new Field(new QualifiedName(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP), List.of());
+    var operator =
+        ctx.timeModifier().EARLIEST() != null
+            ? SearchComparison.Operator.GREATER_OR_EQUAL
+            : SearchComparison.Operator.LESS_OR_EQUAL;
+    return new SearchComparison(implicitTimestampField, operator, osDateMathLiteral);
   }
 }

@@ -57,7 +57,7 @@ import org.opensearch.sql.expression.function.jsonUDF.JsonFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonKeysFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonSetFunctionImpl;
 import org.opensearch.sql.expression.function.udf.CryptographicFunction;
-import org.opensearch.sql.expression.function.udf.GrokFunction;
+import org.opensearch.sql.expression.function.udf.ParseFunction;
 import org.opensearch.sql.expression.function.udf.RelevanceQueryFunction;
 import org.opensearch.sql.expression.function.udf.RexExtractFunction;
 import org.opensearch.sql.expression.function.udf.RexExtractMultiFunction;
@@ -94,6 +94,8 @@ import org.opensearch.sql.expression.function.udf.math.CRC32Function;
 import org.opensearch.sql.expression.function.udf.math.ConvFunction;
 import org.opensearch.sql.expression.function.udf.math.DivideFunction;
 import org.opensearch.sql.expression.function.udf.math.EulerFunction;
+import org.opensearch.sql.expression.function.udf.math.MaxFunction;
+import org.opensearch.sql.expression.function.udf.math.MinFunction;
 import org.opensearch.sql.expression.function.udf.math.ModFunction;
 import org.opensearch.sql.expression.function.udf.math.NumberToStringFunction;
 
@@ -124,6 +126,8 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator DIVIDE = new DivideFunction().toUDF("DIVIDE");
   public static final SqlOperator SHA2 = CryptographicFunction.sha2().toUDF("SHA2");
   public static final SqlOperator CIDRMATCH = new CidrMatchFunction().toUDF("CIDRMATCH");
+  public static final SqlOperator MAX = new MaxFunction().toUDF("MAX");
+  public static final SqlOperator MIN = new MinFunction().toUDF("MIN");
 
   public static final SqlOperator COSH =
       adaptMathFunctionToUDF(
@@ -369,7 +373,10 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               PPLOperandTypes.NONE)
           .toUDF("UTC_TIMESTAMP");
   public static final SqlOperator WEEK = new WeekFunction().toUDF("WEEK");
-  public static final SqlOperator GROK = new GrokFunction().toUDF("GROK");
+  public static final SqlOperator GROK = new ParseFunction().toUDF("GROK");
+  // TODO: Figure out if there is other option to perform multiple group match in Calcite
+  // For now, keep V2's regexExpression logic to avoid breaking change
+  public static final SqlOperator PARSE = new ParseFunction().toUDF("PARSE");
   public static final SqlOperator PATTERN_PARSER =
       new PatternParserFunctionImpl().toUDF("PATTERN_PARSER");
 

@@ -47,7 +47,12 @@ public class TestsConstants {
   public static final String TEST_INDEX_DATE = TEST_INDEX + "_date";
   public static final String TEST_INDEX_DATE_TIME = TEST_INDEX + "_datetime";
   public static final String TEST_INDEX_DATE_TIME_NESTED = TEST_INDEX + "_datetime_nested";
+
+  /** A test index with @timestamp field */
+  public static final String TEST_INDEX_TIME_DATA = TEST_INDEX + "_time_data";
+
   public static final String TEST_INDEX_DEEP_NESTED = TEST_INDEX + "_deep_nested";
+  public static final String TEST_INDEX_TELEMETRY = TEST_INDEX + "_telemetry";
   public static final String TEST_INDEX_STRINGS = TEST_INDEX + "_strings";
   public static final String TEST_INDEX_DATATYPE_NUMERIC = TEST_INDEX + "_datatypes_numeric";
   public static final String TEST_INDEX_DATATYPE_NONNUMERIC = TEST_INDEX + "_datatypes_nonnumeric";
@@ -61,6 +66,7 @@ public class TestsConstants {
   public static final String TEST_INDEX_MULTI_NESTED_TYPE = TEST_INDEX + "_multi_nested";
   public static final String TEST_INDEX_NESTED_WITH_NULLS = TEST_INDEX + "_nested_with_nulls";
   public static final String TEST_INDEX_GEOPOINT = TEST_INDEX + "_geopoint";
+  public static final String TEST_INDEX_COMPLEX_GEO = TEST_INDEX + "_complex_geo";
   public static final String TEST_INDEX_JSON_TEST = TEST_INDEX + "_json_test";
   public static final String TEST_INDEX_ALIAS = TEST_INDEX + "_alias";
   public static final String TEST_INDEX_FLATTENED_VALUE = TEST_INDEX + "_flattened_value";
@@ -82,6 +88,7 @@ public class TestsConstants {
   public static final String TEST_INDEX_HDFS_LOGS = TEST_INDEX + "_hdfs_logs";
   public static final String TEST_INDEX_LOGS = TEST_INDEX + "_logs";
   public static final String TEST_INDEX_OTEL_LOGS = TEST_INDEX + "_otel_logs";
+  public static final String TEST_INDEX_TIME_DATE_NULL = TEST_INDEX + "_time_date_null";
 
   public static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
   public static final String TS_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";

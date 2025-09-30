@@ -1,0 +1,10 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(age=[$8])
+        LogicalFilter(condition=[>($3, 10000)])
+          LogicalFilter(condition=[<($8, 40)])
+            LogicalFilter(condition=[>($8, 30)])
+              CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+  physical: |
+    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[balance, age], FILTER->AND(SEARCH($1, Sarg[(30..40)]), >($0, 10000)), PROJECT->[age], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10000,"timeout":"1m","query":{"bool":{"must":[{"range":{"age":{"from":30.0,"to":40.0,"include_lower":false,"include_upper":false,"boost":1.0}}},{"range":{"balance":{"from":10000,"to":null,"include_lower":false,"include_upper":true,"boost":1.0}}}],"adjust_pure_negative":true,"boost":1.0}},"_source":{"includes":["age"],"excludes":[]},"sort":[{"_doc":{"order":"asc"}}]}, requestedTotalSize=10000, pageSize=null, startFrom=0)])
