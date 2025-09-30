@@ -639,7 +639,7 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testSearchCommandWithAbsoluteTimeRange() throws IOException {
-    String expected = loadExpectedPlan("explain_search_with_absolute_time_range.yaml");
+    String expected = loadExpectedPlan("search_with_absolute_time_range.yaml");
     assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
@@ -650,34 +650,34 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testSearchCommandWithRelativeTimeRange() throws IOException {
-    String expected = loadExpectedPlan("explain_search_with_relative_time_range.yaml");
     assertYamlEqualsJsonIgnoreId(
-        expected,
+        loadExpectedPlan("search_with_relative_time_range.yaml"),
+        //            "",
+        explainQueryToString(
+            String.format("source=%s earliest=-1q latest=+30d", TEST_INDEX_TIME_DATA)));
+
+    assertYamlEqualsJsonIgnoreId(
+        loadExpectedPlan("search_with_relative_time_snap.yaml"),
         explainQueryToString(
             String.format("source=%s earliest='-1q@year' latest=now", TEST_INDEX_TIME_DATA)));
   }
 
   @Test
   public void testSearchCommandWithNumericTimeRange() throws IOException {
-    String expected = loadExpectedPlan("explain_search_with_numeric_time_range.yaml");
+    String expected = loadExpectedPlan("search_with_numeric_time_range.yaml");
     assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             String.format("source=%s earliest=1 latest=1754020061.123456", TEST_INDEX_TIME_DATA)));
   }
 
-  protected String loadExpectedPlan(String fileName) throws IOException {
-    String prefix;
-    if (isCalciteEnabled()) {
-      if (isPushdownDisabled()) {
-        prefix = "expectedOutput/calcite_no_pushdown/";
-      } else {
-        prefix = "expectedOutput/calcite/";
-      }
-    } else {
-      prefix = "expectedOutput/ppl/";
-    }
-    return loadFromFile(prefix + fileName);
+  @Test
+  public void testSearchCommandWithChainedTimeModifier() throws IOException {
+    assertYamlEqualsJsonIgnoreId(
+        loadExpectedPlan("search_with_chained_time_modifier.yaml"),
+        explainQueryToString(
+            String.format(
+                "source=%s earliest='-3d@d-2h+10m' latest='-1d+1y@mon'", TEST_INDEX_TIME_DATA)));
   }
 
   // Search command explain examples - 3 core use cases
@@ -709,5 +709,19 @@ public class ExplainIT extends PPLIntegTestCase {
         expected,
         explainQueryToString(
             String.format("search source=%s severityText=ERR*", TEST_INDEX_OTEL_LOGS)));
+  }
+
+  protected String loadExpectedPlan(String fileName) throws IOException {
+    String prefix;
+    if (isCalciteEnabled()) {
+      if (isPushdownDisabled()) {
+        prefix = "expectedOutput/calcite_no_pushdown/";
+      } else {
+        prefix = "expectedOutput/calcite/";
+      }
+    } else {
+      prefix = "expectedOutput/ppl/";
+    }
+    return loadFromFile(prefix + fileName);
   }
 }
