@@ -67,17 +67,19 @@ public class CalcitePPLSearchTest extends CalcitePPLAbstractTest {
     String ppl = "source=LOGS earliest='2020-10-11' latest='2025-01-01'";
     RelNode root = getRelNode(ppl);
     // @timestamp is a field of type DATE here
+
     String expectedLogical =
-        "LogicalFilter(condition=[query_string(MAP('query', '(@timestamp:>=2020\\-10\\-11) AND"
-            + " (@timestamp:<=2025\\-01\\-01)':VARCHAR))])\n"
+        "LogicalFilter(condition=[query_string(MAP('query',"
+            + " '(@timestamp:>=2020\\-10\\-11T00\\:00\\:00Z) AND"
+            + " (@timestamp:<=2025\\-01\\-01T00\\:00\\:00Z)':VARCHAR))])\n"
             + "  LogicalTableScan(table=[[scott, LOGS]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
         "SELECT *\n"
             + "FROM `scott`.`LOGS`\n"
-            + "WHERE `query_string`(MAP ('query', '(@timestamp:>=2020\\-10\\-11) AND"
-            + " (@timestamp:<=2025\\-01\\-01)'))";
+            + "WHERE `query_string`(MAP ('query', '(@timestamp:>=2020\\-10\\-11T00\\:00\\:00Z) AND"
+            + " (@timestamp:<=2025\\-01\\-01T00\\:00\\:00Z)'))";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
