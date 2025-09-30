@@ -270,24 +270,7 @@ public class AntlrSqlParseTreeVisitor<T extends Reducible>
   public T visitGroupByItem(OpenSearchLegacySqlParser.GroupByItemContext ctx) {
     ParserRuleContext fromClause = ctx.getParent();
 
-    boolean hasJoin =
-        fromClause.accept(
-            new OpenSearchLegacySqlParserBaseVisitor<Boolean>() {
-              @Override
-              public Boolean visitTableSourceBase(TableSourceBaseContext ctx) {
-                return !ctx.joinPart().isEmpty();
-              }
-
-              @Override
-              protected Boolean defaultResult() {
-                return false;
-              }
-
-              @Override
-              protected Boolean aggregateResult(Boolean aggregate, Boolean nextResult) {
-                return aggregate || nextResult;
-              }
-            });
+    boolean hasJoin = detectJoinInFromClause(fromClause);
 
     if (hasJoin) {
       String errorMessage =
@@ -297,6 +280,41 @@ public class AntlrSqlParseTreeVisitor<T extends Reducible>
       throw new RuntimeException(errorMessage, new SqlParseException(errorMessage));
     }
     return super.visitGroupByItem(ctx);
+  }
+
+  boolean detectJoinInFromClause(ParserRuleContext fromClause) {
+    return fromClause.accept(
+        new OpenSearchLegacySqlParserBaseVisitor<Boolean>() {
+          @Override
+          public Boolean visitTableSourceBase(TableSourceBaseContext ctx) {
+            return !ctx.joinPart().isEmpty();
+          }
+
+          @Override
+          public Boolean visitTableSources(TableSourcesContext ctx) {
+            if (ctx.tableSource().size() > 1) {
+              return true;
+            }
+
+            for (int i = 0; i < ctx.tableSource().size(); i++) {
+              Boolean hasJoinInTableSource = visit(ctx.tableSource(i));
+              if (hasJoinInTableSource != null && hasJoinInTableSource) {
+                return true;
+              }
+            }
+            return false;
+          }
+
+          @Override
+          protected Boolean defaultResult() {
+            return false;
+          }
+
+          @Override
+          protected Boolean aggregateResult(Boolean aggregate, Boolean nextResult) {
+            return aggregate || nextResult;
+          }
+        });
   }
 
   @Override
