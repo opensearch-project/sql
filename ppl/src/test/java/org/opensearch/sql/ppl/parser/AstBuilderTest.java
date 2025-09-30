@@ -74,6 +74,7 @@ import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
+import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
@@ -1101,5 +1102,27 @@ public class AstBuilderTest {
   public void testRexSedModeWithOffsetFieldThrowsException() {
     // Test that SED mode and offset_field cannot be used together (align with Splunk behavior)
     plan("source=test | rex field=email mode=sed offset_field=matchpos \"s/@.*/@company.com/\"");
+  }
+
+  @Test
+  public void testTimechartWithPerSecondFunction() {
+    assertEqual(
+        "source=t | timechart per_second(a)",
+        new Timechart(
+                relation("t"),
+                function("internal_per_function", field("a"), AstDSL.doubleLiteral(60.0)))
+            .span(AstDSL.span(AstDSL.field("@timestamp"), AstDSL.intLiteral(1), SpanUnit.of("m")))
+            .by(null)
+            .limit(10)
+            .useOther(true));
+  }
+
+  @Test
+  public void testPerSecondWithStatsThrowsException() {
+    org.opensearch.sql.exception.SemanticCheckException exception =
+        assertThrows(
+            org.opensearch.sql.exception.SemanticCheckException.class,
+            () -> plan("source=t | stats per_second(a)"));
+    assertEquals("per_second() can only be used within timechart commands", exception.getMessage());
   }
 }

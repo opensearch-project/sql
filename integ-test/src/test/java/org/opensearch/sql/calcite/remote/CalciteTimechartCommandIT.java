@@ -483,6 +483,48 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
     }
   }
 
+  @Test
+  public void testTimechartPerSecond() throws IOException {
+    JSONObject result = executeQuery("source=events | timechart span=1m per_second(cpu_usage)");
+
+    // Verify schema - per_second should return a double value
+    verifySchema(
+        result, schema("@timestamp", "timestamp"), schema("per_second(cpu_usage)", "double"));
+
+    // The test data should have some results, exact values depend on the test data
+    // but we can verify that results are returned and are numeric
+    assertTrue("Results should not be empty", result.getJSONArray("datarows").length() > 0);
+
+    // Verify that per_second values are calculated correctly (should be sum/factor where factor =
+    // 60 for 1 minute)
+    // The exact verification of values would depend on the specific test data in events index
+    assertEquals(5, result.getInt("total"));
+  }
+
+  @Test
+  public void testTimechartPerSecondWithHourSpan() throws IOException {
+    JSONObject result = executeQuery("source=events | timechart span=1h per_second(cpu_usage)");
+
+    // Verify schema
+    verifySchema(
+        result, schema("@timestamp", "timestamp"), schema("per_second(cpu_usage)", "double"));
+
+    // With 1 hour span, the factor should be 3600 seconds
+    assertTrue("Results should not be empty", result.getJSONArray("datarows").length() > 0);
+  }
+
+  @Test
+  public void testTimechartPerSecondWithDaySpan() throws IOException {
+    JSONObject result = executeQuery("source=events | timechart span=1d per_second(cpu_usage)");
+
+    // Verify schema
+    verifySchema(
+        result, schema("@timestamp", "timestamp"), schema("per_second(cpu_usage)", "double"));
+
+    // With 1 day span, the factor should be 86400 seconds
+    assertTrue("Results should not be empty", result.getJSONArray("datarows").length() > 0);
+  }
+
   private void createEventsNullIndex() throws IOException {
     String eventsMapping =
         "{\"mappings\":{\"properties\":{\"@timestamp\":{\"type\":\"date\"},\"host\":{\"type\":\"text\"},\"cpu_usage\":{\"type\":\"double\"},\"region\":{\"type\":\"keyword\"}}}}";

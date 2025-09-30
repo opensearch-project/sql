@@ -21,6 +21,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
@@ -56,8 +57,11 @@ import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.calcite.utils.binning.time.TimeUnitConfig;
+import org.opensearch.sql.calcite.utils.binning.time.TimeUnitRegistry;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BinaryArithmeticContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
@@ -790,5 +794,60 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitLogWithBaseSpan(OpenSearchPPLParser.LogWithBaseSpanContext ctx) {
     return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(ctx.getText());
+  }
+
+  @Override
+  public UnresolvedExpression visitPerFunctionCall(OpenSearchPPLParser.PerFunctionCallContext ctx) {
+    // Step 1: Check immediate parent is Timechart command
+    ParseTree parent = ctx.getParent();
+    if (!(parent instanceof OpenSearchPPLParser.TimechartCommandContext)) {
+      throw new SemanticCheckException("per_second() can only be used within timechart commands");
+    }
+
+    OpenSearchPPLParser.TimechartCommandContext timechartCtx =
+        (OpenSearchPPLParser.TimechartCommandContext) parent;
+
+    // Step 2: Extract span information from timechart context
+    int spanInterval = 1; // default
+    String spanUnit = "m"; // default to minutes
+
+    // Parse timechart parameters to find span
+    for (OpenSearchPPLParser.TimechartParameterContext paramCtx :
+        timechartCtx.timechartParameter()) {
+      if (paramCtx.spanClause() != null) {
+        // Extract from span clause (e.g., span(@timestamp, 1, "h"))
+        OpenSearchPPLParser.SpanClauseContext spanCtx = paramCtx.spanClause();
+        if (spanCtx.value != null) {
+          spanInterval = Integer.parseInt(spanCtx.value.getText());
+        }
+        if (spanCtx.unit != null) {
+          spanUnit = StringUtils.unquoteText(spanCtx.unit.getText());
+        }
+      } else if (paramCtx.spanLiteral() != null) {
+        // Extract from span literal (e.g., span=1h)
+        OpenSearchPPLParser.SpanLiteralContext spanLiteralCtx = paramCtx.spanLiteral();
+        if (spanLiteralCtx.integerLiteral() != null) {
+          spanInterval = Integer.parseInt(spanLiteralCtx.integerLiteral().getText());
+        }
+        if (spanLiteralCtx.timespanUnit() != null) {
+          spanUnit = spanLiteralCtx.timespanUnit().getText();
+        }
+      }
+    }
+
+    // Step 3: Use TimeUnitRegistry to calculate total seconds as factor
+    TimeUnitConfig timeConfig = TimeUnitRegistry.getConfig(spanUnit);
+    if (timeConfig == null) {
+      throw new SemanticCheckException("Unsupported time unit: " + spanUnit);
+    }
+
+    // Factor is the total seconds (not reciprocal, as internal_per_function will do
+    // sum(field)/factor)
+    long totalSeconds = timeConfig.toSeconds(spanInterval);
+
+    // Step 4: Extract field argument and return function
+    UnresolvedExpression field = visit(ctx.perFunction().functionArg());
+    return new Function(
+        "internal_per_function", Arrays.asList(field, AstDSL.doubleLiteral((double) totalSeconds)));
   }
 }
