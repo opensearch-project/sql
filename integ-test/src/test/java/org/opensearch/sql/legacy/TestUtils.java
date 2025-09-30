@@ -255,6 +255,11 @@ public class TestUtils {
     return getMappingFile(mappingFile);
   }
 
+  public static String getComplexGeoIndexMapping() {
+    String mappingFile = "complex_geo_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
   public static String getJsonTestIndexMapping() {
     String mappingFile = "json_test_index_mapping.json";
     return getMappingFile(mappingFile);

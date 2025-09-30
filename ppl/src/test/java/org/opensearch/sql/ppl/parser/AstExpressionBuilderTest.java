@@ -2,6 +2,7 @@
  * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 package org.opensearch.sql.ppl.parser;
 
 import static java.util.Collections.emptyList;
@@ -1359,5 +1360,28 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             emptyList(),
             emptyList(),
             defaultStatsArgs()));
+  }
+
+  @Test
+  public void testTimeModifierEarliestWithNumericValue() {
+    assertEqual("source=t earliest=1", search(relation("t"), "@timestamp:>=1000"));
+
+    assertEqual(
+        "source=t earliest=1754020061.123456",
+        search(relation("t"), "@timestamp:>=1754020061123.456"));
+  }
+
+  @Test
+  public void testTimeModifierLatestWithNowValue() {
+    assertEqual(
+        "source=t earliest=now latest=now()",
+        search(relation("t"), "(@timestamp:>=now) AND (@timestamp:<=now)"));
+  }
+
+  @Test
+  public void testTimeModifierEarliestWithStringValue() {
+    assertEqual(
+        "source=t earliest='2025-12-10 14:00:00'",
+        search(relation("t"), "@timestamp:>=2025\\-12\\-10T14\\:00\\:00Z"));
   }
 }

@@ -1,9 +1,6 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
  */
 
 package org.opensearch.sql.executor;
@@ -12,6 +9,7 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.List;
 import java.util.Optional;
+import javax.annotation.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -57,12 +55,11 @@ public class QueryService {
   private final Analyzer analyzer;
   private final ExecutionEngine executionEngine;
   private final Planner planner;
-
-  @Getter(lazy = true)
-  private final CalciteRelNodeVisitor relNodeVisitor = new CalciteRelNodeVisitor();
-
   private DataSourceService dataSourceService;
   private Settings settings;
+
+  @Getter(lazy = true)
+  private final CalciteRelNodeVisitor relNodeVisitor = new CalciteRelNodeVisitor(dataSourceService);
 
   /** Execute the {@link UnresolvedPlan}, using {@link ResponseListener} to get response.<br> */
   public void execute(
@@ -107,7 +104,7 @@ public class QueryService {
                 return null;
               });
     } catch (Throwable t) {
-      if (isCalciteFallbackAllowed() && !(t instanceof NonFallbackCalciteException)) {
+      if (isCalciteFallbackAllowed(t) && !(t instanceof NonFallbackCalciteException)) {
         log.warn("Fallback to V2 query engine since got exception", t);
         executeWithLegacy(plan, queryType, listener, Optional.of(t));
       } else {
@@ -143,7 +140,7 @@ public class QueryService {
                 return null;
               });
     } catch (Throwable t) {
-      if (isCalciteFallbackAllowed()) {
+      if (isCalciteFallbackAllowed(t)) {
         log.warn("Fallback to V2 query engine since got exception", t);
         explainWithLegacy(plan, queryType, listener, format, Optional.of(t));
       } else {
@@ -165,7 +162,7 @@ public class QueryService {
     try {
       executePlan(analyze(plan, queryType), PlanContext.emptyPlanContext(), listener);
     } catch (Exception e) {
-      if (shouldUseCalcite(queryType) && isCalciteFallbackAllowed()) {
+      if (shouldUseCalcite(queryType) && isCalciteFallbackAllowed(null)) {
         // if there is a failure thrown from Calcite and execution after fallback V2
         // keeps failure, we should throw the failure from Calcite.
         calciteFailure.ifPresentOrElse(
@@ -198,7 +195,7 @@ public class QueryService {
       }
       executionEngine.explain(plan(analyze(plan, queryType)), listener);
     } catch (Exception e) {
-      if (shouldUseCalcite(queryType) && isCalciteFallbackAllowed()) {
+      if (shouldUseCalcite(queryType) && isCalciteFallbackAllowed(null)) {
         // if there is a failure thrown from Calcite and execution after fallback V2
         // keeps failure, we should throw the failure from Calcite.
         calciteFailure.ifPresentOrElse(
@@ -263,11 +260,21 @@ public class QueryService {
         SystemLimitType.QUERY_SIZE_LIMIT, plan, context.relBuilder.literal(context.querySizeLimit));
   }
 
-  private boolean isCalciteFallbackAllowed() {
-    if (settings != null) {
-      return settings.getSettingValue(Settings.Key.CALCITE_FALLBACK_ALLOWED);
-    } else {
+  private boolean isCalciteFallbackAllowed(@Nullable Throwable t) {
+    // We always allow fallback the query failed with CalciteUnsupportedException.
+    // This is for avoiding breaking changes when enable Calcite by default.
+    if (t instanceof CalciteUnsupportedException) {
       return true;
+    } else {
+      if (settings != null) {
+        Boolean fallback_allowed = settings.getSettingValue(Settings.Key.CALCITE_FALLBACK_ALLOWED);
+        if (fallback_allowed == null) {
+          return false;
+        }
+        return fallback_allowed;
+      } else {
+        return true;
+      }
     }
   }
 

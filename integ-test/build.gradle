@@ -35,7 +35,7 @@ import java.util.stream.Collectors
 
 plugins {
     id "de.undercouch.download" version "5.3.0"
-    id 'com.diffplug.spotless' version '6.22.0'
+    id 'com.diffplug.spotless'
 }
 
 apply plugin: 'opensearch.build'
@@ -83,9 +83,18 @@ ext {
         return repo + "opensearch-security-${securitySnapshotVersion}.zip"
     }
 
+    isSecurityTask = { ->
+        def taskName = gradle.startParameter.taskNames.join(' ')
+        return taskName.contains('Security') || System.getProperty('enableSecurity') == 'true'
+    }
+    
     var projectAbsPath = projectDir.getAbsolutePath()
     File downloadedSecurityPlugin = Paths.get(projectAbsPath, 'bin', 'opensearch-security-snapshot.zip').toFile()
+    
     configureSecurityPlugin = { OpenSearchCluster cluster ->
+        if (!isSecurityTask()) {
+            return
+        }
 
         cluster.getNodes().forEach { node ->
             var creds = node.getCredentials()
@@ -237,17 +246,17 @@ testClusters.all {
 
 def getJobSchedulerPlugin() {
     provider { (RegularFile) (() ->
-            configurations.zipArchive.asFileTree.matching {
-                include '**/opensearch-job-scheduler*'
-            }.singleFile )
+        configurations.zipArchive.asFileTree.matching {
+            include '**/opensearch-job-scheduler*'
+        }.singleFile )
     }
 }
 
 def getGeoSpatialPlugin() {
     provider { (RegularFile) (() ->
-            configurations.zipArchive.asFileTree.matching {
-                include '**/geospatia*'
-            }.singleFile )
+        configurations.zipArchive.asFileTree.matching {
+            include '**/geospatia*'
+        }.singleFile )
     }
 }
 
@@ -709,10 +718,10 @@ spotless {
             exclude '**/build/**', '**/build-*/**'
         }
         importOrder()
-//        licenseHeader("/*\n" +
-//                " * Copyright OpenSearch Contributors\n" +
-//                " * SPDX-License-Identifier: Apache-2.0\n" +
-//                " */\n\n")
+        licenseHeader("/*\n" +
+                " * Copyright OpenSearch Contributors\n" +
+                " * SPDX-License-Identifier: Apache-2.0\n" +
+                " */\n\n")
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
