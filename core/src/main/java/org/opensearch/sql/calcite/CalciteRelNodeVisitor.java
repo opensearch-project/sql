@@ -677,6 +677,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitPatterns(Patterns node, CalcitePlanContext context) {
     visitChildren(node, context);
+    RexNode showNumberedTokenExpr = rexVisitor.analyze(node.getShowNumberedToken(), context);
+    Boolean showNumberedToken =
+        Boolean.TRUE.equals(((RexLiteral) showNumberedTokenExpr).getValueAs(Boolean.class));
     if (PatternMethod.SIMPLE_PATTERN.equals(node.getPatternMethod())) {
       Parse parseNode =
           new Parse(
@@ -708,42 +711,46 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 .toList());
         context.relBuilder.aggregate(context.relBuilder.groupKey(groupByList), aggCalls);
 
-        RexNode parsedNode =
-            PPLFuncImpTable.INSTANCE.resolve(
-                context.rexBuilder,
-                BuiltinFunctionName.INTERNAL_PATTERN_PARSER,
-                context.relBuilder.field(node.getAlias()),
-                context.relBuilder.field(PatternUtils.SAMPLE_LOGS));
-        flattenParsedPattern(node.getAlias(), parsedNode, context, false);
-        // Reorder fields for consistency with Brain's output
-        projectPlusOverriding(
-            List.of(
-                context.relBuilder.field(node.getAlias()),
-                context.relBuilder.field(PatternUtils.PATTERN_COUNT),
-                context.relBuilder.field(PatternUtils.TOKENS),
-                context.relBuilder.field(PatternUtils.SAMPLE_LOGS)),
-            List.of(
-                node.getAlias(),
-                PatternUtils.PATTERN_COUNT,
-                PatternUtils.TOKENS,
-                PatternUtils.SAMPLE_LOGS),
-            context);
-      } else {
+        if (showNumberedToken) {
+          RexNode parsedNode =
+              PPLFuncImpTable.INSTANCE.resolve(
+                  context.rexBuilder,
+                  BuiltinFunctionName.INTERNAL_PATTERN_PARSER,
+                  context.relBuilder.field(node.getAlias()),
+                  context.relBuilder.field(PatternUtils.SAMPLE_LOGS));
+          flattenParsedPattern(node.getAlias(), parsedNode, context, false, true);
+          // Reorder fields for consistency with Brain's output
+          projectPlusOverriding(
+              List.of(
+                  context.relBuilder.field(node.getAlias()),
+                  context.relBuilder.field(PatternUtils.PATTERN_COUNT),
+                  context.relBuilder.field(PatternUtils.TOKENS),
+                  context.relBuilder.field(PatternUtils.SAMPLE_LOGS)),
+              List.of(
+                  node.getAlias(),
+                  PatternUtils.PATTERN_COUNT,
+                  PatternUtils.TOKENS,
+                  PatternUtils.SAMPLE_LOGS),
+              context);
+        }
+      } else if (showNumberedToken) {
         RexNode parsedNode =
             PPLFuncImpTable.INSTANCE.resolve(
                 context.rexBuilder,
                 BuiltinFunctionName.INTERNAL_PATTERN_PARSER,
                 context.relBuilder.field(node.getAlias()),
                 rexVisitor.analyze(node.getSourceField(), context));
-        flattenParsedPattern(node.getAlias(), parsedNode, context, false);
+        flattenParsedPattern(node.getAlias(), parsedNode, context, false, true);
       }
     } else {
       List<UnresolvedExpression> funcParamList = new ArrayList<>();
       funcParamList.add(node.getSourceField());
       funcParamList.add(node.getPatternMaxSampleCount());
       funcParamList.add(node.getPatternBufferLimit());
+      funcParamList.add(node.getShowNumberedToken());
       funcParamList.addAll(
           node.getArguments().entrySet().stream()
+              .filter(entry -> PatternUtils.VALID_BRAIN_PARAMETERS.contains(entry.getKey()))
               .map(entry -> new Argument(entry.getKey(), entry.getValue()))
               .sorted(Comparator.comparing(Argument::getArgName))
               .toList());
@@ -764,11 +771,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                     context.rexBuilder,
                     BuiltinFunctionName.INTERNAL_PATTERN_PARSER,
                     rexVisitor.analyze(node.getSourceField(), context),
-                    windowNode),
+                    windowNode,
+                    showNumberedTokenExpr),
                 node.getAlias());
         context.relBuilder.projectPlus(nestedNode);
         flattenParsedPattern(
-            node.getAlias(), context.relBuilder.field(node.getAlias()), context, false);
+            node.getAlias(),
+            context.relBuilder.field(node.getAlias()),
+            context,
+            false,
+            showNumberedToken);
       } else { // Aggregation mode, resolve plan as aggregation
         AggCall aggCall =
             aggVisitor
@@ -786,7 +798,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         buildExpandRelNode(
             context.relBuilder.field(node.getAlias()), node.getAlias(), node.getAlias(), context);
         flattenParsedPattern(
-            node.getAlias(), context.relBuilder.field(node.getAlias()), context, true);
+            node.getAlias(),
+            context.relBuilder.field(node.getAlias()),
+            context,
+            true,
+            showNumberedToken);
       }
     }
     return context.relBuilder.peek();
@@ -2351,9 +2367,21 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               pattern, context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), true)
         };
     if (ParseMethod.PATTERNS.equals(parseMethod)) {
-      rexNodeList = ArrayUtils.add(rexNodeList, context.relBuilder.literal("<*>"));
+      rexNodeList =
+          ArrayUtils.add(
+              rexNodeList,
+              context.rexBuilder.makeLiteral(
+                  "<*>",
+                  context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
+                  true));
     } else {
-      rexNodeList = ArrayUtils.add(rexNodeList, context.relBuilder.literal(parseMethod.getName()));
+      rexNodeList =
+          ArrayUtils.add(
+              rexNodeList,
+              context.rexBuilder.makeLiteral(
+                  parseMethod.getName(),
+                  context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
+                  true));
     }
     List<RexNode> newFields = new ArrayList<>();
     for (String groupCandidate : groupCandidates) {
@@ -2366,9 +2394,29 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 context.rexBuilder,
                 BuiltinFunctionName.INTERNAL_ITEM,
                 innerRex,
-                context.relBuilder.literal(groupCandidate)));
+                context.rexBuilder.makeLiteral(
+                    groupCandidate,
+                    context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
+                    true)));
       } else {
-        newFields.add(innerRex);
+        RexNode emptyString =
+            context.rexBuilder.makeLiteral(
+                "", context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), true);
+        RexNode isEmptyCondition =
+            context.rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, sourceField, emptyString);
+        RexNode isNullCondition =
+            context.rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, sourceField);
+        // Calcite regexp_replace(string, string, string) doesn't accept empty string.
+        // So use case when condition here to handle corner cases
+        newFields.add(
+            context.rexBuilder.makeCall(
+                SqlStdOperatorTable.CASE, // case
+                isNullCondition,
+                emptyString, // when field is NULL then ''
+                isEmptyCondition,
+                emptyString, // when field = '' then ''
+                innerRex // else regexp_replace(field, regex, replace_string)
+                ));
       }
     }
     projectPlusOverriding(newFields, groupCandidates, context);
@@ -2378,7 +2426,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       String originalPatternResultAlias,
       RexNode parsedNode,
       CalcitePlanContext context,
-      boolean flattenPatternAggResult) {
+      boolean flattenPatternAggResult,
+      Boolean showNumberedToken) {
     List<RexNode> fattenedNodes = new ArrayList<>();
     List<String> projectNames = new ArrayList<>();
     // Flatten map struct fields
@@ -2408,18 +2457,20 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       fattenedNodes.add(context.relBuilder.alias(patternCountExpr, PatternUtils.PATTERN_COUNT));
       projectNames.add(PatternUtils.PATTERN_COUNT);
     }
-    RexNode tokensExpr =
-        context.rexBuilder.makeCast(
-            UserDefinedFunctionUtils.tokensMap,
-            PPLFuncImpTable.INSTANCE.resolve(
-                context.rexBuilder,
-                BuiltinFunctionName.INTERNAL_ITEM,
-                parsedNode,
-                context.rexBuilder.makeLiteral(PatternUtils.TOKENS)),
-            true,
-            true);
-    fattenedNodes.add(context.relBuilder.alias(tokensExpr, PatternUtils.TOKENS));
-    projectNames.add(PatternUtils.TOKENS);
+    if (showNumberedToken) {
+      RexNode tokensExpr =
+          context.rexBuilder.makeCast(
+              UserDefinedFunctionUtils.tokensMap,
+              PPLFuncImpTable.INSTANCE.resolve(
+                  context.rexBuilder,
+                  BuiltinFunctionName.INTERNAL_ITEM,
+                  parsedNode,
+                  context.rexBuilder.makeLiteral(PatternUtils.TOKENS)),
+              true,
+              true);
+      fattenedNodes.add(context.relBuilder.alias(tokensExpr, PatternUtils.TOKENS));
+      projectNames.add(PatternUtils.TOKENS);
+    }
     if (flattenPatternAggResult) {
       RexNode sampleLogsExpr =
           context.rexBuilder.makeCast(

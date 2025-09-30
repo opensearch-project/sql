@@ -8,16 +8,26 @@ package org.opensearch.sql.ppl;
 import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.rows;
+import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
+import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.ResponseException;
+import org.opensearch.sql.common.utils.StringUtils;
 
 public class SearchCommandIT extends PPLIntegTestCase {
+  private static final DateTimeFormatter PPL_TIMESTAMP_FORMATTER =
+      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
   @Override
   public void init() throws Exception {
@@ -25,6 +35,7 @@ public class SearchCommandIT extends PPLIntegTestCase {
     loadIndex(Index.BANK);
     loadIndex(Index.DOG);
     loadIndex(Index.OTELLOGS);
+    loadIndex(Index.TIME_TEST_DATA);
   }
 
   @Test
@@ -916,5 +927,397 @@ public class SearchCommandIT extends PPLIntegTestCase {
         result,
         rows("2024-01-15 10:30:00.123456789", "INFO"),
         rows("2024-01-15 10:30:01.23456789", "ERROR"));
+  }
+
+  @Test
+  public void testSearchWithTraceId() throws IOException {
+    // Test 1: Search for specific traceId
+    JSONObject specificTraceId =
+        executeQuery(
+            String.format(
+                "search source=%s b3cb01a03c846973fd496b973f49be85 | fields" + " traceId, body",
+                TEST_INDEX_OTEL_LOGS));
+    verifyDataRows(
+        specificTraceId,
+        rows(
+            "b3cb01a03c846973fd496b973f49be85",
+            "User e1ce63e6-8501-11f0-930d-c2fcbdc05f14 adding 4 of product HQTGWGPNH4 to cart"));
+  }
+
+  @Test
+  public void testSearchWithSpanLength() throws IOException {
+    // Test searching for SPANLENGTH keyword in free text search
+    // This tests that SPANLENGTH tokens like "3month" are searchable
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s 3month | fields body, `attributes.span.duration`",
+                TEST_INDEX_OTEL_LOGS));
+    verifyDataRows(result, rows("Processing data for 3month period", "3month"));
+  }
+
+  @Test
+  public void testSearchWithSpanLengthInField() throws IOException {
+    // Test searching for SPANLENGTH value in a specific field
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s `attributes.span.duration`=\\\"3month\\\" | fields body,"
+                    + " `attributes.span.duration`",
+                TEST_INDEX_OTEL_LOGS));
+    verifyDataRows(result, rows("Processing data for 3month period", "3month"));
+  }
+
+  @Test
+  public void testSearchWithNumericIdVsSpanLength() throws IOException {
+    // Test that NUMERIC_ID tokens like "1s4f7" (which start with what could be a SPANLENGTH like
+    // "1s")
+    // are properly searchable as complete tokens
+    // This verifies that NUMERIC_ID takes precedence over SPANLENGTH when applicable
+
+    // Test 1: Search for the NUMERIC_ID token in free text
+    JSONObject numericIdResult =
+        executeQuery(
+            String.format(
+                "search source=%s 1s4f7 | fields body, `attributes.transaction.id`",
+                TEST_INDEX_OTEL_LOGS));
+    verifyDataRows(numericIdResult, rows("Transaction ID 1s4f7 processed successfully", "1s4f7"));
+
+    // Test 2: Search for NUMERIC_ID in specific field
+    JSONObject fieldSearchResult =
+        executeQuery(
+            String.format(
+                "search source=%s `attributes.transaction.id`=1s4f7 | fields body,"
+                    + " `attributes.transaction.id`",
+                TEST_INDEX_OTEL_LOGS));
+    verifyDataRows(fieldSearchResult, rows("Transaction ID 1s4f7 processed successfully", "1s4f7"));
+
+    // Test 3: Verify that searching for just "1s" (which would be a SPANLENGTH)
+    // does NOT match the "1s4f7" token
+    JSONObject spanLengthSearchResult =
+        executeQuery(
+            String.format(
+                "search source=%s `attributes.transaction.id`=1s | fields body",
+                TEST_INDEX_OTEL_LOGS));
+    verifyDataRows(spanLengthSearchResult); // Should return no results
+  }
+
+  @Test
+  public void testSearchWithAbsoluteEarliestAndNow() throws IOException {
+    JSONObject result1 =
+        executeQuery(
+            String.format(
+                "search source=%s earliest='2025-08-01 03:47:41' latest=now | fields @timestamp",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(result1, schema("@timestamp", "timestamp"));
+    verifyDataRows(result1, rows("2025-08-01 03:47:41"));
+
+    JSONObject result0 =
+        executeQuery(
+            String.format(
+                "search source=%s earliest='2025-08-01 03:47:42' latest=now() | fields @timestamp",
+                TEST_INDEX_TIME_DATA));
+    verifyNumOfRows(result0, 0);
+
+    JSONObject result2 =
+        executeQuery(
+            String.format(
+                "search source=%s earliest='2025-08-01 02:00:55' | fields @timestamp",
+                TEST_INDEX_TIME_DATA));
+    verifyDataRows(result2, rows("2025-08-01 02:00:56"), rows("2025-08-01 03:47:41"));
+  }
+
+  @Test
+  public void testSearchWithChainedRelativeTimeRange() throws IOException {
+    JSONObject result1 =
+        executeQuery(
+            String.format(
+                "search source=%s earliest='2025-08-01 03:47:41' latest=+1months@year | fields"
+                    + " @timestamp",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(result1, schema("@timestamp", "timestamp"));
+    verifyDataRows(result1, rows("2025-08-01 03:47:41"));
+  }
+
+  @Test
+  public void testSearchWithNumericTimeRange() throws IOException {
+    JSONObject result1 =
+        executeQuery(
+            String.format(
+                "search source=%s earliest=1754020060.123 latest=1754020061 | fields @timestamp",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(result1, schema("@timestamp", "timestamp"));
+    verifyDataRows(result1, rows("2025-08-01 03:47:41"));
+  }
+
+  @Test
+  public void testSearchTimeModifierWithSnappedWeek() throws IOException {
+    // Test whether alignment to weekday works
+
+    final int docId = 101;
+    Request insertRequest =
+        new Request("PUT", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_TIME_DATA, docId));
+
+    // Get the current weekday
+    LocalDateTime base = LocalDateTime.now(ZoneOffset.UTC);
+    // Truncate to last sunday
+    LocalDateTime lastSunday =
+        base.minusDays((base.getDayOfWeek().getValue() % 7)).truncatedTo(ChronoUnit.DAYS);
+    LocalDateTime lastMonday =
+        base.minusDays((base.getDayOfWeek().getValue() + 6) % 7).truncatedTo(ChronoUnit.DAYS);
+    LocalDateTime lastFriday =
+        base.minusDays((base.getDayOfWeek().getValue() + 2) % 7).truncatedTo(ChronoUnit.DAYS);
+
+    // Insert data
+    LocalDateTime insertedSunday = lastSunday.plusMinutes(10);
+    insertRequest.setJsonEntity(
+        StringUtils.format(
+            "{\"value\":100090,\"category\":\"A\",\"@timestamp\":\"%s\"}\n",
+            insertedSunday.format(DateTimeFormatter.ISO_DATE_TIME)));
+    client().performRequest(insertRequest);
+
+    JSONObject result1 =
+        executeQuery(String.format("source=%s earliest=@w0 latest='@w+1h'", TEST_INDEX_TIME_DATA));
+    verifySchema(
+        result1,
+        schema("timestamp", "timestamp"),
+        schema("value", "int"),
+        schema("category", "string"),
+        schema("@timestamp", "timestamp"));
+    verifyDataRows(
+        result1, rows(insertedSunday.format(PPL_TIMESTAMP_FORMATTER), "A", 100090, null));
+
+    // Test last Monday
+    LocalDateTime insertedMonday = lastMonday.plusHours(2).plusMinutes(10);
+    Request insertRequest2 =
+        new Request("PUT", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_TIME_DATA, docId));
+    insertRequest2.setJsonEntity(
+        StringUtils.format(
+            "{\"value\":100091,\"category\":\"B\",\"@timestamp\":\"%s\"}\n",
+            insertedMonday.format(DateTimeFormatter.ISO_DATE_TIME)));
+    client().performRequest(insertRequest2);
+
+    JSONObject result2 =
+        executeQuery(
+            String.format(
+                "source=%s earliest='@w1+2h' latest='@w1+2h+30min'", TEST_INDEX_TIME_DATA));
+    verifySchema(
+        result2,
+        schema("timestamp", "timestamp"),
+        schema("value", "int"),
+        schema("category", "string"),
+        schema("@timestamp", "timestamp"));
+    verifyDataRows(
+        result2, rows(insertedMonday.format(PPL_TIMESTAMP_FORMATTER), "B", 100091, null));
+
+    // Test last Friday
+    LocalDateTime insertedFriday = lastFriday.plusMinutes(10);
+    Request insertRequest3 =
+        new Request("PUT", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_TIME_DATA, docId));
+    insertRequest3.setJsonEntity(
+        StringUtils.format(
+            "{\"value\":100092,\"category\":\"C\",\"@timestamp\":\"%s\"}\n",
+            insertedFriday.format(DateTimeFormatter.ISO_DATE_TIME)));
+    client().performRequest(insertRequest3);
+
+    JSONObject result3 =
+        executeQuery(
+            String.format("source=%s earliest=@w5 latest='@w5+30minutes'", TEST_INDEX_TIME_DATA));
+    verifySchema(
+        result3,
+        schema("timestamp", "timestamp"),
+        schema("value", "int"),
+        schema("category", "string"),
+        schema("@timestamp", "timestamp"));
+    verifyDataRows(
+        result3, rows(insertedFriday.format(PPL_TIMESTAMP_FORMATTER), "C", 100092, null));
+
+    Request deleteRequest =
+        new Request(
+            "DELETE", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_TIME_DATA, docId));
+    client().performRequest(deleteRequest);
+  }
+
+  @Test
+  public void testSearchWithRelativeTimeModifiers() throws IOException {
+    final int docId = 101;
+
+    LocalDateTime currentTime = LocalDateTime.now(ZoneOffset.UTC);
+    LocalDateTime testTime = currentTime.minusMinutes(30).truncatedTo(ChronoUnit.MINUTES);
+
+    Request insertRequest =
+        new Request("PUT", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_TIME_DATA, docId));
+    insertRequest.setJsonEntity(
+        StringUtils.format(
+            "{\"value\":200001,\"category\":\"RELATIVE\",\"@timestamp\":\"%s\"}\n",
+            testTime.format(DateTimeFormatter.ISO_DATE_TIME)));
+    client().performRequest(insertRequest);
+
+    // Test -1h (1 hour ago) since it's only 30 minutes old
+    JSONObject result1 =
+        executeQuery(
+            String.format(
+                "source=%s earliest=-1h | fields @timestamp, value | head 5",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(result1, schema("@timestamp", "timestamp"), schema("value", "int"));
+    verifyDataRows(result1, rows(testTime.format(PPL_TIMESTAMP_FORMATTER), 200001));
+
+    // Test -30m (30 minutes ago)
+    JSONObject result2 =
+        executeQuery(
+            String.format(
+                "source=%s earliest=-50m latest=now | fields @timestamp, value | head 5",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(result2, schema("@timestamp", "timestamp"), schema("value", "int"));
+    verifyDataRows(result2, rows(testTime.format(PPL_TIMESTAMP_FORMATTER), 200001));
+
+    // Test -7d (7 days ago) - should return no results since our data is recent
+    JSONObject result3 =
+        executeQuery(
+            String.format(
+                "source=%s earliest=-7d latest=-6d | fields @timestamp | head 1",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(result3, schema("@timestamp", "timestamp"));
+    verifyNumOfRows(result3, 0);
+
+    Request deleteRequest =
+        new Request(
+            "DELETE", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_TIME_DATA, docId));
+    client().performRequest(deleteRequest);
+  }
+
+  @Test
+  public void testSearchWithTimeUnitSnapping() throws IOException {
+    final int docId = 101;
+
+    LocalDateTime currentHour = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.HOURS);
+    LocalDateTime testTime = currentHour.plusMinutes(15).truncatedTo(ChronoUnit.MINUTES);
+
+    Request insertRequest =
+        new Request("PUT", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_TIME_DATA, docId));
+    insertRequest.setJsonEntity(
+        StringUtils.format(
+            "{\"value\":200002,\"category\":\"SNAP\",\"@timestamp\":\"%s\"}\n",
+            testTime.format(DateTimeFormatter.ISO_DATE_TIME)));
+    client().performRequest(insertRequest);
+
+    // Test @h (snap to hour)
+    JSONObject result1 =
+        executeQuery(
+            String.format(
+                "source=%s earliest=@h latest='@h+1h' | fields @timestamp, value",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(result1, schema("@timestamp", "timestamp"), schema("value", "int"));
+    verifyDataRows(result1, rows(testTime.format(PPL_TIMESTAMP_FORMATTER), 200002));
+
+    // Test @d (snap to day)
+    JSONObject result2 =
+        executeQuery(
+            String.format(
+                "source=%s earliest=@d latest='@d+1d' | fields @timestamp | head 5",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(result2, schema("@timestamp", "timestamp"));
+    verifyDataRows(result2, rows(testTime.format(PPL_TIMESTAMP_FORMATTER)));
+
+    // Test @M (snap to month)
+    JSONObject result3 =
+        executeQuery(
+            String.format(
+                "source=%s earliest=@mon latest='@mon+1mon' | fields @timestamp | head 5",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(result3, schema("@timestamp", "timestamp"));
+    verifyDataRows(result3, rows(testTime.format(PPL_TIMESTAMP_FORMATTER)));
+
+    Request deleteRequest =
+        new Request(
+            "DELETE", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_TIME_DATA, docId));
+    client().performRequest(deleteRequest);
+  }
+
+  @Test
+  public void testSearchWithQuarterlyModifiers() throws IOException {
+    final int docId = 101;
+
+    LocalDateTime currentQuarter =
+        LocalDateTime.now(ZoneOffset.UTC)
+            .plusYears(1)
+            .withMonth(((LocalDateTime.now(ZoneOffset.UTC).getMonthValue() - 1) / 3) * 3 + 1)
+            .withDayOfMonth(1)
+            .truncatedTo(ChronoUnit.DAYS);
+    LocalDateTime testTime = currentQuarter.plusDays(15);
+
+    Request insertRequest =
+        new Request("PUT", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_TIME_DATA, docId));
+    insertRequest.setJsonEntity(
+        StringUtils.format(
+            "{\"value\":200003,\"category\":\"QUARTER\",\"@timestamp\":\"%s\"}\n",
+            testTime.format(DateTimeFormatter.ISO_DATE_TIME)));
+    client().performRequest(insertRequest);
+
+    // Test @q (snap to quarter)
+    JSONObject result1 =
+        executeQuery(
+            String.format(
+                "source=%s earliest=+1year@q latest='+1year@q+3M' | fields @timestamp, value",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(result1, schema("@timestamp", "timestamp"), schema("value", "int"));
+    verifyDataRows(result1, rows(testTime.format(PPL_TIMESTAMP_FORMATTER), 200003));
+
+    // Test -2q (2 quarters ago, equivalent to -6M), should return no data
+    JSONObject result2 =
+        executeQuery(
+            String.format(
+                "source=%s earliest='+1year-2q' latest='+1year-1q' | fields @timestamp | head 1",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(result2, schema("@timestamp", "timestamp"));
+    verifyNumOfRows(result2, 0);
+
+    Request deleteRequest =
+        new Request(
+            "DELETE", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_TIME_DATA, docId));
+    client().performRequest(deleteRequest);
+  }
+
+  @Test
+  public void testSearchWithComplexChainedExpressions() throws IOException {
+    final int docId = 101;
+
+    LocalDateTime lastDay =
+        LocalDateTime.now(ZoneOffset.UTC).minusDays(1).truncatedTo(ChronoUnit.DAYS);
+    LocalDateTime testTime = lastDay.minusHours(2).plusMinutes(10);
+
+    Request insertRequest =
+        new Request("PUT", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_TIME_DATA, docId));
+    insertRequest.setJsonEntity(
+        StringUtils.format(
+            "{\"value\":200004,\"category\":\"COMPLEX\",\"@timestamp\":\"%s\"}\n",
+            testTime.format(DateTimeFormatter.ISO_DATE_TIME)));
+    client().performRequest(insertRequest);
+
+    // Test -1d@d-2h+10m (1 day ago at day start, minus 2 hours, plus 10 minutes)
+    JSONObject result1 =
+        executeQuery(
+            String.format(
+                "source=%s earliest='-1d@d-2h' latest='-1d@d-2h+20m' | fields @timestamp,"
+                    + " value",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(result1, schema("@timestamp", "timestamp"), schema("value", "int"));
+    verifyDataRows(result1, rows(testTime.format(PPL_TIMESTAMP_FORMATTER), 200004));
+
+    // Test -1mon@mon+7d (1 month ago at month start, plus 7 days) - should return no results since
+    // our data is recent
+    JSONObject result2 =
+        executeQuery(
+            String.format(
+                "source=%s earliest='-1mon@mon+7d' latest='-1mon@mon+8d' | fields @timestamp | head"
+                    + " 1",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(result2, schema("@timestamp", "timestamp"));
+    verifyNumOfRows(result2, 0);
+
+    Request deleteRequest =
+        new Request(
+            "DELETE", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_TIME_DATA, docId));
+    client().performRequest(deleteRequest);
   }
 }

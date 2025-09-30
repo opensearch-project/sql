@@ -478,6 +478,37 @@ public class AstDSL {
     return new Span(field, value, unit);
   }
 
+  /**
+   * Creates a Span expression from a field and a span length literal. Parses string literals to
+   * extract numeric value and time unit (e.g., "1h" -> value=1, unit=h).
+   *
+   * @param field The field expression to apply the span to
+   * @param spanLengthLiteral The literal value containing either a string with embedded unit (e.g.,
+   *     "1h", "30m") or a plain number
+   * @return A Span expression with parsed value and unit
+   */
+  public static Span spanFromSpanLengthLiteral(
+      UnresolvedExpression field, Literal spanLengthLiteral) {
+    if (spanLengthLiteral.getType() == DataType.STRING) {
+      String spanText = spanLengthLiteral.getValue().toString();
+      String valueStr = spanText.replaceAll("[^0-9]", "");
+      String unitStr = spanText.replaceAll("[0-9]", "");
+
+      if (valueStr.isEmpty()) {
+        // No numeric value found, use the literal as-is
+        return new Span(field, spanLengthLiteral, SpanUnit.NONE);
+      } else {
+        // Parse numeric value and unit
+        Integer value = Integer.parseInt(valueStr);
+        SpanUnit unit = unitStr.isEmpty() ? SpanUnit.NONE : SpanUnit.of(unitStr);
+        return span(field, intLiteral(value), unit);
+      }
+    } else {
+      // Non-string literal (e.g., integer)
+      return span(field, spanLengthLiteral, SpanUnit.NONE);
+    }
+  }
+
   public static Sort sort(UnresolvedPlan input, Field... sorts) {
     return new Sort(Arrays.asList(sorts)).attach(input);
   }
@@ -546,6 +577,7 @@ public class AstDSL {
       PatternMode patternMode,
       UnresolvedExpression patternMaxSampleCount,
       UnresolvedExpression patternBufferLimit,
+      UnresolvedExpression showNumberedToken,
       java.util.Map<String, Literal> arguments) {
     return new Patterns(
         sourceField,
@@ -555,6 +587,7 @@ public class AstDSL {
         patternMode,
         patternMaxSampleCount,
         patternBufferLimit,
+        showNumberedToken,
         arguments,
         input);
   }
