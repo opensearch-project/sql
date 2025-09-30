@@ -1771,39 +1771,41 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           currentFields.stream()
               .collect(Collectors.toMap(RelDataTypeField::getName, field -> field));
 
-      boolean[] isSelected = new boolean[currentFields.size()];
+      Set<Integer> usedFieldIndices = new HashSet<>();
       List<RexNode> currentProjection = new ArrayList<>();
 
-      // 1. Match existing fields in base schema
+      // Phase 1: Build projection for existing schema fields (in schema order)
+      // This ensures the output maintains the established field order from previous nodes
       for (int i = 0; i < names.size(); i++) {
-        String baseName = names.get(i);
+        String schemaFieldName = names.get(i);
         RelDataTypeField baseField = baseFields.get(Math.min(i, baseFields.size() - 1));
-        RelDataTypeField currentField = currentFieldMap.get(baseName);
+        RelDataTypeField currentField = currentFieldMap.get(schemaFieldName);
 
         if (currentField != null && currentField.getType().equals(baseField.getType())) {
           // Types match - use the field from current node
           currentProjection.add(
               context.rexBuilder.makeInputRef(currentNode, currentField.getIndex()));
-          isSelected[currentField.getIndex()] = true;
+          usedFieldIndices.add(currentField.getIndex());
         } else {
           // Type mismatch or missing field - fill with NULL
           currentProjection.add(context.rexBuilder.makeNullLiteral(baseField.getType()));
         }
       }
 
-      // 2. Add remaining fields from current node that weren't matched
-      for (int j = 0; j < currentFields.size(); j++) {
-        if (!isSelected[j]) {
-          RelDataTypeField unmatchedField = currentFields.get(j);
-          names.add(unmatchedField.getName());
+      // Phase 2: Discover and add new fields not in existing schema
+      // This identifies fields unique to the current node and extends the unified schema
+      for (int fieldIndex = 0; fieldIndex < currentFields.size(); fieldIndex++) {
+        if (!usedFieldIndices.contains(fieldIndex)) {
+          RelDataTypeField newField = currentFields.get(fieldIndex);
+          names.add(newField.getName());
 
-          // Add NULL projection for this field in all previous nodes
+          // Backfill previous nodes with NULL for this new field
           for (List<RexNode> prevProjection : allProjections) {
-            prevProjection.add(context.rexBuilder.makeNullLiteral(unmatchedField.getType()));
+            prevProjection.add(context.rexBuilder.makeNullLiteral(newField.getType()));
           }
 
           // Add actual field reference for current node
-          currentProjection.add(context.rexBuilder.makeInputRef(currentNode, j));
+          currentProjection.add(context.rexBuilder.makeInputRef(currentNode, fieldIndex));
         }
       }
 
