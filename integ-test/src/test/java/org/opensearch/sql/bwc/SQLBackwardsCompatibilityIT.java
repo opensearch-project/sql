@@ -188,7 +188,8 @@ public class SQLBackwardsCompatibilityIT extends SQLIntegTestCase {
             endpoint,
             "SELECT COUNT(*) FILTER(WHERE age > 35) FROM " + TestsConstants.TEST_INDEX_ACCOUNT);
     // Accept both integer and long types for backwards compatibility
-    String actualType = (String) filterResponse.getJSONArray("schema").getJSONObject(0).query("/type");
+    String actualType =
+        (String) filterResponse.getJSONArray("schema").getJSONObject(0).query("/type");
     String expectedType = actualType.equals("integer") ? "integer" : "long";
     verifySchema(filterResponse, schema("COUNT(*) FILTER(WHERE age > 35)", null, expectedType));
     verifyDataRows(filterResponse, rows(238));
@@ -197,7 +198,8 @@ public class SQLBackwardsCompatibilityIT extends SQLIntegTestCase {
         executeSQLQuery(
             endpoint, "SELECT COUNT(DISTINCT age) FROM " + TestsConstants.TEST_INDEX_ACCOUNT);
     // Accept both integer and long types for backwards compatibility
-    String actualType2 = (String) aggResponse.getJSONArray("schema").getJSONObject(0).query("/type");
+    String actualType2 =
+        (String) aggResponse.getJSONArray("schema").getJSONObject(0).query("/type");
     String expectedType2 = actualType2.equals("integer") ? "integer" : "long";
     verifySchema(aggResponse, schema("COUNT(DISTINCT age)", null, expectedType2));
     verifyDataRows(aggResponse, rows(21));
