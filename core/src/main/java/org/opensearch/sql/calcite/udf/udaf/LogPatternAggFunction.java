@@ -11,6 +11,7 @@ package org.opensearch.sql.calcite.udf.udaf;
 import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +28,7 @@ import org.opensearch.sql.common.patterns.PatternUtils.ParseResult;
 public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAccumulator> {
   private int bufferLimit = 100000;
   private int maxSampleCount = 10;
+  private boolean showNumberedToken = false;
   private int variableCountThreshold = BrainLogParser.DEFAULT_VARIABLE_COUNT_THRESHOLD;
   private double thresholdPercentage = BrainLogParser.DEFAULT_FREQUENCY_THRESHOLD_PERCENTAGE;
 
@@ -41,7 +43,8 @@ public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAc
       return null;
     }
 
-    return acc.value(maxSampleCount, variableCountThreshold, thresholdPercentage);
+    return acc.value(
+        maxSampleCount, variableCountThreshold, thresholdPercentage, showNumberedToken);
   }
 
   @Override
@@ -49,8 +52,9 @@ public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAc
     throw new SyntaxCheckException(
         "Unsupported function signature for pattern aggregate. Valid parameters include (field:"
             + " required string), (max_sample_count: required integer),"
-            + " (buffer_limit: required integer), [variable_count_threshold: optional"
-            + " integer], [frequency_threshold_percentage: optional double]");
+            + " (buffer_limit: required integer), (show_numbered_token: required boolean),"
+            + " [variable_count_threshold: optional integer],"
+            + " [frequency_threshold_percentage: optional double]");
   }
 
   public LogParserAccumulator add(
@@ -58,6 +62,7 @@ public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAc
       String field,
       int maxSampleCount,
       int bufferLimit,
+      boolean showNumberedToken,
       BigDecimal thresholdPercentage,
       int variableCountThreshold) {
     return add(
@@ -65,6 +70,7 @@ public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAc
         field,
         maxSampleCount,
         bufferLimit,
+        showNumberedToken,
         thresholdPercentage.doubleValue(),
         variableCountThreshold);
   }
@@ -74,6 +80,7 @@ public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAc
       String field,
       int maxSampleCount,
       int bufferLimit,
+      boolean showNumberedToken,
       double thresholdPercentage,
       int variableCountThreshold) {
     if (Objects.isNull(field)) {
@@ -81,11 +88,13 @@ public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAc
     }
     this.bufferLimit = bufferLimit;
     this.maxSampleCount = maxSampleCount;
+    this.showNumberedToken = showNumberedToken;
     this.variableCountThreshold = variableCountThreshold;
     this.thresholdPercentage = thresholdPercentage;
     acc.evaluate(field);
     if (bufferLimit > 0 && acc.size() == bufferLimit) {
-      acc.partialMerge(maxSampleCount, variableCountThreshold, thresholdPercentage);
+      acc.partialMerge(
+          maxSampleCount, variableCountThreshold, thresholdPercentage, showNumberedToken);
       acc.clearBuffer();
     }
     return acc;
@@ -96,9 +105,16 @@ public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAc
       String field,
       int maxSampleCount,
       int bufferLimit,
+      boolean showNumberedToken,
       int variableCountThreshold) {
     return add(
-        acc, field, maxSampleCount, bufferLimit, this.thresholdPercentage, variableCountThreshold);
+        acc,
+        field,
+        maxSampleCount,
+        bufferLimit,
+        showNumberedToken,
+        this.thresholdPercentage,
+        variableCountThreshold);
   }
 
   public LogParserAccumulator add(
@@ -106,23 +122,30 @@ public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAc
       String field,
       int maxSampleCount,
       int bufferLimit,
+      boolean showNumberedToken,
       BigDecimal thresholdPercentage) {
     return add(
         acc,
         field,
         maxSampleCount,
         bufferLimit,
+        showNumberedToken,
         thresholdPercentage.doubleValue(),
         this.variableCountThreshold);
   }
 
   public LogParserAccumulator add(
-      LogParserAccumulator acc, String field, int maxSampleCount, int bufferLimit) {
+      LogParserAccumulator acc,
+      String field,
+      int maxSampleCount,
+      int bufferLimit,
+      boolean showNumberedToken) {
     return add(
         acc,
         field,
         maxSampleCount,
         bufferLimit,
+        showNumberedToken,
         this.thresholdPercentage,
         this.variableCountThreshold);
   }
@@ -151,7 +174,7 @@ public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAc
       if (logMessages.isEmpty()) {
         return;
       }
-      assert argList.length == 3 : "partialMerge of LogParserAccumulator requires 3 parameters";
+      assert argList.length == 4 : "partialMerge of LogParserAccumulator requires 4 parameters";
       int maxSampleCount = (int) argList[0];
       BrainLogParser logParser =
           new BrainLogParser((int) argList[1], ((Double) argList[2]).floatValue());
@@ -166,6 +189,7 @@ public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAc
       partialMerge(argList);
       clearBuffer();
 
+      Boolean showToken = (Boolean) argList[3];
       return patternGroupMap.values().stream()
           .sorted(
               Comparator.comparing(
@@ -177,18 +201,25 @@ public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAc
                 Long count = (Long) m.get(PatternUtils.PATTERN_COUNT);
                 List<String> sampleLogs = (List<String>) m.get(PatternUtils.SAMPLE_LOGS);
                 Map<String, List<String>> tokensMap = new HashMap<>();
-                ParseResult parseResult =
-                    PatternUtils.parsePattern(pattern, PatternUtils.WILDCARD_PATTERN);
-                for (String sampleLog : sampleLogs) {
-                  PatternUtils.extractVariables(
-                      parseResult, sampleLog, tokensMap, PatternUtils.WILDCARD_PREFIX);
+                ParseResult parseResult = null;
+                if (showToken) {
+                  parseResult = PatternUtils.parsePattern(pattern, PatternUtils.WILDCARD_PATTERN);
+                  for (String sampleLog : sampleLogs) {
+                    PatternUtils.extractVariables(
+                        parseResult, sampleLog, tokensMap, PatternUtils.WILDCARD_PREFIX);
+                  }
                 }
                 return ImmutableMap.of(
                     PatternUtils.PATTERN,
-                        parseResult.toTokenOrderString(PatternUtils.WILDCARD_PREFIX),
-                    PatternUtils.PATTERN_COUNT, count,
-                    PatternUtils.TOKENS, tokensMap,
-                    PatternUtils.SAMPLE_LOGS, sampleLogs);
+                    showToken
+                        ? parseResult.toTokenOrderString(PatternUtils.WILDCARD_PREFIX)
+                        : pattern,
+                    PatternUtils.PATTERN_COUNT,
+                    count,
+                    PatternUtils.TOKENS,
+                    showToken ? tokensMap : Collections.EMPTY_MAP,
+                    PatternUtils.SAMPLE_LOGS,
+                    sampleLogs);
               })
           .collect(Collectors.toList());
     }

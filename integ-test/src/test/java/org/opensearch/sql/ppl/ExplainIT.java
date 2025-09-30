@@ -456,8 +456,8 @@ public class ExplainIT extends PPLIntegTestCase {
   @Test
   public void testPatternsSimplePatternMethodWithoutAggExplain() throws IOException {
     // TODO: Correct calcite expected result once pushdown is supported
-    String expected = loadExpectedPlan("explain_patterns_simple_pattern.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_patterns_simple_pattern.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString("source=opensearch-sql_test_index_account | patterns email"));
   }
@@ -468,18 +468,19 @@ public class ExplainIT extends PPLIntegTestCase {
     assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account | patterns email mode=aggregation"));
+            "source=opensearch-sql_test_index_account | patterns email mode=aggregation"
+                + " show_numbered_token=true"));
   }
 
   @Test
   public void testPatternsBrainMethodWithAggPushDownExplain() throws IOException {
     // TODO: Correct calcite expected result once pushdown is supported
-    String expected = loadExpectedPlan("explain_patterns_brain_agg_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_patterns_brain_agg_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
-                + "| patterns email method=brain mode=aggregation"));
+                + "| patterns email method=brain mode=aggregation show_numbered_token=true"));
   }
 
   @Test

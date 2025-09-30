@@ -57,6 +57,8 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalNotContext
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalOrContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalXorContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.MultiFieldRelevanceFunctionContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PatternMethodContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PatternModeContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameFieldExpressionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SingleFieldRelevanceFunctionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
@@ -233,6 +235,16 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     }
     // AUTO() case uses the field expression as-is
     return new Field(fieldExpression, ArgumentFactory.getArgumentList(ctx));
+  }
+
+  @Override
+  public UnresolvedExpression visitPatternMethod(PatternMethodContext ctx) {
+    return new Literal(StringUtils.unquoteText(ctx.getText()), DataType.STRING);
+  }
+
+  @Override
+  public UnresolvedExpression visitPatternMode(PatternModeContext ctx) {
+    return new Literal(StringUtils.unquoteText(ctx.getText()), DataType.STRING);
   }
 
   /** Aggregation function. */

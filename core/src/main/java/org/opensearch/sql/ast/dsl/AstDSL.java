@@ -546,6 +546,7 @@ public class AstDSL {
       PatternMode patternMode,
       UnresolvedExpression patternMaxSampleCount,
       UnresolvedExpression patternBufferLimit,
+      UnresolvedExpression showNumberedToken,
       java.util.Map<String, Literal> arguments) {
     return new Patterns(
         sourceField,
@@ -555,6 +556,7 @@ public class AstDSL {
         patternMode,
         patternMaxSampleCount,
         patternBufferLimit,
+        showNumberedToken,
         arguments,
         input);
   }

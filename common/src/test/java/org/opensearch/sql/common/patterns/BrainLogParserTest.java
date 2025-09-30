@@ -10,6 +10,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.AbstractMap;
 import java.util.Arrays;
@@ -105,6 +106,15 @@ public class BrainLogParserTest {
   }
 
   @Test
+  public void testPreprocessNullString() {
+    String logMessage = null;
+    String logId = "log1";
+    List<String> expectedResult = Arrays.asList("", "log1");
+    List<String> result = parser.preprocess(logMessage, logId);
+    assertEquals(expectedResult, result);
+  }
+
+  @Test
   public void testPreprocessWithUUID() {
     String logMessage = "127.0.0.1 - 1234 something, user_id:c78ac970-f0c3-4954-8cf8-352a8458d01c";
     String logId = "log1";
@@ -124,14 +134,10 @@ public class BrainLogParserTest {
   public void testPreprocessWithIllegalInput() {
     String logMessage = "127.0.0.1 - 1234 something";
     String logId = "log1";
-    String exceptionMessage = "log message or logId must not be null";
+    String exceptionMessage = "logId must not be null";
+    assertEquals(ImmutableList.of("", logId), parser.preprocess(null, logId));
     Throwable throwable =
-        assertThrows(IllegalArgumentException.class, () -> parser.preprocess(null, logId));
-    assertEquals(exceptionMessage, throwable.getMessage());
-    throwable =
         assertThrows(IllegalArgumentException.class, () -> parser.preprocess(logMessage, null));
-    assertEquals(exceptionMessage, throwable.getMessage());
-    throwable = assertThrows(IllegalArgumentException.class, () -> parser.preprocess(null, null));
     assertEquals(exceptionMessage, throwable.getMessage());
   }
 
@@ -210,6 +216,29 @@ public class BrainLogParserTest {
   }
 
   @Test
+  public void testParseAllLogPatternsWithNullInput() {
+    List<String> messages =
+        Arrays.asList(
+            null,
+            "PacketResponder failed for blk_6996194389878584395",
+            "PacketResponder failed for blk_-1547954353065580372");
+    Map<String, Map<String, Object>> logPatternMap = parser.parseAllLogPatterns(messages, 1);
+    Map<String, Map<String, Object>> expectedResult =
+        ImmutableMap.of(
+            "",
+            ImmutableMap.of("pattern_count", 1L, "pattern", "", "sample_logs", ImmutableList.of()),
+            "PacketResponder failed for blk_<*>",
+            ImmutableMap.of(
+                "pattern_count",
+                2L,
+                "pattern",
+                "PacketResponder failed for blk_<*>",
+                "sample_logs",
+                ImmutableList.of("PacketResponder failed for blk_6996194389878584395")));
+    assertEquals(expectedResult, logPatternMap);
+  }
+
+  @Test
   public void testParseAllLogPatterns() {
     Map<String, Map<String, Object>> logPatternMap = parser.parseAllLogPatterns(TEST_HDFS_LOGS, 2);
     Map<String, Long> expectedResult =
@@ -284,6 +313,19 @@ public class BrainLogParserTest {
         parser.getTokenFreqMap().get("0-Verification")
             > parser.getTokenFreqMap().get("1-succeeded"));
     assertTrue(parser.getGroupTokenSetMap().get("4-3,3-0").size() > 1);
+  }
+
+  @Test
+  public void testCollapseContinuousWildcards() {
+    String correctTokenPattern =
+        "BLOCK* NameSystem.allocateBlock: /user/root/_temporary/_task_<*>_r_<*>";
+    String continuousTokenPattern =
+        "BLOCK* NameSystem.allocateBlock: /user/root/_temporary/_task_<*><*>_r_<*><*><*>";
+
+    assertEquals(
+        correctTokenPattern, BrainLogParser.collapseContinuousWildcards(continuousTokenPattern));
+    assertEquals(
+        correctTokenPattern, BrainLogParser.collapseContinuousWildcards(correctTokenPattern));
   }
 
   private Map<String, Long> collectPatternByCountMap(
