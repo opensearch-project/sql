@@ -1,0 +1,64 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"Time modifiers in Search command":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      bulk:
+        index: test_time_modifiers
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"@timestamp": "2024-01-15T10:30:00.123456789Z", "earliest": "first", "latest": "last", "severityText": "INFO", "message": "Test message 1"}'
+          - '{"index": {}}'
+          - '{"@timestamp": "2024-01-15T10:30:05.678901234Z", "earliest": "second", "latest": "end", "severityText": "ERROR", "message": "Test message 2"}'
+          - '{"index": {}}'
+          - '{"@timestamp": "2024-01-15T10:30:10.123456789Z", "earliest": "third", "latest": "final", "severityText": "WARN", "message": "Test message 3"}'
+          - '{"index": {}}'
+          - '{"@timestamp": "2024-01-15T10:30:15.987654321Z", "earliest": "fourth", "latest": "complete", "severityText": "DEBUG", "message": "Test message 4"}'
+
+  # Test 1: Time modifier using implicit @timestamp field
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: search earliest='2024-01-15 10:30:05' latest='2024-01-15 10:30:10' source=test_time_modifiers | fields @timestamp, severityText, message | sort @timestamp
+  - match: {"total": 2}
+  - match: {"datarows.0.0": "2024-01-15 10:30:05.678901234"}
+  - match: {"datarows.0.1": "ERROR"}
+  - match: {"datarows.1.0": "2024-01-15 10:30:10.123456789"}
+  - match: {"datarows.1.1": "WARN"}
+
+  # Test 2: Access explicit 'earliest' and 'latest' columns using backticks
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: search `earliest`="second" AND `latest`="end" source=test_time_modifiers | fields @timestamp, `earliest`, `latest`, severityText
+  - match: {"total": 1}
+  - match: {"datarows.0.0": "2024-01-15 10:30:05.678901234"}
+  - match: {"datarows.0.1": "second"}
+  - match: {"datarows.0.2": "end"}
+  - match: {"datarows.0.3": "ERROR"}

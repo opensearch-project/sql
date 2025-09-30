@@ -106,6 +106,13 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<?> DEFAULT_PATTERN_SHOW_NUMBERED_TOKEN_SETTING =
+      Setting.boolSetting(
+          Key.PATTERN_SHOW_NUMBERED_TOKEN.getKeyValue(),
+          false,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   public static final Setting<?> PPL_REX_MAX_MATCH_LIMIT_SETTING =
       Setting.intSetting(
           Key.PPL_REX_MAX_MATCH_LIMIT.getKeyValue(),
@@ -125,7 +132,7 @@ public class OpenSearchSettings extends Settings {
   public static final Setting<?> CALCITE_ENGINE_ENABLED_SETTING =
       Setting.boolSetting(
           Key.CALCITE_ENGINE_ENABLED.getKeyValue(),
-          false,
+          true,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
@@ -366,6 +373,12 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.PATTERN_SHOW_NUMBERED_TOKEN,
+        DEFAULT_PATTERN_SHOW_NUMBERED_TOKEN_SETTING,
+        new Updater(Key.PATTERN_SHOW_NUMBERED_TOKEN));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.PPL_REX_MAX_MATCH_LIMIT,
         PPL_REX_MAX_MATCH_LIMIT_SETTING,
         new Updater(Key.PPL_REX_MAX_MATCH_LIMIT));
@@ -587,6 +600,7 @@ public class OpenSearchSettings extends Settings {
         .add(DEFAULT_PATTERN_MODE_SETTING)
         .add(DEFAULT_PATTERN_MAX_SAMPLE_COUNT_SETTING)
         .add(DEFAULT_PATTERN_BUFFER_LIMIT_SETTING)
+        .add(DEFAULT_PATTERN_SHOW_NUMBERED_TOKEN_SETTING)
         .add(PPL_REX_MAX_MATCH_LIMIT_SETTING)
         .add(PPL_VALUES_MAX_LIMIT_SETTING)
         .add(QUERY_MEMORY_LIMIT_SETTING)

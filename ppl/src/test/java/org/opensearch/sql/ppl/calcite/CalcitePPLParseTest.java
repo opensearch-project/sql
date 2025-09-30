@@ -21,14 +21,14 @@ public class CalcitePPLParseTest extends CalcitePPLAbstractTest {
             + " fields JOB, year";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(JOB=[$2], year=[REGEXP_EXTRACT(DATE_FORMAT($4, '%Y-%m-%d':VARCHAR),"
-            + " '(?<year>\\d{4})-\\d{2}-\\d{2}':VARCHAR)])\n"
+        "LogicalProject(JOB=[$2], year=[ITEM(PARSE(DATE_FORMAT($4, '%Y-%m-%d':VARCHAR),"
+            + " '(?<year>\\d{4})-\\d{2}-\\d{2}':VARCHAR, 'regex':VARCHAR), 'year':VARCHAR)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `JOB`, REGEXP_EXTRACT(`DATE_FORMAT`(`HIREDATE`, '%Y-%m-%d'),"
-            + " '(?<year>\\d{4})-\\d{2}-\\d{2}') `year`\n"
+        "SELECT `JOB`, `PARSE`(`DATE_FORMAT`(`HIREDATE`, '%Y-%m-%d'),"
+            + " '(?<year>\\d{4})-\\d{2}-\\d{2}', 'regex')['year'] `year`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -40,14 +40,14 @@ public class CalcitePPLParseTest extends CalcitePPLAbstractTest {
             + " fields JOB, MGR";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(JOB=[$2], MGR=[REGEXP_EXTRACT(DATE_FORMAT($4, '%Y-%m-%d':VARCHAR),"
-            + " '(?<MGR>\\d{4})-\\d{2}-\\d{2}':VARCHAR)])\n"
+        "LogicalProject(JOB=[$2], MGR=[ITEM(PARSE(DATE_FORMAT($4, '%Y-%m-%d':VARCHAR),"
+            + " '(?<MGR>\\d{4})-\\d{2}-\\d{2}':VARCHAR, 'regex':VARCHAR), 'MGR':VARCHAR)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `JOB`, REGEXP_EXTRACT(`DATE_FORMAT`(`HIREDATE`, '%Y-%m-%d'),"
-            + " '(?<MGR>\\d{4})-\\d{2}-\\d{2}') `MGR`\n"
+        "SELECT `JOB`, `PARSE`(`DATE_FORMAT`(`HIREDATE`, '%Y-%m-%d'),"
+            + " '(?<MGR>\\d{4})-\\d{2}-\\d{2}', 'regex')['MGR'] `MGR`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }

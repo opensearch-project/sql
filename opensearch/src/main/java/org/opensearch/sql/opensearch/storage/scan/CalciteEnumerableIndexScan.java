@@ -105,8 +105,7 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
     return new AbstractEnumerable<>() {
       @Override
       public Enumerator<Object> enumerator() {
-        OpenSearchRequestBuilder requestBuilder = osIndex.createRequestBuilder();
-        pushDownContext.forEach(action -> action.apply(requestBuilder));
+        OpenSearchRequestBuilder requestBuilder = getOrCreateRequestBuilder();
         return new OpenSearchIndexEnumerator(
             osIndex.getClient(),
             getFieldPath(),
@@ -122,5 +121,29 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
     return getRowType().getFieldNames().stream()
         .map(f -> osIndex.getAliasMapping().getOrDefault(f, f))
         .toList();
+  }
+
+  /**
+   * In some edge cases where the digests of more than one scan are the same, and then the Calcite
+   * planner will reuse the same scan along with the same PushDownContext inner it. However, the
+   * `OpenSearchRequestBuilder` inner `PushDownContext` is not reusable since it has status changed
+   * in the search process.
+   *
+   * <p>To avoid this issue and try to construct `OpenSearchRequestBuilder` as less as possible,
+   * this method will get and reuse the `OpenSearchRequestBuilder` in PushDownContext for the first
+   * time, and then construct new ones for the following invoking.
+   *
+   * @return OpenSearchRequestBuilder to be used by enumerator
+   */
+  private volatile boolean isRequestBuilderUsedByEnumerator = false;
+
+  private OpenSearchRequestBuilder getOrCreateRequestBuilder() {
+    synchronized (this.pushDownContext) {
+      if (isRequestBuilderUsedByEnumerator) {
+        return this.pushDownContext.createRequestBuilder();
+      }
+      isRequestBuilderUsedByEnumerator = true;
+      return this.pushDownContext.getRequestBuilder();
+    }
   }
 }

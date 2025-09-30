@@ -130,6 +130,6 @@ PPL query::
     | 16.333333333333332       |
     +--------------------------+
 
-Limitation
-==========
+Limitations
+===========
 Starting with version 3.1.0, the ``trendline`` command requires all values in the specified ``field`` to be non-null. Any rows with null values present in the calculation field will be automatically excluded from the command's output.
