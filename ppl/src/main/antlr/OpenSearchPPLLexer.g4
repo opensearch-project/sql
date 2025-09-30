@@ -518,11 +518,12 @@ NUMERIC_ID : DEC_DIGIT+ ID_LITERAL;
 
 // LITERALS AND VALUES
 //STRING_LITERAL:                     DQUOTA_STRING | SQUOTA_STRING | BQUOTA_STRING;
+fragment WEEK_SNAP_UNIT:            'W' [0-7];
 fragment TIME_SNAP_UNIT:              'S' | 'SEC' | 'SECOND'
                                     | 'M' | 'MIN' | 'MINUTE'
                                     | 'H' | 'HR' | 'HOUR' | 'HOURS'
                                     | 'D' | 'DAY'
-                                    | 'W' | 'WEEK'
+                                    | 'W' | 'WEEK' | WEEK_SNAP_UNIT
                                     | 'MON' | 'MONTH'
                                     | 'Q' | 'QTR' | 'QUARTER'
                                     | 'Y' | 'YR' | 'YEAR';

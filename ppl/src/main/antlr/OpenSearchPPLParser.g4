@@ -772,7 +772,7 @@ timeModifierValue
    | INTEGER_LITERAL
    | stringLiteral
    | TIME_SNAP
-   | (PLUS | MINUS) SPANLENGTH (TIME_SNAP)?
+   | (PLUS | MINUS) SPANLENGTH (TIME_SNAP)? ((PLUS | MINUS) SPANLENGTH)*
    ;
 
 // tables
