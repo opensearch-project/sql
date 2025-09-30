@@ -15,6 +15,8 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.Locale;
+import java.util.Optional;
+import java.util.Set;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -25,6 +27,11 @@ public class DateTimeUtils {
 
   private static final DateTimeFormatter DIRECT_FORMATTER =
       DateTimeFormatter.ofPattern("MM/dd/yyyy:HH:mm:ss");
+  public static final Set<DateTimeFormatter> SUPPORTED_FORMATTERS =
+      Set.of(
+          DIRECT_FORMATTER,
+          DateTimeFormatters.DATE_TIMESTAMP_FORMATTER,
+          DateTimeFormatter.ISO_DATE_TIME);
 
   /**
    * Util method to round the date/time with given unit.
@@ -167,22 +174,9 @@ public class DateTimeUtils {
   }
 
   public static ZonedDateTime getRelativeZonedDateTime(String input, ZonedDateTime baseTime) {
-    try {
-      Instant parsed;
-      try {
-        parsed = LocalDateTime.parse(input, DIRECT_FORMATTER).toInstant(ZoneOffset.UTC);
-      } catch (DateTimeParseException ignored) {
-        try {
-          parsed =
-              LocalDateTime.parse(input, DateTimeFormatters.DATE_TIMESTAMP_FORMATTER)
-                  .toInstant(ZoneOffset.UTC);
-        } catch (DateTimeParseException ignored2) {
-          ZonedDateTime zdt = ZonedDateTime.parse(input, DateTimeFormatter.ISO_DATE_TIME);
-          parsed = zdt.withZoneSameInstant(ZoneOffset.UTC).toInstant();
-        }
-      }
-      return parsed.atZone(baseTime.getZone());
-    } catch (DateTimeParseException ignored) {
+    Optional<ZonedDateTime> parsed = tryParseAbsoluteTime(input);
+    if (parsed.isPresent()) {
+      return parsed.get().withZoneSameInstant(baseTime.getZone());
     }
 
     if ("now".equalsIgnoreCase(input) || "now()".equalsIgnoreCase(input)) {
@@ -340,7 +334,7 @@ public class DateTimeUtils {
       return "now";
     }
 
-    String absoluteTime = tryParseAbsoluteTime(input);
+    String absoluteTime = tryParseAbsoluteTimeAndFormat(input);
     if (absoluteTime != null) {
       return absoluteTime;
     }
@@ -354,29 +348,31 @@ public class DateTimeUtils {
    * @param input The time string
    * @return ISO formatted datetime string or null if parsing fails
    */
-  private static String tryParseAbsoluteTime(String input) {
-    try {
-      try {
-        LocalDate parsedDate = LocalDate.parse(input);
-        return parsedDate.toString();
-      } catch (DateTimeParseException ignored) {
-      }
+  private static String tryParseAbsoluteTimeAndFormat(String input) {
+    Optional<ZonedDateTime> parsed = tryParseAbsoluteTime(input);
+    return parsed
+        .map(zonedDateTime -> zonedDateTime.format(DateTimeFormatter.ISO_INSTANT))
+        .orElse(null);
+  }
 
-      LocalDateTime parsed;
+  private static Optional<ZonedDateTime> tryParseAbsoluteTime(String input) {
+    for (DateTimeFormatter formatter : SUPPORTED_FORMATTERS) {
       try {
-        parsed = LocalDateTime.parse(input, DIRECT_FORMATTER);
-      } catch (DateTimeParseException ignored) {
-        try {
-          parsed = LocalDateTime.parse(input, DateTimeFormatters.DATE_TIMESTAMP_FORMATTER);
-        } catch (DateTimeParseException ignored2) {
-          ZonedDateTime zdt = ZonedDateTime.parse(input, DateTimeFormatter.ISO_DATE_TIME);
-          parsed = zdt.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime();
+        ZonedDateTime parsed;
+        if (formatter == DateTimeFormatter.ISO_DATE_TIME) {
+          // ISO_DATE_TIME can handle zone information
+          parsed = ZonedDateTime.parse(input, formatter);
+        } else {
+          // Treat LocalDateTime formatters as UTC
+          LocalDateTime localDateTime = LocalDateTime.parse(input, formatter);
+          parsed = localDateTime.atZone(ZoneOffset.UTC);
         }
+        return Optional.of(parsed);
+      } catch (DateTimeParseException ignored) {
+        // Try next formatter
       }
-      return parsed.atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);
-    } catch (DateTimeParseException ignored) {
-      return null;
     }
+    return Optional.empty();
   }
 
   /**

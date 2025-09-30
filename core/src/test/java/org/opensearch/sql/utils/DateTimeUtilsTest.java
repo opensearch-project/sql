@@ -177,7 +177,7 @@ public class DateTimeUtilsTest {
 
   @Test
   void testResolveTimeModifierWithDatetimeString() {
-    assertEquals("2025-10-22", DateTimeUtils.resolveTimeModifier("2025-10-22"));
+    assertEquals("2025-10-22T00:00:00Z", DateTimeUtils.resolveTimeModifier("2025-10-22"));
     assertEquals("2025-10-22T10:32:12Z", DateTimeUtils.resolveTimeModifier("2025-10-22 10:32:12"));
     // Test "direct" format
     assertEquals("2025-10-22T10:32:12Z", DateTimeUtils.resolveTimeModifier("10/22/2025:10:32:12"));
