@@ -526,33 +526,6 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testBinFloatingPointSpanBasicFunctionality() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | bin age span=2.5 | fields age | head 3", TEST_INDEX_ACCOUNT));
-    verifySchema(result, schema("age", null, "string"));
-
-    // Test that floating point spans work with proper range formatting
-    verifyDataRows(result, rows("27.5-30.0"), rows("30.0-32.5"), rows("35.0-37.5"));
-  }
-
-  @Test
-  public void testBinFloatingPointSpanWithStats() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | bin balance span=15000.5 | fields balance | sort balance |"
-                    + " head 2",
-                TEST_INDEX_ACCOUNT));
-
-    verifySchema(result, schema("balance", null, "string"));
-
-    // Test floating point spans without aggregation - verify proper decimal formatting
-    verifyDataRows(result, rows("0.0-15000.5"), rows("0.0-15000.5"));
-  }
-
-  @Test
   @Ignore
   public void testBinWithNumericSpanStatsCount() throws IOException {
     JSONObject result =

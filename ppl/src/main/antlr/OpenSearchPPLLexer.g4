@@ -497,51 +497,35 @@ MINSPAN:                            'MINSPAN';
 START:                              'START';
 END:                                'END';
 ALIGNTIME:                          'ALIGNTIME';
-MS:                                 'MS';
-S:                                  'S';
-M:                                  'M';
-H:                                  'H';
-W:                                  'W';
-Q:                                  'Q';
-Y:                                  'Y';
-
-// Extended timescale units
-SEC:                                'SEC';
-SECS:                               'SECS';
-SECONDS:                            'SECONDS';
-MINS:                               'MINS';
-MINUTES:                            'MINUTES';
-HR:                                 'HR';
-HRS:                                'HRS';
-HOURS:                              'HOURS';
-DAYS:                               'DAYS';
-WEEKS:                              'WEEKS';
-MON:                                'MON';
-MONTHS:                             'MONTHS';
-QTR:                                'QTR';
-QTRS:                               'QTRS';
-QUARTERS:                           'QUARTERS';
-YR:                                 'YR';
-YRS:                                'YRS';
-YEARS:                              'YEARS';
-US:                                 'US';
-CS:                                 'CS';
-DS:                                 'DS';
-
 // PERCENTILE SHORTCUT FUNCTIONS
 // Must precede ID to avoid conflicts with identifier matching
 PERCENTILE_SHORTCUT:                PERC(INTEGER_LITERAL | DECIMAL_LITERAL) | 'P'(INTEGER_LITERAL | DECIMAL_LITERAL);
 
+SPANLENGTH: [0-9]+ (
+    'US'|'MS'|'CS'|'DS'
+    |'S'|'SEC'|'SECS'|'SECOND'|'SECONDS'
+    |'MIN'|'MINS'|'MINUTE'|'MINUTES'
+    |'H'|'HR'|'HRS'|'HOUR'|'HOURS'
+    |'H'|'HR'|'HRS'|'HOUR'|'HOURS'
+    |'D'|'DAY'|'DAYS'
+    |'W'|'WEEK'|'WEEKS'
+    |'M'|'MON'|'MONTH'|'MONTHS'
+    |'Q'|'QTR'|'QTRS'|'QUARTER'|'QUARTERS'
+    |'Y'|'YR'|'YRS'|'YEAR'|'YEARS'
+);
+
+NUMERIC_ID : DEC_DIGIT+ ID_LITERAL;
+
 // LITERALS AND VALUES
 //STRING_LITERAL:                     DQUOTA_STRING | SQUOTA_STRING | BQUOTA_STRING;
-fragment TIME_SNAP_UNIT:              S | SEC | SECOND
-                                    | M | MIN | MINUTE
-                                    | H | HR | HOUR | HOURS
-                                    | D | DAY
-                                    | W | WEEK
-                                    | MON | MONTH
-                                    | Q | QTR | QUARTER
-                                    | Y | YR | YEAR;
+fragment TIME_SNAP_UNIT:              'S' | 'SEC' | 'SECOND'
+                                    | 'M' | 'MIN' | 'MINUTE'
+                                    | 'H' | 'HR' | 'HOUR' | 'HOURS'
+                                    | 'D' | 'DAY'
+                                    | 'W' | 'WEEK'
+                                    | 'MON' | 'MONTH'
+                                    | 'Q' | 'QTR' | 'QUARTER'
+                                    | 'Y' | 'YR' | 'YEAR';
 TIME_SNAP:                          AT TIME_SNAP_UNIT;
 ID:                                 ID_LITERAL;
 CLUSTER:                            CLUSTER_PREFIX_LITERAL;
