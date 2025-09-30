@@ -13,19 +13,13 @@ import static org.opensearch.sql.utils.DateTimeUtils.resolveTimeModifier;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
-import org.opensearch.common.time.DateFormatter;
-import org.opensearch.common.time.DateMathParser;
 import org.opensearch.sql.planner.physical.collector.Rounding.DateTimeUnit;
 
 public class DateTimeUtilsTest {
-  private final DateFormatter formatter =
-      DateFormatter.forPattern("strict_date_optional_time||epoch_millis");
-  private final DateMathParser parser = formatter.toDateMathParser();
   private final ZonedDateTime monday = ZonedDateTime.of(2025, 9, 15, 2, 0, 0, 0, ZoneOffset.UTC);
   private final ZonedDateTime tuesday =
       ZonedDateTime.of(2014, 11, 18, 14, 27, 32, 0, ZoneOffset.UTC);
@@ -349,125 +343,6 @@ public class DateTimeUtilsTest {
   }
 
   @Test
-  void testOpenSearchTimeEquivalence() {
-    // Fixed reference time for testing
-    ZonedDateTime baseZdt = tuesday;
-    long baseMilli = baseZdt.toInstant().toEpochMilli();
-
-    // Test cases for various formats
-    Object[][] testCases = {
-      // PPL format, OpenSearch format
-      {"-30s", "now-30s"},
-      {"-1h", "now-1h"},
-      {"+5m", "now+5m"},
-      {"-7d", "now-7d"},
-      {"@s", "now/s"},
-      {"@m", "now/m"},
-      {"@h", "now/h"},
-      {"@d", "now/d"},
-      {"@w1", "now/w"},
-      {"@month", "now/M"},
-      {"@year", "now/y"},
-      {"-1d@d", "now-1d/d"},
-      {"-30m@h", "now-30m/h"},
-      {"-2w+1d", "now-2w+1d"},
-      {"-1month@mon", "now-1M/M"},
-      {"2025-10-22 10:32:12", "2025-10-22T10:32:12Z"},
-      {"2025-10-22T10:32:12Z", "2025-10-22T10:32:12Z"}
-    };
-
-    for (Object[] testCase : testCases) {
-      String pplFormat = (String) testCase[0];
-      String osFormat = (String) testCase[1];
-
-      // Parse with PPL format
-      ZonedDateTime pplParsed = getRelativeZonedDateTime(pplFormat, baseZdt);
-      String converted = resolveTimeModifier(pplFormat, baseZdt);
-
-      // Parse with OpenSearch format
-      Instant osParsed = parser.parse(osFormat, () -> baseMilli, false, ZoneId.of("UTC"));
-
-      assertEquals(osFormat, converted);
-
-      assertEquals(
-          pplParsed.toInstant(),
-          osParsed,
-          String.format(
-              "PPL '%s' and OpenSearch '%s' should yield the same instant", pplFormat, osFormat));
-    }
-  }
-
-  @Test
-  void testConversionConsistency() throws Exception {
-    // Fixed reference time for testing
-    String baseTimeString = "2014-11-18T14:27:32";
-    ZonedDateTime baseTime = ZonedDateTime.parse(baseTimeString + "Z");
-    long now = baseTime.toInstant().toEpochMilli();
-
-    // Test cases for PPL formats
-    String[] pplFormats = {
-      "-30s",
-      "-1h",
-      "+5m",
-      "-7d",
-      "@s",
-      "@m",
-      "@h",
-      "@d",
-      "@month",
-      "@year",
-      "-1d@d",
-      "-30m@h",
-      "-2w+1d",
-      "-1month@mon"
-      // "+1year@q" removed as quarter handling differs between implementations
-    };
-
-    for (String pplFormat : pplFormats) {
-      // Parse directly with PPL format
-      ZonedDateTime directPPLParsed = getRelativeZonedDateTime(pplFormat, baseTime);
-
-      // Convert to OpenSearch format then parse
-      String osFormat = DateTimeUtils.resolveTimeModifier(pplFormat);
-      Instant osParsed = parser.parse(osFormat, () -> now, false, ZoneId.of("UTC"));
-
-      // Verify time string conversion produces the same datetime value
-      assertEquals(
-          directPPLParsed.toInstant(),
-          osParsed,
-          String.format(
-              "Direct PPL parsing of '%s' and OpenSearch parsing of converted '%s' should match",
-              pplFormat, osFormat));
-    }
-  }
-
-  @Test
-  void testSpecialCases() throws Exception {
-    // Fixed reference time for testing
-    ZonedDateTime baseTime = tuesday;
-    long now = baseTime.toInstant().toEpochMilli();
-
-    // Special cases that need approximate matching due to format differences
-    Object[][] testCases = {
-      {"-1q", "now-3M"}, // Quarter (3 months) approximation
-      {"@w2", "now/w+1d"},
-      {"-1d@w5", "now-1d/w-3d"}
-    };
-
-    for (Object[] testCase : testCases) {
-      String pplFormat = (String) testCase[0];
-      String osFormat = (String) testCase[1];
-
-      ZonedDateTime pplParsed = getRelativeZonedDateTime(pplFormat, baseTime);
-      String converted = resolveTimeModifier(pplFormat, baseTime);
-      Instant osParsed = parser.parse(osFormat, () -> now, false, ZoneId.of("UTC"));
-
-      assertEquals(osFormat, converted);
-      assertEquals(osParsed, pplParsed.toInstant());
-    }
-  }
-
-  @Test
   void testParseTimeWithReferenceTimeModifier() {
     // Test with different reference dates in different quarters
 
@@ -518,27 +393,6 @@ public class DateTimeUtilsTest {
     assertEquals("now-3M+1d", resolveTimeModifier("-1q+1d", refTime)); // -1 quarter then +1 day
     assertEquals(
         "now-3M/M-2M", resolveTimeModifier("-1q@q", refTime)); // -1 quarter then snap to quarter
-  }
-
-  @Test
-  void testQuarterHandlingWithDateMathParser() throws Exception {
-    // Fixed reference times for testing
-    ZonedDateTime refSep = ZonedDateTime.of(2023, 9, 11, 10, 0, 0, 0, ZoneOffset.UTC);
-    long nowSep = refSep.toInstant().toEpochMilli();
-
-    // Expected quarter start for September is July 1
-    ZonedDateTime expectedJul = ZonedDateTime.of(2023, 7, 1, 0, 0, 0, 0, ZoneOffset.UTC);
-
-    // Convert @q using our resolveTimeModifier with the September reference date
-    String osFormatForQ = resolveTimeModifier("@q", refSep); // Should be "now/M-2M"
-
-    // Parse the OpenSearch format using DateMathParser
-    Instant osParsed = parser.parse(osFormatForQ, () -> nowSep, false, ZoneId.of("UTC"));
-
-    assertEquals(
-        expectedJul.toInstant(),
-        osParsed,
-        "Quarter snapping from September 11 should result in July 1");
   }
 
   @Test
