@@ -31,4 +31,4 @@ Parser parse raw query as Statement and create AbstractPlan. Each AbstractPlan d
 ### Change of existing logic
 1. Remove the schedule logic in NIO thread. After the change,
    a. Parser will be executed in NIO thread.
-   b. QueryManager decide query execution strategy. e.g. OpenSearchQueryManager schedule the QueryExecution running in **sql_worker** thread pool.
+   b. QueryManager decide query execution strategy. e.g. OpenSearchQueryManager schedule the QueryExecution running in **sql-worker** thread pool.

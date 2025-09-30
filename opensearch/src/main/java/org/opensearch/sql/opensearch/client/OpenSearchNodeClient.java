@@ -219,7 +219,7 @@ public class OpenSearchNodeClient implements OpenSearchClient {
 
   @Override
   public void schedule(Runnable task) {
-    // at that time, task already running the sql_worker ThreadPool.
+    // at that time, task already running the sql-worker ThreadPool.
     task.run();
   }
 

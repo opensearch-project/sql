@@ -13,7 +13,7 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.node.NodeClient;
 import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
 
-/** The scheduler which schedule the task run in sql_worker thread pool. */
+/** The scheduler which schedule the task run in sql-worker thread pool. */
 @UtilityClass
 public class Scheduler {
   public static void schedule(NodeClient client, Runnable task) {

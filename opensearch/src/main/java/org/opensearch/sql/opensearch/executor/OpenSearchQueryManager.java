@@ -21,7 +21,7 @@ public class OpenSearchQueryManager implements QueryManager {
 
   private final NodeClient nodeClient;
 
-  public static final String SQL_WORKER_THREAD_POOL_NAME = "sql_worker";
+  public static final String SQL_WORKER_THREAD_POOL_NAME = "sql-worker";
   public static final String SQL_BACKGROUND_THREAD_POOL_NAME = "sql_background_io";
 
   @Override
