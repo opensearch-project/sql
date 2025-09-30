@@ -57,6 +57,8 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalNotContext
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalOrContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalXorContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.MultiFieldRelevanceFunctionContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PatternMethodContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PatternModeContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameFieldExpressionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SingleFieldRelevanceFunctionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
@@ -233,6 +235,16 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     }
     // AUTO() case uses the field expression as-is
     return new Field(fieldExpression, ArgumentFactory.getArgumentList(ctx));
+  }
+
+  @Override
+  public UnresolvedExpression visitPatternMethod(PatternMethodContext ctx) {
+    return new Literal(StringUtils.unquoteText(ctx.getText()), DataType.STRING);
+  }
+
+  @Override
+  public UnresolvedExpression visitPatternMode(PatternModeContext ctx) {
+    return new Literal(StringUtils.unquoteText(ctx.getText()), DataType.STRING);
   }
 
   /** Aggregation function. */
@@ -603,29 +615,14 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitSpanClause(SpanClauseContext ctx) {
-    String unit = ctx.unit != null ? ctx.unit.getText() : "";
-    return new Span(visit(ctx.fieldExpression()), visit(ctx.value), SpanUnit.of(unit));
-  }
-
-  // Handle new syntax: span=1h
-  @Override
-  public UnresolvedExpression visitSpanLiteral(OpenSearchPPLParser.SpanLiteralContext ctx) {
-    if (ctx.integerLiteral() != null && ctx.timespanUnit() != null) {
-      return new Span(
-          AstDSL.field("@timestamp"),
-          new Literal(Integer.parseInt(ctx.integerLiteral().getText()), DataType.INTEGER),
-          SpanUnit.of(ctx.timespanUnit().getText()));
+    UnresolvedExpression fieldExpression;
+    if (ctx.fieldExpression() != null) {
+      fieldExpression = visit(ctx.fieldExpression());
+    } else {
+      fieldExpression = AstDSL.field("@timestamp");
     }
-
-    if (ctx.integerLiteral() != null) {
-      return new Span(
-          AstDSL.field("@timestamp"),
-          new Literal(Integer.parseInt(ctx.integerLiteral().getText()), DataType.INTEGER),
-          SpanUnit.of(""));
-    }
-
-    return new Span(
-        AstDSL.field("@timestamp"), new Literal(ctx.getText(), DataType.STRING), SpanUnit.of(""));
+    Literal literal = (Literal) visit(ctx.value);
+    return AstDSL.spanFromSpanLengthLiteral(fieldExpression, literal);
   }
 
   @Override
@@ -763,17 +760,19 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   // New visitor methods for spanValue grammar rules
 
   @Override
+  public UnresolvedExpression visitSpanLiteral(OpenSearchPPLParser.SpanLiteralContext ctx) {
+    if (ctx.INTEGER_LITERAL() != null) {
+      return AstDSL.intLiteral(Integer.parseInt(ctx.INTEGER_LITERAL().getText()));
+    } else {
+      return AstDSL.stringLiteral(ctx.getText());
+    }
+  }
+
+  @Override
   public UnresolvedExpression visitNumericSpanValue(
       OpenSearchPPLParser.NumericSpanValueContext ctx) {
-    String spanValue = ctx.literalValue().getText();
-    String spanUnit = ctx.timespanUnit() != null ? ctx.timespanUnit().getText() : null;
-
-    if (spanUnit != null) {
-      // Create combined span like "1h", "30m", etc.
-      return org.opensearch.sql.ast.dsl.AstDSL.stringLiteral(spanValue + spanUnit);
-    } else {
-      return visit(ctx.literalValue());
-    }
+    // This handles span values that come from spanLiteral rule
+    return visit(ctx.spanLiteral());
   }
 
   @Override
@@ -883,11 +882,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
       // Boolean literal
       Literal booleanLiteral = (Literal) visit(ctx.booleanLiteral());
       return new SearchLiteral(booleanLiteral, false);
-    } else if (ctx.ID() != null) {
-      return new SearchLiteral(new Literal(ctx.ID().getText(), DataType.STRING), false);
-    } else if (ctx.searchableKeyWord() != null) {
-      return new SearchLiteral(
-          new Literal(ctx.searchableKeyWord().getText(), DataType.STRING), false);
     }
     // Default
     return new SearchLiteral(new Literal(ctx.getText(), DataType.STRING), false);
