@@ -36,6 +36,8 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.3.0
 * Add max/min eval functions ([#4333](https://github.com/opensearch-project/sql/pull/4333))
 * Implementation of mode `sed` and `offset_field` in rex PPL command ([#4241](https://github.com/opensearch-project/sql/pull/4241))
 * Add earliest/latest aggregate function for eventstats PPL command ([#4212](https://github.com/opensearch-project/sql/pull/4212))
+* Core Implementation of `rex` Command In PPL ([#4109](https://github.com/opensearch-project/sql/pull/4109))
+* Implementation of `regex` Command In PPL ([#4083](https://github.com/opensearch-project/sql/pull/4083))
 
 ### Bug Fixes
 * Fix the `count(*)` and `dc(field)` to be capped at MAX_INTEGER #4416 ([#4418](https://github.com/opensearch-project/sql/pull/4418))
@@ -53,8 +55,6 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.3.0
 * Fix geopoint issue in complex data types ([#4325](https://github.com/opensearch-project/sql/pull/4325))
 * Support serializing & deserializing UDTs when pushing down scripts ([#4245](https://github.com/opensearch-project/sql/pull/4245))
 * Bugfix: SQL type mapping for legacy JDBC output ([#3613](https://github.com/opensearch-project/sql/pull/3613))
-* Core Implementation of `rex` Command In PPL ([#4109](https://github.com/opensearch-project/sql/pull/4109))
-* Implementation of `regex` Command In PPL ([#4083](https://github.com/opensearch-project/sql/pull/4083))
 
 ### Infrastructure
 * Spotless precommit: apply instead of check ([#4320](https://github.com/opensearch-project/sql/pull/4320))
