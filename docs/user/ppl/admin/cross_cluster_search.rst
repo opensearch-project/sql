@@ -50,8 +50,8 @@ Example PPL query::
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+
 
 
-Limitation
-==========
+Limitations
+===========
 Since OpenSearch does not support cross cluster index metadata retrieval, field mapping of a remote cluster index is not available to the local cluster.
 (`[Feature] Cross cluster field mappings query #6573 <https://github.com/opensearch-project/OpenSearch/issues/6573>`_)
 Therefore, the query engine requires that for any remote cluster index that the users need to search,

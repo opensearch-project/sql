@@ -1,0 +1,20 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[ageTrend]"
+  children:
+    - name: TrendlineOperator
+      description:
+        computations:
+          - computationType: sma
+            numberOfDataPoints: "2"
+            dataField: age
+            alias: ageTrend
+      children:
+        - name: OpenSearchIndexScan
+          description:
+            request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account,\
+              \ sourceBuilder={\"from\":0,\"size\":5,\"timeout\":\"1m\"}, needClean=true,\
+              \ searchDone=false, pitId=*, cursorKeepAlive=null, searchAfter=null,\
+              \ searchResponse=null)"
+          children: []

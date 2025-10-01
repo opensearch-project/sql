@@ -19,7 +19,7 @@ Syntax
 ============
 rare <field-list> [by-clause]
 
-rare <field-list> [rare-options] [by-clause] ``(available from 3.1.0+)``
+rare [rare-options] <field-list> [by-clause] ``(available from 3.1.0+)``
 
 * field-list: mandatory. comma-delimited list of field names.
 * by-clause: optional. one or more fields to group the results by.
@@ -35,7 +35,7 @@ The example finds least common gender of all the accounts.
 
 PPL query::
 
-    os> source=accounts | rare gender;
+    os> source=accounts | rare showcount=false gender;
     fetched rows / total rows = 2/2
     +--------+
     | gender |
@@ -52,7 +52,7 @@ The example finds least common age of all the accounts group by gender.
 
 PPL query::
 
-    os> source=accounts | rare age by gender;
+    os> source=accounts | rare showcount=false age by gender;
     fetched rows / total rows = 4/4
     +--------+-----+
     | gender | age |
@@ -96,6 +96,6 @@ PPL query::
     | M      | 3   |
     +--------+-----+
 
-Limitation
-==========
+Limitations
+===========
 The ``rare`` command is not rewritten to OpenSearch DSL, it is only executed on the coordination node.

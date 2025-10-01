@@ -650,6 +650,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "_doc",
         getDateTimeIndexMapping(),
         "src/test/resources/datetime.json"),
+    DATETIME_NESTED(
+        TestsConstants.TEST_INDEX_DATE_TIME_NESTED,
+        "_doc",
+        getDateTimeNestedIndexMapping(),
+        "src/test/resources/datetime_nested.json"),
     NESTED_SIMPLE(
         TestsConstants.TEST_INDEX_NESTED_SIMPLE,
         "_doc",

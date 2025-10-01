@@ -9,7 +9,7 @@ Let’s go though the use cases find out how to translate the SQL to DSL.
 
 ### **1.  EXISTS**
 
-If the SQL doesn’t have condition in the subquery, the [OpenSearch exists](https://www.elastic.co/guide/en/elasticsearch/reference/7.3/query-dsl-exists-query.html) could be used to translate the SQL to DSL.
+If the SQL doesn’t have condition in the subquery, the [OpenSearch exists](https://docs.opensearch.org/latest/query-dsl/term/exists) could be used to translate the SQL to DSL.
 
 ```
 SELECT e.name AS employeeName

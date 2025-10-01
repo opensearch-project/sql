@@ -1,6 +1,0 @@
-{
-  "calcite": {
-    "logical": "LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])\n  LogicalFilter(condition=[<($0, DATE('2018-11-09 00:00:00.000000000':VARCHAR))])\n    LogicalFilter(condition=[>($0, DATE('2016-12-08 00:00:00.123456789':VARCHAR))])\n      LogicalProject(yyyy-MM-dd=[$83])\n        CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_date_formats]])\n",
-    "physical": "EnumerableLimit(fetch=[10000])\n  EnumerableCalc(expr#0..94=[{inputs}], expr#95=[Sarg[('2016-12-08':VARCHAR..'2018-11-09':VARCHAR)]:VARCHAR], expr#96=[SEARCH($t83, $t95)], yyyy-MM-dd=[$t83], $condition=[$t96])\n    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_date_formats]])\n"
-  }
-}

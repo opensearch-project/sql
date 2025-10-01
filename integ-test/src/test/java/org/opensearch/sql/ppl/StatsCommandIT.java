@@ -73,11 +73,9 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsCount() throws IOException {
     JSONObject response =
         executeQuery(String.format("source=%s | stats count(account_number)", TEST_INDEX_ACCOUNT));
-    if (isCalciteEnabled()) {
-      verifySchema(response, schema("count(account_number)", null, "bigint"));
-    } else {
-      verifySchema(response, schema("count(account_number)", null, "int"));
-    }
+
+    verifySchema(response, schema("count(account_number)", null, "bigint"));
+
     verifyDataRows(response, rows(1000));
   }
 
@@ -85,35 +83,22 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsCountAll() throws IOException {
     JSONObject response =
         executeQuery(String.format("source=%s | stats count()", TEST_INDEX_ACCOUNT));
-    if (isCalciteEnabled()) {
-      verifySchema(response, schema("count()", null, "bigint"));
-    } else {
-      verifySchema(response, schema("count()", null, "int"));
-    }
+
+    verifySchema(response, schema("count()", null, "bigint"));
     verifyDataRows(response, rows(1000));
 
     response = executeQuery(String.format("source=%s | stats c()", TEST_INDEX_ACCOUNT));
-    if (isCalciteEnabled()) {
-      verifySchema(response, schema("c()", null, "bigint"));
-    } else {
-      verifySchema(response, schema("c()", null, "int"));
-    }
+
+    verifySchema(response, schema("c()", null, "bigint"));
     verifyDataRows(response, rows(1000));
 
     response = executeQuery(String.format("source=%s | stats count", TEST_INDEX_ACCOUNT));
-    if (isCalciteEnabled()) {
-      verifySchema(response, schema("count", null, "bigint"));
-    } else {
-      verifySchema(response, schema("count", null, "int"));
-    }
+    verifySchema(response, schema("count", null, "bigint"));
     verifyDataRows(response, rows(1000));
 
     response = executeQuery(String.format("source=%s | stats c", TEST_INDEX_ACCOUNT));
-    if (isCalciteEnabled()) {
-      verifySchema(response, schema("c", null, "bigint"));
-    } else {
-      verifySchema(response, schema("c", null, "int"));
-    }
+
+    verifySchema(response, schema("c", null, "bigint"));
     verifyDataRows(response, rows(1000));
   }
 
@@ -121,11 +106,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsCBy() throws IOException {
     JSONObject response =
         executeQuery(String.format("source=%s | stats c by gender", TEST_INDEX_ACCOUNT));
-    if (isCalciteEnabled()) {
-      verifySchema(response, schema("c", null, "bigint"), schema("gender", null, "string"));
-    } else {
-      verifySchema(response, schema("c", null, "int"), schema("gender", null, "string"));
-    }
+    verifySchema(response, schema("c", null, "bigint"), schema("gender", null, "string"));
     verifyDataRows(response, rows(493, "F"), rows(507, "M"));
   }
 
@@ -133,19 +114,11 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsDistinctCount() throws IOException {
     JSONObject response =
         executeQuery(String.format("source=%s | stats distinct_count(gender)", TEST_INDEX_ACCOUNT));
-    if (isCalciteEnabled()) {
-      verifySchema(response, schema("distinct_count(gender)", null, "bigint"));
-    } else {
-      verifySchema(response, schema("distinct_count(gender)", null, "int"));
-    }
+    verifySchema(response, schema("distinct_count(gender)", null, "bigint"));
     verifyDataRows(response, rows(2));
 
     response = executeQuery(String.format("source=%s | stats dc(age)", TEST_INDEX_ACCOUNT));
-    if (isCalciteEnabled()) {
-      verifySchema(response, schema("dc(age)", null, "bigint"));
-    } else {
-      verifySchema(response, schema("dc(age)", null, "int"));
-    }
+    verifySchema(response, schema("dc(age)", null, "bigint"));
     verifyDataRows(response, rows(21));
   }
 
@@ -552,10 +525,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsBySpan() throws IOException {
     JSONObject response =
         executeQuery(String.format("source=%s | stats count() by span(age,10)", TEST_INDEX_BANK));
-    verifySchema(
-        response,
-        isCalciteEnabled() ? schema("count()", null, "bigint") : schema("count()", null, "int"),
-        schema("span(age,10)", null, "int"));
+    verifySchema(response, schema("count()", null, "bigint"), schema("span(age,10)", null, "int"));
     verifyDataRows(response, rows(1, 20), rows(6, 30));
   }
 
@@ -566,7 +536,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
             String.format("source=%s | stats count() by span(birthdate,1y)", TEST_INDEX_BANK));
     verifySchema(
         response,
-        isCalciteEnabled() ? schema("count()", null, "bigint") : schema("count()", null, "int"),
+        schema("count()", null, "bigint"),
         schema("span(birthdate,1y)", null, "timestamp"));
     verifyDataRows(response, rows(2, "2017-01-01 00:00:00"), rows(5, "2018-01-01 00:00:00"));
   }
@@ -577,11 +547,8 @@ public class StatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | stats count() by span(age,10) as age_bucket", TEST_INDEX_BANK));
-    if (isCalciteEnabled()) {
-      verifySchema(response, schema("count()", null, "bigint"), schema("age_bucket", null, "int"));
-    } else {
-      verifySchema(response, schema("count()", null, "int"), schema("age_bucket", null, "int"));
-    }
+
+    verifySchema(response, schema("count()", null, "bigint"), schema("age_bucket", null, "int"));
     verifyDataRows(response, rows(1, 20), rows(6, 30));
   }
 
@@ -593,7 +560,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
                 "source=%s | stats count() by span(age,10), gender, state", TEST_INDEX_BANK));
     verifySchemaInOrder(
         response,
-        isCalciteEnabled() ? schema("count()", null, "bigint") : schema("count()", null, "int"),
+        schema("count()", null, "bigint"),
         schema("span(age,10)", null, "int"),
         schema("gender", null, "string"),
         schema("state", null, "string"));
@@ -618,7 +585,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
                 "source=%s | stats count() by gender, state, span(age,10)", TEST_INDEX_BANK));
     verifySchemaInOrder(
         response,
-        isCalciteEnabled() ? schema("count()", null, "bigint") : schema("count()", null, "int"),
+        schema("count()", null, "bigint"),
         schema("span(age,10)", null, "int"),
         schema("gender", null, "string"),
         schema("state", null, "string"));
@@ -784,13 +751,13 @@ public class StatsCommandIT extends PPLIntegTestCase {
                 TEST_INDEX_ACCOUNT));
     verifySchema(
         response,
-        schema("count()", null, isCalciteEnabled() ? "bigint" : "int"),
-        schema("c1", null, isCalciteEnabled() ? "bigint" : "int"),
-        schema("count(account_number)", null, isCalciteEnabled() ? "bigint" : "int"),
-        schema("c2", null, isCalciteEnabled() ? "bigint" : "int"),
-        schema("count(balance/10)", null, isCalciteEnabled() ? "bigint" : "int"),
-        schema("c3", null, isCalciteEnabled() ? "bigint" : "int"),
-        schema("count(b_1)", null, isCalciteEnabled() ? "bigint" : "int"),
+        schema("count()", null, "bigint"),
+        schema("c1", null, "bigint"),
+        schema("count(account_number)", null, "bigint"),
+        schema("c2", null, "bigint"),
+        schema("count(balance/10)", null, "bigint"),
+        schema("c3", null, "bigint"),
+        schema("count(b_1)", null, "bigint"),
         schema("gender", null, "string"));
     verifyDataRows(
         response,

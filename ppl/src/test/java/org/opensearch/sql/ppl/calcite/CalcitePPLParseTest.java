@@ -22,7 +22,7 @@ public class CalcitePPLParseTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(JOB=[$2], year=[ITEM(PARSE(DATE_FORMAT($4, '%Y-%m-%d':VARCHAR),"
-            + " '(?<year>\\d{4})-\\d{2}-\\d{2}':VARCHAR, 'regex'), 'year')])\n"
+            + " '(?<year>\\d{4})-\\d{2}-\\d{2}':VARCHAR, 'regex':VARCHAR), 'year':VARCHAR)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -41,7 +41,7 @@ public class CalcitePPLParseTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(JOB=[$2], MGR=[ITEM(PARSE(DATE_FORMAT($4, '%Y-%m-%d':VARCHAR),"
-            + " '(?<MGR>\\d{4})-\\d{2}-\\d{2}':VARCHAR, 'regex'), 'MGR')])\n"
+            + " '(?<MGR>\\d{4})-\\d{2}-\\d{2}':VARCHAR, 'regex':VARCHAR), 'MGR':VARCHAR)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
