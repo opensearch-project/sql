@@ -29,6 +29,7 @@ The search expression syntax supports:
 
 * **Full text search**: ``error`` or ``"error message"`` - Searches the default field configured by the ``index.query.default_field`` setting (defaults to ``*`` which searches all fields)
 * **Field-value comparisons**: ``field=value``, ``field!=value``, ``field>value``, ``field>=value``, ``field<value``, ``field<=value``
+* **Time modifiers**: ``earliest=timeModifier``, ``latest=timeModifier`` - Filter results by time range using the implicit ``@timestamp`` field
 * **Boolean operators**: ``AND``, ``OR``, ``NOT``. Default operator if not specified is ``AND``.
 * **Grouping with parentheses**: ``(expression)``
 * **IN operator for multiple values**: ``field IN (value1, value2, value3)``
@@ -43,6 +44,35 @@ The search expression syntax supports:
 
 * Unquoted: ``status=active``, ``code=ERR-401``
 * Quoted: ``email="user@example.com"``, ``message="server error"``
+
+**Time Modifiers**: Filter search results by time range using the implicit ``@timestamp`` field. Time modifiers support the same formats as the `EARLIEST and LATEST condition functions <https://github.com/opensearch-project/sql/blob/main/docs/user/ppl/functions/condition.rst#earliest>`_:
+
+1. **Current time**: ``now`` or ``now()`` - the current time
+2. **Absolute format**: ``MM/dd/yyyy:HH:mm:ss`` or ``yyyy-MM-dd HH:mm:ss``
+3. **Unix timestamp**: Numeric values (seconds since epoch) like ``1754020060.123``
+4. **Relative format**: ``(+|-)<time_integer><time_unit>[+<...>]@<snap_unit>`` - Time offset from current time
+
+**Relative Time Components**:
+
+* **Time offset**: ``+`` (future) or ``-`` (past)
+* **Time amount**: Numeric value + time unit (``second``, ``minute``, ``hour``, ``day``, ``week``, ``month``, ``year``, and their variants)
+* **Snap to unit**: Optional ``@<unit>`` to round to nearest unit (hour, day, month, etc.)
+
+**Examples of Time Modifier Values**:
+
+* ``earliest=now`` - From current time
+* ``latest='2024-12-31 23:59:59'`` - Until a specific date
+* ``earliest=-7d`` - From 7 days ago
+* ``latest='+1d@d'`` - Until tomorrow at start of day
+* ``earliest='-1month@month'`` - From start of previous month
+* ``latest=1754020061`` - Until a unix timestamp (August 1, 2025 03:47:41 at UTC)
+
+Read more details on time modifiers `here <https://github.com/opensearch-project/opensearch-spark/blob/main/docs/ppl-lang/functions/ppl-datetime.md#relative_timestamp>`_.
+
+**Notes:**
+
+* **Column name conflicts**: If your data contains columns named "earliest" or "latest", use backticks to access them as regular fields (e.g., ```earliest`="value"``) to avoid conflicts with time modifier syntax.
+* **Time snap syntax**: Time modifiers with chained time offsets must be wrapped in quotes (e.g., ``latest='+1d@month-10h'``) for proper query parsing.
 
 Default Field Configuration
 ===========================
@@ -388,7 +418,64 @@ Combine multiple conditions using boolean operators and parentheses to create so
     | Payment failed: Insufficient funds for user@example.com |
     +---------------------------------------------------------+
 
-Example 9: Special Characters and Escaping
+Example 9: Time Modifiers
+--------------------------
+
+Time modifiers filter search results by time range using the implicit ``@timestamp`` field. They support various time formats for precise temporal filtering.
+
+**Absolute Time Filtering**::
+
+    os> search earliest='2024-01-15 10:30:05' latest='2024-01-15 10:30:10' source=otellogs | fields @timestamp, severityText;
+    fetched rows / total rows = 6/6
+    +-------------------------------+--------------+
+    | @timestamp                    | severityText |
+    |-------------------------------+--------------|
+    | 2024-01-15 10:30:05.678901234 | FATAL        |
+    | 2024-01-15 10:30:06.789012345 | TRACE        |
+    | 2024-01-15 10:30:07.890123456 | ERROR        |
+    | 2024-01-15 10:30:08.901234567 | WARN         |
+    | 2024-01-15 10:30:09.012345678 | INFO         |
+    | 2024-01-15 10:30:10.123456789 | TRACE2       |
+    +-------------------------------+--------------+
+
+**Relative Time Filtering** (before 30 seconds ago)::
+
+    os> search latest=-30s source=otellogs | sort @timestamp | fields @timestamp, severityText | head 3;
+    fetched rows / total rows = 3/3
+    +-------------------------------+--------------+
+    | @timestamp                    | severityText |
+    |-------------------------------+--------------|
+    | 2024-01-15 10:30:00.123456789 | INFO         |
+    | 2024-01-15 10:30:01.23456789  | ERROR        |
+    | 2024-01-15 10:30:02.345678901 | WARN         |
+    +-------------------------------+--------------+
+
+**Time Snapping** (before start of current minute)::
+
+    os> search latest='@m' source=otellogs | fields @timestamp, severityText | head 2;
+    fetched rows / total rows = 2/2
+    +-------------------------------+--------------+
+    | @timestamp                    | severityText |
+    |-------------------------------+--------------|
+    | 2024-01-15 10:30:00.123456789 | INFO         |
+    | 2024-01-15 10:30:01.23456789  | ERROR        |
+    +-------------------------------+--------------+
+
+**Unix Timestamp Filtering**::
+
+    os> search earliest=1705314600 latest=1705314605 source=otellogs | fields @timestamp, severityText;
+    fetched rows / total rows = 5/5
+    +-------------------------------+--------------+
+    | @timestamp                    | severityText |
+    |-------------------------------+--------------|
+    | 2024-01-15 10:30:00.123456789 | INFO         |
+    | 2024-01-15 10:30:01.23456789  | ERROR        |
+    | 2024-01-15 10:30:02.345678901 | WARN         |
+    | 2024-01-15 10:30:03.456789012 | DEBUG        |
+    | 2024-01-15 10:30:04.567890123 | INFO         |
+    +-------------------------------+--------------+
+
+Example 10: Special Characters and Escaping
 -------------------------------------------
 
 Understand when and how to escape special characters in your search queries. There are two categories of characters that need escaping:
@@ -453,7 +540,7 @@ Note: Each backslash in the search value needs to be escaped with another backsl
     | Query contains Lucene special characters: +field:value -excluded AND (grouped OR terms) NOT "exact phrase" wildcard* fuzzy~2 /regex/ [range TO search] |
     +--------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-Example 10: Fetch All Data
+Example 11: Fetch All Data
 ----------------------------
 
 Retrieve all documents from an index by specifying only the source without any search conditions. This is useful for exploring small datasets or verifying data ingestion.
