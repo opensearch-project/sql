@@ -6,9 +6,6 @@
 package org.opensearch.sql.opensearch.request;
 
 import static org.opensearch.core.xcontent.DeprecationHandler.IGNORE_DEPRECATIONS;
-import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
-import static org.opensearch.search.sort.SortOrder.ASC;
-import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -31,6 +28,8 @@ import org.opensearch.search.SearchHits;
 import org.opensearch.search.SearchModule;
 import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.sort.ShardDocSortBuilder;
+import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
@@ -203,13 +202,14 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       if (searchAfter != null) {
         this.sourceBuilder.searchAfter(searchAfter);
       }
-      // Set sort field for search_after
-      if (this.sourceBuilder.sorts() == null) {
-        this.sourceBuilder.sort(DOC_FIELD_NAME, ASC);
-        // Workaround to preserve sort location more exactly,
-        // see https://github.com/opensearch-project/sql/pull/3061
-        this.sourceBuilder.sort(METADATA_FIELD_ID, ASC);
+      // Add sort tiebreaker `_shard_doc` for PIT search.
+      // Actually, we can remove it since `_shard_doc` should be added implicitly in PIT.
+      // https://github.com/opensearch-project/OpenSearch/pull/18924#issuecomment-3342365950
+      if (this.sourceBuilder.sorts() == null
+          || this.sourceBuilder.sorts().stream().noneMatch(ShardDocSortBuilder.class::isInstance)) {
+        this.sourceBuilder.sort(SortBuilders.shardDocSort());
       }
+
       SearchRequest searchRequest =
           new SearchRequest().indices(indexName.getIndexNames()).source(this.sourceBuilder);
       this.searchResponse = searchAction.apply(searchRequest);
