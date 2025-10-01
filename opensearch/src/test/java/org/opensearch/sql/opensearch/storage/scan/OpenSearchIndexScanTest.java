@@ -13,8 +13,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
-import static org.opensearch.search.sort.SortOrder.ASC;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import java.io.*;
@@ -445,8 +443,7 @@ class OpenSearchIndexScanTest {
               .timeout(CURSOR_KEEP_ALIVE)
               .query(query)
               .size(MAX_RESULT_WINDOW)
-              .highlighter(highlight)
-              .sort(DOC_FIELD_NAME, ASC);
+              .highlighter(highlight);
       OpenSearchRequest request =
           new OpenSearchQueryRequest(
               EMPLOYEES_INDEX, sourceBuilder, factory, List.of(), CURSOR_KEEP_ALIVE, null);
@@ -465,8 +462,7 @@ class OpenSearchIndexScanTest {
               .from(0)
               .query(expected)
               .size(MAX_RESULT_WINDOW)
-              .timeout(CURSOR_KEEP_ALIVE)
-              .sort(DOC_FIELD_NAME, ASC);
+              .timeout(CURSOR_KEEP_ALIVE);
       OpenSearchRequest request =
           new OpenSearchQueryRequest(
               EMPLOYEES_INDEX, builder, factory, List.of(), CURSOR_KEEP_ALIVE, null);

@@ -13,8 +13,7 @@ root:
           :10000,\"enable_position_increments\":true,\"fuzziness\":\"AUTO\",\"fuzzy_prefix_length\"\
           :0,\"fuzzy_max_expansions\":50,\"phrase_slop\":0,\"escape\":false,\"auto_generate_synonyms_phrase_query\"\
           :true,\"fuzzy_transpositions\":true,\"boost\":1.0}},\"_source\":{\"includes\"\
-          :[\"@timestamp\",\"category\",\"value\",\"timestamp\"],\"excludes\":[]},\"\
-          sort\":[{\"_doc\":{\"order\":\"asc\"}}]}, needClean=true, searchDone=false,\
-          \ pitId=*,\
+          :[\"@timestamp\",\"category\",\"value\",\"timestamp\"],\"excludes\":[]}},\
+          \ needClean=true, searchDone=false, pitId=*,\
           \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
       children: []
