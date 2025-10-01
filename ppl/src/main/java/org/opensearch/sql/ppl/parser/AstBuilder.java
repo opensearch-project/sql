@@ -966,14 +966,15 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         internalVisitExpression(ctx.replacement),
         ctx.fieldList().fieldExpression().stream()
             .map(f -> (Field) internalVisitExpression(f))
-            .toList());
+            .toList(),
+        true);
   }
 
   /** fillnull command - value= syntax: fillnull value=<expr> */
   @Override
   public UnresolvedPlan visitFillNullValueAllFields(
       OpenSearchPPLParser.FillNullValueAllFieldsContext ctx) {
-    return FillNull.ofSameValue(internalVisitExpression(ctx.replacement), List.of());
+    return FillNull.ofSameValue(internalVisitExpression(ctx.replacement), List.of(), true);
   }
 
   @Override

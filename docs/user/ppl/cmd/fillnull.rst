@@ -123,22 +123,22 @@ PPL query::
 Example 6: replace null with specified value on all fields (value= syntax)
 ==========================================================================
 
-Since 3.4. This example only works when Calcite enabled.
+Since 3.4. This example only works when Calcite enabled. When no field list is specified, the replacement applies to all fields in the result.
 
 PPL query::
 
-    os> source=accounts | fields age, balance | fillnull value=0;
+    os> source=accounts | fields email, employer | fillnull value='<not found>';
     fetched rows / total rows = 4/4
-    +-----+---------+
-    | age | balance |
-    |-----+---------|
-    | 32  | 39225   |
-    | 36  | 5686    |
-    | 28  | 32838   |
-    | 33  | 4180    |
-    +-----+---------+
+    +-----------------------+-------------+
+    | email                 | employer    |
+    |-----------------------+-------------|
+    | amberduke@pyrami.com  | Pyrami      |
+    | hattiebond@netagy.com | Netagy      |
+    | <not found>           | Quility     |
+    | daleadams@boink.com   | <not found> |
+    +-----------------------+-------------+
 
-**Note:** When applying the same value to all fields, all fields must be the same type. For mixed types, use separate fillnull commands.
+**Note:** When applying the same value to all fields without specifying field names, all fields must be the same type. For mixed types, use separate fillnull commands or explicitly specify fields.
 
 Limitations
 ===========

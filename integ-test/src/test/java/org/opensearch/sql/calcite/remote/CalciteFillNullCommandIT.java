@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 
 import java.io.IOException;
 import org.json.JSONObject;
@@ -104,5 +105,36 @@ public class CalciteFillNullCommandIT extends FillNullCommandIT {
         rows("fifteen", 11),
         rows("sixteen", 4),
         rows("N/A", 8));
+  }
+
+  // Type restriction error tests - documents error messages when type mismatches occur
+
+  @Test
+  public void testFillNullWithMixedTypeFieldsError() {
+    // fillnull value=0 on mixed type fields without explicit field list
+    // When no fields specified, all fields must be same type
+    Throwable t =
+        assertThrowsWithReplace(
+            RuntimeException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | fields str2, int0 | fillnull value=0", TEST_INDEX_CALCS)));
+    verifyErrorMessageContains(t, "Cannot infer return type for COALESCE");
+  }
+
+  @Test
+  public void testFillNullWithStringOnNumericAndStringMixedFields() {
+    // fillnull value='test' applied to fields of different types
+    // Trying to fill both string and numeric fields with a string value
+    Throwable t =
+        assertThrowsWithReplace(
+            RuntimeException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | fields num0, str2 | fillnull value='test'",
+                        TEST_INDEX_CALCS)));
+    verifyErrorMessageContains(t, "Cannot infer return type for COALESCE");
   }
 }
