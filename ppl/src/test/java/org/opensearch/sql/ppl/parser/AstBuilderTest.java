@@ -857,14 +857,15 @@ public class AstBuilderTest {
 
   @Test
   public void testFillNullValueAllFields() {
-    assertEqual("source=t | fillnull value=\"N/A\"", fillNull(relation("t"), stringLiteral("N/A")));
+    assertEqual(
+        "source=t | fillnull value=\"N/A\"", fillNull(relation("t"), stringLiteral("N/A"), true));
   }
 
   @Test
   public void testFillNullValueWithFields() {
     assertEqual(
         "source=t | fillnull value=0 a, b, c",
-        fillNull(relation("t"), intLiteral(0), field("a"), field("b"), field("c")));
+        fillNull(relation("t"), intLiteral(0), true, field("a"), field("b"), field("c")));
   }
 
   public void testTrendline() {
