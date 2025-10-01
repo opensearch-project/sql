@@ -13,8 +13,12 @@ public class OpenSearchRules {
   private static final PPLAggregateConvertRule AGGREGATE_CONVERT_RULE =
       PPLAggregateConvertRule.Config.SUM_CONVERTER.toRule();
 
+  public static final PPLAggregateHintConvertRule AGGREGATE_HINT_CONVERT_RULE =
+      PPLAggregateHintConvertRule.DEFAULT_CONFIG.toRule(PPLAggregateHintConvertRule.class);
+
+
   public static final List<RelOptRule> OPEN_SEARCH_OPT_RULES =
-      ImmutableList.of(AGGREGATE_CONVERT_RULE);
+      ImmutableList.of(AGGREGATE_CONVERT_RULE, AGGREGATE_HINT_CONVERT_RULE);
 
   // prevent instantiation
   private OpenSearchRules() {}

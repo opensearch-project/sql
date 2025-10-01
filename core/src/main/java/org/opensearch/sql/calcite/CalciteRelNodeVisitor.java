@@ -132,6 +132,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
+import org.opensearch.sql.calcite.plan.OpenSearchHints;
 import org.opensearch.sql.calcite.utils.BinUtils;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
@@ -1046,21 +1047,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     Argument.ArgumentMap statsArgs = Argument.ArgumentMap.of(node.getArgExprList());
     Boolean bucketNullable =
         (Boolean) statsArgs.getOrDefault(Argument.BUCKET_NULLABLE, Literal.TRUE).getValue();
-    boolean toAddHintsOnAggregate = false;
-    if (!bucketNullable
-        && !groupExprList.isEmpty()
-        && !(groupExprList.size() == 1 && getTimeSpanField(span).isPresent())) {
-      toAddHintsOnAggregate = true;
-      // add isNotNull filter before aggregation for non-nullable buckets
-      List<RexNode> groupByList =
-          groupExprList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
-      context.relBuilder.filter(
-          PlanUtils.getSelectColumns(groupByList).stream()
-              .map(context.relBuilder::field)
-              .map(context.relBuilder::isNotNull)
-              .toList());
-    }
-
+    boolean toAddHintsOnAggregate = !bucketNullable && !groupExprList.isEmpty() && !(groupExprList.size() == 1 && getTimeSpanField(span).isPresent());
     Pair<List<RexNode>, List<AggCall>> aggregationAttributes =
         aggregateWithTrimming(groupExprList, aggExprList, context);
     if (toAddHintsOnAggregate) {
@@ -1072,14 +1059,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       context
           .relBuilder
           .getCluster()
-          .setHintStrategies(
-              HintStrategyTable.builder()
-                  .hintStrategy(
-                      "stats_args",
-                      (hint, rel) -> {
-                        return rel instanceof LogicalAggregate;
-                      })
-                  .build());
+          .setHintStrategies(HintStrategyTable.builder().hintStrategy(
+              "stats_args", OpenSearchHints.aggStatsArgs)
+              .build());
     }
 
     // schema reordering
