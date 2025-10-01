@@ -153,7 +153,6 @@ public class CalciteExplainIT extends ExplainIT {
             "source=opensearch-sql_test_index_account | where isempty(firstname)"));
   }
 
-  // Only for Calcite
   @Test
   public void testExplainMultisearchBasic() throws IOException {
     String query =
@@ -166,7 +165,6 @@ public class CalciteExplainIT extends ExplainIT {
     assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
-  // Only for Calcite
   @Test
   public void testExplainMultisearchTimestampInterleaving() throws IOException {
     String query =
