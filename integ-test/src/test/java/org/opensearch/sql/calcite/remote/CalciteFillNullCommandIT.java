@@ -22,8 +22,6 @@ public class CalciteFillNullCommandIT extends FillNullCommandIT {
     enableCalcite();
   }
 
-  // value= syntax tests
-
   @Test
   public void testFillNullValueSyntaxAllFields() throws IOException {
     // fillnull value=0 (applies to all fields)
