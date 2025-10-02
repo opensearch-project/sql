@@ -27,9 +27,9 @@ fillnull value=<replacement> [<field-list>]
 Parameters
 ============
 
-* replacement: **Mandatory**. The value used to replace `null`s.
+* replacement: Mandatory. The value used to replace `null`s.
 
-* field-list: Optional. Comma-delimited (when using ``with`` or ``using``) or space-delimited (when using ``value=``) list of fields. The `null` values in the field will be replaced with the values from the replacement. If no field specified, the replacement is applied to all fields.
+* field-list: Optional. Comma-delimited (when using ``with`` or ``using``) or space-delimited (when using ``value=``) list of fields. The `null` values in the field will be replaced with the values from the replacement. **Default:** If no field specified, the replacement is applied to all fields.
 
 **Syntax Variations:**
 
