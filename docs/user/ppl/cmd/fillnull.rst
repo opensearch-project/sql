@@ -154,5 +154,5 @@ Limitations
 
      # This FAILS - same value for mixed-type fields
      source=accounts | fillnull value=0 firstname, age
-     # ERROR: Cannot infer return type for COALESCE; operand types: [VARCHAR, INTEGER]
+     # ERROR: fillnull failed: replacement value type INTEGER is not compatible with field 'firstname' (type: VARCHAR). The replacement value type must match the field type.
 

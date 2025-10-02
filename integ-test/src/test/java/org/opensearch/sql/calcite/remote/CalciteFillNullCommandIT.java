@@ -120,7 +120,10 @@ public class CalciteFillNullCommandIT extends FillNullCommandIT {
                 executeQuery(
                     String.format(
                         "source=%s | fields str2, int0 | fillnull value=0", TEST_INDEX_CALCS)));
-    verifyErrorMessageContains(t, "Cannot infer return type for COALESCE");
+    verifyErrorMessageContains(
+        t,
+        "fillnull failed: replacement value type INTEGER is not compatible with field 'str2' "
+            + "(type: VARCHAR). The replacement value type must match the field type.");
   }
 
   @Test
@@ -133,8 +136,13 @@ public class CalciteFillNullCommandIT extends FillNullCommandIT {
             () ->
                 executeQuery(
                     String.format(
-                        "source=%s | fields num0, str2 | fillnull value='test'",
+                        "source=%s | fields num0, str2 | fillnull value='test' num0 str2",
                         TEST_INDEX_CALCS)));
-    verifyErrorMessageContains(t, "Cannot infer return type for COALESCE");
+
+    System.out.println("Debugging error message: " + t);
+    verifyErrorMessageContains(
+        t,
+        "fillnull failed: replacement value type VARCHAR is not compatible with field 'num0' "
+            + "(type: DOUBLE). The replacement value type must match the field type.");
   }
 }
