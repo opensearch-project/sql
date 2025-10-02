@@ -23,20 +23,26 @@ fillnull using <field> = <replacement> [, <field> = <replacement>]
 
 fillnull value=<replacement> [<field-list>]
 
-**Parameters:**
+
+Parameters
+============
 
 * replacement: **Mandatory**. The value used to replace `null`s.
 
-* field-list: Optional. Comma-delimited (when using ``with`` or ``using``) or space-delimited (when using ``value=``) list of fields. The `null` values in the field will be replaced with the values from the replacement. From 3.1.0, when ``plugins.calcite.enabled`` is true, if no field specified, the replacement is applied to all fields.
+* field-list: Optional. Comma-delimited (when using ``with`` or ``using``) or space-delimited (when using ``value=``) list of fields. The `null` values in the field will be replaced with the values from the replacement. If no field specified, the replacement is applied to all fields.
 
 **Syntax Variations:**
 
 * ``with <replacement> in <field-list>`` - Apply same value to specified fields
 * ``using <field>=<replacement>, ...`` - Apply different values to different fields
-* ``value=<replacement> [<field-list>]`` - (Since 3.4) Alternative syntax with optional space-delimited field list
+* ``value=<replacement> [<field-list>]`` - Alternative syntax with optional space-delimited field list
 
-Example 1: replace null values with a specified value on one field
-==================================================================
+
+Examples
+============
+
+Example 1: Replace null values with a specified value on one field
+-------------------------------------------------------------------
 
 PPL query::
 
@@ -51,8 +57,8 @@ PPL query::
     | daleadams@boink.com   | null     |
     +-----------------------+----------+
 
-Example 2: replace null values with a specified value on multiple fields
-========================================================================
+Example 2: Replace null values with a specified value on multiple fields
+-------------------------------------------------------------------------
 
 PPL query::
 
@@ -67,10 +73,8 @@ PPL query::
     | daleadams@boink.com   | <not found> |
     +-----------------------+-------------+
 
-Example 3: replace null values with a specified value on all fields
-===================================================================
-
-This example only works when Calcite enabled.
+Example 3: Replace null values with a specified value on all fields
+--------------------------------------------------------------------
 
 PPL query::
 
@@ -85,8 +89,8 @@ PPL query::
     | daleadams@boink.com   | <not found> |
     +-----------------------+-------------+
 
-Example 4: replace null values with multiple specified values on multiple fields
-================================================================================
+Example 4: Replace null values with multiple specified values on multiple fields
+---------------------------------------------------------------------------------
 
 PPL query::
 
@@ -102,10 +106,8 @@ PPL query::
     +-----------------------+---------------+
 
 
-Example 5: replace null with specified value on specific fields (value= syntax)
-===============================================================================
-
-Since 3.4.
+Example 5: Replace null with specified value on specific fields (value= syntax)
+--------------------------------------------------------------------------------
 
 PPL query::
 
@@ -120,10 +122,10 @@ PPL query::
     | daleadams@boink.com   | <not found> |
     +-----------------------+-------------+
 
-Example 6: replace null with specified value on all fields (value= syntax)
-==========================================================================
+Example 6: Replace null with specified value on all fields (value= syntax)
+---------------------------------------------------------------------------
 
-Since 3.4. This example only works when Calcite enabled. When no field list is specified, the replacement applies to all fields in the result.
+When no field list is specified, the replacement applies to all fields in the result.
 
 PPL query::
 
@@ -138,15 +140,11 @@ PPL query::
     | daleadams@boink.com   | <not found> |
     +-----------------------+-------------+
 
-**Note:** When applying the same value to all fields without specifying field names, all fields must be the same type. For mixed types, use separate fillnull commands or explicitly specify fields.
-
 Limitations
-===========
+============
 * The ``fillnull`` command is not rewritten to OpenSearch DSL, it is only executed on the coordination node.
-* Before 3.1.0, at least one field is required.
-* **Type Restrictions**:
-
-  The replacement value type must match ALL field types in the field list. When applying the same value to multiple fields, all fields must be the same type (all strings or all numeric).
+* When applying the same value to all fields without specifying field names, all fields must be the same type. For mixed types, use separate fillnull commands or explicitly specify fields.
+* The replacement value type must match ALL field types in the field list. When applying the same value to multiple fields, all fields must be the same type (all strings or all numeric).
 
   **Example:**
 
