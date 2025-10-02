@@ -170,6 +170,11 @@ public class TestUtils {
     return getMappingFile(mappingFile);
   }
 
+  public static String getLocationsTypeConflictIndexMapping() {
+    String mappingFile = "locations_type_conflict_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
   public static String getEmployeeNestedTypeIndexMapping() {
     String mappingFile = "employee_nested_type_index_mapping.json";
     return getMappingFile(mappingFile);

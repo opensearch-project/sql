@@ -1106,4 +1106,108 @@ public class AstBuilderTest {
     // Test that SED mode and offset_field cannot be used together (align with Splunk behavior)
     plan("source=test | rex field=email mode=sed offset_field=matchpos \"s/@.*/@company.com/\"");
   }
+
+  // Multisearch tests
+
+  @Test
+  public void testBasicMultisearchParsing() {
+    // Test basic multisearch parsing
+    plan("| multisearch [ search source=test1 ] [ search source=test2 ]");
+  }
+
+  @Test
+  public void testMultisearchWithStreamingCommands() {
+    // Test multisearch with streaming commands
+    plan(
+        "| multisearch [ search source=test1 | where age > 30 | fields name, age ] "
+            + "[ search source=test2 | eval category=\"young\" | rename id as user_id ]");
+  }
+
+  @Test
+  public void testMultisearchWithStatsCommand() {
+    // Test multisearch with stats command - now allowed
+    plan(
+        "| multisearch [ search source=test1 | stats count() by gender ] "
+            + "[ search source=test2 | fields name, age ]");
+  }
+
+  @Test
+  public void testMultisearchWithSortCommand() {
+    // Test multisearch with sort command - now allowed
+    plan(
+        "| multisearch [ search source=test1 | sort age ] "
+            + "[ search source=test2 | fields name, age ]");
+  }
+
+  @Test
+  public void testMultisearchWithBinCommand() {
+    // Test multisearch with bin command - now allowed
+    plan(
+        "| multisearch [ search source=test1 | bin age span=10 ] "
+            + "[ search source=test2 | fields name, age ]");
+  }
+
+  @Test
+  public void testMultisearchWithTimechartCommand() {
+    // Test multisearch with timechart command - now allowed
+    plan(
+        "| multisearch [ search source=test1 | timechart count() by age ] "
+            + "[ search source=test2 | fields name, age ]");
+  }
+
+  @Test
+  public void testMultisearchWithRareCommand() {
+    // Test multisearch with rare command - now allowed
+    plan(
+        "| multisearch [ search source=test1 | rare gender ] "
+            + "[ search source=test2 | fields name, age ]");
+  }
+
+  @Test
+  public void testMultisearchWithDedupeCommand() {
+    // Test multisearch with dedup command - now allowed
+    plan(
+        "| multisearch [ search source=test1 | dedup name ] "
+            + "[ search source=test2 | fields name, age ]");
+  }
+
+  @Test
+  public void testMultisearchWithJoinCommand() {
+    // Test multisearch with join command - now allowed
+    plan(
+        "| multisearch [ search source=test1 | join left=l right=r where l.id = r.id"
+            + " test2 ] [ search source=test3 | fields name, age ]");
+  }
+
+  @Test
+  public void testMultisearchWithComplexPipeline() {
+    // Test multisearch with complex pipeline (previously called streaming)
+    plan(
+        "| multisearch [ search source=test1 | where age > 30 | eval category=\"adult\""
+            + " | fields name, age, category | rename age as years_old | head 100 ] [ search"
+            + " source=test2 | where status=\"active\" | expand tags | flatten nested_data |"
+            + " fillnull with \"unknown\" | reverse ]");
+  }
+
+  @Test
+  public void testMultisearchMixedCommands() {
+    // Test multisearch with mix of commands - now all allowed
+    plan(
+        "| multisearch [ search source=test1 | where age > 30 | stats count() ] "
+            + "[ search source=test2 | where status=\"active\" | sort name ]");
+  }
+
+  @Test
+  public void testMultisearchSingleSubsearchThrowsException() {
+    // Test multisearch with only one subsearch - should throw descriptive runtime exception
+    SyntaxCheckException exception =
+        assertThrows(
+            SyntaxCheckException.class,
+            () -> plan("| multisearch [ search source=test1 | fields name, age ]"));
+
+    // Now we should get our descriptive runtime validation error message
+    assertEquals(
+        "Multisearch command requires at least two subsearches. Provided: 1",
+        exception.getMessage());
+  }
 }

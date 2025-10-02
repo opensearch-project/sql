@@ -48,6 +48,7 @@ import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -60,7 +61,6 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
 import org.apache.calcite.util.Holder;
@@ -111,6 +111,7 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Lookup.OutputStrategy;
 import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
@@ -1649,63 +1650,71 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         node.getSubSearch().accept(new EmptySourcePropagateVisitor(), null);
     prunedSubSearch.accept(this, context);
 
-    // 3. Merge two query schemas
+    // 3. Merge two query schemas using shared logic
     RelNode subsearchNode = context.relBuilder.build();
     RelNode mainNode = context.relBuilder.build();
-    List<RelDataTypeField> mainFields = mainNode.getRowType().getFieldList();
-    List<RelDataTypeField> subsearchFields = subsearchNode.getRowType().getFieldList();
-    Map<String, RelDataTypeField> subsearchFieldMap =
-        subsearchFields.stream()
-            .map(typeField -> Pair.of(typeField.getName(), typeField))
-            .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
-    boolean[] isSelected = new boolean[subsearchFields.size()];
-    List<String> names = new ArrayList<>();
-    List<RexNode> mainUnionProjects = new ArrayList<>();
-    List<RexNode> subsearchUnionProjects = new ArrayList<>();
 
-    // 3.1 Start with main query's schema. If subsearch plan doesn't have matched column,
-    // add same type column in place with NULL literal
-    for (int i = 0; i < mainFields.size(); i++) {
-      mainUnionProjects.add(context.rexBuilder.makeInputRef(mainNode, i));
-      RelDataTypeField mainField = mainFields.get(i);
-      RelDataTypeField subsearchField = subsearchFieldMap.get(mainField.getName());
-      names.add(mainField.getName());
-      if (subsearchFieldMap.containsKey(mainField.getName())
-          && subsearchField != null
-          && subsearchField.getType().equals(mainField.getType())) {
-        subsearchUnionProjects.add(
-            context.rexBuilder.makeInputRef(subsearchNode, subsearchField.getIndex()));
-        isSelected[subsearchField.getIndex()] = true;
-      } else {
-        subsearchUnionProjects.add(context.rexBuilder.makeNullLiteral(mainField.getType()));
-      }
+    // Use shared schema merging logic that handles type conflicts via field renaming
+    List<RelNode> nodesToMerge = Arrays.asList(mainNode, subsearchNode);
+    List<RelNode> projectedNodes =
+        SchemaUnifier.buildUnifiedSchemaWithConflictResolution(nodesToMerge, context);
+
+    // 4. Union the projected plans
+    for (RelNode projectedNode : projectedNodes) {
+      context.relBuilder.push(projectedNode);
     }
-
-    // 3.2 Add remaining subsearch columns to the merged schema
-    for (int j = 0; j < subsearchFields.size(); j++) {
-      RelDataTypeField subsearchField = subsearchFields.get(j);
-      if (!isSelected[j]) {
-        mainUnionProjects.add(context.rexBuilder.makeNullLiteral(subsearchField.getType()));
-        subsearchUnionProjects.add(context.rexBuilder.makeInputRef(subsearchNode, j));
-        names.add(subsearchField.getName());
-      }
-    }
-
-    // 3.3 Uniquify names in case the merged names have duplicates
-    List<String> uniqNames =
-        SqlValidatorUtil.uniquify(names, SqlValidatorUtil.EXPR_SUGGESTER, true);
-
-    // 4. Apply new schema over two query plans
-    RelNode projectedMainNode =
-        context.relBuilder.push(mainNode).project(mainUnionProjects, uniqNames).build();
-    RelNode projectedSubsearchNode =
-        context.relBuilder.push(subsearchNode).project(subsearchUnionProjects, uniqNames).build();
-
-    // 5. Union all two projected plans
-    context.relBuilder.push(projectedMainNode);
-    context.relBuilder.push(projectedSubsearchNode);
     context.relBuilder.union(true);
     return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitMultisearch(Multisearch node, CalcitePlanContext context) {
+    List<RelNode> subsearchNodes = new ArrayList<>();
+    for (UnresolvedPlan subsearch : node.getSubsearches()) {
+      UnresolvedPlan prunedSubSearch = subsearch.accept(new EmptySourcePropagateVisitor(), null);
+      prunedSubSearch.accept(this, context);
+      subsearchNodes.add(context.relBuilder.build());
+    }
+
+    // Use shared schema merging logic that handles type conflicts via field renaming
+    List<RelNode> alignedNodes =
+        SchemaUnifier.buildUnifiedSchemaWithConflictResolution(subsearchNodes, context);
+
+    for (RelNode alignedNode : alignedNodes) {
+      context.relBuilder.push(alignedNode);
+    }
+    context.relBuilder.union(true, alignedNodes.size());
+
+    RelDataType rowType = context.relBuilder.peek().getRowType();
+    String timestampField = findTimestampField(rowType);
+    if (timestampField != null) {
+      RelDataTypeField timestampFieldRef = rowType.getField(timestampField, false, false);
+      if (timestampFieldRef != null) {
+        RexNode timestampRef =
+            context.rexBuilder.makeInputRef(
+                context.relBuilder.peek(), timestampFieldRef.getIndex());
+        context.relBuilder.sort(context.relBuilder.desc(timestampRef));
+      }
+    }
+
+    return context.relBuilder.peek();
+  }
+
+  /**
+   * Finds the timestamp field for multisearch ordering.
+   *
+   * @param rowType The row type to search for timestamp fields
+   * @return The name of the timestamp field, or null if not found
+   */
+  private String findTimestampField(RelDataType rowType) {
+    String[] candidates = {"@timestamp", "_time", "timestamp", "time"};
+    for (String fieldName : candidates) {
+      RelDataTypeField field = rowType.getField(fieldName, false, false);
+      if (field != null) {
+        return fieldName;
+      }
+    }
+    return null;
   }
 
   /*
