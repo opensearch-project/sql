@@ -15,6 +15,7 @@ import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AggregateFunction;
+import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
@@ -98,13 +99,16 @@ public class Timechart extends UnresolvedPlan {
     // Get the field from per_second(field)
     UnresolvedExpression field = aggFunc.getField();
 
-    // Create sum(field) to replace per_second(field)
-    AggregateFunction sumFunc = new AggregateFunction("sum", field);
-
-    // Create eval: per_second(field) = sum(field) / (intervalSec / unit)
+    // Get the field from per_second(field) and create original name
     String fieldName =
         field instanceof Field ? ((Field) field).getField().toString() : field.toString();
     String originalName = "per_second(" + fieldName + ")";
+
+    // Create sum(field) wrapped in alias with original name to preserve column naming
+    AggregateFunction sumFunc = new AggregateFunction("sum", field);
+    Alias aliasedSumFunc = new Alias(originalName, sumFunc);
+
+    // Create eval: per_second(field) = sum(field) / (intervalSec / unit)
     String sumName = "sum(" + fieldName + ")";
 
     Let evalTransform =
@@ -113,10 +117,10 @@ public class Timechart extends UnresolvedPlan {
             new Function(
                 "/",
                 Arrays.asList(
-                    new Field(AstDSL.qualifiedName(sumName)),
+                    new Field(AstDSL.qualifiedName(originalName)),
                     new Literal((double) (intervalSec / unit), DataType.DOUBLE))));
 
-    this.aggregateFunction = sumFunc;
+    this.aggregateFunction = aliasedSumFunc;
 
     // Create eval that wraps the new timechart
     Eval evalNode = new Eval(Arrays.asList(evalTransform));
