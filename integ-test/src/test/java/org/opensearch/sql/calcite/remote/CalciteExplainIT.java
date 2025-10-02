@@ -27,6 +27,7 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.BANK_WITH_STRING_VALUES);
     loadIndex(Index.NESTED_SIMPLE);
     loadIndex(Index.TIME_TEST_DATA);
+    loadIndex(Index.TIME_TEST_DATA2);
     loadIndex(Index.EVENTS);
     loadIndex(Index.LOGS);
   }
@@ -149,6 +150,30 @@ public class CalciteExplainIT extends ExplainIT {
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | where isempty(firstname)"));
+  }
+
+  @Test
+  public void testExplainMultisearchBasic() throws IOException {
+    String query =
+        "| multisearch [search"
+            + " source=opensearch-sql_test_index_account | where age < 30 | eval age_group ="
+            + " 'young'] [search source=opensearch-sql_test_index_account | where age >= 30 | eval"
+            + " age_group = 'adult'] | stats count by age_group";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_multisearch_basic.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainMultisearchTimestampInterleaving() throws IOException {
+    String query =
+        "| multisearch "
+            + "[search source=opensearch-sql_test_index_time_data | where category IN ('A', 'B')] "
+            + "[search source=opensearch-sql_test_index_time_data2 | where category IN ('E', 'F')] "
+            + "| head 5";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_multisearch_timestamp.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
   // Only for Calcite

@@ -20,7 +20,7 @@ pplStatement
    ;
 
 queryStatement
-   : pplCommands (PIPE commands)*
+   : (PIPE)? pplCommands (PIPE commands)*
    ;
 
 explainStatement
@@ -43,6 +43,7 @@ pplCommands
    : describeCommand
    | showDataSourcesCommand
    | searchCommand
+   | multisearchCommand
    ;
 
 commands
@@ -117,8 +118,9 @@ commandName
    | EXPLAIN
    | REVERSE
    | REGEX
-   | REX
    | APPEND
+   | MULTISEARCH
+   | REX
    ;
 
 searchCommand
@@ -463,6 +465,10 @@ appendcolCommand
 
 appendCommand
    : APPEND LT_SQR_PRTHS searchCommand? (PIPE commands)* RT_SQR_PRTHS
+   ;
+
+multisearchCommand
+   : MULTISEARCH (LT_SQR_PRTHS subSearch RT_SQR_PRTHS)+
    ;
 
 kmeansCommand
