@@ -5,21 +5,23 @@
 
 package org.opensearch.sql.ast.tree;
 
+import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
+import static org.opensearch.sql.ast.dsl.AstDSL.alias;
+import static org.opensearch.sql.ast.dsl.AstDSL.doubleLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.eval;
+import static org.opensearch.sql.ast.dsl.AstDSL.field;
+import static org.opensearch.sql.ast.dsl.AstDSL.function;
+import static org.opensearch.sql.ast.dsl.AstDSL.let;
+
 import com.google.common.collect.ImmutableList;
-import java.util.Arrays;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
-import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AggregateFunction;
-import org.opensearch.sql.ast.expression.Alias;
-import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Field;
-import org.opensearch.sql.ast.expression.Function;
-import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.SpanUnit;
@@ -81,68 +83,39 @@ public class Timechart extends UnresolvedPlan {
    * function only.
    */
   public UnresolvedPlan transformPerSecondFunctions() {
-    if (this.aggregateFunction == null || !(this.aggregateFunction instanceof AggregateFunction)) {
+    AggregateFunction aggFunc = (AggregateFunction) this.aggregateFunction;
+    if (!"per_second".equals(aggFunc.getFuncName())) {
       return this;
     }
 
-    AggregateFunction aggFunc = (AggregateFunction) this.aggregateFunction;
-    if (!"per_second".equals(aggFunc.getFuncName())) {
-      return this; // No per_second function found
-    }
-
-    // Extract interval seconds from binExpression
-    long intervalSec = extractIntervalSeconds();
-
-    // Per-second unit = 1 (later add per_minute=60, per_hour=3600, etc.)
-    long unit = 1;
-
-    // Get the field from per_second(field)
-    UnresolvedExpression field = aggFunc.getField();
-
-    // Get the field from per_second(field) and create original name
-    String fieldName =
-        field instanceof Field ? ((Field) field).getField().toString() : field.toString();
+    String fieldName = extractFieldName(aggFunc.getField());
     String originalName = "per_second(" + fieldName + ")";
+    double divisor = (double) (extractIntervalSeconds() / 1); // unit = 1 for per_second
+    return eval(
+        timechart(alias(originalName, sum(aggFunc.getField()))),
+        let(field(originalName), divide(field(originalName), doubleLiteral(divisor))));
+  }
 
-    // Create sum(field) wrapped in alias with original name to preserve column naming
-    AggregateFunction sumFunc = new AggregateFunction("sum", field);
-    Alias aliasedSumFunc = new Alias(originalName, sumFunc);
+  private String extractFieldName(UnresolvedExpression field) {
+    return field instanceof Field ? ((Field) field).getField().toString() : field.toString();
+  }
 
-    // Create eval: per_second(field) = sum(field) / (intervalSec / unit)
-    String sumName = "sum(" + fieldName + ")";
+  private UnresolvedExpression sum(UnresolvedExpression field) {
+    return aggregate("sum", field);
+  }
 
-    Let evalTransform =
-        new Let(
-            new Field(AstDSL.qualifiedName(originalName)),
-            new Function(
-                "/",
-                Arrays.asList(
-                    new Field(AstDSL.qualifiedName(originalName)),
-                    new Literal((double) (intervalSec / unit), DataType.DOUBLE))));
+  private UnresolvedExpression divide(UnresolvedExpression left, UnresolvedExpression right) {
+    return function("/", left, right);
+  }
 
-    this.aggregateFunction = aliasedSumFunc;
-
-    // Create eval that wraps the new timechart
-    Eval evalNode = new Eval(Arrays.asList(evalTransform));
-    Eval newEval = evalNode.attach(this);
-    return newEval;
+  private Timechart timechart(UnresolvedExpression newAggregateFunction) {
+    return this.toBuilder().aggregateFunction(newAggregateFunction).build();
   }
 
   private long extractIntervalSeconds() {
-    // Simple extraction assuming span=literal format
-    if (!(this.binExpression instanceof Span)) {
-      return 60L; // Default 1 minute
-    }
-
     Span span = (Span) this.binExpression;
-    int intervalValue =
-        ((Literal) span.getValue()).getValue() instanceof Number
-            ? ((Number) ((Literal) span.getValue()).getValue()).intValue()
-            : 1;
-
+    int intervalValue = ((Number) ((Literal) span.getValue()).getValue()).intValue();
     String unitString = SpanUnit.getName(span.getUnit());
-
-    // Use existing TimeUnitRegistry
     TimeUnitConfig config = TimeUnitRegistry.getConfig(unitString);
     return config != null ? config.toSeconds(intervalValue) : 60L;
   }

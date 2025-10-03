@@ -390,31 +390,31 @@ public class AstDSL {
     return AllFields.of();
   }
 
-  public Field field(UnresolvedExpression field) {
+  public static Field field(UnresolvedExpression field) {
     return new Field(field);
   }
 
-  public Field field(UnresolvedExpression field, Argument... fieldArgs) {
+  public static Field field(UnresolvedExpression field, Argument... fieldArgs) {
     return field(field, Arrays.asList(fieldArgs));
   }
 
-  public Field field(String field) {
+  public static Field field(String field) {
     return field(qualifiedName(field));
   }
 
-  public Field field(String field, Argument... fieldArgs) {
+  public static Field field(String field, Argument... fieldArgs) {
     return field(field, Arrays.asList(fieldArgs));
   }
 
-  public Field field(UnresolvedExpression field, List<Argument> fieldArgs) {
+  public static Field field(UnresolvedExpression field, List<Argument> fieldArgs) {
     return new Field(field, fieldArgs);
   }
 
-  public Field field(String field, List<Argument> fieldArgs) {
+  public static Field field(String field, List<Argument> fieldArgs) {
     return field(qualifiedName(field), fieldArgs);
   }
 
-  public Alias alias(String name, UnresolvedExpression expr) {
+  public static Alias alias(String name, UnresolvedExpression expr) {
     return new Alias(name, expr);
   }
 
