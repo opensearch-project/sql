@@ -69,6 +69,7 @@ import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.MinSpanBin;
+import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
@@ -580,6 +581,36 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String child = node.getChild().get(0).accept(this, context);
     String subsearch = anonymizeData(node.getSubSearch());
     return StringUtils.format("%s | append [%s ]", child, subsearch);
+  }
+
+  @Override
+  public String visitMultisearch(Multisearch node, String context) {
+    List<String> anonymizedSubsearches = new ArrayList<>();
+
+    for (UnresolvedPlan subsearch : node.getSubsearches()) {
+      String anonymizedSubsearch = anonymizeData(subsearch);
+      anonymizedSubsearch = "search " + anonymizedSubsearch;
+      anonymizedSubsearch =
+          anonymizedSubsearch
+              .replaceAll("\\bsource=\\w+", "source=table") // Replace table names after source=
+              .replaceAll(
+                  "\\b(?!source|fields|where|stats|head|tail|sort|eval|rename|multisearch|search|table|identifier|\\*\\*\\*)\\w+(?=\\s*[<>=!])",
+                  "identifier") // Replace field names before operators
+              .replaceAll(
+                  "\\b(?!source|fields|where|stats|head|tail|sort|eval|rename|multisearch|search|table|identifier|\\*\\*\\*)\\w+(?=\\s*,)",
+                  "identifier") // Replace field names before commas
+              .replaceAll(
+                  "fields"
+                      + " \\+\\s*\\b(?!source|fields|where|stats|head|tail|sort|eval|rename|multisearch|search|table|identifier|\\*\\*\\*)\\w+",
+                  "fields + identifier") // Replace field names after 'fields +'
+              .replaceAll(
+                  "fields"
+                      + " \\+\\s*identifier,\\s*\\b(?!source|fields|where|stats|head|tail|sort|eval|rename|multisearch|search|table|identifier|\\*\\*\\*)\\w+",
+                  "fields + identifier,identifier"); // Handle multiple fields
+      anonymizedSubsearches.add(StringUtils.format("[%s]", anonymizedSubsearch));
+    }
+
+    return StringUtils.format("| multisearch %s", String.join(" ", anonymizedSubsearches));
   }
 
   @Override

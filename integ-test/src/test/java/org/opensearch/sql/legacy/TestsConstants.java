@@ -27,6 +27,8 @@ public class TestsConstants {
   public static final String TEST_INDEX_ODBC = TEST_INDEX + "_odbc";
   public static final String TEST_INDEX_LOCATION = TEST_INDEX + "_location";
   public static final String TEST_INDEX_LOCATION2 = TEST_INDEX + "_location2";
+  public static final String TEST_INDEX_LOCATIONS_TYPE_CONFLICT =
+      TEST_INDEX + "_locations_type_conflict";
   public static final String TEST_INDEX_NESTED_TYPE = TEST_INDEX + "_nested_type";
   public static final String TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS =
       TEST_INDEX + "_nested_type_without_arrays";
