@@ -20,7 +20,7 @@ import java.util.regex.PatternSyntaxException;
 public class RegexCommonUtils {
 
   private static final Pattern NAMED_GROUP_PATTERN =
-      Pattern.compile("\\(\\?<([a-zA-Z][a-zA-Z0-9]*)>");
+      Pattern.compile("\\(\\?<([a-zA-Z_][a-zA-Z0-9_]*)>");
 
   private static final int MAX_CACHE_SIZE = 1000;
 

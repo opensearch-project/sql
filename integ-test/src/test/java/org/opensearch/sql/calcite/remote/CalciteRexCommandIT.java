@@ -51,6 +51,22 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testRexErrorUnderscoreInGroupNames() throws IOException {
+    try {
+      executeQuery(
+          String.format(
+              "source=%s | rex field=email \\\"(?<user_name>[^@]+)@(?<domain_name>.+)\\\" | fields"
+                  + " email",
+              TEST_INDEX_ACCOUNT));
+      fail("Should have thrown an exception for underscore in named capture group");
+    } catch (Exception e) {
+      assertTrue(
+          e.getMessage()
+              .contains("Underscores are not permitted in Java Regex capture group names"));
+    }
+  }
+
+  @Test
   public void testRexWithFiltering() throws IOException {
     JSONObject result =
         executeQuery(

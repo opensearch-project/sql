@@ -195,11 +195,12 @@ public class RegexCommonUtilsTest {
 
   @Test
   public void testGetNamedGroupCandidatesSpecialCharacters() {
-    // Test that groups with special characters are not captured (only alphanumeric starting with
-    // letter)
+    // Test that groups with special characters (except underscores) are not captured
+    // Numbers at start and hyphens are invalid, but underscores are now detected for validation
     String pattern = "(?<valid_group>[a-z]+)\\s+(?<123invalid>[0-9]+)\\s+(?<also-invalid>.*)";
     List<String> groups = RegexCommonUtils.getNamedGroupCandidates(pattern);
-    assertEquals(0, groups.size());
+    assertEquals(1, groups.size());
+    assertEquals("valid_group", groups.get(0));
   }
 
   @Test
@@ -210,5 +211,29 @@ public class RegexCommonUtilsTest {
     assertEquals(2, groups.size());
     assertEquals("groupA", groups.get(0));
     assertEquals("group2B", groups.get(1));
+  }
+
+  @Test
+  public void testGetNamedGroupCandidatesWithUnderscores() {
+    // Test that underscores in group names are detected (for validation purposes)
+    String pattern = "(?<user_name>[a-z]+)\\s+(?<domain_name>[a-z]+)";
+    List<String> groups = RegexCommonUtils.getNamedGroupCandidates(pattern);
+
+    assertEquals(2, groups.size());
+    assertEquals("user_name", groups.get(0));
+    assertEquals("domain_name", groups.get(1));
+  }
+
+  @Test
+  public void testGetNamedGroupCandidatesMixedUnderscores() {
+    // Test that mixed patterns with and without underscores are detected
+    String pattern =
+        "(?<validName>[a-z]+)\\s+(?<invalid_name>[0-9]+)\\s+(?<another_invalid_name>.*)";
+    List<String> groups = RegexCommonUtils.getNamedGroupCandidates(pattern);
+
+    assertEquals(3, groups.size());
+    assertEquals("validName", groups.get(0));
+    assertEquals("invalid_name", groups.get(1));
+    assertEquals("another_invalid_name", groups.get(2));
   }
 }

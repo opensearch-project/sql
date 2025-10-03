@@ -277,6 +277,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           "Rex pattern must contain at least one named capture group");
     }
 
+    if (namedGroups.stream().anyMatch(g -> g.contains("_"))) {
+      throw new IllegalArgumentException(
+          "Underscores are not permitted in Java Regex capture group names");
+    }
+
     List<RexNode> newFields = new ArrayList<>();
     List<String> newFieldNames = new ArrayList<>();
 
