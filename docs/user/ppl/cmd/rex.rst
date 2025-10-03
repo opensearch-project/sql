@@ -166,7 +166,7 @@ Demonstrates naming restrictions for capture groups. Group names cannot contain 
 Invalid PPL query with underscores::
 
     os> source=accounts | rex field=email "(?<user_name>[^@]+)@(?<email_domain>[^.]+)" | fields email, user_name, email_domain ;
-    {'reason': 'Invalid Query', 'details': 'Rex pattern must contain at least one named capture group', 'type': 'IllegalArgumentException'}
+    {'reason': 'Invalid Query', 'details': 'Underscores are not permitted in Java Regex capture group names', 'type': 'IllegalArgumentException'}
     Error: Query returned no data
 
 Correct PPL query without underscores::
