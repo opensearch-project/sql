@@ -195,12 +195,11 @@ public class RegexCommonUtilsTest {
 
   @Test
   public void testGetNamedGroupCandidatesSpecialCharacters() {
-    // Test that groups with special characters (except underscores) are not captured
-    // Numbers at start and hyphens are invalid, but underscores are now detected for validation
-    String pattern = "(?<valid_group>[a-z]+)\\s+(?<123invalid>[0-9]+)\\s+(?<also-invalid>.*)";
+    // Test that groups with special characters are not captured (only alphanumeric starting with letter)
+    String pattern = "(?<validgroup>[a-z]+)\\s+(?<123invalid>[0-9]+)\\s+(?<also-invalid>.*)";
     List<String> groups = RegexCommonUtils.getNamedGroupCandidates(pattern);
     assertEquals(1, groups.size());
-    assertEquals("valid_group", groups.get(0));
+    assertEquals("validgroup", groups.get(0));
   }
 
   @Test
@@ -214,26 +213,26 @@ public class RegexCommonUtilsTest {
   }
 
   @Test
-  public void testGetNamedGroupCandidatesWithUnderscores() {
-    // Test that underscores in group names are detected (for validation purposes)
+  public void testGetNamedGroupCandidatesThrowsOnUnderscores() {
+    // Test that underscores in group names trigger validation error
     String pattern = "(?<user_name>[a-z]+)\\s+(?<domain_name>[a-z]+)";
-    List<String> groups = RegexCommonUtils.getNamedGroupCandidates(pattern);
 
-    assertEquals(2, groups.size());
-    assertEquals("user_name", groups.get(0));
-    assertEquals("domain_name", groups.get(1));
+    IllegalArgumentException exception = assertThrows(
+        IllegalArgumentException.class,
+        () -> RegexCommonUtils.getNamedGroupCandidates(pattern));
+
+    assertEquals("Underscores are not permitted in Java Regex capture group names", exception.getMessage());
   }
 
   @Test
-  public void testGetNamedGroupCandidatesMixedUnderscores() {
-    // Test that mixed patterns with and without underscores are detected
-    String pattern =
-        "(?<validName>[a-z]+)\\s+(?<invalid_name>[0-9]+)\\s+(?<another_invalid_name>.*)";
-    List<String> groups = RegexCommonUtils.getNamedGroupCandidates(pattern);
+  public void testGetNamedGroupCandidatesThrowsOnMixedUnderscores() {
+    // Test that even one underscore in group names triggers validation error
+    String pattern = "(?<validName>[a-z]+)\\s+(?<invalid_name>[0-9]+)\\s+(?<anotherValidName>.*)";
 
-    assertEquals(3, groups.size());
-    assertEquals("validName", groups.get(0));
-    assertEquals("invalid_name", groups.get(1));
-    assertEquals("another_invalid_name", groups.get(2));
+    IllegalArgumentException exception = assertThrows(
+        IllegalArgumentException.class,
+        () -> RegexCommonUtils.getNamedGroupCandidates(pattern));
+
+    assertEquals("Underscores are not permitted in Java Regex capture group names", exception.getMessage());
   }
 }

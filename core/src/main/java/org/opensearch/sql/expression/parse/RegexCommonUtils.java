@@ -20,6 +20,9 @@ import java.util.regex.PatternSyntaxException;
 public class RegexCommonUtils {
 
   private static final Pattern NAMED_GROUP_PATTERN =
+      Pattern.compile("\\(\\?<([a-zA-Z][a-zA-Z0-9]*)>");
+
+  private static final Pattern NAMED_GROUP_PATTERN_WITH_UNDERSCORES =
       Pattern.compile("\\(\\?<([a-zA-Z_][a-zA-Z0-9_]*)>");
 
   private static final int MAX_CACHE_SIZE = 1000;
@@ -51,9 +54,11 @@ public class RegexCommonUtils {
 
   /**
    * Extract list of named group candidates from a regex pattern.
+   * Validates that group names don't contain underscores, which are not supported by Java regex.
    *
    * @param pattern The regex pattern string
    * @return List of named group names found in the pattern
+   * @throws IllegalArgumentException if any named groups contain underscores
    */
   public static List<String> getNamedGroupCandidates(String pattern) {
     ImmutableList.Builder<String> namedGroups = ImmutableList.builder();
@@ -61,7 +66,19 @@ public class RegexCommonUtils {
     while (m.find()) {
       namedGroups.add(m.group(1));
     }
-    return namedGroups.build();
+
+    List<String> groups = namedGroups.build();
+
+    Matcher underscoresMatcher = NAMED_GROUP_PATTERN_WITH_UNDERSCORES.matcher(pattern);
+    while (underscoresMatcher.find()) {
+      String groupWithUnderscore = underscoresMatcher.group(1);
+      if (groupWithUnderscore.contains("_")) {
+        throw new IllegalArgumentException(
+            "Underscores are not permitted in Java Regex capture group names");
+      }
+    }
+
+    return groups;
   }
 
   /**
