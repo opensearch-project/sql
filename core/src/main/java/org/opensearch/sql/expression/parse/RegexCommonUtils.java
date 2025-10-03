@@ -53,8 +53,8 @@ public class RegexCommonUtils {
   }
 
   /**
-   * Extract list of named group candidates from a regex pattern.
-   * Validates that group names don't contain underscores, which are not supported by Java regex.
+   * Extract list of named group candidates from a regex pattern. Validates that group names don't
+   * contain underscores, which are not supported by Java regex.
    *
    * @param pattern The regex pattern string
    * @return List of named group names found in the pattern

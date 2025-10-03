@@ -195,7 +195,8 @@ public class RegexCommonUtilsTest {
 
   @Test
   public void testGetNamedGroupCandidatesSpecialCharacters() {
-    // Test that groups with special characters are not captured (only alphanumeric starting with letter)
+    // Test that groups with special characters are not captured (only alphanumeric starting with
+    // letter)
     String pattern = "(?<validgroup>[a-z]+)\\s+(?<123invalid>[0-9]+)\\s+(?<also-invalid>.*)";
     List<String> groups = RegexCommonUtils.getNamedGroupCandidates(pattern);
     assertEquals(1, groups.size());
@@ -217,11 +218,13 @@ public class RegexCommonUtilsTest {
     // Test that underscores in group names trigger validation error
     String pattern = "(?<user_name>[a-z]+)\\s+(?<domain_name>[a-z]+)";
 
-    IllegalArgumentException exception = assertThrows(
-        IllegalArgumentException.class,
-        () -> RegexCommonUtils.getNamedGroupCandidates(pattern));
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> RegexCommonUtils.getNamedGroupCandidates(pattern));
 
-    assertEquals("Underscores are not permitted in Java Regex capture group names", exception.getMessage());
+    assertEquals(
+        "Underscores are not permitted in Java Regex capture group names", exception.getMessage());
   }
 
   @Test
@@ -229,10 +232,12 @@ public class RegexCommonUtilsTest {
     // Test that even one underscore in group names triggers validation error
     String pattern = "(?<validName>[a-z]+)\\s+(?<invalid_name>[0-9]+)\\s+(?<anotherValidName>.*)";
 
-    IllegalArgumentException exception = assertThrows(
-        IllegalArgumentException.class,
-        () -> RegexCommonUtils.getNamedGroupCandidates(pattern));
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> RegexCommonUtils.getNamedGroupCandidates(pattern));
 
-    assertEquals("Underscores are not permitted in Java Regex capture group names", exception.getMessage());
+    assertEquals(
+        "Underscores are not permitted in Java Regex capture group names", exception.getMessage());
   }
 }
