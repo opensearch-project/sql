@@ -9,8 +9,11 @@ import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 import static org.opensearch.index.query.QueryBuilders.*;
+import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
+import static org.opensearch.search.sort.SortOrder.ASC;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
 
 import java.util.Collections;
 import java.util.List;
@@ -404,7 +407,8 @@ class OpenSearchRequestBuilderTest {
             .from(DEFAULT_OFFSET)
             .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT)
-            .sort(SortBuilders.shardDocSort())
+            .sort(DOC_FIELD_NAME, ASC)
+            .sort(METADATA_FIELD_ID, ASC)
             .pointInTimeBuilder(new PointInTimeBuilder("samplePITId"))
             .fetchSource(new String[] {"intA"}, new String[0]),
         requestBuilder);
@@ -416,7 +420,8 @@ class OpenSearchRequestBuilderTest {
                 .from(DEFAULT_OFFSET)
                 .size(MAX_RESULT_WINDOW)
                 .timeout(DEFAULT_QUERY_TIMEOUT)
-                .sort(SortBuilders.shardDocSort())
+                .sort(DOC_FIELD_NAME, ASC)
+                .sort(METADATA_FIELD_ID, ASC)
                 .pointInTimeBuilder(new PointInTimeBuilder("samplePITId"))
                 .fetchSource("intA", null),
             exprValueFactory,
@@ -530,7 +535,8 @@ class OpenSearchRequestBuilderTest {
             .from(DEFAULT_OFFSET)
             .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT)
-            .sort(SortBuilders.shardDocSort())
+            .sort(DOC_FIELD_NAME, ASC)
+            .sort(METADATA_FIELD_ID, ASC)
             .pointInTimeBuilder(new PointInTimeBuilder("samplePITId"))
             .fetchSource(new String[] {"intA"}, new String[0]),
         requestBuilder);
@@ -542,7 +548,8 @@ class OpenSearchRequestBuilderTest {
                 .from(DEFAULT_OFFSET)
                 .size(MAX_RESULT_WINDOW)
                 .timeout(DEFAULT_QUERY_TIMEOUT)
-                .sort(SortBuilders.shardDocSort())
+                .sort(DOC_FIELD_NAME, ASC)
+                .sort(METADATA_FIELD_ID, ASC)
                 .pointInTimeBuilder(new PointInTimeBuilder("samplePITId"))
                 .fetchSource("intA", null),
             exprValueFactory,
