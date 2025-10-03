@@ -143,4 +143,35 @@ public class CalciteFillNullCommandIT extends FillNullCommandIT {
         "fillnull failed: replacement value type VARCHAR is not compatible with field 'num0' "
             + "(type: DOUBLE). The replacement value type must match the field type.");
   }
+
+  @Test
+  public void testFillNullWithLargeIntegerOnIntField() throws IOException {
+    // fillnull using int0=8589934592 (2^33, larger than Integer.MAX_VALUE)
+    // Tests whether type family equality allows BIGINT value for INTEGER field
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | fields int0 | fillnull using int0=8589934592", TEST_INDEX_CALCS));
+    // If this test passes, it confirms that NUMERIC type family allows INT->BIGINT coercion
+    // The result should show 8589934592 for null int0 values
+    verifyDataRows(
+        result,
+        rows(1),
+        rows(8589934592L),
+        rows(8589934592L),
+        rows(8589934592L),
+        rows(7),
+        rows(3),
+        rows(8),
+        rows(8589934592L),
+        rows(8589934592L),
+        rows(8),
+        rows(4),
+        rows(10),
+        rows(8589934592L),
+        rows(4),
+        rows(11),
+        rows(4),
+        rows(8));
+  }
 }
