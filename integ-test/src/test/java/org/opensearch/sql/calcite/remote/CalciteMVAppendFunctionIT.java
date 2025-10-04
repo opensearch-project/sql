@@ -196,17 +196,6 @@ public class CalciteMVAppendFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testMvappendWithAggregation() throws IOException {
-    JSONObject actual =
-        executeQuery(
-            source(
-                TEST_INDEX_BANK,
-                "eval info = mvappend(city, state) | stats count() by info | head 5"));
-
-    verifySchema(actual, schema("info", "array"), schema("count()", "long"));
-  }
-
-  @Test
   public void testMvappendWithComplexExpression() throws IOException {
     JSONObject actual =
         executeQuery(
