@@ -24,21 +24,21 @@ Return type: ARRAY
 
 Example::
 
-    PPL> source=people | eval array = array(1, 2, 3) | fields array | head 1
+    os> source=people | eval array = array(1, 2, 3) | fields array | head 1
     fetched rows / total rows = 1/1
-    +----------------------------------+
-    | array                            |
-    |----------------------------------|
-    | [1, 2, 3]                        |
-    +----------------------------------+
+    +---------+
+    | array   |
+    |---------|
+    | [1,2,3] |
+    +---------+
 
-    PPL> source=people | eval array = array(1, "demo") | fields array | head 1
+    os> source=people | eval array = array(1, "demo") | fields array | head 1
     fetched rows / total rows = 1/1
-    +----------------------------------+
-    | array                            |
-    |----------------------------------|
-    | ["1", "demo"]                    |
-    +----------------------------------+
+    +----------+
+    | array    |
+    |----------|
+    | [1,demo] |
+    +----------+
 
 ARRAY_LENGTH
 ------------
@@ -56,13 +56,13 @@ Return type: INTEGER
 
 Example::
 
-    PPL> source=people | eval array = array(1, 2, 3) | eval length = array_length(array) | fields length | head 1
+    os> source=people | eval array = array(1, 2, 3) | eval length = array_length(array) | fields length | head 1
     fetched rows / total rows = 1/1
-    +---------------+
-    | length        |
-    |---------------|
-    | 4             |
-    +---------------+
+    +--------+
+    | length |
+    |--------|
+    | 3      |
+    +--------+
 
 FORALL
 ------
@@ -80,13 +80,13 @@ Return type: BOOLEAN
 
 Example::
 
-    PPL> source=people | eval array = array(1, 2, 3), result = forall(array, x -> x > 0)  | fields result | head 1
+    os> source=people | eval array = array(1, 2, 3), result = forall(array, x -> x > 0)  | fields result | head 1
     fetched rows / total rows = 1/1
-    +---------+
-    | result  |
-    |---------|
-    | true    |
-    +---------+
+    +--------+
+    | result |
+    |--------|
+    | True   |
+    +--------+
 
 EXISTS
 ------
@@ -104,13 +104,13 @@ Return type: BOOLEAN
 
 Example::
 
-    PPL> source=people | eval array = array(-1, -2, 3), result = exists(array, x -> x > 0)  | fields result | head 1
+    os> source=people | eval array = array(-1, -2, 3), result = exists(array, x -> x > 0)  | fields result | head 1
     fetched rows / total rows = 1/1
-    +---------+
-    | result  |
-    |---------|
-    | true    |
-    +---------+
+    +--------+
+    | result |
+    |--------|
+    | True   |
+    +--------+
 
 FILTER
 ------
@@ -128,13 +128,13 @@ Return type: ARRAY
 
 Example::
 
-    PPL> source=people | eval array = array(1, -2, 3), result = filter(array, x -> x > 0)  | fields result | head 1
+    os> source=people | eval array = array(1, -2, 3), result = filter(array, x -> x > 0)  | fields result | head 1
     fetched rows / total rows = 1/1
-    +---------+
-    | result  |
-    |---------|
-    | [1, 3]  |
-    +---------+
+    +--------+
+    | result |
+    |--------|
+    | [1,3]  |
+    +--------+
 
 TRANSFORM
 ---------
@@ -152,21 +152,21 @@ Return type: ARRAY
 
 Example::
 
-    PPL> source=people | eval array = array(1, -2, 3), result = transform(array, x -> x + 2)  | fields result | head 1
+    os> source=people | eval array = array(1, -2, 3), result = transform(array, x -> x + 2)  | fields result | head 1
     fetched rows / total rows = 1/1
-    +------------+
-    | result     |
-    |------------|
-    | [3, 0, 5]  |
-    +------------+ 
+    +---------+
+    | result  |
+    |---------|
+    | [3,0,5] |
+    +---------+
 
-    PPL> source=people | eval array = array(1, -2, 3), result = transform(array, (x, i) -> x + i)  | fields result | head 1
+    os> source=people | eval array = array(1, -2, 3), result = transform(array, (x, i) -> x + i)  | fields result | head 1
     fetched rows / total rows = 1/1
-    +------------+
-    | result     |
-    |------------|
-    | [1, -1, 5] |
-    +------------+ 
+    +----------+
+    | result   |
+    |----------|
+    | [1,-1,5] |
+    +----------+
 
 REDUCE
 ------
@@ -184,21 +184,21 @@ Return type: ANY
 
 Example::
 
-    PPL> source=people | eval array = array(1, -2, 3), result = reduce(array, 10, (acc, x) -> acc + x) | fields result | head 1
+    os> source=people | eval array = array(1, -2, 3), result = reduce(array, 10, (acc, x) -> acc + x) | fields result | head 1
     fetched rows / total rows = 1/1
-    +------------+
-    | result     |
-    |------------|
-    | 8          |
-    +------------+ 
+    +--------+
+    | result |
+    |--------|
+    | 12     |
+    +--------+
 
-    PPL> source=people | eval array = array(1, -2, 3), result = reduce(array, 10, (acc, x) -> acc + x, acc -> acc * 10) | fields result | head 1
+    os> source=people | eval array = array(1, -2, 3), result = reduce(array, 10, (acc, x) -> acc + x, acc -> acc * 10) | fields result | head 1
     fetched rows / total rows = 1/1
-    +------------+
-    | result     |
-    |------------|
-    | 80         |
-    +------------+ 
+    +--------+
+    | result |
+    |--------|
+    | 120    |
+    +--------+
 
 MVJOIN
 ------
@@ -216,19 +216,74 @@ Return type: STRING
 
 Example::
 
-    PPL> source=people | eval result = mvjoin(array('a', 'b', 'c'), ',') | fields result | head 1
+    os> source=people | eval result = mvjoin(array('a', 'b', 'c'), ',') | fields result | head 1
     fetched rows / total rows = 1/1
-    +------------------------------------+
-    | result                             |
-    |------------------------------------|
-    | "a,b,c"                            |
-    +------------------------------------+
+    +--------+
+    | result |
+    |--------|
+    | a,b,c  |
+    +--------+
 
-    PPL> source=accounts | eval names_array = array(firstname, lastname) | eval result = mvjoin(names_array, ', ') | fields result | head 1
+    os> source=accounts | eval names_array = array(firstname, lastname) | eval result = mvjoin(names_array, ', ') | fields result | head 1
     fetched rows / total rows = 1/1
-    +------------------------------------------+
-    | result                                   |
-    |------------------------------------------|
-    | "Amber, Duke"                            |
-    +------------------------------------------+
-    
+    +-------------+
+    | result      |
+    |-------------|
+    | Amber, Duke |
+    +-------------+
+
+MVAPPEND
+--------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.4.0
+
+Usage: mvappend(value1, value2, value3...) appends all elements from arguments to create an array. Flattens array arguments and collects all individual elements. Always returns an array or null for consistent type behavior.
+
+Argument type: value1: ANY, value2: ANY, ...
+
+Return type: ARRAY
+
+Example::
+
+    os> source=people | eval result = mvappend(1, 2, 3) | fields result | head 1
+    fetched rows / total rows = 1/1
+    +---------+
+    | result  |
+    |---------|
+    | [1,2,3] |
+    +---------+
+
+    os> source=people | eval result = mvappend(42) | fields result | head 1
+    fetched rows / total rows = 1/1
+    +--------+
+    | result |
+    |--------|
+    | [42]   |
+    +--------+
+
+    os> source=people | eval arr1 = array(1, 2), arr2 = array(3, 4), result = mvappend(arr1, arr2) | fields result | head 1
+    fetched rows / total rows = 1/1
+    +-----------+
+    | result    |
+    |-----------|
+    | [1,2,3,4] |
+    +-----------+
+
+    os> source=accounts | eval result = mvappend(firstname, lastname) | fields result | head 1
+    fetched rows / total rows = 1/1
+    +--------------+
+    | result       |
+    |--------------|
+    | [Amber,Duke] |
+    +--------------+
+
+    os> source=people | eval result = mvappend(1, 'text', 2.5) | fields result | head 1
+    fetched rows / total rows = 1/1
+    +--------------+
+    | result       |
+    |--------------|
+    | [1,text,2.5] |
+    +--------------+
