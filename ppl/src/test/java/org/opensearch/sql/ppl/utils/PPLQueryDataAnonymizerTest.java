@@ -679,7 +679,7 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testMvappend() {
     assertEquals(
-        "source=table | eval identifier=mvappend(***,***,***) | fields + identifier",
+        "source=table | eval identifier=mvappend(identifier,***,***) | fields + identifier",
         anonymize("source=t | eval result=mvappend(a, 'b', 'c') | fields result"));
   }
 
