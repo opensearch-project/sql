@@ -61,6 +61,7 @@ pipelines:
           enabled: true
 
 
+
   - name: sync-mirror
     branchName: main-apple
     machine:
@@ -73,13 +74,33 @@ pipelines:
     build:
         template: freestyle:v4:build
         steps:
+            - export GIT_COMMITTER_NAME="opensearch_aidp bot"
+            - export GIT_AUTHOR_NAME="${GIT_COMMITTER_NAME}"
+            - export GIT_COMMITTER_EMAIL="opensearch_aidp_bot@apple.com"
+            - export GIT_AUTHOR_EMAIL="${GIT_COMMITTER_EMAIL}"
+            - git config --global user.name "${GIT_COMMITTER_NAME}"
+            - git config --global user.email "${GIT_COMMITTER_EMAIL}"
             - ls -al .
             - echo $GIT_URL
             - GIT_REPO_BASE_NAME=$(echo $GIT_URL|awk -F/ '{print $NF}')
             - GIT_REPO_BASE_NAME_NO_EXT=$(echo $GIT_URL|awk -F/ '{print $NF}'|awk -F\. '{print $1}')
+            # Mirror OSS repo
             - git clone -q  --mirror https://github.com/opensearch-project/${GIT_REPO_BASE_NAME}
             - cd ${GIT_REPO_BASE_NAME}
             - git remote set-url --push origin ${GIT_URL}
             - git fetch -p origin
             - git  push  -q --all ${GIT_URL}
+            - cd ..
+
+            # Step 2: Merge main into main-apple
+            - git clone ${GIT_REPO_BASE_NAME} repo-merge
+            - cd repo-merge
+            - git remote set-url origin ${GIT_URL}
+            - git fetch origin
+            - git checkout main
+            - git pull origin main
+            - git checkout main-apple || git checkout -b main-apple origin/main-apple
+            - git pull origin main-apple
+            - git merge --no-edit main || echo "Merge conflict — manual resolution needed"
+            - git push origin main-apple
 
