@@ -40,6 +40,7 @@ public class CalcitePlanContext {
   /** This thread local variable is only used to skip script encoding in script pushdown. */
   public static final ThreadLocal<Boolean> skipEncoding = ThreadLocal.withInitial(() -> false);
 
+  /** Thread-local switch that tells whether the current query prefers legacy behavior. */
   private static final ThreadLocal<Boolean> legacyPreferredFlag =
       ThreadLocal.withInitial(() -> true);
 
@@ -109,6 +110,10 @@ public class CalcitePlanContext {
     return new CalcitePlanContext(config, querySizeLimit, queryType);
   }
 
+  /**
+   * Executes {@code action} with the thread-local legacy flag set according to the supplied
+   * settings.
+   */
   public void run(Runnable action, Settings settings) {
     Boolean preferred = settings.getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED);
     legacyPreferredFlag.set(preferred);
@@ -119,6 +124,9 @@ public class CalcitePlanContext {
     }
   }
 
+  /**
+   * @return {@code true} when the current planning prefer legacy behavior.
+   */
   public static boolean isLegacyPreferred() {
     return legacyPreferredFlag.get();
   }
