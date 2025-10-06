@@ -97,8 +97,8 @@ public class QueryService {
                 (PrivilegedAction<Void>)
                     () -> {
                       CalcitePlanContext context =
-                          CalcitePlanContext.create(buildFrameworkConfig(), getQuerySizeLimit(),
-                              queryType);
+                          CalcitePlanContext.create(
+                              buildFrameworkConfig(), getQuerySizeLimit(), queryType);
                       RelNode relNode = analyze(plan, context);
                       RelNode optimized = optimize(relNode, context);
                       RelNode calcitePlan = convertToCalcitePlan(optimized);
@@ -106,8 +106,7 @@ public class QueryService {
                       return null;
                     });
           } catch (Throwable t) {
-            if (isCalciteFallbackAllowed(t)
-                && !(t instanceof NonFallbackCalciteException)) {
+            if (isCalciteFallbackAllowed(t) && !(t instanceof NonFallbackCalciteException)) {
               log.warn("Fallback to V2 query engine since got exception", t);
               executeWithLegacy(plan, queryType, listener, Optional.of(t));
             } else {
@@ -123,8 +122,7 @@ public class QueryService {
             }
           }
         },
-      settings
-    );
+        settings);
   }
 
   public void explainWithCalcite(
@@ -165,8 +163,7 @@ public class QueryService {
             }
           }
         },
-        settings
-    );
+        settings);
   }
 
   public void executeWithLegacy(
