@@ -81,7 +81,7 @@ public class Timechart extends UnresolvedPlan {
    * Transform per_second functions into sum + eval pattern. Simple approach for single aggregation
    * function only.
    */
-  public UnresolvedPlan transformPerSecondFunctions() {
+  private UnresolvedPlan transformPerSecondFunctions() {
     AggregateFunction aggFunc = (AggregateFunction) this.aggregateFunction;
     if (!"per_second".equals(aggFunc.getFuncName())) {
       return this;
