@@ -53,6 +53,7 @@ String bwcVersion = baseVersion + ".0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
 String calciteCodegen = "$projectDir/src/test/java/codegen/"
+boolean ignorePrometheus = (System.getProperty("ignorePrometheus") ?: "false").toBoolean()
 
 repositories {
     mavenCentral()
@@ -317,6 +318,7 @@ task startPrometheus(type: SpawnProcessTask) {
     }
     command "$projectDir/bin/prometheus/prometheus --storage.tsdb.path=$projectDir/bin/prometheus/data --config.file=$projectDir/bin/prometheus/prometheus.yml"
     ready 'TSDB started'
+    onlyIf { !ignorePrometheus }
 }
 
 task stopPrometheus(type: KillProcessTask) {
@@ -459,7 +461,7 @@ integTest {
     }
     
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
-    if(getOSFamilyType() != "windows") {
+    if(!ignorePrometheus && getOSFamilyType() != "windows") {
         dependsOn startPrometheus
         finalizedBy stopPrometheus
     }
@@ -499,7 +501,7 @@ integTest {
         }
     }
 
-    if(getOSFamilyType() == "windows") {
+    if(getOSFamilyType() == "windows" || ignorePrometheus) {
         exclude 'org/opensearch/sql/ppl/PrometheusDataSourceCommandsIT.class'
         exclude 'org/opensearch/sql/ppl/ShowDataSourcesCommandIT.class'
         exclude 'org/opensearch/sql/ppl/InformationSchemaCommandIT.class'
