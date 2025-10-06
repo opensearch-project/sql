@@ -967,7 +967,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         internalVisitExpression(ctx.replacement),
         ctx.fieldList().fieldExpression().stream()
             .map(f -> (Field) internalVisitExpression(f))
-            .toList(),
+            .collect(Collectors.toList()),
         true);
   }
 
