@@ -422,8 +422,10 @@ lookupPair
    ;
 
 fillnullCommand
-   : FILLNULL fillNullWith
-   | FILLNULL fillNullUsing
+   : FILLNULL fillNullWith                                                          # fillNullWithClause
+   | FILLNULL fillNullUsing                                                         # fillNullUsingClause
+   | FILLNULL VALUE EQUAL replacement = valueExpression fieldList                   # fillNullValueWithFields
+   | FILLNULL VALUE EQUAL replacement = valueExpression                             # fillNullValueAllFields
    ;
 
 fillNullWith
@@ -1452,6 +1454,7 @@ searchableKeyWord
    | REGEX
    | PUNCT
    | USING
+   | VALUE
    | CAST
    | GET_FORMAT
    | EXTRACT

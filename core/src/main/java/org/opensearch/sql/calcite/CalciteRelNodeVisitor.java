@@ -47,6 +47,7 @@ import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -1475,6 +1476,30 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
+  /**
+   * Validates type compatibility between replacement value and field for fillnull operation. Throws
+   * SemanticCheckException if types are incompatible.
+   */
+  private void validateFillNullTypeCompatibility(
+      RexNode replacement, RexNode fieldRef, String fieldName) {
+    RelDataTypeFamily replacementFamily = replacement.getType().getFamily();
+    RelDataTypeFamily fieldFamily = fieldRef.getType().getFamily();
+
+    // Check if the replacement type is compatible with the field type
+    // Allow NULL type family as it's compatible with any type
+    if (fieldFamily != replacementFamily
+        && fieldFamily != SqlTypeFamily.NULL
+        && replacementFamily != SqlTypeFamily.NULL) {
+      throw new SemanticCheckException(
+          String.format(
+              "fillnull failed: replacement value type %s is not compatible with field '%s' "
+                  + "(type: %s). The replacement value type must match the field type.",
+              replacement.getType().getSqlTypeName(),
+              fieldName,
+              fieldRef.getType().getSqlTypeName()));
+    }
+  }
+
   @Override
   public RelNode visitFillNull(FillNull node, CalcitePlanContext context) {
     visitChildren(node, context);
@@ -1483,6 +1508,19 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .size()) {
       throw new IllegalArgumentException("The field list cannot be duplicated in fillnull");
     }
+
+    // Validate type compatibility when replacementForAll is present
+    if (node.getReplacementForAll().isPresent()) {
+      List<RelDataTypeField> fieldsList = context.relBuilder.peek().getRowType().getFieldList();
+      RexNode replacement = rexVisitor.analyze(node.getReplacementForAll().get(), context);
+
+      // Validate all fields are compatible with the replacement value
+      for (RelDataTypeField field : fieldsList) {
+        RexNode fieldRef = context.rexBuilder.makeInputRef(field.getType(), field.getIndex());
+        validateFillNullTypeCompatibility(replacement, fieldRef, field.getName());
+      }
+    }
+
     List<RexNode> projects = new ArrayList<>();
     List<RelDataTypeField> fieldsList = context.relBuilder.peek().getRowType().getFieldList();
     for (RelDataTypeField field : fieldsList) {
@@ -1491,6 +1529,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       for (Pair<Field, UnresolvedExpression> pair : node.getReplacementPairs()) {
         if (field.getName().equalsIgnoreCase(pair.getLeft().getField().toString())) {
           RexNode replacement = rexVisitor.analyze(pair.getRight(), context);
+          // Validate type compatibility before COALESCE
+          validateFillNullTypeCompatibility(replacement, fieldRef, field.getName());
           RexNode coalesce = context.rexBuilder.coalesce(fieldRef, replacement);
           RexNode coalesceWithAlias = context.relBuilder.alias(coalesce, field.getName());
           projects.add(coalesceWithAlias);

@@ -598,8 +598,22 @@ public class AstDSL {
   }
 
   public static FillNull fillNull(
+      UnresolvedPlan input, UnresolvedExpression replacement, boolean useValueSyntax) {
+    return FillNull.ofSameValue(replacement, ImmutableList.of(), useValueSyntax).attach(input);
+  }
+
+  public static FillNull fillNull(
       UnresolvedPlan input, UnresolvedExpression replacement, Field... fields) {
     return FillNull.ofSameValue(replacement, ImmutableList.copyOf(fields)).attach(input);
+  }
+
+  public static FillNull fillNull(
+      UnresolvedPlan input,
+      UnresolvedExpression replacement,
+      boolean useValueSyntax,
+      Field... fields) {
+    return FillNull.ofSameValue(replacement, ImmutableList.copyOf(fields), useValueSyntax)
+        .attach(input);
   }
 
   public static FillNull fillNull(
