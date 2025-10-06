@@ -90,35 +90,39 @@ public class QueryService {
       UnresolvedPlan plan,
       QueryType queryType,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
-    try {
-      AccessController.doPrivileged(
-          (PrivilegedAction<Void>)
-              () -> {
-                CalcitePlanContext context =
-                    CalcitePlanContext.create(
-                        buildFrameworkConfig(), getQuerySizeLimit(), queryType);
-                RelNode relNode = analyze(plan, context);
-                RelNode optimized = optimize(relNode, context);
-                RelNode calcitePlan = convertToCalcitePlan(optimized);
-                executionEngine.execute(calcitePlan, context, listener);
-                return null;
-              });
-    } catch (Throwable t) {
-      if (isCalciteFallbackAllowed(t) && !(t instanceof NonFallbackCalciteException)) {
-        log.warn("Fallback to V2 query engine since got exception", t);
-        executeWithLegacy(plan, queryType, listener, Optional.of(t));
-      } else {
-        if (t instanceof Exception) {
-          listener.onFailure((Exception) t);
-        } else if (t instanceof VirtualMachineError) {
-          // throw and fast fail the VM errors such as OOM (same with v2).
-          throw t;
-        } else {
-          // Calcite may throw AssertError during query execution.
-          listener.onFailure(new CalciteUnsupportedException(t.getMessage(), t));
-        }
-      }
-    }
+    AccessController.doPrivileged(
+        (PrivilegedAction<Void>)
+            () -> {
+              CalcitePlanContext context =
+                  CalcitePlanContext.create(buildFrameworkConfig(), getQuerySizeLimit(), queryType);
+              context.run(
+                  () -> {
+                    try {
+                      RelNode relNode = analyze(plan, context);
+                      RelNode optimized = optimize(relNode, context);
+                      RelNode calcitePlan = convertToCalcitePlan(optimized);
+                      executionEngine.execute(calcitePlan, context, listener);
+                    } catch (Throwable t) {
+                      if (isCalciteFallbackAllowed(t)
+                          && !(t instanceof NonFallbackCalciteException)) {
+                        log.warn("Fallback to V2 query engine since got exception", t);
+                        executeWithLegacy(plan, queryType, listener, Optional.of(t));
+                      } else {
+                        if (t instanceof Exception) {
+                          listener.onFailure((Exception) t);
+                        } else if (t instanceof VirtualMachineError) {
+                          // throw and fast fail the VM errors such as OOM (same with v2).
+                          throw t;
+                        } else {
+                          // Calcite may throw AssertError during query execution.
+                          listener.onFailure(new CalciteUnsupportedException(t.getMessage(), t));
+                        }
+                      }
+                    }
+                  },
+                  settings);
+              return null;
+            });
   }
 
   public void explainWithCalcite(
@@ -133,10 +137,14 @@ public class QueryService {
                 CalcitePlanContext context =
                     CalcitePlanContext.create(
                         buildFrameworkConfig(), getQuerySizeLimit(), queryType);
-                RelNode relNode = analyze(plan, context);
-                RelNode optimized = optimize(relNode, context);
-                RelNode calcitePlan = convertToCalcitePlan(optimized);
-                executionEngine.explain(calcitePlan, format, context, listener);
+                context.run(
+                    () -> {
+                      RelNode relNode = analyze(plan, context);
+                      RelNode optimized = optimize(relNode, context);
+                      RelNode calcitePlan = convertToCalcitePlan(optimized);
+                      executionEngine.explain(calcitePlan, format, context, listener);
+                    },
+                    settings);
                 return null;
               });
     } catch (Throwable t) {
