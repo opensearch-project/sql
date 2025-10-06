@@ -39,7 +39,7 @@ public class FillNull extends UnresolvedPlan {
   public static FillNull ofSameValue(
       UnresolvedExpression replacement, List<Field> fieldList, boolean useValueSyntax) {
       List<Pair<Field, UnresolvedExpression>> replacementPairs =
-              fieldList.stream().map(f -> Pair.of(f, replacement)).collect(Collectors.toList())
+              fieldList.stream().map(f -> Pair.of(f, replacement)).collect(Collectors.toList());
     FillNull instance = new FillNull(replacementPairs, useValueSyntax);
     if (replacementPairs.isEmpty()) {
       // no field specified, the replacement value will be applied to all fields.
