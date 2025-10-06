@@ -52,7 +52,7 @@ For actually testing the code, the goal is to thoroughly test every case, rather
 
 ## 1.4 How to use doctest?
 ### 1.4.2 How to run existing doctest?
-Doctest runs with project build by `./gradlew build`. You can also only run doctest by `./gradlew :doctest:doctest`. If a Prometheus instance isn't available locally, add `-DignorePrometheus` (or set the property to any value other than `false`) to skip Prometheus setup and the Prometheus-specific doctest scenarios.
+Doctest runs with project build by `./gradlew build`. You can also only run doctest by `./gradlew doctest`. If a Prometheus instance isn't available locally, add `-DignorePrometheus` (or set the property to any value other than `false`) to skip Prometheus setup and the Prometheus-specific doctest scenarios.
 
 Make sure you don't have any OpenSearch instance running at `http://localhost:9200`
 
@@ -60,7 +60,7 @@ Make sure you don't have any OpenSearch instance running at `http://localhost:92
 1. If you want to add a new doc, you can add it to `docs` folder, under correct sub-folder, in `.rst` format. 
 > **Attention**: For code examples in documentation, a Mixing usage of `cli` and `bash` in one doc is not supported yet.
 2. Add your new doc file path to `docs/category.json` by its category
-3. Run doctest `./gradlew :doctest:doctest` (optionally with `-DignorePrometheus`) to see if your tests can pass
+3. Run doctest `./gradlew doctest` (optionally with `-DignorePrometheus`) to see if your tests can pass
 
 Currently, there is a `sample` folder under `docs` module to help you get started.
 
