@@ -261,6 +261,28 @@ PPL query for searching PROMETHEUS TABLES::
     +---------------+--------------+--------------------------------------------+------------+------+----------------------------------------------------+
 
 
+.. _datasources-prometheus-metadata:
+
+Fetch metadata for table in Prometheus datasource
+=================================================
+
+After a Prometheus datasource is configured, you can inspect the schema of any metric by running the ``describe`` command against the fully qualified table name. For example::
+
+PPL query::
+
+    PPL> describe my_prometheus.prometheus_http_requests_total;
+    fetched rows / total rows = 6/6
+    +---------------+--------------+--------------------------------+-------------+-----------+
+    | TABLE_CATALOG | TABLE_SCHEMA | TABLE_NAME                     | COLUMN_NAME | DATA_TYPE |
+    |---------------+--------------+--------------------------------+-------------+-----------|
+    | my_prometheus | default      | prometheus_http_requests_total | handler     | string    |
+    | my_prometheus | default      | prometheus_http_requests_total | code        | string    |
+    | my_prometheus | default      | prometheus_http_requests_total | instance    | string    |
+    | my_prometheus | default      | prometheus_http_requests_total | @timestamp  | timestamp |
+    | my_prometheus | default      | prometheus_http_requests_total | @value      | double    |
+    | my_prometheus | default      | prometheus_http_requests_total | job         | string    |
+    +---------------+--------------+--------------------------------+-------------+-----------+
+
 Limitations
 ===========
 
