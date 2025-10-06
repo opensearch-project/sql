@@ -200,6 +200,7 @@ This configuration is introduced since 3.3.0 which is used to switch some behavi
 The behaviours it controlled includes:
 
 - The default value of argument ``bucket_nullable`` in ``stats`` command. Check `stats command <../cmd/stats.rst>`_ for details.
+- The return value of ``divide`` and ``/`` operator. Check `expressions <../functions/expressions.rst>`_ for details.
 
 Example 1
 -------

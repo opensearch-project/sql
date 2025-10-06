@@ -114,7 +114,7 @@ public class CalcitePlanContext {
    * Executes {@code action} with the thread-local legacy flag set according to the supplied
    * settings.
    */
-  public void run(Runnable action, Settings settings) {
+  public static void run(Runnable action, Settings settings) {
     Boolean preferred = settings.getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED);
     legacyPreferredFlag.set(preferred);
     try {
