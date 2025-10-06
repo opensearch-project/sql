@@ -70,4 +70,4 @@ PPL query::
 Example 3: Fetch metadata for table in Prometheus datasource
 ============================================================
 
-See :ref:`datasources-prometheus-metadata` for more context.
+See `Fetch metadata for table in Prometheus datasource <../admin/datasources.rst>`_ for more context.

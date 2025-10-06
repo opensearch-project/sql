@@ -270,7 +270,7 @@ After a Prometheus datasource is configured, you can inspect the schema of any m
 
 PPL query::
 
-    os> describe my_prometheus.prometheus_http_requests_total;
+    PPL> describe my_prometheus.prometheus_http_requests_total;
     fetched rows / total rows = 6/6
     +---------------+--------------+--------------------------------+-------------+-----------+
     | TABLE_CATALOG | TABLE_SCHEMA | TABLE_NAME                     | COLUMN_NAME | DATA_TYPE |
