@@ -641,23 +641,41 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   public String visitFillNull(FillNull node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     List<Pair<Field, UnresolvedExpression>> fieldFills = node.getReplacementPairs();
+
+    // Check if using value= syntax (added in 3.4)
+    if (node.isUseValueSyntax()) {
+      if (fieldFills.isEmpty()) {
+        return StringUtils.format("%s | fillnull value=%s", child, MASK_LITERAL);
+      }
+      return StringUtils.format(
+          "%s | fillnull value=%s %s",
+          child,
+          MASK_LITERAL,
+          fieldFills.stream()
+              .map(n -> visitExpression(n.getLeft()))
+              .collect(Collectors.joining(" ")));
+    }
+
+    // Distinguish between with...in and using based on whether all values are the same
     if (fieldFills.isEmpty()) {
       return StringUtils.format("%s | fillnull with %s", child, MASK_LITERAL);
     }
     final UnresolvedExpression firstReplacement = fieldFills.getFirst().getRight();
     if (fieldFills.stream().allMatch(n -> firstReplacement == n.getRight())) {
+      // All fields use same replacement value -> with...in syntax
       return StringUtils.format(
           "%s | fillnull with %s in %s",
           child,
           MASK_LITERAL,
-          node.getReplacementPairs().stream()
+          fieldFills.stream()
               .map(n -> visitExpression(n.getLeft()))
               .collect(Collectors.joining(", ")));
     } else {
+      // Different replacement values per field -> using syntax
       return StringUtils.format(
           "%s | fillnull using %s",
           child,
-          node.getReplacementPairs().stream()
+          fieldFills.stream()
               .map(n -> StringUtils.format("%s = %s", visitExpression(n.getLeft()), MASK_LITERAL))
               .collect(Collectors.joining(", ")));
     }

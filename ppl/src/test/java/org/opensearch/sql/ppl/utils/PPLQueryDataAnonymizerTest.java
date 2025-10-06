@@ -282,6 +282,18 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testFillNullValueSyntaxWithFields() {
+    assertEquals(
+        "source=table | fillnull value=*** identifier identifier",
+        anonymize("source=t | fillnull value=0 f1 f2"));
+  }
+
+  @Test
+  public void testFillNullValueSyntaxAllFields() {
+    assertEquals("source=table | fillnull value=***", anonymize("source=t | fillnull value=0"));
+  }
+
+  @Test
   public void testRareCommandWithGroupBy() {
     when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(false);
     assertEquals(
