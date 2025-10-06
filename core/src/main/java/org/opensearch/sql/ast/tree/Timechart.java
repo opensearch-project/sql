@@ -6,10 +6,8 @@
 package org.opensearch.sql.ast.tree;
 
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
-import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.doubleLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.eval;
-import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.let;
 
@@ -20,6 +18,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Literal;
@@ -92,20 +91,14 @@ public class Timechart extends UnresolvedPlan {
     String originalName = "per_second(" + fieldName + ")";
     double divisor = (double) (extractIntervalSeconds() / 1); // unit = 1 for per_second
     return eval(
-        timechart(alias(originalName, sum(aggFunc.getField()))),
-        let(field(originalName), divide(field(originalName), doubleLiteral(divisor))));
+        timechart(AstDSL.alias(originalName, aggregate("sum", aggFunc.getField()))),
+        let(
+            AstDSL.field(originalName),
+            function("/", AstDSL.field(originalName), doubleLiteral(divisor))));
   }
 
   private String extractFieldName(UnresolvedExpression field) {
     return field instanceof Field ? ((Field) field).getField().toString() : field.toString();
-  }
-
-  private UnresolvedExpression sum(UnresolvedExpression field) {
-    return aggregate("sum", field);
-  }
-
-  private UnresolvedExpression divide(UnresolvedExpression left, UnresolvedExpression right) {
-    return function("/", left, right);
   }
 
   private Timechart timechart(UnresolvedExpression newAggregateFunction) {
