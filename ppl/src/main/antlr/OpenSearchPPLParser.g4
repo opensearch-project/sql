@@ -638,7 +638,7 @@ percentileApproxFunction
    ;
 
 perFunction
-   : PER_SECOND LT_PRTHS functionArg RT_PRTHS
+   : funcName=PER_SECOND LT_PRTHS functionArg RT_PRTHS
    ;
 
 numericLiteral

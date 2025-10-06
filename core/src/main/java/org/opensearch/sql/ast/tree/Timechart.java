@@ -89,7 +89,7 @@ public class Timechart extends UnresolvedPlan {
 
     String fieldName = extractFieldName(aggFunc.getField());
     String originalName = "per_second(" + fieldName + ")";
-    double divisor = (double) (extractIntervalSeconds() / 1); // unit = 1 for per_second
+    double divisor = (double) extractIntervalSeconds();
     return eval(
         timechart(AstDSL.alias(originalName, aggregate("sum", aggFunc.getField()))),
         let(
@@ -110,6 +110,6 @@ public class Timechart extends UnresolvedPlan {
     int intervalValue = ((Number) ((Literal) span.getValue()).getValue()).intValue();
     String unitString = SpanUnit.getName(span.getUnit());
     TimeUnitConfig config = TimeUnitRegistry.getConfig(unitString);
-    return config != null ? config.toSeconds(intervalValue) : 60L;
+    return config.toSeconds(intervalValue);
   }
 }
