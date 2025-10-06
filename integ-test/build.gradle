@@ -53,7 +53,8 @@ String bwcVersion = baseVersion + ".0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
 String calciteCodegen = "$projectDir/src/test/java/codegen/"
-boolean ignorePrometheus = (System.getProperty("ignorePrometheus") ?: "false").toBoolean()
+String ignorePrometheusProp = System.getProperty("ignorePrometheus")
+boolean ignorePrometheus = ignorePrometheusProp != null && !ignorePrometheusProp.equalsIgnoreCase("false")
 
 repositories {
     mavenCentral()

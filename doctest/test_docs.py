@@ -46,6 +46,10 @@ TEST_DATA = {
 }
 
 DEBUG_MODE = os.environ.get('DOCTEST_DEBUG', 'false').lower() == 'true'
+IGNORE_PROMETHEUS_DOCS = os.environ.get('IGNORE_PROMETHEUS_DOCS', 'false').lower() == 'true'
+PROMETHEUS_DOC_FILES = {
+    'user/ppl/cmd/showdatasources.rst'
+}
 
 
 def debug(message):
@@ -100,6 +104,13 @@ class CategoryManager:
         try:
             with open(file_path) as json_file:
                 categories = json.load(json_file)
+            if IGNORE_PROMETHEUS_DOCS:
+                categories = {
+                    category: [
+                        doc for doc in docs if doc not in PROMETHEUS_DOC_FILES
+                    ]
+                    for category, docs in categories.items()
+                }
             debug(f"Loaded {len(categories)} categories from {file_path}")
             return categories
         except Exception as e:
