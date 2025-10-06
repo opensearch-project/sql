@@ -105,6 +105,7 @@ import org.opensearch.sql.planner.logical.LogicalSort;
 public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> {
 
   private static final String MASK_LITERAL = "***";
+  private static final String MASK_IDENTIFIER = "identifier";
 
   private final AnonymizerExpressionAnalyzer expressionAnalyzer;
   private final Settings settings;
@@ -653,9 +654,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
           "%s | fillnull value=%s %s",
           child,
           MASK_LITERAL,
-          fieldFills.stream()
-              .map(n -> visitExpression(n.getLeft()))
-              .collect(Collectors.joining(" ")));
+          fieldFills.stream().map(n -> MASK_IDENTIFIER).collect(Collectors.joining(" ")));
     }
 
     // Distinguish between with...in and using based on whether all values are the same

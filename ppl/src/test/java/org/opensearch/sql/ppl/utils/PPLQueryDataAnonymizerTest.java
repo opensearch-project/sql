@@ -266,13 +266,13 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testFillNullValueSyntaxWithFields() {
     assertEquals(
-        "source=table | fillnull value=*** identifier identifier",
+        "source=t | fillnull value=*** identifier identifier",
         anonymize("source=t | fillnull value=0 f1 f2"));
   }
 
   @Test
   public void testFillNullValueSyntaxAllFields() {
-    assertEquals("source=table | fillnull value=***", anonymize("source=t | fillnull value=0"));
+    assertEquals("source=t | fillnull value=***", anonymize("source=t | fillnull value=0"));
   }
 
   @Test
