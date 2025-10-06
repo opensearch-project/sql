@@ -15,13 +15,17 @@ import static org.opensearch.sql.util.MatcherUtils.verifySome;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.TimeZone;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
+import org.opensearch.client.Request;
 import org.opensearch.sql.common.utils.StringUtils;
 
 @SuppressWarnings("unchecked")
@@ -1355,6 +1359,30 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testUnixTimestampWithTimestampString() throws IOException {
+    var result =
+        executeQuery(
+            String.format(
+                "source=%s | eval f = UNIX_TIMESTAMP('1984-06-06 12:00:00.123456') | fields f",
+                TEST_INDEX_DATE));
+    verifySchema(result, schema("f", null, "double"));
+    verifySome(result.getJSONArray("datarows"), rows(4.55371200123456E8));
+  }
+
+  // TODO: Enable after fixing #3728
+  @Ignore
+  @Test
+  public void testUnixTimestampWithDateString() throws IOException {
+    var result =
+        executeQuery(
+            String.format(
+                "source=%s | eval f = UNIX_TIMESTAMP('1984-06-06 12:00:00.123456') | fields f",
+                TEST_INDEX_DATE));
+    verifySchema(result, schema("f", null, "double"));
+    verifySome(result.getJSONArray("datarows"), rows(4.55371200123456E8));
+  }
+
+  @Test
   public void testPeriodAdd() throws IOException {
     var result =
         executeQuery(
@@ -1533,5 +1561,32 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
                 TEST_INDEX_DATE));
     verifySchema(result, schema("f1", null, "bigint"), schema("f2", null, "bigint"));
     verifySome(result.getJSONArray("datarows"), rows(1997L, 17L));
+  }
+
+  @Test
+  public void testCompareAgainstUTCDate() throws IOException {
+    LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+    String isoTimestamp = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"));
+    String pplTimestamp = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+    // a random ID that did not exist in the index bank
+    int DOC_ID = 40;
+    Request putRequest =
+        new Request("PUT", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_BANK, DOC_ID));
+    putRequest.setJsonEntity(String.format("{\"birthdate\":\"%s\"}", isoTimestamp));
+    client().performRequest(putRequest);
+
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where birthdate > date_sub(now(), interval 1 hour) and birthdate <"
+                    + " date_add(now(), interval 1 hour) | fields birthdate",
+                TEST_INDEX_BANK));
+
+    Request deleteRequest =
+        new Request("DELETE", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_BANK, DOC_ID));
+    client().performRequest(deleteRequest);
+
+    verifySchema(result, schema("birthdate", "timestamp"));
+    verifyDataRows(result, rows(pplTimestamp));
   }
 }

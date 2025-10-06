@@ -10,6 +10,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENABLED;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STRINGS;
 
 import java.io.IOException;
 import org.json.JSONObject;
@@ -23,6 +24,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
     super.init();
     loadIndex(Index.BANK);
     loadIndex(Index.DOG);
+    loadIndex(Index.BANK_WITH_STRING_VALUES);
   }
 
   @Test
@@ -59,6 +61,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   public void testSubsearch() throws IOException {
     JSONObject result;
     try {
+
       result =
           executeQuery(
               String.format(
@@ -117,6 +120,50 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
       result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
     }
     verifyQuery(result);
+  }
+
+  @Test
+  public void testRegexMatch() throws IOException {
+    // Test regex_match with pattern that matches substring
+    try {
+      executeQuery(
+          String.format(
+              "source=%s | eval f=regex_match(name, 'ell') | fields f", TEST_INDEX_STRINGS));
+    } catch (ResponseException e) {
+      JSONObject result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+      verifyQuery(result);
+    }
+  }
+
+  @Test
+  public void testAppend() throws IOException {
+    JSONObject result;
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "search source=%s | stats count() by span(age, 10) | append [ search source=%s |"
+                      + " stats avg(balance) by span(age, 10) ]",
+                  TEST_INDEX_BANK, TEST_INDEX_BANK));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    verifyQuery(result);
+  }
+
+  @Test
+  public void testStrftimeFunction() throws IOException {
+    JSONObject result;
+    try {
+      executeQuery(
+          String.format(
+              "search source=%s | eval formatted_time = strftime(1521467703, '%s') | fields"
+                  + " formatted_time",
+              TEST_INDEX_BANK, "%Y-%m-%d"));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+      verifyQuery(result);
+    }
   }
 
   private void verifyQuery(JSONObject result) throws IOException {

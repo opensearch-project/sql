@@ -33,9 +33,9 @@ import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
-import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.BucketAggregationBuilder;
+import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.CompositeAggregationBuilder;
 import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.MetricAggregationBuilder;
-import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.serde.ExpressionSerializer;
 
 /**
  * Build the AggregationBuilder from the list of {@link NamedAggregator} and list of {@link
@@ -47,15 +47,15 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
   /** How many composite buckets should be returned. */
   public static final int AGGREGATION_BUCKET_SIZE = 1000;
 
-  /** Bucket Aggregation builder. */
-  private final BucketAggregationBuilder bucketBuilder;
+  /** Composite Aggregation builder for multiple buckets. */
+  private final CompositeAggregationBuilder compositeBuilder;
 
   /** Metric Aggregation builder. */
   private final MetricAggregationBuilder metricBuilder;
 
   /** Aggregation Query Builder Constructor. */
   public AggregationQueryBuilder(ExpressionSerializer serializer) {
-    this.bucketBuilder = new BucketAggregationBuilder(serializer);
+    this.compositeBuilder = new CompositeAggregationBuilder(serializer);
     this.metricBuilder = new MetricAggregationBuilder(serializer);
   }
 
@@ -64,7 +64,8 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
       buildAggregationBuilder(
           List<NamedAggregator> namedAggregatorList,
           List<NamedExpression> groupByList,
-          List<Pair<Sort.SortOption, Expression>> sortList) {
+          List<Pair<Sort.SortOption, Expression>> sortList,
+          boolean bucketNullable) {
 
     final Pair<AggregatorFactories.Builder, List<MetricParser>> metrics =
         metricBuilder.build(namedAggregatorList);
@@ -75,12 +76,13 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
           ImmutableList.copyOf(metrics.getLeft().getAggregatorFactories()),
           new NoBucketAggregationParser(metrics.getRight()));
     } else {
+      // multiple bucket, use composite builder
       GroupSortOrder groupSortOrder = new GroupSortOrder(sortList);
       return Pair.of(
           Collections.singletonList(
               AggregationBuilders.composite(
                       "composite_buckets",
-                      bucketBuilder.build(
+                      compositeBuilder.build(
                           groupByList.stream()
                               .sorted(groupSortOrder)
                               .map(
@@ -89,7 +91,8 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
                                           expr,
                                           groupSortOrder.sortOrder(expr),
                                           groupSortOrder.missingOrder(expr)))
-                              .collect(Collectors.toList())))
+                              .collect(Collectors.toList()),
+                          bucketNullable))
                   .subAggregations(metrics.getLeft())
                   .size(AGGREGATION_BUCKET_SIZE)),
           new CompositeAggregationParser(metrics.getRight()));

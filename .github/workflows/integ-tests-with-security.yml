@@ -9,6 +9,7 @@ on:
     paths:
       - 'integ-test/**'
       - '.github/workflows/integ-tests-with-security.yml'
+  merge_group:
 
 jobs:
   Get-CI-Image-Tag:
@@ -21,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java: [21, 23]
+        java: [21, 24]
     runs-on: ubuntu-latest
     container:
       # using the same image which is used by opensearch-build team to build the OpenSearch Distribution
@@ -62,7 +63,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ windows-latest, macos-13 ]
-        java: [21, 23]
+        java: [21, 24]
 
     runs-on: ${{ matrix.os }}
 

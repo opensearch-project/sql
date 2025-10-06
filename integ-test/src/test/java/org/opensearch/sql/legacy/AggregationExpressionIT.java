@@ -71,7 +71,7 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
                 Index.BANK.getName()));
 
     verifySchema(response, schema("gender", null, "text"), schema("AVG(age)", "avg", "double"));
-    verifyDataRows(response, rows("m", 34.25), rows("f", 33.666666666666664d));
+    verifyDataRows(response, rows("M", 34.25), rows("F", 33.666666666666664d));
   }
 
   @Test
@@ -86,7 +86,7 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
         response,
         schema("gender", null, "text"),
         schema("MAX(age) + MIN(age)", "addValue", "long"));
-    verifyDataRows(response, rows("m", 60), rows("f", 60));
+    verifyDataRows(response, rows("M", 60), rows("F", 60));
   }
 
   @Test
@@ -98,7 +98,7 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
                 Index.ACCOUNT.getName()));
 
     verifySchema(response, schema("gender", null, "text"), schema("MAX(age) + 1", "add", "long"));
-    verifyDataRows(response, rows("m", 41), rows("f", 41));
+    verifyDataRows(response, rows("M", 41), rows("F", 41));
   }
 
   @Test
@@ -126,7 +126,7 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
         response,
         schema("gender", null, "text"),
         schema("Log(MAX(age) + MIN(age))", "logValue", "double"));
-    verifyDataRows(response, rows("m", 4.0943445622221d), rows("f", 4.0943445622221d));
+    verifyDataRows(response, rows("M", 4.0943445622221d), rows("F", 4.0943445622221d));
   }
 
   @Test
@@ -136,7 +136,7 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
             String.format(
                 "SELECT gender, age+10, max(balance) as `max` "
                     + "FROM %s "
-                    + "WHERE gender = 'm' and age < 22 "
+                    + "WHERE gender = 'M' and age < 22 "
                     + "GROUP BY gender, age "
                     + "ORDER BY age",
                 Index.ACCOUNT.getName()));
@@ -146,7 +146,7 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
         schema("gender", null, "text"),
         schema("age+10", null, "long"),
         schema("max(balance)", "max", "long"));
-    verifyDataRows(response, rows("m", 30, 49568), rows("m", 31, 49433));
+    verifyDataRows(response, rows("M", 30, 49568), rows("M", 31, 49433));
   }
 
   @Test
@@ -156,7 +156,7 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
             String.format(
                 "SELECT gender, Log(age+10) as logAge, max(balance) as max "
                     + "FROM %s "
-                    + "WHERE gender = 'm' and age < 22 "
+                    + "WHERE gender = 'M' and age < 22 "
                     + "GROUP BY gender, age "
                     + "ORDER BY age",
                 Index.ACCOUNT.getName()));
@@ -167,7 +167,7 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
         schema("Log(age+10)", "logAge", "double"),
         schema("max(balance)", "max", "long"));
     verifyDataRows(
-        response, rows("m", 3.4011973816621555d, 49568), rows("m", 3.4339872044851463d, 49433));
+        response, rows("M", 3.4011973816621555d, 49568), rows("M", 3.4339872044851463d, 49433));
   }
 
   @Test
@@ -177,7 +177,7 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
             String.format(
                 "SELECT gender, Log(age+10) as logAge, max(balance) - 100 as max "
                     + "FROM %s "
-                    + "WHERE gender = 'm' and age < 22 "
+                    + "WHERE gender = 'M' and age < 22 "
                     + "GROUP BY gender, age "
                     + "ORDER BY age",
                 Index.ACCOUNT.getName()));
@@ -188,7 +188,7 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
         schema("Log(age+10)", "logAge", "double"),
         schema("max(balance) - 100", "max", "long"));
     verifyDataRows(
-        response, rows("m", 3.4011973816621555d, 49468), rows("m", 3.4339872044851463d, 49333));
+        response, rows("M", 3.4011973816621555d, 49468), rows("M", 3.4339872044851463d, 49333));
   }
 
   /** The date is in JDBC format. */
@@ -204,7 +204,7 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
                 Index.BANK.getName()));
 
     verifySchema(
-        response, schema("birthdate", null, "timestamp"), schema("count(*)", "count", "integer"));
+        response, schema("birthdate", null, "timestamp"), schema("count(*)", "count", "long"));
     verifyDataRows(response, rows("2018-06-23 00:00:00", 1));
   }
 
@@ -220,9 +220,7 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
                 Index.BANK.getName()));
 
     verifySchema(
-        response,
-        schema("birthdate", "birth", "timestamp"),
-        schema("count(*)", "count", "integer"));
+        response, schema("birthdate", "birth", "timestamp"), schema("count(*)", "count", "long"));
     verifyDataRows(response, rows("2018-06-23 00:00:00", 1));
   }
 

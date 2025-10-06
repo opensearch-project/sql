@@ -20,7 +20,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionTestBase;
@@ -96,20 +96,28 @@ class WeekdayTest extends ExpressionTestBase {
                 6,
                 "weekday(\"2021-02-28\")"),
         // Feb. 29 of a non-leap year
-        () -> assertThrows(SemanticCheckException.class, () -> testInvalidWeekday("2021-02-29")));
+        () ->
+            assertThrows(
+                ExpressionEvaluationException.class, () -> testInvalidWeekday("2021-02-29")));
   }
 
   @Test
   public void weekdayInvalidArgument() {
     assertAll(
         // 40th day of the month
-        () -> assertThrows(SemanticCheckException.class, () -> testInvalidWeekday("2021-02-40")),
+        () ->
+            assertThrows(
+                ExpressionEvaluationException.class, () -> testInvalidWeekday("2021-02-40")),
 
         // 13th month of the year
-        () -> assertThrows(SemanticCheckException.class, () -> testInvalidWeekday("2021-13-29")),
+        () ->
+            assertThrows(
+                ExpressionEvaluationException.class, () -> testInvalidWeekday("2021-13-29")),
 
         // incorrect format
-        () -> assertThrows(SemanticCheckException.class, () -> testInvalidWeekday("asdfasdf")));
+        () ->
+            assertThrows(
+                ExpressionEvaluationException.class, () -> testInvalidWeekday("asdfasdf")));
   }
 
   private ExprValue eval(Expression expression) {

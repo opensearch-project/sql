@@ -82,6 +82,27 @@ public class QueryValidationIT extends SQLIntegTestCase {
             "SELECT SUM(age) FROM opensearch-sql_test_index_account GROUP BY state.keyword");
   }
 
+  @Test
+  public void testSqlQueryWithArrayPayloadShouldFailWithBadRequest() throws IOException {
+    expectResponseException()
+        .hasStatusCode(BAD_REQUEST)
+        .hasErrorType("IllegalArgumentException")
+        .containsMessage("Failed to parse request payload");
+
+    whenExecuteMalformedPayload();
+  }
+
+  private static void whenExecuteMalformedPayload() throws IOException {
+    Request request = new Request("POST", QUERY_API_ENDPOINT);
+    request.setJsonEntity("{ \"query\": [\"SELECT * FROM opensearch-sql_test_index_account\"] }");
+
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+
+    client().performRequest(request);
+  }
+
   public ResponseExceptionAssertion expectResponseException() {
     return new ResponseExceptionAssertion(exceptionRule);
   }

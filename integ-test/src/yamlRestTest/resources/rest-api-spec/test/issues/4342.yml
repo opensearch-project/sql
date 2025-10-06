@@ -1,0 +1,55 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"No index found with given index pattern should throw IndexNotFoundException":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      indices.create:
+        index: log-test
+        body:
+          mappings:
+            properties:
+              "@timestamp":
+                type: date
+
+  - do:
+      bulk:
+        index: log-test
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{ "@timestamp" : "2025-09-04T16:15:00.000Z" }'
+
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=log-* | fields @timestamp
+
+  - match: { total: 1 }
+  - length: { datarows: 1 }
+
+  - do:
+      catch: missing # without the patch #4342, it throws 'bad_request' rather 'missing'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=log-abc* | fields @timestamp

@@ -59,7 +59,11 @@ import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl
 import org.opensearch.sql.datasources.encryptor.EncryptorImpl;
 import org.opensearch.sql.datasources.glue.GlueDataSourceFactory;
 import org.opensearch.sql.datasources.glue.SecurityLakeDataSourceFactory;
-import org.opensearch.sql.datasources.model.transport.*;
+import org.opensearch.sql.datasources.model.transport.CreateDataSourceActionResponse;
+import org.opensearch.sql.datasources.model.transport.DeleteDataSourceActionResponse;
+import org.opensearch.sql.datasources.model.transport.GetDataSourceActionResponse;
+import org.opensearch.sql.datasources.model.transport.PatchDataSourceActionResponse;
+import org.opensearch.sql.datasources.model.transport.UpdateDataSourceActionResponse;
 import org.opensearch.sql.datasources.rest.RestDataSourceQueryAction;
 import org.opensearch.sql.datasources.service.DataSourceMetadataStorage;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
@@ -69,6 +73,16 @@ import org.opensearch.sql.datasources.transport.TransportDeleteDataSourceAction;
 import org.opensearch.sql.datasources.transport.TransportGetDataSourceAction;
 import org.opensearch.sql.datasources.transport.TransportPatchDataSourceAction;
 import org.opensearch.sql.datasources.transport.TransportUpdateDataSourceAction;
+import org.opensearch.sql.directquery.DirectQueryExecutorService;
+import org.opensearch.sql.directquery.rest.RestDirectQueryManagementAction;
+import org.opensearch.sql.directquery.rest.RestDirectQueryResourcesManagementAction;
+import org.opensearch.sql.directquery.transport.TransportExecuteDirectQueryRequestAction;
+import org.opensearch.sql.directquery.transport.TransportGetDirectQueryResourcesRequestAction;
+import org.opensearch.sql.directquery.transport.TransportWriteDirectQueryResourcesRequestAction;
+import org.opensearch.sql.directquery.transport.config.DirectQueryModule;
+import org.opensearch.sql.directquery.transport.model.ExecuteDirectQueryActionResponse;
+import org.opensearch.sql.directquery.transport.model.ReadDirectQueryResourcesActionResponse;
+import org.opensearch.sql.directquery.transport.model.WriteDirectQueryResourcesActionResponse;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.executor.AsyncRestExecutor;
 import org.opensearch.sql.legacy.metrics.Metrics;
@@ -77,8 +91,7 @@ import org.opensearch.sql.legacy.plugin.RestSqlStatsAction;
 import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
-import org.opensearch.sql.opensearch.storage.script.ExpressionScriptEngine;
-import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine;
 import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
 import org.opensearch.sql.plugin.rest.RestPPLQueryAction;
 import org.opensearch.sql.plugin.rest.RestPPLStatsAction;
@@ -154,7 +167,9 @@ public class SQLPlugin extends Plugin
         new RestPPLStatsAction(settings, restController),
         new RestQuerySettingsAction(settings, restController),
         new RestDataSourceQueryAction((OpenSearchSettings) pluginSettings),
-        new RestAsyncQueryManagementAction((OpenSearchSettings) pluginSettings));
+        new RestAsyncQueryManagementAction((OpenSearchSettings) pluginSettings),
+        new RestDirectQueryManagementAction((OpenSearchSettings) pluginSettings),
+        new RestDirectQueryResourcesManagementAction((OpenSearchSettings) pluginSettings));
   }
 
   /** Register action and handler so that transportClient can find proxy for action. */
@@ -194,7 +209,22 @@ public class SQLPlugin extends Plugin
         new ActionHandler<>(
             new ActionType<>(
                 TransportCancelAsyncQueryRequestAction.NAME, CancelAsyncQueryActionResponse::new),
-            TransportCancelAsyncQueryRequestAction.class));
+            TransportCancelAsyncQueryRequestAction.class),
+        new ActionHandler<>(
+            new ActionType<>(
+                TransportExecuteDirectQueryRequestAction.NAME,
+                ExecuteDirectQueryActionResponse::new),
+            TransportExecuteDirectQueryRequestAction.class),
+        new ActionHandler<>(
+            new ActionType<>(
+                TransportGetDirectQueryResourcesRequestAction.NAME,
+                ReadDirectQueryResourcesActionResponse::new),
+            TransportGetDirectQueryResourcesRequestAction.class),
+        new ActionHandler<>(
+            new ActionType<>(
+                TransportWriteDirectQueryResourcesRequestAction.NAME,
+                WriteDirectQueryResourcesActionResponse::new),
+            TransportWriteDirectQueryResourcesRequestAction.class));
   }
 
   @Override
@@ -228,6 +258,7 @@ public class SQLPlugin extends Plugin
           b.bind(ClusterService.class).toInstance(clusterService);
         });
     modules.add(new AsyncExecutorServiceModule());
+    modules.add(new DirectQueryModule());
     injector = modules.createInjector();
     ClusterManagerEventListener clusterManagerEventListener =
         new ClusterManagerEventListener(
@@ -243,13 +274,22 @@ public class SQLPlugin extends Plugin
             dataSourceService,
             injector.getInstance(FlintIndexMetadataServiceImpl.class),
             injector.getInstance(FlintIndexOpFactory.class));
+
+    // Passing the service to Transport actions
     AsyncQueryExecutorService asyncQueryExecutorService =
         injector.getInstance(AsyncQueryExecutorService.class);
+    DirectQueryExecutorService directQueryExecutorService =
+        injector.getInstance(DirectQueryExecutorService.class);
+
     ScheduledAsyncQueryJobRunner.getJobRunnerInstance()
         .loadJobResource(client, clusterService, threadPool, asyncQueryExecutorService);
 
     return ImmutableList.of(
-        dataSourceService, asyncQueryExecutorService, clusterManagerEventListener, pluginSettings);
+        dataSourceService,
+        asyncQueryExecutorService,
+        clusterManagerEventListener,
+        pluginSettings,
+        directQueryExecutorService);
   }
 
   @Override
@@ -293,7 +333,7 @@ public class SQLPlugin extends Plugin
 
   @Override
   public ScriptEngine getScriptEngine(Settings settings, Collection<ScriptContext<?>> contexts) {
-    return new ExpressionScriptEngine(new DefaultExpressionSerializer());
+    return new CompoundedScriptEngine();
   }
 
   private DataSourceServiceImpl createDataSourceService() {

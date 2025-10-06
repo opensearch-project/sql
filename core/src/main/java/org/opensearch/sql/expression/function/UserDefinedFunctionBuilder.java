@@ -11,7 +11,6 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.InferTypes;
-import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 
@@ -31,11 +30,22 @@ public interface UserDefinedFunctionBuilder {
 
   SqlReturnTypeInference getReturnTypeInference();
 
-  default SqlOperandMetadata getOperandMetadata() {
-    return null;
-  }
+  UDFOperandMetadata getOperandMetadata();
 
   default SqlUserDefinedFunction toUDF(String functionName) {
+    return toUDF(functionName, true);
+  }
+
+  /**
+   * In some rare cases, we need to call out the UDF to be not deterministic to avoid Volcano
+   * planner over-optimization. For example, we don't need ReduceExpressionsRule to optimize
+   * relevance query UDF.
+   *
+   * @param functionName UDF name to be registered
+   * @param isDeterministic Specified isDeterministic flag
+   * @return Calcite SqlUserDefinedFunction
+   */
+  default SqlUserDefinedFunction toUDF(String functionName, boolean isDeterministic) {
     SqlIdentifier udfLtrimIdentifier =
         new SqlIdentifier(Collections.singletonList(functionName), null, SqlParserPos.ZERO, null);
     return new SqlUserDefinedFunction(
@@ -44,6 +54,11 @@ public interface UserDefinedFunctionBuilder {
         getReturnTypeInference(),
         InferTypes.ANY_NULLABLE,
         getOperandMetadata(),
-        getFunction());
+        getFunction()) {
+      @Override
+      public boolean isDeterministic() {
+        return isDeterministic;
+      }
+    };
   }
 }

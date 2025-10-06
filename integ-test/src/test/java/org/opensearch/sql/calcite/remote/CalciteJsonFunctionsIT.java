@@ -5,14 +5,14 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import org.junit.Ignore;
 import org.opensearch.sql.ppl.JsonFunctionsIT;
 
+@Ignore("https://github.com/opensearch-project/sql/issues/3436")
 public class CalciteJsonFunctionsIT extends JsonFunctionsIT {
   @Override
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    // TODO: "https://github.com/opensearch-project/sql/issues/3436"
-    // disallowCalciteFallback();
   }
 }

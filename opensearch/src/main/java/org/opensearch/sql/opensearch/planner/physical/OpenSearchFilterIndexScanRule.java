@@ -2,11 +2,13 @@
  * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 package org.opensearch.sql.opensearch.planner.physical;
 
 import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.immutables.value.Value;
@@ -37,9 +39,9 @@ public class OpenSearchFilterIndexScanRule extends RelRule<OpenSearchFilterIndex
   }
 
   protected void apply(RelOptRuleCall call, Filter filter, CalciteLogicalIndexScan scan) {
-    CalciteLogicalIndexScan newScan = scan.pushDownFilter(filter);
-    if (newScan != null) {
-      call.transformTo(newScan);
+    AbstractRelNode newRel = scan.pushDownFilter(filter);
+    if (newRel != null) {
+      call.transformTo(newRel);
     }
   }
 

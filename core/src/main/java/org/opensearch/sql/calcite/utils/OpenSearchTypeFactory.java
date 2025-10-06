@@ -245,7 +245,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       case ARRAY -> ARRAY;
       case MAP -> STRUCT;
       case GEOMETRY -> GEO_POINT;
-      case NULL -> UNDEFINED;
+      case NULL, ANY, OTHER -> UNDEFINED;
       default -> UNKNOWN;
     };
   }
@@ -259,7 +259,8 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
 
   /** Converts a Calcite data type to OpenSearch ExprCoreType. */
   public static ExprType convertRelDataTypeToExprType(RelDataType type) {
-    if (type instanceof AbstractExprRelDataType<?> udt) {
+    if (isUserDefinedType(type)) {
+      AbstractExprRelDataType<?> udt = (AbstractExprRelDataType<?>) type;
       return udt.getExprType();
     }
     ExprType exprType = convertSqlTypeNameToExprType(type.getSqlTypeName());
@@ -325,5 +326,15 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       return exprRelDataType.getJavaType();
     }
     return super.getJavaClass(type);
+  }
+
+  /**
+   * Whether a given RelDataType is a user-defined type (UDT)
+   *
+   * @param type the RelDataType to check
+   * @return true if the type is a user-defined type, false otherwise
+   */
+  public static boolean isUserDefinedType(RelDataType type) {
+    return type instanceof AbstractExprRelDataType<?>;
   }
 }

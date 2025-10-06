@@ -24,7 +24,7 @@ Refer below sections for quick setup.
 
 
 Definitions of datasource and connector
-====================================
+=======================================
 * Connector is a component that adapts the query engine to a datastore. For example, Prometheus connector would adapt and help execute the queries to run on Prometheus datastore. connector name is enough in the datasource definition json.
 * Datasource is a construct to define how to connect to a data store and which connector to adapt by query engine.
 
@@ -56,7 +56,7 @@ Datasource configuration Restrictions.
 
 
 Datasource configuration APIs
-======================================
+=============================
 Datasource configuration can be managed using below REST APIs. All the examples below are for OpenSearch domains enabled with secure domain.
 we can remove authorization and other details in case of security disabled domains.
 
@@ -158,14 +158,14 @@ Master Key config for encrypting credential information
     print("Generated master key:", master_key)
 
 Datasource URI Hosts Deny Lists Config
-========================================================
+======================================
 * In the OpenSearch configuration file (opensearch.yml), the parameter "plugins.query.datasources.uri.hosts.denylist" can be utilized to control the permitted host ips within the datasource URI configuration.
 * By default, the value is set to empty list, which allows any domain to be accepted.
 * For instance, if you set the value to `127.0.0.0/8`, ppl plugins will deny all the query requests where the datasource URI resolves to the ip range from `127.0.0.0` to `127.255.255.255`
 
 
 Using a datasource in PPL command
-====================================
+=================================
 Datasource is referred in source command as show in the code block below.
 Based on the abstraction designed by the connector,
 one can refer the corresponding entity as table in the source command.
@@ -201,7 +201,7 @@ Moving from keystore datasource configuration
 * To port previously configured datasources from the keystore, users can use the `create datasource` REST API mentioned in the above section.
 
 Disabling a datasource to block new queries
-=============================================
+===========================================
 * We can disable a datasource using PATCH or PUT API. Below is the example request for disabling a datasource named "my_prometheus" using PATCH API. ::
 
     PATCH https://localhost:9200/_plugins/_query/_datasources
@@ -212,3 +212,57 @@ Disabling a datasource to block new queries
         "name" : "my_prometheus",
         "status" : "disabled"
     }
+
+
+Metadata queries using information_schema
+=========================================
+Use ``information_schema`` in source command to query tables information under a datasource.
+In the current state, ``information_schema`` only support metadata of tables.
+This schema will be extended for views, columns and other metadata info in future.
+
+Syntax
+------
+source = datasource.information_schema.tables;
+
+Example 1: Fetch tables in prometheus datasource
+------------------------------------------------
+
+The examples fetches tables in the prometheus datasource.
+
+PPL query for fetching PROMETHEUS TABLES with where clause::
+
+    PPL> source = my_prometheus.information_schema.tables | where TABLE_NAME='prometheus_http_requests_total'
+    fetched rows / total rows = 1/1
+    +---------------+--------------+--------------------------------+------------+------+---------------------------+
+    | TABLE_CATALOG | TABLE_SCHEMA | TABLE_NAME                     | TABLE_TYPE | UNIT | REMARKS                   |
+    |---------------+--------------+--------------------------------+------------+------+---------------------------|
+    | my_prometheus | default      | prometheus_http_requests_total | counter    |      | Counter of HTTP requests. |
+    +---------------+--------------+--------------------------------+------------+------+---------------------------+
+
+
+Example 2: Search tables in prometheus datasource
+-------------------------------------------------
+
+The examples searches tables in the prometheus datasource.
+
+PPL query for searching PROMETHEUS TABLES::
+
+    PPL> source = my_prometheus.information_schema.tables | where LIKE(TABLE_NAME, "%http%");
+    fetched rows / total rows = 6/6
+     +---------------+--------------+--------------------------------------------+------------+------+----------------------------------------------------+
+    | TABLE_CATALOG | TABLE_SCHEMA | TABLE_NAME                                 | TABLE_TYPE | UNIT | REMARKS                                            |
+    |---------------+--------------+--------------------------------------------+------------+------+----------------------------------------------------|
+    | my_prometheus | default      | prometheus_http_requests_total             | counter    |      | Counter of HTTP requests.                          |
+    | my_prometheus | default      | promhttp_metric_handler_requests_in_flight | gauge      |      | Current number of scrapes being served.            |
+    | my_prometheus | default      | prometheus_http_request_duration_seconds   | histogram  |      | Histogram of latencies for HTTP requests.          |
+    | my_prometheus | default      | prometheus_sd_http_failures_total          | counter    |      | Number of HTTP service discovery refresh failures. |
+    | my_prometheus | default      | promhttp_metric_handler_requests_total     | counter    |      | Total number of scrapes by HTTP status code.       |
+    | my_prometheus | default      | prometheus_http_response_size_bytes        | histogram  |      | Histogram of response size for HTTP requests.      |
+    +---------------+--------------+--------------------------------------------+------------+------+----------------------------------------------------+
+
+
+Limitations
+===========
+
+In using PPL, data sources except OpenSearch can only work with ``plugins.calcite.enabled=false``.
+When Calcite is enabled, queries against non-OpenSearch data sources will implicit fallback to v2, which means new PPL commands/functions introduced in 3.0.0 and above cannot work together with non-OpenSearch data sources.

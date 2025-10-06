@@ -7,10 +7,8 @@ package org.opensearch.sql.ast.dsl;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
@@ -39,6 +37,7 @@ import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
+import org.opensearch.sql.ast.expression.PatternMode;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.ScoreFunction;
 import org.opensearch.sql.ast.expression.Span;
@@ -50,23 +49,32 @@ import org.opensearch.sql.ast.expression.When;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.Bin;
+import org.opensearch.sql.ast.tree.CountBin;
 import org.opensearch.sql.ast.tree.Dedupe;
+import org.opensearch.sql.ast.tree.DefaultBin;
 import org.opensearch.sql.ast.tree.DescribeRelation;
 import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Limit;
+import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
+import org.opensearch.sql.ast.tree.RangeBin;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.SPath;
+import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
@@ -102,6 +110,10 @@ public class AstDSL {
     return new DescribeRelation(qualifiedName(tableName));
   }
 
+  public static UnresolvedPlan search(UnresolvedPlan input, String queryString) {
+    return new Search(input, queryString);
+  }
+
   public UnresolvedPlan subqueryAlias(UnresolvedPlan child, String alias) {
     return new SubqueryAlias(child, alias);
   }
@@ -116,6 +128,10 @@ public class AstDSL {
 
   public static Eval eval(UnresolvedPlan input, Let... projectList) {
     return new Eval(Arrays.asList(projectList)).attach(input);
+  }
+
+  public Expand expand(UnresolvedPlan input, Field field, String alias) {
+    return new Expand(field, alias).attach(input);
   }
 
   public static UnresolvedPlan projectWithArg(
@@ -438,6 +454,7 @@ public class AstDSL {
         argument("partitions", intLiteral(1)),
         argument("allnum", booleanLiteral(false)),
         argument("delim", stringLiteral(" ")),
+        argument(Argument.BUCKET_NULLABLE, booleanLiteral(true)),
         argument("dedupsplit", booleanLiteral(false)));
   }
 
@@ -461,8 +478,43 @@ public class AstDSL {
     return new Span(field, value, unit);
   }
 
+  /**
+   * Creates a Span expression from a field and a span length literal. Parses string literals to
+   * extract numeric value and time unit (e.g., "1h" -> value=1, unit=h).
+   *
+   * @param field The field expression to apply the span to
+   * @param spanLengthLiteral The literal value containing either a string with embedded unit (e.g.,
+   *     "1h", "30m") or a plain number
+   * @return A Span expression with parsed value and unit
+   */
+  public static Span spanFromSpanLengthLiteral(
+      UnresolvedExpression field, Literal spanLengthLiteral) {
+    if (spanLengthLiteral.getType() == DataType.STRING) {
+      String spanText = spanLengthLiteral.getValue().toString();
+      String valueStr = spanText.replaceAll("[^0-9]", "");
+      String unitStr = spanText.replaceAll("[0-9]", "");
+
+      if (valueStr.isEmpty()) {
+        // No numeric value found, use the literal as-is
+        return new Span(field, spanLengthLiteral, SpanUnit.NONE);
+      } else {
+        // Parse numeric value and unit
+        Integer value = Integer.parseInt(valueStr);
+        SpanUnit unit = unitStr.isEmpty() ? SpanUnit.NONE : SpanUnit.of(unitStr);
+        return span(field, intLiteral(value), unit);
+      }
+    } else {
+      // Non-string literal (e.g., integer)
+      return span(field, spanLengthLiteral, SpanUnit.NONE);
+    }
+  }
+
   public static Sort sort(UnresolvedPlan input, Field... sorts) {
-    return new Sort(input, Arrays.asList(sorts));
+    return new Sort(Arrays.asList(sorts)).attach(input);
+  }
+
+  public static Sort sort(UnresolvedPlan input, Integer count, Field... sorts) {
+    return new Sort(count, Arrays.asList(sorts)).attach(input);
   }
 
   public static Dedupe dedupe(UnresolvedPlan input, List<Argument> options, Field... fields) {
@@ -512,23 +564,31 @@ public class AstDSL {
     return new Parse(parseMethod, sourceField, pattern, arguments, input);
   }
 
+  public static SPath spath(UnresolvedPlan input, String inField, String outField, String path) {
+    return new SPath(input, inField, outField, path);
+  }
+
   public static Patterns patterns(
       UnresolvedPlan input,
-      PatternMethod patternMethod,
       UnresolvedExpression sourceField,
+      List<UnresolvedExpression> partitionByList,
       String alias,
-      List<Argument> arguments) {
-    List<UnresolvedExpression> funArgs = new ArrayList<>();
-    funArgs.add(sourceField);
-    funArgs.addAll(arguments);
+      PatternMethod patternMethod,
+      PatternMode patternMode,
+      UnresolvedExpression patternMaxSampleCount,
+      UnresolvedExpression patternBufferLimit,
+      UnresolvedExpression showNumberedToken,
+      java.util.Map<String, Literal> arguments) {
     return new Patterns(
-        new Alias(
-            alias,
-            new WindowFunction(
-                new Function(patternMethod.name().toLowerCase(Locale.ROOT), funArgs),
-                List.of(),
-                List.of()),
-            alias),
+        sourceField,
+        partitionByList,
+        alias,
+        patternMethod,
+        patternMode,
+        patternMaxSampleCount,
+        patternBufferLimit,
+        showNumberedToken,
+        arguments,
         input);
   }
 
@@ -537,8 +597,22 @@ public class AstDSL {
   }
 
   public static FillNull fillNull(
+      UnresolvedPlan input, UnresolvedExpression replacement, boolean useValueSyntax) {
+    return FillNull.ofSameValue(replacement, ImmutableList.of(), useValueSyntax).attach(input);
+  }
+
+  public static FillNull fillNull(
       UnresolvedPlan input, UnresolvedExpression replacement, Field... fields) {
     return FillNull.ofSameValue(replacement, ImmutableList.copyOf(fields)).attach(input);
+  }
+
+  public static FillNull fillNull(
+      UnresolvedPlan input,
+      UnresolvedExpression replacement,
+      boolean useValueSyntax,
+      Field... fields) {
+    return FillNull.ofSameValue(replacement, ImmutableList.copyOf(fields), useValueSyntax)
+        .attach(input);
   }
 
   public static FillNull fillNull(
@@ -550,5 +624,93 @@ public class AstDSL {
           Pair.of(fieldAndReplacement.getLeft(), fieldAndReplacement.getRight()));
     }
     return FillNull.ofVariousValue(replacementsBuilder.build()).attach(input);
+  }
+
+  /**
+   * Creates a Bin node with an input plan for binning field values into discrete buckets.
+   *
+   * @param input the input plan
+   * @param field the field expression to bin
+   * @param arguments optional arguments for bin configuration (span, bins, minspan, aligntime,
+   *     start, end, alias)
+   * @return Bin node attached to the input plan
+   */
+  public static Bin bin(UnresolvedPlan input, UnresolvedExpression field, Argument... arguments) {
+    Bin binNode = bin(field, arguments);
+    binNode.attach(input);
+    return binNode;
+  }
+
+  /**
+   * Creates a Bin node for binning field values into discrete buckets. Returns the appropriate Bin
+   * subclass based on parameter priority: 1. SPAN (highest) -> SpanBin 2. MINSPAN -> MinSpanBin 3.
+   * BINS -> CountBin 4. START/END only -> RangeBin 5. No params -> DefaultBin
+   *
+   * @param field the field expression to bin
+   * @param arguments optional arguments for bin configuration (span, bins, minspan, aligntime,
+   *     start, end, alias)
+   * @return Bin node with the specified field and configuration
+   */
+  public static Bin bin(UnresolvedExpression field, Argument... arguments) {
+    UnresolvedExpression span = null;
+    Integer bins = null;
+    UnresolvedExpression minspan = null;
+    UnresolvedExpression aligntime = null;
+    UnresolvedExpression start = null;
+    UnresolvedExpression end = null;
+    String alias = null;
+
+    for (Argument arg : arguments) {
+      switch (arg.getArgName()) {
+        case "span":
+          span = arg.getValue();
+          break;
+        case "bins":
+          bins =
+              (arg.getValue()).getValue() instanceof Integer
+                  ? (Integer) (arg.getValue()).getValue()
+                  : null;
+          break;
+        case "minspan":
+          minspan = arg.getValue();
+          break;
+        case "aligntime":
+          aligntime = arg.getValue();
+          break;
+        case "start":
+          start = arg.getValue();
+          break;
+        case "end":
+          end = arg.getValue();
+          break;
+        case "alias":
+          alias = arg.getValue().toString();
+          break;
+      }
+    }
+
+    // Create appropriate Bin subclass based on priority order
+    if (span != null) {
+      // 1. SPAN (highest priority) -> SpanBin
+      return SpanBin.builder().field(field).span(span).aligntime(aligntime).alias(alias).build();
+    } else if (minspan != null) {
+      // 2. MINSPAN (second priority) -> MinSpanBin
+      return MinSpanBin.builder()
+          .field(field)
+          .minspan(minspan)
+          .start(start)
+          .end(end)
+          .alias(alias)
+          .build();
+    } else if (bins != null) {
+      // 3. BINS (third priority) -> CountBin
+      return CountBin.builder().field(field).bins(bins).start(start).end(end).alias(alias).build();
+    } else if (start != null || end != null) {
+      // 4. START/END only (fourth priority) -> RangeBin
+      return RangeBin.builder().field(field).start(start).end(end).alias(alias).build();
+    } else {
+      // 5. No parameters (default) -> DefaultBin
+      return DefaultBin.builder().field(field).alias(alias).build();
+    }
   }
 }
