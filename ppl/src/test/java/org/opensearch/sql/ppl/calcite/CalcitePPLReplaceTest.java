@@ -238,4 +238,29 @@ public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
             Collections.emptyList());
     replace.validate();
   }
+
+  @Test
+  public void testReplaceWithExistingNewFieldConflict() {
+    // Test verifies that Calcite's RelBuilder automatically handles duplicate field names
+    // by appending numbers (e.g., new_JOB becomes new_JOB0 when new_JOB already exists)
+    String ppl =
+        "source=EMP | eval new_JOB = 'existing' | replace \"CLERK\" WITH \"EMPLOYEE\" IN JOB";
+    RelNode root = getRelNode(ppl);
+
+    // Verify that Calcite automatically deduplicates field names
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], new_JOB=['existing':VARCHAR], new_JOB0=[REPLACE($2,"
+            + " 'CLERK':VARCHAR, 'EMPLOYEE':VARCHAR)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, "
+            + "'existing' `new_JOB`, REPLACE(`JOB`, 'CLERK', 'EMPLOYEE') `new_JOB0`\n"
+            + "FROM `scott`.`EMP`";
+
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }

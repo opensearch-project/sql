@@ -620,14 +620,14 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testReplaceCommandSingleField() {
     assertEquals(
-        "source=EMP | replace *** WITH *** IN Field(field=fieldname, fieldArgs=[])",
+        "source=table | replace *** WITH *** IN Field(field=fieldname, fieldArgs=[])",
         anonymize("source=EMP | replace \"value\" WITH \"newvalue\" IN fieldname"));
   }
 
   @Test
   public void testReplaceCommandMultipleFields() {
     assertEquals(
-        "source=EMP | replace *** WITH *** IN Field(field=fieldname1, fieldArgs=[]),"
+        "source=table | replace *** WITH *** IN Field(field=fieldname1, fieldArgs=[]),"
             + " Field(field=fieldname2, fieldArgs=[])",
         anonymize("source=EMP | replace \"value\" WITH \"newvalue\" IN fieldname1, fieldname2"));
   }
@@ -640,7 +640,7 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testReplaceCommandSpecialCharactersInFields() {
     assertEquals(
-        "source=EMP | replace *** WITH *** IN Field(field=user.name, fieldArgs=[]),"
+        "source=table | replace *** WITH *** IN Field(field=user.name, fieldArgs=[]),"
             + " Field(field=user.email, fieldArgs=[])",
         anonymize("source=EMP | replace \"value\" WITH \"newvalue\" IN user.name, user.email"));
   }
@@ -648,14 +648,14 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testReplaceCommandWithWildcards() {
     assertEquals(
-        "source=EMP | replace *** WITH *** IN Field(field=fieldname, fieldArgs=[])",
+        "source=table | replace *** WITH *** IN Field(field=fieldname, fieldArgs=[])",
         anonymize("source=EMP | replace \"CLERK*\" WITH \"EMPLOYEE*\" IN fieldname"));
   }
 
   @Test
   public void testReplaceCommandWithMultipleWildcards() {
     assertEquals(
-        "source=EMP | replace *** WITH *** IN Field(field=fieldname1, fieldArgs=[]),"
+        "source=table | replace *** WITH *** IN Field(field=fieldname1, fieldArgs=[]),"
             + " Field(field=fieldname2, fieldArgs=[])",
         anonymize("source=EMP | replace \"*TEST*\" WITH \"*NEW*\" IN fieldname1, fieldname2"));
   }

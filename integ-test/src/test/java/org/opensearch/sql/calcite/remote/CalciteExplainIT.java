@@ -946,4 +946,15 @@ public class CalciteExplainIT extends ExplainIT {
             String.format(
                 "source=%s | fields age, balance | fillnull value=0", TEST_INDEX_ACCOUNT)));
   }
+
+  @Test
+  public void testReplaceCommandExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_replace_command.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | replace 'IL' WITH 'Illinois' IN state | fields state, new_state",
+                TEST_INDEX_ACCOUNT)));
+  }
 }
