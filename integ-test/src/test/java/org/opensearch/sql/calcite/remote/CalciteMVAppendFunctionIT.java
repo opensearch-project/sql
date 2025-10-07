@@ -92,6 +92,18 @@ public class CalciteMVAppendFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testMvappendWithIntAndDouble() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            source(TEST_INDEX_BANK, "eval result = mvappend(1, 2.5) | head 1 | fields result"));
+
+    System.out.println(actual);
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of(1, 2.5)));
+  }
+
+  @Test
   public void testMvappendWithRealFields() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -106,13 +118,9 @@ public class CalciteMVAppendFunctionIT extends PPLIntegTestCase {
         schema("lastname", "string"),
         schema("result", "array"));
 
-    var dataRows = actual.getJSONArray("datarows");
-    assertTrue(dataRows.length() > 0);
-    var firstRow = dataRows.getJSONArray(0);
-    var resultArray = firstRow.getJSONArray(2);
-    assertEquals(2, resultArray.length());
-    assertEquals(firstRow.getString(0), resultArray.getString(0));
-    assertEquals(firstRow.getString(1), resultArray.getString(1));
+    verifyDataRows(
+        actual,
+        rows("Amber JOHnny", "Duke Willmington", List.of("Amber JOHnny", "Duke Willmington")));
   }
 
   @Test
@@ -124,15 +132,7 @@ public class CalciteMVAppendFunctionIT extends PPLIntegTestCase {
                 "eval result = mvappend(age, 'years', 'old') | head 1 | fields age, result"));
 
     verifySchema(actual, schema("age", "int"), schema("result", "array"));
-
-    var dataRows = actual.getJSONArray("datarows");
-    assertTrue(dataRows.length() > 0);
-    var firstRow = dataRows.getJSONArray(0);
-    var resultArray = firstRow.getJSONArray(1);
-    assertEquals(3, resultArray.length());
-    assertEquals(firstRow.getInt(0), resultArray.getInt(0));
-    assertEquals("years", resultArray.getString(1));
-    assertEquals("old", resultArray.getString(2));
+    verifyDataRows(actual, rows(32, List.of("32", "years", "old")));
   }
 
   @Test
@@ -189,10 +189,9 @@ public class CalciteMVAppendFunctionIT extends PPLIntegTestCase {
         schema("lastname", "string"),
         schema("combined", "array"));
 
-    var dataRows = actual.getJSONArray("datarows");
-    assertTrue(dataRows.length() > 0);
-    var firstRow = dataRows.getJSONArray(0);
-    assertEquals(2, firstRow.getJSONArray(2).length());
+    verifyDataRows(
+        actual,
+        rows("Amber JOHnny", "Duke Willmington", List.of("Amber JOHnny", "Duke Willmington")));
   }
 
   @Test
@@ -205,15 +204,6 @@ public class CalciteMVAppendFunctionIT extends PPLIntegTestCase {
                     + " age, result"));
 
     verifySchema(actual, schema("age", "int"), schema("result", "array"));
-
-    var dataRows = actual.getJSONArray("datarows");
-    assertTrue(dataRows.length() > 0);
-    var firstRow = dataRows.getJSONArray(0);
-    int age = firstRow.getInt(0);
-    var resultArray = firstRow.getJSONArray(1);
-    assertEquals(3, resultArray.length());
-    assertEquals(age, resultArray.getInt(0));
-    assertEquals(age * 2, resultArray.getInt(1));
-    assertEquals(age + 10, resultArray.getInt(2));
+    verifyDataRows(actual, rows(32, List.of(32, 64, 42)));
   }
 }

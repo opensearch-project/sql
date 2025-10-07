@@ -238,8 +238,6 @@ MVAPPEND
 Description
 >>>>>>>>>>>
 
-Version: 3.4.0
-
 Usage: mvappend(value1, value2, value3...) appends all elements from arguments to create an array. Flattens array arguments and collects all individual elements. Always returns an array or null for consistent type behavior.
 
 Argument type: value1: ANY, value2: ANY, ...
