@@ -1,0 +1,11 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12])
+        LogicalFilter(condition=[<($3, TIMESTAMP('2018-11-09 00:00:00.000000000':VARCHAR))])
+          LogicalFilter(condition=[>($3, TIMESTAMP('2016-12-08 00:00:00.000000000':VARCHAR))])
+            CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..18=[{inputs}], expr#19=[Sarg[('2016-12-08 00:00:00':VARCHAR..'2018-11-09 00:00:00':VARCHAR)]:VARCHAR], expr#20=[SEARCH($t3, $t19)], proj#0..12=[{exprs}], $condition=[$t20])
+        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])

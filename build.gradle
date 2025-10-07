@@ -6,7 +6,7 @@
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.2.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.3.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
         version_tokens = opensearch_version.tokenize('-')
@@ -81,7 +81,7 @@ plugins {
     id 'java-library'
     id "io.freefair.lombok" version "8.14"
     id 'jacoco'
-    id 'com.diffplug.spotless' version '6.22.0'
+    id 'com.diffplug.spotless' version '7.2.1'
 }
 
 // import versions defined in https://github.com/opensearch-project/OpenSearch/blob/main/buildSrc/src/main/java/org/opensearch/gradle/OpenSearchJavaPlugin.java#L94
@@ -105,10 +105,10 @@ spotless {
             exclude '**/build/**', '**/build-*/**', '**/gen/**'
         }
         importOrder()
-//        licenseHeader("/*\n" +
-//                " * Copyright OpenSearch Contributors\n" +
-//                " * SPDX-License-Identifier: Apache-2.0\n" +
-//                " */\n\n")
+        licenseHeader("/*\n" +
+                " * Copyright OpenSearch Contributors\n" +
+                " * SPDX-License-Identifier: Apache-2.0\n" +
+                " */\n\n")
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()

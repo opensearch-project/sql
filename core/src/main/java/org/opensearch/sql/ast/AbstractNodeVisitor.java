@@ -63,6 +63,7 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
@@ -75,6 +76,7 @@ import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
+import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
@@ -128,6 +130,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitTableFunction(TableFunction node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitSearch(Search node, C context) {
     return visitChildren(node, context);
   }
 
@@ -424,6 +430,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitAppend(Append node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitMultisearch(Multisearch node, C context) {
     return visitChildren(node, context);
   }
 }

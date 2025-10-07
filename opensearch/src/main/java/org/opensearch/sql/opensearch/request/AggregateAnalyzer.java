@@ -24,12 +24,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.opensearch.sql.opensearch.request;
 
 import static java.util.Objects.requireNonNull;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+import static org.opensearch.sql.expression.function.PPLBuiltinOperators.WIDTH_BUCKET;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -58,23 +60,28 @@ import org.opensearch.search.aggregations.AggregatorFactories.Builder;
 import org.opensearch.search.aggregations.BucketOrder;
 import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
+import org.opensearch.search.aggregations.bucket.histogram.AutoDateHistogramAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
 import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.ExtendedStats;
 import org.opensearch.search.aggregations.metrics.PercentilesAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.TopHitsAggregationBuilder;
+import org.opensearch.search.aggregations.metrics.ValueCountAggregationBuilder;
 import org.opensearch.search.aggregations.support.ValueType;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
 import org.opensearch.sql.opensearch.response.agg.ArgMaxMinParser;
 import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
+import org.opensearch.sql.opensearch.response.agg.CountAsTotalHitsParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
@@ -127,6 +134,7 @@ public class AggregateAnalyzer {
     final RelDataType rowType;
     final Map<String, ExprType> fieldTypes;
     final RelOptCluster cluster;
+    final boolean bucketNullable;
 
     <T extends ValuesSourceAggregationBuilder<T>> T build(RexNode node, T aggBuilder) {
       return build(node, aggBuilder::field, aggBuilder::script);
@@ -186,7 +194,8 @@ public class AggregateAnalyzer {
                   .findFirst()
                   .orElseGet(() -> "true"));
       List<Integer> groupList = aggregate.getGroupSet().asList();
-      AggregateBuilderHelper helper = new AggregateBuilderHelper(rowType, fieldTypes, cluster);
+      AggregateBuilderHelper helper =
+          new AggregateBuilderHelper(rowType, fieldTypes, cluster, bucketNullable);
       List<String> aggFieldNames = outputFields.subList(groupList.size(), outputFields.size());
       // Process all aggregate calls
       Pair<Builder, List<MetricParser>> builderAndParser =
@@ -194,27 +203,77 @@ public class AggregateAnalyzer {
       Builder metricBuilder = builderAndParser.getLeft();
       List<MetricParser> metricParserList = builderAndParser.getRight();
 
+      // both count() and count(FIELD) can apply doc_count optimization in non-bucket aggregation,
+      // but only count() can apply doc_count optimization in bucket aggregation.
+      boolean countAllOnly = !aggregate.getGroupSet().isEmpty();
+      Pair<List<ValueCountAggregationBuilder>, Builder> pair =
+          removeCountAggregationBuilders(metricBuilder, countAllOnly);
+      List<ValueCountAggregationBuilder> removedCountAggBuilders = pair.getLeft();
+      Builder newMetricBuilder = pair.getRight();
+
+      boolean removedCountAggBuildersHaveSomeField =
+          removedCountAggBuilders.stream()
+                  .map(ValuesSourceAggregationBuilder::fieldName)
+                  .distinct()
+                  .count()
+              == 1;
+      boolean allCountAggRemoved =
+          removedCountAggBuilders.size() == metricBuilder.getAggregatorFactories().size();
       if (aggregate.getGroupSet().isEmpty()) {
-        return Pair.of(
-            ImmutableList.copyOf(metricBuilder.getAggregatorFactories()),
-            new NoBucketAggregationParser(metricParserList));
-      } else if (aggregate.getGroupSet().length() == 1 && !bucketNullable) {
-        // one bucket, use values source bucket builder for getting better performance
-        // TODO for multiple buckets, use MultiTermsAggregationBuilder
+        if (allCountAggRemoved && removedCountAggBuildersHaveSomeField) {
+          // The optimization must require all count aggregations are removed,
+          // and they have only one field name
+          List<String> countAggNameList =
+              removedCountAggBuilders.stream()
+                  .map(ValuesSourceAggregationBuilder::getName)
+                  .toList();
+          return Pair.of(
+              ImmutableList.copyOf(newMetricBuilder.getAggregatorFactories()),
+              new CountAsTotalHitsParser(countAggNameList));
+        } else {
+          return Pair.of(
+              ImmutableList.copyOf(metricBuilder.getAggregatorFactories()),
+              new NoBucketAggregationParser(metricParserList));
+        }
+      } else if (aggregate.getGroupSet().length() == 1
+          && isAutoDateSpan(project.getProjects().get(groupList.getFirst()))) {
+        RexCall rexCall = (RexCall) project.getProjects().get(groupList.getFirst());
+        String bucketName = project.getRowType().getFieldList().get(groupList.getFirst()).getName();
+        RexInputRef rexInputRef = (RexInputRef) rexCall.getOperands().getFirst();
+        RexLiteral valueLiteral = (RexLiteral) rexCall.getOperands().get(1);
         ValuesSourceAggregationBuilder<?> bucketBuilder =
-            createBucketAggregation(groupList.getFirst(), project, helper);
+            new AutoDateHistogramAggregationBuilder(bucketName)
+                .field(helper.inferNamedField(rexInputRef).getRootName())
+                .setNumBuckets(requireNonNull(valueLiteral.getValueAs(Integer.class)));
         return Pair.of(
             Collections.singletonList(bucketBuilder.subAggregations(metricBuilder)),
             new BucketAggregationParser(metricParserList));
       } else {
         List<CompositeValuesSourceBuilder<?>> buckets =
             createCompositeBuckets(groupList, project, helper);
+        AggregationBuilder aggregationBuilder =
+            AggregationBuilders.composite("composite_buckets", buckets)
+                .size(AGGREGATION_BUCKET_SIZE);
+
+        // For bucket aggregation, no count() aggregator or not all aggregators are count(),
+        // fallback to original ValueCountAggregation.
+        if (removedCountAggBuilders.isEmpty()
+            || removedCountAggBuilders.size() != metricBuilder.getAggregatorFactories().size()) {
+          aggregationBuilder.subAggregations(metricBuilder);
+          return Pair.of(
+              Collections.singletonList(aggregationBuilder),
+              new CompositeAggregationParser(metricParserList));
+        }
+        // No need to register sub-factories if no aggregator factories left after removing all
+        // ValueCountAggregationBuilder.
+        if (!newMetricBuilder.getAggregatorFactories().isEmpty()) {
+          aggregationBuilder.subAggregations(newMetricBuilder);
+        }
+        List<String> countAggNameList =
+            removedCountAggBuilders.stream().map(ValuesSourceAggregationBuilder::getName).toList();
         return Pair.of(
-            Collections.singletonList(
-                AggregationBuilders.composite("composite_buckets", buckets)
-                    .subAggregations(metricBuilder)
-                    .size(AGGREGATION_BUCKET_SIZE)),
-            new CompositeAggregationParser(metricParserList));
+            Collections.singletonList(aggregationBuilder),
+            new CompositeAggregationParser(metricParserList, countAggNameList));
       }
     } catch (Throwable e) {
       Throwables.throwIfInstanceOf(e, UnsupportedOperationException.class);
@@ -222,11 +281,35 @@ public class AggregateAnalyzer {
     }
   }
 
+  /**
+   * Remove all ValueCountAggregationBuilder from metric builder, and return the removed
+   * ValueCountAggregationBuilder list.
+   *
+   * @param metricBuilder metrics builder
+   * @param countAllOnly remove count() only, or count(FIELD) will be removed.
+   * @return a pair of removed ValueCountAggregationBuilder and updated metric builder
+   */
+  private static Pair<List<ValueCountAggregationBuilder>, Builder> removeCountAggregationBuilders(
+      Builder metricBuilder, boolean countAllOnly) {
+    List<ValueCountAggregationBuilder> countAggregatorFactories =
+        metricBuilder.getAggregatorFactories().stream()
+            .filter(ValueCountAggregationBuilder.class::isInstance)
+            .map(ValueCountAggregationBuilder.class::cast)
+            .filter(vc -> vc.script() == null)
+            .filter(vc -> !countAllOnly || vc.fieldName().equals("_index"))
+            .toList();
+    List<AggregationBuilder> copy = new ArrayList<>(metricBuilder.getAggregatorFactories());
+    copy.removeAll(countAggregatorFactories);
+    Builder newMetricBuilder = new AggregatorFactories.Builder();
+    copy.forEach(newMetricBuilder::addAggregator);
+    return Pair.of(countAggregatorFactories, newMetricBuilder);
+  }
+
   private static Pair<Builder, List<MetricParser>> processAggregateCalls(
       List<String> aggFieldNames,
       List<AggregateCall> aggCalls,
       Project project,
-      AggregateBuilderHelper helper)
+      AggregateAnalyzer.AggregateBuilderHelper helper)
       throws PredicateAnalyzer.ExpressionNotAnalyzableException {
     Builder metricBuilder = new AggregatorFactories.Builder();
     List<MetricParser> metricParserList = new ArrayList<>();
@@ -298,12 +381,46 @@ public class AggregateAnalyzer {
           helper.build(
               !args.isEmpty() ? args.getFirst() : null, AggregationBuilders.count(aggFieldName)),
           new SingleValueParser(aggFieldName));
-      case MIN -> Pair.of(
-          helper.build(args.getFirst(), AggregationBuilders.min(aggFieldName)),
-          new SingleValueParser(aggFieldName));
-      case MAX -> Pair.of(
-          helper.build(args.getFirst(), AggregationBuilders.max(aggFieldName)),
-          new SingleValueParser(aggFieldName));
+      case MIN -> {
+        String fieldName = helper.inferNamedField(args.getFirst()).getRootName();
+        ExprType fieldType = helper.fieldTypes.get(fieldName);
+
+        if (supportsMaxMinAggregation(fieldType)) {
+          yield Pair.of(
+              helper.build(args.getFirst(), AggregationBuilders.min(aggFieldName)),
+              new SingleValueParser(aggFieldName));
+        } else {
+          yield Pair.of(
+              AggregationBuilders.topHits(aggFieldName)
+                  .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
+                  .size(1)
+                  .from(0)
+                  .sort(
+                      helper.inferNamedField(args.getFirst()).getReferenceForTermQuery(),
+                      SortOrder.ASC),
+              new TopHitsParser(aggFieldName, true));
+        }
+      }
+      case MAX -> {
+        String fieldName = helper.inferNamedField(args.getFirst()).getRootName();
+        ExprType fieldType = helper.fieldTypes.get(fieldName);
+
+        if (supportsMaxMinAggregation(fieldType)) {
+          yield Pair.of(
+              helper.build(args.getFirst(), AggregationBuilders.max(aggFieldName)),
+              new SingleValueParser(aggFieldName));
+        } else {
+          yield Pair.of(
+              AggregationBuilders.topHits(aggFieldName)
+                  .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
+                  .size(1)
+                  .from(0)
+                  .sort(
+                      helper.inferNamedField(args.getFirst()).getReferenceForTermQuery(),
+                      SortOrder.DESC),
+              new TopHitsParser(aggFieldName, true));
+        }
+      }
       case VAR_SAMP -> Pair.of(
           helper.build(args.getFirst(), AggregationBuilders.extendedStats(aggFieldName)),
           new StatsParser(ExtendedStats::getVarianceSampling, aggFieldName));
@@ -378,9 +495,21 @@ public class AggregateAnalyzer {
               String.format("Unsupported push-down aggregator %s", aggCall.getAggregation()));
         };
       }
-      default -> throw new AggregateAnalyzerException(
+      default -> throw new AggregateAnalyzer.AggregateAnalyzerException(
           String.format("unsupported aggregator %s", aggCall.getAggregation()));
     };
+  }
+
+  private static boolean supportsMaxMinAggregation(ExprType fieldType) {
+    ExprType coreType =
+        (fieldType instanceof OpenSearchDataType)
+            ? ((OpenSearchDataType) fieldType).getExprType()
+            : fieldType;
+
+    return ExprCoreType.numberTypes().contains(coreType)
+        || coreType == ExprCoreType.DATE
+        || coreType == ExprCoreType.TIME
+        || coreType == ExprCoreType.TIMESTAMP;
   }
 
   private static ValuesSourceAggregationBuilder<?> createBucketAggregation(
@@ -394,6 +523,12 @@ public class AggregateAnalyzer {
     groupList.forEach(
         groupIndex -> resultBuilder.add(createCompositeBucket(groupIndex, project, helper)));
     return resultBuilder.build();
+  }
+
+  private static boolean isAutoDateSpan(RexNode rex) {
+    return rex instanceof RexCall rexCall
+        && rexCall.getKind() == SqlKind.OTHER_FUNCTION
+        && rexCall.getOperator().equals(WIDTH_BUCKET);
   }
 
   private static ValuesSourceAggregationBuilder<?> createBucket(
@@ -418,7 +553,7 @@ public class AggregateAnalyzer {
   }
 
   private static CompositeValuesSourceBuilder<?> createCompositeBucket(
-      Integer groupIndex, Project project, AggregateBuilderHelper helper) {
+      Integer groupIndex, Project project, AggregateAnalyzer.AggregateBuilderHelper helper) {
     RexNode rex = project.getProjects().get(groupIndex);
     String bucketName = project.getRowType().getFieldList().get(groupIndex).getName();
     if (rex instanceof RexCall rexCall
@@ -433,7 +568,12 @@ public class AggregateAnalyzer {
           helper.inferNamedField(rexInputRef).getRootName(),
           valueLiteral.getValueAs(Double.class),
           SpanUnit.of(unitLiteral.getValueAs(String.class)),
-          MissingOrder.FIRST);
+          MissingOrder.FIRST,
+          helper.bucketNullable);
+    } else if (isAutoDateSpan(rex)) {
+      // Defense check. We've already prevented this case in OpenSearchAggregateIndexScanRule.
+      throw new UnsupportedOperationException(
+          "auto_date_histogram is not supported in composite agg.");
     } else {
       return createTermsSourceBuilder(bucketName, rex, helper);
     }
@@ -441,13 +581,12 @@ public class AggregateAnalyzer {
 
   private static CompositeValuesSourceBuilder<?> createTermsSourceBuilder(
       String bucketName, RexNode group, AggregateBuilderHelper helper) {
-    CompositeValuesSourceBuilder<?> sourceBuilder =
-        helper.build(
-            group,
-            new TermsValuesSourceBuilder(bucketName)
-                .missingBucket(true)
-                .missingOrder(MissingOrder.FIRST)
-                .order(SortOrder.ASC));
+    TermsValuesSourceBuilder termsBuilder =
+        new TermsValuesSourceBuilder(bucketName).order(SortOrder.ASC);
+    if (helper.bucketNullable) {
+      termsBuilder.missingBucket(true).missingOrder(MissingOrder.FIRST);
+    }
+    CompositeValuesSourceBuilder<?> sourceBuilder = helper.build(group, termsBuilder);
 
     // Time types values are converted to LONG in ExpressionAggregationScript::execute
     if (List.of(TIMESTAMP, TIME, DATE)
