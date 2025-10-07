@@ -868,6 +868,24 @@ public class CalciteExplainIT extends ExplainIT {
                 + " gender, state | sort `count()`"));
   }
 
+  @Test
+  public void testExplainEvalMax() throws IOException {
+    String expected = loadExpectedPlan("explain_eval_max.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | eval new = max(1, 2, 3, age, 'banana')"));
+  }
+
+  @Test
+  public void testExplainEvalMin() throws IOException {
+    String expected = loadExpectedPlan("explain_eval_min.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | eval new = min(1, 2, 3, age, 'banana')"));
+  }
+
   /**
    * Executes the PPL query and returns the result as a string with windows-style line breaks
    * replaced with Unix-style ones.
