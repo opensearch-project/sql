@@ -5,6 +5,9 @@ timeout: 180
 machine:
   env:
     RUNTIME_JDK_VERSION: 21
+    WHISPER_NAMESPACE: "aidp-opensearch-dev"
+    WHISPER_BUCKET: "rio-secrets"
+    WHISPER_VERSION: 1.6.0
   baseImage: docker.apple.com/base-images/ubi9/java21-builder
 
 pipelines:
@@ -13,42 +16,22 @@ pipelines:
     build:
       template: freestyle:v4:prb
       steps:
-        # Install Java 17 and 11 for BWC tests
-        - ci install-runtime jdk-11 --skip-runtime-symlink=false
-        - export JAVA11_HOME="$(readlink -f /app/.runtimes/jdk)"
-        - ci install-runtime jdk-17 --skip-runtime-symlink=false
-        - export JAVA17_HOME="$(readlink -f /app/.runtimes/jdk)"
-        - export JAVA21_HOME="${JAVA_HOME}"
-        - chown -R nonroot ${WORKSPACE}
-        - find .cicd -type d -exec chmod 0755 {} \; -print
-        - find .cicd -type f -exec chmod 0644 {} \; -print
-        - chown -R root .cicd
-        - chmod 0755 .
-        - su nonroot -c "./gradlew --console=plain clean precommit test --no-daemon -Dtests.haltonfailure=false"
-        - chown -R root ${WORKSPACE}
+        - .rio/build.sh
     reports:
       junit:
         paths:
           - "**/test-results/**/*.xml"
+    finally:
+      notify:
+        email:
+          enabled: false
 
   - name: check-main-apple-on-commit
     branchName: main-apple
     build:
       template: freestyle:v4:build
       steps:
-        # Install Java 17 and 11 for BWC tests
-        - ci install-runtime jdk-11 --skip-runtime-symlink=false
-        - export JAVA11_HOME="$(readlink -f /app/.runtimes/jdk)"
-        - ci install-runtime jdk-17 --skip-runtime-symlink=false
-        - export JAVA17_HOME="$(readlink -f /app/.runtimes/jdk)"
-        - export JAVA21_HOME="${JAVA_HOME}"
-        - chown -R nonroot ${WORKSPACE}
-        - find .cicd -type d -exec chmod 0755 {} \; -print
-        - find .cicd -type f -exec chmod 0644 {} \; -print
-        - chown -R root .cicd
-        - chmod 0755 .
-        - su nonroot -c "./gradlew --console=plain clean precommit test --no-daemon -Dtests.haltonfailure=false"
-        - chown -R root ${WORKSPACE}
+        - .rio/build.sh
     reports:
       junit:
         paths:
@@ -57,9 +40,10 @@ pipelines:
       radar:
         annotate: true
       notify:
+        email:
+          enabled: false
         commitStatus:
           enabled: true
-
 
 
   - name: sync-mirror
@@ -103,4 +87,3 @@ pipelines:
             - git pull origin main-apple
             - git merge --no-edit main || echo "Merge conflict — manual resolution needed"
             - git push origin main-apple
-
