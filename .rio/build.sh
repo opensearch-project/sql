@@ -13,7 +13,7 @@ tar -xf whisperctl_${WHISPER_VERSION}_linux_amd64.tar.gz
 mv whisperctl /usr/local/bin
 
 export GRADLE_USER_HOME="${NON_ROOT_USER_HOME}/.gradle"
-
+openssl x509 -in $RIO_NARRATIVE_CHAIN_PATH -text
 whisperctl secret fetch \
   --output-dir "$GRADLE_USER_HOME" \
   --secret-name 'gradle.properties' \
