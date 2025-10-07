@@ -85,7 +85,17 @@ public class ExpressionReferenceOptimizer
 
   @Override
   public Expression visitAggregator(Aggregator<?> node, AnalysisContext context) {
-    return expressionMap.getOrDefault(node, node);
+    Expression result = expressionMap.get(node);
+    if (result != null) {
+      return result;
+    }
+    
+    // Create reference when aggregator mapping is missing
+    String refName = node.getFunctionName().getFunctionName() + "(" + 
+        node.getArguments().stream()
+            .map(Expression::toString)
+            .collect(java.util.stream.Collectors.joining(", ")) + ")";
+    return new ReferenceExpression(refName, node.type());
   }
 
   @Override
@@ -93,7 +103,13 @@ public class ExpressionReferenceOptimizer
     if (expressionMap.containsKey(node)) {
       return expressionMap.get(node);
     }
-    return node.getDelegated().accept(this, context);
+    
+    Expression delegated = node.getDelegated();
+    if (delegated instanceof Aggregator) {
+      return visitAggregator((Aggregator<?>) delegated, context);
+    }
+    
+    return delegated.accept(this, context);
   }
 
   /** Implement this because Case/When is not registered in function repository. */
