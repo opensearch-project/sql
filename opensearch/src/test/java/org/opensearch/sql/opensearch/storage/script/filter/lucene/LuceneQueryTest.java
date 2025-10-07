@@ -14,7 +14,7 @@ import static org.opensearch.sql.expression.DSL.ref;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
-import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
 
@@ -94,7 +94,7 @@ class LuceneQueryTest {
     String format = "2021/11/08T17:00:00Z";
     OpenSearchDateType dateType = OpenSearchDateType.of(format);
     assertThrows(
-        SemanticCheckException.class,
+        ExpressionEvaluationException.class,
         () ->
             new LuceneQuery() {}.build(
                 DSL.equal(

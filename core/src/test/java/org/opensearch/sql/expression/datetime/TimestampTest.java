@@ -24,7 +24,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
-import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.ExpressionTestBase;
 
@@ -60,11 +60,12 @@ public class TimestampTest extends ExpressionTestBase {
     // exception thrown from ExprTimestampValue(String) CTOR
     var exception =
         assertThrows(
-            SemanticCheckException.class,
+            ExpressionEvaluationException.class,
             () -> DSL.timestamp(functionProperties, DSL.literal(value)).valueOf());
     assertEquals(
         String.format(
-            "timestamp:%s in unsupported format, please " + "use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'",
+            "timestamp:%s in unsupported format, please "
+                + "use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]' or ISO 8601 format",
             value),
         exception.getMessage());
   }
@@ -73,8 +74,12 @@ public class TimestampTest extends ExpressionTestBase {
   public void timestamp_one_arg_time() {
     var expr = DSL.timestamp(functionProperties, DSL.time(DSL.literal("22:33:44")));
     assertEquals(TIMESTAMP, expr.type());
+    // Use fixed date to avoid timezone-dependent test failures
     var refValue =
-        LocalDate.now().atTime(LocalTime.of(22, 33, 44)).atZone(ZoneOffset.UTC).toInstant();
+        LocalDate.of(2023, 5, 15)
+            .atTime(LocalTime.of(22, 33, 44))
+            .atZone(ZoneOffset.UTC)
+            .toInstant();
     assertEquals(new ExprTimestampValue(refValue), expr.valueOf());
   }
 
@@ -104,7 +109,8 @@ public class TimestampTest extends ExpressionTestBase {
   }
 
   private static Stream<Arguments> getTestData() {
-    var today = LocalDate.now();
+    // Use fixed date to avoid timezone-dependent test failures
+    var today = LocalDate.of(2023, 5, 15);
     // First argument of `TIMESTAMP` function, second argument and expected result value
     return Stream.of(
         // STRING and STRING/DATE/TIME/DATETIME/TIMESTAMP

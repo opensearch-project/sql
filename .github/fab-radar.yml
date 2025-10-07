@@ -1,0 +1,6 @@
+validationRules:
+  # Don't check PR author and the radar assignee match.
+  author: false
+radarStrategies:
+  # Don't update Radar state
+  states: none

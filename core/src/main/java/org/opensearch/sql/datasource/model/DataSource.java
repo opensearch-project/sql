@@ -1,8 +1,6 @@
 /*
- *
- *  * Copyright OpenSearch Contributors
- *  * SPDX-License-Identifier: Apache-2.0
- *
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 package org.opensearch.sql.datasource.model;
@@ -22,5 +20,5 @@ public class DataSource {
 
   private final DataSourceType connectorType;
 
-  @EqualsAndHashCode.Exclude private final StorageEngine storageEngine;
+  @EqualsAndHashCode.Exclude @Getter private final StorageEngine storageEngine;
 }

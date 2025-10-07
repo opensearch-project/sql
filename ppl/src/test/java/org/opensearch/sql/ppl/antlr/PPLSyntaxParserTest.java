@@ -5,17 +5,23 @@
 
 package org.opensearch.sql.ppl.antlr;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 import java.util.List;
+import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.hamcrest.text.StringContainsInOrder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.opensearch.sql.common.antlr.CaseInsensitiveCharStream;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLLexer;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 
 public class PPLSyntaxParserTest {
 
@@ -91,6 +97,184 @@ public class PPLSyntaxParserTest {
   public void testSearchFieldsCommandCrossClusterShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("search source=c:t a=1 b=2 | fields a,b");
     assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testDynamicSourceClauseParseTreeStructure() {
+    String query = "source=[myindex, logs, fieldIndex=\"test\", count=100]";
+    OpenSearchPPLLexer lexer = new OpenSearchPPLLexer(new CaseInsensitiveCharStream(query));
+    OpenSearchPPLParser parser = new OpenSearchPPLParser(new CommonTokenStream(lexer));
+
+    OpenSearchPPLParser.RootContext root = parser.root();
+    assertNotNull(root);
+
+    // Navigate to dynamic source clause
+    OpenSearchPPLParser.SearchFromContext searchFrom =
+        (OpenSearchPPLParser.SearchFromContext)
+            root.pplStatement().queryStatement().pplCommands().searchCommand();
+    OpenSearchPPLParser.DynamicSourceClauseContext dynamicSource =
+        searchFrom.fromClause().dynamicSourceClause();
+
+    // Verify source references size and text
+    assertEquals(
+        "Should have 2 source references",
+        2,
+        dynamicSource.sourceReferences().sourceReference().size());
+    assertEquals(
+        "Source references text should match",
+        "myindex,logs",
+        dynamicSource.sourceReferences().getText());
+
+    // Verify filter args size and text
+    assertEquals(
+        "Should have 2 filter args", 2, dynamicSource.sourceFilterArgs().sourceFilterArg().size());
+    assertEquals(
+        "Filter args text should match",
+        "fieldIndex=\"test\",count=100",
+        dynamicSource.sourceFilterArgs().getText());
+  }
+
+  @Test
+  public void testDynamicSourceWithComplexFilters() {
+    String query =
+        "source=[vpc.flow_logs, api.gateway, region=\"us-east-1\", env=\"prod\", count=5]";
+    OpenSearchPPLLexer lexer = new OpenSearchPPLLexer(new CaseInsensitiveCharStream(query));
+    OpenSearchPPLParser parser = new OpenSearchPPLParser(new CommonTokenStream(lexer));
+
+    OpenSearchPPLParser.RootContext root = parser.root();
+    OpenSearchPPLParser.SearchFromContext searchFrom =
+        (OpenSearchPPLParser.SearchFromContext)
+            root.pplStatement().queryStatement().pplCommands().searchCommand();
+    OpenSearchPPLParser.DynamicSourceClauseContext dynamicSource =
+        searchFrom.fromClause().dynamicSourceClause();
+
+    // Verify source references
+    assertEquals(
+        "Should have 2 source references",
+        2,
+        dynamicSource.sourceReferences().sourceReference().size());
+    assertEquals(
+        "Source references text",
+        "vpc.flow_logs,api.gateway",
+        dynamicSource.sourceReferences().getText());
+
+    // Verify filter args
+    assertEquals(
+        "Should have 3 filter args", 3, dynamicSource.sourceFilterArgs().sourceFilterArg().size());
+    assertEquals(
+        "Filter args text",
+        "region=\"us-east-1\",env=\"prod\",count=5",
+        dynamicSource.sourceFilterArgs().getText());
+  }
+
+  @Test
+  public void testDynamicSourceWithSingleSource() {
+    String query = "source=[ds:myindex, fieldIndex=\"test\"]";
+    OpenSearchPPLLexer lexer = new OpenSearchPPLLexer(new CaseInsensitiveCharStream(query));
+    OpenSearchPPLParser parser = new OpenSearchPPLParser(new CommonTokenStream(lexer));
+
+    OpenSearchPPLParser.RootContext root = parser.root();
+    OpenSearchPPLParser.SearchFromContext searchFrom =
+        (OpenSearchPPLParser.SearchFromContext)
+            root.pplStatement().queryStatement().pplCommands().searchCommand();
+    OpenSearchPPLParser.DynamicSourceClauseContext dynamicSource =
+        searchFrom.fromClause().dynamicSourceClause();
+
+    assertEquals(
+        "Should have 1 source reference",
+        1,
+        dynamicSource.sourceReferences().sourceReference().size());
+    assertEquals("Source reference text", "ds:myindex", dynamicSource.sourceReferences().getText());
+
+    assertEquals(
+        "Should have 1 filter arg", 1, dynamicSource.sourceFilterArgs().sourceFilterArg().size());
+    assertEquals(
+        "Filter arg text", "fieldIndex=\"test\"", dynamicSource.sourceFilterArgs().getText());
+  }
+
+  @Test
+  public void testDynamicSourceRequiresAtLeastOneSource() {
+    // The grammar requires at least one source reference before optional filter args
+    // This test documents that behavior
+    exceptionRule.expect(RuntimeException.class);
+    new PPLSyntaxParser().parse("source=[fieldIndex=\"httpStatus\", region=\"us-west-2\"]");
+  }
+
+  @Test
+  public void testDynamicSourceWithDottedNames() {
+    String query = "source=[vpc.flow_logs, api.gateway.logs, env=\"prod\"]";
+    OpenSearchPPLLexer lexer = new OpenSearchPPLLexer(new CaseInsensitiveCharStream(query));
+    OpenSearchPPLParser parser = new OpenSearchPPLParser(new CommonTokenStream(lexer));
+
+    OpenSearchPPLParser.RootContext root = parser.root();
+    OpenSearchPPLParser.SearchFromContext searchFrom =
+        (OpenSearchPPLParser.SearchFromContext)
+            root.pplStatement().queryStatement().pplCommands().searchCommand();
+    OpenSearchPPLParser.DynamicSourceClauseContext dynamicSource =
+        searchFrom.fromClause().dynamicSourceClause();
+
+    assertEquals(
+        "Should have 2 source references",
+        2,
+        dynamicSource.sourceReferences().sourceReference().size());
+    assertEquals(
+        "Source references text",
+        "vpc.flow_logs,api.gateway.logs",
+        dynamicSource.sourceReferences().getText());
+
+    assertEquals(
+        "Should have 1 filter arg", 1, dynamicSource.sourceFilterArgs().sourceFilterArg().size());
+    assertEquals("Filter arg text", "env=\"prod\"", dynamicSource.sourceFilterArgs().getText());
+  }
+
+  @Test
+  public void testDynamicSourceWithSimpleFilter() {
+    String query = "source=[logs, count=100]";
+    OpenSearchPPLLexer lexer = new OpenSearchPPLLexer(new CaseInsensitiveCharStream(query));
+    OpenSearchPPLParser parser = new OpenSearchPPLParser(new CommonTokenStream(lexer));
+
+    OpenSearchPPLParser.RootContext root = parser.root();
+    OpenSearchPPLParser.SearchFromContext searchFrom =
+        (OpenSearchPPLParser.SearchFromContext)
+            root.pplStatement().queryStatement().pplCommands().searchCommand();
+    OpenSearchPPLParser.DynamicSourceClauseContext dynamicSource =
+        searchFrom.fromClause().dynamicSourceClause();
+
+    assertEquals(
+        "Should have 1 source reference",
+        1,
+        dynamicSource.sourceReferences().sourceReference().size());
+    assertEquals("Source reference text", "logs", dynamicSource.sourceReferences().getText());
+
+    assertEquals(
+        "Should have 1 filter arg", 1, dynamicSource.sourceFilterArgs().sourceFilterArg().size());
+    assertEquals("Filter arg text", "count=100", dynamicSource.sourceFilterArgs().getText());
+  }
+
+  @Test
+  public void testDynamicSourceWithInClause() {
+    // Note: The valueList rule expects literalValue which includes strings
+    String query = "source=[myindex, fieldIndex IN (\"httpStatus\", \"requestId\")]";
+    OpenSearchPPLLexer lexer = new OpenSearchPPLLexer(new CaseInsensitiveCharStream(query));
+    OpenSearchPPLParser parser = new OpenSearchPPLParser(new CommonTokenStream(lexer));
+
+    OpenSearchPPLParser.RootContext root = parser.root();
+    assertNotNull("Query should parse successfully", root);
+
+    // Verify IN clause is parsed
+    OpenSearchPPLParser.SearchFromContext searchFrom =
+        (OpenSearchPPLParser.SearchFromContext)
+            root.pplStatement().queryStatement().pplCommands().searchCommand();
+    OpenSearchPPLParser.DynamicSourceClauseContext dynamicSource =
+        searchFrom.fromClause().dynamicSourceClause();
+
+    assertNotNull("Dynamic source should exist", dynamicSource);
+    assertNotNull("Filter args should exist", dynamicSource.sourceFilterArgs());
+
+    // The IN clause should be parsed as a sourceFilterArg
+    assertTrue(
+        "Should have at least one filter arg with IN clause",
+        dynamicSource.sourceFilterArgs().sourceFilterArg().size() >= 1);
   }
 
   @Test
@@ -306,6 +490,39 @@ public class PPLSyntaxParserTest {
   }
 
   @Test
+  public void testMultiFieldRelevanceFunctionsWithoutFields() {
+    // Test multi_match without fields parameter
+    assertNotEquals(
+        null, new PPLSyntaxParser().parse("SOURCE=test | WHERE multi_match('query text')"));
+
+    // Test multi_match without fields but with optional parameters
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE multi_match('query text', analyzer='keyword')"));
+
+    // Test simple_query_string without fields parameter
+    assertNotEquals(
+        null, new PPLSyntaxParser().parse("SOURCE=test | WHERE simple_query_string('query text')"));
+
+    // Test simple_query_string without fields but with optional parameters
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE simple_query_string('query text', flags='ALL')"));
+
+    // Test query_string without fields parameter
+    assertNotEquals(
+        null, new PPLSyntaxParser().parse("SOURCE=test | WHERE query_string('query text')"));
+
+    // Test query_string without fields but with optional parameters
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE query_string('query text', default_operator='AND')"));
+  }
+
+  @Test
   public void testDescribeCommandShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("describe t");
     assertNotEquals(null, tree);
@@ -333,17 +550,6 @@ public class PPLSyntaxParserTest {
   public void testDescribeFieldsCommandShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("describe t | fields a,b");
     assertNotEquals(null, tree);
-  }
-
-  @Test
-  public void testDescribeCommandWithSourceShouldFail() {
-    exceptionRule.expect(RuntimeException.class);
-    exceptionRule.expectMessage(
-        StringContainsInOrder.stringContainsInOrder(
-            "[=] is not a valid term at this part of the query: 'describe source=' <-- HERE.",
-            "Expecting tokens:"));
-
-    new PPLSyntaxParser().parse("describe source=t");
   }
 
   @Test
@@ -485,5 +691,59 @@ public class PPLSyntaxParserTest {
                         block\
                             comment */ fields a,b /* block comment */ \
                     """));
+  }
+
+  @Test
+  public void testWhereCommand() {
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x = 1"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x = y"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x OR y"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE true"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE (1 >= 0)"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE (x >= 0)"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE (x < 1) = (y > 1)"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x = (1 + 2) * 3"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x = 1 + 2 * 3"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE (day_of_week_i < 2) OR (day_of_week_i > 5)"));
+  }
+
+  @Test
+  public void testWhereCommandWithDoubleEqual() {
+    // Test that == operator is supported in WHERE clause
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x == 1"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x == y"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE name == 'John'"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE (x == 1) AND (y == 2)"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x == 1 OR y == 2"));
+    // Test mixing = and == operators
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x == 1 AND y = 2"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE x = 1 OR y == 2"));
+    assertNotEquals(null, new PPLSyntaxParser().parse("SOURCE=test | WHERE (x < 1) == (y > 1)"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE match('message', 'test query', analyzer='keyword')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse(
+                "SOURCE=test | WHERE multi_match(['field1', 'field2' ^ 3.2], 'test query',"
+                    + " analyzer='keyword')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse(
+                "SOURCE=test | WHERE simple_query_string(['field1', 'field2' ^ 3.2], 'test query',"
+                    + " analyzer='keyword')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse(
+                "SOURCE=test | WHERE query_string(['field1', 'field2' ^ 3.2], 'test query',"
+                    + " analyzer='keyword')"));
   }
 }

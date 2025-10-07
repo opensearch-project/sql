@@ -26,7 +26,7 @@ plugins {
     id 'java'
     id 'io.freefair.lombok'
     id 'antlr'
-    id 'com.diffplug.spotless' version '6.22.0'
+    id 'com.diffplug.spotless'
 }
 
 generateGrammarSource {
@@ -58,13 +58,13 @@ spotless {
     java {
         target fileTree('.') {
             include '**/*.java'
-            exclude '**/build/**', '**/build-*/**'
+            exclude '**/build/**', '**/build-*/**', '**/gen/**'
         }
         importOrder()
-//        licenseHeader("/*\n" +
-//                " * Copyright OpenSearch Contributors\n" +
-//                " * SPDX-License-Identifier: Apache-2.0\n" +
-//                " */\n\n")
+        licenseHeader("/*\n" +
+                " * Copyright OpenSearch Contributors\n" +
+                " * SPDX-License-Identifier: Apache-2.0\n" +
+                " */\n\n")
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
@@ -84,6 +84,7 @@ compileTestJava {
 
 // TODO: Need to update integration test to use OpenSearch test framework
 test {
+    maxParallelForks = Runtime.runtime.availableProcessors()
     include '**/*Test.class'
     exclude 'org/opensearch/sql/intgtest/**'
     // Gradle runs unit test using a working directory other and project root

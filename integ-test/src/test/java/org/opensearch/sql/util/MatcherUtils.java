@@ -18,6 +18,7 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasItems;
 import static org.junit.Assert.assertEquals;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.google.gson.JsonParser;
 import java.math.BigDecimal;
@@ -37,10 +38,12 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
+import org.opensearch.sql.utils.YamlFormatter;
 
 public class MatcherUtils {
 
   private static final Logger LOG = LogManager.getLogger();
+  private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 
   /**
    * Assert field value in object by a custom matcher and getter to access the field.
@@ -292,16 +295,21 @@ public class MatcherUtils {
     };
   }
 
-  public static TypeSafeMatcher<JSONArray> closeTo(Number... values) {
+  public static TypeSafeMatcher<JSONArray> closeTo(Object... values) {
     final double error = 1e-10;
     return new TypeSafeMatcher<JSONArray>() {
       @Override
       protected boolean matchesSafely(JSONArray item) {
-        List<Number> expectedValues = new ArrayList<>(Arrays.asList(values));
-        List<Number> actualValues = new ArrayList<>();
-        item.iterator().forEachRemaining(v -> actualValues.add((Number) v));
+        List<Object> expectedValues = new ArrayList<>(Arrays.asList(values));
+        List<Object> actualValues = new ArrayList<>();
+        item.iterator().forEachRemaining(v -> actualValues.add((Object) v));
         return actualValues.stream()
-            .allMatch(v -> valuesAreClose(v, expectedValues.get(actualValues.indexOf(v))));
+            .allMatch(
+                v ->
+                    v instanceof Number
+                        ? valuesAreClose(
+                            (Number) v, (Number) expectedValues.get(actualValues.indexOf(v)))
+                        : v.equals(expectedValues.get(actualValues.indexOf(v))));
       }
 
       @Override
@@ -403,7 +411,11 @@ public class MatcherUtils {
   }
 
   private static String cleanUpId(String s) {
-    return eliminatePid(eliminateRelId(s));
+    return eliminateTimeStamp(eliminatePid(eliminateRelId(s)));
+  }
+
+  private static String eliminateTimeStamp(String s) {
+    return s.replaceAll("\\\\\"utcTimestamp\\\\\":\\d+", "\\\\\"utcTimestamp\\\\\":*");
   }
 
   private static String eliminateRelId(String s) {
@@ -412,5 +424,41 @@ public class MatcherUtils {
 
   private static String eliminatePid(String s) {
     return s.replaceAll("pitId=[^,]+,", "pitId=*,");
+  }
+
+  public static void assertYamlEqualsJsonIgnoreId(String expectedYaml, String actualJson) {
+    String cleanedYaml = cleanUpYaml(jsonToYaml(actualJson));
+    assertYamlEquals(expectedYaml, cleanedYaml);
+  }
+
+  public static void assertYamlEquals(String expected, String actual) {
+    String normalizedExpected = normalizeLineBreaks(expected).trim();
+    String normalizedActual = normalizeLineBreaks(actual).trim();
+    assertEquals(
+        formatMessage(normalizedExpected, normalizedActual), normalizedExpected, normalizedActual);
+  }
+
+  private static String normalizeLineBreaks(String s) {
+    return s.replace("\r\n", "\n").replace("\r", "\n");
+  }
+
+  private static String cleanUpYaml(String s) {
+    return s.replaceAll("\"utcTimestamp\":\\d+", "\"utcTimestamp\": 0")
+        .replaceAll("rel#\\d+", "rel#")
+        .replaceAll("RelSubset#\\d+", "RelSubset#")
+        .replaceAll("pitId=[^,]+,", "pitId=*,");
+  }
+
+  private static String jsonToYaml(String json) {
+    try {
+      Object jsonObject = JSON_MAPPER.readValue(json, Object.class);
+      return YamlFormatter.formatToYaml(jsonObject);
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to convert JSON to YAML", e);
+    }
+  }
+
+  private static String formatMessage(String expected, String actual) {
+    return String.format("### Expected ###\n%s\n### Actual###\n%s\n", expected, actual);
   }
 }

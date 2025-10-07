@@ -40,8 +40,10 @@ import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.rareTopN;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import static org.opensearch.sql.ast.dsl.AstDSL.rename;
+import static org.opensearch.sql.ast.dsl.AstDSL.search;
 import static org.opensearch.sql.ast.dsl.AstDSL.sort;
 import static org.opensearch.sql.ast.dsl.AstDSL.span;
+import static org.opensearch.sql.ast.dsl.AstDSL.spath;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.tableFunction;
 import static org.opensearch.sql.ast.dsl.AstDSL.trendline;
@@ -55,17 +57,19 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.tuple.Pair;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
 import org.opensearch.sql.ast.Node;
-import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
+import org.opensearch.sql.ast.expression.PatternMode;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -81,14 +85,29 @@ public class AstBuilderTest {
 
   @Rule public ExpectedException exceptionRule = ExpectedException.none();
 
+  private final Settings settings = Mockito.mock(Settings.class);
+
   private final PPLSyntaxParser parser = new PPLSyntaxParser();
 
-  private final Settings settings = Mockito.mock(Settings.class);
+  @Test
+  public void testDynamicSourceClauseThrowsUnsupportedException() {
+    String query = "source=[myindex, logs, fieldIndex=\"test\"]";
+
+    UnsupportedOperationException exception =
+        assertThrows(UnsupportedOperationException.class, () -> plan(query));
+
+    assertEquals(
+        "Dynamic source clause with metadata filters is not supported.", exception.getMessage());
+  }
+
+  @Before
+  public void setup() {
+    when(settings.getSettingValue(Key.PPL_SYNTAX_LEGACY_PREFERRED)).thenReturn(true);
+  }
 
   @Test
   public void testSearchCommand() {
-    assertEqual(
-        "search source=t a=1", filter(relation("t"), compare("=", field("a"), intLiteral(1))));
+    assertEqual("search source=t a=1", search(relation("t"), "a:1"));
   }
 
   @Test
@@ -149,20 +168,18 @@ public class AstBuilderTest {
 
   @Test
   public void testSearchCommandString() {
-    assertEqual(
-        "search source=t a=\"a\"",
-        filter(relation("t"), compare("=", field("a"), stringLiteral("a"))));
+    assertEqual("search source=t a=\"a\"", search(relation("t"), "a:a"));
   }
 
   @Test
   public void testSearchCommandWithoutSearch() {
-    assertEqual("source=t a=1", filter(relation("t"), compare("=", field("a"), intLiteral(1))));
+    assertEqual(
+        "source=t | where a=1", filter(relation("t"), compare("=", field("a"), intLiteral(1))));
   }
 
   @Test
   public void testSearchCommandWithFilterBeforeSource() {
-    assertEqual(
-        "search a=1 source=t", filter(relation("t"), compare("=", field("a"), intLiteral(1))));
+    assertEqual("search a=1 source=t", search(relation("t"), "a:1"));
   }
 
   @Test
@@ -234,6 +251,30 @@ public class AstBuilderTest {
         agg(
             relation("t"),
             exprList(alias("count(a)", aggregate("count", field("a")))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+  }
+
+  @Test
+  public void testStatsCommandWithCountAbbreviation() {
+    assertEqual(
+        "source=t | stats c()",
+        agg(
+            relation("t"),
+            exprList(alias("c()", aggregate("count", AstDSL.allFields()))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+  }
+
+  @Test
+  public void testStatsCommandWithCountAlias() {
+    assertEqual(
+        "source=t | stats count",
+        agg(
+            relation("t"),
+            exprList(alias("count", aggregate("count", AstDSL.allFields()))),
             emptyList(),
             emptyList(),
             defaultStatsArgs()));
@@ -447,6 +488,86 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testSortCommandWithCount() {
+    assertEqual(
+        "source=t | sort 100 f1", sort(relation("t"), 100, field("f1", defaultSortFieldArgs())));
+  }
+
+  @Test
+  public void testSortCommandWithDesc() {
+    assertEqual(
+        "source=t | sort f1 desc",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(
+                    argument("asc", booleanLiteral(false)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandWithD() {
+    assertEqual(
+        "source=t | sort f1 d",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(
+                    argument("asc", booleanLiteral(false)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandWithMultipleFieldsAndDesc() {
+    assertEqual(
+        "source=t | sort f1, -f2 desc",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(argument("asc", booleanLiteral(false)), argument("type", nullLiteral()))),
+            field(
+                "f2",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandWithAsc() {
+    assertEqual(
+        "source=t | sort f1 asc",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandWithA() {
+    assertEqual(
+        "source=t | sort f1 a",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandWithMultipleFieldsAndAsc() {
+    assertEqual(
+        "source=t | sort f1, f2 asc",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()))),
+            field(
+                "f2",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));
+  }
+
+  @Test
   public void testEvalCommand() {
     assertEqual(
         "source=t | eval r=abs(f)",
@@ -456,7 +577,7 @@ public class AstBuilderTest {
   @Test
   public void testIndexName() {
     assertEqual(
-        "source=`log.2020.04.20.` a=1",
+        "source=`log.2020.04.20.` | where a=1",
         filter(relation("log.2020.04.20."), compare("=", field("a"), intLiteral(1))));
     assertEqual("describe `log.2020.04.20.`", describe(mappingTable("log.2020.04.20.")));
   }
@@ -637,6 +758,51 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testBasicSpathCommand() {
+    assertEqual(
+        "source=t | spath input=f path=simple.nested",
+        spath(
+            relation("t"),
+            "f",
+            null, // no output field specified
+            "simple.nested"));
+  }
+
+  @Test
+  public void testSpathWithOutput() {
+    assertEqual(
+        "source=t | spath input=f output=o path=simple.nested",
+        spath(relation("t"), "f", "o", "simple.nested"));
+  }
+
+  @Test
+  public void testSpathWithArrayWildcard() {
+    assertEqual(
+        "source=t | spath input=f path=array{}.nested",
+        spath(relation("t"), "f", null, "array{}.nested"));
+  }
+
+  @Test
+  public void testSpathWithArrayIndex() {
+    assertEqual(
+        "source=t | spath input=f path=array{1}.nested",
+        spath(relation("t"), "f", null, "array{1}.nested"));
+  }
+
+  @Test
+  public void testSpathWithMultipleArrays() {
+    assertEqual(
+        "source=t | spath input=f path=outer{}.middle{2}.inner",
+        spath(relation("t"), "f", null, "outer{}.middle{2}.inner"));
+  }
+
+  @Test
+  public void testSpathWithNoPathKeyword() {
+    assertEqual(
+        "source=t | spath input=f simple.nested", spath(relation("t"), "f", null, "simple.nested"));
+  }
+
+  @Test
   public void testKmeansCommand() {
     assertEqual(
         "source=t | kmeans centroids=3 iterations=2 distance_type='l1'",
@@ -687,6 +853,19 @@ public class AstBuilderTest {
                 Pair.of(field("a"), intLiteral(1)),
                 Pair.of(field("b"), intLiteral(2)),
                 Pair.of(field("c"), intLiteral(3)))));
+  }
+
+  @Test
+  public void testFillNullValueAllFields() {
+    assertEqual(
+        "source=t | fillnull value=\"N/A\"", fillNull(relation("t"), stringLiteral("N/A"), true));
+  }
+
+  @Test
+  public void testFillNullValueWithFields() {
+    assertEqual(
+        "source=t | fillnull value=0 a, b, c",
+        fillNull(relation("t"), intLiteral(0), true, field("a"), field("b"), field("c")));
   }
 
   public void testTrendline() {
@@ -841,47 +1020,72 @@ public class AstBuilderTest {
 
   @Test
   public void testPatternsCommand() {
-    when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    when(settings.getSettingValue(Key.PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    when(settings.getSettingValue(Key.PATTERN_MODE)).thenReturn("LABEL");
+    when(settings.getSettingValue(Key.PATTERN_MAX_SAMPLE_COUNT)).thenReturn(10);
+    when(settings.getSettingValue(Key.PATTERN_BUFFER_LIMIT)).thenReturn(100000);
+    when(settings.getSettingValue(Key.PATTERN_SHOW_NUMBERED_TOKEN)).thenReturn(false);
     assertEqual(
-        "source=t | patterns new_field=\"custom_field\" " + "pattern=\"custom_pattern\" raw",
-        parse(
+        "source=t | patterns raw new_field=\"custom_field\" " + "pattern=\"custom_pattern\"",
+        patterns(
             relation("t"),
-            ParseMethod.PATTERNS,
             field("raw"),
-            stringLiteral("custom_pattern"),
-            ImmutableMap.<String, Literal>builder()
-                .put("new_field", stringLiteral("custom_field"))
-                .put("pattern", stringLiteral("custom_pattern"))
-                .build()));
+            emptyList(),
+            "custom_field",
+            PatternMethod.SIMPLE_PATTERN,
+            PatternMode.LABEL,
+            AstDSL.intLiteral(10),
+            AstDSL.intLiteral(100000),
+            AstDSL.booleanLiteral(false),
+            ImmutableMap.of(
+                "new_field", AstDSL.stringLiteral("custom_field"),
+                "pattern", AstDSL.stringLiteral("custom_pattern"))));
   }
 
   @Test
   public void testPatternsCommandWithBrainMethod() {
-    when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    when(settings.getSettingValue(Key.PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    when(settings.getSettingValue(Key.PATTERN_MODE)).thenReturn("LABEL");
+    when(settings.getSettingValue(Key.PATTERN_MAX_SAMPLE_COUNT)).thenReturn(10);
+    when(settings.getSettingValue(Key.PATTERN_BUFFER_LIMIT)).thenReturn(100000);
+    when(settings.getSettingValue(Key.PATTERN_SHOW_NUMBERED_TOKEN)).thenReturn(false);
     assertEqual(
-        "source=t | patterns variable_count_threshold=2 frequency_threshold_percentage=0.1 raw"
-            + " BRAIN",
+        "source=t | patterns raw method=BRAIN variable_count_threshold=2"
+            + " frequency_threshold_percentage=0.1",
         patterns(
             relation("t"),
-            PatternMethod.BRAIN,
             field("raw"),
+            emptyList(),
             "patterns_field",
-            Arrays.asList(
-                new Argument("variable_count_threshold", new Literal(2, DataType.INTEGER)),
-                new Argument(
-                    "frequency_threshold_percentage", new Literal(0.1, DataType.DECIMAL)))));
+            PatternMethod.BRAIN,
+            PatternMode.LABEL,
+            AstDSL.intLiteral(10),
+            AstDSL.intLiteral(100000),
+            AstDSL.booleanLiteral(false),
+            ImmutableMap.of(
+                "frequency_threshold_percentage", new Literal(0.1, DataType.DECIMAL),
+                "variable_count_threshold", new Literal(2, DataType.INTEGER))));
   }
 
   @Test
   public void testPatternsWithoutArguments() {
-    when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    when(settings.getSettingValue(Key.PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    when(settings.getSettingValue(Key.PATTERN_MODE)).thenReturn("LABEL");
+    when(settings.getSettingValue(Key.PATTERN_MAX_SAMPLE_COUNT)).thenReturn(10);
+    when(settings.getSettingValue(Key.PATTERN_BUFFER_LIMIT)).thenReturn(100000);
+    when(settings.getSettingValue(Key.PATTERN_SHOW_NUMBERED_TOKEN)).thenReturn(false);
     assertEqual(
         "source=t | patterns raw",
-        parse(
+        patterns(
             relation("t"),
-            ParseMethod.PATTERNS,
             field("raw"),
-            stringLiteral(""),
+            emptyList(),
+            "patterns_field",
+            PatternMethod.SIMPLE_PATTERN,
+            PatternMode.LABEL,
+            AstDSL.intLiteral(10),
+            AstDSL.intLiteral(100000),
+            AstDSL.booleanLiteral(false),
             ImmutableMap.of()));
   }
 
@@ -902,5 +1106,121 @@ public class AstBuilderTest {
 
   private String mappingTable(String indexName) {
     return SystemIndexUtils.mappingTable(indexName, PPL_SPEC);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testBinCommandDuplicateParameter() {
+    // Test that duplicate parameters throw an exception
+    plan("search source=test | bin index_field span=10 span=20");
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testRexSedModeWithOffsetFieldThrowsException() {
+    // Test that SED mode and offset_field cannot be used together (align with Splunk behavior)
+    plan("source=test | rex field=email mode=sed offset_field=matchpos \"s/@.*/@company.com/\"");
+  }
+
+  // Multisearch tests
+
+  @Test
+  public void testBasicMultisearchParsing() {
+    // Test basic multisearch parsing
+    plan("| multisearch [ search source=test1 ] [ search source=test2 ]");
+  }
+
+  @Test
+  public void testMultisearchWithStreamingCommands() {
+    // Test multisearch with streaming commands
+    plan(
+        "| multisearch [ search source=test1 | where age > 30 | fields name, age ] "
+            + "[ search source=test2 | eval category=\"young\" | rename id as user_id ]");
+  }
+
+  @Test
+  public void testMultisearchWithStatsCommand() {
+    // Test multisearch with stats command - now allowed
+    plan(
+        "| multisearch [ search source=test1 | stats count() by gender ] "
+            + "[ search source=test2 | fields name, age ]");
+  }
+
+  @Test
+  public void testMultisearchWithSortCommand() {
+    // Test multisearch with sort command - now allowed
+    plan(
+        "| multisearch [ search source=test1 | sort age ] "
+            + "[ search source=test2 | fields name, age ]");
+  }
+
+  @Test
+  public void testMultisearchWithBinCommand() {
+    // Test multisearch with bin command - now allowed
+    plan(
+        "| multisearch [ search source=test1 | bin age span=10 ] "
+            + "[ search source=test2 | fields name, age ]");
+  }
+
+  @Test
+  public void testMultisearchWithTimechartCommand() {
+    // Test multisearch with timechart command - now allowed
+    plan(
+        "| multisearch [ search source=test1 | timechart count() by age ] "
+            + "[ search source=test2 | fields name, age ]");
+  }
+
+  @Test
+  public void testMultisearchWithRareCommand() {
+    // Test multisearch with rare command - now allowed
+    plan(
+        "| multisearch [ search source=test1 | rare gender ] "
+            + "[ search source=test2 | fields name, age ]");
+  }
+
+  @Test
+  public void testMultisearchWithDedupeCommand() {
+    // Test multisearch with dedup command - now allowed
+    plan(
+        "| multisearch [ search source=test1 | dedup name ] "
+            + "[ search source=test2 | fields name, age ]");
+  }
+
+  @Test
+  public void testMultisearchWithJoinCommand() {
+    // Test multisearch with join command - now allowed
+    plan(
+        "| multisearch [ search source=test1 | join left=l right=r where l.id = r.id"
+            + " test2 ] [ search source=test3 | fields name, age ]");
+  }
+
+  @Test
+  public void testMultisearchWithComplexPipeline() {
+    // Test multisearch with complex pipeline (previously called streaming)
+    plan(
+        "| multisearch [ search source=test1 | where age > 30 | eval category=\"adult\""
+            + " | fields name, age, category | rename age as years_old | head 100 ] [ search"
+            + " source=test2 | where status=\"active\" | expand tags | flatten nested_data |"
+            + " fillnull with \"unknown\" | reverse ]");
+  }
+
+  @Test
+  public void testMultisearchMixedCommands() {
+    // Test multisearch with mix of commands - now all allowed
+    plan(
+        "| multisearch [ search source=test1 | where age > 30 | stats count() ] "
+            + "[ search source=test2 | where status=\"active\" | sort name ]");
+  }
+
+  @Test
+  public void testMultisearchSingleSubsearchThrowsException() {
+    // Test multisearch with only one subsearch - should throw descriptive runtime exception
+    SyntaxCheckException exception =
+        assertThrows(
+            SyntaxCheckException.class,
+            () -> plan("| multisearch [ search source=test1 | fields name, age ]"));
+
+    // Now we should get our descriptive runtime validation error message
+    assertEquals(
+        "Multisearch command requires at least two subsearches. Provided: 1",
+        exception.getMessage());
   }
 }

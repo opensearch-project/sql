@@ -119,6 +119,14 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     this.pitId = pitId;
   }
 
+  /** true if the request is a count aggregation request. */
+  public boolean isCountAggRequest() {
+    return !searchDone
+        && sourceBuilder.size() == 0
+        && sourceBuilder.trackTotalHitsUpTo() != null // only set in v3
+        && sourceBuilder.trackTotalHitsUpTo() == Integer.MAX_VALUE;
+  }
+
   /**
    * Constructs OpenSearchQueryRequest from serialized representation.
    *
@@ -163,14 +171,18 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     if (this.pitId == null) {
       // When SearchRequest doesn't contain PitId, fetch single page request
       if (searchDone) {
-        return new OpenSearchResponse(SearchHits.empty(), exprValueFactory, includes);
+        return new OpenSearchResponse(
+            SearchHits.empty(), exprValueFactory, includes, isCountAggRequest());
       } else {
+        // get the value before set searchDone = true
+        boolean isCountAggRequest = isCountAggRequest();
         searchDone = true;
         return new OpenSearchResponse(
             searchAction.apply(
                 new SearchRequest().indices(indexName.getIndexNames()).source(sourceBuilder)),
             exprValueFactory,
-            includes);
+            includes,
+            isCountAggRequest);
       }
     } else {
       // Search with PIT instead of scroll API
@@ -181,7 +193,9 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   public OpenSearchResponse searchWithPIT(Function<SearchRequest, SearchResponse> searchAction) {
     OpenSearchResponse openSearchResponse;
     if (searchDone) {
-      openSearchResponse = new OpenSearchResponse(SearchHits.empty(), exprValueFactory, includes);
+      openSearchResponse =
+          new OpenSearchResponse(
+              SearchHits.empty(), exprValueFactory, includes, isCountAggRequest());
     } else {
       this.sourceBuilder.pointInTimeBuilder(new PointInTimeBuilder(this.pitId));
       this.sourceBuilder.timeout(cursorKeepAlive);
@@ -196,10 +210,13 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
         // see https://github.com/opensearch-project/sql/pull/3061
         this.sourceBuilder.sort(METADATA_FIELD_ID, ASC);
       }
-      SearchRequest searchRequest = new SearchRequest().source(this.sourceBuilder);
+      SearchRequest searchRequest =
+          new SearchRequest().indices(indexName.getIndexNames()).source(this.sourceBuilder);
       this.searchResponse = searchAction.apply(searchRequest);
 
-      openSearchResponse = new OpenSearchResponse(this.searchResponse, exprValueFactory, includes);
+      openSearchResponse =
+          new OpenSearchResponse(
+              this.searchResponse, exprValueFactory, includes, isCountAggRequest());
 
       needClean = openSearchResponse.isEmpty();
       searchDone = openSearchResponse.isEmpty();
@@ -217,6 +234,18 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     try {
       // clean on the last page only, to prevent deleting the PitId in the middle of paging.
       if (this.pitId != null && needClean) {
+        cleanAction.accept(this.pitId);
+        searchDone = true;
+      }
+    } finally {
+      this.pitId = null;
+    }
+  }
+
+  @Override
+  public void forceClean(Consumer<String> cleanAction) {
+    try {
+      if (this.pitId != null) {
         cleanAction.accept(this.pitId);
         searchDone = true;
       }

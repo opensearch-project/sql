@@ -16,6 +16,7 @@ on:
       - '**/*.jar'
       - '**/*.pom'
       - '.github/workflows/sql-test-and-build-workflow.yml'
+  merge_group:
 
 jobs:
   Get-CI-Image-Tag:
@@ -26,144 +27,164 @@ jobs:
   build-linux:
     needs: Get-CI-Image-Tag
     strategy:
-      # Run all jobs
       fail-fast: false
       matrix:
-        java: [21, 23]
+        java: [21, 24]
+        test-type: ['unit', 'integration', 'doc']
     runs-on: ubuntu-latest
     container:
-      # using the same image which is used by opensearch-build team to build the OpenSearch Distribution
-      # this image tag is subject to change as more dependencies and updates will arrive over time
       image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
       options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}
 
     steps:
-    - name: Run start commands
-      run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
+      - name: Run start commands
+        run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
 
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up JDK ${{ matrix.java }}
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: ${{ matrix.java }}
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.java }}
 
-    - name: Build with Gradle
-      run: |
-        chown -R 1000:1000 `pwd`
-        su `id -un 1000` -c "./gradlew --continue build"
+      - name: Build and Test
+        run: |
+          chown -R 1000:1000 `pwd`
+          if [ "${{ matrix.test-type }}" = "unit" ]; then
+            su `id -un 1000` -c "./gradlew --continue build -x integTest -x doctest"
+          elif [ "${{ matrix.test-type }}" = "integration" ]; then
+            su `id -un 1000` -c "./gradlew --continue integTest"
+          else
+            su `id -un 1000` -c "./gradlew --continue doctest"
+          fi
 
-    - name: Create Artifact Path
-      run: |
-        mkdir -p opensearch-sql-builds
-        cp -r ./plugin/build/distributions/*.zip opensearch-sql-builds/
+      - name: Create Artifact Path
+        if: ${{ matrix.test-type == 'unit' }}
+        run: |
+          mkdir -p opensearch-sql-builds
+          cp -r ./plugin/build/distributions/*.zip opensearch-sql-builds/
 
-    # This step uses the codecov-action Github action: https://github.com/codecov/codecov-action
-    - name: Upload SQL Coverage Report
-      if: ${{ always() }}
-      uses: codecov/codecov-action@v4
-      continue-on-error: true
-      with:
-        flags: sql-engine
-        token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Upload SQL Coverage Report
+        if: ${{ always() }}
+        uses: codecov/codecov-action@v4
+        continue-on-error: true
+        with:
+          flags: sql-engine
+          token: ${{ secrets.CODECOV_TOKEN }}
 
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v4
-      continue-on-error: true
-      with:
-        name: opensearch-sql-ubuntu-latest-${{ matrix.java }}
-        path: opensearch-sql-builds
+      - name: Upload Artifacts
+        if: ${{ matrix.test-type == 'unit' }}
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: opensearch-sql-ubuntu-latest-${{ matrix.java }}
+          path: opensearch-sql-builds
 
-    - name: Upload test reports
-      if: ${{ always() }}
-      uses: actions/upload-artifact@v4
-      continue-on-error: true
-      with:
-        name: test-reports-ubuntu-latest-${{ matrix.java }}
-        path: |
-          sql/build/reports/**
-          ppl/build/reports/**
-          core/build/reports/**
-          common/build/reports/**
-          opensearch/build/reports/**
-          integ-test/build/reports/**
-          protocol/build/reports/**
-          legacy/build/reports/**
-          plugin/build/reports/**
-          doctest/build/testclusters/docTestCluster-0/logs/*
-          integ-test/build/testclusters/*/logs/*
+      - name: Upload test reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: test-reports-ubuntu-latest-${{ matrix.java }}-${{ matrix.test-type }}
+          path: |
+            sql/build/reports/**
+            ppl/build/reports/**
+            core/build/reports/**
+            common/build/reports/**
+            opensearch/build/reports/**
+            integ-test/build/reports/**
+            protocol/build/reports/**
+            legacy/build/reports/**
+            plugin/build/reports/**
+            doctest/build/testclusters/docTestCluster-0/logs/*
+            integ-test/build/testclusters/*/logs/*
 
   build-windows-macos:
     strategy:
-      # Run all jobs
       fail-fast: false
       matrix:
         entry:
-          - { os: windows-latest, java: 21, os_build_args: -x doctest -PbuildPlatform=windows }
-          - { os: windows-latest, java: 23, os_build_args: -x doctest -PbuildPlatform=windows }
-          - { os: macos-13, java: 21 }
-          - { os: macos-13, java: 23 }
+          - { os: windows-latest, java: 21, os_build_args: -PbuildPlatform=windows }
+          - { os: windows-latest, java: 24, os_build_args: -PbuildPlatform=windows }
+          - { os: macos-13, java: 21, os_build_args: '' }
+          - { os: macos-13, java: 24, os_build_args: '' }
+        test-type: ['unit', 'integration', 'doc']
+        exclude:
+          # Exclude doctest for Windows
+          - test-type: doc
+            entry: { os: windows-latest, java: 21, os_build_args: -PbuildPlatform=windows }
+          - test-type: doc
+            entry: { os: windows-latest, java: 24, os_build_args: -PbuildPlatform=windows }
     runs-on: ${{ matrix.entry.os }}
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up JDK ${{ matrix.java }}
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: ${{ matrix.entry.java }}
+      - name: Set up JDK ${{ matrix.entry.java }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.entry.java }}
 
-    - name: Build with Gradle
-      run: ./gradlew --continue build ${{ matrix.entry.os_build_args }}
+      - name: Build and Test
+        run: |
+          if [ "${{ matrix.test-type }}" = "unit" ]; then
+            ./gradlew --continue build -x integTest -x doctest ${{ matrix.entry.os_build_args }}
+          elif [ "${{ matrix.test-type }}" = "integration" ]; then
+            ./gradlew --continue integTest ${{ matrix.entry.os_build_args }}
+          else
+            ./gradlew --continue doctest ${{ matrix.entry.os_build_args }}
+          fi
+        shell: bash
 
-    - name: Create Artifact Path
-      run: |
-        mkdir -p opensearch-sql-builds
-        cp -r ./plugin/build/distributions/*.zip opensearch-sql-builds/
+      - name: Create Artifact Path
+        if: ${{ matrix.test-type == 'unit' }}
+        run: |
+          mkdir -p opensearch-sql-builds
+          cp -r ./plugin/build/distributions/*.zip opensearch-sql-builds/
 
-    # This step uses the codecov-action Github action: https://github.com/codecov/codecov-action
-    - name: Upload SQL Coverage Report
-      if: ${{ always() && matrix.entry.os == 'ubuntu-latest' }}
-      uses: codecov/codecov-action@v4
-      continue-on-error: true
-      with:
-        flags: sql-engine
-        token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Upload SQL Coverage Report
+        if: ${{ always() && matrix.entry.os == 'ubuntu-latest' }}
+        uses: codecov/codecov-action@v4
+        continue-on-error: true
+        with:
+          flags: sql-engine
+          token: ${{ secrets.CODECOV_TOKEN }}
 
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v4
-      continue-on-error: true
-      with:
-        name: opensearch-sql-${{ matrix.entry.os }}-${{ matrix.entry.java }}
-        path: opensearch-sql-builds
+      - name: Upload Artifacts
+        if: ${{ matrix.test-type == 'unit' }}
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: opensearch-sql-${{ matrix.entry.os }}-${{ matrix.entry.java }}
+          path: opensearch-sql-builds
 
-    - name: Upload test reports
-      if: ${{ always() && matrix.entry.os == 'ubuntu-latest' }}
-      uses: actions/upload-artifact@v4
-      continue-on-error: true
-      with:
-        name: test-reports-${{ matrix.entry.os }}-${{ matrix.entry.java }}
-        path: |
-          sql/build/reports/**
-          ppl/build/reports/**
-          core/build/reports/**
-          common/build/reports/**
-          opensearch/build/reports/**
-          integ-test/build/reports/**
-          protocol/build/reports/**
-          legacy/build/reports/**
-          plugin/build/reports/**
-          doctest/build/testclusters/docTestCluster-0/logs/*
-          integ-test/build/testclusters/*/logs/*
+      - name: Upload test reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: test-reports-${{ matrix.entry.os }}-${{ matrix.entry.java }}-${{ matrix.test-type }}
+          path: |
+            sql/build/reports/**
+            ppl/build/reports/**
+            core/build/reports/**
+            common/build/reports/**
+            opensearch/build/reports/**
+            integ-test/build/reports/**
+            protocol/build/reports/**
+            legacy/build/reports/**
+            plugin/build/reports/**
+            doctest/build/testclusters/docTestCluster-0/logs/*
+            integ-test/build/testclusters/*/logs/*
 
   bwc-tests:
     needs: Get-CI-Image-Tag
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        java: [21, 23]
+        java: [21, 24]
     container:
       image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
       options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}

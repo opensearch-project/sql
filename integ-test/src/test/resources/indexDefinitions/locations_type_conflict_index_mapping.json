@@ -1,0 +1,15 @@
+{
+  "mappings": {
+    "properties": {
+      "description": {
+        "type": "text"
+      },
+      "age": {
+        "type": "text"
+      },
+      "place_id": {
+        "type": "integer"
+      }
+    }
+  }
+}

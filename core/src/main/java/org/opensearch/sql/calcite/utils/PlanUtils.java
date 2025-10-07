@@ -10,24 +10,33 @@ import static org.apache.calcite.rex.RexWindowBounds.UNBOUNDED_FOLLOWING;
 import static org.apache.calcite.rex.RexWindowBounds.UNBOUNDED_PRECEDING;
 import static org.apache.calcite.rex.RexWindowBounds.following;
 import static org.apache.calcite.rex.RexWindowBounds.preceding;
-import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.STDDEV_POP_NULLABLE;
-import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.STDDEV_SAMP_NULLABLE;
-import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.VAR_POP_NULLABLE;
-import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.VAR_SAMP_NULLABLE;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedAggFunction;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelHomogeneousShuttle;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.Util;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.IntervalUnit;
@@ -37,11 +46,13 @@ import org.opensearch.sql.ast.expression.WindowFrame;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.calcite.udf.udaf.PercentileApproxFunction;
-import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 public interface PlanUtils {
+
+  /** this is only for dedup command, do not reuse it in other command */
+  String ROW_NUMBER_COLUMN_FOR_DEDUP = "_row_number_dedup_";
 
   String ROW_NUMBER_COLUMN_NAME = "_row_number_";
   String ROW_NUMBER_COLUMN_NAME_MAIN = "_row_number_main_";
@@ -111,6 +122,14 @@ public interface PlanUtils {
       case ROW_NUMBER:
         return withOver(
             context.relBuilder.aggregateCall(SqlStdOperatorTable.ROW_NUMBER),
+            partitions,
+            orderKeys,
+            true,
+            lowerBound,
+            upperBound);
+      case NTH_VALUE:
+        return withOver(
+            context.relBuilder.aggregateCall(SqlStdOperatorTable.NTH_VALUE, field, argList.get(0)),
             partitions,
             orderKeys,
             true,
@@ -232,60 +251,14 @@ public interface PlanUtils {
       boolean distinct,
       RexNode field,
       List<RexNode> argList) {
-    switch (functionName) {
-      case MAX:
-        return context.relBuilder.max(field);
-      case MIN:
-        return context.relBuilder.min(field);
-      case AVG:
-        return context.relBuilder.avg(distinct, null, field);
-      case COUNT:
-        return context.relBuilder.count(
-            distinct, null, field == null ? ImmutableList.of() : ImmutableList.of(field));
-      case SUM:
-        return context.relBuilder.sum(distinct, null, field);
-        //            case MEAN:
-        //                throw new UnsupportedOperationException("MEAN is not supported in PPL");
-        //            case STDDEV:
-        //                return context.relBuilder.aggregateCall(SqlStdOperatorTable.STDDEV,
-        // field);
-      case VARSAMP:
-        return context.relBuilder.aggregateCall(VAR_SAMP_NULLABLE, field);
-      case VARPOP:
-        return context.relBuilder.aggregateCall(VAR_POP_NULLABLE, field);
-      case STDDEV_POP:
-        return context.relBuilder.aggregateCall(STDDEV_POP_NULLABLE, field);
-      case STDDEV_SAMP:
-        return context.relBuilder.aggregateCall(STDDEV_SAMP_NULLABLE, field);
-        //            case PERCENTILE_APPROX:
-        //                return
-        // context.relBuilder.aggregateCall(SqlStdOperatorTable.PERCENTILE_CONT, field);
-      case TAKE:
-        return TransferUserDefinedAggFunction(
-            TakeAggFunction.class,
-            "TAKE",
-            UserDefinedFunctionUtils.getReturnTypeInferenceForArray(),
-            List.of(field),
-            argList,
-            context.relBuilder);
-      case PERCENTILE_APPROX:
-        List<RexNode> newArgList = new ArrayList<>(argList);
-        newArgList.add(context.rexBuilder.makeFlag(field.getType().getSqlTypeName()));
-        return TransferUserDefinedAggFunction(
-            PercentileApproxFunction.class,
-            "percentile_approx",
-            ReturnTypes.ARG0_FORCE_NULLABLE,
-            List.of(field),
-            newArgList,
-            context.relBuilder);
-      default:
-        throw new UnsupportedOperationException(
-            "Unexpected aggregation: " + functionName.getName().getFunctionName());
-    }
+    return PPLFuncImpTable.INSTANCE.resolveAgg(functionName, distinct, field, argList, context);
   }
 
   /** Get all uniq input references from a RexNode. */
   static List<RexInputRef> getInputRefs(RexNode node) {
+    if (node == null) {
+      return List.of();
+    }
     List<RexInputRef> inputRefs = new ArrayList<>();
     node.accept(
         new RexVisitorImpl<Void>(true) {
@@ -303,6 +276,26 @@ public interface PlanUtils {
   /** Get all uniq input references from a list of RexNodes. */
   static List<RexInputRef> getInputRefs(List<RexNode> nodes) {
     return nodes.stream().flatMap(node -> getInputRefs(node).stream()).toList();
+  }
+
+  /** Get all uniq RexCall from RexNode with a predicate */
+  static List<RexCall> getRexCall(RexNode node, Predicate<RexCall> predicate) {
+    List<RexCall> list = new ArrayList<>();
+    node.accept(
+        new RexVisitorImpl<Void>(true) {
+          @Override
+          public Void visitCall(RexCall inputCall) {
+            if (predicate.test(inputCall)) {
+              if (!list.contains(inputCall)) {
+                list.add(inputCall);
+              }
+            } else {
+              inputCall.getOperands().forEach(call -> call.accept(this));
+            }
+            return null;
+          }
+        });
+    return list;
   }
 
   /** Get all uniq input references from a list of agg calls. */
@@ -331,6 +324,25 @@ public interface PlanUtils {
     return node.getChild().getFirst().accept(relationVisitor, null);
   }
 
+  /** Similar to {@link org.apache.calcite.plan.RelOptUtil#findTable(RelNode, String) } */
+  static RelOptTable findTable(RelNode root) {
+    try {
+      RelShuttle visitor =
+          new RelHomogeneousShuttle() {
+            @Override
+            public RelNode visit(TableScan scan) {
+              final RelOptTable scanTable = scan.getTable();
+              throw new Util.FoundOne(scanTable);
+            }
+          };
+      root.accept(visitor);
+      return null;
+    } catch (Util.FoundOne e) {
+      Util.swallow(e, null);
+      return (RelOptTable) e.getNode();
+    }
+  }
+
   /**
    * Transform plan to attach specified child to the first leaf node.
    *
@@ -352,5 +364,73 @@ public interface PlanUtils {
           }
         };
     node.accept(leafVisitor, null);
+  }
+
+  /**
+   * Return the first value RexNode of the valid map RexCall structure
+   *
+   * @param rexNode RexNode that expects type of MAP_VALUE_CONSTRUCTOR RexCall
+   * @return first value of the valid map RexCall
+   */
+  static RexNode derefMapCall(RexNode rexNode) {
+    if (rexNode instanceof RexCall) {
+      RexCall call = (RexCall) rexNode;
+      if (call.getOperator() == SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR) {
+        return call.getOperands().get(1);
+      }
+    }
+    return rexNode;
+  }
+
+  /** Check if contains RexOver */
+  static boolean containsRowNumberDedup(LogicalProject project) {
+    return project.getProjects().stream()
+        .anyMatch(p -> p instanceof RexOver && p.getKind() == SqlKind.ROW_NUMBER);
+  }
+
+  /** Get all RexWindow list from LogicalProject */
+  static List<RexWindow> getRexWindowFromProject(LogicalProject project) {
+    final List<RexWindow> res = new ArrayList<>();
+    final RexVisitorImpl<Void> visitor =
+        new RexVisitorImpl<>(true) {
+          @Override
+          public Void visitOver(RexOver over) {
+            res.add(over.getWindow());
+            return null;
+          }
+        };
+    visitor.visitEach(project.getProjects());
+    return res;
+  }
+
+  static List<Integer> getSelectColumns(List<RexNode> rexNodes) {
+    final List<Integer> selectedColumns = new ArrayList<>();
+    final RexVisitorImpl<Void> visitor =
+        new RexVisitorImpl<Void>(true) {
+          @Override
+          public Void visitInputRef(RexInputRef inputRef) {
+            if (!selectedColumns.contains(inputRef.getIndex())) {
+              selectedColumns.add(inputRef.getIndex());
+            }
+            return null;
+          }
+        };
+    visitor.visitEach(rexNodes);
+    return selectedColumns;
+  }
+
+  /**
+   * Get a string representation of the argument types expressed in ExprType for error messages.
+   *
+   * @param argTypes the list of argument types as {@link RelDataType}
+   * @return a string in the format [type1,type2,...] representing the argument types
+   */
+  public static String getActualSignature(List<RelDataType> argTypes) {
+    return "["
+        + argTypes.stream()
+            .map(OpenSearchTypeFactory::convertRelDataTypeToExprType)
+            .map(Objects::toString)
+            .collect(Collectors.joining(","))
+        + "]";
   }
 }

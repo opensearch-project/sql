@@ -14,6 +14,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.FunctionExpression;
@@ -78,12 +79,44 @@ public abstract class RelevanceQuery<T extends QueryBuilder> extends LuceneQuery
         func.getArguments().stream()
             .map(a -> (NamedArgumentExpression) a)
             .collect(Collectors.toList());
-    if (arguments.size() < 2) {
+    if (arguments.size() < getMinimumParameterCount()) {
       throw new SyntaxCheckException(
-          String.format("%s requires at least two parameters", getQueryName()));
+          String.format(
+              "%s requires at least %d parameter(s)", getQueryName(), getMinimumParameterCount()));
     }
 
     return loadArguments(arguments);
+  }
+
+  /**
+   * Returns the minimum number of parameters required by the query. Subclasses can override this
+   * method to allow different minimum parameter counts.
+   *
+   * @return minimum parameter count
+   */
+  protected int getMinimumParameterCount() {
+    return 2; // Default: requires both fields and query
+  }
+
+  /**
+   * Enrich initially created opensearch index query builder with optional arguments that are
+   * wrapped in Calcite MAP RexCall.
+   *
+   * @param queryBuilder queryBuilder Initially created opensearch index relevance query builder
+   * @param optionalArguments Map contains optional relevance query argument key value pairs
+   * @return enriched QueryBuilder
+   */
+  protected T applyArguments(T queryBuilder, Map<String, String> optionalArguments) {
+    if (optionalArguments != null && !optionalArguments.isEmpty()) {
+      optionalArguments.forEach(
+          (k, v) -> {
+            checkValidArguments(k, queryBuilder);
+            (Objects.requireNonNull(getQueryBuildActions().get(k)))
+                .apply(queryBuilder, new ExprStringValue(v));
+          });
+    }
+
+    return queryBuilder;
   }
 
   protected abstract T createQueryBuilder(List<NamedArgumentExpression> arguments);

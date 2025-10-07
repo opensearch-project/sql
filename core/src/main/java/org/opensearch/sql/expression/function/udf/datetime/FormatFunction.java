@@ -19,6 +19,7 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprStringValue;
@@ -28,6 +29,7 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
  * Implementation for date_format and time_format functions.
@@ -40,6 +42,7 @@ import org.opensearch.sql.expression.function.ImplementorUDF;
  * </ul>
  */
 public class FormatFunction extends ImplementorUDF {
+
   public FormatFunction(ExprType functionType) {
     super(new DataFormatImplementor(functionType), NullPolicy.ANY);
     if (!functionType.equals(ExprCoreType.DATE) && !functionType.equals(ExprCoreType.TIME)) {
@@ -51,6 +54,11 @@ public class FormatFunction extends ImplementorUDF {
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
     return PPLReturnTypes.STRING_FORCE_NULLABLE;
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+    return PPLOperandTypes.DATETIME_OR_STRING_STRING;
   }
 
   @RequiredArgsConstructor

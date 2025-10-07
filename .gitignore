@@ -51,3 +51,8 @@ http-client.env.json
 /doctest/sql-cli/
 /doctest/opensearch-job-scheduler/
 .factorypath
+
+# Coding agent files (could be symlinks)
+.claude
+.clinerules
+memory-bank

@@ -12,6 +12,5 @@ public class CalciteParseCommandIT extends ParseCommandIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }

@@ -10,6 +10,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -103,17 +106,38 @@ public class BrainLogParserTest {
   }
 
   @Test
+  public void testPreprocessNullString() {
+    String logMessage = null;
+    String logId = "log1";
+    List<String> expectedResult = Arrays.asList("", "log1");
+    List<String> result = parser.preprocess(logMessage, logId);
+    assertEquals(expectedResult, result);
+  }
+
+  @Test
+  public void testPreprocessWithUUID() {
+    String logMessage = "127.0.0.1 - 1234 something, user_id:c78ac970-f0c3-4954-8cf8-352a8458d01c";
+    String logId = "log1";
+    List<String> expectedResult =
+        Arrays.asList("<*IP*>", "-", "<*>", "something", "user_id:<*UUID*>", "log1");
+    List<String> result = parser.preprocess(logMessage, logId);
+    assertEquals(expectedResult, result);
+    // Test with different delimiter
+    logMessage = "127.0.0.1=1234 something, user_id:c78ac970-f0c3-4954-8cf8-352a8458d01c";
+    logId = "log2";
+    expectedResult = Arrays.asList("<*IP*>=<*>", "something", "user_id:<*UUID*>", "log2");
+    result = parser.preprocess(logMessage, logId);
+    assertEquals(expectedResult, result);
+  }
+
+  @Test
   public void testPreprocessWithIllegalInput() {
     String logMessage = "127.0.0.1 - 1234 something";
     String logId = "log1";
-    String exceptionMessage = "log message or logId must not be null";
+    String exceptionMessage = "logId must not be null";
+    assertEquals(ImmutableList.of("", logId), parser.preprocess(null, logId));
     Throwable throwable =
-        assertThrows(IllegalArgumentException.class, () -> parser.preprocess(null, logId));
-    assertEquals(exceptionMessage, throwable.getMessage());
-    throwable =
         assertThrows(IllegalArgumentException.class, () -> parser.preprocess(logMessage, null));
-    assertEquals(exceptionMessage, throwable.getMessage());
-    throwable = assertThrows(IllegalArgumentException.class, () -> parser.preprocess(null, null));
     assertEquals(exceptionMessage, throwable.getMessage());
   }
 
@@ -192,27 +216,48 @@ public class BrainLogParserTest {
   }
 
   @Test
-  public void testParseAllLogPatterns() {
-    Map<String, List<String>> logPatternMap = parser.parseAllLogPatterns(TEST_HDFS_LOGS);
-    Map<String, Integer> expectedResult =
-        Map.of(
+  public void testParseAllLogPatternsWithNullInput() {
+    List<String> messages =
+        Arrays.asList(
+            null,
+            "PacketResponder failed for blk_6996194389878584395",
+            "PacketResponder failed for blk_-1547954353065580372");
+    Map<String, Map<String, Object>> logPatternMap = parser.parseAllLogPatterns(messages, 1);
+    Map<String, Map<String, Object>> expectedResult =
+        ImmutableMap.of(
+            "",
+            ImmutableMap.of("pattern_count", 1L, "pattern", "", "sample_logs", ImmutableList.of()),
             "PacketResponder failed for blk_<*>",
-            2,
+            ImmutableMap.of(
+                "pattern_count",
+                2L,
+                "pattern",
+                "PacketResponder failed for blk_<*>",
+                "sample_logs",
+                ImmutableList.of("PacketResponder failed for blk_6996194389878584395")));
+    assertEquals(expectedResult, logPatternMap);
+  }
+
+  @Test
+  public void testParseAllLogPatterns() {
+    Map<String, Map<String, Object>> logPatternMap = parser.parseAllLogPatterns(TEST_HDFS_LOGS, 2);
+    Map<String, Long> expectedResult =
+        ImmutableMap.of(
+            "PacketResponder failed for blk_<*>",
+            2L,
             "Verification succeeded for blk_<*>",
-            2,
+            2L,
             "BLOCK* NameSystem.addStoredBlock: blockMap updated: <*IP*> is added to blk_<*> size"
                 + " <*>",
-            8,
+            8L,
             "BLOCK* NameSystem.allocateBlock:"
                 + " /user/root/sortrand/_temporary/_task_<*>_<*>_r_<*>_<*>/part<*> blk_<*>",
-            6,
+            6L,
             "BLOCK* NameSystem.allocateBlock:"
                 + " /user/root/randtxt/_temporary/_task_<*>_<*>_m_<*>_<*>/part<*> blk_<*>",
-            2);
-    Map<String, Integer> logPatternByCountMap =
-        logPatternMap.entrySet().stream()
-            .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().size()));
-    assertEquals(expectedResult, logPatternByCountMap);
+            2L);
+
+    assertEquals(expectedResult, collectPatternByCountMap(logPatternMap));
   }
 
   @Test
@@ -225,15 +270,16 @@ public class BrainLogParserTest {
             "Verification succeeded b blk_6996194389878584395",
             "Verification succeeded c blk_6996194389878584395",
             "Verification succeeded d blk_6996194389878584395");
-    Map<String, List<String>> expectedResult =
-        Map.of("Verification succeeded <*> blk_<*>", Arrays.asList("0", "1", "2", "3"));
-    Map<String, List<String>> logPatternMap = parser.parseAllLogPatterns(logMessages);
-    assertEquals(expectedResult, logPatternMap);
+    Map<String, Long> expectedResult = Map.of("Verification succeeded <*> blk_<*>", 4L);
+    Map<String, Map<String, Object>> logPatternMap = parser.parseAllLogPatterns(logMessages, 2);
+    assertEquals(expectedResult, collectPatternByCountMap(logPatternMap));
     /*
-     * 'a', 'b', 'c' and 'd' token is on the 3rd position in the group 2,3, their frequency is lower than
-     * representative frequency. Since that position's distinct token number exceeds the variable count threshold,
-     * the third position in this log group is treated as variable
-     */
+        * 'a', 'b', 'c' and 'd' token is on the 3rd position in the group 2,3, their frequency is
+    lower than
+        * representative frequency. Since that position's distinct token number exceeds the
+    variable count threshold,
+        * the third position in this log group is treated as variable
+        */
     assertTrue(
         parser.getTokenFreqMap().get("2-a") < parser.getTokenFreqMap().get("0-Verification"));
     assertTrue(
@@ -250,24 +296,49 @@ public class BrainLogParserTest {
             "Test succeeded for blk_6996194389878584395",
             "Verification",
             "Verification");
-    Map<String, List<String>> expectedResult =
+    Map<String, Long> expectedResult =
         Map.of(
-            "<*> succeeded for blk_<*>",
-            Arrays.asList("0", "1"),
-            "Test succeeded for blk_<*>",
-            Arrays.asList("2"),
-            "Verification",
-            Arrays.asList("3", "4"));
-    Map<String, List<String>> logPatternMap = parser.parseAllLogPatterns(logMessages);
-    assertEquals(expectedResult, logPatternMap);
+            "<*> succeeded for blk_<*>", 2L, "Test succeeded for blk_<*>", 1L, "Verification", 2L);
+    Map<String, Map<String, Object>> logPatternMap = parser.parseAllLogPatterns(logMessages, 2);
+    assertEquals(expectedResult, collectPatternByCountMap(logPatternMap));
     /*
-     * 'Verification' and 'Test' token is on the 1st position in the group 3,3, 'Verification' frequency is higher than
-     * representative frequency because there are other groups which have 'Verification' token on the 1st position as well.
-     * Since first position's distinct token number is not unique, 'Verification' is treated as variable eventually.
-     */
+        * 'Verification' and 'Test' token is on the 1st position in the group 3,3, 'Verification'
+    frequency is higher than
+        * representative frequency because there are other groups which have 'Verification' token
+    on the 1st position as well.
+        * Since first position's distinct token number is not unique, 'Verification' is treated as
+    variable eventually.
+        */
     assertTrue(
         parser.getTokenFreqMap().get("0-Verification")
             > parser.getTokenFreqMap().get("1-succeeded"));
     assertTrue(parser.getGroupTokenSetMap().get("4-3,3-0").size() > 1);
+  }
+
+  @Test
+  public void testCollapseContinuousWildcards() {
+    String correctTokenPattern =
+        "BLOCK* NameSystem.allocateBlock: /user/root/_temporary/_task_<*>_r_<*>";
+    String continuousTokenPattern =
+        "BLOCK* NameSystem.allocateBlock: /user/root/_temporary/_task_<*><*>_r_<*><*><*>";
+
+    assertEquals(
+        correctTokenPattern, BrainLogParser.collapseContinuousWildcards(continuousTokenPattern));
+    assertEquals(
+        correctTokenPattern, BrainLogParser.collapseContinuousWildcards(correctTokenPattern));
+  }
+
+  private Map<String, Long> collectPatternByCountMap(
+      Map<String, Map<String, Object>> logPatternMap) {
+    return logPatternMap.entrySet().stream()
+        .map(
+            entry -> {
+              String key = entry.getKey();
+              Map<String, Object> value = entry.getValue();
+              Long count = (Long) value.get(PatternUtils.PATTERN_COUNT);
+              return new AbstractMap.SimpleEntry<>(key, count);
+            })
+        .collect(
+            Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
   }
 }

@@ -5,15 +5,7 @@
 
 package org.opensearch.sql.ppl.utils;
 
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
-
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -21,7 +13,19 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.tree.Join;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 
 /** Util class to get all arguments as a list from the PPL command. */
 public class ArgumentFactory {
@@ -34,7 +38,7 @@ public class ArgumentFactory {
    */
   public static List<Argument> getArgumentList(FieldsCommandContext ctx) {
     return Collections.singletonList(
-        ctx.MINUS() != null
+        ctx.fieldsCommandBody().MINUS() != null
             ? new Argument("exclude", new Literal(true, DataType.BOOLEAN))
             : new Argument("exclude", new Literal(false, DataType.BOOLEAN)));
   }
@@ -45,20 +49,41 @@ public class ArgumentFactory {
    * @param ctx StatsCommandContext instance
    * @return the list of arguments fetched from the stats command
    */
-  public static List<Argument> getArgumentList(StatsCommandContext ctx) {
-    return Arrays.asList(
-        ctx.partitions != null
-            ? new Argument("partitions", getArgumentValue(ctx.partitions))
-            : new Argument("partitions", new Literal(1, DataType.INTEGER)),
-        ctx.allnum != null
-            ? new Argument("allnum", getArgumentValue(ctx.allnum))
-            : new Argument("allnum", new Literal(false, DataType.BOOLEAN)),
-        ctx.delim != null
-            ? new Argument("delim", getArgumentValue(ctx.delim))
-            : new Argument("delim", new Literal(" ", DataType.STRING)),
-        ctx.dedupsplit != null
-            ? new Argument("dedupsplit", getArgumentValue(ctx.dedupsplit))
-            : new Argument("dedupsplit", new Literal(false, DataType.BOOLEAN)));
+  public static List<Argument> getArgumentList(
+      OpenSearchPPLParser.StatsCommandContext ctx, Settings settings) {
+    OpenSearchPPLParser.StatsArgsContext ctx1 = ctx.statsArgs();
+    OpenSearchPPLParser.DedupSplitArgContext ctx2 = ctx.dedupSplitArg();
+    List<Argument> list =
+        new ArrayList<>(
+            Arrays.asList(
+                ctx1.partitionsArg() != null && !ctx1.partitionsArg().isEmpty()
+                    ? new Argument("partitions", getArgumentValue(ctx1.partitionsArg(0).partitions))
+                    : new Argument("partitions", Literal.ONE),
+                ctx1.allnumArg() != null && !ctx1.allnumArg().isEmpty()
+                    ? new Argument("allnum", getArgumentValue(ctx1.allnumArg(0).allnum))
+                    : new Argument("allnum", Literal.FALSE),
+                ctx1.delimArg() != null && !ctx1.delimArg().isEmpty()
+                    ? new Argument("delim", getArgumentValue(ctx1.delimArg(0).delim))
+                    : new Argument("delim", new Literal(" ", DataType.STRING)),
+                ctx1.bucketNullableArg() != null && !ctx1.bucketNullableArg().isEmpty()
+                    ? new Argument(
+                        Argument.BUCKET_NULLABLE,
+                        getArgumentValue(ctx1.bucketNullableArg(0).bucket_nullable))
+                    : new Argument(
+                        Argument.BUCKET_NULLABLE,
+                        legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE)));
+    if (ctx2 != null) {
+      list.add(new Argument("dedupsplit", getArgumentValue(ctx2.dedupsplit)));
+    } else {
+      list.add(new Argument("dedupsplit", Literal.FALSE));
+    }
+    return list;
+  }
+
+  private static boolean legacyPreferred(Settings settings) {
+    return settings == null
+        || settings.getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED) == null
+        || Boolean.TRUE.equals(settings.getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED));
   }
 
   /**
@@ -147,10 +172,76 @@ public class ArgumentFactory {
    * @return Literal
    */
   private static Literal getArgumentValue(ParserRuleContext ctx) {
-    return ctx instanceof IntegerLiteralContext
-        ? new Literal(Integer.parseInt(ctx.getText()), DataType.INTEGER)
-        : ctx instanceof BooleanLiteralContext
-            ? new Literal(Boolean.valueOf(ctx.getText()), DataType.BOOLEAN)
-            : new Literal(StringUtils.unquoteText(ctx.getText()), DataType.STRING);
+    if (ctx instanceof IntegerLiteralContext) {
+      return new Literal(Integer.parseInt(ctx.getText()), DataType.INTEGER);
+    } else if (ctx instanceof DecimalLiteralContext) {
+      return new Literal(Double.parseDouble(ctx.getText()), DataType.DOUBLE);
+    } else if (ctx instanceof BooleanLiteralContext) {
+      return new Literal(Boolean.valueOf(ctx.getText()), DataType.BOOLEAN);
+    } else {
+      return new Literal(StringUtils.unquoteText(ctx.getText()), DataType.STRING);
+    }
+  }
+
+  /**
+   * parse argument value into Literal.
+   *
+   * @param ctx ParserRuleContext instance
+   * @return Literal
+   */
+  public static Argument getArgumentValue(OpenSearchPPLParser.JoinTypeContext ctx) {
+    Join.JoinType type = getJoinType(ctx);
+    return new Argument("type", new Literal(type.name(), DataType.STRING));
+  }
+
+  public static Join.JoinType getJoinType(OpenSearchPPLParser.SqlLikeJoinTypeContext ctx) {
+    if (ctx == null) return Join.JoinType.INNER;
+    if (ctx.INNER() != null) return Join.JoinType.INNER;
+    if (ctx.SEMI() != null) return Join.JoinType.SEMI;
+    if (ctx.ANTI() != null) return Join.JoinType.ANTI;
+    if (ctx.LEFT() != null) return Join.JoinType.LEFT;
+    if (ctx.RIGHT() != null) return Join.JoinType.RIGHT;
+    if (ctx.CROSS() != null) return Join.JoinType.CROSS;
+    if (ctx.FULL() != null) return Join.JoinType.FULL;
+    if (ctx.OUTER() != null) return Join.JoinType.LEFT;
+    throw new SemanticCheckException(String.format("Unsupported join type %s", ctx.getText()));
+  }
+
+  public static Join.JoinType getJoinType(OpenSearchPPLParser.JoinTypeContext ctx) {
+    if (ctx == null) return Join.JoinType.INNER;
+    if (ctx.INNER() != null) return Join.JoinType.INNER;
+    if (ctx.SEMI() != null) return Join.JoinType.SEMI;
+    if (ctx.ANTI() != null) return Join.JoinType.ANTI;
+    if (ctx.LEFT() != null) return Join.JoinType.LEFT;
+    if (ctx.RIGHT() != null) return Join.JoinType.RIGHT;
+    if (ctx.CROSS() != null) return Join.JoinType.CROSS;
+    if (ctx.FULL() != null) return Join.JoinType.FULL;
+    if (ctx.OUTER() != null) return Join.JoinType.LEFT;
+    throw new SemanticCheckException(String.format("Unsupported join type %s", ctx.getText()));
+  }
+
+  public static Join.JoinType getJoinType(Argument.ArgumentMap argumentMap) {
+    Join.JoinType joinType;
+    String type = argumentMap.get("type").toString();
+    if (type.equalsIgnoreCase(Join.JoinType.INNER.name())) {
+      joinType = Join.JoinType.INNER;
+    } else if (type.equalsIgnoreCase(Join.JoinType.SEMI.name())) {
+      joinType = Join.JoinType.SEMI;
+    } else if (type.equalsIgnoreCase(Join.JoinType.ANTI.name())) {
+      joinType = Join.JoinType.ANTI;
+    } else if (type.equalsIgnoreCase(Join.JoinType.LEFT.name())) {
+      joinType = Join.JoinType.LEFT;
+    } else if (type.equalsIgnoreCase(Join.JoinType.RIGHT.name())) {
+      joinType = Join.JoinType.RIGHT;
+    } else if (type.equalsIgnoreCase(Join.JoinType.CROSS.name())) {
+      joinType = Join.JoinType.CROSS;
+    } else if (type.equalsIgnoreCase(Join.JoinType.FULL.name())) {
+      joinType = Join.JoinType.FULL;
+    } else if (type.equalsIgnoreCase("OUTER")) {
+      joinType = Join.JoinType.LEFT;
+    } else {
+      throw new SemanticCheckException(String.format("Supported join type %s", type));
+    }
+    return joinType;
   }
 }

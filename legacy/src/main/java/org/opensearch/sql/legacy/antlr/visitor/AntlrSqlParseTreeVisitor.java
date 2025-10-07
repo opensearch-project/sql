@@ -53,6 +53,8 @@ import org.opensearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.SelectCo
 import org.opensearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.SubqueryTableItemContext;
 import org.opensearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.TableNamePatternContext;
 import org.opensearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParserBaseVisitor;
+import org.opensearch.sql.legacy.exception.SqlParseException;
+import org.opensearch.sql.legacy.utils.Util;
 
 /** ANTLR parse tree visitor to drive the analysis process. */
 public class AntlrSqlParseTreeVisitor<T extends Reducible>
@@ -262,6 +264,42 @@ public class AntlrSqlParseTreeVisitor<T extends Reducible>
   @Override
   public T visitFunctionNameBase(FunctionNameBaseContext ctx) {
     return visitor.visitFunctionName(ctx.getText());
+  }
+
+  @Override
+  public T visitGroupByItem(OpenSearchLegacySqlParser.GroupByItemContext ctx) {
+    ParserRuleContext fromClause = ctx.getParent();
+
+    boolean hasJoin = detectJoinInFromClause(fromClause);
+
+    if (hasJoin) {
+      String errorMessage =
+          Util.JOIN_AGGREGATION_ERROR_PREFIX
+              + Util.DOC_REDIRECT_MESSAGE
+              + Util.getJoinAggregationDocumentationUrl(AntlrSqlParseTreeVisitor.class);
+      throw new RuntimeException(errorMessage, new SqlParseException(errorMessage));
+    }
+    return super.visitGroupByItem(ctx);
+  }
+
+  boolean detectJoinInFromClause(ParserRuleContext fromClause) {
+    return fromClause.accept(
+        new OpenSearchLegacySqlParserBaseVisitor<Boolean>() {
+          @Override
+          public Boolean visitTableSourceBase(TableSourceBaseContext ctx) {
+            return !ctx.joinPart().isEmpty();
+          }
+
+          @Override
+          protected Boolean defaultResult() {
+            return false;
+          }
+
+          @Override
+          protected Boolean aggregateResult(Boolean aggregate, Boolean nextResult) {
+            return aggregate || nextResult;
+          }
+        });
   }
 
   @Override

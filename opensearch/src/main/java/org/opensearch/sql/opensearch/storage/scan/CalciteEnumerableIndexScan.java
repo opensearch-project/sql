@@ -6,7 +6,6 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import java.util.List;
-import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.PhysType;
@@ -21,6 +20,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
@@ -28,11 +28,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.plan.OpenSearchRules;
+import org.opensearch.sql.calcite.plan.Scannable;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
 /** The physical relational operator representing a scan of an OpenSearchIndex type. */
-public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan implements EnumerableRel {
+public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
+    implements Scannable, EnumerableRel {
   private static final Logger LOG = LogManager.getLogger(CalciteEnumerableIndexScan.class);
 
   /**
@@ -44,19 +46,26 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan impleme
    */
   public CalciteEnumerableIndexScan(
       RelOptCluster cluster,
+      RelTraitSet traitSet,
       List<RelHint> hints,
       RelOptTable table,
       OpenSearchIndex osIndex,
       RelDataType schema,
       PushDownContext pushDownContext) {
-    super(
-        cluster,
-        cluster.traitSetOf(EnumerableConvention.INSTANCE),
-        hints,
-        table,
-        osIndex,
-        schema,
-        pushDownContext);
+    super(cluster, traitSet, hints, table, osIndex, schema, pushDownContext);
+  }
+
+  @Override
+  protected AbstractCalciteIndexScan buildScan(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      List<RelHint> hints,
+      RelOptTable table,
+      OpenSearchIndex osIndex,
+      RelDataType schema,
+      PushDownContext pushDownContext) {
+    return new CalciteEnumerableIndexScan(
+        cluster, traitSet, hints, table, osIndex, schema, pushDownContext);
   }
 
   @Override
@@ -91,16 +100,17 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan impleme
    * each time to avoid reusing source builder. That's because the source builder has stats like PIT
    * or SearchAfter recorded during previous search.
    */
+  @Override
   public Enumerable<@Nullable Object> scan() {
     return new AbstractEnumerable<>() {
       @Override
       public Enumerator<Object> enumerator() {
-        OpenSearchRequestBuilder requestBuilder = osIndex.createRequestBuilder();
-        pushDownContext.forEach(action -> action.apply(requestBuilder));
+        OpenSearchRequestBuilder requestBuilder = getOrCreateRequestBuilder();
         return new OpenSearchIndexEnumerator(
             osIndex.getClient(),
             getFieldPath(),
             requestBuilder.getMaxResponseSize(),
+            requestBuilder.getMaxResultWindow(),
             osIndex.buildRequest(requestBuilder),
             osIndex.createOpenSearchResourceMonitor());
       }
@@ -111,5 +121,29 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan impleme
     return getRowType().getFieldNames().stream()
         .map(f -> osIndex.getAliasMapping().getOrDefault(f, f))
         .toList();
+  }
+
+  /**
+   * In some edge cases where the digests of more than one scan are the same, and then the Calcite
+   * planner will reuse the same scan along with the same PushDownContext inner it. However, the
+   * `OpenSearchRequestBuilder` inner `PushDownContext` is not reusable since it has status changed
+   * in the search process.
+   *
+   * <p>To avoid this issue and try to construct `OpenSearchRequestBuilder` as less as possible,
+   * this method will get and reuse the `OpenSearchRequestBuilder` in PushDownContext for the first
+   * time, and then construct new ones for the following invoking.
+   *
+   * @return OpenSearchRequestBuilder to be used by enumerator
+   */
+  private volatile boolean isRequestBuilderUsedByEnumerator = false;
+
+  private OpenSearchRequestBuilder getOrCreateRequestBuilder() {
+    synchronized (this.pushDownContext) {
+      if (isRequestBuilderUsedByEnumerator) {
+        return this.pushDownContext.createRequestBuilder();
+      }
+      isRequestBuilderUsedByEnumerator = true;
+      return this.pushDownContext.getRequestBuilder();
+    }
   }
 }

@@ -1,0 +1,9 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(age=[COALESCE($8, 0)], balance=[COALESCE($3, 0)])
+        CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..16=[{inputs}], expr#17=[0], expr#18=[COALESCE($t8, $t17)], expr#19=[COALESCE($t3, $t17)], age=[$t18], balance=[$t19])
+        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])

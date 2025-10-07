@@ -1,9 +1,6 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
  */
 
 package org.opensearch.sql.ppl.parser;
@@ -32,7 +29,7 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
   private final StatementBuilderContext context;
 
   @Override
-  public Statement visitDmlStatement(OpenSearchPPLParser.DmlStatementContext ctx) {
+  public Statement visitPplStatement(OpenSearchPPLParser.PplStatementContext ctx) {
     Query query = new Query(addSelectAll(astBuilder.visit(ctx)), context.getFetchSize(), PPL);
     if (ctx.explainStatement() != null) {
       if (ctx.explainStatement().explainMode() == null) {

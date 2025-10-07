@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.standalone;
 
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpenSearchDataSourceMetadata;
+import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
 import com.google.common.collect.ImmutableMap;
@@ -114,10 +115,12 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
               .put(Key.SQL_CURSOR_KEEP_ALIVE, TimeValue.timeValueMinutes(1))
               .put(Key.FIELD_TYPE_TOLERANCE, true)
               .put(Key.CALCITE_ENGINE_ENABLED, true)
-              .put(Key.CALCITE_FALLBACK_ALLOWED, false)
               .put(Key.CALCITE_PUSHDOWN_ENABLED, false)
               .put(Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR, 0.9)
-              .put(Key.DEFAULT_PATTERN_METHOD, "SIMPLE_PATTERN")
+              .put(Key.PATTERN_METHOD, "SIMPLE_PATTERN")
+              .put(Key.PATTERN_MODE, "LABEL")
+              .put(Key.PATTERN_MAX_SAMPLE_COUNT, 10)
+              .put(Key.PATTERN_BUFFER_LIMIT, 100000)
               .build();
 
       @Override
@@ -130,37 +133,6 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
         return (List<?>) defaultSettings;
       }
     };
-  }
-
-  protected Settings enablePushdown() {
-    System.out.println(Settings.Key.CALCITE_PUSHDOWN_ENABLED.name() + " enabled");
-    return new Settings() {
-      private final Map<Key, Object> defaultSettings =
-          new ImmutableMap.Builder<Key, Object>()
-              .put(Key.QUERY_SIZE_LIMIT, 200)
-              .put(Key.SQL_CURSOR_KEEP_ALIVE, TimeValue.timeValueMinutes(1))
-              .put(Key.FIELD_TYPE_TOLERANCE, true)
-              .put(Key.CALCITE_ENGINE_ENABLED, true)
-              .put(Key.CALCITE_FALLBACK_ALLOWED, false)
-              .put(Key.CALCITE_PUSHDOWN_ENABLED, true)
-              .put(Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR, 0.9)
-              .put(Key.DEFAULT_PATTERN_METHOD, "SIMPLE_PATTERN")
-              .build();
-
-      @Override
-      public <T> T getSettingValue(Key key) {
-        return (T) defaultSettings.get(key);
-      }
-
-      @Override
-      public List<?> getSettings() {
-        return (List<?>) defaultSettings;
-      }
-    };
-  }
-
-  public boolean isPushdownEnabled() {
-    return getSettings().getSettingValue(Settings.Key.CALCITE_PUSHDOWN_ENABLED);
   }
 
   protected String execute(String query) {
@@ -205,7 +177,9 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
 
           @Override
           public void onResponse(ExecutionEngine.QueryResponse response) {
-            QueryResult result = new QueryResult(response.getSchema(), response.getResults());
+            QueryResult result =
+                new QueryResult(
+                    response.getSchema(), response.getResults(), response.getCursor(), PPL_SPEC);
             String json = new SimpleJsonResponseFormatter(PRETTY).format(result);
             actual.set(jsonify(json));
           }
@@ -381,5 +355,10 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
           new QueryService(analyzer, executionEngine, planner, dataSourceService, settings);
       return new QueryPlanFactory(queryService);
     }
+  }
+
+  @Override
+  protected boolean isStandaloneTest() {
+    return true;
   }
 }

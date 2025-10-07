@@ -35,7 +35,7 @@ import java.util.stream.Collectors
 
 plugins {
     id "de.undercouch.download" version "5.3.0"
-    id 'com.diffplug.spotless' version '6.22.0'
+    id 'com.diffplug.spotless'
 }
 
 apply plugin: 'opensearch.build'
@@ -48,11 +48,13 @@ apply plugin: 'com.wiredforcode.spawn'
 // The next major version is only API compat w/ the last minor of the previous major.
 // baseVersion need to roll-froward accordingly, as new 2.x of OpenSearch being released.
 // See: https://github.com/opensearch-project/OpenSearch/issues/3615
-String baseVersion = "2.20.0"
+String baseVersion = "3.1.0"
 String bwcVersion = baseVersion + ".0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
 String calciteCodegen = "$projectDir/src/test/java/codegen/"
+String ignorePrometheusProp = System.getProperty("ignorePrometheus")
+boolean ignorePrometheus = ignorePrometheusProp != null && !ignorePrometheusProp.equalsIgnoreCase("false")
 
 repositories {
     mavenCentral()
@@ -70,7 +72,7 @@ ext {
     noticeFile = rootProject.file('NOTICE')
 
     getSecurityPluginDownloadLink = { ->
-        var repo = "https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/plugin/" +
+        var repo = "https://central.sonatype.com/repository/maven-snapshots/org/opensearch/plugin/" +
                    "opensearch-security/$opensearch_build_snapshot/"
         var metadataFile = Paths.get(projectDir.toString(), "build", "maven-metadata.xml").toAbsolutePath().toFile()
         download.run {
@@ -83,9 +85,18 @@ ext {
         return repo + "opensearch-security-${securitySnapshotVersion}.zip"
     }
 
+    isSecurityTask = { ->
+        def taskName = gradle.startParameter.taskNames.join(' ')
+        return taskName.contains('Security') || System.getProperty('enableSecurity') == 'true'
+    }
+    
     var projectAbsPath = projectDir.getAbsolutePath()
     File downloadedSecurityPlugin = Paths.get(projectAbsPath, 'bin', 'opensearch-security-snapshot.zip').toFile()
+    
     configureSecurityPlugin = { OpenSearchCluster cluster ->
+        if (!isSecurityTask()) {
+            return
+        }
 
         cluster.getNodes().forEach { node ->
             var creds = node.getCredentials()
@@ -237,17 +248,17 @@ testClusters.all {
 
 def getJobSchedulerPlugin() {
     provider { (RegularFile) (() ->
-            configurations.zipArchive.asFileTree.matching {
-                include '**/opensearch-job-scheduler*'
-            }.singleFile )
+        configurations.zipArchive.asFileTree.matching {
+            include '**/opensearch-job-scheduler*'
+        }.singleFile )
     }
 }
 
 def getGeoSpatialPlugin() {
     provider { (RegularFile) (() ->
-            configurations.zipArchive.asFileTree.matching {
-                include '**/geospatia*'
-            }.singleFile )
+        configurations.zipArchive.asFileTree.matching {
+            include '**/geospatia*'
+        }.singleFile )
     }
 }
 
@@ -288,12 +299,15 @@ task startPrometheus(type: SpawnProcessTask) {
     mustRunAfter ':doctest:doctest'
 
     doFirst {
-        download.run {
-            src getPrometheusBinaryLocation()
-            dest new File("$projectDir/bin", 'prometheus.tar.gz')
+        File prometheusFilePath = Paths.get("$projectDir/bin", "prometheus-${prometheus_binary_version}.tar.gz").toFile()
+        if (!prometheusFilePath.exists()) {
+            download.run {
+                src getPrometheusBinaryLocation()
+                dest prometheusFilePath
+            }
         }
         copy {
-            from tarTree("$projectDir/bin/prometheus.tar.gz")
+            from tarTree("$projectDir/bin/prometheus-${prometheus_binary_version}.tar.gz")
             into "$projectDir/bin"
         }
         file("$projectDir/bin").eachDir {
@@ -305,12 +319,12 @@ task startPrometheus(type: SpawnProcessTask) {
     }
     command "$projectDir/bin/prometheus/prometheus --storage.tsdb.path=$projectDir/bin/prometheus/data --config.file=$projectDir/bin/prometheus/prometheus.yml"
     ready 'TSDB started'
+    onlyIf { !ignorePrometheus }
 }
 
 task stopPrometheus(type: KillProcessTask) {
     doLast {
         file("$projectDir/bin/prometheus").deleteDir()
-        file("$projectDir/bin/prometheus.tar.gz").delete()
     }
 }
 
@@ -416,6 +430,7 @@ task integTestWithSecurity(type: RestIntegTestTask) {
     // https://github.com/opensearch-project/sql/issues/1974
     filter {
         includeTestsMatching 'org.opensearch.sql.security.CrossClusterSearchIT'
+        includeTestsMatching 'org.opensearch.sql.security.PPLPermissionsIT'
     }
 }
 
@@ -445,9 +460,9 @@ integTest {
     testLogging {
         events "failed"
     }
-
+    
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
-    if(getOSFamilyType() != "windows") {
+    if(!ignorePrometheus && getOSFamilyType() != "windows") {
         dependsOn startPrometheus
         finalizedBy stopPrometheus
     }
@@ -487,7 +502,7 @@ integTest {
         }
     }
 
-    if(getOSFamilyType() == "windows") {
+    if(getOSFamilyType() == "windows" || ignorePrometheus) {
         exclude 'org/opensearch/sql/ppl/PrometheusDataSourceCommandsIT.class'
         exclude 'org/opensearch/sql/ppl/ShowDataSourcesCommandIT.class'
         exclude 'org/opensearch/sql/ppl/InformationSchemaCommandIT.class'
@@ -513,8 +528,17 @@ integTest {
 
     // Exclude this IT, because they executed in another task (:integTestWithSecurity)
     exclude 'org/opensearch/sql/security/**'
+
+    finalizedBy 'printIntegTestPaths'
 }
 
+task printIntegTestPaths {
+    doLast {
+        println "Test report available at: file://${project.buildDir}/reports/tests/integTest/index.html"
+        println "integTest cluster logs available at: file://${project.buildDir}/testclusters/integTest-0/logs/integTest.log"
+        println "remoteCluster cluster logs available at: file://${project.buildDir}/testclusters/remoteCluster-0/logs/remoteCluster.log"
+    }
+}
 
 task comparisonTest(type: RestIntegTestTask) {
     testLogging {
@@ -697,10 +721,10 @@ spotless {
             exclude '**/build/**', '**/build-*/**'
         }
         importOrder()
-//        licenseHeader("/*\n" +
-//                " * Copyright OpenSearch Contributors\n" +
-//                " * SPDX-License-Identifier: Apache-2.0\n" +
-//                " */\n\n")
+        licenseHeader("/*\n" +
+                " * Copyright OpenSearch Contributors\n" +
+                " * SPDX-License-Identifier: Apache-2.0\n" +
+                " */\n\n")
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()

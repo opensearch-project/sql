@@ -17,20 +17,37 @@ public enum SpanUnit {
   NONE(""),
   MILLISECOND("ms"),
   MS("ms"),
+  SECONDS("s"),
   SECOND("s"),
+  SECS("s"),
+  SEC("s"),
   S("s"),
+  MINUTES("m"),
   MINUTE("m"),
+  MINS("m"),
+  MIN("m"),
   m("m"),
+  HOURS("h"),
   HOUR("h"),
+  HRS("h"),
+  HR("h"),
   H("h"),
+  DAYS("d"),
   DAY("d"),
   D("d"),
+  WEEKS("w"),
   WEEK("w"),
   W("w"),
   MONTH("M"),
+  MONTHS("M"),
+  MON("M"),
   M("M"),
+  QUARTERS("q"),
   QUARTER("q"),
+  QTRS("q"),
+  QTR("q"),
   Q("q"),
+  YEARS("y"),
   YEAR("y"),
   Y("y");
 
@@ -42,9 +59,15 @@ public enum SpanUnit {
     SPAN_UNITS = builder.add(SpanUnit.values()).build();
   }
 
+  /** Util method to check if the unit is time unit. */
+  public static boolean isTimeUnit(SpanUnit unit) {
+    return unit != UNKNOWN && unit != NONE;
+  }
+
   /** Util method to get span unit given the unit name. */
   public static SpanUnit of(String unit) {
     switch (unit) {
+      case null:
       case "":
         return NONE;
       case "M":
