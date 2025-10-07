@@ -92,7 +92,10 @@ public class Timechart extends UnresolvedPlan {
 
     // PPL divide function handles type coercion automatically (long/double -> double result)
     UnresolvedExpression runtimeDivisor =
-        function("*", function("/", AstDSL.field(originalName), intervalSecondsExpr), perUnitSecondsExpr);
+        function(
+            "*",
+            function("/", AstDSL.field(originalName), intervalSecondsExpr),
+            perUnitSecondsExpr);
 
     return eval(
         timechart(AstDSL.alias(originalName, aggregate("sum", aggFunc.getField()))),

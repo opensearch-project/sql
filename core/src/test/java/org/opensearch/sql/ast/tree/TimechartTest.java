@@ -42,8 +42,7 @@ class TimechartTest {
                             timestampdiff(
                                 "SECOND",
                                 "@timestamp",
-                                timestampadd(
-                                    expectedTimestampAddUnit, spanValue, "@timestamp"))),
+                                timestampadd(expectedTimestampAddUnit, spanValue, "@timestamp"))),
                         doubleLiteral(1.0))),
                 timechart(span(spanValue, spanUnit), alias("per_second(bytes)", sum("bytes")))));
   }
@@ -81,9 +80,7 @@ class TimechartTest {
                         divide(
                             "per_second(bytes)",
                             timestampdiff(
-                                "SECOND",
-                                "@timestamp",
-                                timestampadd("MINUTE", 5, "@timestamp"))),
+                                "SECOND", "@timestamp", timestampadd("MINUTE", 5, "@timestamp"))),
                         doubleLiteral(1.0))),
                 expected));
   }
