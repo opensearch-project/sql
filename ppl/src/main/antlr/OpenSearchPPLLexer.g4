@@ -86,6 +86,7 @@ DESC:                               'DESC';
 DATASOURCES:                        'DATASOURCES';
 USING:                              'USING';
 WITH:                               'WITH';
+VALUE:                              'VALUE';
 SIMPLE:                             'SIMPLE';
 STANDARD:                           'STANDARD';
 COST:                               'COST';

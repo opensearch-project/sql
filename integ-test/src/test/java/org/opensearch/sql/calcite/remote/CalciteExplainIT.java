@@ -10,6 +10,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STRINGS;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 import static org.opensearch.sql.util.MatcherUtils.assertYamlEqualsJsonIgnoreId;
 
@@ -332,6 +333,7 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(expected, result);
   }
 
+  @Test
   public void testExplainBinWithBins() throws IOException {
     String expected = loadExpectedPlan("explain_bin_bins.json");
     assertJsonEqualsIgnoreId(
@@ -888,5 +890,15 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_strftime_function.json");
     assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testFillNullValueSyntaxExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_fillnull_value_syntax.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | fields age, balance | fillnull value=0", TEST_INDEX_ACCOUNT)));
   }
 }
