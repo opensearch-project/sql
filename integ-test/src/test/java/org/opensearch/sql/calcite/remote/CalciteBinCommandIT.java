@@ -1076,4 +1076,86 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     verifySchema(result, schema("count()", "bigint"), schema("cpu_usage", "string"));
     verifyDataRows(result, rows(3, "37.5-45.0"), rows(2, "45.0-52.5"), rows(1, "52.5-60.0"));
   }
+
+  @Test
+  public void testBinCaseSensitivity_mon_vs_M() throws IOException {
+    // Test uppercase 'M' for months - bin by 1 month
+    JSONObject monthResultM =
+        executeQuery(
+            String.format(
+                "source=%s | bin @timestamp span=1M | fields `@timestamp` | sort `@timestamp` |"
+                    + " head 1",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(monthResultM, schema("@timestamp", null, "string"));
+    verifyDataRows(monthResultM, rows("2025-07"));
+
+    // Test full name 'mon' for months - should produce same result as 'M'
+    JSONObject monthResultMon =
+        executeQuery(
+            String.format(
+                "source=%s | bin @timestamp span=1mon | fields `@timestamp` | sort `@timestamp` |"
+                    + " head 1",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(monthResultMon, schema("@timestamp", null, "string"));
+    verifyDataRows(monthResultMon, rows("2025-07"));
+  }
+
+  @Test
+  public void testBinWithSubsecondUnits() throws IOException {
+    // Test milliseconds (ms) - bin by 100 milliseconds
+    JSONObject msResult =
+        executeQuery(
+            String.format(
+                "source=%s | bin @timestamp span=100ms | fields `@timestamp` | sort `@timestamp` |"
+                    + " head 3",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(msResult, schema("@timestamp", null, "timestamp"));
+    verifyDataRows(
+        msResult,
+        rows("2025-07-28 00:15:23"),
+        rows("2025-07-28 01:42:15"),
+        rows("2025-07-28 02:28:45"));
+
+    // Test microseconds (us) - bin by 500 microseconds
+    JSONObject usResult =
+        executeQuery(
+            String.format(
+                "source=%s | bin @timestamp span=500us | fields `@timestamp` | sort `@timestamp` |"
+                    + " head 3",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(usResult, schema("@timestamp", null, "timestamp"));
+    verifyDataRows(
+        usResult,
+        rows("2025-07-28 00:15:23"),
+        rows("2025-07-28 01:42:15"),
+        rows("2025-07-28 02:28:45"));
+
+    // Test centiseconds (cs) - bin by 10 centiseconds (100ms)
+    JSONObject csResult =
+        executeQuery(
+            String.format(
+                "source=%s | bin @timestamp span=10cs | fields `@timestamp` | sort `@timestamp` |"
+                    + " head 3",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(csResult, schema("@timestamp", null, "timestamp"));
+    verifyDataRows(
+        csResult,
+        rows("2025-07-28 00:15:23"),
+        rows("2025-07-28 01:42:15"),
+        rows("2025-07-28 02:28:45"));
+
+    // Test deciseconds (ds) - bin by 5 deciseconds (500ms)
+    JSONObject dsResult =
+        executeQuery(
+            String.format(
+                "source=%s | bin @timestamp span=5ds | fields `@timestamp` | sort `@timestamp` |"
+                    + " head 3",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(dsResult, schema("@timestamp", null, "timestamp"));
+    verifyDataRows(
+        dsResult,
+        rows("2025-07-28 00:15:23"),
+        rows("2025-07-28 01:42:15"),
+        rows("2025-07-28 02:28:45"));
+  }
 }
