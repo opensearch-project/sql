@@ -40,17 +40,17 @@ PPL query::
 
 **Example 2: Basic Field Comparison**
 
-The example shows how to filter accounts with balance greater than 40000.
+The example shows how to filter accounts with balance greater than 30000.
 
 PPL query::
 
-    os> source=accounts | where balance > 40000 | fields account_number, balance;
-    fetched rows / total rows = 2/4
+    os> source=accounts | where balance > 30000 | fields account_number, balance;
+    fetched rows / total rows = 2/2
     +----------------+---------+
     | account_number | balance |
     |----------------+---------|
-    | 1              | 45000   |
-    | 6              | 42000   |
+    | 1              | 39225   |
+    | 13             | 32838   |
     +----------------+---------+
 
 **Example 3: Pattern Matching with LIKE**
@@ -61,13 +61,12 @@ The example demonstrates using LIKE with underscore (_) to match a single charac
 
 PPL query::
 
-    os> source=accounts | where LIKE(state, 'N_') | fields account_number, state;
-    fetched rows / total rows = 2/6
+    os> source=accounts | where LIKE(state, 'M_') | fields account_number, state;
+    fetched rows / total rows = 1/1
     +----------------+-------+
     | account_number | state |
     |----------------+-------|
-    | 4              | NY    |
-    | 7              | NJ    |
+    | 18             | MD    |
     +----------------+-------+
 
 Pattern Matching with Percent (%)
@@ -76,13 +75,12 @@ The example demonstrates using LIKE with percent (%) to match multiple character
 
 PPL query::
 
-    os> source=accounts | where LIKE(state, 'CA%') | fields account_number, state;
-    fetched rows / total rows = 2/6
+    os> source=accounts | where LIKE(state, 'V%') | fields account_number, state;
+    fetched rows / total rows = 1/1
     +----------------+-------+
     | account_number | state |
     |----------------+-------|
-    | 2              | CA    |
-    | 8              | CAL   |
+    | 13             | VA    |
     +----------------+-------+
 
 **Example 4: Multiple Conditions**
@@ -91,13 +89,14 @@ The example shows how to combine multiple conditions using AND operator.
 
 PPL query::
 
-    os> source=accounts | where age > 30 AND gender = 'F' | fields account_number, age, gender;
-    fetched rows / total rows = 2/5
+    os> source=accounts | where age > 30 AND gender = 'M' | fields account_number, age, gender;
+    fetched rows / total rows = 3/3
     +----------------+-----+--------+
     | account_number | age | gender |
     |----------------+-----+--------|
-    | 13             | 32  | F      |
-    | 24             | 36  | F      |
+    | 1              | 32  | M      |
+    | 6              | 36  | M      |
+    | 18             | 33  | M      |
     +----------------+-----+--------+
 
 **Example 5: Using IN Operator**
@@ -106,14 +105,13 @@ The example demonstrates using IN operator to match multiple values.
 
 PPL query::
 
-    os> source=accounts | where state IN ('CA', 'NY') | fields account_number, state;
-    fetched rows / total rows = 3/6
+    os> source=accounts | where state IN ('IL', 'VA') | fields account_number, state;
+    fetched rows / total rows = 2/2
     +----------------+-------+
     | account_number | state |
     |----------------+-------|
-    | 2              | CA    |
-    | 4              | NY    |
-    | 8              | CA    |
+    | 1              | IL    |
+    | 13             | VA    |
     +----------------+-------+
 
 **Example 6: NULL Checks**
@@ -123,12 +121,11 @@ The example shows how to filter records with NULL values.
 PPL query::
 
    os> source=accounts | where ISNULL(employer) | fields account_number, employer;
-   fetched rows / total rows = 2/8
+   fetched rows / total rows = 1/1
    +----------------+----------+
    | account_number | employer |
    |----------------+----------|
-   | 7              | null     |
-   | 15             | null     |
+   | 18             | null     |
    +----------------+----------+
 
 **Example 7: Complex Conditions**
@@ -138,12 +135,11 @@ The example demonstrates combining multiple conditions with parentheses and logi
 PPL query::
 
     os> source=accounts | where (balance > 40000 OR age > 35) AND gender = 'M' | fields account_number, balance, age, gender;
-    fetched rows / total rows = 2/7
+    fetched rows / total rows = 1/1
     +----------------+---------+-----+--------+
     | account_number | balance | age | gender |
     |----------------+---------+-----+--------|
-    | 1              | 45000   | 38  | M      |
-    | 16             | 38000   | 39  | M      |
+    | 6              | 5686    | 36  | M      |
     +----------------+---------+-----+--------+
 
 
@@ -154,26 +150,13 @@ The example shows how to use NOT operator to exclude matching records.
 PPL query::
 
     os> source=accounts | where NOT state = 'CA' | fields account_number, state;
-    fetched rows / total rows = 4/6
+    fetched rows / total rows = 4/4
     +----------------+-------+
     | account_number | state |
     |----------------+-------|
-    | 3              | TX    |
-    | 4              | NY    |
-    | 11             | FL    |
-    | 19             | WA    |
+    | 1              | IL    |
+    | 6              | TN    |
+    | 13             | VA    |
+    | 18             | MD    |
     +----------------+-------+
 
-**Example 9: Field-to-Field Comparison**
-
-The example demonstrates comparing two fields from the same record.
-
-PPL query::
-
-    os> source=accounts | where employer_id = manager_id | fields account_number, employer_id, manager_id;
-    fetched rows / total rows = 1/5
-    +----------------+-------------+------------+
-    | account_number | employer_id | manager_id |
-    |----------------+-------------+------------|
-    | 4              | 101         | 101        |
-    +----------------+-------------+------------+
