@@ -13,6 +13,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.Locale;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -25,6 +26,7 @@ import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 
 /** AST node represent Timechart operation. */
 @Getter
@@ -82,27 +84,26 @@ public class Timechart extends UnresolvedPlan {
       return this;
     }
 
-    String fieldName = extractFieldName(aggFunc.getField());
-    String originalName = "per_second(" + fieldName + ")";
     Span span = (Span) this.binExpression;
+    String aggFuncName = aggregateFunctionName(aggFunc);
     return eval(
-        timechart(AstDSL.alias(originalName, sum(aggFunc.getField()))),
+        timechart(AstDSL.alias(aggFuncName, sum(aggFunc.getField()))),
         let(
-            originalName,
+            aggFuncName,
             divide(
-                multiply(originalName, perUnitSeconds()),
+                multiply(aggFuncName, perUnitSeconds()),
                 timestampdiff(
                     "SECOND",
                     "@timestamp", // bin start time
-                    timestampadd(
-                        getSpanUnitForTimestampAdd(span),
-                        span.getValue(),
-                        "@timestamp") // bin end time
+                    timestampadd(span.getUnit(), span.getValue(), "@timestamp") // bin end time
                     ))));
   }
 
-  private String extractFieldName(UnresolvedExpression field) {
-    return field instanceof Field ? ((Field) field).getField().toString() : field.toString();
+  private String aggregateFunctionName(AggregateFunction aggFunc) {
+    UnresolvedExpression field = aggFunc.getField();
+    String fieldName =
+        field instanceof Field ? ((Field) field).getField().toString() : field.toString();
+    return String.format(Locale.ROOT, "%s(%s)", aggFunc.getFuncName(), fieldName);
   }
 
   private Timechart timechart(UnresolvedExpression newAggregateFunction) {
@@ -111,50 +112,6 @@ public class Timechart extends UnresolvedPlan {
 
   private UnresolvedExpression perUnitSeconds() {
     return doubleLiteral(1.0);
-  }
-
-  /** Converts SpanUnit to the format expected by timestampadd function. */
-  private String getSpanUnitForTimestampAdd(Span span) {
-    String unitString = SpanUnit.getName(span.getUnit());
-    // Map common units to timestampadd format
-    switch (unitString.toLowerCase()) {
-      case "s":
-      case "sec":
-      case "second":
-      case "seconds":
-        return "SECOND";
-      case "m":
-      case "min":
-      case "minute":
-      case "minutes":
-        return "MINUTE";
-      case "h":
-      case "hour":
-      case "hours":
-        return "HOUR";
-      case "d":
-      case "day":
-      case "days":
-        return "DAY";
-      case "w":
-      case "week":
-      case "weeks":
-        return "WEEK";
-      case "mon":
-      case "month":
-      case "months":
-        return "MONTH";
-      case "q":
-      case "quarter":
-      case "quarters":
-        return "QUARTER";
-      case "y":
-      case "year":
-      case "years":
-        return "YEAR";
-      default:
-        return "MINUTE"; // default fallback
-    }
   }
 
   // Private DSL methods for clean transformation code
@@ -172,8 +129,10 @@ public class Timechart extends UnresolvedPlan {
   }
 
   private UnresolvedExpression timestampadd(
-      String unit, UnresolvedExpression value, String timestampField) {
-    return function("timestampadd", stringLiteral(unit), value, AstDSL.field(timestampField));
+      SpanUnit unit, UnresolvedExpression value, String timestampField) {
+    UnresolvedExpression intervalUnit =
+        stringLiteral(PlanUtils.spanUnitToIntervalUnit(unit).toString());
+    return function("timestampadd", intervalUnit, value, AstDSL.field(timestampField));
   }
 
   private UnresolvedExpression timestampdiff(
