@@ -553,12 +553,13 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitPerFunctionCall(PerFunctionCallContext ctx) {
     ParseTree parent = ctx.getParent();
-    String functionName = ctx.perFunction().funcName.getText();
+    String perFuncName = ctx.perFunction().funcName.getText();
     if (!(parent instanceof TimechartCommandContext)) {
       throw new SyntaxCheckException(
-          functionName + " function can only be used within timechart command");
+          perFuncName + " function can only be used within timechart command");
     }
-    return buildAggregateFunction(functionName, Arrays.asList(ctx.perFunction().functionArg()));
+    return buildAggregateFunction(
+        perFuncName, Collections.singletonList(ctx.perFunction().functionArg()));
   }
 
   /** Literal and value. */

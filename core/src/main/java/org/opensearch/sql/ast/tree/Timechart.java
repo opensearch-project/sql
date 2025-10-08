@@ -9,8 +9,14 @@ import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.doubleLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.eval;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
-import static org.opensearch.sql.ast.dsl.AstDSL.let;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
+import static org.opensearch.sql.ast.expression.IntervalUnit.SECOND;
+import static org.opensearch.sql.calcite.plan.OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMPADD;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMPDIFF;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -24,6 +30,8 @@ import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.IntervalUnit;
+import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
@@ -99,17 +107,14 @@ public class Timechart extends UnresolvedPlan {
     Span span = (Span) this.binExpression;
     String aggName = aggregationName(aggFunc);
     Field aggField = AstDSL.field(aggName);
-    Field spanStartTime = AstDSL.field("@timestamp");
+    Field spanStartTime = AstDSL.field(IMPLICIT_FIELD_TIMESTAMP);
     Function spanEndTime = timestampadd(span.getUnit(), span.getValue(), spanStartTime);
 
     return eval(
-        timechart(AstDSL.alias(aggName, aggregate("sum", aggFunc.getField()))),
-        let(
-            aggField,
-            function(
-                "/",
-                function("*", aggField, perUnitSeconds()),
-                timestampdiff("SECOND", spanStartTime, spanEndTime))));
+        timechart(AstDSL.alias(aggName, sum(aggFunc.getField()))),
+        let(aggField)
+            .multiply(perUnitSeconds())
+            .dividedBy(timestampdiff(SECOND, spanStartTime, spanEndTime)));
   }
 
   private String aggregationName(AggregateFunction aggFunc) {
@@ -127,15 +132,44 @@ public class Timechart extends UnresolvedPlan {
     return doubleLiteral(1.0);
   }
 
+  private UnresolvedExpression sum(UnresolvedExpression field) {
+    return aggregate(SUM.getName().getFunctionName(), field);
+  }
+
   private Function timestampadd(
       SpanUnit unit, UnresolvedExpression value, UnresolvedExpression timestampField) {
     UnresolvedExpression intervalUnit =
         stringLiteral(PlanUtils.spanUnitToIntervalUnit(unit).toString());
-    return function("timestampadd", intervalUnit, value, timestampField);
+    return function(TIMESTAMPADD.getName().getFunctionName(), intervalUnit, value, timestampField);
   }
 
   private Function timestampdiff(
-      String unit, UnresolvedExpression start, UnresolvedExpression end) {
-    return function("timestampdiff", stringLiteral(unit), start, end);
+      IntervalUnit unit, UnresolvedExpression start, UnresolvedExpression end) {
+    return function(
+        TIMESTAMPDIFF.getName().getFunctionName(), stringLiteral(unit.toString()), start, end);
+  }
+
+  private PerFunctionRateExprBuilder let(Field field) {
+    return new PerFunctionRateExprBuilder(field);
+  }
+
+  /** Fluent builder for creating Let expressions with mathematical operations. */
+  private static class PerFunctionRateExprBuilder {
+    private final Field field;
+    private UnresolvedExpression expr;
+
+    PerFunctionRateExprBuilder(Field field) {
+      this.field = field;
+      this.expr = field;
+    }
+
+    PerFunctionRateExprBuilder multiply(UnresolvedExpression right) {
+      this.expr = function(MULTIPLY.getName().getFunctionName(), expr, right);
+      return this;
+    }
+
+    Let dividedBy(UnresolvedExpression divisor) {
+      return AstDSL.let(field, function(DIVIDE.getName().getFunctionName(), expr, divisor));
+    }
   }
 }
