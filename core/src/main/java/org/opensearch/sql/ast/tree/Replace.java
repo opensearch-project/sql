@@ -6,10 +6,8 @@
 package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -28,11 +26,11 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 public class Replace extends UnresolvedPlan {
   private final UnresolvedExpression pattern;
   private final UnresolvedExpression replacement;
-  private final List<Field> fieldList;
+  private final Set<Field> fieldList;
   @Nullable private UnresolvedPlan child;
 
   public Replace(
-      UnresolvedExpression pattern, UnresolvedExpression replacement, List<Field> fieldList) {
+      UnresolvedExpression pattern, UnresolvedExpression replacement, Set<Field> fieldList) {
     this.pattern = pattern;
     this.replacement = replacement;
     this.fieldList = fieldList;
@@ -61,18 +59,6 @@ public class Replace extends UnresolvedPlan {
     if (fieldList == null || fieldList.isEmpty()) {
       throw new IllegalArgumentException(
           "Field list cannot be empty in Replace command. Use IN clause to specify the field.");
-    }
-
-    Set<String> uniqueFields = new HashSet<>();
-    List<String> duplicates =
-        fieldList.stream()
-            .map(field -> field.getField().toString())
-            .filter(fieldName -> !uniqueFields.add(fieldName))
-            .collect(Collectors.toList());
-
-    if (!duplicates.isEmpty()) {
-      throw new IllegalArgumentException(
-          String.format("Duplicate fields [%s] in Replace command", String.join(", ", duplicates)));
     }
   }
 
