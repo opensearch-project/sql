@@ -59,8 +59,7 @@ public class CalcitePPLRenameIT extends PPLIntegTestCase {
                     String.format(
                         "source = %s | rename age as renamed_age | fields age",
                         TEST_INDEX_STATE_COUNTRY)));
-    verifyNotFoundAndInputFields(e.getMessage(),
-            "field [age] not found; input fields are: [country, month, year, name, state, renamed_age, _id, _index, _score, _maxscore, _sort, _routing]");
+    verifyErrorMessageContains(e, "Field [age] not found.");
   }
 
   @Test
