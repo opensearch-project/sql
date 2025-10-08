@@ -65,7 +65,8 @@ public class Timechart extends UnresolvedPlan {
 
   @Override
   public UnresolvedPlan attach(UnresolvedPlan child) {
-    return toBuilder().child(child).build().transformPerSecondFunctions();
+    // Transform after child attached to avoid unintentionally overriding it
+    return toBuilder().child(child).build().transformPerSecondFunction();
   }
 
   @Override
@@ -78,8 +79,18 @@ public class Timechart extends UnresolvedPlan {
     return nodeVisitor.visitTimechart(this, context);
   }
 
-  /** Transform per_second functions into sum + eval pattern with runtime calculation. */
-  private UnresolvedPlan transformPerSecondFunctions() {
+  /**
+   * Transform per function to Eval-based post-processing on sum result by Timechart. Specifically,
+   * calculate how many seconds are in the time bucket based on the span option dynamically, then
+   * divide the aggregated sum value by the number of seconds to get the per-second rate.
+   *
+   * <p>For example, with span=5m per_second(field): per second rate = sum(field) / 300 seconds
+   *
+   * <p>TODO: extend to support additional per_* functions
+   *
+   * @return Eval+Timechart AST if per function present, or the original AST otherwise.
+   */
+  private UnresolvedPlan transformPerSecondFunction() {
     AggregateFunction aggFunc = (AggregateFunction) this.aggregateFunction;
     if (!"per_second".equals(aggFunc.getFuncName())) {
       return this;
@@ -90,6 +101,7 @@ public class Timechart extends UnresolvedPlan {
     Field aggField = AstDSL.field(aggName);
     Field spanStartTime = AstDSL.field("@timestamp");
     Function spanEndTime = timestampadd(span.getUnit(), span.getValue(), spanStartTime);
+
     return eval(
         timechart(AstDSL.alias(aggName, aggregate("sum", aggFunc.getField()))),
         let(
