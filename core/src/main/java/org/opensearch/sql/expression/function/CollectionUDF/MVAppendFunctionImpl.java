@@ -112,8 +112,6 @@ public class MVAppendFunctionImpl extends ImplementorUDF {
 
       if (arg instanceof List) {
         addListElements((List<?>) arg, elements);
-      } else if (arg.getClass().isArray()) {
-        addArrayElements((Object[]) arg, elements);
       } else {
         elements.add(arg);
       }
@@ -124,14 +122,6 @@ public class MVAppendFunctionImpl extends ImplementorUDF {
 
   private static void addListElements(List<?> list, List<Object> elements) {
     for (Object item : list) {
-      if (item != null) {
-        elements.add(item);
-      }
-    }
-  }
-
-  private static void addArrayElements(Object[] array, List<Object> elements) {
-    for (Object item : array) {
       if (item != null) {
         elements.add(item);
       }

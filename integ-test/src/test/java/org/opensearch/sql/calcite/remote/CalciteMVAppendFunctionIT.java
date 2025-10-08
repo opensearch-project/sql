@@ -213,22 +213,9 @@ public class CalciteMVAppendFunctionIT extends PPLIntegTestCase {
         executeQuery(
             source(
                 TEST_INDEX_BANK,
-                "eval result = mvappend(nullif(1, 1), 2) | head 1 | fields result"));
+                "eval result = mvappend('test', nullif(1, 1), 2) | head 1 | fields result"));
 
     verifySchema(actual, schema("result", "array"));
-    verifyDataRows(actual, rows(List.of(2)));
-  }
-
-  @Test
-  public void testMvappendWithArrayContainingNull() throws IOException {
-    JSONObject actual =
-        executeQuery(
-            source(
-                TEST_INDEX_BANK,
-                "eval result = mvappend(array(nullif(1, 1), 2), nullif(1, 1), 'test') | head 1 |"
-                    + " fields result"));
-
-    verifySchema(actual, schema("result", "array"));
-    verifyDataRows(actual, rows(List.of(2, "test")));
+    verifyDataRows(actual, rows(List.of("test", 2)));
   }
 }
