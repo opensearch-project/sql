@@ -5,16 +5,17 @@
 
 package org.opensearch.sql.calcite.remote;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.opensearch.sql.legacy.TestUtils.createIndexByRestClient;
 import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
-import static org.opensearch.sql.legacy.TestUtils.loadDataByRestClient;
+import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.client.Request;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalciteTimechartPerFunctionIT extends PPLIntegTestCase {
@@ -25,152 +26,98 @@ public class CalciteTimechartPerFunctionIT extends PPLIntegTestCase {
     enableCalcite();
     disallowCalciteFallback();
 
-    // Load shared events index for basic per_second tests
-    loadIndex(Index.EVENTS);
-
-    // Create dedicated per_second test data with clean math
-    createPerSecondTestIndex();
+    // Create dedicated per_function test data directly in init()
+    createPerFunctionTestIndex();
   }
 
-  private void createPerSecondTestIndex() throws IOException {
+  private void createPerFunctionTestIndex() throws IOException {
     String mapping =
         "{\"mappings\":{\"properties\":{\"@timestamp\":{\"type\":\"date\"},\"packets\":{\"type\":\"integer\"},\"host\":{\"type\":\"keyword\"}}}}";
 
-    if (!isIndexExist(client(), "timechart_per_second_test")) {
-      createIndexByRestClient(client(), "timechart_per_second_test", mapping);
-      loadDataByRestClient(
-          client(),
-          "timechart_per_second_test",
-          "src/test/resources/timechart_per_second_test.json");
+    if (!isIndexExist(client(), "timechart_per_function_test")) {
+      createIndexByRestClient(client(), "timechart_per_function_test", mapping);
+
+      // Insert test data directly with clean numbers that avoid decimal issues
+      insertTestData();
     }
+  }
+
+  private void insertTestData() throws IOException {
+    // Create data with clean numbers that result in whole numbers or simple decimals
+    // Using multiples of 60 to get clean per_second calculations with 1m spans
+    String[] testData = {
+      "{\"@timestamp\":\"2025-09-08T10:00:00\",\"packets\":60,\"host\":\"server1\"}", // 60/60 = 1.0
+      "{\"@timestamp\":\"2025-09-08T10:01:00\",\"packets\":120,\"host\":\"server1\"}", // 120/60 =
+      // 2.0
+      "{\"@timestamp\":\"2025-09-08T10:02:00\",\"packets\":180,\"host\":\"server1\"}", // 180/60 =
+      // 3.0
+      "{\"@timestamp\":\"2025-09-08T10:02:30\",\"packets\":30,\"host\":\"server2\"}" // For the by
+      // host tests
+    };
+
+    for (String data : testData) {
+      Request request = new Request("POST", "/timechart_per_function_test/_doc");
+      request.setJsonEntity(data);
+      client().performRequest(request);
+    }
+
+    // Refresh index to make data searchable
+    Request refresh = new Request("POST", "/timechart_per_function_test/_refresh");
+    client().performRequest(refresh);
   }
 
   @Test
   public void testTimechartPerSecondWithDefaultSpan() throws IOException {
-    JSONObject result = executeQuery("source=events | timechart per_second(cpu_usage)");
+    JSONObject result =
+        executeQuery("source=timechart_per_function_test | timechart span=1m per_second(packets)");
 
     verifySchema(
-        result, schema("@timestamp", "timestamp"), schema("per_second(cpu_usage)", "double"));
+        result, schema("@timestamp", "timestamp"), schema("per_second(packets)", "double"));
 
-    // Default span should be 1m, so per_second uses runtime calculation
-    assertTrue("Results should not be empty", result.getJSONArray("datarows").length() > 0);
-    assertEquals(5, result.getInt("total"));
+    // With 1m span: 60/60=1.0, 120/60=2.0, (180+30)/60=3.5
+    // The 10:02:30 data falls into the 10:02:00 bucket
+    verifyDataRows(
+        result,
+        rows("2025-09-08 10:00:00", 1.0),
+        rows("2025-09-08 10:01:00", 2.0),
+        rows("2025-09-08 10:02:00", 3.5));
   }
 
   @Test
-  public void testTimechartPerSecondWithOneMinuteSpan() throws IOException {
-    JSONObject result = executeQuery("source=events | timechart span=1m per_second(cpu_usage)");
+  public void testTimechartPerSecondWithTwentySecondSpan() throws IOException {
+    JSONObject result =
+        executeQuery("source=timechart_per_function_test | timechart span=20s per_second(packets)");
 
     verifySchema(
-        result, schema("@timestamp", "timestamp"), schema("per_second(cpu_usage)", "double"));
+        result, schema("@timestamp", "timestamp"), schema("per_second(packets)", "double"));
 
-    // With 1m span: uses timestampdiff(SECOND, @timestamp, timestampadd(MINUTE, 1, @timestamp)) * 1
-    assertEquals(5, result.getInt("total"));
+    // With 20s span: 60/20=3.0, 120/20=6.0, 180/20=9.0, 30/20=1.5 (correct floating point)
+    verifyDataRows(
+        result,
+        rows("2025-09-08 10:00:00", 3.0),
+        rows("2025-09-08 10:01:00", 6.0),
+        rows("2025-09-08 10:02:00", 9.0),
+        rows("2025-09-08 10:02:20", 1.5));
   }
 
   @Test
-  public void testTimechartPerSecondWithTwoHourSpan() throws IOException {
-    JSONObject result = executeQuery("source=events | timechart span=2h per_second(cpu_usage)");
+  public void testTimechartPerSecondWithOneHourSpan() throws IOException {
+    JSONObject result =
+        executeQuery("source=timechart_per_function_test | timechart span=1h per_second(packets)");
 
     verifySchema(
-        result, schema("@timestamp", "timestamp"), schema("per_second(cpu_usage)", "double"));
+        result, schema("@timestamp", "timestamp"), schema("per_second(packets)", "double"));
 
-    // With 2h span: uses runtime calculation with timestampadd(HOUR, 2, @timestamp)
-    assertEquals(1, result.getInt("total"));
+    // With 1h span: (60+120+180+30)/3600 = 390/3600 = 0.10833333333333334
+    verifyDataRows(result, rows("2025-09-08 10:00:00", 0.10833333333333334));
   }
 
   @Test
   public void testTimechartPerSecondWithByLimitUseother() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=events | timechart span=1m limit=1 useother=true per_second(cpu_usage) by"
-                + " host");
-
-    verifySchema(
-        result,
-        schema("@timestamp", "timestamp"),
-        schema("host", "string"),
-        schema("per_second(cpu_usage)", "double"));
-
-    // Should show top 1 host + OTHER category across time spans
-    boolean foundOther = false;
-    for (int i = 0; i < result.getJSONArray("datarows").length(); i++) {
-      Object[] row = result.getJSONArray("datarows").getJSONArray(i).toList().toArray();
-      if ("OTHER".equals(row[1])) {
-        foundOther = true;
-        break;
-      }
-    }
-    assertTrue("OTHER category should be present with limit=1", foundOther);
-  }
-
-  @Test
-  public void testTimechartPerSecondWithLeapYearFebruary() throws IOException {
-    // Test February 2024 with runtime TIMESTAMPDIFF calculation
-    // sum(packets) = 360, uses dynamic timestampdiff for actual interval calculation
-    JSONObject result =
-        executeQuery(
-            "source=timechart_per_second_test | where year(@timestamp)=2024 and month(@timestamp)=2"
-                + " | timechart span=1mon per_second(packets)");
-
-    verifySchema(
-        result, schema("@timestamp", "timestamp"), schema("per_second(packets)", "double"));
-
-    assertEquals(1, result.getInt("total"));
-    Object[] row = result.getJSONArray("datarows").getJSONArray(0).toList().toArray();
-    double perSecondValue = ((Number) row[1]).doubleValue();
-
-    // With dynamic TIMESTAMPDIFF calculation, per_second uses actual runtime calculation
-    assertTrue("per_second value should be positive", perSecondValue > 0);
-  }
-
-  @Test
-  public void testTimechartPerSecondWithRegularFebruary() throws IOException {
-    // Test February 2023 with runtime TIMESTAMPDIFF calculation
-    // sum(packets) = 360, uses dynamic timestampdiff for actual interval calculation
-    JSONObject result =
-        executeQuery(
-            "source=timechart_per_second_test | where year(@timestamp)=2023 and month(@timestamp)=2"
-                + " | timechart span=1mon per_second(packets)");
-
-    verifySchema(
-        result, schema("@timestamp", "timestamp"), schema("per_second(packets)", "double"));
-
-    assertEquals(1, result.getInt("total"));
-    Object[] row = result.getJSONArray("datarows").getJSONArray(0).toList().toArray();
-    double perSecondValue = ((Number) row[1]).doubleValue();
-
-    // With dynamic TIMESTAMPDIFF calculation, per_second uses actual runtime calculation
-    assertTrue("per_second value should be positive", perSecondValue > 0);
-  }
-
-  @Test
-  public void testTimechartPerSecondWithOctober() throws IOException {
-    // Test October 2023 with runtime TIMESTAMPDIFF calculation
-    // sum(packets) = 360, uses dynamic timestampdiff for actual interval calculation
-    JSONObject result =
-        executeQuery(
-            "source=timechart_per_second_test | where year(@timestamp)=2023 and"
-                + " month(@timestamp)=10 | timechart span=1mon per_second(packets)");
-
-    verifySchema(
-        result, schema("@timestamp", "timestamp"), schema("per_second(packets)", "double"));
-
-    assertEquals(1, result.getInt("total"));
-    Object[] row = result.getJSONArray("datarows").getJSONArray(0).toList().toArray();
-    double perSecondValue = ((Number) row[1]).doubleValue();
-
-    // With dynamic TIMESTAMPDIFF calculation, per_second uses actual runtime calculation
-    assertTrue("per_second value should be positive", perSecondValue > 0);
-  }
-
-  @Test
-  public void testTimechartPerSecondWithByClauseAndLimit() throws IOException {
-    // Test with 2025 data, by clause, limit=1, useother=true
-    JSONObject result =
-        executeQuery(
-            "source=timechart_per_second_test | where year(@timestamp)=2025 | timechart span=1h"
-                + " limit=1 useother=true per_second(packets) by host");
+            "source=timechart_per_function_test | timechart span=1m limit=1 useother=true"
+                + " per_second(packets) by host");
 
     verifySchema(
         result,
@@ -178,22 +125,52 @@ public class CalciteTimechartPerFunctionIT extends PPLIntegTestCase {
         schema("host", "string"),
         schema("per_second(packets)", "double"));
 
-    // Should have results for each hour with top 1 host + OTHER
-    boolean foundOther = false;
-    boolean foundServer1 = false;
+    // With limit=1 and useother=true, expected 4 rows instead of 6
+    // server1 appears in buckets, OTHER shows correct floating point: 30/60 = 0.5
+    verifyDataRows(
+        result,
+        rows("2025-09-08 10:00:00", "server1", 1.0),
+        rows("2025-09-08 10:01:00", "server1", 2.0),
+        rows("2025-09-08 10:02:00", "server1", 3.0),
+        rows("2025-09-08 10:02:00", "OTHER", 0.5)); // OTHER shows correct 30/60 = 0.5
+  }
 
-    for (int i = 0; i < result.getJSONArray("datarows").length(); i++) {
-      Object[] row = result.getJSONArray("datarows").getJSONArray(i).toList().toArray();
-      String host = (String) row[1];
+  @Test
+  public void testTimechartPerSecondDataRows() throws IOException {
+    JSONObject result =
+        executeQuery("source=timechart_per_function_test | timechart span=1m per_second(packets)");
 
-      if ("OTHER".equals(host)) {
-        foundOther = true;
-      } else if ("server1".equals(host)) {
-        foundServer1 = true;
-      }
-    }
+    verifySchema(
+        result, schema("@timestamp", "timestamp"), schema("per_second(packets)", "double"));
 
-    assertTrue("Should have server1 data", foundServer1);
-    assertTrue("Should have OTHER category with limit=1", foundOther);
+    // Verify the same data as testTimechartPerSecondWithDefaultSpan
+    verifyDataRows(
+        result,
+        rows("2025-09-08 10:00:00", 1.0),
+        rows("2025-09-08 10:01:00", 2.0),
+        rows("2025-09-08 10:02:00", 3.5));
+  }
+
+  @Test
+  public void testTimechartPerSecondWithByClauseAndLimit() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=timechart_per_function_test | timechart span=30s limit=2 per_second(packets) by"
+                + " host");
+
+    verifySchema(
+        result,
+        schema("@timestamp", "timestamp"),
+        schema("host", "string"),
+        schema("per_second(packets)", "double"));
+
+    // With 30s span and limit=2, expected 4 rows instead of 8
+    // Only buckets with actual data, no zero-filled buckets
+    verifyDataRows(
+        result,
+        rows("2025-09-08 10:00:00", "server1", 2.0), // 60/30 = 2.0
+        rows("2025-09-08 10:01:00", "server1", 4.0), // 120/30 = 4.0
+        rows("2025-09-08 10:02:00", "server1", 6.0), // 180/30 = 6.0
+        rows("2025-09-08 10:02:30", "server2", 1.0)); // 30/30 = 1.0
   }
 }

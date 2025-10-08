@@ -36,14 +36,12 @@ class TimechartTest {
             eval(
                 let(
                     "per_second(bytes)",
-                    multiply(
-                        divide(
-                            "per_second(bytes)",
-                            timestampdiff(
-                                "SECOND",
-                                "@timestamp",
-                                timestampadd(expectedTimestampAddUnit, spanValue, "@timestamp"))),
-                        doubleLiteral(1.0))),
+                    divide(
+                        multiply("per_second(bytes)", 1.0),
+                        timestampdiff(
+                            "SECOND",
+                            "@timestamp",
+                            timestampadd(expectedTimestampAddUnit, spanValue, "@timestamp")))),
                 timechart(span(spanValue, spanUnit), alias("per_second(bytes)", sum("bytes")))));
   }
 
@@ -76,12 +74,10 @@ class TimechartTest {
             eval(
                 let(
                     "per_second(bytes)",
-                    multiply(
-                        divide(
-                            "per_second(bytes)",
-                            timestampdiff(
-                                "SECOND", "@timestamp", timestampadd("MINUTE", 5, "@timestamp"))),
-                        doubleLiteral(1.0))),
+                    divide(
+                        multiply("per_second(bytes)", 1.0),
+                        timestampdiff(
+                            "SECOND", "@timestamp", timestampadd("MINUTE", 5, "@timestamp")))),
                 expected));
   }
 
@@ -116,26 +112,13 @@ class TimechartTest {
     return AstDSL.let(field(fieldName), expression);
   }
 
-  private static UnresolvedExpression divide(String fieldName, double divisor) {
-    return function("/", field(fieldName), doubleLiteral(divisor));
-  }
-
-  private static UnresolvedExpression multiply(
-      UnresolvedExpression left, UnresolvedExpression right) {
-    return function("*", left, right);
-  }
-
-  private static UnresolvedExpression multiply(UnresolvedExpression left, int right) {
-    return function("*", left, intLiteral(right));
+  private static UnresolvedExpression multiply(String fieldName, double right) {
+    return function("*", field(fieldName), doubleLiteral(right));
   }
 
   private static UnresolvedExpression divide(
       UnresolvedExpression left, UnresolvedExpression right) {
     return function("/", left, right);
-  }
-
-  private static UnresolvedExpression divide(String fieldName, UnresolvedExpression divisor) {
-    return function("/", field(fieldName), divisor);
   }
 
   private static UnresolvedExpression timestampadd(String unit, int value, String timestampField) {
@@ -144,22 +127,8 @@ class TimechartTest {
   }
 
   private static UnresolvedExpression timestampdiff(
-      String unit, String startField, String endField) {
-    return function(
-        "timestampdiff", AstDSL.stringLiteral(unit), field(startField), field(endField));
-  }
-
-  private static UnresolvedExpression timestampdiff(
       String unit, String startField, UnresolvedExpression end) {
     return function("timestampdiff", AstDSL.stringLiteral(unit), field(startField), end);
-  }
-
-  private static UnresolvedExpression cast(String fieldName, String type) {
-    return function("cast", field(fieldName), AstDSL.stringLiteral(type));
-  }
-
-  private static UnresolvedExpression cast(UnresolvedExpression expr, String type) {
-    return function("cast", expr, AstDSL.stringLiteral(type));
   }
 
   private static UnresolvedPlan eval(Let letExpr, Timechart timechartExpr) {
