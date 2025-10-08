@@ -88,16 +88,17 @@ public class SelectExpressionAnalyzerTest extends AnalyzerTestBase {
 
   @Test
   public void testContextWrapperIsolation() {
-    // Test that context wrapper properly isolates optimizer instances, each wrapper should have its own optimizer
+    // Test that context wrapper properly isolates optimizer instances, each wrapper should have its
+    // own optimizer
     ExpressionReferenceOptimizer optimizer1 = mock(ExpressionReferenceOptimizer.class);
     ExpressionReferenceOptimizer optimizer2 = mock(ExpressionReferenceOptimizer.class);
-    
+
     AnalysisContext baseContext = new AnalysisContext();
-    SelectExpressionAnalyzer.AnalysisContextWithOptimizer wrapper1 = 
+    SelectExpressionAnalyzer.AnalysisContextWithOptimizer wrapper1 =
         new SelectExpressionAnalyzer.AnalysisContextWithOptimizer(baseContext, optimizer1);
-    SelectExpressionAnalyzer.AnalysisContextWithOptimizer wrapper2 = 
+    SelectExpressionAnalyzer.AnalysisContextWithOptimizer wrapper2 =
         new SelectExpressionAnalyzer.AnalysisContextWithOptimizer(baseContext, optimizer2);
-    
+
     assertEquals(baseContext, wrapper1.analysisContext);
     assertEquals(baseContext, wrapper2.analysisContext);
     assertEquals(optimizer1, wrapper1.optimizer);
