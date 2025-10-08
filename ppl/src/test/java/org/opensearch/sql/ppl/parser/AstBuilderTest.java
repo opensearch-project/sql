@@ -1102,7 +1102,18 @@ public class AstBuilderTest {
                 .useOther(true),
             let(
                 field("per_second(a)"),
-                function("/", field("per_second(a)"), doubleLiteral(60.0)))));
+                function(
+                    "/",
+                    function("*", field("per_second(a)"), doubleLiteral(1.0)),
+                    function(
+                        "timestampdiff",
+                        stringLiteral("SECOND"),
+                        field("@timestamp"),
+                        function(
+                            "timestampadd",
+                            stringLiteral("MINUTE"),
+                            intLiteral(1),
+                            field("@timestamp")))))));
   }
 
   @Test
