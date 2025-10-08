@@ -97,6 +97,26 @@ Example::
     | default | null     | Dale      |
     +---------+----------+-----------+
 
+Nested IFNULL Pattern
+>>>>>>>>>>>>>>>>>>>>>
+
+For OpenSearch versions prior to 3.1, COALESCE-like functionality can be achieved using nested IFNULL statements. This pattern is particularly useful in observability use cases where field names may vary across different data sources.
+
+Usage: ifnull(field1, ifnull(field2, ifnull(field3, default_value)))
+
+Example::
+
+    os> source=accounts | eval result = ifnull(employer, ifnull(firstname, ifnull(lastname, "unknown"))) | fields result, employer, firstname, lastname
+    fetched rows / total rows = 4/4
+    +---------+----------+-----------+----------+
+    | result  | employer | firstname | lastname |
+    |---------+----------+-----------+----------|
+    | Pyrami  | Pyrami   | Amber     | Duke     |
+    | Netagy  | Netagy   | Hattie    | Bond     |
+    | Quility | Quility  | Nanette   | Bates    |
+    | Dale    | null     | Dale      | Adams    |
+    +---------+----------+-----------+----------+
+
 NULLIF
 ------
 
@@ -255,15 +275,28 @@ Argument type: all the supported data type. Supports mixed data types with autom
 Return type: determined by the least restrictive common type among all arguments, with fallback to string if no common type can be determined
 
 Behavior:
+
 - Returns the first value that is not null and not missing (missing includes non-existent fields)
 - Empty strings ("") and whitespace strings (" ") are considered valid values
 - If all arguments are null or missing, returns null
 - Automatic type coercion is applied to match the determined return type
 - If type conversion fails, the value is converted to string representation
+- For best results, use arguments of the same data type to avoid unexpected type conversions
+
+Performance Considerations:
+
+- Optimized for multiple field evaluation, more efficient than nested IFNULL patterns
+- Evaluates arguments sequentially, stopping at the first non-null value
+- Consider field order based on likelihood of containing values to minimize evaluation overhead
+
+Limitations:
+
+- Type coercion may result in unexpected string conversions for incompatible types
+- Performance may degrade with very large numbers of arguments
 
 Example::
 
-    PPL> source=accounts | eval result = coalesce(employer, firstname, lastname) | fields result, firstname, lastname, employer
+    os> source=accounts | eval result = coalesce(employer, firstname, lastname) | fields result, firstname, lastname, employer
     fetched rows / total rows = 4/4
     +---------+-----------+----------+----------+
     | result  | firstname | lastname | employer |
@@ -276,7 +309,7 @@ Example::
 
 Empty String Handling Examples::
 
-    PPL> source=accounts | eval empty_field = "" | eval result = coalesce(empty_field, firstname) | fields result, empty_field, firstname
+    os> source=accounts | eval empty_field = "" | eval result = coalesce(empty_field, firstname) | fields result, empty_field, firstname
     fetched rows / total rows = 4/4
     +--------+-------------+-----------+
     | result | empty_field | firstname |
@@ -287,7 +320,7 @@ Empty String Handling Examples::
     |        |             | Dale      |
     +--------+-------------+-----------+
 
-    PPL> source=accounts | eval result = coalesce(" ", firstname) | fields result, firstname
+    os> source=accounts | eval result = coalesce(" ", firstname) | fields result, firstname
     fetched rows / total rows = 4/4
     +--------+-----------+
     | result | firstname |
@@ -300,20 +333,20 @@ Empty String Handling Examples::
 
 Mixed Data Types with Auto Coercion::
 
-    PPL> source=accounts | eval result = coalesce(employer, balance, "fallback") | fields result, employer, balance
+    os> source=accounts | eval result = coalesce(employer, balance, "fallback") | fields result, employer, balance
     fetched rows / total rows = 4/4
     +---------+----------+---------+
     | result  | employer | balance |
     |---------+----------+---------|
     | Pyrami  | Pyrami   | 39225   |
-    | Netagy  | Netagy   | 32838   |
-    | Quility | Quility  | 4180    |
-    | 5686    | null     | 5686    |
+    | Netagy  | Netagy   | 5686    |
+    | Quility | Quility  | 32838   |
+    | 4180    | null     | 4180    |
     +---------+----------+---------+
 
 Non-existent Field Handling::
 
-    PPL> source=accounts | eval result = coalesce(nonexistent_field, firstname, "unknown") | fields result, firstname
+    os> source=accounts | eval result = coalesce(nonexistent_field, firstname, "unknown") | fields result, firstname
     fetched rows / total rows = 4/4
     +---------+-----------+
     | result  | firstname |
@@ -323,6 +356,7 @@ Non-existent Field Handling::
     | Nanette | Nanette   |
     | Dale    | Dale      |
     +---------+-----------+
+
 
 ISPRESENT
 ---------
@@ -342,7 +376,7 @@ Synonyms: `ISNOTNULL`_
 
 Example::
 
-    PPL> source=accounts | where ispresent(employer) | fields employer, firstname
+    os> source=accounts | where ispresent(employer) | fields employer, firstname
     fetched rows / total rows = 3/3
     +----------+-----------+
     | employer | firstname |
@@ -368,7 +402,7 @@ Return type: BOOLEAN
 
 Example::
 
-    PPL> source=accounts | eval temp = ifnull(employer, '   ') | eval `isblank(employer)` = isblank(employer), `isblank(temp)` = isblank(temp) | fields `isblank(temp)`, temp, `isblank(employer)`, employer
+    os> source=accounts | eval temp = ifnull(employer, '   ') | eval `isblank(employer)` = isblank(employer), `isblank(temp)` = isblank(temp) | fields `isblank(temp)`, temp, `isblank(employer)`, employer
     fetched rows / total rows = 4/4
     +---------------+---------+-------------------+----------+
     | isblank(temp) | temp    | isblank(employer) | employer |
@@ -396,7 +430,7 @@ Return type: BOOLEAN
 
 Example::
 
-    PPL> source=accounts | eval temp = ifnull(employer, '   ') | eval `isempty(employer)` = isempty(employer), `isempty(temp)` = isempty(temp) | fields `isempty(temp)`, temp, `isempty(employer)`, employer
+    os> source=accounts | eval temp = ifnull(employer, '   ') | eval `isempty(employer)` = isempty(employer), `isempty(temp)` = isempty(temp) | fields `isempty(temp)`, temp, `isempty(employer)`, employer
     fetched rows / total rows = 4/4
     +---------------+---------+-------------------+----------+
     | isempty(temp) | temp    | isempty(employer) | employer |
@@ -423,7 +457,7 @@ The relative string can be one of the following formats:
 1. `"now"` or `"now()"`:  
    Uses the current system time.
 
-2. Absolute format (`MM/dd/yyyy:HH:mm:ss`):  
+2. Absolute format (`MM/dd/yyyy:HH:mm:ss` or `yyyy-MM-dd HH:mm:ss`):
    Converts the string to a timestamp and compares it with the data.
 
 3. Relative format: `(+|-)<time_integer><time_unit>[+<...>]@<snap_unit>`  
@@ -447,20 +481,20 @@ Return type: BOOLEAN
 
 Example::
 
-    PPL> source=accounts | eval now = utc_timestamp() | eval a = earliest("now", now), b = earliest("-2d@d", now) | fields a, b | head 1
+    os> source=accounts | eval now = utc_timestamp() | eval a = earliest("now", now), b = earliest("-2d@d", now) | fields a, b | head 1
     fetched rows / total rows = 1/1
-    +-------+-------+
-    | a     | b     |
-    |-------+-------|
-    | False | True  |
-    +-------+-------+
+    +-------+------+
+    | a     | b    |
+    |-------+------|
+    | False | True |
+    +-------+------+
 
-    PPL> source=nyc_taxi | where earliest('07/01/2014:00:30:00', timestamp) | stats COUNT() as cnt
+    os> source=nyc_taxi | where earliest('07/01/2014:00:30:00', timestamp) | stats COUNT() as cnt
     fetched rows / total rows = 1/1
     +-----+
     | cnt |
     |-----|
-    | 971 |
+    | 972 |
     +-----+
 
 LATEST
@@ -479,20 +513,20 @@ Return type: BOOLEAN
 
 Example::
 
-    PPL> source=accounts | eval now = utc_timestamp() | eval a = latest("now", now), b = latest("+2d@d", now) | fields a, b | head 1
+    os> source=accounts | eval now = utc_timestamp() | eval a = latest("now", now), b = latest("+2d@d", now) | fields a, b | head 1
     fetched rows / total rows = 1/1
-    +-------+-------+
-    | a     | b     |
-    |-------+-------|
-    | False | True  |
-    +-------+-------+
+    +------+------+
+    | a    | b    |
+    |------+------|
+    | True | True |
+    +------+------+
 
-    PPL> source=nyc_taxi | where latest('07/21/2014:04:00:00', timestamp) | stats COUNT() as cnt
+    os> source=nyc_taxi | where latest('07/21/2014:04:00:00', timestamp) | stats COUNT() as cnt
     fetched rows / total rows = 1/1
     +-----+
     | cnt |
     |-----|
-    | 968 |
+    | 969 |
     +-----+
 
 REGEX_MATCH

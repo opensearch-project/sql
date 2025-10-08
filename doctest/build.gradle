@@ -11,7 +11,6 @@ plugins {
     id 'base'
     id 'com.wiredforcode.spawn'
     id "de.undercouch.download" version "5.3.0"
-    id 'com.diffplug.spotless' version '6.22.0'
 }
 
 apply plugin: 'opensearch.testclusters'
@@ -20,21 +19,23 @@ def path = project(':').projectDir
 // temporary fix, because currently we are under migration to new architecture. Need to run ./gradlew run from
 // plugin module, and will only build ppl in it.
 def plugin_path = project(':doctest').projectDir
+String ignorePrometheusProp = System.getProperty("ignorePrometheus")
+boolean ignorePrometheus = ignorePrometheusProp != null && !ignorePrometheusProp.equalsIgnoreCase("false")
 
 task cloneSqlCli(type: Exec) {
     def repoDir = new File("${project.projectDir}/sql-cli")
     
     if (repoDir.exists()) {
         // Repository already exists, fetch and checkout latest
-        commandLine 'git', '-C', repoDir.absolutePath, 'fetch', 'origin', 'main'
-        commandLine 'git', '-C', repoDir.absolutePath, 'checkout', 'origin/main'
+        commandLine 'git', '-C', repoDir.absolutePath, 'fetch', 'origin', '1.0-legacy'
+        commandLine 'git', '-C', repoDir.absolutePath, 'checkout', 'origin/1.0-legacy'
     } else {
         // Repository doesn't exist, clone it
-        commandLine 'git', 'clone', 'https://github.com/opensearch-project/sql-cli.git', repoDir.absolutePath
+        commandLine 'git', 'clone', '-b', '1.0-legacy', 'https://github.com/opensearch-project/sql-cli.git', repoDir.absolutePath
     }
 }
 
-task bootstrap(type: Exec, dependsOn: ['cloneSqlCli', 'spotlessJava']) {
+task bootstrap(type: Exec, dependsOn: ['cloneSqlCli']) {
     inputs.file "$projectDir/bootstrap.sh"
     outputs.dir "$projectDir/.venv"
 
@@ -62,10 +63,13 @@ task startPrometheus(type: SpawnProcessTask) {
     command "$projectDir/bin/prometheus/prometheus --storage.tsdb.path=$projectDir/bin/prometheus/data --config.file=$projectDir/bin/prometheus/prometheus.yml"
     ready 'TSDB started'
     pidLockFileName ".prom.pid.lock"
+    onlyIf { !ignorePrometheus && getOSFamilyType() != "windows" }
 }
 
 //evaluationDependsOn(':')
 task startOpenSearch(type: SpawnProcessTask) {
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+
     if( getOSFamilyType() == "windows") {
         command "${path}\\gradlew.bat -p ${plugin_path} runRestTestCluster"
     }
@@ -87,6 +91,7 @@ task doctest(type: Exec, dependsOn: ['bootstrap']) {
     if (debug == 'true') {
         environment 'DOCTEST_DEBUG', 'true'
     }
+    environment 'IGNORE_PROMETHEUS_DOCS', ignorePrometheus ? 'true' : 'false'
     
     if (docs) {
         def args = ['.venv/bin/python', 'test_docs.py']
@@ -120,14 +125,17 @@ task stopPrometheus(type: KillProcessTask) {
         file("$projectDir/bin/prometheus").deleteDir()
         file("$projectDir/bin/prometheus.tar.gz").delete()
     }
+    onlyIf { !ignorePrometheus && getOSFamilyType() != "windows" }
 }
 
 // Stop Prom AFTER Start Prom...
 if(getOSFamilyType() != "windows") {
     stopPrometheus.mustRunAfter startPrometheus
-    startOpenSearch.dependsOn startPrometheus
-    stopOpenSearch.finalizedBy stopPrometheus
-    startOpenSearch.finalizedBy stopPrometheus
+    if (!ignorePrometheus) {
+        startOpenSearch.dependsOn startPrometheus
+        stopOpenSearch.finalizedBy stopPrometheus
+        startOpenSearch.finalizedBy stopPrometheus
+    }
 }
 doctest.dependsOn startOpenSearch
 doctest.finalizedBy stopOpenSearch
@@ -183,23 +191,6 @@ tasks.register("runRestTestCluster", RunTask) {
     useCluster testClusters.docTestCluster;
 }
 
-spotless {
-    java {
-        target fileTree('.') {
-            include '**/*.java'
-            exclude '**/build/**', '**/build-*/**'
-        }
-        importOrder()
-//        licenseHeader("/*\n" +
-//                " * Copyright OpenSearch Contributors\n" +
-//                " * SPDX-License-Identifier: Apache-2.0\n" +
-//                " */\n\n")
-        removeUnusedImports()
-        trimTrailingWhitespace()
-        endWithNewline()
-        googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
-    }
-}
 
 def getJobSchedulerPlugin(String jsPlugin, String bwcOpenSearchJSDownload) {
     return provider(new Callable<RegularFile>() {

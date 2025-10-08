@@ -1,6 +1,0 @@
-{
-  "calcite": {
-    "logical": "LogicalSystemLimit(sort0=[$0], dir0=[ASC-nulls-first], fetch=[10000], type=[QUERY_SIZE_LIMIT])\n  LogicalProject(age=[$8])\n    LogicalSort(sort0=[$8], dir0=[ASC-nulls-first], fetch=[5])\n      CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
-    "physical": "CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[SORT->[{\n  \"age\" : {\n    \"order\" : \"asc\",\n    \"missing\" : \"_first\"\n  }\n}], LIMIT->5, PROJECT->[age], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"size\":5,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"age\"],\"excludes\":[]},\"sort\":[{\"age\":{\"order\":\"asc\",\"missing\":\"_first\"}}]}, requestedTotalSize=5, pageSize=null, startFrom=0)])\n"
-  }
-}

@@ -8,6 +8,7 @@ parser grammar OpenSearchPPLParser;
 
 
 options { tokenVocab = OpenSearchPPLLexer; }
+
 root
    : pplStatement? EOF
    ;
@@ -19,7 +20,7 @@ pplStatement
    ;
 
 queryStatement
-   : pplCommands (PIPE commands)*
+   : (PIPE)? pplCommands (PIPE commands)*
    ;
 
 explainStatement
@@ -42,6 +43,7 @@ pplCommands
    : describeCommand
    | showDataSourcesCommand
    | searchCommand
+   | multisearchCommand
    ;
 
 commands
@@ -70,10 +72,13 @@ commands
    | fillnullCommand
    | trendlineCommand
    | appendcolCommand
+   | appendCommand
    | expandCommand
    | flattenCommand
    | reverseCommand
    | regexCommand
+   | timechartCommand
+   | rexCommand
    ;
 
 commandName
@@ -105,14 +110,65 @@ commandName
    | EXPAND
    | FLATTEN
    | TRENDLINE
+   | TIMECHART
    | EXPLAIN
    | REVERSE
    | REGEX
+   | APPEND
+   | MULTISEARCH
+   | REX
    ;
 
 searchCommand
-   : (SEARCH)? (logicalExpression)* fromClause (logicalExpression)*     # searchFrom
+   : (SEARCH)? (searchExpression)* fromClause (searchExpression)*     # searchFrom
    ;
+
+searchExpression
+ : timeModifier                                       # timeModifierExpression
+ | LT_PRTHS searchExpression RT_PRTHS                 # groupedExpression
+ | NOT searchExpression                               # notExpression
+ | searchExpression OR searchExpression               # orExpression
+ | searchExpression AND searchExpression              # andExpression
+ | searchTerm                                         # termExpression
+ ;
+
+searchTerm
+ : searchFieldComparison                                   # searchComparisonTerm
+ | searchFieldInList                                       # searchInListTerm
+ | searchLiteral                                           # searchLiteralTerm
+ ;
+
+// Unified search literal for both free text and field comparisons
+searchLiteral
+   : numericLiteral
+   | booleanLiteral
+   | ID
+   | NUMERIC_ID
+   | stringLiteral
+   | searchableKeyWord
+   ;
+
+searchFieldComparison
+ : fieldExpression searchComparisonOperator searchLiteral          # searchFieldCompare
+ ;
+
+searchFieldInList
+ : fieldExpression IN LT_PRTHS searchLiteralList RT_PRTHS          # searchFieldInValues
+ ;
+
+searchLiteralList
+ : searchLiteral (COMMA searchLiteral)*          # searchLiterals
+ ;
+
+searchComparisonOperator
+ : EQUAL                                             # equals
+ | NOT_EQUAL                                         # notEquals
+ | LESS                                              # lessThan
+ | NOT_GREATER                                       # lessOrEqual
+ | GREATER                                           # greaterThan
+ | NOT_LESS                                          # greaterOrEqual
+ ;
+
 
 describeCommand
    : DESCRIBE tableSourceClause
@@ -145,11 +201,35 @@ wcFieldList
    ;
 
 renameCommand
-   : RENAME renameClasue (COMMA renameClasue)*
+   : RENAME renameClasue (COMMA? renameClasue)*
    ;
 
 statsCommand
-   : STATS (PARTITIONS EQUAL partitions = integerLiteral)? (ALLNUM EQUAL allnum = booleanLiteral)? (DELIM EQUAL delim = stringLiteral)? statsAggTerm (COMMA statsAggTerm)* (statsByClause)? (DEDUP_SPLITVALUES EQUAL dedupsplit = booleanLiteral)?
+   : STATS statsArgs statsAggTerm (COMMA statsAggTerm)* (statsByClause)? (dedupSplitArg)?
+   ;
+
+statsArgs
+   : (partitionsArg | allnumArg | delimArg | bucketNullableArg)*
+   ;
+
+partitionsArg
+   : PARTITIONS EQUAL partitions = integerLiteral
+   ;
+
+allnumArg
+   : ALLNUM EQUAL allnum = booleanLiteral
+   ;
+
+delimArg
+   : DELIM EQUAL delim = stringLiteral
+   ;
+
+bucketNullableArg
+   : BUCKET_NULLABLE EQUAL bucket_nullable = booleanLiteral
+   ;
+
+dedupSplitArg
+   : DEDUP_SPLITVALUES EQUAL dedupsplit = booleanLiteral
    ;
 
 eventstatsCommand
@@ -161,11 +241,30 @@ dedupCommand
    ;
 
 sortCommand
-   : SORT (count = integerLiteral)? sortbyClause (DESC | D)?
+   : SORT (count = integerLiteral)? sortbyClause (ASC | A | DESC | D)?
    ;
 
 reverseCommand
    : REVERSE
+   ;
+
+timechartCommand
+   : TIMECHART timechartParameter* statsFunction (BY fieldExpression)?
+   ;
+
+timechartParameter
+   : (spanClause | SPAN EQUAL spanLiteral)
+   | timechartArg
+   ;
+
+timechartArg
+   : LIMIT EQUAL integerLiteral
+   | USEOTHER EQUAL (booleanLiteral | ident)
+   ;
+
+spanLiteral
+   : SPANLENGTH
+   | INTEGER_LITERAL
    ;
 
 evalCommand
@@ -181,9 +280,9 @@ binCommand
    ;
 
 binOption
-   : SPAN EQUAL span = spanValue
+   : SPAN EQUAL span = binSpanValue
    | BINS EQUAL bins = integerLiteral
-   | MINSPAN EQUAL minspan = literalValue (minspanUnit = timespanUnit)?
+   | MINSPAN EQUAL minspan = spanLiteral
    | ALIGNTIME EQUAL aligntime = aligntimeValue
    | START EQUAL start = numericLiteral
    | END EQUAL end = numericLiteral
@@ -195,11 +294,9 @@ aligntimeValue
    | literalValue
    ;
 
-spanValue
-   : literalValue (timespanUnit)?           # numericSpanValue
+binSpanValue
+   : spanLiteral                            # numericSpanValue
    | logSpanValue                           # logBasedSpanValue
-   | ident timespanUnit                     # extendedTimeSpanValue
-   | ident                                  # identifierSpanValue
    ;
 
 logSpanValue
@@ -251,17 +348,39 @@ regexExpr
     : field=qualifiedName operator=(EQUAL | NOT_EQUAL) pattern=stringLiteral
     ;
 
+rexCommand
+    : REX rexExpr
+    ;
+
+rexExpr
+    : FIELD EQUAL field=qualifiedName (rexOption)* pattern=stringLiteral (rexOption)*
+    ;
+
+rexOption
+    : MAX_MATCH EQUAL maxMatch=integerLiteral
+    | MODE EQUAL (EXTRACT | SED)
+    | OFFSET_FIELD EQUAL offsetField=qualifiedName
+    ;
 patternsMethod
    : PUNCT
    | REGEX
    ;
 
 patternsCommand
-   : PATTERNS (source_field = expression) (statsByClause)? (METHOD EQUAL method = patternMethod)? (MODE EQUAL pattern_mode = patternMode)? (MAX_SAMPLE_COUNT EQUAL max_sample_count = integerLiteral)? (BUFFER_LIMIT EQUAL buffer_limit = integerLiteral)? (NEW_FIELD EQUAL new_field = stringLiteral)? (patternsParameter)*
+   : PATTERNS (source_field = expression) (statsByClause)? (patternsCommandOption)* (patternsParameter)*
+   ;
+
+patternsCommandOption
+   : (METHOD EQUAL method = patternMethod)
+   | (MODE EQUAL pattern_mode = patternMode)
+   | (MAX_SAMPLE_COUNT EQUAL max_sample_count = integerLiteral)
+   | (BUFFER_LIMIT EQUAL buffer_limit = integerLiteral)
+   | (SHOW_NUMBERED_TOKEN EQUAL show_numbered_token = booleanLiteral)
    ;
 
 patternsParameter
    : (PATTERN EQUAL pattern = stringLiteral)
+   | (NEW_FIELD EQUAL new_field = stringLiteral)
    | (VARIABLE_COUNT_THRESHOLD EQUAL variable_count_threshold = integerLiteral)
    | (FREQUENCY_THRESHOLD_PERCENTAGE EQUAL frequency_threshold_percentage = decimalLiteral)
    ;
@@ -298,8 +417,10 @@ lookupPair
    ;
 
 fillnullCommand
-   : FILLNULL fillNullWith
-   | FILLNULL fillNullUsing
+   : FILLNULL fillNullWith                                                          # fillNullWithClause
+   | FILLNULL fillNullUsing                                                         # fillNullUsingClause
+   | FILLNULL VALUE EQUAL replacement = valueExpression fieldList                   # fillNullValueWithFields
+   | FILLNULL VALUE EQUAL replacement = valueExpression                             # fillNullValueAllFields
    ;
 
 fillNullWith
@@ -337,6 +458,14 @@ flattenCommand
 
 appendcolCommand
    : APPENDCOL (OVERRIDE EQUAL override = booleanLiteral)? LT_SQR_PRTHS commands (PIPE commands)* RT_SQR_PRTHS
+   ;
+
+appendCommand
+   : APPEND LT_SQR_PRTHS searchCommand? (PIPE commands)* RT_SQR_PRTHS
+   ;
+
+multisearchCommand
+   : MULTISEARCH (LT_SQR_PRTHS subSearch RT_SQR_PRTHS)+
    ;
 
 kmeansCommand
@@ -382,6 +511,8 @@ fromClause
    | INDEX EQUAL tableOrSubqueryClause
    | SOURCE EQUAL tableFunction
    | INDEX EQUAL tableFunction
+   | SOURCE EQUAL dynamicSourceClause
+   | INDEX EQUAL dynamicSourceClause
    ;
 
 tableOrSubqueryClause
@@ -393,19 +524,52 @@ tableSourceClause
    : tableSource (COMMA tableSource)* (AS alias = qualifiedName)?
    ;
 
-// join
-joinCommand
-   : (joinType) JOIN sideAlias joinHintList? joinCriteria? right = tableOrSubqueryClause
+dynamicSourceClause
+   : LT_SQR_PRTHS sourceReferences (COMMA sourceFilterArgs)? RT_SQR_PRTHS
    ;
 
-joinType
-   : INNER?
+sourceReferences
+   : sourceReference (COMMA sourceReference)*
+   ;
+
+sourceReference
+   : (CLUSTER)? wcQualifiedName
+   ;
+
+sourceFilterArgs
+   : sourceFilterArg (COMMA sourceFilterArg)*
+   ;
+
+sourceFilterArg
+   : ident EQUAL literalValue
+   | ident IN valueList
+   ;
+
+// join
+joinCommand
+   : JOIN (joinOption)* (fieldList)? right = tableOrSubqueryClause
+   | sqlLikeJoinType? JOIN (joinOption)* sideAlias joinHintList? joinCriteria right = tableOrSubqueryClause
+   ;
+
+sqlLikeJoinType
+   : INNER
    | CROSS
-   | LEFT OUTER?
+   | (LEFT OUTER? | OUTER)
    | RIGHT OUTER?
    | FULL OUTER?
    | LEFT? SEMI
    | LEFT? ANTI
+   ;
+
+joinType
+   : INNER
+   | CROSS
+   | OUTER
+   | LEFT
+   | RIGHT
+   | FULL
+   | SEMI
+   | ANTI
    ;
 
 sideAlias
@@ -413,7 +577,7 @@ sideAlias
    ;
 
 joinCriteria
-   : ON logicalExpression
+   : (ON | WHERE) logicalExpression
    ;
 
 joinHintList
@@ -425,8 +589,14 @@ hintPair
    | rightHintKey = RIGHT_HINT DOT ID EQUAL rightHintValue = ident          #rightHint
    ;
 
+joinOption
+   : OVERWRITE EQUAL booleanLiteral                     # overwriteOption
+   | TYPE EQUAL joinType                                # typeOption
+   | MAX EQUAL integerLiteral                           # maxOption
+   ;
+
 renameClasue
-   : orignalField = wcFieldExpression AS renamedField = wcFieldExpression
+   : orignalField = renameFieldExpression AS renamedField = renameFieldExpression
    ;
 
 byClause
@@ -445,7 +615,7 @@ bySpanClause
    ;
 
 spanClause
-   : SPAN LT_PRTHS fieldExpression COMMA value = literalValue (unit = timespanUnit)? RT_PRTHS
+   : SPAN LT_PRTHS fieldExpression COMMA value = spanLiteral RT_PRTHS
    ;
 
 sortbyClause
@@ -490,14 +660,14 @@ statsAggTerm
 
 // aggregation functions
 statsFunction
-   : statsFunctionName LT_PRTHS valueExpression RT_PRTHS        # statsFunctionCall
-   | (COUNT | C) LT_PRTHS evalExpression RT_PRTHS               # countEvalFunctionCall
+   : (COUNT | C) LT_PRTHS evalExpression RT_PRTHS               # countEvalFunctionCall
    | (COUNT | C) (LT_PRTHS RT_PRTHS)?                           # countAllFunctionCall
    | PERCENTILE_SHORTCUT LT_PRTHS valueExpression RT_PRTHS      # percentileShortcutFunctionCall
    | (DISTINCT_COUNT | DC | DISTINCT_COUNT_APPROX) LT_PRTHS valueExpression RT_PRTHS    # distinctCountFunctionCall
    | takeAggFunction                                            # takeAggFunctionCall
+   | valuesAggFunction                                          # valuesAggFunctionCall
    | percentileApproxFunction                                   # percentileApproxFunctionCall
-   | earliestLatestFunction                                     # earliestLatestFunctionCall
+   | statsFunctionName LT_PRTHS functionArgs RT_PRTHS           # statsFunctionCall
    ;
 
 statsFunctionName
@@ -512,16 +682,20 @@ statsFunctionName
    | STDDEV_POP
    | PERCENTILE
    | PERCENTILE_APPROX
+   | MEDIAN
+   | LIST
+   | FIRST
+   | EARLIEST
+   | LATEST
+   | LAST
    ;
-
-earliestLatestFunction
-   : (EARLIEST | LATEST) LT_PRTHS valueExpression (COMMA timeField = valueExpression)? RT_PRTHS
-   ;
-
-
 
 takeAggFunction
    : TAKE LT_PRTHS fieldExpression (COMMA size = integerLiteral)? RT_PRTHS
+   ;
+
+valuesAggFunction
+   : VALUES LT_PRTHS valueExpression RT_PRTHS
    ;
 
 percentileApproxFunction
@@ -604,6 +778,20 @@ multiFieldRelevanceFunction
    : multiFieldRelevanceFunctionName LT_PRTHS (LT_SQR_PRTHS field = relevanceFieldAndWeight (COMMA field = relevanceFieldAndWeight)* RT_SQR_PRTHS COMMA)? query = relevanceQuery (COMMA relevanceArg)* RT_PRTHS
    ;
 
+timeModifier
+   : (EARLIEST | LATEST) EQUAL timeModifierValue
+   ;
+
+timeModifierValue
+   : NOW
+   | NOW LT_PRTHS RT_PRTHS
+   | DECIMAL_LITERAL
+   | INTEGER_LITERAL
+   | stringLiteral
+   | TIME_SNAP
+   | (PLUS | MINUS) SPANLENGTH (TIME_SNAP)?
+   ;
+
 // tables
 tableSource
    : tableQualifiedName
@@ -616,7 +804,7 @@ tableFunction
 
 // fields
 fieldList
-   : fieldExpression (COMMA fieldExpression)*
+   : fieldExpression ((COMMA)? fieldExpression)*
    ;
 
 sortField
@@ -640,6 +828,11 @@ wcFieldExpression
    ;
 
 selectFieldExpression
+   : wcQualifiedName
+   | STAR
+   ;
+
+renameFieldExpression
    : wcQualifiedName
    | STAR
    ;
@@ -808,6 +1001,8 @@ mathematicalFunctionName
    | SIGNUM
    | SUM
    | AVG
+   | MAX
+   | MIN
    | trigonometricFunctionName
    ;
 
@@ -818,6 +1013,7 @@ geoipFunctionName
 collectionFunctionName
     : ARRAY
     | ARRAY_LENGTH
+    | MVJOIN
     | FORALL
     | EXISTS
     | FILTER
@@ -926,6 +1122,7 @@ dateTimeFunctionName
    | WEEK_OF_YEAR
    | YEAR
    | YEARWEEK
+   | STRFTIME
    ;
 
 getFormatFunctionCall
@@ -1144,40 +1341,6 @@ intervalUnit
    | YEAR_MONTH
    ;
 
-timespanUnit
-   : MS
-   | S
-   | M
-   | H
-   | D
-   | W
-   | Q
-   | Y
-   | MILLISECOND
-   | SECOND
-   | MINUTE
-   | HOUR
-   | DAY
-   | WEEK
-   | MONTH
-   | QUARTER
-   | YEAR
-   | SEC
-   | SECS  
-   | SECONDS
-   | MINS
-   | MINUTES
-   | HR
-   | HRS
-   | HOURS
-   | DAYS
-   | MON
-   | MONTHS
-   | US
-   | CS
-   | DS
-   ;
-
 valueList
    : LT_PRTHS literalValue (COMMA literalValue)* RT_PRTHS
    ;
@@ -1218,9 +1381,14 @@ wildcard
    ;
 
 keywordsCanBeId
+   : searchableKeyWord
+   | IN
+   ;
+
+searchableKeyWord
    : D // OD SQL and ODBC special
-   | timespanUnit
    | SPAN
+   | SPANLENGTH
    | evalFunctionName
    | jsonFunctionName
    | relevanceArgName
@@ -1230,17 +1398,19 @@ keywordsCanBeId
    | multiFieldRelevanceFunctionName
    | commandName
    | collectionFunctionName
-   | comparisonOperator
+   | REGEX
    | explainMode
+   | REGEXP
    // commands assist keywords
    | CASE
    | ELSE
-   | IN
    | ARROW
    | BETWEEN
    | EXISTS
    | SOURCE
    | INDEX
+   | A
+   | ASC
    | DESC
    | DATASOURCES
    | FROM
@@ -1251,10 +1421,12 @@ keywordsCanBeId
    | FREQUENCY_THRESHOLD_PERCENTAGE
    | MAX_SAMPLE_COUNT
    | BUFFER_LIMIT
+   | SHOW_NUMBERED_TOKEN
    | WITH
    | REGEX
    | PUNCT
    | USING
+   | VALUE
    | CAST
    | GET_FORMAT
    | EXTRACT
@@ -1274,6 +1446,7 @@ keywordsCanBeId
    | PARTITIONS
    | ALLNUM
    | DELIM
+   | BUCKET_NULLABLE
    | CENTROIDS
    | ITERATIONS
    | DISTANCE_TYPE

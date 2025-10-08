@@ -1,8 +1,6 @@
 /*
- *
- *  * Copyright OpenSearch Contributors
- *  * SPDX-License-Identifier: Apache-2.0
- *
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 package org.opensearch.sql.ppl;
@@ -209,7 +207,7 @@ public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
                 + " span(@timestamp, 15s), handler, job");
     verifySchema(
         response,
-        schema("count()", "int"),
+        schema("count()", "bigint"),
         schema("span(@timestamp,15s)", "timestamp"),
         schema("handler", "string"),
         schema("job", "string"));

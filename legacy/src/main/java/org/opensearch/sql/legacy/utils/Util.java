@@ -41,6 +41,15 @@ public class Util {
 
   public static final String NESTED_JOIN_TYPE = "NestedJoinType";
 
+  public static final String JOIN_AGGREGATION_ERROR_PREFIX =
+      "JOIN queries do not support aggregations on the joined result.";
+
+  public static final String DOC_REDIRECT_MESSAGE = " For more information, see ";
+
+  public static final String OPENSEARCH_DOC_BASE_URL = "https://docs.opensearch.org/";
+
+  public static final String LIMITATION_DOC_PATH = "/search-plugins/sql/limitation/";
+
   public static String joiner(List<KVValue> lists, String oper) {
 
     if (lists.size() == 0) {
@@ -279,5 +288,34 @@ public class Util {
       throw new ParserException("Illegal SQL expression : " + sql);
     }
     return expr;
+  }
+
+  /**
+   * Gets the OpenSearch major.minor version for documentation links. Converts "x.y.z" format to
+   * "x.y".
+   *
+   * @param clazz The class to get package implementation version from
+   * @return The major.minor version string, or "latest" if version cannot be determined
+   */
+  public static String getDocumentationVersion(Class<?> clazz) {
+    String version = clazz.getPackage().getImplementationVersion();
+    if (version == null) {
+      return "latest";
+    }
+    String[] parts = version.split("\\.");
+    if (parts.length >= 2) {
+      return parts[0] + "." + parts[1];
+    }
+    return "latest";
+  }
+
+  /**
+   * Builds a complete OpenSearch documentation URL for JOIN aggregation limitation.
+   *
+   * @param clazz The class to get package implementation version from
+   * @return Complete documentation URL with version
+   */
+  public static String getJoinAggregationDocumentationUrl(Class<?> clazz) {
+    return OPENSEARCH_DOC_BASE_URL + getDocumentationVersion(clazz) + LIMITATION_DOC_PATH;
   }
 }

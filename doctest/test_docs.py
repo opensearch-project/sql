@@ -11,6 +11,7 @@ import re
 import subprocess
 import sys
 import unittest
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 
 import click
@@ -39,10 +40,18 @@ TEST_DATA = {
     'occupation': 'occupation.json',
     'worker': 'worker.json',
     'work_information': 'work_information.json',
-    'events': 'events.json'
+    'events': 'events.json',
+    'otellogs': 'otellogs.json',
+    'time_data': 'time_test_data.json',
+    'time_data2': 'time_test_data2.json',
+    'time_test': 'time_test.json'
 }
 
 DEBUG_MODE = os.environ.get('DOCTEST_DEBUG', 'false').lower() == 'true'
+IGNORE_PROMETHEUS_DOCS = os.environ.get('IGNORE_PROMETHEUS_DOCS', 'false').lower() == 'true'
+PROMETHEUS_DOC_FILES = {
+    'user/ppl/cmd/showdatasources.rst'
+}
 
 
 def debug(message):
@@ -97,6 +106,13 @@ class CategoryManager:
         try:
             with open(file_path) as json_file:
                 categories = json.load(json_file)
+            if IGNORE_PROMETHEUS_DOCS:
+                categories = {
+                    category: [
+                        doc for doc in docs if doc not in PROMETHEUS_DOC_FILES
+                    ]
+                    for category, docs in categories.items()
+                }
             debug(f"Loaded {len(categories)} categories from {file_path}")
             return categories
         except Exception as e:
@@ -205,6 +221,7 @@ class TestDataManager:
     
     def __init__(self):
         self.client = OpenSearch([ENDPOINT], verify_certs=True)
+        self.is_loaded = False
     
     def load_file(self, filename, index_name):
         mapping_file_path = './test_mapping/' + filename
@@ -218,18 +235,33 @@ class TestDataManager:
                 for line in f:
                     yield json.loads(line)
 
-        helpers.bulk(self.client, load_json(), stats_only=True, index=index_name, refresh='wait_for')
+        helpers.bulk(self.client, load_json(), stats_only=True, index=index_name, refresh="wait_for")
 
     def load_all_test_data(self):
-        for index_name, filename in TEST_DATA.items():
+        if self.is_loaded:
+            return
+
+        def load_index(index_name, filename):
             if filename is not None:
                 self.load_file(filename, index_name)
             else:
                 debug(f"Skipping index '{index_name}' - filename is None")
 
-    def cleanup_indices(self):
-        indices_to_delete = list(TEST_DATA.keys())
-        self.client.indices.delete(index=indices_to_delete, ignore_unavailable=True)
+        with ThreadPoolExecutor() as executor:
+            futures = {
+                executor.submit(load_index, index_name, filename): index_name
+                for index_name, filename in TEST_DATA.items()
+            }
+
+            for future in as_completed(futures):
+                index_name = futures[future]
+                try:
+                    future.result()
+                except Exception as e:
+                    debug(f"Error loading index '{index_name}': {str(e)}")
+                    raise
+
+        self.is_loaded = True
 
 
 def sql_cli_transform(s):
@@ -282,7 +314,7 @@ def set_up_test_indices_without_calcite(test):
 
 
 def tear_down(test):
-    get_test_data_manager().cleanup_indices()
+    pass
 
 
 docsuite = partial(doctest.DocFileSuite,
