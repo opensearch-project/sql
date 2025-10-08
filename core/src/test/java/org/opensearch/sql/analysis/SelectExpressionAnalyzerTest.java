@@ -8,6 +8,7 @@ package org.opensearch.sql.analysis;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 
@@ -83,5 +84,24 @@ public class SelectExpressionAnalyzerTest extends AnalyzerTestBase {
   protected void assertAnalyzeEqual(
       NamedExpression expected, UnresolvedExpression unresolvedExpression) {
     assertEquals(Arrays.asList(expected), analyze(unresolvedExpression));
+  }
+
+  @Test
+  public void testContextWrapperIsolation() {
+    // Test that context wrapper properly isolates optimizer instances
+    ExpressionReferenceOptimizer optimizer1 = mock(ExpressionReferenceOptimizer.class);
+    ExpressionReferenceOptimizer optimizer2 = mock(ExpressionReferenceOptimizer.class);
+    
+    AnalysisContext baseContext = new AnalysisContext();
+    SelectExpressionAnalyzer.AnalysisContextWithOptimizer wrapper1 = 
+        new SelectExpressionAnalyzer.AnalysisContextWithOptimizer(baseContext, optimizer1);
+    SelectExpressionAnalyzer.AnalysisContextWithOptimizer wrapper2 = 
+        new SelectExpressionAnalyzer.AnalysisContextWithOptimizer(baseContext, optimizer2);
+    
+    // Verify isolation - each wrapper has its own optimizer
+    assertEquals(baseContext, wrapper1.analysisContext);
+    assertEquals(baseContext, wrapper2.analysisContext);
+    assertEquals(optimizer1, wrapper1.optimizer);
+    assertEquals(optimizer2, wrapper2.optimizer);
   }
 }

@@ -85,7 +85,7 @@ public class ExpressionReferenceOptimizer
 
   @Override
   public Expression visitAggregator(Aggregator<?> node, AnalysisContext context) {
-    return expressionMap.get(node);
+    return expressionMap.getOrDefault(node, node);
   }
 
   @Override
