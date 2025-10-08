@@ -683,7 +683,7 @@ public class PPLFuncImpTable {
       registerOperator(LOWER, SqlStdOperatorTable.LOWER);
       registerOperator(POSITION, SqlStdOperatorTable.POSITION);
       registerOperator(LOCATE, SqlStdOperatorTable.POSITION);
-      registerOperator(REPLACE, PPLBuiltinOperators.REPLACE);
+      registerOperator(REPLACE, SqlLibraryOperators.REGEXP_REPLACE_3);
       registerOperator(UPPER, SqlStdOperatorTable.UPPER);
       registerOperator(ABS, SqlStdOperatorTable.ABS);
       registerOperator(ACOS, SqlStdOperatorTable.ACOS);

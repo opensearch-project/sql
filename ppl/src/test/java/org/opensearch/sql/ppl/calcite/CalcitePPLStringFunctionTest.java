@@ -270,12 +270,12 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | eval new_name = replace(ENAME, 'A', 'X') | fields ENAME, new_name";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(ENAME=[$1], new_name=[REPLACE($1, 'A', 'X')])\n"
+        "LogicalProject(ENAME=[$1], new_name=[REGEXP_REPLACE($1, 'A', 'X')])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, REPLACE(`ENAME`, 'A', 'X') `new_name`\n" + "FROM `scott`.`EMP`";
+        "SELECT `ENAME`, REGEXP_REPLACE(`ENAME`, 'A', 'X') `new_name`\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -285,12 +285,12 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | eval no_digits = replace(JOB, '\\\\d+', '') | fields JOB, no_digits";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(JOB=[$2], no_digits=[REPLACE($2, '\\d+':VARCHAR, '':VARCHAR)])\n"
+        "LogicalProject(JOB=[$2], no_digits=[REGEXP_REPLACE($2, '\\d+':VARCHAR, '':VARCHAR)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `JOB`, REPLACE(`JOB`, '\\d+', '') `no_digits`\n" + "FROM `scott`.`EMP`";
+        "SELECT `JOB`, REGEXP_REPLACE(`JOB`, '\\d+', '') `no_digits`\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -302,12 +302,14 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
             + " swapped";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(ENAME=[$1], swapped=[REPLACE($1, '^(.)(.)':VARCHAR, '\\2\\1':VARCHAR)])\n"
+        "LogicalProject(ENAME=[$1], swapped=[REGEXP_REPLACE($1, '^(.)(.)':VARCHAR,"
+            + " '\\2\\1':VARCHAR)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, REPLACE(`ENAME`, '^(.)(.)', '\\2\\1') `swapped`\n" + "FROM `scott`.`EMP`";
+        "SELECT `ENAME`, REGEXP_REPLACE(`ENAME`, '^(.)(.)', '\\2\\1') `swapped`\n"
+            + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

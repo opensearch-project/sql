@@ -237,7 +237,7 @@ Regex Pattern Examples::
 
 Capture Group and Backreference Examples::
 
-    os> source=people | eval `Swap date` = REPLACE('1/14/2023', '^(\\d{1,2})/(\\d{1,2})/', '\\2/\\1/'), `Reverse words` = REPLACE('Hello World', '(\\w+) (\\w+)', '\\2 \\1'), `Extract domain` = REPLACE('user@example.com', '.*@(.+)', '\\1') | fields `Swap date`, `Reverse words`, `Extract domain`
+    os> source=people | eval `Swap date` = REPLACE('1/14/2023', '^(\\d{1,2})/(\\d{1,2})/', '$2/$1/'), `Reverse words` = REPLACE('Hello World', '(\\w+) (\\w+)', '$2 $1'), `Extract domain` = REPLACE('user@example.com', '.*@(.+)', '$1') | fields `Swap date`, `Reverse words`, `Extract domain`
     fetched rows / total rows = 1/1
     +-----------+---------------+----------------+
     | Swap date | Reverse words | Extract domain |
@@ -255,11 +255,10 @@ Advanced Regex Examples::
     | 5551234567  | hll wrld      | pre_test   |
     +-------------+---------------+------------+
 
-**Note**: When using regex patterns in PPL queries, backslashes must be escaped (use ``\\`` instead of ``\``). For example:
+**Note**: When using regex patterns in PPL queries:
 
-* ``\\d`` for digit pattern (not ``\d``)
-* ``\\1`` for first capture group reference (not ``\1``)
-* ``\\w+`` for one or more word characters (not ``\w+``)
+* Backslashes must be escaped (use ``\\`` instead of ``\``) - e.g., ``\\d`` for digit pattern, ``\\w+`` for word characters
+* Backreferences use Java regex syntax: ``$1``, ``$2``, etc. (not PCRE-style ``\1``, ``\2``)
 
 
 REVERSE
