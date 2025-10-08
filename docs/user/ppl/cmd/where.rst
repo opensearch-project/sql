@@ -10,12 +10,12 @@ where
 
 
 Description
-============
+===========
 | The ``where`` command bool-expression to filter the search result. The ``where`` command only return the result when bool-expression evaluated to true.
 
 
 Syntax
-============
+======
 where <boolean-expression>
 
 * bool-expression: optional. any expression which could be evaluated to boolean value.
@@ -23,7 +23,8 @@ where <boolean-expression>
 Examples
 ========
 
-**Example 1: Filter result set with condition**
+Example 1: Filter result set with condition
+--------------------------------------------
 
 The example show fetch all the document from accounts index with .
 
@@ -38,7 +39,8 @@ PPL query::
     | 13             | F      |
     +----------------+--------+
 
-**Example 2: Basic Field Comparison**
+Example 2: Basic Field Comparison
+----------------------------------
 
 The example shows how to filter accounts with balance greater than 30000.
 
@@ -53,7 +55,8 @@ PPL query::
     | 13             | 32838   |
     +----------------+---------+
 
-**Example 3: Pattern Matching with LIKE**
+Example 3: Pattern Matching with LIKE
+--------------------------------------
 
 Pattern Matching with Underscore (_)
 
@@ -83,7 +86,8 @@ PPL query::
     | 13             | VA    |
     +----------------+-------+
 
-**Example 4: Multiple Conditions**
+Example 4: Multiple Conditions
+-------------------------------
 
 The example shows how to combine multiple conditions using AND operator.
 
@@ -99,7 +103,8 @@ PPL query::
     | 18             | 33  | M      |
     +----------------+-----+--------+
 
-**Example 5: Using IN Operator**
+Example 5: Using IN Operator
+-----------------------------
 
 The example demonstrates using IN operator to match multiple values.
 
@@ -114,7 +119,8 @@ PPL query::
     | 13             | VA    |
     +----------------+-------+
 
-**Example 6: NULL Checks**
+Example 6: NULL Checks
+----------------------
 
 The example shows how to filter records with NULL values.
 
@@ -128,7 +134,8 @@ PPL query::
    | 18             | null     |
    +----------------+----------+
 
-**Example 7: Complex Conditions**
+Example 7: Complex Conditions
+------------------------------
 
 The example demonstrates combining multiple conditions with parentheses and logical operators.
 
@@ -142,8 +149,8 @@ PPL query::
     | 6              | 5686    | 36  | M      |
     +----------------+---------+-----+--------+
 
-
-**Example 8: NOT Conditions**
+Example 8: NOT Conditions
+--------------------------
 
 The example shows how to use NOT operator to exclude matching records.
 
