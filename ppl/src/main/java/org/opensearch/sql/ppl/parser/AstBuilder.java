@@ -388,17 +388,9 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     UnresolvedExpression pattern = internalVisitExpression(ctx.pattern);
     UnresolvedExpression replacement = internalVisitExpression(ctx.replacement);
 
-    List<Field> fieldList =
-        ctx.fieldList().fieldExpression().stream()
-            .map(field -> (Field) internalVisitExpression(field))
-            .collect(Collectors.toList());
+    Set<Field> fieldList = getUniqueFieldSet(ctx.fieldList());
 
     return new Replace(pattern, replacement, fieldList);
-  }
-
-  private String removeQuotes(String text) {
-    // Remove both single and double quotes
-    return text.replaceAll("^[\"']|[\"']$", "");
   }
 
   /** Stats command. */
@@ -687,6 +679,30 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return ctx.fieldExpression().stream()
         .map(field -> (Field) internalVisitExpression(field))
         .collect(Collectors.toList());
+  }
+
+  private Set<Field> getUniqueFieldSet(FieldListContext ctx) {
+    List<Field> fields =
+        ctx.fieldExpression().stream()
+            .map(field -> (Field) internalVisitExpression(field))
+            .toList();
+
+    Set<Field> uniqueFields = new java.util.LinkedHashSet<>(fields);
+
+    if (uniqueFields.size() < fields.size()) {
+      // Find duplicates for error message
+      Set<String> seen = new HashSet<>();
+      Set<String> duplicates =
+          fields.stream()
+              .map(f -> f.getField().toString())
+              .filter(name -> !seen.add(name))
+              .collect(Collectors.toSet());
+
+      throw new IllegalArgumentException(
+          String.format("Duplicate fields [%s] in Replace command", String.join(", ", duplicates)));
+    }
+
+    return uniqueFields;
   }
 
   /** Rare command. */

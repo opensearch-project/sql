@@ -12,6 +12,7 @@ import org.junit.Test;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.Replace;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 
 public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
 
@@ -145,43 +146,43 @@ public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
-  @Test(expected = Exception.class)
+  @Test(expected = SyntaxCheckException.class)
   public void testReplaceWithoutWithKeywordShouldFail() {
     String ppl = "source=EMP | replace \"CLERK\" \"EMPLOYEE\" IN JOB";
     getRelNode(ppl);
   }
 
-  @Test(expected = Exception.class)
+  @Test(expected = SyntaxCheckException.class)
   public void testReplaceWithoutInKeywordShouldFail() {
     String ppl = "source=EMP | replace \"CLERK\" WITH \"EMPLOYEE\" JOB";
     getRelNode(ppl);
   }
 
-  @Test(expected = RuntimeException.class)
+  @Test(expected = SyntaxCheckException.class)
   public void testReplaceWithExpressionShouldFail() {
     String ppl = "source=EMP | replace EMPNO + 1 WITH \"EMPLOYEE\" IN JOB";
     getRelNode(ppl);
   }
 
-  @Test(expected = Exception.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testReplaceWithInvalidFieldShouldFail() {
     String ppl = "source=EMP | replace \"CLERK\" WITH \"EMPLOYEE\" IN INVALID_FIELD";
     getRelNode(ppl);
   }
 
-  @Test(expected = Exception.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testReplaceWithMultipleInKeywordsShouldFail() {
     String ppl = "source=EMP | replace \"CLERK\" WITH \"EMPLOYEE\" IN JOB IN ENAME";
     getRelNode(ppl);
   }
 
-  @Test(expected = Exception.class)
+  @Test(expected = SyntaxCheckException.class)
   public void testReplaceWithMissingQuotesShouldFail() {
     String ppl = "source=EMP | replace CLERK WITH EMPLOYEE IN JOB";
     getRelNode(ppl);
   }
 
-  @Test(expected = Exception.class)
+  @Test(expected = SyntaxCheckException.class)
   public void testReplaceWithMissingReplacementValueShouldFail() {
     String ppl = "source=EMP | replace \"CLERK\" WITH IN JOB";
     getRelNode(ppl);
@@ -190,14 +191,14 @@ public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
   @Test(expected = IllegalArgumentException.class)
   public void testReplaceWithNullPatternShouldFail() {
     Replace replace =
-        new Replace(null, new Literal("EMPLOYEE", DataType.STRING), Collections.emptyList());
+        new Replace(null, new Literal("EMPLOYEE", DataType.STRING), Collections.emptySet());
     replace.validate();
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testReplaceWithNullReplacementShouldFail() {
     Replace replace =
-        new Replace(new Literal("CLERK", DataType.STRING), null, Collections.emptyList());
+        new Replace(new Literal("CLERK", DataType.STRING), null, Collections.emptySet());
     replace.validate();
   }
 
@@ -207,7 +208,7 @@ public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
         new Replace(
             new Literal(123, DataType.INTEGER),
             new Literal("EMPLOYEE", DataType.STRING),
-            Collections.emptyList());
+            Collections.emptySet());
     replace.validate();
   }
 
@@ -217,7 +218,7 @@ public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
         new Replace(
             new Literal("CLERK", DataType.STRING),
             new Literal(456, DataType.INTEGER),
-            Collections.emptyList());
+            Collections.emptySet());
     replace.validate();
   }
 
@@ -235,7 +236,7 @@ public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
         new Replace(
             new Literal("CLERK", DataType.STRING),
             new Literal("EMPLOYEE", DataType.STRING),
-            Collections.emptyList());
+            Collections.emptySet());
     replace.validate();
   }
 
