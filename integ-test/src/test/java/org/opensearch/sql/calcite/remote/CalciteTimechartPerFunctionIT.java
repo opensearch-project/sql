@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.calcite.remote;
 
-import static org.opensearch.sql.legacy.TestUtils.createIndexByRestClient;
-import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -15,7 +13,6 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
-import org.opensearch.client.Request;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalciteTimechartPerFunctionIT extends PPLIntegTestCase {
@@ -26,44 +23,7 @@ public class CalciteTimechartPerFunctionIT extends PPLIntegTestCase {
     enableCalcite();
     disallowCalciteFallback();
 
-    // Create dedicated per_function test data directly in init()
-    createPerFunctionTestIndex();
-  }
-
-  private void createPerFunctionTestIndex() throws IOException {
-    String mapping =
-        "{\"mappings\":{\"properties\":{\"@timestamp\":{\"type\":\"date\"},\"packets\":{\"type\":\"integer\"},\"host\":{\"type\":\"keyword\"}}}}";
-
-    if (!isIndexExist(client(), "timechart_per_function_test")) {
-      createIndexByRestClient(client(), "timechart_per_function_test", mapping);
-
-      // Insert test data directly with clean numbers that avoid decimal issues
-      insertTestData();
-    }
-  }
-
-  private void insertTestData() throws IOException {
-    // Create data with clean numbers that result in whole numbers or simple decimals
-    // Using multiples of 60 to get clean per_second calculations with 1m spans
-    String[] testData = {
-      "{\"@timestamp\":\"2025-09-08T10:00:00\",\"packets\":60,\"host\":\"server1\"}", // 60/60 = 1.0
-      "{\"@timestamp\":\"2025-09-08T10:01:00\",\"packets\":120,\"host\":\"server1\"}", // 120/60 =
-      // 2.0
-      "{\"@timestamp\":\"2025-09-08T10:02:00\",\"packets\":180,\"host\":\"server1\"}", // 180/60 =
-      // 3.0
-      "{\"@timestamp\":\"2025-09-08T10:02:30\",\"packets\":30,\"host\":\"server2\"}" // For the by
-      // host tests
-    };
-
-    for (String data : testData) {
-      Request request = new Request("POST", "/timechart_per_function_test/_doc");
-      request.setJsonEntity(data);
-      client().performRequest(request);
-    }
-
-    // Refresh index to make data searchable
-    Request refresh = new Request("POST", "/timechart_per_function_test/_refresh");
-    client().performRequest(refresh);
+    loadIndex(Index.TIMECHART_PER_FUNCTION);
   }
 
   @Test

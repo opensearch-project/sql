@@ -1,0 +1,8 @@
+{"index":{"_id":"1"}}
+{"@timestamp":"2025-09-08T10:00:00","packets":60,"host":"server1"}
+{"index":{"_id":"2"}}
+{"@timestamp":"2025-09-08T10:01:00","packets":120,"host":"server1"}
+{"index":{"_id":"3"}}
+{"@timestamp":"2025-09-08T10:02:00","packets":180,"host":"server1"}
+{"index":{"_id":"4"}}
+{"@timestamp":"2025-09-08T10:02:30","packets":30,"host":"server2"}

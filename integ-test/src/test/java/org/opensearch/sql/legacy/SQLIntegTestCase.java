@@ -906,7 +906,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "events_null",
         "events_null",
         "{\"mappings\":{\"properties\":{\"@timestamp\":{\"type\":\"date\"},\"host\":{\"type\":\"text\"},\"cpu_usage\":{\"type\":\"double\"},\"region\":{\"type\":\"keyword\"}}}}",
-        "src/test/resources/events_null.json");
+        "src/test/resources/events_null.json"),
+    TIMECHART_PER_FUNCTION(
+        "timechart_per_function_test",
+        "_doc",
+        getMappingFile("timechart_per_function_index_mapping.json"),
+        "src/test/resources/timechart_per_function.json");
 
     private final String name;
     private final String type;

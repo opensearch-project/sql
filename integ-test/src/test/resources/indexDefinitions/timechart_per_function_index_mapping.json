@@ -1,0 +1,15 @@
+{
+  "mappings": {
+    "properties": {
+      "@timestamp": {
+        "type": "date"
+      },
+      "packets": {
+        "type": "integer"
+      },
+      "host": {
+        "type": "keyword"
+      }
+    }
+  }
+}
