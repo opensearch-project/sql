@@ -9,7 +9,6 @@ import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.doubleLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.eval;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
-import static org.opensearch.sql.ast.dsl.AstDSL.let;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 
 import com.google.common.collect.ImmutableList;
@@ -22,6 +21,7 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
@@ -84,20 +84,21 @@ public class Timechart extends UnresolvedPlan {
 
     String fieldName = extractFieldName(aggFunc.getField());
     String originalName = "per_second(" + fieldName + ")";
-
     Span span = (Span) this.binExpression;
-    UnresolvedExpression spanUnit = stringLiteral(getSpanUnitForTimestampAdd(span));
-    UnresolvedExpression spanValue = span.getValue();
-    UnresolvedExpression binStartTime = AstDSL.field("@timestamp");
-    UnresolvedExpression binEndTime = function("timestampadd", spanUnit, spanValue, binStartTime);
-    UnresolvedExpression intervalSeconds =
-        function("timestampdiff", stringLiteral("SECOND"), binStartTime, binEndTime);
-    UnresolvedExpression perUnitSeconds = doubleLiteral(1.0);
-    UnresolvedExpression runtimeDivisor =
-        function("/", function("*", AstDSL.field(originalName), perUnitSeconds), intervalSeconds);
     return eval(
-        timechart(AstDSL.alias(originalName, aggregate("sum", aggFunc.getField()))),
-        let(AstDSL.field(originalName), runtimeDivisor));
+        timechart(AstDSL.alias(originalName, sum(aggFunc.getField()))),
+        let(
+            originalName,
+            divide(
+                multiply(originalName, perUnitSeconds()),
+                timestampdiff(
+                    "SECOND",
+                    "@timestamp", // bin start time
+                    timestampadd(
+                        getSpanUnitForTimestampAdd(span),
+                        span.getValue(),
+                        "@timestamp") // bin end time
+                    ))));
   }
 
   private String extractFieldName(UnresolvedExpression field) {
@@ -106,6 +107,10 @@ public class Timechart extends UnresolvedPlan {
 
   private Timechart timechart(UnresolvedExpression newAggregateFunction) {
     return this.toBuilder().aggregateFunction(newAggregateFunction).build();
+  }
+
+  private UnresolvedExpression perUnitSeconds() {
+    return doubleLiteral(1.0);
   }
 
   /** Converts SpanUnit to the format expected by timestampadd function. */
@@ -150,5 +155,33 @@ public class Timechart extends UnresolvedPlan {
       default:
         return "MINUTE"; // default fallback
     }
+  }
+
+  // Private DSL methods for clean transformation code
+
+  private UnresolvedExpression sum(UnresolvedExpression field) {
+    return aggregate("sum", field);
+  }
+
+  private UnresolvedExpression multiply(String fieldName, UnresolvedExpression value) {
+    return function("*", AstDSL.field(fieldName), value);
+  }
+
+  private UnresolvedExpression divide(UnresolvedExpression left, UnresolvedExpression right) {
+    return function("/", left, right);
+  }
+
+  private UnresolvedExpression timestampadd(
+      String unit, UnresolvedExpression value, String timestampField) {
+    return function("timestampadd", stringLiteral(unit), value, AstDSL.field(timestampField));
+  }
+
+  private UnresolvedExpression timestampdiff(
+      String unit, String startField, UnresolvedExpression end) {
+    return function("timestampdiff", stringLiteral(unit), AstDSL.field(startField), end);
+  }
+
+  private Let let(String fieldName, UnresolvedExpression expression) {
+    return AstDSL.let(AstDSL.field(fieldName), expression);
   }
 }
