@@ -88,7 +88,7 @@ public class CalciteMVAppendFunctionIT extends PPLIntegTestCase {
                 "eval result = mvappend(1, 'text', 2.5) | head 1 | fields result"));
 
     verifySchema(actual, schema("result", "array"));
-    verifyDataRows(actual, rows(List.of("1", "text", "2.5")));
+    verifyDataRows(actual, rows(List.of(1, "text", 2.5)));
   }
 
   @Test
@@ -132,7 +132,7 @@ public class CalciteMVAppendFunctionIT extends PPLIntegTestCase {
                 "eval result = mvappend(age, 'years', 'old') | head 1 | fields age, result"));
 
     verifySchema(actual, schema("age", "int"), schema("result", "array"));
-    verifyDataRows(actual, rows(32, List.of("32", "years", "old")));
+    verifyDataRows(actual, rows(32, List.of(32, "years", "old")));
   }
 
   @Test
@@ -205,5 +205,30 @@ public class CalciteMVAppendFunctionIT extends PPLIntegTestCase {
 
     verifySchema(actual, schema("age", "int"), schema("result", "array"));
     verifyDataRows(actual, rows(32, List.of(32, 64, 42)));
+  }
+
+  @Test
+  public void testMvappendWithNull() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            source(
+                TEST_INDEX_BANK,
+                "eval result = mvappend(nullif(1, 1), 2) | head 1 | fields result"));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of(2)));
+  }
+
+  @Test
+  public void testMvappendWithArrayContainingNull() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            source(
+                TEST_INDEX_BANK,
+                "eval result = mvappend(array(nullif(1, 1), 2), nullif(1, 1), 'test') | head 1 |"
+                    + " fields result"));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of(2, "test")));
   }
 }

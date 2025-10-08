@@ -31,7 +31,7 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
 public class MVAppendFunctionImpl extends ImplementorUDF {
 
   public MVAppendFunctionImpl() {
-    super(new MVAppendImplementor(), NullPolicy.ANY);
+    super(new MVAppendImplementor(), NullPolicy.ALL);
   }
 
   @Override
@@ -57,28 +57,14 @@ public class MVAppendFunctionImpl extends ImplementorUDF {
   private static RelDataType determineElementType(
       SqlOperatorBinding sqlOperatorBinding, RelDataTypeFactory typeFactory) {
     RelDataType mostGeneralType = null;
-    boolean hasStringType = false;
-    boolean hasNumericType = false;
 
     for (int i = 0; i < sqlOperatorBinding.getOperandCount(); i++) {
       RelDataType operandType = getComponentType(sqlOperatorBinding.getOperandType(i));
 
-      if (isStringType(operandType)) {
-        hasStringType = true;
-      } else if (isNumericType(operandType)) {
-        hasNumericType = true;
-      }
-
       mostGeneralType = updateMostGeneralType(mostGeneralType, operandType, typeFactory);
     }
 
-    if (hasStringType && hasNumericType) {
-      return typeFactory.createSqlType(SqlTypeName.VARCHAR);
-    }
-
-    return mostGeneralType != null
-        ? mostGeneralType
-        : typeFactory.createSqlType(SqlTypeName.VARCHAR);
+    return mostGeneralType != null ? mostGeneralType : typeFactory.createSqlType(SqlTypeName.NULL);
   }
 
   private static RelDataType getComponentType(RelDataType operandType) {
@@ -88,23 +74,17 @@ public class MVAppendFunctionImpl extends ImplementorUDF {
     return operandType;
   }
 
-  private static boolean isStringType(RelDataType type) {
-    SqlTypeName typeName = type.getSqlTypeName();
-    return typeName == SqlTypeName.VARCHAR || typeName == SqlTypeName.CHAR;
-  }
-
-  private static boolean isNumericType(RelDataType type) {
-    return SqlTypeName.NUMERIC_TYPES.contains(type.getSqlTypeName());
-  }
-
   private static RelDataType updateMostGeneralType(
       RelDataType current, RelDataType candidate, RelDataTypeFactory typeFactory) {
     if (current == null) {
       return candidate;
     }
 
-    RelDataType leastRestrictive = typeFactory.leastRestrictive(List.of(current, candidate));
-    return leastRestrictive != null ? leastRestrictive : current;
+    if (!current.equals(candidate)) {
+      return typeFactory.createSqlType(SqlTypeName.ANY);
+    } else {
+      return current;
+    }
   }
 
   public static class MVAppendImplementor implements NotNullImplementor {
