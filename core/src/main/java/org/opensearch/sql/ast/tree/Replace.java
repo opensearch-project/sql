@@ -14,6 +14,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import org.jetbrains.annotations.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Field;
@@ -28,7 +29,7 @@ public class Replace extends UnresolvedPlan {
   private final UnresolvedExpression pattern;
   private final UnresolvedExpression replacement;
   private final List<Field> fieldList;
-  private UnresolvedPlan child;
+  @Nullable private UnresolvedPlan child;
 
   public Replace(
       UnresolvedExpression pattern, UnresolvedExpression replacement, List<Field> fieldList) {
