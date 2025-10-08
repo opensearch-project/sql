@@ -207,9 +207,15 @@ REPLACE
 Description
 >>>>>>>>>>>
 
-Usage: replace(str, substr, newstr) returns a string with all occurrences of substr replaced by newstr in str. If any argument is NULL, the function returns NULL.
+Usage: replace(str, pattern, replacement) returns a string with all occurrences of the pattern replaced by the replacement string in str. If any argument is NULL, the function returns NULL.
 
-Example::
+**Regular Expression Support**: The pattern argument supports Java regex syntax, including:
+
+Argument type: STRING, STRING (regex pattern), STRING (replacement)
+
+Return type: STRING
+
+Literal String Replacement Examples::
 
     os> source=people | eval `REPLACE('helloworld', 'world', 'universe')` = REPLACE('helloworld', 'world', 'universe'), `REPLACE('helloworld', 'invalid', 'universe')` = REPLACE('helloworld', 'invalid', 'universe') | fields `REPLACE('helloworld', 'world', 'universe')`, `REPLACE('helloworld', 'invalid', 'universe')`
     fetched rows / total rows = 1/1
@@ -218,6 +224,42 @@ Example::
     |--------------------------------------------+----------------------------------------------|
     | hellouniverse                              | helloworld                                   |
     +--------------------------------------------+----------------------------------------------+
+
+Regex Pattern Examples::
+
+    os> source=people | eval `Remove digits` = REPLACE('test123', '\\d+', ''), `Collapse spaces` = REPLACE('hello  world', ' +', ' '), `Remove special` = REPLACE('hello@world!', '[^a-zA-Z]', '') | fields `Remove digits`, `Collapse spaces`, `Remove special`
+    fetched rows / total rows = 1/1
+    +---------------+-----------------+----------------+
+    | Remove digits | Collapse spaces | Remove special |
+    |---------------+-----------------+----------------|
+    | test          | hello world     | helloworld     |
+    +---------------+-----------------+----------------+
+
+Capture Group and Backreference Examples::
+
+    os> source=people | eval `Swap date` = REPLACE('1/14/2023', '^(\\d{1,2})/(\\d{1,2})/', '\\2/\\1/'), `Reverse words` = REPLACE('Hello World', '(\\w+) (\\w+)', '\\2 \\1'), `Extract domain` = REPLACE('user@example.com', '.*@(.+)', '\\1') | fields `Swap date`, `Reverse words`, `Extract domain`
+    fetched rows / total rows = 1/1
+    +-----------+---------------+----------------+
+    | Swap date | Reverse words | Extract domain |
+    |-----------+---------------+----------------|
+    | 14/1/2023 | World Hello   | example.com    |
+    +-----------+---------------+----------------+
+
+Advanced Regex Examples::
+
+    os> source=people | eval `Clean phone` = REPLACE('(555) 123-4567', '[^0-9]', ''), `Remove vowels` = REPLACE('hello world', '[aeiou]', ''), `Add prefix` = REPLACE('test', '^', 'pre_') | fields `Clean phone`, `Remove vowels`, `Add prefix`
+    fetched rows / total rows = 1/1
+    +-------------+---------------+------------+
+    | Clean phone | Remove vowels | Add prefix |
+    |-------------+---------------+------------|
+    | 5551234567  | hll wrld      | pre_test   |
+    +-------------+---------------+------------+
+
+**Note**: When using regex patterns in PPL queries, backslashes must be escaped (use ``\\`` instead of ``\``). For example:
+
+* ``\\d`` for digit pattern (not ``\d``)
+* ``\\1`` for first capture group reference (not ``\1``)
+* ``\\w+`` for one or more word characters (not ``\w+``)
 
 
 REVERSE
