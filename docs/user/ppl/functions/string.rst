@@ -258,7 +258,7 @@ Advanced Regex Examples::
 **Note**: When using regex patterns in PPL queries:
 
 * Backslashes must be escaped (use ``\\`` instead of ``\``) - e.g., ``\\d`` for digit pattern, ``\\w+`` for word characters
-* Backreferences use Java regex syntax: ``$1``, ``$2``, etc. (not PCRE-style ``\1``, ``\2``)
+* Backreferences support both PCRE-style (``\1``, ``\2``, etc.) and Java-style (``$1``, ``$2``, etc.) syntax. PCRE-style backreferences are automatically converted to Java-style internally.
 
 
 REVERSE

@@ -296,19 +296,19 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testReplaceWithRegexCaptureGroups() {
-    // Test regex with capture groups - swap first two characters using \\1 and \\2 backreferences
+    // Test regex with capture groups - swap first two characters using \1 and \2 backreferences
     String ppl =
         "source=EMP | eval swapped = replace(ENAME, '^(.)(.)', '\\\\2\\\\1') | fields ENAME,"
             + " swapped";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(ENAME=[$1], swapped=[REGEXP_REPLACE($1, '^(.)(.)':VARCHAR,"
-            + " '\\2\\1':VARCHAR)])\n"
+            + " '$2$1')])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, REGEXP_REPLACE(`ENAME`, '^(.)(.)', '\\2\\1') `swapped`\n"
+        "SELECT `ENAME`, REGEXP_REPLACE(`ENAME`, '^(.)(.)', '$2$1') `swapped`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
