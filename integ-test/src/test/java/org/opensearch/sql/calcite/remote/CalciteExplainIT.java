@@ -1142,7 +1142,7 @@ public class CalciteExplainIT extends ExplainIT {
         expected,
         explainQueryToString(
             String.format(
-                "source=%s | replace 'IL' WITH 'Illinois' IN state | fields state, new_state",
+                "source=%s | replace 'IL' WITH 'Illinois' IN state | fields state",
                 TEST_INDEX_ACCOUNT)));
   }
 }
