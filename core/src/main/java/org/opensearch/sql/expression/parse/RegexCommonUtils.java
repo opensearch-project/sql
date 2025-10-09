@@ -96,20 +96,7 @@ public class RegexCommonUtils {
     if (groupName == null || groupName.isEmpty()) {
       return false;
     }
-
-    char firstChar = groupName.charAt(0);
-    if (!Character.isLetter(firstChar)) {
-      return false;
-    }
-
-    for (int i = 0; i < groupName.length(); i++) {
-      char c = groupName.charAt(i);
-      if (!Character.isLetterOrDigit(c)) {
-        return false;
-      }
-    }
-
-    return true;
+    return groupName.matches("^[A-Za-z][A-Za-z0-9]*$");
   }
 
   /**
