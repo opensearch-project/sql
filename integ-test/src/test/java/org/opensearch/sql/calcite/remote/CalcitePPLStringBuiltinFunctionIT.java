@@ -25,7 +25,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
 
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
-    loadIndex(Index.ACCOUNT); // For regex replacement tests
+    loadIndex(Index.ACCOUNT);
   }
 
   @Test
