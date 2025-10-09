@@ -1,0 +1,12 @@
+{
+  "mappings": {
+    "properties": {
+      "login_time": {
+        "type": "date"
+      },
+      "projects": {
+        "type": "nested"
+      }
+    }
+  }
+}

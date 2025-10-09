@@ -1283,7 +1283,7 @@ class AnalyzerTest extends AnalyzerTestBase {
                 emptyList()),
             DSL.named(
                 "count(string_value) filter(where integer_value > 1)",
-                DSL.ref("count(string_value) filter(where integer_value > 1)", INTEGER))),
+                DSL.ref("count(string_value) filter(where integer_value > 1)", LONG))),
         AstDSL.project(
             AstDSL.agg(
                 AstDSL.relation("schema"),
@@ -1876,6 +1876,7 @@ class AnalyzerTest extends AnalyzerTestBase {
                 PatternMode.LABEL,
                 AstDSL.intLiteral(10),
                 AstDSL.intLiteral(100000),
+                AstDSL.booleanLiteral(false),
                 ImmutableMap.of()),
             AstDSL.field("string_value"));
     LogicalPlan expectedPlan =
@@ -1903,6 +1904,7 @@ class AnalyzerTest extends AnalyzerTestBase {
                 PatternMode.LABEL,
                 AstDSL.intLiteral(10),
                 AstDSL.intLiteral(100000),
+                AstDSL.booleanLiteral(false),
                 ImmutableMap.of(
                     "variable_count_threshold",
                     AstDSL.intLiteral(10), // with integer argument

@@ -40,6 +40,12 @@ public class DBResult {
    */
   private static final Set<String> VARCHAR = ImmutableSet.of("CHARACTER VARYING", "VARCHAR");
 
+  /**
+   * Possible types for integer numbers.<br>
+   * Different databases may return INTEGER or BIGINT for count operations.
+   */
+  private static final Set<String> INTEGER_TYPES = ImmutableSet.of("INTEGER", "BIGINT");
+
   /** Database name for display */
   private final String databaseName;
 
@@ -80,6 +86,8 @@ public class DBResult {
       type = FLOAT_TYPES.toString();
     } else if (VARCHAR.contains(type)) {
       type = "VARCHAR";
+    } else if (INTEGER_TYPES.contains(type)) {
+      type = INTEGER_TYPES.toString();
     }
     schema.add(new Type(StringUtils.toUpper(name), type));
   }

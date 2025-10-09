@@ -75,6 +75,7 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
@@ -818,6 +819,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitAppend(Append node, AnalysisContext context) {
     throw getOnlyForCalciteException("Append");
+  }
+
+  @Override
+  public LogicalPlan visitMultisearch(Multisearch node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Multisearch");
   }
 
   private LogicalSort buildSort(
