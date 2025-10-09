@@ -6,7 +6,7 @@
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.1.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.2.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
         version_tokens = opensearch_version.tokenize('-')
@@ -58,7 +58,7 @@ buildscript {
         mockito_version = "5.7.0"
         commons_io_version = "2.14.0"
         commons_text_version = "1.10.0"
-        commons_lang3_version = "3.12.0"
+        commons_lang3_version = "3.18.0"
         // enforce 1.13, https://www.whitesourcesoftware.com/vulnerability-database/WS-2019-0379
         commons_codec_version = "1.13"
         commons_logging_version = "1.2"
@@ -66,8 +66,9 @@ buildscript {
 
     repositories {
         mavenLocal()
-        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
         mavenCentral()
+        maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
+        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/" }
     }
 
     dependencies {
@@ -76,9 +77,9 @@ buildscript {
 }
 
 plugins {
-    id "com.netflix.nebula.ospackage-base" version "11.5.0"
+    id "com.netflix.nebula.ospackage-base" version "12.0.0"
     id 'java-library'
-    id "io.freefair.lombok" version "8.4"
+    id "io.freefair.lombok" version "8.14"
     id 'jacoco'
     id 'com.diffplug.spotless' version '6.22.0'
 }
@@ -91,9 +92,10 @@ apply plugin: 'opensearch.java-agent'
 // Repository on root level is for dependencies that project code depends on. And this block must be placed after plugins{}
 repositories {
     mavenLocal()
-    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
     mavenCentral() // For Elastic Libs that you can use to get started coding until open OpenSearch libs are available
+    maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
     maven { url 'https://jitpack.io' }
+    maven { url "https://ci.opensearch.org/ci/dbc/snapshots/" }
 }
 
 spotless {
@@ -131,7 +133,7 @@ allprojects {
         resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.9.10"
         resolutionStrategy.force "net.minidev:json-smart:${versions.json_smart}"
         resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.9.10"
-        resolutionStrategy.force "net.bytebuddy:byte-buddy:1.14.19"
+        resolutionStrategy.force "net.bytebuddy:byte-buddy:1.15.11"
         resolutionStrategy.force "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
         resolutionStrategy.force "org.apache.httpcomponents.core5:httpcore5:${versions.httpcore5}"
         resolutionStrategy.force "org.apache.httpcomponents.core5:httpcore5-h2:${versions.httpcore5}"
@@ -145,7 +147,7 @@ allprojects {
         resolutionStrategy.force 'org.locationtech.jts:jts-core:1.19.0'
         resolutionStrategy.force 'com.google.errorprone:error_prone_annotations:2.28.0'
         resolutionStrategy.force 'org.checkerframework:checker-qual:3.43.0'
-        resolutionStrategy.force 'org.apache.commons:commons-lang3:3.13.0'
+        resolutionStrategy.force 'org.apache.commons:commons-lang3:3.18.0'
         resolutionStrategy.force 'org.apache.commons:commons-text:1.11.0'
         resolutionStrategy.force 'commons-io:commons-io:2.15.0'
         resolutionStrategy.force 'org.yaml:snakeyaml:2.2'
@@ -155,10 +157,10 @@ allprojects {
 subprojects {
     repositories {
         mavenLocal()
-        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
         mavenCentral()
-        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/lucene/" }
+        maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
         maven { url 'https://jitpack.io' }
+        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/" }
     }
 
     // Publish internal modules as Maven artifacts for external use, such as by opensearch-spark and opensearch-cli.

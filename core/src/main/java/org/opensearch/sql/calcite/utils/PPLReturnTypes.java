@@ -5,10 +5,13 @@
 
 package org.opensearch.sql.calcite.utils;
 
+import java.util.List;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.opensearch.sql.data.type.ExprCoreType;
 
 /**
@@ -24,6 +27,8 @@ public final class PPLReturnTypes {
       ReturnTypes.explicit(UserDefinedFunctionUtils.NULLABLE_TIME_UDT);
   public static final SqlReturnTypeInference TIMESTAMP_FORCE_NULLABLE =
       ReturnTypes.explicit(UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT);
+  public static final SqlReturnTypeInference IP_FORCE_NULLABLE =
+      ReturnTypes.explicit(UserDefinedFunctionUtils.NULLABLE_IP_UDT);
   public static SqlReturnTypeInference INTEGER_FORCE_NULLABLE =
       ReturnTypes.INTEGER.andThen(SqlTypeTransforms.FORCE_NULLABLE);
   public static SqlReturnTypeInference STRING_FORCE_NULLABLE =
@@ -36,5 +41,18 @@ public final class PPLReturnTypes {
           return UserDefinedFunctionUtils.NULLABLE_TIME_UDT;
         }
         return UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT;
+      };
+  public static SqlReturnTypeInference ARG0_ARRAY =
+      opBinding -> {
+        RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+
+        // Get argument types
+        List<RelDataType> argTypes = opBinding.collectOperandTypes();
+
+        if (argTypes.isEmpty()) {
+          throw new IllegalArgumentException("Function requires at least one argument.");
+        }
+        RelDataType firstArgType = argTypes.getFirst();
+        return SqlTypeUtil.createArrayType(typeFactory, firstArgType, true);
       };
 }

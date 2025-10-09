@@ -2,17 +2,18 @@
  * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  */
-
 package org.opensearch.sql.ppl.parser;
 
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.and;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.caseWhen;
 import static org.opensearch.sql.ast.dsl.AstDSL.cast;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
 import static org.opensearch.sql.ast.dsl.AstDSL.decimalLiteral;
@@ -42,6 +43,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import static org.opensearch.sql.ast.dsl.AstDSL.sort;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
+import static org.opensearch.sql.ast.dsl.AstDSL.when;
 import static org.opensearch.sql.ast.dsl.AstDSL.xor;
 
 import com.google.common.collect.ImmutableMap;
@@ -51,12 +53,13 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 
 public class AstExpressionBuilderTest extends AstBuilderTest {
-
   @Test
   public void testLogicalNotExpr() {
     assertEqual(
@@ -147,8 +150,41 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   @Test
   public void testLogicalLikeExpr() {
     assertEqual(
-        "source=t like(a, '_a%b%c_d_')",
+        "source=t | where like(a, '_a%b%c_d_')",
         filter(relation("t"), function("like", field("a"), stringLiteral("_a%b%c_d_"))));
+  }
+
+  @Test
+  public void testLikeOperatorExpr() {
+    // Test LIKE operator syntax
+    assertEqual(
+        "source=t | where a LIKE '_a%b%c_d_'",
+        filter(relation("t"), compare("like", field("a"), stringLiteral("_a%b%c_d_"))));
+
+    // Test with fields on both sides
+    assertEqual(
+        "source=t | where a LIKE b",
+        filter(relation("t"), compare("like", field("a"), field("b"))));
+  }
+
+  @Test
+  public void testLikeOperatorCaseInsensitive() {
+    // Test LIKE operator with different cases - all should map to lowercase "like"
+    assertEqual(
+        "source=t | where a LIKE 'pattern'",
+        filter(relation("t"), compare("like", field("a"), stringLiteral("pattern"))));
+
+    assertEqual(
+        "source=t | where a like 'pattern'",
+        filter(relation("t"), compare("like", field("a"), stringLiteral("pattern"))));
+
+    assertEqual(
+        "source=t | where a Like 'pattern'",
+        filter(relation("t"), compare("like", field("a"), stringLiteral("pattern"))));
+
+    assertEqual(
+        "source=t | where a LiKe 'pattern'",
+        filter(relation("t"), compare("like", field("a"), stringLiteral("pattern"))));
   }
 
   @Test
@@ -361,6 +397,31 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void testDoubleEqualCompareExpr() {
+    // Test that == is correctly mapped to = operator internally
+    assertEqual("source=t a==1", filter(relation("t"), compare("=", field("a"), intLiteral(1))));
+    assertEqual(
+        "source=t a=='hello'",
+        filter(relation("t"), compare("=", field("a"), stringLiteral("hello"))));
+    assertEqual("source=t a==b", filter(relation("t"), compare("=", field("a"), field("b"))));
+  }
+
+  @Test
+  public void testMixedEqualOperators() {
+    // Test that both = and == can be used in the same expression
+    assertEqual(
+        "source=t a=1 and b==2",
+        filter(
+            relation("t"),
+            and(compare("=", field("a"), intLiteral(1)), compare("=", field("b"), intLiteral(2)))));
+    assertEqual(
+        "source=t a==1 or b=2",
+        filter(
+            relation("t"),
+            or(compare("=", field("a"), intLiteral(1)), compare("=", field("b"), intLiteral(2)))));
+  }
+
+  @Test
   public void testInExpr() {
     assertEqual(
         "source=t f in (1, 2, 3)",
@@ -405,7 +466,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         sort(
             relation("t"),
             field(
-                "f",
+                cast(qualifiedName("f"), stringLiteral("ip")),
                 argument("asc", booleanLiteral(true)),
                 argument("type", stringLiteral("ip")))));
   }
@@ -417,7 +478,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         sort(
             relation("t"),
             field(
-                "f",
+                cast(qualifiedName("f"), stringLiteral("double")),
                 argument("asc", booleanLiteral(true)),
                 argument("type", stringLiteral("num")))));
   }
@@ -429,7 +490,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         sort(
             relation("t"),
             field(
-                "f",
+                cast(qualifiedName("f"), stringLiteral("string")),
                 argument("asc", booleanLiteral(true)),
                 argument("type", stringLiteral("str")))));
   }
@@ -549,6 +610,24 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void testCountEvalFuncCallExpr() {
+    assertEqual(
+        "source=t | stats count(eval(a > 0)) by b",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "count(eval(a > 0))",
+                    aggregate(
+                        "count",
+                        caseWhen(
+                            null, when(compare(">", field("a"), intLiteral(0)), intLiteral(1)))))),
+            emptyList(),
+            exprList(alias("b", field("b"))),
+            defaultStatsArgs()));
+  }
+
+  @Test
   public void testDistinctCount() {
     assertEqual(
         "source=t | stats distinct_count(a)",
@@ -602,6 +681,174 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
     assertEqual(
         "source=t | eval f=cast(1 as string)",
         eval(relation("t"), let(field("f"), cast(intLiteral(1), stringLiteral("string")))));
+  }
+
+  @Test
+  public void testEvalSumFunctionSingleArg() {
+    // sum(42) -> 42
+    assertEqual("source=t | eval f=sum(42)", eval(relation("t"), let(field("f"), intLiteral(42))));
+  }
+
+  @Test
+  public void testEvalSumFunctionMultipleArgs() {
+    // sum(1, 2, 3) -> (1 + (2 + 3)) - balanced tree
+    assertEqual(
+        "source=t | eval f=sum(1, 2, 3)",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function("+", intLiteral(1), function("+", intLiteral(2), intLiteral(3))))));
+  }
+
+  @Test
+  public void testEvalSumFunctionWithFields() {
+    // sum(a, b, 10) -> (a + (b + 10)) - balanced tree
+    assertEqual(
+        "source=t | eval f=sum(a, b, 10)",
+        eval(
+            relation("t"),
+            let(field("f"), function("+", field("a"), function("+", field("b"), intLiteral(10))))));
+  }
+
+  @Test
+  public void testEvalSumFunctionFourArgs() {
+    // sum(1, 2, 3, 4) -> ((1 + 2) + (3 + 4)) - balanced tree
+    assertEqual(
+        "source=t | eval f=sum(1, 2, 3, 4)",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function(
+                    "+",
+                    function("+", intLiteral(1), intLiteral(2)),
+                    function("+", intLiteral(3), intLiteral(4))))));
+  }
+
+  @Test
+  public void testEvalSumFunctionMixedTypes() {
+    // sum(1, 2.5) -> (1 + 2.5)
+    assertEqual(
+        "source=t | eval f=sum(1, 2.5)",
+        eval(relation("t"), let(field("f"), function("+", intLiteral(1), decimalLiteral(2.5)))));
+  }
+
+  @Test
+  public void testEvalAvgFunctionSingleArg() {
+    // avg(42) -> 42 / 1.0
+    assertEqual(
+        "source=t | eval f=avg(42)",
+        eval(relation("t"), let(field("f"), function("/", intLiteral(42), doubleLiteral(1.0)))));
+  }
+
+  @Test
+  public void testEvalAvgFunctionTwoArgs() {
+    // avg(10, 20) -> (10 + 20) / 2.0
+    assertEqual(
+        "source=t | eval f=avg(10, 20)",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function("/", function("+", intLiteral(10), intLiteral(20)), doubleLiteral(2.0)))));
+  }
+
+  @Test
+  public void testEvalAvgFunctionMultipleArgs() {
+    // avg(1, 2, 3) -> (1 + (2 + 3)) / 3.0 - balanced tree
+    assertEqual(
+        "source=t | eval f=avg(1, 2, 3)",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function(
+                    "/",
+                    function("+", intLiteral(1), function("+", intLiteral(2), intLiteral(3))),
+                    doubleLiteral(3.0)))));
+  }
+
+  @Test
+  public void testEvalAvgFunctionWithFields() {
+    // avg(a, b) -> (a + b) / 2.0
+    assertEqual(
+        "source=t | eval f=avg(a, b)",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function("/", function("+", field("a"), field("b")), doubleLiteral(2.0)))));
+  }
+
+  @Test
+  public void testEvalAvgFunctionMixedTypes() {
+    // avg(1, 2.5, 3) -> (1 + (2.5 + 3)) / 3.0 - balanced tree
+    assertEqual(
+        "source=t | eval f=avg(1, 2.5, 3)",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function(
+                    "/",
+                    function("+", intLiteral(1), function("+", decimalLiteral(2.5), intLiteral(3))),
+                    doubleLiteral(3.0)))));
+  }
+
+  @Test
+  public void testEvalComplexExpressionWithSumAndAvg() {
+    // sum(a, 5) + avg(10, 20) -> (a + 5) + ((10 + 20) / 2.0)
+    assertEqual(
+        "source=t | eval f=sum(a, 5) + avg(10, 20)",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function(
+                    "+",
+                    function("+", field("a"), intLiteral(5)),
+                    function(
+                        "/", function("+", intLiteral(10), intLiteral(20)), doubleLiteral(2.0))))));
+  }
+
+  @Test
+  public void testWhereSumFunction() {
+    // where sum(a, 10) > 20 -> where (a + 10) > 20
+    assertEqual(
+        "source=t | where sum(a, 10) > 20",
+        filter(
+            relation("t"),
+            compare(">", function("+", field("a"), intLiteral(10)), intLiteral(20))));
+  }
+
+  @Test
+  public void testWhereAvgFunction() {
+    // where avg(a, b) < 15.5 -> where (a + b) / 2.0 < 15.5
+    assertEqual(
+        "source=t | where avg(a, b) < 15.5",
+        filter(
+            relation("t"),
+            compare(
+                "<",
+                function("/", function("+", field("a"), field("b")), doubleLiteral(2.0)),
+                decimalLiteral(15.5))));
+  }
+
+  @Test
+  public void testWhereSumAndAvgComparison() {
+    // where sum(a, b) > avg(10, 20, 30) -> where (a + b) > (10 + (20 + 30)) / 3.0 - balanced tree
+    assertEqual(
+        "source=t | where sum(a, b) > avg(10, 20, 30)",
+        filter(
+            relation("t"),
+            compare(
+                ">",
+                function("+", field("a"), field("b")),
+                function(
+                    "/",
+                    function("+", intLiteral(10), function("+", intLiteral(20), intLiteral(30))),
+                    doubleLiteral(3.0)))));
   }
 
   @Test
@@ -695,7 +942,6 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   @Test
   public void testKeywordsAsIdentifiers() {
     assertEqual("source=timestamp", relation("timestamp"));
-
     assertEqual(
         "source=t | fields timestamp",
         projectWithArg(relation("t"), defaultFieldsArgs(), field("timestamp")));
@@ -796,6 +1042,49 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void canBuildMulti_matchRelevanceFunctionWithoutFields() {
+    // Test multi_match with only query parameter (no fields)
+    assertEqual(
+        "source=test | where multi_match('test query')",
+        filter(
+            relation("test"),
+            function("multi_match", unresolvedArg("query", stringLiteral("test query")))));
+  }
+
+  @Test
+  public void canBuildMulti_matchRelevanceFunctionWithoutFieldsButWithOptions() {
+    // Test multi_match with query and optional parameters but no fields
+    assertEqual(
+        "source=test | where multi_match('test query', analyzer='keyword')",
+        filter(
+            relation("test"),
+            function(
+                "multi_match",
+                unresolvedArg("query", stringLiteral("test query")),
+                unresolvedArg("analyzer", stringLiteral("keyword")))));
+  }
+
+  @Test
+  public void canBuildSimple_query_stringRelevanceFunctionWithoutFields() {
+    // Test simple_query_string with only query parameter (no fields)
+    assertEqual(
+        "source=test | where simple_query_string('test query')",
+        filter(
+            relation("test"),
+            function("simple_query_string", unresolvedArg("query", stringLiteral("test query")))));
+  }
+
+  @Test
+  public void canBuildQuery_stringRelevanceFunctionWithoutFields() {
+    // Test query_string with only query parameter (no fields)
+    assertEqual(
+        "source=test | where query_string('test query')",
+        filter(
+            relation("test"),
+            function("query_string", unresolvedArg("query", stringLiteral("test query")))));
+  }
+
+  @Test
   public void functionNameCanBeUsedAsIdentifier() {
     assertFunctionNameCouldBeId(
         "AVG | COUNT | SUM | MIN | MAX | VAR_SAMP | VAR_POP | STDDEV_SAMP | STDDEV_POP |"
@@ -830,7 +1119,6 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             .map(String::stripLeading)
             .map(String::stripTrailing)
             .collect(Collectors.toList());
-
     assertFalse(functionList.isEmpty());
     for (String functionName : functionList) {
       assertEqual(
@@ -900,5 +1188,114 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                     stringLiteral("YEAR"),
                     stringLiteral("1997-01-01 00:00:00"),
                     stringLiteral("2001-03-06 00:00:00")))));
+  }
+
+  @Test
+  public void testPercentileShortcutFunctions() {
+    // Test integer percentile shortcuts
+    assertEqual(
+        "source=t | stats perc50(a)",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "perc50(a)",
+                    aggregate(
+                        "percentile", field("a"), unresolvedArg("percent", doubleLiteral(50.0))))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+
+    assertEqual(
+        "source=t | stats p95(a)",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "p95(a)",
+                    aggregate(
+                        "percentile", field("a"), unresolvedArg("percent", doubleLiteral(95.0))))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+  }
+
+  @Test
+  public void testPercentileShortcutFunctionsWithDecimals() {
+    // Test decimal percentile shortcuts
+    assertEqual(
+        "source=t | stats perc25.5(a)",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "perc25.5(a)",
+                    aggregate(
+                        "percentile", field("a"), unresolvedArg("percent", doubleLiteral(25.5))))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+
+    assertEqual(
+        "source=t | stats p99.9(a)",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "p99.9(a)",
+                    aggregate(
+                        "percentile", field("a"), unresolvedArg("percent", doubleLiteral(99.9))))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+  }
+
+  @Test
+  public void testPercentileShortcutFunctionsBoundaryValues() {
+    // Test boundary values (0 and 100)
+    assertEqual(
+        "source=t | stats perc0(a)",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "perc0(a)",
+                    aggregate(
+                        "percentile", field("a"), unresolvedArg("percent", doubleLiteral(0.0))))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+
+    assertEqual(
+        "source=t | stats p100(a)",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "p100(a)",
+                    aggregate(
+                        "percentile", field("a"), unresolvedArg("percent", doubleLiteral(100.0))))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+  }
+
+  @Test
+  public void testPercentileShortcutFunctionInvalidNegativeValue() {
+    assertThrows(
+        SyntaxCheckException.class, () -> assertEqual("source=t | stats perc-1(a)", (Node) null));
+  }
+
+  @Test
+  public void testPercentileShortcutFunctionInvalidValueAbove100() {
+    assertThrows(
+        SyntaxCheckException.class, () -> assertEqual("source=t | stats p101(a)", (Node) null));
+  }
+
+  @Test
+  public void testPercentileShortcutFunctionInvalidDecimalValueAbove100() {
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> assertEqual("source=t | stats perc100.1(a)", (Node) null));
   }
 }

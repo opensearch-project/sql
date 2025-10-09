@@ -27,11 +27,10 @@ dependencies {
         exclude group: 'org.bouncycastle', module: 'bcprov-ext-jdk18on'
     }
     implementation "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
-    implementation group: 'commons-validator', name: 'commons-validator', version: '1.7'
 
     testImplementation group: 'junit', name: 'junit', version: '4.13.2'
     testImplementation('org.junit.jupiter:junit-jupiter:5.9.3')
-    testImplementation group: 'net.bytebuddy', name: 'byte-buddy-agent', version: '1.14.19'
+    testImplementation group: 'net.bytebuddy', name: 'byte-buddy-agent', version: '1.15.11'
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: "${hamcrest_version}"
     testImplementation group: 'org.mockito', name: 'mockito-core', version: "${mockito_version}"
     testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: "${mockito_version}"

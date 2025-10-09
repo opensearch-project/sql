@@ -89,9 +89,9 @@ public class MatchPhrasePrefixIT extends PPLIntegTestCase {
     // ORDER BY ... LIMIT helps make the test understandable.
     String query =
         "source = %s| WHERE match_phrase_prefix(Title, 'in to', analyzer=english,"
-            + " zero_terms_query='ALL') | sort -Title | head 1 | fields Title";
+            + " zero_terms_query='ALL') | head 1 | fields Title";
     JSONObject result = executeQuery(String.format(query, TEST_INDEX_BEER));
-    verifyDataRows(result, rows("was working great, now all foam"));
+    verifyDataRows(result, rows("How do you mull beer?"));
   }
 
   @Test

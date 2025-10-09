@@ -15,13 +15,24 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelHomogeneousShuttle;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.Util;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.IntervalUnit;
@@ -35,6 +46,9 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 public interface PlanUtils {
+
+  /** this is only for dedup command, do not reuse it in other command */
+  String ROW_NUMBER_COLUMN_FOR_DEDUP = "_row_number_dedup_";
 
   String ROW_NUMBER_COLUMN_NAME = "_row_number_";
   String ROW_NUMBER_COLUMN_NAME_MAIN = "_row_number_main_";
@@ -283,6 +297,25 @@ public interface PlanUtils {
     return node.getChild().getFirst().accept(relationVisitor, null);
   }
 
+  /** Similar to {@link org.apache.calcite.plan.RelOptUtil#findTable(RelNode, String) } */
+  static RelOptTable findTable(RelNode root) {
+    try {
+      RelShuttle visitor =
+          new RelHomogeneousShuttle() {
+            @Override
+            public RelNode visit(TableScan scan) {
+              final RelOptTable scanTable = scan.getTable();
+              throw new Util.FoundOne(scanTable);
+            }
+          };
+      root.accept(visitor);
+      return null;
+    } catch (Util.FoundOne e) {
+      Util.swallow(e, null);
+      return (RelOptTable) e.getNode();
+    }
+  }
+
   /**
    * Transform plan to attach specified child to the first leaf node.
    *
@@ -304,5 +337,58 @@ public interface PlanUtils {
           }
         };
     node.accept(leafVisitor, null);
+  }
+
+  /**
+   * Return the first value RexNode of the valid map RexCall structure
+   *
+   * @param rexNode RexNode that expects type of MAP_VALUE_CONSTRUCTOR RexCall
+   * @return first value of the valid map RexCall
+   */
+  static RexNode derefMapCall(RexNode rexNode) {
+    if (rexNode instanceof RexCall) {
+      RexCall call = (RexCall) rexNode;
+      if (call.getOperator() == SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR) {
+        return call.getOperands().get(1);
+      }
+    }
+    return rexNode;
+  }
+
+  /** Check if contains RexOver */
+  static boolean containsRowNumberDedup(LogicalProject project) {
+    return project.getProjects().stream()
+        .anyMatch(p -> p instanceof RexOver && p.getKind() == SqlKind.ROW_NUMBER);
+  }
+
+  /** Get all RexWindow list from LogicalProject */
+  static List<RexWindow> getRexWindowFromProject(LogicalProject project) {
+    final List<RexWindow> res = new ArrayList<>();
+    final RexVisitorImpl<Void> visitor =
+        new RexVisitorImpl<>(true) {
+          @Override
+          public Void visitOver(RexOver over) {
+            res.add(over.getWindow());
+            return null;
+          }
+        };
+    visitor.visitEach(project.getProjects());
+    return res;
+  }
+
+  static List<Integer> getSelectColumns(List<RexNode> rexNodes) {
+    final List<Integer> selectedColumns = new ArrayList<>();
+    final RexVisitorImpl<Void> visitor =
+        new RexVisitorImpl<Void>(true) {
+          @Override
+          public Void visitInputRef(RexInputRef inputRef) {
+            if (!selectedColumns.contains(inputRef.getIndex())) {
+              selectedColumns.add(inputRef.getIndex());
+            }
+            return null;
+          }
+        };
+    visitor.visitEach(rexNodes);
+    return selectedColumns;
   }
 }

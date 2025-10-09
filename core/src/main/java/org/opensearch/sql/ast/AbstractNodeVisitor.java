@@ -47,6 +47,7 @@ import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
@@ -54,6 +55,7 @@ import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Flatten;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -68,6 +70,8 @@ import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Reverse;
+import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
@@ -124,6 +128,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitFilter(Filter node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitFlatten(Flatten node, C context) {
     return visitChildren(node, context);
   }
 
@@ -207,6 +215,10 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(node, context);
   }
 
+  public T visitBin(Bin node, C context) {
+    return visitChildren(node, context);
+  }
+
   public T visitArgument(Argument node, C context) {
     return visitChildren(node, context);
   }
@@ -231,11 +243,19 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(node, context);
   }
 
+  public T visitSpath(SPath node, C context) {
+    return visitChildren(node, context);
+  }
+
   public T visitLet(Let node, C context) {
     return visitChildren(node, context);
   }
 
   public T visitSort(Sort node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitReverse(Reverse node, C context) {
     return visitChildren(node, context);
   }
 

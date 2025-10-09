@@ -42,6 +42,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import static org.opensearch.sql.ast.dsl.AstDSL.rename;
 import static org.opensearch.sql.ast.dsl.AstDSL.sort;
 import static org.opensearch.sql.ast.dsl.AstDSL.span;
+import static org.opensearch.sql.ast.dsl.AstDSL.spath;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.tableFunction;
 import static org.opensearch.sql.ast.dsl.AstDSL.trendline;
@@ -61,11 +62,12 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
 import org.opensearch.sql.ast.Node;
-import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
+import org.opensearch.sql.ast.expression.PatternMode;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -234,6 +236,30 @@ public class AstBuilderTest {
         agg(
             relation("t"),
             exprList(alias("count(a)", aggregate("count", field("a")))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+  }
+
+  @Test
+  public void testStatsCommandWithCountAbbreviation() {
+    assertEqual(
+        "source=t | stats c()",
+        agg(
+            relation("t"),
+            exprList(alias("c()", aggregate("count", AstDSL.allFields()))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+  }
+
+  @Test
+  public void testStatsCommandWithCountAlias() {
+    assertEqual(
+        "source=t | stats count",
+        agg(
+            relation("t"),
+            exprList(alias("count", aggregate("count", AstDSL.allFields()))),
             emptyList(),
             emptyList(),
             defaultStatsArgs()));
@@ -447,6 +473,50 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testSortCommandWithCount() {
+    assertEqual(
+        "source=t | sort 100 f1", sort(relation("t"), 100, field("f1", defaultSortFieldArgs())));
+  }
+
+  @Test
+  public void testSortCommandWithDesc() {
+    assertEqual(
+        "source=t | sort f1 desc",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(
+                    argument("asc", booleanLiteral(false)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandWithD() {
+    assertEqual(
+        "source=t | sort f1 d",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(
+                    argument("asc", booleanLiteral(false)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandWithMultipleFieldsAndDesc() {
+    assertEqual(
+        "source=t | sort f1, -f2 desc",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(argument("asc", booleanLiteral(false)), argument("type", nullLiteral()))),
+            field(
+                "f2",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));
+  }
+
+  @Test
   public void testEvalCommand() {
     assertEqual(
         "source=t | eval r=abs(f)",
@@ -634,6 +704,51 @@ public class AstBuilderTest {
             field("raw"),
             stringLiteral("pattern"),
             ImmutableMap.of()));
+  }
+
+  @Test
+  public void testBasicSpathCommand() {
+    assertEqual(
+        "source=t | spath input=f path=simple.nested",
+        spath(
+            relation("t"),
+            "f",
+            null, // no output field specified
+            "simple.nested"));
+  }
+
+  @Test
+  public void testSpathWithOutput() {
+    assertEqual(
+        "source=t | spath input=f output=o path=simple.nested",
+        spath(relation("t"), "f", "o", "simple.nested"));
+  }
+
+  @Test
+  public void testSpathWithArrayWildcard() {
+    assertEqual(
+        "source=t | spath input=f path=array{}.nested",
+        spath(relation("t"), "f", null, "array{}.nested"));
+  }
+
+  @Test
+  public void testSpathWithArrayIndex() {
+    assertEqual(
+        "source=t | spath input=f path=array{1}.nested",
+        spath(relation("t"), "f", null, "array{1}.nested"));
+  }
+
+  @Test
+  public void testSpathWithMultipleArrays() {
+    assertEqual(
+        "source=t | spath input=f path=outer{}.middle{2}.inner",
+        spath(relation("t"), "f", null, "outer{}.middle{2}.inner"));
+  }
+
+  @Test
+  public void testSpathWithNoPathKeyword() {
+    assertEqual(
+        "source=t | spath input=f simple.nested", spath(relation("t"), "f", null, "simple.nested"));
   }
 
   @Test
@@ -841,47 +956,66 @@ public class AstBuilderTest {
 
   @Test
   public void testPatternsCommand() {
-    when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    when(settings.getSettingValue(Key.PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    when(settings.getSettingValue(Key.PATTERN_MODE)).thenReturn("LABEL");
+    when(settings.getSettingValue(Key.PATTERN_MAX_SAMPLE_COUNT)).thenReturn(10);
+    when(settings.getSettingValue(Key.PATTERN_BUFFER_LIMIT)).thenReturn(100000);
     assertEqual(
-        "source=t | patterns new_field=\"custom_field\" " + "pattern=\"custom_pattern\" raw",
-        parse(
+        "source=t | patterns raw new_field=\"custom_field\" " + "pattern=\"custom_pattern\"",
+        patterns(
             relation("t"),
-            ParseMethod.PATTERNS,
             field("raw"),
-            stringLiteral("custom_pattern"),
-            ImmutableMap.<String, Literal>builder()
-                .put("new_field", stringLiteral("custom_field"))
-                .put("pattern", stringLiteral("custom_pattern"))
-                .build()));
+            emptyList(),
+            "custom_field",
+            PatternMethod.SIMPLE_PATTERN,
+            PatternMode.LABEL,
+            AstDSL.intLiteral(10),
+            AstDSL.intLiteral(100000),
+            ImmutableMap.of(
+                "new_field", AstDSL.stringLiteral("custom_field"),
+                "pattern", AstDSL.stringLiteral("custom_pattern"))));
   }
 
   @Test
   public void testPatternsCommandWithBrainMethod() {
-    when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    when(settings.getSettingValue(Key.PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    when(settings.getSettingValue(Key.PATTERN_MODE)).thenReturn("LABEL");
+    when(settings.getSettingValue(Key.PATTERN_MAX_SAMPLE_COUNT)).thenReturn(10);
+    when(settings.getSettingValue(Key.PATTERN_BUFFER_LIMIT)).thenReturn(100000);
     assertEqual(
-        "source=t | patterns variable_count_threshold=2 frequency_threshold_percentage=0.1 raw"
-            + " BRAIN",
+        "source=t | patterns raw method=BRAIN variable_count_threshold=2"
+            + " frequency_threshold_percentage=0.1",
         patterns(
             relation("t"),
-            PatternMethod.BRAIN,
             field("raw"),
+            emptyList(),
             "patterns_field",
-            Arrays.asList(
-                new Argument("variable_count_threshold", new Literal(2, DataType.INTEGER)),
-                new Argument(
-                    "frequency_threshold_percentage", new Literal(0.1, DataType.DECIMAL)))));
+            PatternMethod.BRAIN,
+            PatternMode.LABEL,
+            AstDSL.intLiteral(10),
+            AstDSL.intLiteral(100000),
+            ImmutableMap.of(
+                "frequency_threshold_percentage", new Literal(0.1, DataType.DECIMAL),
+                "variable_count_threshold", new Literal(2, DataType.INTEGER))));
   }
 
   @Test
   public void testPatternsWithoutArguments() {
-    when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    when(settings.getSettingValue(Key.PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    when(settings.getSettingValue(Key.PATTERN_MODE)).thenReturn("LABEL");
+    when(settings.getSettingValue(Key.PATTERN_MAX_SAMPLE_COUNT)).thenReturn(10);
+    when(settings.getSettingValue(Key.PATTERN_BUFFER_LIMIT)).thenReturn(100000);
     assertEqual(
         "source=t | patterns raw",
-        parse(
+        patterns(
             relation("t"),
-            ParseMethod.PATTERNS,
             field("raw"),
-            stringLiteral(""),
+            emptyList(),
+            "patterns_field",
+            PatternMethod.SIMPLE_PATTERN,
+            PatternMode.LABEL,
+            AstDSL.intLiteral(10),
+            AstDSL.intLiteral(100000),
             ImmutableMap.of()));
   }
 
@@ -902,5 +1036,11 @@ public class AstBuilderTest {
 
   private String mappingTable(String indexName) {
     return SystemIndexUtils.mappingTable(indexName, PPL_SPEC);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testBinCommandDuplicateParameter() {
+    // Test that duplicate parameters throw an exception
+    plan("search source=test | bin field span=10 span=20");
   }
 }

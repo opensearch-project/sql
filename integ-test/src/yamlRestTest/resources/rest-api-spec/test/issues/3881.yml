@@ -1,0 +1,56 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"Handle sag with nullAs":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      bulk:
+        index: test
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"a": 1}'
+          - '{"index": {}}'
+          - '{"a": 2}'
+          - '{"index": {}}'
+          - '{}'
+
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test | where a = 1 or a = 2 or isNull(a) | sort a'
+  - match: {"total": 3}
+  - match: {"schema": [{"name": "a", "type": "bigint"}]}
+  - match: {"datarows": [[null], [1], [2]]}
+
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test | where (a = 1 or a = 2) and isNotNull(a) | sort a'
+  - match: { "total": 2 }
+  - match: { "schema": [ { "name": "a", "type": "bigint" } ] }
+  - match: {"datarows": [[1], [2]]}

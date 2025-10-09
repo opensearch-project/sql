@@ -19,20 +19,49 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 @ToString
 @Getter
-@RequiredArgsConstructor
 @EqualsAndHashCode(callSuper = false)
 public class Join extends UnresolvedPlan {
   private UnresolvedPlan left;
   private final UnresolvedPlan right;
-  private final Optional<String> leftAlias;
-  private final Optional<String> rightAlias;
+  private Optional<String> leftAlias;
+  private Optional<String> rightAlias;
   private final JoinType joinType;
   private final Optional<UnresolvedExpression> joinCondition;
   private final JoinHint joinHint;
 
+  public Join(
+      UnresolvedPlan right,
+      Optional<String> leftAlias,
+      Optional<String> rightAlias,
+      JoinType joinType,
+      Optional<UnresolvedExpression> joinCondition,
+      JoinHint joinHint) {
+    this.right = right;
+    this.leftAlias = leftAlias;
+    this.rightAlias = rightAlias;
+    this.joinType = joinType;
+    this.joinCondition = joinCondition;
+    this.joinHint = joinHint;
+  }
+
   @Override
   public UnresolvedPlan attach(UnresolvedPlan child) {
-    this.left = leftAlias.isEmpty() ? child : new SubqueryAlias(leftAlias.get(), child);
+    // attach child to left, meanwhile fill back side aliases if possible.
+    if (leftAlias.isPresent()) {
+      if (child instanceof SubqueryAlias alias) {
+        this.left = new SubqueryAlias(leftAlias.get(), alias.getChild().getFirst());
+      } else {
+        this.left = new SubqueryAlias(leftAlias.get(), child);
+      }
+    } else {
+      if (child instanceof SubqueryAlias alias) {
+        leftAlias = Optional.of(alias.getAlias());
+      }
+      this.left = child;
+    }
+    if (rightAlias.isEmpty() && this.right instanceof SubqueryAlias alias) {
+      rightAlias = Optional.of(alias.getAlias());
+    }
     return this;
   }
 

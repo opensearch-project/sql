@@ -14,10 +14,9 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
-import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
@@ -40,11 +39,7 @@ public class ConvFunction extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return UDFOperandMetadata.wrap(
-        (CompositeOperandTypeChecker)
-            OperandTypes.STRING_INTEGER_INTEGER.or(
-                OperandTypes.family(
-                    SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER)));
+    return PPLOperandTypes.STRING_OR_INTEGER_INTEGER_INTEGER;
   }
 
   public static class ConvImplementor implements NotNullImplementor {
@@ -57,7 +52,7 @@ public class ConvFunction extends ImplementorUDF {
       Expression toBase = translatedOperands.get(2);
       if (numberType.getFamily() == SqlTypeFamily.NUMERIC) {
         // Convert the first operand to String
-        number = Expressions.call(Object.class, "toString", number);
+        number = Expressions.call(Expressions.box(number), "toString");
       }
       return Expressions.call(ConvImplementor.class, "conv", number, fromBase, toBase);
     }

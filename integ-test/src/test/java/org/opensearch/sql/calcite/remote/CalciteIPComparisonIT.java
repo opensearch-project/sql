@@ -12,6 +12,5 @@ public class CalciteIPComparisonIT extends IPComparisonIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
   }
 }

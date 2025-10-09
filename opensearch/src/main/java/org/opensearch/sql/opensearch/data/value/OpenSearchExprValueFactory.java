@@ -187,8 +187,14 @@ public class OpenSearchExprValueFactory {
 
   private ExprValue parse(
       Content content, String field, Optional<ExprType> fieldType, boolean supportArrays) {
-    if (content.isNull() || !fieldType.isPresent()) {
+    if (content.isNull()) {
       return ExprNullValue.of();
+    }
+
+    // Field type may be not defined in mapping if users have disabled dynamic mapping.
+    // Then try to parse content directly based on the value itself
+    if (fieldType.isEmpty()) {
+      return parseContent(content);
     }
 
     final ExprType type = fieldType.get();
@@ -208,6 +214,35 @@ public class OpenSearchExprValueFactory {
           String.format(
               "Unsupported type: %s for value: %s.", type.typeName(), content.objectValue()));
     }
+  }
+
+  private ExprValue parseContent(Content content) {
+    if (content.isNumber()) {
+      if (content.isInt()) {
+        return new ExprIntegerValue(content.intValue());
+      } else if (content.isShort()) {
+        return new ExprShortValue(content.shortValue());
+      } else if (content.isByte()) {
+        return new ExprByteValue(content.byteValue());
+      } else if (content.isLong()) {
+        return new ExprLongValue(content.longValue());
+      } else if (content.isFloat()) {
+        return new ExprFloatValue(content.floatValue());
+      } else if (content.isDouble()) {
+        return new ExprDoubleValue(content.doubleValue());
+      } else {
+        // Default case for number, treat as double
+        return new ExprDoubleValue(content.doubleValue());
+      }
+    } else if (content.isString()) {
+      return new ExprStringValue(content.stringValue());
+    } else if (content.isBoolean()) {
+      return ExprBooleanValue.of(content.booleanValue());
+    } else if (content.isNull()) {
+      return ExprNullValue.of();
+    }
+    // Default case, treat as a string value
+    return new ExprStringValue(content.objectValue().toString());
   }
 
   /**

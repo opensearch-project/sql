@@ -11,6 +11,7 @@ import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.emptyArray;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.*;
 import static org.opensearch.sql.legacy.util.MatcherUtils.featureValueOf;
 
 import org.hamcrest.Matcher;
@@ -189,6 +190,124 @@ public class QueryPlannerConfigTest extends QueryPlannerTest {
             backOffRetryIntervals(Config.DEFAULT_BACK_OFF_RETRY_INTERVALS),
             DEFAULT_TOTAL_AND_TABLE_LIMIT_MATCHER,
             timeOut(Config.DEFAULT_TIME_OUT)));
+  }
+
+  // ============================================================================
+  // Enhanced JOIN_TIME_OUT Configuration Tests
+  // ============================================================================
+
+  @Test
+  public void testConfigureTimeOutMethodDirectly() {
+    Config config = new Config();
+
+    // Test direct method call
+    config.configureTimeOut(new Object[] {180});
+    assertEquals("Timeout should be set via configureTimeOut method", 180, config.timeout());
+
+    // Test with different values
+    config.configureTimeOut(new Object[] {300});
+    assertEquals("Timeout should be updated", 300, config.timeout());
+
+    // Test with empty array (should not change timeout)
+    int previousTimeout = config.timeout();
+    config.configureTimeOut(new Object[] {});
+    assertEquals("Empty array should not change timeout", previousTimeout, config.timeout());
+  }
+
+  @Test
+  public void testJoinTimeOutHintOverridesDefault() {
+    // Test without hint
+    String sqlWithoutHint =
+        "SELECT d.name FROM employee e JOIN department d ON d.id = e.departmentId";
+    Config configWithoutHint = queryPlannerConfig(sqlWithoutHint);
+
+    // Test with hint
+    String sqlWithHint =
+        "SELECT /*! JOIN_TIME_OUT(480) */ "
+            + "d.name FROM employee e JOIN department d ON d.id = e.departmentId";
+    Config configWithHint = queryPlannerConfig(sqlWithHint);
+
+    assertEquals(
+        "Without hint should use default", Config.DEFAULT_TIME_OUT, configWithoutHint.timeout());
+    assertEquals("With hint should override default", 480, configWithHint.timeout());
+    assertNotEquals(
+        "Hint should change the timeout value",
+        configWithoutHint.timeout(),
+        configWithHint.timeout());
+  }
+
+  @Test
+  public void testJoinTimeOutHintWithVariousValues() {
+    int[] timeoutValues = {1, 30, 60, 120, 300, 600, 1800, 3600, 7200};
+
+    for (int timeoutValue : timeoutValues) {
+      String sql =
+          String.format(
+              "SELECT /*! JOIN_TIME_OUT(%d) */ "
+                  + "d.name FROM employee e JOIN department d ON d.id = e.departmentId",
+              timeoutValue);
+
+      Config config = queryPlannerConfig(sql);
+      assertEquals(
+          "Timeout value " + timeoutValue + " should be preserved", timeoutValue, config.timeout());
+    }
+  }
+
+  @Test
+  public void testJoinTimeOutHintWithOrderByAndLimit() {
+    String sql =
+        "SELECT /*! JOIN_TIME_OUT(200) */ "
+            + "e.name, d.name FROM employee e JOIN department d ON d.id = e.departmentId "
+            + "WHERE e.salary > 50000 "
+            + "ORDER BY e.name ASC "
+            + "LIMIT 50";
+
+    Config config = queryPlannerConfig(sql);
+
+    assertEquals("Timeout hint should work with complex query", 200, config.timeout());
+    assertEquals("Total limit should be set from LIMIT clause", 50, config.totalLimit());
+  }
+
+  @Test
+  public void testConfigTimeoutImmutabilityAfterSetting() {
+    Config config = new Config();
+
+    // Set initial timeout
+    config.configureTimeOut(new Object[] {180});
+    assertEquals("Initial timeout should be set", 180, config.timeout());
+
+    // Create a new config and verify it has default timeout
+    Config newConfig = new Config();
+    assertEquals(
+        "New config should have default timeout", Config.DEFAULT_TIME_OUT, newConfig.timeout());
+
+    // Original config should still have its timeout
+    assertEquals("Original config should retain its timeout", 180, config.timeout());
+  }
+
+  @Test
+  public void testJoinTimeOutHintValidationRanges() {
+    // Test boundary values
+    int[] boundaryValues = {
+      1, // Minimum practical value
+      59, // Just under default
+      60, // Default value
+      61, // Just over default
+      3600, // 1 hour
+      86400, // 24 hours
+      604800 // 1 week
+    };
+
+    for (int timeout : boundaryValues) {
+      String sql =
+          String.format(
+              "SELECT /*! JOIN_TIME_OUT(%d) */ "
+                  + "d.name FROM employee e JOIN department d ON d.id = e.departmentId",
+              timeout);
+
+      Config config = queryPlannerConfig(sql);
+      assertEquals("Boundary value " + timeout + " should be accepted", timeout, config.timeout());
+    }
   }
 
   private Hint parseHint(String hintStr) {

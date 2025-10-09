@@ -27,8 +27,9 @@ import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder.PushDownUnSupportedException;
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
+import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder.ScriptQueryUnSupportedException;
 import org.opensearch.sql.opensearch.storage.script.sort.SortQueryBuilder;
-import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.serde.DefaultExpressionSerializer;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalLimit;
@@ -56,10 +57,23 @@ class OpenSearchIndexScanQueryBuilder implements PushDownQueryBuilder {
   public boolean pushDownFilter(LogicalFilter filter) {
     FilterQueryBuilder queryBuilder = new FilterQueryBuilder(new DefaultExpressionSerializer());
     Expression queryCondition = filter.getCondition();
-    QueryBuilder query = queryBuilder.build(queryCondition);
-    requestBuilder.pushDownFilter(query);
-    requestBuilder.pushDownTrackedScore(trackScoresFromOpenSearchFunction(queryCondition));
-    return true;
+    try {
+      QueryBuilder query = queryBuilder.build(queryCondition);
+      requestBuilder.pushDownFilter(query);
+      requestBuilder.pushDownTrackedScore(trackScoresFromOpenSearchFunction(queryCondition));
+      return true;
+    } catch (ScriptQueryUnSupportedException e) {
+      // Don't catch SyntaxCheckException, which should fall back to the old SQL engine.
+      // See test {@link NestedIT::test_nested_where_with_and_conditional}, only the old SQL engine
+      // can cover this case.
+      // It will fail if catching SyntaxCheckException here and keep using v2 engine.
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Cannot pushdown the filter condition.", e);
+      } else {
+        LOG.info("Cannot pushdown the filter condition.");
+      }
+      return false;
+    }
   }
 
   @Override
@@ -70,6 +84,11 @@ class OpenSearchIndexScanQueryBuilder implements PushDownQueryBuilder {
         sortList.stream()
             .map(sortItem -> builder.build(sortItem.getValue(), sortItem.getKey()))
             .collect(Collectors.toList()));
+    // Handle count parameter for sort with limit
+    if (sort.getCount() != 0) {
+      requestBuilder.pushDownLimit(sort.getCount(), 0);
+    }
+
     return true;
   }
 

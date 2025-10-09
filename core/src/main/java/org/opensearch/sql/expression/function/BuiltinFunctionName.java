@@ -9,6 +9,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -214,6 +215,7 @@ public enum BuiltinFunctionName {
   LTRIM(FunctionName.of("ltrim")),
   POSITION(FunctionName.of("position")),
   REGEXP(FunctionName.of("regexp")),
+  REGEX_MATCH(FunctionName.of("regex_match")),
   REPLACE(FunctionName.of("replace")),
   REVERSE(FunctionName.of("reverse")),
   RIGHT(FunctionName.of("right")),
@@ -305,9 +307,12 @@ public enum BuiltinFunctionName {
 
   /** Internal functions that are not exposed to customers. */
   INTERNAL_ITEM(FunctionName.of("item"), true),
+  INTERNAL_PATTERN_PARSER(FunctionName.of("pattern_parser")),
+  INTERNAL_PATTERN(FunctionName.of("pattern")),
+  INTERNAL_UNCOLLECT_PATTERNS(FunctionName.of("uncollect_patterns")),
   INTERNAL_REGEXP_EXTRACT(FunctionName.of("regexp_extract"), true),
   INTERNAL_GROK(FunctionName.of("grok"), true),
-  INTERNAL_REGEXP_REPLACE_2(FunctionName.of("regexp_replace_2"), true);
+  INTERNAL_REGEXP_REPLACE_3(FunctionName.of("regexp_replace_3"), true);
 
   private final FunctionName name;
   private boolean isInternal;
@@ -339,9 +344,10 @@ public enum BuiltinFunctionName {
           .put("take", BuiltinFunctionName.TAKE)
           .put("percentile", BuiltinFunctionName.PERCENTILE_APPROX)
           .put("percentile_approx", BuiltinFunctionName.PERCENTILE_APPROX)
-          // .put("earliest", BuiltinFunctionName.EARLIEST)
-          // .put("latest", BuiltinFunctionName.LATEST)
+          .put("earliest", BuiltinFunctionName.EARLIEST)
+          .put("latest", BuiltinFunctionName.LATEST)
           .put("distinct_count_approx", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
+          .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
           .build();
 
   private static final Map<String, BuiltinFunctionName> WINDOW_FUNC_MAPPING =
@@ -360,6 +366,10 @@ public enum BuiltinFunctionName {
           .put("stddev_samp", BuiltinFunctionName.STDDEV_SAMP)
           // .put("earliest", BuiltinFunctionName.EARLIEST)
           // .put("latest", BuiltinFunctionName.LATEST)
+          .put("distinct_count_approx", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
+          .put("dc", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
+          .put("distinct_count", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
+          .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
           .build();
 
   public static Optional<BuiltinFunctionName> of(String str) {
@@ -375,4 +385,13 @@ public enum BuiltinFunctionName {
     return Optional.ofNullable(
         WINDOW_FUNC_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), null));
   }
+
+  public static final Set<BuiltinFunctionName> COMPARATORS =
+      Set.of(
+          BuiltinFunctionName.EQUAL,
+          BuiltinFunctionName.NOTEQUAL,
+          BuiltinFunctionName.LESS,
+          BuiltinFunctionName.LTE,
+          BuiltinFunctionName.GREATER,
+          BuiltinFunctionName.GTE);
 }

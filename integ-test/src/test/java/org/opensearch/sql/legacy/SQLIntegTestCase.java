@@ -12,6 +12,8 @@ import static org.opensearch.sql.legacy.TestUtils.getAliasIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getArrayIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getBankIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getBankWithNullValuesIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getBig5MappingFile;
+import static org.opensearch.sql.legacy.TestUtils.getClickBenchMappingFile;
 import static org.opensearch.sql.legacy.TestUtils.getDataTypeNonnumericIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDataTypeNumericIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDateIndexMapping;
@@ -25,10 +27,12 @@ import static org.opensearch.sql.legacy.TestUtils.getEmployeeNestedTypeIndexMapp
 import static org.opensearch.sql.legacy.TestUtils.getGameOfThronesIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getGeoIpIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getGeopointIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getHdfsLogsIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getHobbiesIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getJoinTypeIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getJsonTestIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getLocationIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getLogsIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getMappingFile;
 import static org.opensearch.sql.legacy.TestUtils.getNestedSimpleIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getNestedTypeIndexMapping;
@@ -218,6 +222,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   /** Provide for each test to load test index, data and other setup work */
   protected void init() throws Exception {
     disableCalcite();
+    increaseMaxCompilationsRate();
   }
 
   /**
@@ -394,17 +399,6 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     return executeRequest(sqlRequest);
   }
 
-  protected static String executeRequest(final Request request, RestClient client)
-      throws IOException {
-    Response response = client.performRequest(request);
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-    return getResponseBody(response);
-  }
-
-  protected static String executeRequest(final Request request) throws IOException {
-    return executeRequest(request, client());
-  }
-
   protected JSONObject executeQueryWithGetRequest(final String sqlQuery) throws IOException {
 
     final Request request = buildGetEndpointRequest(sqlQuery);
@@ -439,24 +433,6 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
   protected static JSONObject updateClusterSettings(ClusterSetting setting) throws IOException {
     return updateClusterSettings(setting, client());
-  }
-
-  protected static JSONObject getAllClusterSettings() throws IOException {
-    Request request = new Request("GET", "/_cluster/settings?flat_settings&include_defaults");
-    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
-    restOptionsBuilder.addHeader("Content-Type", "application/json");
-    request.setOptions(restOptionsBuilder);
-    return new JSONObject(executeRequest(request));
-  }
-
-  protected static String getClusterSetting(String settingPath, String type) throws IOException {
-    JSONObject settings = getAllClusterSettings();
-    String value = settings.optJSONObject(type).optString(settingPath);
-    if (StringUtils.isEmpty(value)) {
-      return settings.optJSONObject("defaults").optString(settingPath);
-    } else {
-      return value;
-    }
   }
 
   protected static class ClusterSetting {
@@ -900,11 +876,36 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "tpch",
         getTpchMappingFile("customer_index_mapping.json"),
         "src/test/resources/tpch/data/customer.json"),
+    BIG5(
+        "big5",
+        "big5",
+        getBig5MappingFile("big5_index_mapping.json"),
+        "src/test/resources/big5/data/big5.json"),
+    CLICK_BENCH(
+        "hits",
+        "clickbench",
+        getClickBenchMappingFile("clickbench_index_mapping.json"),
+        "src/test/resources/clickbench/data/clickbench.json"),
     ARRAY(
         TestsConstants.TEST_INDEX_ARRAY,
         "array",
         getArrayIndexMapping(),
-        "src/test/resources/array.json");
+        "src/test/resources/array.json"),
+    HDFS_LOGS(
+        TestsConstants.TEST_INDEX_HDFS_LOGS,
+        "hdfs_logs",
+        getHdfsLogsIndexMapping(),
+        "src/test/resources/hdfs_logs.json"),
+    LOGS(
+        TestsConstants.TEST_INDEX_LOGS,
+        "logs",
+        getLogsIndexMapping(),
+        "src/test/resources/logs.json"),
+    TIME_TEST_DATA(
+        "opensearch-sql_test_index_time_data",
+        "time_data",
+        getMappingFile("time_test_data_index_mapping.json"),
+        "src/test/resources/time_test_data.json");
 
     private final String name;
     private final String type;
