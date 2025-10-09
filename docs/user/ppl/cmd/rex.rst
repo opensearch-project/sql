@@ -207,7 +207,7 @@ Comparison with Related Commands
 ================================
 
 ================================== ============ ============
-Feature                            rex          parse
+Feature                             rex          parse
 ================================== ============ ============
 Pattern Type                        Java Regex   Java Regex
 Named Groups Required               Yes          Yes
