@@ -84,6 +84,16 @@ stats [bucket_nullable=bool] <aggregation>... [by-clause]
 | year (y)                   |
 +----------------------------+
 
+**Case Sensitivity Note**:
+  - ``m`` (lowercase) = minute
+  - ``M`` (uppercase) = month
+
+.. note::
+
+   The ``stats`` command uses **OpenSearch calendar intervals** for time-based aggregations. **Subsecond units** (us, cs, ds) are **not supported** by the stats command due to OpenSearch limitations.
+
+   If you need subsecond precision for time binning, use the ``bin`` command instead, which implements time binning using Calcite and supports all time units including subsecond precision.
+
 Configuration
 =============
 Some aggregation functions require Calcite to be enabled for proper functionality. To enable Calcite, use the following command:
