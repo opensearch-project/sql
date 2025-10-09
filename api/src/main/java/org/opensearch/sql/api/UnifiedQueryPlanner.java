@@ -31,7 +31,6 @@ import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.common.antlr.Parser;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
-import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.parser.AstBuilder;
@@ -53,7 +52,8 @@ public class UnifiedQueryPlanner {
   private final FrameworkConfig config;
 
   /** AST-to-RelNode visitor that builds logical plans from the parsed AST. */
-  private final CalciteRelNodeVisitor relNodeVisitor = new CalciteRelNodeVisitor(new EmptyDataSourceService());
+  private final CalciteRelNodeVisitor relNodeVisitor =
+      new CalciteRelNodeVisitor(new EmptyDataSourceService());
 
   /**
    * Constructs a UnifiedQueryPlanner for a given query type and schema root.
