@@ -73,22 +73,6 @@ PPL query::
       "status": 400
     }
 
-Example 3
----------
-
-You can reset the setting to default value like this.
-
-PPL query::
-
-    sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X PUT localhost:9200/_plugins/_query/settings \
-    ... -d '{"transient" : {"plugins.ppl.enabled" : null}}'
-    {
-      "acknowledged": true,
-      "persistent": {},
-      "transient": {}
-    }
-
 plugins.query.memory_limit
 ==========================
 
@@ -144,17 +128,6 @@ Change the size_limit to 1000::
           }
         }
       },
-      "transient": {}
-    }
-
-Rollback to default value::
-
-    sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X PUT localhost:9200/_plugins/_query/settings \
-    ... -d '{"persistent" : {"plugins.query.size_limit" : null}}'
-    {
-      "acknowledged": true,
-      "persistent": {},
       "transient": {}
     }
 
@@ -268,22 +241,6 @@ PPL query::
     }
 
 Example 2
----------
-
-Reset to default (unlimited) by setting to null:
-
-PPL query::
-
-    sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X PUT localhost:9200/_plugins/_query/settings \
-    ... -d '{"transient" : {"plugins.ppl.values.max.limit" : null}}'
-    {
-      "acknowledged": true,
-      "persistent": {},
-      "transient": {}
-    }
-
-Example 3
 ---------
 
 Set to 0 explicitly for unlimited values:
