@@ -215,7 +215,7 @@ Multiple Named Groups               Yes          No
 Multiple Matches                    Yes          No
 Text Substitution                   Yes          No
 Offset Tracking                     Yes          No
-Special characters in Group Names   No           No
+Special Characters in Group Names   No           No
 ================================== ============ ============
 
 
