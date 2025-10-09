@@ -29,7 +29,7 @@ class TimechartTest {
   @ParameterizedTest
   @CsvSource({"1, m, MINUTE", "30, s, SECOND", "5, m, MINUTE", "2, h, HOUR", "1, d, DAY"})
   void should_transform_per_second_for_different_spans(
-      int spanValue, String spanUnit, String expectedTimestampAddUnit) {
+      int spanValue, String spanUnit, String expectedIntervalUnit) {
     withTimechart(span(spanValue, spanUnit), perSecond("bytes"))
         .whenTransformingPerFunction()
         .thenExpect(
@@ -41,7 +41,7 @@ class TimechartTest {
                         timestampdiff(
                             "SECOND",
                             "@timestamp",
-                            timestampadd(expectedTimestampAddUnit, spanValue, "@timestamp")))),
+                            timestampadd(expectedIntervalUnit, spanValue, "@timestamp")))),
                 timechart(span(spanValue, spanUnit), alias("per_second(bytes)", sum("bytes")))));
   }
 

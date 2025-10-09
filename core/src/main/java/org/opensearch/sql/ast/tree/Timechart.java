@@ -11,6 +11,9 @@ import static org.opensearch.sql.ast.dsl.AstDSL.eval;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.expression.IntervalUnit.SECOND;
+import static org.opensearch.sql.ast.tree.Timechart.PerFunctionRateExprBuilder.sum;
+import static org.opensearch.sql.ast.tree.Timechart.PerFunctionRateExprBuilder.timestampadd;
+import static org.opensearch.sql.ast.tree.Timechart.PerFunctionRateExprBuilder.timestampdiff;
 import static org.opensearch.sql.calcite.plan.OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLY;
@@ -21,9 +24,12 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTA
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.dsl.AstDSL;
@@ -88,73 +94,68 @@ public class Timechart extends UnresolvedPlan {
   }
 
   /**
-   * Transform per function to Eval-based post-processing on sum result by Timechart. Specifically,
+   * Transform per function to eval-based post-processing on sum result by timechart. Specifically,
    * calculate how many seconds are in the time bucket based on the span option dynamically, then
    * divide the aggregated sum value by the number of seconds to get the per-second rate.
    *
    * <p>For example, with span=5m per_second(field): per second rate = sum(field) / 300 seconds
    *
-   * <p>TODO: extend to support additional per_* functions
-   *
-   * @return Eval+Timechart AST if per function present, or the original AST otherwise.
+   * @return eval+timechart if per function present, or the original timechart otherwise.
    */
   private UnresolvedPlan transformPerSecondFunction() {
-    AggregateFunction aggFunc = (AggregateFunction) this.aggregateFunction;
-    if (!"per_second".equals(aggFunc.getFuncName())) {
+    Optional<PerFunction> perFuncOpt = PerFunction.from(aggregateFunction);
+    if (perFuncOpt.isEmpty()) {
       return this;
     }
 
+    PerFunction perFunc = perFuncOpt.get();
     Span span = (Span) this.binExpression;
-    String aggName = aggregationName(aggFunc);
-    Field aggField = AstDSL.field(aggName);
     Field spanStartTime = AstDSL.field(IMPLICIT_FIELD_TIMESTAMP);
     Function spanEndTime = timestampadd(span.getUnit(), span.getValue(), spanStartTime);
+    Function spanSeconds = timestampdiff(SECOND, spanStartTime, spanEndTime);
 
     return eval(
-        timechart(AstDSL.alias(aggName, sum(aggFunc.getField()))),
-        let(aggField)
-            .multiply(perUnitSeconds())
-            .dividedBy(timestampdiff(SECOND, spanStartTime, spanEndTime)));
-  }
-
-  private String aggregationName(AggregateFunction aggFunc) {
-    UnresolvedExpression field = aggFunc.getField();
-    String fieldName =
-        field instanceof Field ? ((Field) field).getField().toString() : field.toString();
-    return String.format(Locale.ROOT, "%s(%s)", aggFunc.getFuncName(), fieldName);
+        timechart(AstDSL.alias(perFunc.aggName, sum(perFunc.aggArg))),
+        let(perFunc.aggName).multiply(perFunc.seconds).dividedBy(spanSeconds));
   }
 
   private Timechart timechart(UnresolvedExpression newAggregateFunction) {
     return this.toBuilder().aggregateFunction(newAggregateFunction).build();
   }
 
-  private UnresolvedExpression perUnitSeconds() {
-    return doubleLiteral(1.0);
+  /** TODO: extend to support additional per_* functions */
+  @RequiredArgsConstructor
+  private static final class PerFunction {
+    private static final Map<String, Integer> UNIT_SECONDS = Map.of("per_second", 1);
+    private final String aggName;
+    private final UnresolvedExpression aggArg;
+    private final int seconds;
+
+    static Optional<PerFunction> from(UnresolvedExpression aggFunc) {
+      if (!(aggFunc instanceof AggregateFunction agg)) {
+        return Optional.empty();
+      }
+
+      String aggFuncName = agg.getFuncName().toLowerCase(Locale.ROOT);
+      if (!UNIT_SECONDS.containsKey(aggFuncName)) {
+        return Optional.empty();
+      }
+
+      String fieldName =
+          (agg.getField() instanceof Field)
+              ? ((Field) agg.getField()).getField().toString()
+              : agg.getField().toString();
+      String aggName = String.format(Locale.ROOT, "%s(%s)", aggFuncName, fieldName);
+      return Optional.of(new PerFunction(aggName, agg.getField(), UNIT_SECONDS.get(aggFuncName)));
+    }
   }
 
-  private UnresolvedExpression sum(UnresolvedExpression field) {
-    return aggregate(SUM.getName().getFunctionName(), field);
-  }
-
-  private Function timestampadd(
-      SpanUnit unit, UnresolvedExpression value, UnresolvedExpression timestampField) {
-    UnresolvedExpression intervalUnit =
-        stringLiteral(PlanUtils.spanUnitToIntervalUnit(unit).toString());
-    return function(TIMESTAMPADD.getName().getFunctionName(), intervalUnit, value, timestampField);
-  }
-
-  private Function timestampdiff(
-      IntervalUnit unit, UnresolvedExpression start, UnresolvedExpression end) {
-    return function(
-        TIMESTAMPDIFF.getName().getFunctionName(), stringLiteral(unit.toString()), start, end);
-  }
-
-  private PerFunctionRateExprBuilder let(Field field) {
-    return new PerFunctionRateExprBuilder(field);
+  private PerFunctionRateExprBuilder let(String fieldName) {
+    return new PerFunctionRateExprBuilder(AstDSL.field(fieldName));
   }
 
   /** Fluent builder for creating Let expressions with mathematical operations. */
-  private static class PerFunctionRateExprBuilder {
+  static class PerFunctionRateExprBuilder {
     private final Field field;
     private UnresolvedExpression expr;
 
@@ -163,13 +164,34 @@ public class Timechart extends UnresolvedPlan {
       this.expr = field;
     }
 
-    PerFunctionRateExprBuilder multiply(UnresolvedExpression right) {
-      this.expr = function(MULTIPLY.getName().getFunctionName(), expr, right);
+    PerFunctionRateExprBuilder multiply(Integer multiplier) {
+      // Promote to double literal to avoid integer division in downstream
+      this.expr =
+          function(
+              MULTIPLY.getName().getFunctionName(), expr, doubleLiteral(multiplier.doubleValue()));
       return this;
     }
 
     Let dividedBy(UnresolvedExpression divisor) {
       return AstDSL.let(field, function(DIVIDE.getName().getFunctionName(), expr, divisor));
+    }
+
+    static UnresolvedExpression sum(UnresolvedExpression field) {
+      return aggregate(SUM.getName().getFunctionName(), field);
+    }
+
+    static Function timestampadd(
+        SpanUnit unit, UnresolvedExpression value, UnresolvedExpression timestampField) {
+      UnresolvedExpression intervalUnit =
+          stringLiteral(PlanUtils.spanUnitToIntervalUnit(unit).toString());
+      return function(
+          TIMESTAMPADD.getName().getFunctionName(), intervalUnit, value, timestampField);
+    }
+
+    static Function timestampdiff(
+        IntervalUnit unit, UnresolvedExpression start, UnresolvedExpression end) {
+      return function(
+          TIMESTAMPDIFF.getName().getFunctionName(), stringLiteral(unit.toString()), start, end);
     }
   }
 }
