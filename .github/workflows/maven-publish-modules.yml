@@ -7,7 +7,6 @@ on:
       - main
       - 1.*
       - 2.*
-      - feature/unified-ppl # Temporarily added for testing
 
 env:
   SNAPSHOT_REPO_URL: https://aws.oss.sonatype.org/content/repositories/snapshots/
