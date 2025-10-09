@@ -748,4 +748,13 @@ public class PPLQueryDataAnonymizerTest {
         "source=table (@timestamp:*** AND (@timestamp:***",
         anonymize("search source=t earliest='2012-12-10 15:00:00' latest=now"));
   }
+
+  @Test
+  public void testSpath() {
+    assertEquals(
+        "source=table | spath input=identifier output=identifier path=identifier | fields +"
+            + " identifier,identifier",
+        anonymize(
+            "search source=t | spath input=json_attr output=out path=foo.bar | fields id, out"));
+  }
 }
