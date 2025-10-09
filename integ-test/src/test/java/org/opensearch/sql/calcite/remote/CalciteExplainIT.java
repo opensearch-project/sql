@@ -28,6 +28,7 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.BANK_WITH_STRING_VALUES);
     loadIndex(Index.NESTED_SIMPLE);
     loadIndex(Index.TIME_TEST_DATA);
+    loadIndex(Index.TIME_TEST_DATA2);
     loadIndex(Index.EVENTS);
     loadIndex(Index.LOGS);
   }
@@ -150,6 +151,30 @@ public class CalciteExplainIT extends ExplainIT {
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | where isempty(firstname)"));
+  }
+
+  @Test
+  public void testExplainMultisearchBasic() throws IOException {
+    String query =
+        "| multisearch [search"
+            + " source=opensearch-sql_test_index_account | where age < 30 | eval age_group ="
+            + " 'young'] [search source=opensearch-sql_test_index_account | where age >= 30 | eval"
+            + " age_group = 'adult'] | stats count by age_group";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_multisearch_basic.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainMultisearchTimestampInterleaving() throws IOException {
+    String query =
+        "| multisearch "
+            + "[search source=opensearch-sql_test_index_time_data | where category IN ('A', 'B')] "
+            + "[search source=opensearch-sql_test_index_time_data2 | where category IN ('E', 'F')] "
+            + "| head 5";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_multisearch_timestamp.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
   // Only for Calcite
@@ -877,6 +902,24 @@ public class CalciteExplainIT extends ExplainIT {
                 + " gender, state | sort `count()`"));
   }
 
+  @Test
+  public void testExplainEvalMax() throws IOException {
+    String expected = loadExpectedPlan("explain_eval_max.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | eval new = max(1, 2, 3, age, 'banana')"));
+  }
+
+  @Test
+  public void testExplainEvalMin() throws IOException {
+    String expected = loadExpectedPlan("explain_eval_min.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | eval new = min(1, 2, 3, age, 'banana')"));
+  }
+
   /**
    * Executes the PPL query and returns the result as a string with windows-style line breaks
    * replaced with Unix-style ones.
@@ -926,5 +969,15 @@ public class CalciteExplainIT extends ExplainIT {
                 "source=%s | eval t = date_add(birthdate, interval 1 day) | stats count() by"
                     + " span(t, 1d)",
                 TEST_INDEX_BANK)));
+  }
+
+  @Test
+  public void testFillNullValueSyntaxExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_fillnull_value_syntax.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | fields age, balance | fillnull value=0", TEST_INDEX_ACCOUNT)));
   }
 }

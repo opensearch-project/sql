@@ -7,6 +7,7 @@ package org.opensearch.sql.ast.expression;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
+import java.text.DecimalFormat;
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -25,7 +26,21 @@ public class Literal extends UnresolvedExpression {
 
   public Literal(Object value, DataType dataType) {
     if (dataType == DataType.DECIMAL && value instanceof Double) {
-      this.value = BigDecimal.valueOf((Double) value);
+      // This branch is only used in testing for backward compatibility:
+      // We accept decimal literal by Literal(double, DataType.DECIMAL).
+      // Some double values such as 0.0001 will be converted to string "1.0E-4" and finally
+      // generate decimal 0.00010. So here we parse a decimal text to Double then convert it
+      // to BigDecimal as well.
+      // In v2, a decimal literal will be converted back to double in resolving expression
+      // via ExprDoubleValue.
+      // In v3, a decimal literal will be kept in Calcite RexNode and converted back to double
+      // in runtime.
+      DecimalFormat df = new DecimalFormat();
+      df.setMaximumFractionDigits(38);
+      df.setMinimumFractionDigits(1);
+      df.setGroupingUsed(false);
+      String plain = df.format(value);
+      this.value = new BigDecimal(plain);
     } else {
       this.value = value;
     }

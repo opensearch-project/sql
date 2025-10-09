@@ -282,6 +282,18 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testFillNullValueSyntaxWithFields() {
+    assertEquals(
+        "source=table | fillnull value=*** identifier identifier",
+        anonymize("source=t | fillnull value=0 f1 f2"));
+  }
+
+  @Test
+  public void testFillNullValueSyntaxAllFields() {
+    assertEquals("source=table | fillnull value=***", anonymize("source=t | fillnull value=0"));
+  }
+
+  @Test
   public void testRareCommandWithGroupBy() {
     when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(false);
     assertEquals(
@@ -686,6 +698,30 @@ public class PPLQueryDataAnonymizerTest {
         anonymize("source=t | rex field=message \"(?<word>[a-z]+)\" offset_field=pos"));
   }
 
+  @Test
+  public void testMultisearch() {
+    assertEquals(
+        "| multisearch [search source=table | where identifier < ***] [search"
+            + " source=table | where identifier >= ***]",
+        anonymize(
+            "| multisearch [search source=accounts | where age < 30] [search"
+                + " source=accounts | where age >= 30]"));
+
+    assertEquals(
+        "| multisearch [search source=table | where identifier > ***] [search"
+            + " source=table | where identifier = ***]",
+        anonymize(
+            "| multisearch [search source=accounts | where balance > 20000]"
+                + " [search source=accounts | where state = 'CA']"));
+
+    assertEquals(
+        "| multisearch [search source=table | fields + identifier,identifier] [search"
+            + " source=table | where identifier = ***]",
+        anonymize(
+            "| multisearch [search source=accounts | fields firstname, lastname]"
+                + " [search source=accounts | where age = 25]"));
+  }
+
   private String anonymize(String query) {
     AstBuilder astBuilder = new AstBuilder(query, settings);
     return anonymize(astBuilder.visit(parser.parse(query)));
@@ -704,5 +740,12 @@ public class PPLQueryDataAnonymizerTest {
     Statement statement = builder.visit(parser.parse(query));
     PPLQueryDataAnonymizer anonymize = new PPLQueryDataAnonymizer(settings);
     return anonymize.anonymizeStatement(statement);
+  }
+
+  @Test
+  public void testSearchWithAbsoluteTimeRange() {
+    assertEquals(
+        "source=table (@timestamp:*** AND (@timestamp:***",
+        anonymize("search source=t earliest='2012-12-10 15:00:00' latest=now"));
   }
 }

@@ -565,6 +565,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "location2",
         getLocationIndexMapping(),
         "src/test/resources/locations2.json"),
+    LOCATIONS_TYPE_CONFLICT(
+        TestsConstants.TEST_INDEX_LOCATIONS_TYPE_CONFLICT,
+        "locations",
+        getLocationsTypeConflictIndexMapping(),
+        "src/test/resources/locations_type_conflict.json"),
     NESTED(
         TestsConstants.TEST_INDEX_NESTED_TYPE,
         "nestedType",
@@ -635,6 +640,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "_doc",
         getOrderIndexMapping(),
         "src/test/resources/order.json"),
+    TIME_TEST_DATA2(
+        "opensearch-sql_test_index_time_data2",
+        "time_data",
+        getMappingFile("time_test_data_index_mapping.json"),
+        "src/test/resources/time_test_data2.json"),
     WEBLOG(
         TestsConstants.TEST_INDEX_WEBLOGS,
         "weblogs",
@@ -650,6 +660,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "_doc",
         getDateTimeIndexMapping(),
         "src/test/resources/datetime.json"),
+    DATETIME_NESTED(
+        TestsConstants.TEST_INDEX_DATE_TIME_NESTED,
+        "_doc",
+        getDateTimeNestedIndexMapping(),
+        "src/test/resources/datetime_nested.json"),
     NESTED_SIMPLE(
         TestsConstants.TEST_INDEX_NESTED_SIMPLE,
         "_doc",
