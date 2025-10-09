@@ -210,12 +210,12 @@ Comparison with Related Commands
 Feature                            rex          parse
 ================================== ============ ============
 Pattern Type                        Java Regex   Java Regex
-Named Groups Required                 Yes          Yes
-Multiple Named Groups                 Yes          No
-Multiple Matches                      Yes          No
-Text Substitution                     Yes          No
-Offset Tracking                       Yes          No
-Special characters in Group Names     No           No
+Named Groups Required               Yes          Yes
+Multiple Named Groups               Yes          No
+Multiple Matches                    Yes          No
+Text Substitution                   Yes          No
+Offset Tracking                     Yes          No
+Special characters in Group Names   No           No
 ================================== ============ ============
 
 
