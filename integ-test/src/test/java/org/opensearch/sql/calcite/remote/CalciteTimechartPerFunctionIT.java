@@ -23,13 +23,12 @@ public class CalciteTimechartPerFunctionIT extends PPLIntegTestCase {
     enableCalcite();
     disallowCalciteFallback();
 
-    loadIndex(Index.TIMECHART_PER_FUNCTION);
+    loadIndex(Index.EVENTS_TRAFFIC);
   }
 
   @Test
   public void testTimechartPerSecondWithDefaultSpan() throws IOException {
-    JSONObject result =
-        executeQuery("source=timechart_per_function_test | timechart per_second(packets)");
+    JSONObject result = executeQuery("source=events_traffic | timechart per_second(packets)");
 
     verifySchema(
         result, schema("@timestamp", "timestamp"), schema("per_second(packets)", "double"));
@@ -43,7 +42,7 @@ public class CalciteTimechartPerFunctionIT extends PPLIntegTestCase {
   @Test
   public void testTimechartPerSecondWithSpecifiedSpan() throws IOException {
     JSONObject result =
-        executeQuery("source=timechart_per_function_test | timechart span=2m per_second(packets)");
+        executeQuery("source=events_traffic | timechart span=2m per_second(packets)");
 
     verifySchema(
         result, schema("@timestamp", "timestamp"), schema("per_second(packets)", "double"));
@@ -56,8 +55,7 @@ public class CalciteTimechartPerFunctionIT extends PPLIntegTestCase {
   @Test
   public void testTimechartPerSecondWithByClause() throws IOException {
     JSONObject result =
-        executeQuery(
-            "source=timechart_per_function_test | timechart span=2m per_second(packets) by host");
+        executeQuery("source=events_traffic | timechart span=2m per_second(packets) by host");
 
     verifySchema(
         result,
@@ -75,8 +73,7 @@ public class CalciteTimechartPerFunctionIT extends PPLIntegTestCase {
   public void testTimechartPerSecondWithLimitAndByClause() throws IOException {
     JSONObject result =
         executeQuery(
-            "source=timechart_per_function_test | timechart span=2m limit=1 per_second(packets) by"
-                + " host");
+            "source=events_traffic | timechart span=2m limit=1 per_second(packets) by host");
 
     verifySchema(
         result,
