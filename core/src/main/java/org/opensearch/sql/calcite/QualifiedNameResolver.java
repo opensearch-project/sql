@@ -212,7 +212,7 @@ public class QualifiedNameResolver {
     String originalFieldName = joinParts(renamedFieldName.getParts(), 1);
     return context.relBuilder.peek().getRowType().getFieldNames().stream()
         .filter(col -> getNameBeforeRename(col).equals(originalFieldName))
-        .toList();
+        .collect(Collectors.toList());
   }
 
   private static String getNameBeforeRename(String fieldName) {
