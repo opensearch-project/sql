@@ -2421,26 +2421,37 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RexNode patternNode = rexVisitor.analyze(node.getPattern(), context);
     RexNode replacementNode = rexVisitor.analyze(node.getReplacement(), context);
 
+    // Create a set of field names to replace for quick lookup
+    Set<String> fieldsToReplace =
+        node.getFieldList().stream().map(f -> f.getField().toString()).collect(Collectors.toSet());
+
+    // Validate that all fields to replace exist in the current schema
+    Set<String> availableFields = new HashSet<>(fieldNames);
+    for (String fieldToReplace : fieldsToReplace) {
+      if (!availableFields.contains(fieldToReplace)) {
+        throw new IllegalArgumentException(
+            String.format(
+                "field [%s] not found; input fields are: %s", fieldToReplace, fieldNames));
+      }
+    }
+
     List<RexNode> projectList = new ArrayList<>();
     List<String> newFieldNames = new ArrayList<>();
 
-    // First add all original fields
+    // Project all fields, replacing specified ones in-place
     for (String fieldName : fieldNames) {
-      RexNode fieldRef = context.relBuilder.field(fieldName);
-      projectList.add(fieldRef);
-      newFieldNames.add(fieldName);
-    }
-
-    // Then add new fields with replaced content using new_ prefix
-    for (Field field : node.getFieldList()) {
-      String fieldName = field.getField().toString();
-      RexNode fieldRef = context.relBuilder.field(fieldName);
-
-      RexNode replaceCall =
-          context.relBuilder.call(
-              SqlStdOperatorTable.REPLACE, fieldRef, patternNode, replacementNode);
-      projectList.add(replaceCall);
-      newFieldNames.add(NEW_FIELD_PREFIX + fieldName);
+      if (fieldsToReplace.contains(fieldName)) {
+        // Replace this field in-place
+        RexNode fieldRef = context.relBuilder.field(fieldName);
+        RexNode replaceCall =
+            context.relBuilder.call(
+                SqlStdOperatorTable.REPLACE, fieldRef, patternNode, replacementNode);
+        projectList.add(replaceCall);
+      } else {
+        // Keep original field unchanged
+        projectList.add(context.relBuilder.field(fieldName));
+      }
+      newFieldNames.add(fieldName); // Same field name (in-place replacement)
     }
 
     context.relBuilder.project(projectList, newFieldNames);

@@ -29,11 +29,11 @@ public class CalciteReplaceCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source = %s | replace 'USA' WITH 'United States' IN country | fields name, age,"
-                    + " new_country",
+                    + " country",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifySchema(
-        result, schema("name", "string"), schema("age", "int"), schema("new_country", "string"));
+        result, schema("name", "string"), schema("age", "int"), schema("country", "string"));
 
     verifyDataRows(
         result,
@@ -55,20 +55,18 @@ public class CalciteReplaceCommandIT extends PPLIntegTestCase {
     verifySchema(
         result,
         schema("name", "string"),
-        schema("age", "int"),
-        schema("state", "string"),
         schema("country", "string"),
-        schema("year", "int"),
+        schema("state", "string"),
         schema("month", "int"),
-        schema("new_name", "string"),
-        schema("new_country", "string"));
+        schema("year", "int"),
+        schema("age", "int"));
 
     verifyDataRows(
         result,
-        rows("Jake", "USA", "California", 4, 2023, 70, "United States", "Jake"),
-        rows("Hello", "USA", "New York", 4, 2023, 30, "United States", "Hello"),
-        rows("John", "Canada", "Ontario", 4, 2023, 25, "Canada", "John"),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, "Canada", "Joseph"));
+        rows("Jake", "United States", "California", 4, 2023, 70),
+        rows("Hello", "United States", "New York", 4, 2023, 30),
+        rows("John", "Canada", "Ontario", 4, 2023, 25),
+        rows("Joseph", "Canada", "Quebec", 4, 2023, 20));
   }
 
   @Test
@@ -76,7 +74,7 @@ public class CalciteReplaceCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source = %s | replace 'US' WITH 'United States' IN country | sort new_country",
+                "source = %s | replace 'US' WITH 'United States' IN country | sort country",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifySchema(
@@ -86,8 +84,7 @@ public class CalciteReplaceCommandIT extends PPLIntegTestCase {
         schema("state", "string"),
         schema("country", "string"),
         schema("year", "int"),
-        schema("month", "int"),
-        schema("new_country", "string"));
+        schema("month", "int"));
   }
 
   @Test
@@ -105,8 +102,7 @@ public class CalciteReplaceCommandIT extends PPLIntegTestCase {
         schema("state", "string"),
         schema("country", "string"),
         schema("year", "int"),
-        schema("month", "int"),
-        schema("new_country", "string"));
+        schema("month", "int"));
   }
 
   @Test
@@ -119,19 +115,18 @@ public class CalciteReplaceCommandIT extends PPLIntegTestCase {
     verifySchema(
         result,
         schema("name", "string"),
-        schema("age", "int"),
-        schema("state", "string"),
         schema("country", "string"),
-        schema("year", "int"),
+        schema("state", "string"),
         schema("month", "int"),
-        schema("new_country", "string"));
+        schema("year", "int"),
+        schema("age", "int"));
 
     verifyDataRows(
         result,
-        rows("Jake", "USA", "California", 4, 2023, 70, ""),
-        rows("Hello", "USA", "New York", 4, 2023, 30, ""),
-        rows("John", "Canada", "Ontario", 4, 2023, 25, "Canada"),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, "Canada"));
+        rows("Jake", "", "California", 4, 2023, 70),
+        rows("Hello", "", "New York", 4, 2023, 30),
+        rows("John", "Canada", "Ontario", 4, 2023, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20));
   }
 
   @Test
@@ -145,20 +140,18 @@ public class CalciteReplaceCommandIT extends PPLIntegTestCase {
     verifySchema(
         result,
         schema("name", "string"),
-        schema("age", "int"),
-        schema("state", "string"),
         schema("country", "string"),
-        schema("year", "int"),
+        schema("state", "string"),
         schema("month", "int"),
-        schema("new_state", "string"),
-        schema("new_country", "string"));
+        schema("year", "int"),
+        schema("age", "int"));
 
     verifyDataRows(
         result,
-        rows("Jake", "USA", "California", 4, 2023, 70, "United States", "California"),
-        rows("Hello", "USA", "New York", 4, 2023, 30, "United States", "New York"),
-        rows("John", "Canada", "Ontario", 4, 2023, 25, "Canada", "Ontario"),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, "Canada", "Quebec"));
+        rows("Jake", "United States", "California", 4, 2023, 70),
+        rows("Hello", "United States", "New York", 4, 2023, 30),
+        rows("John", "Canada", "Ontario", 4, 2023, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20));
   }
 
   @Test
