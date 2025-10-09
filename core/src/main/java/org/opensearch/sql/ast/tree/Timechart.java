@@ -80,7 +80,7 @@ public class Timechart extends UnresolvedPlan {
   @Override
   public UnresolvedPlan attach(UnresolvedPlan child) {
     // Transform after child attached to avoid unintentionally overriding it
-    return toBuilder().child(child).build().transformPerSecondFunction();
+    return toBuilder().child(child).build().transformPerFunction();
   }
 
   @Override
@@ -102,7 +102,7 @@ public class Timechart extends UnresolvedPlan {
    *
    * @return eval+timechart if per function present, or the original timechart otherwise.
    */
-  private UnresolvedPlan transformPerSecondFunction() {
+  private UnresolvedPlan transformPerFunction() {
     Optional<PerFunction> perFuncOpt = PerFunction.from(aggregateFunction);
     if (perFuncOpt.isEmpty()) {
       return this;
@@ -125,28 +125,34 @@ public class Timechart extends UnresolvedPlan {
 
   /** TODO: extend to support additional per_* functions */
   @RequiredArgsConstructor
-  private static final class PerFunction {
+  static class PerFunction {
     private static final Map<String, Integer> UNIT_SECONDS = Map.of("per_second", 1);
     private final String aggName;
     private final UnresolvedExpression aggArg;
     private final int seconds;
 
-    static Optional<PerFunction> from(UnresolvedExpression aggFunc) {
-      if (!(aggFunc instanceof AggregateFunction agg)) {
+    static Optional<PerFunction> from(UnresolvedExpression aggExpr) {
+      if (!(aggExpr instanceof AggregateFunction)) {
         return Optional.empty();
       }
 
-      String aggFuncName = agg.getFuncName().toLowerCase(Locale.ROOT);
+      AggregateFunction aggFunc = (AggregateFunction) aggExpr;
+      String aggFuncName = aggFunc.getFuncName().toLowerCase(Locale.ROOT);
       if (!UNIT_SECONDS.containsKey(aggFuncName)) {
         return Optional.empty();
       }
 
+      String aggName = toAggName(aggFunc);
+      return Optional.of(
+          new PerFunction(aggName, aggFunc.getField(), UNIT_SECONDS.get(aggFuncName)));
+    }
+
+    private static String toAggName(AggregateFunction aggFunc) {
       String fieldName =
-          (agg.getField() instanceof Field)
-              ? ((Field) agg.getField()).getField().toString()
-              : agg.getField().toString();
-      String aggName = String.format(Locale.ROOT, "%s(%s)", aggFuncName, fieldName);
-      return Optional.of(new PerFunction(aggName, agg.getField(), UNIT_SECONDS.get(aggFuncName)));
+          (aggFunc.getField() instanceof Field)
+              ? ((Field) aggFunc.getField()).getField().toString()
+              : aggFunc.getField().toString();
+      return String.format(Locale.ROOT, "%s(%s)", aggFunc.getFuncName(), fieldName);
     }
   }
 
