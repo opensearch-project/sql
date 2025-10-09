@@ -175,9 +175,9 @@ Example::
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+
     | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | avg(age)           |
     |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------|
-    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 28.0               |
-    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 32.0               |
-    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 34.0               |
+    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 28                 |
+    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 32                 |
+    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 34                 |
     | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 33.666666666666664 |
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+
 
@@ -239,9 +239,9 @@ Example::
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+
     | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | var_samp(age)      |
     |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------|
-    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | null               |
-    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 8                  |
-    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 16                 |
+    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | null               |
+    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 8                  |
+    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 16                 |
     | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 10.916666666666666 |
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+
 
@@ -261,9 +261,9 @@ Example::
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+
     | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | var_pop(age)       |
     |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------|
-    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 0                  |
-    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 4                  |
-    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 10.666666666666666 |
+    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 0                  |
+    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 4                  |
+    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 10.666666666666666 |
     | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 8.1875             |
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+
 
@@ -283,9 +283,9 @@ Example::
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+
     | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | stddev_samp(age)   |
     |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------|
-    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | null               |
-    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 2.8284271247461903 |
-    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 4                  |
+    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | null               |
+    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 2.8284271247461903 |
+    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 4                  |
     | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 3.304037933599835  |
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+
 
@@ -305,9 +305,9 @@ Example::
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+
     | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | stddev_pop(age)    |
     |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------|
-    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 0                  |
-    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 2                  |
-    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 3.265986323710904  |
+    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 0                  |
+    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 2                  |
+    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 3.265986323710904  |
     | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 2.8613807855648994 |
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+
 
@@ -394,31 +394,35 @@ PPL query::
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+-------------+---------------+
     | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | running_avg        | running_sum | running_count |
     |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+-------------+---------------|
-    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 28.0               | 28          | 1             |
-    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 32.0               | 32          | 1             |
-    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 34.0               | 68          | 2             |
+    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 28                 | 28          | 1             |
+    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 32                 | 32          | 1             |
+    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 34                 | 68          | 2             |
     | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 33.666666666666664 | 101         | 3             |
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+-------------+---------------+
 
 
-Example 2: Running maximum temperature over a 2-row window
-===================================================
+Example 2: Running maximum age over a 2-row window
+==================================================
 
-This example calculates the running maximum temperature over a 2-row window, excluding the current event.
+This example calculates the running maximum age over a 2-row window, excluding the current event.
 
 PPL query::
 
-    PPL> source=test_temperature | streamstats current=false window=2 max(temperature) as prev_max_temp
-    fetched rows / total rows = 5/5
-    +----+------------+-------------+---------------+
-    | id | timestamp  | temperature | prev_max_temp |
-    |----+------------+-------------+---------------|
-    | 1  | 2025-09-01 | 20          | null          |
-    | 2  | 2025-09-02 | 25          | 20            |
-    | 3  | 2025-09-03 | 22          | 25            |
-    | 4  | 2025-09-04 | 30          | 25            |
-    | 5  | 2025-09-05 | 28          | 30            |
-    +----+------------+-------------+---------------+
+    PPL> source=state_country | streamstats current=false window=2 max(age) as prev_max_age
+    fetched rows / total rows = 8/8
+    +-------+---------+------------+-------+------+-----+--------------+
+    | name  | country | state      | month | year | age | prev_max_age |
+    |-------+---------+------------+-------+------+-----+--------------|
+    | Jake  | USA     | California | 4     | 2023 | 70  | null         |
+    | Hello | USA     | New York   | 4     | 2023 | 30  | 70           |
+    | John  | Canada  | Ontario    | 4     | 2023 | 25  | 70           |
+    | Jane  | Canada  | Quebec     | 4     | 2023 | 20  | 30           |
+    | Jim   | Canada  | B.C        | 4     | 2023 | 27  | 25           |
+    | Peter | Canada  | B.C        | 4     | 2023 | 57  | 27           |
+    | Rick  | Canada  | B.C        | 4     | 2023 | 70  | 57           |
+    | David | USA     | Washington | 4     | 2023 | 40  | 70           |
+    +-------+---------+------------+-------+------+-----+--------------+
+
 
 
 Example 3: Use the global argument to calculate running statistics
@@ -429,42 +433,44 @@ The global argument is only applicable when a window argument is set. It defines
 * global=true: a global window is applied across all rows, but the calculations inside the window still respect the by groups.
 * global=false: the window itself is created per group, meaning each group gets its own independent window.
 
-This example shows how to calculate the running average of age across accounts by gender, using a global window.
+This example shows how to calculate the running average of age across accounts by country, using a global window.
 
 PPL query::
 
-    PPL> source=accounts | streamstats window=2 global=true avg(age) as running_avg by gender ;
-    fetched rows / total rows = 7/7
-    +----------------+-----------+-------------------+---------+--------+--------------+----------+-------+-----+----------+-------------+
-    | account_number | firstname | address           | balance | gender | city         | employer | state | age | lastname | running_avg |
-    |----------------+-----------+-------------------+---------+--------+--------------+----------+-------+-----+----------+-------------+
-    | 969            | Briggs    | 952 Lester Court  | 22214   | M      | Roland       | Quinex   | ID    | 30  | Lynn     | 30          |
-    | 971            | Gabrielle | 964 Tudor Terrace | 22772   | F      | Falmouth     | Blanet   | AL    | 32  | Reilly   | 32          |
-    | 976            | Mullen    | 711 Whitney Avenue| 31707   | M      | Mooresburg   | Pulze    | MA    | 26  | Tanner   | 26          |
-    | 983            | Mattie    | 418 Allen Avenue  | 47205   | F      | Dupuyer      | Trasola  | NJ    | 24  | Eaton    | 24          |
-    | 988            | Lucy      | 425 Fleet Walk    | 17803   | F      | Mulino       | Geekfarm | VA    | 34  | Castro   | 29          |
-    | 990            | Kelly     | 809 Hoyt Street   | 44456   | M      | Stewartville | Eschoir  | ID    | 35  | Steele   | 35          |
-    | 995            | Phelps    | 666 Miller Place  | 21153   | M      | Brecon       | Pearlessa| ME    | 25  | Parrish  | 30          |
-    +----------------+-----------+-------------------+---------+--------+--------------+----------+-------+-----+----------+-------------+
+    PPL> source=state_country | streamstats window=2 global=true avg(age) as running_avg by country ;
+    fetched rows / total rows = 8/8
+    +-------+---------+------------+-------+------+-----+-------------+
+    | name  | country | state      | month | year | age | running_avg |
+    |-------+---------+------------+-------+------+-----+-------------|
+    | John  | Canada  | Ontario    | 4     | 2023 | 25  | 25          |
+    | Jane  | Canada  | Quebec     | 4     | 2023 | 20  | 22.5        |
+    | Jim   | Canada  | B.C        | 4     | 2023 | 27  | 23.5        |
+    | Peter | Canada  | B.C        | 4     | 2023 | 57  | 42          |
+    | Rick  | Canada  | B.C        | 4     | 2023 | 70  | 63.5        |
+    | Jake  | USA     | California | 4     | 2023 | 70  | 70          |
+    | Hello | USA     | New York   | 4     | 2023 | 30  | 50          |
+    | David | USA     | Washington | 4     | 2023 | 40  | 40          |
+    +-------+---------+------------+-------+------+-----+-------------+
 
 
 Example 4: Use the reset_before and reset_after arguments to reset statistics
 =============================================================================
 
-This example calculates the running average of age across accounts by gender, with resets applied.
+This example calculates the running average of age across accounts by country, with resets applied.
 
 PPL query::
 
-    PPL> source=accounts | streamstats current=false reset_before=age>34 reset_after=age<25 avg(age) as avg_age by gender;
-    fetched rows / total rows = 7/7
-    +----------------+-----------+-------------------+---------+--------+--------------+----------+-------+-----+----------+---------+
-    | account_number | firstname | address           | balance | gender | city         | employer | state | age | lastname | avg_age |
-    |----------------+-----------+-------------------+---------+--------+--------------+----------+-------+-----+----------+---------|
-    | 969            | Briggs    | 952 Lester Court  | 22214   | M      | Roland       | Quinex   | ID    | 30  | Lynn     | null    |
-    | 971            | Gabrielle | 964 Tudor Terrace | 22772   | F      | Falmouth     | Blanet   | AL    | 32  | Reilly   | null    |
-    | 976            | Mullen    | 711 Whitney Avenue| 31707   | M      | Mooresburg   | Pulze    | MA    | 26  | Tanner   | 30      |
-    | 983            | Mattie    | 418 Allen Avenue  | 47205   | F      | Dupuyer      | Trasola  | NJ    | 24  | Eaton    | 32      |
-    | 988            | Lucy      | 425 Fleet Walk    | 17803   | F      | Mulino       | Geekfarm | VA    | 34  | Castro   | null    |
-    | 990            | Kelly     | 809 Hoyt Street   | 44456   | M      | Stewartville | Eschoir  | ID    | 35  | Steele   | null    |
-    | 995            | Phelps    | 666 Miller Place  | 21153   | M      | Brecon       | Pearlessa| ME    | 25  | Parrish  | 35      |
-    +----------------+-----------+-------------------+---------+--------+--------------+----------+-------+-----+----------+---------+
+    PPL> source=state_country | streamstats current=false reset_before=age>34 reset_after=age<25 avg(age) as avg_age by country;
+    fetched rows / total rows = 8/8
+    +-------+---------+------------+-------+------+-----+---------+
+    | name  | country | state      | month | year | age | avg_age |
+    |-------+---------+------------+-------+------+-----+---------|
+    | John  | Canada  | Ontario    | 4     | 2023 | 25  | null    |
+    | Jane  | Canada  | Quebec     | 4     | 2023 | 20  | 25      |
+    | Jim   | Canada  | B.C        | 4     | 2023 | 27  | null    |
+    | Peter | Canada  | B.C        | 4     | 2023 | 57  | null    |
+    | Rick  | Canada  | B.C        | 4     | 2023 | 70  | null    |
+    | Jake  | USA     | California | 4     | 2023 | 70  | null    |
+    | Hello | USA     | New York   | 4     | 2023 | 30  | 70      |
+    | David | USA     | Washington | 4     | 2023 | 40  | null    |
+    +-------+---------+------------+-------+------+-----+---------+
