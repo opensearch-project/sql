@@ -52,7 +52,11 @@ The query start with search command and then flowing a set of command delimited 
 
   - `ad command <cmd/ad.rst>`_
 
+  - `append command <cmd/append.rst>`_
+
   - `appendcol command <cmd/appendcol.rst>`_
+
+  - `bin command <cmd/bin.rst>`_
 
   - `dedup command <cmd/dedup.rst>`_
 
@@ -82,9 +86,9 @@ The query start with search command and then flowing a set of command delimited 
 
   - `lookup command <cmd/lookup.rst>`_
 
-  - `metadata commands <cmd/information_schema.rst>`_
-
   - `ml command <cmd/ml.rst>`_
+
+  - `multisearch command <cmd/multisearch.rst>`_
 
   - `parse command <cmd/parse.rst>`_
 
@@ -93,6 +97,10 @@ The query start with search command and then flowing a set of command delimited 
   - `rare command <cmd/rare.rst>`_
 
   - `rename command <cmd/rename.rst>`_
+
+  - `regex command <cmd/regex.rst>`_
+
+  - `rex command <cmd/rex.rst>`_
 
   - `search command <cmd/search.rst>`_
 
@@ -107,6 +115,10 @@ The query start with search command and then flowing a set of command delimited 
   - `subquery (aka subsearch) command <cmd/subquery.rst>`_
 
   - `reverse command <cmd/reverse.rst>`_
+
+  - `table command <cmd/table.rst>`_
+  
+  - `timechart command <cmd/timechart.rst>`_
 
   - `top command <cmd/top.rst>`_
 

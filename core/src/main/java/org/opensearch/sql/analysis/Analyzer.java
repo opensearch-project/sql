@@ -10,7 +10,7 @@ import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
-import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENABLED;
+import static org.opensearch.sql.calcite.utils.CalciteUtils.getOnlyForCalciteException;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
@@ -58,6 +58,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CloseCursor;
@@ -74,22 +75,29 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
+import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Reverse;
+import org.opensearch.sql.ast.tree.Rex;
+import org.opensearch.sql.ast.tree.SPath;
+import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -181,8 +189,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
           STRUCT);
       return child;
     } else {
-      throw new UnsupportedOperationException(
-          "Subsearch is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+      throw getOnlyForCalciteException("Subsearch");
     }
   }
 
@@ -273,6 +280,18 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   public LogicalPlan visitLimit(Limit node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
     return new LogicalLimit(child, node.getLimit(), node.getOffset());
+  }
+
+  @Override
+  public LogicalPlan visitSearch(Search node, AnalysisContext context) {
+    LogicalPlan child = node.getChild().get(0).accept(this, context);
+    Function queryStringFunc =
+        AstDSL.function(
+            "query_string",
+            AstDSL.unresolvedArg("query", AstDSL.stringLiteral(node.getQueryString())));
+
+    Expression analyzed = expressionAnalyzer.analyze(queryStringFunc, context);
+    return new LogicalFilter(child, analyzed);
   }
 
   @Override
@@ -672,14 +691,12 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitBin(Bin node, AnalysisContext context) {
-    throw new UnsupportedOperationException(
-        "Bin command is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+    throw getOnlyForCalciteException("Bin");
   }
 
   @Override
   public LogicalPlan visitExpand(Expand expand, AnalysisContext context) {
-    throw new UnsupportedOperationException(
-        "Expand is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+    throw getOnlyForCalciteException("Expand");
   }
 
   /** Build {@link LogicalTrendline} for Trendline command. */
@@ -733,14 +750,37 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitFlatten(Flatten node, AnalysisContext context) {
-    throw new UnsupportedOperationException(
-        "FLATTEN is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+    throw getOnlyForCalciteException("Flatten");
   }
 
   @Override
   public LogicalPlan visitReverse(Reverse node, AnalysisContext context) {
-    throw new UnsupportedOperationException(
-        "REVERSE is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+    throw getOnlyForCalciteException("Reverse");
+  }
+
+  @Override
+  public LogicalPlan visitSpath(SPath node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Spath");
+  }
+
+  @Override
+  public LogicalPlan visitTimechart(Timechart node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Timechart");
+  }
+
+  @Override
+  public LogicalPlan visitWindow(Window node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Window");
+  }
+
+  @Override
+  public LogicalPlan visitRegex(Regex node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Regex");
+  }
+
+  @Override
+  public LogicalPlan visitRex(Rex node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Rex");
   }
 
   @Override
@@ -763,20 +803,27 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitJoin(Join node, AnalysisContext context) {
-    throw new UnsupportedOperationException(
-        "Join is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+    throw getOnlyForCalciteException("Join");
   }
 
   @Override
   public LogicalPlan visitLookup(Lookup node, AnalysisContext context) {
-    throw new UnsupportedOperationException(
-        "Lookup is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+    throw getOnlyForCalciteException("Lookup");
   }
 
   @Override
   public LogicalPlan visitAppendCol(AppendCol node, AnalysisContext context) {
-    throw new UnsupportedOperationException(
-        "AppendCol is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+    throw getOnlyForCalciteException("Appendcol");
+  }
+
+  @Override
+  public LogicalPlan visitAppend(Append node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Append");
+  }
+
+  @Override
+  public LogicalPlan visitMultisearch(Multisearch node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Multisearch");
   }
 
   private LogicalSort buildSort(
@@ -864,7 +911,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     groupBys.forEach(
         group ->
             newEnv.define(new Symbol(Namespace.FIELD_NAME, group.getNameOrAlias()), group.type()));
-    return new LogicalAggregation(child, aggregators, groupBys);
+
+    Argument.ArgumentMap statsArgs = Argument.ArgumentMap.of(node.getArgExprList());
+    boolean bucketNullable =
+        (Boolean) statsArgs.getOrDefault(Argument.BUCKET_NULLABLE, Literal.TRUE).getValue();
+    return new LogicalAggregation(child, aggregators, groupBys, bucketNullable);
   }
 
   private Aggregation analyzePatternsAgg(Patterns node) {

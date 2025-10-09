@@ -24,13 +24,18 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 public class FillNull extends UnresolvedPlan {
 
   public static FillNull ofVariousValue(List<Pair<Field, UnresolvedExpression>> replacements) {
-    return new FillNull(replacements);
+    return new FillNull(replacements, false);
   }
 
   public static FillNull ofSameValue(UnresolvedExpression replacement, List<Field> fieldList) {
+    return ofSameValue(replacement, fieldList, false);
+  }
+
+  public static FillNull ofSameValue(
+      UnresolvedExpression replacement, List<Field> fieldList, boolean useValueSyntax) {
     List<Pair<Field, UnresolvedExpression>> replacementPairs =
         fieldList.stream().map(f -> Pair.of(f, replacement)).toList();
-    FillNull instance = new FillNull(replacementPairs);
+    FillNull instance = new FillNull(replacementPairs, useValueSyntax);
     if (replacementPairs.isEmpty()) {
       // no field specified, the replacement value will be applied to all fields.
       instance.replacementForAll = Optional.of(replacement);
@@ -42,8 +47,14 @@ public class FillNull extends UnresolvedPlan {
 
   private final List<Pair<Field, UnresolvedExpression>> replacementPairs;
 
-  FillNull(List<Pair<Field, UnresolvedExpression>> replacementPairs) {
+  // Track if value= syntax was used (added in 3.4). Only needed to distinguish from with...in
+  // since both apply same value to all fields. using syntax is detected by checking if all
+  // replacement values are the same.
+  private final boolean useValueSyntax;
+
+  FillNull(List<Pair<Field, UnresolvedExpression>> replacementPairs, boolean useValueSyntax) {
     this.replacementPairs = replacementPairs;
+    this.useValueSyntax = useValueSyntax;
   }
 
   private UnresolvedPlan child;

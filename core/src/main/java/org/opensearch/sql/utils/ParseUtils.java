@@ -16,6 +16,7 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.parse.GrokExpression;
 import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.expression.parse.PatternsExpression;
+import org.opensearch.sql.expression.parse.RegexCommonUtils;
 import org.opensearch.sql.expression.parse.RegexExpression;
 
 /** Utils for {@link ParseExpression}. */
@@ -29,7 +30,7 @@ public class ParseUtils {
           ParseMethod.PATTERNS, PatternsExpression::new);
   public static final Map<ParseMethod, BuiltinFunctionName> BUILTIN_FUNCTION_MAP =
       ImmutableMap.of(
-          ParseMethod.REGEX, BuiltinFunctionName.INTERNAL_REGEXP_EXTRACT,
+          ParseMethod.REGEX, BuiltinFunctionName.INTERNAL_PARSE,
           ParseMethod.GROK, BuiltinFunctionName.INTERNAL_GROK,
           ParseMethod.PATTERNS, BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_3);
 
@@ -57,7 +58,7 @@ public class ParseUtils {
       ParseMethod parseMethod, String pattern, Map<String, Literal> arguments) {
     switch (parseMethod) {
       case REGEX:
-        return RegexExpression.getNamedGroupCandidates(pattern);
+        return RegexCommonUtils.getNamedGroupCandidates(pattern);
       case GROK:
         return GrokExpression.getNamedGroupCandidates(pattern);
       default:

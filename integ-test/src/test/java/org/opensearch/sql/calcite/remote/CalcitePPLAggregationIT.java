@@ -11,6 +11,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TELEMETRY;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -28,6 +29,8 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
+  private static final String TEST_INDEX_TIME_DATA = "opensearch-sql_test_index_time_data";
+
   @Override
   public void init() throws Exception {
     super.init();
@@ -39,6 +42,8 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     loadIndex(Index.DATE_FORMATS);
     loadIndex(Index.DATA_TYPE_NUMERIC);
     loadIndex(Index.LOGS);
+    loadIndex(Index.TELEMETRY);
+    loadIndex(Index.TIME_TEST_DATA);
   }
 
   @Test
@@ -238,6 +243,202 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testFirstAggregation() throws IOException {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats first(firstname)", TEST_INDEX_BANK));
+    verifySchema(actual, schema("first(firstname)", "string"));
+    verifyDataRows(actual, rows("Amber JOHnny"));
+  }
+
+  @Test
+  public void testLastAggregation() throws IOException {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats last(firstname)", TEST_INDEX_BANK));
+    verifySchema(actual, schema("last(firstname)", "string"));
+    verifyDataRows(actual, rows("Dillard"));
+  }
+
+  @Test
+  public void testFirstLastByGroup() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(firstname), last(lastname) by gender", TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("first(firstname)", "string"),
+        schema("last(lastname)", "string"),
+        schema("gender", "string"));
+    verifyDataRows(actual, rows("Amber JOHnny", "Ratliff", "M"), rows("Nanette", "Mcpherson", "F"));
+  }
+
+  @Test
+  public void testFirstLastWithOtherAggregations() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(firstname), last(firstname), count(), avg(age) by gender",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("first(firstname)", "string"),
+        schema("last(firstname)", "string"),
+        schema("count()", "bigint"),
+        schema("avg(age)", "double"),
+        schema("gender", "string"));
+    verifyDataRows(
+        actual,
+        rows("Amber JOHnny", "Elinor", 4L, 34.25, "M"),
+        rows("Nanette", "Dillard", 3L, 33.666666666666664, "F"));
+  }
+
+  @Test
+  public void testFirstLastDifferentFields() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(account_number), last(balance), first(age)",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("first(account_number)", "bigint"),
+        schema("last(balance)", "bigint"),
+        schema("first(age)", "int"));
+    verifyDataRows(actual, rows(1L, 48086L, 32L));
+  }
+
+  @Test
+  public void testFirstLastWithBirthdate() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format("source=%s | stats first(birthdate), last(birthdate)", TEST_INDEX_BANK));
+    verifySchema(
+        actual, schema("first(birthdate)", "timestamp"), schema("last(birthdate)", "timestamp"));
+    verifyDataRows(actual, rows("2017-10-23 00:00:00", "2018-08-11 00:00:00"));
+  }
+
+  @Test
+  public void testFirstLastBirthdateByGender() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(birthdate) as first_bd, last(birthdate) as last_bd by"
+                    + " gender",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("first_bd", "timestamp"),
+        schema("last_bd", "timestamp"),
+        schema("gender", "string"));
+    verifyDataRows(
+        actual,
+        rows("2017-10-23 00:00:00", "2018-06-27 00:00:00", "M"),
+        rows("2018-06-23 00:00:00", "2018-08-11 00:00:00", "F"));
+  }
+
+  @Test
+  public void testFirstLastBirthdateWithOtherFields() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(firstname), first(birthdate), last(lastname),"
+                    + " last(birthdate) by gender",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("first(firstname)", "string"),
+        schema("first(birthdate)", "timestamp"),
+        schema("last(lastname)", "string"),
+        schema("last(birthdate)", "timestamp"),
+        schema("gender", "string"));
+    verifyDataRows(
+        actual,
+        rows("Amber JOHnny", "2017-10-23 00:00:00", "Ratliff", "2018-06-27 00:00:00", "M"),
+        rows("Nanette", "2018-06-23 00:00:00", "Mcpherson", "2018-08-11 00:00:00", "F"));
+  }
+
+  @Test
+  public void testFirstLastWithTimestamp() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(timestamp), last(timestamp)", TEST_INDEX_TIME_DATA));
+    verifySchema(
+        actual, schema("first(timestamp)", "timestamp"), schema("last(timestamp)", "timestamp"));
+    verifyDataRows(actual, rows("2025-07-28 00:15:23", "2025-08-01 03:47:41"));
+  }
+
+  @Test
+  public void testFirstLastTimestampByCategory() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(timestamp) as first_ts, last(timestamp) as last_ts by"
+                    + " category",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(
+        actual,
+        schema("first_ts", "timestamp"),
+        schema("last_ts", "timestamp"),
+        schema("category", "string"));
+    verifyDataRows(
+        actual,
+        rows("2025-07-28 04:33:10", "2025-08-01 00:27:26", "D"),
+        rows("2025-07-28 02:28:45", "2025-08-01 02:00:56", "C"),
+        rows("2025-07-28 01:42:15", "2025-08-01 01:14:11", "B"),
+        rows("2025-07-28 00:15:23", "2025-08-01 03:47:41", "A"));
+  }
+
+  @Test
+  public void testFirstLastTimestampWithValue() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(value), first(timestamp), last(value), last(timestamp)",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(
+        actual,
+        schema("first(value)", "int"),
+        schema("first(timestamp)", "timestamp"),
+        schema("last(value)", "int"),
+        schema("last(timestamp)", "timestamp"));
+    verifyDataRows(actual, rows(8945, "2025-07-28 00:15:23", 8762, "2025-08-01 03:47:41"));
+  }
+
+  @Test
+  public void testFirstLastWithNullValues() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(balance) as first_bal, last(balance) as last_bal",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(actual, schema("first_bal", "bigint"), schema("last_bal", "bigint"));
+    // Note: Current implementation skips nulls, so we expect first and last non-null values
+    // This test verifies current behavior - may need to change based on requirements
+    verifyDataRows(actual, rows(39225L, 48086L));
+  }
+
+  @Test
+  public void testFirstLastWithNullValuesByGroup() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(balance) as first_bal, last(balance) as last_bal by age",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(
+        actual, schema("first_bal", "bigint"), schema("last_bal", "bigint"), schema("age", "int"));
+    // Testing behavior when some groups have null values
+    verifyDataRows(
+        actual,
+        rows(null, null, null), // age is null, no balance values
+        rows(32838L, 32838L, 28),
+        rows(39225L, 39225L, 32),
+        rows(4180L, 4180L, 33),
+        rows(48086L, 48086L, 34),
+        rows(null, null, 36)); // balance is null for age 36
+  }
+
+  @Test
   public void testAvgBySpanAndFields() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -257,7 +458,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats avg(balance) by span(birthdate, 1 month) as age_balance",
+                "source=%s | stats avg(balance) by span(birthdate, 1month) as age_balance",
                 TEST_INDEX_BANK));
     verifySchema(actual, schema("age_balance", "timestamp"), schema("avg(balance)", "double"));
     verifyDataRows(
@@ -274,7 +475,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | head 5 | stats count(datetime0) by span(datetime0, 15 minute) as"
+                "source=%s | head 5 | stats count(datetime0) by span(datetime0, 15minute) as"
                     + " datetime_span",
                 TEST_INDEX_CALCS));
     verifySchema(
@@ -290,7 +491,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
-                "source=%s | head 5 | stats count(datetime0) by span(datetime0, 5 second) as"
+                "source=%s | head 5 | stats count(datetime0) by span(datetime0, 5second) as"
                     + " datetime_span",
                 TEST_INDEX_CALCS));
     verifySchema(
@@ -306,7 +507,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
-                "source=%s | head 5 | stats count(datetime0) by span(datetime0, 3 month) as"
+                "source=%s | head 5 | stats count(datetime0) by span(datetime0, 3month) as"
                     + " datetime_span",
                 TEST_INDEX_CALCS));
     verifySchema(
@@ -319,15 +520,20 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | head 5 | stats count(datetime0), count(datetime1) by span(datetime1,"
-                    + " 15 minute) as datetime_span",
+                "source=%s | head 5 | stats count(datetime0), count(datetime1) by span(time1,"
+                    + " 15minute) as time_span",
                 TEST_INDEX_CALCS));
     verifySchema(
         actual,
-        schema("datetime_span", "timestamp"),
+        schema("time_span", "time"),
         schema("count(datetime0)", "bigint"),
         schema("count(datetime1)", "bigint"));
-    verifyDataRows(actual, rows(5, 0, null));
+    verifyDataRows(
+        actual,
+        rows(1, 0, "19:30:00"),
+        rows(1, 0, "02:00:00"),
+        rows(1, 0, "09:30:00"),
+        rows(1, 0, "22:45:00"));
   }
 
   @Test
@@ -335,8 +541,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats count(strict_date) by span(strict_date, 1 day) as"
-                    + " date_span",
+                "source=%s | stats count(strict_date) by span(strict_date, 1day) as" + " date_span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(actual, schema("date_span", "date"), schema("count(strict_date)", "bigint"));
     verifyDataRows(actual, rows(2, "1984-04-12"));
@@ -344,7 +549,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
-                "source=%s | stats count(basic_date) by span(basic_date, 1 year) as" + " date_span",
+                "source=%s | stats count(basic_date) by span(basic_date, 1year) as" + " date_span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(actual, schema("date_span", "date"), schema("count(basic_date)", "bigint"));
     verifyDataRows(actual, rows(2, "1984-01-01"));
@@ -352,7 +557,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
-                "source=%s | stats count(year_month_day) by span(year_month_day, 1 month)"
+                "source=%s | stats count(year_month_day) by span(year_month_day, 1month)"
                     + " as date_span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(actual, schema("date_span", "date"), schema("count(year_month_day)", "bigint"));
@@ -365,7 +570,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | stats count(hour_minute_second) by span(hour_minute_second, 1"
-                    + " minute) as time_span",
+                    + "minute) as time_span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual, schema("time_span", "time"), schema("count(hour_minute_second)", "bigint"));
@@ -374,7 +579,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
-                "source=%s | stats count(custom_time) by span(custom_time, 1 second) as"
+                "source=%s | stats count(custom_time) by span(custom_time, 1second) as"
                     + " time_span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(actual, schema("time_span", "time"), schema("count(custom_time)", "bigint"));
@@ -383,7 +588,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
-                "source=%s | stats count(hour) by span(hour, 6 hour) as time_span",
+                "source=%s | stats count(hour) by span(hour, 6hour) as time_span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(actual, schema("time_span", "time"), schema("count(hour)", "bigint"));
     verifyDataRows(actual, rows(2, "06:00:00"));
@@ -483,7 +688,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | stats count(custom_date_or_date) by span(custom_date_or_date, 1"
-                    + " month) as date_span",
+                    + "month) as date_span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual, schema("date_span", "date"), schema("count(custom_date_or_date)", "bigint"));
@@ -493,7 +698,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | stats count(custom_date_or_custom_time) by"
-                    + " span(custom_date_or_custom_time, 1 hour) as timestamp_span",
+                    + " span(custom_date_or_custom_time, 1hour) as timestamp_span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
@@ -505,7 +710,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | stats count(custom_no_delimiter_ts) by span(custom_no_delimiter_ts, 1"
-                    + " hour) as timestamp_span",
+                    + "hour) as timestamp_span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
@@ -517,7 +722,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | stats count(incomplete_custom_time) by span(incomplete_custom_time, 12"
-                    + " hour) as time_span",
+                    + "hour) as time_span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual, schema("time_span", "time"), schema("count(incomplete_custom_time)", "bigint"));
@@ -693,12 +898,12 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     verifySchema(response, schema("a", null, "bigint"), schema("age", null, "int"));
     verifyDataRows(
         response,
-        rows(isPushdownEnabled() ? 0 : null, null),
+        rows(isPushdownDisabled() ? null : 0, null),
         rows(32838, 28),
         rows(39225, 32),
         rows(4180, 33),
         rows(48086, 34),
-        rows(isPushdownEnabled() ? 0 : null, 36));
+        rows(isPushdownDisabled() ? null : 0, 36));
   }
 
   @Test
@@ -762,7 +967,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
             + "  ],\n"
             + "  \"datarows\": [\n"
             + "    [\n"
-            + (isPushdownEnabled() ? "      0\n" : "      null\n")
+            + (isPushdownDisabled() ? "      null\n" : "      0\n")
             + "    ]\n"
             + "  ],\n"
             + "  \"total\": 1,\n"
@@ -968,5 +1173,329 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         rows(1, "TN"),
         rows(1, "VA"),
         rows(1, "WA"));
+  }
+
+  @Test
+  public void testMedian() throws IOException {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats median(balance)", TEST_INDEX_BANK));
+    verifySchema(actual, schema("median(balance)", "bigint"));
+    verifyDataRows(actual, rows(32838));
+  }
+
+  @Test
+  public void testStatsMaxOnStringField() throws IOException {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats max(firstname)", TEST_INDEX_BANK));
+    verifySchema(actual, schema("max(firstname)", "string"));
+    verifyDataRows(actual, rows("Virginia"));
+  }
+
+  @Test
+  public void testStatsMinOnStringField() throws IOException {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats min(firstname)", TEST_INDEX_BANK));
+    verifySchema(actual, schema("min(firstname)", "string"));
+    verifyDataRows(actual, rows("Amber JOHnny"));
+  }
+
+  @Test
+  public void testStatsCountOnFunctionsWithUDTArg() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | eval t = unix_timestamp(birthdate) | stats count() by t | sort -t",
+                TEST_INDEX_BANK));
+    verifySchema(response, schema("count()", "bigint"), schema("t", "double"));
+    verifyDataRows(
+        response,
+        rows(1, 1542152000),
+        rows(1, 1534636800),
+        rows(1, 1533945600),
+        rows(1, 1530057600),
+        rows(1, 1529712000),
+        rows(1, 1511136000),
+        rows(1, 1508716800));
+  }
+
+  @Test
+  public void testStatsGroupByDate() throws IOException {
+    JSONObject resonse =
+        executeQuery(
+            String.format(
+                "source=%s | eval t = date_add(birthdate, interval 1 day) | stats count() by"
+                    + " span(t, 1d)",
+                TEST_INDEX_BANK));
+    verifySchema(resonse, schema("count()", "bigint"), schema("span(t,1d)", "timestamp"));
+    verifyDataRows(
+        resonse,
+        rows(1, "2017-10-24 00:00:00"),
+        rows(1, "2017-11-21 00:00:00"),
+        rows(1, "2018-06-24 00:00:00"),
+        rows(1, "2018-06-28 00:00:00"),
+        rows(1, "2018-08-12 00:00:00"),
+        rows(1, "2018-08-20 00:00:00"),
+        rows(1, "2018-11-14 00:00:00"));
+  }
+
+  @Test
+  public void testLimitAfterAggregation() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() by age | sort -age | head 3", TEST_INDEX_BANK));
+    verifySchema(response, schema("count()", "bigint"), schema("age", "int"));
+    verifyDataRows(response, rows(1, 39), rows(2, 36), rows(1, 34));
+  }
+
+  @Test
+  public void testFirstLastWithSimpleField() throws IOException {
+    // This should work - testing simple field first
+    JSONObject actual =
+        executeQuery(
+            String.format("source=%s | stats first(severityNumber)", TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("first(severityNumber)", "int"));
+    verifyDataRows(actual, rows(9));
+  }
+
+  @Test
+  public void testFirstLastWithDeepNestedField() throws IOException {
+    // This test should now work with the fix for ClassCastException
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(`resource.attributes.telemetry.sdk.language`)",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("first(`resource.attributes.telemetry.sdk.language`)", "string"));
+    verifyDataRows(actual, rows("java"));
+  }
+
+  @Test
+  public void testLastWithDeepNestedField() throws IOException {
+    // This test should now work with the fix for ClassCastException
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats last(`resource.attributes.telemetry.sdk.language`)",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("last(`resource.attributes.telemetry.sdk.language`)", "string"));
+    verifyDataRows(actual, rows("rust"));
+  }
+
+  @Test
+  public void testFirstLastWithDeepNestedFieldByGroup() throws IOException {
+    // This test should now work with the fix for ClassCastException
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(`resource.attributes.telemetry.sdk.language`) by"
+                    + " severityNumber",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(
+        actual,
+        schema("first(`resource.attributes.telemetry.sdk.language`)", "string"),
+        schema("severityNumber", "int"));
+    verifyDataRows(actual, rows("java", 9), rows("python", 12), rows("go", 16));
+  }
+
+  @Test
+  public void testMinWithDeepNestedField() throws IOException {
+    // Test that min() works with deeply nested fields after the ClassCastException fix
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats min(`resource.attributes.telemetry.sdk.language`)",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("min(`resource.attributes.telemetry.sdk.language`)", "string"));
+    verifyDataRows(
+        actual, rows("go")); // Alphabetically first: go < java < javascript < python < rust
+  }
+
+  @Test
+  public void testMaxWithDeepNestedField() throws IOException {
+    // Test that max() works with deeply nested fields after the ClassCastException fix
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats max(`resource.attributes.telemetry.sdk.language`)",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("max(`resource.attributes.telemetry.sdk.language`)", "string"));
+    verifyDataRows(
+        actual, rows("rust")); // Alphabetically last: go < java < javascript < python < rust
+  }
+
+  @Test
+  public void testMinMaxWithDeepNestedFieldByGroup() throws IOException {
+    // Test that min() and max() work with deeply nested fields and grouping
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats min(`resource.attributes.telemetry.sdk.language`) by"
+                    + " severityNumber | sort severityNumber",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(
+        actual,
+        schema("min(`resource.attributes.telemetry.sdk.language`)", "string"),
+        schema("severityNumber", "int"));
+    // severityNumber 9: java, javascript -> min = java
+    // severityNumber 12: python, rust -> min = python
+    // severityNumber 16: go -> min = go
+    verifyDataRows(actual, rows("java", 9), rows("python", 12), rows("go", 16));
+  }
+
+  @Test
+  public void testMinMaxMultipleNestedFields() throws IOException {
+    // Test min/max with multiple nested field aggregations in one query
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats min(`resource.attributes.telemetry.sdk.language`) as min_lang,"
+                    + " max(`resource.attributes.telemetry.sdk.language`) as max_lang",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("min_lang", "string"), schema("max_lang", "string"));
+    verifyDataRows(actual, rows("go", "rust"));
+  }
+
+  @Test
+  public void testMinWithIntegerNestedField() throws IOException {
+    // Test that min() works with deeply nested integer fields
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats min(`resource.attributes.telemetry.sdk.version`)",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("min(`resource.attributes.telemetry.sdk.version`)", "int"));
+    verifyDataRows(actual, rows(10)); // Minimum version is 10
+  }
+
+  @Test
+  public void testMaxWithIntegerNestedField() throws IOException {
+    // Test that max() works with deeply nested integer fields
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats max(`resource.attributes.telemetry.sdk.version`)",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("max(`resource.attributes.telemetry.sdk.version`)", "int"));
+    verifyDataRows(actual, rows(14)); // Maximum version is 14
+  }
+
+  @Test
+  public void testMinMaxIntegerNestedFieldsByGroup() throws IOException {
+    // Test min/max on integer nested fields with grouping
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats min(`resource.attributes.telemetry.sdk.version`) as min_ver,"
+                    + " max(`resource.attributes.telemetry.sdk.version`) as max_ver by"
+                    + " severityNumber",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(
+        actual,
+        schema("min_ver", "int"),
+        schema("max_ver", "int"),
+        schema("severityNumber", "int"));
+    // severityNumber 9: versions 10, 12 -> min=10, max=12
+    // severityNumber 12: versions 11, 14 -> min=11, max=14
+    // severityNumber 16: version 13 -> min=13, max=13
+    verifyDataRows(actual, rows(10, 12, 9), rows(11, 14, 12), rows(13, 13, 16));
+  }
+
+  @Test
+  public void testFirstLastWithIntegerNestedField() throws IOException {
+    // Test first/last with deeply nested integer fields
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(`resource.attributes.telemetry.sdk.version`) as first_ver,"
+                    + " last(`resource.attributes.telemetry.sdk.version`) as last_ver",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("first_ver", "int"), schema("last_ver", "int"));
+    verifyDataRows(actual, rows(10, 14));
+  }
+
+  @Test
+  public void testFirstLastWithBooleanNestedField() throws IOException {
+    // Test first/last with deeply nested boolean fields
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(`resource.attributes.telemetry.sdk.enabled`) as"
+                    + " first_enabled, last(`resource.attributes.telemetry.sdk.enabled`) as"
+                    + " last_enabled",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("first_enabled", "boolean"), schema("last_enabled", "boolean"));
+    verifyDataRows(actual, rows(true, true)); // First record is true, last record is true
+  }
+
+  @Test
+  public void testCountWithBooleanNestedFieldGroupBy() throws IOException {
+    // Test count aggregation grouped by boolean nested field
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() as cnt by `resource.attributes.telemetry.sdk.enabled`",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(
+        actual,
+        schema("cnt", "bigint"),
+        schema("resource.attributes.telemetry.sdk.enabled", "boolean"));
+    verifyDataRows(actual, rows(2L, false), rows(3L, true)); // 2 false, 3 true values
+  }
+
+  @Test
+  public void testMinMaxWithBooleanNestedField() throws IOException {
+    // Test min/max with deeply nested boolean fields
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats min(`resource.attributes.telemetry.sdk.enabled`) as min_enabled,"
+                    + " max(`resource.attributes.telemetry.sdk.enabled`) as max_enabled",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(actual, schema("min_enabled", "boolean"), schema("max_enabled", "boolean"));
+    verifyDataRows(actual, rows(false, true)); // Min is false, max is true
+  }
+
+  @Test
+  public void testBooleanNestedFieldByGroup() throws IOException {
+    // Test boolean nested fields with grouping by other fields
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() as cnt,"
+                    + " first(`resource.attributes.telemetry.sdk.enabled`) as enabled by"
+                    + " severityNumber",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(
+        actual,
+        schema("cnt", "bigint"),
+        schema("enabled", "boolean"),
+        schema("severityNumber", "int"));
+    // severityNumber 9: java (true), javascript (true) -> 2 records, first is true
+    // severityNumber 12: python (false), rust (true) -> 2 records, first is false
+    // severityNumber 16: go (false) -> 1 record, first is false
+    verifyDataRows(actual, rows(2L, true, 9), rows(2L, false, 12), rows(1L, false, 16));
+  }
+
+  @Test
+  public void testMixedTypesNestedFieldAggregations() throws IOException {
+    // Test aggregating multiple nested field types in one query
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats min(`resource.attributes.telemetry.sdk.version`) as min_ver,"
+                    + " max(`resource.attributes.telemetry.sdk.version`) as max_ver,"
+                    + " min(`resource.attributes.telemetry.sdk.enabled`) as min_enabled,"
+                    + " max(`resource.attributes.telemetry.sdk.enabled`) as max_enabled,"
+                    + " first(`resource.attributes.telemetry.sdk.language`) as first_lang",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(
+        actual,
+        schema("min_ver", "int"),
+        schema("max_ver", "int"),
+        schema("min_enabled", "boolean"),
+        schema("max_enabled", "boolean"),
+        schema("first_lang", "string"));
+    verifyDataRows(actual, rows(10, 14, false, true, "java"));
   }
 }
