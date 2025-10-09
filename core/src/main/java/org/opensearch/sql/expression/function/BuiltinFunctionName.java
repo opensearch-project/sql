@@ -63,6 +63,7 @@ public enum BuiltinFunctionName {
   ARRAY(FunctionName.of("array")),
   ARRAY_LENGTH(FunctionName.of("array_length")),
   MAP_CONCAT(FunctionName.of("map_concat")),
+  MVAPPEND(FunctionName.of("mvappend")),
   MVJOIN(FunctionName.of("mvjoin")),
   FORALL(FunctionName.of("forall")),
   EXISTS(FunctionName.of("exists")),

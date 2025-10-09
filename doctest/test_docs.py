@@ -365,6 +365,7 @@ def create_cli_suite(filepaths, parser, setup_func):
 # Entry point for unittest discovery
 def load_tests(loader, suite, ignore):
     tests = []
+    settings_tests = []
     category_manager = CategoryManager()
     
     for category_name in category_manager.get_all_categories():
@@ -372,9 +373,16 @@ def load_tests(loader, suite, ignore):
         if not docs:
             continue
 
-        tests.append(get_test_suite(category_manager, category_name, get_doc_filepaths(docs)))
+        suite = get_test_suite(category_manager, category_name, get_doc_filepaths(docs))
+        if 'settings' in category_name:
+            settings_tests.append(suite)
+        else:
+            tests.append(suite)
 
     random.shuffle(tests)
+    if settings_tests:
+        random.shuffle(settings_tests)
+        tests.extend(settings_tests)
     return DocTests(tests)
 
 def get_test_suite(category_manager: CategoryManager, category_name, filepaths):

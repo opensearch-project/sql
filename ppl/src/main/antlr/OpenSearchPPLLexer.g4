@@ -426,6 +426,7 @@ ISBLANK:                            'ISBLANK';
 // COLLECTION FUNCTIONS
 ARRAY:                              'ARRAY';
 ARRAY_LENGTH:                       'ARRAY_LENGTH';
+MVAPPEND:                           'MVAPPEND';
 MVJOIN:                             'MVJOIN';
 FORALL:                             'FORALL';
 FILTER:                             'FILTER';

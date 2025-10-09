@@ -145,6 +145,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH_O
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLYFUNCTION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTI_MATCH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVAPPEND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVJOIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOTEQUAL;
@@ -835,6 +836,7 @@ public class PPLFuncImpTable {
           PPLTypeChecker.family(SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER));
 
       registerOperator(ARRAY, PPLBuiltinOperators.ARRAY);
+      registerOperator(MVAPPEND, PPLBuiltinOperators.MVAPPEND);
       registerOperator(ARRAY_LENGTH, SqlLibraryOperators.ARRAY_LENGTH);
       registerOperator(MAP_CONCAT, SqlLibraryOperators.MAP_CONCAT);
       registerOperator(FORALL, PPLBuiltinOperators.FORALL);
