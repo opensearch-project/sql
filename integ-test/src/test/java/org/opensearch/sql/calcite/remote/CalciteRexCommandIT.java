@@ -51,18 +51,66 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testRexErrorUnderscoreInGroupNames() throws IOException {
+  public void testRexErrorInvalidGroupNameUnderscore() throws IOException {
     try {
       executeQuery(
           String.format(
-              "source=%s | rex field=email \\\"(?<user_name>[^@]+)@(?<domain_name>.+)\\\" | fields"
+              "source=%s | rex field=email \\\"(?<user_name>[^@]+)@(?<domain>.+)\\\" | fields"
                   + " email",
               TEST_INDEX_ACCOUNT));
       fail("Should have thrown an exception for underscore in named capture group");
     } catch (Exception e) {
+      assertTrue(e.getMessage().contains("Invalid capture group name 'user_name'"));
       assertTrue(
-          e.getMessage()
-              .contains("Underscores are not permitted in Java Regex capture group names"));
+          e.getMessage().contains("must start with a letter and contain only letters and digits"));
+    }
+  }
+
+  @Test
+  public void testRexErrorInvalidGroupNameHyphen() throws IOException {
+    try {
+      executeQuery(
+          String.format(
+              "source=%s | rex field=email \\\"(?<user-name>[^@]+)@(?<domain>.+)\\\" | fields"
+                  + " email",
+              TEST_INDEX_ACCOUNT));
+      fail("Should have thrown an exception for hyphen in named capture group");
+    } catch (Exception e) {
+      assertTrue(e.getMessage().contains("Invalid capture group name 'user-name'"));
+      assertTrue(
+          e.getMessage().contains("must start with a letter and contain only letters and digits"));
+    }
+  }
+
+  @Test
+  public void testRexErrorInvalidGroupNameStartingWithDigit() throws IOException {
+    try {
+      executeQuery(
+          String.format(
+              "source=%s | rex field=email \\\"(?<1user>[^@]+)@(?<domain>.+)\\\" | fields"
+                  + " email",
+              TEST_INDEX_ACCOUNT));
+      fail("Should have thrown an exception for group name starting with digit");
+    } catch (Exception e) {
+      assertTrue(e.getMessage().contains("Invalid capture group name '1user'"));
+      assertTrue(
+          e.getMessage().contains("must start with a letter and contain only letters and digits"));
+    }
+  }
+
+  @Test
+  public void testRexErrorInvalidGroupNameSpecialCharacter() throws IOException {
+    try {
+      executeQuery(
+          String.format(
+              "source=%s | rex field=email \\\"(?<user@name>[^@]+)@(?<domain>.+)\\\" | fields"
+                  + " email",
+              TEST_INDEX_ACCOUNT));
+      fail("Should have thrown an exception for special character in named capture group");
+    } catch (Exception e) {
+      assertTrue(e.getMessage().contains("Invalid capture group name 'user@name'"));
+      assertTrue(
+          e.getMessage().contains("must start with a letter and contain only letters and digits"));
     }
   }
 
