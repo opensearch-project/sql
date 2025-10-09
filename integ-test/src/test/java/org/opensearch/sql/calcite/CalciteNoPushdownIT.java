@@ -46,6 +46,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteLegacyAPICompatibilityIT.class,
   CalciteLikeQueryIT.class,
   CalciteMathematicalFunctionIT.class,
+  CalciteMultisearchCommandIT.class,
   CalciteMultiValueStatsIT.class,
   CalciteNewAddedCommandsIT.class,
   CalciteNowLikeFunctionIT.class,

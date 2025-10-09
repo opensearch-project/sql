@@ -29,6 +29,7 @@ public abstract class Settings {
     PATTERN_MODE("plugins.ppl.pattern.mode"),
     PATTERN_MAX_SAMPLE_COUNT("plugins.ppl.pattern.max.sample.count"),
     PATTERN_BUFFER_LIMIT("plugins.ppl.pattern.buffer.limit"),
+    PATTERN_SHOW_NUMBERED_TOKEN("plugins.ppl.pattern.show.numbered.token"),
     PPL_REX_MAX_MATCH_LIMIT("plugins.ppl.rex.max_match.limit"),
     PPL_VALUES_MAX_LIMIT("plugins.ppl.values.max.limit"),
     PPL_SYNTAX_LEGACY_PREFERRED("plugins.ppl.syntax.legacy.preferred"),
