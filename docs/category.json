@@ -2,7 +2,6 @@
   "bash": [
     "user/ppl/interfaces/endpoint.rst",
     "user/ppl/interfaces/protocol.rst",
-    "user/ppl/admin/settings.rst",
     "user/optimization/optimization.rst",
     "user/admin/settings.rst"
   ],
@@ -63,36 +62,6 @@
     "user/ppl/functions/json.rst",
     "user/ppl/functions/math.rst",
     "user/ppl/functions/relevance.rst",
-    "user/ppl/functions/string.rst",
-    "user/ppl/general/datatypes.rst",
-    "user/ppl/general/identifiers.rst"
-    "user/ppl/functions/string.rst"
-  ],
-  "sql_cli": [
-    "user/dql/expressions.rst",
-    "user/general/comments.rst",
-    "user/general/datatypes.rst",
-    "user/general/identifiers.rst",
-    "user/general/values.rst",
-    "user/dql/basics.rst",
-    "user/dql/functions.rst",
-    "user/dql/window.rst",
-    "user/beyond/partiql.rst",
-    "user/dql/aggregations.rst",
-    "user/dql/complex.rst",
-    "user/dql/metadata.rst"
-  ],
-  "ppl_cli_calcite": [
-    "user/ppl/cmd/append.rst",
-    "user/ppl/cmd/eventstats.rst",
-    "user/ppl/cmd/fields.rst",
-    "user/ppl/cmd/regex.rst",
-    "user/ppl/cmd/rename.rst",
-    "user/ppl/cmd/rex.rst",
-    "user/ppl/cmd/stats.rst",
-    "user/ppl/cmd/timechart.rst",
-    "user/ppl/cmd/search.rst",
-    "user/ppl/cmd/replace.rst"
     "user/ppl/functions/string.rst",
     "user/ppl/general/datatypes.rst",
     "user/ppl/general/identifiers.rst"
