@@ -26,49 +26,49 @@ public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
-            + " COMM=[$6], DEPTNO=[$7], new_JOB=[REPLACE($2, 'CLERK':VARCHAR,"
-            + " 'EMPLOYEE':VARCHAR)])\n"
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[REPLACE($2, 'CLERK':VARCHAR,"
+            + " 'EMPLOYEE':VARCHAR)], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
 
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, "
-            + "REPLACE(`JOB`, 'CLERK', 'EMPLOYEE') `new_JOB`\n"
+        "SELECT `EMPNO`, `ENAME`, REPLACE(`JOB`, 'CLERK', 'EMPLOYEE') `JOB`, `MGR`, `HIREDATE`,"
+            + " `SAL`, `COMM`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`";
 
     verifyPPLToSparkSQL(root, expectedSparkSql);
 
     String expectedResult =
-        "EMPNO=7369; ENAME=SMITH; JOB=CLERK; MGR=7902; HIREDATE=1980-12-17; SAL=800.00; COMM=null;"
-            + " DEPTNO=20; new_JOB=EMPLOYEE\n"
+        "EMPNO=7369; ENAME=SMITH; JOB=EMPLOYEE; MGR=7902; HIREDATE=1980-12-17; SAL=800.00;"
+            + " COMM=null; DEPTNO=20\n"
             + "EMPNO=7499; ENAME=ALLEN; JOB=SALESMAN; MGR=7698; HIREDATE=1981-02-20; SAL=1600.00;"
-            + " COMM=300.00; DEPTNO=30; new_JOB=SALESMAN\n"
+            + " COMM=300.00; DEPTNO=30\n"
             + "EMPNO=7521; ENAME=WARD; JOB=SALESMAN; MGR=7698; HIREDATE=1981-02-22; SAL=1250.00;"
-            + " COMM=500.00; DEPTNO=30; new_JOB=SALESMAN\n"
+            + " COMM=500.00; DEPTNO=30\n"
             + "EMPNO=7566; ENAME=JONES; JOB=MANAGER; MGR=7839; HIREDATE=1981-02-04; SAL=2975.00;"
-            + " COMM=null; DEPTNO=20; new_JOB=MANAGER\n"
+            + " COMM=null; DEPTNO=20\n"
             + "EMPNO=7654; ENAME=MARTIN; JOB=SALESMAN; MGR=7698; HIREDATE=1981-09-28; SAL=1250.00;"
-            + " COMM=1400.00; DEPTNO=30; new_JOB=SALESMAN\n"
+            + " COMM=1400.00; DEPTNO=30\n"
             + "EMPNO=7698; ENAME=BLAKE; JOB=MANAGER; MGR=7839; HIREDATE=1981-01-05; SAL=2850.00;"
-            + " COMM=null; DEPTNO=30; new_JOB=MANAGER\n"
+            + " COMM=null; DEPTNO=30\n"
             + "EMPNO=7782; ENAME=CLARK; JOB=MANAGER; MGR=7839; HIREDATE=1981-06-09; SAL=2450.00;"
-            + " COMM=null; DEPTNO=10; new_JOB=MANAGER\n"
+            + " COMM=null; DEPTNO=10\n"
             + "EMPNO=7788; ENAME=SCOTT; JOB=ANALYST; MGR=7566; HIREDATE=1987-04-19; SAL=3000.00;"
-            + " COMM=null; DEPTNO=20; new_JOB=ANALYST\n"
+            + " COMM=null; DEPTNO=20\n"
             + "EMPNO=7839; ENAME=KING; JOB=PRESIDENT; MGR=null; HIREDATE=1981-11-17; SAL=5000.00;"
-            + " COMM=null; DEPTNO=10; new_JOB=PRESIDENT\n"
+            + " COMM=null; DEPTNO=10\n"
             + "EMPNO=7844; ENAME=TURNER; JOB=SALESMAN; MGR=7698; HIREDATE=1981-09-08; SAL=1500.00;"
-            + " COMM=0.00; DEPTNO=30; new_JOB=SALESMAN\n"
-            + "EMPNO=7876; ENAME=ADAMS; JOB=CLERK; MGR=7788; HIREDATE=1987-05-23; SAL=1100.00;"
-            + " COMM=null; DEPTNO=20; new_JOB=EMPLOYEE\n"
-            + "EMPNO=7900; ENAME=JAMES; JOB=CLERK; MGR=7698; HIREDATE=1981-12-03; SAL=950.00;"
-            + " COMM=null; DEPTNO=30; new_JOB=EMPLOYEE\n"
+            + " COMM=0.00; DEPTNO=30\n"
+            + "EMPNO=7876; ENAME=ADAMS; JOB=EMPLOYEE; MGR=7788; HIREDATE=1987-05-23; SAL=1100.00;"
+            + " COMM=null; DEPTNO=20\n"
+            + "EMPNO=7900; ENAME=JAMES; JOB=EMPLOYEE; MGR=7698; HIREDATE=1981-12-03; SAL=950.00;"
+            + " COMM=null; DEPTNO=30\n"
             + "EMPNO=7902; ENAME=FORD; JOB=ANALYST; MGR=7566; HIREDATE=1981-12-03; SAL=3000.00;"
-            + " COMM=null; DEPTNO=20; new_JOB=ANALYST\n"
-            + "EMPNO=7934; ENAME=MILLER; JOB=CLERK; MGR=7782; HIREDATE=1982-01-23; SAL=1300.00;"
-            + " COMM=null; DEPTNO=10; new_JOB=EMPLOYEE\n";
+            + " COMM=null; DEPTNO=20\n"
+            + "EMPNO=7934; ENAME=MILLER; JOB=EMPLOYEE; MGR=7782; HIREDATE=1982-01-23; SAL=1300.00;"
+            + " COMM=null; DEPTNO=10\n";
 
     verifyResult(root, expectedResult);
   }
@@ -81,17 +81,16 @@ public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
-            + " COMM=[$6], DEPTNO=[$7], new_JOB=[REPLACE($2, 'CLERK':VARCHAR, 'EMPLOYEE':VARCHAR)],"
-            + " new_DEPTNO=[REPLACE($7, '20':VARCHAR, 'RESEARCH':VARCHAR)])\n"
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[REPLACE($2, 'CLERK':VARCHAR,"
+            + " 'EMPLOYEE':VARCHAR)], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6],"
+            + " DEPTNO=[REPLACE($7, '20':VARCHAR, 'RESEARCH':VARCHAR)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
 
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, "
-            + "REPLACE(`JOB`, 'CLERK', 'EMPLOYEE') `new_JOB`, "
-            + "REPLACE(`DEPTNO`, '20', 'RESEARCH') `new_DEPTNO`\n"
+        "SELECT `EMPNO`, `ENAME`, REPLACE(`JOB`, 'CLERK', 'EMPLOYEE') `JOB`, `MGR`, `HIREDATE`,"
+            + " `SAL`, `COMM`, REPLACE(`DEPTNO`, '20', 'RESEARCH') `DEPTNO`\n"
             + "FROM `scott`.`EMP`";
 
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -104,17 +103,16 @@ public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
-            + " COMM=[$6], DEPTNO=[$7], new_MGR=[REPLACE($3, '7839':VARCHAR, 'CEO':VARCHAR)],"
-            + " new_EMPNO=[REPLACE($0, '7839':VARCHAR, 'CEO':VARCHAR)])\n"
+        "LogicalProject(EMPNO=[REPLACE($0, '7839':VARCHAR, 'CEO':VARCHAR)], ENAME=[$1], JOB=[$2],"
+            + " MGR=[REPLACE($3, '7839':VARCHAR, 'CEO':VARCHAR)], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
 
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, "
-            + "REPLACE(`MGR`, '7839', 'CEO') `new_MGR`, "
-            + "REPLACE(`EMPNO`, '7839', 'CEO') `new_EMPNO`\n"
+        "SELECT REPLACE(`EMPNO`, '7839', 'CEO') `EMPNO`, `ENAME`, `JOB`,"
+            + " REPLACE(`MGR`, '7839', 'CEO') `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`";
 
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -128,17 +126,17 @@ public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
 
     String expectedLogical =
         "LogicalSort(sort0=[$5], dir0=[ASC-nulls-first])\n"
-            + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], new_JOB=[REPLACE($2, 'CLERK':VARCHAR,"
-            + " 'EMPLOYEE':VARCHAR)])\n"
+            + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[REPLACE($2, 'CLERK':VARCHAR,"
+            + " 'EMPLOYEE':VARCHAR)], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
             + "    LogicalFilter(condition=[=($2, 'CLERK':VARCHAR)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
 
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, "
-            + "REPLACE(`JOB`, 'CLERK', 'EMPLOYEE') `new_JOB`\n"
+        "SELECT `EMPNO`, `ENAME`, REPLACE(`JOB`, 'CLERK', 'EMPLOYEE') `JOB`, `MGR`, `HIREDATE`,"
+            + " `SAL`, `COMM`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `JOB` = 'CLERK'\n"
             + "ORDER BY `SAL`";
@@ -241,25 +239,25 @@ public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testReplaceWithExistingNewFieldConflict() {
-    // Test verifies that Calcite's RelBuilder automatically handles duplicate field names
-    // by appending numbers (e.g., new_JOB becomes new_JOB0 when new_JOB already exists)
+  public void testReplaceWithEvalAndReplaceOnSameField() {
+    // Test verifies that in-place replacement works correctly when there are additional fields
+    // created by eval. The eval creates new_JOB, and replace modifies JOB in-place.
     String ppl =
         "source=EMP | eval new_JOB = 'existing' | replace \"CLERK\" WITH \"EMPLOYEE\" IN JOB";
     RelNode root = getRelNode(ppl);
 
-    // Verify that Calcite automatically deduplicates field names
+    // With in-place replacement, JOB is modified and new_JOB remains as created by eval
     String expectedLogical =
-        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
-            + " COMM=[$6], DEPTNO=[$7], new_JOB=['existing':VARCHAR], new_JOB0=[REPLACE($2,"
-            + " 'CLERK':VARCHAR, 'EMPLOYEE':VARCHAR)])\n"
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[REPLACE($2, 'CLERK':VARCHAR,"
+            + " 'EMPLOYEE':VARCHAR)], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], new_JOB=['existing':VARCHAR])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
 
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, "
-            + "'existing' `new_JOB`, REPLACE(`JOB`, 'CLERK', 'EMPLOYEE') `new_JOB0`\n"
+        "SELECT `EMPNO`, `ENAME`, REPLACE(`JOB`, 'CLERK', 'EMPLOYEE') `JOB`, `MGR`, `HIREDATE`,"
+            + " `SAL`, `COMM`, `DEPTNO`, 'existing' `new_JOB`\n"
             + "FROM `scott`.`EMP`";
 
     verifyPPLToSparkSQL(root, expectedSparkSql);
