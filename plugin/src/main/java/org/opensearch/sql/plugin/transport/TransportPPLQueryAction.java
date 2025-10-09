@@ -16,6 +16,7 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.inject.Guice;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
@@ -73,7 +74,7 @@ public class TransportPPLQueryAction
               .toInstance(new OpenSearchSettings(clusterService.getClusterSettings()));
           b.bind(DataSourceService.class).toInstance(dataSourceService);
         });
-    this.injector = modules.createInjector();
+    this.injector = Guice.createInjector(modules);
     this.pplEnabled =
         () ->
             MULTI_ALLOW_EXPLICIT_INDEX.get(clusterSettings)
