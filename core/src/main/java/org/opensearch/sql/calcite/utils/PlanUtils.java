@@ -74,6 +74,22 @@ public interface PlanUtils {
     };
   }
 
+  static IntervalUnit spanUnitToIntervalUnit(SpanUnit unit) {
+    return switch (unit) {
+      case MILLISECOND, MS -> IntervalUnit.MICROSECOND;
+      case SECOND, SECONDS, SEC, SECS, S -> IntervalUnit.SECOND;
+      case MINUTE, MINUTES, MIN, MINS, m -> IntervalUnit.MINUTE;
+      case HOUR, HOURS, HR, HRS, H -> IntervalUnit.HOUR;
+      case DAY, DAYS, D -> IntervalUnit.DAY;
+      case WEEK, WEEKS, W -> IntervalUnit.WEEK;
+      case MONTH, MONTHS, MON, M -> IntervalUnit.MONTH;
+      case QUARTER, QUARTERS, QTR, QTRS, Q -> IntervalUnit.QUARTER;
+      case YEAR, YEARS, Y -> IntervalUnit.YEAR;
+      case UNKNOWN -> IntervalUnit.UNKNOWN;
+      default -> throw new UnsupportedOperationException("Unsupported span unit: " + unit);
+    };
+  }
+
   static RexNode makeOver(
       CalcitePlanContext context,
       BuiltinFunctionName functionName,

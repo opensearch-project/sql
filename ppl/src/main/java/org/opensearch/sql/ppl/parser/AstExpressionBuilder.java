@@ -21,6 +21,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.*;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
@@ -60,6 +61,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalXorContext
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.MultiFieldRelevanceFunctionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PatternMethodContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PatternModeContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PerFunctionCallContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameFieldExpressionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SingleFieldRelevanceFunctionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
@@ -67,6 +69,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SpanClauseContext
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsFunctionCallContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StringLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TimechartCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WcFieldExpressionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
@@ -545,6 +548,18 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
             visitFunctionArg(ctx.firstArg),
             visitFunctionArg(ctx.secondArg));
     return args;
+  }
+
+  @Override
+  public UnresolvedExpression visitPerFunctionCall(PerFunctionCallContext ctx) {
+    ParseTree parent = ctx.getParent();
+    String perFuncName = ctx.perFunction().funcName.getText();
+    if (!(parent instanceof TimechartCommandContext)) {
+      throw new SyntaxCheckException(
+          perFuncName + " function can only be used within timechart command");
+    }
+    return buildAggregateFunction(
+        perFuncName, Collections.singletonList(ctx.perFunction().functionArg()));
   }
 
   /** Literal and value. */

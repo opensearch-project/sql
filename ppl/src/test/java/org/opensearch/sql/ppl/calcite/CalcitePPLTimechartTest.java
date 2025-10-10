@@ -82,6 +82,20 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testTimechartPerSecond() {
+    withPPLQuery("source=events | timechart per_second(cpu_usage)")
+        .expectSparkSQL(
+            "SELECT `@timestamp`, `DIVIDE`(`per_second(cpu_usage)` * 1.0E0, TIMESTAMPDIFF('SECOND',"
+                + " `@timestamp`, TIMESTAMPADD('MINUTE', 1, `@timestamp`)))"
+                + " `per_second(cpu_usage)`\n"
+                + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'm') `@timestamp`, SUM(`cpu_usage`)"
+                + " `per_second(cpu_usage)`\n"
+                + "FROM `scott`.`events`\n"
+                + "GROUP BY `SPAN`(`@timestamp`, 1, 'm')\n"
+                + "ORDER BY 1 NULLS LAST) `t2`");
+  }
+
+  @Test
   public void testTimechartWithSpan() {
     String ppl = "source=events | timechart span=1h count()";
 

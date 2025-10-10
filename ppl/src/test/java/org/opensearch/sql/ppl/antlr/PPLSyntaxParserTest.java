@@ -100,6 +100,12 @@ public class PPLSyntaxParserTest {
   }
 
   @Test
+  public void testPerSecondFunctionInTimechartShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("source=t | timechart per_second(a)");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
   public void testDynamicSourceClauseParseTreeStructure() {
     String query = "source=[myindex, logs, fieldIndex=\"test\", count=100]";
     OpenSearchPPLLexer lexer = new OpenSearchPPLLexer(new CaseInsensitiveCharStream(query));
