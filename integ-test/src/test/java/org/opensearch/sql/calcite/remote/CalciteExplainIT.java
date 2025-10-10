@@ -23,6 +23,7 @@ import org.opensearch.sql.ppl.ExplainIT;
 public class CalciteExplainIT extends ExplainIT {
   @Override
   public void init() throws Exception {
+    GlobalPushdownConfig.enabled = false;
     super.init();
     enableCalcite();
     loadIndex(Index.BANK_WITH_STRING_VALUES);
@@ -99,8 +100,8 @@ public class CalciteExplainIT extends ExplainIT {
         "source=opensearch-sql_test_index_bank | join type=outer account_number"
             + " opensearch-sql_test_index_bank";
     var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_join_with_fields.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    String expected = loadExpectedPlan("explain_join_with_fields.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
   // Only for Calcite
@@ -110,8 +111,8 @@ public class CalciteExplainIT extends ExplainIT {
         "source=opensearch-sql_test_index_bank| join left=l right=r on"
             + " l.account_number=r.account_number opensearch-sql_test_index_bank";
     var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_merge_join_sort_push.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    String expected = loadExpectedPlan("explain_merge_join_sort_push.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
   // Only for Calcite

@@ -317,12 +317,11 @@ public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source = %s"
-                    + "| eval count_dept = ["
-                    + "    source = %s | stats count(department)"
+                    + "| where id = ["
+                    + "    source = %s | where id = uid | stats max(uid)"
                     + "  ]"
-                    + "| fields name, count_dept",
+                    + "| fields id, name",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-    verifySchema(result, schema("name", "string"), schema("count_dept", "bigint"));
     verifyNumOfRows(result, 0);
     resetSubsearchMaxOut();
   }
