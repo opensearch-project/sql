@@ -1467,7 +1467,16 @@ searchableKeyWord
    | PATH
    | INPUT
    | OUTPUT
-
+   | AS
+   | BY
+   | ON
+   | LIMIT
+   | OVERWRITE
+   | SED
+   | MAX_MATCH
+   | OFFSET_FIELD
+   | patternMethod
+   | patternMode
    // AGGREGATIONS AND WINDOW
    | statsFunctionName
    | windowFunctionName
