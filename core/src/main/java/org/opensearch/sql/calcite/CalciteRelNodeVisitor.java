@@ -39,7 +39,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -215,11 +214,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   @Override
-  public RelNode visitAppendPipe(AppendPipe node, CalcitePlanContext context){
+  public RelNode visitAppendPipe(AppendPipe node, CalcitePlanContext context) {
     visitChildren(node, context);
     final RelNode base = context.relBuilder.peek();
 
-    CalcitePlanContext subqueryContext = context.clone();
+    CalcitePlanContext subqueryContext = context.deepClone();
     node.getSubQuery().accept(this, subqueryContext);
 
     RelNode sub = subqueryContext.relBuilder.peek();
@@ -2595,10 +2594,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
   }
 
-  private RelNode unionAllPreserveAllColumns(RelNode base, RelNode sub, CalcitePlanContext baseContext, CalcitePlanContext subContext) {
-    LinkedHashMap<String, RelDataType> targetColumnNameToType = collectTargetColumnNameToType(base, sub, baseContext);
+  private RelNode unionAllPreserveAllColumns(
+      RelNode base, RelNode sub, CalcitePlanContext baseContext, CalcitePlanContext subContext) {
+    LinkedHashMap<String, RelDataType> targetColumnNameToType =
+        collectTargetColumnNameToType(base, sub, baseContext);
     RelNode castedBase = projectToSchema(base, targetColumnNameToType, baseContext);
-    RelNode castedSub = projectToSchema(base, targetColumnNameToType, subContext);
+    RelNode castedSub = projectToSchema(sub, targetColumnNameToType, subContext);
 
     baseContext.relBuilder.push(castedBase);
     baseContext.relBuilder.push(castedSub);
@@ -2606,7 +2607,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return baseContext.relBuilder.peek();
   }
 
-  private LinkedHashMap<String, RelDataType> collectTargetColumnNameToType(RelNode left, RelNode right, CalcitePlanContext context) {
+  private LinkedHashMap<String, RelDataType> collectTargetColumnNameToType(
+      RelNode left, RelNode right, CalcitePlanContext context) {
     LinkedHashMap<String, RelDataType> cols = new LinkedHashMap<>(); // name to type
     for (RelDataTypeField f : left.getRowType().getFieldList()) {
       cols.put(f.getName(), f.getType());
@@ -2616,22 +2618,21 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         cols.put(f.getName(), f.getType());
       } else {
         RelDataType merged =
-                context.relBuilder.getTypeFactory().leastRestrictive(List.of(cols.get(f.getName()), f.getType()));
+            context
+                .relBuilder
+                .getTypeFactory()
+                .leastRestrictive(List.of(cols.get(f.getName()), f.getType()));
         if (merged != null) cols.put(f.getName(), merged);
       }
     }
     return cols;
   }
 
-
-
-  private RelNode projectToSchema(RelNode input,
-                                  LinkedHashMap<String, RelDataType> targetCols,
-                                  CalcitePlanContext context) {
+  private RelNode projectToSchema(
+      RelNode input, LinkedHashMap<String, RelDataType> targetCols, CalcitePlanContext context) {
     RexBuilder rex = context.rexBuilder;
     RelBuilder rel = context.relBuilder;
-    Map<String, Integer> idx =
-            new LinkedHashMap<>(); // name to index
+    Map<String, Integer> idx = new LinkedHashMap<>(); // name to index
     List<RelDataTypeField> inFields = input.getRowType().getFieldList();
     for (int i = 0; i < inFields.size(); i++) {
       String n = inFields.get(i).getName();
@@ -2639,7 +2640,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     List<RexNode> exprs = new ArrayList<>(targetCols.size());
-    List<String>  names = new ArrayList<>(targetCols.size());
+    List<String> names = new ArrayList<>(targetCols.size());
 
     for (Map.Entry<String, RelDataType> e : targetCols.entrySet()) {
       String normName = e.getKey();
@@ -2650,7 +2651,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       if (pos != null) {
         RexNode ref = RexInputRef.of(pos, input.getRowType());
         if (!ref.getType().equals(toType)) {
-          ref = rex.makeCast(toType, ref,  true);
+          ref = rex.makeCast(toType, ref, true);
         }
         expr = ref;
         names.add(inFields.get(pos).getName());
@@ -2665,5 +2666,4 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     return rel.peek();
   }
-
 }

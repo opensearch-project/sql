@@ -164,10 +164,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       throw new IllegalArgumentException("appendpipe [] is empty");
     }
     UnresolvedPlan seed = visit(cmds.getFirst());
-    return cmds.stream()
-            .skip(1)
-            .map(this::visit)
-            .reduce(seed, (left, op) -> op.attach(left));
+    return cmds.stream().skip(1).map(this::visit).reduce(seed, (left, op) -> op.attach(left));
   }
 
   @Override
@@ -177,8 +174,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return projectExceptMeta(
         ctx.commands().stream().map(this::visit).reduce(searchCommand, (r, e) -> e.attach(r)));
   }
-
-
 
   /** Search command. */
   @Override
