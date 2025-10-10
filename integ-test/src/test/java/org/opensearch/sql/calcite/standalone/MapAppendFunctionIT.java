@@ -93,19 +93,19 @@ public class MapAppendFunctionIT extends CalcitePPLRelNodeIntegTestCase {
   }
 
   private void testWithSingleNull(RexNode map1, RexNode map2) throws Exception {
-    RexNode mapAppendCall1 =
+    RexNode mapAppendCall =
         PPLFuncImpTable.INSTANCE.resolve(
             context.rexBuilder, BuiltinFunctionName.MAP_APPEND, map1, map2);
-    RelNode relNode1 =
+    RelNode relNode =
         context
             .relBuilder
             .values(new String[] {ID_FIELD}, 1)
-            .project(context.relBuilder.alias(mapAppendCall1, MAP_FIELD))
+            .project(context.relBuilder.alias(mapAppendCall, MAP_FIELD))
             .build();
 
     executeRelNodeAndVerify(
         context.planContext,
-        relNode1,
+        relNode,
         resultSet -> {
           Map<String, Object> result = getResultMapField(resultSet);
           assertEquals(1, result.size());
@@ -117,19 +117,19 @@ public class MapAppendFunctionIT extends CalcitePPLRelNodeIntegTestCase {
   public void testMapAppendWithNullMaps() throws Exception {
     RelDataType mapType = createMapType(context.rexBuilder);
     RexNode nullMap = context.rexBuilder.makeNullLiteral(mapType);
-    RexNode mapAppendCall3 =
+    RexNode mapAppendCall =
         PPLFuncImpTable.INSTANCE.resolve(
             context.rexBuilder, BuiltinFunctionName.MAP_APPEND, nullMap, nullMap);
-    RelNode relNode3 =
+    RelNode relNode =
         context
             .relBuilder
             .values(new String[] {ID_FIELD}, 1)
-            .project(context.relBuilder.alias(mapAppendCall3, MAP_FIELD))
+            .project(context.relBuilder.alias(mapAppendCall, MAP_FIELD))
             .build();
 
     executeRelNodeAndVerify(
         context.planContext,
-        relNode3,
+        relNode,
         resultSet -> {
           assertNull(getResultMapField(resultSet));
         });
