@@ -300,30 +300,23 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testMultisearchWithDirectTypeConflict() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "| multisearch "
-                    + "[search source=%s | fields firstname, age, balance | head 2] "
-                    + "[search source=%s | fields description, age, place_id | head 2]",
-                TEST_INDEX_ACCOUNT, TEST_INDEX_LOCATIONS_TYPE_CONFLICT));
+  public void testMultisearchWithDirectTypeConflict() {
+    Exception exception =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "| multisearch "
+                            + "[search source=%s | fields firstname, age, balance | head 2] "
+                            + "[search source=%s | fields description, age, place_id | head 2]",
+                        TEST_INDEX_ACCOUNT, TEST_INDEX_LOCATIONS_TYPE_CONFLICT)));
 
-    verifySchema(
-        result,
-        schema("firstname", null, "string"),
-        schema("age", null, "bigint"),
-        schema("balance", null, "bigint"),
-        schema("description", null, "string"),
-        schema("age0", null, "string"),
-        schema("place_id", null, "int"));
-
-    verifyDataRows(
-        result,
-        rows("Amber", 32L, 39225L, null, null, null),
-        rows("Hattie", 36L, 5686L, null, null, null),
-        rows(null, null, null, "Central Park", "old", 1001),
-        rows(null, null, null, "Times Square", "modern", 1002));
+    assertTrue(
+        "Error message should indicate type conflict",
+        exception
+            .getMessage()
+            .contains("Schema unification failed: field 'age' has conflicting types"));
   }
 
   @Test
