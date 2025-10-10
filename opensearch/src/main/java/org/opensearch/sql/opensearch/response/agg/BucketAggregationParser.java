@@ -6,10 +6,8 @@
 package org.opensearch.sql.opensearch.response.agg;
 
 import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.aggregations.Aggregation;
@@ -23,6 +21,8 @@ import org.opensearch.search.aggregations.bucket.MultiBucketsAggregation;
 @EqualsAndHashCode
 public class BucketAggregationParser implements OpenSearchAggregationResponseParser {
   private final MetricParserHelper metricsParser;
+  // countAggNameList dedicated the list of count aggregations which are filled by doc_count
+  private List<String> countAggNameList = List.of();
 
   public BucketAggregationParser(MetricParser... metricParserList) {
     metricsParser = new MetricParserHelper(Arrays.asList(metricParserList));
@@ -32,18 +32,44 @@ public class BucketAggregationParser implements OpenSearchAggregationResponsePar
     metricsParser = new MetricParserHelper(metricParserList);
   }
 
+  public BucketAggregationParser(
+      List<MetricParser> metricParserList, List<String> countAggNameList) {
+    metricsParser = new MetricParserHelper(metricParserList, countAggNameList);
+    this.countAggNameList = countAggNameList;
+  }
+
   @Override
   public List<Map<String, Object>> parse(Aggregations aggregations) {
     Aggregation agg = aggregations.asList().get(0);
     return ((MultiBucketsAggregation) agg)
-        .getBuckets().stream().map(b -> parse(b, agg.getName())).collect(Collectors.toList());
+        .getBuckets().stream()
+            .map(b -> parseBucket(b, agg.getName()))
+            .flatMap(List::stream)
+            .toList();
   }
 
-  private Map<String, Object> parse(MultiBucketsAggregation.Bucket bucket, String keyName) {
-    Map<String, Object> resultMap = new LinkedHashMap<>();
-    resultMap.put(keyName, bucket.getKey());
-    resultMap.putAll(metricsParser.parse(bucket.getAggregations()));
-    return resultMap;
+  private List<Map<String, Object>> parseBucket(
+      MultiBucketsAggregation.Bucket bucket, String name) {
+    Aggregations aggregations = bucket.getAggregations();
+    List<Map<String, Object>> results =
+        isLeafAgg(aggregations)
+            ? parseLeafAgg(aggregations, bucket.getDocCount())
+            : parse(aggregations);
+    for (Map<String, Object> r : results) {
+      r.put(name, bucket.getKey());
+    }
+    return results;
+  }
+
+  private boolean isLeafAgg(Aggregations aggregations) {
+    return !(aggregations.asList().size() == 1
+        && aggregations.asList().get(0) instanceof MultiBucketsAggregation);
+  }
+
+  private List<Map<String, Object>> parseLeafAgg(Aggregations aggregations, long docCount) {
+    Map<String, Object> resultMap = metricsParser.parse(aggregations);
+    countAggNameList.forEach(countAggName -> resultMap.put(countAggName, docCount));
+    return List.of(resultMap);
   }
 
   @Override
