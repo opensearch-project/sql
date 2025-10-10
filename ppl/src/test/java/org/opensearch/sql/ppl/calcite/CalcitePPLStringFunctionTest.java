@@ -175,7 +175,10 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     verifyResult(root, expectedPhysical);
 
-    String expectedSparkSql = "SELECT `ENAME`, `TOSTRING`(6500, 'duration') `duration_commas`\nFROM `scott`.`EMP`\nLIMIT 1";
+    String expectedSparkSql =
+        "SELECT `ENAME`, `TOSTRING`(6500, 'duration') `duration_commas`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
