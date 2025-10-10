@@ -353,6 +353,7 @@ Rollback to default value::
       "acknowledged": true,
       "persistent": {},
       "transient": {}
+    }
 
 
 plugins.ppl.join.subsearch_maxout

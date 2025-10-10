@@ -11,7 +11,7 @@ public record SysLimit(Integer querySizeLimit, Integer subsearchLimit, Integer j
   /** Create SysLimit from Settings. */
   public static SysLimit fromSettings(Settings settings) {
     return settings == null
-        ? null
+        ? UNLIMITED_SUBSEARCH
         : new SysLimit(
             settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT),
             settings.getSettingValue(Settings.Key.PPL_SUBSEARCH_MAXOUT),
