@@ -21,8 +21,9 @@ jobs:
         with:
           repo-token: ${{ steps.github_app_token.outputs.token }}
           stale-pr-label: 'stalled'
-          stale-pr-message: 'This PR is stalled because it has been open for 30 days with no activity.'
-          days-before-pr-stale: 30
+          stale-pr-message: 'This PR is stalled because it has been open for 2 weeks with no activity.'
+          days-before-pr-stale: 14
           days-before-issue-stale: -1
           days-before-pr-close: -1
           days-before-issue-close: -1
+          exempt-draft-pr: true
