@@ -7,10 +7,8 @@ package org.opensearch.sql.calcite;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
@@ -41,7 +39,7 @@ public class SchemaUnifier {
       return nodes;
     }
 
-    // Step 1: Build the unified schema by processing all nodes
+    // Step 1: Build the unified schema by processing all nodes (throws on conflict)
     List<SchemaField> unifiedSchema = buildUnifiedSchema(nodes);
 
     // Step 2: Create projections for each node to align with unified schema
@@ -55,44 +53,37 @@ public class SchemaUnifier {
       projectedNodes.add(projectedNode);
     }
 
-    // Step 3: Check for type conflicts and throw exception if found
-    Set<String> uniqueFieldNames = new HashSet<>();
-    for (String fieldName : fieldNames) {
-      if (!uniqueFieldNames.add(fieldName)) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Schema unification failed: field '%s' has conflicting types across subsearches",
-                fieldName));
-      }
-    }
-
     return projectedNodes;
   }
 
   /**
-   * Builds a unified schema by merging fields from all nodes. Fields with the same name but
-   * different types are added as separate entries (will cause an exception to be thrown).
+   * Builds a unified schema by merging fields from all nodes. Throws an exception if fields with
+   * the same name have different types.
    *
    * @param nodes List of RelNodes to merge schemas from
-   * @return List of SchemaField representing the unified schema (may contain duplicate names if
-   *     there are type conflicts)
+   * @return List of SchemaField representing the unified schema
+   * @throws IllegalArgumentException if type conflicts are detected
    */
   private static List<SchemaField> buildUnifiedSchema(List<RelNode> nodes) {
     List<SchemaField> schema = new ArrayList<>();
-    Map<String, Set<RelDataType>> seenFields = new HashMap<>();
+    Map<String, RelDataType> seenFields = new HashMap<>();
 
     for (RelNode node : nodes) {
       for (RelDataTypeField field : node.getRowType().getFieldList()) {
         String fieldName = field.getName();
         RelDataType fieldType = field.getType();
 
-        // Track which (name, type) combinations we've seen
-        Set<RelDataType> typesForName = seenFields.computeIfAbsent(fieldName, k -> new HashSet<>());
-
-        if (!typesForName.contains(fieldType)) {
-          // New field or same name with different type - add to schema
+        RelDataType existingType = seenFields.get(fieldName);
+        if (existingType == null) {
+          // New field - add to schema
           schema.add(new SchemaField(fieldName, fieldType));
-          typesForName.add(fieldType);
+          seenFields.put(fieldName, fieldType);
+        } else if (!existingType.equals(fieldType)) {
+          // Same field name but different type - throw exception
+          throw new IllegalArgumentException(
+              String.format(
+                  "Schema unification failed: field '%s' has conflicting types across subsearches",
+                  fieldName));
         }
         // If we've seen this exact (name, type) combination, skip it
       }
