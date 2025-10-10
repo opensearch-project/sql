@@ -126,6 +126,9 @@ public class ExtendedRexBuilder extends RexBuilder {
         //            ImmutableList.of(exp, makeZeroLiteral(sourceType)));
       }
     } else if (OpenSearchTypeFactory.isUserDefinedType(type)) {
+      if (RexLiteral.isNullLiteral(exp)) {
+        return super.makeCast(pos, type, exp, matchNullability, safe, format);
+      }
       var udt = ((AbstractExprRelDataType<?>) type).getUdt();
       var argExprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(sourceType);
       return switch (udt) {

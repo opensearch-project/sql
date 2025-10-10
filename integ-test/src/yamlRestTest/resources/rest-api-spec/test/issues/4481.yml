@@ -1,0 +1,59 @@
+"Fix missing keywordsCanBeID":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      indices.create:
+        index: log-test
+        body:
+          mappings:
+            properties:
+              "as":
+                properties:
+                  "field":
+                    properties:
+                      "on":
+                        properties:
+                          "limit":
+                            properties:
+                              "datamodel":
+                                properties:
+                                  "overwrite":
+                                    properties:
+                                      "sed":
+                                        properties:
+                                          "label":
+                                            properties:
+                                              "aggregation":
+                                                properties:
+                                                  "brain":
+                                                    properties:
+                                                      "simple_pattern":
+                                                        properties:
+                                                          "max_match":
+                                                            properties:
+                                                              "offset_field":
+                                                                properties:
+                                                                  "to":
+                                                                    properties:
+                                                                      "millisecond":
+                                                                        type: integer
+
+  - do:
+      bulk:
+        index: log-test
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"as": {"field": {"on": {"limit": {"datamodel": {"overwrite": {"sed": {"label": {"aggregation": {"brain": {"simple_pattern": {"max_match": {"offset_field": {"to": {"millisecond": 1 } } } } } } } } } } } } } } }'
+
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=log-test | fields as.field.on.limit.datamodel.overwrite.sed.label.aggregation.brain.simple_pattern.max_match.offset_field.to.millisecond
+
+  - match: { total: 1 }
+  - length: { datarows: 1 }
