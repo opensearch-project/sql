@@ -48,6 +48,7 @@ import org.opensearch.sql.legacy.domain.hints.Hint;
 import org.opensearch.sql.legacy.domain.hints.HintFactory;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.query.multi.MultiQuerySelect;
+import org.opensearch.sql.legacy.utils.Util;
 
 /**
  * OpenSearch sql support
@@ -365,6 +366,15 @@ public class SqlParser {
 
     MySqlSelectQueryBlock query = (MySqlSelectQueryBlock) sqlExpr.getSubQuery().getQuery();
 
+    // Check for JOIN + GROUP BY combination and throw error
+    if (query.getGroupBy() != null && !query.getGroupBy().getItems().isEmpty()) {
+      String errorMessage =
+          Util.JOIN_AGGREGATION_ERROR_PREFIX
+              + Util.DOC_REDIRECT_MESSAGE
+              + Util.getJoinAggregationDocumentationUrl(SqlParser.class);
+      throw new SqlParseException(errorMessage);
+    }
+
     List<From> joinedFrom = findJoinedFrom(query.getFrom());
     if (joinedFrom.size() != 2) {
       throw new RuntimeException("currently supports only 2 tables join");
@@ -399,7 +409,6 @@ public class SqlParser {
 
     updateJoinLimit(query.getLimit(), joinSelect);
 
-    // todo: throw error feature not supported:  no group bys on joins ?
     return joinSelect;
   }
 

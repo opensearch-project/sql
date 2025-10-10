@@ -24,7 +24,7 @@ subPipeline
    ;
 
 queryStatement
-   : pplCommands (PIPE commands)*
+   : (PIPE)? pplCommands (PIPE commands)*
    ;
 
 explainStatement
@@ -47,6 +47,7 @@ pplCommands
    : describeCommand
    | showDataSourcesCommand
    | searchCommand
+   | multisearchCommand
    ;
 
 commands
@@ -119,6 +120,7 @@ commandName
    | REVERSE
    | REGEX
    | APPEND
+   | MULTISEARCH
    | REX
    | APPENDPIPE
    ;
@@ -128,7 +130,8 @@ searchCommand
    ;
 
 searchExpression
- : LT_PRTHS searchExpression RT_PRTHS                 # groupedExpression
+ : timeModifier                                       # timeModifierExpression
+ | LT_PRTHS searchExpression RT_PRTHS                 # groupedExpression
  | NOT searchExpression                               # notExpression
  | searchExpression OR searchExpression               # orExpression
  | searchExpression AND searchExpression              # andExpression
@@ -146,6 +149,7 @@ searchLiteral
    : numericLiteral
    | booleanLiteral
    | ID
+   | NUMERIC_ID
    | stringLiteral
    | searchableKeyWord
    ;
@@ -269,8 +273,8 @@ timechartArg
    ;
 
 spanLiteral
-   : integerLiteral timespanUnit
-   | stringLiteral
+   : SPANLENGTH
+   | INTEGER_LITERAL
    ;
 
 evalCommand
@@ -286,9 +290,9 @@ binCommand
    ;
 
 binOption
-   : SPAN EQUAL span = spanValue
+   : SPAN EQUAL span = binSpanValue
    | BINS EQUAL bins = integerLiteral
-   | MINSPAN EQUAL minspan = literalValue (minspanUnit = timespanUnit)?
+   | MINSPAN EQUAL minspan = spanLiteral
    | ALIGNTIME EQUAL aligntime = aligntimeValue
    | START EQUAL start = numericLiteral
    | END EQUAL end = numericLiteral
@@ -300,11 +304,9 @@ aligntimeValue
    | literalValue
    ;
 
-spanValue
-   : literalValue (timespanUnit)?           # numericSpanValue
+binSpanValue
+   : spanLiteral                            # numericSpanValue
    | logSpanValue                           # logBasedSpanValue
-   | ident timespanUnit                     # extendedTimeSpanValue
-   | ident                                  # identifierSpanValue
    ;
 
 logSpanValue
@@ -375,11 +377,20 @@ patternsMethod
    ;
 
 patternsCommand
-   : PATTERNS (source_field = expression) (statsByClause)? (METHOD EQUAL method = patternMethod)? (MODE EQUAL pattern_mode = patternMode)? (MAX_SAMPLE_COUNT EQUAL max_sample_count = integerLiteral)? (BUFFER_LIMIT EQUAL buffer_limit = integerLiteral)? (NEW_FIELD EQUAL new_field = stringLiteral)? (patternsParameter)*
+   : PATTERNS (source_field = expression) (statsByClause)? (patternsCommandOption)* (patternsParameter)*
+   ;
+
+patternsCommandOption
+   : (METHOD EQUAL method = patternMethod)
+   | (MODE EQUAL pattern_mode = patternMode)
+   | (MAX_SAMPLE_COUNT EQUAL max_sample_count = integerLiteral)
+   | (BUFFER_LIMIT EQUAL buffer_limit = integerLiteral)
+   | (SHOW_NUMBERED_TOKEN EQUAL show_numbered_token = booleanLiteral)
    ;
 
 patternsParameter
    : (PATTERN EQUAL pattern = stringLiteral)
+   | (NEW_FIELD EQUAL new_field = stringLiteral)
    | (VARIABLE_COUNT_THRESHOLD EQUAL variable_count_threshold = integerLiteral)
    | (FREQUENCY_THRESHOLD_PERCENTAGE EQUAL frequency_threshold_percentage = decimalLiteral)
    ;
@@ -416,8 +427,10 @@ lookupPair
    ;
 
 fillnullCommand
-   : FILLNULL fillNullWith
-   | FILLNULL fillNullUsing
+   : FILLNULL fillNullWith                                                          # fillNullWithClause
+   | FILLNULL fillNullUsing                                                         # fillNullUsingClause
+   | FILLNULL VALUE EQUAL replacement = valueExpression fieldList                   # fillNullValueWithFields
+   | FILLNULL VALUE EQUAL replacement = valueExpression                             # fillNullValueAllFields
    ;
 
 fillNullWith
@@ -459,6 +472,10 @@ appendcolCommand
 
 appendCommand
    : APPEND LT_SQR_PRTHS searchCommand? (PIPE commands)* RT_SQR_PRTHS
+   ;
+
+multisearchCommand
+   : MULTISEARCH (LT_SQR_PRTHS subSearch RT_SQR_PRTHS)+
    ;
 
 kmeansCommand
@@ -608,7 +625,7 @@ bySpanClause
    ;
 
 spanClause
-   : SPAN LT_PRTHS fieldExpression COMMA value = literalValue (unit = timespanUnit)? RT_PRTHS
+   : SPAN LT_PRTHS fieldExpression COMMA value = spanLiteral RT_PRTHS
    ;
 
 sortbyClause
@@ -769,6 +786,20 @@ singleFieldRelevanceFunction
 // Field is a list of columns
 multiFieldRelevanceFunction
    : multiFieldRelevanceFunctionName LT_PRTHS (LT_SQR_PRTHS field = relevanceFieldAndWeight (COMMA field = relevanceFieldAndWeight)* RT_SQR_PRTHS COMMA)? query = relevanceQuery (COMMA relevanceArg)* RT_PRTHS
+   ;
+
+timeModifier
+   : (EARLIEST | LATEST) EQUAL timeModifierValue
+   ;
+
+timeModifierValue
+   : NOW
+   | NOW LT_PRTHS RT_PRTHS
+   | DECIMAL_LITERAL
+   | INTEGER_LITERAL
+   | stringLiteral
+   | TIME_SNAP
+   | (PLUS | MINUS) SPANLENGTH (TIME_SNAP)?
    ;
 
 // tables
@@ -980,6 +1011,8 @@ mathematicalFunctionName
    | SIGNUM
    | SUM
    | AVG
+   | MAX
+   | MIN
    | trigonometricFunctionName
    ;
 
@@ -990,6 +1023,7 @@ geoipFunctionName
 collectionFunctionName
     : ARRAY
     | ARRAY_LENGTH
+    | MVAPPEND
     | MVJOIN
     | FORALL
     | EXISTS
@@ -1318,40 +1352,6 @@ intervalUnit
    | YEAR_MONTH
    ;
 
-timespanUnit
-   : MS
-   | S
-   | M
-   | H
-   | D
-   | W
-   | Q
-   | Y
-   | MILLISECOND
-   | SECOND
-   | MINUTE
-   | HOUR
-   | DAY
-   | WEEK
-   | MONTH
-   | QUARTER
-   | YEAR
-   | SEC
-   | SECS  
-   | SECONDS
-   | MINS
-   | MINUTES
-   | HR
-   | HRS
-   | HOURS
-   | DAYS
-   | MON
-   | MONTHS
-   | US
-   | CS
-   | DS
-   ;
-
 valueList
    : LT_PRTHS literalValue (COMMA literalValue)* RT_PRTHS
    ;
@@ -1398,8 +1398,8 @@ keywordsCanBeId
 
 searchableKeyWord
    : D // OD SQL and ODBC special
-   | timespanUnit
    | SPAN
+   | SPANLENGTH
    | evalFunctionName
    | jsonFunctionName
    | relevanceArgName
@@ -1432,10 +1432,12 @@ searchableKeyWord
    | FREQUENCY_THRESHOLD_PERCENTAGE
    | MAX_SAMPLE_COUNT
    | BUFFER_LIMIT
+   | SHOW_NUMBERED_TOKEN
    | WITH
    | REGEX
    | PUNCT
    | USING
+   | VALUE
    | CAST
    | GET_FORMAT
    | EXTRACT
