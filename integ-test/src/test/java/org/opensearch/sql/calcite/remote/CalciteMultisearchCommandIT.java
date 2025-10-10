@@ -210,8 +210,8 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "| multisearch [search source=%s | where age > 35 | fields account_number,"
-                    + " firstname, age, balance] [search source=%s | where age > 35 | fields"
-                    + " account_number, balance, age] | stats count() as total_count",
+                    + " firstname, balance] [search source=%s | where age > 35 | fields"
+                    + " account_number, balance] | stats count() as total_count",
                 TEST_INDEX_ACCOUNT, TEST_INDEX_BANK));
 
     verifySchema(result, schema("total_count", null, "bigint"));
@@ -345,18 +345,23 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testMultisearchTypeConflictWithStats() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "| multisearch "
-                    + "[search source=%s | fields age] "
-                    + "[search source=%s | fields age] "
-                    + "| stats count() as total",
-                TEST_INDEX_ACCOUNT, TEST_INDEX_LOCATIONS_TYPE_CONFLICT));
+  public void testMultisearchTypeConflictWithStats() {
+    Exception exception =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "| multisearch "
+                            + "[search source=%s | fields age] "
+                            + "[search source=%s | fields age] "
+                            + "| stats count() as total",
+                        TEST_INDEX_ACCOUNT, TEST_INDEX_LOCATIONS_TYPE_CONFLICT)));
 
-    verifySchema(result, schema("total", null, "bigint"));
-
-    verifyDataRows(result, rows(1010L));
+    assertTrue(
+        "Error message should indicate type conflict",
+        exception
+            .getMessage()
+            .contains("Schema unification failed: field 'age' has conflicting types"));
   }
 }
