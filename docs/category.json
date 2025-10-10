@@ -5,8 +5,7 @@
   ],
   "bash_calcite": [
     "user/ppl/interfaces/endpoint.rst",
-    "user/ppl/interfaces/protocol.rst",
-    "user/ppl/admin/settings.rst"
+    "user/ppl/interfaces/protocol.rst"
   ],
   "sql_cli": [
     "user/dql/expressions.rst",
