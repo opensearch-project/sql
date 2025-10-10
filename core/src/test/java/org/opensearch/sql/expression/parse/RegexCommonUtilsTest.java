@@ -194,12 +194,15 @@ public class RegexCommonUtilsTest {
   }
 
   @Test
-  public void testGetNamedGroupCandidatesSpecialCharacters() {
-    // Test that groups with special characters are not captured (only alphanumeric starting with
-    // letter)
-    String pattern = "(?<valid_group>[a-z]+)\\s+(?<123invalid>[0-9]+)\\s+(?<also-invalid>.*)";
-    List<String> groups = RegexCommonUtils.getNamedGroupCandidates(pattern);
-    assertEquals(0, groups.size());
+  public void testGetNamedGroupCandidatesWithInvalidCharactersThrowsException() {
+    // Test that groups with invalid characters throw exception (even if some are valid)
+    String pattern = "(?<validgroup>[a-z]+)\\s+(?<123invalid>[0-9]+)\\s+(?<also-invalid>.*)";
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> RegexCommonUtils.getNamedGroupCandidates(pattern));
+    // Should fail on the first invalid group name found
+    assertTrue(exception.getMessage().contains("Invalid capture group name"));
   }
 
   @Test
@@ -210,5 +213,101 @@ public class RegexCommonUtilsTest {
     assertEquals(2, groups.size());
     assertEquals("groupA", groups.get(0));
     assertEquals("group2B", groups.get(1));
+  }
+
+  @Test
+  public void testGetNamedGroupCandidatesWithUnderscore() {
+    // Test that underscores in named groups throw IllegalArgumentException
+    String patternWithUnderscore = ".+@(?<domain_name>.+)";
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> RegexCommonUtils.getNamedGroupCandidates(patternWithUnderscore));
+    assertTrue(exception.getMessage().contains("Invalid capture group name 'domain_name'"));
+    assertTrue(
+        exception
+            .getMessage()
+            .contains("must start with a letter and contain only letters and digits"));
+  }
+
+  @Test
+  public void testGetNamedGroupCandidatesWithHyphen() {
+    // Test that hyphens in named groups throw IllegalArgumentException
+    String patternWithHyphen = ".+@(?<domain-name>.+)";
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> RegexCommonUtils.getNamedGroupCandidates(patternWithHyphen));
+    assertTrue(exception.getMessage().contains("Invalid capture group name 'domain-name'"));
+    assertTrue(
+        exception
+            .getMessage()
+            .contains("must start with a letter and contain only letters and digits"));
+  }
+
+  @Test
+  public void testGetNamedGroupCandidatesWithDot() {
+    // Test that dots in named groups throw IllegalArgumentException
+    String patternWithDot = ".+@(?<domain.name>.+)";
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> RegexCommonUtils.getNamedGroupCandidates(patternWithDot));
+    assertTrue(exception.getMessage().contains("Invalid capture group name 'domain.name'"));
+  }
+
+  @Test
+  public void testGetNamedGroupCandidatesWithSpace() {
+    // Test that spaces in named groups throw IllegalArgumentException
+    String patternWithSpace = ".+@(?<domain name>.+)";
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> RegexCommonUtils.getNamedGroupCandidates(patternWithSpace));
+    assertTrue(exception.getMessage().contains("Invalid capture group name 'domain name'"));
+  }
+
+  @Test
+  public void testGetNamedGroupCandidatesStartingWithDigit() {
+    // Test that group names starting with digit throw IllegalArgumentException
+    String patternStartingWithDigit = ".+@(?<1domain>.+)";
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> RegexCommonUtils.getNamedGroupCandidates(patternStartingWithDigit));
+    assertTrue(exception.getMessage().contains("Invalid capture group name '1domain'"));
+  }
+
+  @Test
+  public void testGetNamedGroupCandidatesWithSpecialCharacters() {
+    // Test that special characters in named groups throw IllegalArgumentException
+    String patternWithSpecialChar = ".+@(?<domain@name>.+)";
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> RegexCommonUtils.getNamedGroupCandidates(patternWithSpecialChar));
+    assertTrue(exception.getMessage().contains("Invalid capture group name 'domain@name'"));
+  }
+
+  @Test
+  public void testGetNamedGroupCandidatesWithValidCamelCase() {
+    // Test that valid camelCase group names work correctly
+    String validPattern = "(?<userName>\\w+)@(?<domainName>\\w+)";
+    List<String> groups = RegexCommonUtils.getNamedGroupCandidates(validPattern);
+    assertEquals(2, groups.size());
+    assertEquals("userName", groups.get(0));
+    assertEquals("domainName", groups.get(1));
+  }
+
+  @Test
+  public void testGetNamedGroupCandidatesWithMixedInvalidValid() {
+    // Test that even one invalid group name fails the entire validation
+    String patternWithMixed =
+        "(?<validName>[a-z]+)\\s+(?<invalid_name>[0-9]+)\\s+(?<anotherValidName>.*)";
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> RegexCommonUtils.getNamedGroupCandidates(patternWithMixed));
+    assertTrue(exception.getMessage().contains("Invalid capture group name 'invalid_name'"));
   }
 }
