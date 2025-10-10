@@ -39,7 +39,7 @@ public class TransportPPLQueryResponse extends ActionResponse {
   @Override
   public void writeTo(StreamOutput out) throws IOException {
     out.writeString(result);
-    out.writeString(result);
+    out.writeString(contentType);
   }
 
   public static TransportPPLQueryResponse fromActionResponse(ActionResponse actionResponse) {

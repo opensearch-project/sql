@@ -139,7 +139,7 @@ Explain query::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
     ... -X POST localhost:9200/_plugins/_ppl/_explain?format=yaml \
-    ... -d '{"query" : "source=state_country | where age>3"}'
+    ... -d '{"query" : "source=state_country | where age>30"}'
     calcite:
       logical: |
         LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
