@@ -68,6 +68,6 @@ public class EarliestFunction extends ImplementorUDF {
     ZonedDateTime earliest =
         getRelativeZonedDateTime(
             expression, ZonedDateTime.ofInstant(clock.instant(), clock.getZone()));
-    return earliest.isBefore(candidateDatetime);
+    return !earliest.isAfter(candidateDatetime);
   }
 }

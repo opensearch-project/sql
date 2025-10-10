@@ -20,6 +20,8 @@ public interface OpenSearchConstants {
 
   String METADATA_FIELD_ROUTING = "_routing";
 
+  String IMPLICIT_FIELD_TIMESTAMP = "@timestamp";
+
   java.util.Map<String, ExprType> METADATAFIELD_TYPE_MAP =
       Map.of(
           METADATA_FIELD_ID, ExprCoreType.STRING,

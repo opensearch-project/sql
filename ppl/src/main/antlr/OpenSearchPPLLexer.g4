@@ -231,6 +231,7 @@ SINGLE_QUOTE:                       '\'';
 DOUBLE_QUOTE:                       '"';
 BACKTICK:                           '`';
 ARROW:                              '->';
+fragment AT:                        '@';
 
 // Operators. Bit
 
@@ -523,6 +524,16 @@ NUMERIC_ID : DEC_DIGIT+ ID_LITERAL;
 
 // LITERALS AND VALUES
 //STRING_LITERAL:                     DQUOTA_STRING | SQUOTA_STRING | BQUOTA_STRING;
+fragment WEEK_SNAP_UNIT:            'W' [0-7];
+fragment TIME_SNAP_UNIT:              'S' | 'SEC' | 'SECOND'
+                                    | 'M' | 'MIN' | 'MINUTE'
+                                    | 'H' | 'HR' | 'HOUR' | 'HOURS'
+                                    | 'D' | 'DAY'
+                                    | 'W' | 'WEEK' | WEEK_SNAP_UNIT
+                                    | 'MON' | 'MONTH'
+                                    | 'Q' | 'QTR' | 'QUARTER'
+                                    | 'Y' | 'YR' | 'YEAR';
+TIME_SNAP:                          AT TIME_SNAP_UNIT;
 ID:                                 ID_LITERAL;
 CLUSTER:                            CLUSTER_PREFIX_LITERAL;
 INTEGER_LITERAL:                    DEC_DIGIT+;

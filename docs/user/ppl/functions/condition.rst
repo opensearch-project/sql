@@ -423,7 +423,7 @@ The relative string can be one of the following formats:
 1. `"now"` or `"now()"`:  
    Uses the current system time.
 
-2. Absolute format (`MM/dd/yyyy:HH:mm:ss`):  
+2. Absolute format (`MM/dd/yyyy:HH:mm:ss` or `yyyy-MM-dd HH:mm:ss`):
    Converts the string to a timestamp and compares it with the data.
 
 3. Relative format: `(+|-)<time_integer><time_unit>[+<...>]@<snap_unit>`  
@@ -460,7 +460,7 @@ Example::
     +-----+
     | cnt |
     |-----|
-    | 971 |
+    | 972 |
     +-----+
 
 LATEST
@@ -492,7 +492,7 @@ Example::
     +-----+
     | cnt |
     |-----|
-    | 968 |
+    | 969 |
     +-----+
 
 REGEX_MATCH

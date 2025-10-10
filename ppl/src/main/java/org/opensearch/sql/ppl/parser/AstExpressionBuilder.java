@@ -27,6 +27,7 @@ import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
@@ -69,6 +70,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceContex
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WcFieldExpressionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
+import org.opensearch.sql.utils.DateTimeUtils;
 
 /** Class of building AST Expression nodes. */
 public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedExpression> {
@@ -885,5 +887,57 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     }
     // Default
     return new SearchLiteral(new Literal(ctx.getText(), DataType.STRING), false);
+  }
+
+  @Override
+  public UnresolvedExpression visitTimeModifierValue(
+      OpenSearchPPLParser.TimeModifierValueContext ctx) {
+    String osDateMathExpression;
+    // Convert unix timestamp from seconds to milliseconds for decimal and integer
+    // as OpenSearch time range accepts unix milliseconds in place of timestamp values
+    if (ctx.DECIMAL_LITERAL() != null) {
+      String decimal = ctx.DECIMAL_LITERAL().getText();
+      BigDecimal unixSecondDecimal = new BigDecimal(decimal);
+      BigDecimal unixMilliDecimal =
+          unixSecondDecimal.multiply(BigDecimal.valueOf(1000)).stripTrailingZeros();
+      osDateMathExpression = unixMilliDecimal.toString();
+    } else if (ctx.INTEGER_LITERAL() != null) {
+      String integer = ctx.INTEGER_LITERAL().getText();
+      osDateMathExpression = String.valueOf(Long.parseLong(integer) * 1000);
+    } else if (ctx.NOW() != null) { // Converts both NOW and NOW()
+      // OpenSearch time range accepts "now" as a reference to the current time
+      osDateMathExpression = ctx.NOW().getText().toLowerCase(Locale.ROOT);
+    } else {
+      // Process absolute and relative time modifier values
+      String pplTimeModifier =
+          ctx.stringLiteral() != null
+              ? (String) ((Literal) visit(ctx.stringLiteral())).getValue()
+              : ctx.getText().strip();
+      // Parse a PPL time modifier to OpenSearch date math expression
+      osDateMathExpression = DateTimeUtils.resolveTimeModifier(pplTimeModifier);
+    }
+    return AstDSL.stringLiteral(osDateMathExpression);
+  }
+
+  /**
+   * Process time range expressions (EARLIEST='value' or LATEST='value') It creates a Comparison
+   * filter like @timestamp >= timeModifierValue
+   */
+  @Override
+  public UnresolvedExpression visitTimeModifierExpression(
+      OpenSearchPPLParser.TimeModifierExpressionContext ctx) {
+
+    Literal timeModifierValue =
+        (Literal) visitTimeModifierValue(ctx.timeModifier().timeModifierValue());
+
+    SearchLiteral osDateMathLiteral = new SearchLiteral(timeModifierValue, false);
+
+    Field implicitTimestampField =
+        new Field(new QualifiedName(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP), List.of());
+    var operator =
+        ctx.timeModifier().EARLIEST() != null
+            ? SearchComparison.Operator.GREATER_OR_EQUAL
+            : SearchComparison.Operator.LESS_OR_EQUAL;
+    return new SearchComparison(implicitTimestampField, operator, osDateMathLiteral);
   }
 }
