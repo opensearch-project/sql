@@ -1468,10 +1468,10 @@ searchableKeyWord
    | INPUT
    | OUTPUT
    | AS
-   | BY
    | ON
    | LIMIT
    | OVERWRITE
+   | FIELD
    | SED
    | MAX_MATCH
    | OFFSET_FIELD

@@ -11,7 +11,7 @@
             properties:
               "as":
                 properties:
-                  "by":
+                  "field":
                     properties:
                       "on":
                         properties:
@@ -46,14 +46,14 @@
         refresh: true
         body:
           - '{"index": {}}'
-          - '{"as": {"by": {"on": {"limit": {"datamodel": {"overwrite": {"sed": {"label": {"aggregation": {"brain": {"simple_pattern": {"max_match": {"offset_field": {"to": {"millisecond": 1 } } } } } } } } } } } } } } }'
+          - '{"as": {"field": {"on": {"limit": {"datamodel": {"overwrite": {"sed": {"label": {"aggregation": {"brain": {"simple_pattern": {"max_match": {"offset_field": {"to": {"millisecond": 1 } } } } } } } } } } } } } } }'
 
   - do:
       headers:
         Content-Type: 'application/json'
       ppl:
         body:
-          query: source=log-test | fields as.by.on.limit.datamodel.overwrite.sed.label.aggregation.brain.simple_pattern.max_match.offset_field.to.millisecond
+          query: source=log-test | fields as.field.on.limit.datamodel.overwrite.sed.label.aggregation.brain.simple_pattern.max_match.offset_field.to.millisecond
 
   - match: { total: 1 }
   - length: { datarows: 1 }
