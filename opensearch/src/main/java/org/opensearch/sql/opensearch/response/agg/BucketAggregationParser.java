@@ -8,6 +8,7 @@ package org.opensearch.sql.opensearch.response.agg;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.aggregations.Aggregation;
@@ -45,7 +46,7 @@ public class BucketAggregationParser implements OpenSearchAggregationResponsePar
         .getBuckets().stream()
             .map(b -> parseBucket(b, agg.getName()))
             .flatMap(List::stream)
-            .toList();
+            .collect(Collectors.toList());
   }
 
   private List<Map<String, Object>> parseBucket(

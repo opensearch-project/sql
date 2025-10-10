@@ -231,7 +231,7 @@ public class AggregateAnalyzer {
               new NoBucketAggregationParser(metricParserList));
         }
       } else if (aggregate.getGroupSet().length() == 1
-          && isAutoDateSpan(project.getProjects().get(groupList.getFirst()))) {
+          && isAutoDateSpan(project.getProjects().get(groupList.get(0)))) {
         ValuesSourceAggregationBuilder<?> bucketBuilder = createBucket(0, project, helper);
         if (newMetricBuilder != null) {
           bucketBuilder.subAggregations(newMetricBuilder);
@@ -295,7 +295,8 @@ public class AggregateAnalyzer {
 
     if (countAllOnly || supportCountFiled(countAggregatorFactories, metricBuilder)) {
       List<String> countAggNameList =
-          countAggregatorFactories.stream().map(ValuesSourceAggregationBuilder::getName).toList();
+          countAggregatorFactories.stream().map(ValuesSourceAggregationBuilder::getName).collect(
+              Collectors.toList());
       if (newMetricBuilder.getAggregatorFactories().isEmpty()) {
         newMetricBuilder = null;
       }
@@ -580,7 +581,7 @@ public class AggregateAnalyzer {
           SpanUnit.of(((RexLiteral)((RexCall) rex).getOperands().get(2)).getValueAs(String.class)));
     } else if (isAutoDateSpan(rex)) {
       RexCall rexCall = (RexCall) rex;
-      RexInputRef rexInputRef = (RexInputRef) rexCall.getOperands().getFirst();
+      RexInputRef rexInputRef = (RexInputRef) rexCall.getOperands().get(0);
       RexLiteral valueLiteral = (RexLiteral) rexCall.getOperands().get(1);
       return new AutoDateHistogramAggregationBuilder(bucketName)
           .field(helper.inferNamedField(rexInputRef).getRootName())

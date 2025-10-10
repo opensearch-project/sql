@@ -48,14 +48,14 @@ public class OpenSearchAggregateIndexScanRule
       RexNode condition = filter.getCondition();
       Function<RexNode, Boolean> isNotNullFromAgg =
           rex ->
-              rex instanceof RexCall rexCall
-                  && rexCall.getOperator() == SqlStdOperatorTable.IS_NOT_NULL
-                  && rexCall.getOperands().get(0) instanceof RexInputRef ref
-                  && groupSet.contains(ref.getIndex());
+              rex instanceof RexCall
+                  && ((RexCall)rex).getOperator() == SqlStdOperatorTable.IS_NOT_NULL
+                  && ((RexCall)rex).getOperands().get(0) instanceof RexInputRef
+                  && groupSet.contains(((RexInputRef)((RexCall)rex).getOperands().get(0)).getIndex());
       if (isNotNullFromAgg.apply(condition)
-          || (condition instanceof RexCall rexCall
-              && rexCall.getOperator() == SqlStdOperatorTable.AND
-              && rexCall.getOperands().stream().allMatch(isNotNullFromAgg::apply))) {
+          || (condition instanceof RexCall
+              && ((RexCall)condition).getOperator() == SqlStdOperatorTable.AND
+              && ((RexCall)condition).getOperands().stream().allMatch(isNotNullFromAgg::apply))) {
         // Try to do the aggregate push down and ignore the filter if the filter sources from the
         // aggregate's hint. See{@link CalciteRelNodeVisitor::visitAggregation}
         apply(call, aggregate, project, scan);
@@ -201,16 +201,16 @@ public class OpenSearchAggregateIndexScanRule
     static boolean mayBeFilterFromBucketNonNull(LogicalFilter filter) {
       RexNode condition = filter.getCondition();
       return isNotNullOnRef(condition)
-          || (condition instanceof RexCall rexCall
-              && rexCall.getOperator().equals(SqlStdOperatorTable.AND)
-              && rexCall.getOperands().stream()
+          || (condition instanceof RexCall
+              && ((RexCall)condition).getOperator().equals(SqlStdOperatorTable.AND)
+              && ((RexCall)condition).getOperands().stream()
                   .allMatch(OpenSearchAggregateIndexScanRule.Config::isNotNullOnRef));
     }
 
     private static boolean isNotNullOnRef(RexNode rex) {
-      return rex instanceof RexCall rexCall
-          && rexCall.getOperator().equals(SqlStdOperatorTable.IS_NOT_NULL)
-          && rexCall.getOperands().get(0) instanceof RexInputRef;
+      return rex instanceof RexCall
+          && ((RexCall)rex).getOperator().equals(SqlStdOperatorTable.IS_NOT_NULL)
+          && ((RexCall)rex).getOperands().get(0) instanceof RexInputRef;
     }
 
     static boolean containsWidthBucketFuncOnDate(LogicalProject project) {

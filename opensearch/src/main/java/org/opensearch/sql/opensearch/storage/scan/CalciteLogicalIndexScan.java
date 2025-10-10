@@ -314,7 +314,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
             (AutoDateHistogramAggregationBuilder) aggregationBuilder.getLeft().get(0);
         RexBuilder rexBuilder = getCluster().getRexBuilder();
         Optional<AggregationBuilder> aggBuilderOpt =
-            autoDateHistogram.getSubAggregations().stream().toList().stream().findFirst();
+            new ArrayList<>(autoDateHistogram.getSubAggregations()).stream().findFirst();
         RexNode condition =
             aggBuilderOpt.isEmpty() || aggBuilderOpt.get() instanceof ValueCountAggregationBuilder
                 ? rexBuilder.makeCall(
