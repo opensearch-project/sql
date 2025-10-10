@@ -122,6 +122,7 @@ import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Lookup.OutputStrategy;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Multisearch;
+import org.opensearch.sql.ast.tree.MvExpand;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
@@ -1610,6 +1611,24 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             _row_number_dedup_, context.relBuilder.literal(allowedDuplication)));
     // DropColumns('_row_number_dedup_)
     context.relBuilder.projectExcept(_row_number_dedup_);
+  }
+
+  @Override
+  public RelNode visitMvExpand(MvExpand node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    Field arrayField = node.getField();
+    RexInputRef arrayFieldRex = (RexInputRef) rexVisitor.analyze(arrayField, context);
+
+    // Use the same strategy as visitExpand: unnest the array field using uncollect
+    buildExpandRelNode(arrayFieldRex, arrayField.getField().toString(), null, context);
+
+    // If there's a limit, add a limit clause after the uncollect/join:
+    if (node.getLimit() != null) {
+      context.relBuilder.limit(0, node.getLimit());
+    }
+
+    return context.relBuilder.peek();
   }
 
   @Override
