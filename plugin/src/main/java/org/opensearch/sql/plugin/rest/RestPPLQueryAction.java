@@ -14,7 +14,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.regex.PatternSyntaxException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
@@ -60,9 +59,7 @@ public class RestPPLQueryAction extends BaseRestHandler {
         || e instanceof QueryEngineException
         || e instanceof SyntaxCheckException
         || e instanceof DataSourceClientException
-        || e instanceof IllegalAccessException
-        || e instanceof PatternSyntaxException
-        || (e.getCause() instanceof PatternSyntaxException);
+        || e instanceof IllegalAccessException;
   }
 
   @Override

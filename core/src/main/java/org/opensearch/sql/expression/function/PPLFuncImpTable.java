@@ -239,6 +239,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
@@ -688,6 +690,24 @@ public class PPLFuncImpTable {
       register(
           REPLACE,
           (RexBuilder builder, RexNode... args) -> {
+            // Validate regex pattern at query planning time
+            if (args.length >= 2 && args[1] instanceof RexLiteral) {
+              RexLiteral patternLiteral = (RexLiteral) args[1];
+              String pattern = patternLiteral.getValueAs(String.class);
+              if (pattern != null) {
+                try {
+                  // Compile pattern to validate it - this will throw PatternSyntaxException if
+                  // invalid
+                  Pattern.compile(pattern);
+                } catch (PatternSyntaxException e) {
+                  // Convert to IllegalArgumentException so it's treated as a client error (400)
+                  throw new IllegalArgumentException(
+                      String.format("Invalid regex pattern '%s': %s", pattern, e.getDescription()),
+                      e);
+                }
+              }
+            }
+
             if (args.length == 3 && args[2] instanceof RexLiteral) {
               RexLiteral literal = (RexLiteral) args[2];
               String replacement = literal.getValueAs(String.class);
