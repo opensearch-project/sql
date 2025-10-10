@@ -112,14 +112,13 @@ public class PPLOperandTypes {
               SqlTypeFamily.INTEGER,
               SqlTypeFamily.INTEGER));
 
-    public static final UDFOperandMetadata BOOLEAN_OR_NUMERIC_STRING =
-                  UDFOperandMetadata.wrap(
-                   (CompositeOperandTypeChecker)
-            OperandTypes.family(
-            SqlTypeFamily.BOOLEAN)
-            .or(OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING)));
+  public static final UDFOperandMetadata BOOLEAN_OR_NUMERIC_STRING =
+      UDFOperandMetadata.wrap(
+          (CompositeOperandTypeChecker)
+              OperandTypes.family(SqlTypeFamily.BOOLEAN)
+                  .or(OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING)));
 
-    public static final UDFOperandMetadata NUMERIC_NUMERIC_OPTIONAL_NUMERIC =
+  public static final UDFOperandMetadata NUMERIC_NUMERIC_OPTIONAL_NUMERIC =
       UDFOperandMetadata.wrap(
           (CompositeOperandTypeChecker)
               OperandTypes.NUMERIC_NUMERIC.or(

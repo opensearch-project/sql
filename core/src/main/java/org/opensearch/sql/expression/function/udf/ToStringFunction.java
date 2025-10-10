@@ -5,13 +5,12 @@
 
 package org.opensearch.sql.expression.function.udf;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
-import java.math.BigDecimal;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -70,98 +69,94 @@ public class ToStringFunction extends ImplementorUDF {
       }
     }
   }
-    @Strict
-    public static String toString(boolean fieldValue) {
-      if (fieldValue) {
-        return "True";
-      } else {
-        return "False";
-      }
+
+  @Strict
+  public static String toString(boolean fieldValue) {
+    if (fieldValue) {
+      return "True";
+    } else {
+      return "False";
     }
+  }
 
-    @Strict
-    public static String toString(String fieldValue) {
-      return toString(Boolean.parseBoolean(fieldValue));
+  @Strict
+  public static String toString(String fieldValue) {
+    return toString(Boolean.parseBoolean(fieldValue));
+  }
+
+  @Strict
+  public static String toString(BigDecimal num, String format) {
+    if (format.equals(DURATION_FORMAT)) {
+      Duration d = Duration.ofSeconds(num.toBigInteger().longValue());
+      long hours = d.toHours();
+      int minutes = d.toMinutesPart();
+      int remainingSeconds = d.toSecondsPart();
+
+      String time_str = String.format("%02d:%02d:%02d", hours, minutes, remainingSeconds);
+      return time_str;
+    } else if (format.equals(HEX_FORMAT)) {
+      return num.toBigInteger().toString(16);
+    } else if (format.equals(COMMAS_FORMAT)) {
+      NumberFormat nf = NumberFormat.getNumberInstance(Locale.getDefault());
+      nf.setMinimumFractionDigits(0);
+      nf.setMaximumFractionDigits(2);
+      return nf.format(num);
+
+    } else if (format.equals(BINARY_FORMAT)) {
+      BigInteger integerPart = num.toBigInteger(); // 42
+      return integerPart.toString(2);
     }
+    return num.toString();
+  }
 
-
-
-
-    @Strict
-    public static String toString(BigDecimal num, String format) {
-        if (format.equals(DURATION_FORMAT)) {
-            Duration d = Duration.ofSeconds(num.toBigInteger().longValue());
-            long hours = d.toHours();
-            int minutes = d.toMinutesPart();
-            int remainingSeconds = d.toSecondsPart();
-
-            String time_str = String.format("%02d:%02d:%02d", hours, minutes, remainingSeconds);
-            return time_str;
-        } else if (format.equals(HEX_FORMAT)) {
-            return num.toBigInteger().toString(16);
-        } else if (format.equals(COMMAS_FORMAT)) {
-            NumberFormat nf = NumberFormat.getNumberInstance(Locale.getDefault());
-            nf.setMinimumFractionDigits(0);
-            nf.setMaximumFractionDigits(2);
-            return nf.format(num);
-
-        } else if (format.equals(BINARY_FORMAT)) {
-            BigInteger integerPart = num.toBigInteger(); // 42
-            return integerPart.toString(2);
-
-        }
-        return num.toString();
+  @Strict
+  public static String toString(double num, String format) {
+    if (format.equals(DURATION_FORMAT)) {
+      Duration d = Duration.ofSeconds(Math.round(num));
+      long hours = d.toHours();
+      int minutes = d.toMinutesPart();
+      int remainingSeconds = d.toSecondsPart();
+      String time_str = String.format("%02d:%02d:%02d", hours, minutes, remainingSeconds);
+      return time_str;
+    } else if (format.equals(HEX_FORMAT)) {
+      return Double.toHexString(num);
+    } else if (format.equals(COMMAS_FORMAT)) {
+      NumberFormat nf = NumberFormat.getNumberInstance(Locale.getDefault());
+      return nf.format(num);
+    } else if (format.equals(BINARY_FORMAT)) {
+      return Long.toBinaryString(Double.doubleToLongBits(num));
     }
+    return Double.toString(num);
+  }
 
+  @Strict
+  public static String toString(int num, String format) {
 
-    @Strict
-    public static String toString(double num, String format) {
-      if (format.equals(DURATION_FORMAT)) {
-        Duration d = Duration.ofSeconds(Math.round(num));
-        long hours = d.toHours();
-        int minutes = d.toMinutesPart();
-        int remainingSeconds = d.toSecondsPart();
-        String time_str = String.format("%02d:%02d:%02d", hours, minutes, remainingSeconds);
-        return time_str;
-      } else if (format.equals(HEX_FORMAT)) {
-        return Double.toHexString(num);
-      } else if (format.equals(COMMAS_FORMAT)) {
-        NumberFormat nf = NumberFormat.getNumberInstance(Locale.getDefault());
-        return nf.format(num);
-      } else if (format.equals(BINARY_FORMAT)) {
-        return Long.toBinaryString(Double.doubleToLongBits(num));
-      }
-      return Double.toString(num);
+    if (format.equals(DURATION_FORMAT)) {
+
+      int hours = num / 3600;
+      int minutes = (num % 3600) / 60;
+      int seconds = num % 60;
+
+      String time_str = String.format("%02d:%02d:%02d", hours, minutes, seconds);
+      return time_str;
+    } else if (format.equals(HEX_FORMAT)) {
+      return Integer.toHexString(num);
+    } else if (format.equals(COMMAS_FORMAT)) {
+      NumberFormat nf = NumberFormat.getNumberInstance(Locale.getDefault());
+      return nf.format(num);
+    } else if (format.equals(BINARY_FORMAT)) {
+      return Integer.toBinaryString(num);
     }
+    return Integer.toString(num);
+  }
 
-    @Strict
-    public static String toString(int num, String format) {
-      if (format.equals(DURATION_FORMAT)) {
-
-        int hours = num / 3600;
-        int minutes = (num % 3600) / 60;
-        int seconds = num % 60;
-
-        String time_str = String.format("%02d:%02d:%02d", hours, minutes, seconds);
-        return time_str;
-      } else if (format.equals(HEX_FORMAT)) {
-        return Integer.toHexString(num);
-      } else if (format.equals(COMMAS_FORMAT)) {
-        NumberFormat nf = NumberFormat.getNumberInstance(Locale.getDefault());
-        return nf.format(num);
-      } else if (format.equals(BINARY_FORMAT)) {
-        return Integer.toBinaryString(num);
-      }
-      return Integer.toString(num);
+  @Strict
+  public static String toString(String str, String format) {
+    if (str.contains(".") || (str.length() > 10)) {
+      return toString(Double.parseDouble(str), format);
+    } else {
+      return toString(Integer.parseInt(str), format);
     }
-
-    @Strict
-    public static String toString(String str, String format) {
-      if (str.contains(".") || (str.length() > 10)) {
-        return toString(Double.parseDouble(str), format);
-      } else {
-        return toString(Integer.parseInt(str), format);
-      }
-    }
-
+  }
 }
