@@ -74,6 +74,7 @@ commands
    | appendcolCommand
    | appendCommand
    | expandCommand
+   | mvexpandCommand
    | flattenCommand
    | reverseCommand
    | regexCommand
@@ -456,6 +457,10 @@ trendlineType
 
 expandCommand
     : EXPAND fieldExpression (AS alias = qualifiedName)?
+    ;
+
+mvexpandCommand
+    : MVEXPAND fieldExpression (LIMIT INTEGER_LITERAL)?
     ;
 
 flattenCommand
