@@ -540,6 +540,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.SUBSTR, expressions);
   }
 
+  public static FunctionExpression tostring(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.TOSTRING, expressions);
+  }
+
   public static FunctionExpression ltrim(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.LTRIM, expressions);
   }
