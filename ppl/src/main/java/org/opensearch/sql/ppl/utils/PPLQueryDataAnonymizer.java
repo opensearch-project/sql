@@ -107,6 +107,10 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   private static final String MASK_LITERAL = "***";
   private static final String MASK_IDENTIFIER = "identifier";
 
+  private static final String MASK_COLUMN = "identifier";
+
+  private static final String MASK_TABLE = "table";
+
   private final AnonymizerExpressionAnalyzer expressionAnalyzer;
   private final Settings settings;
 
@@ -145,12 +149,9 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   @Override
   public String visitRelation(Relation node, String context) {
     if (node instanceof DescribeRelation) {
-      // remove the system table suffix
-      String systemTable = node.getTableQualifiedName().toString();
-      return StringUtils.format(
-          "describe %s", systemTable.substring(0, systemTable.lastIndexOf('.')));
+      return StringUtils.format("describe %s", MASK_TABLE);
     }
-    return StringUtils.format("source=%s", node.getTableQualifiedName().toString());
+    return StringUtils.format("source=%s", MASK_TABLE);
   }
 
   @Override
@@ -185,23 +186,22 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
                       .collect(Collectors.toList()));
       return StringUtils.format(
           "%s | join type=%s overwrite=%s max=%s %s %s",
-          left, joinType, overwrite, max, fieldList, right);
+          left, joinType, MASK_LITERAL, MASK_LITERAL, fieldList, right);
     } else {
       String joinType = node.getJoinType().name().toLowerCase(Locale.ROOT);
-      String leftAlias = node.getLeftAlias().map(l -> " left = " + l).orElse("");
-      String rightAlias = node.getRightAlias().map(r -> " right = " + r).orElse("");
+      String leftAlias = node.getLeftAlias().map(l -> " left = " + MASK_COLUMN).orElse("");
+      String rightAlias = node.getRightAlias().map(r -> " right = " + MASK_COLUMN).orElse("");
       String condition =
           node.getJoinCondition().map(c -> expressionAnalyzer.analyze(c, context)).orElse("true");
       return StringUtils.format(
           "%s | %s join max=%s%s%s on %s %s",
-          left, joinType, max, leftAlias, rightAlias, condition, right);
+          left, joinType, MASK_LITERAL, leftAlias, rightAlias, condition, right);
     }
   }
 
   @Override
   public String visitLookup(Lookup node, String context) {
     String child = node.getChild().get(0).accept(this, context);
-    String lookupTable = ((Relation) node.getLookupRelation()).getTableQualifiedName().toString();
     String mappingFields = formatFieldAlias(node.getMappingAliasMap());
     String strategy =
         node.getOutputAliasMap().isEmpty()
@@ -209,7 +209,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
             : String.format(" %s ", node.getOutputStrategy().toString().toLowerCase());
     String outputFields = formatFieldAlias(node.getOutputAliasMap());
     return StringUtils.format(
-        "%s | lookup %s %s%s%s", child, lookupTable, mappingFields, strategy, outputFields);
+        "%s | lookup %s %s%s%s", child, MASK_TABLE, mappingFields, strategy, outputFields);
   }
 
   private String formatFieldAlias(java.util.Map<String, String> fieldMap) {
@@ -234,7 +234,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     }
     // add "[]" only if its child is not a root
     String format = childNode.getChild().isEmpty() ? "%s as %s" : "[ %s ] as %s";
-    return StringUtils.format(format, child, node.getAlias());
+    return StringUtils.format(format, child, MASK_COLUMN);
   }
 
   @Override
@@ -274,8 +274,8 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
           ((Field) renameMap.getTarget()).getField().toString());
     }
     String renames =
-        renameMapBuilder.build().entrySet().stream()
-            .map(entry -> StringUtils.format("%s as %s", entry.getKey(), entry.getValue()))
+        node.getRenameList().stream()
+            .map(entry -> StringUtils.format("%s as %s", MASK_COLUMN, MASK_COLUMN))
             .collect(Collectors.joining(","));
     return StringUtils.format("%s | rename %s", child, renames);
   }
@@ -340,7 +340,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     }
 
     if (node.getAlias() != null) {
-      binCommand.append(" as ").append(node.getAlias());
+      binCommand.append(" as ").append(MASK_COLUMN);
     }
 
     return StringUtils.format("%s%s", child, binCommand.toString());
@@ -410,7 +410,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     }
     String expressions =
         expressionsBuilder.build().stream()
-            .map(pair -> StringUtils.format("%s" + "=%s", pair.getLeft(), pair.getRight()))
+            .map(pair -> StringUtils.format("%s" + "=%s", MASK_COLUMN, pair.getRight()))
             .collect(Collectors.joining(" "));
     return StringUtils.format("%s | eval %s", child, expressions);
   }
@@ -500,7 +500,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   public String visitRex(Rex node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     String field = visitExpression(node.getField());
-    String pattern = "\"" + node.getPattern().toString() + "\"";
+    String pattern = "\"" + MASK_LITERAL + "\"";
     StringBuilder command = new StringBuilder();
 
     command.append(
@@ -509,11 +509,11 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
             child, field, node.getMode().toString().toLowerCase(), pattern));
 
     if (node.getMaxMatch().isPresent()) {
-      command.append(" max_match=").append(node.getMaxMatch().get());
+      command.append(" max_match=").append(MASK_LITERAL);
     }
 
     if (node.getOffsetField().isPresent()) {
-      command.append(" offset_field=").append(node.getOffsetField().get());
+      command.append(" offset_field=").append(MASK_COLUMN);
     }
 
     return command.toString();
@@ -539,7 +539,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     }
     return ParseMethod.PATTERNS.equals(node.getParseMethod()) && regex.isEmpty()
         ? StringUtils.format("%s | %s %s", child, commandName, source)
-        : StringUtils.format("%s | %s %s '%s'", child, commandName, source, regex);
+        : StringUtils.format("%s | %s %s '%s'", child, commandName, source, MASK_LITERAL);
   }
 
   @Override
@@ -696,7 +696,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     builder.append(" mode=").append(node.getPatternMode().toString());
     builder.append(" max_sample_count=").append(visitExpression(node.getPatternMaxSampleCount()));
     builder.append(" buffer_limit=").append(visitExpression(node.getPatternBufferLimit()));
-    builder.append(" new_field=").append(node.getAlias());
+    builder.append(" new_field=").append(MASK_COLUMN);
     if (!node.getArguments().isEmpty()) {
       for (java.util.Map.Entry<String, Literal> entry : node.getArguments().entrySet()) {
         builder.append(
@@ -830,7 +830,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
     @Override
     public String visitField(Field node, String context) {
-      return node.getField().toString();
+      return MASK_COLUMN;
     }
 
     @Override
@@ -852,7 +852,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     @Override
     public String visitTrendlineComputation(Trendline.TrendlineComputation node, String context) {
       final String dataField = node.getDataField().accept(this, context);
-      final String aliasClause = " as " + node.getAlias();
+      final String aliasClause = " as " + MASK_COLUMN;
       final String computationType = node.getComputationType().name().toLowerCase(Locale.ROOT);
       return StringUtils.format(
           "%s(%d, %s)%s", computationType, node.getNumberOfDataPoints(), dataField, aliasClause);
@@ -881,7 +881,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     @Override
     public String visitCase(Case node, String context) {
       StringBuilder builder = new StringBuilder();
-      builder.append("cast(");
+      builder.append("case(");
       for (When when : node.getWhenClauses()) {
         builder.append(analyze(when.getCondition(), context));
         builder.append(",");
@@ -908,7 +908,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     @Override
     public String visitQualifiedName(
         org.opensearch.sql.ast.expression.QualifiedName node, String context) {
-      return String.join(".", node.getParts());
+      return MASK_COLUMN;
     }
   }
 }
