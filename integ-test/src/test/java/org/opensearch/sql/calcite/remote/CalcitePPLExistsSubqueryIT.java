@@ -26,7 +26,6 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
 
   @Override
   public void init() throws Exception {
-    GlobalPushdownConfig.enabled = false;
     super.init();
     enableCalcite();
 
@@ -44,7 +43,6 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
 
   @Test
   public void testSimpleExistsSubquery() throws IOException {
-    GlobalPushdownConfig.enabled = false;
     JSONObject result =
         executeQuery(
             String.format(
