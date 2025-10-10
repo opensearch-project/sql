@@ -35,6 +35,7 @@
     "user/ppl/cmd/head.rst",
     "user/ppl/cmd/join.rst",
     "user/ppl/cmd/lookup.rst",
+    "user/ppl/cmd/multisearch.rst",
     "user/ppl/cmd/parse.rst",
     "user/ppl/cmd/patterns.rst",
     "user/ppl/cmd/rare.rst",
