@@ -160,6 +160,26 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testToStringDuration() {
+    String ppl =
+        "source=EMP |  eval duration_commas = tostring(6500, \"duration\") | fields ENAME,"
+            + " duration_commas|HEAD 1";
+
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalSort(fetch=[1])\n"
+            + "  LogicalProject(ENAME=[$1], duration_commas=[TOSTRING(6500, 'duration':VARCHAR)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    String expectedPhysical = "ENAME=SMITH; duration_commas=01:48:20\n";
+    verifyLogical(root, expectedLogical);
+    verifyResult(root, expectedPhysical);
+
+    String expectedSparkSql = "SELECT `ENAME`, `TOSTRING`(6500, 'duration') `duration_commas`\nFROM `scott`.`EMP`\nLIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
   public void testLike() {
     String ppl = "source=EMP | where like(JOB, 'SALE%') | stats count() as cnt";
     RelNode root = getRelNode(ppl);
