@@ -37,6 +37,7 @@ import org.opensearch.sql.utils.YamlFormatter;
 public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   private static final String EXTENDED_EXPLAIN_API_ENDPOINT =
       "/_plugins/_ppl/_explain?format=extended";
+  private static final String YAML_EXPLAIN_API_ENDPOINT = "/_plugins/_ppl/_explain?format=yaml";
   private static final Logger LOG = LogManager.getLogger();
   @Rule public final RetryProcessor retryProcessor = new RetryProcessor();
 
@@ -59,6 +60,13 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
 
   protected String explainQueryToString(String query) throws IOException {
     return explainQueryToString(query, false);
+  }
+
+  protected String explainQueryYaml(String query) throws IOException {
+    Response response = client().performRequest(buildRequest(query, YAML_EXPLAIN_API_ENDPOINT));
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    String responseBody = getResponseBody(response, true);
+    return responseBody.replace("\\r\\n", "\\n");
   }
 
   protected String explainQueryToYaml(String query) throws IOException {

@@ -41,6 +41,7 @@ import org.opensearch.sql.protocol.response.format.RawResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.VisualizationResponseFormatter;
+import org.opensearch.sql.protocol.response.format.YamlResponseFormatter;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.node.NodeClient;
@@ -109,12 +110,13 @@ public class TransportPPLQueryAction
     PPLQueryRequest transformedRequest = transportRequest.toPPLQueryRequest();
 
     if (transformedRequest.isExplainRequest()) {
-      pplService.explain(transformedRequest, createExplainResponseListener(listener));
+      pplService.explain(
+          transformedRequest, createExplainResponseListener(transformedRequest, listener));
     } else {
       pplService.execute(
           transformedRequest,
           createListener(transformedRequest, listener),
-          createExplainResponseListener(listener));
+          createExplainResponseListener(transformedRequest, listener));
     }
   }
 
@@ -124,18 +126,32 @@ public class TransportPPLQueryAction
    * legacy module.
    */
   private ResponseListener<ExecutionEngine.ExplainResponse> createExplainResponseListener(
-      ActionListener<TransportPPLQueryResponse> listener) {
+      PPLQueryRequest request, ActionListener<TransportPPLQueryResponse> listener) {
     return new ResponseListener<ExecutionEngine.ExplainResponse>() {
       @Override
       public void onResponse(ExecutionEngine.ExplainResponse response) {
-        String responseContent =
-            new JsonResponseFormatter<ExecutionEngine.ExplainResponse>(PRETTY) {
-              @Override
-              protected Object buildJsonObject(ExecutionEngine.ExplainResponse response) {
-                return response;
-              }
-            }.format(response);
-        listener.onResponse(new TransportPPLQueryResponse(responseContent));
+        Optional<Format> isYamlFormat =
+            Format.ofExplain(request.getFormat()).filter(format -> format.equals(Format.YAML));
+        ResponseFormatter<ExecutionEngine.ExplainResponse> formatter;
+        if (isYamlFormat.isPresent()) {
+          formatter =
+              new YamlResponseFormatter<>() {
+                @Override
+                protected Object buildYamlObject(ExecutionEngine.ExplainResponse response) {
+                  return response;
+                }
+              };
+        } else {
+          formatter =
+              new JsonResponseFormatter<>(PRETTY) {
+                @Override
+                protected Object buildJsonObject(ExecutionEngine.ExplainResponse response) {
+                  return response;
+                }
+              };
+        }
+        listener.onResponse(
+            new TransportPPLQueryResponse(formatter.format(response), formatter.contentType()));
       }
 
       @Override

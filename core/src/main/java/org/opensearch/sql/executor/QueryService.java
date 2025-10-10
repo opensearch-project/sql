@@ -189,7 +189,8 @@ public class QueryService {
       Explain.ExplainFormat format,
       Optional<Throwable> calciteFailure) {
     try {
-      if (format != null && format != Explain.ExplainFormat.STANDARD) {
+      if (format != null
+          && (format != Explain.ExplainFormat.STANDARD && format != Explain.ExplainFormat.YAML)) {
         throw new UnsupportedOperationException(
             "Explain mode " + format.name() + " is not supported in v2 engine");
       }
