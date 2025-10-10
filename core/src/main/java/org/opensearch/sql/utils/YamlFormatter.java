@@ -23,6 +23,7 @@ public class YamlFormatter {
   static {
     YAMLFactory yamlFactory = new YAMLFactory();
     yamlFactory.disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER);
+    yamlFactory.disable(YAMLGenerator.Feature.USE_PLATFORM_LINE_BREAKS);
     yamlFactory.enable(YAMLGenerator.Feature.MINIMIZE_QUOTES); // Enable smart quoting
     yamlFactory.enable(
         YAMLGenerator.Feature.ALWAYS_QUOTE_NUMBERS_AS_STRINGS); // Quote numeric strings
