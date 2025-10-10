@@ -708,14 +708,14 @@ public class CalciteExplainIT extends ExplainIT {
     expected = loadExpectedPlan("explain_limit_agg_pushdown_bucket_nullable1.yaml");
     assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() by"
                 + " state | head 100 | head 10 from 10 "));
 
     expected = loadExpectedPlan("explain_limit_agg_pushdown_bucket_nullable2.yaml");
     assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() by"
                 + " state | sort state | head 100 | head 10 from 10 "));
 
