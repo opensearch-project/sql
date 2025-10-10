@@ -28,7 +28,6 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLambdaRef;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -410,27 +409,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     } finally {
       if (isCoalesce) {
         context.setInCoalesceFunction(false);
-      }
-    }
-
-    // Convert PCRE-style backreferences (\1, \2) to Java-style ($1, $2) for replace function
-    if ("replace".equalsIgnoreCase(node.getFuncName()) && arguments.size() == 3) {
-      RexNode replacementArg = arguments.get(2);
-      if (replacementArg instanceof RexLiteral) {
-        RexLiteral literal = (RexLiteral) replacementArg;
-        String replacement = literal.getValueAs(String.class);
-        if (replacement != null) {
-          // Convert sed backreferences (\1, \2) to Java style ($1, $2)
-          // The regex pattern matches a backslash followed by digits
-          String javaReplacement = replacement.replaceAll("\\\\(\\d+)", "\\$$1");
-          if (!javaReplacement.equals(replacement)) {
-            // Preserve the original type when creating the new literal
-            arguments.set(
-                2,
-                context.rexBuilder.makeLiteral(
-                    javaReplacement, literal.getType(), literal.getTypeName() != SqlTypeName.CHAR));
-          }
-        }
       }
     }
 

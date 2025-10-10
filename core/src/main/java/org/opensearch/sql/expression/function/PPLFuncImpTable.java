@@ -245,6 +245,7 @@ import javax.annotation.Nullable;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLambda;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlOperator;
@@ -683,7 +684,31 @@ public class PPLFuncImpTable {
       registerOperator(LOWER, SqlStdOperatorTable.LOWER);
       registerOperator(POSITION, SqlStdOperatorTable.POSITION);
       registerOperator(LOCATE, SqlStdOperatorTable.POSITION);
-      registerOperator(REPLACE, SqlLibraryOperators.REGEXP_REPLACE_3);
+      // Register REPLACE with automatic PCRE-to-Java backreference conversion
+      register(
+          REPLACE,
+          (RexBuilder builder, RexNode... args) -> {
+            if (args.length == 3 && args[2] instanceof RexLiteral) {
+              RexLiteral literal = (RexLiteral) args[2];
+              String replacement = literal.getValueAs(String.class);
+              if (replacement != null) {
+                // Convert PCRE/sed backreferences (\1, \2) to Java style ($1, $2)
+                String javaReplacement = replacement.replaceAll("\\\\(\\d+)", "\\$$1");
+                if (!javaReplacement.equals(replacement)) {
+                  RexNode convertedLiteral =
+                      builder.makeLiteral(
+                          javaReplacement,
+                          literal.getType(),
+                          literal.getTypeName() != SqlTypeName.CHAR);
+                  return builder.makeCall(
+                      SqlLibraryOperators.REGEXP_REPLACE_3, args[0], args[1], convertedLiteral);
+                }
+              }
+            }
+            return builder.makeCall(SqlLibraryOperators.REGEXP_REPLACE_3, args);
+          },
+          wrapSqlOperandTypeChecker(
+              SqlLibraryOperators.REGEXP_REPLACE_3.getOperandTypeChecker(), REPLACE.name(), false));
       registerOperator(UPPER, SqlStdOperatorTable.UPPER);
       registerOperator(ABS, SqlStdOperatorTable.ABS);
       registerOperator(ACOS, SqlStdOperatorTable.ACOS);
