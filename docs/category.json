@@ -54,6 +54,7 @@
     "user/ppl/cmd/top.rst",
     "user/ppl/cmd/trendline.rst",
     "user/ppl/cmd/where.rst",
+    "user/ppl/functions/collection.rst",
     "user/ppl/functions/condition.rst",
     "user/ppl/functions/datetime.rst",
     "user/ppl/functions/expressions.rst",
@@ -64,5 +65,8 @@
     "user/ppl/functions/string.rst",
     "user/ppl/general/datatypes.rst",
     "user/ppl/general/identifiers.rst"
+  ],
+  "bash_settings": [
+    "user/ppl/admin/settings.rst"
   ]
 }

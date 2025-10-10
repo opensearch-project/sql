@@ -358,6 +358,40 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testExplainStatsWithSubAggregation() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_stats_bins_on_time_and_term.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=events | bin @timestamp bins=3 | stats bucket_nullable=false count() by"
+                + " @timestamp, region"));
+
+    expected = loadExpectedPlan("explain_stats_bins_on_time_and_term2.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=events | bin @timestamp bins=3 | stats bucket_nullable=false avg(cpu_usage) by"
+                + " @timestamp, region"));
+  }
+
+  @Test
+  public void bucketNullableNotSupportSubAggregation() throws IOException {
+    // TODO: Don't throw exception after addressing
+    // https://github.com/opensearch-project/sql/issues/4317
+    // When bucketNullable is true, sub aggregation is not supported. Hence we cannot pushdown the
+    // aggregation in this query. Caused by issue
+    // https://github.com/opensearch-project/sql/issues/4317,
+    // bin aggregation on timestamp field won't work if not been push down.
+    enabledOnlyWhenPushdownIsEnabled();
+    assertThrows(
+        Exception.class,
+        () ->
+            explainQueryToString(
+                "source=events | bin @timestamp bins=3 | stats count() by @timestamp, region"));
+  }
+
+  @Test
   public void testExplainBinWithSpan() throws IOException {
     String expected = loadExpectedPlan("explain_bin_span.yaml");
     assertYamlEqualsIgnoreId(
@@ -671,15 +705,15 @@ public class CalciteExplainIT extends ExplainIT {
             "source=opensearch-sql_test_index_account | stats count() by state | sort state | head"
                 + " 100 | head 10 from 10 "));
 
-    expected = loadExpectedPlan("explain_limit_agg_pushdown_bucket_nullable1.json");
-    assertJsonEqualsIgnoreId(
+    expected = loadExpectedPlan("explain_limit_agg_pushdown_bucket_nullable1.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() by"
                 + " state | head 100 | head 10 from 10 "));
 
-    expected = loadExpectedPlan("explain_limit_agg_pushdown_bucket_nullable2.json");
-    assertJsonEqualsIgnoreId(
+    expected = loadExpectedPlan("explain_limit_agg_pushdown_bucket_nullable2.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() by"
@@ -851,15 +885,15 @@ public class CalciteExplainIT extends ExplainIT {
   public void testExplainSortOnMetricsNoBucketNullable() throws IOException {
     // TODO enhancement later: https://github.com/opensearch-project/sql/issues/4282
     enabledOnlyWhenPushdownIsEnabled();
-    String expected = loadExpectedPlan("explain_agg_sort_on_metrics1.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_agg_sort_on_metrics1.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() by"
                 + " state | sort `count()`"));
 
-    expected = loadExpectedPlan("explain_agg_sort_on_metrics2.json");
-    assertJsonEqualsIgnoreId(
+    expected = loadExpectedPlan("explain_agg_sort_on_metrics2.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() by"

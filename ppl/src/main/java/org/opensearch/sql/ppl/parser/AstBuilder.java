@@ -223,7 +223,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Argument.ArgumentMap argumentMap = Argument.ArgumentMap.of(arguments);
     if (argumentMap.get("type") != null) {
       Join.JoinType joinTypeFromArgument = ArgumentFactory.getJoinType(argumentMap);
-      if (sqlLike && joinType != joinTypeFromArgument) {
+      if (sqlLike && joinType != joinTypeFromArgument && ctx.sqlLikeJoinType() != null) {
         throw new SemanticCheckException(
             "Join type is ambiguous, remove either the join type before JOIN keyword or 'type='"
                 + " option.");
