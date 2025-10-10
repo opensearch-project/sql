@@ -243,7 +243,7 @@ public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 Locale.ROOT,
-                "source=%s | fields account_number, age | append [ source=%s | fields"
+                "source=%s | fields account_number, firstname | append [ source=%s | fields"
                     + " account_number, age, birthdate ] | where isnotnull(birthdate) and"
                     + " account_number > 30",
                 TEST_INDEX_ACCOUNT,
@@ -251,8 +251,8 @@ public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
     verifySchemaInOrder(
         actual,
         schema("account_number", "bigint"),
-        schema("age", "bigint"),
-        schema("age0", "int"),
+        schema("firstname", "string"),
+        schema("age", "int"),
         schema("birthdate", "string"));
     verifyDataRows(actual, rows(32, null, 34, "2018-08-11 00:00:00"));
   }
