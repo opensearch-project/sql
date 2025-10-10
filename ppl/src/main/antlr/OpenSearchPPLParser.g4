@@ -20,7 +20,7 @@ pplStatement
    ;
 
 subPipeline
-   : commands (PIPE commands)*
+   : PIPE? commands (PIPE commands)*
    ;
 
 queryStatement
