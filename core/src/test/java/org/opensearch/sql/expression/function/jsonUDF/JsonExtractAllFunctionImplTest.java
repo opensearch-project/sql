@@ -270,12 +270,15 @@ public class JsonExtractAllFunctionImplTest {
   @Test
   public void testNumericValues() {
     Map<String, Object> map =
-        eval("{\"int\": 42, \"long\": 9223372036854775807, \"double\": 3.14159}");
+        eval(
+            "{\"int\": 42, \"long\": 9223372036854775807, \"hugeNumber\": 9223372036854775808,"
+                + " \"double\": 3.14159}");
 
+    assertEquals(4, map.size());
     assertEquals(42, map.get("int"));
     assertEquals(9223372036854775807L, map.get("long"));
+    assertEquals(9223372036854775808.0, map.get("hugeNumber"));
     assertEquals(3.14159, map.get("double"));
-    assertEquals(3, map.size());
   }
 
   @Test

@@ -176,7 +176,7 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
       case VALUE_STRING:
         return parser.getValueAsString();
       case VALUE_NUMBER_INT:
-        return getIntOrLong(parser);
+        return getIntValue(parser);
       case VALUE_NUMBER_FLOAT:
         return parser.getDoubleValue();
       case VALUE_TRUE:
@@ -190,11 +190,14 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
     }
   }
 
-  private static Object getIntOrLong(JsonParser parser) throws IOException {
-    try {
+  private static Object getIntValue(JsonParser parser) throws IOException {
+    if (parser.getNumberType() == JsonParser.NumberType.INT) {
       return parser.getIntValue();
-    } catch (Exception e) {
+    } else if (parser.getNumberType() == JsonParser.NumberType.LONG) {
       return parser.getLongValue();
+    } else {
+      // store as double in case of BIG_INTEGER (exceed LONG precision)
+      return parser.getBigIntegerValue().doubleValue();
     }
   }
 
