@@ -32,7 +32,6 @@ import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
-/** Integration test for internal function MAP_CONCAT in Calcite PPL. */
 public class MapConcatFunctionIT extends CalcitePPLIntegTestCase {
 
   private static final String MAP_FIELD = "map";
