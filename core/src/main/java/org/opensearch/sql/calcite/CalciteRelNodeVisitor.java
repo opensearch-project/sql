@@ -121,6 +121,7 @@ import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Replace;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Search;
@@ -155,6 +156,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   private final CalciteRexNodeVisitor rexVisitor;
   private final CalciteAggCallVisitor aggVisitor;
   private final DataSourceService dataSourceService;
+  private static final String NEW_FIELD_PREFIX = "new_";
 
   public CalciteRelNodeVisitor(DataSourceService dataSourceService) {
     this.rexVisitor = new CalciteRexNodeVisitor(this);
@@ -2395,6 +2397,51 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     } else {
       throw new CalciteUnsupportedException("Explicit values node is unsupported in Calcite");
     }
+  }
+
+  @Override
+  public RelNode visitReplace(Replace node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+    RexNode patternNode = rexVisitor.analyze(node.getPattern(), context);
+    RexNode replacementNode = rexVisitor.analyze(node.getReplacement(), context);
+
+    // Create a set of field names to replace for quick lookup
+    Set<String> fieldsToReplace =
+        node.getFieldList().stream().map(f -> f.getField().toString()).collect(Collectors.toSet());
+
+    // Validate that all fields to replace exist in the current schema
+    Set<String> availableFields = new HashSet<>(fieldNames);
+    for (String fieldToReplace : fieldsToReplace) {
+      if (!availableFields.contains(fieldToReplace)) {
+        throw new IllegalArgumentException(
+            String.format(
+                "field [%s] not found; input fields are: %s", fieldToReplace, fieldNames));
+      }
+    }
+
+    List<RexNode> projectList = new ArrayList<>();
+    List<String> newFieldNames = new ArrayList<>();
+
+    // Project all fields, replacing specified ones in-place
+    for (String fieldName : fieldNames) {
+      if (fieldsToReplace.contains(fieldName)) {
+        // Replace this field in-place
+        RexNode fieldRef = context.relBuilder.field(fieldName);
+        RexNode replaceCall =
+            context.relBuilder.call(
+                SqlStdOperatorTable.REPLACE, fieldRef, patternNode, replacementNode);
+        projectList.add(replaceCall);
+      } else {
+        // Keep original field unchanged
+        projectList.add(context.relBuilder.field(fieldName));
+      }
+      newFieldNames.add(fieldName); // Same field name (in-place replacement)
+    }
+
+    context.relBuilder.project(projectList, newFieldNames);
+    return context.relBuilder.peek();
   }
 
   private void buildParseRelNode(Parse node, CalcitePlanContext context) {
