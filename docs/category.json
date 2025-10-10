@@ -53,6 +53,7 @@
     "user/ppl/cmd/top.rst",
     "user/ppl/cmd/trendline.rst",
     "user/ppl/cmd/where.rst",
+    "user/ppl/functions/collection.rst",
     "user/ppl/functions/condition.rst",
     "user/ppl/functions/datetime.rst",
     "user/ppl/functions/expressions.rst",

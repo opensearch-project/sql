@@ -1019,6 +1019,7 @@ mathematicalFunctionName
 collectionFunctionName
     : ARRAY
     | ARRAY_LENGTH
+    | MVAPPEND
     | MVJOIN
     | FORALL
     | EXISTS
