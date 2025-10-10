@@ -361,16 +361,16 @@ public class CalciteExplainIT extends ExplainIT {
   public void testExplainStatsWithSubAggregation() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_stats_bins_on_time_and_term.yaml");
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=events | bin @timestamp bins=3 | stats bucket_nullable=false count() by"
                 + " @timestamp, region"));
 
     expected = loadExpectedPlan("explain_stats_bins_on_time_and_term2.yaml");
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=events | bin @timestamp bins=3 | stats bucket_nullable=false avg(cpu_usage) by"
                 + " @timestamp, region"));
   }
@@ -706,14 +706,14 @@ public class CalciteExplainIT extends ExplainIT {
                 + " 100 | head 10 from 10 "));
 
     expected = loadExpectedPlan("explain_limit_agg_pushdown_bucket_nullable1.yaml");
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() by"
                 + " state | head 100 | head 10 from 10 "));
 
     expected = loadExpectedPlan("explain_limit_agg_pushdown_bucket_nullable2.yaml");
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() by"
@@ -886,16 +886,16 @@ public class CalciteExplainIT extends ExplainIT {
     // TODO enhancement later: https://github.com/opensearch-project/sql/issues/4282
     enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_agg_sort_on_metrics1.yaml");
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() by"
                 + " state | sort `count()`"));
 
     expected = loadExpectedPlan("explain_agg_sort_on_metrics2.yaml");
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() by"
                 + " gender, state | sort `count()`"));
   }
