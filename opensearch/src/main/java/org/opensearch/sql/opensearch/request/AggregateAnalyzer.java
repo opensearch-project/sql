@@ -598,7 +598,6 @@ public class AggregateAnalyzer {
           MissingOrder.FIRST,
           helper.bucketNullable);
     } else if (isAutoDateSpan(rex)) {
-      // Defense check. We've already prevented this case in OpenSearchAggregateIndexScanRule.
       throw new CompositeAggUnSupportedException(
           "auto_date_histogram is not supported in composite agg.");
     } else {
