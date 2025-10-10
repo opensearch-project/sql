@@ -127,8 +127,8 @@ public class AggregateAnalyzer {
     }
   }
 
-  public static class CompositeUnSupportedException extends RuntimeException {
-    CompositeUnSupportedException(String message) {
+  public static class CompositeAggUnSupportedException extends RuntimeException {
+    CompositeAggUnSupportedException(String message) {
       super(message);
     }
   }
@@ -215,13 +215,13 @@ public class AggregateAnalyzer {
       Pair<List<String>, Builder> countAggNameAndBuilderPair =
           removeCountAggregationBuilders(metricBuilder, countAllOnly);
       Builder newMetricBuilder = countAggNameAndBuilderPair.getRight();
+      List<String> countAggNames = countAggNameAndBuilderPair.getLeft();
 
       if (aggregate.getGroupSet().isEmpty()) {
         if (newMetricBuilder == null) {
           // The optimization must require all count aggregations are removed,
           // and they have only one field name
-          return Pair.of(
-              List.of(), new CountAsTotalHitsParser(countAggNameAndBuilderPair.getLeft()));
+          return Pair.of(List.of(), new CountAsTotalHitsParser(countAggNames));
         } else {
           return Pair.of(
               ImmutableList.copyOf(newMetricBuilder.getAggregatorFactories()),
@@ -235,7 +235,7 @@ public class AggregateAnalyzer {
         }
         return Pair.of(
             Collections.singletonList(bucketBuilder),
-            new BucketAggregationParser(metricParserList, countAggNameAndBuilderPair.getLeft()));
+            new BucketAggregationParser(metricParserList, countAggNames));
       } else {
         AggregationBuilder aggregationBuilder;
         try {
@@ -249,16 +249,15 @@ public class AggregateAnalyzer {
           }
           return Pair.of(
               Collections.singletonList(aggregationBuilder),
-              new CompositeAggregationParser(
-                  metricParserList, countAggNameAndBuilderPair.getLeft()));
-        } catch (CompositeUnSupportedException e) {
+              new CompositeAggregationParser(metricParserList, countAggNames));
+        } catch (CompositeAggUnSupportedException e) {
           if (bucketNullable) {
             throw new UnsupportedOperationException(e.getMessage());
           }
           aggregationBuilder = createNestedBuckets(groupList, project, newMetricBuilder, helper);
           return Pair.of(
               Collections.singletonList(aggregationBuilder),
-              new BucketAggregationParser(metricParserList, countAggNameAndBuilderPair.getLeft()));
+              new BucketAggregationParser(metricParserList, countAggNames));
         }
       }
     } catch (Throwable e) {
@@ -268,12 +267,14 @@ public class AggregateAnalyzer {
   }
 
   /**
-   * Remove all ValueCountAggregationBuilder from metric builder, and return the removed
-   * ValueCountAggregationBuilder list.
+   * Remove all ValueCountAggregationBuilder from metric builder, and return the name list for the
+   * removed count aggs with the updated metric builder.
    *
    * @param metricBuilder metrics builder
    * @param countAllOnly remove count() only, or count(FIELD) will be removed.
-   * @return a pair of removed ValueCountAggregationBuilder and updated metric builder
+   * @return a pair of name list for the removed count aggs and updated metric builder. If the count
+   *     aggregations cannot satisfy the requirement to remove, it will return an empty name list
+   *     with the original metric builder.
    */
   private static Pair<List<String>, Builder> removeCountAggregationBuilders(
       Builder metricBuilder, boolean countAllOnly) {
@@ -579,7 +580,7 @@ public class AggregateAnalyzer {
 
   private static CompositeValuesSourceBuilder<?> createCompositeBucket(
       Integer groupIndex, Project project, AggregateAnalyzer.AggregateBuilderHelper helper)
-      throws AggregateAnalyzer.CompositeUnSupportedException {
+      throws CompositeAggUnSupportedException {
     RexNode rex = project.getProjects().get(groupIndex);
     String bucketName = project.getRowType().getFieldList().get(groupIndex).getName();
     if (rex instanceof RexCall rexCall
@@ -598,7 +599,7 @@ public class AggregateAnalyzer {
           helper.bucketNullable);
     } else if (isAutoDateSpan(rex)) {
       // Defense check. We've already prevented this case in OpenSearchAggregateIndexScanRule.
-      throw new CompositeUnSupportedException(
+      throw new CompositeAggUnSupportedException(
           "auto_date_histogram is not supported in composite agg.");
     } else {
       return createTermsSourceBuilder(bucketName, rex, helper);
