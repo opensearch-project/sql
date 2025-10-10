@@ -26,6 +26,7 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
@@ -432,5 +433,26 @@ public interface PlanUtils {
             .map(Objects::toString)
             .collect(Collectors.joining(","))
         + "]";
+  }
+
+  /**
+   * Check if the RexNode contains any CorrelVariable.
+   *
+   * @param node the RexNode to check
+   * @return true if the RexNode contains any CorrelVariable, false otherwise
+   */
+  static boolean containsCorrelVariable(RexNode node) {
+    try {
+      node.accept(
+          new RexVisitorImpl<Void>(true) {
+            @Override
+            public Void visitCorrelVariable(RexCorrelVariable correlVar) {
+              throw new RuntimeException("Correl found");
+            }
+          });
+      return false;
+    } catch (Exception e) {
+      return true;
+    }
   }
 }

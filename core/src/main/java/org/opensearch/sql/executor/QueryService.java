@@ -33,11 +33,11 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.calcite.OpenSearchSchema;
+import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
-import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.NonFallbackCalciteException;
@@ -96,7 +96,7 @@ public class QueryService {
               () -> {
                 CalcitePlanContext context =
                     CalcitePlanContext.create(
-                        buildFrameworkConfig(), getQuerySizeLimit(), queryType);
+                        buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
                 RelNode relNode = analyze(plan, context);
                 RelNode optimized = optimize(relNode, context);
                 RelNode calcitePlan = convertToCalcitePlan(optimized);
@@ -132,7 +132,7 @@ public class QueryService {
               () -> {
                 CalcitePlanContext context =
                     CalcitePlanContext.create(
-                        buildFrameworkConfig(), getQuerySizeLimit(), queryType);
+                        buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
                 RelNode relNode = analyze(plan, context);
                 RelNode optimized = optimize(relNode, context);
                 RelNode calcitePlan = convertToCalcitePlan(optimized);
@@ -230,7 +230,9 @@ public class QueryService {
                       ExecutionContext.querySizeLimit(
                           // For pagination, querySizeLimit shouldn't take effect.
                           // See {@link PaginationWindowIT::testQuerySizeLimitDoesNotEffectPageSize}
-                          plan instanceof LogicalPaginate ? null : getQuerySizeLimit()),
+                          plan instanceof LogicalPaginate
+                              ? null
+                              : SysLimit.fromSettings(settings).querySizeLimit()),
                       listener));
     } catch (Exception e) {
       listener.onFailure(e);
@@ -257,7 +259,9 @@ public class QueryService {
    */
   public RelNode optimize(RelNode plan, CalcitePlanContext context) {
     return LogicalSystemLimit.create(
-        SystemLimitType.QUERY_SIZE_LIMIT, plan, context.relBuilder.literal(context.querySizeLimit));
+        SystemLimitType.QUERY_SIZE_LIMIT,
+        plan,
+        context.relBuilder.literal(context.sysLimit.querySizeLimit()));
   }
 
   private boolean isCalciteFallbackAllowed(@Nullable Throwable t) {
@@ -284,10 +288,6 @@ public class QueryService {
     } else {
       return false;
     }
-  }
-
-  private Integer getQuerySizeLimit() {
-    return settings == null ? null : settings.getSettingValue(Key.QUERY_SIZE_LIMIT);
   }
 
   // TODO https://github.com/opensearch-project/sql/issues/3457
