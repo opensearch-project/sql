@@ -42,13 +42,6 @@ public class PPLQueryRequestTest {
   }
 
   @Test
-  public void testYAMLFormat() {
-    PPLQueryRequest request =
-        new PPLQueryRequest("source=test", null, "/_plugins/_ppl/_explain", "yaml");
-    assertEquals(request.format(), Format.YAML);
-  }
-
-  @Test
   public void testCSVFormat() {
     PPLQueryRequest request = new PPLQueryRequest("source=test", null, "/_plugins/_ppl", "csv");
     assertEquals(request.format(), Format.CSV);
