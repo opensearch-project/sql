@@ -7,16 +7,22 @@ package org.opensearch.sql.opensearch.planner.physical;
 import static org.opensearch.sql.expression.function.PPLBuiltinOperators.WIDTH_BUCKET;
 
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.immutables.value.Value;
+import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
@@ -33,17 +39,31 @@ public class OpenSearchAggregateIndexScanRule
 
   @Override
   public void onMatch(RelOptRuleCall call) {
-    if (call.rels.length == 3) {
+    if (call.rels.length == 4) {
+      final LogicalAggregate aggregate = call.rel(0);
+      final LogicalFilter filter = call.rel(1);
+      final LogicalProject project = call.rel(2);
+      final CalciteLogicalIndexScan scan = call.rel(3);
+      List<Integer> groupSet = aggregate.getGroupSet().asList();
+      RexNode condition = filter.getCondition();
+      Function<RexNode, Boolean> isNotNullFromAgg =
+          rex ->
+              rex instanceof RexCall
+                  && ((RexCall)rex).getOperator() == SqlStdOperatorTable.IS_NOT_NULL
+                  && ((RexCall)rex).getOperands().get(0) instanceof RexInputRef
+                  && groupSet.contains(((RexInputRef)((RexCall)rex).getOperands().get(0)).getIndex());
+      if (isNotNullFromAgg.apply(condition)
+          || (condition instanceof RexCall
+              && ((RexCall)condition).getOperator() == SqlStdOperatorTable.AND
+              && ((RexCall)condition).getOperands().stream().allMatch(isNotNullFromAgg::apply))) {
+        // Try to do the aggregate push down and ignore the filter if the filter sources from the
+        // aggregate's hint. See{@link CalciteRelNodeVisitor::visitAggregation}
+        apply(call, aggregate, project, scan);
+      }
+    } else if (call.rels.length == 3) {
       final LogicalAggregate aggregate = call.rel(0);
       final LogicalProject project = call.rel(1);
       final CalciteLogicalIndexScan scan = call.rel(2);
-
-      // For multiple group-by, we currently have to use CompositeAggregationBuilder while it
-      // doesn't support auto_date_histogram referring to bin command with parameter bins
-      if (aggregate.getGroupSet().length() > 1 && Config.containsWidthBucketFuncOnDate(project)) {
-        return;
-      }
-
       apply(call, aggregate, project, scan);
     } else if (call.rels.length == 2) {
       // case of count() without group-by
@@ -122,10 +142,75 @@ public class OpenSearchAggregateIndexScanRule
                                         Predicate.not(OpenSearchIndexScanRule::isLimitPushed)
                                             .and(OpenSearchIndexScanRule::noAggregatePushed))
                                     .noInputs()));
+    // TODO: No need this rule once https://github.com/opensearch-project/sql/issues/4403 is
+    // addressed
+    Config BUCKET_NON_NULL_AGG =
+        ImmutableOpenSearchAggregateIndexScanRule.Config.builder()
+            .build()
+            .withDescription("Agg-Filter-Project-TableScan")
+            .withOperandSupplier(
+                b0 ->
+                    b0.operand(LogicalAggregate.class)
+                        .predicate(
+                            agg ->
+                                agg.getHints().stream()
+                                    .anyMatch(
+                                        hint ->
+                                            hint.hintName.equals("stats_args")
+                                                && hint.kvOptions
+                                                    .get(Argument.BUCKET_NULLABLE)
+                                                    .equals("false")))
+                        .oneInput(
+                            b1 ->
+                                b1.operand(LogicalFilter.class)
+                                    .predicate(Config::mayBeFilterFromBucketNonNull)
+                                    .oneInput(
+                                        b2 ->
+                                            b2.operand(LogicalProject.class)
+                                                .predicate(
+                                                    // Support push down aggregate with project
+                                                    // that:
+                                                    // 1. No RexOver and no duplicate projection
+                                                    // 2. Contains width_bucket function on date
+                                                    // field referring
+                                                    // to bin command with parameter bins
+                                                    Predicate.not(
+                                                            OpenSearchIndexScanRule
+                                                                ::containsRexOver)
+                                                        .and(
+                                                            OpenSearchIndexScanRule
+                                                                ::distinctProjectList)
+                                                        .or(Config::containsWidthBucketFuncOnDate))
+                                                .oneInput(
+                                                    b3 ->
+                                                        b3.operand(CalciteLogicalIndexScan.class)
+                                                            .predicate(
+                                                                Predicate.not(
+                                                                        OpenSearchIndexScanRule
+                                                                            ::isLimitPushed)
+                                                                    .and(
+                                                                        OpenSearchIndexScanRule
+                                                                            ::noAggregatePushed))
+                                                            .noInputs()))));
 
     @Override
     default OpenSearchAggregateIndexScanRule toRule() {
       return new OpenSearchAggregateIndexScanRule(this);
+    }
+
+    static boolean mayBeFilterFromBucketNonNull(LogicalFilter filter) {
+      RexNode condition = filter.getCondition();
+      return isNotNullOnRef(condition)
+          || (condition instanceof RexCall
+              && ((RexCall)condition).getOperator().equals(SqlStdOperatorTable.AND)
+              && ((RexCall)condition).getOperands().stream()
+                  .allMatch(OpenSearchAggregateIndexScanRule.Config::isNotNullOnRef));
+    }
+
+    private static boolean isNotNullOnRef(RexNode rex) {
+      return rex instanceof RexCall
+          && ((RexCall)rex).getOperator().equals(SqlStdOperatorTable.IS_NOT_NULL)
+          && ((RexCall)rex).getOperands().get(0) instanceof RexInputRef;
     }
 
     static boolean containsWidthBucketFuncOnDate(LogicalProject project) {

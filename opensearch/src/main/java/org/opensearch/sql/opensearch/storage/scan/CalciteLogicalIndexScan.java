@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import org.apache.calcite.plan.Convention;
@@ -312,10 +313,10 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         AutoDateHistogramAggregationBuilder autoDateHistogram =
             (AutoDateHistogramAggregationBuilder) aggregationBuilder.getLeft().get(0);
         RexBuilder rexBuilder = getCluster().getRexBuilder();
-        AggregationBuilder aggregationBuilders =
-            new ArrayList<>(autoDateHistogram.getSubAggregations()).get(0);
+        Optional<AggregationBuilder> aggBuilderOpt =
+            new ArrayList<>(autoDateHistogram.getSubAggregations()).stream().findFirst();
         RexNode condition =
-            aggregationBuilders instanceof ValueCountAggregationBuilder
+            aggBuilderOpt.isEmpty() || aggBuilderOpt.get() instanceof ValueCountAggregationBuilder
                 ? rexBuilder.makeCall(
                     SqlStdOperatorTable.GREATER_THAN,
                     rexBuilder.makeInputRef(newScan, 1),
