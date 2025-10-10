@@ -8,6 +8,9 @@ top
    :local:
    :depth: 2
 
+.. versionadded:: 1.0.0
+.. versionchanged:: 3.3.0
+    Added support for the `limit=` argument name.
 
 Description
 ============
@@ -18,9 +21,10 @@ Syntax
 ============
 top [N] <field-list> [by-clause]
 
-top [N] [top-options] <field-list> [by-clause] ``(available from 3.1.0+)``
+top [limit=][N] [top-options] <field-list> [by-clause] ``(available from 3.1.0+)``
 
 * N: number of results to return. **Default**: 10
+  * For readability or convenience, this can be prefixed by `limit=`.
 * field-list: mandatory. comma-delimited list of field names.
 * by-clause: optional. one or more fields to group the results by.
 * top-options: optional. options for the top command. Supported syntax is [countfield=<string>] [showcount=<bool>].
@@ -88,7 +92,6 @@ PPL query::
     | gender | count |
     |--------+-------|
     | M      | 3     |
-    | F      | 1     |
     +--------+-------+
 
 
