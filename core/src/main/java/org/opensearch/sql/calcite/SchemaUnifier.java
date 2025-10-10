@@ -16,20 +16,20 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
 /**
- * Utility class for unifying schemas across multiple RelNodes with type conflict resolution. Uses
- * the same strategy as append command - renames conflicting fields to avoid type conflicts.
+ * Utility class for unifying schemas across multiple RelNodes. Throws an exception when type
+ * conflicts are detected.
  */
 public class SchemaUnifier {
 
   /**
-   * Builds a unified schema for multiple nodes with type conflict resolution.
+   * Builds a unified schema for multiple nodes. Throws an exception if type conflicts are detected.
    *
    * @param nodes List of RelNodes to unify schemas for
    * @param context Calcite plan context
    * @return List of projected RelNodes with unified schema
+   * @throws IllegalArgumentException if type conflicts are detected
    */
   public static List<RelNode> buildUnifiedSchemaWithConflictResolution(
       List<RelNode> nodes, CalcitePlanContext context) {
@@ -55,19 +55,15 @@ public class SchemaUnifier {
       projectedNodes.add(projectedNode);
     }
 
-    // Step 3: Unify names to handle type conflicts (this creates age0, age1, etc.)
-    List<String> uniqueNames =
-        SqlValidatorUtil.uniquify(fieldNames, SqlValidatorUtil.EXPR_SUGGESTER, true);
-
-    // Step 4: Re-project with unique names if needed
-    if (!uniqueNames.equals(fieldNames)) {
-      List<RelNode> renamedNodes = new ArrayList<>();
-      for (RelNode node : projectedNodes) {
-        RelNode renamedNode =
-            context.relBuilder.push(node).project(context.relBuilder.fields(), uniqueNames).build();
-        renamedNodes.add(renamedNode);
+    // Step 3: Check for type conflicts and throw exception if found
+    Set<String> uniqueFieldNames = new HashSet<>();
+    for (String fieldName : fieldNames) {
+      if (!uniqueFieldNames.add(fieldName)) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Schema unification failed: field '%s' has conflicting types across subsearches",
+                fieldName));
       }
-      return renamedNodes;
     }
 
     return projectedNodes;
@@ -75,10 +71,11 @@ public class SchemaUnifier {
 
   /**
    * Builds a unified schema by merging fields from all nodes. Fields with the same name but
-   * different types are added as separate entries (which will be renamed during uniquification).
+   * different types are added as separate entries (will cause an exception to be thrown).
    *
    * @param nodes List of RelNodes to merge schemas from
-   * @return List of SchemaField representing the unified schema (may contain duplicate names)
+   * @return List of SchemaField representing the unified schema (may contain duplicate names if
+   *     there are type conflicts)
    */
   private static List<SchemaField> buildUnifiedSchema(List<RelNode> nodes) {
     List<SchemaField> schema = new ArrayList<>();

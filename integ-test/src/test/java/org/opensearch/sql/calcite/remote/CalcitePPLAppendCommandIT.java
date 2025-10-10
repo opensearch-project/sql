@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
@@ -215,28 +216,25 @@ public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testAppendWithConflictTypeColumn() throws IOException {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                Locale.ROOT,
-                "source=%s | stats sum(age) as sum by gender | append [ source=%s | stats sum(age)"
-                    + " as sum by state | sort sum | eval sum = cast(sum as double) ] | head 5",
-                TEST_INDEX_ACCOUNT,
-                TEST_INDEX_ACCOUNT));
-    verifySchemaInOrder(
-        actual,
-        schema("sum", "bigint"),
-        schema("gender", "string"),
-        schema("state", "string"),
-        schema("sum0", "double"));
-    verifyDataRows(
-        actual,
-        rows(14947, "F", null, null),
-        rows(15224, "M", null, null),
-        rows(null, null, "NV", 369d),
-        rows(null, null, "NM", 412d),
-        rows(null, null, "AZ", 414d));
+  public void testAppendWithConflictTypeColumn() {
+    Exception exception =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        Locale.ROOT,
+                        "source=%s | stats sum(age) as sum by gender | append [ source=%s | stats"
+                            + " sum(age) as sum by state | sort sum | eval sum = cast(sum as"
+                            + " double) ] | head 5",
+                        TEST_INDEX_ACCOUNT,
+                        TEST_INDEX_ACCOUNT)));
+
+    assertTrue(
+        "Error message should indicate type conflict",
+        exception
+            .getMessage()
+            .contains("Schema unification failed: field 'sum' has conflicting types"));
   }
 
   @Test
