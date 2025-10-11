@@ -1111,4 +1111,26 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
     Throwable t = Assert.assertThrows(SemanticCheckException.class, () -> getRelNode(ppl));
     verifyErrorMessageContains(t, "max option must be a positive integer");
   }
+
+  @Test
+  public void testSqlLikeJoinWithSpecificJoinType() {
+    String ppl = "source=EMP | join type=left left=l right=r on l.DEPTNO=r.DEPTNO DEPT";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], r.DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
+            + "  LogicalJoin(condition=[=($7, $8)], joinType=[left])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+
+    String expectedSparkSql =
+        "SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, `EMP`.`HIREDATE`,"
+            + " `EMP`.`SAL`, `EMP`.`COMM`, `EMP`.`DEPTNO`, `DEPT`.`DEPTNO` `r.DEPTNO`,"
+            + " `DEPT`.`DNAME`, `DEPT`.`LOC`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LEFT JOIN `scott`.`DEPT` ON `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }

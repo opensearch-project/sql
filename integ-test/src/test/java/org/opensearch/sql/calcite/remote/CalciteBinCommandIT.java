@@ -941,4 +941,54 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         rows(41.8, "2024-07-01 00:04:00"),
         rows(50.0, "2024-07-01 00:05:00"));
   }
+
+  @Test
+  public void testStatsWithBinsOnTimeAndTermField_Count() throws IOException {
+    // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
+    enabledOnlyWhenPushdownIsEnabled();
+
+    JSONObject result =
+        executeQuery(
+            "source=events_null | bin @timestamp bins=3 | stats bucket_nullable=false count() by"
+                + " region, @timestamp");
+    // TODO: @timestamp should keep date as its type, to be addressed by this issue:
+    // https://github.com/opensearch-project/sql/issues/4317
+    verifySchema(
+        result,
+        schema("count()", null, "bigint"),
+        schema("region", null, "string"),
+        schema("@timestamp", null, "string"));
+    // auto_date_histogram will choose span=5m for bins=3
+    verifyDataRows(
+        result,
+        rows(1, "eu-west", "2024-07-01 00:03:00"),
+        rows(2, "us-east", "2024-07-01 00:00:00"),
+        rows(1, "us-east", "2024-07-01 00:05:00"),
+        rows(2, "us-west", "2024-07-01 00:01:00"));
+  }
+
+  @Test
+  public void testStatsWithBinsOnTimeAndTermField_Avg() throws IOException {
+    // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
+    enabledOnlyWhenPushdownIsEnabled();
+
+    JSONObject result =
+        executeQuery(
+            "source=events_null | bin @timestamp bins=3 | stats bucket_nullable=false "
+                + " avg(cpu_usage) by region, @timestamp");
+    // TODO: @timestamp should keep date as its type, to be addressed by this issue:
+    // https://github.com/opensearch-project/sql/issues/4317
+    verifySchema(
+        result,
+        schema("avg(cpu_usage)", null, "double"),
+        schema("region", null, "string"),
+        schema("@timestamp", null, "string"));
+    // auto_date_histogram will choose span=5m for bins=3
+    verifyDataRows(
+        result,
+        rows(42.1, "eu-west", "2024-07-01 00:03:00"),
+        rows(50.25, "us-east", "2024-07-01 00:00:00"),
+        rows(50, "us-east", "2024-07-01 00:05:00"),
+        rows(40.25, "us-west", "2024-07-01 00:01:00"));
+  }
 }

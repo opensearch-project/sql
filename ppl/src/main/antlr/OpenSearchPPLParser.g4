@@ -1013,6 +1013,7 @@ geoipFunctionName
 collectionFunctionName
     : ARRAY
     | ARRAY_LENGTH
+    | MVAPPEND
     | MVJOIN
     | FORALL
     | EXISTS
@@ -1466,7 +1467,16 @@ searchableKeyWord
    | PATH
    | INPUT
    | OUTPUT
-
+   | AS
+   | ON
+   | LIMIT
+   | OVERWRITE
+   | FIELD
+   | SED
+   | MAX_MATCH
+   | OFFSET_FIELD
+   | patternMethod
+   | patternMode
    // AGGREGATIONS AND WINDOW
    | statsFunctionName
    | windowFunctionName

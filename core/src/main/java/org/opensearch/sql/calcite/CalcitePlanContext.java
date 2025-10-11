@@ -23,6 +23,7 @@ import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.RelBuilder;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 
@@ -38,6 +39,10 @@ public class CalcitePlanContext {
 
   /** This thread local variable is only used to skip script encoding in script pushdown. */
   public static final ThreadLocal<Boolean> skipEncoding = ThreadLocal.withInitial(() -> false);
+
+  /** Thread-local switch that tells whether the current query prefers legacy behavior. */
+  private static final ThreadLocal<Boolean> legacyPreferredFlag =
+      ThreadLocal.withInitial(() -> true);
 
   @Getter @Setter private boolean isResolvingJoinCondition = false;
   @Getter @Setter private boolean isResolvingSubquery = false;
@@ -103,6 +108,27 @@ public class CalcitePlanContext {
   public static CalcitePlanContext create(
       FrameworkConfig config, SysLimit sysLimit, QueryType queryType) {
     return new CalcitePlanContext(config, sysLimit, queryType);
+  }
+
+  /**
+   * Executes {@code action} with the thread-local legacy flag set according to the supplied
+   * settings.
+   */
+  public static void run(Runnable action, Settings settings) {
+    Boolean preferred = settings.getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED);
+    legacyPreferredFlag.set(preferred);
+    try {
+      action.run();
+    } finally {
+      legacyPreferredFlag.remove();
+    }
+  }
+
+  /**
+   * @return {@code true} when the current planning prefer legacy behavior.
+   */
+  public static boolean isLegacyPreferred() {
+    return legacyPreferredFlag.get();
   }
 
   public void putRexLambdaRefMap(Map<String, RexLambdaRef> candidateMap) {

@@ -144,6 +144,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH_O
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLYFUNCTION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTI_MATCH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVAPPEND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVJOIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOTEQUAL;
@@ -642,6 +643,20 @@ public class PPLFuncImpTable {
           typeChecker);
     }
 
+    protected void registerDivideFunction(BuiltinFunctionName functionName) {
+      register(
+          functionName,
+          (FunctionImp2)
+              (builder, left, right) -> {
+                SqlOperator operator =
+                    CalcitePlanContext.isLegacyPreferred()
+                        ? PPLBuiltinOperators.DIVIDE
+                        : SqlLibraryOperators.SAFE_DIVIDE;
+                return builder.makeCall(operator, left, right);
+              },
+          PPLTypeChecker.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));
+    }
+
     void populate() {
       // register operators for comparison
       registerOperator(NOTEQUAL, PPLBuiltinOperators.NOT_EQUALS_IP, SqlStdOperatorTable.NOT_EQUALS);
@@ -733,8 +748,8 @@ public class PPLFuncImpTable {
       registerOperator(MODULUS, PPLBuiltinOperators.MOD);
       registerOperator(MODULUSFUNCTION, PPLBuiltinOperators.MOD);
       registerOperator(CRC32, PPLBuiltinOperators.CRC32);
-      registerOperator(DIVIDE, PPLBuiltinOperators.DIVIDE);
-      registerOperator(DIVIDEFUNCTION, PPLBuiltinOperators.DIVIDE);
+      registerDivideFunction(DIVIDE);
+      registerDivideFunction(DIVIDEFUNCTION);
       registerOperator(SHA2, PPLBuiltinOperators.SHA2);
       registerOperator(CIDRMATCH, PPLBuiltinOperators.CIDRMATCH);
       registerOperator(INTERNAL_GROK, PPLBuiltinOperators.GROK);
@@ -834,6 +849,7 @@ public class PPLFuncImpTable {
           PPLTypeChecker.family(SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER));
 
       registerOperator(ARRAY, PPLBuiltinOperators.ARRAY);
+      registerOperator(MVAPPEND, PPLBuiltinOperators.MVAPPEND);
       registerOperator(ARRAY_LENGTH, SqlLibraryOperators.ARRAY_LENGTH);
       registerOperator(FORALL, PPLBuiltinOperators.FORALL);
       registerOperator(EXISTS, PPLBuiltinOperators.EXISTS);
