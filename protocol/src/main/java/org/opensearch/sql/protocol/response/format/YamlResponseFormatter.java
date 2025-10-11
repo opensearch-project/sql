@@ -27,8 +27,7 @@ public abstract class YamlResponseFormatter<R> implements ResponseFormatter<R> {
 
   @Override
   public String format(Throwable t) {
-    return AccessController.doPrivileged(
-        (PrivilegedAction<String>) () -> YamlFormatter.formatToYaml(t));
+    return yamlify(t);
   }
 
   public String contentType() {
