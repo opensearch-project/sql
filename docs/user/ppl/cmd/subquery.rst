@@ -42,6 +42,10 @@ RelationSubquery::
 
 Configuration
 =============
+
+plugins.calcite.enabled
+-----------------------
+
 This command requires Calcite enabled. In 3.0.0-beta, as an experimental the Calcite configuration is disabled by default.
 
 Enable Calcite::
@@ -65,6 +69,31 @@ Result set::
       },
       "transient": {}
     }
+
+plugins.ppl.subsearch.maxout
+----------------------------
+
+The size configures the maximum of rows to return from subsearch. The default value is: ``10000``. A value of ``-1`` indicates that the restriction is unlimited.
+
+Change the subsearch.maxout to unlimited::
+
+    sh$ curl -sS -H 'Content-Type: application/json' \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"persistent" : {"plugins.ppl.subsearch.maxout" : "-1"}}'
+    {
+      "acknowledged": true,
+      "persistent": {
+        "plugins": {
+          "ppl": {
+            "subsearch": {
+              "maxout": "-1"
+            }
+          }
+        }
+      },
+      "transient": {}
+    }
+
 
 Usage
 =====

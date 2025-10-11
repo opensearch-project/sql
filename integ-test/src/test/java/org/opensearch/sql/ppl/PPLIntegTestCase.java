@@ -39,6 +39,8 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
       "/_plugins/_ppl/_explain?format=extended";
   private static final Logger LOG = LogManager.getLogger();
   @Rule public final RetryProcessor retryProcessor = new RetryProcessor();
+  public static final Integer DEFAULT_SUBSEARCH_MAXOUT = 10000;
+  public static final Integer DEFAULT_JOIN_SUBSEARCH_MAXOUT = 50000;
 
   @Override
   protected void init() throws Exception {
@@ -332,6 +334,34 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
               Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(),
               String.valueOf(GlobalPushdownConfig.enabled)));
     }
+  }
+
+  protected void setSubsearchMaxOut(Integer limit) throws IOException {
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            "transient", Key.PPL_SUBSEARCH_MAXOUT.getKeyValue(), limit.toString()));
+  }
+
+  protected void resetSubsearchMaxOut() throws IOException {
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            "transient",
+            Settings.Key.PPL_SUBSEARCH_MAXOUT.getKeyValue(),
+            DEFAULT_SUBSEARCH_MAXOUT.toString()));
+  }
+
+  protected void setJoinSubsearchMaxOut(Integer limit) throws IOException {
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            "transient", Key.PPL_JOIN_SUBSEARCH_MAXOUT.getKeyValue(), limit.toString()));
+  }
+
+  protected void resetJoinSubsearchMaxOut() throws IOException {
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            "transient",
+            Settings.Key.PPL_JOIN_SUBSEARCH_MAXOUT.getKeyValue(),
+            DEFAULT_JOIN_SUBSEARCH_MAXOUT.toString()));
   }
 
   /**

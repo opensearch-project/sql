@@ -33,6 +33,8 @@ public abstract class Settings {
     PPL_REX_MAX_MATCH_LIMIT("plugins.ppl.rex.max_match.limit"),
     PPL_VALUES_MAX_LIMIT("plugins.ppl.values.max.limit"),
     PPL_SYNTAX_LEGACY_PREFERRED("plugins.ppl.syntax.legacy.preferred"),
+    PPL_SUBSEARCH_MAXOUT("plugins.ppl.subsearch.maxout"),
+    PPL_JOIN_SUBSEARCH_MAXOUT("plugins.ppl.join.subsearch_maxout"),
 
     /** Enable Calcite as execution engine */
     CALCITE_ENGINE_ENABLED("plugins.calcite.enabled"),

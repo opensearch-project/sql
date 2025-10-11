@@ -125,6 +125,22 @@ public class OpenSearchSettings extends Settings {
       Setting.intSetting(
           Key.PPL_VALUES_MAX_LIMIT.getKeyValue(),
           0,
+          -1,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<?> PPL_SUBSEARCH_MAXOUT_SETTING =
+      Setting.intSetting(
+          Key.PPL_SUBSEARCH_MAXOUT.getKeyValue(),
+          10000,
+          -1,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<?> PPL_JOIN_SUBSEARCH_MAXOUT_SETTING =
+      Setting.intSetting(
+          Key.PPL_JOIN_SUBSEARCH_MAXOUT.getKeyValue(),
+          50000,
           0,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
@@ -391,6 +407,18 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.PPL_SUBSEARCH_MAXOUT,
+        PPL_SUBSEARCH_MAXOUT_SETTING,
+        new Updater(Key.PPL_SUBSEARCH_MAXOUT));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.PPL_JOIN_SUBSEARCH_MAXOUT,
+        PPL_JOIN_SUBSEARCH_MAXOUT_SETTING,
+        new Updater(Key.PPL_JOIN_SUBSEARCH_MAXOUT));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.CALCITE_ENGINE_ENABLED,
         CALCITE_ENGINE_ENABLED_SETTING,
         new Updater(Key.CALCITE_ENGINE_ENABLED));
@@ -603,6 +631,8 @@ public class OpenSearchSettings extends Settings {
         .add(DEFAULT_PATTERN_SHOW_NUMBERED_TOKEN_SETTING)
         .add(PPL_REX_MAX_MATCH_LIMIT_SETTING)
         .add(PPL_VALUES_MAX_LIMIT_SETTING)
+        .add(PPL_SUBSEARCH_MAXOUT_SETTING)
+        .add(PPL_JOIN_SUBSEARCH_MAXOUT_SETTING)
         .add(QUERY_MEMORY_LIMIT_SETTING)
         .add(QUERY_SIZE_LIMIT_SETTING)
         .add(METRICS_ROLLING_WINDOW_SETTING)
