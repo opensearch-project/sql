@@ -22,9 +22,9 @@ import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.opensearch.search.aggregations.metrics.ExtendedStats;
+import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.FilterParser;
-import org.opensearch.sql.opensearch.response.agg.LeafBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.response.agg.PercentilesParser;
@@ -88,7 +88,7 @@ class OpenSearchAggregationResponseParserTest {
             + "}";
 
     OpenSearchAggregationResponseParser parser =
-        new LeafBucketAggregationParser(new SingleValueParser("avg"));
+        new BucketAggregationParser(new SingleValueParser("avg"));
     assertThat(
         parse(parser, response),
         containsInAnyOrder(
@@ -206,7 +206,7 @@ class OpenSearchAggregationResponseParserTest {
             + "  }\n"
             + "}";
     OpenSearchAggregationResponseParser parser =
-        new LeafBucketAggregationParser(
+        new BucketAggregationParser(
             FilterParser.builder()
                 .name("filter")
                 .metricsParser(new SingleValueParser("avg"))
@@ -370,7 +370,7 @@ class OpenSearchAggregationResponseParserTest {
             + "}";
 
     OpenSearchAggregationResponseParser parser =
-        new LeafBucketAggregationParser(new SinglePercentileParser("percentile"));
+        new BucketAggregationParser(new SinglePercentileParser("percentile"));
     assertThat(
         parse(parser, response),
         containsInAnyOrder(
@@ -495,7 +495,7 @@ class OpenSearchAggregationResponseParserTest {
             + "}";
 
     OpenSearchAggregationResponseParser parser =
-        new LeafBucketAggregationParser(new PercentilesParser("percentiles"));
+        new BucketAggregationParser(new PercentilesParser("percentiles"));
     assertThat(
         parse(parser, response),
         containsInAnyOrder(

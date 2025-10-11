@@ -689,6 +689,13 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testMvappend() {
+    assertEquals(
+        "source=table | eval identifier=mvappend(identifier,***,***) | fields + identifier",
+        anonymize("source=t | eval result=mvappend(a, 'b', 'c') | fields result"));
+  }
+
+  @Test
   public void testRexWithOffsetField() {
     when(settings.getSettingValue(Key.PPL_REX_MAX_MATCH_LIMIT)).thenReturn(10);
 
@@ -747,5 +754,14 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=table (@timestamp:*** AND (@timestamp:***",
         anonymize("search source=t earliest='2012-12-10 15:00:00' latest=now"));
+  }
+
+  @Test
+  public void testSpath() {
+    assertEquals(
+        "source=table | spath input=identifier output=identifier path=identifier | fields +"
+            + " identifier,identifier",
+        anonymize(
+            "search source=t | spath input=json_attr output=out path=foo.bar | fields id, out"));
   }
 }

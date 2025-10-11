@@ -84,7 +84,6 @@ import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpress
 import org.opensearch.sql.opensearch.response.agg.ArgMaxMinParser;
 import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.CountAsTotalHitsParser;
-import org.opensearch.sql.opensearch.response.agg.LeafBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
@@ -127,6 +126,12 @@ public class AggregateAnalyzer {
   public static class ExpressionNotAnalyzableException extends Exception {
     ExpressionNotAnalyzableException(String message, Throwable cause) {
       super(message, cause);
+    }
+  }
+
+  public static class CompositeAggUnSupportedException extends RuntimeException {
+    CompositeAggUnSupportedException(String message) {
+      super(message);
     }
   }
 
@@ -205,41 +210,22 @@ public class AggregateAnalyzer {
           processAggregateCalls(aggFieldNames, aggregate.getAggCallList(), project, helper);
       Builder metricBuilder = builderAndParser.getLeft();
       List<MetricParser> metricParsers = builderAndParser.getRight();
-      // Find group by fields derived from CASE functions and convert them to range queries
-      List<Pair<Integer, RangeAggregationBuilder>> groupsByCase =
-          groupList.stream()
-              .filter(i -> project != null && i < project.getProjects().size())
-              .map(i -> Pair.of(i, project.getNamedProjects().get(i)))
-              .filter(
-                  p ->
-                      p.getRight().getKey() instanceof RexCall rexCall
-                          && rexCall.getKind() == SqlKind.CASE)
-              .map(
-                  p ->
-                      Pair.of(
-                          p.getLeft(),
-                          CaseRangeAnalyzer.create(p.getRight().getValue(), rowType)
-                              .analyze((RexCall) p.getRight().getKey())))
-              .filter(p -> p.getRight().isPresent())
-              .map(p -> Pair.of(p.getLeft(), p.getRight().get()))
-              .toList();
 
-      // TODO: Rename toRemove to express removing case()
+      List<Pair<Integer, RangeAggregationBuilder>> groupsByCase =
+          analyzeCaseInProject(groupList, project, rowType);
       // Remove groups that are converted to ranges from groupList
-      Set<Integer> toRemove = groupsByCase.stream().map(Pair::getLeft).collect(Collectors.toSet());
+      Set<Integer> toRemoveFromGroupList =
+          groupsByCase.stream().map(Pair::getLeft).collect(Collectors.toSet());
       // The group-by list after removing CASE that can be converted to range queries
-      List<Integer> filteredGroupList =
-          groupList.stream().filter(i -> !toRemove.contains(i)).toList();
+      groupList = groupList.stream().filter(i -> !toRemoveFromGroupList.contains(i)).toList();
 
       // both count() and count(FIELD) can apply doc_count optimization in non-bucket aggregation,
       // but only count() can apply doc_count optimization in bucket aggregation.
-      boolean countAllOnly = !filteredGroupList.isEmpty();
-      Pair<List<ValueCountAggregationBuilder>, Builder> pair =
+      boolean countAllOnly = !groupList.isEmpty();
+      Pair<List<String>, Builder> countAggNameAndBuilderPair =
           removeCountAggregationBuilders(metricBuilder, countAllOnly);
-      List<ValueCountAggregationBuilder> removedCountAggBuilders = pair.getLeft();
-      Builder newMetricBuilder = pair.getRight();
-      List<String> countAggNameList =
-          removedCountAggBuilders.stream().map(ValuesSourceAggregationBuilder::getName).toList();
+      Builder newMetricBuilder = countAggNameAndBuilderPair.getRight();
+      List<String> countAggNames = countAggNameAndBuilderPair.getLeft();
 
       // Cascade aggregations in such a way:
       // RangeAggregation
@@ -248,32 +234,17 @@ public class AggregateAnalyzer {
       // Note that but a composite aggregation can not be a sub aggregation of range aggregation,
       // but range aggregation can be a sub aggregation of a composite aggregation.
       AggregationBuilder rangeAggregationBuilder = null;
-      BucketAggregationParser bucketAggregationParser = null;
       if (!groupsByCase.isEmpty()) {
         for (int i = 0; i < groupsByCase.size(); i++) {
           Pair<Integer, RangeAggregationBuilder> p = groupsByCase.get(i);
           if (i == 0) {
             rangeAggregationBuilder = p.getRight();
-            bucketAggregationParser =
-                new BucketAggregationParser(
-                    new LeafBucketAggregationParser(metricParsers, countAggNameList));
           } else {
             groupsByCase.get(i - 1).getRight().subAggregation(p.getRight());
-            bucketAggregationParser = new BucketAggregationParser(bucketAggregationParser);
           }
         }
-
         groupsByCase.getLast().getRight().subAggregations(newMetricBuilder);
       }
-
-      boolean removedCountAggBuildersHaveSameField =
-          removedCountAggBuilders.stream()
-                  .map(ValuesSourceAggregationBuilder::fieldName)
-                  .distinct()
-                  .count()
-              == 1;
-      boolean allCountAggRemoved =
-          removedCountAggBuilders.size() == metricBuilder.getAggregatorFactories().size();
 
       // The top-level query is a range query:
       //   - stats avg() by range_field
@@ -281,23 +252,23 @@ public class AggregateAnalyzer {
       //   - stats avg(), count() by range_field
       // RangeAgg
       //   Metric
-      if (!groupsByCase.isEmpty() && filteredGroupList.isEmpty()) {
-        return Pair.of(List.of(rangeAggregationBuilder), bucketAggregationParser);
+      if (!groupsByCase.isEmpty() && groupList.isEmpty()) {
+        return Pair.of(
+            List.of(rangeAggregationBuilder),
+            new BucketAggregationParser(metricParsers, countAggNames));
       }
       // No parent composite aggregation or range aggregation is attached:
       //   - stats count()
       //   - stats avg()
       // Metric
-      else if (aggregate.getGroupSet().isEmpty() && filteredGroupList.isEmpty()) {
-        if (allCountAggRemoved && removedCountAggBuildersHaveSameField) {
+      else if (aggregate.getGroupSet().isEmpty() && groupList.isEmpty()) {
+        if (newMetricBuilder == null) {
           // The optimization must require all count aggregations are removed,
           // and they have only one field name
-          return Pair.of(
-              ImmutableList.copyOf(newMetricBuilder.getAggregatorFactories()),
-              new CountAsTotalHitsParser(countAggNameList));
+          return Pair.of(List.of(), new CountAsTotalHitsParser(countAggNames));
         } else {
           return Pair.of(
-              ImmutableList.copyOf(metricBuilder.getAggregatorFactories()),
+              ImmutableList.copyOf(newMetricBuilder.getAggregatorFactories()),
               new NoBucketAggregationParser(metricParsers));
         }
       }
@@ -306,18 +277,15 @@ public class AggregateAnalyzer {
       // AutoDateHistogram
       //   Metric
       else if (aggregate.getGroupSet().length() == 1
-          && isAutoDateSpan(project.getProjects().get(groupList.getFirst()))) {
-        RexCall rexCall = (RexCall) project.getProjects().get(groupList.getFirst());
-        String bucketName = project.getRowType().getFieldList().get(groupList.getFirst()).getName();
-        RexInputRef rexInputRef = (RexInputRef) rexCall.getOperands().getFirst();
-        RexLiteral valueLiteral = (RexLiteral) rexCall.getOperands().get(1);
-        ValuesSourceAggregationBuilder<?> bucketBuilder =
-            new AutoDateHistogramAggregationBuilder(bucketName)
-                .field(helper.inferNamedField(rexInputRef).getRootName())
-                .setNumBuckets(requireNonNull(valueLiteral.getValueAs(Integer.class)));
+          && isAutoDateSpan(
+              project.getProjects().get(aggregate.getGroupSet().asList().getFirst()))) {
+        ValuesSourceAggregationBuilder<?> bucketBuilder = createBucket(0, project, helper);
+        if (newMetricBuilder != null) {
+          bucketBuilder.subAggregations(newMetricBuilder);
+        }
         return Pair.of(
-            Collections.singletonList(bucketBuilder.subAggregations(metricBuilder)),
-            new LeafBucketAggregationParser(metricParsers));
+            Collections.singletonList(bucketBuilder),
+            new BucketAggregationParser(metricParsers, countAggNames));
       }
       // It has both composite aggregation and range aggregation:
       //   - stats avg() by range_field, non_range_field
@@ -326,43 +294,41 @@ public class AggregateAnalyzer {
       //     Metric
       else if (!groupsByCase.isEmpty()) {
         List<CompositeValuesSourceBuilder<?>> buckets =
-            createCompositeBuckets(filteredGroupList, project, helper);
+            createCompositeBuckets(groupList, project, helper);
         return Pair.of(
             Collections.singletonList(
                 AggregationBuilders.composite("composite_buckets", buckets)
                     .subAggregation(rangeAggregationBuilder)
                     .size(AGGREGATION_BUCKET_SIZE)),
-            new BucketAggregationParser(bucketAggregationParser));
+            new BucketAggregationParser(metricParsers, countAggNames));
       }
       // It does not have range aggregation, but has composite aggregation:
       //  - stats avg() by non_range_field
       // CompositeAgg
       //   Metric
       else {
-        List<CompositeValuesSourceBuilder<?>> buckets =
-            createCompositeBuckets(groupList, project, helper);
-        AggregationBuilder aggregationBuilder =
-            AggregationBuilders.composite("composite_buckets", buckets)
-                .size(AGGREGATION_BUCKET_SIZE);
-
-        // For bucket aggregation, no count() aggregator or not all aggregators are count(),
-        // fallback to original ValueCountAggregation.
-        if (removedCountAggBuilders.isEmpty()
-            || removedCountAggBuilders.size() != metricBuilder.getAggregatorFactories().size()) {
-          aggregationBuilder.subAggregations(metricBuilder);
+        AggregationBuilder aggregationBuilder;
+        try {
+          List<CompositeValuesSourceBuilder<?>> buckets =
+              createCompositeBuckets(groupList, project, helper);
+          aggregationBuilder =
+              AggregationBuilders.composite("composite_buckets", buckets)
+                  .size(AGGREGATION_BUCKET_SIZE);
+          if (newMetricBuilder != null) {
+            aggregationBuilder.subAggregations(metricBuilder);
+          }
           return Pair.of(
               Collections.singletonList(aggregationBuilder),
-              new BucketAggregationParser(new LeafBucketAggregationParser(metricParsers)));
+              new BucketAggregationParser(metricParsers, countAggNames));
+        } catch (CompositeAggUnSupportedException e) {
+          if (bucketNullable) {
+            throw new UnsupportedOperationException(e.getMessage());
+          }
+          aggregationBuilder = createNestedBuckets(groupList, project, newMetricBuilder, helper);
+          return Pair.of(
+              Collections.singletonList(aggregationBuilder),
+              new BucketAggregationParser(metricParsers, countAggNames));
         }
-        // No need to register sub-factories if no aggregator factories left after removing all
-        // ValueCountAggregationBuilder.
-        if (!newMetricBuilder.getAggregatorFactories().isEmpty()) {
-          aggregationBuilder.subAggregations(newMetricBuilder);
-        }
-        return Pair.of(
-            Collections.singletonList(aggregationBuilder),
-            new BucketAggregationParser(
-                new LeafBucketAggregationParser(metricParsers, countAggNameList)));
       }
     } catch (Throwable e) {
       Throwables.throwIfInstanceOf(e, UnsupportedOperationException.class);
@@ -371,14 +337,16 @@ public class AggregateAnalyzer {
   }
 
   /**
-   * Remove all ValueCountAggregationBuilder from metric builder, and return the removed
-   * ValueCountAggregationBuilder list.
+   * Remove all ValueCountAggregationBuilder from metric builder, and return the name list for the
+   * removed count aggs with the updated metric builder.
    *
    * @param metricBuilder metrics builder
    * @param countAllOnly remove count() only, or count(FIELD) will be removed.
-   * @return a pair of removed ValueCountAggregationBuilder and updated metric builder
+   * @return a pair of name list for the removed count aggs and updated metric builder. If the count
+   *     aggregations cannot satisfy the requirement to remove, it will return an empty name list
+   *     with the original metric builder.
    */
-  private static Pair<List<ValueCountAggregationBuilder>, Builder> removeCountAggregationBuilders(
+  private static Pair<List<String>, Builder> removeCountAggregationBuilders(
       Builder metricBuilder, boolean countAllOnly) {
     List<ValueCountAggregationBuilder> countAggregatorFactories =
         metricBuilder.getAggregatorFactories().stream()
@@ -391,7 +359,49 @@ public class AggregateAnalyzer {
     copy.removeAll(countAggregatorFactories);
     Builder newMetricBuilder = new AggregatorFactories.Builder();
     copy.forEach(newMetricBuilder::addAggregator);
-    return Pair.of(countAggregatorFactories, newMetricBuilder);
+
+    if (countAllOnly || supportCountFiled(countAggregatorFactories, metricBuilder)) {
+      List<String> countAggNameList =
+          countAggregatorFactories.stream().map(ValuesSourceAggregationBuilder::getName).toList();
+      if (newMetricBuilder.getAggregatorFactories().isEmpty()) {
+        newMetricBuilder = null;
+      }
+      return Pair.of(countAggNameList, newMetricBuilder);
+    }
+    return Pair.of(List.of(), metricBuilder);
+  }
+
+  private static boolean supportCountFiled(
+      List<ValueCountAggregationBuilder> countAggBuilderList, Builder metricBuilder) {
+    return countAggBuilderList.size() == metricBuilder.getAggregatorFactories().size()
+        && countAggBuilderList.stream()
+                .map(ValuesSourceAggregationBuilder::fieldName)
+                .distinct()
+                .count()
+            == 1;
+  }
+
+  private static List<Pair<Integer, RangeAggregationBuilder>> analyzeCaseInProject(
+      List<Integer> groupList, Project project, RelDataType rowType) {
+    // Find group by fields derived from CASE functions and convert them to range queries
+    List<Pair<Integer, RangeAggregationBuilder>> groupsByCase =
+        groupList.stream()
+            .filter(i -> project != null && i < project.getProjects().size())
+            .map(i -> Pair.of(i, project.getNamedProjects().get(i)))
+            .filter(
+                p ->
+                    p.getRight().getKey() instanceof RexCall rexCall
+                        && rexCall.getKind() == SqlKind.CASE)
+            .map(
+                p ->
+                    Pair.of(
+                        p.getLeft(),
+                        CaseRangeAnalyzer.create(p.getRight().getValue(), rowType)
+                            .analyze((RexCall) p.getRight().getKey())))
+            .filter(p -> p.getRight().isPresent())
+            .map(p -> Pair.of(p.getLeft(), p.getRight().get()))
+            .toList();
+    return groupsByCase;
   }
 
   private static Pair<Builder, List<MetricParser>> processAggregateCalls(
@@ -428,7 +438,7 @@ public class AggregateAnalyzer {
       AggregateCall aggCall,
       List<RexNode> args,
       String aggFieldName,
-      AggregateBuilderHelper helper) {
+      AggregateAnalyzer.AggregateBuilderHelper helper) {
     if (aggCall.isDistinct()) {
       return createDistinctAggregation(aggCall, args, aggFieldName, helper);
     } else {
@@ -601,17 +611,30 @@ public class AggregateAnalyzer {
         || coreType == ExprCoreType.TIMESTAMP;
   }
 
-  private static ValuesSourceAggregationBuilder<?> createBucketAggregation(
-      Integer group, Project project, AggregateAnalyzer.AggregateBuilderHelper helper) {
-    return createBucket(group, project, helper);
-  }
-
   private static List<CompositeValuesSourceBuilder<?>> createCompositeBuckets(
       List<Integer> groupList, Project project, AggregateAnalyzer.AggregateBuilderHelper helper) {
     ImmutableList.Builder<CompositeValuesSourceBuilder<?>> resultBuilder = ImmutableList.builder();
     groupList.forEach(
         groupIndex -> resultBuilder.add(createCompositeBucket(groupIndex, project, helper)));
     return resultBuilder.build();
+  }
+
+  private static ValuesSourceAggregationBuilder<?> createNestedBuckets(
+      List<Integer> groupList,
+      Project project,
+      Builder metricBuilder,
+      AggregateAnalyzer.AggregateBuilderHelper helper) {
+    ValuesSourceAggregationBuilder<?> rootAgg = createBucket(groupList.get(0), project, helper);
+    ValuesSourceAggregationBuilder<?> currentAgg = rootAgg;
+    for (int i = 1; i < groupList.size(); i++) {
+      ValuesSourceAggregationBuilder<?> nextAgg = createBucket(groupList.get(i), project, helper);
+      currentAgg.subAggregations(new AggregatorFactories.Builder().addAggregator(nextAgg));
+      currentAgg = nextAgg;
+    }
+    if (metricBuilder != null) {
+      currentAgg.subAggregations(metricBuilder);
+    }
+    return rootAgg;
   }
 
   private static boolean isAutoDateSpan(RexNode rex) {
@@ -636,13 +659,21 @@ public class AggregateAnalyzer {
           helper.inferNamedField(rexInputRef).getRootName(),
           valueLiteral.getValueAs(Double.class),
           SpanUnit.of(unitLiteral.getValueAs(String.class)));
+    } else if (isAutoDateSpan(rex)) {
+      RexCall rexCall = (RexCall) rex;
+      RexInputRef rexInputRef = (RexInputRef) rexCall.getOperands().getFirst();
+      RexLiteral valueLiteral = (RexLiteral) rexCall.getOperands().get(1);
+      return new AutoDateHistogramAggregationBuilder(bucketName)
+          .field(helper.inferNamedField(rexInputRef).getRootName())
+          .setNumBuckets(requireNonNull(valueLiteral.getValueAs(Integer.class)));
     } else {
       return createTermsAggregationBuilder(bucketName, rex, helper);
     }
   }
 
   private static CompositeValuesSourceBuilder<?> createCompositeBucket(
-      Integer groupIndex, Project project, AggregateAnalyzer.AggregateBuilderHelper helper) {
+      Integer groupIndex, Project project, AggregateAnalyzer.AggregateBuilderHelper helper)
+      throws CompositeAggUnSupportedException {
     RexNode rex = project.getProjects().get(groupIndex);
     String bucketName = project.getRowType().getFieldNames().get(groupIndex);
     if (rex instanceof RexCall rexCall
@@ -660,8 +691,7 @@ public class AggregateAnalyzer {
           MissingOrder.FIRST,
           helper.bucketNullable);
     } else if (isAutoDateSpan(rex)) {
-      // Defense check. We've already prevented this case in OpenSearchAggregateIndexScanRule.
-      throw new UnsupportedOperationException(
+      throw new CompositeAggUnSupportedException(
           "auto_date_histogram is not supported in composite agg.");
     } else {
       return createTermsSourceBuilder(bucketName, rex, helper);
