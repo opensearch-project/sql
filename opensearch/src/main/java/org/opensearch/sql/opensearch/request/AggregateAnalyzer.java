@@ -211,14 +211,6 @@ public class AggregateAnalyzer {
       Builder metricBuilder = builderAndParser.getLeft();
       List<MetricParser> metricParsers = builderAndParser.getRight();
 
-      List<Pair<Integer, RangeAggregationBuilder>> groupsByCase =
-          analyzeCaseInProject(groupList, project, rowType);
-      // Remove groups that are converted to ranges from groupList
-      Set<Integer> toRemoveFromGroupList =
-          groupsByCase.stream().map(Pair::getLeft).collect(Collectors.toSet());
-      // The group-by list after removing CASE that can be converted to range queries
-      groupList = groupList.stream().filter(i -> !toRemoveFromGroupList.contains(i)).toList();
-
       // both count() and count(FIELD) can apply doc_count optimization in non-bucket aggregation,
       // but only count() can apply doc_count optimization in bucket aggregation.
       boolean countAllOnly = !groupList.isEmpty();
@@ -227,24 +219,13 @@ public class AggregateAnalyzer {
       Builder newMetricBuilder = countAggNameAndBuilderPair.getRight();
       List<String> countAggNames = countAggNameAndBuilderPair.getLeft();
 
-      // Cascade aggregations in such a way:
-      // RangeAggregation
-      //   ...Any other range aggregations
-      //      Metric Aggregation comes at last
-      // Note that but a composite aggregation can not be a sub aggregation of range aggregation,
-      // but range aggregation can be a sub aggregation of a composite aggregation.
-      AggregationBuilder rangeAggregationBuilder = null;
-      if (!groupsByCase.isEmpty()) {
-        for (int i = 0; i < groupsByCase.size(); i++) {
-          Pair<Integer, RangeAggregationBuilder> p = groupsByCase.get(i);
-          if (i == 0) {
-            rangeAggregationBuilder = p.getRight();
-          } else {
-            groupsByCase.get(i - 1).getRight().subAggregation(p.getRight());
-          }
-        }
-        groupsByCase.getLast().getRight().subAggregations(newMetricBuilder);
-      }
+      Pair<Set<Integer>, AggregationBuilder> caseAggPushedAndRangeBuilder =
+          pushCaseAsRanges(groupList, project, rowType, newMetricBuilder);
+      // Remove groups that are converted to ranges from groupList
+      Set<Integer> aggPushedAsRanges = caseAggPushedAndRangeBuilder.getLeft();
+      AggregationBuilder rangeAggregationBuilder = caseAggPushedAndRangeBuilder.getRight();
+      // The group-by list after removing CASE that can be converted to range queries
+      groupList = groupList.stream().filter(i -> !aggPushedAsRanges.contains(i)).toList();
 
       // The top-level query is a range query:
       //   - stats avg() by range_field
@@ -252,7 +233,7 @@ public class AggregateAnalyzer {
       //   - stats avg(), count() by range_field
       // RangeAgg
       //   Metric
-      if (!groupsByCase.isEmpty() && groupList.isEmpty()) {
+      if (!aggPushedAsRanges.isEmpty() && groupList.isEmpty()) {
         return Pair.of(
             List.of(rangeAggregationBuilder),
             new BucketAggregationParser(metricParsers, countAggNames));
@@ -292,7 +273,7 @@ public class AggregateAnalyzer {
       // CompositeAgg
       //   RangeAgg
       //     Metric
-      else if (!groupsByCase.isEmpty()) {
+      else if (!aggPushedAsRanges.isEmpty()) {
         List<CompositeValuesSourceBuilder<?>> buckets =
             createCompositeBuckets(groupList, project, helper);
         return Pair.of(
@@ -381,8 +362,37 @@ public class AggregateAnalyzer {
             == 1;
   }
 
-  private static List<Pair<Integer, RangeAggregationBuilder>> analyzeCaseInProject(
-      List<Integer> groupList, Project project, RelDataType rowType) {
+  /**
+   * Analyzes and converts CASE expressions in GROUP BY clauses to OpenSearch range aggregations.
+   *
+   * <p>This method identifies group by fields that are derived from CASE functions and transforms
+   * them into range aggregation builders. The resulting aggregations are cascaded in a hierarchical
+   * structure where range aggregations contain other range aggregations as sub-aggregations, with
+   * metric aggregations placed at the deepest level.
+   *
+   * <p>The aggregation hierarchy follows this pattern:
+   *
+   * <pre>
+   * RangeAggregation
+   *   └── RangeAggregation (nested)
+   *       └── ... (more range aggregations)
+   *           └── Metric Aggregation (at the bottom)
+   * </pre>
+   *
+   * @param groupList the list of group by field indices from the query
+   * @param project the projection containing the expressions to analyze, may be null
+   * @param rowType the data type information for the current row structure
+   * @param metricBuilder the metric aggregation builder to be placed at the bottom of the hierarchy
+   * @return a pair containing:
+   *     <ul>
+   *       <li>A set of integers representing the indices of group fields that were successfully
+   *           converted to range aggregations
+   *       <li>The root range aggregation builder, or null if no CASE expressions were found or
+   *           converted
+   *     </ul>
+   */
+  private static Pair<Set<Integer>, AggregationBuilder> pushCaseAsRanges(
+      List<Integer> groupList, Project project, RelDataType rowType, Builder metricBuilder) {
     // Find group by fields derived from CASE functions and convert them to range queries
     List<Pair<Integer, RangeAggregationBuilder>> groupsByCase =
         groupList.stream()
@@ -401,7 +411,29 @@ public class AggregateAnalyzer {
             .filter(p -> p.getRight().isPresent())
             .map(p -> Pair.of(p.getLeft(), p.getRight().get()))
             .toList();
-    return groupsByCase;
+
+    // Cascade aggregations in such a way:
+    // RangeAggregation
+    //   ...Any other range aggregations
+    //      Metric Aggregation comes at last
+    // Note that but a composite aggregation can not be a sub aggregation of range aggregation,
+    // but range aggregation can be a sub aggregation of a composite aggregation.
+    AggregationBuilder rangeAggregationBuilder = null;
+    if (!groupsByCase.isEmpty()) {
+      for (int i = 0; i < groupsByCase.size(); i++) {
+        Pair<Integer, RangeAggregationBuilder> p = groupsByCase.get(i);
+        if (i == 0) {
+          rangeAggregationBuilder = p.getRight();
+        } else {
+          groupsByCase.get(i - 1).getRight().subAggregation(p.getRight());
+        }
+      }
+      groupsByCase.getLast().getRight().subAggregations(metricBuilder);
+    }
+
+    Set<Integer> aggPushedAsRanges =
+        groupsByCase.stream().map(Pair::getLeft).collect(Collectors.toSet());
+    return Pair.of(aggPushedAsRanges, rangeAggregationBuilder);
   }
 
   private static Pair<Builder, List<MetricParser>> processAggregateCalls(
