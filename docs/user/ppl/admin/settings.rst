@@ -147,17 +147,6 @@ Change the size_limit to 1000::
       "transient": {}
     }
 
-Rollback to default value::
-
-    sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X PUT localhost:9200/_plugins/_query/settings \
-    ... -d '{"persistent" : {"plugins.query.size_limit" : null}}'
-    {
-      "acknowledged": true,
-      "persistent": {},
-      "transient": {}
-    }
-
 Note: the legacy settings of ``opendistro.query.size_limit`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
 
 plugins.calcite.all_join_types.allowed
@@ -344,18 +333,6 @@ Change the subsearch.maxout to unlimited::
       "transient": {}
     }
 
-Rollback to default value::
-
-    sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X PUT localhost:9200/_plugins/_query/settings \
-    ... -d '{"persistent" : {"plugins.ppl.subsearch.maxout" : null}}'
-    {
-      "acknowledged": true,
-      "persistent": {},
-      "transient": {}
-    }
-
-
 plugins.ppl.join.subsearch_maxout
 =================================
 
@@ -387,16 +364,5 @@ Change the join.subsearch_maxout to 5000::
           }
         }
       },
-      "transient": {}
-    }
-
-Rollback to default value::
-
-    sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X PUT localhost:9200/_plugins/_query/settings \
-    ... -d '{"persistent" : {"plugins.ppl.join.subsearch_maxout" : null}}'
-    {
-      "acknowledged": true,
-      "persistent": {},
       "transient": {}
     }
