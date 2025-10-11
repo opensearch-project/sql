@@ -39,7 +39,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.core.Aggregate;
@@ -62,6 +64,7 @@ import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSource
 import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.histogram.AutoDateHistogramAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
+import org.opensearch.search.aggregations.bucket.range.RangeAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.ExtendedStats;
 import org.opensearch.search.aggregations.metrics.PercentilesAggregationBuilder;
@@ -80,7 +83,6 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
 import org.opensearch.sql.opensearch.response.agg.ArgMaxMinParser;
 import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
-import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.CountAsTotalHitsParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
@@ -207,17 +209,40 @@ public class AggregateAnalyzer {
       Pair<Builder, List<MetricParser>> builderAndParser =
           processAggregateCalls(aggFieldNames, aggregate.getAggCallList(), project, helper);
       Builder metricBuilder = builderAndParser.getLeft();
-      List<MetricParser> metricParserList = builderAndParser.getRight();
+      List<MetricParser> metricParsers = builderAndParser.getRight();
 
       // both count() and count(FIELD) can apply doc_count optimization in non-bucket aggregation,
       // but only count() can apply doc_count optimization in bucket aggregation.
-      boolean countAllOnly = !aggregate.getGroupSet().isEmpty();
+      boolean countAllOnly = !groupList.isEmpty();
       Pair<List<String>, Builder> countAggNameAndBuilderPair =
           removeCountAggregationBuilders(metricBuilder, countAllOnly);
       Builder newMetricBuilder = countAggNameAndBuilderPair.getRight();
       List<String> countAggNames = countAggNameAndBuilderPair.getLeft();
 
-      if (aggregate.getGroupSet().isEmpty()) {
+      Pair<Set<Integer>, AggregationBuilder> caseAggPushedAndRangeBuilder =
+          pushCaseAsRanges(groupList, project, rowType, newMetricBuilder);
+      // Remove groups that are converted to ranges from groupList
+      Set<Integer> aggPushedAsRanges = caseAggPushedAndRangeBuilder.getLeft();
+      AggregationBuilder rangeAggregationBuilder = caseAggPushedAndRangeBuilder.getRight();
+      // The group-by list after removing CASE that can be converted to range queries
+      groupList = groupList.stream().filter(i -> !aggPushedAsRanges.contains(i)).toList();
+
+      // The top-level query is a range query:
+      //   - stats avg() by range_field
+      //   - stats count() by range_field
+      //   - stats avg(), count() by range_field
+      // RangeAgg
+      //   Metric
+      if (!aggPushedAsRanges.isEmpty() && groupList.isEmpty()) {
+        return Pair.of(
+            List.of(rangeAggregationBuilder),
+            new BucketAggregationParser(metricParsers, countAggNames));
+      }
+      // No parent composite aggregation or range aggregation is attached:
+      //   - stats count()
+      //   - stats avg()
+      // Metric
+      else if (aggregate.getGroupSet().isEmpty() && groupList.isEmpty()) {
         if (newMetricBuilder == null) {
           // The optimization must require all count aggregations are removed,
           // and they have only one field name
@@ -225,18 +250,44 @@ public class AggregateAnalyzer {
         } else {
           return Pair.of(
               ImmutableList.copyOf(newMetricBuilder.getAggregatorFactories()),
-              new NoBucketAggregationParser(metricParserList));
+              new NoBucketAggregationParser(metricParsers));
         }
-      } else if (aggregate.getGroupSet().length() == 1
-          && isAutoDateSpan(project.getProjects().get(groupList.getFirst()))) {
+      }
+      // AutoDateHistogram as top-level aggregation: bin timestamp bins=3 | stats avg(balance) by
+      // timestamp
+      // AutoDateHistogram
+      //   Metric
+      else if (aggregate.getGroupSet().length() == 1
+          && isAutoDateSpan(
+              project.getProjects().get(aggregate.getGroupSet().asList().getFirst()))) {
         ValuesSourceAggregationBuilder<?> bucketBuilder = createBucket(0, project, helper);
         if (newMetricBuilder != null) {
           bucketBuilder.subAggregations(newMetricBuilder);
         }
         return Pair.of(
             Collections.singletonList(bucketBuilder),
-            new BucketAggregationParser(metricParserList, countAggNames));
-      } else {
+            new BucketAggregationParser(metricParsers, countAggNames));
+      }
+      // It has both composite aggregation and range aggregation:
+      //   - stats avg() by range_field, non_range_field
+      // CompositeAgg
+      //   RangeAgg
+      //     Metric
+      else if (!aggPushedAsRanges.isEmpty()) {
+        List<CompositeValuesSourceBuilder<?>> buckets =
+            createCompositeBuckets(groupList, project, helper);
+        return Pair.of(
+            Collections.singletonList(
+                AggregationBuilders.composite("composite_buckets", buckets)
+                    .subAggregation(rangeAggregationBuilder)
+                    .size(AGGREGATION_BUCKET_SIZE)),
+            new BucketAggregationParser(metricParsers, countAggNames));
+      }
+      // It does not have range aggregation, but has composite aggregation:
+      //  - stats avg() by non_range_field
+      // CompositeAgg
+      //   Metric
+      else {
         AggregationBuilder aggregationBuilder;
         try {
           List<CompositeValuesSourceBuilder<?>> buckets =
@@ -249,7 +300,7 @@ public class AggregateAnalyzer {
           }
           return Pair.of(
               Collections.singletonList(aggregationBuilder),
-              new CompositeAggregationParser(metricParserList, countAggNames));
+              new BucketAggregationParser(metricParsers, countAggNames));
         } catch (CompositeAggUnSupportedException e) {
           if (bucketNullable) {
             throw new UnsupportedOperationException(e.getMessage());
@@ -257,7 +308,7 @@ public class AggregateAnalyzer {
           aggregationBuilder = createNestedBuckets(groupList, project, newMetricBuilder, helper);
           return Pair.of(
               Collections.singletonList(aggregationBuilder),
-              new BucketAggregationParser(metricParserList, countAggNames));
+              new BucketAggregationParser(metricParsers, countAggNames));
         }
       }
     } catch (Throwable e) {
@@ -309,6 +360,80 @@ public class AggregateAnalyzer {
                 .distinct()
                 .count()
             == 1;
+  }
+
+  /**
+   * Analyzes and converts CASE expressions in GROUP BY clauses to OpenSearch range aggregations.
+   *
+   * <p>This method identifies group by fields that are derived from CASE functions and transforms
+   * them into range aggregation builders. The resulting aggregations are cascaded in a hierarchical
+   * structure where range aggregations contain other range aggregations as sub-aggregations, with
+   * metric aggregations placed at the deepest level.
+   *
+   * <p>The aggregation hierarchy follows this pattern:
+   *
+   * <pre>
+   * RangeAggregation
+   *   └── RangeAggregation (nested)
+   *       └── ... (more range aggregations)
+   *           └── Metric Aggregation (at the bottom)
+   * </pre>
+   *
+   * @param groupList the list of group by field indices from the query
+   * @param project the projection containing the expressions to analyze, may be null
+   * @param rowType the data type information for the current row structure
+   * @param metricBuilder the metric aggregation builder to be placed at the bottom of the hierarchy
+   * @return a pair containing:
+   *     <ul>
+   *       <li>A set of integers representing the indices of group fields that were successfully
+   *           converted to range aggregations
+   *       <li>The root range aggregation builder, or null if no CASE expressions were found or
+   *           converted
+   *     </ul>
+   */
+  private static Pair<Set<Integer>, AggregationBuilder> pushCaseAsRanges(
+      List<Integer> groupList, Project project, RelDataType rowType, Builder metricBuilder) {
+    // Find group by fields derived from CASE functions and convert them to range queries
+    List<Pair<Integer, RangeAggregationBuilder>> groupsByCase =
+        groupList.stream()
+            .filter(i -> project != null && i < project.getProjects().size())
+            .map(i -> Pair.of(i, project.getNamedProjects().get(i)))
+            .filter(
+                p ->
+                    p.getRight().getKey() instanceof RexCall rexCall
+                        && rexCall.getKind() == SqlKind.CASE)
+            .map(
+                p ->
+                    Pair.of(
+                        p.getLeft(),
+                        CaseRangeAnalyzer.create(p.getRight().getValue(), rowType)
+                            .analyze((RexCall) p.getRight().getKey())))
+            .filter(p -> p.getRight().isPresent())
+            .map(p -> Pair.of(p.getLeft(), p.getRight().get()))
+            .toList();
+
+    // Cascade aggregations in such a way:
+    // RangeAggregation
+    //   ...Any other range aggregations
+    //      Metric Aggregation comes at last
+    // Note that but a composite aggregation can not be a sub aggregation of range aggregation,
+    // but range aggregation can be a sub aggregation of a composite aggregation.
+    AggregationBuilder rangeAggregationBuilder = null;
+    if (!groupsByCase.isEmpty()) {
+      for (int i = 0; i < groupsByCase.size(); i++) {
+        Pair<Integer, RangeAggregationBuilder> p = groupsByCase.get(i);
+        if (i == 0) {
+          rangeAggregationBuilder = p.getRight();
+        } else {
+          groupsByCase.get(i - 1).getRight().subAggregation(p.getRight());
+        }
+      }
+      groupsByCase.getLast().getRight().subAggregations(metricBuilder);
+    }
+
+    Set<Integer> aggPushedAsRanges =
+        groupsByCase.stream().map(Pair::getLeft).collect(Collectors.toSet());
+    return Pair.of(aggPushedAsRanges, rangeAggregationBuilder);
   }
 
   private static Pair<Builder, List<MetricParser>> processAggregateCalls(
@@ -582,7 +707,7 @@ public class AggregateAnalyzer {
       Integer groupIndex, Project project, AggregateAnalyzer.AggregateBuilderHelper helper)
       throws CompositeAggUnSupportedException {
     RexNode rex = project.getProjects().get(groupIndex);
-    String bucketName = project.getRowType().getFieldList().get(groupIndex).getName();
+    String bucketName = project.getRowType().getFieldNames().get(groupIndex);
     if (rex instanceof RexCall rexCall
         && rexCall.getKind() == SqlKind.OTHER_FUNCTION
         && rexCall.getOperator().getName().equalsIgnoreCase(BuiltinFunctionName.SPAN.name())

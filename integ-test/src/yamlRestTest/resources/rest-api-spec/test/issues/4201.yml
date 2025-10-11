@@ -1,0 +1,110 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+
+  - do:
+      indices.create:
+        index: test
+        body:
+          mappings:
+            properties:
+              "@timestamp":
+                type: date
+              timestamp:
+                type: date
+              size:
+                type: long
+              tmin:
+                type: double
+              metrics:
+                type: object
+                properties:
+                  size:
+                    type: long
+                  tmin:
+                    type: double
+
+  - do:
+      bulk:
+        index: test
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{ "@timestamp": "2025-01-01T00:00:00Z", "timestamp": "2025-01-01T00:00:00Z", "size": -20, "tmin": 1.0, "metrics": { "size": -20, "tmin": 1.0 } }'
+          - '{"index": {}}'
+          - '{ "@timestamp": "2025-01-01T01:00:00Z", "timestamp": "2025-01-01T01:00:00Z", "size": 5, "tmin": 2.5, "metrics": { "size": 5, "tmin": 2.5 } }'
+          - '{"index": {}}'
+          - '{ "@timestamp": "2025-01-01T02:00:00Z", "timestamp": "2025-01-01T02:00:00Z", "size": 50, "tmin": 3.2, "metrics": { "size": 50, "tmin": 3.2 } }'
+          - '{"index": {}}'
+          - '{ "@timestamp": "2025-01-01T03:00:00Z", "timestamp": "2025-01-01T03:00:00Z", "size": 500, "tmin": 1.8, "metrics": { "size": 500, "tmin": 1.8 } }'
+          - '{"index": {}}'
+          - '{ "@timestamp": "2025-01-01T04:00:00Z", "timestamp": "2025-01-01T04:00:00Z", "size": 1500, "tmin": 4.1, "metrics": { "size": 1500, "tmin": 4.1 } }'
+          - '{"index": {}}'
+          - '{ "@timestamp": "2025-01-01T05:00:00Z", "timestamp": "2025-01-01T05:30:00Z", "size": 3000, "tmin": 2.9, "metrics": { "size": 3000, "tmin": 2.9 } }'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"Test aggregation by range bucket":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: |
+            source = test
+            | eval range_bucket = case(
+                `metrics.size` < -10, 'range_1',
+                `metrics.size` >= -10 and `metrics.size` < 10, 'range_2',
+                `metrics.size` >= 10 and `metrics.size` < 100, 'range_3',
+                `metrics.size` >= 100 and `metrics.size` < 1000, 'range_4',
+                `metrics.size` >= 1000 and `metrics.size` < 2000, 'range_5',
+                `metrics.size` >= 2000, 'range_6'
+            )
+            | stats min(`metrics.tmin`) as tmin, avg(`metrics.size`) as tavg, max(`metrics.size`) as tmax
+                by range_bucket
+
+  - match: { total: 6 }
+  - match: { schema: [{"name": "tmin", "type": "double"}, {"name": "tavg", "type": "double"}, {"name": "tmax", "type": "bigint"}, {"name": "range_bucket", "type": "string"}] }
+  - match: { datarows: [[1.0, -20.0, -20, "range_1"], [2.5, 5.0, 5, "range_2"], [3.2, 50.0, 50, "range_3"], [1.8, 500.0, 500, "range_4"], [4.1, 1500.0, 1500, "range_5"], [2.9, 3000.0, 3000, "range_6"]] }
+
+---
+"Test aggregation by range bucket and time span":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: |
+            source = test
+            | eval range_bucket = case(
+                `metrics.size` < -10, 'range_1',
+                `metrics.size` >= -10 and `metrics.size` < 10, 'range_2',
+                `metrics.size` >= 10 and `metrics.size` < 100, 'range_3',
+                `metrics.size` >= 100 and `metrics.size` < 1000, 'range_4',
+                `metrics.size` >= 1000 and `metrics.size` < 2000, 'range_5',
+                `metrics.size` >= 2000, 'range_6'
+            )
+            | stats min(`metrics.tmin`) as tmin, avg(`metrics.size`) as tavg, max(`metrics.size`) as tmax
+                by range_bucket, span(`@timestamp`, 1h)
+
+  - match: { total: 6 }
+  - match: { schema: [{"name": "tmin", "type": "double"}, {"name": "tavg", "type": "double"}, {"name": "tmax", "type": "bigint"}, {"name": "span(`@timestamp`,1h)", "type": "timestamp"}, {"name": "range_bucket", "type": "string"}] }
+  - match: { datarows: [[1.0, -20.0, -20, "2025-01-01 00:00:00", "range_1"], [2.5, 5.0, 5, "2025-01-01 01:00:00", "range_2"], [3.2, 50.0, 50, "2025-01-01 02:00:00", "range_3"], [1.8, 500.0, 500, "2025-01-01 03:00:00", "range_4"], [4.1, 1500.0, 1500, "2025-01-01 04:00:00", "range_5"], [2.9, 3000.0, 3000, "2025-01-01 05:00:00", "range_6"]] }
