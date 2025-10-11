@@ -39,7 +39,9 @@ public class Explain extends Statement {
     SIMPLE,
     STANDARD,
     EXTENDED,
-    COST
+    COST,
+    /** Formats explain output in yaml format. */
+    YAML
   }
 
   public static ExplainFormat format(String format) {
