@@ -6,6 +6,7 @@
 package org.opensearch.sql.plugin.transport;
 
 import static org.opensearch.rest.BaseRestHandler.MULTI_ALLOW_EXPLICIT_INDEX;
+import static org.opensearch.sql.executor.ExecutionEngine.ExplainResponse.normalizeLf;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
@@ -139,7 +140,7 @@ public class TransportPPLQueryAction
               new YamlResponseFormatter<>() {
                 @Override
                 protected Object buildYamlObject(ExecutionEngine.ExplainResponse response) {
-                  return response;
+                  return normalizeLf(response);
                 }
               };
         } else {
