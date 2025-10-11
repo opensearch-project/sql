@@ -122,16 +122,4 @@ public class BucketAggregationParser implements OpenSearchAggregationResponsePar
   protected Map<String, Object> extract(CompositeAggregation.Bucket bucket) {
     return bucket.getKey();
   }
-
-  /**
-   * Extracts key-value pairs from a range aggregation bucket without processing its
-   * sub-aggregations.
-   *
-   * @param bucket the range aggregation bucket to extract data from
-   * @param name the name to use as the key in the returned map
-   * @return a map containing the bucket's key mapped to the provided name
-   */
-  protected Map<String, Object> extract(Range.Bucket bucket, String name) {
-    return Map.of(name, bucket.getKey());
-  }
 }
