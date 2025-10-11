@@ -238,15 +238,20 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitAppendPipe(AppendPipe node, CalcitePlanContext context) {
     visitChildren(node, context);
-    final RelNode base = context.relBuilder.peek();
+    UnresolvedPlan subqueryPlan =
+            node.getSubQuery().accept(new EmptySourcePropagateVisitor(), null);
+    UnresolvedPlan childNode = subqueryPlan;
+    while (childNode.getChild() != null && !childNode.getChild().isEmpty()) {
+      childNode = (UnresolvedPlan) childNode.getChild().getFirst();
+    }
+    childNode.attach(node.getChild().getFirst());
 
-    CalcitePlanContext subqueryContext = context.deepClone();
-    node.getSubQuery().accept(this, subqueryContext);
+    subqueryPlan.accept(this, context);
 
-    RelNode sub = subqueryContext.relBuilder.peek();
+    RelNode subPipelineNode = context.relBuilder.build();
+    RelNode mainNode = context.relBuilder.build();
+    return mergeTableAndResolveColumnConflict(mainNode, subPipelineNode, context);
 
-    RelNode out = unionAllPreserveAllColumns(base, sub, context, subqueryContext);
-    return out;
   }
 
   @Override
@@ -1710,11 +1715,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // 3. Merge two query schemas using shared logic
     RelNode subsearchNode = context.relBuilder.build();
     RelNode mainNode = context.relBuilder.build();
+    return mergeTableAndResolveColumnConflict(mainNode, subsearchNode, context);
+  }
 
+  private RelNode mergeTableAndResolveColumnConflict(RelNode mainNode, RelNode subqueryNode, CalcitePlanContext context) {
     // Use shared schema merging logic that handles type conflicts via field renaming
-    List<RelNode> nodesToMerge = Arrays.asList(mainNode, subsearchNode);
+    List<RelNode> nodesToMerge = Arrays.asList(mainNode, subqueryNode);
     List<RelNode> projectedNodes =
-        SchemaUnifier.buildUnifiedSchemaWithConflictResolution(nodesToMerge, context);
+            SchemaUnifier.buildUnifiedSchemaWithConflictResolution(nodesToMerge, context);
 
     // 4. Union the projected plans
     for (RelNode projectedNode : projectedNodes) {
