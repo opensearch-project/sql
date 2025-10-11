@@ -38,4 +38,5 @@ teardown:
           query: source=test | bin num bins=3 | stats count() by num
 
   - match: { total: 2 }
+  - match: { "schema": [ { "name": "count()", "type": "bigint" }, { "name": "num", "type": "string" }] }
   - match: {"datarows": [[2, "10-20"], [1, "20-30"]]}

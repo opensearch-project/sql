@@ -972,7 +972,7 @@ class OpenSearchExprValueFactoryTest {
 
   @Test
   // aggregation adds info about new columns to the factory,
-  // it will overwrite existing type to fix issue #4413.
+  // it will overwrite existing type to fix https://github.com/opensearch-project/sql/issues/4115
   public void factoryMappingsAreExtendableWithOverWrite()
       throws NoSuchFieldException, IllegalAccessException {
     var factory =
