@@ -12,7 +12,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
 public class JsonExtractAllFunctionImplTest {
@@ -52,16 +51,7 @@ public class JsonExtractAllFunctionImplTest {
 
   private Map<String, Object> eval(String json) {
     Object result = JsonExtractAllFunctionImpl.eval(json);
-    return debug(assertValidMapResult(result));
-  }
-
-  private Map<String, Object> debug(Map<String, Object> map) {
-    System.out.println(
-        "map: "
-            + map.entrySet().stream()
-                .map(entry -> entry.getKey() + "=" + entry.getValue())
-                .collect(Collectors.joining(", ")));
-    return map;
+    return assertValidMapResult(result);
   }
 
   @Test
