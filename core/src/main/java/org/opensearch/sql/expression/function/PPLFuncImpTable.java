@@ -652,6 +652,20 @@ public class PPLFuncImpTable {
           typeChecker);
     }
 
+    protected void registerDivideFunction(BuiltinFunctionName functionName) {
+      register(
+          functionName,
+          (FunctionImp2)
+              (builder, left, right) -> {
+                SqlOperator operator =
+                    CalcitePlanContext.isLegacyPreferred()
+                        ? PPLBuiltinOperators.DIVIDE
+                        : SqlLibraryOperators.SAFE_DIVIDE;
+                return builder.makeCall(operator, left, right);
+              },
+          PPLTypeChecker.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));
+    }
+
     void populate() {
       // register operators for comparison
       registerOperator(NOTEQUAL, PPLBuiltinOperators.NOT_EQUALS_IP, SqlStdOperatorTable.NOT_EQUALS);
@@ -743,8 +757,8 @@ public class PPLFuncImpTable {
       registerOperator(MODULUS, PPLBuiltinOperators.MOD);
       registerOperator(MODULUSFUNCTION, PPLBuiltinOperators.MOD);
       registerOperator(CRC32, PPLBuiltinOperators.CRC32);
-      registerOperator(DIVIDE, PPLBuiltinOperators.DIVIDE);
-      registerOperator(DIVIDEFUNCTION, PPLBuiltinOperators.DIVIDE);
+      registerDivideFunction(DIVIDE);
+      registerDivideFunction(DIVIDEFUNCTION);
       registerOperator(SHA2, PPLBuiltinOperators.SHA2);
       registerOperator(CIDRMATCH, PPLBuiltinOperators.CIDRMATCH);
       registerOperator(INTERNAL_GROK, PPLBuiltinOperators.GROK);

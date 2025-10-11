@@ -1,0 +1,70 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+            plugins.ppl.syntax.legacy.preferred: true
+  - do:
+      indices.create:
+        index: test_divide_settings
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+  - do:
+      bulk:
+        index: test_divide_settings
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"id": 1}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+            plugins.ppl.syntax.legacy.preferred: true
+  - do:
+      indices.delete:
+        index: test_divide_settings
+
+---
+"legacy division retains integer truncation":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      allowed_warnings: []
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_divide_settings | eval a=4/2 | eval b=2/4 | eval c=2/40 | fields a,b,c
+  - match: { total: 1 }
+  - match: { datarows: [[2,0,0]] }
+
+---
+"non-legacy division returns floating values":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.ppl.syntax.legacy.preferred: false
+  - do:
+      allowed_warnings: []
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_divide_settings | eval a=4/2 | eval b=2/4 | eval c=2/40 | fields a,b,c
+  - match: { total: 1 }
+  - match: { datarows: [[2.0,0.5,0.05]] }
