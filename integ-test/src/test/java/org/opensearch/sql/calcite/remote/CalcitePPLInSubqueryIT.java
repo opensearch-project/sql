@@ -357,6 +357,20 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testInCorrelatedSubquery() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s| where name in [ source = %s | where id = uid and"
+                    + " (like(occupation, '%%ist') or occupation = 'Engineer') | fields name  ]|"
+                    + " sort - salary | fields id, name, salary",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+    verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
+    verifyDataRowsInOrder(
+        result, rows(1002, "John", 120000), rows(1000, "Jake", 100000), rows(1005, "Jane", 90000));
+  }
+
+  @Test
   public void testSubsearchMaxOut() throws IOException {
     setSubsearchMaxOut(1);
     JSONObject result =
@@ -371,6 +385,20 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
     verifyDataRowsInOrder(result, rows(1000, "Jake", 100000));
+    resetSubsearchMaxOut();
+  }
+
+  @Test
+  public void testInCorrelatedSubqueryMaxOut() throws IOException {
+    setSubsearchMaxOut(1);
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s| where name in [    source = %s     | where id = uid and"
+                    + " (like(occupation, '%%ist') or occupation = 'Engineer')    | fields name  ]|"
+                    + " sort - salary | fields id, name, salary",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+    verifyNumOfRows(result, 1);
     resetSubsearchMaxOut();
   }
 

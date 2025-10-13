@@ -22,17 +22,13 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelShuttleImpl;
-import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ArraySqlType;
@@ -40,7 +36,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.util.Strings;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Alias;
@@ -76,9 +71,9 @@ import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
-import org.opensearch.sql.calcite.utils.CalciteUtils;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PlanUtils;
+import org.opensearch.sql.calcite.utils.SubsearchUtils;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
@@ -509,41 +504,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
         });
   }
 
-  /** Insert a system_limit under correlate conditions. */
-  private RelNode insertSysLimitUnderCorrelateConditions(
-      LogicalFilter logicalFilter, CalcitePlanContext context) {
-    // Before:
-    // LogicalFilter(condition=[AND(=($cor0.SAL, $2), >($1, 1000.0:DECIMAL(5, 1)))])
-    // After:
-    // LogicalFilter(condition=[=($cor0.SAL, $2)])
-    //   LogicalSystemLimit(fetch=[1], type=[SUBSEARCH_MAXOUT])
-    //     LogicalFilter(condition=[>($1, 1000.0:DECIMAL(5, 1))])
-    RexNode originalCondition = logicalFilter.getCondition();
-    List<RexNode> conditions = RelOptUtil.conjunctions(originalCondition);
-    Pair<List<RexNode>, List<RexNode>> result =
-        CalciteUtils.partition(conditions, PlanUtils::containsCorrelVariable);
-    if (result.getLeft().isEmpty()) {
-      return logicalFilter;
-    }
-
-    RelNode input = logicalFilter.getInput();
-    if (!result.getRight().isEmpty()) {
-      RexNode nonCorrelCondition =
-          RexUtil.composeConjunction(context.rexBuilder, result.getRight());
-      input = LogicalFilter.create(input, nonCorrelCondition);
-    }
-    input =
-        LogicalSystemLimit.create(
-            SystemLimitType.SUBSEARCH_MAXOUT,
-            input,
-            context.relBuilder.literal(context.sysLimit.subsearchLimit()));
-    if (!result.getLeft().isEmpty()) {
-      RexNode correlCondition = RexUtil.composeConjunction(context.rexBuilder, result.getLeft());
-      input = LogicalFilter.create(input, correlCondition);
-    }
-    return input;
-  }
-
   private RelNode resolveSubqueryPlan(
       UnresolvedPlan subquery, SubqueryExpression subqueryExpression, CalcitePlanContext context) {
     boolean isNestedSubquery = context.isResolvingSubquery();
@@ -555,47 +515,22 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     }
     subquery.accept(planVisitor, context);
 
-    if (context.sysLimit.subsearchLimit() > 0) {
-      // add subsearch.maxout limit to subsearch
-      if (subqueryExpression instanceof ExistsSubquery) {
-        // For exists-subquery, we cannot add system limit to the top of subquery simply.
-        // Instead, add system limit under the correlated conditions.
-        RelNode replacement =
-            context
-                .relBuilder
-                .peek()
-                .accept(
-                    new RelShuttleImpl() {
-                      @Override
-                      public RelNode visit(LogicalFilter filter) {
-                        RelNode newFilter = insertSysLimitUnderCorrelateConditions(filter, context);
-                        if (newFilter != filter) {
-                          return newFilter;
-                        }
-                        return visit((RelNode) filter);
-                      }
-
-                      @Override
-                      public RelNode visit(RelNode other) {
-                        RelNode newInput =
-                            other.getInputs().isEmpty() ? null : other.getInput(0).accept(this);
-                        if (newInput == null || newInput == other.getInput(0)) {
-                          return other;
-                        }
-                        return other.copy(other.getTraitSet(), Collections.singletonList(newInput));
-                      }
-                    });
-        planVisitor.replaceTop(context.relBuilder, replacement);
-      }
-      if (subqueryExpression instanceof InSubquery) {
-        // For in-subquery, add system limit to the top of subquery.
-        planVisitor.replaceTop(
-            context.relBuilder,
+    if (context.sysLimit.subsearchLimit() > 0 && subqueryExpression instanceof ScalarSubquery) {
+      // Add subsearch.maxout limit to exists-in subsearch:
+      // Cannot add system limit to the top of subquery simply.
+      // Instead, add system limit under the correlated conditions.
+      SubsearchUtils.SystemLimitInsertionShuttle shuttle =
+          new SubsearchUtils.SystemLimitInsertionShuttle(context);
+      RelNode replacement = context.relBuilder.peek().accept(shuttle);
+      if (!shuttle.isCorrelatedConditionFound()) {
+        // If no correlated condition found, add system limit to the top of subquery.
+        replacement =
             LogicalSystemLimit.create(
                 SystemLimitType.SUBSEARCH_MAXOUT,
-                context.relBuilder.peek(),
-                context.relBuilder.literal(context.sysLimit.subsearchLimit())));
+                replacement,
+                context.relBuilder.literal(context.sysLimit.subsearchLimit()));
       }
+      PlanUtils.replaceTop(context.relBuilder, replacement);
     }
     // pop the inner plan
     RelNode subqueryRel = context.relBuilder.build();

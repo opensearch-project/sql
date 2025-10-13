@@ -12,6 +12,7 @@ import static org.apache.calcite.rex.RexWindowBounds.following;
 import static org.apache.calcite.rex.RexWindowBounds.preceding;
 
 import com.google.common.collect.ImmutableList;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -453,6 +454,17 @@ public interface PlanUtils {
       return false;
     } catch (Exception e) {
       return true;
+    }
+  }
+
+  /** Adds a rel node to the top of the stack while preserving the field names and aliases. */
+  static void replaceTop(RelBuilder relBuilder, RelNode relNode) {
+    try {
+      Method method = RelBuilder.class.getDeclaredMethod("replaceTop", RelNode.class);
+      method.setAccessible(true);
+      method.invoke(relBuilder, relNode);
+    } catch (Exception e) {
+      throw new IllegalStateException("Unable to invoke RelBuilder.replaceTop", e);
     }
   }
 }

@@ -141,7 +141,7 @@ public class OpenSearchSettings extends Settings {
       Setting.intSetting(
           Key.PPL_JOIN_SUBSEARCH_MAXOUT.getKeyValue(),
           50000,
-          0,
+          -1,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 

@@ -359,6 +359,25 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testSubsearchMaxOutUncorrelated() throws IOException {
+    setSubsearchMaxOut(1);
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s"
+                    + "| where exists ["
+                    + "    source = %s | join type=left uid %s"
+                    + "    | eval dept = department "
+                    + "    | where dept = 'DATA' "
+                    + "  ]"
+                    + "| sort  - salary"
+                    + "| fields id, name, salary",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_WORK_INFORMATION));
+    verifyNumOfRows(result, 7);
+    resetSubsearchMaxOut();
+  }
+
+  @Test
   public void testSubsearchMaxOutZero1() throws IOException {
     setSubsearchMaxOut(0);
     JSONObject result =

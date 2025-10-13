@@ -27,7 +27,6 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -167,17 +166,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   public RelNode analyze(UnresolvedPlan unresolved, CalcitePlanContext context) {
     return unresolved.accept(this, context);
-  }
-
-  /** Adds a rel node to the top of the stack while preserving the field names and aliases. */
-  public void replaceTop(RelBuilder relBuilder, RelNode relNode) {
-    try {
-      Method method = RelBuilder.class.getDeclaredMethod("replaceTop", RelNode.class);
-      method.setAccessible(true);
-      method.invoke(relBuilder, relNode);
-    } catch (Exception e) {
-      throw new IllegalStateException("Unable to invoke RelBuilder.replaceTop", e);
-    }
   }
 
   @Override
@@ -1152,7 +1140,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     children.forEach(c -> analyze(c, context));
     // add join.subsearch_maxout limit to subsearch side
     if (context.sysLimit.joinSubsearchLimit() >= 0) {
-      replaceTop(
+      PlanUtils.replaceTop(
           context.relBuilder,
           LogicalSystemLimit.create(
               SystemLimitType.JOIN_SUBSEARCH_MAXOUT,
