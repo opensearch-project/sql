@@ -30,6 +30,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
 import static org.opensearch.sql.executor.QueryType.PPL;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 
+import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Type;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -72,8 +73,8 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     super(typeSystem);
   }
 
-  // Float is not supported well in OpenSearch core. See reported bug:
-  // https://github.com/opensearch-project/OpenSearch/issues/19271
+  private static final List<SqlTypeName> FLOAT_TYPES =
+      ImmutableList.of(SqlTypeName.FLOAT, SqlTypeName.REAL);
   private static final List<Pair<Predicate<RelDataType>, String>>
       SUPPORTED_DSL_DERIVED_FIELD_TYPE_RULES =
           Arrays.asList(
@@ -84,6 +85,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
               // TODO: Support BigDecimal and other complex objects. A workaround is to wrap it in
               // JSON object so that response can parse it
               Pair.of(t -> SqlTypeName.DOUBLE.equals(t.getSqlTypeName()), "double"),
+              Pair.of(t -> FLOAT_TYPES.contains(t.getSqlTypeName()), "float"),
               Pair.of(t -> SqlTypeName.BOOLEAN_TYPES.contains(t.getSqlTypeName()), "boolean"),
               Pair.of(t -> SqlTypeName.CHAR_TYPES.contains(t.getSqlTypeName()), "keyword"));
 
