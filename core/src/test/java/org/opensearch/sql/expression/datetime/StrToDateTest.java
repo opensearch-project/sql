@@ -29,6 +29,7 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionTestBase;
 import org.opensearch.sql.expression.FunctionExpression;
+import org.opensearch.sql.expression.function.FunctionProperties;
 
 class StrToDateTest extends ExpressionTestBase {
 
@@ -89,10 +90,12 @@ class StrToDateTest extends ExpressionTestBase {
   }
 
   private static LocalDateTime getExpectedTimeResult(int hour, int minute, int seconds) {
+    // Use a fixed date to avoid timezone-dependent test failures
+    LocalDate fixedDate = LocalDate.of(2023, 5, 15);
     return LocalDateTime.of(
-        LocalDate.now().getYear(),
-        LocalDate.now().getMonthValue(),
-        LocalDate.now().getDayOfMonth(),
+        fixedDate.getYear(),
+        fixedDate.getMonthValue(),
+        fixedDate.getDayOfMonth(),
         hour,
         minute,
         seconds);
@@ -108,10 +111,13 @@ class StrToDateTest extends ExpressionTestBase {
   @ParameterizedTest(name = "{1}")
   @MethodSource("getTestDataForStrToDateWithTime")
   public void test_str_to_date_with_time_type(String parsed, String format) {
+    // Use fixed function properties to ensure consistent test results across timezones
+    FunctionProperties fixedFunctionProperties =
+        new FunctionProperties(Instant.parse("2023-05-15T00:00:00Z"), ZoneOffset.UTC);
 
     FunctionExpression expression =
         DSL.str_to_date(
-            functionProperties,
+            fixedFunctionProperties,
             DSL.literal(new ExprStringValue(parsed)),
             DSL.literal(new ExprStringValue(format)));
 
@@ -152,19 +158,23 @@ class StrToDateTest extends ExpressionTestBase {
     final int MINUTES = 11;
     final int SECONDS = 12;
 
+    // Use fixed function properties to ensure consistent test results across timezones
+    FunctionProperties fixedFunctionProperties =
+        new FunctionProperties(Instant.parse("2023-05-15T00:00:00Z"), ZoneOffset.UTC);
+
     LocalTime arg = LocalTime.of(HOURS, MINUTES, SECONDS);
     String format = "%h,%i,%s";
 
     FunctionExpression dateFormatExpr =
         DSL.time_format(
-            functionProperties,
+            fixedFunctionProperties,
             DSL.literal(new ExprTimeValue(arg)),
             DSL.literal(new ExprStringValue(format)));
     String timeFormatResult = eval(dateFormatExpr).stringValue();
 
     FunctionExpression strToDateExpr =
         DSL.str_to_date(
-            functionProperties,
+            fixedFunctionProperties,
             DSL.literal(new ExprStringValue(timeFormatResult)),
             DSL.literal(new ExprStringValue(format)));
     LocalDateTime strToDateResult =

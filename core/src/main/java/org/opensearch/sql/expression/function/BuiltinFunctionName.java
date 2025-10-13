@@ -62,6 +62,7 @@ public enum BuiltinFunctionName {
   /** Collection functions */
   ARRAY(FunctionName.of("array")),
   ARRAY_LENGTH(FunctionName.of("array_length")),
+  MVAPPEND(FunctionName.of("mvappend")),
   MVJOIN(FunctionName.of("mvjoin")),
   FORALL(FunctionName.of("forall")),
   EXISTS(FunctionName.of("exists")),
@@ -323,8 +324,8 @@ public enum BuiltinFunctionName {
   INTERNAL_PATTERN_PARSER(FunctionName.of("pattern_parser")),
   INTERNAL_PATTERN(FunctionName.of("pattern")),
   INTERNAL_UNCOLLECT_PATTERNS(FunctionName.of("uncollect_patterns")),
-  INTERNAL_REGEXP_EXTRACT(FunctionName.of("regexp_extract"), true),
   INTERNAL_GROK(FunctionName.of("grok"), true),
+  INTERNAL_PARSE(FunctionName.of("parse"), true),
   INTERNAL_REGEXP_REPLACE_3(FunctionName.of("regexp_replace_3"), true),
   INTERNAL_REGEXP_REPLACE_PG_4(FunctionName.of("regexp_replace_pg_4"), true),
   INTERNAL_REGEXP_REPLACE_5(FunctionName.of("regexp_replace_5"), true),

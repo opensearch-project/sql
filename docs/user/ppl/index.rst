@@ -86,9 +86,9 @@ The query start with search command and then flowing a set of command delimited 
 
   - `lookup command <cmd/lookup.rst>`_
 
-  - `metadata commands <cmd/information_schema.rst>`_
-
   - `ml command <cmd/ml.rst>`_
+
+  - `multisearch command <cmd/multisearch.rst>`_
 
   - `parse command <cmd/parse.rst>`_
 

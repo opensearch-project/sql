@@ -1,0 +1,62 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"Append UDT fields should merge schema successfully":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      indices.create:
+        index: log-test1
+        body:
+          mappings:
+            properties:
+              "timestamp":
+                type: date
+  - do:
+      indices.create:
+        index: log-test2
+        body:
+          mappings:
+            properties:
+              "host":
+                type: ip
+
+  - do:
+      bulk:
+        index: log-test1
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{ "timestamp" : "2025-09-04T16:15:00.000Z" }'
+  - do:
+      bulk:
+        index: log-test2
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{ "host" : "0.0.0.2" }'
+
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=log-test1 | append [ source=log-test2 ]
+
+  - match: { total: 2 }
+  - match: { datarows: [["2025-09-04 16:15:00", null], [null, "0.0.0.2"]] }

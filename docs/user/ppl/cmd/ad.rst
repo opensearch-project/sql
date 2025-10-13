@@ -1,6 +1,6 @@
-=============
+=============================
 ad (deprecated by ml command)
-=============
+=============================
 
 .. rubric:: Table of contents
 
@@ -103,3 +103,9 @@ PPL query::
     | night    | 10844.0 | 0.0   | False     |
     | day      | 6526.0  | 0.0   | False     |
     +----------+---------+-------+-----------+
+
+
+Limitations
+===========
+The ``ad`` command can only work with ``plugins.calcite.enabled=false``.
+It means ``ad``  command cannot work together with new PPL commands/functions introduced in 3.0.0 and above.

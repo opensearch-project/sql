@@ -80,9 +80,9 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.IF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IFNULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_GROK;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_ITEM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PARSE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PATTERN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PATTERN_PARSER;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_EXTRACT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_3;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_5;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_PG_4;
@@ -144,6 +144,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH_O
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLYFUNCTION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTI_MATCH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVAPPEND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVJOIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOTEQUAL;
@@ -712,11 +713,14 @@ public class PPLFuncImpTable {
       registerOperator(LOG2, SqlLibraryOperators.LOG2);
       registerOperator(MD5, SqlLibraryOperators.MD5);
       registerOperator(SHA1, SqlLibraryOperators.SHA1);
-      registerOperator(INTERNAL_REGEXP_EXTRACT, SqlLibraryOperators.REGEXP_EXTRACT);
       registerOperator(INTERNAL_REGEXP_REPLACE_3, SqlLibraryOperators.REGEXP_REPLACE_3);
       registerOperator(INTERNAL_REGEXP_REPLACE_PG_4, SqlLibraryOperators.REGEXP_REPLACE_PG_4);
       registerOperator(INTERNAL_REGEXP_REPLACE_5, SqlLibraryOperators.REGEXP_REPLACE_5);
       registerOperator(INTERNAL_TRANSLATE3, SqlLibraryOperators.TRANSLATE3);
+
+      // Register eval functions for PPL max() and min() calls
+      registerOperator(MAX, PPLBuiltinOperators.MAX);
+      registerOperator(MIN, PPLBuiltinOperators.MIN);
 
       // Register PPL UDF operator
       registerOperator(COSH, PPLBuiltinOperators.COSH);
@@ -735,6 +739,7 @@ public class PPLFuncImpTable {
       registerOperator(SHA2, PPLBuiltinOperators.SHA2);
       registerOperator(CIDRMATCH, PPLBuiltinOperators.CIDRMATCH);
       registerOperator(INTERNAL_GROK, PPLBuiltinOperators.GROK);
+      registerOperator(INTERNAL_PARSE, PPLBuiltinOperators.PARSE);
       registerOperator(MATCH, PPLBuiltinOperators.MATCH);
       registerOperator(MATCH_PHRASE, PPLBuiltinOperators.MATCH_PHRASE);
       registerOperator(MATCH_BOOL_PREFIX, PPLBuiltinOperators.MATCH_BOOL_PREFIX);
@@ -830,6 +835,7 @@ public class PPLFuncImpTable {
           PPLTypeChecker.family(SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER));
 
       registerOperator(ARRAY, PPLBuiltinOperators.ARRAY);
+      registerOperator(MVAPPEND, PPLBuiltinOperators.MVAPPEND);
       registerOperator(ARRAY_LENGTH, SqlLibraryOperators.ARRAY_LENGTH);
       registerOperator(FORALL, PPLBuiltinOperators.FORALL);
       registerOperator(EXISTS, PPLBuiltinOperators.EXISTS);

@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
@@ -27,6 +28,7 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.BANK_WITH_STRING_VALUES);
     loadIndex(Index.NESTED_SIMPLE);
     loadIndex(Index.TIME_TEST_DATA);
+    loadIndex(Index.TIME_TEST_DATA2);
     loadIndex(Index.EVENTS);
     loadIndex(Index.LOGS);
   }
@@ -151,6 +153,30 @@ public class CalciteExplainIT extends ExplainIT {
             "source=opensearch-sql_test_index_account | where isempty(firstname)"));
   }
 
+  @Test
+  public void testExplainMultisearchBasic() throws IOException {
+    String query =
+        "| multisearch [search"
+            + " source=opensearch-sql_test_index_account | where age < 30 | eval age_group ="
+            + " 'young'] [search source=opensearch-sql_test_index_account | where age >= 30 | eval"
+            + " age_group = 'adult'] | stats count by age_group";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_multisearch_basic.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainMultisearchTimestampInterleaving() throws IOException {
+    String query =
+        "| multisearch "
+            + "[search source=opensearch-sql_test_index_time_data | where category IN ('A', 'B')] "
+            + "[search source=opensearch-sql_test_index_time_data2 | where category IN ('E', 'F')] "
+            + "| head 5";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_multisearch_timestamp.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
+  }
+
   // Only for Calcite
   @Test
   public void testExplainIsBlank() throws IOException {
@@ -238,6 +264,19 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testFilterWithSearchCall() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_filter_with_search.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | where birthdate >= '2023-01-01 00:00:00' and birthdate < '2023-01-03"
+                    + " 00:00:00' | stats count() by span(birthdate, 1d)",
+                TEST_INDEX_BANK)));
+  }
+
+  @Test
   public void testExplainWithReverse() throws IOException {
     String result =
         executeWithReplace(
@@ -256,9 +295,9 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryToString("source=events | timechart span=1m avg(cpu_usage) by host");
     String expected =
         !isPushdownDisabled()
-            ? loadFromFile("expectedOutput/calcite/explain_timechart.json")
-            : loadFromFile("expectedOutput/calcite/explain_timechart_no_pushdown.json");
-    assertJsonEqualsIgnoreId(expected, result);
+            ? loadFromFile("expectedOutput/calcite/explain_timechart.yaml")
+            : loadFromFile("expectedOutput/calcite/explain_timechart_no_pushdown.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
   @Test
@@ -266,9 +305,9 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryToString("source=events | timechart span=1m count() by host");
     String expected =
         !isPushdownDisabled()
-            ? loadFromFile("expectedOutput/calcite/explain_timechart_count.json")
-            : loadFromFile("expectedOutput/calcite/explain_timechart_count_no_pushdown.json");
-    assertJsonEqualsIgnoreId(expected, result);
+            ? loadFromFile("expectedOutput/calcite/explain_timechart_count.yaml")
+            : loadFromFile("expectedOutput/calcite/explain_timechart_count_no_pushdown.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
   @Test
@@ -303,9 +342,26 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testExplainStatsWithBinsOnTimeField() throws IOException {
+    // TODO:  Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_stats_bins_on_time.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=events | bin @timestamp bins=3 | stats count() by @timestamp"));
+
+    expected = loadExpectedPlan("explain_stats_bins_on_time2.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=events | bin @timestamp bins=3 | stats avg(cpu_usage) by @timestamp"));
+  }
+
+  @Test
   public void testExplainBinWithSpan() throws IOException {
-    String expected = loadExpectedPlan("explain_bin_span.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_bin_span.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | bin age span=10 | head 5"));
@@ -331,8 +387,8 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainBinWithAligntime() throws IOException {
-    String expected = loadExpectedPlan("explain_bin_aligntime.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_bin_aligntime.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_time_data | bin @timestamp span=2h aligntime=latest |"
@@ -382,8 +438,8 @@ public class CalciteExplainIT extends ExplainIT {
   // Only for Calcite, as v2 gets unstable serialized string for function
   @Test
   public void testExplainOnAggregationWithSumEnhancement() throws IOException {
-    String expected = loadExpectedPlan("explain_agg_with_sum_enhancement.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_agg_with_sum_enhancement.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             String.format(
@@ -514,16 +570,16 @@ public class CalciteExplainIT extends ExplainIT {
     String query =
         "source=opensearch-sql_test_index_account | regex lastname='^[A-Z][a-z]+$' | head 5";
     var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_regex.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    String expected = loadExpectedPlan("explain_regex.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
   @Test
   public void testRegexNegatedExplain() throws IOException {
     String query = "source=opensearch-sql_test_index_account | regex lastname!='.*son$' | head 5";
     var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_regex_negated.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    String expected = loadExpectedPlan("explain_regex_negated.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
   @Test
@@ -550,8 +606,8 @@ public class CalciteExplainIT extends ExplainIT {
         "source=opensearch-sql_test_index_account | rex field=lastname \\\"(?<initial>^[A-Z])\\\" |"
             + " head 5";
     var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_rex.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    String expected = loadExpectedPlan("explain_rex.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
   @Test
@@ -594,6 +650,17 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testPreventLimitPushdown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    setMaxResultWindow("opensearch-sql_test_index_account", 1);
+    String query = "source=opensearch-sql_test_index_account | head 1 from 1";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_prevent_limit_push.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
+    resetMaxResultWindow("opensearch-sql_test_index_account");
+  }
+
+  @Test
   public void testPushdownLimitIntoAggregation() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_limit_agg_pushdown.json");
@@ -601,8 +668,8 @@ public class CalciteExplainIT extends ExplainIT {
         expected,
         explainQueryToString("source=opensearch-sql_test_index_account | stats count() by state"));
 
-    expected = loadExpectedPlan("explain_limit_agg_pushdown2.json");
-    assertJsonEqualsIgnoreId(
+    expected = loadExpectedPlan("explain_limit_agg_pushdown2.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | stats count() by state | head 100"));
@@ -661,6 +728,143 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  @Override
+  public void testCountAggPushDownExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // should be optimized by hits.total.value
+    String expected = loadExpectedPlan("explain_count_agg_push1.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString("source=opensearch-sql_test_index_account | stats count() as cnt"));
+
+    // should be optimized
+    expected = loadExpectedPlan("explain_count_agg_push2.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats count(lastname) as cnt"));
+
+    // should be optimized
+    expected = loadExpectedPlan("explain_count_agg_push3.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | eval name = lastname | stats count(name) as"
+                + " cnt"));
+
+    // should be optimized
+    expected = loadExpectedPlan("explain_count_agg_push4.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats count() as c1, count() as c2"));
+
+    // should be optimized
+    expected = loadExpectedPlan("explain_count_agg_push5.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats count(lastname) as c1,"
+                + " count(lastname) as c2"));
+
+    // should be optimized
+    expected = loadExpectedPlan("explain_count_agg_push6.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | eval name = lastname | stats"
+                + " count(lastname), count(name)"));
+
+    // should not be optimized
+    expected = loadExpectedPlan("explain_count_agg_push7.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats count(balance + 1) as cnt"));
+
+    // should not be optimized
+    expected = loadExpectedPlan("explain_count_agg_push8.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats count() as c1, count(lastname) as"
+                + " c2"));
+
+    // should not be optimized
+    expected = loadExpectedPlan("explain_count_agg_push9.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats count(firstname), count(lastname)"));
+
+    // should not be optimized
+    expected = loadExpectedPlan("explain_count_agg_push10.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | eval name = lastname | stats"
+                + " count(firstname), count(name)"));
+  }
+
+  @Test
+  public void testExplainCountsByAgg() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_agg_counts_by1.yaml");
+    // case of only count(): doc_count works
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | stats count(), count() as c1 by gender", TEST_INDEX_ACCOUNT)));
+
+    // count(FIELD) by: doc_count doesn't work
+    expected = loadExpectedPlan("explain_agg_counts_by2.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | stats count(balance) as c1, count(balance) as c2 by gender",
+                TEST_INDEX_ACCOUNT)));
+
+    // count(FIELD) by: doc_count doesn't work
+    expected = loadExpectedPlan("explain_agg_counts_by3.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | eval account_number_alias = account_number"
+                    + " | stats count(account_number), count(account_number_alias) as c2 by gender",
+                TEST_INDEX_ACCOUNT)));
+
+    // count() + count(FIELD)): doc_count doesn't work
+    expected = loadExpectedPlan("explain_agg_counts_by4.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | stats count(), count(account_number) by gender", TEST_INDEX_ACCOUNT)));
+
+    // count(FIELD1) + count(FIELD2)) by: doc_count doesn't work
+    expected = loadExpectedPlan("explain_agg_counts_by5.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | stats count(balance), count(account_number) by gender",
+                TEST_INDEX_ACCOUNT)));
+
+    // case of count(EXPRESSION) by: doc_count doesn't work
+    expected = loadExpectedPlan("explain_agg_counts_by6.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | eval b_1 = balance + 1"
+                    + " | stats count(b_1), count(pow(balance, 2)) as c3 by gender",
+                TEST_INDEX_ACCOUNT)));
+  }
+
+  @Test
   public void testExplainSortOnMetricsNoBucketNullable() throws IOException {
     // TODO enhancement later: https://github.com/opensearch-project/sql/issues/4282
     enabledOnlyWhenPushdownIsEnabled();
@@ -677,6 +881,24 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryToString(
             "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() by"
                 + " gender, state | sort `count()`"));
+  }
+
+  @Test
+  public void testExplainEvalMax() throws IOException {
+    String expected = loadExpectedPlan("explain_eval_max.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | eval new = max(1, 2, 3, age, 'banana')"));
+  }
+
+  @Test
+  public void testExplainEvalMin() throws IOException {
+    String expected = loadExpectedPlan("explain_eval_min.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | eval new = min(1, 2, 3, age, 'banana')"));
   }
 
   /**
@@ -728,5 +950,15 @@ public class CalciteExplainIT extends ExplainIT {
                 "source=%s | eval t = date_add(birthdate, interval 1 day) | stats count() by"
                     + " span(t, 1d)",
                 TEST_INDEX_BANK)));
+  }
+
+  @Test
+  public void testFillNullValueSyntaxExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_fillnull_value_syntax.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | fields age, balance | fillnull value=0", TEST_INDEX_ACCOUNT)));
   }
 }
