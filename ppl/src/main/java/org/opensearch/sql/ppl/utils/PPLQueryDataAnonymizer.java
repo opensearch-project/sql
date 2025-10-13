@@ -55,6 +55,7 @@ import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CountBin;
 import org.opensearch.sql.ast.tree.Dedupe;
@@ -255,8 +256,12 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitFilter(Filter node, String context) {
-    String child = node.getChild().get(0).accept(this, context);
     String condition = visitExpression(node.getCondition());
+    if (node.getChild().isEmpty()) {
+      return StringUtils.format("where %s", condition);
+    }
+    String child = node.getChild().get(0).accept(this, context);
+
     return StringUtils.format("%s | where %s", child, condition);
   }
 
@@ -280,7 +285,6 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   /** Build {@link LogicalAggregation}. */
   @Override
   public String visitAggregation(Aggregation node, String context) {
-    String child = node.getChild().get(0).accept(this, context);
     UnresolvedExpression span = node.getSpan();
     List<UnresolvedExpression> groupByExprList = new ArrayList<>();
     if (!Objects.isNull(span)) {
@@ -288,6 +292,11 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     }
     groupByExprList.addAll(node.getGroupExprList());
     final String group = visitExpressionList(groupByExprList);
+    if (node.getChild().isEmpty()) {
+      return StringUtils.format(
+              "stats %s", String.join(" ", visitExpressionList(node.getAggExprList()), groupBy(group)).trim());
+    }
+    String child = node.getChild().get(0).accept(this, context);
     return StringUtils.format(
         "%s | stats %s",
         child, String.join(" ", visitExpressionList(node.getAggExprList()), groupBy(group)).trim());
@@ -635,6 +644,15 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   private String visitExpression(UnresolvedExpression expression) {
     return expressionAnalyzer.analyze(expression, null);
+  }
+
+  @Override
+  public String visitAppendPipe(AppendPipe node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    String subPipeline = node.getSubQuery().accept(this, context);
+    return StringUtils.format(
+      "%s | appendpipe [%s]", child, subPipeline
+    );
   }
 
   @Override

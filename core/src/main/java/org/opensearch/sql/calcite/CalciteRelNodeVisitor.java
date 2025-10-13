@@ -238,8 +238,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitAppendPipe(AppendPipe node, CalcitePlanContext context) {
     visitChildren(node, context);
-    UnresolvedPlan subqueryPlan =
-            node.getSubQuery().accept(new EmptySourcePropagateVisitor(), null);
+    UnresolvedPlan subqueryPlan = node.getSubQuery();
     UnresolvedPlan childNode = subqueryPlan;
     while (childNode.getChild() != null && !childNode.getChild().isEmpty()) {
       childNode = (UnresolvedPlan) childNode.getChild().getFirst();

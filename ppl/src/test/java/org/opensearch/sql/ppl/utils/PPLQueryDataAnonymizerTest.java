@@ -653,6 +653,14 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testAppendPipe() {
+    assertEquals(
+            "source=table | appendpipe [stats count()]", anonymize("source=t | appendpipe [stats count()]"));
+    assertEquals(
+            "source=table | appendpipe [where identifier = ***]", anonymize("source=t | appendpipe [where fieldname=='pattern']"));
+  }
+
+  @Test
   public void testRexCommand() {
     when(settings.getSettingValue(Key.PPL_REX_MAX_MATCH_LIMIT)).thenReturn(10);
 
