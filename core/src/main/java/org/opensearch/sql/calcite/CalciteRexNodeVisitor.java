@@ -515,7 +515,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     }
     subquery.accept(planVisitor, context);
 
-    if (context.sysLimit.subsearchLimit() > 0 && subqueryExpression instanceof ScalarSubquery) {
+    if (context.sysLimit.subsearchLimit() > 0 && !(subqueryExpression instanceof ScalarSubquery)) {
       // Add subsearch.maxout limit to exists-in subsearch:
       // Cannot add system limit to the top of subquery simply.
       // Instead, add system limit under the correlated conditions.
