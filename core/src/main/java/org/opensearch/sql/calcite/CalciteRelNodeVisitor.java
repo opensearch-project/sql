@@ -240,7 +240,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     visitChildren(node, context);
     UnresolvedPlan subqueryPlan = node.getSubQuery();
     UnresolvedPlan childNode = subqueryPlan;
-    while (childNode.getChild() != null && !childNode.getChild().isEmpty()) {
+    while (childNode.getChild() != null
+        && !childNode.getChild().isEmpty()
+        && !(childNode.getChild().getFirst() instanceof Values)) {
       childNode = (UnresolvedPlan) childNode.getChild().getFirst();
     }
     childNode.attach(node.getChild().getFirst());
@@ -250,7 +252,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RelNode subPipelineNode = context.relBuilder.build();
     RelNode mainNode = context.relBuilder.build();
     return mergeTableAndResolveColumnConflict(mainNode, subPipelineNode, context);
-
   }
 
   @Override
@@ -1717,11 +1718,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return mergeTableAndResolveColumnConflict(mainNode, subsearchNode, context);
   }
 
-  private RelNode mergeTableAndResolveColumnConflict(RelNode mainNode, RelNode subqueryNode, CalcitePlanContext context) {
+  private RelNode mergeTableAndResolveColumnConflict(
+      RelNode mainNode, RelNode subqueryNode, CalcitePlanContext context) {
     // Use shared schema merging logic that handles type conflicts via field renaming
     List<RelNode> nodesToMerge = Arrays.asList(mainNode, subqueryNode);
     List<RelNode> projectedNodes =
-            SchemaUnifier.buildUnifiedSchemaWithConflictResolution(nodesToMerge, context);
+        SchemaUnifier.buildUnifiedSchemaWithConflictResolution(nodesToMerge, context);
 
     // 4. Union the projected plans
     for (RelNode projectedNode : projectedNodes) {

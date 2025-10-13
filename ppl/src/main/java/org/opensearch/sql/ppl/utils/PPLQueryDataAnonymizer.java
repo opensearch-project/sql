@@ -81,7 +81,6 @@ import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
-import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SpanBin;
@@ -257,12 +256,8 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitFilter(Filter node, String context) {
-    String condition = visitExpression(node.getCondition());
-    if (node.getChild().isEmpty()) {
-      return StringUtils.format("where %s", condition);
-    }
     String child = node.getChild().get(0).accept(this, context);
-
+    String condition = visitExpression(node.getCondition());
     return StringUtils.format("%s | where %s", child, condition);
   }
 
@@ -286,6 +281,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   /** Build {@link LogicalAggregation}. */
   @Override
   public String visitAggregation(Aggregation node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
     UnresolvedExpression span = node.getSpan();
     List<UnresolvedExpression> groupByExprList = new ArrayList<>();
     if (!Objects.isNull(span)) {
@@ -293,11 +289,6 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     }
     groupByExprList.addAll(node.getGroupExprList());
     final String group = visitExpressionList(groupByExprList);
-    if (node.getChild().isEmpty()) {
-      return StringUtils.format(
-              "stats %s", String.join(" ", visitExpressionList(node.getAggExprList()), groupBy(group)).trim());
-    }
-    String child = node.getChild().get(0).accept(this, context);
     return StringUtils.format(
         "%s | stats %s",
         child, String.join(" ", visitExpressionList(node.getAggExprList()), groupBy(group)).trim());
@@ -649,11 +640,15 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitAppendPipe(AppendPipe node, String context) {
+    Values emptyValue = new Values(null);
+    UnresolvedPlan childNode = node.getSubQuery();
+    while (childNode != null && !childNode.getChild().isEmpty()) {
+      childNode = (UnresolvedPlan) childNode.getChild().get(0);
+    }
+    childNode.attach(emptyValue);
     String child = node.getChild().get(0).accept(this, context);
-    String subPipeline = node.getSubQuery().accept(this, context);
-    return StringUtils.format(
-      "%s | appendpipe [%s]", child, subPipeline
-    );
+    String subPipeline = anonymizeData(node.getSubQuery());
+    return StringUtils.format("%s | appendpipe [%s]", child, subPipeline);
   }
 
   @Override
@@ -698,23 +693,6 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
               .map(n -> StringUtils.format("%s = %s", visitExpression(n.getLeft()), MASK_LITERAL))
               .collect(Collectors.joining(", ")));
     }
-  }
-
-  @Override
-  public String visitSpath(SPath node, String context) {
-    String child = node.getChild().get(0).accept(this, context);
-    StringBuilder builder = new StringBuilder();
-    builder.append(child).append(" | spath");
-    if (node.getInField() != null) {
-      builder.append(" input=").append(MASK_COLUMN);
-    }
-    if (node.getOutField() != null) {
-      builder.append(" output=").append(MASK_COLUMN);
-    }
-    if (node.getPath() != null) {
-      builder.append(" path=").append(MASK_COLUMN);
-    }
-    return builder.toString();
   }
 
   @Override
