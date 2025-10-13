@@ -54,8 +54,8 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
 
   private boolean isLimitPushed = false;
   private boolean isProjectPushed = false;
-  @Setter
-  private boolean isScriptProjectPushed = false;
+  @Setter private boolean isScriptProjectPushed = false;
+
   @Setter
   private Map<String, Triple<RexNode, RelDataType, ScriptQueryExpression>> derivedScriptsByName =
       new HashMap<>();
@@ -69,7 +69,7 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
   public PushDownContext clone() {
     PushDownContext newContext = new PushDownContext(osIndex);
     newContext.addAll(this);
-    newContext.derivedScriptsByName = new  HashMap<>(this.derivedScriptsByName);
+    newContext.derivedScriptsByName = new HashMap<>(this.derivedScriptsByName);
     return newContext;
   }
 

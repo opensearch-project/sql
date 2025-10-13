@@ -311,25 +311,27 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     AbstractAction action =
         pushDownContext.isAggregatePushed() || newPhysicalNames.isEmpty()
             ? (AggregationBuilderAction) aggAction -> {}
-            : (OSRequestBuilderAction) requestBuilder ->
-                requestBuilder.pushDownProjectStream(
-                    // For alias types, we need to push down its original path instead of the alias
-                    // name.
-                    newPhysicalNames.stream()
-                        .map(name -> this.osIndex.getAliasMapping().getOrDefault(name, name)));
+            : (OSRequestBuilderAction)
+                requestBuilder ->
+                    requestBuilder.pushDownProjectStream(
+                        // For alias types, we need to push down its original path instead of the
+                        // alias name.
+                        newPhysicalNames.stream()
+                            .map(name -> this.osIndex.getAliasMapping().getOrDefault(name, name)));
     newScan.pushDownContext.add(PushDownType.PROJECT, newPhysicalNames, action);
 
     if (!derivedScripts.isEmpty()) {
       newScan.pushDownContext.add(
           PushDownType.SCRIPT_PROJECT,
           derivedNames,
-          (OSRequestBuilderAction)requestBuilder ->
-              requestBuilder.pushDownScriptProjects(
-                  derivedNames,
-                  derivedTypes,
-                  derivedScripts.stream()
-                      .map(scriptExpr -> scriptExpr.getRight().getScript())
-                      .collect(Collectors.toList())));
+          (OSRequestBuilderAction)
+              requestBuilder ->
+                  requestBuilder.pushDownScriptProjects(
+                      derivedNames,
+                      derivedTypes,
+                      derivedScripts.stream()
+                          .map(scriptExpr -> scriptExpr.getRight().getScript())
+                          .collect(Collectors.toList())));
       // For handling idempotency of next round of pushDownProject, we record which derived names
       // are already generated
       newScan.pushDownContext.setDerivedScriptsByName(
