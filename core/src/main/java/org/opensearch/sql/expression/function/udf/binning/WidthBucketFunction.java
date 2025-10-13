@@ -59,9 +59,9 @@ public class WidthBucketFunction extends ImplementorUDF {
   }
 
   public static boolean dateRelatedType(RelDataType type) {
-    return type instanceof ExprSqlType exprSqlType
+    return type instanceof ExprSqlType
         && List.of(ExprUDT.EXPR_DATE, ExprUDT.EXPR_TIME, ExprUDT.EXPR_TIMESTAMP)
-            .contains(exprSqlType.getUdt());
+            .contains(((ExprSqlType)type).getUdt());
   }
 
   @Override
