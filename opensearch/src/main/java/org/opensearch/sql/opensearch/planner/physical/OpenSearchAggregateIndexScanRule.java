@@ -16,7 +16,6 @@ import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
@@ -24,8 +23,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.immutables.value.Value;
 import org.opensearch.sql.ast.expression.Argument;
-import org.opensearch.sql.calcite.type.ExprSqlType;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
+import org.opensearch.sql.expression.function.udf.binning.WidthBucketFunction;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
 /** Planner rule that push a {@link LogicalAggregate} down to {@link CalciteLogicalIndexScan} */
@@ -220,13 +218,8 @@ public class OpenSearchAggregateIndexScanRule
               expr ->
                   expr instanceof RexCall rexCall
                       && rexCall.getOperator().equals(WIDTH_BUCKET)
-                      && dateRelatedType(rexCall.getOperands().getFirst().getType()));
-    }
-
-    static boolean dateRelatedType(RelDataType type) {
-      return type instanceof ExprSqlType exprSqlType
-          && List.of(ExprUDT.EXPR_DATE, ExprUDT.EXPR_TIME, ExprUDT.EXPR_TIMESTAMP)
-              .contains(exprSqlType.getUdt());
+                      && WidthBucketFunction.dateRelatedType(
+                          rexCall.getOperands().getFirst().getType()));
     }
   }
 }

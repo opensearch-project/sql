@@ -1,0 +1,42 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  - do:
+      bulk:
+        index: test
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"num": 11}'
+          - '{"index": {}}'
+          - '{"num": 15}'
+          - '{"index": {}}'
+          - '{"num": 22}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"big decimal literal":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test | bin num bins=3 | stats count() by num
+
+  - match: { total: 2 }
+  - match: { "schema": [ { "name": "count()", "type": "bigint" }, { "name": "num", "type": "string" }] }
+  - match: {"datarows": [[2, "10-20"], [1, "20-30"]]}
