@@ -77,6 +77,7 @@ import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Replace;
+import org.opensearch.sql.ast.tree.ReplacePair;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
@@ -385,12 +386,20 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   /** Replace command. */
   @Override
   public UnresolvedPlan visitReplaceCommand(OpenSearchPPLParser.ReplaceCommandContext ctx) {
-    UnresolvedExpression pattern = internalVisitExpression(ctx.pattern);
-    UnresolvedExpression replacement = internalVisitExpression(ctx.replacement);
+    // Parse all replacement pairs
+    List<ReplacePair> replacePairs =
+        ctx.replacePair().stream().map(this::buildReplacePair).collect(Collectors.toList());
 
     Set<Field> fieldList = getUniqueFieldSet(ctx.fieldList());
 
-    return new Replace(pattern, replacement, fieldList);
+    return new Replace(replacePairs, fieldList);
+  }
+
+  /** Build a ReplacePair from parse context. */
+  private ReplacePair buildReplacePair(OpenSearchPPLParser.ReplacePairContext ctx) {
+    Literal pattern = (Literal) internalVisitExpression(ctx.pattern);
+    Literal replacement = (Literal) internalVisitExpression(ctx.replacement);
+    return new ReplacePair(pattern, replacement);
   }
 
   /** Stats command. */

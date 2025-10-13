@@ -207,7 +207,11 @@ renameCommand
    ;
 
 replaceCommand
-   : REPLACE pattern=stringLiteral WITH replacement=stringLiteral IN fieldList
+   : REPLACE replacePair (COMMA replacePair)* IN fieldList
+   ;
+
+replacePair
+   : pattern=stringLiteral WITH replacement=stringLiteral
    ;
 
 statsCommand

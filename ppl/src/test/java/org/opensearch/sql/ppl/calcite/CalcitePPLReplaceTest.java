@@ -262,4 +262,123 @@ public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
 
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testReplaceWithMultiplePairs() {
+    // Test with multiple pattern/replacement pairs in a single command
+    String ppl =
+        "source=EMP | replace \"CLERK\" WITH \"EMPLOYEE\", \"MANAGER\" WITH \"SUPERVISOR\" IN JOB";
+    RelNode root = getRelNode(ppl);
+
+    // Should generate nested REPLACE calls: REPLACE(REPLACE(JOB, 'CLERK', 'EMPLOYEE'), 'MANAGER',
+    // 'SUPERVISOR')
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[REPLACE(REPLACE($2, 'CLERK':VARCHAR,"
+            + " 'EMPLOYEE':VARCHAR), 'MANAGER':VARCHAR, 'SUPERVISOR':VARCHAR)], MGR=[$3],"
+            + " HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, REPLACE(REPLACE(`JOB`, 'CLERK', 'EMPLOYEE'), 'MANAGER',"
+            + " 'SUPERVISOR') `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`";
+
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testReplaceWithThreePairs() {
+    // Test with three pattern/replacement pairs
+    String ppl =
+        "source=EMP | replace \"CLERK\" WITH \"EMPLOYEE\", \"MANAGER\" WITH \"SUPERVISOR\","
+            + " \"ANALYST\" WITH \"RESEARCHER\" IN JOB";
+    RelNode root = getRelNode(ppl);
+
+    // Should generate triple nested REPLACE calls
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[REPLACE(REPLACE(REPLACE($2,"
+            + " 'CLERK':VARCHAR, 'EMPLOYEE':VARCHAR), 'MANAGER':VARCHAR, 'SUPERVISOR':VARCHAR),"
+            + " 'ANALYST':VARCHAR, 'RESEARCHER':VARCHAR)], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, REPLACE(REPLACE(REPLACE(`JOB`, 'CLERK', 'EMPLOYEE'),"
+            + " 'MANAGER', 'SUPERVISOR'), 'ANALYST', 'RESEARCHER') `JOB`, `MGR`, `HIREDATE`,"
+            + " `SAL`, `COMM`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`";
+
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testReplaceWithMultiplePairsOnMultipleFields() {
+    // Test with multiple pattern/replacement pairs applied to multiple fields
+    String ppl =
+        "source=EMP | replace \"CLERK\" WITH \"EMPLOYEE\", \"MANAGER\" WITH \"SUPERVISOR\" IN JOB,"
+            + " ENAME";
+    RelNode root = getRelNode(ppl);
+
+    // Should apply the same nested REPLACE calls to both JOB and ENAME fields
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[REPLACE(REPLACE($1, 'CLERK':VARCHAR,"
+            + " 'EMPLOYEE':VARCHAR), 'MANAGER':VARCHAR, 'SUPERVISOR':VARCHAR)],"
+            + " JOB=[REPLACE(REPLACE($2, 'CLERK':VARCHAR, 'EMPLOYEE':VARCHAR),"
+            + " 'MANAGER':VARCHAR, 'SUPERVISOR':VARCHAR)], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, REPLACE(REPLACE(`ENAME`, 'CLERK', 'EMPLOYEE'), 'MANAGER',"
+            + " 'SUPERVISOR') `ENAME`, REPLACE(REPLACE(`JOB`, 'CLERK', 'EMPLOYEE'), 'MANAGER',"
+            + " 'SUPERVISOR') `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`";
+
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testReplaceWithMultiplePairsSequentialApplication() {
+    // Test that replacements are applied sequentially
+    // This test demonstrates the order matters: if we have "20" WITH "30", "30" WITH "40"
+    // then "20" will become "30" first, then that "30" becomes "40", resulting in "40"
+    String ppl = "source=EMP | replace \"20\" WITH \"30\", \"30\" WITH \"40\" IN DEPTNO";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[REPLACE(REPLACE($7, '20':VARCHAR, '30':VARCHAR),"
+            + " '30':VARCHAR, '40':VARCHAR)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`,"
+            + " REPLACE(REPLACE(`DEPTNO`, '20', '30'), '30', '40') `DEPTNO`\n"
+            + "FROM `scott`.`EMP`";
+
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test(expected = SyntaxCheckException.class)
+  public void testReplaceWithMultiplePairsMissingWithKeywordShouldFail() {
+    // Missing WITH keyword between pairs
+    String ppl =
+        "source=EMP | replace \"CLERK\" \"EMPLOYEE\", \"MANAGER\" WITH \"SUPERVISOR\" IN JOB";
+    getRelNode(ppl);
+  }
+
+  @Test(expected = SyntaxCheckException.class)
+  public void testReplaceWithMultiplePairsTrailingCommaShouldFail() {
+    // Trailing comma after last pair
+    String ppl = "source=EMP | replace \"CLERK\" WITH \"EMPLOYEE\", IN JOB";
+    getRelNode(ppl);
+  }
 }

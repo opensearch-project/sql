@@ -240,4 +240,52 @@ public class CalciteReplaceCommandIT extends PPLIntegTestCase {
     verifyErrorMessageContains(e, "is not a valid term at this part of the query");
     verifyErrorMessageContains(e, "Expecting tokens: DQUOTA_STRING, SQUOTA_STRING");
   }
+
+  @Test
+  public void testMultiplePairsInSingleCommand() throws IOException {
+    // Test replacing multiple patterns in a single command
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | replace 'USA' WITH 'United States', 'Canada' WITH 'CA' IN country",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("country", "string"),
+        schema("state", "string"),
+        schema("month", "int"),
+        schema("year", "int"),
+        schema("age", "int"));
+
+    verifyDataRows(
+        result,
+        rows("Jake", "United States", "California", 4, 2023, 70),
+        rows("Hello", "United States", "New York", 4, 2023, 30),
+        rows("John", "CA", "Ontario", 4, 2023, 25),
+        rows("Jane", "CA", "Quebec", 4, 2023, 20));
+  }
+
+  @Test
+  public void testMultiplePairsSequentialApplication() throws IOException {
+    // Test that replacements are applied sequentially (order matters)
+    // If we have "Ontario" WITH "ON", "ON" WITH "Ontario Province"
+    // then "Ontario" becomes "ON" first, then that "ON" becomes "Ontario Province"
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | replace 'Ontario' WITH 'ON', 'ON' WITH 'Ontario Province' IN state"
+                    + " | fields name, state",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(result, schema("name", "string"), schema("state", "string"));
+
+    verifyDataRows(
+        result,
+        rows("Jake", "California"),
+        rows("Hello", "New York"),
+        rows("John", "Ontario Province"),
+        rows("Jane", "Quebec"));
+  }
 }

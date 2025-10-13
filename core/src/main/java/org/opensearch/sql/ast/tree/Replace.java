@@ -6,6 +6,7 @@
 package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import lombok.EqualsAndHashCode;
@@ -24,36 +25,95 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @ToString
 @EqualsAndHashCode(callSuper = false)
 public class Replace extends UnresolvedPlan {
-  private final UnresolvedExpression pattern;
-  private final UnresolvedExpression replacement;
+  private final List<ReplacePair> replacePairs;
   private final Set<Field> fieldList;
   @Nullable private UnresolvedPlan child;
 
-  public Replace(
-      UnresolvedExpression pattern, UnresolvedExpression replacement, Set<Field> fieldList) {
-    this.pattern = pattern;
-    this.replacement = replacement;
+  /**
+   * Constructor with multiple pattern/replacement pairs.
+   *
+   * @param replacePairs List of pattern/replacement pairs
+   * @param fieldList Set of fields to apply replacements to
+   */
+  public Replace(List<ReplacePair> replacePairs, Set<Field> fieldList) {
+    this.replacePairs = replacePairs;
     this.fieldList = fieldList;
     validate();
   }
 
-  public void validate() {
-    if (pattern == null) {
-      throw new IllegalArgumentException("Pattern expression cannot be null in Replace command");
-    }
-    if (replacement == null) {
+  /**
+   * Backward-compatible constructor with single pattern/replacement pair.
+   *
+   * @param pattern Pattern literal
+   * @param replacement Replacement literal
+   * @param fieldList Set of fields to apply replacement to
+   */
+  public Replace(
+      UnresolvedExpression pattern, UnresolvedExpression replacement, Set<Field> fieldList) {
+    // Convert single pair to list for internal consistency
+    if (!(pattern instanceof Literal) || !(replacement instanceof Literal)) {
       throw new IllegalArgumentException(
-          "Replacement expression cannot be null in Replace command");
+          "Pattern and replacement must be literals in Replace command");
+    }
+    this.replacePairs =
+        Collections.singletonList(new ReplacePair((Literal) pattern, (Literal) replacement));
+    this.fieldList = fieldList;
+    validate();
+  }
+
+  /**
+   * Get the pattern from the first replacement pair (for backward compatibility).
+   *
+   * @return Pattern expression
+   * @deprecated Use {@link #getReplacePairs()} instead
+   */
+  @Deprecated
+  public UnresolvedExpression getPattern() {
+    if (replacePairs.isEmpty()) {
+      throw new IllegalStateException("No replacement pairs available");
+    }
+    return replacePairs.get(0).getPattern();
+  }
+
+  /**
+   * Get the replacement from the first replacement pair (for backward compatibility).
+   *
+   * @return Replacement expression
+   * @deprecated Use {@link #getReplacePairs()} instead
+   */
+  @Deprecated
+  public UnresolvedExpression getReplacement() {
+    if (replacePairs.isEmpty()) {
+      throw new IllegalStateException("No replacement pairs available");
+    }
+    return replacePairs.get(0).getReplacement();
+  }
+
+  public void validate() {
+    if (replacePairs == null || replacePairs.isEmpty()) {
+      throw new IllegalArgumentException(
+          "At least one pattern/replacement pair is required in Replace command");
     }
 
-    // Validate pattern is a string literal
-    if (!(pattern instanceof Literal && ((Literal) pattern).getType() == DataType.STRING)) {
-      throw new IllegalArgumentException("Pattern must be a string literal in Replace command");
-    }
+    // Validate each pair
+    for (ReplacePair pair : replacePairs) {
+      if (pair.getPattern() == null) {
+        throw new IllegalArgumentException("Pattern cannot be null in Replace command");
+      }
+      if (pair.getReplacement() == null) {
+        throw new IllegalArgumentException("Replacement cannot be null in Replace command");
+      }
 
-    // Validate replacement is a string literal
-    if (!(replacement instanceof Literal && ((Literal) replacement).getType() == DataType.STRING)) {
-      throw new IllegalArgumentException("Replacement must be a string literal in Replace command");
+      // Validate pattern is a string literal
+      if (pair.getPattern().getType() != DataType.STRING) {
+        throw new IllegalArgumentException("Pattern must be a string literal in Replace command");
+      }
+
+      // Validate replacement is a string literal
+      if (pair.getReplacement().getType() != DataType.STRING) {
+        throw new IllegalArgumentException(
+            "Replacement must be a string literal in Replace command");
+      }
     }
 
     if (fieldList == null || fieldList.isEmpty()) {

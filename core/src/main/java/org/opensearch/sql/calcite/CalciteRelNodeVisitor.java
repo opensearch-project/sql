@@ -122,6 +122,7 @@ import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Replace;
+import org.opensearch.sql.ast.tree.ReplacePair;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Search;
@@ -2417,8 +2418,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     visitChildren(node, context);
 
     List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
-    RexNode patternNode = rexVisitor.analyze(node.getPattern(), context);
-    RexNode replacementNode = rexVisitor.analyze(node.getReplacement(), context);
 
     // Create a set of field names to replace for quick lookup
     Set<String> fieldsToReplace =
@@ -2432,12 +2431,19 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Project all fields, replacing specified ones in-place
     for (String fieldName : fieldNames) {
       if (fieldsToReplace.contains(fieldName)) {
-        // Replace this field in-place
+        // Replace this field in-place with all pattern/replacement pairs applied sequentially
         RexNode fieldRef = context.relBuilder.field(fieldName);
-        RexNode replaceCall =
-            context.relBuilder.call(
-                SqlStdOperatorTable.REPLACE, fieldRef, patternNode, replacementNode);
-        projectList.add(replaceCall);
+
+        // Apply all replacement pairs sequentially (nested REPLACE calls)
+        for (ReplacePair pair : node.getReplacePairs()) {
+          RexNode patternNode = rexVisitor.analyze(pair.getPattern(), context);
+          RexNode replacementNode = rexVisitor.analyze(pair.getReplacement(), context);
+          fieldRef =
+              context.relBuilder.call(
+                  SqlStdOperatorTable.REPLACE, fieldRef, patternNode, replacementNode);
+        }
+
+        projectList.add(fieldRef);
       } else {
         // Keep original field unchanged
         projectList.add(context.relBuilder.field(fieldName));
