@@ -19,7 +19,7 @@ Syntax
 describe <dataSource>.<schema>.<tablename>
 
 * dataSource: optional. If dataSource is not provided, it resolves to opensearch dataSource.
-* schema: optional.  If schema is not provided, it resolves to  default schema.
+* schema: optional.  If schema is not provided, it resolves to default schema.
 * tablename: mandatory. describe command must specify which tablename to query from.
 
 

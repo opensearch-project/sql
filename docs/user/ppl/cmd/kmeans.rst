@@ -18,9 +18,9 @@ Syntax
 ======
 kmeans <centroids> <iterations> <distance_type>
 
-* centroids: optional. The number of clusters you want to group your data points into. The default value is 2.
-* iterations: optional. Number of iterations. The default value is 10.
-* distance_type: optional. The distance type can be COSINE, L1, or EUCLIDEAN, The default type is EUCLIDEAN.
+* centroids: optional. The number of clusters you want to group your data points into. **Default:** 2.
+* iterations: optional. Number of iterations. **Default:** 10.
+* distance_type: optional. The distance type can be COSINE, L1, or EUCLIDEAN. **Default:** EUCLIDEAN.
 
 
 Example: Clustering of Iris Dataset

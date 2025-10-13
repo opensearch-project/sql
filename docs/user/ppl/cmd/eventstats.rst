@@ -37,7 +37,6 @@ Syntax
 ======
 eventstats <function>... [by-clause]
 
-
 * function: mandatory. A aggregation function or window function.
 
 * by-clause: optional.

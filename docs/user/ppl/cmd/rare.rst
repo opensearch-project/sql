@@ -22,8 +22,8 @@ rare [rare-options] <field-list> [by-clause]
 * field-list: mandatory. comma-delimited list of field names.
 * by-clause: optional. one or more fields to group the results by.
 * rare-options: optional. options for the rare command. Supported syntax is [countfield=<string>] [showcount=<bool>].
-* showcount=<bool>: optional. whether to create a field in output that represent a count of the tuple of values. Default value is ``true``.
-* countfield=<string>: optional. the name of the field that contains count. Default value is ``'count'``.
+* showcount=<bool>: optional. whether to create a field in output that represent a count of the tuple of values. **Default:** ``true``.
+* countfield=<string>: optional. the name of the field that contains count. **Default:** ``'count'``.
 
 
 Example 1: Find the least common values in a field

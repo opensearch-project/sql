@@ -18,7 +18,7 @@ Syntax
 ============
 explain <mode> queryStatement
 
-* mode: optional. There are 4 explain modes: "simple", "standard", "cost", "extended". If mode is not provided, "standard" will be set by default.
+* mode: optional. There are 4 explain modes: "simple", "standard", "cost", "extended". **Default:** standard.
  * standard: The default mode. Display logical and physical plan with pushdown information (DSL).
  * simple: Display the logical plan tree without attributes. Only works with Calcite.
  * cost: Display the standard information plus plan cost attributes. Only works with Calcite.

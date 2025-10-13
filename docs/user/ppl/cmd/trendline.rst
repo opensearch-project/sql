@@ -21,7 +21,7 @@ Syntax
 * sort-field: mandatory when sorting is used. The field used to sort.
 * number-of-datapoints: mandatory. The number of datapoints to calculate the moving average (must be greater than zero).
 * field: mandatory. The name of the field the moving average should be calculated for.
-* alias: optional. The name of the resulting column containing the moving average (defaults to the field name with "_trendline").
+* alias: optional. The name of the resulting column containing the moving average. **Default:** field name with "_trendline").
 
 Two trendline algorithms are supported, aka Simple Moving Average (SMA) and Weighted Moving Average (WMA).
 

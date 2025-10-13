@@ -17,7 +17,7 @@ Syntax
 ============
 appendcol [override=<boolean>] <sub-search>
 
-* override=<boolean>: optional. Boolean field to specify should result from main-result be overwritten in the case of column name conflict.
+* override=<boolean>: optional. Boolean field to specify should result from main-result be overwritten in the case of column name conflict. **Default:** false.
 * sub-search: mandatory. Executes PPL commands as a secondary search. The sub-search uses the same data specified in the source clause of the main search results as its input.
 
 Configuration

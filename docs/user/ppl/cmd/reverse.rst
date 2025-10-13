@@ -17,7 +17,6 @@ Syntax
 ============
 reverse
 
-
 * No parameters: The reverse command takes no arguments or options.
 
 Note
