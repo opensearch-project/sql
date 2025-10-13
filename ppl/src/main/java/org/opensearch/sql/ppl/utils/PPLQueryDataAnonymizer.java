@@ -81,6 +81,7 @@ import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
+import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SpanBin;
@@ -697,6 +698,23 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
               .map(n -> StringUtils.format("%s = %s", visitExpression(n.getLeft()), MASK_LITERAL))
               .collect(Collectors.joining(", ")));
     }
+  }
+
+  @Override
+  public String visitSpath(SPath node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    StringBuilder builder = new StringBuilder();
+    builder.append(child).append(" | spath");
+    if (node.getInField() != null) {
+      builder.append(" input=").append(MASK_COLUMN);
+    }
+    if (node.getOutField() != null) {
+      builder.append(" output=").append(MASK_COLUMN);
+    }
+    if (node.getPath() != null) {
+      builder.append(" path=").append(MASK_COLUMN);
+    }
+    return builder.toString();
   }
 
   @Override

@@ -173,8 +173,9 @@ This configuration is introduced since 3.3.0 which is used to switch some behavi
 The behaviours it controlled includes:
 
 - The default value of argument ``bucket_nullable`` in ``stats`` command. Check `stats command <../cmd/stats.rst>`_ for details.
+- The return value of ``divide`` and ``/`` operator. Check `expressions <../functions/expressions.rst>`_ for details.
 
-Example
+Example 1
 -------
 
 You can update the setting with a new value like this.
@@ -198,6 +199,22 @@ PPL query::
           }
         }
       }
+    }
+
+Example 2
+---------
+
+Reset to default (true) by setting to null:
+
+PPL query::
+
+    sh$ curl -sS -H 'Content-Type: application/json' \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"transient" : {"plugins.ppl.syntax.legacy.preferred" : null}}'
+    {
+      "acknowledged": true,
+      "persistent": {},
+      "transient": {}
     }
 
 plugins.ppl.values.max.limit

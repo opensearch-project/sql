@@ -34,6 +34,7 @@ import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
@@ -74,6 +75,7 @@ import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
@@ -540,7 +542,13 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   public RexNode visitCase(Case node, CalcitePlanContext context) {
     List<RexNode> caseOperands = new ArrayList<>();
     for (When when : node.getWhenClauses()) {
-      caseOperands.add(analyze(when.getCondition(), context));
+      RexNode condition = analyze(when.getCondition(), context);
+      if (!SqlTypeUtil.isBoolean(condition.getType())) {
+        throw new ExpressionEvaluationException(
+            StringUtils.format(
+                "Condition expected a boolean type, but got %s", condition.getType()));
+      }
+      caseOperands.add(condition);
       caseOperands.add(analyze(when.getResult(), context));
     }
     RexNode elseExpr =
