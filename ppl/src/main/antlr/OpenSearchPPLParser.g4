@@ -673,6 +673,7 @@ statsFunction
    | takeAggFunction                                            # takeAggFunctionCall
    | valuesAggFunction                                          # valuesAggFunctionCall
    | percentileApproxFunction                                   # percentileApproxFunctionCall
+   | perFunction                                                # perFunctionCall
    | statsFunctionName LT_PRTHS functionArgs RT_PRTHS           # statsFunctionCall
    ;
 
@@ -709,6 +710,10 @@ valuesAggFunction
 percentileApproxFunction
    : (PERCENTILE | PERCENTILE_APPROX) LT_PRTHS aggField = valueExpression
        COMMA percent = numericLiteral (COMMA compression = numericLiteral)? RT_PRTHS
+   ;
+
+perFunction
+   : funcName=PER_SECOND LT_PRTHS functionArg RT_PRTHS
    ;
 
 numericLiteral
