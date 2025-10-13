@@ -15,10 +15,6 @@ The ``table`` command is an alias for the `fields <fields.rst>`_ command and pro
 
 Note: The ``table`` command requires the Calcite to be enabled. All enhanced field features are available through this command. For detailed examples and documentation of all enhanced features, see the `fields command documentation <fields.rst>`_.
 
-Version
-=======
-3.3.0
-
 Syntax
 ============
 table [+|-] <field-list>

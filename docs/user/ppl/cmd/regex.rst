@@ -13,10 +13,6 @@ Description
 ============
 | The ``regex`` command filters search results by matching field values against a regular expression pattern. Only documents where the specified field matches the pattern are included in the results.
 
-Version
-=======
-3.3.0
-
 Syntax
 ============
 regex <field> = <pattern>

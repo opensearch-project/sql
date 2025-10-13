@@ -16,9 +16,7 @@ Description
 
 Syntax
 ============
-top [N] <field-list> [by-clause]
-
-top [N] [top-options] <field-list> [by-clause] ``(available from 3.1.0+)``
+top [N] [top-options] <field-list> [by-clause]
 
 * N: number of results to return. **Default**: 10
 * field-list: mandatory. comma-delimited list of field names.

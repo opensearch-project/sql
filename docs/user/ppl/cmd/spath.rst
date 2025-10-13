@@ -13,10 +13,6 @@ Description
 ============
 | The `spath` command allows extracting fields from structured text data. It currently allows selecting from JSON data with JSON paths.
 
-Version
-=======
-3.3.0
-
 Syntax
 ============
 spath input=<field> [output=<field>] [path=]<path>

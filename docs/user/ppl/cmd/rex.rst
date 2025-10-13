@@ -13,10 +13,6 @@ Description
 ============
 | The ``rex`` command extracts fields from a raw text field using regular expression named capture groups.
 
-Version
-=======
-3.3.0
-
 Syntax
 ============
 rex [mode=<mode>] field=<field> <pattern> [max_match=<int>] [offset_field=<string>]

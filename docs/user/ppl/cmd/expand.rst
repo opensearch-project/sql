@@ -11,8 +11,6 @@ expand
 
 Description
 ============
-| (Experimental)
-
 Use the ``expand`` command on a nested array field to transform a single
 document into multiple documents—each containing one element from the array.
 All other fields in the original document are duplicated across the resulting
@@ -25,10 +23,6 @@ The expand command generates one row per element in the specified array field:
   of the original field name.
 * If the specified field is an empty array, the row is retained with the
   expanded field set to null.
-
-Version
-=======
-Since 3.1.0
 
 Syntax
 ======

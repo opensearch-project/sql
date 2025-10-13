@@ -24,10 +24,6 @@ an array can be stored in a non-array field in OpenSearch, when expanding a
 field storing a nested array, only the first element of the array will be
 flattened.
 
-Version
-=======
-3.1.0
-
 Syntax
 ======
 

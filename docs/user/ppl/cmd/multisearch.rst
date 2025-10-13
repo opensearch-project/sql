@@ -30,10 +30,6 @@ Description
 * **A/B Testing Analysis**: Combine results from different test groups for comparison
 * **Time-series Data Merging**: Interleave events from multiple sources based on timestamps
 
-Version
-=======
-3.3.0
-
 Syntax
 ======
 | multisearch <subsearch1> <subsearch2> <subsearch3> ...

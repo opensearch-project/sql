@@ -19,10 +19,10 @@ Syntax
 sort [count] <[+|-] sort-field>... [asc|a|desc|d]
 
 
-* count (Since 3.3): optional. The number of results to return. **Default:** returns all results. Specifying a count of 0 or less than 0 also returns all results.
+* count: optional. The number of results to return. **Default:** returns all results. Specifying a count of 0 or less than 0 also returns all results.
 * [+|-]: optional. The plus [+] stands for ascending order and NULL/MISSING first and a minus [-] stands for descending order and NULL/MISSING last. **Default:** ascending order and NULL/MISSING first.
 * sort-field: mandatory. The field used to sort. Can use ``auto(field)``, ``str(field)``, ``ip(field)``, or ``num(field)`` to specify how to interpret field values.
-* [asc|a|desc|d] (Since 3.3): optional. asc/a keeps the sort order as specified. desc/d reverses the sort results. If multiple fields are specified with desc/d, reverses order of the first field then for all duplicate values of the first field, reverses the order of the values of the second field and so on. **Default:** asc.
+* [asc|a|desc|d]: optional. asc/a keeps the sort order as specified. desc/d reverses the sort results. If multiple fields are specified with desc/d, reverses order of the first field then for all duplicate values of the first field, reverses the order of the values of the second field and so on. **Default:** asc.
 
 
 Example 1: Sort by one field

@@ -18,10 +18,10 @@ Syntax
 ============
 rename <source-field> AS <target-field>["," <source-field> AS <target-field>]...
 
-* source-field: mandatory. The name of the field you want to rename. Supports wildcard patterns since version 3.3 using ``*``.
+* source-field: mandatory. The name of the field you want to rename. Supports wildcard patterns using ``*``.
 * target-field: mandatory. The name you want to rename to. Must have same number of wildcards as the source.
 
-Field Rename Behavior (Since version 3.3)
+Field Rename Behavior
 ==========================================
 
 The rename command handles non-existent fields as follows:

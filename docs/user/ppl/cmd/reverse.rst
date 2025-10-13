@@ -13,10 +13,6 @@ Description
 ============
 | Using ``reverse`` command to reverse the display order of search results. The same results are returned, but in reverse order.
 
-Version
-=======
-3.2.0
-
 Syntax
 ============
 reverse

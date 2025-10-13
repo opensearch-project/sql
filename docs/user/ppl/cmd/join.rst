@@ -13,10 +13,6 @@ Description
 ===========
 | Using ``join`` command to combines two datasets together. The left side could be an index or results from a piped commands, the right side could be either an index or a subsearch.
 
-Version
-=======
-3.0.0
-
 Basic syntax in 3.0.0
 =====================
 | [joinType] join [leftAlias] [rightAlias] (on | where) <joinCriteria> <right-dataset>

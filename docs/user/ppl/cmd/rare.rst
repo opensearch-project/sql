@@ -17,9 +17,7 @@ Description
 
 Syntax
 ============
-rare <field-list> [by-clause]
-
-rare [rare-options] <field-list> [by-clause] ``(available from 3.1.0+)``
+rare [rare-options] <field-list> [by-clause]
 
 * field-list: mandatory. comma-delimited list of field names.
 * by-clause: optional. one or more fields to group the results by.

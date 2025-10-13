@@ -185,7 +185,7 @@ Usage: MAX(expr). Returns the maximum value of expr.
 
 For non-numeric fields, values are sorted lexicographically.
 
-Note: Non-numeric field support requires Calcite to be enabled (see `Configuration`_ section above). Available since version 3.3.0.
+Note: Non-numeric field support requires Calcite to be enabled (see `Configuration`_ section above).
 
 Example::
 

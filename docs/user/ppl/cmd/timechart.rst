@@ -13,10 +13,6 @@ Description
 ============
 | The ``timechart`` command creates a time-based aggregation of data. It groups data by time intervals and optionally by a field, then applies an aggregation function to each group. The results are returned in an unpivoted format with separate rows for each time-field combination.
 
-Version
-=======
-3.3.0
-
 Syntax
 ============
 

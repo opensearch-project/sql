@@ -14,10 +14,6 @@ Description
 | Using ``append`` command to append the result of a sub-search and attach it as additional rows to the bottom of the input search results (The main search).
 The command aligns columns with the same field names and types. For different column fields between the main search and sub-search, NULL values are filled in the respective rows.
 
-Version
-=======
-3.3.0
-
 Syntax
 ============
 append <sub-search>

@@ -9,11 +9,6 @@ bin
    :depth: 2
 
 
-.. note::
-   
-   Available since version 3.3
-
-
 Description
 ============
 | The ``bin`` command groups numeric values into buckets of equal intervals, making it useful for creating histograms and analyzing data distribution. It takes a numeric field and generates a new field with values that represent the lower bound of each bucket.

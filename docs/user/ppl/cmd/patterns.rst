@@ -14,7 +14,6 @@ Description
 * The ``patterns`` command extracts log patterns from a text field and appends the results to the search result. Grouping logs by their patterns makes it easier to aggregate stats from large volumes of log data for analysis and troubleshooting.
 * ``patterns`` command now allows users to select different log parsing algorithms to get high log pattern grouping accuracy. Two pattern methods are supported, aka ``simple_pattern`` and ``brain``.
 * ``simple_pattern`` algorithm is basically a regex parsing method vs ``brain`` algorithm is an automatic log grouping algorithm with high grouping accuracy and keeps semantic meaning.
-(From 3.1.0)
 
 * ``patterns`` command supports two modes, aka ``label`` and ``aggregation``. ``label`` mode is similar to previous 3.0.0 output. ``aggregation`` mode returns aggregated results on target field.
 * V2 Engine engine still have the same output in ``label`` mode as before. In ``aggregation`` mode, it returns aggregated pattern count on labeled pattern as well as sample logs (sample count is configurable) per pattern.

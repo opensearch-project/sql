@@ -13,8 +13,6 @@ Description
 ============
 Using ``field`` command to keep or remove fields from the search result.
 
-Enhanced field features are available when the Calcite engine is enabled with 3.3+ version. When Calcite is disabled, only basic comma-delimited field selection is supported.
-
 Syntax
 ============
 field [+|-] <field-list>
@@ -61,11 +59,6 @@ PPL query::
     | Nanette   | Bates    |
     | Dale      | Adams    |
     +-----------+----------+
-
-Enhanced Features (Version 3.3.0)
-===========================================
-
-All features in this section require the Calcite engine to be enabled. When Calcite is disabled, only basic comma-delimited field selection is supported.
 
 Example 3: Space-delimited field selection
 -------------------------------------------
@@ -211,11 +204,6 @@ PPL query::
     | 18             | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   |
     +----------------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+
 
-Requirements
-============
-- **Calcite Engine**: All enhanced features require the Calcite engine to be enabled
-- **Backward Compatibility**: Basic comma-delimited syntax continues to work when Calcite is disabled
-- **Error Handling**: Attempting to use enhanced features without Calcite will result in an ``UnsupportedOperationException``
 
 See Also
 ========
