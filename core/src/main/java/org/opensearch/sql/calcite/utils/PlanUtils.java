@@ -75,19 +75,56 @@ public interface PlanUtils {
   }
 
   static IntervalUnit spanUnitToIntervalUnit(SpanUnit unit) {
-    return switch (unit) {
-      case MILLISECOND, MS -> IntervalUnit.MICROSECOND;
-      case SECOND, SECONDS, SEC, SECS, S -> IntervalUnit.SECOND;
-      case MINUTE, MINUTES, MIN, MINS, m -> IntervalUnit.MINUTE;
-      case HOUR, HOURS, HR, HRS, H -> IntervalUnit.HOUR;
-      case DAY, DAYS, D -> IntervalUnit.DAY;
-      case WEEK, WEEKS, W -> IntervalUnit.WEEK;
-      case MONTH, MONTHS, MON, M -> IntervalUnit.MONTH;
-      case QUARTER, QUARTERS, QTR, QTRS, Q -> IntervalUnit.QUARTER;
-      case YEAR, YEARS, Y -> IntervalUnit.YEAR;
-      case UNKNOWN -> IntervalUnit.UNKNOWN;
-      default -> throw new UnsupportedOperationException("Unsupported span unit: " + unit);
-    };
+    switch (unit) {
+      case MILLISECOND:
+      case MS:
+        return IntervalUnit.MICROSECOND;
+      case SECOND:
+      case SECONDS:
+      case SEC:
+      case SECS:
+      case S:
+        return IntervalUnit.SECOND;
+      case MINUTE:
+      case MINUTES:
+      case MIN:
+      case MINS:
+      case m:
+        return IntervalUnit.MINUTE;
+      case HOUR:
+      case HOURS:
+      case HR:
+      case HRS:
+      case H:
+        return IntervalUnit.HOUR;
+      case DAY:
+      case DAYS:
+      case D:
+        return IntervalUnit.DAY;
+      case WEEK:
+      case WEEKS:
+      case W:
+        return IntervalUnit.WEEK;
+      case MONTH:
+      case MONTHS:
+      case MON:
+      case M:
+        return IntervalUnit.MONTH;
+      case QUARTER:
+      case QUARTERS:
+      case QTR:
+      case QTRS:
+      case Q:
+        return IntervalUnit.QUARTER;
+      case YEAR:
+      case YEARS:
+      case Y:
+        return IntervalUnit.YEAR;
+      case UNKNOWN:
+        return IntervalUnit.UNKNOWN;
+      default:
+        throw new UnsupportedOperationException("Unsupported span unit: " + unit);
+    }
   }
 
   static RexNode makeOver(
