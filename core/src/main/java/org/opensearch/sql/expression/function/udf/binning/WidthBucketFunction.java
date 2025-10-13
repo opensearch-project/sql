@@ -11,9 +11,13 @@ import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.sql.calcite.type.ExprSqlType;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.binning.BinConstants;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -44,7 +48,20 @@ public class WidthBucketFunction extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return ReturnTypes.VARCHAR_2000;
+    return (opBinding) -> {
+      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+      RelDataType arg0Type = opBinding.getOperandType(0);
+      return dateRelatedType(arg0Type)
+          ? arg0Type
+          : typeFactory.createTypeWithNullability(
+              typeFactory.createSqlType(SqlTypeName.VARCHAR, 2000), true);
+    };
+  }
+
+  public static boolean dateRelatedType(RelDataType type) {
+    return type instanceof ExprSqlType
+        && List.of(ExprUDT.EXPR_DATE, ExprUDT.EXPR_TIME, ExprUDT.EXPR_TIMESTAMP)
+            .contains(((ExprSqlType)type).getUdt());
   }
 
   @Override

@@ -87,11 +87,7 @@ public class OpenSearchExprValueFactory {
    * @param typeMapping A data type mapping produced by aggregation.
    */
   public void extendTypeMapping(Map<String, OpenSearchDataType> typeMapping) {
-    for (var field : typeMapping.keySet()) {
-      // Prevent overwriting, because aggregation engine may be not aware
-      // of all niceties of all types.
-      this.typeMapping.putIfAbsent(field, typeMapping.get(field));
-    }
+    this.typeMapping.putAll(typeMapping);
   }
 
   @Getter @Setter private OpenSearchAggregationResponseParser parser;
