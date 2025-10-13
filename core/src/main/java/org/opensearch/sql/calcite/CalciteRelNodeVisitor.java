@@ -158,7 +158,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   private final CalciteRexNodeVisitor rexVisitor;
   private final CalciteAggCallVisitor aggVisitor;
   private final DataSourceService dataSourceService;
-  private static final String NEW_FIELD_PREFIX = "new_";
 
   public CalciteRelNodeVisitor(DataSourceService dataSourceService) {
     this.rexVisitor = new CalciteRexNodeVisitor(this);
@@ -2426,17 +2425,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         node.getFieldList().stream().map(f -> f.getField().toString()).collect(Collectors.toSet());
 
     // Validate that all fields to replace exist in the current schema
-    Set<String> availableFields = new HashSet<>(fieldNames);
-    for (String fieldToReplace : fieldsToReplace) {
-      if (!availableFields.contains(fieldToReplace)) {
-        throw new IllegalArgumentException(
-            String.format(
-                "field [%s] not found; input fields are: %s", fieldToReplace, fieldNames));
-      }
-    }
+    validateFieldsExist(fieldsToReplace, fieldNames);
 
     List<RexNode> projectList = new ArrayList<>();
-    List<String> newFieldNames = new ArrayList<>();
 
     // Project all fields, replacing specified ones in-place
     for (String fieldName : fieldNames) {
@@ -2451,11 +2442,20 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         // Keep original field unchanged
         projectList.add(context.relBuilder.field(fieldName));
       }
-      newFieldNames.add(fieldName); // Same field name (in-place replacement)
     }
 
-    context.relBuilder.project(projectList, newFieldNames);
+    context.relBuilder.project(projectList, fieldNames);
     return context.relBuilder.peek();
+  }
+
+  private void validateFieldsExist(Set<String> fieldsToValidate, List<String> availableFields) {
+    Set<String> availableFieldsSet = new HashSet<>(availableFields);
+    for (String field : fieldsToValidate) {
+      if (!availableFieldsSet.contains(field)) {
+        throw new IllegalArgumentException(
+            String.format("field [%s] not found; input fields are: %s", field, availableFields));
+      }
+    }
   }
 
   private void buildParseRelNode(Parse node, CalcitePlanContext context) {
