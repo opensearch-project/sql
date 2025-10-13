@@ -10,6 +10,11 @@ import java.util.List;
 
 /** Core logic for `mvappend` command to collect elements from list of args */
 public class MVAppendCore {
+
+  /**
+   * Collect non-null elements from `args`. If an item is a list, it will collect non-null elements
+   * of the list. See {@ref MVAppendFunctionImplTest} for detailed behavior.
+   */
   public static List<Object> collectElements(Object... args) {
     List<Object> elements = new ArrayList<>();
 
