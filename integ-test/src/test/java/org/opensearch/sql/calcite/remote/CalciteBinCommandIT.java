@@ -869,9 +869,8 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
 
     JSONObject result =
         executeQuery("source=events_null | bin @timestamp bins=3 | stats count() by @timestamp");
-    // TODO: @timestamp should keep date as its type, to be addressed by this issue:
-    // https://github.com/opensearch-project/sql/issues/4317
-    verifySchema(result, schema("count()", null, "bigint"), schema("@timestamp", null, "string"));
+    verifySchema(
+        result, schema("count()", null, "bigint"), schema("@timestamp", null, "timestamp"));
     // auto_date_histogram will choose span=5m for bins=3
     verifyDataRows(result, rows(5, "2024-07-01 00:00:00"), rows(1, "2024-07-01 00:05:00"));
 
@@ -909,10 +908,8 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             "source=events_null | bin @timestamp bins=3 | stats avg(cpu_usage) by @timestamp");
-    // TODO: @timestamp should keep date as its type, to be addressed by this issue:
-    // https://github.com/opensearch-project/sql/issues/4317
     verifySchema(
-        result, schema("avg(cpu_usage)", null, "double"), schema("@timestamp", null, "string"));
+        result, schema("avg(cpu_usage)", null, "double"), schema("@timestamp", null, "timestamp"));
     // auto_date_histogram will choose span=5m for bins=3
     verifyDataRows(result, rows(44.62, "2024-07-01 00:00:00"), rows(50.0, "2024-07-01 00:05:00"));
 
@@ -953,13 +950,11 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         executeQuery(
             "source=events_null | bin @timestamp bins=3 | stats bucket_nullable=false count() by"
                 + " region, @timestamp");
-    // TODO: @timestamp should keep date as its type, to be addressed by this issue:
-    // https://github.com/opensearch-project/sql/issues/4317
     verifySchema(
         result,
         schema("count()", null, "bigint"),
         schema("region", null, "string"),
-        schema("@timestamp", null, "string"));
+        schema("@timestamp", null, "timestamp"));
     // auto_date_histogram will choose span=5m for bins=3
     verifyDataRows(
         result,
@@ -978,13 +973,11 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         executeQuery(
             "source=events_null | bin @timestamp bins=3 | stats bucket_nullable=false "
                 + " avg(cpu_usage) by region, @timestamp");
-    // TODO: @timestamp should keep date as its type, to be addressed by this issue:
-    // https://github.com/opensearch-project/sql/issues/4317
     verifySchema(
         result,
         schema("avg(cpu_usage)", null, "double"),
         schema("region", null, "string"),
-        schema("@timestamp", null, "string"));
+        schema("@timestamp", null, "timestamp"));
     // auto_date_histogram will choose span=5m for bins=3
     verifyDataRows(
         result,
