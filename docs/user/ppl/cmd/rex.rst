@@ -166,7 +166,7 @@ Demonstrates naming restrictions for capture groups. Group names cannot contain 
 Invalid PPL query with underscores::
 
     os> source=accounts | rex field=email "(?<user_name>[^@]+)@(?<email_domain>[^.]+)" | fields email, user_name, email_domain ;
-    {'reason': 'Invalid Query', 'details': 'Rex pattern must contain at least one named capture group', 'type': 'IllegalArgumentException'}
+    {'reason': 'Invalid Query', 'details': "Invalid capture group name 'user_name'. Java regex group names must start with a letter and contain only letters and digits.", 'type': 'IllegalArgumentException'}
     Error: Query returned no data
 
 Correct PPL query without underscores::
@@ -206,17 +206,17 @@ PPL query exceeding the configured limit results in an error::
 Comparison with Related Commands
 ================================
 
-============================= ============ ============
-Feature                        rex          parse
-============================= ============ ============
-Pattern Type                   Java Regex   Java Regex
-Named Groups Required          Yes          Yes
-Multiple Named Groups          Yes          No
-Multiple Matches               Yes          No
-Text Substitution              Yes          No
-Offset Tracking                Yes          No
-Underscores in Group Names     No           No
-============================= ============ ============
+================================== ============ ============
+Feature                             rex          parse
+================================== ============ ============
+Pattern Type                        Java Regex   Java Regex
+Named Groups Required               Yes          Yes
+Multiple Named Groups               Yes          No
+Multiple Matches                    Yes          No
+Text Substitution                   Yes          No
+Offset Tracking                     Yes          No
+Special Characters in Group Names   No           No
+================================== ============ ============
 
 
 Limitations
@@ -226,7 +226,6 @@ There are several important limitations with the rex command:
 
 **Named Capture Group Naming:**
 
-- Named capture groups cannot contain underscores due to Java regex limitations
 - Group names must start with a letter and contain only letters and digits
 - For detailed Java regex pattern syntax and usage, refer to the `official Java Pattern documentation <https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html>`_
 
