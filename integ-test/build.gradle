@@ -71,8 +71,8 @@ ext {
     noticeFile = rootProject.file('NOTICE')
 
     getSecurityPluginDownloadLink = { ->
-        var repo = "https://repo1.maven.org/maven2/org/opensearch/plugin/opensearch-security/$opensearch_build/"
-        return repo + "opensearch-security-${opensearch_build}.zip"
+        var repo = "https://repo1.maven.org/maven2/org/opensearch/plugin/opensearch-security/2.19.0.0/"
+        return repo + "opensearch-security-2.19.0.0.zip"
     }
 
     var projectAbsPath = projectDir.getAbsolutePath()
