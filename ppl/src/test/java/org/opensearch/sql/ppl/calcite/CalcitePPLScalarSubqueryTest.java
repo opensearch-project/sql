@@ -322,11 +322,34 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
-  // TODO: With Calcite, we can add more complex scalar subquery, such as
-  // stats by a scalar subquery:
-  // | eval count_a = [
-  //     source=..
-  //   ]
-  // | stats .. by count_a
-  // But currently, statsBy an expression is unsupported in PPL.
+  @Test
+  public void testCorrelatedScalarSubqueryInWhereMaxOut() {
+    String ppl =
+        """
+        source=EMP
+        | where SAL > [
+            source=SALGRADE | where SAL = HISAL | stats AVG(SAL)
+          ]
+        """;
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        ""
+            + "LogicalFilter(condition=[>($5, $SCALAR_QUERY({\n"
+            + "LogicalAggregate(group=[{}], AVG(SAL)=[AVG($0)])\n"
+            + "  LogicalProject($f0=[$cor0.SAL])\n"
+            + "    LogicalFilter(condition=[=($cor0.SAL, $2)])\n"
+            + "      LogicalTableScan(table=[[scott, SALGRADE]])\n"
+            + "}))], variablesSet=[[$cor0]])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        ""
+            + "SELECT *\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE `SAL` > (((SELECT AVG(`EMP`.`SAL`) `AVG(SAL)`\n"
+            + "FROM `scott`.`SALGRADE`\n"
+            + "WHERE `EMP`.`SAL` = `HISAL`)))";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }
