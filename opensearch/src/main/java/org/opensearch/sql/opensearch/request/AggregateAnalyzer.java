@@ -216,11 +216,12 @@ public class AggregateAnalyzer {
       // Used to track the current sub-builder as analysis progresses
       Builder subBuilder = newMetricBuilder;
 
+      // Push auto date span & case in group-by list into nested aggregations
       Pair<Set<Integer>, AggregationBuilder> aggPushedAndAggBuilder =
           createNestedAggregation(groupList, project, subBuilder, helper);
       Set<Integer> aggPushed = aggPushedAndAggBuilder.getLeft();
       AggregationBuilder pushedAggBuilder = aggPushedAndAggBuilder.getRight();
-      // The group-by list after removing composite-incompatible aggregations
+      // The group-by list after removing pushed aggregations
       groupList = groupList.stream().filter(i -> !aggPushed.contains(i)).toList();
       if (pushedAggBuilder != null) {
         subBuilder = new Builder().addAggregator(pushedAggBuilder);
@@ -258,9 +259,8 @@ public class AggregateAnalyzer {
       //   - stats avg() by date_histogram
       //   - stats count() by auto_date_span, range_field, term_fields
       // CompositeAgg
-      //   [...RangeAgg]
-      //     [...AutoDateHistogramAgg]
-      //       Metric
+      //   [AutoDateHistogram | RangeAgg]*
+      //     Metric
       else {
         List<CompositeValuesSourceBuilder<?>> buckets =
             createCompositeBuckets(groupList, project, helper);
