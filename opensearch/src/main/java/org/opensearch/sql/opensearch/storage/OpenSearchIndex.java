@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.util.CompositeMap;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.calcite.plan.AbstractOpenSearchTable;
 import org.opensearch.sql.common.setting.Settings;
@@ -150,6 +151,11 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
   @Override
   public Map<String, ExprType> getReservedFieldTypes() {
     return METADATAFIELD_TYPE_MAP;
+  }
+
+  // Return all field types including reserved fields
+  public Map<String, ExprType> getAllFieldTypes() {
+    return CompositeMap.of(getFieldTypes(), getReservedFieldTypes());
   }
 
   public Map<String, String> getAliasMapping() {
