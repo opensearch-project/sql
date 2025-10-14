@@ -295,6 +295,16 @@ testClusters {
     }
 }
 
+def isPrometheusRunning = { ->
+    try {
+        def process = "pgrep -f prometheus".execute()
+        def output = process.text
+        return !output.trim().isEmpty()
+    } catch (Exception e) {
+        return false
+    }
+}
+
 task startPrometheus(type: SpawnProcessTask) {
     mustRunAfter ':doctest:doctest'
 
@@ -319,7 +329,7 @@ task startPrometheus(type: SpawnProcessTask) {
     }
     command "$projectDir/bin/prometheus/prometheus --storage.tsdb.path=$projectDir/bin/prometheus/data --config.file=$projectDir/bin/prometheus/prometheus.yml"
     ready 'TSDB started'
-    onlyIf { !ignorePrometheus }
+    onlyIf { !ignorePrometheus && !isPrometheusRunning }
 }
 
 task stopPrometheus(type: KillProcessTask) {
