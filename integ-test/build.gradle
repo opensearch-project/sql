@@ -52,9 +52,12 @@ String ignorePrometheusProp = System.getProperty("ignorePrometheus")
 boolean ignorePrometheus = ignorePrometheusProp != null && !ignorePrometheusProp.equalsIgnoreCase("false")
 
 repositories {
+    mavenLocal()
     mavenCentral()
+    maven { url "https://plugins.gradle.org/m2/" }
+    maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
+    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
     maven { url 'https://jitpack.io' }
-    maven { url "https://ci.opensearch.org/ci/dbc/snapshots/" }
 
     // Add extra repository for the JDBC driver if given by user
     if (System.getProperty("jdbcRepo") != null && new File(System.getProperty("jdbcRepo")).isDirectory()) {
@@ -68,17 +71,8 @@ ext {
     noticeFile = rootProject.file('NOTICE')
 
     getSecurityPluginDownloadLink = { ->
-        var repo = "https://ci.opensearch.org/ci/dbc/snapshots/org/opensearch/plugin/" +
-                   "opensearch-security/$opensearch_build_snapshot/"
-        var metadataFile = Paths.get(projectDir.toString(), "build", "maven-metadata.xml").toAbsolutePath().toFile()
-        download.run {
-            src repo + "maven-metadata.xml"
-            dest metadataFile
-        }
-        def metadata = new XmlParser().parse(metadataFile)
-        def securitySnapshotVersion = metadata.versioning.snapshotVersions[0].snapshotVersion[0].value[0].text()
-
-        return repo + "opensearch-security-${securitySnapshotVersion}.zip"
+        var repo = "https://repo1.maven.org/maven2/org/opensearch/plugin/opensearch-security/2.19.0.0/"
+        return repo + "opensearch-security-2.19.0.0.zip"
     }
 
     var projectAbsPath = projectDir.getAbsolutePath()
