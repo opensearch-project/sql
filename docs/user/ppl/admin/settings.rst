@@ -310,7 +310,7 @@ Change the subsearch.maxout to unlimited::
         "plugins": {
           "ppl": {
             "subsearch": {
-              "maxout": "-1"
+              "maxout": "0"
             }
           }
         }
