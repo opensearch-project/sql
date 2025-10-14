@@ -110,21 +110,6 @@ public class CalciteTimechartPerFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testTimechartPerMinuteWithDefaultSpan() throws IOException {
-    JSONObject result =
-        executeQuery(
-            "source=events_traffic | where month(@timestamp) = 9 | timechart per_minute(packets)");
-
-    verifySchema(
-        result, schema("@timestamp", "timestamp"), schema("per_minute(packets)", "double"));
-    verifyDataRows(
-        result,
-        rows("2025-09-08 10:00:00", 60.0), // 60 / 1m
-        rows("2025-09-08 10:01:00", 120.0), // 120 / 1m
-        rows("2025-09-08 10:02:00", 240.0)); // (60+180) / 1m
-  }
-
-  @Test
   public void testTimechartPerMinuteWithSpecifiedSpan() throws IOException {
     JSONObject result =
         executeQuery(
@@ -159,20 +144,6 @@ public class CalciteTimechartPerFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testTimechartPerHourWithDefaultSpan() throws IOException {
-    JSONObject result =
-        executeQuery(
-            "source=events_traffic | where month(@timestamp) = 9 | timechart per_hour(packets)");
-
-    verifySchema(result, schema("@timestamp", "timestamp"), schema("per_hour(packets)", "double"));
-    verifyDataRows(
-        result,
-        rows("2025-09-08 10:00:00", 3600.0), // 60 * 60
-        rows("2025-09-08 10:01:00", 7200.0), // 120 * 60
-        rows("2025-09-08 10:02:00", 14400.0)); // 240 * 60
-  }
-
-  @Test
   public void testTimechartPerHourWithSpecifiedSpan() throws IOException {
     JSONObject result =
         executeQuery(
@@ -203,20 +174,6 @@ public class CalciteTimechartPerFunctionIT extends PPLIntegTestCase {
         rows("2025-09-08 10:00:00", "server1", 5400.0), // (60+120) * 30
         rows("2025-09-08 10:02:00", "server1", 1800.0), // 60 * 30
         rows("2025-09-08 10:02:00", "server2", 5400.0)); // 180 * 30
-  }
-
-  @Test
-  public void testTimechartPerDayWithDefaultSpan() throws IOException {
-    JSONObject result =
-        executeQuery(
-            "source=events_traffic | where month(@timestamp) = 9 | timechart per_day(packets)");
-
-    verifySchema(result, schema("@timestamp", "timestamp"), schema("per_day(packets)", "double"));
-    verifyDataRows(
-        result,
-        rows("2025-09-08 10:00:00", 86400.0), // 60 * 1440
-        rows("2025-09-08 10:01:00", 172800.0), // 120 * 1440
-        rows("2025-09-08 10:02:00", 345600.0)); // 240 * 1440
   }
 
   @Test

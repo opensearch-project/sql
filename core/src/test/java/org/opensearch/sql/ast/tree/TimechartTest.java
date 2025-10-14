@@ -27,7 +27,16 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 class TimechartTest {
 
   @ParameterizedTest
-  @CsvSource({"1, m, MINUTE", "30, s, SECOND", "5, m, MINUTE", "2, h, HOUR", "1, d, DAY"})
+  @CsvSource({
+    "30, s, SECOND",
+    "5, m, MINUTE",
+    "2, h, HOUR",
+    "1, d, DAY",
+    "1, w, WEEK",
+    "1, M, MONTH",
+    "1, q, QUARTER",
+    "1, y, YEAR"
+  })
   void should_transform_per_second_for_different_spans(
       int spanValue, String spanUnit, String expectedIntervalUnit) {
     withTimechart(span(spanValue, spanUnit), perSecond("bytes"))
@@ -46,7 +55,16 @@ class TimechartTest {
   }
 
   @ParameterizedTest
-  @CsvSource({"1, m, MINUTE", "30, s, SECOND", "5, m, MINUTE", "2, h, HOUR", "1, d, DAY"})
+  @CsvSource({
+    "30, s, SECOND",
+    "5, m, MINUTE",
+    "2, h, HOUR",
+    "1, d, DAY",
+    "1, w, WEEK",
+    "1, M, MONTH",
+    "1, q, QUARTER",
+    "1, y, YEAR"
+  })
   void should_transform_per_minute_for_different_spans(
       int spanValue, String spanUnit, String expectedIntervalUnit) {
     withTimechart(span(spanValue, spanUnit), perMinute("bytes"))
@@ -65,7 +83,16 @@ class TimechartTest {
   }
 
   @ParameterizedTest
-  @CsvSource({"1, m, MINUTE", "30, s, SECOND", "5, m, MINUTE", "2, h, HOUR", "1, d, DAY"})
+  @CsvSource({
+    "30, s, SECOND",
+    "5, m, MINUTE",
+    "2, h, HOUR",
+    "1, d, DAY",
+    "1, w, WEEK",
+    "1, M, MONTH",
+    "1, q, QUARTER",
+    "1, y, YEAR"
+  })
   void should_transform_per_hour_for_different_spans(
       int spanValue, String spanUnit, String expectedIntervalUnit) {
     withTimechart(span(spanValue, spanUnit), perHour("bytes"))
@@ -84,7 +111,16 @@ class TimechartTest {
   }
 
   @ParameterizedTest
-  @CsvSource({"1, m, MINUTE", "30, s, SECOND", "5, m, MINUTE", "2, h, HOUR", "1, d, DAY"})
+  @CsvSource({
+    "30, s, SECOND",
+    "5, m, MINUTE",
+    "2, h, HOUR",
+    "1, d, DAY",
+    "1, w, WEEK",
+    "1, M, MONTH",
+    "1, q, QUARTER",
+    "1, y, YEAR"
+  })
   void should_transform_per_day_for_different_spans(
       int spanValue, String spanUnit, String expectedIntervalUnit) {
     withTimechart(span(spanValue, spanUnit), perDay("bytes"))

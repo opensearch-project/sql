@@ -123,7 +123,6 @@ public class Timechart extends UnresolvedPlan {
     return this.toBuilder().aggregateFunction(newAggregateFunction).build();
   }
 
-  /** TODO: extend to support additional per_* functions */
   @RequiredArgsConstructor
   static class PerFunction {
     private static final Map<String, Integer> UNIT_SECONDS =
