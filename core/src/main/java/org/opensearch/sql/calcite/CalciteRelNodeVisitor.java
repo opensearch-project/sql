@@ -1141,8 +1141,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitJoin(Join node, CalcitePlanContext context) {
     List<UnresolvedPlan> children = node.getChildren();
     children.forEach(c -> analyze(c, context));
-    // add join.subsearch_maxout limit to subsearch side
-    if (context.sysLimit.joinSubsearchLimit() >= 0) {
+    // add join.subsearch_maxout limit to subsearch side, 0 and negative means unlimited.
+    if (context.sysLimit.joinSubsearchLimit() > 0) {
       PlanUtils.replaceTop(
           context.relBuilder,
           LogicalSystemLimit.create(
