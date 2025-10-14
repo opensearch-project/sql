@@ -43,7 +43,7 @@ task bootstrap(type: Exec, dependsOn: ['cloneSqlCli']) {
 
 }
 
-def isPrometheusRunning() {
+def isPrometheusRunning = { ->
     try {
         def process = "pgrep -f prometheus".execute()
         def output = process.text
