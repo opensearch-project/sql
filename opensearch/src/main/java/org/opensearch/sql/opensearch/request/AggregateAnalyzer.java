@@ -98,9 +98,6 @@ import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.CompositeAgg
  */
 public class AggregateAnalyzer {
 
-  /** How many composite buckets should be returned. */
-  public static final int AGGREGATION_BUCKET_SIZE = 1000;
-
   /** metadata field used when there is no argument. Only apply to COUNT. */
   private static final String METADATA_FIELD = "_index";
 
@@ -141,6 +138,7 @@ public class AggregateAnalyzer {
     final Map<String, ExprType> fieldTypes;
     final RelOptCluster cluster;
     final boolean bucketNullable;
+    final int bucketSize;
 
     <T extends ValuesSourceAggregationBuilder<T>> T build(RexNode node, T aggBuilder) {
       return build(node, aggBuilder::field, aggBuilder::script);
@@ -188,7 +186,8 @@ public class AggregateAnalyzer {
       RelDataType rowType,
       Map<String, ExprType> fieldTypes,
       List<String> outputFields,
-      RelOptCluster cluster)
+      RelOptCluster cluster,
+      int bucketSize)
       throws ExpressionNotAnalyzableException {
     requireNonNull(aggregate, "aggregate");
     try {
@@ -201,7 +200,7 @@ public class AggregateAnalyzer {
                   .orElseGet(() -> "true"));
       List<Integer> groupList = aggregate.getGroupSet().asList();
       AggregateBuilderHelper helper =
-          new AggregateBuilderHelper(rowType, fieldTypes, cluster, bucketNullable);
+          new AggregateBuilderHelper(rowType, fieldTypes, cluster, bucketNullable, bucketSize);
       List<String> aggFieldNames = outputFields.subList(groupList.size(), outputFields.size());
       // Process all aggregate calls
       Pair<Builder, List<MetricParser>> builderAndParser =
@@ -242,8 +241,7 @@ public class AggregateAnalyzer {
           List<CompositeValuesSourceBuilder<?>> buckets =
               createCompositeBuckets(groupList, project, helper);
           aggregationBuilder =
-              AggregationBuilders.composite("composite_buckets", buckets)
-                  .size(AGGREGATION_BUCKET_SIZE);
+              AggregationBuilders.composite("composite_buckets", buckets).size(bucketSize);
           if (newMetricBuilder != null) {
             aggregationBuilder.subAggregations(metricBuilder);
           }
@@ -629,7 +627,7 @@ public class AggregateAnalyzer {
         helper.build(
             group,
             new TermsAggregationBuilder(bucketName)
-                .size(AGGREGATION_BUCKET_SIZE)
+                .size(helper.bucketSize)
                 .order(BucketOrder.key(true)));
     // Time types values are converted to LONG in ExpressionAggregationScript::execute
     if (List.of(TIMESTAMP, TIME, DATE)
