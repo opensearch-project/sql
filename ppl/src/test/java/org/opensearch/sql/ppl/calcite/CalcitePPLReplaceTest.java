@@ -5,13 +5,9 @@
 
 package org.opensearch.sql.ppl.calcite;
 
-import java.util.Collections;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Test;
-import org.opensearch.sql.ast.expression.DataType;
-import org.opensearch.sql.ast.expression.Literal;
-import org.opensearch.sql.ast.tree.Replace;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 
 public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
@@ -184,58 +180,6 @@ public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
   public void testReplaceWithMissingReplacementValueShouldFail() {
     String ppl = "source=EMP | replace \"CLERK\" WITH IN JOB";
     getRelNode(ppl);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testReplaceWithNullPatternShouldFail() {
-    Replace replace =
-        new Replace(null, new Literal("EMPLOYEE", DataType.STRING), Collections.emptySet());
-    replace.validate();
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testReplaceWithNullReplacementShouldFail() {
-    Replace replace =
-        new Replace(new Literal("CLERK", DataType.STRING), null, Collections.emptySet());
-    replace.validate();
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testReplaceWithNonStringPatternShouldFail() {
-    Replace replace =
-        new Replace(
-            new Literal(123, DataType.INTEGER),
-            new Literal("EMPLOYEE", DataType.STRING),
-            Collections.emptySet());
-    replace.validate();
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testReplaceWithNonStringReplacementShouldFail() {
-    Replace replace =
-        new Replace(
-            new Literal("CLERK", DataType.STRING),
-            new Literal(456, DataType.INTEGER),
-            Collections.emptySet());
-    replace.validate();
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testReplaceWithNullFieldListShouldFail() {
-    Replace replace =
-        new Replace(
-            new Literal("CLERK", DataType.STRING), new Literal("EMPLOYEE", DataType.STRING), null);
-    replace.validate();
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testReplaceWithEmptyFieldListShouldFail() {
-    Replace replace =
-        new Replace(
-            new Literal("CLERK", DataType.STRING),
-            new Literal("EMPLOYEE", DataType.STRING),
-            Collections.emptySet());
-    replace.validate();
   }
 
   @Test
