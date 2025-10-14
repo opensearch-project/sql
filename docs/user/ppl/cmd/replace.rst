@@ -18,7 +18,7 @@ Note: This command is only available when Calcite engine is enabled.
 
 Syntax
 ============
-replace '<pattern>' WITH '<replacement>' IN <field-name>[, <field-name>]...
+replace '<pattern>' WITH '<replacement>' [, '<pattern>' WITH '<replacement>']... IN <field-name>[, <field-name>]...
 
 
 Parameters
@@ -69,10 +69,10 @@ PPL query::
  +----------+----------------------+
 
 
-Example 3: Replace with IN clause and other commands
+Example 3: Replace with other commands in a pipeline
 ------------------------------------
 
-The example shows using replace with other commands.
+The example shows using replace with other commands in a query pipeline.
 
 PPL query::
 
@@ -86,7 +86,25 @@ PPL query::
  | MD       | 33  |
  +----------+-----+
 
-Example 4: Pattern matching with LIKE and replace
+Example 4: Replace with multiple pattern/replacement pairs
+------------------------------------
+
+The example shows using multiple pattern/replacement pairs in a single replace command. The replacements are applied sequentially.
+
+PPL query::
+
+ os> source=accounts | replace "IL" WITH "Illinois", "TN" WITH "Tennessee" IN state | fields state;
+ fetched rows / total rows = 4/4
+ +-----------+
+ | state     |
+ |-----------|
+ | Illinois  |
+ | Tennessee |
+ | VA        |
+ | MD        |
+ +-----------+
+
+Example 5: Pattern matching with LIKE and replace
 ------------------------------------
 
 Since replace command only supports plain string literals, you can use LIKE command with replace for pattern matching needs.
