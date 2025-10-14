@@ -26,8 +26,8 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
@@ -365,8 +365,6 @@ public class JsonExtractAllFunctionIT extends CalcitePPLIntegTestCase {
 
     config.context(Contexts.of(RelBuilder.Config.DEFAULT));
 
-    Settings settings = getSettings();
-    return CalcitePlanContext.create(
-        config.build(), settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT), QueryType.PPL);
+    return CalcitePlanContext.create(config.build(), SysLimit.DEFAULT, QueryType.PPL);
   }
 }
