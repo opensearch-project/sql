@@ -609,6 +609,19 @@ public class StatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testStatsPercentileWithMin() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats percentile(balance, 50), min(balance)", TEST_INDEX_BANK));
+    verifySchema(
+        response,
+        schema("percentile(balance, 50)", null, "bigint"),
+        schema("min(balance)", null, "bigint"));
+    verifyDataRows(response, rows(32838, 4180));
+  }
+
+  @Test
   public void testStatsPercentileWithNull() throws IOException {
     JSONObject response =
         executeQuery(
