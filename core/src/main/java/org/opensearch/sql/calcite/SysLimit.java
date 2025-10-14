@@ -19,7 +19,7 @@ public record SysLimit(Integer querySizeLimit, Integer subsearchLimit, Integer j
   }
 
   /** No limitation on subsearch */
-  public static SysLimit UNLIMITED_SUBSEARCH = new SysLimit(10000, -1, -1);
+  public static SysLimit UNLIMITED_SUBSEARCH = new SysLimit(10000, 0, 0);
 
   /** For testing only */
   public static SysLimit DEFAULT = new SysLimit(10000, 10000, 50000);

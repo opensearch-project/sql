@@ -403,7 +403,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testSubsearchMaxOutZero() throws IOException {
+  public void testSubsearchMaxOutZeroMeansUnlimited() throws IOException {
     setSubsearchMaxOut(0);
     JSONObject result =
         executeQuery(
@@ -416,7 +416,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
                     + "| fields id, name, salary",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
-    verifyNumOfRows(result, 0);
+    verifyNumOfRows(result, 5);
     resetSubsearchMaxOut();
   }
 }
