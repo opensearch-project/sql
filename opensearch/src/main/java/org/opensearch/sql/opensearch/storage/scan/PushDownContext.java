@@ -13,7 +13,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.IntStream;
 import lombok.Getter;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelFieldCollation.Direction;
@@ -37,18 +36,17 @@ import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
-@Getter
 public class PushDownContext extends AbstractCollection<PushDownOperation> {
   private final OpenSearchIndex osIndex;
-  private final OpenSearchRequestBuilder requestBuilder;
+  final OpenSearchRequestBuilder requestBuilder;
   private ArrayDeque<PushDownOperation> operationsForRequestBuilder;
 
-  private boolean isAggregatePushed = false;
-  private AggPushDownAction aggPushDownAction;
+  @Getter AggPushDownAction aggPushDownAction;
   private ArrayDeque<PushDownOperation> operationsForAgg;
 
-  private boolean isLimitPushed = false;
-  private boolean isProjectPushed = false;
+  @Getter boolean isAggregatePushed = false;
+  @Getter boolean isLimitPushed = false;
+  @Getter boolean isProjectPushed = false;
 
   public PushDownContext(OpenSearchIndex osIndex) {
     this.osIndex = osIndex;
@@ -114,6 +112,9 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
     if (operation.type() == PushDownType.AGGREGATION) {
       isAggregatePushed = true;
       this.aggPushDownAction = (AggPushDownAction) operation.action();
+      // Don't do trans on request builder for agg until no more operators push down.
+      this.getOperationsForRequestBuilder().add(operation);
+      return true;
     }
     if (operation.type() == PushDownType.LIMIT) {
       isLimitPushed = true;
@@ -131,6 +132,13 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
 
   public boolean containsDigest(Object digest) {
     return this.stream().anyMatch(action -> action.digest().equals(digest));
+  }
+
+  public OpenSearchRequestBuilder buildRequestBuilder() {
+    if (requestBuilder.getSourceBuilder().aggregations() == null && isAggregatePushed) {
+      aggPushDownAction.apply(requestBuilder);
+    }
+    return requestBuilder;
   }
 
   public OpenSearchRequestBuilder createRequestBuilder() {
@@ -176,14 +184,14 @@ interface AbstractAction<T> {
 
 interface OSRequestBuilderAction extends AbstractAction<OpenSearchRequestBuilder> {
   default void transform(PushDownContext context, PushDownOperation operation) {
-    apply(context.getRequestBuilder());
+    apply(context.requestBuilder);
     context.getOperationsForRequestBuilder().add(operation);
   }
 }
 
 interface AggregationBuilderAction extends AbstractAction<AggPushDownAction> {
   default void transform(PushDownContext context, PushDownOperation operation) {
-    apply(context.getAggPushDownAction());
+    apply(context.aggPushDownAction);
     context.getOperationsForAgg().add(operation);
   }
 }
@@ -273,8 +281,8 @@ class AggPushDownAction implements OSRequestBuilderAction {
             newBucketNames.add(bucketName);
             selected.add(bucketName);
           });
-      IntStream.range(0, buckets.size())
-          .mapToObj(fieldNames::get)
+      buckets.stream()
+          .map(CompositeValuesSourceBuilder::name)
           .filter(name -> !selected.contains(name))
           .forEach(
               name -> {

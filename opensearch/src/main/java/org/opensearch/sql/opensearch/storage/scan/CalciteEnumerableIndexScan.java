@@ -143,7 +143,7 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
         return this.pushDownContext.createRequestBuilder();
       }
       isRequestBuilderUsedByEnumerator = true;
-      return this.pushDownContext.getRequestBuilder();
+      return this.pushDownContext.buildRequestBuilder();
     }
   }
 }

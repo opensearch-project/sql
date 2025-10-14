@@ -82,7 +82,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
 
   @Override
   public RelWriter explainTerms(RelWriter pw) {
-    String explainString = pushDownContext + ", " + pushDownContext.getRequestBuilder();
+    String explainString = pushDownContext + ", " + pushDownContext.buildRequestBuilder();
     return super.explainTerms(pw)
         .itemIf("PushDownContext", explainString, !pushDownContext.isEmpty());
   }
