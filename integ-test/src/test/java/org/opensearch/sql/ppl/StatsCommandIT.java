@@ -613,12 +613,19 @@ public class StatsCommandIT extends PPLIntegTestCase {
     JSONObject response =
         executeQuery(
             String.format(
-                "source=%s | stats percentile(balance, 50), min(balance)", TEST_INDEX_BANK));
+                "source=%s | eval decimal=ceil(balance/100000.0) | stats percentile(decimal, 50),"
+                    + " min(decimal)",
+                TEST_INDEX_BANK));
+    String returnType = "bigint";
+    if (isCalciteEnabled()) {
+      returnType = "double";
+    }
+
     verifySchema(
         response,
-        schema("percentile(balance, 50)", null, "bigint"),
-        schema("min(balance)", null, "bigint"));
-    verifyDataRows(response, rows(32838, 4180));
+        schema("percentile(decimal, 50)", null, returnType),
+        schema("min(decimal)", null, returnType));
+    verifyDataRows(response, rows(1, 1));
   }
 
   @Test
