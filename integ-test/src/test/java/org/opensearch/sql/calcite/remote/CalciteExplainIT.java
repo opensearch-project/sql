@@ -10,12 +10,14 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STRINGS;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TIME_DATA;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 import static org.opensearch.sql.util.MatcherUtils.assertYamlEqualsJsonIgnoreId;
 
 import java.io.IOException;
 import java.util.Locale;
+import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ppl.ExplainIT;
@@ -374,22 +376,6 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryToString(
             "source=events | bin @timestamp bins=3 | stats bucket_nullable=false avg(cpu_usage) by"
                 + " @timestamp, region"));
-  }
-
-  @Test
-  public void bucketNullableNotSupportSubAggregation() throws IOException {
-    // TODO: Don't throw exception after addressing
-    // https://github.com/opensearch-project/sql/issues/4317
-    // When bucketNullable is true, sub aggregation is not supported. Hence we cannot pushdown the
-    // aggregation in this query. Caused by issue
-    // https://github.com/opensearch-project/sql/issues/4317,
-    // bin aggregation on timestamp field won't work if not been push down.
-    enabledOnlyWhenPushdownIsEnabled();
-    assertThrows(
-        Exception.class,
-        () ->
-            explainQueryToString(
-                "source=events | bin @timestamp bins=3 | stats count() by @timestamp, region"));
   }
 
   @Test
@@ -1086,5 +1072,19 @@ public class CalciteExplainIT extends ExplainIT {
                 "source=%s | eval age_range = case(age < 35, 'u35' else email) | stats avg(balance)"
                     + " as avg_balance by age_range, state",
                 TEST_INDEX_BANK)));
+  }
+
+  @Test
+  public void testNestedAggregationsExplain() throws IOException {
+    // the query runs into error when pushdown is disabled due to bin's implementation
+    Assume.assumeFalse(isPushdownDisabled());
+    assertYamlEqualsJsonIgnoreId(
+        loadExpectedPlan("agg_composite_autodate_range_metric_push.yaml"),
+        explainQueryToString(
+            String.format(
+                "source=%s | bin timestamp bins=3 | eval value_range = case(value < 7000, 'small'"
+                    + " else 'great') | stats bucket_nullable=false avg(value), count() by"
+                    + " timestamp, value_range, category",
+                TEST_INDEX_TIME_DATA)));
   }
 }
