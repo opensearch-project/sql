@@ -304,17 +304,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       // In case of sort by simple expression, still use the original collations to let Calcite
       // planner understand simple expression is already sorted.
       RelTraitSet traitsWithCollations = getTraitSet().plus(RelCollations.of(collations));
-      AbstractCalciteIndexScan newScan =
-          buildScan(
-              getCluster(),
-              traitsWithCollations,
-              hints,
-              table,
-              osIndex,
-              getRowType(),
-              // Existing collations are overridden (discarded) by the new collations,
-              pushDownContext.cloneWithoutSort());
-
+      PushDownContext pushDownContextWithoutSort = this.pushDownContext.cloneWithoutSort();
       AbstractAction<?> action;
       Object digest;
       if (pushDownContext.isAggregatePushed()) {
@@ -324,7 +314,27 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                 aggAction ->
                     aggAction.pushDownSortIntoAggBucket(collations, getRowType().getFieldNames());
         digest = collations;
+        pushDownContextWithoutSort.add(PushDownType.SORT, digest, action);
+        return buildScan(
+            getCluster(),
+            traitsWithCollations,
+            hints,
+            table,
+            osIndex,
+            getRowType(),
+            pushDownContextWithoutSort.clone());
       } else {
+        // Propagate the sort to the new scan
+        AbstractCalciteIndexScan newScan =
+            buildScan(
+                getCluster(),
+                traitsWithCollations,
+                hints,
+                table,
+                osIndex,
+                getRowType(),
+                // Existing collations are overridden (discarded) by the new collations,
+                pushDownContextWithoutSort);
         List<SortBuilder<?>> builders = new ArrayList<>();
         for (Pair<RelFieldCollation, String> collationInfo : deducedCollations) {
           RelFieldCollation collation = collationInfo.getKey();
@@ -357,9 +367,9 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
         }
         action = (OSRequestBuilderAction) requestBuilder -> requestBuilder.pushDownSort(builders);
         digest = builders.toString();
+        newScan.pushDownContext.add(PushDownType.SORT, digest, action);
+        return newScan;
       }
-      newScan.pushDownContext.add(PushDownType.SORT, digest, action);
-      return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Cannot pushdown the sort {}", getCollationNames(collations), e);

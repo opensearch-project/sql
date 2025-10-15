@@ -131,7 +131,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       CalciteLogicalIndexScan newScan = this.copyWithNewSchema(filter.getRowType());
       List<String> schema = rowType.getFieldNames();
       Map<String, ExprType> fieldTypes =
-          this.osIndex.getFieldTypes().entrySet().stream()
+          this.osIndex.getAllFieldTypes().entrySet().stream()
               .filter(entry -> schema.contains(entry.getKey()))
               .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
       QueryExpression queryExpression =
@@ -373,7 +373,11 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               aggregate.getRowType(),
               // Aggregation will eliminate all collations.
               pushDownContext.cloneWithoutSort());
-      Map<String, ExprType> fieldTypes = this.osIndex.getFieldTypes();
+      List<String> schema = this.getRowType().getFieldNames();
+      Map<String, ExprType> fieldTypes =
+          this.osIndex.getAllFieldTypes().entrySet().stream()
+              .filter(entry -> schema.contains(entry.getKey()))
+              .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
       List<String> outputFields = aggregate.getRowType().getFieldNames();
       final Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder =
           AggregateAnalyzer.analyze(

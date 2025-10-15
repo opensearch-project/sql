@@ -40,8 +40,8 @@ import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
+import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.common.setting.Settings;
-import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
@@ -69,6 +69,8 @@ public class CalcitePPLAbstractTest {
     doReturn(true).when(settings).getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED);
     doReturn(true).when(settings).getSettingValue(Settings.Key.CALCITE_SUPPORT_ALL_JOIN_TYPES);
     doReturn(true).when(settings).getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED);
+    doReturn(-1).when(settings).getSettingValue(Settings.Key.PPL_JOIN_SUBSEARCH_MAXOUT);
+    doReturn(-1).when(settings).getSettingValue(Settings.Key.PPL_SUBSEARCH_MAXOUT);
     doReturn(false).when(dataSourceService).dataSourceExists(any());
   }
 
@@ -90,8 +92,7 @@ public class CalcitePPLAbstractTest {
   /** Creates a CalcitePlanContext with transformed config. */
   private CalcitePlanContext createBuilderContext(UnaryOperator<RelBuilder.Config> transform) {
     config.context(Contexts.of(transform.apply(RelBuilder.Config.DEFAULT)));
-    return CalcitePlanContext.create(
-        config.build(), settings.getSettingValue(Key.QUERY_SIZE_LIMIT), PPL);
+    return CalcitePlanContext.create(config.build(), SysLimit.fromSettings(settings), PPL);
   }
 
   /** Get the root RelNode of the given PPL query */

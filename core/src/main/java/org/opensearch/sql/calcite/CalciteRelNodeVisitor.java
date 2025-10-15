@@ -133,6 +133,8 @@ import org.opensearch.sql.ast.tree.Trendline.TrendlineType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
+import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.BinUtils;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
@@ -1136,6 +1138,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitJoin(Join node, CalcitePlanContext context) {
     List<UnresolvedPlan> children = node.getChildren();
     children.forEach(c -> analyze(c, context));
+    // add join.subsearch_maxout limit to subsearch side, 0 and negative means unlimited.
+    if (context.sysLimit.joinSubsearchLimit() > 0) {
+      PlanUtils.replaceTop(
+          context.relBuilder,
+          LogicalSystemLimit.create(
+              SystemLimitType.JOIN_SUBSEARCH_MAXOUT,
+              context.relBuilder.peek(),
+              context.relBuilder.literal(context.sysLimit.joinSubsearchLimit())));
+    }
     if (node.getJoinCondition().isEmpty()) {
       // join-with-field-list grammar
       List<String> leftColumns = context.relBuilder.peek(1).getRowType().getFieldNames();
@@ -1914,6 +1925,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   /** Helper method to get the function name for proper column naming */
   private String getValueFunctionName(UnresolvedExpression aggregateFunction) {
+    if (aggregateFunction instanceof Alias) {
+      return ((Alias) aggregateFunction).getName();
+    }
     if (!(aggregateFunction instanceof AggregateFunction)) {
       return "value";
     }

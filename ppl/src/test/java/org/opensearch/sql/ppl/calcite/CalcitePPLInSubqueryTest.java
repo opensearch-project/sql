@@ -6,10 +6,12 @@
 package org.opensearch.sql.ppl.calcite;
 
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.doReturn;
 
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Test;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.exception.SemanticCheckException;
 
 public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
@@ -254,5 +256,102 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
             | sort - EMPNO | fields EMPNO, ENAME
             """;
     assertThrows(SemanticCheckException.class, () -> getRelNode(more));
+  }
+
+  @Test
+  public void testInCorrelatedSubquery() {
+    String ppl =
+        """
+        source=EMP | where ENAME in [
+          source=DEPT | where EMP.DEPTNO = DEPTNO and LOC = 'BOSTON'| fields DNAME
+        ]
+        | fields EMPNO, ENAME, DEPTNO
+        """;
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])\n"
+            + "  LogicalFilter(condition=[IN($1, {\n"
+            + "LogicalProject(DNAME=[$1])\n"
+            + "  LogicalFilter(condition=[AND(=($cor0.DEPTNO, $0), =($2, 'BOSTON':VARCHAR))])\n"
+            + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+            + "})], variablesSet=[[$cor0]])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE `ENAME` IN (SELECT `DNAME`\n"
+            + "FROM `scott`.`DEPT`\n"
+            + "WHERE `EMP`.`DEPTNO` = `DEPTNO` AND `LOC` = 'BOSTON')";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testSubsearchMaxOut() {
+    doReturn(1).when(settings).getSettingValue(Settings.Key.PPL_SUBSEARCH_MAXOUT);
+    String ppl =
+        """
+        source=EMP | where DEPTNO in [ source=DEPT | fields DEPTNO ]
+        | sort - EMPNO | fields EMPNO, ENAME
+        """;
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        ""
+            + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
+            + "    LogicalFilter(condition=[IN($7, {\n"
+            + "LogicalSystemLimit(sort0=[$0], dir0=[ASC], fetch=[1], type=[SUBSEARCH_MAXOUT])\n"
+            + "  LogicalProject(DEPTNO=[$0])\n"
+            + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+            + "})], variablesSet=[[$cor0]])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE `DEPTNO` IN (SELECT `DEPTNO`\n"
+            + "FROM `scott`.`DEPT`\n"
+            + "ORDER BY `DEPTNO` NULLS LAST\n"
+            + "LIMIT 1)\n"
+            + "ORDER BY `EMPNO` DESC";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testInCorrelatedSubqueryMaxOut() {
+    doReturn(1).when(settings).getSettingValue(Settings.Key.PPL_SUBSEARCH_MAXOUT);
+    String ppl =
+        """
+        source=EMP | where ENAME in [
+          source=DEPT | where EMP.DEPTNO = DEPTNO and LOC = 'BOSTON'| fields DNAME
+        ]
+        | fields EMPNO, ENAME, DEPTNO
+        """;
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])\n"
+            + "  LogicalFilter(condition=[IN($1, {\n"
+            + "LogicalProject(DNAME=[$1])\n"
+            + "  LogicalFilter(condition=[=($cor0.DEPTNO, $0)])\n"
+            + "    LogicalSystemLimit(sort0=[$0], dir0=[ASC], fetch=[1], type=[SUBSEARCH_MAXOUT])\n"
+            + "      LogicalFilter(condition=[=($2, 'BOSTON':VARCHAR)])\n"
+            + "        LogicalTableScan(table=[[scott, DEPT]])\n"
+            + "})], variablesSet=[[$cor0]])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE `ENAME` IN (SELECT `DNAME`\n"
+            + "FROM (SELECT `DEPTNO`, `DNAME`, `LOC`\n"
+            + "FROM `scott`.`DEPT`\n"
+            + "WHERE `LOC` = 'BOSTON'\n"
+            + "ORDER BY `DEPTNO` NULLS LAST\n"
+            + "LIMIT 1) `t0`\n"
+            + "WHERE `EMP`.`DEPTNO` = `DEPTNO`)";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

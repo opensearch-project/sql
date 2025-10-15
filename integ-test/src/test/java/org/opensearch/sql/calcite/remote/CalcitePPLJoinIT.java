@@ -938,4 +938,22 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
         schema("month", "int"));
     verifyNumOfRows(actual, 8);
   }
+
+  @Test
+  public void testJoinSubsearchMaxOut() throws IOException {
+    setJoinSubsearchMaxOut(5);
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where country = 'Canada' | join type=inner max=0 country %s",
+                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+    verifyNumOfRows(actual, 10);
+    resetJoinSubsearchMaxOut();
+    actual =
+        executeQuery(
+            String.format(
+                "source=%s | where country = 'Canada' | join type=inner max=0 country %s",
+                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+    verifyNumOfRows(actual, 15);
+  }
 }
