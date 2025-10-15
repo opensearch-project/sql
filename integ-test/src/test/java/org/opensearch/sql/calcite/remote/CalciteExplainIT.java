@@ -838,8 +838,8 @@ public class CalciteExplainIT extends ExplainIT {
             "source=opensearch-sql_test_index_account | stats count() by state | head 100 | head 10"
                 + " from 10 "));
 
-    expected = loadExpectedPlan("explain_limit_agg_pushdown4.json");
-    assertJsonEqualsIgnoreId(
+    expected = loadExpectedPlan("explain_limit_agg_pushdown4.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | stats count() by state | sort state | head"
@@ -1092,8 +1092,8 @@ public class CalciteExplainIT extends ExplainIT {
                 "source=%s | where cidrmatch(host, '0.0.0.0/24') | fields host",
                 TEST_INDEX_WEBLOGS)));
 
-    assertJsonEqualsIgnoreId(
-        loadExpectedPlan("explain_agg_script_timestamp_push.json"),
+    assertYamlEqualsJsonIgnoreId(
+        loadExpectedPlan("explain_agg_script_timestamp_push.yaml"),
         explainQueryToString(
             String.format(
                 "source=%s | eval t = unix_timestamp(birthdate) | stats count() by t | sort t |"
@@ -1117,5 +1117,21 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryToString(
             String.format(
                 "source=%s | fields age, balance | fillnull value=0", TEST_INDEX_ACCOUNT)));
+  }
+
+  @Test
+  public void testJoinWithPushdownSortIntoAgg() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // PPL_JOIN_SUBSEARCH_MAXOUT!=0 will add limit before sort and then prevent sort push down.
+    setJoinSubsearchMaxOut(0);
+    String expected = loadExpectedPlan("explain_join_with_agg.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | stats COUNT() by age, gender | join left=L right=R ON L.gender ="
+                    + " R.gender [source=%s | stats COUNT() as overall_cnt by gender]",
+                TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT)));
+    resetJoinSubsearchMaxOut();
   }
 }
