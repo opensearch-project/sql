@@ -284,9 +284,15 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     // Get the child query string
     String child = node.getChild().get(0).accept(this, context);
 
-    // Get pattern and replacement expressions
-    String pattern = visitExpression(node.getPattern());
-    String replacement = visitExpression(node.getReplacement());
+    // Build pattern/replacement pairs string
+    String pairs =
+        node.getReplacePairs().stream()
+            .map(
+                pair ->
+                    StringUtils.format(
+                        "%s WITH %s",
+                        visitExpression(pair.getPattern()), visitExpression(pair.getReplacement())))
+            .collect(Collectors.joining(", "));
 
     // Get field list
     String fieldListStr =
@@ -294,8 +300,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
             + node.getFieldList().stream().map(Field::toString).collect(Collectors.joining(", "));
 
     // Build the replace command string
-    return StringUtils.format(
-        "%s | replace %s WITH %s%s", child, pattern, replacement, fieldListStr);
+    return StringUtils.format("%s | replace %s%s", child, pairs, fieldListStr);
   }
 
   /** Build {@link LogicalAggregation}. */
