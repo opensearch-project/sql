@@ -13,7 +13,6 @@ Description
 ===========
 | The ``kmeans`` command applies the kmeans algorithm in the ml-commons plugin on the search result returned by a PPL command.
 
-
 Syntax
 ======
 kmeans <centroids> <iterations> <distance_type>
@@ -26,7 +25,7 @@ kmeans <centroids> <iterations> <distance_type>
 Example: Clustering of Iris Dataset
 ===================================
 
-The example shows how to classify three Iris species (Iris setosa, Iris virginica and Iris versicolor) based on the combination of four features measured from each sample: the length and the width of the sepals and petals.
+This example shows how to classify three Iris species (Iris setosa, Iris virginica and Iris versicolor) based on the combination of four features measured from each sample: the length and the width of the sepals and petals.
 
 PPL query::
 
@@ -43,4 +42,3 @@ PPL query::
 Limitations
 ===========
 The ``kmeans`` command can only work with ``plugins.calcite.enabled=false``.
-It means ``kmeans``  command cannot work together with new PPL commands/functions introduced in 3.0.0 and above.

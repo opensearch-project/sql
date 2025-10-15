@@ -10,37 +10,24 @@ flatten
 
 Description
 ===========
+| The ``flatten`` command flattens a struct or an object field into separate fields in a document.
 
-Use ``flatten`` command to flatten a struct or an object field into separate
-fields in a document.
+| The flattened fields will be ordered **lexicographically** by their original key names in the struct. For example, if the struct has keys ``b``, ``c`` and ``Z``, the flattened fields will be ordered as ``Z``, ``b``, ``c``.
 
-The flattened fields will be ordered **lexicographically** by their original
-key names in the struct. I.e. if the struct has keys ``b``, ``c`` and ``Z``,
-the flattened fields will be ordered as ``Z``, ``b``, ``c``.
-
-Note that ``flatten`` should not be applied to arrays. Please use ``expand``
-command to expand an array field into multiple rows instead. However, since
-an array can be stored in a non-array field in OpenSearch, when expanding a
-field storing a nested array, only the first element of the array will be
-flattened.
+| Note that ``flatten`` should not be applied to arrays. Use the ``expand`` command to expand an array field into multiple rows instead. However, since an array can be stored in a non-array field in OpenSearch, when flattening a field storing a nested array, only the first element of the array will be flattened.
 
 Syntax
 ======
 
 flatten <field> [as (<alias-list>)]
 
-* field: The field to be flattened. Only object and nested fields are
-  supported.
-* alias-list: (Optional) The names to use instead of the original key names.
-  Names are separated by commas. It is advised to put the alias-list in
-  parentheses if there is more than one alias. E.g. both
-  ``country, state, city`` and ``(country, state, city)`` are supported,
-  but the latter is advised. Its length must match the number of keys in the
-  struct field.  Please note that the provided alias names **must** follow
-  the lexicographical order of the corresponding original keys in the struct.
+* field: mandatory. The field to be flattened. Only object and nested fields are supported.
+* alias-list: optional. The names to use instead of the original key names. Names are separated by commas. It is advised to put the alias-list in parentheses if there is more than one alias. The length must match the number of keys in the struct field. The provided alias names **must** follow the lexicographical order of the corresponding original keys in the struct.
 
 Example: flatten an object field with aliases
 =============================================
+
+This example shows flattening a message object field and using aliases to rename the flattened fields.
 
 Given the following index ``my-index``
 
@@ -112,15 +99,3 @@ Limitations
   invisible.
 
   As an alternative, you can change to ``source=my-index | flatten message``.
-
-* The command works only with Calcite enabled. This can be set with the
-  following command:
-
-  .. code-block::
-
-    PUT /_cluster/settings
-    {
-      "persistent":{
-          "plugins.calcite.enabled": true
-      }
-    }

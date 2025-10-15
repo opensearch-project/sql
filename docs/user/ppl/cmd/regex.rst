@@ -38,7 +38,7 @@ For complete documentation of Java regex patterns and available modes, see the `
 Example 1: Basic pattern matching
 =================================
 
-The example shows how to filter documents where the ``lastname`` field matches names starting with uppercase letters.
+This example shows how to filter documents where the ``lastname`` field matches names starting with uppercase letters.
 
 PPL query::
 
@@ -57,7 +57,7 @@ PPL query::
 Example 2: Negative matching
 ============================
 
-The example shows how to exclude documents where the ``lastname`` field ends with "son".
+This example shows how to exclude documents where the ``lastname`` field ends with "son".
 
 PPL query::
 
@@ -76,7 +76,7 @@ PPL query::
 Example 3: Email domain matching
 ================================
 
-The example shows how to filter documents by email domain patterns.
+This example shows how to filter documents by email domain patterns.
 
 PPL query::
 
@@ -92,7 +92,7 @@ PPL query::
 Example 4: Complex patterns with character classes
 ==================================================
 
-The example shows how to use complex regex patterns with character classes and quantifiers.
+This example shows how to use complex regex patterns with character classes and quantifiers.
 
 PPL query::
 
@@ -111,7 +111,7 @@ PPL query::
 Example 5: Case-sensitive matching
 ==================================
 
-The example demonstrates that regex matching is case-sensitive by default.
+This example demonstrates that regex matching is case-sensitive by default.
 
 PPL query::
 
@@ -136,5 +136,5 @@ PPL query::
 Limitations
 ===========
 
-* **Field specification required**: A field name must be specified in the regex command. Pattern-only syntax (e.g., ``regex "pattern"``) is not currently supported
-* **String fields only**: The regex command currently only supports string fields. Using it on numeric or boolean fields will result in an error
+| * **Field specification required**: A field name must be specified in the regex command. Pattern-only syntax (e.g., ``regex "pattern"``) is not currently supported
+| * **String fields only**: The regex command currently only supports string fields. Using it on numeric or boolean fields will result in an error

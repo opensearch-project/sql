@@ -11,25 +11,25 @@ rare
 
 Description
 ============
-| Using ``rare`` command to find the least common tuple of values of all fields in the field list.
+| The ``rare`` command finds the least common tuple of values of all fields in the field list.
 
-**Note**: A maximum of 10 results is returned for each distinct tuple of values of the group-by fields.
+| **Note**: A maximum of 10 results is returned for each distinct tuple of values of the group-by fields.
 
 Syntax
 ============
 rare [rare-options] <field-list> [by-clause]
 
-* field-list: mandatory. comma-delimited list of field names.
-* by-clause: optional. one or more fields to group the results by.
-* rare-options: optional. options for the rare command. Supported syntax is [countfield=<string>] [showcount=<bool>].
-* showcount=<bool>: optional. whether to create a field in output that represent a count of the tuple of values. **Default:** ``true``.
-* countfield=<string>: optional. the name of the field that contains count. **Default:** ``'count'``.
+* field-list: mandatory. Comma-delimited list of field names.
+* by-clause: optional. One or more fields to group the results by.
+* rare-options: optional. Options for the rare command. Supported syntax is [countfield=<string>] [showcount=<bool>].
+* showcount=<bool>: optional. Whether to create a field in output that represent a count of the tuple of values. **Default:** ``true``.
+* countfield=<string>: optional. The name of the field that contains count. **Default:** ``'count'``.
 
 
 Example 1: Find the least common values in a field
-===========================================
+==================================================
 
-The example finds least common gender of all the accounts.
+This example shows how to find the least common gender of all the accounts.
 
 PPL query::
 
@@ -44,9 +44,9 @@ PPL query::
 
 
 Example 2: Find the least common values organized by gender
-====================================================
+============================================================
 
-The example finds least common age of all the accounts group by gender.
+This example shows how to find the least common age of all the accounts grouped by gender.
 
 PPL query::
 
@@ -61,10 +61,10 @@ PPL query::
     | M      | 36  |
     +--------+-----+
 
-Example 3: Rare command with Calcite enabled
+Example 3: Rare command
 ============================================
 
-The example finds least common gender of all the accounts when ``plugins.calcite.enabled`` is true.
+This example shows how to find the least common gender of all the accounts.
 
 PPL query::
 
@@ -81,7 +81,7 @@ PPL query::
 Example 4: Specify the count field option
 =========================================
 
-The example specifies the count field when ``plugins.calcite.enabled`` is true.
+This example shows how to specify the count field.
 
 PPL query::
 
@@ -96,4 +96,4 @@ PPL query::
 
 Limitations
 ===========
-The ``rare`` command is not rewritten to OpenSearch DSL, it is only executed on the coordination node.
+| The ``rare`` command is not rewritten to OpenSearch DSL, it is only executed on the coordination node.

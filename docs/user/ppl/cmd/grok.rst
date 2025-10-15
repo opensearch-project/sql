@@ -13,23 +13,17 @@ Description
 ============
 | The ``grok`` command parses a text field with a grok pattern and appends the results to the search result.
 
-
 Syntax
 ============
 grok <field> <pattern>
 
 * field: mandatory. The field must be a text field.
-* pattern: mandatory string. The grok pattern used to extract new fields from the given text field. If a new field name already exists, it will replace the original field.
-
-Grok Pattern
-============
-
-The grok pattern is used to match the text field of each document to extract new fields.
+* pattern: mandatory. The grok pattern used to extract new fields from the given text field. If a new field name already exists, it will replace the original field.
 
 Example 1: Create the new field
 ===============================
 
-The example shows how to create new field ``host`` for each document. ``host`` will be the host name after ``@`` in ``email`` field. Parsing a null field will return an empty string.
+This example shows how to create new field ``host`` for each document. ``host`` will be the host name after ``@`` in ``email`` field. Parsing a null field will return an empty string.
 
 PPL query::
 
@@ -48,7 +42,7 @@ PPL query::
 Example 2: Override the existing field
 ======================================
 
-The example shows how to override the existing ``address`` field with street number removed.
+This example shows how to override the existing ``address`` field with street number removed.
 
 PPL query::
 
@@ -66,7 +60,7 @@ PPL query::
 Example 3: Using grok to parse logs
 ===================================
 
-The example shows how to use grok to parse raw logs.
+This example shows how to use grok to parse raw logs.
 
 PPL query::
 

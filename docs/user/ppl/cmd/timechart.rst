@@ -16,17 +16,10 @@ Description
 Syntax
 ============
 
-.. code-block:: text
+timechart [span=<time_interval>] [limit=<number>] [useother=<boolean>] <aggregation_function> [by <field>]
 
-   timechart [span=<time_interval>] [limit=<number>] [useother=<boolean>] <aggregation_function> [by <field>]
-
-**Parameters:**
-
-* **span**: optional. Specifies the time interval for grouping data.
-  
-  * Default: 1m (1 minute)
+* span: optional. Specifies the time interval for grouping data. **Default:** 1m (1 minute).
   * Available time units:
-
     * millisecond (ms)
     * second (s)
     * minute (m, case sensitive)
@@ -36,31 +29,20 @@ Syntax
     * month (M, case sensitive)
     * quarter (q)
     * year (y)
-
-* **limit**: optional. Specifies the maximum number of distinct values to display when using the "by" clause.
-
-  * Default: 10
+* limit: optional. Specifies the maximum number of distinct values to display when using the "by" clause. **Default:** 10.
   * When there are more distinct values than the limit, the additional values are grouped into an "OTHER" category if useother is not set to false.
   * The "most distinct" values are determined by calculating the sum of the aggregation values across all time intervals for each distinct field value. The top N values with the highest sums are displayed individually, while the rest are grouped into the "OTHER" category.
   * Set to 0 to show all distinct values without any limit (when limit=0, useother is automatically set to false).
   * The parameters can be specified in any order before the aggregation function.
   * Only applies when using the "by" clause to group results.
-
-* **useother**: optional. Controls whether to create an "OTHER" category for values beyond the limit.
-
-  * Default: true
+* useother: optional. Controls whether to create an "OTHER" category for values beyond the limit. **Default:** true.
   * When set to false, only the top N values (based on limit) are shown without an "OTHER" column.
   * When set to true, values beyond the limit are grouped into an "OTHER" category.
   * Only applies when using the "by" clause and when there are more distinct values than the limit.
-
-* **aggregation_function**: mandatory. The aggregation function to apply to each time bucket.
-
+* aggregation_function: mandatory. The aggregation function to apply to each time bucket.
   * Currently, only a single aggregation function is supported.
   * Available functions: All aggregation functions supported by the :doc:`stats <stats>` command are supported.
-
-* **by**: optional. Groups the results by the specified field in addition to time intervals.
-
-  * If not specified, the aggregation is performed across all documents in each time interval.
+* by: optional. Groups the results by the specified field in addition to time intervals. If not specified, the aggregation is performed across all documents in each time interval.
 
 Notes
 =====
@@ -73,15 +55,6 @@ Notes
 * Examples 6 and 7 use different datasets: Example 6 uses the ``events`` dataset with fewer hosts for simplicity, while Example 7 uses the ``events_many_hosts`` dataset with 11 distinct hosts.
 
 * **Null values**: Documents with null values in the "by" field are treated as a separate category and appear as null in the results.
-
-Limitations
-============
-* Only a single aggregation function is supported per timechart command.
-* The ``bins`` parameter and other bin options are not supported since the ``bin`` command is not implemented yet. Use the ``span`` parameter to control time intervals.
-
-
-Examples
-========
 
 Example 1: Count events by hour
 ===============================
@@ -328,3 +301,7 @@ PPL query::
     | 2024-07-01 00:00:00 | null   | 1     |
     +---------------------+--------+-------+
 
+Limitations
+============
+* Only a single aggregation function is supported per timechart command.
+* The ``bins`` parameter and other bin options are not supported since the ``bin`` command is not implemented yet. Use the ``span`` parameter to control time intervals.

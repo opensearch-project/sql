@@ -11,7 +11,7 @@ append
 
 Description
 ============
-| Using ``append`` command to append the result of a sub-search and attach it as additional rows to the bottom of the input search results (The main search).
+| The ``append`` command appends the result of a sub-search and attaches it as additional rows to the bottom of the input search results (The main search).
 The command aligns columns with the same field names and types. For different column fields between the main search and sub-search, NULL values are filled in the respective rows.
 
 Syntax
@@ -21,7 +21,7 @@ append <sub-search>
 * sub-search: mandatory. Executes PPL commands as a secondary search.
 
 Example 1: Append rows from a count aggregation to existing search result
-===============================================================
+=========================================================================
 
 This example appends rows from "count by gender" to "sum by gender, state".
 
@@ -41,7 +41,7 @@ PPL query::
     +----------+--------+-------+------------+
 
 Example 2: Append rows with merged column names
-====================================================================================
+===============================================
 
 This example appends rows from "sum by gender" to "sum by gender, state" with merged column of same field name and type.
 
@@ -61,7 +61,7 @@ PPL query::
     +-----+--------+-------+
 
 Example 3: Append rows with column type conflict
-=============================================
+================================================
 
 This example shows how column type conflicts are handled when appending results. Same name columns with different types will generate two different columns in appended result.
 

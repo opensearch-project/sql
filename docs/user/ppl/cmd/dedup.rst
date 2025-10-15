@@ -11,24 +11,21 @@ dedup
 
 Description
 ============
-| Using ``dedup`` command to remove identical document defined by field from the search result.
-
+| The ``dedup`` command removes duplicate documents defined by specified fields from the search result.
 
 Syntax
 ============
 dedup [int] <field-list> [keepempty=<bool>] [consecutive=<bool>]
 
-
-* int: optional. The ``dedup`` command retains multiple events for each combination when you specify <int>. The number for <int> must be greater than 0. If you do not specify a number, only the first occurring event is kept. All other duplicates are removed from the results. **Default:** 1
-* keepempty: optional. if true, keep the document if the any field in the field-list has NULL value or field is MISSING. **Default:** false.
+* int: optional. The ``dedup`` command retains multiple events for each combination when you specify <int>. The number for <int> must be greater than 0. All other duplicates are removed from the results. **Default:** 1
+* keepempty: optional. If set to true, keep the document if the any field in the field-list has NULL value or field is MISSING. **Default:** false.
 * consecutive: optional. If set to true, removes only events with duplicate combinations of values that are consecutive. **Default:** false.
 * field-list: mandatory. The comma-delimited field list. At least one field is required.
-
 
 Example 1: Dedup by one field
 =============================
 
-The example show dedup the document with gender field.
+This example shows deduplicating documents by gender field.
 
 PPL query::
 
@@ -44,7 +41,7 @@ PPL query::
 Example 2: Keep 2 duplicates documents
 ======================================
 
-The example show dedup the document with gender field keep 2 duplication.
+This example shows deduplicating documents by gender field while keeping 2 duplicates.
 
 PPL query::
 
@@ -61,7 +58,7 @@ PPL query::
 Example 3: Keep or Ignore the empty field by default
 ============================================
 
-The example show dedup the document by keep null value field.
+This example shows deduplicating documents while keeping null values.
 
 PPL query::
 
@@ -77,7 +74,7 @@ PPL query::
     +----------------+-----------------------+
 
 
-The example show dedup the document by ignore the empty value field.
+This example shows deduplicating documents while ignoring null values.
 
 PPL query::
 
@@ -95,7 +92,7 @@ PPL query::
 Example 4: Dedup in consecutive document
 =========================================
 
-The example show dedup the consecutive document.
+This example shows deduplicating consecutive documents.
 
 PPL query::
 
@@ -112,4 +109,3 @@ PPL query::
 Limitations
 ===========
 The ``dedup`` with ``consecutive=true`` command can only work with ``plugins.calcite.enabled=false``.
-It means ``dedup`` with ``consecutive=true`` command cannot work together with new PPL commands/functions introduced in 3.0.0 and above.

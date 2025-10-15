@@ -11,23 +11,20 @@ describe
 
 Description
 ============
-| Using ``describe`` command to query metadata of the index. ``describe`` command could be only used as the first command in the PPL query.
-
+| Use the ``describe`` command to query metadata of the index. ``describe`` command can only be used as the first command in the PPL query.
 
 Syntax
 ============
-describe <dataSource>.<schema>.<tablename>
+describe [dataSource].[schema].<tablename>
 
 * dataSource: optional. If dataSource is not provided, it resolves to opensearch dataSource.
 * schema: optional.  If schema is not provided, it resolves to default schema.
 * tablename: mandatory. describe command must specify which tablename to query from.
 
-
-
 Example 1: Fetch all the metadata
 =================================
 
-The example describes accounts index.
+This example describes the accounts index.
 
 PPL query::
 
@@ -52,7 +49,7 @@ PPL query::
 Example 2: Fetch metadata with condition and filter
 ===================================================
 
-The example retrieves columns with type long in accounts index.
+This example retrieves columns with type bigint in the accounts index.
 
 PPL query::
 

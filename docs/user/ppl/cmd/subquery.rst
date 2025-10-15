@@ -1,5 +1,5 @@
 =============
-subquery (aka subsearch)
+subquery
 =============
 
 .. rubric:: Table of contents
@@ -11,54 +11,40 @@ subquery (aka subsearch)
 
 Description
 ============
-| The subquery (aka subsearch) commands contain 4 types: ``InSubquery``, ``ExistsSubquery``, ``ScalarSubquery`` and ``RelationSubquery``. The first three are expressions, they are used in WHERE clause (``where <boolean expression>``) and search filter(``search source=* <boolean expression>``). ``RelationSubquery`` is not an expression, it is a statement.
+| The ``subquery`` command allows you to embed one PPL query inside another, enabling complex filtering and data retrieval operations. A subquery is a nested query that executes first and returns results that are used by the outer query for filtering, comparison, or joining operations.
+
+| Subqueries are useful for:
+
+1. Filtering data based on results from another query
+2. Checking for the existence of related data
+3. Performing calculations that depend on aggregated values from other tables
+4. Creating complex joins with dynamic conditions
 
 Syntax
 ======
-Subquery (aka subsearch) has the same syntax with search command, except that it must be enclosed in square brackets.
+subquery: [ source=... | ... | ... ]
 
-InSubquery::
+Subqueries use the same syntax as regular PPL queries but must be enclosed in square brackets. There are four main types of subqueries:
+
+**IN Subquery**
+Tests whether a field value exists in the results of a subquery::
 
     where <field> [not] in [ source=... | ... | ... ]
 
-ExistsSubquery::
+**EXISTS Subquery**
+Tests whether a subquery returns any results::
 
     where [not] exists [ source=... | ... | ... ]
 
-ScalarSubquery::
+**Scalar Subquery**
+Returns a single value that can be used in comparisons or calculations::
 
     where <field> = [ source=... | ... | ... ]
 
-RelationSubquery::
+**Relation Subquery**
+Used in join operations to provide dynamic right-side data::
 
     | join ON condition [ source=... | ... | ... ]
-
-
-Configuration
-=============
-This command requires Calcite enabled. In 3.0.0-beta, as an experimental the Calcite configuration is disabled by default.
-
-Enable Calcite::
-
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
-	  "transient" : {
-	    "plugins.calcite.enabled" : true
-	  }
-	}'
-
-Result set::
-
-    {
-      "acknowledged": true,
-      "persistent": {
-        "plugins": {
-          "calcite": {
-            "enabled": "true"
-          }
-        }
-      },
-      "transient": {}
-    }
 
 Usage
 =====
@@ -127,10 +113,10 @@ RelationSubquery::
     source = table1 | join left = l right = r on condition [ source = table2 | where d > 10 | head 5 ] //subquery in join right side
     source = [ source = table1 | join left = l right = r [ source = table2 | where d > 10 | head 5 ] | stats count(a) by b ] as outer | head 1
 
-
-
 Example 1: TPC-H q20
 ====================
+
+This example shows a complex TPC-H query 20 implementation using nested subqueries.
 
 PPL query::
 
@@ -163,6 +149,8 @@ PPL query::
 
 Example 2: TPC-H q22
 ====================
+
+This example shows a TPC-H query 22 implementation using EXISTS and scalar subqueries.
 
 PPL query::
 

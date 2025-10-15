@@ -11,25 +11,23 @@ top
 
 Description
 ============
-| Using ``top`` command to find the most common tuple of values of all fields in the field list.
-
+| The ``top`` command finds the most common tuple of values of all fields in the field list.
 
 Syntax
 ============
 top [N] [top-options] <field-list> [by-clause]
 
-* N: number of results to return. **Default**: 10
+* N: optional. number of results to return. **Default**: 10
+* top-options: optional. options for the top command. Supported syntax is [countfield=<string>] [showcount=<bool>].
+    * showcount=<bool>: optional. whether to create a field in output that represent a count of the tuple of values. **Default:** true.
+    * countfield=<string>: optional. the name of the field that contains count. **Default:** 'count'.
 * field-list: mandatory. comma-delimited list of field names.
 * by-clause: optional. one or more fields to group the results by.
-* top-options: optional. options for the top command. Supported syntax is [countfield=<string>] [showcount=<bool>].
-* showcount=<bool>: optional. whether to create a field in output that represent a count of the tuple of values. Default value is ``true``.
-* countfield=<string>: optional. the name of the field that contains count. Default value is ``'count'``.
-
 
 Example 1: Find the most common values in a field
-===========================================
+=================================================
 
-The example finds most common gender of all the accounts.
+This example finds the most common gender of all the accounts.
 
 PPL query::
 
@@ -42,10 +40,10 @@ PPL query::
     | F      |
     +--------+
 
-Example 2: Find the most common values in a field
-===========================================
+Example 2: Limit results to top N values
+=========================================
 
-The example finds most common gender of all the accounts.
+This example finds the most common gender and limits results to 1 value.
 
 PPL query::
 
@@ -57,10 +55,10 @@ PPL query::
     | M      |
     +--------+
 
-Example 2: Find the most common values organized by gender
-====================================================
+Example 3: Find the most common values grouped by field
+=======================================================
 
-The example finds most common age of all the accounts group by gender.
+This example finds the most common age of all the accounts grouped by gender.
 
 PPL query::
 
@@ -73,10 +71,10 @@ PPL query::
     | M      | 32  |
     +--------+-----+
 
-Example 3: Top command with Calcite enabled
-===========================================
+Example 4: Top command with count field
+======================================
 
-The example finds most common gender of all the accounts when ``plugins.calcite.enabled`` is true.
+This example finds the most common gender of all the accounts and includes the count.
 
 PPL query::
 
@@ -90,10 +88,10 @@ PPL query::
     +--------+-------+
 
 
-Example 4: Specify the count field option
+Example 5: Specify the count field option
 =========================================
 
-The example specifies the count field when ``plugins.calcite.enabled`` is true.
+This example specifies a custom name for the count field.
 
 PPL query::
 

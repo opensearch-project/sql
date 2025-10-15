@@ -11,40 +11,24 @@ trendline
 
 Description
 ============
-| Using ``trendline`` command to calculate moving averages of fields.
+| The ``trendline`` command calculates moving averages of fields.
 
 Syntax
 ============
-`TRENDLINE [sort <[+|-] sort-field>] [SMA|WMA](number-of-datapoints, field) [AS alias] [[SMA|WMA](number-of-datapoints, field) [AS alias]]...`
+trendline [sort <[+|-] sort-field>] [sma|wma](number-of-datapoints, field) [as <alias>] [[sma|wma](number-of-datapoints, field) [as <alias>]]...
 
 * [+|-]: optional. The plus [+] stands for ascending order and NULL/MISSING first and a minus [-] stands for descending order and NULL/MISSING last. **Default:** ascending order and NULL/MISSING first.
 * sort-field: mandatory when sorting is used. The field used to sort.
+* sma|wma: mandatory. Simple Moving Average (sma) applies equal weighting to all values, Weighted Moving Average (wma) applies greater weight to more recent values.
 * number-of-datapoints: mandatory. The number of datapoints to calculate the moving average (must be greater than zero).
 * field: mandatory. The name of the field the moving average should be calculated for.
-* alias: optional. The name of the resulting column containing the moving average. **Default:** field name with "_trendline").
-
-Two trendline algorithms are supported, aka Simple Moving Average (SMA) and Weighted Moving Average (WMA).
-
-Suppose:
-
-* f[i]: The value of field 'f' in the i-th data-point
-* n: The number of data-points in the moving window (period)
-* t: The current time index
-
-SMA is calculated like
-
-    SMA(t) = (1/n) * Σ(f[i]), where i = t-n+1 to t
-
-WMA places more weights on recent values compared to equal-weighted SMA algorithm
-
-    WMA(t) = (1/(1 + 2 + ... + n)) * Σ(1 * f[i-n+1] + 2 * f[t-n+2] + ... + n * f[t])
-           = (2/(n * (n + 1))) * Σ((i - t + n) * f[i]), where i = t-n+1 to t
+* alias: optional. The name of the resulting column containing the moving average. **Default:** field name with "_trendline".
 
 
 Example 1: Calculate the simple moving average on one field.
-=====================================================
+============================================================
 
-The example shows how to calculate the simple moving average on one field.
+This example shows how to calculate the simple moving average on one field.
 
 PPL query::
 
@@ -61,9 +45,9 @@ PPL query::
 
 
 Example 2: Calculate the simple moving average on multiple fields.
-===========================================================
+==================================================================
 
-The example shows how to calculate the simple moving average on multiple fields.
+This example shows how to calculate the simple moving average on multiple fields.
 
 PPL query::
 
@@ -79,9 +63,9 @@ PPL query::
     +------+-----------+
 
 Example 3: Calculate the simple moving average on one field without specifying an alias.
-=================================================================================
+========================================================================================
 
-The example shows how to calculate the simple moving average on one field.
+This example shows how to calculate the simple moving average on one field.
 
 PPL query::
 
@@ -99,19 +83,7 @@ PPL query::
 Example 4: Calculate the weighted moving average on one field.
 =================================================================================
 
-Configuration
--------------
-wma algorithm requires Calcite enabled.
-
-Enable Calcite:
-
-    >> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
-      "persistent" : {
-        "plugins.calcite.enabled" : true
-      }
-    }'
-
-The example shows how to calculate the weighted moving average on one field.
+This example shows how to calculate the weighted moving average on one field.
 
 PPL query::
 

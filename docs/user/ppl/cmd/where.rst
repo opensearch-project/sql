@@ -11,19 +11,18 @@ where
 
 Description
 ============
-| The ``where`` command bool-expression to filter the search result. The ``where`` command only return the result when bool-expression evaluated to true.
-
+| The ``where`` command filters the search result. The ``where`` command only return the result when bool-expression evaluated to true.
 
 Syntax
 ============
 where <boolean-expression>
 
-* bool-expression: optional. any expression which could be evaluated to boolean value.
+* bool-expression: optional. Any expression which could be evaluated to boolean value.
 
 Example 1: Filter result set with condition
 ===========================================
 
-The example show fetch all the document from accounts index with .
+This example shows fetching all the documents from the accounts index where account_number is 1 or gender is "F".
 
 PPL query::
 

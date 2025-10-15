@@ -11,8 +11,7 @@ rename
 
 Description
 ============
-| Using ``rename`` command to rename one or more fields in the search result.
-
+| The ``rename`` command renames one or more fields in the search result.
 
 Syntax
 ============
@@ -21,8 +20,8 @@ rename <source-field> AS <target-field>["," <source-field> AS <target-field>]...
 * source-field: mandatory. The name of the field you want to rename. Supports wildcard patterns using ``*``.
 * target-field: mandatory. The name you want to rename to. Must have same number of wildcards as the source.
 
-Field Rename Behavior
-==========================================
+Behavior
+========
 
 The rename command handles non-existent fields as follows:
 
@@ -30,17 +29,10 @@ The rename command handles non-existent fields as follows:
 * **Renaming a non-existent field to an existing field**: The existing target field is removed from the result set.
 * **Renaming an existing field to an existing field**: The existing target field is removed and the source field is renamed to the target.
 
-
-**Notes:** 
-
-* Literal asterisk (*) characters in field names cannot be replaced as asterisk is used for wildcard matching.
-* Wildcards are only supported when the Calcite query engine is enabled.
-
-
 Example 1: Rename one field
 ===========================
 
-The example show rename one field.
+This example shows how to rename one field.
 
 PPL query::
 
@@ -59,7 +51,7 @@ PPL query::
 Example 2: Rename multiple fields
 =================================
 
-The example show rename multiple fields.
+This example shows how to rename multiple fields.
 
 PPL query::
 
@@ -78,7 +70,7 @@ PPL query::
 Example 3: Rename with wildcards
 =================================
 
-The example shows renaming multiple fields using wildcard patterns. (Requires Calcite query engine)
+This example shows how to rename multiple fields using wildcard patterns.
 
 PPL query::
 
@@ -97,7 +89,7 @@ PPL query::
 Example 4: Rename with multiple wildcard patterns
 ==================================================
 
-The example shows renaming multiple fields using multiple wildcard patterns. (Requires Calcite query engine)
+This example shows how to rename multiple fields using multiple wildcard patterns.
 
 PPL query::
 
@@ -113,9 +105,9 @@ PPL query::
     +------------+-----------+---------------+
 
 Example 5: Rename existing field to existing field
-====================================
+===================================================
 
-The example shows renaming an existing field to an existing field. The target field gets removed and the source field is renamed to the target field.
+This example shows how to rename an existing field to an existing field. The target field gets removed and the source field is renamed to the target field.
 
 
 PPL query::
@@ -134,4 +126,5 @@ PPL query::
 
 Limitations
 ===========
-The ``rename`` command is not rewritten to OpenSearch DSL, it is only executed on the coordination node.
+| The ``rename`` command is not rewritten to OpenSearch DSL, it is only executed on the coordination node.
+| Literal asterisk (*) characters in field names cannot be replaced as asterisk is used for wildcard matching.

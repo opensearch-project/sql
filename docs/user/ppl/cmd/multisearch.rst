@@ -11,8 +11,7 @@ multisearch
 
 Description
 ============
-| (Experimental)
-| Using ``multisearch`` command to run multiple search subsearches and merge their results together. The command allows you to combine data from different queries on the same or different sources, and optionally apply subsequent processing to the combined result set.
+| Use the ``multisearch`` command to run multiple search subsearches and merge their results together. The command allows you to combine data from different queries on the same or different sources, and optionally apply subsequent processing to the combined result set.
 
 | Key aspects of ``multisearch``:
 
@@ -32,30 +31,10 @@ Description
 
 Syntax
 ======
-| multisearch <subsearch1> <subsearch2> <subsearch3> ...
+multisearch <subsearch1> <subsearch2> <subsearch3> ...
 
-**Requirements:**
-
-* **Minimum 2 subsearches required** - multisearch must contain at least two subsearch blocks
-* **Maximum unlimited** - you can specify as many subsearches as needed
-
-**Subsearch Format:**
-
-* Each subsearch must be enclosed in square brackets: ``[search ...]``
-* Each subsearch must start with the ``search`` keyword
-* Syntax: ``[search source=index | commands...]``
-* Description: Each subsearch is a complete search pipeline enclosed in square brackets
- * Supported commands in subsearches: All PPL commands are supported (``where``, ``eval``, ``fields``, ``head``, ``rename``, ``stats``, ``sort``, ``dedup``, etc.)
-
-* result-processing: optional. Commands applied to the merged results.
-
- * Description: After the multisearch operation, you can apply any PPL command to process the combined results, such as ``stats``, ``sort``, ``head``, etc.
-
-Limitations
-===========
-
-* **Minimum Subsearches**: At least two subsearches must be specified
-* **Schema Compatibility**: When fields with the same name exist across subsearches but have incompatible types, the system automatically resolves conflicts by renaming the conflicting fields. The first occurrence retains the original name, while subsequent conflicting fields are renamed with a numeric suffix (e.g., ``age`` becomes ``age0``, ``age1``, etc.). This ensures all data is preserved while maintaining schema consistency.
+* subsearch1, subsearch2, ...: mandatory. At least two subsearches required. Each subsearch must be enclosed in square brackets and start with the ``search`` keyword. Format: ``[search source=index | commands...]``. All PPL commands are supported within subsearches.
+* result-processing: optional. Commands applied to the merged results after the multisearch operation, such as ``stats``, ``sort``, ``head``, etc.
 
 Usage
 =====
@@ -69,7 +48,7 @@ Basic multisearch::
 Example 1: Basic Age Group Analysis
 ===================================
 
-Combine young and adult customers into a single result set for further analysis.
+This example combines young and adult customers into a single result set for further analysis.
 
 PPL query::
 
@@ -87,7 +66,7 @@ PPL query::
 Example 2: Success Rate Pattern
 ===============================
 
-Combine high-balance and all valid accounts for comparison analysis.
+This example combines high-balance and all valid accounts for comparison analysis.
 
 PPL query::
 
@@ -105,7 +84,7 @@ PPL query::
 Example 3: Timestamp Interleaving
 ==================================
 
-Combine time-series data from multiple sources with automatic timestamp-based ordering.
+This example combines time-series data from multiple sources with automatic timestamp-based ordering.
 
 PPL query::
 
@@ -124,7 +103,7 @@ PPL query::
 Example 4: Handling Empty Results
 ==================================
 
-Multisearch gracefully handles cases where some subsearches return no results.
+This example shows how multisearch gracefully handles cases where some subsearches return no results.
 
 PPL query::
 
@@ -142,7 +121,7 @@ PPL query::
 Example 5: Type Compatibility - Missing Fields
 =================================================
 
-Demonstrate how missing fields are handled with NULL insertion.
+This example demonstrates how missing fields are handled with NULL insertion.
 
 PPL query::
 
@@ -160,7 +139,7 @@ PPL query::
 Example 6: Type Conflict Resolution - Automatic Renaming
 ===========================================================
 
-When the same field name has incompatible types across subsearches, the system automatically renames conflicting fields with numeric suffixes.
+This example shows when the same field name has incompatible types across subsearches, the system automatically renames conflicting fields with numeric suffixes.
 
 PPL query::
 
@@ -176,3 +155,9 @@ PPL query::
     +-----------+-----+---------+------------------+------+----------+
 
 In this example, the ``age`` field has type ``bigint`` in accounts but type ``string`` in locations. The system keeps the first occurrence as ``age`` (bigint) and renames the second occurrence to ``age0`` (string), preserving all data while avoiding type conflicts.
+
+Limitations
+===========
+
+* **Minimum Subsearches**: At least two subsearches must be specified
+* **Schema Compatibility**: When fields with the same name exist across subsearches but have incompatible types, the system automatically resolves conflicts by renaming the conflicting fields. The first occurrence retains the original name, while subsequent conflicting fields are renamed with a numeric suffix (e.g., ``age`` becomes ``age0``, ``age1``, etc.). This ensures all data is preserved while maintaining schema consistency.

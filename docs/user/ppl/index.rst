@@ -50,107 +50,109 @@ The query start with search command and then flowing a set of command delimited 
 
   - `Syntax <cmd/syntax.rst>`_
 
-  - `ad command <cmd/ad.rst>`_
+  - `ad command <cmd/ad.rst>`_ (1.3+, deprecated): Apply Random Cut Forest algorithm on the search result returned by a PPL command.
 
-  - `append command <cmd/append.rst>`_
+  - `append command <cmd/append.rst>`_ (3.3+, experimental): Append the result of a sub-search to the bottom of the input search results.
 
-  - `appendcol command <cmd/appendcol.rst>`_
+  - `appendcol command <cmd/appendcol.rst>`_ (3.1+, experimental): Append the result of a sub-search and attach it alongside the input search results.
 
-  - `bin command <cmd/bin.rst>`_
+  - `bin command <cmd/bin.rst>`_ (3.3+, experimental): Group numeric values into buckets of equal intervals.
 
-  - `dedup command <cmd/dedup.rst>`_
+  - `dedup command <cmd/dedup.rst>`_ (1.0+, stable): Remove identical documents defined by the field from the search result.
 
-  - `describe command <cmd/describe.rst>`_
+  - `describe command <cmd/describe.rst>`_ (2.1+, stable): Query the metadata of an index.
 
-  - `eval command <cmd/eval.rst>`_
+  - `eval command <cmd/eval.rst>`_ (1.0+, stable): Evaluate an expression and append the result to the search result.
 
-  - `eventstats command <cmd/eventstats.rst>`_
+  - `eventstats command <cmd/eventstats.rst>`_ (3.1+, experimental): Calculate aggregation statistics and add them as new fields to each event.
 
-  - `expand command <cmd/expand.rst>`_
+  - `expand command <cmd/expand.rst>`_ (3.1+, experimental): Transform a single document into multiple documents by expanding a nested array field.
 
-  - `explain command <cmd/explain.rst>`_
+  - `explain command <cmd/explain.rst>`_ (3.1+, stable): Explain the plan of query.
 
-  - `fields command <cmd/fields.rst>`_
+  - `fields command <cmd/fields.rst>`_ (1.0+, stable): Keep or remove fields from the search result.
 
-  - `fillnull command <cmd/fillnull.rst>`_
+  - `fillnull command <cmd/fillnull.rst>`_ (3.0+, experimental): Fill null with provided value in one or more fields in the search result.
 
-  - `flatten command  <cmd/flatten.rst>`_
+  - `flatten command  <cmd/flatten.rst>`_ (3.1+, experimental): Flatten a struct or an object field into separate fields in a document.
 
-  - `grok command <cmd/grok.rst>`_
+  - `grok command <cmd/grok.rst>`_ (2.4+, stable): Parse a text field with a grok pattern and append the results to the search result.
 
-  - `head command <cmd/head.rst>`_
-  
-  - `join command  <cmd/join.rst>`_
+  - `head command <cmd/head.rst>`_ (1.0+, stable): Return the first N number of specified results after an optional offset in search order.
 
-  - `kmeans command <cmd/kmeans.rst>`_
+  - `join command  <cmd/join.rst>`_ (3.0+, stable): Combine two datasets together.
 
-  - `lookup command <cmd/lookup.rst>`_
+  - `kmeans command <cmd/kmeans.rst>`_ (1.3+, stable): Apply the kmeans algorithm on the search result returned by a PPL command.
 
-  - `ml command <cmd/ml.rst>`_
+  - `lookup command <cmd/lookup.rst>`_ (3.0, experimental): Add or replace data from a lookup index (dimension table).
 
-  - `multisearch command <cmd/multisearch.rst>`_
+  - `ml command <cmd/ml.rst>`_: Apply machine learning algorithms to analyze data.
 
-  - `parse command <cmd/parse.rst>`_
+  - `multisearch command <cmd/multisearch.rst>`_ (3.4+, experimental): Execute multiple search queries and combine their results.
 
-  - `patterns command <cmd/patterns.rst>`_
+  - `parse command <cmd/parse.rst>`_ (1.3+, stable): Parse a text field with a regular expression and append the result to the search result.
 
-  - `rare command <cmd/rare.rst>`_
+  - `patterns command <cmd/patterns.rst>`_ (2.4+, stable): Extract log patterns from a text field and append the results to the search result.
 
-  - `rename command <cmd/rename.rst>`_
+  - `rare command <cmd/rare.rst>`_ (1.0+, stable): Find the least common tuple of values of all fields in the field list.
 
-  - `regex command <cmd/regex.rst>`_
+  - `regex command <cmd/regex.rst>`_ (3.3+, experimental): Filter search results by matching field values against a regular expression pattern.
 
-  - `rex command <cmd/rex.rst>`_
+  - `rename command <cmd/rename.rst>`_ (1.0+, stable): Rename one or more fields in the search result.
 
-  - `search command <cmd/search.rst>`_
+  - `reverse command <cmd/reverse.rst>`_ (3.2+, experimental): Reverse the display order of search results.
 
-  - `show datasources command <cmd/showdatasources.rst>`_
+  - `rex command <cmd/rex.rst>`_ (3.3+, experimental): Extract fields from a raw text field using regular expression named capture groups.
 
-  - `sort command <cmd/sort.rst>`_
+  - `search command <cmd/search.rst>`_ (1.0+, stable): Retrieve documents from the index.
 
-  - `spath command <cmd/spath.rst>`_
+  - `show datasources command <cmd/showdatasources.rst>`_ (2.4+, stable): Query datasources configured in the PPL engine.
 
-  - `stats command <cmd/stats.rst>`_
+  - `sort command <cmd/sort.rst>`_ (1.0+, stable): Sort all the search results by the specified fields.
 
-  - `subquery (aka subsearch) command <cmd/subquery.rst>`_
+  - `spath command <cmd/spath.rst>`_ (3.3+, experimental): Extract fields from structured text data.
 
-  - `reverse command <cmd/reverse.rst>`_
+  - `stats command <cmd/stats.rst>`_ (1.0+, stable): Calculate aggregation from search results.
 
-  - `table command <cmd/table.rst>`_
-  
-  - `timechart command <cmd/timechart.rst>`_
+  - `subquery command <cmd/subquery.rst>`_ (3.0, experimental): Embed one PPL query inside another for complex filtering and data retrieval operations.
 
-  - `top command <cmd/top.rst>`_
+  - `table command <cmd/table.rst>`_ (3.3+, experimental): Keep or remove fields from the search result using enhanced syntax options.
 
-  - `trendline command <cmd/trendline.rst>`_
+  - `timechart command <cmd/timechart.rst>`_ (3.3+, experimental): Create time-based charts and visualizations.
 
-  - `where command <cmd/where.rst>`_
+  - `top command <cmd/top.rst>`_ (1.0+, stable): Find the most common tuple of values of all fields in the field list.
+
+  - `trendline command <cmd/trendline.rst>`_ (3.0+, experimental): Calculate moving averages of fields.
+
+  - `where command <cmd/where.rst>`_ (1.0+, stable): Filter the search result using boolean expressions.
 
 * **Functions**
 
-  - `Expressions <functions/expressions.rst>`_
-
-  - `Math Functions <functions/math.rst>`_
-
-  - `Date and Time Functions <functions/datetime.rst>`_
-
-  - `String Functions <functions/string.rst>`_
-
-  - `Condition Functions <functions/condition.rst>`_
-
-  - `Relevance Functions <functions/relevance.rst>`_
-
-  - `Type Conversion Functions <functions/conversion.rst>`_
-
-  - `System Functions <functions/system.rst>`_
-
-  - `IP Address Functions <functions/ip.rst>`_
+  - `Aggregation Functions <functions/aggregation.rst>`_
 
   - `Collection Functions <functions/collection.rst>`_
 
+  - `Condition Functions <functions/condition.rst>`_
+
   - `Cryptographic Functions <functions/cryptographic.rst>`_
 
+  - `Date and Time Functions <functions/datetime.rst>`_
+
+  - `Expressions <functions/expressions.rst>`_
+
+  - `IP Address Functions <functions/ip.rst>`_
+
   - `JSON Functions <functions/json.rst>`_
+
+  - `Math Functions <functions/math.rst>`_
+
+  - `Relevance Functions <functions/relevance.rst>`_
+
+  - `String Functions <functions/string.rst>`_
+
+  - `System Functions <functions/system.rst>`_
+
+  - `Type Conversion Functions <functions/conversion.rst>`_
 
 * **Optimization**
 
