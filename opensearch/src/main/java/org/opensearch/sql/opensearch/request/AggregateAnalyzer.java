@@ -213,71 +213,72 @@ public class AggregateAnalyzer {
       Builder newMetricBuilder = countAggNameAndBuilderPair.getRight();
       List<String> countAggNames = countAggNameAndBuilderPair.getLeft();
 
-      // Used to track the current sub-builder as analysis progresses
-      Builder subBuilder = newMetricBuilder;
-
-      // Push auto date span & case in group-by list into nested aggregations
-      Pair<Set<Integer>, AggregationBuilder> aggPushedAndAggBuilder =
-          createNestedAggregation(groupList, project, subBuilder, helper);
-      Set<Integer> aggPushed = aggPushedAndAggBuilder.getLeft();
-      AggregationBuilder pushedAggBuilder = aggPushedAndAggBuilder.getRight();
-      // The group-by list after removing pushed aggregations
-      groupList = groupList.stream().filter(i -> !aggPushed.contains(i)).toList();
-      if (pushedAggBuilder != null) {
-        subBuilder = new Builder().addAggregator(pushedAggBuilder);
-      }
-
       // No group-by clause -- no parent aggregations are attached:
       //   - stats count()
       //   - stats avg(), count()
       // Metric
       if (aggregate.getGroupSet().isEmpty()) {
-        if (subBuilder == null) {
+        if (newMetricBuilder == null) {
           // The optimization must require all count aggregations are removed,
           // and they have only one field name
           return Pair.of(List.of(), new CountAsTotalHitsParser(countAggNames));
         } else {
           return Pair.of(
-              ImmutableList.copyOf(subBuilder.getAggregatorFactories()),
+              ImmutableList.copyOf(newMetricBuilder.getAggregatorFactories()),
               new NoBucketAggregationParser(metricParsers));
         }
-      }
-      // No composite aggregation at top-level
-      //   - stats avg() by range_field
-      //   - stats count() by auto_date_span
-      //   - stats count() by ...auto_date_spans, ...range_fields
-      // [AutoDateHistogram | RangeAgg]+
-      //   Metric
-      else if (groupList.isEmpty()) {
-        return Pair.of(
-            ImmutableList.copyOf(subBuilder.getAggregatorFactories()),
-            new BucketAggregationParser(metricParsers, countAggNames));
-      }
-      // Composite aggregation at top level -- it has composite aggregation, with or without its
-      // incompatible value sources as sub-aggregations
-      //   - stats avg() by term_fields
-      //   - stats avg() by date_histogram
-      //   - stats count() by auto_date_span, range_field, term_fields
-      // CompositeAgg
-      //   [AutoDateHistogram | RangeAgg]*
-      //     Metric
-      else {
-        List<CompositeValuesSourceBuilder<?>> buckets =
-            createCompositeBuckets(groupList, project, helper);
-        if (buckets.size() != groupList.size()) {
-          throw new UnsupportedOperationException(
-              "Not all the left aggregations can be converted to value sources of composite"
-                  + " aggregation");
+      } else {
+        // Used to track the current sub-builder as analysis progresses
+        Builder subBuilder = newMetricBuilder;
+        // Push auto date span & case in group-by list into nested aggregations
+        Pair<Set<Integer>, AggregationBuilder> aggPushedAndAggBuilder =
+            createNestedAggregation(groupList, project, subBuilder, helper);
+        Set<Integer> aggPushed = aggPushedAndAggBuilder.getLeft();
+        AggregationBuilder pushedAggBuilder = aggPushedAndAggBuilder.getRight();
+        // The group-by list after removing pushed aggregations
+        groupList = groupList.stream().filter(i -> !aggPushed.contains(i)).toList();
+        if (pushedAggBuilder != null) {
+          subBuilder = new Builder().addAggregator(pushedAggBuilder);
         }
-        AggregationBuilder compositeBuilder =
-            AggregationBuilders.composite("composite_buckets", buckets)
-                .size(AGGREGATION_BUCKET_SIZE);
-        if (subBuilder != null) {
-          compositeBuilder.subAggregations(subBuilder);
+
+        // No composite aggregation at top-level -- auto date span & case in group-by list are
+        // pushed into nested aggregations:
+        //   - stats avg() by range_field
+        //   - stats count() by auto_date_span
+        //   - stats count() by ...auto_date_spans, ...range_fields
+        // [AutoDateHistogram | RangeAgg]+
+        //   Metric
+        if (groupList.isEmpty()) {
+          return Pair.of(
+              ImmutableList.copyOf(subBuilder.getAggregatorFactories()),
+              new BucketAggregationParser(metricParsers, countAggNames));
         }
-        return Pair.of(
-            Collections.singletonList(compositeBuilder),
-            new BucketAggregationParser(metricParsers, countAggNames));
+        // Composite aggregation at top level -- it has composite aggregation, with or without its
+        // incompatible value sources as sub-aggregations:
+        //   - stats avg() by term_fields
+        //   - stats avg() by date_histogram
+        //   - stats count() by auto_date_span, range_field, term_fields
+        // CompositeAgg
+        //   [AutoDateHistogram | RangeAgg]*
+        //     Metric
+        else {
+          List<CompositeValuesSourceBuilder<?>> buckets =
+              createCompositeBuckets(groupList, project, helper);
+          if (buckets.size() != groupList.size()) {
+            throw new UnsupportedOperationException(
+                "Not all the left aggregations can be converted to value sources of composite"
+                    + " aggregation");
+          }
+          AggregationBuilder compositeBuilder =
+              AggregationBuilders.composite("composite_buckets", buckets)
+                  .size(AGGREGATION_BUCKET_SIZE);
+          if (subBuilder != null) {
+            compositeBuilder.subAggregations(subBuilder);
+          }
+          return Pair.of(
+              Collections.singletonList(compositeBuilder),
+              new BucketAggregationParser(metricParsers, countAggNames));
+        }
       }
     } catch (Throwable e) {
       Throwables.throwIfInstanceOf(e, UnsupportedOperationException.class);

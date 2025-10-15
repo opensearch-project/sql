@@ -6,12 +6,14 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OTEL_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.closeTo;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -31,6 +33,7 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
     loadIndex(Index.TIME_TEST_DATA);
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
     loadIndex(Index.BANK);
+    loadIndex(Index.OTELLOGS);
     appendDataForBadResponse();
   }
 
@@ -469,5 +472,47 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
     } else {
       verifyDataRows(actual, rows(10, "teenager"), rows(25, "adult"), rows(70, "senior"));
     }
+  }
+
+  @Test
+  public void testNestedCaseAggWithAutoDateHistogram() throws IOException {
+    JSONObject actual1 =
+        executeQuery(
+            String.format(
+                "source=%s |  bin @timestamp bins=2 | eval severity_range = case(severityNumber <"
+                    + " 16, 'minor' else 'severe') | stats avg(severityNumber), count() by"
+                    + " @timestamp, severity_range, flags",
+                TEST_INDEX_OTEL_LOGS));
+    verifySchema(
+        actual1,
+        schema("avg(severityNumber)", "double"),
+        schema("count()", "bigint"),
+        schema("@timestamp", "timestamp"),
+        schema("severity_range", "string"),
+        schema("flags", "bigint"));
+
+    verifyDataRows(
+        actual1,
+        rows(8.85, 20, "2024-01-15 10:30:02", "minor", 0),
+        rows(20, 9, "2024-01-15 10:30:02", "severe", 0),
+        rows(9, 1, "2024-01-15 10:30:00", "minor", 1),
+        rows(17, 1, "2024-01-15 10:30:00", "severe", 1),
+        rows(1, 1, "2024-01-15 10:30:05", "minor", 1));
+
+    JSONObject actual2 =
+        executeQuery(
+            String.format(
+                "source=%s |  bin @timestamp bins=100 | eval severity_range = case(severityNumber <"
+                    + " 16, 'minor' else 'severe') | stats avg(severityNumber), count() by"
+                    + " @timestamp, severity_range, flags",
+                TEST_INDEX_OTEL_LOGS));
+    verifySchema(
+        actual2,
+        schema("avg(severityNumber)", "double"),
+        schema("count()", "bigint"),
+        schema("@timestamp", "timestamp"),
+        schema("severity_range", "string"),
+        schema("flags", "bigint"));
+    verifyNumOfRows(actual2, 32);
   }
 }
