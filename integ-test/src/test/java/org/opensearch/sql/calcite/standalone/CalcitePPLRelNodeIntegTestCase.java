@@ -24,8 +24,8 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryType;
 
 /** Base class for integration test based on RelNode tree. Mainly for testing internal functions */
@@ -116,8 +116,6 @@ public abstract class CalcitePPLRelNodeIntegTestCase extends CalcitePPLIntegTest
 
     config.context(Contexts.of(RelBuilder.Config.DEFAULT));
 
-    Settings settings = getSettings();
-    return CalcitePlanContext.create(
-        config.build(), settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT), QueryType.PPL);
+    return CalcitePlanContext.create(config.build(), SysLimit.DEFAULT, QueryType.PPL);
   }
 }
