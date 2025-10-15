@@ -517,9 +517,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       context.setResolvingJoinCondition(false);
     }
     subquery.accept(planVisitor, context);
-
+    // add subsearch.maxout limit to exists-in subsearch, 0 and negative means unlimited
     if (context.sysLimit.subsearchLimit() > 0 && !(subqueryExpression instanceof ScalarSubquery)) {
-      // Add subsearch.maxout limit to exists-in subsearch:
       // Cannot add system limit to the top of subquery simply.
       // Instead, add system limit under the correlated conditions.
       SubsearchUtils.SystemLimitInsertionShuttle shuttle =
@@ -537,10 +536,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     }
     // pop the inner plan
     RelNode subqueryRel = context.relBuilder.build();
-    // if maxout = 0, return empty results
-    if (context.sysLimit.subsearchLimit() == 0) {
-      subqueryRel = context.relBuilder.values(subqueryRel.getRowType()).build();
-    }
     // clear the exists subquery resolving state
     // restore to the previous state
     if (isResolvingJoinConditionOuter) {

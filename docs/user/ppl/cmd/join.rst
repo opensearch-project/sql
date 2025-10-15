@@ -71,7 +71,7 @@ Result set::
 plugins.ppl.join.subsearch_maxout
 ---------------------------------
 
-The size configures the maximum of rows from subsearch to join against. The default value is: ``50000``. A value of ``-1`` indicates that the restriction is unlimited.
+The size configures the maximum of rows from subsearch to join against. The default value is: ``50000``. A value of ``0`` indicates that the restriction is unlimited.
 
 Change the join.subsearch_maxout to 5000::
 

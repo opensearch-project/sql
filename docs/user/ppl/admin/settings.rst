@@ -290,7 +290,7 @@ plugins.ppl.subsearch.maxout
 Description
 -----------
 
-The size configures the maximum of rows to return from subsearch. The default value is: ``10000``. A value of ``-1`` indicates that the restriction is unlimited.
+The size configures the maximum of rows to return from subsearch. The default value is: ``10000``. A value of ``0`` indicates that the restriction is unlimited.
 
 Version
 -------
@@ -303,14 +303,14 @@ Change the subsearch.maxout to unlimited::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
     ... -X PUT localhost:9200/_plugins/_query/settings \
-    ... -d '{"persistent" : {"plugins.ppl.subsearch.maxout" : "-1"}}'
+    ... -d '{"persistent" : {"plugins.ppl.subsearch.maxout" : "0"}}'
     {
       "acknowledged": true,
       "persistent": {
         "plugins": {
           "ppl": {
             "subsearch": {
-              "maxout": "-1"
+              "maxout": "0"
             }
           }
         }
@@ -324,7 +324,7 @@ plugins.ppl.join.subsearch_maxout
 Description
 -----------
 
-The size configures the maximum of rows from subsearch to join against. This configuration impacts ``join`` command. The default value is: ``50000``. A value of ``-1`` indicates that the restriction is unlimited.
+The size configures the maximum of rows from subsearch to join against. This configuration impacts ``join`` command. The default value is: ``50000``. A value of ``0`` indicates that the restriction is unlimited.
 
 Version
 -------

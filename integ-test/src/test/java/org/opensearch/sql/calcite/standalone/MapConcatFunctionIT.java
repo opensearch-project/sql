@@ -28,7 +28,6 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
