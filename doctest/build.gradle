@@ -42,6 +42,19 @@ task bootstrap(type: Exec, dependsOn: ['cloneSqlCli']) {
     commandLine 'sh', "$projectDir/bootstrap.sh"
 }
 
+def isPrometheusRunning = { ->
+    try {
+        def process = "pgrep -f prometheus".execute()
+        def output = process.text
+        def result = !output.trim().isEmpty()
+        println "Prometheus running status: ${result}"
+        return result
+    } catch (Exception e) {
+        println "Error checking Prometheus process: ${e.message}"
+        return false
+    }
+}
+
 task startPrometheus(type: SpawnProcessTask) {
     doFirst {
         download.run {
@@ -62,7 +75,7 @@ task startPrometheus(type: SpawnProcessTask) {
     command "$projectDir/bin/prometheus/prometheus --storage.tsdb.path=$projectDir/bin/prometheus/data --config.file=$projectDir/bin/prometheus/prometheus.yml"
     ready 'TSDB started'
     pidLockFileName ".prom.pid.lock"
-    onlyIf { !ignorePrometheus && getOSFamilyType() != "windows" }
+    onlyIf { !ignorePrometheus && getOSFamilyType() != "windows" && !isPrometheusRunning() }
 }
 
 
