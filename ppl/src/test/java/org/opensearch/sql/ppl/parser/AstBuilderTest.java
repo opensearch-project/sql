@@ -1193,7 +1193,22 @@ public class AstBuilderTest {
 
   @Test
   public void testStatsWithPerSecondThrowsException() {
-    assertThrows(SyntaxCheckException.class, () -> plan("source=t | stats per_second(a)"));
+    assertEquals(
+        "per_second function can only be used within timechart command",
+        assertThrows(SyntaxCheckException.class, () -> plan("source=t | stats per_second(a)"))
+            .getMessage());
+    assertEquals(
+        "per_minute function can only be used within timechart command",
+        assertThrows(SyntaxCheckException.class, () -> plan("source=t | stats per_minute(a)"))
+            .getMessage());
+    assertEquals(
+        "per_hour function can only be used within timechart command",
+        assertThrows(SyntaxCheckException.class, () -> plan("source=t | stats per_hour(a)"))
+            .getMessage());
+    assertEquals(
+        "per_day function can only be used within timechart command",
+        assertThrows(SyntaxCheckException.class, () -> plan("source=t | stats per_day(a)"))
+            .getMessage());
   }
 
   protected void assertEqual(String query, Node expectedPlan) {
