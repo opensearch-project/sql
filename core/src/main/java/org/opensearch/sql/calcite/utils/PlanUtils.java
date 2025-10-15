@@ -12,6 +12,7 @@ import static org.apache.calcite.rex.RexWindowBounds.following;
 import static org.apache.calcite.rex.RexWindowBounds.preceding;
 
 import com.google.common.collect.ImmutableList;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -26,6 +27,7 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
@@ -72,6 +74,59 @@ public interface PlanUtils {
       case UNKNOWN -> SpanUnit.UNKNOWN;
       default -> throw new UnsupportedOperationException("Unsupported interval unit: " + unit);
     };
+  }
+
+  static IntervalUnit spanUnitToIntervalUnit(SpanUnit unit) {
+    switch (unit) {
+      case MILLISECOND:
+      case MS:
+        return IntervalUnit.MICROSECOND;
+      case SECOND:
+      case SECONDS:
+      case SEC:
+      case SECS:
+      case S:
+        return IntervalUnit.SECOND;
+      case MINUTE:
+      case MINUTES:
+      case MIN:
+      case MINS:
+      case m:
+        return IntervalUnit.MINUTE;
+      case HOUR:
+      case HOURS:
+      case HR:
+      case HRS:
+      case H:
+        return IntervalUnit.HOUR;
+      case DAY:
+      case DAYS:
+      case D:
+        return IntervalUnit.DAY;
+      case WEEK:
+      case WEEKS:
+      case W:
+        return IntervalUnit.WEEK;
+      case MONTH:
+      case MONTHS:
+      case MON:
+      case M:
+        return IntervalUnit.MONTH;
+      case QUARTER:
+      case QUARTERS:
+      case QTR:
+      case QTRS:
+      case Q:
+        return IntervalUnit.QUARTER;
+      case YEAR:
+      case YEARS:
+      case Y:
+        return IntervalUnit.YEAR;
+      case UNKNOWN:
+        return IntervalUnit.UNKNOWN;
+      default:
+        throw new UnsupportedOperationException("Unsupported span unit: " + unit);
+    }
   }
 
   static RexNode makeOver(
@@ -432,5 +487,37 @@ public interface PlanUtils {
             .map(Objects::toString)
             .collect(Collectors.joining(","))
         + "]";
+  }
+
+  /**
+   * Check if the RexNode contains any CorrelVariable.
+   *
+   * @param node the RexNode to check
+   * @return true if the RexNode contains any CorrelVariable, false otherwise
+   */
+  static boolean containsCorrelVariable(RexNode node) {
+    try {
+      node.accept(
+          new RexVisitorImpl<Void>(true) {
+            @Override
+            public Void visitCorrelVariable(RexCorrelVariable correlVar) {
+              throw new RuntimeException("Correl found");
+            }
+          });
+      return false;
+    } catch (Exception e) {
+      return true;
+    }
+  }
+
+  /** Adds a rel node to the top of the stack while preserving the field names and aliases. */
+  static void replaceTop(RelBuilder relBuilder, RelNode relNode) {
+    try {
+      Method method = RelBuilder.class.getDeclaredMethod("replaceTop", RelNode.class);
+      method.setAccessible(true);
+      method.invoke(relBuilder, relNode);
+    } catch (Exception e) {
+      throw new IllegalStateException("Unable to invoke RelBuilder.replaceTop", e);
+    }
   }
 }
