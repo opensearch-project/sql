@@ -215,7 +215,8 @@ public OpenSearchExecutionEngine(
                     () -> {
                       try (PreparedStatement statement = OpenSearchRelRunners.run(context, rel)) {
                         ResultSet result = statement.executeQuery();
-                        buildResultSet(result, rel.getRowType(), context.querySizeLimit, listener);
+                        buildResultSet(
+                            result, rel.getRowType(), context.sysLimit.querySizeLimit(), listener);
                       } catch (SQLException e) {
                         throw new RuntimeException(e);
                       }
