@@ -838,8 +838,8 @@ public class CalciteExplainIT extends ExplainIT {
             "source=opensearch-sql_test_index_account | stats count() by state | head 100 | head 10"
                 + " from 10 "));
 
-    expected = loadExpectedPlan("explain_limit_agg_pushdown4.json");
-    assertJsonEqualsIgnoreId(
+    expected = loadExpectedPlan("explain_limit_agg_pushdown4.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | stats count() by state | sort state | head"
@@ -1092,8 +1092,8 @@ public class CalciteExplainIT extends ExplainIT {
                 "source=%s | where cidrmatch(host, '0.0.0.0/24') | fields host",
                 TEST_INDEX_WEBLOGS)));
 
-    assertJsonEqualsIgnoreId(
-        loadExpectedPlan("explain_agg_script_timestamp_push.json"),
+    assertYamlEqualsJsonIgnoreId(
+        loadExpectedPlan("explain_agg_script_timestamp_push.yaml"),
         explainQueryToString(
             String.format(
                 "source=%s | eval t = unix_timestamp(birthdate) | stats count() by t | sort t |"
