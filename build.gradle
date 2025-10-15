@@ -65,9 +65,8 @@ buildscript {
     repositories {
         mavenLocal()
         mavenCentral()
-        maven { url "https://plugins.gradle.org/m2/" }
         maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
-        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
     }
 
     dependencies {
@@ -91,10 +90,9 @@ apply plugin: 'opensearch.java'
 repositories {
     mavenLocal()
     mavenCentral() // For Elastic Libs that you can use to get started coding until open OpenSearch libs are available
-    maven { url "https://plugins.gradle.org/m2/" }
     maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
-    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
     maven { url 'https://jitpack.io' }
+    maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
 }
 
 // Spotless checks will be added as PRs are applied to resolve each style issue is approved.
@@ -161,11 +159,10 @@ subprojects {
     repositories {
         mavenLocal()
         mavenCentral()
-        maven { url "https://plugins.gradle.org/m2/" }
         maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
-        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
         maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
         maven { url 'https://jitpack.io' }
+        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
     }
 }
 
