@@ -168,7 +168,7 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
   }
 
   private static boolean isInArray(List<String> path) {
-    return path.size() >= 1 && path.getLast().equals(ARRAY_SUFFIX);
+    return path.size() >= 1 && path.get(path.size() - 1).equals(ARRAY_SUFFIX);
   }
 
   private static Object extractValue(JsonParser parser, JsonToken token) throws IOException {
