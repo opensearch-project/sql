@@ -207,7 +207,7 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
       if (ARRAY_SUFFIX.equals(path)) {
         builder.append(ARRAY_SUFFIX);
       } else if (!path.isEmpty()) {
-        if (!builder.isEmpty()) {
+        if (builder.length() != 0) {
           builder.append(".");
         }
         builder.append(path);
