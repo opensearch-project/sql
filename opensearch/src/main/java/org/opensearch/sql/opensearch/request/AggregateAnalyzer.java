@@ -380,6 +380,8 @@ public class AggregateAnalyzer {
       case AVG -> Pair.of(
           helper.build(args.getFirst(), AggregationBuilders.avg(aggFieldName)),
           new SingleValueParser(aggFieldName));
+        // 1. Only case SUM, skip SUM0 / COUNT since calling avg() in DSL should be faster.
+        // 2. To align with databases, SUM0 is not preferred now.
       case SUM -> Pair.of(
           helper.build(args.getFirst(), AggregationBuilders.sum(aggFieldName)),
           new SingleValueParser(aggFieldName));

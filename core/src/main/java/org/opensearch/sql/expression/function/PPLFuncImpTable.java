@@ -99,6 +99,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_AR
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_DELETE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_EXTEND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_EXTRACT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_EXTRACT_ALL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_KEYS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_OBJECT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.JSON_SET;
@@ -123,6 +124,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTRIM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAKEDATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAKETIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAP_CONCAT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_BOOL_PREFIX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_PHRASE;
@@ -896,6 +898,7 @@ public class PPLFuncImpTable {
       registerOperator(ARRAY, PPLBuiltinOperators.ARRAY);
       registerOperator(MVAPPEND, PPLBuiltinOperators.MVAPPEND);
       registerOperator(ARRAY_LENGTH, SqlLibraryOperators.ARRAY_LENGTH);
+      registerOperator(MAP_CONCAT, SqlLibraryOperators.MAP_CONCAT);
       registerOperator(FORALL, PPLBuiltinOperators.FORALL);
       registerOperator(EXISTS, PPLBuiltinOperators.EXISTS);
       registerOperator(FILTER, PPLBuiltinOperators.FILTER);
@@ -928,6 +931,7 @@ public class PPLFuncImpTable {
       registerOperator(JSON_DELETE, PPLBuiltinOperators.JSON_DELETE);
       registerOperator(JSON_APPEND, PPLBuiltinOperators.JSON_APPEND);
       registerOperator(JSON_EXTEND, PPLBuiltinOperators.JSON_EXTEND);
+      registerOperator(JSON_EXTRACT_ALL, PPLBuiltinOperators.JSON_EXTRACT_ALL); // internal
 
       // Register operators with a different type checker
 

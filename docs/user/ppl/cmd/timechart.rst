@@ -41,8 +41,19 @@ timechart [span=<time_interval>] [limit=<number>] [useother=<boolean>] <aggregat
   * Only applies when using the "by" clause and when there are more distinct values than the limit.
 * aggregation_function: mandatory. The aggregation function to apply to each time bucket.
   * Currently, only a single aggregation function is supported.
-  * Available functions: All aggregation functions supported by the :doc:`stats <stats>` command are supported.
+  * Available functions: All aggregation functions supported by the :doc:`stats <stats>` command, as well as the timechart-specific aggregations listed below.
 * by: optional. Groups the results by the specified field in addition to time intervals. If not specified, the aggregation is performed across all documents in each time interval.
+
+PER_SECOND
+----------
+
+Description
+
+Usage: per_second(field) calculates the per-second rate for a numeric field within each time bucket.
+
+The calculation formula is: `per_second(field) = sum(field) / span_in_seconds`, where `span_in_seconds` is the span interval in seconds.
+
+Return type: DOUBLE
 
 Notes
 =====
@@ -301,7 +312,26 @@ PPL query::
     | 2024-07-01 00:00:00 | null   | 1     |
     +---------------------+--------+-------+
 
+Example 11: Calculate packets per second rate
+=============================================
+
+This example calculates the per-second packet rate for network traffic data using the per_second() function.
+
+PPL query::
+
+    os> source=events | timechart span=30m per_second(packets) by host
+    fetched rows / total rows = 4/4
+    +---------------------+---------+---------------------+
+    | @timestamp          | host    | per_second(packets) |
+    |---------------------+---------+---------------------|
+    | 2023-01-01 10:00:00 | server1 | 0.1                 |
+    | 2023-01-01 10:00:00 | server2 | 0.05                |
+    | 2023-01-01 10:30:00 | server1 | 0.1                 |
+    | 2023-01-01 10:30:00 | server2 | 0.05                |
+    +---------------------+---------+---------------------+
+
 Limitations
-============
+===========
 * Only a single aggregation function is supported per timechart command.
 * The ``bins`` parameter and other bin options are not supported since the ``bin`` command is not implemented yet. Use the ``span`` parameter to control time intervals.
+

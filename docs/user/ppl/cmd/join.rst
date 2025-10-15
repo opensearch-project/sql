@@ -41,6 +41,34 @@ join [type=<joinType>] [overwrite=<bool>] [max=n] (<join-field-list> | [leftAlia
 * joinCriteria: mandatory. Same as basic syntax when used with extended syntax.
 * right-dataset: mandatory. Same as basic syntax.
 
+Configuration
+=============
+
+plugins.ppl.join.subsearch_maxout
+---------------------------------
+
+The size configures the maximum of rows from subsearch to join against. The default value is: ``50000``. A value of ``0`` indicates that the restriction is unlimited.
+
+Change the join.subsearch_maxout to 5000::
+
+    sh$ curl -sS -H 'Content-Type: application/json' \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"persistent" : {"plugins.ppl.join.subsearch_maxout" : "5000"}}'
+    {
+      "acknowledged": true,
+      "persistent": {
+        "plugins": {
+          "ppl": {
+            "join": {
+              "subsearch_maxout": "5000"
+            }
+          }
+        }
+      },
+      "transient": {}
+    }
+
+
 Usage
 =====
 
