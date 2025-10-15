@@ -438,6 +438,16 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testExplainTimechartPerSecond() throws IOException {
+    var result = explainQueryToString("source=events | timechart span=2m per_second(cpu_usage)");
+    assertTrue(
+        result.contains(
+            "per_second(cpu_usage)=[DIVIDE(*($1, 1.0E0), "
+                + "TIMESTAMPDIFF('SECOND':VARCHAR, $0, TIMESTAMPADD('MINUTE':VARCHAR, 2, $0)))]"));
+    assertTrue(result.contains("per_second(cpu_usage)=[SUM($0)]"));
+  }
+
+  @Test
   public void noPushDownForAggOnWindow() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String query =

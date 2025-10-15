@@ -1928,6 +1928,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   /** Helper method to get the function name for proper column naming */
   private String getValueFunctionName(UnresolvedExpression aggregateFunction) {
+    if (aggregateFunction instanceof Alias) {
+      return ((Alias) aggregateFunction).getName();
+    }
     if (!(aggregateFunction instanceof AggregateFunction)) {
       return "value";
     }
