@@ -10,6 +10,8 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STRINGS;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORKER;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORK_INFORMATION;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 import static org.opensearch.sql.util.MatcherUtils.assertYamlEqualsJsonIgnoreId;
 
@@ -30,6 +32,8 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.TIME_TEST_DATA2);
     loadIndex(Index.EVENTS);
     loadIndex(Index.LOGS);
+    loadIndex(Index.WORKER);
+    loadIndex(Index.WORK_INFORMATION);
   }
 
   @Override
@@ -98,8 +102,132 @@ public class CalciteExplainIT extends ExplainIT {
         "source=opensearch-sql_test_index_bank | join type=outer account_number"
             + " opensearch-sql_test_index_bank";
     var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_join_with_fields.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    String expected = loadExpectedPlan("explain_join_with_fields.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainExistsUncorrelatedSubquery() throws IOException {
+    String expected = loadExpectedPlan("explain_exists_uncorrelated_subquery.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source = %s"
+                    + "| where exists ["
+                    + "    source = %s | where name = 'Tom'"
+                    + "  ]"
+                    + "| sort  - salary"
+                    + "| fields id, name, salary",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION)));
+  }
+
+  @Test
+  public void testExplainExistsCorrelatedSubquery() throws IOException {
+    String expected = loadExpectedPlan("explain_exists_correlated_subquery.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source = %s"
+                    + "| where exists ["
+                    + "    source = %s | where id = uid and name = 'Tom'"
+                    + "  ]"
+                    + "| sort  - salary"
+                    + "| fields id, name, salary",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION)));
+  }
+
+  @Test
+  public void testExplainInUncorrelatedSubquery() throws IOException {
+    String expected = loadExpectedPlan("explain_in_uncorrelated_subquery.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source = %s"
+                    + "| where id in ["
+                    + "    source = %s | fields uid"
+                    + "  ]"
+                    + "| sort  - salary"
+                    + "| fields id, name, salary",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION)));
+  }
+
+  @Test
+  public void testExplainInCorrelatedSubquery() throws IOException {
+    String expected = loadExpectedPlan("explain_in_correlated_subquery.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source = %s"
+                    + "| where name in ["
+                    + "    source = %s | where id = uid and name = 'Tom' | fields name"
+                    + "  ]"
+                    + "| sort - salary | fields id, name, salary",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION)));
+  }
+
+  @Test
+  public void testExplainScalarUncorrelatedSubqueryInSelect() throws IOException {
+    String expected = loadExpectedPlan("explain_scalar_uncorrelated_subquery_in_select.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source = %s"
+                    + "| eval count_dept = ["
+                    + "    source = %s | stats count(name)"
+                    + "  ]"
+                    + "| fields name, count_dept",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_WORK_INFORMATION)));
+  }
+
+  @Test
+  public void testExplainScalarUncorrelatedSubqueryInWhere() throws IOException {
+    String expected = loadExpectedPlan("explain_scalar_uncorrelated_subquery_in_where.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source = %s"
+                    + "| where id > ["
+                    + "    source = %s | stats count(name)"
+                    + "  ] + 999"
+                    + "| fields name",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_WORK_INFORMATION)));
+  }
+
+  @Test
+  public void testExplainScalarCorrelatedSubqueryInSelect() throws IOException {
+    String expected = loadExpectedPlan("explain_scalar_correlated_subquery_in_select.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source = %s"
+                    + "| eval count_dept = ["
+                    + "    source = %s"
+                    + "    | where id = uid | stats count(name)"
+                    + "  ]"
+                    + "| fields id, name, count_dept",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION)));
+  }
+
+  @Test
+  public void testExplainScalarCorrelatedSubqueryInWhere() throws IOException {
+    String expected = loadExpectedPlan("explain_scalar_correlated_subquery_in_where.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source = %s"
+                    + "| where id = ["
+                    + "    source = %s | where id = uid | stats max(uid)"
+                    + "  ]"
+                    + "| fields id, name",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION)));
   }
 
   // Only for Calcite
@@ -109,8 +237,8 @@ public class CalciteExplainIT extends ExplainIT {
         "source=opensearch-sql_test_index_bank| join left=l right=r on"
             + " l.account_number=r.account_number opensearch-sql_test_index_bank";
     var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_merge_join_sort_push.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    String expected = loadExpectedPlan("explain_merge_join_sort_push.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
   // Only for Calcite
