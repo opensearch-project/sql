@@ -1368,6 +1368,29 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void testTimeModifierEarliestWithNumericValue() {
+    assertEqual("source=t earliest=1", search(relation("t"), "@timestamp:>=1000"));
+
+    assertEqual(
+        "source=t earliest=1754020061.123456",
+        search(relation("t"), "@timestamp:>=1754020061123.456"));
+  }
+
+  @Test
+  public void testTimeModifierLatestWithNowValue() {
+    assertEqual(
+        "source=t earliest=now latest=now()",
+        search(relation("t"), "(@timestamp:>=now) AND (@timestamp:<=now)"));
+  }
+
+  @Test
+  public void testTimeModifierEarliestWithStringValue() {
+    assertEqual(
+        "source=t earliest='2025-12-10 14:00:00'",
+        search(relation("t"), "@timestamp:>=2025\\-12\\-10T14\\:00\\:00Z"));
+  }
+
+  @Test
   public void testTimechartSpanParameter() {
     assertEqual(
         "source=t | timechart span=30m count()",
@@ -1556,14 +1579,12 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
 
     // Test span literal with decimal value and minute unit
     assertEqual(
-        "source=t | timechart span=2.5m count()",
+        "source=t | timechart span=2m count()",
         Timechart.builder()
             .child(relation("t"))
             .binExpression(
                 span(
-                    field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP),
-                    decimalLiteral(2.5),
-                    SpanUnit.m))
+                    field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP), intLiteral(2), SpanUnit.m))
             .aggregateFunction(aggregate("count", allFields()))
             .limit(10)
             .useOther(true)

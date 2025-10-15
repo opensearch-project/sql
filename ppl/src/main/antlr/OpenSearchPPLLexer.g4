@@ -58,6 +58,7 @@ MAX_MATCH:                          'MAX_MATCH';
 OFFSET_FIELD:                       'OFFSET_FIELD';
 BUFFER_LIMIT:                       'BUFFER_LIMIT';
 LABEL:                              'LABEL';
+SHOW_NUMBERED_TOKEN:                'SHOW_NUMBERED_TOKEN';
 AGGREGATION:                        'AGGREGATION';
 
 //Native JOIN KEYWORDS
@@ -84,6 +85,7 @@ DESC:                               'DESC';
 DATASOURCES:                        'DATASOURCES';
 USING:                              'USING';
 WITH:                               'WITH';
+VALUE:                              'VALUE';
 SIMPLE:                             'SIMPLE';
 STANDARD:                           'STANDARD';
 COST:                               'COST';
@@ -124,6 +126,7 @@ TIME_ZONE:                          'TIME_ZONE';
 TRAINING_DATA_SIZE:                 'TRAINING_DATA_SIZE';
 ANOMALY_SCORE_THRESHOLD:            'ANOMALY_SCORE_THRESHOLD';
 APPEND:                             'APPEND';
+MULTISEARCH:                        'MULTISEARCH';
 COUNTFIELD:                         'COUNTFIELD';
 SHOWCOUNT:                          'SHOWCOUNT';
 LIMIT:                              'LIMIT';
@@ -167,7 +170,6 @@ HOUR_OF_DAY:                        'HOUR_OF_DAY';
 HOUR_SECOND:                        'HOUR_SECOND';
 INTERVAL:                           'INTERVAL';
 MICROSECOND:                        'MICROSECOND';
-MILLISECOND:                        'MILLISECOND';
 MINUTE:                             'MINUTE';
 MINUTE_MICROSECOND:                 'MINUTE_MICROSECOND';
 MINUTE_OF_DAY:                      'MINUTE_OF_DAY';
@@ -185,9 +187,7 @@ YEAR:                               'YEAR';
 YEAR_MONTH:                         'YEAR_MONTH';
 
 // DATASET TYPES
-DATAMODEL:                          'DATAMODEL';
 LOOKUP:                             'LOOKUP';
-SAVEDSEARCH:                        'SAVEDSEARCH';
 
 // CONVERTED DATA TYPES
 INT:                                'INT';
@@ -227,6 +227,7 @@ SINGLE_QUOTE:                       '\'';
 DOUBLE_QUOTE:                       '"';
 BACKTICK:                           '`';
 ARROW:                              '->';
+fragment AT:                        '@';
 
 // Operators. Bit
 
@@ -394,7 +395,6 @@ SUBSTRING:                          'SUBSTRING';
 LTRIM:                              'LTRIM';
 RTRIM:                              'RTRIM';
 TRIM:                               'TRIM';
-TO:                                 'TO';
 LOWER:                              'LOWER';
 UPPER:                              'UPPER';
 CONCAT:                             'CONCAT';
@@ -422,6 +422,7 @@ ISBLANK:                            'ISBLANK';
 // COLLECTION FUNCTIONS
 ARRAY:                              'ARRAY';
 ARRAY_LENGTH:                       'ARRAY_LENGTH';
+MVAPPEND:                           'MVAPPEND';
 MVJOIN:                             'MVJOIN';
 FORALL:                             'FORALL';
 FILTER:                             'FILTER';
@@ -496,37 +497,37 @@ MINSPAN:                            'MINSPAN';
 START:                              'START';
 END:                                'END';
 ALIGNTIME:                          'ALIGNTIME';
-MS:                                 'MS';
-S:                                  'S';
-M:                                  'M';
-H:                                  'H';
-W:                                  'W';
-Q:                                  'Q';
-Y:                                  'Y';
-
-// Extended timescale units
-SEC:                                'SEC';
-SECS:                               'SECS';
-SECONDS:                            'SECONDS';
-MINS:                               'MINS';
-MINUTES:                            'MINUTES';
-HR:                                 'HR';
-HRS:                                'HRS';
-HOURS:                              'HOURS';
-DAYS:                               'DAYS';
-MON:                                'MON';
-MONTHS:                             'MONTHS';
-US:                                 'US';
-CS:                                 'CS';
-DS:                                 'DS';
-
-
 // PERCENTILE SHORTCUT FUNCTIONS
 // Must precede ID to avoid conflicts with identifier matching
 PERCENTILE_SHORTCUT:                PERC(INTEGER_LITERAL | DECIMAL_LITERAL) | 'P'(INTEGER_LITERAL | DECIMAL_LITERAL);
 
+SPANLENGTH: [0-9]+ (
+    'US'|'MS'|'CS'|'DS'
+    |'S'|'SEC'|'SECS'|'SECOND'|'SECONDS'
+    |'MIN'|'MINS'|'MINUTE'|'MINUTES'
+    |'H'|'HR'|'HRS'|'HOUR'|'HOURS'
+    |'H'|'HR'|'HRS'|'HOUR'|'HOURS'
+    |'D'|'DAY'|'DAYS'
+    |'W'|'WEEK'|'WEEKS'
+    |'M'|'MON'|'MONTH'|'MONTHS'
+    |'Q'|'QTR'|'QTRS'|'QUARTER'|'QUARTERS'
+    |'Y'|'YR'|'YRS'|'YEAR'|'YEARS'
+);
+
+NUMERIC_ID : DEC_DIGIT+ ID_LITERAL;
+
 // LITERALS AND VALUES
 //STRING_LITERAL:                     DQUOTA_STRING | SQUOTA_STRING | BQUOTA_STRING;
+fragment WEEK_SNAP_UNIT:            'W' [0-7];
+fragment TIME_SNAP_UNIT:              'S' | 'SEC' | 'SECOND'
+                                    | 'M' | 'MIN' | 'MINUTE'
+                                    | 'H' | 'HR' | 'HOUR' | 'HOURS'
+                                    | 'D' | 'DAY'
+                                    | 'W' | 'WEEK' | WEEK_SNAP_UNIT
+                                    | 'MON' | 'MONTH'
+                                    | 'Q' | 'QTR' | 'QUARTER'
+                                    | 'Y' | 'YR' | 'YEAR';
+TIME_SNAP:                          AT TIME_SNAP_UNIT;
 ID:                                 ID_LITERAL;
 CLUSTER:                            CLUSTER_PREFIX_LITERAL;
 INTEGER_LITERAL:                    DEC_DIGIT+;

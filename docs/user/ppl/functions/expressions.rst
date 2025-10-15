@@ -28,7 +28,10 @@ Arithmetic expression is an expression formed by numeric literals and binary ari
 1. ``+``: Add.
 2. ``-``: Subtract.
 3. ``*``: Multiply.
-4. ``/``: Divide. For integers, the result is an integer with fractional part discarded. Returns NULL when dividing by zero.
+4. ``/``: Divide. Integer operands follow the legacy truncating result when
+   `plugins.ppl.syntax.legacy.preferred <../admin/settings.rst>`_ is ``true`` (default). When the
+   setting is ``false`` the operands are promoted to floating point, preserving
+   the fractional part. Division by zero still returns ``NULL``.
 5. ``%``: Modulo. This can be used with integers only with remainder of the division as result.
 
 Precedence
@@ -172,4 +175,3 @@ NOT operator ::
     | 36  |
     | 28  |
     +-----+
-

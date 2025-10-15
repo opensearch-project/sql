@@ -29,37 +29,37 @@ class CountAggregatorTest extends AggregationTest {
   @Test
   public void count_integer_field_expression() {
     ExprValue result = aggregation(DSL.count(DSL.ref("integer_value", INTEGER)), tuples);
-    assertEquals(4, result.value());
+    assertEquals(4L, result.value());
   }
 
   @Test
   public void count_long_field_expression() {
     ExprValue result = aggregation(DSL.count(DSL.ref("long_value", LONG)), tuples);
-    assertEquals(4, result.value());
+    assertEquals(4L, result.value());
   }
 
   @Test
   public void count_float_field_expression() {
     ExprValue result = aggregation(DSL.count(DSL.ref("float_value", FLOAT)), tuples);
-    assertEquals(4, result.value());
+    assertEquals(4L, result.value());
   }
 
   @Test
   public void count_double_field_expression() {
     ExprValue result = aggregation(DSL.count(DSL.ref("double_value", DOUBLE)), tuples);
-    assertEquals(4, result.value());
+    assertEquals(4L, result.value());
   }
 
   @Test
   public void count_date_field_expression() {
     ExprValue result = aggregation(DSL.count(DSL.ref("date_value", DATE)), tuples);
-    assertEquals(4, result.value());
+    assertEquals(4L, result.value());
   }
 
   @Test
   public void count_timestamp_field_expression() {
     ExprValue result = aggregation(DSL.count(DSL.ref("timestamp_value", TIMESTAMP)), tuples);
-    assertEquals(4, result.value());
+    assertEquals(4L, result.value());
   }
 
   @Test
@@ -68,34 +68,33 @@ class CountAggregatorTest extends AggregationTest {
         aggregation(
             DSL.count(
                 DSL.multiply(
-                    DSL.ref("integer_value", INTEGER),
-                    DSL.literal(ExprValueUtils.integerValue(10)))),
+                    DSL.ref("long_value", LONG), DSL.literal(ExprValueUtils.longValue(10L)))),
             tuples);
-    assertEquals(4, result.value());
+    assertEquals(4L, result.value());
   }
 
   @Test
   public void count_string_field_expression() {
     ExprValue result = aggregation(DSL.count(DSL.ref("string_value", STRING)), tuples);
-    assertEquals(4, result.value());
+    assertEquals(4L, result.value());
   }
 
   @Test
   public void count_boolean_field_expression() {
     ExprValue result = aggregation(DSL.count(DSL.ref("boolean_value", BOOLEAN)), tuples);
-    assertEquals(1, result.value());
+    assertEquals(1L, result.value());
   }
 
   @Test
   public void count_struct_field_expression() {
     ExprValue result = aggregation(DSL.count(DSL.ref("struct_value", STRUCT)), tuples);
-    assertEquals(1, result.value());
+    assertEquals(1L, result.value());
   }
 
   @Test
   public void count_array_field_expression() {
     ExprValue result = aggregation(DSL.count(DSL.ref("array_value", ARRAY)), tuples);
-    assertEquals(1, result.value());
+    assertEquals(1L, result.value());
   }
 
   @Test
@@ -105,14 +104,14 @@ class CountAggregatorTest extends AggregationTest {
             DSL.count(DSL.ref("integer_value", INTEGER))
                 .condition(DSL.greater(DSL.ref("integer_value", INTEGER), DSL.literal(1))),
             tuples);
-    assertEquals(3, result.value());
+    assertEquals(3L, result.value());
   }
 
   @Test
   public void distinct_count() {
     ExprValue result =
         aggregation(DSL.distinctCount(DSL.ref("integer_value", INTEGER)), tuples_with_duplicates);
-    assertEquals(3, result.value());
+    assertEquals(3L, result.value());
   }
 
   @Test
@@ -122,47 +121,47 @@ class CountAggregatorTest extends AggregationTest {
             DSL.distinctCount(DSL.ref("integer_value", INTEGER))
                 .condition(DSL.greater(DSL.ref("double_value", DOUBLE), DSL.literal(1d))),
             tuples_with_duplicates);
-    assertEquals(2, result.value());
+    assertEquals(2L, result.value());
   }
 
   @Test
   public void distinct_count_map() {
     ExprValue result =
         aggregation(DSL.distinctCount(DSL.ref("struct_value", STRUCT)), tuples_with_duplicates);
-    assertEquals(3, result.value());
+    assertEquals(3L, result.value());
   }
 
   @Test
   public void distinct_count_array() {
     ExprValue result =
         aggregation(DSL.distinctCount(DSL.ref("array_value", ARRAY)), tuples_with_duplicates);
-    assertEquals(3, result.value());
+    assertEquals(3L, result.value());
   }
 
   @Test
   public void count_with_missing() {
     ExprValue result =
         aggregation(DSL.count(DSL.ref("integer_value", INTEGER)), tuples_with_null_and_missing);
-    assertEquals(2, result.value());
+    assertEquals(2L, result.value());
   }
 
   @Test
   public void count_with_null() {
     ExprValue result =
         aggregation(DSL.count(DSL.ref("double_value", DOUBLE)), tuples_with_null_and_missing);
-    assertEquals(2, result.value());
+    assertEquals(2L, result.value());
   }
 
   @Test
   public void count_star_with_null_and_missing() {
     ExprValue result = aggregation(DSL.count(DSL.literal("*")), tuples_with_null_and_missing);
-    assertEquals(3, result.value());
+    assertEquals(3L, result.value());
   }
 
   @Test
   public void count_literal_with_null_and_missing() {
     ExprValue result = aggregation(DSL.count(DSL.literal(1)), tuples_with_null_and_missing);
-    assertEquals(3, result.value());
+    assertEquals(3L, result.value());
   }
 
   @Test

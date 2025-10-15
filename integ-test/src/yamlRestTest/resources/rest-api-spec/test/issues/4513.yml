@@ -1,0 +1,45 @@
+setup:
+  - do:
+      bulk:
+        index: test
+        refresh: true
+        body:
+          - '{"index": {"_id": "1"}}'
+          - '{"value": "1"}'
+          - '{"index": {"_id": "2"}}'
+          - '{"value": "2"}'
+          - '{"index": {"_id": "3"}}'
+          - '{"value": "3"}'
+---
+"handle agg script push down on metadata field":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test | eval id_int = cast(_id as int) | stats median(id_int)
+
+  - match: { total: 1 }
+  - match: {"schema": [{"name": "median(id_int)", "type": "int"}]}
+  - match: {"datarows": [[2]]}
+
+---
+"handle filter script push down on metadata field":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test | eval id_int = cast(_id as int) | where id_int > 1
+
+  - match: { total: 2 }
+  - match: {"schema": [{"name": "value", "type": "string"}, {"name": "id_int", "type": "int"}]}
+  - match: {"datarows": [["2", 2], ["3", 3]]}

@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -28,6 +29,7 @@ public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
     enableCalcite();
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK);
+    loadIndex(Index.WEBLOG);
   }
 
   @Test
@@ -235,5 +237,40 @@ public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
         rows(null, null, "NV", 369d),
         rows(null, null, "NM", 412d),
         rows(null, null, "AZ", 414d));
+  }
+
+  @Test
+  public void testAppendSchemaMergeWithTimestampUDT() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                Locale.ROOT,
+                "source=%s | fields account_number, age | append [ source=%s | fields"
+                    + " account_number, age, birthdate ] | where isnotnull(birthdate) and"
+                    + " account_number > 30",
+                TEST_INDEX_ACCOUNT,
+                TEST_INDEX_BANK));
+    verifySchemaInOrder(
+        actual,
+        schema("account_number", "bigint"),
+        schema("age", "bigint"),
+        schema("age0", "int"),
+        schema("birthdate", "string"));
+    verifyDataRows(actual, rows(32, null, 34, "2018-08-11 00:00:00"));
+  }
+
+  @Test
+  public void testAppendSchemaMergeWithIpUDT() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                Locale.ROOT,
+                "source=%s | fields account_number, age | append [ source=%s | fields host ] |"
+                    + " where cidrmatch(host, '0.0.0.0/24')",
+                TEST_INDEX_ACCOUNT,
+                TEST_INDEX_WEBLOGS));
+    verifySchemaInOrder(
+        actual, schema("account_number", "bigint"), schema("age", "bigint"), schema("host", "ip"));
+    verifyDataRows(actual, rows(null, null, "0.0.0.2"));
   }
 }

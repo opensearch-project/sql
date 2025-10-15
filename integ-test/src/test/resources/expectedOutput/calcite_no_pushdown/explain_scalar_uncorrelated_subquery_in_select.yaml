@@ -1,0 +1,18 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(variablesSet=[[$cor0]], name=[$0], count_dept=[$SCALAR_QUERY({
+    LogicalAggregate(group=[{}], count(name)=[COUNT($0)])
+      LogicalProject(name=[$0])
+        LogicalFilter(condition=[IS NOT NULL($0)])
+          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_work_information]])
+    })])
+        CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_worker]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+        EnumerableCalc(expr#0..10=[{inputs}], name=[$t0])
+          CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_worker]])
+        EnumerableAggregate(group=[{}], count(name)=[COUNT($0)])
+          EnumerableCalc(expr#0..9=[{inputs}], expr#10=[IS NOT NULL($t0)], proj#0..9=[{exprs}], $condition=[$t10])
+            CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_work_information]])

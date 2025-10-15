@@ -170,6 +170,11 @@ public class TestUtils {
     return getMappingFile(mappingFile);
   }
 
+  public static String getLocationsTypeConflictIndexMapping() {
+    String mappingFile = "locations_type_conflict_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
   public static String getEmployeeNestedTypeIndexMapping() {
     String mappingFile = "employee_nested_type_index_mapping.json";
     return getMappingFile(mappingFile);
@@ -227,6 +232,11 @@ public class TestUtils {
 
   public static String getDateTimeIndexMapping() {
     String mappingFile = "date_time_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
+  public static String getDateTimeNestedIndexMapping() {
+    String mappingFile = "date_time_nested_index_mapping.json";
     return getMappingFile(mappingFile);
   }
 

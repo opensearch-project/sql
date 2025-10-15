@@ -26,6 +26,7 @@ import org.opensearch.action.ActionType;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.inject.Guice;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
 import org.opensearch.common.settings.ClusterSettings;
@@ -259,7 +260,7 @@ public class SQLPlugin extends Plugin
         });
     modules.add(new AsyncExecutorServiceModule());
     modules.add(new DirectQueryModule());
-    injector = modules.createInjector();
+    injector = Guice.createInjector(modules);
     ClusterManagerEventListener clusterManagerEventListener =
         new ClusterManagerEventListener(
             clusterService,

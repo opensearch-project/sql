@@ -69,6 +69,7 @@ import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.MinSpanBin;
+import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
@@ -79,6 +80,7 @@ import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
+import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SpanBin;
@@ -581,6 +583,36 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   }
 
   @Override
+  public String visitMultisearch(Multisearch node, String context) {
+    List<String> anonymizedSubsearches = new ArrayList<>();
+
+    for (UnresolvedPlan subsearch : node.getSubsearches()) {
+      String anonymizedSubsearch = anonymizeData(subsearch);
+      anonymizedSubsearch = "search " + anonymizedSubsearch;
+      anonymizedSubsearch =
+          anonymizedSubsearch
+              .replaceAll("\\bsource=\\w+", "source=table") // Replace table names after source=
+              .replaceAll(
+                  "\\b(?!source|fields|where|stats|head|tail|sort|eval|rename|multisearch|search|table|identifier|\\*\\*\\*)\\w+(?=\\s*[<>=!])",
+                  "identifier") // Replace field names before operators
+              .replaceAll(
+                  "\\b(?!source|fields|where|stats|head|tail|sort|eval|rename|multisearch|search|table|identifier|\\*\\*\\*)\\w+(?=\\s*,)",
+                  "identifier") // Replace field names before commas
+              .replaceAll(
+                  "fields"
+                      + " \\+\\s*\\b(?!source|fields|where|stats|head|tail|sort|eval|rename|multisearch|search|table|identifier|\\*\\*\\*)\\w+",
+                  "fields + identifier") // Replace field names after 'fields +'
+              .replaceAll(
+                  "fields"
+                      + " \\+\\s*identifier,\\s*\\b(?!source|fields|where|stats|head|tail|sort|eval|rename|multisearch|search|table|identifier|\\*\\*\\*)\\w+",
+                  "fields + identifier,identifier"); // Handle multiple fields
+      anonymizedSubsearches.add(StringUtils.format("[%s]", anonymizedSubsearch));
+    }
+
+    return StringUtils.format("| multisearch %s", String.join(" ", anonymizedSubsearches));
+  }
+
+  @Override
   public String visitValues(Values node, String context) {
     // In case legacy SQL relies on it, return empty to fail open anyway.
     // Don't expect it to fail the query execution.
@@ -610,26 +642,61 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   public String visitFillNull(FillNull node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     List<Pair<Field, UnresolvedExpression>> fieldFills = node.getReplacementPairs();
+
+    // Check if using value= syntax (added in 3.4)
+    if (node.isUseValueSyntax()) {
+      if (fieldFills.isEmpty()) {
+        return StringUtils.format("%s | fillnull value=%s", child, MASK_LITERAL);
+      }
+      return StringUtils.format(
+          "%s | fillnull value=%s %s",
+          child,
+          MASK_LITERAL,
+          fieldFills.stream()
+              .map(n -> visitExpression(n.getLeft()))
+              .collect(Collectors.joining(" ")));
+    }
+
+    // Distinguish between with...in and using based on whether all values are the same
     if (fieldFills.isEmpty()) {
       return StringUtils.format("%s | fillnull with %s", child, MASK_LITERAL);
     }
     final UnresolvedExpression firstReplacement = fieldFills.getFirst().getRight();
     if (fieldFills.stream().allMatch(n -> firstReplacement == n.getRight())) {
+      // All fields use same replacement value -> with...in syntax
       return StringUtils.format(
           "%s | fillnull with %s in %s",
           child,
           MASK_LITERAL,
-          node.getReplacementPairs().stream()
+          fieldFills.stream()
               .map(n -> visitExpression(n.getLeft()))
               .collect(Collectors.joining(", ")));
     } else {
+      // Different replacement values per field -> using syntax
       return StringUtils.format(
           "%s | fillnull using %s",
           child,
-          node.getReplacementPairs().stream()
+          fieldFills.stream()
               .map(n -> StringUtils.format("%s = %s", visitExpression(n.getLeft()), MASK_LITERAL))
               .collect(Collectors.joining(", ")));
     }
+  }
+
+  @Override
+  public String visitSpath(SPath node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    StringBuilder builder = new StringBuilder();
+    builder.append(child).append(" | spath");
+    if (node.getInField() != null) {
+      builder.append(" input=").append(MASK_COLUMN);
+    }
+    if (node.getOutField() != null) {
+      builder.append(" output=").append(MASK_COLUMN);
+    }
+    if (node.getPath() != null) {
+      builder.append(" path=").append(MASK_COLUMN);
+    }
+    return builder.toString();
   }
 
   @Override
