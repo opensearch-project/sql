@@ -5,9 +5,29 @@
 
 package org.opensearch.sql.calcite;
 
+import lombok.EqualsAndHashCode;
+import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.common.setting.Settings;
 
-public record SysLimit(Integer querySizeLimit, Integer subsearchLimit, Integer joinSubsearchLimit) {
+@RequiredArgsConstructor
+@EqualsAndHashCode
+public class SysLimit {
+  private final Integer querySizeLimit;
+  private final Integer subsearchLimit;
+  private final Integer joinSubsearchLimit;
+
+  public Integer querySizeLimit() {
+    return querySizeLimit;
+  }
+
+  public Integer subsearchLimit() {
+    return subsearchLimit;
+  }
+
+  public Integer joinSubsearchLimit() {
+    return joinSubsearchLimit;
+  }
+
   /** Create SysLimit from Settings. */
   public static SysLimit fromSettings(Settings settings) {
     return settings == null

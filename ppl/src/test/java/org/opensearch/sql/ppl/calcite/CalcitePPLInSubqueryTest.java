@@ -244,12 +244,10 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testInCorrelatedSubquery() {
     String ppl =
-        """
-        source=EMP | where ENAME in [
-          source=DEPT | where EMP.DEPTNO = DEPTNO and LOC = 'BOSTON'| fields DNAME
-        ]
-        | fields EMPNO, ENAME, DEPTNO
-        """;
+        "source=EMP | where ENAME in [\n"
+            + "  source=DEPT | where EMP.DEPTNO = DEPTNO and LOC = 'BOSTON'| fields DNAME\n"
+            + "]\n"
+            + "| fields EMPNO, ENAME, DEPTNO\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])\n"
@@ -274,10 +272,8 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
   public void testSubsearchMaxOut() {
     doReturn(1).when(settings).getSettingValue(Settings.Key.PPL_SUBSEARCH_MAXOUT);
     String ppl =
-        """
-        source=EMP | where DEPTNO in [ source=DEPT | fields DEPTNO ]
-        | sort - EMPNO | fields EMPNO, ENAME
-        """;
+        "source=EMP | where DEPTNO in [ source=DEPT | fields DEPTNO ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -306,12 +302,10 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
   public void testInCorrelatedSubqueryMaxOut() {
     doReturn(1).when(settings).getSettingValue(Settings.Key.PPL_SUBSEARCH_MAXOUT);
     String ppl =
-        """
-        source=EMP | where ENAME in [
-          source=DEPT | where EMP.DEPTNO = DEPTNO and LOC = 'BOSTON'| fields DNAME
-        ]
-        | fields EMPNO, ENAME, DEPTNO
-        """;
+        "source=EMP | where ENAME in [\n"
+            + "  source=DEPT | where EMP.DEPTNO = DEPTNO and LOC = 'BOSTON'| fields DNAME\n"
+            + "]\n"
+            + "| fields EMPNO, ENAME, DEPTNO\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])\n"

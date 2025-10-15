@@ -325,12 +325,10 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testCorrelatedScalarSubqueryInWhereMaxOut() {
     String ppl =
-        """
-        source=EMP
-        | where SAL > [
-            source=SALGRADE | where SAL = HISAL | stats AVG(SAL)
-          ]
-        """;
+        "source=EMP\n"
+            + "| where SAL > [\n"
+            + "    source=SALGRADE | where SAL = HISAL | stats AVG(SAL)\n"
+            + "  ]\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""

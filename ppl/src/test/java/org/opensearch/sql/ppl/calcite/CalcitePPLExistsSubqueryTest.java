@@ -483,14 +483,12 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
   public void testSubsearchMaxOut1() {
     doReturn(1).when(settings).getSettingValue(Settings.Key.PPL_SUBSEARCH_MAXOUT);
     String ppl =
-        """
-        source=EMP
-        | where exists [
-            source=SALGRADE
-            | where EMP.SAL = HISAL
-          ]
-        | sort - EMPNO | fields EMPNO, ENAME
-        """;
+        "source=EMP\n"
+            + "| where exists [\n"
+            + "    source=SALGRADE\n"
+            + "    | where EMP.SAL = HISAL\n"
+            + "  ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -521,14 +519,12 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
   public void testSubsearchMaxOut2() {
     doReturn(1).when(settings).getSettingValue(Settings.Key.PPL_SUBSEARCH_MAXOUT);
     String ppl =
-        """
-        source=EMP
-        | where exists [
-            source=SALGRADE
-            | where EMP.SAL = HISAL and LOSAL > 1000.0
-          ]
-        | sort - EMPNO | fields EMPNO, ENAME
-        """;
+        "source=EMP\n"
+            + "| where exists [\n"
+            + "    source=SALGRADE\n"
+            + "    | where EMP.SAL = HISAL and LOSAL > 1000.0\n"
+            + "  ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -561,17 +557,15 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
   public void testSubsearchMaxOut3() {
     doReturn(1).when(settings).getSettingValue(Settings.Key.PPL_SUBSEARCH_MAXOUT);
     String ppl =
-        """
-        source=EMP
-        | where exists [
-            source=SALGRADE
-            | where EMP.SAL = HISAL
-            | eval LOSAL1 = LOSAL
-            | where LOSAL > 1000.0
-            | sort - HISAL
-          ]
-        | sort - EMPNO | fields EMPNO, ENAME
-        """;
+        "source=EMP\n"
+            + "| where exists [\n"
+            + "    source=SALGRADE\n"
+            + "    | where EMP.SAL = HISAL\n"
+            + "    | eval LOSAL1 = LOSAL\n"
+            + "    | where LOSAL > 1000.0\n"
+            + "    | sort - HISAL\n"
+            + "  ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
@@ -608,16 +602,14 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
   public void testSubsearchMaxOutUncorrelated1() {
     doReturn(1).when(settings).getSettingValue(Settings.Key.PPL_SUBSEARCH_MAXOUT);
     String ppl =
-        """
-        source=EMP
-        | where exists [
-            source=SALGRADE
-            | eval LOSAL1 = LOSAL
-            | where LOSAL > 1000.0
-            | sort - HISAL
-          ]
-        | sort - EMPNO | fields EMPNO, ENAME
-        """;
+        "source=EMP\n"
+            + "| where exists [\n"
+            + "    source=SALGRADE\n"
+            + "    | eval LOSAL1 = LOSAL\n"
+            + "    | where LOSAL > 1000.0\n"
+            + "    | sort - HISAL\n"
+            + "  ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
@@ -652,17 +644,15 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
   public void testSubsearchMaxOutUncorrelated2() {
     doReturn(1).when(settings).getSettingValue(Settings.Key.PPL_SUBSEARCH_MAXOUT);
     String ppl =
-        """
-        source=EMP
-        | where exists [
-            source=SALGRADE
-            | join type=left LOSAL SALGRADE
-            | eval LOSAL1 = LOSAL
-            | where LOSAL > 1000.0
-            | sort - HISAL
-          ]
-        | sort - EMPNO | fields EMPNO, ENAME
-        """;
+        "source=EMP\n"
+            + "| where exists [\n"
+            + "    source=SALGRADE\n"
+            + "    | join type=left LOSAL SALGRADE\n"
+            + "    | eval LOSAL1 = LOSAL\n"
+            + "    | where LOSAL > 1000.0\n"
+            + "    | sort - HISAL\n"
+            + "  ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
@@ -702,14 +692,12 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
   public void testSubsearchMaxOutZero() {
     doReturn(0).when(settings).getSettingValue(Settings.Key.PPL_SUBSEARCH_MAXOUT);
     String ppl =
-        """
-        source=EMP
-        | where exists [
-            source=SALGRADE
-            | where EMP.SAL = HISAL and LOSAL > 1000.0
-          ]
-        | sort - EMPNO | fields EMPNO, ENAME
-        """;
+        "source=EMP\n"
+            + "| where exists [\n"
+            + "    source=SALGRADE\n"
+            + "    | where EMP.SAL = HISAL and LOSAL > 1000.0\n"
+            + "  ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -735,14 +723,12 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
   public void testSubsearchMaxOutUnlimited() {
     doReturn(-1).when(settings).getSettingValue(Settings.Key.PPL_SUBSEARCH_MAXOUT);
     String ppl =
-        """
-        source=EMP
-        | where exists [
-            source=SALGRADE
-            | where EMP.SAL = HISAL and LOSAL > 1000.0
-          ]
-        | sort - EMPNO | fields EMPNO, ENAME
-        """;
+        "source=EMP\n"
+            + "| where exists [\n"
+            + "    source=SALGRADE\n"
+            + "    | where EMP.SAL = HISAL and LOSAL > 1000.0\n"
+            + "  ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
