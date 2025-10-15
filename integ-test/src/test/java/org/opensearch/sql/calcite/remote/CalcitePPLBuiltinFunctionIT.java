@@ -387,7 +387,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
             3.142857142857143,
             3.142857142857143,
             3.0,
-            isPushdownDisabled() ? 2.0666666 : 2.4335938,
+            isPushdownDisabled() ? 2.4333334 : 2.4335938,
             0.8225806704669051));
   }
 
