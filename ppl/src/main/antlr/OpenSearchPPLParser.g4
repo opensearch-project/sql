@@ -77,6 +77,7 @@ commands
    | flattenCommand
    | reverseCommand
    | regexCommand
+   | chartCommand
    | timechartCommand
    | rexCommand
    | replaceCommand
@@ -257,6 +258,24 @@ sortCommand
 reverseCommand
    : REVERSE
    ;
+
+chartCommand
+  : CHART chartOptions* statsAggTerm (COMMA statsAggTerm)* (OVER rowSplit)? (BY columnSplit)?
+  | CHART chartOptions* statsAggTerm (COMMA statsAggTerm)* BY rowSplit (COMMA)? columnSplit
+  ;
+
+chartOptions
+  : LIMIT EQUAL (TOP | BOTTOM)? integerLiteral
+  | USEOTHER EQUAL booleanLiteral
+  ;
+
+rowSplit
+  : fieldExpression binOption*
+  ;
+
+columnSplit
+  : fieldExpression binOption*
+  ;
 
 timechartCommand
    : TIMECHART timechartParameter* statsFunction (BY fieldExpression)?
