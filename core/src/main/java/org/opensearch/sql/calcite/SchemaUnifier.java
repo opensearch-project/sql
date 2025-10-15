@@ -78,7 +78,7 @@ public class SchemaUnifier {
           // New field - add to schema
           schema.add(new SchemaField(fieldName, fieldType));
           seenFields.put(fieldName, fieldType);
-        } else if (!existingType.equals(fieldType)) {
+        } else if (!areTypesCompatible(existingType, fieldType)) {
           // Same field name but different type - throw exception
           throw new IllegalArgumentException(
               String.format(
@@ -90,6 +90,10 @@ public class SchemaUnifier {
     }
 
     return schema;
+  }
+
+  private static boolean areTypesCompatible(RelDataType type1, RelDataType type2) {
+    return type1.getSqlTypeName() != null && type1.getSqlTypeName().equals(type2.getSqlTypeName());
   }
 
   /**
@@ -113,8 +117,8 @@ public class SchemaUnifier {
       RelDataType expectedType = schemaField.getType();
       RelDataTypeField nodeField = nodeFieldMap.get(fieldName);
 
-      if (nodeField != null && nodeField.getType().equals(expectedType)) {
-        // Field exists with matching type - use it
+      if (nodeField != null && areTypesCompatible(nodeField.getType(), expectedType)) {
+        // Field exists with compatible type - use it
         projection.add(context.rexBuilder.makeInputRef(node, nodeField.getIndex()));
       } else {
         // Field missing or type mismatch - project NULL
