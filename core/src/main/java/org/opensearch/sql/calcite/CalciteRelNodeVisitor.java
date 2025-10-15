@@ -2423,8 +2423,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     Set<String> fieldsToReplace =
         node.getFieldList().stream().map(f -> f.getField().toString()).collect(Collectors.toSet());
 
-    // Validate that all fields to replace exist in the current schema
-    validateFieldsExist(fieldsToReplace, fieldNames);
+    // Validate that all fields to replace exist by calling field() on each
+    // This leverages relBuilder.field()'s built-in validation which throws
+    // IllegalArgumentException if any field doesn't exist
+    for (String fieldToReplace : fieldsToReplace) {
+      context.relBuilder.field(fieldToReplace);
+    }
 
     List<RexNode> projectList = new ArrayList<>();
 
@@ -2452,16 +2456,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     context.relBuilder.project(projectList, fieldNames);
     return context.relBuilder.peek();
-  }
-
-  private void validateFieldsExist(Set<String> fieldsToValidate, List<String> availableFields) {
-    Set<String> availableFieldsSet = new HashSet<>(availableFields);
-    for (String field : fieldsToValidate) {
-      if (!availableFieldsSet.contains(field)) {
-        throw new IllegalArgumentException(
-            String.format("field [%s] not found; input fields are: %s", field, availableFields));
-      }
-    }
   }
 
   private void buildParseRelNode(Parse node, CalcitePlanContext context) {
