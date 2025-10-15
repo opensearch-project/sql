@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
@@ -19,6 +20,7 @@ import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ChartCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DefaultSortFieldContext;
@@ -196,6 +198,20 @@ public class ArgumentFactory {
         ctx.showcount != null
             ? new Argument("showCount", getArgumentValue(ctx.showcount))
             : new Argument("showCount", new Literal(true, DataType.BOOLEAN)));
+  }
+
+  public static List<Argument> getArgumentList(ChartCommandContext ctx) {
+    List<Argument> arguments = new ArrayList<>();
+    for (var optionCtx : ctx.chartOptions()) {
+      if (optionCtx.LIMIT() != null) {
+        arguments.add(new Argument("limit", getArgumentValue(optionCtx.integerLiteral())));
+        // not specified | top presents -> true; bottom presents -> false
+        arguments.add(new Argument("top", AstDSL.booleanLiteral(optionCtx.BOTTOM() == null)));
+      } else if (optionCtx.USEOTHER() != null) {
+        arguments.add(new Argument("useother", getArgumentValue(optionCtx.booleanLiteral())));
+      }
+    }
+    return arguments;
   }
 
   /**

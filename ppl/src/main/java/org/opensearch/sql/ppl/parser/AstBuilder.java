@@ -42,6 +42,7 @@ import java.util.stream.Collectors;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.TerminalNode;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.EmptySourcePropagateVisitor;
 import org.opensearch.sql.ast.dsl.AstDSL;
@@ -50,6 +51,7 @@ import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.CountBin;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.DefaultBin;
@@ -499,60 +501,39 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     UnresolvedExpression aligntime = null;
     UnresolvedExpression start = null;
     UnresolvedExpression end = null;
-
+    String errorFormat = "Duplicate %s parameter in bin command";
     // Process each bin option: detect duplicates and assign values in one shot
     for (OpenSearchPPLParser.BinOptionContext option : ctx.binOption()) {
+      UnresolvedExpression resolvedOption = internalVisitExpression(option);
       // SPAN parameter
       if (option.span != null) {
-        if (!seenParams.add("SPAN")) {
-          throw new IllegalArgumentException("Duplicate SPAN parameter in bin command");
-        }
-        span = internalVisitExpression(option.span);
+        checkParamDuplication(seenParams, option.SPAN(), errorFormat);
+        span = resolvedOption;
       }
-
       // BINS parameter
       if (option.bins != null) {
-        if (!seenParams.add("BINS")) {
-          throw new IllegalArgumentException("Duplicate BINS parameter in bin command");
-        }
-        bins = Integer.parseInt(option.bins.getText());
+        checkParamDuplication(seenParams, option.SPAN(), errorFormat);
+        bins = (Integer) ((Literal) resolvedOption).getValue();
       }
-
       // MINSPAN parameter
       if (option.minspan != null) {
-        if (!seenParams.add("MINSPAN")) {
-          throw new IllegalArgumentException("Duplicate MINSPAN parameter in bin command");
-        }
-        minspan = internalVisitExpression(option.minspan);
+        checkParamDuplication(seenParams, option.MINSPAN(), errorFormat);
+        minspan = resolvedOption;
       }
-
       // ALIGNTIME parameter
       if (option.aligntime != null) {
-        if (!seenParams.add("ALIGNTIME")) {
-          throw new IllegalArgumentException("Duplicate ALIGNTIME parameter in bin command");
-        }
-        aligntime =
-            option.aligntime.EARLIEST() != null
-                ? org.opensearch.sql.ast.dsl.AstDSL.stringLiteral("earliest")
-                : option.aligntime.LATEST() != null
-                    ? org.opensearch.sql.ast.dsl.AstDSL.stringLiteral("latest")
-                    : internalVisitExpression(option.aligntime.literalValue());
+        checkParamDuplication(seenParams, option.ALIGNTIME(), errorFormat);
+        aligntime = resolvedOption;
       }
-
       // START parameter
       if (option.start != null) {
-        if (!seenParams.add("START")) {
-          throw new IllegalArgumentException("Duplicate START parameter in bin command");
-        }
-        start = internalVisitExpression(option.start);
+        checkParamDuplication(seenParams, option.START(), errorFormat);
+        start = resolvedOption;
       }
-
       // END parameter
       if (option.end != null) {
-        if (!seenParams.add("END")) {
-          throw new IllegalArgumentException("Duplicate END parameter in bin command");
-        }
-        end = internalVisitExpression(option.end);
+        checkParamDuplication(seenParams, option.END(), errorFormat);
+        end = resolvedOption;
       }
     }
 
@@ -578,6 +559,14 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     } else {
       // 5. No parameters (default) -> DefaultBin
       return DefaultBin.builder().field(field).alias(alias).build();
+    }
+  }
+
+  private void checkParamDuplication(
+      Set<String> seenParams, TerminalNode terminalNode, String errorFormat) {
+    String paramName = terminalNode.getText();
+    if (!seenParams.add(paramName)) {
+      throw new IllegalArgumentException(StringUtils.format(errorFormat, paramName));
     }
   }
 
@@ -616,6 +605,32 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitReverseCommand(OpenSearchPPLParser.ReverseCommandContext ctx) {
     return new Reverse();
+  }
+
+  /** Chart command. */
+  @Override
+  public UnresolvedPlan visitChartCommand(OpenSearchPPLParser.ChartCommandContext ctx) {
+    UnresolvedExpression rowSplit =
+        ctx.rowSplit() == null ? null : internalVisitExpression(ctx.rowSplit());
+    UnresolvedExpression columnSplit =
+        ctx.columnSplit() == null ? null : internalVisitExpression(ctx.columnSplit());
+    List<Argument> arguments = ArgumentFactory.getArgumentList(ctx);
+    ImmutableList.Builder<UnresolvedExpression> aggListBuilder = new ImmutableList.Builder<>();
+    for (OpenSearchPPLParser.StatsAggTermContext aggCtx : ctx.statsAggTerm()) {
+      UnresolvedExpression aggExpression = internalVisitExpression(aggCtx.statsFunction());
+      String name =
+          aggCtx.alias == null
+              ? getTextInQuery(aggCtx)
+              : StringUtils.unquoteIdentifier(aggCtx.alias.getText());
+      Alias alias = new Alias(name, aggExpression);
+      aggListBuilder.add(alias);
+    }
+    return Chart.builder()
+        .rowSplit(rowSplit)
+        .columnSplit(columnSplit)
+        .aggregationFunctions(aggListBuilder.build())
+        .arguments(arguments)
+        .build();
   }
 
   /** Timechart command. */

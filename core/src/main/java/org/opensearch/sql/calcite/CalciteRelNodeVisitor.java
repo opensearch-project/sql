@@ -98,6 +98,7 @@ import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.Bin;
+import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
@@ -1085,6 +1086,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitAggregation(Aggregation node, CalcitePlanContext context) {
+    return visitAggregationAndReturnProjection(node, context).getLeft();
+  }
+
+  private Pair<RelNode, List<RexNode>> visitAggregationAndReturnProjection(
+      Aggregation node, CalcitePlanContext context) {
     visitChildren(node, context);
 
     List<UnresolvedExpression> aggExprList = node.getAggExprList();
@@ -1169,7 +1175,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     reordered.addAll(aliasedGroupByList);
     context.relBuilder.project(reordered);
 
-    return context.relBuilder.peek();
+    return Pair.of(context.relBuilder.peek(), reordered);
   }
 
   private Optional<UnresolvedExpression> getTimeSpanField(UnresolvedExpression expr) {
@@ -2019,6 +2025,90 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return sb.toString();
   }
 
+  @Override
+  public RelNode visitChart(Chart node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    ArgumentMap argMap = ArgumentMap.of(node.getArguments());
+    List<UnresolvedExpression> groupExprList = new ArrayList<>();
+    UnresolvedExpression span;
+    if (node.getColumnSplit() instanceof Span && node.getRowSplit() instanceof Span) {
+      throw new UnsupportedOperationException("It is not supported to have two span splits");
+    } else if (node.getRowSplit() instanceof Span) {
+      if (node.getColumnSplit() != null) {
+        groupExprList.add(node.getColumnSplit());
+      }
+      span = node.getRowSplit();
+    } else if (node.getColumnSplit() instanceof Span) {
+      if (node.getRowSplit() != null) {
+        groupExprList.add(node.getRowSplit());
+      }
+      span = node.getColumnSplit();
+    } else {
+      groupExprList.addAll(
+          Stream.of(node.getRowSplit(), node.getColumnSplit()).filter(Objects::nonNull).toList());
+      span = null;
+    }
+    Aggregation aggregation =
+        new Aggregation(node.getAggregationFunctions(), List.of(), groupExprList, span, List.of());
+    Pair<RelNode, List<RexNode>> aggregated =
+        visitAggregationAndReturnProjection(aggregation, context);
+    // If row or column split does not present or limit equals 0, this is the same as `stats agg
+    // [group by col]`
+
+    Integer limit =
+        Optional.ofNullable(argMap.get("limit")).map(l -> (Integer) l.getValue()).orElse(10);
+    Boolean top =
+        Optional.ofNullable(argMap.get("top")).map(t -> (Boolean) t.getValue()).orElse(true);
+    if (node.getRowSplit() == null || node.getColumnSplit() == null || Objects.equals(limit, 0)) {
+      return aggregated.getLeft();
+    }
+    List<RexNode> projected = aggregated.getRight();
+    String columSplitName = aggregated.getLeft().getRowType().getFieldNames().getLast();
+    RelBuilder relBuilder = context.relBuilder;
+    // 0: agg; 2: column-split
+    relBuilder.project(relBuilder.field(0), relBuilder.field(2));
+    relBuilder.filter(relBuilder.isNotNull(relBuilder.field(1)));
+    // 1: column split; 0: agg
+    relBuilder.aggregate(
+        relBuilder.groupKey(relBuilder.field(1)),
+        relBuilder.sum(relBuilder.field(0)).as("__grand_total__")); // results: group key, agg calls
+    RexNode grandTotal = relBuilder.field("__grand_total__");
+    if (top) {
+      grandTotal = relBuilder.desc(grandTotal);
+    }
+    RexNode rowNum =
+        PlanUtils.makeOver(
+            context,
+            BuiltinFunctionName.ROW_NUMBER,
+            relBuilder.literal(1),
+            List.of(),
+            List.of(),
+            List.of(grandTotal),
+            WindowFrame.toCurrentRow());
+    relBuilder.projectPlus(relBuilder.alias(rowNum, "__row_number__"));
+    RelNode ranked = relBuilder.build();
+
+    relBuilder.push(aggregated.getLeft());
+    relBuilder.push(ranked);
+
+    // on column-split = group key
+    relBuilder.join(
+        JoinRelType.INNER, relBuilder.equals(relBuilder.field(2, 0, 2), relBuilder.field(2, 1, 0)));
+    RexNode caseExpr =
+        relBuilder.alias(
+            relBuilder.call(
+                SqlStdOperatorTable.CASE,
+                relBuilder.call(
+                    SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
+                    relBuilder.field("__row_number__"),
+                    relBuilder.literal(limit)),
+                relBuilder.field(2),
+                relBuilder.literal("OTHER")),
+            columSplitName);
+    relBuilder.project(relBuilder.field(0), relBuilder.field(1), caseExpr);
+    return relBuilder.peek();
+  }
+
   /** Transforms timechart command into SQL-based operations. */
   @Override
   public RelNode visitTimechart(
@@ -2136,7 +2226,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (limit > 0) {
       context.relBuilder.limit(0, limit);
     }
-
     return context.relBuilder.build();
   }
 
