@@ -1121,4 +1121,15 @@ public class CalciteExplainIT extends ExplainIT {
                     + "| stats MIN(balance2), MAX(balance2)",
                 TEST_INDEX_ACCOUNT)));
   }
+
+  @Test
+  public void testReplaceCommandExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_replace_command.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | replace 'IL' WITH 'Illinois' IN state | fields state",
+                TEST_INDEX_ACCOUNT)));
+  }
 }

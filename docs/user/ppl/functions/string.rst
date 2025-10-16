@@ -215,6 +215,14 @@ Argument type: STRING, STRING (regex pattern), STRING (replacement)
 
 Return type: STRING
 
+**Important - Regex Special Characters**: The pattern is interpreted as a regular expression. Characters like ``.``, ``*``, ``+``, ``[``, ``]``, ``(``, ``)``, ``{``, ``}``, ``^``, ``$``, ``|``, ``?``, and ``\`` have special meaning in regex. To match them literally, escape with backslashes:
+
+* To match ``example.com``: use ``'example\\.com'`` (escape the dots)
+* To match ``value*``: use ``'value\\*'`` (escape the asterisk)
+* To match ``price+tax``: use ``'price\\+tax'`` (escape the plus)
+
+For strings with many special characters, use ``\\Q...\\E`` to quote the entire literal string (e.g., ``'\\Qhttps://example.com/path?id=123\\E'`` matches that exact URL).
+
 Literal String Replacement Examples::
 
     os> source=people | eval `REPLACE('helloworld', 'world', 'universe')` = REPLACE('helloworld', 'world', 'universe'), `REPLACE('helloworld', 'invalid', 'universe')` = REPLACE('helloworld', 'invalid', 'universe') | fields `REPLACE('helloworld', 'world', 'universe')`, `REPLACE('helloworld', 'invalid', 'universe')`
@@ -224,6 +232,16 @@ Literal String Replacement Examples::
     |--------------------------------------------+----------------------------------------------|
     | hellouniverse                              | helloworld                                   |
     +--------------------------------------------+----------------------------------------------+
+
+Escaping Special Characters Examples::
+
+    os> source=people | eval `Replace domain` = REPLACE('api.example.com', 'example\\.com', 'newsite.org'), `Replace with quote` = REPLACE('https://api.example.com/v1', '\\Qhttps://api.example.com\\E', 'http://localhost:8080') | fields `Replace domain`, `Replace with quote`
+    fetched rows / total rows = 1/1
+    +-----------------+--------------------------+
+    | Replace domain  | Replace with quote       |
+    |-----------------+--------------------------|
+    | api.newsite.org | http://localhost:8080/v1 |
+    +-----------------+--------------------------+
 
 Regex Pattern Examples::
 
