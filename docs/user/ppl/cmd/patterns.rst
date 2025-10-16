@@ -137,7 +137,7 @@ This example shows how to get aggregated results with detected variable tokens.
 
 Configuration
 -------------
-With  option ``show_numbered_token`` enabled, the output can detect numbered variable tokens from the pattern field.
+With option ``show_numbered_token`` enabled, the output can detect numbered variable tokens from the pattern field.
 
 PPL query::
 

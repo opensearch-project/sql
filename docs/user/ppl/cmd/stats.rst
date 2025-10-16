@@ -19,7 +19,7 @@ Syntax
 ======
 stats [bucket_nullable=bool] <aggregation>... [by-clause]
 
-* aggregation: mandatory. An aggregation function. The argument of aggregation must be field.
+* aggregation: mandatory. An aggregation function.
 * bucket_nullable: optional. Controls whether the stats command includes null buckets in group-by aggregations. When set to ``false``, the aggregation ignores records where the group-by field is null, resulting in faster performance by excluding null bucket. **Default:** determined by ``plugins.ppl.syntax.legacy.preferred``:
     * When ``plugins.ppl.syntax.legacy.preferred=true``, ``bucket_nullable`` defaults to ``true``
     * When ``plugins.ppl.syntax.legacy.preferred=false``, ``bucket_nullable`` defaults to ``false``
