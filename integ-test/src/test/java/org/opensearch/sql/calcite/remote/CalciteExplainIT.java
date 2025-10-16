@@ -1230,8 +1230,10 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testNestedAggregationsExplain() throws IOException {
-    // the query runs into error when pushdown is disabled due to bin's implementation
-    Assume.assumeFalse(isPushdownDisabled());
+    // TODO: Remove after resolving: https://github.com/opensearch-project/sql/issues/4578
+    Assume.assumeFalse(
+        "The query runs into error when pushdown is disabled due to bin's implementation",
+        isPushdownDisabled());
     assertYamlEqualsJsonIgnoreId(
         loadExpectedPlan("agg_composite_autodate_range_metric_push.yaml"),
         explainQueryToString(

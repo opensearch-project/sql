@@ -18,6 +18,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import org.json.JSONObject;
+import org.junit.Assume;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.legacy.TestsConstants;
@@ -476,6 +477,11 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testNestedCaseAggWithAutoDateHistogram() throws IOException {
+    // TODO: Remove after resolving: https://github.com/opensearch-project/sql/issues/4578
+    Assume.assumeFalse(
+        "The query cannot be executed when pushdown is disabled due to implementation defects of"
+            + " the bin command",
+        isPushdownDisabled());
     JSONObject actual1 =
         executeQuery(
             String.format(
