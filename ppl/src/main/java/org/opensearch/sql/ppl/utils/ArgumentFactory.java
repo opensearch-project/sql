@@ -157,6 +157,8 @@ public class ArgumentFactory {
         arguments.add(new Argument("top", AstDSL.booleanLiteral(optionCtx.BOTTOM() == null)));
       } else if (optionCtx.USEOTHER() != null) {
         arguments.add(new Argument("useother", getArgumentValue(optionCtx.booleanLiteral())));
+      } else if (optionCtx.OTHERSTR() != null) {
+        arguments.add(new Argument("otherstr", getArgumentValue(optionCtx.stringLiteral())));
       }
     }
     return arguments;
