@@ -20,13 +20,13 @@ rex [mode=<mode>] field=<field> <pattern> [max_match=<int>] [offset_field=<strin
 * field: mandatory. The field must be a string field to extract data from.
 * pattern: mandatory string. The regular expression pattern with named capture groups used to extract new fields. Pattern must contain at least one named capture group using ``(?<name>pattern)`` syntax.
 * mode: optional. Either ``extract`` or ``sed``. **Default:** extract
-  * **extract mode** (default): Creates new fields from regular expression named capture groups. This is the standard field extraction behavior.
-  * **sed mode**: Performs text substitution on the field using sed-style patterns:
-    * ``s/pattern/replacement/`` - Replace first occurrence
-    * ``s/pattern/replacement/g`` - Replace all occurrences (global)
-    * ``s/pattern/replacement/n`` - Replace only the nth occurrence (where n is a number)
-    * ``y/from_chars/to_chars/`` - Character-by-character transliteration
-    * Backreferences: ``\1``, ``\2``, etc. reference captured groups in replacement
+    * **extract mode** (default): Creates new fields from regular expression named capture groups. This is the standard field extraction behavior.
+    * **sed mode**: Performs text substitution on the field using sed-style patterns:
+        * ``s/pattern/replacement/`` - Replace first occurrence
+        * ``s/pattern/replacement/g`` - Replace all occurrences (global)
+        * ``s/pattern/replacement/n`` - Replace only the nth occurrence (where n is a number)
+        * ``y/from_chars/to_chars/`` - Character-by-character transliteration
+        * Backreferences: ``\1``, ``\2``, etc. reference captured groups in replacement
 
 * max_match: optional integer (default=1). Maximum number of matches to extract. If greater than 1, extracted fields become arrays. The value 0 means unlimited matches, but is automatically capped to the configured limit (default: 10, configurable via ``plugins.ppl.rex.max_match.limit``).
 * offset_field: optional string. Field name to store the character offset positions of matches. Only available in extract mode.
@@ -217,17 +217,17 @@ Limitations
 ===========
 **Named Capture Group Naming:**
 
-- Group names must start with a letter and contain only letters and digits
-- For detailed Java regex pattern syntax and usage, refer to the `official Java Pattern documentation <https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html>`_
+* Group names must start with a letter and contain only letters and digits
+* For detailed Java regex pattern syntax and usage, refer to the `official Java Pattern documentation <https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html>`_
 
 **Pattern Requirements:**
 
-- Pattern must contain at least one named capture group
-- Regular capture groups ``(...)`` without names are not allowed
+* Pattern must contain at least one named capture group
+* Regular capture groups ``(...)`` without names are not allowed
 
 **Max Match Limit:**
-
-- The ``max_match`` parameter is subject to a configurable system limit to prevent memory exhaustion
-- When ``max_match=0`` (unlimited) is specified, it is automatically capped at the configured limit (default: 10)
-- User-specified values exceeding the configured limit will result in an error
-- Users can adjust the limit via the ``plugins.ppl.rex.max_match.limit`` cluster setting. Setting this limit to a large value is not recommended as it can lead to excessive memory consumption, especially with patterns that match empty strings (e.g., ``\d*``, ``\w*``)
+ 
+* The ``max_match`` parameter is subject to a configurable system limit to prevent memory exhaustion
+* When ``max_match=0`` (unlimited) is specified, it is automatically capped at the configured limit (default: 10)
+* User-specified values exceeding the configured limit will result in an error
+* Users can adjust the limit via the ``plugins.ppl.rex.max_match.limit`` cluster setting. Setting this limit to a large value is not recommended as it can lead to excessive memory consumption, especially with patterns that match empty strings (e.g., ``\d*``, ``\w*``)
