@@ -997,11 +997,47 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // because that Mapping only works for RexNode, but we need both AggCall and RexNode list.
     Pair<List<RexNode>, List<AggCall>> reResolved =
         resolveAttributesForAggregation(groupExprList, aggExprList, context);
-
+    List<String> names = getGroupKeyNamesAfterAggregation(reResolved.getLeft());
     context.relBuilder.aggregate(
         context.relBuilder.groupKey(reResolved.getLeft()), reResolved.getRight());
+    // During aggregation, Calcite projects both input dependencies and output group-by fields.
+    // When names conflict, Calcite adds numeric suffixes (e.g., "value0").
+    // Apply explicit renaming to restore the intended aliases.
+    context.relBuilder.rename(names);
 
     return Pair.of(reResolved.getLeft(), reResolved.getRight());
+  }
+
+  private List<String> getGroupKeyNamesAfterAggregation(List<RexNode> nodes) {
+    List<RexNode> reordered = new ArrayList<>();
+    List<RexNode> left = new ArrayList<>();
+    for (RexNode n : nodes) {
+      if (isInputRef(n)) {
+        reordered.add(n);
+      } else {
+        left.add(n);
+      }
+    }
+    reordered.addAll(left);
+    return reordered.stream()
+        .map(this::extractAliasLiteral)
+        .flatMap(Optional::stream)
+        .map(RexLiteral::stringValue)
+        .toList();
+  }
+
+  /**
+   * Immitates registerExpression of {@link RelBuilder.Registrar} to derive the output order of
+   * group-by keys after aggregation
+   */
+  private boolean isInputRef(RexNode node) {
+    return switch (node.getKind()) {
+      case AS, DESCENDING, NULLS_FIRST, NULLS_LAST -> {
+        final List<RexNode> operands = ((RexCall) node).operands;
+        yield isInputRef(operands.getFirst());
+      }
+      default -> node instanceof RexInputRef;
+    };
   }
 
   /**
@@ -1102,7 +1138,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         aggregationAttributes.getLeft().stream()
             .map(this::extractAliasLiteral)
             .flatMap(Optional::stream)
-            .map(ref -> ((RexLiteral) ref).getValueAs(String.class))
+            .map(ref -> ref.getValueAs(String.class))
             .map(context.relBuilder::field)
             .map(f -> (RexNode) f)
             .toList();
