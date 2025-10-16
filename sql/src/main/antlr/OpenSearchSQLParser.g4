@@ -417,7 +417,6 @@ specificFunction
    : CASE expression caseFuncAlternative+ (ELSE elseArg = functionArg)? END     # caseFunctionCall
    | CASE caseFuncAlternative+ (ELSE elseArg = functionArg)? END                # caseFunctionCall
    | CAST '(' expression AS convertedDataType ')'                               # dataTypeFunctionCall
-   | TOSTRING '(' functionArg  ')'                                              # dataTypeFunctionCall
    ;
 
 relevanceFunction
