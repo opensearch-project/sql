@@ -133,6 +133,7 @@ STDDEV_SAMP:                        'STDDEV_SAMP';
 
 SUBSTRING:                          'SUBSTRING';
 TRIM:                               'TRIM';
+TOSTRING:                           'TOSTRING';
 
 // Keywords, but can be ID
 // Common Keywords, but can be ID
