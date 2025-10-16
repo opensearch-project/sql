@@ -85,15 +85,15 @@ TOSTRING
 Description
 >>>>>>>>>>>
 There are two available usage based on paraemter types and number of parameters.
-Usage with format type: tostring(number|string, string) converts the number in first argument  to provided format type string in second argument.
-         Return type: string
+Usage with format type: tostring(ANY, [format]) converts the number in first argument  to provided format type string in second argument.
+   Return type: string
 Usage for boolean parameter without format type: tostring(boolean) converts the string to 'True' or 'False'.
-         Return type: string
+   Return type: string
 
 You can use this function with the eval commands and as part of eval expressions.
 The first  argument can be a number, number as string or boolean.
-If first  argument is a a number or number as string , second argument need to be format name.
-If first argument is boolean, then second argument is not needed.
+If first argument can be any valid type , second argument is optional and if provided , it needs to be format name.
+If first argument is boolean, then second argument is not used even if its provided.
 
 Format types:
 a) "binary" Converts a number to a binary value.
@@ -108,7 +108,7 @@ eval result = tostring(9, "binary")
 
 For information about bitwise functions that you can use with the tostring function, see Bitwise functions.
 
-Basic examples
+Basic examples:
 The following example returns "True 0xF 12,345.68".
 ... | eval n=tostring(1==1) + " " + tostring(15, "hex") + " " + tostring(12345.6789, "commas")
 The following example returns foo=615 and foo2=00:10:15. The 615 seconds is converted into minutes and seconds.
