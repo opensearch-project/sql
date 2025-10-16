@@ -981,7 +981,7 @@ public class SparkQueryDispatcherTest {
             "spark.hadoop.fs.s3.customAWSCredentialsProvider=com.amazonaws.emr.AssumeRoleAWSCredentialsProvider",
             "spark.hadoop.aws.catalog.credentials.provider.factory.class=com.amazonaws.glue.catalog.metastore.STSAssumeRoleSessionCredentialsProviderFactory",
             "spark.jars.packages=org.opensearch:opensearch-spark-standalone_2.12:0.3.0-SNAPSHOT,org.opensearch:opensearch-spark-sql-application_2.12:0.3.0-SNAPSHOT,org.opensearch:opensearch-spark-ppl_2.12:0.3.0-SNAPSHOT",
-            "spark.jars.repositories=https://aws.oss.sonatype.org/content/repositories/snapshots",
+            "spark.jars.repositories=https://ci.opensearch.org/ci/dbc/snapshots/maven/",
             "spark.emr-serverless.driverEnv.JAVA_HOME=/usr/lib/jvm/java-17-amazon-corretto.x86_64/",
             "spark.executorEnv.JAVA_HOME=/usr/lib/jvm/java-17-amazon-corretto.x86_64/",
             "spark.emr-serverless.driverEnv.FLINT_CLUSTER_NAME=TEST_CLUSTER",
