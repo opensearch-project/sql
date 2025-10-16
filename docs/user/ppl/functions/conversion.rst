@@ -160,7 +160,7 @@ Example::
     | SMITH         |   01:48:20  |
     +---------------+-------------+
 
-Example for boolean parameter.
+The following example for converts boolean parameter to string.
 Example::
 
     os> source=people | eval `boolean_str` = tostring(1=1)| fields `boolean_str`
