@@ -512,7 +512,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       }
       // BINS parameter
       if (option.bins != null) {
-        checkParamDuplication(seenParams, option.SPAN(), errorFormat);
+        checkParamDuplication(seenParams, option.BINS(), errorFormat);
         bins = (Integer) ((Literal) resolvedOption).getValue();
       }
       // MINSPAN parameter

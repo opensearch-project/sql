@@ -267,6 +267,7 @@ chartCommand
 chartOptions
   : LIMIT EQUAL (TOP | BOTTOM)? integerLiteral
   | USEOTHER EQUAL booleanLiteral
+  | OTHERSTR EQUAL stringLiteral
   ;
 
 rowSplit

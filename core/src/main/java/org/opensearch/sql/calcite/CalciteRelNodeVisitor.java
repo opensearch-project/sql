@@ -2059,6 +2059,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         Optional.ofNullable(argMap.get("limit")).map(l -> (Integer) l.getValue()).orElse(10);
     Boolean top =
         Optional.ofNullable(argMap.get("top")).map(t -> (Boolean) t.getValue()).orElse(true);
+    Boolean useOther =
+        Optional.ofNullable(argMap.get("useother")).map(u -> (Boolean) u.getValue()).orElse(true);
+    String otherStr =
+        Optional.ofNullable(argMap.get("otherstr")).map(o -> (String) o.getValue()).orElse("OTHER");
     if (node.getRowSplit() == null || node.getColumnSplit() == null || Objects.equals(limit, 0)) {
       return aggregated.getLeft();
     }
@@ -2094,18 +2098,29 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // on column-split = group key
     relBuilder.join(
         JoinRelType.INNER, relBuilder.equals(relBuilder.field(2, 0, 2), relBuilder.field(2, 1, 0)));
-    RexNode caseExpr =
-        relBuilder.alias(
-            relBuilder.call(
-                SqlStdOperatorTable.CASE,
-                relBuilder.call(
-                    SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
-                    relBuilder.field("__row_number__"),
-                    relBuilder.literal(limit)),
-                relBuilder.field(2),
-                relBuilder.literal("OTHER")),
-            columSplitName);
-    relBuilder.project(relBuilder.field(0), relBuilder.field(1), caseExpr);
+
+    RexNode condition =
+        relBuilder.call(
+            SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
+            relBuilder.field("__row_number__"),
+            relBuilder.literal(limit));
+    RexNode columnSplitExpr;
+    if (useOther) {
+      columnSplitExpr =
+          relBuilder.call(
+              SqlStdOperatorTable.CASE,
+              condition,
+              relBuilder.field(2),
+              relBuilder.literal(otherStr));
+    } else {
+      relBuilder.filter(condition);
+      columnSplitExpr = relBuilder.field(2);
+    }
+
+    relBuilder.project(
+        relBuilder.field(0),
+        relBuilder.field(1),
+        relBuilder.alias(columnSplitExpr, columSplitName));
     return relBuilder.peek();
   }
 
