@@ -91,7 +91,7 @@ Usage for boolean parameter without format type: tostring(boolean) converts the 
    Return type: string
 
 You can use this function with the eval commands and as part of eval expressions.
-The first  argument can be a number, number as string or boolean.
+The first argument can be a number, number as string or boolean.
 If first argument can be any valid type , second argument is optional and if provided , it needs to be format name.
 If first argument is boolean, then second argument is not used even if its provided.
 
@@ -147,9 +147,6 @@ Example::
     |---------------+------------------+------------+
     | SMITH         |   80,000         | 80000.00   |
     +---------------+------------------+------------+
-
-
-        duration
 
       os> source=EMP |  eval duration = tostring(6500, "duration") | fields ENAME, duration"
           fetched rows / total rows = 1/1
