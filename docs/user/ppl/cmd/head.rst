@@ -1,6 +1,6 @@
-=============
+====
 head
-=============
+====
 
 .. rubric:: Table of contents
 

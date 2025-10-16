@@ -1,6 +1,6 @@
-=============
+======
 search
-=============
+======
 
 .. rubric:: Table of contents
 

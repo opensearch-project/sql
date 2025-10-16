@@ -1,6 +1,6 @@
-=============
+====
 sort
-=============
+====
 
 .. rubric:: Table of contents
 

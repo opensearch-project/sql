@@ -1,6 +1,6 @@
-=============
+=====
 spath
-=============
+=====
 
 .. rubric:: Table of contents
 

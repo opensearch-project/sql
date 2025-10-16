@@ -1,6 +1,6 @@
-=============
+=====
 parse
-=============
+=====
 
 .. rubric:: Table of contents
 

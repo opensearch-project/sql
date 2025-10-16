@@ -1,6 +1,6 @@
-=============
+=====
 regex
-=============
+=====
 
 .. rubric:: Table of contents
 

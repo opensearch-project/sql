@@ -1,6 +1,6 @@
-=============
+=====
 where
-=============
+=====
 
 .. rubric:: Table of contents
 

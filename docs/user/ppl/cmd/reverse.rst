@@ -1,6 +1,6 @@
-=============
+=======
 reverse
-=============
+=======
 
 .. rubric:: Table of contents
 

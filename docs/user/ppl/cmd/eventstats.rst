@@ -1,6 +1,6 @@
-=============
+==========
 eventstats
-=============
+==========
 
 .. rubric:: Table of contents
 

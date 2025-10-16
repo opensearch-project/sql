@@ -1,6 +1,6 @@
-=============
+====
 grok
-=============
+====
 
 .. rubric:: Table of contents
 

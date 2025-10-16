@@ -1,6 +1,6 @@
-=============
+====
 join
-=============
+====
 
 .. rubric:: Table of contents
 

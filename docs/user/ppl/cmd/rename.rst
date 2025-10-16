@@ -1,6 +1,6 @@
-=============
+======
 rename
-=============
+======
 
 .. rubric:: Table of contents
 

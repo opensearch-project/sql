@@ -1,6 +1,6 @@
-=============
+=======
 explain
-=============
+=======
 
 .. rubric:: Table of contents
 

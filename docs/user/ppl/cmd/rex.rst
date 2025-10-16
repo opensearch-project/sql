@@ -1,6 +1,6 @@
-=============
+===
 rex
-=============
+===
 
 .. rubric:: Table of contents
 

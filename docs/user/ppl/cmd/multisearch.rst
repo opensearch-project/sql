@@ -1,6 +1,6 @@
-=============
+===========
 multisearch
-=============
+===========
 
 .. rubric:: Table of contents
 

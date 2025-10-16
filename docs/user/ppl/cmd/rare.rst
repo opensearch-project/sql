@@ -1,6 +1,6 @@
-=============
+====
 rare
-=============
+====
 
 .. rubric:: Table of contents
 

@@ -1,6 +1,6 @@
-=============
+=======
 replace
-=============
+=======
 
 .. rubric:: Table of contents
 

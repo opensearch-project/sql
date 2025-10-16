@@ -1,6 +1,6 @@
-=============
+=====
 table
-=============
+=====
 
 .. rubric:: Table of contents
 

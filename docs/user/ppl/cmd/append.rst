@@ -1,6 +1,6 @@
-=========
+======
 append
-=========
+======
 
 .. rubric:: Table of contents
 

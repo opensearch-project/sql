@@ -1,6 +1,6 @@
-=============
+=====
 dedup
-=============
+=====
 
 .. rubric:: Table of contents
 

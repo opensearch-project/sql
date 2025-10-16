@@ -1,6 +1,6 @@
-=============
+====
 eval
-=============
+====
 
 .. rubric:: Table of contents
 

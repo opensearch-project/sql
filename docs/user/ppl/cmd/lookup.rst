@@ -1,6 +1,6 @@
-=============
+======
 lookup
-=============
+======
 
 .. rubric:: Table of contents
 

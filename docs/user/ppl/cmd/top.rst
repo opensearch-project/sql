@@ -1,6 +1,6 @@
-=============
+===
 top
-=============
+===
 
 .. rubric:: Table of contents
 

@@ -1,6 +1,6 @@
-=============
+=======
 flatten
-=============
+=======
 
 .. rubric:: Table of contents
 

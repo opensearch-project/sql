@@ -1,6 +1,6 @@
-=============
+========
 subquery
-=============
+========
 
 .. rubric:: Table of contents
 

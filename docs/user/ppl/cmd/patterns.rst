@@ -1,6 +1,6 @@
-=============
+========
 patterns
-=============
+========
 
 .. rubric:: Table of contents
 
