@@ -99,6 +99,8 @@ The query start with search command and then flowing a set of command delimited 
   - `regex command <cmd/regex.rst>`_ (3.3+, experimental): Filter search results by matching field values against a regular expression pattern.
 
   - `rename command <cmd/rename.rst>`_ (1.0+, stable): Rename one or more fields in the search result.
+  
+   - `replace command <cmd/replace.rst>`_ (3.4+, experimental): Replace text in one or more fields in the search result
 
   - `reverse command <cmd/reverse.rst>`_ (3.2+, experimental): Reverse the display order of search results.
 
