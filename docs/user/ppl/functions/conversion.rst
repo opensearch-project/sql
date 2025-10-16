@@ -95,14 +95,14 @@ The first  argument can be a number, number as string or boolean.
 If first  argument is a a number or number as string , second argument need to be format name.
 If first argument is boolean, then second argument is not needed.
 
-format types:
+Format types:
 a) "binary" Converts a number to a binary value.
 b) "hex" Converts the number to a hexadecimal value.
 c) "commas" Formats the number with commas. If the number includes a decimal, the function rounds the number to nearest two decimal places.
 d) "duration" Converts the value in seconds to the readable time format HH:MM:SS.
 The format argument is optional and is only used when the value argument is a number. The tostring function supports the following formats.
 
-Binary conversion
+Binary conversion:
 You can use this function to convert a number to a string of its binary representation. For example, the result of the following function is 1001, because the binary representation of 9 is 1001.:
 eval result = tostring(9, "binary")
 
