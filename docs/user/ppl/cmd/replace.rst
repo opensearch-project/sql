@@ -10,31 +10,22 @@ replace
 
 
 Description
-============
-Using ``replace`` command to replace text in one or more fields in the search result.
-
-Note: This command is only available when Calcite engine is enabled.
+===========
+The ``replace`` replaces text in one or more fields in the search result.
 
 
 Syntax
-============
+======
 replace '<pattern>' WITH '<replacement>' [, '<pattern>' WITH '<replacement>']... IN <field-name>[, <field-name>]...
 
-
-Parameters
-==========
-* **pattern**: mandatory. The text pattern you want to replace. Currently supports only plain text literals (no wildcards or regular expressions).
-* **replacement**: mandatory. The text you want to replace with.
-* **field-name**: mandatory. One or more field names where the replacement should occur.
-
-
-Examples
-========
+* pattern: mandatory. The text pattern you want to replace. Currently supports only plain text literals (no wildcards or regular expressions).
+* replacement: mandatory. The text you want to replace with.
+* field-name: mandatory. One or more field names where the replacement should occur.
 
 Example 1: Replace text in one field
-------------------------------------
+====================================
 
-The example shows replacing text in one field.
+This example shows replacing text in one field.
 
 PPL query::
 
@@ -51,9 +42,9 @@ PPL query::
 
 
 Example 2: Replace text in multiple fields
-------------------------------------
+==========================================
 
-The example shows replacing text in multiple fields.
+This example shows replacing text in multiple fields.
 
 PPL query::
 
@@ -70,9 +61,9 @@ PPL query::
 
 
 Example 3: Replace with other commands in a pipeline
-------------------------------------
+====================================================
 
-The example shows using replace with other commands in a query pipeline.
+This example shows using replace with other commands in a query pipeline.
 
 PPL query::
 
@@ -87,9 +78,9 @@ PPL query::
  +----------+-----+
 
 Example 4: Replace with multiple pattern/replacement pairs
-------------------------------------
+==========================================================
 
-The example shows using multiple pattern/replacement pairs in a single replace command. The replacements are applied sequentially.
+This example shows using multiple pattern/replacement pairs in a single replace command. The replacements are applied sequentially.
 
 PPL query::
 
@@ -105,7 +96,7 @@ PPL query::
  +-----------+
 
 Example 5: Pattern matching with LIKE and replace
-------------------------------------
+=================================================
 
 Since replace command only supports plain string literals, you can use LIKE command with replace for pattern matching needs.
 

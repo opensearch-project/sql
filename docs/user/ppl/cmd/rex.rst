@@ -215,9 +215,6 @@ Special Characters in Group Names   No           No
 
 Limitations
 ===========
-
-There are several important limitations with the rex command:
-
 **Named Capture Group Naming:**
 
 - Group names must start with a letter and contain only letters and digits
