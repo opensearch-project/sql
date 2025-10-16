@@ -227,7 +227,7 @@ Literal String Replacement Examples::
 
 Regex Pattern Examples::
 
-    os> source=people | eval `Remove digits` = REPLACE('test123', '\\d+', ''), `Collapse spaces` = REPLACE('hello  world', ' +', ' '), `Remove special` = REPLACE('hello@world!', '[^a-zA-Z]', '') | fields `Remove digits`, `Collapse spaces`, `Remove special`
+    os> source=people | eval `Remove digits` = REPLACE('test123', '\d+', ''), `Collapse spaces` = REPLACE('hello  world', ' +', ' '), `Remove special` = REPLACE('hello@world!', '[^a-zA-Z]', '') | fields `Remove digits`, `Collapse spaces`, `Remove special`
     fetched rows / total rows = 1/1
     +---------------+-----------------+----------------+
     | Remove digits | Collapse spaces | Remove special |
@@ -237,7 +237,7 @@ Regex Pattern Examples::
 
 Capture Group and Backreference Examples::
 
-    os> source=people | eval `Swap date` = REPLACE('1/14/2023', '^(\\d{1,2})/(\\d{1,2})/', '$2/$1/'), `Reverse words` = REPLACE('Hello World', '(\\w+) (\\w+)', '$2 $1'), `Extract domain` = REPLACE('user@example.com', '.*@(.+)', '$1') | fields `Swap date`, `Reverse words`, `Extract domain`
+    os> source=people | eval `Swap date` = REPLACE('1/14/2023', '^(\d{1,2})/(\d{1,2})/', '$2/$1/'), `Reverse words` = REPLACE('Hello World', '(\w+) (\w+)', '$2 $1'), `Extract domain` = REPLACE('user@example.com', '.*@(.+)', '$1') | fields `Swap date`, `Reverse words`, `Extract domain`
     fetched rows / total rows = 1/1
     +-----------+---------------+----------------+
     | Swap date | Reverse words | Extract domain |
