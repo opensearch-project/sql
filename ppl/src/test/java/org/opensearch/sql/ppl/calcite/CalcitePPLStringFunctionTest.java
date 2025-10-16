@@ -285,12 +285,12 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | eval no_digits = replace(JOB, '\\\\d+', '') | fields JOB, no_digits";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(JOB=[$2], no_digits=[REGEXP_REPLACE($2, '\\d+':VARCHAR, '':VARCHAR)])\n"
+        "LogicalProject(JOB=[$2], no_digits=[REGEXP_REPLACE($2, '\\\\d+':VARCHAR, '':VARCHAR)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `JOB`, REGEXP_REPLACE(`JOB`, '\\d+', '') `no_digits`\n" + "FROM `scott`.`EMP`";
+        "SELECT `JOB`, REGEXP_REPLACE(`JOB`, '\\\\d+', '') `no_digits`\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -303,12 +303,12 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(ENAME=[$1], swapped=[REGEXP_REPLACE($1, '^(.)(.)':VARCHAR,"
-            + " '$2$1')])\n"
+            + " '\\$2\\$1')])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, REGEXP_REPLACE(`ENAME`, '^(.)(.)', '$2$1') `swapped`\n"
+        "SELECT `ENAME`, REGEXP_REPLACE(`ENAME`, '^(.)(.)', '\\$2\\$1') `swapped`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
