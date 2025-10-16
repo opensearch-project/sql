@@ -80,40 +80,44 @@ Cast function can be chained::
     +-------+
 
 TOSTRING
------
+-----------
 
 Description
 >>>>>>>>>>>
-There are two available usage based on paraemter types and number of parameters.
-Usage with format type: tostring(ANY, [format]) converts the number in first argument  to provided format type string in second argument. If non number type, then it converts to default string representation.
-   Return type: string
-Usage for boolean parameter without format type: tostring(boolean) converts the string to 'True' or 'False'.
-   Return type: string
-You can use this function with the eval commands and as part of eval expressions.
+The following usage options are available, depending on the parameter types and the number of parameters.
 
-If first argument can be any valid type , second argument is optional and if provided , it needs to be format name to convert to where first argument contains only numbers.
-If first argument is boolean, then second argument is not used even if its provided.
+Usage with format type: tostring(ANY, [format]): Converts the number in first argument  to provided format type string in second argument. If non number type, then it converts to default string representation.
+Return type: string
 
-Format types::
+Usage for boolean parameter without format type tostring(boolean): Converts the string to 'True' or 'False'.
+Return type: string
+
+You can use this function with the eval commands and as part of eval expressions. If first argument can be any valid type , second argument is optional and if provided , it needs to be format name to convert to where first argument contains only numbers. If first argument is boolean, then second argument is not used even if its provided.
+
+Format types:
+
 a) "binary" Converts a number to a binary value.
 b) "hex" Converts the number to a hexadecimal value.
 c) "commas" Formats the number with commas. If the number includes a decimal, the function rounds the number to nearest two decimal places.
 d) "duration" Converts the value in seconds to the readable time format HH:MM:SS.
+
 The format argument is optional and is only used when the value argument is a number. The tostring function supports the following formats.
 
-For information about bitwise functions that you can use with the tostring function, see Bitwise functions.
-
 Basic examples:
+
 The following example returns "True 0xF 12,345.68".
-... | eval n=tostring(1==1) + " " + tostring(15, "hex") + " " + tostring(12345.6789, "commas")
+
+    ... | eval n=tostring(1==1) + " " + tostring(15, "hex") + " " + tostring(12345.6789, "commas")
+
 The following example returns foo=615 and foo2=00:10:15. The 615 seconds is converted into minutes and seconds.
 
-... | eval foo=615 | eval foo2 = tostring(foo, "duration")
+    ... | eval foo=615 | eval foo2 = tostring(foo, "duration")
 
 
 
 You can use this function to convert a number to a string of its binary representation.
 Example::
+
     os> source=EMP |  eval salary_binary = tostring(SAL, "binary") | fields ENAME, salary_binary, SAL"
     fetched rows / total rows = 1/1
     +---------------+------------------+------------+
@@ -125,6 +129,7 @@ Example::
 
 You can use this function to convert a number to a string of its hex representation.
 Example::
+
     os> source=EMP |  eval salary_hex = tostring(SAL, "hex") | fields ENAME, salary_hex, SAL"
     fetched rows / total rows = 1/1
     +---------------+------------------+------------+
@@ -135,6 +140,7 @@ Example::
 
 The following example formats the column totalSales to display values  with commas.
 Example::
+
      os> source=EMP |  eval salary_commas = tostring(SAL, "commas") | fields ENAME, salary_commas, SAL"
      fetched rows / total rows = 1/1
     +---------------+------------------+------------+
@@ -142,8 +148,10 @@ Example::
     |---------------+------------------+------------+
     | SMITH         |   80,000         | 80000.00   |
     +---------------+------------------+------------+
+
 The following example converts number of seconds to HH:MM:SS format representing hours, minutes and seconds.
 Example::
+
       os> source=EMP |  eval duration = tostring(6500, "duration") | fields ENAME, duration"
           fetched rows / total rows = 1/1
     +---------------+-------------+
@@ -154,8 +162,10 @@ Example::
 
 Example for boolean parameter.
 Example::
+
     os> source=people | eval `boolean_str` = tostring(1=1)| fields `boolean_str`
     fetched rows / total rows = 1/1
+
     +---------------------+
     | boolean_str         |
     |---------------------+
