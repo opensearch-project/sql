@@ -9,7 +9,6 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -20,26 +19,32 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rex.RexBiVisitorImpl;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.util.mapping.Mapping;
-import org.apache.calcite.util.mapping.MappingType;
-import org.apache.calcite.util.mapping.Mappings;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.immutables.value.Value;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
+import org.opensearch.sql.opensearch.storage.scan.RexPermuteSelectedColumnShuttle;
+import org.opensearch.sql.opensearch.storage.scan.RexPermuteSelectedColumnShuttle.SelectedColumnTargetMapping;
 import org.opensearch.sql.opensearch.storage.scan.SelectedColumn;
 import org.opensearch.sql.opensearch.storage.scan.SelectedColumn.Kind;
 
 /** Planner rule that push a {@link LogicalProject} down to {@link CalciteLogicalIndexScan} */
 @Value.Enclosing
 public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectIndexScanRule.Config> {
+
+  private static final CanPushDerivedFieldBiVisitor canPushDerivedFieldBiVisitor =
+      new CanPushDerivedFieldBiVisitor(true);
+  private static final SelectedColumnBiVisitor selectedColumnBiVisitor =
+      new SelectedColumnBiVisitor(true);
 
   /** Creates a OpenSearchProjectIndexScanRule. */
   protected OpenSearchProjectIndexScanRule(Config config) {
@@ -69,7 +74,7 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
     final List<String> projNames = project.getRowType().getFieldNames();
     final int oldFieldCount = scan.getRowType().getFieldCount();
 
-    final Set<String> usedNames = new HashSet<>(scan.osIndex.getFieldTypes().keySet());
+    final Set<String> usedNames = new HashSet<>(scan.osIndex.getAllFieldTypes().keySet());
     usedNames.addAll(scan.getPushDownContext().getDerivedScriptsByName().keySet());
     final Map<Integer, String> newDerivedAliases = new LinkedHashMap<>();
     // Collect which index in the scan is already derived field
@@ -85,22 +90,9 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
         newDerivedAliases.put(i, uniquifiedAlias);
         selected.add(SelectedColumn.derivedNew(i));
       } else {
+        // Collect projected physical field and projected existing derived field
         projExpr.accept(
-            new RexVisitorImpl<Void>(true) {
-              @Override
-              public Void visitInputRef(RexInputRef inputRef) {
-                final int oldIdx = inputRef.getIndex();
-                if (!seenOldIndex.get(oldIdx)) {
-                  seenOldIndex.set(oldIdx);
-                  if (derivedIndexSet.get(oldIdx)) {
-                    selected.add(SelectedColumn.derivedExisting(oldIdx));
-                  } else {
-                    selected.add(SelectedColumn.physical(oldIdx));
-                  }
-                }
-                return null;
-              }
-            });
+            selectedColumnBiVisitor, Triple.of(seenOldIndex, derivedIndexSet, selected));
       }
     }
 
@@ -119,32 +111,9 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
       return;
     }
 
-    final Mapping oldIdxToNewPos =
-        Mappings.create(MappingType.PARTIAL_FUNCTION, oldFieldCount, selected.size());
-    final Map<Integer, Integer> projIdxToNewPos = new HashMap<>();
-
-    for (int newPos = 0; newPos < selected.size(); newPos++) {
-      final SelectedColumn selectedItem = selected.get(newPos);
-      switch (selectedItem.getKind()) {
-        case PHYSICAL:
-        case DERIVED_EXISTING:
-          oldIdxToNewPos.set(selectedItem.getOldIdx(), newPos);
-          break;
-        case DERIVED_NEW:
-          projIdxToNewPos.put(selectedItem.getProjIdx(), newPos);
-          break;
-      }
-    }
-
-    final List<RexNode> newExprs = new ArrayList<>(projIdxToNewPos.size());
-    for (int i = 0; i < projExprs.size(); i++) {
-      if (projIdxToNewPos.containsKey(i)) {
-        final int pos = projIdxToNewPos.get(i);
-        newExprs.add(call.builder().getRexBuilder().makeInputRef(projExprs.get(i).getType(), pos));
-      } else {
-        newExprs.add(RexUtil.apply(oldIdxToNewPos, projExprs.get(i)));
-      }
-    }
+    final SelectedColumnTargetMapping mapping =
+        SelectedColumnTargetMapping.create(selected, scan.getRowType().getFieldCount());
+    final List<RexNode> newExprs = RexPermuteSelectedColumnShuttle.of(mapping).visitList(projExprs);
 
     if (RexUtil.isIdentity(newExprs, newScan.getRowType())) {
       call.transformTo(newScan);
@@ -164,7 +133,7 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
     @Override
     public boolean add(SelectedColumn item) {
       if (isSequential
-          && item.getKind() == Kind.PHYSICAL
+          && (item.getKind() == Kind.PHYSICAL || item.getKind() == Kind.DERIVED_EXISTING)
           && !Objects.equals(item.getOldIdx(), current++)) {
         isSequential = false;
       }
@@ -219,22 +188,56 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
       return false;
     }
 
-    List<String> inputNames = scan.getRowType().getFieldNames();
-    Set<String> indexFieldNames = scan.osIndex.getFieldTypes().keySet();
-    final boolean[] canPushAsDerived = {false};
-    // Chained derived field is not support. A new derived field can't rely on the input of existing
-    // derived field
-    node.accept(
-        new RexVisitorImpl<Void>(true) {
-          @Override
-          public Void visitInputRef(RexInputRef inputRef) {
-            if (!derivedIndexSet.get(inputRef.getIndex())
-                && indexFieldNames.contains(inputNames.get(inputRef.getIndex()))) {
-              canPushAsDerived[0] = true;
-            }
-            return null;
-          }
-        });
-    return canPushAsDerived[0];
+    final boolean[] canPushAsDerivedState = {true, false}; // {canPush = true, seenInputRef = false}
+    /*
+     * Chained derived field is not support. A new derived field can't rely on the input of existing
+     * derived field. If all of RexNode inputs are literals, we treat the RexNode result as literal.
+     * And we don't push down such RexNode either.
+     */
+    node.accept(canPushDerivedFieldBiVisitor, Pair.of(derivedIndexSet, canPushAsDerivedState));
+    return canPushAsDerivedState[0] && canPushAsDerivedState[1];
+  }
+
+  private static class SelectedColumnBiVisitor
+      extends RexBiVisitorImpl<Void, Triple<BitSet, BitSet, SelectedColumns>> {
+    protected SelectedColumnBiVisitor(boolean deep) {
+      super(deep);
+    }
+
+    @Override
+    public Void visitInputRef(RexInputRef inputRef, Triple<BitSet, BitSet, SelectedColumns> args) {
+      final BitSet seenOldIndex = args.getLeft();
+      final BitSet derivedIndexSet = args.getMiddle();
+      final SelectedColumns selected = args.getRight();
+      final int oldIdx = inputRef.getIndex();
+      if (!seenOldIndex.get(oldIdx)) {
+        seenOldIndex.set(oldIdx);
+        if (derivedIndexSet.get(oldIdx)) {
+          selected.add(SelectedColumn.derivedExisting(oldIdx));
+        } else {
+          selected.add(SelectedColumn.physical(oldIdx));
+        }
+      }
+      return null;
+    }
+  }
+
+  private static class CanPushDerivedFieldBiVisitor
+      extends RexBiVisitorImpl<Void, Pair<BitSet, boolean[]>> {
+    protected CanPushDerivedFieldBiVisitor(boolean deep) {
+      super(deep);
+    }
+
+    @Override
+    public Void visitInputRef(RexInputRef inputRef, Pair<BitSet, boolean[]> args) {
+      final BitSet derivedIndexSet = args.getLeft();
+      // seenInputRef = true; Have seen one of RexNode input is input field
+      args.getRight()[1] = true;
+      if (derivedIndexSet.get(inputRef.getIndex())) {
+        // canPush = false; Any existing derived field as input is not supported
+        args.getRight()[0] = false;
+      }
+      return null;
+    }
   }
 }

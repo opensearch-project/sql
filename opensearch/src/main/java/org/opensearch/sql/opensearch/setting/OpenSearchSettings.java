@@ -167,7 +167,7 @@ public class OpenSearchSettings extends Settings {
   public static final Setting<Double> CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR_SETTING =
       Setting.doubleSetting(
           Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR.getKeyValue(),
-          0.9,
+          0.5, // Assume the cluster at least has two data nodes of parallelism
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 

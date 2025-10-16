@@ -145,7 +145,12 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
           dCpu += dRows * getAggMultiplier(operation);
         }
           // Ignored Project in cost accumulation, but it will affect the external cost
-        case PROJECT, SCRIPT_PROJECT -> {}
+        case PROJECT -> {}
+        case SCRIPT_PROJECT -> {
+          List<String> derivedNames = (List<String>) operation.digest();
+          // Based on default project rows * field size, add additional cost on derived fields
+          dCpu += NumberUtil.multiply(dRows, 0.1 * derivedNames.size());
+        }
         case SORT -> dCpu += dRows;
           // Refer the org.apache.calcite.rel.metadata.RelMdRowCount.getRowCount(Aggregate rel,...)
         case COLLAPSE -> {

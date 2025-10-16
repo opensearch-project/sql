@@ -116,6 +116,10 @@ public class OpenSearchAggregateIndexScanRule
                                                     Predicate.not(
                                                             OpenSearchIndexScanRule::isLimitPushed)
                                                         .and(
+                                                            Predicate.not(
+                                                                OpenSearchIndexScanRule
+                                                                    ::isScriptProjectPushed))
+                                                        .and(
                                                             OpenSearchIndexScanRule
                                                                 ::noAggregatePushed))
                                                 .noInputs())));

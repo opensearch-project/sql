@@ -264,7 +264,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
             RexNode reMappedRex = remappedRexInfo.getLeft();
             RelDataType reMappedRowType = remappedRexInfo.getRight();
             Map<String, ExprType> fieldTypes =
-                this.osIndex.getFieldTypes().entrySet().stream()
+                this.osIndex.getAllFieldTypes().entrySet().stream()
                     .filter(entry -> reMappedRowType.getFieldNames().contains(entry.getKey()))
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
             ScriptQueryExpression script =
