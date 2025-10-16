@@ -10,11 +10,11 @@ reverse
 
 
 Description
-============
+===========
 | The ``reverse`` command reverses the display order of search results. The same results are returned, but in reverse order.
 
 Syntax
-============
+======
 reverse
 
 * No parameters: The reverse command takes no arguments or options.

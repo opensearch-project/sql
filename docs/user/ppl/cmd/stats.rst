@@ -10,7 +10,7 @@ stats
 
 
 Description
-============
+===========
 | The ``stats`` command calculates the aggregation from the search result.
 
 

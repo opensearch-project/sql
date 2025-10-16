@@ -10,11 +10,11 @@ explain
 
 
 Description
-============
-| The ``explain`` command explains the plan of query which is often used for query translation and troubleshooting. The ``explain`` command can only be used as the first command in the PPL query.
+===========
+The ``explain`` command explains the plan of query which is often used for query translation and troubleshooting. The ``explain`` command can only be used as the first command in the PPL query.
 
 Syntax
-============
+======
 explain <mode> queryStatement
 
 * mode: optional. There are 4 explain modes: "simple", "standard", "cost", "extended". **Default:** standard.
@@ -55,7 +55,7 @@ Explain::
     }
 
 Example 2: Explain a PPL query in v3 engine
-===================================================
+===========================================
 
 When Calcite is enabled (plugins.calcite.enabled=true), explaining a PPL query will get its logical and physical plan of v3 engine and pushdown information.
 
@@ -80,7 +80,7 @@ Explain::
 
 
 Example 3: Explain a PPL query with simple mode
-=========================================================
+===============================================
 
 When Calcite is enabled (plugins.calcite.enabled=true), you can explain a PPL query with the "simple" mode.
 
@@ -101,7 +101,7 @@ Explain::
     }
 
 Example 4: Explain a PPL query with cost mode
-=========================================================
+=============================================
 
 When Calcite is enabled (plugins.calcite.enabled=true), you can explain a PPL query with the "cost" mode.
 
@@ -125,7 +125,7 @@ Explain::
     }
 
 Example 5: Explain a PPL query with extended mode
-=========================================================
+=================================================
 
 PPL query::
 

@@ -10,12 +10,12 @@ parse
 
 
 Description
-============
+===========
 | The ``parse`` command parses a text field with a regular expression and appends the result to the search result.
 
 
 Syntax
-============
+======
 parse <field> <pattern>
 
 * field: mandatory. The field must be a text field.

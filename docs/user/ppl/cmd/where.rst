@@ -10,7 +10,7 @@ where
 
 
 Description
-============
+===========
 | The ``where`` command filters the search result. The ``where`` command only returns the result when the bool-expression evaluates to true.
 
 Syntax
@@ -19,11 +19,8 @@ where <boolean-expression>
 
 * bool-expression: optional. Any expression which could be evaluated to boolean value.
 
-Examples
-========
-
 Example 1: Filter result set with condition
---------------------------------------------
+===========================================
 
 This example shows fetching all the documents from the accounts index where account_number is 1 or gender is "F".
 
@@ -39,7 +36,7 @@ PPL query::
     +----------------+--------+
 
 Example 2: Basic Field Comparison
-----------------------------------
+=================================
 
 The example shows how to filter accounts with balance greater than 30000.
 
@@ -55,7 +52,7 @@ PPL query::
     +----------------+---------+
 
 Example 3: Pattern Matching with LIKE
---------------------------------------
+=====================================
 
 Pattern Matching with Underscore (_)
 
@@ -86,7 +83,7 @@ PPL query::
     +----------------+-------+
 
 Example 4: Multiple Conditions
--------------------------------
+==============================
 
 The example shows how to combine multiple conditions using AND operator.
 
@@ -103,7 +100,7 @@ PPL query::
     +----------------+-----+--------+
 
 Example 5: Using IN Operator
------------------------------
+============================
 
 The example demonstrates using IN operator to match multiple values.
 
@@ -119,7 +116,7 @@ PPL query::
     +----------------+-------+
 
 Example 6: NULL Checks
-----------------------
+======================
 
 The example shows how to filter records with NULL values.
 
@@ -134,7 +131,7 @@ PPL query::
    +----------------+----------+
 
 Example 7: Complex Conditions
-------------------------------
+=============================
 
 The example demonstrates combining multiple conditions with parentheses and logical operators.
 
@@ -149,7 +146,7 @@ PPL query::
     +----------------+---------+-----+--------+
 
 Example 8: NOT Conditions
---------------------------
+=========================
 
 The example shows how to use NOT operator to exclude matching records.
 

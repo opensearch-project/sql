@@ -10,11 +10,11 @@ regex
 
 
 Description
-============
+===========
 | The ``regex`` command filters search results by matching field values against a regular expression pattern. Only documents where the specified field matches the pattern are included in the results.
 
 Syntax
-============
+======
 regex <field> = <pattern>
 regex <field> != <pattern>
 
@@ -24,7 +24,7 @@ regex <field> != <pattern>
 * != : operator for negative matching (exclude matches)
 
 Regular Expression Engine
-==========================
+=========================
 
 The regex command uses Java's built-in regular expression engine, which supports:
 

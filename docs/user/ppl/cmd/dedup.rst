@@ -10,11 +10,11 @@ dedup
 
 
 Description
-============
-| The ``dedup`` command removes duplicate documents defined by specified fields from the search result.
+===========
+The ``dedup`` command removes duplicate documents defined by specified fields from the search result.
 
 Syntax
-============
+======
 dedup [int] <field-list> [keepempty=<bool>] [consecutive=<bool>]
 
 * int: optional. The ``dedup`` command retains multiple events for each combination when you specify <int>. The number for <int> must be greater than 0. All other duplicates are removed from the results. **Default:** 1
@@ -56,7 +56,7 @@ PPL query::
     +----------------+--------+
 
 Example 3: Keep or Ignore the empty field by default
-============================================
+====================================================
 
 This example shows deduplicating documents while keeping null values.
 
@@ -90,7 +90,7 @@ PPL query::
 
 
 Example 4: Dedup in consecutive document
-=========================================
+========================================
 
 This example shows deduplicating consecutive documents.
 

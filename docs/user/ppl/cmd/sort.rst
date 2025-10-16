@@ -10,11 +10,11 @@ sort
 
 
 Description
-============
+===========
 | The ``sort`` command sorts all the search results by the specified fields.
 
 Syntax
-============
+======
 sort [count] <[+|-] sort-field>... [asc|a|desc|d]
 
 
@@ -25,7 +25,7 @@ sort [count] <[+|-] sort-field>... [asc|a|desc|d]
 
 
 Example 1: Sort by one field
-=============================
+============================
 
 This example shows sorting all documents by age field in ascending order.
 
@@ -81,7 +81,7 @@ PPL query::
     +----------------+-----+
 
 Example 4: Sort by multiple field
-=============================
+=================================
 
 This example shows sorting all documents by gender field in ascending order and age field in descending order.
 
@@ -117,7 +117,7 @@ PPL query::
     +----------+
 
 Example 6: Specify the number of sorted documents to return
-============================================================
+===========================================================
 
 This example shows sorting all documents and returning 2 documents.
 
@@ -133,7 +133,7 @@ PPL query::
     +----------------+-----+
 
 Example 7: Sort with desc modifier
-===================================
+==================================
 
 This example shows sorting with the desc modifier to reverse sort order.
 
@@ -151,7 +151,7 @@ PPL query::
     +----------------+-----+
 
 Example 8: Sort by multiple fields with desc modifier
-======================================================
+=====================================================
 
 This example shows sorting by multiple fields using desc, which reverses the sort order for all specified fields. Gender is reversed from ascending to descending, and the descending age sort is reversed to ascending within each gender group.
 
@@ -170,7 +170,7 @@ PPL query::
 
 
 Example 9: Sort with specifying field type
-==================================
+==========================================
 
 This example shows sorting with str() to sort numeric values lexicographically.
 

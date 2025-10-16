@@ -10,11 +10,11 @@ timechart
 
 
 Description
-============
+===========
 | The ``timechart`` command creates a time-based aggregation of data. It groups data by time intervals and optionally by a field, then applies an aggregation function to each group. The results are returned in an unpivoted format with separate rows for each time-field combination.
 
 Syntax
-============
+======
 
 timechart [span=<time_interval>] [limit=<number>] [useother=<boolean>] <aggregation_function> [by <field>]
 

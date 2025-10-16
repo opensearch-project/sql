@@ -10,8 +10,8 @@ eval
 
 
 Description
-============
-| The ``eval`` command evaluates the expression and appends the result to the search result.
+===========
+The ``eval`` command evaluates the expression and appends the result to the search result.
 
 
 Syntax

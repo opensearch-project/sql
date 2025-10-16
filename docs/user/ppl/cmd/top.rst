@@ -10,11 +10,11 @@ top
 
 
 Description
-============
+===========
 | The ``top`` command finds the most common tuple of values of all fields in the field list.
 
 Syntax
-============
+======
 top [N] [top-options] <field-list> [by-clause]
 
 * N: optional. number of results to return. **Default**: 10
@@ -41,7 +41,7 @@ PPL query::
     +--------+
 
 Example 2: Limit results to top N values
-=========================================
+========================================
 
 This example finds the most common gender and limits results to 1 value.
 
@@ -72,7 +72,7 @@ PPL query::
     +--------+-----+
 
 Example 4: Top command with count field
-======================================
+=======================================
 
 This example finds the most common gender of all the accounts and includes the count.
 

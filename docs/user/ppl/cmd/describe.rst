@@ -10,12 +10,12 @@ describe
 
 
 Description
-============
-| Use the ``describe`` command to query metadata of the index. ``describe`` command can only be used as the first command in the PPL query.
+===========
+Use the ``describe`` command to query metadata of the index. ``describe`` command can only be used as the first command in the PPL query.
 
 Syntax
-============
-describe [dataSource].[schema].<tablename>
+======
+describe [dataSource.][schema.]<tablename>
 
 * dataSource: optional. If dataSource is not provided, it resolves to opensearch dataSource.
 * schema: optional.  If schema is not provided, it resolves to default schema.

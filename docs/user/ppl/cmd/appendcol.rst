@@ -11,10 +11,10 @@ appendcol
 
 Description
 ============
-| The ``appendcol`` command appends the result of a sub-search and attaches it alongside with the input search results (The main search).
+The ``appendcol`` command appends the result of a sub-search and attaches it alongside with the input search results (The main search).
 
 Syntax
-============
+======
 appendcol [override=<boolean>] <sub-search>
 
 * override=<boolean>: optional. Boolean field to specify should result from main-result be overwritten in the case of column name conflict. **Default:** false.

@@ -10,12 +10,12 @@ show datasources
 
 
 Description
-============
+===========
 | Use the ``show datasources`` command to query datasources configured in the PPL engine. The ``show datasources`` command can only be used as the first command in the PPL query.
 
 
 Syntax
-============
+======
 show datasources
 
 

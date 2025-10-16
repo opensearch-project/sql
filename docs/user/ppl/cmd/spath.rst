@@ -10,11 +10,11 @@ spath
 
 
 Description
-============
+===========
 | The `spath` command allows extracting fields from structured text data. It currently allows selecting from JSON data with JSON paths.
 
 Syntax
-============
+======
 spath input=<field> [output=<field>] [path=]<path>
 
 * input: mandatory. The field to scan for JSON data.
@@ -43,7 +43,7 @@ PPL query::
     +----------+---+
 
 Example 2: Lists & Nesting
-============================
+==========================
 
 This example demonstrates more JSON path uses, like traversing nested fields and extracting list elements.
 
@@ -60,7 +60,7 @@ PPL query::
     +------------------------------------------------------+---------------+--------------+--------+
 
 Example 3: Sum of inner elements
-============================
+================================
 
 This example shows extracting an inner field and doing statistics on it, using the docs from example 1. It also demonstrates that `spath` always returns strings for inner types.
 

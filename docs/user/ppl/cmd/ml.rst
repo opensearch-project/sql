@@ -10,14 +10,14 @@ ml
 
 
 Description
-============
+===========
 | Use the ``ml`` command to train/predict/train and predict on any algorithm in the ml-commons plugin on the search result returned by a PPL command.
 
 Syntax
 ======
 
 AD - Fixed In Time RCF For Time-series Data:
----------------------------------------------
+--------------------------------------------
 
 ml action='train' algorithm='rcf' <number_of_trees> <shingle_size> <sample_size> <output_after> <time_decay> <anomaly_rate> <time_field> <date_format> <time_zone>
 
@@ -33,7 +33,7 @@ ml action='train' algorithm='rcf' <number_of_trees> <shingle_size> <sample_size>
 * category_field: optional string. It specifies the category field used to group inputs. Each category will be independently predicted.
 
 AD - Batch RCF for Non-time-series Data:
------------------------------------------
+----------------------------------------
 
 ml action='train' algorithm='rcf' <number_of_trees> <sample_size> <output_after> <training_data_size> <anomaly_score_threshold>
 

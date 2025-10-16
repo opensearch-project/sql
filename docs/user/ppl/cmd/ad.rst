@@ -10,7 +10,7 @@ ad (deprecated by ml command)
 
 
 Description
-============
+===========
 | The ``ad`` command applies Random Cut Forest (RCF) algorithm in the ml-commons plugin on the search result returned by a PPL command. Based on the input, the command uses two types of RCF algorithms: fixed in time RCF for processing time-series data, batch RCF for processing non-time-series data.
 
 
@@ -18,7 +18,7 @@ Syntax
 ======
 
 Fixed In Time RCF For Time-series Data
----------------------------------------
+--------------------------------------
 ad [number_of_trees] [shingle_size] [sample_size] [output_after] [time_decay] [anomaly_rate] <time_field> [date_format] [time_zone] [category_field]
 
 * number_of_trees: optional. Number of trees in the forest. **Default:** 30.
@@ -33,7 +33,7 @@ ad [number_of_trees] [shingle_size] [sample_size] [output_after] [time_decay] [a
 * category_field: optional. Specifies the category field used to group inputs. Each category will be independently predicted.
 
 Batch RCF For Non-time-series Data
------------------------------------
+----------------------------------
 ad [number_of_trees] [sample_size] [output_after] [training_data_size] [anomaly_score_threshold] [category_field]
 
 * number_of_trees: optional. Number of trees in the forest. **Default:** 30.

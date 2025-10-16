@@ -10,12 +10,12 @@ append
 
 
 Description
-============
+===========
 | The ``append`` command appends the result of a sub-search and attaches it as additional rows to the bottom of the input search results (The main search).
-The command aligns columns with the same field names and types. For different column fields between the main search and sub-search, NULL values are filled in the respective rows.
+| The command aligns columns with the same field names and types. For different column fields between the main search and sub-search, NULL values are filled in the respective rows.
 
 Syntax
-============
+======
 append <sub-search>
 
 * sub-search: mandatory. Executes PPL commands as a secondary search.

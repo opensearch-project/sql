@@ -194,4 +194,5 @@ Assume table1 and table2 only contain field ``id``, following PPL queries and th
    * - source=table1 | join right=tt on table1.id=t2.id [ source=table2 as t2 | eval b = id ] | eval a = 1
      - table1.id, tt.id, tt.b, a
 
-For extended syntax (join with field list), when duplicate-named fields in output results are deduplicated, the fields in output determined by the value of 'overwrite' option.
+| For extended syntax (join with field list), when duplicate-named fields in output results are deduplicated, the fields in output determined by the value of 'overwrite' option.
+| Join types ``inner``, ``left``, ``outer`` (alias of ``left``), ``semi`` and ``anti`` are supported by default. ``right``, ``full``, ``cross`` are performance sensitive join types which are disabled by default. Set config ``plugins.calcite.all_join_types.allowed = true`` to enable.

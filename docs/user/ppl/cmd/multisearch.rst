@@ -10,7 +10,7 @@ multisearch
 
 
 Description
-============
+===========
 | Use the ``multisearch`` command to run multiple search subsearches and merge their results together. The command allows you to combine data from different queries on the same or different sources, and optionally apply subsequent processing to the combined result set.
 
 | Key aspects of ``multisearch``:
@@ -82,7 +82,7 @@ PPL query::
     +-----------+---------+-------------+
 
 Example 3: Timestamp Interleaving
-==================================
+=================================
 
 This example combines time-series data from multiple sources with automatic timestamp-based ordering.
 
@@ -101,7 +101,7 @@ PPL query::
     +-------+---------------------+----------+-------+---------------------+
 
 Example 4: Handling Empty Results
-==================================
+=================================
 
 This example shows how multisearch gracefully handles cases where some subsearches return no results.
 
@@ -119,7 +119,7 @@ PPL query::
     +-----------+-----+------------+
 
 Example 5: Type Compatibility - Missing Fields
-=================================================
+==============================================
 
 This example demonstrates how missing fields are handled with NULL insertion.
 
@@ -137,7 +137,7 @@ PPL query::
     +-----------+-----+------------+
 
 Example 6: Type Conflict Resolution - Automatic Renaming
-===========================================================
+========================================================
 
 This example shows when the same field name has incompatible types across subsearches, the system automatically renames conflicting fields with numeric suffixes.
 

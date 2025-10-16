@@ -11,10 +11,10 @@ bin
 
 Description
 ============
-| The ``bin`` command groups numeric values into buckets of equal intervals, making it useful for creating histograms and analyzing data distribution. It takes a numeric field and generates a new field with values that represent the lower bound of each bucket.
+The ``bin`` command groups numeric values into buckets of equal intervals, making it useful for creating histograms and analyzing data distribution. It takes a numeric field and generates a new field with values that represent the lower bound of each bucket.
 
 Syntax
-============
+======
 bin <field> [span=<interval>] [minspan=<interval>] [bins=<count>] [aligntime=(earliest | latest | <time-specifier>)] [start=<value>] [end=<value>]
 
 * field: mandatory. The numeric field to bin.
@@ -50,7 +50,7 @@ When multiple parameters are specified, priority order is: span > minspan > bins
 * start/end parameters expand the range (never shrink) and affect bin width calculation
 
 Example 1: Basic numeric span
-==============================
+=============================
 
 PPL query::
 
@@ -80,7 +80,7 @@ PPL query::
 
 
 Example 3: Logarithmic span (log10)
-====================================
+===================================
 
 PPL query::
 
@@ -94,7 +94,7 @@ PPL query::
     +------------------+
 
 Example 4: Logarithmic span with coefficient
-=============================================
+============================================
 
 PPL query::
 
@@ -109,7 +109,7 @@ PPL query::
     +------------------+
 
 Example 5: Basic bins parameter
-================================
+===============================
 
 PPL query::
 
@@ -124,7 +124,7 @@ PPL query::
     +------------+
 
 Example 6: Low bin count
-=========================
+========================
 
 PPL query::
 
@@ -137,7 +137,7 @@ PPL query::
     +-------+
 
 Example 7: High bin count
-==========================
+=========================
 
 PPL query::
 
@@ -152,7 +152,7 @@ PPL query::
     +-------+----------------+
 
 Example 8: Basic minspan
-=========================
+========================
 
 PPL query::
 
@@ -167,7 +167,7 @@ PPL query::
     +-------+----------------+
 
 Example 9: Large minspan
-==========================
+========================
 
 PPL query::
 
@@ -180,7 +180,7 @@ PPL query::
     +--------+
 
 Example 10: Start and end range
-================================
+===============================
 
 PPL query::
 
@@ -193,7 +193,7 @@ PPL query::
     +-------+
 
 Example 11: Large end range
-============================
+===========================
 
 PPL query::
 
@@ -206,7 +206,7 @@ PPL query::
     +----------+
 
 Example 12: Span with start/end
-================================
+===============================
 
 PPL query::
 
@@ -222,7 +222,7 @@ PPL query::
     +-------+
 
 Example 13: Hour span
-======================
+=====================
 
 PPL query::
 
@@ -237,7 +237,7 @@ PPL query::
     +---------------------+-------+
 
 Example 14: Minute span
-========================
+=======================
 
 PPL query::
 
@@ -252,7 +252,7 @@ PPL query::
     +---------------------+-------+
 
 Example 15: Second span
-========================
+=======================
 
 PPL query::
 
@@ -267,7 +267,7 @@ PPL query::
     +---------------------+-------+
 
 Example 16: Daily span
-=======================
+======================
 
 PPL query::
 
@@ -282,7 +282,7 @@ PPL query::
     +---------------------+-------+
 
 Example 17: Aligntime with time modifier
-=========================================
+========================================
 
 PPL query::
 
@@ -297,7 +297,7 @@ PPL query::
     +---------------------+-------+
 
 Example 18: Aligntime with epoch timestamp
-===========================================
+==========================================
 
 PPL query::
 
@@ -312,7 +312,7 @@ PPL query::
     +---------------------+-------+
 
 Example 19: Default behavior (no parameters)
-==============================================
+============================================
 
 PPL query::
 

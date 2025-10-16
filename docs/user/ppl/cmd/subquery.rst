@@ -10,7 +10,7 @@ subquery
 
 
 Description
-============
+===========
 | The ``subquery`` command allows you to embed one PPL query inside another, enabling complex filtering and data retrieval operations. A subquery is a nested query that executes first and returns results that are used by the outer query for filtering, comparison, or joining operations.
 
 | Subqueries are useful for:

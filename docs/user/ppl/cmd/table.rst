@@ -10,7 +10,7 @@ table
 
 
 Description
-============
+===========
 The ``table`` command is an alias for the `fields <fields.rst>`_ command and provides the same field selection capabilities. It allows you to keep or remove fields from the search result using enhanced syntax options.
 
 Syntax

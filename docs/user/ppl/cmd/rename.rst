@@ -10,11 +10,11 @@ rename
 
 
 Description
-============
+===========
 | The ``rename`` command renames one or more fields in the search result.
 
 Syntax
-============
+======
 rename <source-field> AS <target-field>["," <source-field> AS <target-field>]...
 
 * source-field: mandatory. The name of the field you want to rename. Supports wildcard patterns using ``*``.
@@ -68,7 +68,7 @@ PPL query::
 
 
 Example 3: Rename with wildcards
-=================================
+================================
 
 This example shows how to rename multiple fields using wildcard patterns.
 
@@ -87,7 +87,7 @@ PPL query::
 
 
 Example 4: Rename with multiple wildcard patterns
-==================================================
+=================================================
 
 This example shows how to rename multiple fields using multiple wildcard patterns.
 
@@ -105,7 +105,7 @@ PPL query::
     +------------+-----------+---------------+
 
 Example 5: Rename existing field to existing field
-===================================================
+==================================================
 
 This example shows how to rename an existing field to an existing field. The target field gets removed and the source field is renamed to the target field.
 

@@ -10,15 +10,15 @@ expand
 
 
 Description
-============
+===========
 | The ``expand`` command transforms a single document with a nested array field into multiple documents—each containing one element from the array. All other fields in the original document are duplicated across the resulting documents.
 
 | Key aspects of ``expand``:
 
-1. It generates one row per element in the specified array field.
-2. The specified array field is converted into individual rows.
-3. If an alias is provided, the expanded values appear under the alias instead of the original field name.
-4. If the specified field is an empty array, the row is retained with the expanded field set to null.
+* It generates one row per element in the specified array field.
+* The specified array field is converted into individual rows.
+* If an alias is provided, the expanded values appear under the alias instead of the original field name.
+* If the specified field is an empty array, the row is retained with the expanded field set to null.
 
 Syntax
 ======
@@ -54,7 +54,7 @@ PPL query::
     +-------+-----+-------------------------------------------------------------------------------------------+
 
 Limitations
-============
+===========
 
 * The ``expand`` command currently only supports nested arrays. Primitive
   fields storing arrays are not supported. E.g. a string field storing an array

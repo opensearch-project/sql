@@ -10,13 +10,13 @@ rare
 
 
 Description
-============
+===========
 | The ``rare`` command finds the least common tuple of values of all fields in the field list.
 
 | **Note**: A maximum of 10 results is returned for each distinct tuple of values of the group-by fields.
 
 Syntax
-============
+======
 rare [rare-options] <field-list> [by-clause]
 
 * field-list: mandatory. Comma-delimited list of field names.
@@ -44,7 +44,7 @@ PPL query::
 
 
 Example 2: Find the least common values organized by gender
-============================================================
+===========================================================
 
 This example shows how to find the least common age of all the accounts grouped by gender.
 
@@ -62,7 +62,7 @@ PPL query::
     +--------+-----+
 
 Example 3: Rare command
-============================================
+=======================
 
 This example shows how to find the least common gender of all the accounts.
 

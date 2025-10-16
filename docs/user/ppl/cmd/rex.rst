@@ -10,11 +10,11 @@ rex
 
 
 Description
-============
+===========
 | The ``rex`` command extracts fields from a raw text field using regular expression named capture groups.
 
 Syntax
-============
+======
 rex [mode=<mode>] field=<field> <pattern> [max_match=<int>] [offset_field=<string>]
 
 * field: mandatory. The field must be a string field to extract data from.
@@ -32,7 +32,7 @@ rex [mode=<mode>] field=<field> <pattern> [max_match=<int>] [offset_field=<strin
 * offset_field: optional string. Field name to store the character offset positions of matches. Only available in extract mode.
 
 Example 1: Basic Field Extraction
-==================================
+=================================
 
 This example shows extracting username and domain from email addresses using named capture groups. Both extracted fields are returned as string type.
 
@@ -49,7 +49,7 @@ PPL query::
 
 
 Example 2: Handling Non-matching Patterns
-==========================================
+=========================================
 
 This example shows the rex command returning all events, setting extracted fields to null for non-matching patterns. Extracted fields would be string type when matches are found.
 
@@ -66,7 +66,7 @@ PPL query::
 
 
 Example 3: Multiple Matches with max_match
-===========================================
+==========================================
 
 This example shows extracting multiple words from address field using max_match parameter. The extracted field is returned as an array type containing string elements.
 
@@ -84,7 +84,7 @@ PPL query::
 
 
 Example 4: Text Replacement with mode=sed
-==========================================
+=========================================
 
 This example shows replacing email domains using sed mode for text substitution. The extracted field is returned as string type.
 
@@ -101,7 +101,7 @@ PPL query::
 
 
 Example 5: Using offset_field
-==============================
+=============================
 
 This example shows tracking the character positions where matches occur. Extracted fields are string type, and the offset_field is also string type.
 
@@ -118,7 +118,7 @@ PPL query::
 
 
 Example 6: Complex Email Pattern
-=================================
+================================
 
 This example shows extracting comprehensive email components including top-level domain. All extracted fields are returned as string type.
 
@@ -135,7 +135,7 @@ PPL query::
 
 
 Example 7: Chaining Multiple rex Commands
-==========================================
+=========================================
 
 This example shows extracting initial letters from both first and last names. All extracted fields are returned as string type.
 
@@ -153,7 +153,7 @@ PPL query::
 
 
 Example 8: Named Capture Group Limitations
-============================================
+==========================================
 
 This example demonstrates naming restrictions for capture groups. Group names cannot contain underscores due to Java regex limitations.
 
@@ -176,7 +176,7 @@ Correct PPL query without underscores::
 
 
 Example 9: Max Match Limit Protection
-======================================
+=====================================
 
 This example demonstrates the max_match limit protection mechanism. When max_match=0 (unlimited) is specified, the system automatically caps it to prevent memory exhaustion.
 

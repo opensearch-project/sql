@@ -10,11 +10,11 @@ trendline
 
 
 Description
-============
+===========
 | The ``trendline`` command calculates moving averages of fields.
 
 Syntax
-============
+======
 trendline [sort <[+|-] sort-field>] [sma|wma](number-of-datapoints, field) [as <alias>] [[sma|wma](number-of-datapoints, field) [as <alias>]]...
 
 * [+|-]: optional. The plus [+] stands for ascending order and NULL/MISSING first and a minus [-] stands for descending order and NULL/MISSING last. **Default:** ascending order and NULL/MISSING first.
@@ -81,7 +81,7 @@ PPL query::
     +--------------------------+
 
 Example 4: Calculate the weighted moving average on one field.
-=================================================================================
+==============================================================
 
 This example shows how to calculate the weighted moving average on one field.
 

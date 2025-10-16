@@ -10,7 +10,7 @@ patterns
 
 
 Description
-============
+===========
 | The ``patterns`` command extracts log patterns from a text field and appends the results to the search result. Grouping logs by their patterns makes it easier to aggregate stats from large volumes of log data for analysis and troubleshooting.
 
 | ``patterns`` command allows users to select different log parsing algorithms to get high log pattern grouping accuracy. Two pattern methods are supported: ``simple_pattern`` and ``brain``.
@@ -22,7 +22,7 @@ Description
 | Calcite engine by default labels the variables with '<*>' placeholder. If ``show_numbered_token`` option is turned on, Calcite engine's ``label`` mode not only labels pattern of text but also labels variable tokens in map. In ``aggregation`` mode, it will also output labeled pattern as well as variable tokens per pattern. The variable placeholder is in the format of '<token%d>' instead of '<*>'.
 
 Syntax
-============
+======
 patterns <field> [by byClause...] [method=simple_pattern | brain] [mode=label | aggregation] [max_sample_count=integer] [buffer_limit=integer] [show_numbered_token=boolean] [new_field=<new-field-name>] (algorithm parameters...)
 
 * field: mandatory. The text field to analyze for patterns.
@@ -42,7 +42,7 @@ patterns <field> [by byClause...] [method=simple_pattern | brain] [mode=label | 
     - ``frequency_threshold_percentage``: optional double. Brain's log pattern is selected based on longest word combination. This sets the lower bound of frequency to ignore low frequency words. **Default:** 0.3.
 
 Change the default pattern method
-=============================
+=================================
 To override default pattern parameters, users can run following command
 
 .. code-block::
@@ -95,7 +95,7 @@ PPL query::
     +-----------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------+
 
 Simple Pattern Example 3: Extract log patterns with custom regex pattern
-=========================================================
+========================================================================
 
 This example shows how to extract patterns from a raw log field using user defined patterns.
 

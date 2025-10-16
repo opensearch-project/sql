@@ -10,7 +10,7 @@ lookup
 
 
 Description
-============
+===========
 | The ``lookup`` command enriches your search data by adding or replacing data from a lookup index (dimension table). You can extend fields of an index with values from a dimension table, append or replace values when lookup condition is matched. As an alternative of join command, lookup command is more suitable for enriching the source data with a static dataset.
 
 Syntax
@@ -153,7 +153,7 @@ PPL query::
 
 
 Example 3: No inputField specified
-====================================
+==================================
 
 This example shows using the lookup command without specifying inputField, which applies all fields from the lookup index.
 
@@ -251,7 +251,7 @@ Result set::
     }
 
 Example 4: OutputField as a new field
-======================================
+=====================================
 
 This example shows using the lookup command with outputField as a new field name.
 

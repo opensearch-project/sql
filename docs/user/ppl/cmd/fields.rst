@@ -10,8 +10,8 @@ fields
 
 
 Description
-============
-| The ``fields`` command keeps or removes fields from the search result.
+===========
+The ``fields`` command keeps or removes fields from the search result.
 
 Syntax
 ======
@@ -57,7 +57,7 @@ PPL query::
     +-----------+----------+
 
 Example 3: Space-delimited field selection
-===========================================
+==========================================
 
 Fields can be specified using spaces instead of commas, providing a more concise syntax.
 
@@ -77,7 +77,7 @@ PPL query::
     +-----------+----------+-----+
 
 Example 4: Prefix wildcard pattern
-===================================
+==================================
 
 Select fields starting with a pattern using prefix wildcards.
 
@@ -95,7 +95,7 @@ PPL query::
     +----------------+
 
 Example 5: Suffix wildcard pattern
-===================================
+==================================
 
 Select fields ending with a pattern using suffix wildcards.
 
@@ -128,7 +128,7 @@ PPL query::
     +----------------+-----------+-----------------+---------+-------+-----+----------------------+----------+
 
 Example 7: Mixed delimiter syntax
-==================================
+=================================
 
 Combine spaces and commas for flexible field specification.
 
@@ -146,7 +146,7 @@ PPL query::
     +-----------+----------------+----------+
 
 Example 8: Field deduplication
-===============================
+==============================
 
 Automatically prevents duplicate columns when wildcards expand to already specified fields.
 
@@ -166,7 +166,7 @@ PPL query::
 Note: Even though ``firstname`` is explicitly specified and would also match ``*name``, it appears only once due to automatic deduplication.
 
 Example 9: Full wildcard selection
-===================================
+==================================
 
 Select all available fields using ``*`` or ```*```. This selects all fields defined in the index schema, including fields that may contain null values.
 
@@ -183,7 +183,7 @@ PPL query::
 Note: The ``*`` wildcard selects fields based on the index schema, not on data content. Fields with null values are included in the result set. Use backticks ```*``` if the plain ``*`` doesn't return all expected fields.
 
 Example 10: Wildcard exclusion
-===============================
+==============================
 
 Remove fields using wildcard patterns with the minus (-) operator.
 

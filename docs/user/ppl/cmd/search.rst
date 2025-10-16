@@ -10,12 +10,12 @@ search
 
 
 Description
-============
+===========
 | The ``search`` command retrieves document from the index. The ``search`` command can only be used as the first command in the PPL query.
 
 
 Syntax
-============
+======
 search source=[<remote-cluster>:]<index> [search-expression]
 
 * search: search keyword, which could be ignored.
@@ -88,7 +88,7 @@ You can check or modify the default field setting::
     }
 
 Field Types and Search Behavior
-================================
+===============================
 
 **Text Fields**: Full-text search, phrase search
 
@@ -227,7 +227,7 @@ Example 2: Boolean Logic and Operator Precedence
 The above evaluates as ``(severityText="ERROR" OR severityText="WARN") AND severityNumber>15``
 
 Example 3: NOT vs != Semantics
-===============================
+==============================
 
 **!= operator** (field must exist and not equal the value)::
 
@@ -324,7 +324,7 @@ Use comparison operators (>, <, >=, <=) to filter numeric and date fields within
     +---------------------------------------------------------+
 
 Example 6: Field Search with Wildcards
-=======================================
+======================================
 
 When searching in text or keyword fields, wildcards enable partial matching. This is particularly useful for finding records where you only know part of the value. Note that wildcards work best with keyword fields, while text fields may produce unexpected results due to tokenization.
 
