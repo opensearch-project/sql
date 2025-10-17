@@ -27,6 +27,7 @@ public class CalciteExplainIT extends ExplainIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
+    setQueryBucketSize(1000);
     loadIndex(Index.BANK_WITH_STRING_VALUES);
     loadIndex(Index.NESTED_SIMPLE);
     loadIndex(Index.TIME_TEST_DATA);
