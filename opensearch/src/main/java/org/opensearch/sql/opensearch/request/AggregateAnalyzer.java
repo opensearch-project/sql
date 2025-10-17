@@ -100,9 +100,6 @@ import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.CompositeAgg
  */
 public class AggregateAnalyzer {
 
-  /** How many composite buckets should be returned. */
-  public static final int AGGREGATION_BUCKET_SIZE = 1000;
-
   /** metadata field used when there is no argument. Only apply to COUNT. */
   private static final String METADATA_FIELD = "_index";
 
@@ -137,6 +134,7 @@ public class AggregateAnalyzer {
     final Map<String, ExprType> fieldTypes;
     final RelOptCluster cluster;
     final boolean bucketNullable;
+    final int bucketSize;
 
     <T extends ValuesSourceAggregationBuilder<T>> T build(RexNode node, T aggBuilder) {
       return build(node, aggBuilder::field, aggBuilder::script);
@@ -184,7 +182,8 @@ public class AggregateAnalyzer {
       RelDataType rowType,
       Map<String, ExprType> fieldTypes,
       List<String> outputFields,
-      RelOptCluster cluster)
+      RelOptCluster cluster,
+      int bucketSize)
       throws ExpressionNotAnalyzableException {
     requireNonNull(aggregate, "aggregate");
     try {
@@ -197,7 +196,7 @@ public class AggregateAnalyzer {
                   .orElseGet(() -> "true"));
       List<Integer> groupList = aggregate.getGroupSet().asList();
       AggregateBuilderHelper helper =
-          new AggregateBuilderHelper(rowType, fieldTypes, cluster, bucketNullable);
+          new AggregateBuilderHelper(rowType, fieldTypes, cluster, bucketNullable, bucketSize);
       List<String> aggFieldNames = outputFields.subList(groupList.size(), outputFields.size());
       // Process all aggregate calls
       Pair<Builder, List<MetricParser>> builderAndParser =
@@ -270,8 +269,7 @@ public class AggregateAnalyzer {
                     + " aggregation");
           }
           AggregationBuilder compositeBuilder =
-              AggregationBuilders.composite("composite_buckets", buckets)
-                  .size(AGGREGATION_BUCKET_SIZE);
+              AggregationBuilders.composite("composite_buckets", buckets).size(bucketSize);
           if (subBuilder != null) {
             compositeBuilder.subAggregations(subBuilder);
           }
@@ -410,9 +408,8 @@ public class AggregateAnalyzer {
               !args.isEmpty() ? args.getFirst() : null, AggregationBuilders.count(aggFieldName)),
           new SingleValueParser(aggFieldName));
       case MIN -> {
-        String fieldName = helper.inferNamedField(args.getFirst()).getRootName();
-        ExprType fieldType = helper.fieldTypes.get(fieldName);
-
+        ExprType fieldType =
+            OpenSearchTypeFactory.convertRelDataTypeToExprType(args.getFirst().getType());
         if (supportsMaxMinAggregation(fieldType)) {
           yield Pair.of(
               helper.build(args.getFirst(), AggregationBuilders.min(aggFieldName)),
@@ -430,9 +427,8 @@ public class AggregateAnalyzer {
         }
       }
       case MAX -> {
-        String fieldName = helper.inferNamedField(args.getFirst()).getRootName();
-        ExprType fieldType = helper.fieldTypes.get(fieldName);
-
+        ExprType fieldType =
+            OpenSearchTypeFactory.convertRelDataTypeToExprType(args.getFirst().getType());
         if (supportsMaxMinAggregation(fieldType)) {
           yield Pair.of(
               helper.build(args.getFirst(), AggregationBuilders.max(aggFieldName)),
@@ -692,13 +688,11 @@ public class AggregateAnalyzer {
     }
     CompositeValuesSourceBuilder<?> sourceBuilder = helper.build(group, termsBuilder);
 
-    // Time types values are converted to LONG in ExpressionAggregationScript::execute
-    if (List.of(TIMESTAMP, TIME, DATE)
-        .contains(OpenSearchTypeFactory.convertRelDataTypeToExprType(group.getType()))) {
-      sourceBuilder.userValuetypeHint(ValueType.LONG);
-    }
-
-    return sourceBuilder;
+    return withValueTypeHint(
+        sourceBuilder,
+        sourceBuilder::userValuetypeHint,
+        group.getType(),
+        group instanceof RexInputRef);
   }
 
   private static ValuesSourceAggregationBuilder<?> createTermsAggregationBuilder(
@@ -707,14 +701,33 @@ public class AggregateAnalyzer {
         helper.build(
             group,
             new TermsAggregationBuilder(bucketName)
-                .size(AGGREGATION_BUCKET_SIZE)
+                .size(helper.bucketSize)
                 .order(BucketOrder.key(true)));
-    // Time types values are converted to LONG in ExpressionAggregationScript::execute
-    if (List.of(TIMESTAMP, TIME, DATE)
-        .contains(OpenSearchTypeFactory.convertRelDataTypeToExprType(group.getType()))) {
-      sourceBuilder.userValueTypeHint(ValueType.LONG);
-    }
+    return withValueTypeHint(
+        sourceBuilder,
+        sourceBuilder::userValueTypeHint,
+        group.getType(),
+        group instanceof RexInputRef);
+  }
 
-    return sourceBuilder;
+  private static <T> T withValueTypeHint(
+      T sourceBuilder,
+      Function<ValueType, T> withValueTypeHint,
+      RelDataType groupType,
+      boolean isSourceField) {
+    ExprType exprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(groupType);
+    // Time types values are converted to LONG in ExpressionAggregationScript::execute
+    if (List.of(TIMESTAMP, TIME, DATE).contains(exprType)) {
+      return withValueTypeHint.apply(ValueType.LONG);
+    }
+    // No need to set type hints for source fields
+    if (isSourceField) {
+      return sourceBuilder;
+    }
+    ValueType valueType = ValueType.lenientParse(exprType.typeName().toLowerCase());
+    // The default value type is STRING, don't set that explicitly to avoid plan change.
+    return valueType == null || valueType == ValueType.STRING
+        ? sourceBuilder
+        : withValueTypeHint.apply(valueType);
   }
 }

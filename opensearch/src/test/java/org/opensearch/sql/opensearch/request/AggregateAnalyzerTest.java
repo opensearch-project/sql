@@ -56,7 +56,7 @@ import org.opensearch.sql.opensearch.response.agg.StatsParser;
 import org.opensearch.sql.opensearch.response.agg.TopHitsParser;
 
 class AggregateAnalyzerTest {
-
+  private static final int BUCKET_SIZE = 1000;
   private final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
   private final List<String> schema = List.of("a", "b", "c", "d");
   private final RelDataType rowType =
@@ -153,7 +153,8 @@ class AggregateAnalyzerTest {
             List.of(countCall, avgCall, sumCall, minCall, maxCall), ImmutableBitSet.of());
     Project project = createMockProject(List.of(0));
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
-        AggregateAnalyzer.analyze(aggregate, project, rowType, fieldTypes, outputFields, null);
+        AggregateAnalyzer.analyze(
+            aggregate, project, rowType, fieldTypes, outputFields, null, BUCKET_SIZE);
     assertEquals(
         "[{\"cnt\":{\"value_count\":{\"field\":\"_index\"}}},"
             + " {\"avg\":{\"avg\":{\"field\":\"a\"}}},"
@@ -234,7 +235,8 @@ class AggregateAnalyzerTest {
             List.of(varSampCall, varPopCall, stddevSampCall, stddevPopCall), ImmutableBitSet.of());
     Project project = createMockProject(List.of(0));
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
-        AggregateAnalyzer.analyze(aggregate, project, rowType, fieldTypes, outputFields, null);
+        AggregateAnalyzer.analyze(
+            aggregate, project, rowType, fieldTypes, outputFields, null, BUCKET_SIZE);
     assertEquals(
         "[{\"var_samp\":{\"extended_stats\":{\"field\":\"a\",\"sigma\":2.0}}},"
             + " {\"var_pop\":{\"extended_stats\":{\"field\":\"a\",\"sigma\":2.0}}},"
@@ -273,7 +275,8 @@ class AggregateAnalyzerTest {
     Aggregate aggregate = createMockAggregate(List.of(aggCall), ImmutableBitSet.of(0, 1));
     Project project = createMockProject(List.of(0, 1));
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
-        AggregateAnalyzer.analyze(aggregate, project, rowType, fieldTypes, outputFields, null);
+        AggregateAnalyzer.analyze(
+            aggregate, project, rowType, fieldTypes, outputFields, null, BUCKET_SIZE);
 
     assertEquals(
         "[{\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\":["
@@ -316,7 +319,7 @@ class AggregateAnalyzerTest {
             ExpressionNotAnalyzableException.class,
             () ->
                 AggregateAnalyzer.analyze(
-                    aggregate, project, rowType, fieldTypes, List.of("sum"), null));
+                    aggregate, project, rowType, fieldTypes, List.of("sum"), null, BUCKET_SIZE));
     assertEquals("[field] must not be null: [sum]", exception.getCause().getMessage());
   }
 
@@ -343,7 +346,7 @@ class AggregateAnalyzerTest {
             ExpressionNotAnalyzableException.class,
             () ->
                 AggregateAnalyzer.analyze(
-                    aggregate, project, rowType, fieldTypes, outputFields, null));
+                    aggregate, project, rowType, fieldTypes, outputFields, null, BUCKET_SIZE));
     assertEquals("[field] must not be null", exception.getCause().getMessage());
   }
 
@@ -691,7 +694,7 @@ class AggregateAnalyzerTest {
       }
       Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
           AggregateAnalyzer.analyze(
-              agg, project, rowType, fieldTypes, outputFields, agg.getCluster());
+              agg, project, rowType, fieldTypes, outputFields, agg.getCluster(), BUCKET_SIZE);
 
       if (expectedDsl != null) {
         assertEquals(expectedDsl, result.getLeft().toString());

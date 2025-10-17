@@ -13,7 +13,6 @@ import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
-import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
 
 import java.util.Collections;
 import java.util.List;
@@ -408,7 +407,7 @@ class OpenSearchRequestBuilderTest {
             .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT)
             .sort(DOC_FIELD_NAME, ASC)
-            .sort(METADATA_FIELD_ID, ASC)
+            .sort(SortBuilders.shardDocSort())
             .pointInTimeBuilder(new PointInTimeBuilder("samplePITId"))
             .fetchSource(new String[] {"intA"}, new String[0]),
         requestBuilder);
@@ -421,7 +420,7 @@ class OpenSearchRequestBuilderTest {
                 .size(MAX_RESULT_WINDOW)
                 .timeout(DEFAULT_QUERY_TIMEOUT)
                 .sort(DOC_FIELD_NAME, ASC)
-                .sort(METADATA_FIELD_ID, ASC)
+                .sort(SortBuilders.shardDocSort())
                 .pointInTimeBuilder(new PointInTimeBuilder("samplePITId"))
                 .fetchSource("intA", null),
             exprValueFactory,
@@ -536,7 +535,7 @@ class OpenSearchRequestBuilderTest {
             .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT)
             .sort(DOC_FIELD_NAME, ASC)
-            .sort(METADATA_FIELD_ID, ASC)
+            .sort(SortBuilders.shardDocSort())
             .pointInTimeBuilder(new PointInTimeBuilder("samplePITId"))
             .fetchSource(new String[] {"intA"}, new String[0]),
         requestBuilder);
@@ -549,7 +548,7 @@ class OpenSearchRequestBuilderTest {
                 .size(MAX_RESULT_WINDOW)
                 .timeout(DEFAULT_QUERY_TIMEOUT)
                 .sort(DOC_FIELD_NAME, ASC)
-                .sort(METADATA_FIELD_ID, ASC)
+                .sort(SortBuilders.shardDocSort())
                 .pointInTimeBuilder(new PointInTimeBuilder("samplePITId"))
                 .fetchSource("intA", null),
             exprValueFactory,

@@ -286,9 +286,10 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               .filter(entry -> schema.contains(entry.getKey()))
               .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
       List<String> outputFields = aggregate.getRowType().getFieldNames();
+      int bucketSize = osIndex.getBucketSize();
       final Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder =
           AggregateAnalyzer.analyze(
-              aggregate, project, getRowType(), fieldTypes, outputFields, getCluster());
+              aggregate, project, getRowType(), fieldTypes, outputFields, getCluster(), bucketSize);
       Map<String, OpenSearchDataType> extendedTypeMapping =
           aggregate.getRowType().getFieldList().stream()
               .collect(
