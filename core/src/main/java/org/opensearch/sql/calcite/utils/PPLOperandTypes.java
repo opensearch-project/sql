@@ -117,7 +117,7 @@ public class PPLOperandTypes {
           (CompositeOperandTypeChecker)
               OperandTypes.family(SqlTypeFamily.BOOLEAN)
                   .or(OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING))
-                      .or(OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING)));
+                  .or(OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING)));
 
   public static final UDFOperandMetadata NUMERIC_NUMERIC_OPTIONAL_NUMERIC =
       UDFOperandMetadata.wrap(

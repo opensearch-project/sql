@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -29,8 +30,10 @@ import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
+import org.opensearch.sql.common.antlr.CaseInsensitiveCharStream;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLLexer;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BinaryArithmeticContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
@@ -411,18 +414,51 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
         functionName, args.stream().map(this::visitFunctionArg).collect(Collectors.toList()));
   }
 
+  public DataTypeFunctionCallContext createDataTypeFunctionCallContext(String castExpression) {
+    // Create a case-insensitive character stream from the input
+    CaseInsensitiveCharStream charStream = new CaseInsensitiveCharStream(castExpression);
+
+    // Create lexer and parser
+    OpenSearchPPLLexer lexer = new OpenSearchPPLLexer(charStream);
+    CommonTokenStream tokens = new CommonTokenStream(lexer);
+    OpenSearchPPLParser parser = new OpenSearchPPLParser(tokens);
+
+    // Parse the expression - cast is part of evalFunctionCall
+    DataTypeFunctionCallContext evalContext = parser.dataTypeFunctionCall();
+    return evalContext;
+  }
+
   /** Cast function. */
   @Override
   public UnresolvedExpression visitDataTypeFunctionCall(DataTypeFunctionCallContext ctx) {
-    ParseTree rootNode = ctx.getChild(0);
-    String functionName = rootNode.getText();
-    final String mappedName =
-        FUNCTION_NAME_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), functionName);
+    if (ctx.functionArgs() != null) {
 
-    if (mappedName.equals("cast")) {
-      return new Cast(visit(ctx.logicalExpression()), visit(ctx.convertedDataType()));
+      ParseTree rootNode = ctx.getChild(0);
+      String functionName = rootNode.getText();
+      final String mappedName =
+          FUNCTION_NAME_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), functionName);
+      System.out.println(mappedName);
+      if (mappedName != null && mappedName.equals("tostring")) {
+        if (ctx.functionArgs().functionArg().size() == 1) {
+          List<OpenSearchPPLParser.FunctionArgContext> functionArgs =
+              ctx.functionArgs().functionArg();
+
+          String castExpresstion =
+              String.format("cast( %s as String)", functionArgs.getFirst().getText());
+          DataTypeFunctionCallContext toStringDataTypeConversionContext =
+              this.createDataTypeFunctionCallContext(castExpresstion);
+          return new Cast(
+              visit(toStringDataTypeConversionContext.logicalExpression()),
+              visit(toStringDataTypeConversionContext.convertedDataType()));
+          //
+        } else {
+          return buildFunction(mappedName, ctx.functionArgs().functionArg());
+        }
+      } else {
+        return new Cast(visit(ctx.logicalExpression()), visit(ctx.convertedDataType()));
+      }
     } else {
-      return buildFunction(mappedName, ctx.functionArgs().functionArg());
+      return new Cast(visit(ctx.logicalExpression()), visit(ctx.convertedDataType()));
     }
   }
 

@@ -46,20 +46,55 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
+  // This test evalutes tostring where it gets converted to cast call
+
+  @Test
+  public void testToStringFormatNotSpecified() {
+    String ppl =
+        "source=EMP | eval string_value = tostring(MGR) | eval cast_value = cast(MGR as string)|"
+            + " fields string_value, cast_value";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(string_value=[SAFE_CAST($3)], cast_value=[SAFE_CAST($3)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    String expectedResult =
+        "string_value=7902; cast_value=7902\n"
+            + "string_value=7698; cast_value=7698\n"
+            + "string_value=7698; cast_value=7698\n"
+            + "string_value=7839; cast_value=7839\n"
+            + "string_value=7698; cast_value=7698\n"
+            + "string_value=7839; cast_value=7839\n"
+            + "string_value=7839; cast_value=7839\n"
+            + "string_value=7566; cast_value=7566\n"
+            + "string_value=null; cast_value=null\n"
+            + "string_value=7698; cast_value=7698\n"
+            + "string_value=7788; cast_value=7788\n"
+            + "string_value=7698; cast_value=7698\n"
+            + "string_value=7566; cast_value=7566\n"
+            + "string_value=7782; cast_value=7782\n";
+    verifyLogical(root, expectedLogical);
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT SAFE_CAST(`MGR` AS STRING) `string_value`, SAFE_CAST(`MGR` AS STRING)"
+            + " `cast_value`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
   @Test
   public void testToStringBoolean() {
     String ppl = "source=EMP | eval boolean_value = tostring(1==1) | fields boolean_value |head 1";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(fetch=[1])\n"
-            + "  LogicalProject(boolean_value=[TOSTRING(true)])\n"
+            + "  LogicalProject(boolean_value=['TRUE':VARCHAR])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    String expectedResult = "boolean_value=True\n";
+    String expectedResult = "boolean_value=TRUE\n";
     verifyLogical(root, expectedLogical);
     verifyResult(root, expectedResult);
 
-    String expectedSparkSql =
-        "SELECT `TOSTRING`(TRUE) `boolean_value`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    String expectedSparkSql = "SELECT 'TRUE' `boolean_value`\nFROM `scott`.`EMP`\nLIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -126,56 +161,70 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
-    @Test
-    public void testToStringHexFromNumberAsString() {
-        String ppl =
-                "source=EMP |  eval salary_hex = tostring(\"1600\", \"hex\") | fields ENAME, salary_hex| head 1";
-        RelNode root = getRelNode(ppl);
-        String expectedLogical =
-                "LogicalSort(fetch=[1])\n  LogicalProject(ENAME=[$1], salary_hex=[TOSTRING('1600':VARCHAR, 'hex':VARCHAR)])\n    LogicalTableScan(table=[[scott, EMP]])\n";
-        String expectedResult =
-                "ENAME=SMITH; salary_hex=640\n";
-        verifyLogical(root, expectedLogical);
-        verifyResult(root, expectedResult);
+  @Test
+  public void testToStringHexFromNumberAsString() {
+    String ppl =
+        "source=EMP |  eval salary_hex = tostring(\"1600\", \"hex\") | fields ENAME, salary_hex|"
+            + " head 1";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(fetch=[1])\n"
+            + "  LogicalProject(ENAME=[$1], salary_hex=[TOSTRING('1600':VARCHAR, 'hex':VARCHAR)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    String expectedResult = "ENAME=SMITH; salary_hex=640\n";
+    verifyLogical(root, expectedLogical);
+    verifyResult(root, expectedResult);
 
-        String expectedSparkSql =
-                "SELECT `ENAME`, `TOSTRING`('1600', 'hex') `salary_hex`\nFROM `scott`.`EMP`\nLIMIT 1";
-        verifyPPLToSparkSQL(root, expectedSparkSql);
-    }
+    String expectedSparkSql =
+        "SELECT `ENAME`, `TOSTRING`('1600', 'hex') `salary_hex`\nFROM `scott`.`EMP`\nLIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 
-    @Test
-    public void testToStringCommaFromNumberAsString() {
-        String ppl =
-                "source=EMP |  eval salary_comma = tostring(\"160040222\", \"commas\") | fields ENAME, salary_comma| head 1";
-        RelNode root = getRelNode(ppl);
-        String expectedLogical =
-                "LogicalSort(fetch=[1])\n  LogicalProject(ENAME=[$1], salary_comma=[TOSTRING('160040222':VARCHAR, 'commas':VARCHAR)])\n    LogicalTableScan(table=[[scott, EMP]])\n";
-        String expectedResult =
-                "ENAME=SMITH; salary_comma=160,040,222\n";
-        verifyLogical(root, expectedLogical);
-        verifyResult(root, expectedResult);
+  @Test
+  public void testToStringCommaFromNumberAsString() {
+    String ppl =
+        "source=EMP |  eval salary_comma = tostring(\"160040222\", \"commas\") | fields ENAME,"
+            + " salary_comma| head 1";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(fetch=[1])\n"
+            + "  LogicalProject(ENAME=[$1], salary_comma=[TOSTRING('160040222':VARCHAR,"
+            + " 'commas':VARCHAR)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    String expectedResult = "ENAME=SMITH; salary_comma=160,040,222\n";
+    verifyLogical(root, expectedLogical);
+    verifyResult(root, expectedResult);
 
-        String expectedSparkSql =
-                "SELECT `ENAME`, `TOSTRING`('160040222', 'commas') `salary_comma`\nFROM `scott`.`EMP`\nLIMIT 1";
-        verifyPPLToSparkSQL(root, expectedSparkSql);
-    }
-    @Test
-    public void testToStringBinaryFromNumberAsString() {
-        String ppl =
-                "source=EMP |  eval salary_binary = tostring(\"160040222\", \"binary\") | fields ENAME, salary_binary| head 1";
-        RelNode root = getRelNode(ppl);
-        String expectedLogical =
-                "LogicalSort(fetch=[1])\n  LogicalProject(ENAME=[$1], salary_binary=[TOSTRING('160040222':VARCHAR, 'binary':VARCHAR)])\n    LogicalTableScan(table=[[scott, EMP]])\n";
-        String expectedResult =
-                "ENAME=SMITH; salary_binary=1001100010100000010100011110\n";
-        verifyLogical(root, expectedLogical);
-        verifyResult(root, expectedResult);
+    String expectedSparkSql =
+        "SELECT `ENAME`, `TOSTRING`('160040222', 'commas') `salary_comma`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 
-        String expectedSparkSql =
-                "SELECT `ENAME`, `TOSTRING`('160040222', 'binary') `salary_binary`\nFROM `scott`.`EMP`\nLIMIT 1";
-        verifyPPLToSparkSQL(root, expectedSparkSql);
-    }
-    @Test
+  @Test
+  public void testToStringBinaryFromNumberAsString() {
+    String ppl =
+        "source=EMP |  eval salary_binary = tostring(\"160040222\", \"binary\") | fields ENAME,"
+            + " salary_binary| head 1";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(fetch=[1])\n"
+            + "  LogicalProject(ENAME=[$1], salary_binary=[TOSTRING('160040222':VARCHAR,"
+            + " 'binary':VARCHAR)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    String expectedResult = "ENAME=SMITH; salary_binary=1001100010100000010100011110\n";
+    verifyLogical(root, expectedLogical);
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT `ENAME`, `TOSTRING`('160040222', 'binary') `salary_binary`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
   public void testToStringCommas() {
     String ppl =
         "source=EMP |  eval salary_commas = tostring(SAL, \"commas\") | fields ENAME,"
