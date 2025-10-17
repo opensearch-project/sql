@@ -14,12 +14,12 @@ import lombok.experimental.UtilityClass;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBiVisitorImpl;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -30,6 +30,7 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 
 @UtilityClass
 public class OpenSearchRelOptUtil {
+  private static final RemapIndexBiVisitor remapIndexBiVisitor = new RemapIndexBiVisitor(true);
 
   /**
    * For pushed down RexNode, the input schema doesn't need to be the same with scan output schema
@@ -47,21 +48,12 @@ public class OpenSearchRelOptUtil {
       final RexNode rexNode, final RelDataType inputRowType) {
     final BitSet seenOldIndex = new BitSet();
     final List<Integer> newMappings = new ArrayList<>();
+    rexNode.accept(remapIndexBiVisitor, Pair.of(seenOldIndex, newMappings));
     final List<RelDataTypeField> inputFieldList = inputRowType.getFieldList();
     final RelDataTypeFactory.Builder builder = OpenSearchTypeFactory.TYPE_FACTORY.builder();
-    rexNode.accept(
-        new RexVisitorImpl<Void>(true) {
-          @Override
-          public Void visitInputRef(RexInputRef inputRef) {
-            final int oldIdx = inputRef.getIndex();
-            if (!seenOldIndex.get(oldIdx)) {
-              seenOldIndex.set(oldIdx);
-              newMappings.add(oldIdx);
-              builder.add(inputFieldList.get(oldIdx));
-            }
-            return null;
-          }
-        });
+    for (Integer oldIdx : newMappings) {
+      builder.add(inputFieldList.get(oldIdx));
+    }
     final Mapping mapping = Mappings.target(newMappings, inputRowType.getFieldCount());
     final RexNode newMappedRex = RexUtil.apply(mapping, rexNode);
     return Pair.of(newMappedRex, builder.build());
@@ -193,5 +185,24 @@ public class OpenSearchRelOptUtil {
     }
 
     return false;
+  }
+
+  private static class RemapIndexBiVisitor
+      extends RexBiVisitorImpl<Void, Pair<BitSet, List<Integer>>> {
+    protected RemapIndexBiVisitor(boolean deep) {
+      super(deep);
+    }
+
+    @Override
+    public Void visitInputRef(RexInputRef inputRef, Pair<BitSet, List<Integer>> args) {
+      final BitSet seenOldIndex = args.getLeft();
+      final List<Integer> newMappings = args.getRight();
+      final int oldIdx = inputRef.getIndex();
+      if (!seenOldIndex.get(oldIdx)) {
+        seenOldIndex.set(oldIdx);
+        newMappings.add(oldIdx);
+      }
+      return null;
+    }
   }
 }
