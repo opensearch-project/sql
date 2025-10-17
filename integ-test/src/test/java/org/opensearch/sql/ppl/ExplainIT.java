@@ -53,8 +53,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testScriptProjectPushDownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_script_project_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_script_project_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -64,8 +64,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testScriptProjectHasLiteralPartialPushDownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_script_project_has_literal_partial_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_script_project_has_literal_partial_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -79,8 +79,8 @@ public class ExplainIT extends PPLIntegTestCase {
   @Test
   public void testScriptProjectPushDownWithFilterOnPushedFieldExplain() throws IOException {
     String expected =
-        loadExpectedPlan("explain_script_project_push_with_filter_on_pushed_field.json");
-    assertJsonEqualsIgnoreId(
+        loadExpectedPlan("explain_script_project_push_with_filter_on_pushed_field.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -228,8 +228,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testSortWithDescPushDownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_sort_desc_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_sort_desc_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | sort age, - firstname desc | fields age,"
@@ -238,8 +238,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testSortWithTypePushDownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_sort_type_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_sort_type_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | sort num(age) | fields age"));
@@ -422,8 +422,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testFillNullPushDownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_fillnull_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_fillnull_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -622,8 +622,8 @@ public class ExplainIT extends PPLIntegTestCase {
   @Ignore("The serialized string is unstable because of function properties")
   @Test
   public void testFilterScriptPushDownExplain() throws Exception {
-    String expected = loadExpectedPlan("explain_filter_script_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_filter_script_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | where firstname ='Amber' and age - 2 = 30 |"
@@ -633,8 +633,8 @@ public class ExplainIT extends PPLIntegTestCase {
   @Ignore("The serialized string is unstable because of function properties")
   @Test
   public void testFilterFunctionScriptPushDownExplain() throws Exception {
-    String expected = loadExpectedPlan("explain_filter_function_script_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_filter_function_script_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account |  where length(firstname) = 5 and abs(age) ="

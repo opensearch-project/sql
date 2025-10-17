@@ -1,0 +1,19 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[age]"
+  children:
+    - name: SortOperator
+      description:
+        sortList:
+          cast_to_double(age):
+            sortOrder: ASC
+            nullOrder: NULL_FIRST
+      children:
+        - name: OpenSearchIndexScan
+          description:
+            request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account,\
+              \ sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\"}, needClean=true,\
+              \ searchDone=false, pitId=*,\
+              \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
+          children: []

@@ -1,0 +1,19 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[age2, upper_name, gender, lastname, age3]"
+  children:
+    - name: OpenSearchEvalOperator
+      description:
+        expressions:
+          upper_name: upper(firstname)
+          age3: "3"
+          age2: "+(age, 2)"
+      children:
+        - name: OpenSearchIndexScan
+          description:
+            request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account,\
+              \ sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\"}, needClean=true,\
+              \ searchDone=false, pitId=*,\
+              \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
+          children: []
