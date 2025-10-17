@@ -86,10 +86,10 @@ Description
 >>>>>>>>>>>
 The following usage options are available, depending on the parameter types and the number of parameters.
 
-Usage with format type: tostring(ANY, [format]): Converts the number in first argument  to provided format type string in second argument. If non number type, then it converts to default string representation.
+Usage with format type: tostring(ANY, [format]): Converts the number in first argument  to provided format type string in second argument. If second argument is not provided, then it converts to default string representation.
 Return type: string
 
-Usage for boolean parameter without format type tostring(boolean): Converts the string to 'True' or 'False'.
+Usage for boolean parameter without format type tostring(boolean): Converts the string to 'TRUE' or 'FALSE'.
 Return type: string
 
 You can use this function with the eval commands and as part of eval expressions. If first argument can be any valid type , second argument is optional and if provided , it needs to be format name to convert to where first argument contains only numbers. If first argument is boolean, then second argument is not used even if its provided.
@@ -100,12 +100,13 @@ a) "binary" Converts a number to a binary value.
 b) "hex" Converts the number to a hexadecimal value.
 c) "commas" Formats the number with commas. If the number includes a decimal, the function rounds the number to nearest two decimal places.
 d) "duration" Converts the value in seconds to the readable time format HH:MM:SS.
+5) "duration_millis" Converts the value in milliseconds to the readable time format HH:MM:SS.
 
 The format argument is optional and is only used when the value argument is a number. The tostring function supports the following formats.
 
 Basic examples:
 
-The following example returns "True 0xF 12,345.68".
+The following example returns "TRUE 0xF 12,345.68".
 
     ... | eval n=tostring(1==1) + " " + tostring(15, "hex") + " " + tostring(12345.6789, "commas")
 
@@ -169,5 +170,5 @@ Example::
     +---------------------+
     | boolean_str         |
     |---------------------+
-    | True                |
+    | TRUE                |
     +---------------------+
