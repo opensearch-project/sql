@@ -29,6 +29,7 @@ import org.opensearch.common.settings.Setting;
 import org.opensearch.common.unit.MemorySizeValue;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.IndexSettings;
+import org.opensearch.search.aggregations.MultiBucketConsumerService;
 import org.opensearch.sql.common.setting.LegacySettings;
 import org.opensearch.sql.common.setting.Settings;
 
@@ -204,10 +205,19 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
-  public static final Setting<?> QUERY_SIZE_LIMIT_SETTING =
+  public static final Setting<Integer> QUERY_SIZE_LIMIT_SETTING =
       Setting.intSetting(
           Key.QUERY_SIZE_LIMIT.getKeyValue(),
           IndexSettings.MAX_RESULT_WINDOW_SETTING,
+          0,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  // Set the default value to QUERY_SIZE_LIMIT_SETTING
+  public static final Setting<?> QUERY_BUCKET_SIZE_SETTING =
+      Setting.intSetting(
+          Key.QUERY_BUCKET_SIZE.getKeyValue(),
+          OpenSearchSettings.QUERY_SIZE_LIMIT_SETTING,
           0,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
@@ -490,6 +500,18 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.QUERY_BUCKET_SIZE,
+        QUERY_BUCKET_SIZE_SETTING,
+        new Updater(Key.QUERY_BUCKET_SIZE));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.SEARCH_MAX_BUCKETS,
+        MultiBucketConsumerService.MAX_BUCKET_SETTING,
+        new Updater(Key.SEARCH_MAX_BUCKETS));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.METRICS_ROLLING_WINDOW,
         METRICS_ROLLING_WINDOW_SETTING,
         new Updater(Key.METRICS_ROLLING_WINDOW));
@@ -666,6 +688,7 @@ public class OpenSearchSettings extends Settings {
         .add(PPL_JOIN_SUBSEARCH_MAXOUT_SETTING)
         .add(QUERY_MEMORY_LIMIT_SETTING)
         .add(QUERY_SIZE_LIMIT_SETTING)
+        .add(QUERY_BUCKET_SIZE_SETTING)
         .add(METRICS_ROLLING_WINDOW_SETTING)
         .add(METRICS_ROLLING_INTERVAL_SETTING)
         .add(DATASOURCE_URI_HOSTS_DENY_LIST)
