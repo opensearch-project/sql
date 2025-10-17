@@ -997,16 +997,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // because that Mapping only works for RexNode, but we need both AggCall and RexNode list.
     Pair<List<RexNode>, List<AggCall>> reResolved =
         resolveAttributesForAggregation(groupExprList, aggExprList, context);
-    List<String> names = getGroupKeyNamesAfterAggregation(reResolved.getLeft());
+
+    List<String> intendedGroupKeyAliases = getGroupKeyNamesAfterAggregation(reResolved.getLeft());
     context.relBuilder.aggregate(
         context.relBuilder.groupKey(reResolved.getLeft()), reResolved.getRight());
     // During aggregation, Calcite projects both input dependencies and output group-by fields.
     // When names conflict, Calcite adds numeric suffixes (e.g., "value0").
     // Apply explicit renaming to restore the intended aliases.
-    if (names.size() == reResolved.getLeft().size()) {
-      // Defense check: if any group-by key is not aliased, do not rename
-      context.relBuilder.rename(names);
-    }
+    context.relBuilder.rename(intendedGroupKeyAliases);
+
     return Pair.of(reResolved.getLeft(), reResolved.getRight());
   }
 
