@@ -466,8 +466,8 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryToString(
             "explain source=opensearch-sql_test_index_account | where length(address) > 0 | eval"
                 + " address_length = length(address) | stats count() by address_length");
-    String expected = loadFromFile("expectedOutput/calcite/explain_script_push_on_text.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    String expected = loadFromFile("expectedOutput/calcite/explain_script_push_on_text.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
   @Test

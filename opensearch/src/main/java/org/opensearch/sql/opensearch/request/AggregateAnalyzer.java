@@ -629,13 +629,11 @@ public class AggregateAnalyzer {
     }
     CompositeValuesSourceBuilder<?> sourceBuilder = helper.build(group, termsBuilder);
 
-    // Time types values are converted to LONG in ExpressionAggregationScript::execute
-    if (List.of(TIMESTAMP, TIME, DATE)
-        .contains(OpenSearchTypeFactory.convertRelDataTypeToExprType(group.getType()))) {
-      sourceBuilder.userValuetypeHint(ValueType.LONG);
-    }
-
-    return sourceBuilder;
+    return withValueTypeHint(
+        sourceBuilder,
+        sourceBuilder::userValuetypeHint,
+        group.getType(),
+        group instanceof RexInputRef);
   }
 
   private static ValuesSourceAggregationBuilder<?> createTermsAggregationBuilder(
@@ -646,12 +644,31 @@ public class AggregateAnalyzer {
             new TermsAggregationBuilder(bucketName)
                 .size(AGGREGATION_BUCKET_SIZE)
                 .order(BucketOrder.key(true)));
-    // Time types values are converted to LONG in ExpressionAggregationScript::execute
-    if (List.of(TIMESTAMP, TIME, DATE)
-        .contains(OpenSearchTypeFactory.convertRelDataTypeToExprType(group.getType()))) {
-      sourceBuilder.userValueTypeHint(ValueType.LONG);
-    }
+    return withValueTypeHint(
+        sourceBuilder,
+        sourceBuilder::userValueTypeHint,
+        group.getType(),
+        group instanceof RexInputRef);
+  }
 
-    return sourceBuilder;
+  private static <T> T withValueTypeHint(
+      T sourceBuilder,
+      Function<ValueType, T> withValueTypeHint,
+      RelDataType groupType,
+      boolean isSourceField) {
+    ExprType exprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(groupType);
+    // Time types values are converted to LONG in ExpressionAggregationScript::execute
+    if (List.of(TIMESTAMP, TIME, DATE).contains(exprType)) {
+      return withValueTypeHint.apply(ValueType.LONG);
+    }
+    // No need to set type hints for source fields
+    if (isSourceField) {
+      return sourceBuilder;
+    }
+    ValueType valueType = ValueType.lenientParse(exprType.typeName().toLowerCase());
+    // The default value type is STRING, don't set that explicitly to avoid plan change.
+    return valueType == null || valueType == ValueType.STRING
+        ? sourceBuilder
+        : withValueTypeHint.apply(valueType);
   }
 }
