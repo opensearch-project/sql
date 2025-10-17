@@ -100,7 +100,7 @@ a) "binary" Converts a number to a binary value.
 b) "hex" Converts the number to a hexadecimal value.
 c) "commas" Formats the number with commas. If the number includes a decimal, the function rounds the number to nearest two decimal places.
 d) "duration" Converts the value in seconds to the readable time format HH:MM:SS.
-5) "duration_millis" Converts the value in milliseconds to the readable time format HH:MM:SS.
+e) "duration_millis" Converts the value in milliseconds to the readable time format HH:MM:SS.
 
 The format argument is optional and is only used when the value argument is a number. The tostring function supports the following formats.
 
