@@ -388,9 +388,8 @@ public class AggregateAnalyzer {
               !args.isEmpty() ? args.getFirst() : null, AggregationBuilders.count(aggFieldName)),
           new SingleValueParser(aggFieldName));
       case MIN -> {
-        String fieldName = helper.inferNamedField(args.getFirst()).getRootName();
-        ExprType fieldType = helper.fieldTypes.get(fieldName);
-
+        ExprType fieldType =
+            OpenSearchTypeFactory.convertRelDataTypeToExprType(args.getFirst().getType());
         if (supportsMaxMinAggregation(fieldType)) {
           yield Pair.of(
               helper.build(args.getFirst(), AggregationBuilders.min(aggFieldName)),
@@ -408,9 +407,8 @@ public class AggregateAnalyzer {
         }
       }
       case MAX -> {
-        String fieldName = helper.inferNamedField(args.getFirst()).getRootName();
-        ExprType fieldType = helper.fieldTypes.get(fieldName);
-
+        ExprType fieldType =
+            OpenSearchTypeFactory.convertRelDataTypeToExprType(args.getFirst().getType());
         if (supportsMaxMinAggregation(fieldType)) {
           yield Pair.of(
               helper.build(args.getFirst(), AggregationBuilders.max(aggFieldName)),
