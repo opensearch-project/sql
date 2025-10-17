@@ -666,8 +666,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testExplainOnAggregationWithFunction() throws IOException {
-    String expected = loadExpectedPlan("explain_agg_with_script.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_agg_with_script.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             String.format(

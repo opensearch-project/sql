@@ -62,7 +62,9 @@ public enum BuiltinFunctionName {
   /** Collection functions */
   ARRAY(FunctionName.of("array")),
   ARRAY_LENGTH(FunctionName.of("array_length")),
+  MAP_APPEND(FunctionName.of("map_append"), true),
   MAP_CONCAT(FunctionName.of("map_concat"), true),
+  MAP_REMOVE(FunctionName.of("map_remove"), true),
   MVAPPEND(FunctionName.of("mvappend")),
   MVJOIN(FunctionName.of("mvjoin")),
   FORALL(FunctionName.of("forall")),

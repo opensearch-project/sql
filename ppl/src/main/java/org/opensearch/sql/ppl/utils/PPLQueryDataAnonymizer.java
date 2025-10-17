@@ -78,6 +78,7 @@ import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Replace;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
@@ -276,6 +277,30 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
             .map(entry -> StringUtils.format("%s as %s", MASK_COLUMN, MASK_COLUMN))
             .collect(Collectors.joining(","));
     return StringUtils.format("%s | rename %s", child, renames);
+  }
+
+  @Override
+  public String visitReplace(Replace node, String context) {
+    // Get the child query string
+    String child = node.getChild().get(0).accept(this, context);
+
+    // Build pattern/replacement pairs string
+    String pairs =
+        node.getReplacePairs().stream()
+            .map(
+                pair ->
+                    StringUtils.format(
+                        "%s WITH %s",
+                        visitExpression(pair.getPattern()), visitExpression(pair.getReplacement())))
+            .collect(Collectors.joining(", "));
+
+    // Get field list
+    String fieldListStr =
+        " IN "
+            + node.getFieldList().stream().map(Field::toString).collect(Collectors.joining(", "));
+
+    // Build the replace command string
+    return StringUtils.format("%s | replace %s%s", child, pairs, fieldListStr);
   }
 
   /** Build {@link LogicalAggregation}. */

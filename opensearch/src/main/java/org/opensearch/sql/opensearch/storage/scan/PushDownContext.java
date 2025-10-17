@@ -14,7 +14,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.IntStream;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -306,8 +305,8 @@ class AggPushDownAction implements OSRequestBuilderAction {
             newBucketNames.add(bucketName);
             selected.add(bucketName);
           });
-      IntStream.range(0, buckets.size())
-          .mapToObj(fieldNames::get)
+      buckets.stream()
+          .map(CompositeValuesSourceBuilder::name)
           .filter(name -> !selected.contains(name))
           .forEach(
               name -> {
