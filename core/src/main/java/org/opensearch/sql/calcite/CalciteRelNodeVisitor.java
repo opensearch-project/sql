@@ -1003,11 +1003,19 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // During aggregation, Calcite projects both input dependencies and output group-by fields.
     // When names conflict, Calcite adds numeric suffixes (e.g., "value0").
     // Apply explicit renaming to restore the intended aliases.
-    context.relBuilder.rename(names);
-
+    if (names.size() == reResolved.getLeft().size()) {
+      // Defense check: if any group-by key is not aliased, do not rename
+      context.relBuilder.rename(names);
+    }
     return Pair.of(reResolved.getLeft(), reResolved.getRight());
   }
 
+  /**
+   * Imitates {@code Registrar.registerExpression} of {@link RelBuilder} to derive the output order
+   * of group-by keys after aggregation.
+   *
+   * <p>The projected input reference comes first, while any other computed expression follows.
+   */
   private List<String> getGroupKeyNamesAfterAggregation(List<RexNode> nodes) {
     List<RexNode> reordered = new ArrayList<>();
     List<RexNode> left = new ArrayList<>();
@@ -1026,10 +1034,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         .toList();
   }
 
-  /**
-   * Immitates registerExpression of {@link RelBuilder.Registrar} to derive the output order of
-   * group-by keys after aggregation
-   */
+  /** Whether a rex node is an aliased input reference */
   private boolean isInputRef(RexNode node) {
     return switch (node.getKind()) {
       case AS, DESCENDING, NULLS_FIRST, NULLS_LAST -> {
