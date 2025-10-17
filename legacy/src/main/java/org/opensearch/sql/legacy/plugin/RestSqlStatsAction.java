@@ -6,6 +6,7 @@
 package org.opensearch.sql.legacy.plugin;
 
 import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
+import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
@@ -90,7 +91,7 @@ public class RestSqlStatsAction extends BaseRestHandler {
 
   private void schedule(NodeClient client, Runnable task) {
     ThreadPool threadPool = client.threadPool();
-    threadPool.schedule(withCurrentContext(task), new TimeValue(0), "sql-worker");
+    threadPool.schedule(withCurrentContext(task), new TimeValue(0), SQL_WORKER_THREAD_POOL_NAME);
   }
 
   private Runnable withCurrentContext(final Runnable task) {
