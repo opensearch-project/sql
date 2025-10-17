@@ -86,7 +86,7 @@ Description
 >>>>>>>>>>>
 The following usage options are available, depending on the parameter types and the number of parameters.
 
-Usage with format type: tostring(ANY, [format]): Converts the number in first argument  to provided format type string in second argument. If second argument is not provided, then it converts to default string representation.
+Usage with format type: tostring(ANY, [format]): Converts the value in first argument  to provided format type string in second argument. If second argument is not provided, then it converts to default string representation.
 Return type: string
 
 Usage for boolean parameter without format type tostring(boolean): Converts the string to 'TRUE' or 'FALSE'.
