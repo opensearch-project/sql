@@ -268,6 +268,8 @@ chartOptions
   : LIMIT EQUAL (TOP | BOTTOM)? integerLiteral
   | USEOTHER EQUAL booleanLiteral
   | OTHERSTR EQUAL stringLiteral
+  | USENULL EQUAL booleanLiteral
+  | NULLSTR EQUAL stringLiteral
   ;
 
 rowSplit
