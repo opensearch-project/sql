@@ -12,7 +12,9 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 /** AST node represent chart command. */
@@ -22,6 +24,13 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @AllArgsConstructor
 @lombok.Builder(toBuilder = true)
 public class Chart extends UnresolvedPlan {
+  public static final Literal DEFAULT_USE_OTHER = Literal.TRUE;
+  public static final Literal DEFAULT_OTHER_STR = AstDSL.stringLiteral("OTHER");
+  public static final Literal DEFAULT_LIMIT = AstDSL.intLiteral(10);
+  public static final Literal DEFAULT_USE_NULL = Literal.TRUE;
+  public static final Literal DEFAULT_NULL_STR = AstDSL.stringLiteral("NULL");
+  public static final Literal DEFAULT_TOP = Literal.TRUE;
+
   private UnresolvedPlan child;
   private UnresolvedExpression rowSplit;
   private UnresolvedExpression columnSplit;

@@ -211,6 +211,10 @@ public class ArgumentFactory {
         arguments.add(new Argument("useother", getArgumentValue(optionCtx.booleanLiteral())));
       } else if (optionCtx.OTHERSTR() != null) {
         arguments.add(new Argument("otherstr", getArgumentValue(optionCtx.stringLiteral())));
+      } else if (optionCtx.USENULL() != null) {
+        arguments.add(new Argument("usenull", getArgumentValue(optionCtx.booleanLiteral())));
+      } else if (optionCtx.NULLSTR() != null) {
+        arguments.add(new Argument("nullstr", getArgumentValue(optionCtx.stringLiteral())));
       }
     }
     return arguments;

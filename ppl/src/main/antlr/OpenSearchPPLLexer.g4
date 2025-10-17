@@ -135,6 +135,8 @@ SHOWCOUNT:                          'SHOWCOUNT';
 LIMIT:                              'LIMIT';
 USEOTHER:                           'USEOTHER';
 OTHERSTR:                           'OTHERSTR';
+USENULL:                            'USENULL';
+NULLSTR:                            'NULLSTR';
 INPUT:                              'INPUT';
 OUTPUT:                             'OUTPUT';
 PATH:                               'PATH';

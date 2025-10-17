@@ -2055,23 +2055,25 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // If row or column split does not present or limit equals 0, this is the same as `stats agg
     // [group by col]`
 
-    Integer limit =
-        Optional.ofNullable(argMap.get("limit")).map(l -> (Integer) l.getValue()).orElse(10);
-    Boolean top =
-        Optional.ofNullable(argMap.get("top")).map(t -> (Boolean) t.getValue()).orElse(true);
-    Boolean useOther =
-        Optional.ofNullable(argMap.get("useother")).map(u -> (Boolean) u.getValue()).orElse(true);
-    String otherStr =
-        Optional.ofNullable(argMap.get("otherstr")).map(o -> (String) o.getValue()).orElse("OTHER");
+    Integer limit = (Integer) argMap.getOrDefault("limit", Chart.DEFAULT_LIMIT).getValue();
     if (node.getRowSplit() == null || node.getColumnSplit() == null || Objects.equals(limit, 0)) {
       return aggregated.getLeft();
     }
-    List<RexNode> projected = aggregated.getRight();
+
+    Boolean top = (Boolean) argMap.getOrDefault("top", Chart.DEFAULT_TOP).getValue();
+    Boolean useOther =
+        (Boolean) argMap.getOrDefault("useother", Chart.DEFAULT_USE_OTHER).getValue();
+    Boolean useNull = (Boolean) argMap.getOrDefault("usenull", Chart.DEFAULT_USE_NULL).getValue();
+    String otherStr = (String) argMap.getOrDefault("otherstr", Chart.DEFAULT_OTHER_STR).getValue();
+    String nullStr = (String) argMap.getOrDefault("nullstr", Chart.DEFAULT_NULL_STR).getValue();
+
     String columSplitName = aggregated.getLeft().getRowType().getFieldNames().getLast();
     RelBuilder relBuilder = context.relBuilder;
     // 0: agg; 2: column-split
     relBuilder.project(relBuilder.field(0), relBuilder.field(2));
-    relBuilder.filter(relBuilder.isNotNull(relBuilder.field(1)));
+    if (!useNull) {
+      relBuilder.filter(relBuilder.isNotNull(relBuilder.field(1)));
+    }
     // 1: column split; 0: agg
     relBuilder.aggregate(
         relBuilder.groupKey(relBuilder.field(1)),
@@ -2080,11 +2082,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (top) {
       grandTotal = relBuilder.desc(grandTotal);
     }
+    // Always set it to null last so that it does not interfere with top / bottom calculation
+    grandTotal = relBuilder.nullsLast(grandTotal);
     RexNode rowNum =
         PlanUtils.makeOver(
             context,
             BuiltinFunctionName.ROW_NUMBER,
-            relBuilder.literal(1),
+            relBuilder.literal(1), // dummy expression for row number calculation
             List.of(),
             List.of(),
             List.of(grandTotal),
@@ -2097,25 +2101,28 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // on column-split = group key
     relBuilder.join(
-        JoinRelType.INNER, relBuilder.equals(relBuilder.field(2, 0, 2), relBuilder.field(2, 1, 0)));
+        JoinRelType.LEFT, relBuilder.equals(relBuilder.field(2, 0, 2), relBuilder.field(2, 1, 0)));
 
-    RexNode condition =
+    RexNode colSplitPostJoin = relBuilder.field(2);
+    RexNode lteCondition =
         relBuilder.call(
             SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
             relBuilder.field("__row_number__"),
             relBuilder.literal(limit));
+    RexNode nullCondition = relBuilder.isNull(colSplitPostJoin);
     RexNode columnSplitExpr;
-    if (useOther) {
-      columnSplitExpr =
-          relBuilder.call(
-              SqlStdOperatorTable.CASE,
-              condition,
-              relBuilder.field(2),
-              relBuilder.literal(otherStr));
-    } else {
-      relBuilder.filter(condition);
-      columnSplitExpr = relBuilder.field(2);
+    if (!useOther) {
+      relBuilder.filter(lteCondition);
     }
+
+    columnSplitExpr =
+        relBuilder.call(
+            SqlStdOperatorTable.CASE,
+            nullCondition,
+            relBuilder.literal(nullStr),
+            lteCondition,
+            relBuilder.field(2),
+            relBuilder.literal(otherStr));
 
     relBuilder.project(
         relBuilder.field(0),
