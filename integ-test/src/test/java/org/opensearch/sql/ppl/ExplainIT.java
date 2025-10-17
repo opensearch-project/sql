@@ -90,6 +90,17 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testScriptProjectWithNameConflict() throws IOException {
+    String expected = loadExpectedPlan("explain_script_project_name_conflict.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| eval age = age + 2"
+                + "| fields age, lastname"));
+  }
+
+  @Test
   public void testFilterPushDownExplain() throws IOException {
     String expected = loadExpectedPlan("explain_filter_push.yaml");
     assertYamlEqualsJsonIgnoreId(

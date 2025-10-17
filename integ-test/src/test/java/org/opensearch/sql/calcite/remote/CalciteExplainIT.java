@@ -798,6 +798,19 @@ public class CalciteExplainIT extends ExplainIT {
                 + "| fields age2, upper_name, initial, lastname"));
   }
 
+  // TODO: Pending implementation. For now, this test makes sure complex sort expression is not pushed.
+  @Test
+  public void testScriptSort() throws IOException {
+    String expected = loadExpectedPlan("explain_script_sort.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| eval derived = age + balance"
+                + "| sort derived"
+                + "| fields age, balance, derived"));
+  }
+
   @Test
   public void testExplainAppendCommand() throws IOException {
     String expected = loadExpectedPlan("explain_append_command.json");
