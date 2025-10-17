@@ -8,7 +8,6 @@ package org.opensearch.sql.expression.function.udf;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.NumberFormat;
-import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
@@ -18,6 +17,7 @@ import org.apache.calcite.linq4j.function.Strict;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
@@ -41,9 +41,13 @@ public class ToStringFunction extends ImplementorUDF {
   }
 
   public static final String DURATION_FORMAT = "duration";
+  public static final String DURATION_MILLIS_FORMAT = "duration_millis";
   public static final String HEX_FORMAT = "hex";
   public static final String COMMAS_FORMAT = "commas";
   public static final String BINARY_FORMAT = "binary";
+  public static final SqlFunctions.DateFormatFunction dateTimeFormatter =
+      new SqlFunctions.DateFormatFunction();
+  public static final String format24hour = "%H:%M:%S"; // 24-hour format
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
@@ -65,7 +69,13 @@ public class ToStringFunction extends ImplementorUDF {
         Expression format = translatedOperands.get(1);
         return Expressions.call(ToStringFunction.class, "toString", fieldValue, format);
       } else {
-        return Expressions.call(ToStringFunction.class, "toString", fieldValue);
+        // autoboxes to Boolean
+
+        if (!fieldValue.getType().getTypeName().equals("Boolean")) {
+          return Expressions.call(ToStringFunction.class, "toString", fieldValue);
+        } else {
+          return Expressions.call(ToStringFunction.class, "toString", fieldValue);
+        }
       }
     }
   }
@@ -87,13 +97,13 @@ public class ToStringFunction extends ImplementorUDF {
   @Strict
   public static String toString(BigDecimal num, String format) {
     if (format.equals(DURATION_FORMAT)) {
-      Duration d = Duration.ofSeconds(num.toBigInteger().longValue());
-      long hours = d.toHours();
-      int minutes = d.toMinutesPart();
-      int remainingSeconds = d.toSecondsPart();
 
-      String time_str = String.format("%02d:%02d:%02d", hours, minutes, remainingSeconds);
-      return time_str;
+      return dateTimeFormatter.formatTime(format24hour, num.toBigInteger().intValue() * 1000);
+
+    } else if (format.equals(DURATION_MILLIS_FORMAT)) {
+
+      return dateTimeFormatter.formatTime(format24hour, num.toBigInteger().intValue());
+
     } else if (format.equals(HEX_FORMAT)) {
       return num.toBigInteger().toString(16);
     } else if (format.equals(COMMAS_FORMAT)) {
@@ -112,12 +122,11 @@ public class ToStringFunction extends ImplementorUDF {
   @Strict
   public static String toString(double num, String format) {
     if (format.equals(DURATION_FORMAT)) {
-      Duration d = Duration.ofSeconds(Math.round(num));
-      long hours = d.toHours();
-      int minutes = d.toMinutesPart();
-      int remainingSeconds = d.toSecondsPart();
-      String time_str = String.format("%02d:%02d:%02d", hours, minutes, remainingSeconds);
-      return time_str;
+      return dateTimeFormatter.formatTime(format24hour, ((int) Math.round(num)) * 1000);
+    } else if (format.equals(DURATION_MILLIS_FORMAT)) {
+
+      return dateTimeFormatter.formatTime(format24hour, ((int) Math.round(num)));
+
     } else if (format.equals(HEX_FORMAT)) {
       return Double.toHexString(num);
     } else if (format.equals(COMMAS_FORMAT)) {
@@ -130,16 +139,18 @@ public class ToStringFunction extends ImplementorUDF {
   }
 
   @Strict
+  public static String toString(short num, String format) {
+    int i = (int) num;
+    return toString(i, format);
+  }
+
+  @Strict
   public static String toString(int num, String format) {
 
     if (format.equals(DURATION_FORMAT)) {
-
-      int hours = num / 3600;
-      int minutes = (num % 3600) / 60;
-      int seconds = num % 60;
-
-      String time_str = String.format("%02d:%02d:%02d", hours, minutes, seconds);
-      return time_str;
+      return dateTimeFormatter.formatTime(format24hour, num * 1000);
+    } else if (format.equals(DURATION_MILLIS_FORMAT)) {
+      return dateTimeFormatter.formatTime(format24hour, num);
     } else if (format.equals(HEX_FORMAT)) {
       return Integer.toHexString(num);
     } else if (format.equals(COMMAS_FORMAT)) {
