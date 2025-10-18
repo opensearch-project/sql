@@ -27,7 +27,16 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 class TimechartTest {
 
   @ParameterizedTest
-  @CsvSource({"1, m, MINUTE", "30, s, SECOND", "5, m, MINUTE", "2, h, HOUR", "1, d, DAY"})
+  @CsvSource({
+    "30, s, SECOND",
+    "5, m, MINUTE",
+    "2, h, HOUR",
+    "1, d, DAY",
+    "1, w, WEEK",
+    "1, M, MONTH",
+    "1, q, QUARTER",
+    "1, y, YEAR"
+  })
   void should_transform_per_second_for_different_spans(
       int spanValue, String spanUnit, String expectedIntervalUnit) {
     withTimechart(span(spanValue, spanUnit), perSecond("bytes"))
@@ -43,6 +52,90 @@ class TimechartTest {
                             "@timestamp",
                             timestampadd(expectedIntervalUnit, spanValue, "@timestamp")))),
                 timechart(span(spanValue, spanUnit), alias("per_second(bytes)", sum("bytes")))));
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "30, s, SECOND",
+    "5, m, MINUTE",
+    "2, h, HOUR",
+    "1, d, DAY",
+    "1, w, WEEK",
+    "1, M, MONTH",
+    "1, q, QUARTER",
+    "1, y, YEAR"
+  })
+  void should_transform_per_minute_for_different_spans(
+      int spanValue, String spanUnit, String expectedIntervalUnit) {
+    withTimechart(span(spanValue, spanUnit), perMinute("bytes"))
+        .whenTransformingPerFunction()
+        .thenExpect(
+            eval(
+                let(
+                    "per_minute(bytes)",
+                    divide(
+                        multiply("per_minute(bytes)", 60.0),
+                        timestampdiff(
+                            "SECOND",
+                            "@timestamp",
+                            timestampadd(expectedIntervalUnit, spanValue, "@timestamp")))),
+                timechart(span(spanValue, spanUnit), alias("per_minute(bytes)", sum("bytes")))));
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "30, s, SECOND",
+    "5, m, MINUTE",
+    "2, h, HOUR",
+    "1, d, DAY",
+    "1, w, WEEK",
+    "1, M, MONTH",
+    "1, q, QUARTER",
+    "1, y, YEAR"
+  })
+  void should_transform_per_hour_for_different_spans(
+      int spanValue, String spanUnit, String expectedIntervalUnit) {
+    withTimechart(span(spanValue, spanUnit), perHour("bytes"))
+        .whenTransformingPerFunction()
+        .thenExpect(
+            eval(
+                let(
+                    "per_hour(bytes)",
+                    divide(
+                        multiply("per_hour(bytes)", 3600.0),
+                        timestampdiff(
+                            "SECOND",
+                            "@timestamp",
+                            timestampadd(expectedIntervalUnit, spanValue, "@timestamp")))),
+                timechart(span(spanValue, spanUnit), alias("per_hour(bytes)", sum("bytes")))));
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "30, s, SECOND",
+    "5, m, MINUTE",
+    "2, h, HOUR",
+    "1, d, DAY",
+    "1, w, WEEK",
+    "1, M, MONTH",
+    "1, q, QUARTER",
+    "1, y, YEAR"
+  })
+  void should_transform_per_day_for_different_spans(
+      int spanValue, String spanUnit, String expectedIntervalUnit) {
+    withTimechart(span(spanValue, spanUnit), perDay("bytes"))
+        .whenTransformingPerFunction()
+        .thenExpect(
+            eval(
+                let(
+                    "per_day(bytes)",
+                    divide(
+                        multiply("per_day(bytes)", 86400.0),
+                        timestampdiff(
+                            "SECOND",
+                            "@timestamp",
+                            timestampadd(expectedIntervalUnit, spanValue, "@timestamp")))),
+                timechart(span(spanValue, spanUnit), alias("per_day(bytes)", sum("bytes")))));
   }
 
   @Test
@@ -102,6 +195,18 @@ class TimechartTest {
 
   private static AggregateFunction perSecond(String fieldName) {
     return (AggregateFunction) aggregate("per_second", field(fieldName));
+  }
+
+  private static AggregateFunction perMinute(String fieldName) {
+    return (AggregateFunction) aggregate("per_minute", field(fieldName));
+  }
+
+  private static AggregateFunction perHour(String fieldName) {
+    return (AggregateFunction) aggregate("per_hour", field(fieldName));
+  }
+
+  private static AggregateFunction perDay(String fieldName) {
+    return (AggregateFunction) aggregate("per_day", field(fieldName));
   }
 
   private static AggregateFunction sum(String fieldName) {

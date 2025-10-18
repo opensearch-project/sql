@@ -450,6 +450,36 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testExplainTimechartPerMinute() throws IOException {
+    var result = explainQueryToString("source=events | timechart span=2m per_minute(cpu_usage)");
+    assertTrue(
+        result.contains(
+            "per_minute(cpu_usage)=[DIVIDE(*($1, 60.0E0), "
+                + "TIMESTAMPDIFF('SECOND':VARCHAR, $0, TIMESTAMPADD('MINUTE':VARCHAR, 2, $0)))]"));
+    assertTrue(result.contains("per_minute(cpu_usage)=[SUM($0)]"));
+  }
+
+  @Test
+  public void testExplainTimechartPerHour() throws IOException {
+    var result = explainQueryToString("source=events | timechart span=2m per_hour(cpu_usage)");
+    assertTrue(
+        result.contains(
+            "per_hour(cpu_usage)=[DIVIDE(*($1, 3600.0E0), "
+                + "TIMESTAMPDIFF('SECOND':VARCHAR, $0, TIMESTAMPADD('MINUTE':VARCHAR, 2, $0)))]"));
+    assertTrue(result.contains("per_hour(cpu_usage)=[SUM($0)]"));
+  }
+
+  @Test
+  public void testExplainTimechartPerDay() throws IOException {
+    var result = explainQueryToString("source=events | timechart span=2m per_day(cpu_usage)");
+    assertTrue(
+        result.contains(
+            "per_day(cpu_usage)=[DIVIDE(*($1, 86400.0E0), "
+                + "TIMESTAMPDIFF('SECOND':VARCHAR, $0, TIMESTAMPADD('MINUTE':VARCHAR, 2, $0)))]"));
+    assertTrue(result.contains("per_day(cpu_usage)=[SUM($0)]"));
+  }
+
+  @Test
   public void noPushDownForAggOnWindow() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String query =
