@@ -19,7 +19,6 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  SNAPSHOT_REPO_URL: https://ci.opensearch.org/ci/dbc/snapshots/maven/
   COMMIT_MAP_FILENAME: commit-history-language-grammar.json
 
 jobs:
@@ -53,6 +52,11 @@ jobs:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
           MAVEN_SNAPSHOTS_S3_REPO: op://opensearch-infra-secrets/maven-snapshots-s3/repo
           MAVEN_SNAPSHOTS_S3_ROLE: op://opensearch-infra-secrets/maven-snapshots-s3/role
+
+      - name: Export SNAPSHOT_REPO_URL
+        run: |
+          snapshot_repo_url=${{ env.MAVEN_SNAPSHOTS_S3_REPO }}
+          echo "SNAPSHOT_REPO_URL=$snapshot_repo_url" >> $GITHUB_ENV
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v5
