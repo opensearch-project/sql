@@ -75,12 +75,25 @@ Specifies the width of each bin interval with support for multiple span types:
   - Creates logarithmic bin boundaries instead of linear
 
 **3. Time Scale Span (comprehensive time units)**
-- **Subseconds**: ``us`` (microseconds), ``ms`` (milliseconds), ``cs`` (centiseconds), ``ds`` (deciseconds)
+
+The ``bin`` command supports a comprehensive set of time units, including subsecond precision:
+
+- **Subseconds** (case-sensitive, lowercase only): ``us`` (microseconds), ``ms`` (milliseconds), ``cs`` (centiseconds), ``ds`` (deciseconds)
 - **Seconds**: ``s``, ``sec``, ``secs``, ``second``, ``seconds``
-- **Minutes**: ``m``, ``min``, ``mins``, ``minute``, ``minutes``
+- **Minutes** (case-sensitive): ``m`` (lowercase), ``min``, ``mins``, ``minute``, ``minutes``
 - **Hours**: ``h``, ``hr``, ``hrs``, ``hour``, ``hours``
 - **Days**: ``d``, ``day``, ``days`` - **Uses precise daily binning algorithm**
-- **Months**: ``mon``, ``month``, ``months`` - **Uses precise monthly binning algorithm**
+- **Months** (case-sensitive): ``M`` (uppercase), ``mon``, ``month``, ``months`` - **Uses precise monthly binning algorithm**
+
+**Case Sensitivity Note**:
+  - ``m`` (lowercase) = minute
+  - ``M`` (uppercase) = month
+  - Subsecond units (``us``, ``ms``, ``cs``, ``ds``) are case-sensitive and must be lowercase
+
+.. note::
+
+   The ``bin`` command implements time binning using **Calcite**, which provides full control over the binning logic. This allows it to support **subsecond units** (us, ms, cs, ds) that are not available in the ``stats`` command, which relies on OpenSearch's calendar intervals.
+
 - **Examples**:
   - ``span=30seconds``
   - ``span=15minutes``
