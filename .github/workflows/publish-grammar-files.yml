@@ -5,8 +5,8 @@ on:
   push:
     branches:
       - main
-      - 1.*
-      - 2.*
+      - '[0-9]+.[0-9]+'
+      - '[0-9]+.x'
     paths:
       - 'language-grammar/src/main/antlr4/**'
       - 'language-grammar/build.gradle'
@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  SNAPSHOT_REPO_URL: https://central.sonatype.com/repository/maven-snapshots/
+  SNAPSHOT_REPO_URL: https://ci.opensearch.org/ci/dbc/snapshots/maven/
   COMMIT_MAP_FILENAME: commit-history-language-grammar.json
 
 jobs:
@@ -51,8 +51,14 @@ jobs:
           export-env: true
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          SONATYPE_USERNAME: op://opensearch-infra-secrets/maven-central-portal-credentials/username
-          SONATYPE_PASSWORD: op://opensearch-infra-secrets/maven-central-portal-credentials/password
+          MAVEN_SNAPSHOTS_S3_REPO: op://opensearch-infra-secrets/maven-snapshots-s3/repo
+          MAVEN_SNAPSHOTS_S3_ROLE: op://opensearch-infra-secrets/maven-snapshots-s3/role
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ env.MAVEN_SNAPSHOTS_S3_ROLE }}
+          aws-region: us-east-1
 
       - name: Set version
         id: set_version
