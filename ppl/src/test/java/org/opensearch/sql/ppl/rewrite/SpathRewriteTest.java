@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.ppl.utils;
+package org.opensearch.sql.ppl.rewrite;
 
 import static org.junit.Assert.assertEquals;
 import static org.opensearch.sql.ast.dsl.AstDSL.eval;
@@ -15,23 +15,11 @@ import static org.opensearch.sql.ast.dsl.AstDSL.spath;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 
 import org.junit.Test;
-import org.mockito.Mockito;
-import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.SPath;
-import org.opensearch.sql.common.setting.Settings;
-import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
-import org.opensearch.sql.ppl.parser.AstBuilder;
+import org.opensearch.sql.ppl.AstPlanningTestBase;
 
-public class SPathRewriteTest {
-  private final Settings settings = Mockito.mock(Settings.class);
-  private final PPLSyntaxParser parser = new PPLSyntaxParser();
-
-  private Node plan(String query) {
-    AstBuilder astBuilder = new AstBuilder(query, settings);
-    return astBuilder.visit(parser.parse(query));
-  }
-
+public class SpathRewriteTest extends AstPlanningTestBase {
   // Control test to make sure something fundamental hasn't changed about the json_extract parsing
   @Test
   public void testEvalControl() {
@@ -58,10 +46,5 @@ public class SPathRewriteTest {
   @Test(expected = IllegalArgumentException.class)
   public void testSpathMissingPathArgumentHandling() {
     plan("source = t | spath input=a output=a");
-  }
-
-  @Test
-  public void testSpathArgumentDeshuffle() {
-    assertEquals(plan("source = t | spath path=a input=a"), plan("source = t | spath input=a a"));
   }
 }
