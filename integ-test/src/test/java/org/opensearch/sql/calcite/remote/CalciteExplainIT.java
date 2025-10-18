@@ -376,8 +376,8 @@ public class CalciteExplainIT extends ExplainIT {
         "source=opensearch-sql_test_index_account | where address = '671 Bristol Street' and age -"
             + " 2 = 30 | fields firstname, age, address";
     var result = explainQueryToString(query, true);
-    String expected = loadFromFile("expectedOutput/calcite/explain_skip_script_encoding.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    String expected = loadFromFile("expectedOutput/calcite/explain_skip_script_encoding.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
   // Only for Calcite, as v2 gets unstable serialized string for function
@@ -632,15 +632,15 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testExplainRegexMatchInEvalWithOutScriptPushdown() throws IOException {
+  public void testExplainRegexMatchInEvalWithScriptPushdown() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String query =
         String.format(
             "source=%s |eval has_hello = regex_match(name, 'hello') | fields has_hello",
             TEST_INDEX_STRINGS);
     var result = explainQueryToString(query);
-    String expected = loadFromFile("expectedOutput/calcite/explain_regex_match_in_eval.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    String expected = loadFromFile("expectedOutput/calcite/explain_regex_match_in_eval.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
   // Only for Calcite
@@ -760,8 +760,8 @@ public class CalciteExplainIT extends ExplainIT {
     String query =
         "source=opensearch-sql_test_index_bank| eval age2 = age + 2 | sort age2 | fields age, age2";
     var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_simple_sort_expr_push.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    String expected = loadExpectedPlan("explain_simple_sort_expr_push.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
   @Test
@@ -769,8 +769,8 @@ public class CalciteExplainIT extends ExplainIT {
     String query =
         "source=opensearch-sql_test_index_bank| eval b = balance + 1 | sort b | fields b";
     var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_simple_sort_expr_single_expr_output_push.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    String expected = loadExpectedPlan("explain_simple_sort_expr_single_expr_output_push.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
   @Test
@@ -781,6 +781,35 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_rex.yaml");
     assertYamlEqualsJsonIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testScriptProjectMultiplePush() throws IOException {
+    String expected = loadExpectedPlan("explain_script_project_multiple_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| eval age2 = age + 2"
+                + "| where age2 > 20"
+                + "| eval upper_name = upper(firstname)"
+                + "| where firstname = \\\"John\\\""
+                + "| rex field=lastname \\\"(?<initial>^[A-Z])\\\""
+                + "| fields age2, upper_name, initial, lastname"));
+  }
+
+  // TODO: Pending implementation. For now, this test makes sure complex sort expression is not
+  // pushed.
+  @Test
+  public void testScriptSort() throws IOException {
+    String expected = loadExpectedPlan("explain_script_sort.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| eval derived = age + balance"
+                + "| sort derived"
+                + "| fields age, balance, derived"));
   }
 
   @Test
@@ -1043,8 +1072,8 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainEvalMax() throws IOException {
-    String expected = loadExpectedPlan("explain_eval_max.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_eval_max.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | eval new = max(1, 2, 3, age, 'banana')"));
@@ -1052,8 +1081,8 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainEvalMin() throws IOException {
-    String expected = loadExpectedPlan("explain_eval_min.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_eval_min.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | eval new = min(1, 2, 3, age, 'banana')"));

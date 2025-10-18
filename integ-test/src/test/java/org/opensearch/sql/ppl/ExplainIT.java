@@ -52,6 +52,55 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testScriptProjectPushDownExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_script_project_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| eval age2 = age + 2, upper_name = upper(firstname)"
+                + "| fields age2, upper_name, firstname, lastname"));
+  }
+
+  @Test
+  public void testScriptProjectHasLiteralPartialPushDownExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_script_project_has_literal_partial_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| eval age2 = age + 2, upper_name = upper(firstname), age3 = 3"
+                + "| fields age2, upper_name, gender, lastname, age3"));
+  }
+
+  // TODO: Optimize it with less scripts. For now, filter and two derived fields are all scripts.
+  // We can translate it to two derived script field with filter on the field result. Reduce from
+  // three scripts to two scripts with better cost computing logic
+  @Test
+  public void testScriptProjectPushDownWithFilterOnPushedFieldExplain() throws IOException {
+    String expected =
+        loadExpectedPlan("explain_script_project_push_with_filter_on_pushed_field.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| eval age2 = age + 2, upper_name = upper(firstname)"
+                + "| where age2 > 20"
+                + "| fields age2, upper_name, firstname, lastname"));
+  }
+
+  @Test
+  public void testScriptProjectWithNameConflict() throws IOException {
+    String expected = loadExpectedPlan("explain_script_project_name_conflict.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| eval age = age + 2"
+                + "| fields age, lastname"));
+  }
+
+  @Test
   public void testFilterPushDownExplain() throws IOException {
     String expected = loadExpectedPlan("explain_filter_push.yaml");
     assertYamlEqualsJsonIgnoreId(
@@ -179,8 +228,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testSortWithDescPushDownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_sort_desc_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_sort_desc_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | sort age, - firstname desc | fields age,"
@@ -189,8 +238,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testSortWithTypePushDownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_sort_type_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_sort_type_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | sort num(age) | fields age"));
@@ -373,8 +422,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testFillNullPushDownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_fillnull_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_fillnull_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -573,8 +622,8 @@ public class ExplainIT extends PPLIntegTestCase {
   @Ignore("The serialized string is unstable because of function properties")
   @Test
   public void testFilterScriptPushDownExplain() throws Exception {
-    String expected = loadExpectedPlan("explain_filter_script_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_filter_script_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account | where firstname ='Amber' and age - 2 = 30 |"
@@ -584,8 +633,8 @@ public class ExplainIT extends PPLIntegTestCase {
   @Ignore("The serialized string is unstable because of function properties")
   @Test
   public void testFilterFunctionScriptPushDownExplain() throws Exception {
-    String expected = loadExpectedPlan("explain_filter_function_script_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_filter_function_script_push.yaml");
+    assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account |  where length(firstname) = 5 and abs(age) ="

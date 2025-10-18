@@ -6,11 +6,13 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import lombok.Getter;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
@@ -27,6 +29,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -36,6 +39,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.search.aggregations.AggregationBuilder;
@@ -52,8 +56,11 @@ import org.opensearch.sql.opensearch.planner.physical.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.QueryExpression;
+import org.opensearch.sql.opensearch.request.PredicateAnalyzer.ScriptQueryExpression;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
+import org.opensearch.sql.opensearch.storage.scan.SelectedColumn.Kind;
+import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
 
 /** The logical relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
@@ -120,9 +127,9 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
 
   public AbstractRelNode pushDownFilter(Filter filter) {
     try {
-      RelDataType rowType = filter.getRowType();
+      RelDataType rowType = this.getRowType();
       CalciteLogicalIndexScan newScan = this.copyWithNewSchema(filter.getRowType());
-      List<String> schema = this.getRowType().getFieldNames();
+      List<String> schema = rowType.getFieldNames();
       Map<String, ExprType> fieldTypes =
           this.osIndex.getAllFieldTypes().entrySet().stream()
               .filter(entry -> schema.contains(entry.getKey()))
@@ -206,11 +213,71 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
    * When pushing down a project, we need to create a new CalciteLogicalIndexScan with the updated
    * schema since we cannot override getRowType() which is defined to be final.
    */
-  public CalciteLogicalIndexScan pushDownProject(List<Integer> selectedColumns) {
+  public CalciteLogicalIndexScan pushDownProject(
+      List<SelectedColumn> selected,
+      LogicalProject project,
+      Map<Integer, String> newDerivedAliases) {
     final RelDataTypeFactory.Builder builder = getCluster().getTypeFactory().builder();
-    final List<RelDataTypeField> fieldList = this.getRowType().getFieldList();
-    for (int project : selectedColumns) {
-      builder.add(fieldList.get(project));
+    final List<RelDataTypeField> scanFields = this.getRowType().getFieldList();
+    final List<RelDataTypeField> projFields = project.getRowType().getFieldList();
+
+    final List<String> newPhysicalNames = new ArrayList<>();
+    final List<String> derivedNames = new ArrayList<>();
+    final List<String> derivedTypes = new ArrayList<>();
+    final List<Triple<RexNode, RelDataType, ScriptQueryExpression>> derivedScripts =
+        new ArrayList<>();
+    final Map<String, Triple<RexNode, RelDataType, ScriptQueryExpression>>
+        previousDerivedScriptsByName = this.getPushDownContext().getDerivedScriptsByName();
+    // selected physical columns used for reindex sort collations
+    final List<Integer> selectedColumns = new ArrayList<>();
+
+    for (SelectedColumn item : selected) {
+      switch (item.getKind()) {
+        case PHYSICAL, DERIVED_EXISTING:
+          {
+            RelDataTypeField field = scanFields.get(item.getOldIdx());
+            builder.add(field);
+            String fieldName = field.getName();
+            if (this.getPushDownContext().isAggregatePushed() || item.getKind() == Kind.PHYSICAL) {
+              newPhysicalNames.add(fieldName);
+            } else {
+              derivedNames.add(fieldName);
+              RelDataType derivedFieldType =
+                  previousDerivedScriptsByName.get(fieldName).getLeft().getType();
+              derivedTypes.add(
+                  OpenSearchTypeFactory.convertRelDataTypeToSupportedDerivedFieldType(
+                      derivedFieldType));
+              derivedScripts.add(previousDerivedScriptsByName.get(fieldName));
+            }
+            selectedColumns.add(item.getOldIdx());
+            break;
+          }
+        case DERIVED_NEW:
+          {
+            String alias = newDerivedAliases.get(item.getProjIdx());
+            RelDataTypeField outputField = projFields.get(item.getProjIdx());
+            builder.add(alias, outputField.getType());
+
+            Pair<RexNode, RelDataType> remappedRexInfo =
+                OpenSearchRelOptUtil.getRemappedRexAndType(
+                    project.getProjects().get(item.getProjIdx()), project.getInput().getRowType());
+            RexNode reMappedRex = remappedRexInfo.getLeft();
+            RelDataType reMappedRowType = remappedRexInfo.getRight();
+            Map<String, ExprType> fieldTypes =
+                this.osIndex.getAllFieldTypes().entrySet().stream()
+                    .filter(entry -> reMappedRowType.getFieldNames().contains(entry.getKey()))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            ScriptQueryExpression script =
+                new ScriptQueryExpression(
+                    reMappedRex, reMappedRowType, fieldTypes, this.getCluster());
+            derivedNames.add(alias);
+            derivedTypes.add(
+                OpenSearchTypeFactory.convertRelDataTypeToSupportedDerivedFieldType(
+                    outputField.getType()));
+            derivedScripts.add(Triple.of(reMappedRex, reMappedRowType, script));
+          }
+          break;
+      }
     }
     RelDataType newSchema = builder.build();
 
@@ -218,7 +285,9 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     // `Project($1, $0) -> Sort(sort0=[1]) -> Project($1, $0) -> Aggregate(group={0},...)...`
     // We don't support pushing down the duplicated project here otherwise it will cause dead-loop.
     // `ProjectMergeRule` will help merge the duplicated projects.
-    if (this.getPushDownContext().containsDigest(newSchema.getFieldNames())) return null;
+    if (this.getPushDownContext().containsDigest(newPhysicalNames)) {
+      return null;
+    }
 
     // Projection may alter indicies in the collations.
     // E.g. When sorting age
@@ -234,24 +303,43 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
             table,
             osIndex,
             newSchema,
-            pushDownContext.clone());
+            getPushDownContext().isAggregatePushed()
+                ? pushDownContext.clone()
+                : pushDownContext.cloneWithoutProject());
 
-    AbstractAction action;
-    if (pushDownContext.isAggregatePushed()) {
-      // For aggregate, we do nothing on query builder but only change the schema of the scan.
-      action = (AggregationBuilderAction) aggAction -> {};
-    } else {
-      Map<String, String> aliasMapping = this.osIndex.getAliasMapping();
-      // For alias types, we need to push down its original path instead of the alias name.
-      List<String> projectedFields =
-          newSchema.getFieldNames().stream()
-              .map(fieldName -> aliasMapping.getOrDefault(fieldName, fieldName))
-              .toList();
-      action =
+    // For aggregate, we do nothing on query builder but only change the schema of the scan.
+    AbstractAction action =
+        pushDownContext.isAggregatePushed() || newPhysicalNames.isEmpty()
+            ? (AggregationBuilderAction) aggAction -> {}
+            : (OSRequestBuilderAction)
+                requestBuilder ->
+                    requestBuilder.pushDownProjectStream(
+                        // For alias types, we need to push down its original path instead of the
+                        // alias name.
+                        newPhysicalNames.stream()
+                            .map(name -> this.osIndex.getAliasMapping().getOrDefault(name, name)));
+    newScan.pushDownContext.add(PushDownType.PROJECT, newPhysicalNames, action);
+
+    if (!derivedScripts.isEmpty()) {
+      newScan.pushDownContext.add(
+          PushDownType.SCRIPT_PROJECT,
+          derivedNames,
           (OSRequestBuilderAction)
-              requestBuilder -> requestBuilder.pushDownProjectStream(projectedFields.stream());
+              requestBuilder ->
+                  requestBuilder.pushDownScriptProjects(
+                      derivedNames,
+                      derivedTypes,
+                      derivedScripts.stream()
+                          .map(scriptExpr -> scriptExpr.getRight().getScript())
+                          .collect(Collectors.toList())));
+      // For handling idempotency of next round of pushDownProject, we record which derived names
+      // are already generated
+      newScan.pushDownContext.setDerivedScriptsByName(
+          IntStream.range(0, derivedScripts.size())
+              .boxed()
+              .map(i -> Pair.of(derivedNames.get(i), derivedScripts.get(i)))
+              .collect(Collectors.toMap(Pair::getLeft, Pair::getRight)));
     }
-    newScan.pushDownContext.add(PushDownType.PROJECT, newSchema.getFieldNames(), action);
     return newScan;
   }
 

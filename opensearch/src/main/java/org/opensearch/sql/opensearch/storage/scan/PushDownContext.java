@@ -10,15 +10,19 @@ import java.util.AbstractCollection;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import lombok.Getter;
+import lombok.Setter;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelFieldCollation.Direction;
 import org.apache.calcite.rel.RelFieldCollation.NullDirection;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.jetbrains.annotations.NotNull;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
@@ -33,6 +37,7 @@ import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
+import org.opensearch.sql.opensearch.request.PredicateAnalyzer.ScriptQueryExpression;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
@@ -48,6 +53,11 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
 
   private boolean isLimitPushed = false;
   private boolean isProjectPushed = false;
+  @Setter private boolean isScriptProjectPushed = false;
+
+  @Setter
+  private Map<String, Triple<RexNode, RelDataType, ScriptQueryExpression>> derivedScriptsByName =
+      new HashMap<>();
 
   public PushDownContext(OpenSearchIndex osIndex) {
     this.osIndex = osIndex;
@@ -58,6 +68,7 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
   public PushDownContext clone() {
     PushDownContext newContext = new PushDownContext(osIndex);
     newContext.addAll(this);
+    newContext.derivedScriptsByName = new HashMap<>(this.derivedScriptsByName);
     return newContext;
   }
 
@@ -73,6 +84,24 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
         newContext.add(action);
       }
     }
+    newContext.setDerivedScriptsByName(new HashMap<>(this.derivedScriptsByName));
+    return newContext;
+  }
+
+  /**
+   * Create a new {@link PushDownContext} without the project actions. Since new project will
+   * override the old project, there is no need to keep multiple projects in digested plan.
+   *
+   * @return A new push-down context without the project actions.
+   */
+  protected PushDownContext cloneWithoutProject() {
+    PushDownContext newContext = new PushDownContext(osIndex);
+    for (PushDownOperation action : this) {
+      if (action.type() != PushDownType.PROJECT && action.type() != PushDownType.SCRIPT_PROJECT) {
+        newContext.add(action);
+      }
+    }
+    newContext.setDerivedScriptsByName(new HashMap<>(this.derivedScriptsByName));
     return newContext;
   }
 
@@ -120,6 +149,9 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
     if (operation.type() == PushDownType.PROJECT) {
       isProjectPushed = true;
     }
+    if (operation.type() == PushDownType.SCRIPT_PROJECT) {
+      isScriptProjectPushed = true;
+    }
     operation.action().transform(this, operation);
     return true;
   }
@@ -145,6 +177,7 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
 enum PushDownType {
   FILTER,
   PROJECT,
+  SCRIPT_PROJECT,
   AGGREGATION,
   SORT,
   LIMIT,

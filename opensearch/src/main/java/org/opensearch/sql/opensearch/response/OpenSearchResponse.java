@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.common.document.DocumentField;
 import org.opensearch.core.common.text.Text;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
@@ -128,7 +129,10 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
                 addParsedHitsToBuilder(builder, hit);
                 addMetaDataFieldsToBuilder(builder, hit);
                 addHighlightsToBuilder(builder, hit);
-                return (ExprValue) ExprTupleValue.fromExprValueMap(builder.build());
+                // Dedup collapse pushdown will return duplicate keys in both source hits and
+                // document fields
+                // To avoid conflicts exception, pick last one as the values should be the same.
+                return (ExprValue) ExprTupleValue.fromExprValueMap(builder.buildKeepingLast());
               })
           .iterator();
     }
@@ -149,6 +153,13 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
                 hit.getSourceAsString(),
                 !(hit.getInnerHits() == null || hit.getInnerHits().isEmpty()))
             .tupleValue());
+    if (!hit.getDocumentFields().isEmpty()) {
+      for (DocumentField field : hit.getDocumentFields().values()) {
+        String name = field.getName();
+        Object value = field.getValue();
+        builder.put(name, exprValueFactory.construct(name, value, false));
+      }
+    }
   }
 
   /**

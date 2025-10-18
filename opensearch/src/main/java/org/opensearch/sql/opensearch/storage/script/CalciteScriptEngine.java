@@ -76,6 +76,7 @@ import org.apache.calcite.util.Util;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.index.fielddata.ScriptDocValues;
 import org.opensearch.script.AggregationScript;
+import org.opensearch.script.DerivedFieldScript;
 import org.opensearch.script.FilterScript;
 import org.opensearch.script.ScriptContext;
 import org.opensearch.script.ScriptEngine;
@@ -87,6 +88,7 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.script.aggregation.CalciteAggregationScriptFactory;
+import org.opensearch.sql.opensearch.storage.script.filter.CalciteDerivedFieldScriptFactory;
 import org.opensearch.sql.opensearch.storage.script.filter.CalciteFilterScriptFactory;
 import org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer;
 
@@ -115,6 +117,7 @@ public class CalciteScriptEngine implements ScriptEngine {
                   BiFunction<Function1<DataContext, Object[]>, RelDataType, Object>>()
               .put(FilterScript.CONTEXT, CalciteFilterScriptFactory::new)
               .put(AggregationScript.CONTEXT, CalciteAggregationScriptFactory::new)
+              .put(DerivedFieldScript.CONTEXT, CalciteDerivedFieldScriptFactory::new)
               .build();
 
   @Override

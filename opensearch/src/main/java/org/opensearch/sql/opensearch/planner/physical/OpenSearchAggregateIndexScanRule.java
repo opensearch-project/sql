@@ -116,6 +116,10 @@ public class OpenSearchAggregateIndexScanRule
                                                     Predicate.not(
                                                             OpenSearchIndexScanRule::isLimitPushed)
                                                         .and(
+                                                            Predicate.not(
+                                                                OpenSearchIndexScanRule
+                                                                    ::isScriptProjectPushed))
+                                                        .and(
                                                             OpenSearchIndexScanRule
                                                                 ::noAggregatePushed))
                                                 .noInputs())));
@@ -133,7 +137,8 @@ public class OpenSearchAggregateIndexScanRule
                                         .allMatch(
                                             call ->
                                                 call.getAggregation().kind == SqlKind.COUNT
-                                                    && call.getArgList().isEmpty()))
+                                                    && call.getArgList().isEmpty()
+                                                    && !call.hasFilter()))
                         .oneInput(
                             b1 ->
                                 b1.operand(CalciteLogicalIndexScan.class)

@@ -10,6 +10,7 @@ import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_RO
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 import lombok.Getter;
 import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
@@ -33,7 +34,10 @@ import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.NumberUtil;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -44,7 +48,9 @@ import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.request.PredicateAnalyzer.ScriptQueryExpression;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
+import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
 
 /** An abstract relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
@@ -104,7 +110,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
             (rowCount, operation) ->
                 switch (operation.type()) {
                   case AGGREGATION -> mq.getRowCount((RelNode) operation.digest());
-                  case PROJECT, SORT -> rowCount;
+                  case PROJECT, SCRIPT_PROJECT, SORT -> rowCount;
                     // Refer the org.apache.calcite.rel.metadata.RelMdRowCount
                   case COLLAPSE -> rowCount / 10;
                   case FILTER, SCRIPT -> NumberUtil.multiply(
@@ -140,6 +146,11 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
         }
           // Ignored Project in cost accumulation, but it will affect the external cost
         case PROJECT -> {}
+        case SCRIPT_PROJECT -> {
+          List<String> derivedNames = (List<String>) operation.digest();
+          // Based on default project rows * field size, add additional cost on derived fields
+          dCpu += NumberUtil.multiply(dRows, 0.1 * derivedNames.size());
+        }
         case SORT -> dCpu += dRows;
           // Refer the org.apache.calcite.rel.metadata.RelMdRowCount.getRowCount(Aggregate rel,...)
         case COLLAPSE -> {
@@ -258,6 +269,45 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
         // aggregators.
         return null;
       }
+      // Due to sort by simple expression optimization, it's possible to deduce a new collation set
+      // that is simply sort by original scan fields.
+      // Use this deduced collations for opensearch request internally in such case.
+      List<Pair<RelFieldCollation, String>> deducedCollations = new ArrayList<>();
+      for (int i = 0; i < collations.size(); i++) {
+        String outputCollationName = collationNames.get(i);
+        RelFieldCollation collation = collations.get(i);
+        if (this.getPushDownContext().getDerivedScriptsByName().containsKey(outputCollationName)) {
+          Triple<RexNode, RelDataType, ScriptQueryExpression> derivedScriptInfo =
+              this.getPushDownContext().getDerivedScriptsByName().get(outputCollationName);
+          RexNode targetExpr = derivedScriptInfo.getLeft();
+          Optional<Pair<Integer, Boolean>> equalOrderInfo =
+              OpenSearchRelOptUtil.getOrderEquivalentInputInfo(targetExpr);
+          if (equalOrderInfo.isPresent()) {
+            // If simple derived field expression can be translated to sort by scan field, we can
+            // still pushdown equivalent sort.
+            // i.e. sort by 2 * (a + 1) is equal to sort by a
+            String exprInputName =
+                derivedScriptInfo.getMiddle().getFieldNames().get(equalOrderInfo.get().getKey());
+            Direction equalDir =
+                equalOrderInfo.get().getValue()
+                    ? collation.getDirection().reverse()
+                    : collation.getDirection();
+            deducedCollations.add(
+                Pair.of(
+                    new RelFieldCollation(-1, equalDir, collation.nullDirection), exprInputName));
+          } else {
+            // Don't push down sort in case of sorting complex derived field because derived field
+            // sort is not supported.
+            return null;
+          }
+        } else {
+          deducedCollations.add(Pair.of(collation, ""));
+        }
+      }
+
+      // Propagate the sort to the new scan
+      // In case of sort by simple expression, still use the original collations to let Calcite
+      // planner understand simple expression is already sorted.
       RelTraitSet traitsWithCollations = getTraitSet().plus(RelCollations.of(collations));
       PushDownContext pushDownContextWithoutSort = this.pushDownContext.cloneWithoutSort();
       AbstractAction<?> action;
@@ -291,9 +341,13 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                 // Existing collations are overridden (discarded) by the new collations,
                 pushDownContextWithoutSort);
         List<SortBuilder<?>> builders = new ArrayList<>();
-        for (RelFieldCollation collation : collations) {
+        for (Pair<RelFieldCollation, String> collationInfo : deducedCollations) {
+          RelFieldCollation collation = collationInfo.getKey();
           int index = collation.getFieldIndex();
-          String fieldName = this.getRowType().getFieldNames().get(index);
+          String fieldName =
+              collationInfo.getValue().isEmpty()
+                  ? this.getRowType().getFieldNames().get(index)
+                  : collationInfo.getValue();
           Direction direction = collation.getDirection();
           NullDirection nullDirection = collation.nullDirection;
           // Default sort order is ASCENDING
