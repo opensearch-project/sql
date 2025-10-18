@@ -417,10 +417,13 @@ public class PPLFuncImpTable {
     aggExternalFunctionRegistry.put(functionName, Pair.of(signature, handler));
   }
 
-  public void validateAggFunctionSignature(
-      BuiltinFunctionName functionName, RexNode field, List<RexNode> argList) {
+  public List<RexNode> validateAggFunctionSignature(
+      BuiltinFunctionName functionName,
+      RexNode field,
+      List<RexNode> argList,
+      RexBuilder rexBuilder) {
     var implementation = getImplementation(functionName);
-    validateFunctionArgs(implementation, functionName, field, argList);
+    return validateFunctionArgs(implementation, functionName, field, argList, rexBuilder);
   }
 
   public RelBuilder.AggCall resolveAgg(
@@ -432,17 +435,21 @@ public class PPLFuncImpTable {
     var implementation = getImplementation(functionName);
 
     // Validation is done based on original argument types to generate error from user perspective.
-    validateFunctionArgs(implementation, functionName, field, argList);
+    List<RexNode> nodes =
+        validateFunctionArgs(implementation, functionName, field, argList, context.rexBuilder);
 
     var handler = implementation.getValue();
-    return handler.apply(distinct, field, argList, context);
+    return nodes != null
+        ? handler.apply(distinct, nodes.getFirst(), nodes.subList(1, nodes.size()), context)
+        : handler.apply(distinct, field, argList, context);
   }
 
-  static void validateFunctionArgs(
+  static List<RexNode> validateFunctionArgs(
       Pair<CalciteFuncSignature, AggHandler> implementation,
       BuiltinFunctionName functionName,
       RexNode field,
-      List<RexNode> argList) {
+      List<RexNode> argList,
+      RexBuilder rexBuilder) {
     CalciteFuncSignature signature = implementation.getKey();
 
     List<RelDataType> argTypes = new ArrayList<>();
@@ -455,19 +462,27 @@ public class PPLFuncImpTable {
     List<RelDataType> additionalArgTypes =
         argList.stream().map(PlanUtils::derefMapCall).map(RexNode::getType).toList();
     argTypes.addAll(additionalArgTypes);
+    List<RexNode> coercionNodes = null;
     if (!signature.match(functionName.getName(), argTypes)) {
-      String errorMessagePattern =
-          argTypes.size() <= 1
-              ? "Aggregation function %s expects field type {%s}, but got %s"
-              : "Aggregation function %s expects field type and additional arguments {%s}, but got"
-                  + " %s";
-      throw new ExpressionEvaluationException(
-          String.format(
-              errorMessagePattern,
-              functionName,
-              signature.typeChecker().getAllowedSignatures(),
-              PlanUtils.getActualSignature(argTypes)));
+      List<RexNode> fields = new ArrayList<>();
+      fields.add(field);
+      fields.addAll(argList);
+      coercionNodes = CoercionUtils.castArguments(rexBuilder, signature.typeChecker(), fields);
+      if (coercionNodes == null) {
+        String errorMessagePattern =
+            argTypes.size() <= 1
+                ? "Aggregation function %s expects field type {%s}, but got %s"
+                : "Aggregation function %s expects field type and additional arguments {%s}, but"
+                    + " got %s";
+        throw new ExpressionEvaluationException(
+            String.format(
+                errorMessagePattern,
+                functionName,
+                signature.typeChecker().getAllowedSignatures(),
+                PlanUtils.getActualSignature(argTypes)));
+      }
     }
+    return coercionNodes;
   }
 
   private Pair<CalciteFuncSignature, AggHandler> getImplementation(
