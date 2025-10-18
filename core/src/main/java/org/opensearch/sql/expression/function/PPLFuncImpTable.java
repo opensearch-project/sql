@@ -967,19 +967,15 @@ public class PPLFuncImpTable {
           XOR,
           SqlStdOperatorTable.NOT_EQUALS,
           PPLTypeChecker.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.BOOLEAN));
-      // SqlStdOperatorTable.CASE.getOperandTypeChecker is null. We manually create a
-      // type checker
-      // for it. The second and third operands are required to be of the same type. If
-      // not,
-      // it will throw an IllegalArgumentException with information Can't find
-      // leastRestrictive type
+      // SqlStdOperatorTable.CASE.getOperandTypeChecker is null. We manually create a type checker
+      // for it. The second and third operands are required to be of the same type. If not,  it will
+      // throw an IllegalArgumentException with information Can't find leastRestrictive type
       registerOperator(
           IF,
           SqlStdOperatorTable.CASE,
           PPLTypeChecker.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.ANY, SqlTypeFamily.ANY));
       // Re-define the type checker for is not null, is present, and is null since
-      // their original
-      // type checker ANY isn't compatible with struct types.
+      // their original type checker ANY isn't compatible with struct types.
       registerOperator(
           IS_NOT_NULL,
           SqlStdOperatorTable.IS_NOT_NULL,

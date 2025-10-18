@@ -227,6 +227,14 @@ Argument type: all the supported data type, (NOTE : there is no comma before "el
 
 Return type: any
 
+Limitations
+>>>>>>>>>>>
+
+When each condition is a field comparison with a numeric literal and each result expression is a string literal, the query will be optimized as `range aggregations <https://docs.opensearch.org/latest/aggregations/bucket/range>`_ if pushdown optimization is enabled. However, this optimization has the following limitations:
+
+- Null values will not be grouped into any bucket of a range aggregation and will be ignored
+- The default ELSE clause will use the string literal ``"null"`` instead of actual NULL values
+
 Example::
 
     os> source=accounts | eval result = case(age > 35, firstname, age < 30, lastname else employer) | fields result, firstname, lastname, age, employer
