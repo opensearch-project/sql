@@ -7,6 +7,7 @@ package org.opensearch.sql.data.type;
 
 import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
 
+import java.util.List;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 
@@ -74,5 +75,24 @@ public class WideningTypeRule {
     } else {
       return type1To2 == Integer.MAX_VALUE ? type1 : type2;
     }
+  }
+
+  public static int distance(List<ExprType> sourceTypes, List<ExprType> targetTypes) {
+    if (sourceTypes.size() != targetTypes.size()) {
+      return WideningTypeRule.IMPOSSIBLE_WIDENING;
+    }
+
+    int totalDistance = 0;
+    for (int i = 0; i < sourceTypes.size(); i++) {
+      ExprType source = sourceTypes.get(i);
+      ExprType target = targetTypes.get(i);
+      int distance = WideningTypeRule.distance(source, target);
+      if (distance == WideningTypeRule.IMPOSSIBLE_WIDENING) {
+        return WideningTypeRule.IMPOSSIBLE_WIDENING;
+      } else {
+        totalDistance += distance;
+      }
+    }
+    return totalDistance;
   }
 }

@@ -72,7 +72,7 @@ public class ConditionalIT extends SQLIntegTestCase {
         response,
         schema("IFNULL(null, firstname)", "IFNULL1", "keyword"),
         schema("IFNULL(firstname, null)", "IFNULL2", "keyword"),
-        schema("IFNULL(null, null)", "IFNULL3", "byte"));
+        schema("IFNULL(null, null)", "IFNULL3", "keyword"));
     // Retrieve the actual data rows
     JSONArray dataRows = response.getJSONArray("datarows");
 
