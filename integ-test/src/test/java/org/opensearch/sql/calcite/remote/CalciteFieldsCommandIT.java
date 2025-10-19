@@ -649,16 +649,15 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testFieldsWithNameConflictDerivedFieldPushdown() throws IOException {
-    // All the ascending top 5 original age field values are 20. After the derived field calculation,
-    // They are changed to 22. This query should give 5 rows of correct fields.
-    String ppl = String.format(
-        "source=%s | sort age | head 5 | eval age = age + 2 | where age = 22 | fields email, age",
-        TEST_INDEX_ACCOUNT);
+    // All the ascending top 5 original age field values are 20. After the derived field
+    // calculation, they are changed to 22. This query should give 5 rows of correct fields.
+    String ppl =
+        String.format(
+            "source=%s | sort age | head 5 | eval age = age + 2 | where age = 22 | fields email,"
+                + " age",
+            TEST_INDEX_ACCOUNT);
     JSONObject result = executeQuery(ppl);
-    verifySchema(
-        result,
-        schema("email", "string"),
-        schema("age", "bigint"));
+    verifySchema(result, schema("email", "string"), schema("age", "bigint"));
     verifyDataRows(
         result,
         rows("claudiaterry@lumbrex.com", 22),
