@@ -119,7 +119,7 @@ The following example returns foo=615 and foo2=00:10:15. The 615 seconds is conv
 You can use this function to convert a number to a string of its binary representation.
 Example::
 
-    os> source=EMP |  eval salary_binary = tostring(SAL, "binary") | fields ENAME, salary_binary, SAL"
+    os> source=EMP |  eval salary_binary = tostring(SAL, "binary") | fields ENAME, salary_binary, SAL
     fetched rows / total rows = 1/1
     +---------------+------------------+------------+
     | ENAME         |   salary_binary  |  SAL       |
@@ -131,7 +131,7 @@ Example::
 You can use this function to convert a number to a string of its hex representation.
 Example::
 
-    os> source=EMP |  eval salary_hex = tostring(SAL, "hex") | fields ENAME, salary_hex, SAL"
+    os> source=EMP |  eval salary_hex = tostring(SAL, "hex") | fields ENAME, salary_hex, SAL
     fetched rows / total rows = 1/1
     +---------------+------------------+------------+
     | ENAME         |   salary_hex  |  SAL          |
@@ -142,7 +142,7 @@ Example::
 The following example formats the column totalSales to display values  with commas.
 Example::
 
-     os> source=EMP |  eval salary_commas = tostring(SAL, "commas") | fields ENAME, salary_commas, SAL"
+     os> source=EMP |  eval salary_commas = tostring(SAL, "commas") | fields ENAME, salary_commas, SAL
      fetched rows / total rows = 1/1
     +---------------+------------------+------------+
     | ENAME         |   salary_commas  |  SAL       |
@@ -153,7 +153,7 @@ Example::
 The following example converts number of seconds to HH:MM:SS format representing hours, minutes and seconds.
 Example::
 
-      os> source=EMP |  eval duration = tostring(6500, "duration") | fields ENAME, duration"
+      os> source=EMP |  eval duration = tostring(6500, "duration") | fields ENAME, duration
           fetched rows / total rows = 1/1
     +---------------+-------------+
     | ENAME         |   duration  |
