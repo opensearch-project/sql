@@ -1071,6 +1071,41 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testJoinSubsearchMaxOut() {
+    String ppl1 = "source=EMP | join type=inner max=0 DEPTNO DEPT";
+    RelNode root1 = getRelNode(ppl1);
+    verifyResultCount(root1, 14); // no limit
+    String ppl2 = "source=EMP | inner join left=l right=r on l.DEPTNO=r.DEPTNO DEPT";
+    RelNode root2 = getRelNode(ppl2);
+    verifyResultCount(root1, 14); // no limit for sql-like syntax
+
+    doReturn(1).when(settings).getSettingValue(Settings.Key.PPL_JOIN_SUBSEARCH_MAXOUT);
+    root1 = getRelNode(ppl1);
+    verifyResultCount(root1, 3); // set maxout of subsesarch to 1
+    root2 = getRelNode(ppl2);
+    verifyResultCount(root2, 3); // set maxout to 1 for sql-like syntax
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
+            + "  LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalSystemLimit(sort0=[$0], dir0=[ASC], fetch=[1],"
+            + " type=[JOIN_SUBSEARCH_MAXOUT])\n"
+            + "      LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root1, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, `EMP`.`HIREDATE`,"
+            + " `EMP`.`SAL`, `EMP`.`COMM`, `t`.`DEPTNO`, `t`.`DNAME`, `t`.`LOC`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "INNER JOIN (SELECT `DEPTNO`, `DNAME`, `LOC`\n"
+            + "FROM `scott`.`DEPT`\n"
+            + "ORDER BY `DEPTNO` NULLS LAST\n"
+            + "LIMIT 1) `t` ON `EMP`.`DEPTNO` = `t`.`DEPTNO`";
+    verifyPPLToSparkSQL(root1, expectedSparkSql);
+  }
+
+  @Test
   public void testJoinWithMaxLessThanZero() {
     String ppl = "source=EMP | join type=outer max=-1 DEPTNO DEPT";
     Throwable t = Assert.assertThrows(SemanticCheckException.class, () -> getRelNode(ppl));

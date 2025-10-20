@@ -89,6 +89,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteRegexCommandIT.class,
   CalciteRexCommandIT.class,
   CalciteRenameCommandIT.class,
+  CalciteReplaceCommandIT.class,
   CalciteResourceMonitorIT.class,
   CalciteSearchCommandIT.class,
   CalciteSettingsIT.class,

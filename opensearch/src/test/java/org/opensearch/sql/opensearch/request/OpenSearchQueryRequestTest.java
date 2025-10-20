@@ -184,7 +184,6 @@ public class OpenSearchQueryRequestTest {
     when(searchResponse.getHits()).thenReturn(searchHits);
     when(searchHits.getHits()).thenReturn(new SearchHit[] {searchHit});
     when(searchHit.getSortValues()).thenReturn(new String[] {"sortedValue"});
-    when(sourceBuilder.sorts()).thenReturn(null);
 
     OpenSearchResponse openSearchResponse = request.searchWithPIT(searchAction);
     assertFalse(openSearchResponse.isEmpty());
@@ -215,7 +214,6 @@ public class OpenSearchQueryRequestTest {
     when(searchAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
     when(searchHits.getHits()).thenReturn(new SearchHit[] {searchHit});
-    when(sourceBuilder.sorts()).thenReturn(null);
 
     OpenSearchResponse openSearchResponse = request.searchWithPIT(searchAction);
     assertFalse(openSearchResponse.isEmpty());
@@ -237,7 +235,6 @@ public class OpenSearchQueryRequestTest {
     when(searchAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
     when(searchHits.getHits()).thenReturn(new SearchHit[] {});
-    when(sourceBuilder.sorts()).thenReturn(null);
 
     OpenSearchResponse openSearchResponse = request.searchWithPIT(searchAction);
     assertTrue(openSearchResponse.isEmpty());

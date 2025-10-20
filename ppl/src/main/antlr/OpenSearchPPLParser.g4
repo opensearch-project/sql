@@ -83,7 +83,11 @@ commands
    | regexCommand
    | timechartCommand
    | rexCommand
+<<<<<<< HEAD
    | appendPipeCommand
+=======
+   | replaceCommand
+>>>>>>> origin/main
    ;
 
 commandName
@@ -123,6 +127,7 @@ commandName
    | MULTISEARCH
    | REX
    | APPENDPIPE
+   | REPLACE
    ;
 
 searchCommand
@@ -208,6 +213,14 @@ wcFieldList
 
 renameCommand
    : RENAME renameClasue (COMMA? renameClasue)*
+   ;
+
+replaceCommand
+   : REPLACE replacePair (COMMA replacePair)* IN fieldList
+   ;
+
+replacePair
+   : pattern=stringLiteral WITH replacement=stringLiteral
    ;
 
 statsCommand
@@ -677,6 +690,7 @@ statsFunction
    | takeAggFunction                                            # takeAggFunctionCall
    | valuesAggFunction                                          # valuesAggFunctionCall
    | percentileApproxFunction                                   # percentileApproxFunctionCall
+   | perFunction                                                # perFunctionCall
    | statsFunctionName LT_PRTHS functionArgs RT_PRTHS           # statsFunctionCall
    ;
 
@@ -711,6 +725,10 @@ valuesAggFunction
 percentileApproxFunction
    : (PERCENTILE | PERCENTILE_APPROX) LT_PRTHS aggField = valueExpression
        COMMA percent = numericLiteral (COMMA compression = numericLiteral)? RT_PRTHS
+   ;
+
+perFunction
+   : funcName=PER_SECOND LT_PRTHS functionArg RT_PRTHS
    ;
 
 numericLiteral

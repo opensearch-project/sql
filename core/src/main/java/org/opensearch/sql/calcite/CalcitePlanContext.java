@@ -38,7 +38,7 @@ public class CalcitePlanContext {
   public final ExtendedRexBuilder rexBuilder;
   public final FunctionProperties functionProperties;
   public final QueryType queryType;
-  public final Integer querySizeLimit;
+  public final SysLimit sysLimit;
 
   /** This thread local variable is only used to skip script encoding in script pushdown. */
   public static final ThreadLocal<Boolean> skipEncoding = ThreadLocal.withInitial(() -> false);
@@ -64,9 +64,9 @@ public class CalcitePlanContext {
 
   @Getter public Map<String, RexLambdaRef> rexLambdaRefMap;
 
-  private CalcitePlanContext(FrameworkConfig config, Integer querySizeLimit, QueryType queryType) {
+  private CalcitePlanContext(FrameworkConfig config, SysLimit sysLimit, QueryType queryType) {
     this.config = config;
-    this.querySizeLimit = querySizeLimit;
+    this.sysLimit = sysLimit;
     this.queryType = queryType;
     this.connection = CalciteToolsHelper.connect(config, TYPE_FACTORY);
     this.relBuilder = CalciteToolsHelper.create(config, TYPE_FACTORY, connection);
@@ -124,7 +124,7 @@ public class CalcitePlanContext {
   }
 
   public CalcitePlanContext clone() {
-    return new CalcitePlanContext(config, querySizeLimit, queryType);
+    return new CalcitePlanContext(config, sysLimit, queryType);
   }
 
   /**
@@ -157,8 +157,8 @@ public class CalcitePlanContext {
   }
 
   public static CalcitePlanContext create(
-      FrameworkConfig config, Integer querySizeLimit, QueryType queryType) {
-    return new CalcitePlanContext(config, querySizeLimit, queryType);
+      FrameworkConfig config, SysLimit sysLimit, QueryType queryType) {
+    return new CalcitePlanContext(config, sysLimit, queryType);
   }
 
   /**

@@ -609,6 +609,26 @@ public class StatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testStatsPercentileWithMin() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | eval decimal=ceil(balance/100000.0) | stats percentile(decimal, 50),"
+                    + " min(decimal)",
+                TEST_INDEX_BANK));
+    String returnType = "bigint";
+    if (isCalciteEnabled()) {
+      returnType = "double";
+    }
+
+    verifySchema(
+        response,
+        schema("percentile(decimal, 50)", null, returnType),
+        schema("min(decimal)", null, returnType));
+    verifyDataRows(response, rows(1, 1));
+  }
+
+  @Test
   public void testStatsPercentileWithNull() throws IOException {
     JSONObject response =
         executeQuery(
