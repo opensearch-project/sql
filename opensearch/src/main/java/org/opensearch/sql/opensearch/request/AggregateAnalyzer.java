@@ -399,7 +399,7 @@ public class AggregateAnalyzer {
             new SingleValueParser(aggFieldName));
       case MIN: {
         ExprType fieldType =
-            OpenSearchTypeFactory.convertRelDataTypeToExprType(args.getFirst().getType());
+            OpenSearchTypeFactory.convertRelDataTypeToExprType(args.get(0).getType());
         if (supportsMaxMinAggregation(fieldType)) {
           return Pair.of(
               helper.build(args.get(0), AggregationBuilders.min(aggFieldName)),
@@ -418,7 +418,7 @@ public class AggregateAnalyzer {
       }
       case MAX: {
         ExprType fieldType =
-            OpenSearchTypeFactory.convertRelDataTypeToExprType(args.getFirst().getType());
+            OpenSearchTypeFactory.convertRelDataTypeToExprType(args.get(0).getType());
         if (supportsMaxMinAggregation(fieldType)) {
           return Pair.of(
               helper.build(args.get(0), AggregationBuilders.max(aggFieldName)),
