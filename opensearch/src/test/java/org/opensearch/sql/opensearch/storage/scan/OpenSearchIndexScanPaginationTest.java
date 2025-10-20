@@ -51,6 +51,7 @@ public class OpenSearchIndexScanPaginationTest {
   @BeforeEach
   void setup() {
     lenient().when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
+    lenient().when(settings.getSettingValue(Settings.Key.QUERY_BUCKET_SIZE)).thenReturn(1000);
     lenient()
         .when(settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE))
         .thenReturn(TimeValue.timeValueMinutes(1));
