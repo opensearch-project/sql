@@ -16,14 +16,11 @@ import java.util.Stack;
 import java.util.function.BiFunction;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.tools.RelBuilderFactory;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 import org.opensearch.sql.common.setting.Settings;
@@ -75,25 +72,6 @@ public class CalcitePlanContext {
     this.rexLambdaRefMap = new HashMap<>();
   }
 
-  private CalcitePlanContext(
-      FrameworkConfig config,
-      Integer querySizeLimit,
-      QueryType queryType,
-      Connection connection,
-      RelBuilder relBuilder,
-      ExtendedRexBuilder rexBuilder,
-      FunctionProperties functionProperties,
-      Map<String, RexLambdaRef> rexLambdaRefMap) {
-    this.config = config;
-    this.querySizeLimit = querySizeLimit;
-    this.queryType = queryType;
-    this.connection = connection;
-    this.relBuilder = relBuilder;
-    this.rexBuilder = rexBuilder;
-    this.functionProperties = functionProperties;
-    this.rexLambdaRefMap = rexLambdaRefMap;
-  }
-
   public RexNode resolveJoinCondition(
       UnresolvedExpression expr,
       BiFunction<UnresolvedExpression, CalcitePlanContext, RexNode> transformFunction) {
@@ -125,35 +103,6 @@ public class CalcitePlanContext {
 
   public CalcitePlanContext clone() {
     return new CalcitePlanContext(config, sysLimit, queryType);
-  }
-
-  /**
-   * A deep copy to create a totally same one calciteContext
-   *
-   * @return a deep clone calcite context and current context
-   */
-  public CalcitePlanContext deepClone() {
-    RelOptCluster cluster = this.relBuilder.getCluster();
-    RelBuilderFactory factory = RelBuilder.proto(config.getContext());
-    RelOptSchema schema =
-        this.relBuilder.getCluster().getPlanner().getContext().unwrap(RelOptSchema.class);
-    RelBuilder siblingRelBuilder = factory.create(cluster, schema);
-    siblingRelBuilder.push(this.relBuilder.peek()); // Add current logical plan as base
-    CalcitePlanContext clone =
-        new CalcitePlanContext(
-            config,
-            querySizeLimit,
-            queryType,
-            connection,
-            siblingRelBuilder,
-            new ExtendedRexBuilder(siblingRelBuilder.getRexBuilder()),
-            functionProperties,
-            rexLambdaRefMap);
-    clone.inCoalesceFunction = this.inCoalesceFunction;
-    clone.isProjectVisited = this.isProjectVisited;
-    clone.isResolvingJoinCondition = this.isResolvingJoinCondition;
-    clone.isResolvingSubquery = this.isResolvingSubquery;
-    return clone;
   }
 
   public static CalcitePlanContext create(
