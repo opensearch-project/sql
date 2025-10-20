@@ -850,7 +850,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<String> originalFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
     List<RexNode> toOverrideList =
         originalFieldNames.stream()
-            .filter(newNames::contains)
+            .filter(
+                originalName ->
+                    newNames.stream()
+                        .anyMatch(
+                            newName ->
+                                // Match exact field names (e.g., "age" == "age")
+                                // OR nested paths (e.g., "resource.attributes..." starts with
+                                // "resource")
+                                newName.equals(originalName)
+                                    || newName.startsWith(originalName + ".")))
             .map(a -> (RexNode) context.relBuilder.field(a))
             .toList();
     // 1. add the new fields, For example "age0, country0"
