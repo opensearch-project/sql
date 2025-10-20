@@ -48,7 +48,7 @@ The query start with search command and then flowing a set of command delimited 
 
 * **Commands**
 
-  - `Syntax <cmd/syntax.rst>`_ - General PPL syntax and query structure
+  - `Syntax <cmd/syntax.rst>`_ - PPL query structure and command syntax formatting
 
   The following commands are available in PPL:
 
