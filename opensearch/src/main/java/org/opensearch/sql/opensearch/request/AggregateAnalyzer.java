@@ -416,7 +416,7 @@ public class AggregateAnalyzer {
               new TopHitsParser(aggFieldName, true));
         }
       }
-      case MAX -> {
+      case MAX: {
         ExprType fieldType =
             OpenSearchTypeFactory.convertRelDataTypeToExprType(args.getFirst().getType());
         if (supportsMaxMinAggregation(fieldType)) {
