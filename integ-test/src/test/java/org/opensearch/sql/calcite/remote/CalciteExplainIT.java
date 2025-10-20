@@ -27,6 +27,7 @@ public class CalciteExplainIT extends ExplainIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
+    setQueryBucketSize(1000);
     loadIndex(Index.BANK_WITH_STRING_VALUES);
     loadIndex(Index.NESTED_SIMPLE);
     loadIndex(Index.TIME_TEST_DATA);
@@ -467,8 +468,8 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryToString(
             "explain source=opensearch-sql_test_index_account | where length(address) > 0 | eval"
                 + " address_length = length(address) | stats count() by address_length");
-    String expected = loadFromFile("expectedOutput/calcite/explain_script_push_on_text.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    String expected = loadFromFile("expectedOutput/calcite/explain_script_push_on_text.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
   }
 
   @Test
@@ -1142,6 +1143,20 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryToString(
             String.format(
                 "source=%s | replace 'IL' WITH 'Illinois' IN state | fields state",
+                TEST_INDEX_ACCOUNT)));
+  }
+
+  // Test cases for verifying the fix of https://github.com/opensearch-project/sql/issues/4571
+  @Test
+  public void testPushDownMinOrMaxAggOnDerivedField() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_min_max_agg_on_derived_field.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | eval balance2 = CEIL(balance/10000.0) "
+                    + "| stats MIN(balance2), MAX(balance2)",
                 TEST_INDEX_ACCOUNT)));
   }
 }
