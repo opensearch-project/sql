@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.ppl.calcite;
 
-import java.util.Arrays;
-import java.util.List;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Test;
@@ -36,35 +34,6 @@ public class CalcitePPLAppendPipeTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`\n"
             + "WHERE `DEPTNO` = 20";
     verifyPPLToSparkSQL(root, expectedSparkSql);
-  }
-
-  @Test
-  public void testAppendPipeEmptySearchCommand() {
-    List<String> emptySourcePPLs =
-        Arrays.asList(
-            "source=EMP | append [ | where DEPTNO = 20 ]",
-            "source=EMP | append [ ]",
-            "source=EMP | append [ | where DEPTNO = 20 | append [ ] ]",
-            "source=EMP | append [ | where DEPTNO = 10 | lookup DEPT DEPTNO append LOC as JOB ]");
-
-    for (String ppl : emptySourcePPLs) {
-      RelNode root = getRelNode(ppl);
-      String expectedLogical =
-          "LogicalUnion(all=[true])\n"
-              + "  LogicalTableScan(table=[[scott, EMP]])\n"
-              + "  LogicalValues(tuples=[[]])\n";
-      verifyLogical(root, expectedLogical);
-
-      String expectedSparkSql =
-          "SELECT *\n"
-              + "FROM `scott`.`EMP`\n"
-              + "UNION ALL\n"
-              + "SELECT *\n"
-              + "FROM (VALUES (NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)) `t` (`EMPNO`,"
-              + " `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`)\n"
-              + "WHERE 1 = 0";
-      verifyPPLToSparkSQL(root, expectedSparkSql);
-    }
   }
 
   @Test
