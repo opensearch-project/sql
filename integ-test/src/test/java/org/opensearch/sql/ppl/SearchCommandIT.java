@@ -523,7 +523,7 @@ public class SearchCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "search source=%s"
-                    + " `attributes.error.type`=\\\"C:\\\\\\\\Users\\\\\\\\admin\\\""
+                    + " `attributes.error.type`=\\\"C:\\\\\\\\\\\\\\\\Users\\\\\\\\\\\\\\\\admin\\\""
                     + " | sort time | fields attributes.error.type",
                 TEST_INDEX_OTEL_LOGS));
     verifyDataRows(backslashSearch, rows("C:\\Users\\admin"));

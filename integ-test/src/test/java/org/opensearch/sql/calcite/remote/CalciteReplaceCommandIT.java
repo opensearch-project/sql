@@ -195,8 +195,8 @@ public class CalciteReplaceCommandIT extends PPLIntegTestCase {
                         "source = %s | replace 'USA' WITH 'United States'",
                         TEST_INDEX_STATE_COUNTRY)));
 
-    verifyErrorMessageContains(e, "[<EOF>] is not a valid term at this part of the query");
-    verifyErrorMessageContains(e, "Expecting tokens: 'IN'");
+    verifyErrorMessageContains(e, "[<EOF>]");
+    verifyErrorMessageContains(e, "Expecting tokens in {'IN', ','}");
   }
 
   @Test
@@ -223,8 +223,8 @@ public class CalciteReplaceCommandIT extends PPLIntegTestCase {
                     String.format(
                         "source = %s | replace 23 WITH 'test' IN field1",
                         TEST_INDEX_STATE_COUNTRY)));
-    verifyErrorMessageContains(e, "is not a valid term at this part of the query");
-    verifyErrorMessageContains(e, "Expecting tokens: DQUOTA_STRING, SQUOTA_STRING");
+    verifyErrorMessageContains(e, "[23]");
+    verifyErrorMessageContains(e, "Expecting tokens in {DQUOTA_STRING, SQUOTA_STRING}");
   }
 
   @Test
@@ -237,8 +237,8 @@ public class CalciteReplaceCommandIT extends PPLIntegTestCase {
                     String.format(
                         "source = %s | replace 'test' WITH 45 IN field1",
                         TEST_INDEX_STATE_COUNTRY)));
-    verifyErrorMessageContains(e, "is not a valid term at this part of the query");
-    verifyErrorMessageContains(e, "Expecting tokens: DQUOTA_STRING, SQUOTA_STRING");
+    verifyErrorMessageContains(e, "[45]");
+    verifyErrorMessageContains(e, "Expecting tokens in {DQUOTA_STRING, SQUOTA_STRING}");
   }
 
   @Test
