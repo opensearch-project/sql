@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.junit.Assert.assertEquals;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;

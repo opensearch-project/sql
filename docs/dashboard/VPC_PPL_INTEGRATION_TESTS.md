@@ -13,25 +13,24 @@ The VPC PPL integration tests validate that VPC-related PPL queries can be parse
 
 This is the main integration test class that contains test methods for all VPC PPL queries. Each test method validates a specific VPC query pattern:
 
-- `testBasicCountQuery()` - Tests basic count aggregation
-- `testCountByActionQuery()` - Tests count by VPC action field
-- `testCountByTimestampQuery()` - Tests count by timestamp field
-- `testCountByFlowDirectionQuery()` - Tests count by flow direction with sorting
-- `testSumBytesByTimestampQuery()` - Tests sum of bytes by timestamp
-- `testSumPacketsByTimestampQuery()` - Tests sum of packets by timestamp
-- `testCountBySrcAwsServiceQuery()` - Tests count by source AWS service
-- `testCountByDstAwsServiceQuery()` - Tests count by destination AWS service
-- `testCountRequestsByFlowDirectionQuery()` - Tests count requests by flow direction
-- `testSumBytesByDstAddrQuery()` - Tests complex query with eval and fields commands
-- `testSumBytesBySrcAddrQuery()` - Tests sum bytes by source address
-- `testCountRequestsBySrcAddrQuery()` - Tests count requests by source address
-- `testCountRequestsByDstAddrQuery()` - Tests count requests by destination address
-- `testCountByDstAndSrcAddrQuery()` - Tests count by both destination and source addresses
-- `testFieldsSelectionQuery()` - Tests field selection with many VPC fields
-- `testCountByDstAndSrcAddrLargeResultQuery()` - Tests large result set handling
-- `testVpcQueryPatternsWithRealData()` - Tests with actual VPC test data
-- `testVpcBytesAggregation()` - Tests bytes aggregation patterns
-- `testVpcComplexQueryWithEvalAndFields()` - Tests complex query patterns
+- `testTotalRequests()` - Tests basic count aggregation
+- `testTotalFlowsByActions()` - Tests count by VPC action field
+- `testRequestHistory()` - Tests count by timestamp field
+- `testRequestsByDirection()` - Tests count by flow direction with sorting
+- `testBytes()` - Tests sum of bytes by timestamp
+- `testPackets()` - Tests sum of packets by timestamp
+- `testTopSourceAwsServices()` - Tests count by source AWS service
+- `testTopDestinationAwsServices()` - Tests count by destination AWS service
+- `testRequestsByDirectionMetric()` - Tests count requests by flow direction
+- `testTopDestinationBytes()` - Tests sum bytes by destination address with sorting
+- `testTopSourceBytes()` - Tests sum bytes by source address with sorting
+- `testTopSources()` - Tests count requests by source address
+- `testTopDestinations()` - Tests count requests by destination address
+- `testTopTalkersByPackets()` - Tests sum packets by source address (top talkers)
+- `testTopDestinationsByPackets()` - Tests sum packets by destination address
+- `testHeatMap()` - Tests count by both destination and source addresses
+- `testVpcLiveRawSearch()` - Tests field selection with many VPC fields
+- `testFlow()` - Tests flow analysis with large result set handling
 
 ### 2. Test Data Files
 
@@ -62,53 +61,62 @@ The integration tests cover all the VPC PPL queries from the dashboard requireme
 
 1. **Basic Count Query:**
    ```
-   SOURCE = [ds:logGroup] | STATS count()
+   source=vpc_logs | stats count()
    ```
 
 2. **Count by Action:**
    ```
-   SOURCE = [ds:logGroup] | STATS count() as `Count` by `aws.vpc.action` | HEAD 5
+   source=vpc_logs | stats count() as Count by `aws.vpc.action` | head 5
    ```
 
 3. **Count by Timestamp:**
    ```
-   SOURCE = [ds:logGroup] | stats count() by `@timestamp`
+   source=vpc_logs | stats count() by `@timestamp`
    ```
 
 4. **Flow Direction Analysis:**
    ```
-   SOURCE = [ds:logGroup] | STATS count() as flow_direction by `aws.vpc.flow-direction` | SORT - flow_direction | HEAD 5
+   source=vpc_logs | stats count() as flow_direction by `aws.vpc.flow-direction` | sort - flow_direction | head 5
    ```
 
 5. **Bytes and Packets Aggregation:**
    ```
-   SOURCE = [ds:logGroup] | STATS sum(`aws.vpc.bytes`) by `@timestamp`
-   SOURCE = [ds:logGroup] | STATS sum(`aws.vpc.packets`) by `@timestamp`
+   source=vpc_logs | stats sum(`aws.vpc.bytes`) by `@timestamp`
+   source=vpc_logs | stats sum(`aws.vpc.packets`) by `@timestamp`
    ```
 
 6. **AWS Service Analysis:**
    ```
-   SOURCE = [ds:logGroup] | STATS count() as src-aws-service by `aws.vpc.pkt-src-aws-service` | SORT - src-aws-service | HEAD 10
-   SOURCE = [ds:logGroup] | STATS count() as dst-aws-service by `aws.vpc.pkt-dst-aws-service` | SORT - dst-aws-service | HEAD 10
+   source=vpc_logs | stats count() as `src-aws-service` by `aws.vpc.pkt-src-aws-service` | sort - `src-aws-service` | head 10
    ```
 
-7. **Complex Queries with EVAL and FIELDS:**
+7. **Top Sources/Destinations by Bytes:**
    ```
-   source = [ds:logGroup] | stats sum(`aws.vpc.bytes`) as Bytes by `aws.vpc.dstaddr` | eval Address = `aws.vpc.dstaddr` | fields Address, Bytes | sort - Bytes | head 10
+   source=vpc_logs | stats sum(`aws.vpc.bytes`) as Bytes by `aws.vpc.srcaddr` | sort - Bytes | head 10
    ```
 
-8. **Field Selection:**
+8. **Top Sources/Destinations by Packets:**
    ```
-   SOURCE = [ds:logGroup] | FIELDS `@timestamp`, `start_time`, ... | SORT - `@timestamp`
+   source=vpc_logs | stats sum(`aws.vpc.packets`) as Packets by `aws.vpc.srcaddr` | sort - Packets | head 10
    ```
+
+9. **Heat Map Analysis:**
+   ```
+   source=vpc_logs | stats count() as Count by `aws.vpc.dstaddr`, `aws.vpc.srcaddr` | sort - Count | head 20
+   ```
+
+10. **Field Selection (Live Raw Search):**
+    ```
+    source=vpc_logs | fields `@timestamp`, `start_time`, `interval_start_time`, `end_time`, `aws.vpc.srcport`, `aws.vpc.pkt-src-aws-service`, `aws.vpc.srcaddr` | sort - `@timestamp`
+    ```
 
 ## Test Strategy
 
-The tests use a dual approach:
+The tests use actual VPC test data loaded into a test index to verify end-to-end functionality. Each test validates:
 
-1. **Datasource Query Testing:** Tests the original queries with `[ds:logGroup]` datasource syntax to ensure parsing works correctly. These are expected to fail gracefully with datasource-related errors, but should not have parsing errors.
-
-2. **Real Data Testing:** Tests similar query patterns using actual VPC test data loaded into a test index to verify end-to-end functionality.
+1. **Query Execution:** Ensures queries execute successfully without parsing errors
+2. **Schema Validation:** Verifies correct field types and names in results
+3. **Data Validation:** Confirms expected result counts and values
 
 ## Running the Tests
 
@@ -127,10 +135,10 @@ To run the VPC PPL integration tests:
 
 ## Expected Behavior
 
-- **Datasource queries** should fail gracefully with datasource-related error messages, not parsing errors
-- **Real data queries** should execute successfully and return valid results
+- **All queries** should execute successfully and return valid results
 - **No parsing errors** should occur for any of the VPC PPL query patterns
-- **Schema validation** should pass for queries that execute successfully
+- **Schema validation** should pass with correct field types
+- **Data validation** should confirm expected result counts from test data
 
 ## Benefits
 

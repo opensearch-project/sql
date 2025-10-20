@@ -16,12 +16,14 @@ This is the main integration test class that contains test methods for all WAF P
 - `testTotalRequests()` - Tests basic count aggregation
 - `testRequestsHistory()` - Tests count by timestamp and action
 - `testRequestsToWebACLs()` - Tests count by WebACL ID with sorting
-- `testRequestsByTerminatingRules()` - Tests count by terminating rule ID
+- `testRequestsByTerminatingRules()` - Tests count by terminating rule ID (legacy test)
 - `testSources()` - Tests count by HTTP source ID
 - `testTopClientIPs()` - Tests count by client IP addresses
 - `testTopCountries()` - Tests count by country field
-- `testTopTerminatingRules()` - Tests complex query with eval command
-- `testTopRequestURIs()` - Tests eval with URI field
+- `testTopTerminatingRules()` - Tests count by terminating rule ID with sorting
+- `testTopRequestURIs()` - Tests count by URI with sorting
+- `testTotalBlockedRequests()` - Tests conditional aggregation for blocked requests
+- `testWafRules()` - Tests top WAF rules by count
 
 ### 2. Test Data Files
 
@@ -84,15 +86,25 @@ The integration tests cover all the WAF PPL queries from the dashboard requireme
    source=waf_logs | stats count() as Count by `aws.waf.httpRequest.country` | sort - Count
    ```
 
-8. **Top Terminating Rules with EVAL:**
+8. **Top Terminating Rules:**
    ```
-   source=waf_logs | eval `Rule Name` = `aws.waf.terminatingRuleId` | stats count() as Count by `Rule Name` | sort - `Rule Name` | head 10
+   source=waf_logs | stats count() as Count by `aws.waf.terminatingRuleId` | sort - Count | head 10
    ```
 
-9. **Top Request URIs with EVAL:**
+9. **Top Request URIs:**
    ```
-   source=waf_logs | eval URI = `aws.waf.httpRequest.uri` | stats count() as Count by URI | sort - Count | head 10
+   source=waf_logs | stats count() as Count by `aws.waf.httpRequest.uri` | sort - Count | head 10
    ```
+
+10. **Total Blocked Requests:**
+    ```
+    source=waf_logs | stats sum(if(`aws.waf.action` = 'BLOCK', 1, 0)) as Count
+    ```
+
+11. **WAF Rules Analysis:**
+    ```
+    source=waf_logs | stats count() as Count by `aws.waf.terminatingRuleId` | sort - Count | head 5
+    ```
 
 ## Test Strategy
 

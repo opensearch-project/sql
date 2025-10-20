@@ -10,15 +10,17 @@ Dashboard integration tests ensure that PPL queries used in various OpenSearch d
 
 ### VPC Dashboard
 - **[VPC PPL Integration Tests](VPC_PPL_INTEGRATION_TESTS.md)** - Tests for VPC flow log dashboard queries
-  - Covers 16+ VPC-specific PPL query patterns
+  - Covers 18 VPC-specific PPL query patterns
   - Includes test data and index mappings
   - Validates network traffic analysis queries
+  - Tests top talkers, destinations, bytes, and packets analysis
 
 ### WAF Dashboard
 - **[WAF PPL Integration Tests](WAF_PPL_INTEGRATION_TESTS.md)** - Tests for WAF log dashboard queries
-  - Covers 9+ WAF-specific PPL query patterns
+  - Covers 11 WAF-specific PPL query patterns
   - Includes nested httpRequest object handling
   - Validates web application firewall analysis queries
+  - Tests blocked requests and rule analysis
 
 ## Adding New Dashboard Tests
 
@@ -35,7 +37,7 @@ Each dashboard test should include:
 - **Query Pattern Validation** - Ensure all dashboard queries parse correctly
 - **Real Data Testing** - Test with realistic sample data
 - **Schema Validation** - Verify field types and query results
-- **Graceful Failure Testing** - Ensure datasource queries fail appropriately
+- **Data Validation** - Confirm expected result counts and values
 
 ## Running Dashboard Tests
 
