@@ -52,7 +52,7 @@ The query start with search command and then flowing a set of command delimited 
 
   The following commands are available in PPL:
 
-  * **Experimental commands are ready for use, but specific parameters may change before becoming stable**
+  **Note:** Experimental commands are ready for use, but specific parameters may change.
 
   ==============================================================  ==================  ========================  ==============================================================================================
   Command Name                                                    Version Introduced  Current Status              Command Description
