@@ -196,6 +196,12 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
     return cachedMaxResultWindow;
   }
 
+  public Integer getBucketSize() {
+    return Math.min(
+        settings.getSettingValue(Settings.Key.QUERY_BUCKET_SIZE),
+        settings.getSettingValue(Settings.Key.SEARCH_MAX_BUCKETS));
+  }
+
   /** TODO: Push down operations to index scan operator as much as possible in future. */
   @Override
   public PhysicalPlan implement(LogicalPlan plan) {
