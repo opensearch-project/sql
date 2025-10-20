@@ -83,11 +83,8 @@ commands
    | regexCommand
    | timechartCommand
    | rexCommand
-<<<<<<< HEAD
    | appendPipeCommand
-=======
    | replaceCommand
->>>>>>> origin/main
    ;
 
 commandName
