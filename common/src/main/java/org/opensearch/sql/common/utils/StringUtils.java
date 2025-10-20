@@ -63,8 +63,11 @@ public class StringUtils {
     for (int chIndex = 1; chIndex < text.length() - 1; chIndex++) {
       currentChar = text.charAt(chIndex);
       nextChar = text.charAt(chIndex + 1);
-      if (currentChar == enclosingQuote && nextChar == currentChar) {
+
+      if ((currentChar == '\\' && (nextChar == '"' || nextChar == '\\' || nextChar == '\''))
+          || (currentChar == nextChar && currentChar == enclosingQuote)) {
         chIndex++;
+        currentChar = nextChar;
       }
       textSB.append(currentChar);
     }
