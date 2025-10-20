@@ -9,7 +9,6 @@ import static java.util.Objects.requireNonNull;
 import static org.apache.calcite.sql.SqlKind.AS;
 import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
-import static org.opensearch.sql.calcite.CalcitePlanContext.create;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
 import java.math.BigDecimal;
@@ -323,8 +322,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       String functionName,
       @Nullable RelDataType defaultTypeForReduceAcc) {
     try {
-      CalcitePlanContext lambdaContext =
-          create(context.config, context.querySizeLimit, context.queryType);
+      CalcitePlanContext lambdaContext = context.clone();
       List<RelDataType> candidateType = new ArrayList<>();
       candidateType.add(
           ((ArraySqlType) previousArgument.get(0).getType())
