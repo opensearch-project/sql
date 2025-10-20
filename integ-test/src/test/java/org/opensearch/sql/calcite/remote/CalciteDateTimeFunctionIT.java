@@ -132,22 +132,13 @@ public class CalciteDateTimeFunctionIT extends DateTimeFunctionIT {
 
   @Test
   public void testStrftimeStringHandling() throws IOException {
-    try {
-      executeQuery(
-          String.format(
-              "source=%s | eval result = strftime('1521467703', '%s') | fields result | head 1",
-              TEST_INDEX_DATE, "%Y-%m-%d"));
-      fail("String literals should not be accepted by strftime");
-    } catch (Exception e) {
-      // Expected - string literals are not supported
-      // The error occurs because Calcite tries to convert the string to a timestamp
-      // which doesn't match the expected timestamp format
-      assertTrue(
-          "Error should indicate format issue or type problem",
-          e.getMessage().contains("unsupported format")
-              || e.getMessage().contains("timestamp")
-              || e.getMessage().contains("500"));
-    }
+    // Test 1: Support string literal
+    JSONObject result0 =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = strftime('1521467703', '%s') | fields result | head 1",
+                TEST_INDEX_DATE, "%Y-%m-%d"));
+    verifyDataRows(result0, rows("2018-03-19"));
 
     // Test 2: The correct approach - use numeric literals directly
     JSONObject result1 =
