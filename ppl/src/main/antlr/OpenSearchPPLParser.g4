@@ -1482,6 +1482,9 @@ searchableKeyWord
    | DELIM
    | CURRENT
    | WINDOW
+   | GLOBAL
+   | RESET_BEFORE
+   | RESET_AFTER
    | BUCKET_NULLABLE
    | CENTROIDS
    | ITERATIONS

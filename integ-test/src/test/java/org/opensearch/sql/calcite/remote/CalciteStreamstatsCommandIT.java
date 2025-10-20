@@ -20,10 +20,10 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
     loadIndex(Index.BANK_TWO);
+    loadIndex(Index.LOGS);
   }
 
   @Test
@@ -340,6 +340,20 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         rows("Kevin", null, null, 4, 2023, null, 15));
   }
 
+  public void testStreamstatsBigWindow() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | streamstats window = 10 avg(age) as avg", TEST_INDEX_STATE_COUNTRY));
+
+    verifyDataRows(
+        actual,
+        rows("Jake", "USA", "California", 4, 2023, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 50),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 41.666666666666664),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 36.25));
+  }
+
   @Test
   public void testStreamstatsWindowError() {
     Throwable e =
@@ -632,6 +646,85 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         rows("John", "Canada", "Ontario", 4, 2023, 25, 25, 18.333333333333332),
         rows("Hello", "USA", "New York", 4, 2023, 30, 30, 30),
         rows("Jake", "USA", "California", 4, 2023, 70, 70, 50));
+  }
+
+  @Test
+  public void testStreamstatsAndEventstats() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eventstats avg(age) as avg_age| streamstats"
+                    + " avg(age) as avg_age_stream",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifyDataRows(
+        actual,
+        rows("Jake", "USA", "California", 4, 2023, 70, 36.25, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 36.25, 50),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 36.25, 41.666666666666664),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 36.25, 36.25));
+  }
+
+  @Test
+  public void testStreamstatsAndSort() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | sort age | streamstats window = 2 avg(age) as avg_age ",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifyDataRows(
+        actual,
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 22.5),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 27.5),
+        rows("Jake", "USA", "California", 4, 2023, 70, 50));
+  }
+
+  @Test
+  public void testLeftJoinWithStreamstats() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s as l | left join left=l right=r on l.country = r.country [ source=%s |"
+                    + " streamstats window=2 avg(age) as avg_age]",
+                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifyDataRows(
+        actual,
+        rows(
+            "John", "Canada", "Ontario", 4, 2023, 25, "John", "Canada", "Ontario", 4, 2023, 25,
+            27.5),
+        rows(
+            "John", "Canada", "Ontario", 4, 2023, 25, "Jane", "Canada", "Quebec", 4, 2023, 20,
+            22.5),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, null, "Canada", null, 4, 2023, 10, 15),
+        rows(
+            "Jane", "Canada", "Quebec", 4, 2023, 20, "John", "Canada", "Ontario", 4, 2023, 25,
+            27.5),
+        rows(
+            "Jane", "Canada", "Quebec", 4, 2023, 20, "Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, null, "Canada", null, 4, 2023, 10, 15),
+        rows(
+            "Jake", "USA", "California", 4, 2023, 70, "Jake", "USA", "California", 4, 2023, 70, 70),
+        rows("Jake", "USA", "California", 4, 2023, 70, "Hello", "USA", "New York", 4, 2023, 30, 50),
+        rows("Hello", "USA", "New York", 4, 2023, 30, "Jake", "USA", "California", 4, 2023, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, "Hello", "USA", "New York", 4, 2023, 30, 50));
+  }
+
+  @Test
+  public void testWhereInWithStreamstatsSubquery() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where country in [ source=%s | streamstats window=2 avg(age) as"
+                    + " avg_age | where avg_age > 40 | fields country ]",
+                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifyDataRows(
+        actual,
+        rows("Jake", "USA", "California", 4, 2023, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30));
   }
 
   @Test
@@ -938,5 +1031,65 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 4),
         rows(null, "Canada", null, 4, 2023, 10, 4),
         rows("Kevin", null, null, 4, 2023, null, 4));
+  }
+
+  @Test
+  public void testStreamstatsEarliestAndLatest() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | streamstats earliest(message), latest(message) by server",
+                TEST_INDEX_LOGS));
+    verifySchema(
+        actual,
+        schema("created_at", "timestamp"),
+        schema("server", "string"),
+        schema("@timestamp", "timestamp"),
+        schema("message", "string"),
+        schema("level", "string"),
+        schema("earliest(message)", "string"),
+        schema("latest(message)", "string"));
+    verifyDataRows(
+        actual,
+        rows(
+            "2023-01-02 00:00:00",
+            "server3",
+            "2023-01-04 00:00:00",
+            "Disk space low",
+            "ERROR",
+            "Disk space low",
+            "Disk space low"),
+        rows(
+            "2023-01-04 00:00:00",
+            "server2",
+            "2023-01-02 00:00:00",
+            "Service started",
+            "INFO",
+            "Service started",
+            "Service started"),
+        rows(
+            "2023-01-01 00:00:00",
+            "server2",
+            "2023-01-05 00:00:00",
+            "Backup completed",
+            "INFO",
+            "Service started",
+            "Backup completed"),
+        rows(
+            "2023-01-05 00:00:00",
+            "server1",
+            "2023-01-01 00:00:00",
+            "Database connection failed",
+            "ERROR",
+            "Database connection failed",
+            "Database connection failed"),
+        rows(
+            "2023-01-03 00:00:00",
+            "server1",
+            "2023-01-03 00:00:00",
+            "High memory usage",
+            "WARN",
+            "Database connection failed",
+            "High memory usage"));
   }
 }
