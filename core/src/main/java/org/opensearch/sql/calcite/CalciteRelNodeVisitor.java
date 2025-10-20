@@ -1086,11 +1086,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitAggregation(Aggregation node, CalcitePlanContext context) {
-    return visitAggregationAndReturnProjection(node, context).getLeft();
-  }
-
-  private Pair<RelNode, List<RexNode>> visitAggregationAndReturnProjection(
-      Aggregation node, CalcitePlanContext context) {
     visitChildren(node, context);
 
     List<UnresolvedExpression> aggExprList = node.getAggExprList();
@@ -1175,7 +1170,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     reordered.addAll(aliasedGroupByList);
     context.relBuilder.project(reordered);
 
-    return Pair.of(context.relBuilder.peek(), reordered);
+    return context.relBuilder.peek();
   }
 
   private Optional<UnresolvedExpression> getTimeSpanField(UnresolvedExpression expr) {
@@ -2048,32 +2043,33 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           Stream.of(node.getRowSplit(), node.getColumnSplit()).filter(Objects::nonNull).toList());
       span = null;
     }
+    Boolean useNull = (Boolean) argMap.getOrDefault("usenull", Chart.DEFAULT_USE_NULL).getValue();
     Aggregation aggregation =
-        new Aggregation(node.getAggregationFunctions(), List.of(), groupExprList, span, List.of());
-    Pair<RelNode, List<RexNode>> aggregated =
-        visitAggregationAndReturnProjection(aggregation, context);
+        new Aggregation(
+            node.getAggregationFunctions(),
+            List.of(),
+            groupExprList,
+            span,
+            List.of(new Argument(Argument.BUCKET_NULLABLE, AstDSL.booleanLiteral(useNull))));
+    RelNode aggregated = visitAggregation(aggregation, context);
+
     // If row or column split does not present or limit equals 0, this is the same as `stats agg
     // [group by col]`
-
     Integer limit = (Integer) argMap.getOrDefault("limit", Chart.DEFAULT_LIMIT).getValue();
     if (node.getRowSplit() == null || node.getColumnSplit() == null || Objects.equals(limit, 0)) {
-      return aggregated.getLeft();
+      return aggregated;
     }
 
     Boolean top = (Boolean) argMap.getOrDefault("top", Chart.DEFAULT_TOP).getValue();
     Boolean useOther =
         (Boolean) argMap.getOrDefault("useother", Chart.DEFAULT_USE_OTHER).getValue();
-    Boolean useNull = (Boolean) argMap.getOrDefault("usenull", Chart.DEFAULT_USE_NULL).getValue();
     String otherStr = (String) argMap.getOrDefault("otherstr", Chart.DEFAULT_OTHER_STR).getValue();
     String nullStr = (String) argMap.getOrDefault("nullstr", Chart.DEFAULT_NULL_STR).getValue();
 
-    String columSplitName = aggregated.getLeft().getRowType().getFieldNames().getLast();
+    String columSplitName = aggregated.getRowType().getFieldNames().getLast();
     RelBuilder relBuilder = context.relBuilder;
     // 0: agg; 2: column-split
     relBuilder.project(relBuilder.field(0), relBuilder.field(2));
-    if (!useNull) {
-      relBuilder.filter(relBuilder.isNotNull(relBuilder.field(1)));
-    }
     // 1: column split; 0: agg
     relBuilder.aggregate(
         relBuilder.groupKey(relBuilder.field(1)),
@@ -2096,7 +2092,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     relBuilder.projectPlus(relBuilder.alias(rowNum, "__row_number__"));
     RelNode ranked = relBuilder.build();
 
-    relBuilder.push(aggregated.getLeft());
+    relBuilder.push(aggregated);
     relBuilder.push(ranked);
 
     // on column-split = group key
@@ -2115,19 +2111,32 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       relBuilder.filter(lteCondition);
     }
 
-    columnSplitExpr =
-        relBuilder.call(
-            SqlStdOperatorTable.CASE,
-            nullCondition,
-            relBuilder.literal(nullStr),
-            lteCondition,
-            relBuilder.field(2),
-            relBuilder.literal(otherStr));
+    if (useNull) {
+      columnSplitExpr =
+          relBuilder.call(
+              SqlStdOperatorTable.CASE,
+              nullCondition,
+              relBuilder.literal(nullStr),
+              lteCondition,
+              relBuilder.field(2),
+              relBuilder.literal(otherStr));
+    } else {
+      columnSplitExpr =
+          relBuilder.call(
+              SqlStdOperatorTable.CASE,
+              lteCondition,
+              relBuilder.field(2),
+              relBuilder.literal(otherStr));
+    }
 
+    String aggFieldName = relBuilder.peek().getRowType().getFieldNames().getFirst();
     relBuilder.project(
         relBuilder.field(0),
         relBuilder.field(1),
         relBuilder.alias(columnSplitExpr, columSplitName));
+    relBuilder.aggregate(
+        relBuilder.groupKey(relBuilder.field(1), relBuilder.field(2)),
+        relBuilder.sum(relBuilder.field(0)).as(aggFieldName));
     return relBuilder.peek();
   }
 
