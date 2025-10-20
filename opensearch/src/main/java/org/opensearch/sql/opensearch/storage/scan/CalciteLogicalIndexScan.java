@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import lombok.Getter;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
@@ -273,7 +274,8 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     return newTraitSet;
   }
 
-  public AbstractRelNode pushDownAggregate(Aggregate aggregate, Project project) {
+  public AbstractRelNode pushDownAggregate(
+      Aggregate aggregate, Project project, @Nullable RelFieldCollation.Direction metricOrder) {
     try {
       CalciteLogicalIndexScan newScan =
           new CalciteLogicalIndexScan(
@@ -293,7 +295,13 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       List<String> outputFields = aggregate.getRowType().getFieldNames();
       final Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder =
           AggregateAnalyzer.analyze(
-              aggregate, project, getRowType(), fieldTypes, outputFields, getCluster());
+              aggregate,
+              project,
+              getRowType(),
+              fieldTypes,
+              outputFields,
+              metricOrder,
+              getCluster());
       Map<String, OpenSearchDataType> extendedTypeMapping =
           aggregate.getRowType().getFieldList().stream()
               .collect(
@@ -308,7 +316,10 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               aggregationBuilder,
               extendedTypeMapping,
               outputFields.subList(0, aggregate.getGroupSet().cardinality()));
-      newScan.pushDownContext.add(PushDownType.AGGREGATION, aggregate, action);
+      newScan.pushDownContext.add(
+          metricOrder == null ? PushDownType.AGGREGATION : PushDownType.SORT_AGG_METRICS,
+          aggregate,
+          action);
       if (aggregationBuilder.getLeft().size() == 1
           && aggregationBuilder.getLeft().getFirst()
               instanceof AutoDateHistogramAggregationBuilder autoDateHistogram) {

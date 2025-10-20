@@ -48,6 +48,7 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
 
   private boolean isLimitPushed = false;
   private boolean isProjectPushed = false;
+  private boolean isMetricOrderPushed = false;
 
   public PushDownContext(OpenSearchIndex osIndex) {
     this.osIndex = osIndex;
@@ -120,6 +121,9 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
     if (operation.type() == PushDownType.PROJECT) {
       isProjectPushed = true;
     }
+    if (operation.type() == PushDownType.SORT_AGG_METRICS) {
+      isMetricOrderPushed = true;
+    }
     operation.action().transform(this, operation);
     return true;
   }
@@ -149,7 +153,8 @@ enum PushDownType {
   SORT,
   LIMIT,
   SCRIPT,
-  COLLAPSE
+  COLLAPSE,
+  SORT_AGG_METRICS
   // HIGHLIGHT,
   // NESTED
 }

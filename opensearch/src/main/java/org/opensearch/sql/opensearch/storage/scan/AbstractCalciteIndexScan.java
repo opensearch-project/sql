@@ -103,7 +103,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
             osIndex.getMaxResultWindow().doubleValue(),
             (rowCount, operation) ->
                 switch (operation.type()) {
-                  case AGGREGATION -> mq.getRowCount((RelNode) operation.digest());
+                  case AGGREGATION, SORT_AGG_METRICS -> mq.getRowCount(
+                      (RelNode) operation.digest());
                   case PROJECT, SORT -> rowCount;
                     // Refer the org.apache.calcite.rel.metadata.RelMdRowCount
                   case COLLAPSE -> rowCount / 10;
@@ -141,6 +142,10 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
           // Ignored Project in cost accumulation, but it will affect the external cost
         case PROJECT -> {}
         case SORT -> dCpu += dRows;
+        case SORT_AGG_METRICS -> {
+          dRows = dRows * .9 / 10; // *.9 because always bucket IS_NOT_NULL
+          dCpu += dRows;
+        }
           // Refer the org.apache.calcite.rel.metadata.RelMdRowCount.getRowCount(Aggregate rel,...)
         case COLLAPSE -> {
           dRows = dRows / 10;
@@ -327,5 +332,23 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       }
     }
     return null;
+  }
+
+  /**
+   * CalciteOpenSearchIndexScan doesn't allow push-down anymore (except Sort under some strict
+   * condition) after Aggregate push-down.
+   */
+  public boolean noAggregatePushed() {
+    if (this.getPushDownContext().isAggregatePushed()) return false;
+    final RelOptTable table = this.getTable();
+    return table.unwrap(OpenSearchIndex.class) != null;
+  }
+
+  public boolean isLimitPushed() {
+    return this.getPushDownContext().isLimitPushed();
+  }
+
+  public boolean isMetricsOrderPushed() {
+    return this.getPushDownContext().isMetricOrderPushed();
   }
 }

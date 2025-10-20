@@ -1023,7 +1023,6 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainSortOnMetricsNoBucketNullable() throws IOException {
-    // TODO enhancement later: https://github.com/opensearch-project/sql/issues/4282
     enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_agg_sort_on_metrics1.yaml");
     assertYamlEqualsJsonIgnoreId(
