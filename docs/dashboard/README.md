@@ -11,16 +11,20 @@ Dashboard integration tests ensure that PPL queries used in various OpenSearch d
 ### VPC Dashboard
 - **[VPC PPL Integration Tests](VPC_PPL_INTEGRATION_TESTS.md)** - Tests for VPC flow log dashboard queries
   - Covers 18 VPC-specific PPL query patterns
-  - Includes test data and index mappings
-  - Validates network traffic analysis queries
-  - Tests top talkers, destinations, bytes, and packets analysis
+  - Tests network traffic analysis with bytes, packets, and flow direction
+  - Validates top talkers and destination analysis
 
 ### WAF Dashboard
 - **[WAF PPL Integration Tests](WAF_PPL_INTEGRATION_TESTS.md)** - Tests for WAF log dashboard queries
   - Covers 11 WAF-specific PPL query patterns
-  - Includes nested httpRequest object handling
-  - Validates web application firewall analysis queries
-  - Tests blocked requests and rule analysis
+  - Tests web application firewall analysis with nested httpRequest objects
+  - Validates blocked requests and rule analysis
+
+### CloudTrail Dashboard
+- **[CloudTrail PPL Integration Tests](CLOUDTRAIL_PPL_INTEGRATION_TESTS.md)** - Tests for CloudTrail log dashboard queries
+  - Covers 14 CloudTrail-specific PPL query patterns
+  - Tests AWS API call monitoring with real CloudTrail log structure
+  - Validates complex user identity, session analysis, and service-specific filtering
 
 ## Adding New Dashboard Tests
 
@@ -48,4 +52,5 @@ Each dashboard test should include:
 # Run specific dashboard tests
 ./gradlew :integ-test:test --tests "*VpcPplDashboardIT*"
 ./gradlew :integ-test:test --tests "*WafPplDashboardIT*"
+./gradlew :integ-test:test --tests "*CloudTrailPplDashboardIT*"
 ```

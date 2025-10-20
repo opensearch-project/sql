@@ -1,0 +1,101 @@
+{
+  "mappings": {
+    "properties": {
+      "@timestamp": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "eventVersion": {
+        "type": "keyword"
+      },
+      "eventTime": {
+        "type": "date"
+      },
+      "eventSource": {
+        "type": "keyword"
+      },
+      "eventName": {
+        "type": "keyword"
+      },
+      "eventCategory": {
+        "type": "keyword"
+      },
+      "awsRegion": {
+        "type": "keyword"
+      },
+      "sourceIPAddress": {
+        "type": "keyword"
+      },
+      "userAgent": {
+        "type": "keyword"
+      },
+      "errorCode": {
+        "type": "keyword"
+      },
+      "userIdentity": {
+        "properties": {
+          "type": {
+            "type": "keyword"
+          },
+          "invokedBy": {
+            "type": "keyword"
+          },
+          "accountId": {
+            "type": "keyword"
+          },
+          "sessionContext": {
+            "properties": {
+              "sessionIssuer": {
+                "properties": {
+                  "type": {
+                    "type": "keyword"
+                  },
+                  "userName": {
+                    "type": "keyword"
+                  },
+                  "arn": {
+                    "type": "keyword"
+                  },
+                  "accountId": {
+                    "type": "keyword"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "requestParameters": {
+        "properties": {
+          "bucketName": {
+            "type": "keyword"
+          },
+          "roleArn": {
+            "type": "keyword"
+          },
+          "keyId": {
+            "type": "keyword"
+          }
+        }
+      },
+      "requestID": {
+        "type": "keyword"
+      },
+      "eventID": {
+        "type": "keyword"
+      },
+      "eventType": {
+        "type": "keyword"
+      },
+      "managementEvent": {
+        "type": "boolean"
+      },
+      "readOnly": {
+        "type": "boolean"
+      },
+      "recipientAccountId": {
+        "type": "keyword"
+      }
+    }
+  }
+}
