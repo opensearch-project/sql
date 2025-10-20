@@ -695,7 +695,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     List<Field> fields =
         ctx.fieldExpression().stream()
             .map(field -> (Field) internalVisitExpression(field))
-            .toList();
+            .collect(Collectors.toList());
 
     Set<Field> uniqueFields = new java.util.LinkedHashSet<>(fields);
 
