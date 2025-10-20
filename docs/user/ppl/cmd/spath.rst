@@ -1,6 +1,6 @@
-=============
+=====
 spath
-=============
+=====
 
 .. rubric:: Table of contents
 
@@ -10,20 +10,15 @@ spath
 
 
 Description
-============
+===========
 | The `spath` command allows extracting fields from structured text data. It currently allows selecting from JSON data with JSON paths.
 
-Version
-=======
-3.3.0
-
 Syntax
-============
+======
 spath input=<field> [output=<field>] [path=]<path>
 
-
 * input: mandatory. The field to scan for JSON data.
-* output: optional. The destination field that the data will be loaded to. Defaults to the value of `path`.
+* output: optional. The destination field that the data will be loaded to. **Default:** value of `path`.
 * path: mandatory. The path of the data to load for the object. For more information on path syntax, see `json_extract <../functions/json.rst#json_extract>`_.
 
 Note
@@ -33,7 +28,7 @@ The `spath` command currently does not support pushdown behavior for extraction.
 Example 1: Simple Field Extraction
 ==================================
 
-The simplest spath is to extract a single field. This extracts `n` from the `doc` field of type `text`.
+The simplest spath is to extract a single field. This example extracts `n` from the `doc` field of type `text`.
 
 PPL query::
 
@@ -48,9 +43,9 @@ PPL query::
     +----------+---+
 
 Example 2: Lists & Nesting
-============================
+==========================
 
-These queries demonstrate more JSON path uses, like traversing nested fields and extracting list elements.
+This example demonstrates more JSON path uses, like traversing nested fields and extracting list elements.
 
 PPL query::
 
@@ -65,9 +60,9 @@ PPL query::
     +------------------------------------------------------+---------------+--------------+--------+
 
 Example 3: Sum of inner elements
-============================
+================================
 
-The example shows extracting an inner field and doing statistics on it, using the docs from example 1. It also demonstrates that `spath` always returns strings for inner types.
+This example shows extracting an inner field and doing statistics on it, using the docs from example 1. It also demonstrates that `spath` always returns strings for inner types.
 
 PPL query::
 
