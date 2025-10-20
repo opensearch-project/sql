@@ -667,9 +667,9 @@ public class ExplainIT extends PPLIntegTestCase {
   @Test
   public void testExplainOnAggregationWithFunction() throws IOException {
     String expected = loadExpectedPlan("explain_agg_with_script.yaml");
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | eval len = length(gender) | stats sum(balance + 100) as sum by len,"
                     + " gender ",
