@@ -48,85 +48,55 @@ The query start with search command and then flowing a set of command delimited 
 
 * **Commands**
 
-  - `Syntax <cmd/syntax.rst>`_
+  - `Syntax <cmd/syntax.rst>`_ - General PPL syntax and query structure
 
-  - `ad command <cmd/ad.rst>`_ (1.3+, deprecated): Apply Random Cut Forest algorithm on the search result returned by a PPL command.
+  The following commands are available in PPL:
 
-  - `append command <cmd/append.rst>`_ (3.3+, experimental): Append the result of a sub-search to the bottom of the input search results.
+  * **Experimental commands are ready for use, but specific parameters may change before becoming stable**
 
-  - `appendcol command <cmd/appendcol.rst>`_ (3.1+, experimental): Append the result of a sub-search and attach it alongside the input search results.
-
-  - `bin command <cmd/bin.rst>`_ (3.3+, experimental): Group numeric values into buckets of equal intervals.
-
-  - `dedup command <cmd/dedup.rst>`_ (1.0+, stable): Remove identical documents defined by the field from the search result.
-
-  - `describe command <cmd/describe.rst>`_ (2.1+, stable): Query the metadata of an index.
-
-  - `eval command <cmd/eval.rst>`_ (1.0+, stable): Evaluate an expression and append the result to the search result.
-
-  - `eventstats command <cmd/eventstats.rst>`_ (3.1+, experimental): Calculate aggregation statistics and add them as new fields to each event.
-
-  - `expand command <cmd/expand.rst>`_ (3.1+, experimental): Transform a single document into multiple documents by expanding a nested array field.
-
-  - `explain command <cmd/explain.rst>`_ (3.1+, stable): Explain the plan of query.
-
-  - `fields command <cmd/fields.rst>`_ (1.0+, stable): Keep or remove fields from the search result.
-
-  - `fillnull command <cmd/fillnull.rst>`_ (3.0+, experimental): Fill null with provided value in one or more fields in the search result.
-
-  - `flatten command  <cmd/flatten.rst>`_ (3.1+, experimental): Flatten a struct or an object field into separate fields in a document.
-
-  - `grok command <cmd/grok.rst>`_ (2.4+, stable): Parse a text field with a grok pattern and append the results to the search result.
-
-  - `head command <cmd/head.rst>`_ (1.0+, stable): Return the first N number of specified results after an optional offset in search order.
-
-  - `join command  <cmd/join.rst>`_ (3.0+, stable): Combine two datasets together.
-
-  - `kmeans command <cmd/kmeans.rst>`_ (1.3+, stable): Apply the kmeans algorithm on the search result returned by a PPL command.
-
-  - `lookup command <cmd/lookup.rst>`_ (3.0, experimental): Add or replace data from a lookup index (dimension table).
-
-  - `ml command <cmd/ml.rst>`_: Apply machine learning algorithms to analyze data.
-
-  - `multisearch command <cmd/multisearch.rst>`_ (3.4+, experimental): Execute multiple search queries and combine their results.
-
-  - `parse command <cmd/parse.rst>`_ (1.3+, stable): Parse a text field with a regular expression and append the result to the search result.
-
-  - `patterns command <cmd/patterns.rst>`_ (2.4+, stable): Extract log patterns from a text field and append the results to the search result.
-
-  - `rare command <cmd/rare.rst>`_ (1.0+, stable): Find the least common tuple of values of all fields in the field list.
-
-  - `regex command <cmd/regex.rst>`_ (3.3+, experimental): Filter search results by matching field values against a regular expression pattern.
-
-  - `rename command <cmd/rename.rst>`_ (1.0+, stable): Rename one or more fields in the search result.
-  
-   - `replace command <cmd/replace.rst>`_ (3.4+, experimental): Replace text in one or more fields in the search result
-
-  - `reverse command <cmd/reverse.rst>`_ (3.2+, experimental): Reverse the display order of search results.
-
-  - `rex command <cmd/rex.rst>`_ (3.3+, experimental): Extract fields from a raw text field using regular expression named capture groups.
-
-  - `search command <cmd/search.rst>`_ (1.0+, stable): Retrieve documents from the index.
-
-  - `show datasources command <cmd/showdatasources.rst>`_ (2.4+, stable): Query datasources configured in the PPL engine.
-
-  - `sort command <cmd/sort.rst>`_ (1.0+, stable): Sort all the search results by the specified fields.
-
-  - `spath command <cmd/spath.rst>`_ (3.3+, experimental): Extract fields from structured text data.
-
-  - `stats command <cmd/stats.rst>`_ (1.0+, stable): Calculate aggregation from search results.
-
-  - `subquery command <cmd/subquery.rst>`_ (3.0, experimental): Embed one PPL query inside another for complex filtering and data retrieval operations.
-
-  - `table command <cmd/table.rst>`_ (3.3+, experimental): Keep or remove fields from the search result using enhanced syntax options.
-
-  - `timechart command <cmd/timechart.rst>`_ (3.3+, experimental): Create time-based charts and visualizations.
-
-  - `top command <cmd/top.rst>`_ (1.0+, stable): Find the most common tuple of values of all fields in the field list.
-
-  - `trendline command <cmd/trendline.rst>`_ (3.0+, experimental): Calculate moving averages of fields.
-
-  - `where command <cmd/where.rst>`_ (1.0+, stable): Filter the search result using boolean expressions.
+  ==============================================================  ==================  ========================  ==============================================================================================
+  Command Name                                                    Version Introduced  Current Status              Command Description
+  ==============================================================  ==================  ========================  ==============================================================================================
+  `search command <cmd/search.rst>`_                              1.0                 stable (since 1.0)        Retrieve documents from the index.
+  `where command <cmd/where.rst>`_                                1.0                 stable (since 1.0)        Filter the search result using boolean expressions.
+  `subquery command <cmd/subquery.rst>`_                          3.0                 experimental (since 3.0)  Embed one PPL query inside another for complex filtering and data retrieval operations.
+  `fields command <cmd/fields.rst>`_                              1.0                 stable (since 1.0)        Keep or remove fields from the search result.
+  `rename command <cmd/rename.rst>`_                              1.0                 stable (since 1.0)        Rename one or more fields in the search result.
+  `eval command <cmd/eval.rst>`_                                  1.0                 stable (since 1.0)        Evaluate an expression and append the result to the search result.
+  `replace command <cmd/replace.rst>`_                            3.4                 experimental (since 3.4)  Replace text in one or more fields in the search result
+  `fillnull command <cmd/fillnull.rst>`_                          3.0                 experimental (since 3.0)  Fill null with provided value in one or more fields in the search result.
+  `expand command <cmd/expand.rst>`_                              3.1                 experimental (since 3.1)  Transform a single document into multiple documents by expanding a nested array field.
+  `flatten command  <cmd/flatten.rst>`_                           3.1                 experimental (since 3.1)  Flatten a struct or an object field into separate fields in a document.
+  `table command <cmd/table.rst>`_                                3.3                 experimental (since 3.3)  Keep or remove fields from the search result using enhanced syntax options.
+  `stats command <cmd/stats.rst>`_                                1.0                 stable (since 1.0)        Calculate aggregation from search results.
+  `eventstats command <cmd/eventstats.rst>`_                      3.1                 experimental (since 3.1)  Calculate aggregation statistics and add them as new fields to each event.
+  `bin command <cmd/bin.rst>`_                                    3.3                 experimental (since 3.3)  Group numeric values into buckets of equal intervals.
+  `timechart command <cmd/timechart.rst>`_                        3.3                 experimental (since 3.3)  Create time-based charts and visualizations.
+  `trendline command <cmd/trendline.rst>`_                        3.0                 experimental (since 3.0)  Calculate moving averages of fields.
+  `sort command <cmd/sort.rst>`_                                  1.0                 stable (since 1.0)        Sort all the search results by the specified fields.
+  `reverse command <cmd/reverse.rst>`_                            3.2                 experimental (since 3.2)  Reverse the display order of search results.
+  `head command <cmd/head.rst>`_                                  1.0                 stable (since 1.0)        Return the first N number of specified results after an optional offset in search order.
+  `dedup command <cmd/dedup.rst>`_                                1.0                 stable (since 1.0)        Remove identical documents defined by the field from the search result.
+  `top command <cmd/top.rst>`_                                    1.0                 stable (since 1.0)        Find the most common tuple of values of all fields in the field list.
+  `rare command <cmd/rare.rst>`_                                  1.0                 stable (since 1.0)        Find the least common tuple of values of all fields in the field list.
+  `parse command <cmd/parse.rst>`_                                1.3                 stable (since 1.3)        Parse a text field with a regular expression and append the result to the search result.
+  `grok command <cmd/grok.rst>`_                                  2.4                 stable (since 2.4)        Parse a text field with a grok pattern and append the results to the search result.
+  `rex command <cmd/rex.rst>`_                                    3.3                 experimental (since 3.3)  Extract fields from a raw text field using regular expression named capture groups.
+  `regex command <cmd/regex.rst>`_                                3.3                 experimental (since 3.3)  Filter search results by matching field values against a regular expression pattern.
+  `spath command <cmd/spath.rst>`_                                3.3                 experimental (since 3.3)  Extract fields from structured text data.
+  `patterns command <cmd/patterns.rst>`_                          2.4                 stable (since 2.4)        Extract log patterns from a text field and append the results to the search result.
+  `join command  <cmd/join.rst>`_                                 3.0                 stable (since 3.0)        Combine two datasets together.
+  `append command <cmd/append.rst>`_                              3.3                 experimental (since 3.3)  Append the result of a sub-search to the bottom of the input search results.
+  `appendcol command <cmd/appendcol.rst>`_                        3.1                 experimental (since 3.1)  Append the result of a sub-search and attach it alongside the input search results.
+  `lookup command <cmd/lookup.rst>`_                              3.0                 experimental (since 3.0)  Add or replace data from a lookup index.
+  `multisearch command <cmd/multisearch.rst>`_                    3.4                 experimental (since 3.4)  Execute multiple search queries and combine their results.
+  `ml command <cmd/ml.rst>`_:                                     2.5                 stable (since 2.5)        Apply machine learning algorithms to analyze data.
+  `kmeans command <cmd/kmeans.rst>`_                              1.3                 stable (since 1.3)        Apply the kmeans algorithm on the search result returned by a PPL command.
+  `ad command <cmd/ad.rst>`_                                      1.3                 deprecated (since 2.5)    Apply Random Cut Forest algorithm on the search result returned by a PPL command.
+  `describe command <cmd/describe.rst>`_                          2.1                 stable (since 2.1)        Query the metadata of an index.
+  `explain command <cmd/explain.rst>`_                            3.1                 stable (since 3.1)        Explain the plan of query.
+  `show datasources command <cmd/showdatasources.rst>`_           2.4                 stable (since 2.4)        Query datasources configured in the PPL engine.
+  ==============================================================  ==================  ========================  ==============================================================================================
 
 * **Functions**
 
