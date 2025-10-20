@@ -101,11 +101,11 @@ Convert to string example::
 
     os> source=people | eval divide="5"/10, multiply="5" * 10, add="5" + 10, minus="5" - 10, concat="5" + "5" | fields divide, multiply, add, minus, concat
     fetched rows / total rows = 1/1
-    +--------+----------+
-    | divide | multiply |
-    |--------+----------|
-    | 0.5    | 50.0     |
-    +--------+----------+
+    +--------+----------+------+-------+--------+
+    | divide | multiply | add  | minus | concat |
+    |--------+----------+------+-------+--------|
+    | 0.5    | 50.0     | 15.0 | -5.0  | 55     |
+    +--------+----------+------+-------+--------+
 
 String to boolean
 >>>>>>>>>>>>>>>>>
