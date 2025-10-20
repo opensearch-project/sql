@@ -103,17 +103,17 @@ public class CalciteExplainIT extends ExplainIT {
     String query =
         "source=opensearch-sql_test_index_bank | join type=outer account_number"
             + " opensearch-sql_test_index_bank";
-    var result = explainQueryToString(query);
+    var result = explainQueryYaml(query);
     String expected = loadExpectedPlan("explain_join_with_fields.yaml");
-    assertYamlEqualsJsonIgnoreId(expected, result);
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   @Test
   public void testExplainExistsUncorrelatedSubquery() throws IOException {
     String expected = loadExpectedPlan("explain_exists_uncorrelated_subquery.yaml");
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source = %s"
                     + "| where exists ["
@@ -127,9 +127,9 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testExplainExistsCorrelatedSubquery() throws IOException {
     String expected = loadExpectedPlan("explain_exists_correlated_subquery.yaml");
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source = %s"
                     + "| where exists ["
@@ -143,9 +143,9 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testExplainInUncorrelatedSubquery() throws IOException {
     String expected = loadExpectedPlan("explain_in_uncorrelated_subquery.yaml");
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source = %s"
                     + "| where id in ["
@@ -159,9 +159,9 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testExplainInCorrelatedSubquery() throws IOException {
     String expected = loadExpectedPlan("explain_in_correlated_subquery.yaml");
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source = %s"
                     + "| where name in ["
@@ -174,9 +174,9 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testExplainScalarUncorrelatedSubqueryInSelect() throws IOException {
     String expected = loadExpectedPlan("explain_scalar_uncorrelated_subquery_in_select.yaml");
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source = %s"
                     + "| eval count_dept = ["
@@ -189,9 +189,9 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testExplainScalarUncorrelatedSubqueryInWhere() throws IOException {
     String expected = loadExpectedPlan("explain_scalar_uncorrelated_subquery_in_where.yaml");
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source = %s"
                     + "| where id > ["
@@ -204,9 +204,9 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testExplainScalarCorrelatedSubqueryInSelect() throws IOException {
     String expected = loadExpectedPlan("explain_scalar_correlated_subquery_in_select.yaml");
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source = %s"
                     + "| eval count_dept = ["
@@ -220,9 +220,9 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testExplainScalarCorrelatedSubqueryInWhere() throws IOException {
     String expected = loadExpectedPlan("explain_scalar_correlated_subquery_in_where.yaml");
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source = %s"
                     + "| where id = ["
@@ -238,9 +238,9 @@ public class CalciteExplainIT extends ExplainIT {
     String query =
         "source=opensearch-sql_test_index_bank| join left=l right=r on"
             + " l.account_number=r.account_number opensearch-sql_test_index_bank";
-    var result = explainQueryToString(query);
+    var result = explainQueryYaml(query);
     String expected = loadExpectedPlan("explain_merge_join_sort_push.yaml");
-    assertYamlEqualsJsonIgnoreId(expected, result);
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   // Only for Calcite
@@ -465,11 +465,11 @@ public class CalciteExplainIT extends ExplainIT {
   public void supportPushDownScriptOnTextField() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String result =
-        explainQueryToString(
+        explainQueryYaml(
             "explain source=opensearch-sql_test_index_account | where length(address) > 0 | eval"
                 + " address_length = length(address) | stats count() by address_length");
     String expected = loadFromFile("expectedOutput/calcite/explain_script_push_on_text.yaml");
-    assertYamlEqualsJsonIgnoreId(expected, result);
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   @Test
@@ -838,9 +838,9 @@ public class CalciteExplainIT extends ExplainIT {
                 + " from 10 "));
 
     expected = loadExpectedPlan("explain_limit_agg_pushdown4.yaml");
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account | stats count() by state | sort state | head"
                 + " 100 | head 10 from 10 "));
 
@@ -1091,9 +1091,9 @@ public class CalciteExplainIT extends ExplainIT {
                 "source=%s | where cidrmatch(host, '0.0.0.0/24') | fields host",
                 TEST_INDEX_WEBLOGS)));
 
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         loadExpectedPlan("explain_agg_script_timestamp_push.yaml"),
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | eval t = unix_timestamp(birthdate) | stats count() by t | sort t |"
                     + " head 3",
@@ -1124,9 +1124,9 @@ public class CalciteExplainIT extends ExplainIT {
     // PPL_JOIN_SUBSEARCH_MAXOUT!=0 will add limit before sort and then prevent sort push down.
     setJoinSubsearchMaxOut(0);
     String expected = loadExpectedPlan("explain_join_with_agg.yaml");
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | stats COUNT() by age, gender | join left=L right=R ON L.gender ="
                     + " R.gender [source=%s | stats COUNT() as overall_cnt by gender]",
@@ -1137,9 +1137,9 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testReplaceCommandExplain() throws IOException {
     String expected = loadExpectedPlan("explain_replace_command.yaml");
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | replace 'IL' WITH 'Illinois' IN state | fields state",
                 TEST_INDEX_ACCOUNT)));
@@ -1150,9 +1150,9 @@ public class CalciteExplainIT extends ExplainIT {
   public void testPushDownMinOrMaxAggOnDerivedField() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_min_max_agg_on_derived_field.yaml");
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | eval balance2 = CEIL(balance/10000.0) "
                     + "| stats MIN(balance2), MAX(balance2)",
