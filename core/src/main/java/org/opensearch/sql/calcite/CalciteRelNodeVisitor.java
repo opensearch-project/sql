@@ -1019,6 +1019,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<RexNode> reordered = new ArrayList<>();
     List<RexNode> left = new ArrayList<>();
     for (RexNode n : nodes) {
+      // The same group-key won't be added twice
+      if (reordered.contains(n) || left.contains(n)) {
+        continue;
+      }
       if (isInputRef(n)) {
         reordered.add(n);
       } else {

@@ -79,3 +79,20 @@ teardown:
   - match: { total: 4 }
   - match: { schema: [{"name": "count()", "type": "bigint"}, {"name": "@timestamp", "type": "timestamp"}, {"name": "category", "type": "string"}, {"name": "value", "type": "bigint"}] }
   - match: { datarows: [[1, "2024-01-01 00:00:00", "A", 1000], [1, "2024-01-01 00:10:00", "A", 1500], [1, "2024-01-01 00:00:00", "B", 2000], [1, "2024-01-01 00:20:00", "C", 3000]] }
+
+---
+"Test span aggregation with duplicated group keys":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=time_test | stats count() by value, value, span(@timestamp, 10min) as @timestamp
+
+  - match: { total: 4 }
+  - match: { schema: [{"name": "count()", "type": "bigint"}, {"name": "@timestamp", "type": "timestamp"}, {"name": "value", "type": "bigint"}, {"name": "value0", "type": "bigint"}] }
+  - match: { datarows: [[1, "2024-01-01 00:00:00", 1000, 1000], [1, "2024-01-01 00:10:00", 1500, 1500], [1, "2024-01-01 00:00:00", 2000, 2000], [1, "2024-01-01 00:20:00", 3000, 3000]] }
