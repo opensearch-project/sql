@@ -562,20 +562,20 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testTextLikeFunctionExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_text_like_function.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_text_like_function.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account | where like(address, '%Holmes%')"));
   }
 
   @Ignore("The serialized string is unstable because of function properties")
   @Test
   public void testFilterScriptPushDownExplain() throws Exception {
-    String expected = loadExpectedPlan("explain_filter_script_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_filter_script_push.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account | where firstname ='Amber' and age - 2 = 30 |"
                 + " fields firstname, age"));
   }
@@ -583,10 +583,10 @@ public class ExplainIT extends PPLIntegTestCase {
   @Ignore("The serialized string is unstable because of function properties")
   @Test
   public void testFilterFunctionScriptPushDownExplain() throws Exception {
-    String expected = loadExpectedPlan("explain_filter_function_script_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_filter_function_script_push.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account |  where length(firstname) = 5 and abs(age) ="
                 + " 32 and balance = 39225 | fields firstname, age"));
   }
