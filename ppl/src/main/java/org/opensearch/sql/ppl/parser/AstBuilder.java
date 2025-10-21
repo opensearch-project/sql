@@ -609,7 +609,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       UnresolvedExpression param = internalVisitExpression(paramCtx);
       if (param instanceof Span) {
         binExpression = param;
-      } else if (param instanceof Literal literal) {
+      } else if (param instanceof Literal) {
+        Literal literal = (Literal) param;
         if (DataType.BOOLEAN.equals(literal.getType())) {
           useOther = (Boolean) literal.getValue();
         } else if (DataType.INTEGER.equals(literal.getType())
