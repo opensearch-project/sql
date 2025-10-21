@@ -417,11 +417,19 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
         context.setInCoalesceFunction(false);
       }
     }
-
+    if (node.getFuncName().equalsIgnoreCase("tostring") && args.size() == 1) {
+      RelDataType targetType =
+          context.relBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+      // Get the source expression from arguments
+      RexNode sourceExpression = arguments.get(0);
+      // Create cast RexNode using ExtendedRexBuilder
+      return context.rexBuilder.makeCast(targetType, sourceExpression);
+    }
     RexNode resolvedNode =
         PPLFuncImpTable.INSTANCE.resolve(
             context.rexBuilder, node.getFuncName(), arguments.toArray(new RexNode[0]));
     if (resolvedNode != null) {
+
       return resolvedNode;
     }
     throw new IllegalArgumentException("Unsupported operator: " + node.getFuncName());

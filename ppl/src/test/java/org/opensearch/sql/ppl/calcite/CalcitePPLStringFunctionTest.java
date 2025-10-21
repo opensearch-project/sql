@@ -55,7 +55,7 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
             + " fields string_value, cast_value";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(string_value=[SAFE_CAST($3)], cast_value=[SAFE_CAST($3)])\n"
+        "LogicalProject(string_value=[CAST($3):VARCHAR NOT NULL], cast_value=[SAFE_CAST($3)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     String expectedResult =
         "string_value=7902; cast_value=7902\n"
@@ -76,8 +76,7 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT SAFE_CAST(`MGR` AS STRING) `string_value`, SAFE_CAST(`MGR` AS STRING)"
-            + " `cast_value`\n"
+        "SELECT CAST(`MGR` AS STRING) `string_value`, SAFE_CAST(`MGR` AS STRING) `cast_value`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }

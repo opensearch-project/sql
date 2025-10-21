@@ -18,6 +18,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.runtime.SqlFunctions;
+import org.apache.calcite.sql.*;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
@@ -65,17 +66,12 @@ public class ToStringFunction extends ImplementorUDF {
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
       Expression fieldValue = translatedOperands.get(0);
+
       if (translatedOperands.size() > 1) {
         Expression format = translatedOperands.get(1);
         return Expressions.call(ToStringFunction.class, "toString", fieldValue, format);
       } else {
-        // autoboxes to Boolean
-
-        if (!fieldValue.getType().getTypeName().equals("Boolean")) {
-          return Expressions.call(ToStringFunction.class, "toString", fieldValue);
-        } else {
-          return Expressions.call(ToStringFunction.class, "toString", fieldValue);
-        }
+        return Expressions.call(ToStringFunction.class, "toString", fieldValue);
       }
     }
   }

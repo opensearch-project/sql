@@ -848,10 +848,9 @@ evalFunctionCall
    ;
 
 
-// cast, tostring function
+// cast function
 dataTypeFunctionCall
    : CAST LT_PRTHS logicalExpression AS convertedDataType RT_PRTHS
-   | TOSTRING LT_PRTHS functionArgs RT_PRTHS
    ;
 
 
@@ -1219,6 +1218,7 @@ systemFunctionName
 textFunctionName
    : SUBSTR
    | SUBSTRING
+   | TOSTRING
    | TRIM
    | LTRIM
    | RTRIM
