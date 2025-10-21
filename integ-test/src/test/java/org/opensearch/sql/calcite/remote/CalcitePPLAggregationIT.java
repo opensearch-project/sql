@@ -16,6 +16,7 @@ import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
@@ -25,6 +26,8 @@ import java.util.List;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLAggregationIT extends PPLIntegTestCase {
@@ -41,6 +44,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     loadIndex(Index.CALCS);
     loadIndex(Index.DATE_FORMATS);
     loadIndex(Index.DATA_TYPE_NUMERIC);
+    loadIndex(Index.BIG5);
     loadIndex(Index.LOGS);
     loadIndex(Index.TELEMETRY);
     loadIndex(Index.TIME_TEST_DATA);
@@ -727,6 +731,23 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     verifySchema(
         actual, schema("time_span", "time"), schema("count(incomplete_custom_time)", "bigint"));
     verifyDataRows(actual, rows(1, "00:00:00"), rows(1, "12:00:00"));
+  }
+
+  // Only available in v3 with Calcite
+  @Test
+  public void testSpanByImplicitTimestamp() throws IOException {
+    JSONObject result = executeQuery("source=big5 | stats count() by span(1d) as span");
+    verifySchema(result, schema("count()", "bigint"), schema("span", "timestamp"));
+    verifyDataRows(result, rows(1, "2023-01-02 00:00:00"));
+
+    Throwable t =
+        assertThrowsWithReplace(
+            SemanticCheckException.class,
+            () ->
+                executeQuery(
+                    StringUtils.format(
+                        "source=%s | stats count() by span(5m)", TEST_INDEX_DATE_FORMATS)));
+    verifyErrorMessageContains(t, "Field [@timestamp] not found");
   }
 
   @Test
