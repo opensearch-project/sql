@@ -2103,8 +2103,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // Apply sorting and limit to non-null categories only
     RexNode sortField = context.relBuilder.field("grand_total");
+    // For MIN and EARLIEST, top results should be the minimum ones
     sortField =
-        aggFunction == BuiltinFunctionName.MIN ? sortField : context.relBuilder.desc(sortField);
+        aggFunction == BuiltinFunctionName.MIN || aggFunction == BuiltinFunctionName.EARLIEST
+            ? sortField
+            : context.relBuilder.desc(sortField);
     context.relBuilder.sort(sortField);
     if (limit > 0) {
       context.relBuilder.limit(0, limit);

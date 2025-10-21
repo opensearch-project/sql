@@ -98,9 +98,9 @@ teardown:
   - match: { total: 3 }
   - match: { "schema": [{"name": "@timestamp", "type": "timestamp"}, {"name": "severityText", "type": "string"}, {"name": "earliest(@timestamp)", "type": "timestamp"}] }
   - match: { "datarows": [
-    ["2024-01-15 10:30:00", "CUSTOM", "2024-01-15 10:30:11.567890123"],
-    ["2024-01-15 10:30:00", "OTHER", "2024-01-15 10:30:04.567890123"],
-    ["2024-01-15 10:30:00", "TRACE", "2024-01-15 10:30:10.567890123"]] }
+    ["2024-01-15 10:30:00", "INFO", "2024-01-15 10:30:04.567890123"],
+    ["2024-01-15 10:30:00", "OTHER", "2024-01-15 10:30:06.567890123"],
+    ["2024-01-15 10:30:00", "WARN", "2024-01-15 10:30:05.567890123"]] }
 
 ---
 "timechart count aggregation with limit should sum OTHER values":
