@@ -382,140 +382,147 @@ public class AggregateAnalyzer {
     switch (aggCall.getAggregation().kind) {
       case AVG:
         return Pair.of(
-            helper.build(args.get(0), AggregationBuilders.avg(aggFieldName)),
-            new SingleValueParser(aggFieldName));
+                helper.build(args.get(0), AggregationBuilders.avg(aggFieldName)),
+                new SingleValueParser(aggFieldName));
       case SUM:
         // 1. Only case SUM, skip SUM0 / COUNT since calling avg() in DSL should be faster.
         // 2. To align with databases, SUM0 is not preferred now.
         return Pair.of(
-            helper.build(args.get(0), AggregationBuilders.sum(aggFieldName)),
-            new SingleValueParser(aggFieldName));
+                helper.build(args.get(0), AggregationBuilders.sum(aggFieldName)),
+                new SingleValueParser(aggFieldName));
       case COUNT:
         return Pair.of(
-            helper.build(
-                !args.isEmpty() ? args.get(0) : null, AggregationBuilders.count(aggFieldName)),
-            new SingleValueParser(aggFieldName));
+                helper.build(
+                        !args.isEmpty() ? args.get(0) : null, AggregationBuilders.count(aggFieldName)),
+                new SingleValueParser(aggFieldName));
       case MIN: {
         ExprType fieldType =
-            OpenSearchTypeFactory.convertRelDataTypeToExprType(args.get(0).getType());
+                OpenSearchTypeFactory.convertRelDataTypeToExprType(args.get(0).getType());
         if (supportsMaxMinAggregation(fieldType)) {
           return Pair.of(
-              helper.build(args.get(0), AggregationBuilders.min(aggFieldName)),
-              new SingleValueParser(aggFieldName));
+                  helper.build(args.get(0), AggregationBuilders.min(aggFieldName)),
+                  new SingleValueParser(aggFieldName));
         } else {
           return Pair.of(
-              AggregationBuilders.topHits(aggFieldName)
-                  .fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null)
-                  .size(1)
-                  .from(0)
-                  .sort(
-                      helper.inferNamedField(args.get(0)).getReferenceForTermQuery(),
-                      SortOrder.ASC),
-              new TopHitsParser(aggFieldName, true));
+                  AggregationBuilders.topHits(aggFieldName)
+                          .fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null)
+                          .size(1)
+                          .from(0)
+                          .sort(
+                                  helper.inferNamedField(args.get(0)).getReferenceForTermQuery(),
+                                  SortOrder.ASC),
+                  new TopHitsParser(aggFieldName, true));
         }
       }
       case MAX: {
         ExprType fieldType =
-            OpenSearchTypeFactory.convertRelDataTypeToExprType(args.get(0).getType());
+                OpenSearchTypeFactory.convertRelDataTypeToExprType(args.get(0).getType());
         if (supportsMaxMinAggregation(fieldType)) {
           return Pair.of(
-              helper.build(args.get(0), AggregationBuilders.max(aggFieldName)),
-              new SingleValueParser(aggFieldName));
+                  helper.build(args.get(0), AggregationBuilders.max(aggFieldName)),
+                  new SingleValueParser(aggFieldName));
         } else {
           return Pair.of(
-              AggregationBuilders.topHits(aggFieldName)
-                  .fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null)
-                  .size(1)
-                  .from(0)
-                  .sort(
-                      helper.inferNamedField(args.get(0)).getReferenceForTermQuery(),
-                      SortOrder.DESC),
-              new TopHitsParser(aggFieldName, true));
+                  AggregationBuilders.topHits(aggFieldName)
+                          .fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null)
+                          .size(1)
+                          .from(0)
+                          .sort(
+                                  helper.inferNamedField(args.get(0)).getReferenceForTermQuery(),
+                                  SortOrder.DESC),
+                  new TopHitsParser(aggFieldName, true));
         }
       }
       case VAR_SAMP:
         return Pair.of(
-            helper.build(args.get(0), AggregationBuilders.extendedStats(aggFieldName)),
-            new StatsParser(ExtendedStats::getVarianceSampling, aggFieldName));
+                helper.build(args.get(0), AggregationBuilders.extendedStats(aggFieldName)),
+                new StatsParser(ExtendedStats::getVarianceSampling, aggFieldName));
       case VAR_POP:
         return Pair.of(
-            helper.build(args.get(0), AggregationBuilders.extendedStats(aggFieldName)),
-            new StatsParser(ExtendedStats::getVariancePopulation, aggFieldName));
+                helper.build(args.get(0), AggregationBuilders.extendedStats(aggFieldName)),
+                new StatsParser(ExtendedStats::getVariancePopulation, aggFieldName));
       case STDDEV_SAMP:
         return Pair.of(
-            helper.build(args.get(0), AggregationBuilders.extendedStats(aggFieldName)),
-            new StatsParser(ExtendedStats::getStdDeviationSampling, aggFieldName));
+                helper.build(args.get(0), AggregationBuilders.extendedStats(aggFieldName)),
+                new StatsParser(ExtendedStats::getStdDeviationSampling, aggFieldName));
       case STDDEV_POP:
         return Pair.of(
-            helper.build(args.get(0), AggregationBuilders.extendedStats(aggFieldName)),
-            new StatsParser(ExtendedStats::getStdDeviationPopulation, aggFieldName));
+                helper.build(args.get(0), AggregationBuilders.extendedStats(aggFieldName)),
+                new StatsParser(ExtendedStats::getStdDeviationPopulation, aggFieldName));
       case ARG_MAX:
         return Pair.of(
-          AggregationBuilders.topHits(aggFieldName)
-              .fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null)
-              .size(1)
-              .from(0)
-              .sort(
-                  helper.inferNamedField(args.get(1)).getRootName(),
-                  org.opensearch.search.sort.SortOrder.DESC),
-          new ArgMaxMinParser(aggFieldName));
+                AggregationBuilders.topHits(aggFieldName)
+                        .fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null)
+                        .size(1)
+                        .from(0)
+                        .sort(
+                                helper.inferNamedField(args.get(1)).getRootName(),
+                                org.opensearch.search.sort.SortOrder.DESC),
+                new ArgMaxMinParser(aggFieldName));
       case ARG_MIN:
         return Pair.of(
-          AggregationBuilders.topHits(aggFieldName)
-              .fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null)
-              .size(1)
-              .from(0)
-              .sort(
-                  helper.inferNamedField(args.get(1)).getRootName(),
-                  org.opensearch.search.sort.SortOrder.ASC),
-          new ArgMaxMinParser(aggFieldName));
+                AggregationBuilders.topHits(aggFieldName)
+                        .fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null)
+                        .size(1)
+                        .from(0)
+                        .sort(
+                                helper.inferNamedField(args.get(1)).getRootName(),
+                                org.opensearch.search.sort.SortOrder.ASC),
+                new ArgMaxMinParser(aggFieldName));
       case OTHER_FUNCTION:
         BuiltinFunctionName functionName =
-            BuiltinFunctionName.ofAggregation(aggCall.getAggregation().getName()).get();
+                BuiltinFunctionName.ofAggregation(aggCall.getAggregation().getName()).get();
         switch (functionName) {
           case TAKE:
             return Pair.of(
-                AggregationBuilders.topHits(aggFieldName)
-                    .fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null)
-                    .size(helper.inferValue(args.get(1), Integer.class))
-                    .from(0),
-                new TopHitsParser(aggFieldName));
+                    AggregationBuilders.topHits(aggFieldName)
+                            .fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null)
+                            .size(helper.inferValue(args.get(1), Integer.class))
+                            .from(0),
+                    new TopHitsParser(aggFieldName));
           case FIRST:
             TopHitsAggregationBuilder firstBuilder =
-                AggregationBuilders.topHits(aggFieldName).size(1).from(0);
+                    AggregationBuilders.topHits(aggFieldName).size(1).from(0);
             if (!args.isEmpty()) {
               firstBuilder.fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null);
             }
             return Pair.of(firstBuilder, new TopHitsParser(aggFieldName, true));
           case LAST:
             TopHitsAggregationBuilder lastBuilder =
-                AggregationBuilders.topHits(aggFieldName)
-                    .size(1)
-                    .from(0)
-                    .sort("_doc", org.opensearch.search.sort.SortOrder.DESC);
+                    AggregationBuilders.topHits(aggFieldName)
+                            .size(1)
+                            .from(0)
+                            .sort("_doc", org.opensearch.search.sort.SortOrder.DESC);
             if (!args.isEmpty()) {
               lastBuilder.fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null);
             }
             return Pair.of(lastBuilder, new TopHitsParser(aggFieldName, true));
           case PERCENTILE_APPROX:
             PercentilesAggregationBuilder aggBuilder =
-                helper
-                    .build(args.get(0), AggregationBuilders.percentiles(aggFieldName))
-                    .percentiles(helper.inferValue(args.get(1), Double.class));
+                    helper
+                            .build(args.get(0), AggregationBuilders.percentiles(aggFieldName))
+                            .percentiles(helper.inferValue(args.get(1), Double.class));
             /* See {@link PercentileApproxFunction}, PERCENTILE_APPROX accepts args of [FIELD, PERCENTILE, TYPE, COMPRESSION(optional)] */
             if (args.size() > 3) {
               aggBuilder.compression(helper.inferValue(args.get(3), Double.class));
             }
             return Pair.of(aggBuilder, new SinglePercentileParser(aggFieldName));
+          case DISTINCT_COUNT_APPROX:
+            return Pair.of(
+                    helper.build(
+                            !args.isEmpty() ? args.getFirst() : null,
+                            AggregationBuilders.cardinality(aggFieldName)),
+                    new SingleValueParser(aggFieldName));
           default:
             throw new AggregateAnalyzer.AggregateAnalyzerException(
-                String.format("Unsupported push-down aggregator %s", aggCall.getAggregation()));
+                    String.format("Unsupported push-down aggregator %s", aggCall.getAggregation()));
         }
       default:
         throw new AggregateAnalyzer.AggregateAnalyzerException(
-            String.format("unsupported aggregator %s", aggCall.getAggregation()));
+                String.format("unsupported aggregator %s", aggCall.getAggregation()));
     }
   }
+
 
   private static boolean supportsMaxMinAggregation(ExprType fieldType) {
     ExprType coreType =
