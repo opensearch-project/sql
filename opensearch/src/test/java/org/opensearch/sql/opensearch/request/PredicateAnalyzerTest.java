@@ -18,8 +18,6 @@ import java.util.function.Consumer;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.StructKind;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
@@ -27,7 +25,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Holder;
 import org.junit.jupiter.api.Test;
@@ -47,6 +44,8 @@ import org.opensearch.index.query.SimpleQueryStringBuilder;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.index.query.TermsQueryBuilder;
 import org.opensearch.index.query.WildcardQueryBuilder;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
@@ -57,23 +56,28 @@ import org.opensearch.sql.opensearch.request.PredicateAnalyzer.ExpressionNotAnal
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.QueryExpression;
 
 public class PredicateAnalyzerTest {
-  final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+  final OpenSearchTypeFactory typeFactory = OpenSearchTypeFactory.TYPE_FACTORY;
   final RexBuilder builder = new RexBuilder(typeFactory);
   final RelOptCluster cluster = RelOptCluster.create(new VolcanoPlanner(), builder);
-  final List<String> schema = List.of("a", "b", "c");
+  final List<String> schema = List.of("a", "b", "c", "d");
   final Map<String, ExprType> fieldTypes =
       Map.of(
           "a", OpenSearchDataType.of(MappingType.Integer),
           "b",
               OpenSearchDataType.of(
                   MappingType.Text, Map.of("fields", Map.of("keyword", Map.of("type", "keyword")))),
-          "c", OpenSearchDataType.of(MappingType.Text)); // Text without keyword cannot be push down
+          "c", OpenSearchDataType.of(MappingType.Text), // Text without keyword cannot be push down
+          "d", OpenSearchDataType.of(MappingType.Date));
   final RexInputRef field1 =
       builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.INTEGER), 0);
   final RexInputRef field2 =
       builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.VARCHAR), 1);
+  final RexInputRef field4 = builder.makeInputRef(typeFactory.createUDT(ExprUDT.EXPR_TIMESTAMP), 3);
   final RexLiteral numericLiteral = builder.makeExactLiteral(new BigDecimal(12));
   final RexLiteral stringLiteral = builder.makeLiteral("Hi");
+  final RexNode dateTimeLiteral =
+      builder.makeLiteral(
+          "1987-02-03 04:34:56", typeFactory.createUDT(ExprUDT.EXPR_TIMESTAMP), true);
   final RexNode aliasedField2 =
       builder.makeCall(
           SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR, builder.makeLiteral("field"), field2);
@@ -946,6 +950,96 @@ public class PredicateAnalyzerTest {
             + "    \"boost\" : 1.0\n"
             + "  }\n"
             + "}",
+        result.toString());
+  }
+
+  @Test
+  void equals_generatesRangeQueryForDateTime() throws ExpressionNotAnalyzableException {
+    RexNode call = builder.makeCall(SqlStdOperatorTable.EQUALS, field4, dateTimeLiteral);
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+
+    assertInstanceOf(RangeQueryBuilder.class, result);
+    assertEquals(
+        """
+            {
+              "range" : {
+                "d" : {
+                  "from" : "1987-02-03T04:34:56.000Z",
+                  "to" : "1987-02-03T04:34:56.000Z",
+                  "include_lower" : true,
+                  "include_upper" : true,
+                  "format" : "date_time",
+                  "boost" : 1.0
+                }
+              }
+            }""",
+        result.toString());
+  }
+
+  @Test
+  void notEquals_generatesBoolQueryForDateTime() throws ExpressionNotAnalyzableException {
+    RexNode call = builder.makeCall(SqlStdOperatorTable.NOT_EQUALS, field4, dateTimeLiteral);
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+
+    assertInstanceOf(BoolQueryBuilder.class, result);
+    assertEquals(
+        """
+            {
+              "bool" : {
+                "should" : [
+                  {
+                    "range" : {
+                      "d" : {
+                        "from" : "1987-02-03T04:34:56.000Z",
+                        "to" : null,
+                        "include_lower" : false,
+                        "include_upper" : true,
+                        "format" : "date_time",
+                        "boost" : 1.0
+                      }
+                    }
+                  },
+                  {
+                    "range" : {
+                      "d" : {
+                        "from" : null,
+                        "to" : "1987-02-03T04:34:56.000Z",
+                        "include_lower" : true,
+                        "include_upper" : false,
+                        "format" : "date_time",
+                        "boost" : 1.0
+                      }
+                    }
+                  }
+                ],
+                "adjust_pure_negative" : true,
+                "boost" : 1.0
+              }
+            }""",
+        result.toString());
+  }
+
+  @Test
+  void gte_generatesRangeQueryWithFormatForDateTime() throws ExpressionNotAnalyzableException {
+    RexNode call =
+        builder.makeCall(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, field4, dateTimeLiteral);
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+
+    assertInstanceOf(RangeQueryBuilder.class, result);
+    assertEquals(
+        """
+            {
+              "range" : {
+                "d" : {
+                  "from" : "1987-02-03T04:34:56.000Z",
+                  "to" : null,
+                  "include_lower" : true,
+                  "include_upper" : true,
+                  "format" : "date_time",
+                  "boost" : 1.0
+                }
+              }
+            }""",
         result.toString());
   }
 }

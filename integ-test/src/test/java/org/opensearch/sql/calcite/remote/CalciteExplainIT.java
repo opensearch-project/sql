@@ -69,9 +69,9 @@ public class CalciteExplainIT extends ExplainIT {
         "source=opensearch-sql_test_index_bank"
             + "| where birthdate >= '2016-12-08 00:00:00.000000000' "
             + "and birthdate < '2018-11-09 00:00:00.000000000'";
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_sarg_filter_push_time_range.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_sarg_filter_push_time_range.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   // Only for Calcite
