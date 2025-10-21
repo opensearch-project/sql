@@ -6,7 +6,6 @@
 package org.opensearch.sql.calcite.utils.binning.handlers;
 
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CountBin;
@@ -30,20 +29,21 @@ public class CountBinHandler implements BinHandler {
       requestedBins = BinConstants.DEFAULT_BINS;
     }
 
-    // Calculate data range using window functions
-    RexNode minValue = context.relBuilder.min(fieldExpr).over().toRex();
+    // Calculate MIN and MAX using window functions
     RexNode maxValue = context.relBuilder.max(fieldExpr).over().toRex();
-    RexNode dataRange = context.relBuilder.call(SqlStdOperatorTable.MINUS, maxValue, minValue);
+    RexNode minValue = context.relBuilder.min(fieldExpr).over().toRex();
 
     // Convert start/end parameters
     RexNode startValue = convertParameter(countBin.getStart(), context);
     RexNode endValue = convertParameter(countBin.getEnd(), context);
 
-    // WIDTH_BUCKET(field_value, num_bins, data_range, max_value)
+    // WIDTH_BUCKET(field_value, num_bins, min_value, max_value)
+    // Note: We pass minValue instead of dataRange - WIDTH_BUCKET will calculate the range
+    // internally
     RexNode numBins = context.relBuilder.literal(requestedBins);
 
     return context.rexBuilder.makeCall(
-        PPLBuiltinOperators.WIDTH_BUCKET, fieldExpr, numBins, dataRange, maxValue);
+        PPLBuiltinOperators.WIDTH_BUCKET, fieldExpr, numBins, minValue, maxValue);
   }
 
   private RexNode convertParameter(
