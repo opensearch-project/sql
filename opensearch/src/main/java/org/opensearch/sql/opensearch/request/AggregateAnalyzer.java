@@ -42,7 +42,6 @@ import java.util.Map;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
@@ -71,7 +70,6 @@ import org.opensearch.search.aggregations.metrics.ValueCountAggregationBuilder;
 import org.opensearch.search.aggregations.support.ValueType;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.search.sort.SortOrder;
-import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -134,13 +132,12 @@ public class AggregateAnalyzer {
   private AggregateAnalyzer() {}
 
   @RequiredArgsConstructor
-  static class AggregateBuilderHelper {
+  public static class AggregateBuilderHelper {
     final RelDataType rowType;
     final Map<String, ExprType> fieldTypes;
     final RelOptCluster cluster;
     final boolean bucketNullable;
     final int bucketSize;
-    final RelFieldCollation.Direction metricOrder;
 
     <T extends ValuesSourceAggregationBuilder<T>> T build(RexNode node, T aggBuilder) {
       return build(node, aggBuilder::field, aggBuilder::script);
@@ -185,26 +182,12 @@ public class AggregateAnalyzer {
   public static Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> analyze(
       Aggregate aggregate,
       Project project,
-      RelDataType rowType,
-      Map<String, ExprType> fieldTypes,
       List<String> outputFields,
-      RelFieldCollation.Direction metricOrder,
-      RelOptCluster cluster,
-      int bucketSize)
+      AggregateBuilderHelper helper)
       throws ExpressionNotAnalyzableException {
     requireNonNull(aggregate, "aggregate");
     try {
-      boolean bucketNullable =
-          Boolean.parseBoolean(
-              aggregate.getHints().stream()
-                  .filter(hits -> hits.hintName.equals("stats_args"))
-                  .map(hint -> hint.kvOptions.getOrDefault(Argument.BUCKET_NULLABLE, "true"))
-                  .findFirst()
-                  .orElseGet(() -> "true"));
       List<Integer> groupList = aggregate.getGroupSet().asList();
-      AggregateBuilderHelper helper =
-          new AggregateBuilderHelper(
-              rowType, fieldTypes, cluster, bucketNullable, bucketSize, metricOrder);
       List<String> aggFieldNames = outputFields.subList(groupList.size(), outputFields.size());
       // Process all aggregate calls
       Pair<Builder, List<MetricParser>> builderAndParser =
@@ -216,7 +199,7 @@ public class AggregateAnalyzer {
       // but only count() can apply doc_count optimization in bucket aggregation.
       boolean countAllOnly = !aggregate.getGroupSet().isEmpty();
       Pair<List<String>, Builder> countAggNameAndBuilderPair =
-          removeCountAggregationBuilders(metricBuilder, countAllOnly, metricOrder);
+          removeCountAggregationBuilders(metricBuilder, countAllOnly);
       Builder newMetricBuilder = countAggNameAndBuilderPair.getRight();
       List<String> countAggNames = countAggNameAndBuilderPair.getLeft();
 
@@ -231,21 +214,8 @@ public class AggregateAnalyzer {
               new NoBucketAggregationParser(metricParserList));
         }
       } else if (aggregate.getGroupSet().length() == 1
-          && (isAutoDateSpan(project.getProjects().get(groupList.getFirst()))
-              || metricOrder != null)) {
+          && (isAutoDateSpan(project.getProjects().get(groupList.getFirst())))) {
         ValuesSourceAggregationBuilder<?> bucketBuilder = createBucket(0, project, helper);
-        if (metricOrder != null
-            && bucketBuilder instanceof TermsAggregationBuilder termsAggregationBuilder) {
-          String path =
-              newMetricBuilder.getAggregatorFactories().stream()
-                  .map(AggregationBuilder::getName)
-                  .toList()
-                  .getFirst();
-          termsAggregationBuilder.order(
-              metricOrder == RelFieldCollation.Direction.ASCENDING
-                  ? BucketOrder.aggregation(path, true)
-                  : BucketOrder.aggregation(path, false));
-        }
         if (newMetricBuilder != null) {
           bucketBuilder.subAggregations(newMetricBuilder);
         }
@@ -258,7 +228,7 @@ public class AggregateAnalyzer {
           List<CompositeValuesSourceBuilder<?>> buckets =
               createCompositeBuckets(groupList, project, helper);
           aggregationBuilder =
-              AggregationBuilders.composite("composite_buckets", buckets).size(bucketSize);
+              AggregationBuilders.composite("composite_buckets", buckets).size(helper.bucketSize);
           if (newMetricBuilder != null) {
             aggregationBuilder.subAggregations(metricBuilder);
           }
@@ -266,7 +236,7 @@ public class AggregateAnalyzer {
               Collections.singletonList(aggregationBuilder),
               new CompositeAggregationParser(metricParserList, countAggNames));
         } catch (CompositeAggUnSupportedException e) {
-          if (bucketNullable) {
+          if (helper.bucketNullable) {
             throw new UnsupportedOperationException(e.getMessage());
           }
           aggregationBuilder = createNestedBuckets(groupList, project, newMetricBuilder, helper);
@@ -292,11 +262,7 @@ public class AggregateAnalyzer {
    *     with the original metric builder.
    */
   private static Pair<List<String>, Builder> removeCountAggregationBuilders(
-      Builder metricBuilder, boolean countAllOnly, RelFieldCollation.Direction metricOrder) {
-    // if we have a specific metric order, skip the optimization of count agg removing
-    if (metricOrder != null) {
-      return Pair.of(List.of(), metricBuilder);
-    }
+      Builder metricBuilder, boolean countAllOnly) {
     List<ValueCountAggregationBuilder> countAggregatorFactories =
         metricBuilder.getAggregatorFactories().stream()
             .filter(ValueCountAggregationBuilder.class::isInstance)
@@ -643,10 +609,11 @@ public class AggregateAnalyzer {
   private static ValuesSourceAggregationBuilder<?> createTermsAggregationBuilder(
       String bucketName, RexNode group, AggregateBuilderHelper helper) {
     TermsAggregationBuilder sourceBuilder =
-        helper.build(group, new TermsAggregationBuilder(bucketName).size(helper.bucketSize));
-    if (helper.metricOrder == null) {
-      sourceBuilder.order(BucketOrder.key(true));
-    }
+        helper.build(
+            group,
+            new TermsAggregationBuilder(bucketName)
+                .size(helper.bucketSize)
+                .order(BucketOrder.key(true)));
     return withValueTypeHint(
         sourceBuilder,
         sourceBuilder::userValueTypeHint,

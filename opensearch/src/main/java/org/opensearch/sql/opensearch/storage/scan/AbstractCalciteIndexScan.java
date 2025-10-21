@@ -45,6 +45,15 @@ import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
+import org.opensearch.sql.opensearch.storage.scan.context.AbstractAction;
+import org.opensearch.sql.opensearch.storage.scan.context.AggPushDownAction;
+import org.opensearch.sql.opensearch.storage.scan.context.AggregationBuilderAction;
+import org.opensearch.sql.opensearch.storage.scan.context.FilterDigest;
+import org.opensearch.sql.opensearch.storage.scan.context.LimitDigest;
+import org.opensearch.sql.opensearch.storage.scan.context.OSRequestBuilderAction;
+import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
+import org.opensearch.sql.opensearch.storage.scan.context.PushDownOperation;
+import org.opensearch.sql.opensearch.storage.scan.context.PushDownType;
 
 /** An abstract relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
@@ -103,9 +112,10 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
             osIndex.getMaxResultWindow().doubleValue(),
             (rowCount, operation) ->
                 switch (operation.type()) {
-                  case AGGREGATION, SORT_AGG_METRICS -> mq.getRowCount(
-                      (RelNode) operation.digest());
+                  case AGGREGATION -> mq.getRowCount((RelNode) operation.digest());
                   case PROJECT, SORT -> rowCount;
+                  case SORT_AGG_METRICS -> NumberUtil.min(
+                      rowCount, osIndex.getBucketSize().doubleValue());
                     // Refer the org.apache.calcite.rel.metadata.RelMdRowCount
                   case COLLAPSE -> rowCount / 10;
                   case FILTER, SCRIPT -> NumberUtil.multiply(
@@ -213,7 +223,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       RelDataType schema,
       PushDownContext pushDownContext);
 
-  private List<String> getCollationNames(List<RelFieldCollation> collations) {
+  protected List<String> getCollationNames(List<RelFieldCollation> collations) {
     return collations.stream()
         .map(collation -> getRowType().getFieldNames().get(collation.getFieldIndex()))
         .toList();
@@ -227,7 +237,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
    * @param collations List of collation names to check against aggregators.
    * @return True if any collation name matches an aggregator output, false otherwise.
    */
-  private boolean hasAggregatorInSortBy(List<String> collations) {
+  protected boolean hasAggregatorInSortBy(List<String> collations) {
     Stream<LogicalAggregate> aggregates =
         pushDownContext.stream()
             .filter(action -> action.type() == PushDownType.AGGREGATION)

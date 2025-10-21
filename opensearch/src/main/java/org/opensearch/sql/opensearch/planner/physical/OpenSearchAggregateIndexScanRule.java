@@ -84,7 +84,7 @@ public class OpenSearchAggregateIndexScanRule
       LogicalAggregate aggregate,
       LogicalProject project,
       CalciteLogicalIndexScan scan) {
-    AbstractRelNode newRelNode = scan.pushDownAggregate(aggregate, project, null);
+    AbstractRelNode newRelNode = scan.pushDownAggregate(aggregate, project);
     if (newRelNode != null) {
       call.transformTo(newRelNode);
     }

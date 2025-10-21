@@ -1023,7 +1023,7 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testExplainSortOnMetricsNoBucketNullable() throws IOException {
+  public void testExplainSortOnMetrics() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_agg_sort_on_metrics1.yaml");
     assertYamlEqualsJsonIgnoreId(
@@ -1031,8 +1031,35 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryToString(
             "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() by"
                 + " state | sort `count()`"));
-
     expected = loadExpectedPlan("explain_agg_sort_on_metrics2.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account | stats bucket_nullable=false sum(balance)"
+                + " as sum by state | sort - sum"));
+    // TODO limit should pushdown to non-composite agg
+    expected = loadExpectedPlan("explain_agg_sort_on_metrics3.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | stats count() as cnt by span(birthdate, 1d) | sort - cnt",
+                TEST_INDEX_BANK)));
+    expected = loadExpectedPlan("explain_agg_sort_on_metrics4.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | stats bucket_nullable=false sum(balance) by span(age, 5) | sort -"
+                    + " `sum(balance)`",
+                TEST_INDEX_BANK)));
+  }
+
+  @Ignore
+  public void testExplainSortOnMetricsMultiTerms() throws IOException {
+    // TODO support multi-terms
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_agg_sort_on_metrics_multi_terms1.yaml");
     assertYamlEqualsJsonIgnoreId(
         expected,
         explainQueryToString(

@@ -3,29 +3,28 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.opensearch.storage.scan;
+package org.opensearch.sql.opensearch.storage.scan.context;
 
-import com.google.common.collect.Iterators;
-import java.util.AbstractCollection;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.apache.calcite.rel.RelFieldCollation;
-import org.apache.calcite.rel.RelFieldCollation.Direction;
-import org.apache.calcite.rel.RelFieldCollation.NullDirection;
-import org.apache.calcite.rex.RexNode;
 import org.apache.commons.lang3.tuple.Pair;
-import org.jetbrains.annotations.NotNull;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
-import org.opensearch.search.aggregations.AggregatorFactories.Builder;
+import org.opensearch.search.aggregations.AggregatorFactories;
 import org.opensearch.search.aggregations.BucketOrder;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder;
+import org.opensearch.search.aggregations.bucket.composite.DateHistogramValuesSourceBuilder;
+import org.opensearch.search.aggregations.bucket.composite.HistogramValuesSourceBuilder;
+import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
+import org.opensearch.search.aggregations.bucket.histogram.DateHistogramAggregationBuilder;
+import org.opensearch.search.aggregations.bucket.histogram.HistogramAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
 import org.opensearch.search.aggregations.bucket.terms.MultiTermsAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
@@ -33,185 +32,18 @@ import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
+import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
+import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
+import org.opensearch.sql.opensearch.response.agg.MetricParserHelper;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
-import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
 @Getter
-public class PushDownContext extends AbstractCollection<PushDownOperation> {
-  private final OpenSearchIndex osIndex;
-  private final OpenSearchRequestBuilder requestBuilder;
-  private ArrayDeque<PushDownOperation> operationsForRequestBuilder;
-
-  private boolean isAggregatePushed = false;
-  private AggPushDownAction aggPushDownAction;
-  private ArrayDeque<PushDownOperation> operationsForAgg;
-
-  private boolean isLimitPushed = false;
-  private boolean isProjectPushed = false;
-  private boolean isMetricOrderPushed = false;
-
-  public PushDownContext(OpenSearchIndex osIndex) {
-    this.osIndex = osIndex;
-    this.requestBuilder = osIndex.createRequestBuilder();
-  }
-
-  @Override
-  public PushDownContext clone() {
-    PushDownContext newContext = new PushDownContext(osIndex);
-    newContext.addAll(this);
-    return newContext;
-  }
-
-  /**
-   * Create a new {@link PushDownContext} without the collation action.
-   *
-   * @return A new push-down context without the collation action.
-   */
-  public PushDownContext cloneWithoutSort() {
-    PushDownContext newContext = new PushDownContext(osIndex);
-    for (PushDownOperation action : this) {
-      if (action.type() != PushDownType.SORT) {
-        newContext.add(action);
-      }
-    }
-    return newContext;
-  }
-
-  @NotNull
-  @Override
-  public Iterator<PushDownOperation> iterator() {
-    if (operationsForRequestBuilder == null) {
-      return Collections.emptyIterator();
-    } else if (operationsForAgg == null) {
-      return operationsForRequestBuilder.iterator();
-    } else {
-      return Iterators.concat(operationsForRequestBuilder.iterator(), operationsForAgg.iterator());
-    }
-  }
-
-  @Override
-  public int size() {
-    return (operationsForRequestBuilder == null ? 0 : operationsForRequestBuilder.size())
-        + (operationsForAgg == null ? 0 : operationsForAgg.size());
-  }
-
-  ArrayDeque<PushDownOperation> getOperationsForRequestBuilder() {
-    if (operationsForRequestBuilder == null) {
-      this.operationsForRequestBuilder = new ArrayDeque<>();
-    }
-    return operationsForRequestBuilder;
-  }
-
-  ArrayDeque<PushDownOperation> getOperationsForAgg() {
-    if (operationsForAgg == null) {
-      this.operationsForAgg = new ArrayDeque<>();
-    }
-    return operationsForAgg;
-  }
-
-  @Override
-  public boolean add(PushDownOperation operation) {
-    if (operation.type() == PushDownType.AGGREGATION) {
-      isAggregatePushed = true;
-      this.aggPushDownAction = (AggPushDownAction) operation.action();
-    }
-    if (operation.type() == PushDownType.LIMIT) {
-      isLimitPushed = true;
-    }
-    if (operation.type() == PushDownType.PROJECT) {
-      isProjectPushed = true;
-    }
-    if (operation.type() == PushDownType.SORT_AGG_METRICS) {
-      isMetricOrderPushed = true;
-    }
-    operation.action().transform(this, operation);
-    return true;
-  }
-
-  void add(PushDownType type, Object digest, AbstractAction<?> action) {
-    add(new PushDownOperation(type, digest, action));
-  }
-
-  public boolean containsDigest(Object digest) {
-    return this.stream().anyMatch(action -> action.digest().equals(digest));
-  }
-
-  public OpenSearchRequestBuilder createRequestBuilder() {
-    OpenSearchRequestBuilder newRequestBuilder = osIndex.createRequestBuilder();
-    if (operationsForRequestBuilder != null) {
-      operationsForRequestBuilder.forEach(
-          operation -> ((OSRequestBuilderAction) operation.action()).apply(newRequestBuilder));
-    }
-    return newRequestBuilder;
-  }
-}
-
-enum PushDownType {
-  FILTER,
-  PROJECT,
-  AGGREGATION,
-  SORT,
-  LIMIT,
-  SCRIPT,
-  COLLAPSE,
-  SORT_AGG_METRICS
-  // HIGHLIGHT,
-  // NESTED
-}
-
-/**
- * Represents a push down operation that can be applied to an OpenSearchRequestBuilder.
- *
- * @param type PushDownType enum
- * @param digest the digest of the pushed down operator
- * @param action the lambda action to apply on the OpenSearchRequestBuilder
- */
-record PushDownOperation(PushDownType type, Object digest, AbstractAction<?> action) {
-  public String toString() {
-    return type + "->" + digest;
-  }
-}
-
-interface AbstractAction<T> {
-  void apply(T target);
-
-  void transform(PushDownContext context, PushDownOperation operation);
-}
-
-interface OSRequestBuilderAction extends AbstractAction<OpenSearchRequestBuilder> {
-  default void transform(PushDownContext context, PushDownOperation operation) {
-    apply(context.getRequestBuilder());
-    context.getOperationsForRequestBuilder().add(operation);
-  }
-}
-
-interface AggregationBuilderAction extends AbstractAction<AggPushDownAction> {
-  default void transform(PushDownContext context, PushDownOperation operation) {
-    apply(context.getAggPushDownAction());
-    context.getOperationsForAgg().add(operation);
-  }
-}
-
-record FilterDigest(int scriptCount, RexNode condition) {
-  @Override
-  public String toString() {
-    return condition.toString();
-  }
-}
-
-record LimitDigest(int limit, int offset) {
-  @Override
-  public String toString() {
-    return offset == 0 ? String.valueOf(limit) : "[" + limit + " from " + offset + "]";
-  }
-}
-
-// TODO: shall we do deep copy for this action since it's mutable?
-class AggPushDownAction implements OSRequestBuilderAction {
+@EqualsAndHashCode
+public class AggPushDownAction implements OSRequestBuilderAction {
 
   private Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder;
   private final Map<String, OpenSearchDataType> extendedTypeMapping;
-  @Getter private final long scriptCount;
+  private final long scriptCount;
   // Record the output field names of all buckets as the sequence of buckets
   private List<String> bucketNames;
 
@@ -237,6 +69,110 @@ class AggPushDownAction implements OSRequestBuilderAction {
     requestBuilder.pushTypeMapping(extendedTypeMapping);
   }
 
+  private BucketAggregationParser convertTo(OpenSearchAggregationResponseParser parser) {
+    if (parser instanceof BucketAggregationParser) {
+      return (BucketAggregationParser) parser;
+    } else if (parser instanceof CompositeAggregationParser) {
+      MetricParserHelper helper = ((CompositeAggregationParser) parser).getMetricsParser();
+      return new BucketAggregationParser(
+          helper.getMetricParserMap().values().stream().toList(), helper.getCountAggNameList());
+    } else {
+      throw new IllegalStateException("Unexpected parser type: " + parser.getClass());
+    }
+  }
+
+  public void pushDownSortAggMetrics(List<RelFieldCollation> collations, List<String> fieldNames) {
+    if (aggregationBuilder.getLeft().isEmpty()) return;
+    AggregationBuilder builder = aggregationBuilder.getLeft().getFirst();
+    if (builder instanceof CompositeAggregationBuilder composite) {
+      String path = getAggregationPath(collations, fieldNames, composite);
+      BucketOrder bucketOrder =
+          collations.get(0).getDirection() == RelFieldCollation.Direction.ASCENDING
+              ? BucketOrder.aggregation(path, true)
+              : BucketOrder.aggregation(path, false);
+
+      if (composite.sources().size() == 1) {
+        if (composite.sources().get(0) instanceof TermsValuesSourceBuilder terms
+            && !terms.missingBucket()) {
+          TermsAggregationBuilder termsBuilder = new TermsAggregationBuilder(terms.name());
+          termsBuilder.size(composite.size());
+          termsBuilder.field(terms.field());
+          termsBuilder.order(bucketOrder);
+          attachSubAggregations(composite.getSubAggregations(), path, termsBuilder);
+          aggregationBuilder =
+              Pair.of(
+                  Collections.singletonList(termsBuilder),
+                  convertTo(aggregationBuilder.getRight()));
+          return;
+        } else if (composite.sources().get(0)
+            instanceof DateHistogramValuesSourceBuilder dateHisto) {
+          DateHistogramAggregationBuilder dateHistoBuilder =
+              new DateHistogramAggregationBuilder(dateHisto.name());
+          dateHistoBuilder.field(dateHisto.field());
+          try {
+            dateHistoBuilder.fixedInterval(dateHisto.getIntervalAsFixed());
+          } catch (IllegalArgumentException e) {
+            dateHistoBuilder.calendarInterval(dateHisto.getIntervalAsCalendar());
+          }
+          dateHistoBuilder.order(bucketOrder);
+          attachSubAggregations(composite.getSubAggregations(), path, dateHistoBuilder);
+          aggregationBuilder =
+              Pair.of(
+                  Collections.singletonList(dateHistoBuilder),
+                  convertTo(aggregationBuilder.getRight()));
+          return;
+        } else if (composite.sources().get(0) instanceof HistogramValuesSourceBuilder histo
+            && !histo.missingBucket()) {
+          HistogramAggregationBuilder histoBuilder = new HistogramAggregationBuilder(histo.name());
+          histoBuilder.field(histo.field());
+          histoBuilder.interval(histo.interval());
+          histoBuilder.order(bucketOrder);
+          attachSubAggregations(composite.getSubAggregations(), path, histoBuilder);
+          aggregationBuilder =
+              Pair.of(
+                  Collections.singletonList(histoBuilder),
+                  convertTo(aggregationBuilder.getRight()));
+          return;
+        }
+      } else {
+        if (composite.sources().stream()
+            .allMatch(
+                src -> src instanceof TermsValuesSourceBuilder terms && !terms.missingBucket())) {
+          // multi-term agg
+          return;
+        }
+      }
+      throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
+          "Cannot pushdown sort aggregate metrics");
+    }
+  }
+
+  private String getAggregationPath(
+      List<RelFieldCollation> collations,
+      List<String> fieldNames,
+      CompositeAggregationBuilder composite) {
+    String path;
+    if (composite.getSubAggregations().isEmpty()) {
+      // count agg optimized, get the path name from field names
+      path = fieldNames.get(collations.get(0).getFieldIndex());
+    } else {
+      path = composite.getSubAggregations().stream().toList().get(0).getName();
+    }
+    return path;
+  }
+
+  private <T extends ValuesSourceAggregationBuilder<T>> T attachSubAggregations(
+      Collection<AggregationBuilder> subAggregations, String path, T aggregationBuilder) {
+    AggregatorFactories.Builder metricBuilder = new AggregatorFactories.Builder();
+    if (subAggregations.isEmpty()) {
+      metricBuilder.addAggregator(AggregationBuilders.count(path).field("_index"));
+    } else {
+      metricBuilder.addAggregator(subAggregations.stream().toList().get(0));
+    }
+    aggregationBuilder.subAggregations(metricBuilder);
+    return aggregationBuilder;
+  }
+
   public void pushDownSortIntoAggBucket(
       List<RelFieldCollation> collations, List<String> fieldNames) {
     // aggregationBuilder.getLeft() could be empty when count agg optimization works
@@ -260,10 +196,12 @@ class AggPushDownAction implements OSRequestBuilderAction {
             */
             String bucketName = fieldNames.get(collation.getFieldIndex());
             CompositeValuesSourceBuilder<?> bucket = buckets.get(bucketNames.indexOf(bucketName));
-            Direction direction = collation.getDirection();
-            NullDirection nullDirection = collation.nullDirection;
+            RelFieldCollation.Direction direction = collation.getDirection();
+            RelFieldCollation.NullDirection nullDirection = collation.nullDirection;
             SortOrder order =
-                Direction.DESCENDING.equals(direction) ? SortOrder.DESC : SortOrder.ASC;
+                RelFieldCollation.Direction.DESCENDING.equals(direction)
+                    ? SortOrder.DESC
+                    : SortOrder.ASC;
             if (bucket.missingBucket()) {
               MissingOrder missingOrder =
                   switch (nullDirection) {
@@ -285,7 +223,7 @@ class AggPushDownAction implements OSRequestBuilderAction {
                 newBuckets.add(buckets.get(bucketNames.indexOf(name)));
                 newBucketNames.add(name);
               });
-      Builder newAggBuilder = new Builder();
+      AggregatorFactories.Builder newAggBuilder = new AggregatorFactories.Builder();
       compositeAggBuilder.getSubAggregations().forEach(newAggBuilder::addAggregator);
       aggregationBuilder =
           Pair.of(
