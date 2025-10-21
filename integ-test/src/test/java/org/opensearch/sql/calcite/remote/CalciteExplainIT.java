@@ -620,6 +620,19 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testStatsDistinctCountApproxFunctionExplainWithPushDown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        "source=opensearch-sql_test_index_account | stats distinct_count_approx(state) as"
+            + " distinct_states by gender";
+    var result = explainQueryToString(query);
+    String expected =
+        loadFromFile(
+            "expectedOutput/calcite/explain_agg_with_distinct_count_approx_enhancement.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
   public void testExplainRegexMatchInWhereWithScriptPushdown() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String query =

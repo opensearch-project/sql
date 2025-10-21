@@ -495,11 +495,11 @@ public class AggregateAnalyzer {
             }
             yield Pair.of(aggBuilder, new SinglePercentileParser(aggFieldName));
           }
-          case DISTINCT_COUNT_APPROX ->  Pair.of(
-                  helper.build(
-                          !args.isEmpty() ? args.getFirst() : null,
-                          AggregationBuilders.cardinality(aggFieldName)),
-                  new SingleValueParser(aggFieldName));
+          case DISTINCT_COUNT_APPROX -> Pair.of(
+              helper.build(
+                  !args.isEmpty() ? args.getFirst() : null,
+                  AggregationBuilders.cardinality(aggFieldName)),
+              new SingleValueParser(aggFieldName));
           default -> throw new AggregateAnalyzer.AggregateAnalyzerException(
               String.format("Unsupported push-down aggregator %s", aggCall.getAggregation()));
         };
