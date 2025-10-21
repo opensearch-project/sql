@@ -106,16 +106,6 @@ The format argument is optional and is only used when the value argument is a nu
 
 Basic examples:
 
-The following example returns "TRUE 0xF 12,345.68".
-
-    ... | eval n=tostring(1==1) + " " + tostring(15, "hex") + " " + tostring(12345.6789, "commas")
-
-The following example returns foo=615 and foo2=00:10:15. The 615 seconds is converted into minutes and seconds.
-
-    ... | eval foo=615 | eval foo2 = tostring(foo, "duration")
-
-
-
 You can use this function to convert a number to a string of its binary representation.
 Example::
 
