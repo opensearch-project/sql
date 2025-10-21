@@ -850,16 +850,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<String> originalFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
     List<RexNode> toOverrideList =
         originalFieldNames.stream()
-            .filter(
-                originalName ->
-                    newNames.stream()
-                        .anyMatch(
-                            newName ->
-                                // Match exact field names (e.g., "age" == "age")
-                                // OR nested paths (e.g., "resource.attributes..." starts with
-                                // "resource")
-                                newName.equals(originalName)
-                                    || newName.startsWith(originalName + ".")))
+            .filter(originalName -> shouldOverrideField(originalName, newNames))
             .map(a -> (RexNode) context.relBuilder.field(a))
             .toList();
     // 1. add the new fields, For example "age0, country0"
@@ -877,6 +868,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     expectedRenameFields.addAll(newNames);
     // 5. rename
     context.relBuilder.rename(expectedRenameFields);
+  }
+
+  private boolean shouldOverrideField(String originalName, List<String> newNames) {
+    return newNames.stream()
+        .anyMatch(
+            newName ->
+                // Match exact field names (e.g., "age" == "age") for flat fields
+                newName.equals(originalName)
+                    // OR match nested paths (e.g., "resource.attributes..." starts with
+                    // "resource.")
+                    || newName.startsWith(originalName + "."));
   }
 
   private List<List<RexInputRef>> extractInputRefList(List<RelBuilder.AggCall> aggCalls) {
