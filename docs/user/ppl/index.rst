@@ -48,8 +48,6 @@ The query start with search command and then flowing a set of command delimited 
 
 * **Commands**
 
-  - `Syntax <cmd/syntax.rst>`_ - PPL query structure and command syntax formatting
-
   The following commands are available in PPL:
 
   **Note:** Experimental commands are ready for use, but specific parameters may change.
@@ -97,6 +95,8 @@ The query start with search command and then flowing a set of command delimited 
   `explain command <cmd/explain.rst>`_                            3.1                 stable (since 3.1)        Explain the plan of query.
   `show datasources command <cmd/showdatasources.rst>`_           2.4                 stable (since 2.4)        Query datasources configured in the PPL engine.
   ==============================================================  ==================  ========================  ==============================================================================================
+
+  - `Syntax <cmd/syntax.rst>`_ - PPL query structure and command syntax formatting
 
 * **Functions**
 
