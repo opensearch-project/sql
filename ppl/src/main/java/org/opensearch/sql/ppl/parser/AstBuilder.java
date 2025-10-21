@@ -601,39 +601,21 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitTimechartCommand(OpenSearchPPLParser.TimechartCommandContext ctx) {
     UnresolvedExpression binExpression =
-        AstDSL.span(AstDSL.field("@timestamp"), AstDSL.intLiteral(1), SpanUnit.of("m"));
+        AstDSL.span(AstDSL.referImplicitTimestampField(), AstDSL.intLiteral(1), SpanUnit.m);
     Integer limit = 10;
     Boolean useOther = true;
     // Process timechart parameters
     for (OpenSearchPPLParser.TimechartParameterContext paramCtx : ctx.timechartParameter()) {
-      if (paramCtx.spanClause() != null) {
-        binExpression = internalVisitExpression(paramCtx.spanClause());
-      } else if (paramCtx.spanLiteral() != null) {
-        Literal literal = (Literal) internalVisitExpression(paramCtx.spanLiteral());
-        binExpression = AstDSL.spanFromSpanLengthLiteral(AstDSL.field("@timestamp"), literal);
-      } else if (paramCtx.timechartArg() != null) {
-        OpenSearchPPLParser.TimechartArgContext argCtx = paramCtx.timechartArg();
-        if (argCtx.LIMIT() != null && argCtx.integerLiteral() != null) {
-          limit = Integer.parseInt(argCtx.integerLiteral().getText());
-          if (limit < 0) {
-            throw new IllegalArgumentException("Limit must be a non-negative number");
-          }
-        } else if (argCtx.USEOTHER() != null) {
-          if (argCtx.booleanLiteral() != null) {
-            useOther = Boolean.parseBoolean(argCtx.booleanLiteral().getText());
-          } else if (argCtx.ident() != null) {
-            String useOtherValue = argCtx.ident().getText().toLowerCase();
-            if ("true".equals(useOtherValue) || "t".equals(useOtherValue)) {
-              useOther = true;
-            } else if ("false".equals(useOtherValue) || "f".equals(useOtherValue)) {
-              useOther = false;
-            } else {
-              throw new IllegalArgumentException(
-                  "Invalid useOther value: "
-                      + argCtx.ident().getText()
-                      + ". Expected true/false or t/f");
-            }
-          }
+      UnresolvedExpression param = internalVisitExpression(paramCtx);
+      if (param instanceof Span) {
+        binExpression = param;
+      } else if (param instanceof Literal) {
+        Literal literal = (Literal) param;
+        if (DataType.BOOLEAN.equals(literal.getType())) {
+          useOther = (Boolean) literal.getValue();
+        } else if (DataType.INTEGER.equals(literal.getType())
+            || DataType.LONG.equals(literal.getType())) {
+          limit = (Integer) literal.getValue();
         }
       }
     }
