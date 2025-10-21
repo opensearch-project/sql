@@ -612,6 +612,7 @@ public class PredicateAnalyzerTest {
             .kind(StructKind.FULLY_QUALIFIED)
             .add("a", builder.getTypeFactory().createSqlType(SqlTypeName.BIGINT))
             .add("b", builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR))
+            .add("c", builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR))
             .build();
     Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(0L));
     QueryExpression expression =
@@ -739,11 +740,11 @@ public class PredicateAnalyzerTest {
             .kind(StructKind.FULLY_QUALIFIED)
             .add("d", mapType)
             .build();
-    final RexInputRef field4 = builder.makeInputRef(mapType, 3);
+    final RexInputRef field4 = builder.makeInputRef(mapType, 0);
     final Map<String, ExprType> newFieldTypes =
         Map.of("d", OpenSearchDataType.of(ExprCoreType.STRUCT));
     final List<String> newSchema = List.of("d");
-    RexNode call = builder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, field4);
+    RexNode call = builder.makeCall(SqlStdOperatorTable.IS_EMPTY, field4);
     Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(0L));
     QueryBuilder builder =
         PredicateAnalyzer.analyze(call, newSchema, newFieldTypes, rowType, cluster);
