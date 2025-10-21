@@ -988,8 +988,6 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testBinTimestampBins20WithStats() throws IOException {
-    // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
-    enabledOnlyWhenPushdownIsEnabled();
 
     // Test bins=20 with aggregation to verify OpenSearch auto_date_histogram behavior
     // This corresponds to SPL test case 1: bins=20, range=307s
@@ -1173,16 +1171,23 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         executeQuery(
             "source=opensearch-sql_test_index_time_bins_data | where @timestamp < '2025-07-28"
                 + " 10:06:00' | bin @timestamp bins=20 | fields @timestamp, value | sort @timestamp"
-                + " | head 3");
+                + " | head 10");
 
     verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
 
-    // All records from 10:00:00-10:00:29 should be binned to 2025-07-28 10:00:00
+    // Verify 10 rows with 30-second interval bins
     verifyDataRows(
         result,
         rows("2025-07-28 10:00:00", 8945),
         rows("2025-07-28 10:00:00", 9012),
-        rows("2025-07-28 10:00:00", 6712));
+        rows("2025-07-28 10:00:00", 6712),
+        rows("2025-07-28 10:00:30", 8917),
+        rows("2025-07-28 10:00:30", 7162),
+        rows("2025-07-28 10:01:00", 8429),
+        rows("2025-07-28 10:01:00", 6985),
+        rows("2025-07-28 10:01:30", 6583),
+        rows("2025-07-28 10:02:00", 7823),
+        rows("2025-07-28 10:02:00", 9156));
   }
 
   @Test
@@ -1192,16 +1197,23 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         executeQuery(
             "source=opensearch-sql_test_index_time_bins_data | where @timestamp < '2025-07-28"
                 + " 10:06:00' | bin @timestamp bins=10 | fields @timestamp, value | sort @timestamp"
-                + " | head 3");
+                + " | head 10");
 
     verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
 
-    // All records from 10:00:00-10:00:59 should be binned to 2025-07-28 10:00:00
+    // Verify 10 rows with 1-minute interval bins
     verifyDataRows(
         result,
         rows("2025-07-28 10:00:00", 8945),
         rows("2025-07-28 10:00:00", 9012),
-        rows("2025-07-28 10:00:00", 6712));
+        rows("2025-07-28 10:00:00", 6712),
+        rows("2025-07-28 10:00:00", 8917),
+        rows("2025-07-28 10:00:00", 7162),
+        rows("2025-07-28 10:01:00", 8429),
+        rows("2025-07-28 10:01:00", 6985),
+        rows("2025-07-28 10:01:00", 6583),
+        rows("2025-07-28 10:02:00", 7823),
+        rows("2025-07-28 10:02:00", 9156));
   }
 
   @Test
@@ -1211,16 +1223,23 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         executeQuery(
             "source=opensearch-sql_test_index_time_bins_data | where @timestamp < '2025-07-28"
                 + " 10:06:00' | bin @timestamp bins=5 | fields @timestamp, value | sort @timestamp"
-                + " | head 3");
+                + " | head 10");
 
     verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
 
-    // All records from 10:00:00-10:04:59 should be binned to 2025-07-28 10:00:00
+    // Verify 10 rows with 5-minute interval bins (all in same bin)
     verifyDataRows(
         result,
         rows("2025-07-28 10:00:00", 8945),
         rows("2025-07-28 10:00:00", 9012),
-        rows("2025-07-28 10:00:00", 6712));
+        rows("2025-07-28 10:00:00", 6712),
+        rows("2025-07-28 10:00:00", 8917),
+        rows("2025-07-28 10:00:00", 7162),
+        rows("2025-07-28 10:00:00", 8429),
+        rows("2025-07-28 10:00:00", 6985),
+        rows("2025-07-28 10:00:00", 6583),
+        rows("2025-07-28 10:00:00", 7823),
+        rows("2025-07-28 10:00:00", 9156));
   }
 
   @Test
@@ -1229,16 +1248,23 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             "source=opensearch-sql_test_index_time_bins_data | bin @timestamp bins=10 | fields"
-                + " @timestamp, value | sort @timestamp | head 3");
+                + " @timestamp, value | sort @timestamp | head 10");
 
     verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
 
-    // Records from 10:00:00-10:59:59 should be binned to 2025-07-28 10:00:00
+    // Verify 10 rows with 1-hour interval bins (all in same bin)
     verifyDataRows(
         result,
         rows("2025-07-28 10:00:00", 8945),
         rows("2025-07-28 10:00:00", 9012),
-        rows("2025-07-28 10:00:00", 6712));
+        rows("2025-07-28 10:00:00", 6712),
+        rows("2025-07-28 10:00:00", 8917),
+        rows("2025-07-28 10:00:00", 7162),
+        rows("2025-07-28 10:00:00", 8429),
+        rows("2025-07-28 10:00:00", 6985),
+        rows("2025-07-28 10:00:00", 6583),
+        rows("2025-07-28 10:00:00", 7823),
+        rows("2025-07-28 10:00:00", 9156));
   }
 
   @Test
@@ -1247,16 +1273,23 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             "source=opensearch-sql_test_index_time_bins_data | bin @timestamp bins=5 | fields"
-                + " @timestamp, value | sort @timestamp | head 3");
+                + " @timestamp, value | sort @timestamp | head 10");
 
     verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
 
-    // Records from 10:00:00-12:59:59 should be binned to 2025-07-28 10:00:00
+    // Verify 10 rows with 3-hour interval bins (all in same bin)
     verifyDataRows(
         result,
         rows("2025-07-28 10:00:00", 8945),
         rows("2025-07-28 10:00:00", 9012),
-        rows("2025-07-28 10:00:00", 6712));
+        rows("2025-07-28 10:00:00", 6712),
+        rows("2025-07-28 10:00:00", 8917),
+        rows("2025-07-28 10:00:00", 7162),
+        rows("2025-07-28 10:00:00", 8429),
+        rows("2025-07-28 10:00:00", 6985),
+        rows("2025-07-28 10:00:00", 6583),
+        rows("2025-07-28 10:00:00", 7823),
+        rows("2025-07-28 10:00:00", 9156));
   }
 
   @Test
@@ -1265,15 +1298,22 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             "source=opensearch-sql_test_index_time_bins_data | bin @timestamp bins=3 | fields"
-                + " @timestamp, value | sort @timestamp | head 3");
+                + " @timestamp, value | sort @timestamp | head 10");
 
     verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
 
-    // Records from 10:00:00-12:59:59 should be binned to 2025-07-28 10:00:00
+    // Verify 10 rows with 3-hour interval bins (all in same bin)
     verifyDataRows(
         result,
         rows("2025-07-28 10:00:00", 8945),
         rows("2025-07-28 10:00:00", 9012),
-        rows("2025-07-28 10:00:00", 6712));
+        rows("2025-07-28 10:00:00", 6712),
+        rows("2025-07-28 10:00:00", 8917),
+        rows("2025-07-28 10:00:00", 7162),
+        rows("2025-07-28 10:00:00", 8429),
+        rows("2025-07-28 10:00:00", 6985),
+        rows("2025-07-28 10:00:00", 6583),
+        rows("2025-07-28 10:00:00", 7823),
+        rows("2025-07-28 10:00:00", 9156));
   }
 }

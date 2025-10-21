@@ -474,7 +474,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainBinWithBins() throws IOException {
-    String expected = loadExpectedPlan("explain_bin_bins.json");
+    String expected = loadExpectedPlan("explain_bin_bins.yaml");
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString("source=opensearch-sql_test_index_account | bin age bins=3 | head 5"));
@@ -512,22 +512,6 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryYaml(
             "source=events | bin @timestamp bins=3 | stats bucket_nullable=false avg(cpu_usage) by"
                 + " @timestamp, region"));
-  }
-
-  @Test
-  public void bucketNullableNotSupportSubAggregation() throws IOException {
-    // TODO: Don't throw exception after addressing
-    // https://github.com/opensearch-project/sql/issues/4317
-    // When bucketNullable is true, sub aggregation is not supported. Hence we cannot pushdown the
-    // aggregation in this query. Caused by issue
-    // https://github.com/opensearch-project/sql/issues/4317,
-    // bin aggregation on timestamp field won't work if not been push down.
-    enabledOnlyWhenPushdownIsEnabled();
-    assertThrows(
-        Exception.class,
-        () ->
-            explainQueryToString(
-                "source=events | bin @timestamp bins=3 | stats count() by @timestamp, region"));
   }
 
   @Test
