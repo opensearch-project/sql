@@ -32,6 +32,7 @@ import org.opensearch.sql.analysis.ExpressionAnalyzer;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelper;
@@ -83,10 +84,11 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
     RestHighLevelClient restClient =
         new CalcitePPLIntegTestCase.InternalRestHighLevelClient(client());
     OpenSearchClient client = new OpenSearchRestClient(restClient);
+    Settings settings = getSettings();
     DataSourceService dataSourceService =
         new DataSourceServiceImpl(
             new ImmutableSet.Builder<DataSourceFactory>()
-                .add(new OpenSearchDataSourceFactory(client, getSettings()))
+                .add(getDataSourceFactory(client, settings))
                 .build(),
             getDataSourceMetadataStorage(),
             getDataSourceUserRoleHelper());
@@ -96,42 +98,48 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
     modules.add(
         new CalcitePPLIntegTestCase.StandaloneModule(
             new CalcitePPLIntegTestCase.InternalRestHighLevelClient(client()),
-            getSettings(),
+            settings,
             dataSourceService));
     Injector injector = modules.createInjector();
     pplService = SecurityAccess.doPrivileged(() -> injector.getInstance(PPLService.class));
   }
 
-  protected Settings getSettings() {
-    return defaultSettings();
+  protected OpenSearchDataSourceFactory getDataSourceFactory(
+      OpenSearchClient client, Settings settings) {
+    return new OpenSearchDataSourceFactory(client, settings);
   }
 
-  private Settings defaultSettings() {
+  protected Settings getSettings() {
+    return defaultSettings(getDefaultSettingsBuilder().build());
+  }
+
+  protected ImmutableMap.Builder<Key, Object> getDefaultSettingsBuilder() {
+    return new ImmutableMap.Builder<Key, Object>()
+        .put(Key.QUERY_SIZE_LIMIT, 200)
+        .put(Key.QUERY_BUCKET_SIZE, 1000)
+        .put(Key.SQL_CURSOR_KEEP_ALIVE, TimeValue.timeValueMinutes(1))
+        .put(Key.FIELD_TYPE_TOLERANCE, true)
+        .put(Key.CALCITE_ENGINE_ENABLED, true)
+        .put(Key.CALCITE_PUSHDOWN_ENABLED, false)
+        .put(Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR, 0.9)
+        .put(Key.PATTERN_METHOD, "SIMPLE_PATTERN")
+        .put(Key.PATTERN_MODE, "LABEL")
+        .put(Key.PATTERN_MAX_SAMPLE_COUNT, 10)
+        .put(Key.PATTERN_BUFFER_LIMIT, 100000);
+  }
+
+  protected Settings defaultSettings(Map<Key, Object> settings) {
     System.out.println(Settings.Key.CALCITE_PUSHDOWN_ENABLED.name() + " disabled");
     return new Settings() {
-      private final Map<Key, Object> defaultSettings =
-          new ImmutableMap.Builder<Key, Object>()
-              .put(Key.QUERY_SIZE_LIMIT, 200)
-              .put(Key.QUERY_BUCKET_SIZE, 1000)
-              .put(Key.SQL_CURSOR_KEEP_ALIVE, TimeValue.timeValueMinutes(1))
-              .put(Key.FIELD_TYPE_TOLERANCE, true)
-              .put(Key.CALCITE_ENGINE_ENABLED, true)
-              .put(Key.CALCITE_PUSHDOWN_ENABLED, false)
-              .put(Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR, 0.9)
-              .put(Key.PATTERN_METHOD, "SIMPLE_PATTERN")
-              .put(Key.PATTERN_MODE, "LABEL")
-              .put(Key.PATTERN_MAX_SAMPLE_COUNT, 10)
-              .put(Key.PATTERN_BUFFER_LIMIT, 100000)
-              .build();
 
       @Override
       public <T> T getSettingValue(Key key) {
-        return (T) defaultSettings.get(key);
+        return (T) settings.get(key);
       }
 
       @Override
       public List<?> getSettings() {
-        return (List<?>) defaultSettings;
+        return (List<?>) settings;
       }
     };
   }

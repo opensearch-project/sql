@@ -181,7 +181,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
           // https://github.com/opensearch-project/sql/issues/3459
           final RelDataType relKey = TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR);
           return TYPE_FACTORY.createMapType(
-              relKey, TYPE_FACTORY.createSqlType(SqlTypeName.BINARY), nullable);
+              relKey, TYPE_FACTORY.createSqlType(SqlTypeName.ANY), nullable);
         case UNKNOWN:
         default:
           throw new IllegalArgumentException(
@@ -301,6 +301,9 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         return ExprValueUtils.collectionValue((List<Object>) value);
       case STRUCT:
         return ExprValueUtils.tupleValue((Map<String, Object>) value);
+      case UNKNOWN:
+        // Handle UNKNOWN type by returning the value as-is wrapped in ExprValue
+        return ExprValueUtils.fromObjectValue(value);
       default:
         throw new IllegalArgumentException(
             "Unsupported conversion for OpenSearch Data type: " + type.typeName());

@@ -6,13 +6,17 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.apache.calcite.linq4j.Enumerator;
+import org.opensearch.sql.calcite.plan.DynamicFieldsConstants;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.NonFallbackCalciteException;
 import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
@@ -107,7 +111,27 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   }
 
   private Object resolveForCalcite(ExprValue value, String rawPath) {
+    if (DynamicFieldsConstants.DYNAMIC_FIELDS_MAP.equals(rawPath)) {
+      return collectDynamicFields(value);
+    }
     return ExprValueUtils.resolveRefPaths(value, List.of(rawPath.split("\\."))).valueForCalcite();
+  }
+
+  private Object collectDynamicFields(ExprValue value) {
+    Map<String, Object> dynamicFields = new HashMap<>();
+
+    try {
+      for (Map.Entry<String, ExprValue> entry : value.tupleValue().entrySet()) {
+        String fieldName = entry.getKey();
+        if (!fields.contains(fieldName)) {
+          dynamicFields.put(fieldName, entry.getValue().valueForCalcite());
+        }
+      }
+    } catch (ExpressionEvaluationException e) {
+      // If value is not a tuple, return empty map
+    }
+
+    return dynamicFields;
   }
 
   @Override
