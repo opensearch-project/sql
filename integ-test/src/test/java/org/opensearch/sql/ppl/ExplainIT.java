@@ -241,8 +241,7 @@ public class ExplainIT extends PPLIntegTestCase {
     String expected = loadExpectedPlan("explain_sort_type_push.yaml");
     assertYamlEqualsIgnoreId(
         expected,
-        explainQueryYaml(
-            "source=opensearch-sql_test_index_account | sort num(age) | fields age"));
+        explainQueryYaml("source=opensearch-sql_test_index_account | sort num(age) | fields age"));
   }
 
   @Test

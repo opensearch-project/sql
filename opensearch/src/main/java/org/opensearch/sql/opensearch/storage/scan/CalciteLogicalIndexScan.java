@@ -60,7 +60,6 @@ import org.opensearch.sql.opensearch.request.PredicateAnalyzer.ScriptQueryExpres
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.scan.SelectedColumn.Kind;
-import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
 
 /** The logical relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
@@ -258,23 +257,17 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
             RelDataTypeField outputField = projFields.get(item.getProjIdx());
             builder.add(alias, outputField.getType());
 
-            Pair<RexNode, RelDataType> remappedRexInfo =
-                OpenSearchRelOptUtil.getRemappedRexAndType(
-                    project.getProjects().get(item.getProjIdx()), project.getInput().getRowType());
-            RexNode reMappedRex = remappedRexInfo.getLeft();
-            RelDataType reMappedRowType = remappedRexInfo.getRight();
-            Map<String, ExprType> fieldTypes =
-                this.osIndex.getAllFieldTypes().entrySet().stream()
-                    .filter(entry -> reMappedRowType.getFieldNames().contains(entry.getKey()))
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            RexNode projExpr = project.getProjects().get(item.getProjIdx());
+            RelDataType inputRowType = project.getInput().getRowType();
             ScriptQueryExpression script =
                 new ScriptQueryExpression(
-                    reMappedRex, reMappedRowType, fieldTypes, this.getCluster());
+                    project.getProjects().get(item.getProjIdx()), project.getInput().getRowType(),
+                    this.osIndex.getAllFieldTypes(), this.getCluster());
             derivedNames.add(alias);
             derivedTypes.add(
                 OpenSearchTypeFactory.convertRelDataTypeToSupportedDerivedFieldType(
                     outputField.getType()));
-            derivedScripts.add(Triple.of(reMappedRex, reMappedRowType, script));
+            derivedScripts.add(Triple.of(projExpr, inputRowType, script));
           }
           break;
       }
