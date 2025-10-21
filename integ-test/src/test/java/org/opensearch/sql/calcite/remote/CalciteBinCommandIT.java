@@ -989,13 +989,6 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   @Test
   public void testBinTimestampBins20WithStats() throws IOException {
 
-    // Test bins=20 with aggregation to verify OpenSearch auto_date_histogram behavior
-    // This corresponds to SPL test case 1: bins=20, range=307s
-    // SPL chose 30-second intervals
-    // Range: 2025-07-28 10:00:00 to 10:05:07 (307 seconds)
-    // Target: 307/20 = 15.35 seconds
-    // Expected: 30-second bins (next nice interval >= 15.35s)
-    // Filter to first 20 records only (within first 5 minutes)
     JSONObject result =
         executeQuery(
             "source=opensearch-sql_test_index_time_bins_data | where @timestamp < '2025-07-28"
@@ -1005,8 +998,6 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     verifySchema(
         result, schema("count()", null, "bigint"), schema("@timestamp", null, "timestamp"));
 
-    // With 30-second bins over 307 seconds, we expect ~11 bins at 30-second intervals
-    // Based on SPL test results with 30s intervals
     verifyDataRows(
         result,
         rows(3, "2025-07-28 10:00:00"), // Records at: 10:00:00, 10:00:17, 10:00:23
@@ -1024,16 +1015,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testBinTimestampBins10WithStats() throws IOException {
-    // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
-    enabledOnlyWhenPushdownIsEnabled();
 
-    // Test bins=10 with aggregation
-    // This corresponds to SPL test case 3: bins=10, range=307s
-    // SPL chose 1-minute (60s) intervals
-    // Range: 307 seconds
-    // Target: 307/10 = 30.7 seconds
-    // Expected: 1-minute bins (next nice interval >= 30.7s)
-    // Filter to first 20 records only (within first 5 minutes)
     JSONObject result =
         executeQuery(
             "source=opensearch-sql_test_index_time_bins_data | where @timestamp < '2025-07-28"
@@ -1043,8 +1025,6 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     verifySchema(
         result, schema("count()", null, "bigint"), schema("@timestamp", null, "timestamp"));
 
-    // With 1-minute bins over 307 seconds, we expect 6 bins at 1-minute intervals
-    // Based on SPL test results with 1m intervals
     verifyDataRows(
         result,
         rows(
@@ -1059,16 +1039,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testBinTimestampBins5WithStats() throws IOException {
-    // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
-    enabledOnlyWhenPushdownIsEnabled();
 
-    // Test bins=5 with aggregation
-    // This corresponds to SPL test case 2: bins=5, range=307s
-    // SPL chose 5-minute (300s) intervals
-    // Range: 307 seconds
-    // Target: 307/5 = 61.4 seconds
-    // Expected: 5-minute bins (next nice interval >= 61.4s)
-    // Filter to first 20 records only (within first 5 minutes)
     JSONObject result =
         executeQuery(
             "source=opensearch-sql_test_index_time_bins_data | where @timestamp < '2025-07-28"
@@ -1078,8 +1049,6 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     verifySchema(
         result, schema("count()", null, "bigint"), schema("@timestamp", null, "timestamp"));
 
-    // With 5-minute bins over 307 seconds, we expect 2 bins at 5-minute intervals
-    // Based on SPL test results with 5m intervals
     verifyDataRows(
         result,
         rows(19, "2025-07-28 10:00:00"), // All records from 10:00:00 to 10:04:52 (first 19 records)
@@ -1088,13 +1057,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testBinTimestampBins10HoursWithStats() throws IOException {
-    // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
-    enabledOnlyWhenPushdownIsEnabled();
 
-    // Test bins=10 with hour-spanning data
-    // Data range: 10:00:00 to 15:24:55 (19,495 seconds = ~5.4 hours)
-    // Target: 19495/10 = 1949.5 seconds (~32.5 minutes)
-    // Expected: 1-hour intervals (3600s, next nice interval >= 1949.5s)
     JSONObject result =
         executeQuery(
             "source=opensearch-sql_test_index_time_bins_data | bin @timestamp bins=10 | stats"
@@ -1116,13 +1079,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testBinTimestampBins5HoursWithStats() throws IOException {
-    // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
-    enabledOnlyWhenPushdownIsEnabled();
 
-    // Test bins=5 with hour-spanning data
-    // Data range: 10:00:00 to 15:24:55 (19,495 seconds = ~5.4 hours)
-    // Target: 19495/5 = 3899 seconds (~65 minutes)
-    // Expected: 3-hour intervals (10800s, next nice interval >= 3899s)
     JSONObject result =
         executeQuery(
             "source=opensearch-sql_test_index_time_bins_data | bin @timestamp bins=5 | stats"
@@ -1140,14 +1097,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testBinTimestampBins3HoursWithStats() throws IOException {
-    // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
-    enabledOnlyWhenPushdownIsEnabled();
 
-    // Test bins=3 with hour-spanning data
-    // Data range: 10:00:00 to 15:24:55 (19,495 seconds = ~5.4 hours)
-    // Target: 19495/3 = 6498.3 seconds (~108 minutes = 1.8 hours)
-    // Expected: 3-hour intervals (same as bins=5)
-    // OpenSearch chooses 3-hour intervals for both bins=3 and bins=5
     JSONObject result =
         executeQuery(
             "source=opensearch-sql_test_index_time_bins_data | bin @timestamp bins=3 | stats"
