@@ -49,7 +49,7 @@ public class CalciteReplaceCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source = %s | replace 'USA' WITH 'United States' IN country | replace 'Jane' WITH"
-                    + " 'Joseph' IN name",
+                    + " 'Joseph' IN name | fields name, country, state, month, year, age",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifySchema(
@@ -110,7 +110,9 @@ public class CalciteReplaceCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source = %s | replace 'USA' WITH '' IN country", TEST_INDEX_STATE_COUNTRY));
+                "source = %s | replace 'USA' WITH '' IN country | fields name, country, state,"
+                    + " month, year, age",
+                TEST_INDEX_STATE_COUNTRY));
 
     verifySchema(
         result,
@@ -134,7 +136,8 @@ public class CalciteReplaceCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source = %s | replace 'USA' WITH 'United States' IN country,state",
+                "source = %s | replace 'USA' WITH 'United States' IN country,state | fields name,"
+                    + " country, state, month, year, age",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifySchema(
@@ -247,7 +250,8 @@ public class CalciteReplaceCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source = %s | replace 'USA' WITH 'United States', 'Canada' WITH 'CA' IN country",
+                "source = %s | replace 'USA' WITH 'United States', 'Canada' WITH 'CA' IN country"
+                    + " | fields name, country, state, month, year, age",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifySchema(
