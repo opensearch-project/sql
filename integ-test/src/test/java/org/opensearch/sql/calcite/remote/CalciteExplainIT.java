@@ -1091,9 +1091,9 @@ public class CalciteExplainIT extends ExplainIT {
                 "source=%s | where cidrmatch(host, '0.0.0.0/24') | fields host",
                 TEST_INDEX_WEBLOGS)));
 
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         loadExpectedPlan("explain_agg_script_timestamp_push.yaml"),
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | eval t = unix_timestamp(birthdate) | stats count() by t | sort t |"
                     + " head 3",
