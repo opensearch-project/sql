@@ -125,4 +125,35 @@ public class RelJsonSerializerTest {
     String code = serializer.serialize(outOfScopeRex, rowType, fieldTypes);
     assertThrows(IllegalStateException.class, () -> serializer.deserialize(code));
   }
+
+  @Test
+  void testSerializeIndexRemappedRexNode() {
+    RelDataType originalRowType =
+        rexBuilder
+            .getTypeFactory()
+            .builder()
+            .kind(StructKind.FULLY_QUALIFIED)
+            .add("Firstname", rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR))
+            .add("Referer", rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR))
+            .build();
+    Map<String, ExprType> originalFieldTypes =
+        Map.of("Referer", ExprCoreType.STRING, "Firstname", ExprCoreType.STRING);
+    RexNode originalRexUpper =
+        PPLFuncImpTable.INSTANCE.resolve(
+            rexBuilder,
+            BuiltinFunctionName.UPPER,
+            rexBuilder.makeInputRef(originalRowType.getFieldList().get(1).getType(), 1));
+    RexNode remappedRexUpper =
+        PPLFuncImpTable.INSTANCE.resolve(
+            rexBuilder,
+            BuiltinFunctionName.UPPER,
+            rexBuilder.makeInputRef(rowType.getFieldList().get(0).getType(), 0));
+
+    String code = serializer.serialize(originalRexUpper, originalRowType, originalFieldTypes);
+    Map<String, Object> objects = serializer.deserialize(code);
+
+    assertEquals(remappedRexUpper, objects.get(RelJsonSerializer.EXPR));
+    assertEquals(rowType, objects.get(RelJsonSerializer.ROW_TYPE));
+    assertEquals(fieldTypes, objects.get(RelJsonSerializer.FIELD_TYPES));
+  }
 }
