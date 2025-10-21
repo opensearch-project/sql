@@ -55,6 +55,8 @@ import org.opensearch.sql.opensearch.util.JdbcOpenSearchDataTypeConvertor;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.TableScanOperator;
 
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DISTINCT_COUNT_APPROX;
+
 /** OpenSearch execution engine implementation. */
 public class OpenSearchExecutionEngine implements ExecutionEngine {
   private static final Logger logger = LogManager.getLogger(OpenSearchExecutionEngine.class);
@@ -282,10 +284,10 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     SqlUserDefinedAggFunction approxDistinctCountFunction =
         UserDefinedFunctionUtils.createUserDefinedAggFunction(
             DistinctCountApproxAggFunction.class,
-            "APPROX_DISTINCT_COUNT",
+            DISTINCT_COUNT_APPROX.toString(),
             ReturnTypes.BIGINT_FORCE_NULLABLE,
             null);
     PPLFuncImpTable.INSTANCE.registerExternalAggOperator(
-        BuiltinFunctionName.DISTINCT_COUNT_APPROX, approxDistinctCountFunction);
+        DISTINCT_COUNT_APPROX, approxDistinctCountFunction);
   }
 }
