@@ -6,6 +6,7 @@
 package org.opensearch.sql.ppl.calcite;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -340,6 +341,13 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
     String ppl = "source=events | timechart useother=true limit=3 count() by host";
     UnresolvedPlan plan = parsePPL(ppl);
     assertNotNull(plan);
+  }
+
+  @Test
+  public void testTimechartUsingZeroSpanShouldThrow() {
+    String ppl = "source=events | timechart span=0h limit=5 count() by host";
+    Throwable t = assertThrows(IllegalArgumentException.class, () -> parsePPL(ppl));
+    verifyErrorMessageContains(t, "Zero or negative time interval not supported: 0h");
   }
 
   private UnresolvedPlan parsePPL(String query) {
