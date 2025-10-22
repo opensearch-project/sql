@@ -609,7 +609,7 @@ public class CalciteExplainIT extends ExplainIT {
     enabledOnlyWhenPushdownIsEnabled();
     String query =
         "source=opensearch-sql_test_index_account | streamstats dc(state) as distinct_states";
-    var result = explainQueryToString(query);
+    var result = explainQueryYaml(query);
     String expected = loadFromFile("expectedOutput/calcite/explain_streamstats_dc.yaml");
     assertYamlEqualsIgnoreId(expected, result);
   }
@@ -620,7 +620,7 @@ public class CalciteExplainIT extends ExplainIT {
     String query =
         "source=opensearch-sql_test_index_account | streamstats distinct_count(state) as"
             + " distinct_states by gender";
-    var result = explainQueryToString(query);
+    var result = explainQueryYaml(query);
     String expected =
         loadFromFile("expectedOutput/calcite/explain_streamstats_distinct_count.yaml");
     assertYamlEqualsIgnoreId(expected, result);
@@ -755,7 +755,7 @@ public class CalciteExplainIT extends ExplainIT {
     String expected = loadExpectedPlan("explain_streamstats_earliest_latest.yaml");
     assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | streamstats earliest(message) as earliest_message, latest(message) as"
                     + " latest_message by server",
@@ -767,7 +767,7 @@ public class CalciteExplainIT extends ExplainIT {
     String expected = loadExpectedPlan("explain_streamstats_earliest_latest_custom_time.yaml");
     assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | streamstats earliest(message, created_at) as earliest_message,"
                     + " latest(message, created_at) as latest_message by level",
@@ -779,7 +779,7 @@ public class CalciteExplainIT extends ExplainIT {
     String expected = loadExpectedPlan("explain_streamstats_earliest_latest_no_group.yaml");
     assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | streamstats earliest(message) as earliest_message, latest(message) as"
                     + " latest_message",
