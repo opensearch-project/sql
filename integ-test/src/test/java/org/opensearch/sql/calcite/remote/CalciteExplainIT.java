@@ -475,9 +475,9 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testExplainBinWithBins() throws IOException {
     String expected = loadExpectedPlan("explain_bin_bins.yaml");
-    assertJsonEqualsIgnoreId(
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString("source=opensearch-sql_test_index_account | bin age bins=3 | head 5"));
+        explainQueryYaml("source=opensearch-sql_test_index_account | bin age bins=3 | head 5"));
   }
 
   @Test

@@ -107,7 +107,7 @@ public class WidthBucketFunction extends ImplementorUDF {
           isTimestamp);
     }
 
-    /** Width bucket calculation using nice number algorithm. */
+    /** Width bucket calculation dispatcher - delegates to timestamp or numeric method. */
     public static String calculateWidthBucket(
         Object fieldValue,
         Number numBinsParam,
@@ -123,23 +123,31 @@ public class WidthBucketFunction extends ImplementorUDF {
         return null;
       }
 
-      // Handle timestamp fields differently
-      if (isTimestamp) {
-        // Convert all timestamp values to milliseconds
-        long fieldMillis = convertTimestampToMillis(fieldValue);
-        long minMillis = convertTimestampToMillis(minValue);
-        long maxMillis = convertTimestampToMillis(maxValue);
+      return isTimestamp
+          ? calculateTimestampWidthBucket(fieldValue, numBins, minValue, maxValue)
+          : calculateNumericWidthBucket(fieldValue, numBins, minValue, maxValue);
+    }
 
-        // Calculate range
-        long rangeMillis = maxMillis - minMillis;
-        if (rangeMillis <= 0) {
-          return null;
-        }
+    /** Width bucket calculation for timestamp fields. */
+    private static String calculateTimestampWidthBucket(
+        Object fieldValue, int numBins, Object minValue, Object maxValue) {
+      // Convert all timestamp values to milliseconds
+      long fieldMillis = convertTimestampToMillis(fieldValue);
+      long minMillis = convertTimestampToMillis(minValue);
+      long maxMillis = convertTimestampToMillis(maxValue);
 
-        return calculateTimestampBucket(fieldMillis, numBins, rangeMillis, minMillis);
+      // Calculate range
+      long rangeMillis = maxMillis - minMillis;
+      if (rangeMillis <= 0) {
+        return null;
       }
 
-      // Numeric field handling (existing logic)
+      return calculateTimestampBucket(fieldMillis, numBins, rangeMillis, minMillis);
+    }
+
+    /** Width bucket calculation for numeric fields using nice number algorithm. */
+    private static String calculateNumericWidthBucket(
+        Object fieldValue, int numBins, Object minValue, Object maxValue) {
       Number numericValue = (Number) fieldValue;
       Number numericMin = (Number) minValue;
       Number numericMax = (Number) maxValue;
