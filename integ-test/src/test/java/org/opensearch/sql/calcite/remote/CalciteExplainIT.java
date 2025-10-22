@@ -611,7 +611,7 @@ public class CalciteExplainIT extends ExplainIT {
         "source=opensearch-sql_test_index_account | streamstats dc(state) as distinct_states";
     var result = explainQueryToString(query);
     String expected = loadFromFile("expectedOutput/calcite/explain_streamstats_dc.yaml");
-    assertYamlEqualsJsonIgnoreId(expected, result);
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   @Test
@@ -623,7 +623,7 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryToString(query);
     String expected =
         loadFromFile("expectedOutput/calcite/explain_streamstats_distinct_count.yaml");
-    assertYamlEqualsJsonIgnoreId(expected, result);
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   // Only for Calcite, as v2 gets unstable serialized string for function
@@ -753,7 +753,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   public void testExplainOnStreamstatsEarliestLatest() throws IOException {
     String expected = loadExpectedPlan("explain_streamstats_earliest_latest.yaml");
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         expected,
         explainQueryToString(
             String.format(
@@ -765,7 +765,7 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testExplainOnStreamstatsEarliestLatestWithCustomTimeField() throws IOException {
     String expected = loadExpectedPlan("explain_streamstats_earliest_latest_custom_time.yaml");
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         expected,
         explainQueryToString(
             String.format(
@@ -777,7 +777,7 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testExplainOnStreamstatsEarliestLatestNoGroupBy() throws IOException {
     String expected = loadExpectedPlan("explain_streamstats_earliest_latest_no_group.yaml");
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         expected,
         explainQueryToString(
             String.format(
