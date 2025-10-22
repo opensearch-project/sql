@@ -118,6 +118,17 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
   }
 
   private List<String> getFieldPath() {
+    // If project pushdown occurred, use the actual projected field names from the context
+    for (PushDownOperation operation : pushDownContext) {
+      if (operation.type() == PushDownType.PROJECT) {
+        List<String> projectedFields = (List<String>) operation.digest();
+        return projectedFields.stream()
+            .map(f -> osIndex.getAliasMapping().getOrDefault(f, f))
+            .toList();
+      }
+    }
+
+    // No project pushdown - use logical field names with alias mapping
     return getRowType().getFieldNames().stream()
         .map(f -> osIndex.getAliasMapping().getOrDefault(f, f))
         .toList();
