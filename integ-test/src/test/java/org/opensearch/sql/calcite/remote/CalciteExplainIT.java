@@ -1160,27 +1160,27 @@ public class CalciteExplainIT extends ExplainIT {
   public void testCasePushdownAsRangeQueryExplain() throws IOException {
     // CASE 1: Range - Metric
     // 1.1 Range - Metric
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         loadExpectedPlan("agg_range_metric_push.yaml"),
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | eval age_range = case(age < 30, 'u30', age < 40, 'u40' else 'u100') |"
                     + " stats avg(age) as avg_age by age_range",
                 TEST_INDEX_BANK)));
 
     // 1.2 Range - Metric (COUNT)
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         loadExpectedPlan("agg_range_count_push.yaml"),
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | eval age_range = case(age < 30, 'u30', age >= 30 and age < 40, 'u40'"
                     + " else 'u100') | stats avg(age) by age_range",
                 TEST_INDEX_BANK)));
 
     // 1.3 Range - Range - Metric
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         loadExpectedPlan("agg_range_range_metric_push.yaml"),
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | eval age_range = case(age < 30, 'u30', age < 40, 'u40' else 'u100'),"
                     + " balance_range = case(balance < 20000, 'medium' else 'high') | stats"
@@ -1188,18 +1188,18 @@ public class CalciteExplainIT extends ExplainIT {
                 TEST_INDEX_BANK)));
 
     // 1.4 Range - Metric (With null & discontinuous ranges)
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         loadExpectedPlan("agg_range_metric_complex_push.yaml"),
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | eval age_range = case(age < 30, 'u30', (age >= 35 and age < 40) or age"
                     + " >= 80, '30-40 or >=80') | stats avg(balance) by age_range",
                 TEST_INDEX_BANK)));
 
     // 1.5 Should not be pushed because the range is not closed-open
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         loadExpectedPlan("agg_case_cannot_push.yaml"),
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | eval age_range = case(age < 30, 'u30', age >= 30 and age <= 40, 'u40'"
                     + " else 'u100') | stats avg(age) as avg_age by age_range",
@@ -1208,9 +1208,9 @@ public class CalciteExplainIT extends ExplainIT {
     // 1.6 Should not be pushed as range query because the result expression is not a string
     // literal.
     // Range aggregation keys must be strings
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         loadExpectedPlan("agg_case_num_res_cannot_push.yaml"),
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | eval age_range = case(age < 30, 30 else 100) | stats count() by"
                     + " age_range",
@@ -1218,35 +1218,35 @@ public class CalciteExplainIT extends ExplainIT {
 
     // CASE 2: Composite - Range - Metric
     // 2.1 Composite (term) - Range - Metric
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         loadExpectedPlan("agg_composite_range_metric_push.yaml"),
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | eval age_range = case(age < 30, 'u30' else 'a30') | stats avg(balance)"
                     + " by state, age_range",
                 TEST_INDEX_BANK)));
 
     // 2.2 Composite (date histogram) - Range - Metric
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         loadExpectedPlan("agg_composite_date_range_push.yaml"),
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_time_data | eval value_range = case(value < 7000,"
                 + " 'small' else 'large') | stats avg(value) by value_range, span(@timestamp,"
                 + " 1h)"));
 
     // 2.3 Composite(2 fields) - Range - Metric (with count)
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         loadExpectedPlan("agg_composite2_range_count_push.yaml"),
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | eval age_range = case(age < 30, 'u30' else 'a30') | stats"
                     + " avg(balance), count() by age_range, state, gender",
                 TEST_INDEX_BANK)));
 
     // 2.4 Composite (2 fields) - Range - Range - Metric (with count)
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         loadExpectedPlan("agg_composite2_range_range_count_push.yaml"),
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | eval age_range = case(age < 35, 'u35' else 'a35'), balance_range ="
                     + " case(balance < 20000, 'medium' else 'high') | stats avg(balance) as"
@@ -1254,9 +1254,9 @@ public class CalciteExplainIT extends ExplainIT {
                 TEST_INDEX_BANK)));
 
     // 2.5 Should not be pushed down as range query because case result expression is not constant
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         loadExpectedPlan("agg_case_composite_cannot_push.yaml"),
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | eval age_range = case(age < 35, 'u35' else email) | stats avg(balance)"
                     + " as avg_balance by age_range, state",
@@ -1269,9 +1269,9 @@ public class CalciteExplainIT extends ExplainIT {
     Assume.assumeFalse(
         "The query runs into error when pushdown is disabled due to bin's implementation",
         isPushdownDisabled());
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         loadExpectedPlan("agg_composite_autodate_range_metric_push.yaml"),
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | bin timestamp bins=3 | eval value_range = case(value < 7000, 'small'"
                     + " else 'great') | stats bucket_nullable=false avg(value), count() by"
