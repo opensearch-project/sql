@@ -275,11 +275,10 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testExplainIsEmpty() throws IOException {
     // script pushdown
-    String expected = loadExpectedPlan("explain_isempty.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_isempty.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_account | where isempty(firstname)"));
+        explainQueryYaml("source=opensearch-sql_test_index_account | where isempty(firstname)"));
   }
 
   @Test
@@ -310,21 +309,20 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testExplainIsBlank() throws IOException {
     // script pushdown
-    String expected = loadExpectedPlan("explain_isblank.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_isblank.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_account | where isblank(firstname)"));
+        explainQueryYaml("source=opensearch-sql_test_index_account | where isblank(firstname)"));
   }
 
   // Only for Calcite
   @Test
   public void testExplainIsEmptyOrOthers() throws IOException {
     // script pushdown
-    String expected = loadExpectedPlan("explain_isempty_or_others.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_isempty_or_others.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account | where gender = 'M' or isempty(firstname) or"
                 + " isnull(firstname)"));
   }
@@ -1106,15 +1104,15 @@ public class CalciteExplainIT extends ExplainIT {
 
     assertYamlEqualsIgnoreId(
         loadExpectedPlan("explain_agg_script_timestamp_push.yaml"),
-            explainQueryYaml(
+        explainQueryYaml(
             String.format(
                 "source=%s | eval t = unix_timestamp(birthdate) | stats count() by t | sort t |"
                     + " head 3",
                 TEST_INDEX_BANK)));
 
-    assertJsonEqualsIgnoreId(
-        loadExpectedPlan("explain_agg_script_udt_arg_push.json"),
-        explainQueryToString(
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("explain_agg_script_udt_arg_push.yaml"),
+        explainQueryYaml(
             String.format(
                 "source=%s | eval t = date_add(birthdate, interval 1 day) | stats count() by"
                     + " span(t, 1d)",
