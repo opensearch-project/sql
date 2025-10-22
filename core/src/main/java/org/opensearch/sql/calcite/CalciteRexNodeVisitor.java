@@ -453,7 +453,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                       context,
                       functionName,
                       nodes.getFirst(),
-                      args.subList(0, nodes.size()),
+                      nodes.size() <= 1 ? Collections.emptyList() : nodes.subList(1, nodes.size()),
                       partitions,
                       List.of(),
                       node.getWindowFrame())
