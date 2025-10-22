@@ -1149,7 +1149,7 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testReplaceCommandExplain() throws IOException {
     String expected = loadExpectedPlan("explain_replace_command.yaml");
-    assertYamlEqualsJsonIgnoreId(
+    assertYamlEqualsIgnoreId(
         expected,
         explainQueryToString(
             String.format(
