@@ -1151,7 +1151,7 @@ public class CalciteExplainIT extends ExplainIT {
     String expected = loadExpectedPlan("explain_replace_command.yaml");
     assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+            explainQueryYaml(
             String.format(
                 "source=%s | replace 'IL' WITH 'Illinois' IN state | fields state",
                 TEST_INDEX_ACCOUNT)));
