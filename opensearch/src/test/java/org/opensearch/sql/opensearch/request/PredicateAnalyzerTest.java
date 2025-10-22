@@ -960,19 +960,18 @@ public class PredicateAnalyzerTest {
 
     assertInstanceOf(RangeQueryBuilder.class, result);
     assertEquals(
-        """
-            {
-              "range" : {
-                "d" : {
-                  "from" : "1987-02-03T04:34:56.000Z",
-                  "to" : "1987-02-03T04:34:56.000Z",
-                  "include_lower" : true,
-                  "include_upper" : true,
-                  "format" : "date_time",
-                  "boost" : 1.0
-                }
-              }
-            }""",
+        "{\n"
+            + "  \"range\" : {\n"
+            + "    \"d\" : {\n"
+            + "      \"from\" : \"1987-02-03T04:34:56.000Z\",\n"
+            + "      \"to\" : \"1987-02-03T04:34:56.000Z\",\n"
+            + "      \"include_lower\" : true,\n"
+            + "      \"include_upper\" : true,\n"
+            + "      \"format\" : \"date_time\",\n"
+            + "      \"boost\" : 1.0\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
         result.toString());
   }
 
@@ -983,39 +982,38 @@ public class PredicateAnalyzerTest {
 
     assertInstanceOf(BoolQueryBuilder.class, result);
     assertEquals(
-        """
-            {
-              "bool" : {
-                "should" : [
-                  {
-                    "range" : {
-                      "d" : {
-                        "from" : "1987-02-03T04:34:56.000Z",
-                        "to" : null,
-                        "include_lower" : false,
-                        "include_upper" : true,
-                        "format" : "date_time",
-                        "boost" : 1.0
-                      }
-                    }
-                  },
-                  {
-                    "range" : {
-                      "d" : {
-                        "from" : null,
-                        "to" : "1987-02-03T04:34:56.000Z",
-                        "include_lower" : true,
-                        "include_upper" : false,
-                        "format" : "date_time",
-                        "boost" : 1.0
-                      }
-                    }
-                  }
-                ],
-                "adjust_pure_negative" : true,
-                "boost" : 1.0
-              }
-            }""",
+        "{\n" +
+            "  \"bool\" : {\n" +
+            "    \"should\" : [\n" +
+            "      {\n" +
+            "        \"range\" : {\n" +
+            "          \"d\" : {\n" +
+            "            \"from\" : \"1987-02-03T04:34:56.000Z\",\n" +
+            "            \"to\" : null,\n" +
+            "            \"include_lower\" : false,\n" +
+            "            \"include_upper\" : true,\n" +
+            "            \"format\" : \"date_time\",\n" +
+            "            \"boost\" : 1.0\n" +
+            "          }\n" +
+            "        }\n" +
+            "      },\n" +
+            "      {\n" +
+            "        \"range\" : {\n" +
+            "          \"d\" : {\n" +
+            "            \"from\" : null,\n" +
+            "            \"to\" : \"1987-02-03T04:34:56.000Z\",\n" +
+            "            \"include_lower\" : true,\n" +
+            "            \"include_upper\" : false,\n" +
+            "            \"format\" : \"date_time\",\n" +
+            "            \"boost\" : 1.0\n" +
+            "          }\n" +
+            "        }\n" +
+            "      }\n" +
+            "    ],\n" +
+            "    \"adjust_pure_negative\" : true,\n" +
+            "    \"boost\" : 1.0\n" +
+            "  }\n" +
+            "}",
         result.toString());
   }
 
@@ -1027,19 +1025,18 @@ public class PredicateAnalyzerTest {
 
     assertInstanceOf(RangeQueryBuilder.class, result);
     assertEquals(
-        """
-            {
-              "range" : {
-                "d" : {
-                  "from" : "1987-02-03T04:34:56.000Z",
-                  "to" : null,
-                  "include_lower" : true,
-                  "include_upper" : true,
-                  "format" : "date_time",
-                  "boost" : 1.0
-                }
-              }
-            }""",
+        "{\n"
+            + "  \"range\" : {\n"
+            + "    \"d\" : {\n"
+            + "      \"from\" : \"1987-02-03T04:34:56.000Z\",\n"
+            + "      \"to\" : null,\n"
+            + "      \"include_lower\" : true,\n"
+            + "      \"include_upper\" : true,\n"
+            + "      \"format\" : \"date_time\",\n"
+            + "      \"boost\" : 1.0\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
         result.toString());
   }
 }
