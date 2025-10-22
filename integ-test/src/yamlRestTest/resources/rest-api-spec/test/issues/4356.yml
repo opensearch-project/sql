@@ -37,6 +37,25 @@ setup:
           - '{"v": "value=true", "a": 3, "vint": 1, "vdouble": 1.0, "vboolean":true, "strnum": "3"}'
           - '{"index": {"_index": "log00001", "_id": 4}}'
           - '{"v": "value=abcde", "a": 4, "vint": 1, "vdouble": 1.0, "strnum": "malformed"}'
+  - do:
+      indices.create:
+        index: log00002
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              id:
+                type: integer
+
+
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "log00002", "_id": 1}}'
+          - '{"id": 1}'
 
 ---
 teardown:
@@ -72,6 +91,15 @@ teardown:
           query: source=log00001 | rex field=v 'value=(?<digits>[\\w\\d\\.]*)' | eval m=digits + digits, d=digits * digits | sort a | fields m, d
   - match: { "schema": [ { "name": "m", "type": "string" }, { "name": "d", "type": "double" } ] }
   - match: { "datarows": [ [ "11", 1.0 ], [ "1.51.5", 2.25 ], [ "truetrue", null ], [ "abcdeabcde", null ] ] }
+
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=log00002 | eval m="5" - 10 | eval r=round("1.5",  1) | eval f=floor("5.2") | eval c=ceil("5.2") | fields m, r, f, c
+  - match: { "schema": [ { "name": "m", "type": "double" }, { "name": "r", "type": "double" }, { "name": "f", "type": "double" }, { "name": "c", "type": "double" }] }
+  - match: { "datarows": [ [ -5.0, 1.5, 5.0, 6.0] ] }
 
 ---
 "Extracted value participate in comparison operator":

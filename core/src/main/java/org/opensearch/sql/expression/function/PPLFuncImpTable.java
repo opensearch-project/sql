@@ -259,6 +259,7 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction.Flag;
 import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
+import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SameOperandTypeChecker;
@@ -698,13 +699,13 @@ public class PPLFuncImpTable {
       // Register ADDFUNCTION for numeric addition only
       registerOperator(ADDFUNCTION, SqlStdOperatorTable.PLUS);
       registerOperator(
-          SUBTRACT,
-          SqlStdOperatorTable.MINUS,
-          PPLTypeChecker.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));
-      registerOperator(
           SUBTRACTFUNCTION,
           SqlStdOperatorTable.MINUS,
-          PPLTypeChecker.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));
+          PPLTypeChecker.wrapFamily((FamilyOperandTypeChecker) OperandTypes.NUMERIC_NUMERIC));
+      registerOperator(
+          SUBTRACT,
+          SqlStdOperatorTable.MINUS,
+          PPLTypeChecker.wrapFamily((FamilyOperandTypeChecker) OperandTypes.NUMERIC_NUMERIC));
       registerOperator(MULTIPLY, SqlStdOperatorTable.MULTIPLY);
       registerOperator(MULTIPLYFUNCTION, SqlStdOperatorTable.MULTIPLY);
       registerOperator(TRUNCATE, SqlStdOperatorTable.TRUNCATE);
@@ -762,13 +763,37 @@ public class PPLFuncImpTable {
       registerOperator(ASIN, SqlStdOperatorTable.ASIN);
       registerOperator(ATAN, SqlStdOperatorTable.ATAN);
       registerOperator(ATAN2, SqlStdOperatorTable.ATAN2);
-      registerOperator(CEIL, SqlStdOperatorTable.CEIL);
-      registerOperator(CEILING, SqlStdOperatorTable.CEIL);
+      // TODO, workaround to support sequence CompositeOperandTypeChecker.
+      registerOperator(
+          CEIL,
+          SqlStdOperatorTable.CEIL,
+          PPLTypeChecker.wrapComposite(
+              (CompositeOperandTypeChecker)
+                  OperandTypes.NUMERIC_OR_INTERVAL.or(
+                      OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.ANY)),
+              false));
+      // TODO, workaround to support sequence CompositeOperandTypeChecker.
+      registerOperator(
+          CEILING,
+          SqlStdOperatorTable.CEIL,
+          PPLTypeChecker.wrapComposite(
+              (CompositeOperandTypeChecker)
+                  OperandTypes.NUMERIC_OR_INTERVAL.or(
+                      OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.ANY)),
+              false));
       registerOperator(COS, SqlStdOperatorTable.COS);
       registerOperator(COT, SqlStdOperatorTable.COT);
       registerOperator(DEGREES, SqlStdOperatorTable.DEGREES);
       registerOperator(EXP, SqlStdOperatorTable.EXP);
-      registerOperator(FLOOR, SqlStdOperatorTable.FLOOR);
+      // TODO, workaround to support sequence CompositeOperandTypeChecker.
+      registerOperator(
+          FLOOR,
+          SqlStdOperatorTable.FLOOR,
+          PPLTypeChecker.wrapComposite(
+              (CompositeOperandTypeChecker)
+                  OperandTypes.NUMERIC_OR_INTERVAL.or(
+                      OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.ANY)),
+              false));
       registerOperator(LN, SqlStdOperatorTable.LN);
       registerOperator(LOG10, SqlStdOperatorTable.LOG10);
       registerOperator(PI, SqlStdOperatorTable.PI);
@@ -776,7 +801,15 @@ public class PPLFuncImpTable {
       registerOperator(POWER, SqlStdOperatorTable.POWER);
       registerOperator(RADIANS, SqlStdOperatorTable.RADIANS);
       registerOperator(RAND, SqlStdOperatorTable.RAND);
-      registerOperator(ROUND, SqlStdOperatorTable.ROUND);
+      // TODO, workaround to support sequence CompositeOperandTypeChecker.
+      registerOperator(
+          ROUND,
+          SqlStdOperatorTable.ROUND,
+          PPLTypeChecker.wrapComposite(
+              (CompositeOperandTypeChecker)
+                  OperandTypes.NUMERIC.or(
+                      OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.INTEGER)),
+              false));
       registerOperator(SIGN, SqlStdOperatorTable.SIGN);
       registerOperator(SIGNUM, SqlStdOperatorTable.SIGN);
       registerOperator(SIN, SqlStdOperatorTable.SIN);
