@@ -7,5 +7,4 @@ calcite:
             CalciteLogicalIndexScan(table=[[OpenSearch, events]])
   physical: |
     EnumerableLimit(fetch=[10000])
-      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[0], expr#3=[>($t1, $t2)], count()=[$t1], @timestamp=[$t0], $condition=[$t3])
-        CalciteEnumerableIndexScan(table=[[OpenSearch, events]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0},count()=COUNT())], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"@timestamp":{"auto_date_histogram":{"field":"@timestamp","buckets":3,"minimum_interval":null}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+      CalciteEnumerableIndexScan(table=[[OpenSearch, events]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0},count()=COUNT()), PROJECT->[count(), @timestamp]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"@timestamp":{"auto_date_histogram":{"field":"@timestamp","buckets":3,"minimum_interval":null}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
