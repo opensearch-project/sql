@@ -1696,7 +1696,8 @@ public class PredicateAnalyzer {
     }
 
     public boolean isDate() {
-      if (literal.getType() instanceof ExprSqlType exprSqlType) {
+      if (literal.getType() instanceof ExprSqlType) {
+        ExprSqlType exprSqlType = (ExprSqlType)literal.getType();
         return exprSqlType.getUdt() == ExprUDT.EXPR_DATE;
       }
       return false;
