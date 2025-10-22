@@ -59,22 +59,28 @@ public final class RexExtractFunction extends ImplementorUDF {
     }
   }
 
+  /**
+   * Extract a regex group by index (1-based).
+   *
+   * @param text The input text to extract from
+   * @param pattern The regex pattern
+   * @param groupIndex The 1-based group index to extract
+   * @return The extracted value or null if not found or invalid
+   */
   public static String extractGroup(String text, String pattern, int groupIndex) {
-    try {
-      Pattern compiledPattern = RegexCommonUtils.getCompiledPattern(pattern);
-      Matcher matcher = compiledPattern.matcher(text);
-
-      if (matcher.find() && groupIndex > 0 && groupIndex <= matcher.groupCount()) {
-        return matcher.group(groupIndex);
-      }
+    if (text == null || pattern == null) {
       return null;
-    } catch (PatternSyntaxException e) {
-      throw new IllegalArgumentException(
-          "Error in 'rex' command: Encountered the following error while compiling the regex '"
-              + pattern
-              + "': "
-              + e.getMessage());
     }
+
+    return executeExtraction(
+        text,
+        pattern,
+        matcher -> {
+          if (groupIndex > 0 && groupIndex <= matcher.groupCount()) {
+            return matcher.group(groupIndex);
+          }
+          return null;
+        });
   }
 
   /**
@@ -91,17 +97,35 @@ public final class RexExtractFunction extends ImplementorUDF {
       return null;
     }
 
+    return executeExtraction(
+        text,
+        pattern,
+        matcher -> {
+          try {
+            return matcher.group(groupName);
+          } catch (IllegalArgumentException e) {
+            // Group name doesn't exist in the pattern
+            return null;
+          }
+        });
+  }
+
+  /**
+   * Common extraction logic to avoid code duplication.
+   *
+   * @param text The input text
+   * @param pattern The regex pattern
+   * @param extractor Function to extract the value from the matcher
+   * @return The extracted value or null
+   */
+  private static String executeExtraction(
+      String text, String pattern, java.util.function.Function<Matcher, String> extractor) {
     try {
       Pattern compiledPattern = RegexCommonUtils.getCompiledPattern(pattern);
       Matcher matcher = compiledPattern.matcher(text);
 
       if (matcher.find()) {
-        try {
-          return matcher.group(groupName);
-        } catch (IllegalArgumentException e) {
-          // Group name doesn't exist in the pattern
-          return null;
-        }
+        return extractor.apply(matcher);
       }
       return null;
     } catch (PatternSyntaxException e) {
