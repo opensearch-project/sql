@@ -435,6 +435,28 @@ public class CalciteExplainIT extends ExplainIT {
     assertJsonEqualsIgnoreId(expected, result);
   }
 
+  @Test
+  public void testStreamstatsDistinctCountExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        "source=opensearch-sql_test_index_account | streamstats dc(state) as distinct_states";
+    var result = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_streamstats_dc.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testStreamstatsDistinctCountFunctionExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        "source=opensearch-sql_test_index_account | streamstats distinct_count(state) as"
+            + " distinct_states by gender";
+    var result = explainQueryToString(query);
+    String expected =
+        loadFromFile("expectedOutput/calcite/explain_streamstats_distinct_count.yaml");
+    assertYamlEqualsJsonIgnoreId(expected, result);
+  }
+
   // Only for Calcite, as v2 gets unstable serialized string for function
   @Test
   public void testExplainOnAggregationWithSumEnhancement() throws IOException {
@@ -543,6 +565,41 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryToString(
             String.format(
                 "source=%s | eventstats earliest(message) as earliest_message, latest(message) as"
+                    + " latest_message",
+                TEST_INDEX_LOGS)));
+  }
+
+  public void testExplainOnStreamstatsEarliestLatest() throws IOException {
+    String expected = loadExpectedPlan("explain_streamstats_earliest_latest.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | streamstats earliest(message) as earliest_message, latest(message) as"
+                    + " latest_message by server",
+                TEST_INDEX_LOGS)));
+  }
+
+  @Test
+  public void testExplainOnStreamstatsEarliestLatestWithCustomTimeField() throws IOException {
+    String expected = loadExpectedPlan("explain_streamstats_earliest_latest_custom_time.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | streamstats earliest(message, created_at) as earliest_message,"
+                    + " latest(message, created_at) as latest_message by level",
+                TEST_INDEX_LOGS)));
+  }
+
+  @Test
+  public void testExplainOnStreamstatsEarliestLatestNoGroupBy() throws IOException {
+    String expected = loadExpectedPlan("explain_streamstats_earliest_latest_no_group.yaml");
+    assertYamlEqualsJsonIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                "source=%s | streamstats earliest(message) as earliest_message, latest(message) as"
                     + " latest_message",
                 TEST_INDEX_LOGS)));
   }
