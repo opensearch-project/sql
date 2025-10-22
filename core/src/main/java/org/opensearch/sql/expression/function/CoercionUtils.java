@@ -112,11 +112,13 @@ public final class CoercionUtils {
     if (distance(argType, targetType) != IMPOSSIBLE_WIDENING) {
       return builder.makeCast(
           OpenSearchTypeFactory.convertExprTypeToRelDataType(targetType), arg, true, true);
-    } else if (argType == ExprCoreType.STRING && NUMBER_TYPES.contains(targetType)) {
-      return builder.makeCast(
-          OpenSearchTypeFactory.convertExprTypeToRelDataType(ExprCoreType.DOUBLE), arg, true, true);
     }
-    return null;
+    return resolveCommonType(argType, targetType)
+        .map(
+            exprType ->
+                builder.makeCast(
+                    OpenSearchTypeFactory.convertExprTypeToRelDataType(exprType), arg, true, true))
+        .orElse(null);
   }
 
   /**
@@ -179,10 +181,7 @@ public final class CoercionUtils {
               (left, right) -> ExprCoreType.TIMESTAMP),
           CoercionRule.of(
               (left, right) -> hasString(left, right) && hasNumber(left, right),
-              (left, right) -> ExprCoreType.DOUBLE),
-          CoercionRule.of(
-              (left, right) -> hasString(left, right) && hasBoolean(left, right),
-              (left, right) -> ExprCoreType.BOOLEAN));
+              (left, right) -> ExprCoreType.DOUBLE));
 
   private static boolean hasString(ExprType left, ExprType right) {
     return left == ExprCoreType.STRING || right == ExprCoreType.STRING;

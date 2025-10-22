@@ -97,7 +97,7 @@ When a string stands in for a number we simply parse the text:
 - If a string appears next to numeric arguments, it is treated as a ``DOUBLE`` so the numeric
   overload of the function can run.
 
-Convert to string example::
+Use string in arithmetic operator example ::
 
     os> source=people | eval divide="5"/10, multiply="5" * 10, add="5" + 10, minus="5" - 10, concat="5" + "5" | fields divide, multiply, add, minus, concat
     fetched rows / total rows = 1/1
@@ -107,20 +107,13 @@ Convert to string example::
     | 0.5    | 50.0     | 15.0 | -5.0  | 55     |
     +--------+----------+------+-------+--------+
 
-String to boolean
->>>>>>>>>>>>>>>>>
+Use string in comparison operator example ::
 
-- Strings map to booleans only when they read ``"true"`` or ``"false"`` (in any case). Other text
-  raises an error.
-- Conversion happens only when the function needs booleans and there is no string overload; otherwise
-  the engine keeps the value as a string.
-
-Convert to boolean example::
-
-    os> source=people | eval t1="True"==true, t2="true"==true, t3="malformed"==true, f1="False"==false, f2="false"==false, f3="malformed"==false | fields t1, t2, t3, f1, f2, f3
+    os> source=people | eval e="1000"==1000, en="1000"!=1000, ed="1000"==1000.0, edn="1000"!=1000.0, l="1000">999, ld="1000">999.9, i="malformed"==1000 | fields e, en, ed, edn, l, ld, i
     fetched rows / total rows = 1/1
-    +------+------+------+------+------+------+
-    | t1   | t2   | t3   | f1   | f2   | f3   |
-    |------+------+------+------+------+------|
-    | True | True | null | True | True | null |
-    +------+------+------+------+------+------+
+    +------+-------+------+-------+------+------+------+
+    | e    | en    | ed   | edn   | l    | ld   | i    |
+    |------+-------+------+-------+------+------+------|
+    | True | False | True | False | True | True | null |
+    +------+-------+------+-------+------+------+------+
+

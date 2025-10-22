@@ -115,6 +115,15 @@ teardown:
   - match: {"schema": [{"name": "i", "type": "boolean"}, {"name": "d", "type": "boolean"}, {"name": "b", "type": "boolean"}]}
   - match: {"datarows": [[true,true,null], [false,true,null], [null, null, true], [null, null, null]]}
 
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=log00002 | eval e='1000'==1000, en='1000'!=1000, ed='1000'==1000.0, edn='1000'!=1000.0, l='1000'>999, ld='1000'>999.9, i="malformed"==1000 | fields e, en, ed, edn, l, ld, i
+  - match: {"schema": [{"name": "e", "type": "boolean"}, {"name": "en", "type": "boolean"}, {"name": "ed", "type": "boolean"}, {"name": "edn", "type": "boolean"}, {"name": "l", "type": "boolean"}, {"name": "ld", "type": "boolean"}, {"name": "i", "type": "boolean"}]}
+  - match: {"datarows": [[true, false, true, false, true, true, null]]}
+
 ---
 "Extracted value participate in string func":
   - skip:
