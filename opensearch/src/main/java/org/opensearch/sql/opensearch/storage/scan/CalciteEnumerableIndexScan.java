@@ -128,7 +128,7 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
       }
     }
 
-    // No project pushdown - use logical field names with alias mapping
+    // If there was no project pushdown use logical field names with alias mapping
     return getRowType().getFieldNames().stream()
         .map(f -> osIndex.getAliasMapping().getOrDefault(f, f))
         .toList();
