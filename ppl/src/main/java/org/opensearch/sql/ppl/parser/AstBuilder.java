@@ -63,6 +63,7 @@ import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.SearchAnd;
 import org.opensearch.sql.ast.expression.SearchExpression;
 import org.opensearch.sql.ast.expression.SearchGroup;
+import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
