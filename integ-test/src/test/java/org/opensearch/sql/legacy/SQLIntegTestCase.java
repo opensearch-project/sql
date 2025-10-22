@@ -51,6 +51,8 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   public static final String TRANSIENT = "transient";
   public static final Integer DEFAULT_QUERY_SIZE_LIMIT =
       Integer.parseInt(System.getProperty("defaultQuerySizeLimit", "200"));
+  public static final Integer DEFAULT_QUERY_BUCKET_SIZE =
+      Integer.parseInt(System.getProperty("defaultQueryBucketSize", "1000"));
   public static final Integer DEFAULT_MAX_RESULT_WINDOW =
       Integer.parseInt(System.getProperty("defaultMaxResultWindow", "10000"));
 
@@ -146,6 +148,20 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
             "transient",
             Settings.Key.QUERY_SIZE_LIMIT.getKeyValue(),
             DEFAULT_QUERY_SIZE_LIMIT.toString()));
+  }
+
+  protected void setQueryBucketSize(Integer limit) throws IOException {
+    updateClusterSettings(
+        new ClusterSetting(
+            "transient", Settings.Key.QUERY_BUCKET_SIZE.getKeyValue(), limit.toString()));
+  }
+
+  protected void resetQueryBucketSize() throws IOException {
+    updateClusterSettings(
+        new ClusterSetting(
+            "transient",
+            Settings.Key.QUERY_BUCKET_SIZE.getKeyValue(),
+            DEFAULT_QUERY_BUCKET_SIZE.toString()));
   }
 
   @SneakyThrows
@@ -906,7 +922,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "events_null",
         "events_null",
         "{\"mappings\":{\"properties\":{\"@timestamp\":{\"type\":\"date\"},\"host\":{\"type\":\"text\"},\"cpu_usage\":{\"type\":\"double\"},\"region\":{\"type\":\"keyword\"}}}}",
-        "src/test/resources/events_null.json");
+        "src/test/resources/events_null.json"),
+    EVENTS_TRAFFIC(
+        "events_traffic",
+        "events_traffic",
+        getMappingFile("events_traffic_index_mapping.json"),
+        "src/test/resources/events_traffic.json");
 
     private final String name;
     private final String type;

@@ -646,6 +646,49 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testReplaceCommandSingleField() {
+    assertEquals(
+        "source=table | replace *** WITH *** IN Field(field=fieldname, fieldArgs=[])",
+        anonymize("source=EMP | replace \"value\" WITH \"newvalue\" IN fieldname"));
+  }
+
+  @Test
+  public void testReplaceCommandMultipleFields() {
+    assertEquals(
+        "source=table | replace *** WITH *** IN Field(field=fieldname1, fieldArgs=[]),"
+            + " Field(field=fieldname2, fieldArgs=[])",
+        anonymize("source=EMP | replace \"value\" WITH \"newvalue\" IN fieldname1, fieldname2"));
+  }
+
+  @Test(expected = Exception.class)
+  public void testReplaceCommandWithoutInShouldFail() {
+    anonymize("source=EMP | replace \"value\" WITH \"newvalue\"");
+  }
+
+  @Test
+  public void testReplaceCommandSpecialCharactersInFields() {
+    assertEquals(
+        "source=table | replace *** WITH *** IN Field(field=user.name, fieldArgs=[]),"
+            + " Field(field=user.email, fieldArgs=[])",
+        anonymize("source=EMP | replace \"value\" WITH \"newvalue\" IN user.name, user.email"));
+  }
+
+  @Test
+  public void testReplaceCommandWithWildcards() {
+    assertEquals(
+        "source=table | replace *** WITH *** IN Field(field=fieldname, fieldArgs=[])",
+        anonymize("source=EMP | replace \"CLERK*\" WITH \"EMPLOYEE*\" IN fieldname"));
+  }
+
+  @Test
+  public void testReplaceCommandWithMultipleWildcards() {
+    assertEquals(
+        "source=table | replace *** WITH *** IN Field(field=fieldname1, fieldArgs=[]),"
+            + " Field(field=fieldname2, fieldArgs=[])",
+        anonymize("source=EMP | replace \"*TEST*\" WITH \"*NEW*\" IN fieldname1, fieldname2"));
+  }
+
+  @Test
   public void testPatterns() {
     when(settings.getSettingValue(Key.PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
     when(settings.getSettingValue(Key.PATTERN_MODE)).thenReturn("LABEL");
@@ -717,6 +760,13 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testMvappend() {
+    assertEquals(
+        "source=table | eval identifier=mvappend(identifier,***,***) | fields + identifier",
+        anonymize("source=t | eval result=mvappend(a, 'b', 'c') | fields result"));
+  }
+
+  @Test
   public void testRexWithOffsetField() {
     when(settings.getSettingValue(Key.PPL_REX_MAX_MATCH_LIMIT)).thenReturn(10);
 
@@ -775,5 +825,14 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=table (@timestamp:*** AND (@timestamp:***",
         anonymize("search source=t earliest='2012-12-10 15:00:00' latest=now"));
+  }
+
+  @Test
+  public void testSpath() {
+    assertEquals(
+        "source=table | spath input=identifier output=identifier path=identifier | fields +"
+            + " identifier,identifier",
+        anonymize(
+            "search source=t | spath input=json_attr output=out path=foo.bar | fields id, out"));
   }
 }

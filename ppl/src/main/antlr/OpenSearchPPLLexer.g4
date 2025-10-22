@@ -176,7 +176,6 @@ HOUR_OF_DAY:                        'HOUR_OF_DAY';
 HOUR_SECOND:                        'HOUR_SECOND';
 INTERVAL:                           'INTERVAL';
 MICROSECOND:                        'MICROSECOND';
-MILLISECOND:                        'MILLISECOND';
 MINUTE:                             'MINUTE';
 MINUTE_MICROSECOND:                 'MINUTE_MICROSECOND';
 MINUTE_OF_DAY:                      'MINUTE_OF_DAY';
@@ -194,9 +193,7 @@ YEAR:                               'YEAR';
 YEAR_MONTH:                         'YEAR_MONTH';
 
 // DATASET TYPES
-DATAMODEL:                          'DATAMODEL';
 LOOKUP:                             'LOOKUP';
-SAVEDSEARCH:                        'SAVEDSEARCH';
 
 // CONVERTED DATA TYPES
 INT:                                'INT';
@@ -404,7 +401,6 @@ SUBSTRING:                          'SUBSTRING';
 LTRIM:                              'LTRIM';
 RTRIM:                              'RTRIM';
 TRIM:                               'TRIM';
-TO:                                 'TO';
 LOWER:                              'LOWER';
 UPPER:                              'UPPER';
 CONCAT:                             'CONCAT';
@@ -432,6 +428,7 @@ ISBLANK:                            'ISBLANK';
 // COLLECTION FUNCTIONS
 ARRAY:                              'ARRAY';
 ARRAY_LENGTH:                       'ARRAY_LENGTH';
+MVAPPEND:                           'MVAPPEND';
 MVJOIN:                             'MVJOIN';
 FORALL:                             'FORALL';
 FILTER:                             'FILTER';

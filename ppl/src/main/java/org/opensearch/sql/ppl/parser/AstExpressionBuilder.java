@@ -21,6 +21,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.*;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
@@ -60,6 +61,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalXorContext
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.MultiFieldRelevanceFunctionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PatternMethodContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PatternModeContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PerFunctionCallContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameFieldExpressionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SingleFieldRelevanceFunctionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
@@ -67,6 +69,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SpanClauseContext
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsFunctionCallContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StringLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TimechartCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WcFieldExpressionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
@@ -547,6 +550,18 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return args;
   }
 
+  @Override
+  public UnresolvedExpression visitPerFunctionCall(PerFunctionCallContext ctx) {
+    ParseTree parent = ctx.getParent();
+    String perFuncName = ctx.perFunction().funcName.getText();
+    if (!(parent instanceof TimechartCommandContext)) {
+      throw new SyntaxCheckException(
+          perFuncName + " function can only be used within timechart command");
+    }
+    return buildAggregateFunction(
+        perFuncName, Collections.singletonList(ctx.perFunction().functionArg()));
+  }
+
   /** Literal and value. */
   @Override
   public UnresolvedExpression visitIdentsAsQualifiedName(IdentsAsQualifiedNameContext ctx) {
@@ -621,7 +636,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     if (ctx.fieldExpression() != null) {
       fieldExpression = visit(ctx.fieldExpression());
     } else {
-      fieldExpression = AstDSL.field("@timestamp");
+      fieldExpression = AstDSL.referImplicitTimestampField();
     }
     Literal literal = (Literal) visit(ctx.value);
     return AstDSL.spanFromSpanLengthLiteral(fieldExpression, literal);
@@ -917,6 +932,47 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
       osDateMathExpression = DateTimeUtils.resolveTimeModifier(pplTimeModifier);
     }
     return AstDSL.stringLiteral(osDateMathExpression);
+  }
+
+  @Override
+  public UnresolvedExpression visitTimechartParameter(
+      OpenSearchPPLParser.TimechartParameterContext ctx) {
+    UnresolvedExpression timechartParameter;
+    if (ctx.SPAN() != null) {
+      // Convert span=1h to span(@timestamp, 1h)
+      Literal spanLiteral = (Literal) visit(ctx.spanLiteral());
+      timechartParameter =
+          AstDSL.spanFromSpanLengthLiteral(AstDSL.referImplicitTimestampField(), spanLiteral);
+    } else if (ctx.LIMIT() != null) {
+      Literal limit = (Literal) visit(ctx.integerLiteral());
+      if ((Integer) limit.getValue() < 0) {
+        throw new IllegalArgumentException("Limit must be a non-negative number");
+      }
+      timechartParameter = limit;
+    } else if (ctx.USEOTHER() != null) {
+      UnresolvedExpression useOther;
+      if (ctx.booleanLiteral() != null) {
+        useOther = visit(ctx.booleanLiteral());
+      } else if (ctx.ident() != null) {
+        QualifiedName ident = visitIdentifiers(List.of(ctx.ident()));
+        String useOtherValue = ident.toString();
+        if ("true".equalsIgnoreCase(useOtherValue) || "t".equalsIgnoreCase(useOtherValue)) {
+          useOther = AstDSL.booleanLiteral(true);
+        } else if ("false".equalsIgnoreCase(useOtherValue) || "f".equalsIgnoreCase(useOtherValue)) {
+          useOther = AstDSL.booleanLiteral(false);
+        } else {
+          throw new IllegalArgumentException(
+              "Invalid useOther value: " + ctx.ident().getText() + ". Expected true/false or t/f");
+        }
+      } else {
+        throw new IllegalArgumentException("value for useOther must be a boolean or identifier");
+      }
+      timechartParameter = useOther;
+    } else {
+      throw new IllegalArgumentException(
+          String.format("A parameter of timechart must be a span, limit or useOther, got %s", ctx));
+    }
+    return timechartParameter;
   }
 
   /**

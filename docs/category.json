@@ -1,12 +1,11 @@
 {
   "bash": [
-    "user/ppl/interfaces/endpoint.rst",
-    "user/ppl/interfaces/protocol.rst",
-    "user/ppl/admin/settings.rst",
     "user/optimization/optimization.rst",
     "user/admin/settings.rst"
   ],
-  "ppl_cli": [
+  "bash_calcite": [
+    "user/ppl/interfaces/endpoint.rst",
+    "user/ppl/interfaces/protocol.rst"
   ],
   "sql_cli": [
     "user/dql/expressions.rst",
@@ -41,6 +40,7 @@
     "user/ppl/cmd/rare.rst",
     "user/ppl/cmd/regex.rst",
     "user/ppl/cmd/rename.rst",
+    "user/ppl/cmd/replace.rst",
     "user/ppl/cmd/rex.rst",
     "user/ppl/cmd/search.rst",
     "user/ppl/cmd/showdatasources.rst",
@@ -55,6 +55,7 @@
     "user/ppl/cmd/top.rst",
     "user/ppl/cmd/trendline.rst",
     "user/ppl/cmd/where.rst",
+    "user/ppl/functions/collection.rst",
     "user/ppl/functions/condition.rst",
     "user/ppl/functions/datetime.rst",
     "user/ppl/functions/expressions.rst",
@@ -65,5 +66,8 @@
     "user/ppl/functions/string.rst",
     "user/ppl/general/datatypes.rst",
     "user/ppl/general/identifiers.rst"
+  ],
+  "bash_settings": [
+    "user/ppl/admin/settings.rst"
   ]
 }

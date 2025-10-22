@@ -80,6 +80,7 @@ commands
    | regexCommand
    | timechartCommand
    | rexCommand
+   | replaceCommand
    ;
 
 commandName
@@ -119,6 +120,7 @@ commandName
    | APPEND
    | MULTISEARCH
    | REX
+   | REPLACE
    ;
 
 searchCommand
@@ -206,6 +208,14 @@ renameCommand
    : RENAME renameClasue (COMMA? renameClasue)*
    ;
 
+replaceCommand
+   : REPLACE replacePair (COMMA replacePair)* IN fieldList
+   ;
+
+replacePair
+   : pattern=stringLiteral WITH replacement=stringLiteral
+   ;
+
 statsCommand
    : STATS statsArgs statsAggTerm (COMMA statsAggTerm)* (statsByClause)? (dedupSplitArg)?
    ;
@@ -283,12 +293,8 @@ timechartCommand
    ;
 
 timechartParameter
-   : (spanClause | SPAN EQUAL spanLiteral)
-   | timechartArg
-   ;
-
-timechartArg
    : LIMIT EQUAL integerLiteral
+   | SPAN EQUAL spanLiteral
    | USEOTHER EQUAL (booleanLiteral | ident)
    ;
 
@@ -645,7 +651,7 @@ bySpanClause
    ;
 
 spanClause
-   : SPAN LT_PRTHS fieldExpression COMMA value = spanLiteral RT_PRTHS
+   : SPAN LT_PRTHS (fieldExpression COMMA)? value = spanLiteral RT_PRTHS
    ;
 
 sortbyClause
@@ -701,6 +707,7 @@ statsFunction
    | takeAggFunction                                            # takeAggFunctionCall
    | valuesAggFunction                                          # valuesAggFunctionCall
    | percentileApproxFunction                                   # percentileApproxFunctionCall
+   | perFunction                                                # perFunctionCall
    | statsFunctionName LT_PRTHS functionArgs RT_PRTHS           # statsFunctionCall
    ;
 
@@ -735,6 +742,10 @@ valuesAggFunction
 percentileApproxFunction
    : (PERCENTILE | PERCENTILE_APPROX) LT_PRTHS aggField = valueExpression
        COMMA percent = numericLiteral (COMMA compression = numericLiteral)? RT_PRTHS
+   ;
+
+perFunction
+   : funcName=PER_SECOND LT_PRTHS functionArg RT_PRTHS
    ;
 
 numericLiteral
@@ -1047,6 +1058,7 @@ geoipFunctionName
 collectionFunctionName
     : ARRAY
     | ARRAY_LENGTH
+    | MVAPPEND
     | MVJOIN
     | FORALL
     | EXISTS
@@ -1505,7 +1517,16 @@ searchableKeyWord
    | PATH
    | INPUT
    | OUTPUT
-
+   | AS
+   | ON
+   | LIMIT
+   | OVERWRITE
+   | FIELD
+   | SED
+   | MAX_MATCH
+   | OFFSET_FIELD
+   | patternMethod
+   | patternMode
    // AGGREGATIONS AND WINDOW
    | statsFunctionName
    | windowFunctionName

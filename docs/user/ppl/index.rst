@@ -126,6 +126,8 @@ The query start with search command and then flowing a set of command delimited 
 
   - `trendline command <cmd/trendline.rst>`_
 
+  - `replace command <cmd/replace.rst>`_
+
   - `where command <cmd/where.rst>`_
 
 * **Functions**
