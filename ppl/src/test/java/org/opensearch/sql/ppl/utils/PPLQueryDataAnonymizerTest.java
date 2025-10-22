@@ -817,6 +817,7 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+<<<<<<< HEAD
   public void testMvindex() {
     // Test mvindex with single element access
     assertEquals(
@@ -827,6 +828,17 @@ public class PPLQueryDataAnonymizerTest {
         "source=table | eval identifier=mvindex(array(***,***,***,***,***),***,***) | fields +"
             + " identifier",
         anonymize("source=t | eval result=mvindex(array(1, 2, 3, 4, 5), 1, 3) | fields result"));
+=======
+  public void testMvexpandCommand() {
+    assertEquals("source=table | mvexpand identifier", anonymize("source=t | mvexpand skills"));
+  }
+
+  @Test
+  public void testMvexpandCommandWithLimit() {
+    assertEquals(
+        "source=table | mvexpand identifier limit=***",
+        anonymize("source=t | mvexpand skills limit 5"));
+>>>>>>> 148ccc5f2 (Add Tests)
   }
 
   @Test
