@@ -1255,4 +1255,16 @@ public class AstBuilderTest {
         "Multisearch command requires at least two subsearches. Provided: 1",
         exception.getMessage());
   }
+
+  @Test
+  public void testReplaceCommand() {
+    // Test basic single pattern replacement
+    plan("source=t | replace 'old' WITH 'new' IN field");
+  }
+
+  @Test
+  public void testReplaceCommandWithMultiplePairs() {
+    // Test multiple pattern/replacement pairs
+    plan("source=t | replace 'a' WITH 'A', 'b' WITH 'B' IN field");
+  }
 }
