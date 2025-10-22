@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -596,7 +598,7 @@ class AggregateAnalyzerTest {
       rexNodes.add(ref);
     }
     List<org.apache.calcite.util.Pair<RexNode, String>> namedProjects =
-        rexNodes.stream().map(n -> org.apache.calcite.util.Pair.of(n, n.toString())).toList();
+        rexNodes.stream().map(n -> org.apache.calcite.util.Pair.of(n, n.toString())).collect(Collectors.toList());
     when(project.getProjects()).thenReturn(rexNodes);
     when(project.getRowType()).thenReturn(rowType);
     when(project.getNamedProjects()).thenReturn(namedProjects);

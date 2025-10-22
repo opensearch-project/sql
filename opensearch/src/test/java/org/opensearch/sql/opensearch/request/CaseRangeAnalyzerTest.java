@@ -90,30 +90,29 @@ class CaseRangeAnalyzerTest {
     assertEquals("age", builder.field());
 
     String expectedJson =
-        """
-        {
-          "age_ranges" : {
-            "range" : {
-              "field" : "age",
-              "ranges" : [
-                {
-                  "key" : "adult",
-                  "from" : 18.0
-                },
-                {
-                  "key" : "teen",
-                  "from" : 13.0,
-                  "to" : 18.0
-                },
-                {
-                  "key" : "child",
-                  "to" : 13.0
-                }
-              ],
-              "keyed" : true
-            }
-          }
-        }""";
+        "{" +
+        "  \"age_ranges\" : {" +
+        "    \"range\" : {" +
+        "      \"field\" : \"age\"," +
+        "      \"ranges\" : [" +
+        "        {" +
+        "          \"key\" : \"adult\"," +
+        "          \"from\" : 18.0" +
+        "        }," +
+        "        {" +
+        "          \"key\" : \"teen\"," +
+        "          \"from\" : 13.0," +
+        "          \"to\" : 18.0" +
+        "        }," +
+        "        {" +
+        "          \"key\" : \"child\"," +
+        "          \"to\" : 13.0" +
+        "        }" +
+        "      ]," +
+        "      \"keyed\" : true" +
+        "    }" +
+        "  }" +
+        "}";
 
     assertEquals(normalizeJson(expectedJson), normalizeJson(builder.toString()));
   }
@@ -141,25 +140,24 @@ class CaseRangeAnalyzerTest {
     RangeAggregationBuilder builder = result.get();
 
     String expectedJson =
-        """
-        {
-          "age_check" : {
-            "range" : {
-              "field" : "age",
-              "ranges" : [
-                {
-                  "key" : "minor",
-                  "to" : 18.0
-                },
-                {
-                  "key" : "adult",
-                  "from" : 18.0
-                }
-              ],
-              "keyed" : true
-            }
-          }
-        }""";
+        "{" +
+        "  \"age_check\" : {" +
+        "    \"range\" : {" +
+        "      \"field\" : \"age\"," +
+        "      \"ranges\" : [" +
+        "        {" +
+        "          \"key\" : \"minor\"," +
+        "          \"to\" : 18.0" +
+        "        }," +
+        "        {" +
+        "          \"key\" : \"adult\"," +
+        "          \"from\" : 18.0" +
+        "        }" +
+        "      ]," +
+        "      \"keyed\" : true" +
+        "    }" +
+        "  }" +
+        "}";
 
     assertEquals(normalizeJson(expectedJson), normalizeJson(builder.toString()));
   }
@@ -193,30 +191,29 @@ class CaseRangeAnalyzerTest {
     RangeAggregationBuilder builder = result.get();
 
     String expectedJson =
-        """
-        {
-          "age_groups" : {
-            "range" : {
-              "field" : "age",
-              "ranges" : [
-                {
-                  "key" : "working_age",
-                  "from" : 18.0,
-                  "to" : 65.0
-                },
-                {
-                  "key" : "other",
-                  "to" : 18.0
-                },
-                {
-                  "key" : "other",
-                  "from" : 65.0
-                }
-              ],
-              "keyed" : true
-            }
-          }
-        }""";
+        "{" +
+        "  \"age_groups\" : {" +
+        "    \"range\" : {" +
+        "      \"field\" : \"age\"," +
+        "      \"ranges\" : [" +
+        "        {" +
+        "          \"key\" : \"working_age\"," +
+        "          \"from\" : 18.0," +
+        "          \"to\" : 65.0" +
+        "        }," +
+        "        {" +
+        "          \"key\" : \"other\"," +
+        "          \"to\" : 18.0" +
+        "        }," +
+        "        {" +
+        "          \"key\" : \"other\"," +
+        "          \"from\" : 65.0" +
+        "        }" +
+        "      ]," +
+        "      \"keyed\" : true" +
+        "    }" +
+        "  }" +
+        "}";
 
     assertEquals(normalizeJson(expectedJson), normalizeJson(builder.toString()));
   }
@@ -247,25 +244,24 @@ class CaseRangeAnalyzerTest {
     // Should use DEFAULT_ELSE_KEY for null else clause
 
     String expectedJson =
-        """
-        {
-          "age_check" : {
-            "range" : {
-              "field" : "age",
-              "ranges" : [
-                {
-                  "key" : "adult",
-                  "from" : 18.0
-                },
-                {
-                  "key" : "null",
-                  "to" : 18.0
-                }
-              ],
-              "keyed" : true
-            }
-          }
-        }""";
+        "{" +
+        "  \"age_check\" : {" +
+        "    \"range\" : {" +
+        "      \"field\" : \"age\"," +
+        "      \"ranges\" : [" +
+        "        {" +
+        "          \"key\" : \"adult\"," +
+        "          \"from\" : 18.0" +
+        "        }," +
+        "        {" +
+        "          \"key\" : \"null\"," +
+        "          \"to\" : 18.0" +
+        "        }" +
+        "      ]," +
+        "      \"keyed\" : true" +
+        "    }" +
+        "  }" +
+        "}";
 
     assertEquals(normalizeJson(expectedJson), normalizeJson(builder.toString()));
   }
@@ -426,25 +422,24 @@ class CaseRangeAnalyzerTest {
     RangeAggregationBuilder builder = result.get();
 
     String expectedJson =
-        """
-        {
-          "reversed_test" : {
-            "range" : {
-              "field" : "age",
-              "ranges" : [
-                {
-                  "key" : "adult",
-                  "from" : 18.0
-                },
-                {
-                  "key" : "minor",
-                  "to" : 18.0
-                }
-              ],
-              "keyed" : true
-            }
-          }
-        }""";
+        "{" +
+        "  \"reversed_test\" : {" +
+        "    \"range\" : {" +
+        "      \"field\" : \"age\"," +
+        "      \"ranges\" : [" +
+        "        {" +
+        "          \"key\" : \"adult\"," +
+        "          \"from\" : 18.0" +
+        "        }," +
+        "        {" +
+        "          \"key\" : \"minor\"," +
+        "          \"to\" : 18.0" +
+        "        }" +
+        "      ]," +
+        "      \"keyed\" : true" +
+        "    }" +
+        "  }" +
+        "}";
 
     assertEquals(normalizeJson(expectedJson), normalizeJson(builder.toString()));
   }
@@ -496,25 +491,24 @@ class CaseRangeAnalyzerTest {
     RangeAggregationBuilder builder = result.get();
 
     String expectedJson =
-        """
-        {
-          "age_groups" : {
-            "range" : {
-              "field" : "age",
-              "ranges" : [
-                {
-                  "key" : "adult",
-                  "from" : 18.0
-                },
-                {
-                  "key" : "minor",
-                  "to" : 18.0
-                }
-              ],
-              "keyed" : true
-            }
-          }
-        }""";
+        "{" +
+        "  \"age_groups\" : {" +
+        "    \"range\" : {" +
+        "      \"field\" : \"age\"," +
+        "      \"ranges\" : [" +
+        "        {" +
+        "          \"key\" : \"adult\"," +
+        "          \"from\" : 18.0" +
+        "        }," +
+        "        {" +
+        "          \"key\" : \"minor\"," +
+        "          \"to\" : 18.0" +
+        "        }" +
+        "      ]," +
+        "      \"keyed\" : true" +
+        "    }" +
+        "  }" +
+        "}";
 
     assertEquals(normalizeJson(expectedJson), normalizeJson(builder.toString()));
   }
@@ -553,30 +547,29 @@ class CaseRangeAnalyzerTest {
     RangeAggregationBuilder builder = result.get();
 
     String expectedJson =
-        """
-        {
-          "age_categories" : {
-            "range" : {
-              "field" : "age",
-              "ranges" : [
-                {
-                  "key" : "senior",
-                  "from" : 65.0
-                },
-                {
-                  "key" : "adult",
-                  "from" : 18.0,
-                  "to" : 65.0
-                },
-                {
-                  "key" : "minor",
-                  "to" : 18.0
-                }
-              ],
-              "keyed" : true
-            }
-          }
-        }""";
+        "{" +
+        "  \"age_categories\" : {" +
+        "    \"range\" : {" +
+        "      \"field\" : \"age\"," +
+        "      \"ranges\" : [" +
+        "        {" +
+        "          \"key\" : \"senior\"," +
+        "          \"from\" : 65.0" +
+        "        }," +
+        "        {" +
+        "          \"key\" : \"adult\"," +
+        "          \"from\" : 18.0," +
+        "          \"to\" : 65.0" +
+        "        }," +
+        "        {" +
+        "          \"key\" : \"minor\"," +
+        "          \"to\" : 18.0" +
+        "        }" +
+        "      ]," +
+        "      \"keyed\" : true" +
+        "    }" +
+        "  }" +
+        "}";
 
     assertEquals(normalizeJson(expectedJson), normalizeJson(builder.toString()));
   }
@@ -604,25 +597,24 @@ class CaseRangeAnalyzerTest {
     RangeAggregationBuilder builder = result.get();
 
     String expectedJson =
-        """
-        {
-          "legal_status" : {
-            "range" : {
-              "field" : "age",
-              "ranges" : [
-                {
-                  "key" : "underage",
-                  "to" : 21.0
-                },
-                {
-                  "key" : "legal",
-                  "from" : 21.0
-                }
-              ],
-              "keyed" : true
-            }
-          }
-        }""";
+        "{" +
+        "  \"legal_status\" : {" +
+        "    \"range\" : {" +
+        "      \"field\" : \"age\"," +
+        "      \"ranges\" : [" +
+        "        {" +
+        "          \"key\" : \"underage\"," +
+        "          \"to\" : 21.0" +
+        "        }," +
+        "        {" +
+        "          \"key\" : \"legal\"," +
+        "          \"from\" : 21.0" +
+        "        }" +
+        "      ]," +
+        "      \"keyed\" : true" +
+        "    }" +
+        "  }" +
+        "}";
 
     assertEquals(normalizeJson(expectedJson), normalizeJson(builder.toString()));
   }
@@ -652,25 +644,24 @@ class CaseRangeAnalyzerTest {
     RangeAggregationBuilder builder = result.get();
 
     String expectedJson =
-        """
-        {
-          "adult_check" : {
-            "range" : {
-              "field" : "age",
-              "ranges" : [
-                {
-                  "key" : "adult",
-                  "from" : 18.0
-                },
-                {
-                  "key" : "null",
-                  "to" : 18.0
-                }
-              ],
-              "keyed" : true
-            }
-          }
-        }""";
+        "{" +
+        "  \"adult_check\" : {" +
+        "    \"range\" : {" +
+        "      \"field\" : \"age\"," +
+        "      \"ranges\" : [" +
+        "        {" +
+        "          \"key\" : \"adult\"," +
+        "          \"from\" : 18.0" +
+        "        }," +
+        "        {" +
+        "          \"key\" : \"null\"," +
+        "          \"to\" : 18.0" +
+        "        }" +
+        "      ]," +
+        "      \"keyed\" : true" +
+        "    }" +
+        "  }" +
+        "}";
 
     assertEquals(normalizeJson(expectedJson), normalizeJson(builder.toString()));
   }
@@ -704,30 +695,29 @@ class CaseRangeAnalyzerTest {
     RangeAggregationBuilder builder = result.get();
 
     String expectedJson =
-        """
-        {
-          "employment_status" : {
-            "range" : {
-              "field" : "age",
-              "ranges" : [
-                {
-                  "key" : "working_age",
-                  "from" : 18.0,
-                  "to" : 65.0
-                },
-                {
-                  "key" : "other",
-                  "to" : 18.0
-                },
-                {
-                  "key" : "other",
-                  "from" : 65.0
-                }
-              ],
-              "keyed" : true
-            }
-          }
-        }""";
+        "{" +
+        "  \"employment_status\" : {" +
+        "    \"range\" : {" +
+        "      \"field\" : \"age\"," +
+        "      \"ranges\" : [" +
+        "        {" +
+        "          \"key\" : \"working_age\"," +
+        "          \"from\" : 18.0," +
+        "          \"to\" : 65.0" +
+        "        }," +
+        "        {" +
+        "          \"key\" : \"other\"," +
+        "          \"to\" : 18.0" +
+        "        }," +
+        "        {" +
+        "          \"key\" : \"other\"," +
+        "          \"from\" : 65.0" +
+        "        }" +
+        "      ]," +
+        "      \"keyed\" : true" +
+        "    }" +
+        "  }" +
+        "}";
 
     assertEquals(normalizeJson(expectedJson), normalizeJson(builder.toString()));
   }
@@ -765,40 +755,39 @@ class CaseRangeAnalyzerTest {
     RangeAggregationBuilder builder = result.get();
 
     String expectedJson =
-        """
-        {
-          "discontinuous_ranges" : {
-            "range" : {
-              "field" : "age",
-              "ranges" : [
-                {
-                  "key" : "target_age",
-                  "from" : 20.0,
-                  "to" : 30.0
-                },
-                {
-                  "key" : "target_age",
-                  "from" : 40.0,
-                  "to" : 50.0
-                },
-                {
-                  "key" : "null",
-                  "to" : 20.0
-                },
-                {
-                  "key" : "null",
-                  "from" : 30.0,
-                  "to" : 40.0
-                },
-                {
-                  "key" : "null",
-                  "from" : 50.0
-                }
-              ],
-              "keyed" : true
-            }
-          }
-        }""";
+        "{" +
+        "  \"discontinuous_ranges\" : {" +
+        "    \"range\" : {" +
+        "      \"field\" : \"age\"," +
+        "      \"ranges\" : [" +
+        "        {" +
+        "          \"key\" : \"target_age\"," +
+        "          \"from\" : 20.0," +
+        "          \"to\" : 30.0" +
+        "        }," +
+        "        {" +
+        "          \"key\" : \"target_age\"," +
+        "          \"from\" : 40.0," +
+        "          \"to\" : 50.0" +
+        "        }," +
+        "        {" +
+        "          \"key\" : \"null\"," +
+        "          \"to\" : 20.0" +
+        "        }," +
+        "        {" +
+        "          \"key\" : \"null\"," +
+        "          \"from\" : 30.0," +
+        "          \"to\" : 40.0" +
+        "        }," +
+        "        {" +
+        "          \"key\" : \"null\"," +
+        "          \"from\" : 50.0" +
+        "        }" +
+        "      ]," +
+        "      \"keyed\" : true" +
+        "    }" +
+        "  }" +
+        "}";
 
     assertEquals(normalizeJson(expectedJson), normalizeJson(builder.toString()));
   }

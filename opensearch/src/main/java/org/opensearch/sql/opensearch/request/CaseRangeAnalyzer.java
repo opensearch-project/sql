@@ -86,7 +86,7 @@ public class CaseRangeAnalyzer {
     }
 
     // Check ELSE clause
-    RexNode elseExpr = operands.getLast();
+    RexNode elseExpr = operands.get(operands.size() - 1);
     String elseKey;
     if (RexLiteral.isNullLiteral(elseExpr)) {
       // range key doesn't support values of type: VALUE_NULL
@@ -168,20 +168,20 @@ public class CaseRangeAnalyzer {
       throwUnsupported("Cannot parse value for comparison");
     }
     switch (operator.getKind()) {
-      case GREATER_THAN_OR_EQUAL -> {
+      case GREATER_THAN_OR_EQUAL:
         addFrom(key, value);
-      }
-      case LESS_THAN -> {
+        break;
+      case LESS_THAN:
         addTo(key, value);
-      }
-      default -> throw new UnsupportedOperationException(
-          "ranges must be equivalents of field >= constant or field < constant");
+        break;
+      default:
+        throw new UnsupportedOperationException(
+            "ranges must be equivalents of field >= constant or field < constant");
     }
-    ;
   }
 
   private void analyzeSearchCondition(RexCall searchCall, String key) {
-    RexNode field = searchCall.getOperands().getFirst();
+    RexNode field = searchCall.getOperands().get(0);
     if (!(field instanceof RexInputRef)) {
       throwUnsupported("Range query must be performed on a field");
     }
@@ -191,7 +191,7 @@ public class CaseRangeAnalyzer {
     } else if (!Objects.equals(builder.field(), fieldName)) {
       throwUnsupported("Range query must be performed on the same field");
     }
-    RexLiteral literal = (RexLiteral) searchCall.getOperands().getLast();
+    RexLiteral literal = (RexLiteral) searchCall.getOperands().get(searchCall.getOperands().size() - 1);
     Sarg<?> sarg = Objects.requireNonNull(literal.getValueAs(Sarg.class));
     for (Range<?> r : sarg.rangeSet.asRanges()) {
       @SuppressWarnings("unchecked")

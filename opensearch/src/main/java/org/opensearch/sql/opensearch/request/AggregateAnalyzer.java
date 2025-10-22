@@ -238,7 +238,7 @@ public class AggregateAnalyzer {
         Set<Integer> aggPushed = aggPushedAndAggBuilder.getLeft();
         AggregationBuilder pushedAggBuilder = aggPushedAndAggBuilder.getRight();
         // The group-by list after removing pushed aggregations
-        groupList = groupList.stream().filter(i -> !aggPushed.contains(i)).toList();
+        groupList = groupList.stream().filter(i -> !aggPushed.contains(i)).collect(Collectors.toList());
         if (pushedAggBuilder != null) {
           subBuilder = new Builder().addAggregator(pushedAggBuilder);
         }
@@ -667,36 +667,47 @@ public class AggregateAnalyzer {
   }
 
   private static boolean isAutoDateSpan(RexNode rex) {
-    return rex instanceof RexCall rexCall
-        && rexCall.getKind() == SqlKind.OTHER_FUNCTION
-        && rexCall.getOperator().equals(WIDTH_BUCKET);
+    if (rex instanceof RexCall) {
+      RexCall rexCall = (RexCall) rex;
+      return rexCall.getKind() == SqlKind.OTHER_FUNCTION
+          && rexCall.getOperator().equals(WIDTH_BUCKET);
+    }
+    return false;
   }
 
   private static boolean isCase(RexNode rex) {
-    return rex instanceof RexCall rexCall && rexCall.getKind() == SqlKind.CASE;
+    if (rex instanceof RexCall) {
+      RexCall rexCall = (RexCall) rex;
+      return rexCall.getKind() == SqlKind.CASE;
+    }
+    return false;
   }
 
   private static CompositeValuesSourceBuilder<?> createCompositeBucket(
       Integer groupIndex, Project project, AggregateAnalyzer.AggregateBuilderHelper helper) {
     RexNode rex = project.getProjects().get(groupIndex);
     String bucketName = project.getRowType().getFieldNames().get(groupIndex);
-    if (rex instanceof RexCall rexCall
-        && rexCall.getKind() == SqlKind.OTHER_FUNCTION
-        && rexCall.getOperator().getName().equalsIgnoreCase(BuiltinFunctionName.SPAN.name())
-        && rexCall.getOperands().size() == 3
-        && rexCall.getOperands().get(0) instanceof RexInputRef rexInputRef
-        && rexCall.getOperands().get(1) instanceof RexLiteral valueLiteral
-        && rexCall.getOperands().get(2) instanceof RexLiteral unitLiteral) {
-      return CompositeAggregationBuilder.buildHistogram(
-          bucketName,
-          helper.inferNamedField(((RexCall) rex).getOperands().get(0)).getRootName(),
-          ((RexLiteral)((RexCall) rex).getOperands().get(1)).getValueAs(Double.class),
-          SpanUnit.of(((RexLiteral)((RexCall) rex).getOperands().get(2)).getValueAs(String.class)),
-          MissingOrder.FIRST,
-          helper.bucketNullable);
-    } else {
-      return createTermsSourceBuilder(bucketName, rex, helper);
+    if (rex instanceof RexCall) {
+      RexCall rexCall = (RexCall) rex;
+      if (rexCall.getKind() == SqlKind.OTHER_FUNCTION
+          && rexCall.getOperator().getName().equalsIgnoreCase(BuiltinFunctionName.SPAN.name())
+          && rexCall.getOperands().size() == 3
+          && rexCall.getOperands().get(0) instanceof RexInputRef
+          && rexCall.getOperands().get(1) instanceof RexLiteral
+          && rexCall.getOperands().get(2) instanceof RexLiteral) {
+        RexInputRef rexInputRef = (RexInputRef) rexCall.getOperands().get(0);
+        RexLiteral valueLiteral = (RexLiteral) rexCall.getOperands().get(1);
+        RexLiteral unitLiteral = (RexLiteral) rexCall.getOperands().get(2);
+        return CompositeAggregationBuilder.buildHistogram(
+            bucketName,
+            helper.inferNamedField(rexInputRef).getRootName(),
+            valueLiteral.getValueAs(Double.class),
+            SpanUnit.of(unitLiteral.getValueAs(String.class)),
+            MissingOrder.FIRST,
+            helper.bucketNullable);
+      }
     }
+    return createTermsSourceBuilder(bucketName, rex, helper);
   }
 
   private static CompositeValuesSourceBuilder<?> createTermsSourceBuilder(

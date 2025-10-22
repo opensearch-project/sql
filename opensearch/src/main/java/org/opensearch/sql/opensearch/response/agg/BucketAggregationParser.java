@@ -126,7 +126,8 @@ public class BucketAggregationParser implements OpenSearchAggregationResponsePar
   protected Optional<Map<String, Object>> extract(
       MultiBucketsAggregation.Bucket bucket, String name) {
     Map<String, Object> extracted;
-    if (bucket instanceof CompositeAggregation.Bucket compositeBucket) {
+    if (bucket instanceof CompositeAggregation.Bucket) {
+      CompositeAggregation.Bucket compositeBucket = (CompositeAggregation.Bucket) bucket;
       extracted = compositeBucket.getKey();
     } else if (bucket instanceof Range.Bucket
         || bucket instanceof InternalAutoDateHistogram.Bucket
