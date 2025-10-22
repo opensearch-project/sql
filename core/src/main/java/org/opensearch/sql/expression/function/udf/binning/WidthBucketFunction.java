@@ -8,7 +8,6 @@ package org.opensearch.sql.expression.function.udf.binning;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -26,6 +25,7 @@ import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.binning.BinConstants;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
+import org.opensearch.sql.utils.DateTimeFormatters;
 
 /**
  * WIDTH_BUCKET(field_value, num_bins, data_range, max_value) - Histogram bucketing function.
@@ -207,18 +207,19 @@ public class WidthBucketFunction extends ImplementorUDF {
 
     /**
      * Convert timestamp value to milliseconds. Handles both numeric (Long) milliseconds and String
-     * formatted timestamps.
+     * formatted timestamps. Supports multiple formats: yyyy-MM-dd HH:mm:ss[.SSSSSSSSS], yyyy-MM-dd
+     * HH:mm, yyyy-MM-dd.
      */
     private static long convertTimestampToMillis(Object timestamp) {
       if (timestamp instanceof Number) {
         return ((Number) timestamp).longValue();
       } else if (timestamp instanceof String) {
-        // Parse timestamp string "yyyy-MM-dd HH:mm:ss" to milliseconds
+        // Parse timestamp string using flexible date-time formatter
         // Use LocalDateTime to parse without timezone, then convert to UTC
         String timestampStr = (String) timestamp;
         java.time.LocalDateTime localDateTime =
             java.time.LocalDateTime.parse(
-                timestampStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                timestampStr, DateTimeFormatters.DATE_TIMESTAMP_FORMATTER);
         // Assume the timestamp is in UTC and convert to epoch millis
         return localDateTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
       } else {
@@ -285,11 +286,11 @@ public class WidthBucketFunction extends ImplementorUDF {
       return intervals[intervals.length - 1];
     }
 
-    /** Format timestamp in milliseconds as ISO 8601 string. Format: "yyyy-MM-dd HH:mm:ss" */
+    /** Format timestamp in milliseconds as SQL literal string (yyyy-MM-dd HH:mm:ss). */
     private static String formatTimestamp(long timestampMillis) {
       Instant instant = Instant.ofEpochMilli(timestampMillis);
       ZonedDateTime zdt = instant.atZone(ZoneOffset.UTC);
-      return zdt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+      return zdt.format(DateTimeFormatters.SQL_LITERAL_DATE_TIME_FORMAT);
     }
 
     /** Format range string with appropriate precision. */
