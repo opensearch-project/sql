@@ -510,7 +510,7 @@ public class AggregateAnalyzer {
           case DISTINCT_COUNT_APPROX:
             return Pair.of(
                     helper.build(
-                            !args.isEmpty() ? args.getFirst() : null,
+                            !args.isEmpty() ? args.get(0) : null,
                             AggregationBuilders.cardinality(aggFieldName)),
                     new SingleValueParser(aggFieldName));
           default:
