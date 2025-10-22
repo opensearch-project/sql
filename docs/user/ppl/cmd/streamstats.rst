@@ -115,9 +115,9 @@ PPL query::
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+-------------+---------------+
     | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | running_avg        | running_sum | running_count |
     |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+-------------+---------------|
-    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 28                 | 28          | 1             |
-    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 32                 | 32          | 1             |
-    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 34                 | 68          | 2             |
+    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 28.0               | 28          | 1             |
+    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 32.0               | 32          | 1             |
+    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 34.0               | 68          | 2             |
     | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 33.666666666666664 | 101         | 3             |
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+-------------+---------------+
 
@@ -180,14 +180,14 @@ PPL query::
     +-------+---------+------------+-------+------+-----+-------------+
     | name  | country | state      | month | year | age | running_avg |
     |-------+---------+------------+-------+------+-----+-------------|
-    | John  | Canada  | Ontario    | 4     | 2023 | 25  | 25          |
+    | John  | Canada  | Ontario    | 4     | 2023 | 25  | 25.0        |
     | Jane  | Canada  | Quebec     | 4     | 2023 | 20  | 22.5        |
     | Jim   | Canada  | B.C        | 4     | 2023 | 27  | 23.5        |
-    | Peter | Canada  | B.C        | 4     | 2023 | 57  | 42          |
+    | Peter | Canada  | B.C        | 4     | 2023 | 57  | 42.0        |
     | Rick  | Canada  | B.C        | 4     | 2023 | 70  | 63.5        |
-    | Jake  | USA     | California | 4     | 2023 | 70  | 70          |
-    | Hello | USA     | New York   | 4     | 2023 | 30  | 50          |
-    | David | USA     | Washington | 4     | 2023 | 40  | 40          |
+    | Jake  | USA     | California | 4     | 2023 | 70  | 70.0        |
+    | Hello | USA     | New York   | 4     | 2023 | 30  | 50.0        |
+    | David | USA     | Washington | 4     | 2023 | 40  | 40.0        |
     +-------+---------+------------+-------+------+-----+-------------+
 
     os> source=state_country | streamstats window=2 global=false avg(age) as running_avg by country ;
@@ -195,14 +195,14 @@ PPL query::
     +-------+---------+------------+-------+------+-----+-------------+
     | name  | country | state      | month | year | age | running_avg |
     |-------+---------+------------+-------+------+-----+-------------|
-    | John  | Canada  | Ontario    | 4     | 2023 | 25  | 25          |
+    | John  | Canada  | Ontario    | 4     | 2023 | 25  | 25.0        |
     | Jane  | Canada  | Quebec     | 4     | 2023 | 20  | 22.5        |
     | Jim   | Canada  | B.C        | 4     | 2023 | 27  | 23.5        |
-    | Peter | Canada  | B.C        | 4     | 2023 | 57  | 42          |
+    | Peter | Canada  | B.C        | 4     | 2023 | 57  | 42.0        |
     | Rick  | Canada  | B.C        | 4     | 2023 | 70  | 63.5        |
-    | Jake  | USA     | California | 4     | 2023 | 70  | 70          |
-    | Hello | USA     | New York   | 4     | 2023 | 30  | 50          |
-    | David | USA     | Washington | 4     | 2023 | 40  | 35          |
+    | Jake  | USA     | California | 4     | 2023 | 70  | 70.0        |
+    | Hello | USA     | New York   | 4     | 2023 | 30  | 50.0        |
+    | David | USA     | Washington | 4     | 2023 | 40  | 35.0        |
     +-------+---------+------------+-------+------+-----+-------------+
 
 
@@ -219,11 +219,11 @@ PPL query::
     | name  | country | state      | month | year | age | avg_age |
     |-------+---------+------------+-------+------+-----+---------|
     | John  | Canada  | Ontario    | 4     | 2023 | 25  | null    |
-    | Jane  | Canada  | Quebec     | 4     | 2023 | 20  | 25      |
+    | Jane  | Canada  | Quebec     | 4     | 2023 | 20  | 25.0    |
     | Jim   | Canada  | B.C        | 4     | 2023 | 27  | null    |
     | Peter | Canada  | B.C        | 4     | 2023 | 57  | null    |
     | Rick  | Canada  | B.C        | 4     | 2023 | 70  | null    |
     | Jake  | USA     | California | 4     | 2023 | 70  | null    |
-    | Hello | USA     | New York   | 4     | 2023 | 30  | 70      |
+    | Hello | USA     | New York   | 4     | 2023 | 30  | 70.0    |
     | David | USA     | Washington | 4     | 2023 | 40  | null    |
     +-------+---------+------------+-------+------+-----+---------+
