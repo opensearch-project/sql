@@ -1037,4 +1037,33 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     verifyDataRows(
         result, rows("10-12"), rows("10-12"), rows("12-14"), rows("12-14"), rows("14-16"));
   }
+
+  @Test
+  public void testBinWithEvalCreatedDottedFieldName() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval `resource.temp` = 1 | bin"
+                    + " `resource.attributes.telemetry.sdk.version` span=2 | sort"
+                    + " `resource.attributes.telemetry.sdk.version`",
+                TEST_INDEX_TELEMETRY));
+
+    verifySchema(
+        result,
+        schema("resource.attributes.telemetry.sdk.enabled", null, "boolean"),
+        schema("resource.attributes.telemetry.sdk.language", null, "string"),
+        schema("resource.attributes.telemetry.sdk.name", null, "string"),
+        schema("resource.temp", null, "int"),
+        schema("severityNumber", null, "int"),
+        schema("resource.attributes.telemetry.sdk.version", null, "string"));
+
+    // Data column order: enabled, language, name, severityNumber, resource.temp, version
+    verifyDataRows(
+        result,
+        rows(true, "java", "opentelemetry", 9, 1, "10-12"),
+        rows(false, "python", "opentelemetry", 12, 1, "10-12"),
+        rows(true, "javascript", "opentelemetry", 9, 1, "12-14"),
+        rows(false, "go", "opentelemetry", 16, 1, "12-14"),
+        rows(true, "rust", "opentelemetry", 12, 1, "14-16"));
+  }
 }
