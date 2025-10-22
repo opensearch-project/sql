@@ -31,6 +31,7 @@ import org.opensearch.sql.calcite.plan.OpenSearchRules;
 import org.opensearch.sql.calcite.plan.Scannable;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
+import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
 
 /** The physical relational operator representing a scan of an OpenSearchIndex type. */
 public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
@@ -87,9 +88,14 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
      * let's follow this convention to apply the optimization here and ensure `scan` method
      * returns the correct data format for single column rows.
      * See {@link OpenSearchIndexEnumerator}
+     * Besides, we replace all dots in fields to avoid the Calcite codegen bug.
+     * https://github.com/opensearch-project/sql/issues/4619
      */
     PhysType physType =
-        PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(), pref.preferArray());
+        PhysTypeImpl.of(
+            implementor.getTypeFactory(),
+            OpenSearchRelOptUtil.replaceDot(getCluster().getTypeFactory(), getRowType()),
+            pref.preferArray());
 
     Expression scanOperator = implementor.stash(this, CalciteEnumerableIndexScan.class);
     return implementor.result(physType, Blocks.toBlock(Expressions.call(scanOperator, "scan")));
