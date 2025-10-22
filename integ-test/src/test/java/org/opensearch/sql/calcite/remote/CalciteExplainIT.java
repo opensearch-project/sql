@@ -10,6 +10,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STRINGS;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TIME_DATA;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORKER;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORK_INFORMATION;
@@ -18,6 +19,7 @@ import static org.opensearch.sql.util.MatcherUtils.assertYamlEqualsIgnoreId;
 
 import java.io.IOException;
 import java.util.Locale;
+import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ppl.ExplainIT;
@@ -510,22 +512,6 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryYaml(
             "source=events | bin @timestamp bins=3 | stats bucket_nullable=false avg(cpu_usage) by"
                 + " @timestamp, region"));
-  }
-
-  @Test
-  public void bucketNullableNotSupportSubAggregation() throws IOException {
-    // TODO: Don't throw exception after addressing
-    // https://github.com/opensearch-project/sql/issues/4317
-    // When bucketNullable is true, sub aggregation is not supported. Hence we cannot pushdown the
-    // aggregation in this query. Caused by issue
-    // https://github.com/opensearch-project/sql/issues/4317,
-    // bin aggregation on timestamp field won't work if not been push down.
-    enabledOnlyWhenPushdownIsEnabled();
-    assertThrows(
-        Exception.class,
-        () ->
-            explainQueryToString(
-                "source=events | bin @timestamp bins=3 | stats count() by @timestamp, region"));
   }
 
   @Test
@@ -1168,5 +1154,128 @@ public class CalciteExplainIT extends ExplainIT {
                 "source=%s | eval balance2 = CEIL(balance/10000.0) "
                     + "| stats MIN(balance2), MAX(balance2)",
                 TEST_INDEX_ACCOUNT)));
+  }
+
+  @Test
+  public void testCasePushdownAsRangeQueryExplain() throws IOException {
+    // CASE 1: Range - Metric
+    // 1.1 Range - Metric
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("agg_range_metric_push.yaml"),
+        explainQueryYaml(
+            String.format(
+                "source=%s | eval age_range = case(age < 30, 'u30', age < 40, 'u40' else 'u100') |"
+                    + " stats avg(age) as avg_age by age_range",
+                TEST_INDEX_BANK)));
+
+    // 1.2 Range - Metric (COUNT)
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("agg_range_count_push.yaml"),
+        explainQueryYaml(
+            String.format(
+                "source=%s | eval age_range = case(age < 30, 'u30', age >= 30 and age < 40, 'u40'"
+                    + " else 'u100') | stats avg(age) by age_range",
+                TEST_INDEX_BANK)));
+
+    // 1.3 Range - Range - Metric
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("agg_range_range_metric_push.yaml"),
+        explainQueryYaml(
+            String.format(
+                "source=%s | eval age_range = case(age < 30, 'u30', age < 40, 'u40' else 'u100'),"
+                    + " balance_range = case(balance < 20000, 'medium' else 'high') | stats"
+                    + " avg(balance) as avg_balance by age_range, balance_range",
+                TEST_INDEX_BANK)));
+
+    // 1.4 Range - Metric (With null & discontinuous ranges)
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("agg_range_metric_complex_push.yaml"),
+        explainQueryYaml(
+            String.format(
+                "source=%s | eval age_range = case(age < 30, 'u30', (age >= 35 and age < 40) or age"
+                    + " >= 80, '30-40 or >=80') | stats avg(balance) by age_range",
+                TEST_INDEX_BANK)));
+
+    // 1.5 Should not be pushed because the range is not closed-open
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("agg_case_cannot_push.yaml"),
+        explainQueryYaml(
+            String.format(
+                "source=%s | eval age_range = case(age < 30, 'u30', age >= 30 and age <= 40, 'u40'"
+                    + " else 'u100') | stats avg(age) as avg_age by age_range",
+                TEST_INDEX_BANK)));
+
+    // 1.6 Should not be pushed as range query because the result expression is not a string
+    // literal.
+    // Range aggregation keys must be strings
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("agg_case_num_res_cannot_push.yaml"),
+        explainQueryYaml(
+            String.format(
+                "source=%s | eval age_range = case(age < 30, 30 else 100) | stats count() by"
+                    + " age_range",
+                TEST_INDEX_BANK)));
+
+    // CASE 2: Composite - Range - Metric
+    // 2.1 Composite (term) - Range - Metric
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("agg_composite_range_metric_push.yaml"),
+        explainQueryYaml(
+            String.format(
+                "source=%s | eval age_range = case(age < 30, 'u30' else 'a30') | stats avg(balance)"
+                    + " by state, age_range",
+                TEST_INDEX_BANK)));
+
+    // 2.2 Composite (date histogram) - Range - Metric
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("agg_composite_date_range_push.yaml"),
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_time_data | eval value_range = case(value < 7000,"
+                + " 'small' else 'large') | stats avg(value) by value_range, span(@timestamp,"
+                + " 1h)"));
+
+    // 2.3 Composite(2 fields) - Range - Metric (with count)
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("agg_composite2_range_count_push.yaml"),
+        explainQueryYaml(
+            String.format(
+                "source=%s | eval age_range = case(age < 30, 'u30' else 'a30') | stats"
+                    + " avg(balance), count() by age_range, state, gender",
+                TEST_INDEX_BANK)));
+
+    // 2.4 Composite (2 fields) - Range - Range - Metric (with count)
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("agg_composite2_range_range_count_push.yaml"),
+        explainQueryYaml(
+            String.format(
+                "source=%s | eval age_range = case(age < 35, 'u35' else 'a35'), balance_range ="
+                    + " case(balance < 20000, 'medium' else 'high') | stats avg(balance) as"
+                    + " avg_balance by age_range, balance_range, state",
+                TEST_INDEX_BANK)));
+
+    // 2.5 Should not be pushed down as range query because case result expression is not constant
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("agg_case_composite_cannot_push.yaml"),
+        explainQueryYaml(
+            String.format(
+                "source=%s | eval age_range = case(age < 35, 'u35' else email) | stats avg(balance)"
+                    + " as avg_balance by age_range, state",
+                TEST_INDEX_BANK)));
+  }
+
+  @Test
+  public void testNestedAggregationsExplain() throws IOException {
+    // TODO: Remove after resolving: https://github.com/opensearch-project/sql/issues/4578
+    Assume.assumeFalse(
+        "The query runs into error when pushdown is disabled due to bin's implementation",
+        isPushdownDisabled());
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("agg_composite_autodate_range_metric_push.yaml"),
+        explainQueryYaml(
+            String.format(
+                "source=%s | bin timestamp bins=3 | eval value_range = case(value < 7000, 'small'"
+                    + " else 'great') | stats bucket_nullable=false avg(value), count() by"
+                    + " timestamp, value_range, category",
+                TEST_INDEX_TIME_DATA)));
   }
 }
