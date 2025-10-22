@@ -376,7 +376,7 @@ public class CalciteExplainIT extends ExplainIT {
         "source=opensearch-sql_test_index_account | where address = '671 Bristol Street' and age -"
             + " 2 = 30 | fields firstname, age, address";
     var result = explainQueryToString(query, true);
-    String expected = loadFromFile("expectedOutput/calcite/explain_skip_script_encoding.yaml");
+    String expected = loadFromFile("expectedOutput/calcite/explain_skip_script_encoding.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
 
