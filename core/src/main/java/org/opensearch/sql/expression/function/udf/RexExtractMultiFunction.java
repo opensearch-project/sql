@@ -77,33 +77,31 @@ public final class RexExtractMultiFunction extends ImplementorUDF {
     }
   }
 
+  /**
+   * Extract multiple regex groups by index (1-based).
+   *
+   * @param text The input text to extract from
+   * @param pattern The regex pattern
+   * @param groupIndex The 1-based group index to extract
+   * @param maxMatch Maximum number of matches to return (0 = unlimited)
+   * @return List of extracted values or null if no matches found
+   */
   public static List<String> extractMultipleGroups(
       String text, String pattern, int groupIndex, int maxMatch) {
-    // Query planner already validates null inputs via NullPolicy.ARG0
-    try {
-      Pattern compiledPattern = RegexCommonUtils.getCompiledPattern(pattern);
-      Matcher matcher = compiledPattern.matcher(text);
-      List<String> matches = new ArrayList<>();
-
-      int matchCount = 0;
-      while (matcher.find() && (maxMatch == 0 || matchCount < maxMatch)) {
-        if (groupIndex > 0 && groupIndex <= matcher.groupCount()) {
-          String match = matcher.group(groupIndex);
-          if (match != null) {
-            matches.add(match);
-            matchCount++;
-          }
-        }
-      }
-
-      return matches.isEmpty() ? null : matches;
-    } catch (PatternSyntaxException e) {
-      throw new IllegalArgumentException(
-          "Error in 'rex' command: Encountered the following error while compiling the regex '"
-              + pattern
-              + "': "
-              + e.getMessage());
+    if (text == null || pattern == null) {
+      return null;
     }
+
+    return executeMultipleExtractions(
+        text,
+        pattern,
+        maxMatch,
+        matcher -> {
+          if (groupIndex > 0 && groupIndex <= matcher.groupCount()) {
+            return matcher.group(groupIndex);
+          }
+          return null;
+        });
   }
 
   /**
@@ -122,6 +120,34 @@ public final class RexExtractMultiFunction extends ImplementorUDF {
       return null;
     }
 
+    return executeMultipleExtractions(
+        text,
+        pattern,
+        maxMatch,
+        matcher -> {
+          try {
+            return matcher.group(groupName);
+          } catch (IllegalArgumentException e) {
+            // Group name doesn't exist in the pattern, stop processing
+            return null;
+          }
+        });
+  }
+
+  /**
+   * Common extraction logic for multiple matches to avoid code duplication.
+   *
+   * @param text The input text
+   * @param pattern The regex pattern
+   * @param maxMatch Maximum matches (0 = unlimited)
+   * @param extractor Function to extract the value from the matcher
+   * @return List of extracted values or null if no matches found
+   */
+  private static List<String> executeMultipleExtractions(
+      String text,
+      String pattern,
+      int maxMatch,
+      java.util.function.Function<Matcher, String> extractor) {
     try {
       Pattern compiledPattern = RegexCommonUtils.getCompiledPattern(pattern);
       Matcher matcher = compiledPattern.matcher(text);
@@ -129,14 +155,13 @@ public final class RexExtractMultiFunction extends ImplementorUDF {
 
       int matchCount = 0;
       while (matcher.find() && (maxMatch == 0 || matchCount < maxMatch)) {
-        try {
-          String match = matcher.group(groupName);
-          if (match != null) {
-            matches.add(match);
-            matchCount++;
-          }
-        } catch (IllegalArgumentException e) {
-          // Group name doesn't exist in the pattern
+        String match = extractor.apply(matcher);
+        if (match != null) {
+          matches.add(match);
+          matchCount++;
+        } else {
+          // If extractor returns null, it might indicate an error (like invalid group name)
+          // Stop processing to avoid infinite loop
           break;
         }
       }
