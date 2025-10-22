@@ -163,9 +163,9 @@ teardown:
         Content-Type: 'application/json'
       ppl:
         body:
-          query: source=log00001 | rex field=v 'value=(?<digits>[\\w\\d\\.]*)' | eventstats sum(digits) as sum, count(digits) as cnt| fields v, sum, cnt
+          query: source=log00001 | rex field=v 'value=(?<digits>[\\w\\d\\.]*)' | eventstats sum(digits) as sum, count(digits) as cnt| fields a, sum, cnt
   - match: { "schema": [ { "name": "a", "type": "bigint" }, { "name": "sum", "type": "double" }, { "name": "cnt", "type": "bigint" } ] }
-  - match: { "datarows": [ [1, 2.5, 4], [1, 2.5, 4], [2, 2.5, 4], [3, 2.5, 4] ] }
+  - match: { "datarows": [ [1, 2.5, 4], [2, 2.5, 4], [3, 2.5, 4], [4, 2.5, 4] ] }
 
 ---
 "Safe cast keyword to int":
