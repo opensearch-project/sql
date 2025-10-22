@@ -107,7 +107,6 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
             new Object[] {"allnulls", new Object[] {null, null}},
             // emptyobj: array with an empty object
             new Object[] {"emptyobj", new Object[] {new Object[] {}}},
-            // --- New edge cases below ---
             // deeplyNested: array of arrays
             new Object[] {
               "deeplyNested",
