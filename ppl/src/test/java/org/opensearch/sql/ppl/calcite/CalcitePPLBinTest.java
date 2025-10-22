@@ -40,11 +40,12 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
 
     // Note: WIDTH_BUCKET uses window functions without ROWS UNBOUNDED PRECEDING in the actual
     // output
+    // Updated signature: WIDTH_BUCKET(field, numBins, minValue, maxValue)
     verifyLogical(
         root,
         "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], "
             + "COMM=[$6], DEPTNO=[$7], SAL=[WIDTH_BUCKET($5, 10, "
-            + "-(MAX($5) OVER (), MIN($5) OVER ()), "
+            + "MIN($5) OVER (), "
             + "MAX($5) OVER ())])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n");
   }

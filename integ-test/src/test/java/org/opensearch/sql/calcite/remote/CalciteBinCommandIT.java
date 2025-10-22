@@ -27,6 +27,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     loadIndex(Index.BANK);
     loadIndex(Index.EVENTS_NULL);
     loadIndex(Index.TIME_TEST_DATA);
+    loadIndex(Index.TIME_BINS_TEST_DATA);
   }
 
   @Test
@@ -983,5 +984,286 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         rows(50.25, "us-east", "2024-07-01 00:00:00"),
         rows(50, "us-east", "2024-07-01 00:05:00"),
         rows(40.25, "us-west", "2024-07-01 00:01:00"));
+  }
+
+  @Test
+  public void testBinTimestampBins20WithStats() throws IOException {
+
+    JSONObject result =
+        executeQuery(
+            "source=opensearch-sql_test_index_time_bins_data | where @timestamp < '2025-07-28"
+                + " 10:06:00' | bin @timestamp bins=20 | stats count() by @timestamp | sort"
+                + " @timestamp");
+
+    verifySchema(
+        result, schema("count()", null, "bigint"), schema("@timestamp", null, "timestamp"));
+
+    verifyDataRows(
+        result,
+        rows(3, "2025-07-28 10:00:00"), // Records at: 10:00:00, 10:00:17, 10:00:23
+        rows(2, "2025-07-28 10:00:30"), // Records at: 10:00:41, 10:00:58
+        rows(2, "2025-07-28 10:01:00"), // Records at: 10:01:12, 10:01:29
+        rows(1, "2025-07-28 10:01:30"), // Records at: 10:01:47
+        rows(2, "2025-07-28 10:02:00"), // Records at: 10:02:03, 10:02:21
+        rows(2, "2025-07-28 10:02:30"), // Records at: 10:02:38, 10:02:55
+        rows(2, "2025-07-28 10:03:00"), // Records at: 10:03:09, 10:03:26
+        rows(1, "2025-07-28 10:03:30"), // Records at: 10:03:44
+        rows(2, "2025-07-28 10:04:00"), // Records at: 10:04:01, 10:04:18
+        rows(2, "2025-07-28 10:04:30"), // Records at: 10:04:35, 10:04:52
+        rows(1, "2025-07-28 10:05:00")); // Records at: 10:05:07
+  }
+
+  @Test
+  public void testBinTimestampBins10WithStats() throws IOException {
+
+    JSONObject result =
+        executeQuery(
+            "source=opensearch-sql_test_index_time_bins_data | where @timestamp < '2025-07-28"
+                + " 10:06:00' | bin @timestamp bins=10 | stats count() by @timestamp | sort"
+                + " @timestamp");
+
+    verifySchema(
+        result, schema("count()", null, "bigint"), schema("@timestamp", null, "timestamp"));
+
+    verifyDataRows(
+        result,
+        rows(
+            5,
+            "2025-07-28 10:00:00"), // Records at: 10:00:00, 10:00:17, 10:00:23, 10:00:41, 10:00:58
+        rows(3, "2025-07-28 10:01:00"), // Records at: 10:01:12, 10:01:29, 10:01:47
+        rows(4, "2025-07-28 10:02:00"), // Records at: 10:02:03, 10:02:21, 10:02:38, 10:02:55
+        rows(3, "2025-07-28 10:03:00"), // Records at: 10:03:09, 10:03:26, 10:03:44
+        rows(4, "2025-07-28 10:04:00"), // Records at: 10:04:01, 10:04:18, 10:04:35, 10:04:52
+        rows(1, "2025-07-28 10:05:00")); // Records at: 10:05:07
+  }
+
+  @Test
+  public void testBinTimestampBins5WithStats() throws IOException {
+
+    JSONObject result =
+        executeQuery(
+            "source=opensearch-sql_test_index_time_bins_data | where @timestamp < '2025-07-28"
+                + " 10:06:00' | bin @timestamp bins=5 | stats count() by @timestamp | sort"
+                + " @timestamp");
+
+    verifySchema(
+        result, schema("count()", null, "bigint"), schema("@timestamp", null, "timestamp"));
+
+    verifyDataRows(
+        result,
+        rows(19, "2025-07-28 10:00:00"), // All records from 10:00:00 to 10:04:52 (first 19 records)
+        rows(1, "2025-07-28 10:05:00")); // Last record at 10:05:07
+  }
+
+  @Test
+  public void testBinTimestampBins10HoursWithStats() throws IOException {
+
+    JSONObject result =
+        executeQuery(
+            "source=opensearch-sql_test_index_time_bins_data | bin @timestamp bins=10 | stats"
+                + " count() by @timestamp | sort @timestamp");
+
+    verifySchema(
+        result, schema("count()", null, "bigint"), schema("@timestamp", null, "timestamp"));
+
+    // With 1-hour bins over ~5.4 hours
+    verifyDataRows(
+        result,
+        rows(23, "2025-07-28 10:00:00"), // 10:00:00 to 10:59:59
+        rows(4, "2025-07-28 11:00:00"), // 11:00:00 to 11:59:59
+        rows(4, "2025-07-28 12:00:00"), // 12:00:00 to 12:59:59
+        rows(3, "2025-07-28 13:00:00"), // 13:00:00 to 13:59:59
+        rows(4, "2025-07-28 14:00:00"), // 14:00:00 to 14:59:59
+        rows(2, "2025-07-28 15:00:00")); // 15:00:00 to 15:59:59
+  }
+
+  @Test
+  public void testBinTimestampBins5HoursWithStats() throws IOException {
+
+    JSONObject result =
+        executeQuery(
+            "source=opensearch-sql_test_index_time_bins_data | bin @timestamp bins=5 | stats"
+                + " count() by @timestamp | sort @timestamp");
+
+    verifySchema(
+        result, schema("count()", null, "bigint"), schema("@timestamp", null, "timestamp"));
+
+    // With 3-hour bins over ~5.4 hours
+    verifyDataRows(
+        result,
+        rows(31, "2025-07-28 10:00:00"), // 10:00:00 to 12:59:59
+        rows(9, "2025-07-28 13:00:00")); // 13:00:00 to 15:59:59
+  }
+
+  @Test
+  public void testBinTimestampBins3HoursWithStats() throws IOException {
+
+    JSONObject result =
+        executeQuery(
+            "source=opensearch-sql_test_index_time_bins_data | bin @timestamp bins=3 | stats"
+                + " count() by @timestamp | sort @timestamp");
+
+    verifySchema(
+        result, schema("count()", null, "bigint"), schema("@timestamp", null, "timestamp"));
+
+    // With 3-hour bins over ~5.4 hours (same as bins=5)
+    verifyDataRows(
+        result,
+        rows(31, "2025-07-28 10:00:00"), // 10:00:00 to 12:59:59
+        rows(9, "2025-07-28 13:00:00")); // 13:00:00 to 15:59:59
+  }
+
+  @Test
+  public void testBinTimestampBins20WithoutAggregation() throws IOException {
+    // Test bins=20 without aggregation (30-second intervals)
+    // Uses WIDTH_BUCKET UDF, no pushdown to OpenSearch
+    JSONObject result =
+        executeQuery(
+            "source=opensearch-sql_test_index_time_bins_data | where @timestamp < '2025-07-28"
+                + " 10:06:00' | bin @timestamp bins=20 | fields @timestamp, value | sort @timestamp"
+                + " | head 10");
+
+    verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
+
+    // Verify 10 rows with 30-second interval bins
+    verifyDataRows(
+        result,
+        rows("2025-07-28 10:00:00", 8945),
+        rows("2025-07-28 10:00:00", 9012),
+        rows("2025-07-28 10:00:00", 6712),
+        rows("2025-07-28 10:00:30", 8917),
+        rows("2025-07-28 10:00:30", 7162),
+        rows("2025-07-28 10:01:00", 8429),
+        rows("2025-07-28 10:01:00", 6985),
+        rows("2025-07-28 10:01:30", 6583),
+        rows("2025-07-28 10:02:00", 7823),
+        rows("2025-07-28 10:02:00", 9156));
+  }
+
+  @Test
+  public void testBinTimestampBins10WithoutAggregation() throws IOException {
+    // Test bins=10 without aggregation (1-minute intervals)
+    JSONObject result =
+        executeQuery(
+            "source=opensearch-sql_test_index_time_bins_data | where @timestamp < '2025-07-28"
+                + " 10:06:00' | bin @timestamp bins=10 | fields @timestamp, value | sort @timestamp"
+                + " | head 10");
+
+    verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
+
+    // Verify 10 rows with 1-minute interval bins
+    verifyDataRows(
+        result,
+        rows("2025-07-28 10:00:00", 8945),
+        rows("2025-07-28 10:00:00", 9012),
+        rows("2025-07-28 10:00:00", 6712),
+        rows("2025-07-28 10:00:00", 8917),
+        rows("2025-07-28 10:00:00", 7162),
+        rows("2025-07-28 10:01:00", 8429),
+        rows("2025-07-28 10:01:00", 6985),
+        rows("2025-07-28 10:01:00", 6583),
+        rows("2025-07-28 10:02:00", 7823),
+        rows("2025-07-28 10:02:00", 9156));
+  }
+
+  @Test
+  public void testBinTimestampBins5WithoutAggregation() throws IOException {
+    // Test bins=5 without aggregation (5-minute intervals)
+    JSONObject result =
+        executeQuery(
+            "source=opensearch-sql_test_index_time_bins_data | where @timestamp < '2025-07-28"
+                + " 10:06:00' | bin @timestamp bins=5 | fields @timestamp, value | sort @timestamp"
+                + " | head 10");
+
+    verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
+
+    // Verify 10 rows with 5-minute interval bins (all in same bin)
+    verifyDataRows(
+        result,
+        rows("2025-07-28 10:00:00", 8945),
+        rows("2025-07-28 10:00:00", 9012),
+        rows("2025-07-28 10:00:00", 6712),
+        rows("2025-07-28 10:00:00", 8917),
+        rows("2025-07-28 10:00:00", 7162),
+        rows("2025-07-28 10:00:00", 8429),
+        rows("2025-07-28 10:00:00", 6985),
+        rows("2025-07-28 10:00:00", 6583),
+        rows("2025-07-28 10:00:00", 7823),
+        rows("2025-07-28 10:00:00", 9156));
+  }
+
+  @Test
+  public void testBinTimestampBins10HoursWithoutAggregation() throws IOException {
+    // Test bins=10 without aggregation over hour-spanning data (1-hour intervals)
+    JSONObject result =
+        executeQuery(
+            "source=opensearch-sql_test_index_time_bins_data | bin @timestamp bins=10 | fields"
+                + " @timestamp, value | sort @timestamp | head 10");
+
+    verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
+
+    // Verify 10 rows with 1-hour interval bins (all in same bin)
+    verifyDataRows(
+        result,
+        rows("2025-07-28 10:00:00", 8945),
+        rows("2025-07-28 10:00:00", 9012),
+        rows("2025-07-28 10:00:00", 6712),
+        rows("2025-07-28 10:00:00", 8917),
+        rows("2025-07-28 10:00:00", 7162),
+        rows("2025-07-28 10:00:00", 8429),
+        rows("2025-07-28 10:00:00", 6985),
+        rows("2025-07-28 10:00:00", 6583),
+        rows("2025-07-28 10:00:00", 7823),
+        rows("2025-07-28 10:00:00", 9156));
+  }
+
+  @Test
+  public void testBinTimestampBins5HoursWithoutAggregation() throws IOException {
+    // Test bins=5 without aggregation over hour-spanning data (3-hour intervals)
+    JSONObject result =
+        executeQuery(
+            "source=opensearch-sql_test_index_time_bins_data | bin @timestamp bins=5 | fields"
+                + " @timestamp, value | sort @timestamp | head 10");
+
+    verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
+
+    // Verify 10 rows with 3-hour interval bins (all in same bin)
+    verifyDataRows(
+        result,
+        rows("2025-07-28 10:00:00", 8945),
+        rows("2025-07-28 10:00:00", 9012),
+        rows("2025-07-28 10:00:00", 6712),
+        rows("2025-07-28 10:00:00", 8917),
+        rows("2025-07-28 10:00:00", 7162),
+        rows("2025-07-28 10:00:00", 8429),
+        rows("2025-07-28 10:00:00", 6985),
+        rows("2025-07-28 10:00:00", 6583),
+        rows("2025-07-28 10:00:00", 7823),
+        rows("2025-07-28 10:00:00", 9156));
+  }
+
+  @Test
+  public void testBinTimestampBins3HoursWithoutAggregation() throws IOException {
+    // Test bins=3 without aggregation over hour-spanning data (3-hour intervals)
+    JSONObject result =
+        executeQuery(
+            "source=opensearch-sql_test_index_time_bins_data | bin @timestamp bins=3 | fields"
+                + " @timestamp, value | sort @timestamp | head 10");
+
+    verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
+
+    // Verify 10 rows with 3-hour interval bins (all in same bin)
+    verifyDataRows(
+        result,
+        rows("2025-07-28 10:00:00", 8945),
+        rows("2025-07-28 10:00:00", 9012),
+        rows("2025-07-28 10:00:00", 6712),
+        rows("2025-07-28 10:00:00", 8917),
+        rows("2025-07-28 10:00:00", 7162),
+        rows("2025-07-28 10:00:00", 8429),
+        rows("2025-07-28 10:00:00", 6985),
+        rows("2025-07-28 10:00:00", 6583),
+        rows("2025-07-28 10:00:00", 7823),
+        rows("2025-07-28 10:00:00", 9156));
   }
 }
