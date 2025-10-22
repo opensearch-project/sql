@@ -50,7 +50,7 @@ The query start with search command and then flowing a set of command delimited 
 
   The following commands are available in PPL:
 
-  **Note:** Experimental commands are ready for use, but specific parameters may change.
+  **Note:** Experimental commands are ready for use, but specific parameters may change based on feedback.
 
   ==============================================================  ==================  ========================  ==============================================================================================
   Command Name                                                    Version Introduced  Current Status              Command Description
