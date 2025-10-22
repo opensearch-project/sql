@@ -62,6 +62,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
 import org.apache.calcite.util.Holder;
@@ -2051,7 +2052,22 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             groupExprList,
             span,
             List.of(new Argument(Argument.BUCKET_NULLABLE, AstDSL.booleanLiteral(useNull))));
-    RelNode aggregated = visitAggregation(aggregation, context);
+    visitAggregation(aggregation, context);
+
+    // Convert the column split to string if necessary: column split was supposed to be pivoted to
+    // column names. This guarantees that its type being compatible with useother and usenull
+    RelBuilder relBuilder = context.relBuilder;
+    RexNode colSplit = relBuilder.field(2);
+    String columSplitName = relBuilder.peek().getRowType().getFieldNames().getLast();
+    if (!SqlTypeUtil.isCharacter(colSplit.getType())) {
+      colSplit =
+          relBuilder.alias(
+              context.rexBuilder.makeCast(
+                  UserDefinedFunctionUtils.NULLABLE_STRING, colSplit, true, true),
+              columSplitName);
+    }
+    relBuilder.project(relBuilder.field(0), relBuilder.field(1), colSplit);
+    RelNode aggregated = relBuilder.peek();
 
     // If row or column split does not present or limit equals 0, this is the same as `stats agg
     // [group by col]`
@@ -2066,8 +2082,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     String otherStr = (String) argMap.getOrDefault("otherstr", Chart.DEFAULT_OTHER_STR).getValue();
     String nullStr = (String) argMap.getOrDefault("nullstr", Chart.DEFAULT_NULL_STR).getValue();
 
-    String columSplitName = aggregated.getRowType().getFieldNames().getLast();
-    RelBuilder relBuilder = context.relBuilder;
     // 0: agg; 2: column-split
     relBuilder.project(relBuilder.field(0), relBuilder.field(2));
     // 1: column split; 0: agg
