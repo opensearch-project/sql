@@ -39,6 +39,7 @@ public class Patterns extends UnresolvedPlan {
   private final PatternMode patternMode;
   private final UnresolvedExpression patternMaxSampleCount;
   private final UnresolvedExpression patternBufferLimit;
+  private final UnresolvedExpression showNumberedToken;
   private final Map<String, Literal> arguments;
   private UnresolvedPlan child;
 

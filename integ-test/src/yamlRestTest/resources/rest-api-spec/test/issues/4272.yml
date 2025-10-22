@@ -1,0 +1,42 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"Test validation error for count(eval) with non-boolean expression":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      bulk:
+        index: test_accounts
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"age": 25, "name": "John", "balance": 1000}'
+          - '{"index": {}}'
+          - '{"age": 30, "name": "Jane", "balance": 2000}'
+          - '{"index": {}}'
+          - '{"age": 35, "name": "Bob", "balance": 1500}'
+
+  # Test case: count(eval()) with non-boolean expression should throw validation error
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_accounts | stats count(eval(age)) as cnt
+  - match: {"$body": "/Condition\\s+expected\\s+a\\s+boolean\\s+type,\\s+but\\s+got\\s+BIGINT/"}

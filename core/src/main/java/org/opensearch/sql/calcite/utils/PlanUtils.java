@@ -12,8 +12,12 @@ import static org.apache.calcite.rex.RexWindowBounds.following;
 import static org.apache.calcite.rex.RexWindowBounds.preceding;
 
 import com.google.common.collect.ImmutableList;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
@@ -21,7 +25,9 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
@@ -68,6 +74,59 @@ public interface PlanUtils {
       case UNKNOWN -> SpanUnit.UNKNOWN;
       default -> throw new UnsupportedOperationException("Unsupported interval unit: " + unit);
     };
+  }
+
+  static IntervalUnit spanUnitToIntervalUnit(SpanUnit unit) {
+    switch (unit) {
+      case MILLISECOND:
+      case MS:
+        return IntervalUnit.MICROSECOND;
+      case SECOND:
+      case SECONDS:
+      case SEC:
+      case SECS:
+      case S:
+        return IntervalUnit.SECOND;
+      case MINUTE:
+      case MINUTES:
+      case MIN:
+      case MINS:
+      case m:
+        return IntervalUnit.MINUTE;
+      case HOUR:
+      case HOURS:
+      case HR:
+      case HRS:
+      case H:
+        return IntervalUnit.HOUR;
+      case DAY:
+      case DAYS:
+      case D:
+        return IntervalUnit.DAY;
+      case WEEK:
+      case WEEKS:
+      case W:
+        return IntervalUnit.WEEK;
+      case MONTH:
+      case MONTHS:
+      case MON:
+      case M:
+        return IntervalUnit.MONTH;
+      case QUARTER:
+      case QUARTERS:
+      case QTR:
+      case QTRS:
+      case Q:
+        return IntervalUnit.QUARTER;
+      case YEAR:
+      case YEARS:
+      case Y:
+        return IntervalUnit.YEAR;
+      case UNKNOWN:
+        return IntervalUnit.UNKNOWN;
+      default:
+        throw new UnsupportedOperationException("Unsupported span unit: " + unit);
+    }
   }
 
   static RexNode makeOver(
@@ -252,6 +311,9 @@ public interface PlanUtils {
 
   /** Get all uniq input references from a RexNode. */
   static List<RexInputRef> getInputRefs(RexNode node) {
+    if (node == null) {
+      return List.of();
+    }
     List<RexInputRef> inputRefs = new ArrayList<>();
     node.accept(
         new RexVisitorImpl<Void>(true) {
@@ -269,6 +331,26 @@ public interface PlanUtils {
   /** Get all uniq input references from a list of RexNodes. */
   static List<RexInputRef> getInputRefs(List<RexNode> nodes) {
     return nodes.stream().flatMap(node -> getInputRefs(node).stream()).toList();
+  }
+
+  /** Get all uniq RexCall from RexNode with a predicate */
+  static List<RexCall> getRexCall(RexNode node, Predicate<RexCall> predicate) {
+    List<RexCall> list = new ArrayList<>();
+    node.accept(
+        new RexVisitorImpl<Void>(true) {
+          @Override
+          public Void visitCall(RexCall inputCall) {
+            if (predicate.test(inputCall)) {
+              if (!list.contains(inputCall)) {
+                list.add(inputCall);
+              }
+            } else {
+              inputCall.getOperands().forEach(call -> call.accept(this));
+            }
+            return null;
+          }
+        });
+    return list;
   }
 
   /** Get all uniq input references from a list of agg calls. */
@@ -390,5 +472,52 @@ public interface PlanUtils {
         };
     visitor.visitEach(rexNodes);
     return selectedColumns;
+  }
+
+  /**
+   * Get a string representation of the argument types expressed in ExprType for error messages.
+   *
+   * @param argTypes the list of argument types as {@link RelDataType}
+   * @return a string in the format [type1,type2,...] representing the argument types
+   */
+  public static String getActualSignature(List<RelDataType> argTypes) {
+    return "["
+        + argTypes.stream()
+            .map(OpenSearchTypeFactory::convertRelDataTypeToExprType)
+            .map(Objects::toString)
+            .collect(Collectors.joining(","))
+        + "]";
+  }
+
+  /**
+   * Check if the RexNode contains any CorrelVariable.
+   *
+   * @param node the RexNode to check
+   * @return true if the RexNode contains any CorrelVariable, false otherwise
+   */
+  static boolean containsCorrelVariable(RexNode node) {
+    try {
+      node.accept(
+          new RexVisitorImpl<Void>(true) {
+            @Override
+            public Void visitCorrelVariable(RexCorrelVariable correlVar) {
+              throw new RuntimeException("Correl found");
+            }
+          });
+      return false;
+    } catch (Exception e) {
+      return true;
+    }
+  }
+
+  /** Adds a rel node to the top of the stack while preserving the field names and aliases. */
+  static void replaceTop(RelBuilder relBuilder, RelNode relNode) {
+    try {
+      Method method = RelBuilder.class.getDeclaredMethod("replaceTop", RelNode.class);
+      method.setAccessible(true);
+      method.invoke(relBuilder, relNode);
+    } catch (Exception e) {
+      throw new IllegalStateException("Unable to invoke RelBuilder.replaceTop", e);
+    }
   }
 }

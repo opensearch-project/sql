@@ -22,7 +22,9 @@ public enum Format {
   SIMPLE("simple"),
   STANDARD("standard"),
   EXTENDED("extended"),
-  COST("cost");
+  COST("cost"),
+  /** Returns explain output in yaml format */
+  YAML("yaml");
 
   @Getter private final String formatName;
 
@@ -44,6 +46,7 @@ public enum Format {
     builder.put(STANDARD.formatName, STANDARD);
     builder.put(EXTENDED.formatName, EXTENDED);
     builder.put(COST.formatName, COST);
+    builder.put(YAML.formatName, YAML);
     EXPLAIN_FORMATS = builder.build();
   }
 

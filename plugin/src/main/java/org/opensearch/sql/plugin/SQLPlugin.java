@@ -26,6 +26,7 @@ import org.opensearch.action.ActionType;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.inject.Guice;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
 import org.opensearch.common.settings.ClusterSettings;
@@ -73,6 +74,16 @@ import org.opensearch.sql.datasources.transport.TransportDeleteDataSourceAction;
 import org.opensearch.sql.datasources.transport.TransportGetDataSourceAction;
 import org.opensearch.sql.datasources.transport.TransportPatchDataSourceAction;
 import org.opensearch.sql.datasources.transport.TransportUpdateDataSourceAction;
+import org.opensearch.sql.directquery.DirectQueryExecutorService;
+import org.opensearch.sql.directquery.rest.RestDirectQueryManagementAction;
+import org.opensearch.sql.directquery.rest.RestDirectQueryResourcesManagementAction;
+import org.opensearch.sql.directquery.transport.TransportExecuteDirectQueryRequestAction;
+import org.opensearch.sql.directquery.transport.TransportGetDirectQueryResourcesRequestAction;
+import org.opensearch.sql.directquery.transport.TransportWriteDirectQueryResourcesRequestAction;
+import org.opensearch.sql.directquery.transport.config.DirectQueryModule;
+import org.opensearch.sql.directquery.transport.model.ExecuteDirectQueryActionResponse;
+import org.opensearch.sql.directquery.transport.model.ReadDirectQueryResourcesActionResponse;
+import org.opensearch.sql.directquery.transport.model.WriteDirectQueryResourcesActionResponse;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.executor.AsyncRestExecutor;
 import org.opensearch.sql.legacy.metrics.Metrics;
@@ -157,7 +168,9 @@ public class SQLPlugin extends Plugin
         new RestPPLStatsAction(settings, restController),
         new RestQuerySettingsAction(settings, restController),
         new RestDataSourceQueryAction((OpenSearchSettings) pluginSettings),
-        new RestAsyncQueryManagementAction((OpenSearchSettings) pluginSettings));
+        new RestAsyncQueryManagementAction((OpenSearchSettings) pluginSettings),
+        new RestDirectQueryManagementAction((OpenSearchSettings) pluginSettings),
+        new RestDirectQueryResourcesManagementAction((OpenSearchSettings) pluginSettings));
   }
 
   /** Register action and handler so that transportClient can find proxy for action. */
@@ -197,7 +210,22 @@ public class SQLPlugin extends Plugin
         new ActionHandler<>(
             new ActionType<>(
                 TransportCancelAsyncQueryRequestAction.NAME, CancelAsyncQueryActionResponse::new),
-            TransportCancelAsyncQueryRequestAction.class));
+            TransportCancelAsyncQueryRequestAction.class),
+        new ActionHandler<>(
+            new ActionType<>(
+                TransportExecuteDirectQueryRequestAction.NAME,
+                ExecuteDirectQueryActionResponse::new),
+            TransportExecuteDirectQueryRequestAction.class),
+        new ActionHandler<>(
+            new ActionType<>(
+                TransportGetDirectQueryResourcesRequestAction.NAME,
+                ReadDirectQueryResourcesActionResponse::new),
+            TransportGetDirectQueryResourcesRequestAction.class),
+        new ActionHandler<>(
+            new ActionType<>(
+                TransportWriteDirectQueryResourcesRequestAction.NAME,
+                WriteDirectQueryResourcesActionResponse::new),
+            TransportWriteDirectQueryResourcesRequestAction.class));
   }
 
   @Override
@@ -231,7 +259,8 @@ public class SQLPlugin extends Plugin
           b.bind(ClusterService.class).toInstance(clusterService);
         });
     modules.add(new AsyncExecutorServiceModule());
-    injector = modules.createInjector();
+    modules.add(new DirectQueryModule());
+    injector = Guice.createInjector(modules);
     ClusterManagerEventListener clusterManagerEventListener =
         new ClusterManagerEventListener(
             clusterService,
@@ -246,13 +275,22 @@ public class SQLPlugin extends Plugin
             dataSourceService,
             injector.getInstance(FlintIndexMetadataServiceImpl.class),
             injector.getInstance(FlintIndexOpFactory.class));
+
+    // Passing the service to Transport actions
     AsyncQueryExecutorService asyncQueryExecutorService =
         injector.getInstance(AsyncQueryExecutorService.class);
+    DirectQueryExecutorService directQueryExecutorService =
+        injector.getInstance(DirectQueryExecutorService.class);
+
     ScheduledAsyncQueryJobRunner.getJobRunnerInstance()
         .loadJobResource(client, clusterService, threadPool, asyncQueryExecutorService);
 
     return ImmutableList.of(
-        dataSourceService, asyncQueryExecutorService, clusterManagerEventListener, pluginSettings);
+        dataSourceService,
+        asyncQueryExecutorService,
+        clusterManagerEventListener,
+        pluginSettings,
+        directQueryExecutorService);
   }
 
   @Override

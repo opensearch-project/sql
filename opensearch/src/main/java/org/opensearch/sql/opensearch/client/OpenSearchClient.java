@@ -77,6 +77,13 @@ public interface OpenSearchClient {
   Map<String, String> meta();
 
   /**
+   * Force to clean up resources related to the search request.
+   *
+   * @param request search request
+   */
+  void forceCleanup(OpenSearchRequest request);
+
+  /**
    * Clean up resources related to the search request, for example scroll context.
    *
    * @param request search request

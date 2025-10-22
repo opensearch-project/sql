@@ -89,6 +89,9 @@ public class OpenSearchNodeClient implements OpenSearchClient {
     try {
       GetMappingsResponse mappingsResponse =
           client.admin().indices().prepareGetMappings(indexExpression).setLocal(true).get();
+      if (mappingsResponse.mappings().isEmpty()) {
+        throw new IndexNotFoundException(indexExpression[0]);
+      }
       return mappingsResponse.mappings().entrySet().stream()
           .collect(
               Collectors.toUnmodifiableMap(
@@ -169,6 +172,27 @@ public class OpenSearchNodeClient implements OpenSearchClient {
         client.settings().get("cluster.name", "opensearch"),
         "plugins.sql.pagination.api",
         client.settings().get("plugins.sql.pagination.api", "true"));
+  }
+
+  @Override
+  public void forceCleanup(OpenSearchRequest request) {
+    if (request instanceof OpenSearchScrollRequest) {
+      request.forceClean(
+          scrollId -> {
+            try {
+              client.prepareClearScroll().addScrollId(scrollId).get();
+            } catch (Exception e) {
+              throw new IllegalStateException(
+                  "Failed to clean up resources for search request " + request, e);
+            }
+          });
+    } else {
+      request.forceClean(
+          pitId -> {
+            DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
+            deletePit(deletePitRequest);
+          });
+    }
   }
 
   @Override

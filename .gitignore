@@ -52,5 +52,7 @@ http-client.env.json
 /doctest/opensearch-job-scheduler/
 .factorypath
 
-# Claude Code files
-.claude/
+# Coding agent files (could be symlinks)
+.claude
+.clinerules
+memory-bank

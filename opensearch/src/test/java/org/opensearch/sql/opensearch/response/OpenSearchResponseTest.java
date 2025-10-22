@@ -288,7 +288,7 @@ class OpenSearchResponseTest {
   void aggregation_iterator() {
     final List includes = List.of("id1", "id2");
 
-    when(parser.parse(any()))
+    when(parser.parse((Aggregations) any()))
         .thenReturn(Arrays.asList(ImmutableMap.of("id1", 1), ImmutableMap.of("id2", 2)));
     when(searchResponse.getAggregations()).thenReturn(aggregations);
     when(factory.getParser()).thenReturn(parser);

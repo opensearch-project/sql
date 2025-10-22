@@ -97,6 +97,25 @@ class OpenSearchSettingsTest {
   }
 
   @Test
+  void testPplValuesMaxLimitSetting() {
+    when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
+    when(clusterSettings.get(not((eq(ClusterName.CLUSTER_NAME_SETTING))))).thenReturn(null);
+    OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
+
+    // Test default value is 0 (unlimited)
+    Integer defaultLimit = settings.getSettingValue(Settings.Key.PPL_VALUES_MAX_LIMIT);
+    assertEquals(0, defaultLimit);
+
+    // Test setting update
+    OpenSearchSettings.Updater updater = settings.new Updater(Settings.Key.PPL_VALUES_MAX_LIMIT);
+    updater.accept(5000);
+
+    // Test retrieval after update
+    Integer newLimit = settings.getSettingValue(Settings.Key.PPL_VALUES_MAX_LIMIT);
+    assertEquals(5000, newLimit);
+  }
+
+  @Test
   void getSparkExecutionEngineConfigSetting() {
     // Default is empty string
     assertEquals(

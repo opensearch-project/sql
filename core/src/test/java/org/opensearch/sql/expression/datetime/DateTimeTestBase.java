@@ -24,11 +24,16 @@ import org.opensearch.sql.expression.ExpressionTestBase;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.FunctionProperties;
 
 public class DateTimeTestBase extends ExpressionTestBase {
 
   protected final BuiltinFunctionRepository functionRepository =
       BuiltinFunctionRepository.getInstance();
+
+  // Override functionProperties with fixed values to ensure timezone-independent tests
+  protected final FunctionProperties functionProperties =
+      new FunctionProperties(Instant.parse("2023-05-15T00:00:00Z"), ZoneOffset.UTC);
 
   protected ExprValue eval(Expression expression) {
     return expression.valueOf();

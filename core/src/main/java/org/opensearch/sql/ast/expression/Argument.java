@@ -20,6 +20,8 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 @RequiredArgsConstructor
 @EqualsAndHashCode(callSuper = false)
 public class Argument extends UnresolvedExpression {
+  public static final String BUCKET_NULLABLE = "bucket_nullable";
+
   private final String argName;
   private final Literal value;
 
@@ -39,13 +41,22 @@ public class Argument extends UnresolvedExpression {
     private final Map<String, Literal> map;
 
     public ArgumentMap(List<Argument> arguments) {
-      this.map =
-          arguments.stream()
-              .collect(java.util.stream.Collectors.toMap(Argument::getArgName, Argument::getValue));
+      if (arguments == null || arguments.isEmpty()) {
+        this.map = Map.of();
+      } else {
+        this.map =
+            arguments.stream()
+                .collect(
+                    java.util.stream.Collectors.toMap(Argument::getArgName, Argument::getValue));
+      }
     }
 
     public static ArgumentMap of(List<Argument> arguments) {
       return new ArgumentMap(arguments);
+    }
+
+    public static ArgumentMap empty() {
+      return new ArgumentMap(null);
     }
 
     /**
@@ -56,6 +67,10 @@ public class Argument extends UnresolvedExpression {
      */
     public Literal get(String name) {
       return map.get(name);
+    }
+
+    public Literal getOrDefault(String name, Literal literal) {
+      return map.getOrDefault(name, literal);
     }
   }
 }

@@ -33,7 +33,7 @@ public class OpenSearchDateType extends OpenSearchDataType {
 
   /** Numeric formats which support full datetime. */
   public static final List<FormatNames> SUPPORTED_NAMED_NUMERIC_FORMATS =
-      List.of(FormatNames.EPOCH_MILLIS, FormatNames.EPOCH_SECOND);
+      List.of(FormatNames.EPOCH_MILLIS, FormatNames.EPOCH_SECOND, FormatNames.EPOCH_MICROS);
 
   /** List of named formats which support full datetime. */
   public static final List<FormatNames> SUPPORTED_NAMED_DATETIME_FORMATS =

@@ -93,39 +93,34 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
   }
 
   @Test
-  @SuppressWarnings("ThrowableNotThrown")
-  public void testConsecutiveThrowException() {
-    assertThrowsWithReplace(
-        UnsupportedOperationException.class,
-        () ->
-            executeQuery(
-                String.format(
-                    "source = %s | dedup 1 name CONSECUTIVE=true | fields name",
-                    TEST_INDEX_DUPLICATION_NULLABLE)));
+  public void testConsecutiveImplicitFallbackV2() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source = %s | dedup 1 name CONSECUTIVE=true | fields name",
+                TEST_INDEX_DUPLICATION_NULLABLE));
+    verifyNumOfRows(actual, 8);
 
-    assertThrowsWithReplace(
-        UnsupportedOperationException.class,
-        () ->
-            executeQuery(
-                String.format(
-                    "source = %s | dedup 1 name KEEPEMPTY=true CONSECUTIVE=true | fields name",
-                    TEST_INDEX_DUPLICATION_NULLABLE)));
+    actual =
+        executeQuery(
+            String.format(
+                "source = %s | dedup 1 name KEEPEMPTY=true CONSECUTIVE=true | fields name",
+                TEST_INDEX_DUPLICATION_NULLABLE));
+    verifyNumOfRows(actual, 12);
 
-    assertThrowsWithReplace(
-        UnsupportedOperationException.class,
-        () ->
-            executeQuery(
-                String.format(
-                    "source = %s | dedup 2 name CONSECUTIVE=true | fields name",
-                    TEST_INDEX_DUPLICATION_NULLABLE)));
+    actual =
+        executeQuery(
+            String.format(
+                "source = %s | dedup 2 name CONSECUTIVE=true | fields name",
+                TEST_INDEX_DUPLICATION_NULLABLE));
+    verifyNumOfRows(actual, 12);
 
-    assertThrowsWithReplace(
-        UnsupportedOperationException.class,
-        () ->
-            executeQuery(
-                String.format(
-                    "source = %s | dedup 2 name KEEPEMPTY=true CONSECUTIVE=true | fields name",
-                    TEST_INDEX_DUPLICATION_NULLABLE)));
+    actual =
+        executeQuery(
+            String.format(
+                "source = %s | dedup 2 name KEEPEMPTY=true CONSECUTIVE=true | fields name",
+                TEST_INDEX_DUPLICATION_NULLABLE));
+    verifyNumOfRows(actual, 16);
   }
 
   @Test

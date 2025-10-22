@@ -1,0 +1,37 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  - do:
+      bulk:
+        index: test
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"id": 3.1}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"big decimal literal":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test | eval a = mod(3.1, 2), b = modulus(3.1, 2.0), c = mod(id, 2.0) | fields a,b,c
+
+  - match: { total: 1 }
+  - match: {"datarows": [[1.1,1.1,1.1]]}

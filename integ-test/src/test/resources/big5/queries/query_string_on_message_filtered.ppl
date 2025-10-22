@@ -1,4 +1,4 @@
-source = big5 query_string(['message'], 'shield carp shark', default_operator='AND')
+source = big5 message=shield message=carp message=shark
 | where `@timestamp` >= '2023-01-01 00:00:00'
   and `@timestamp` < '2023-01-03 00:00:00'
 | head 10

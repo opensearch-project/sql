@@ -2,6 +2,7 @@
  * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 package org.opensearch.sql.legacy.query.planner.physical.node.pointInTime;
 
 import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;

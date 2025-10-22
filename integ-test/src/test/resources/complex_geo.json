@@ -1,0 +1,12 @@
+{"index": {"_id": "1"}}
+{"id": "1", "location": {"name": "Seattle Office", "point": {"lat": 47.6062, "lon": -122.3321}, "city": "Seattle", "country": "USA"}}
+{"index": {"_id": "2"}}
+{"id": "2", "location": {"name": "Tokyo Office", "point": "35.6762,139.6503", "city": "Tokyo", "country": "Japan"}}
+{"index": {"_id": "3"}}
+{"id": "3", "nested_locations": {"primary": {"office": {"lat": 37.7749, "lon": -122.4194}, "warehouse": {"lat": 37.4419, "lon": -122.1430}}, "secondary": {"branch": {"lat": 37.3382, "lon": -121.8863}, "store": {"lat": 37.3688, "lon": -122.0363}}}}
+{"index": {"_id": "4"}}
+{"id": "4", "nested_locations": {"primary": {"office": "40.7128,-74.0060", "warehouse": "40.7580,-73.9855"}, "secondary": {"branch": "40.7489,-73.9680", "store": "40.7614,-73.9776"}}}
+{"index": {"_id": "5"}}
+{"id": "5", "multiple_offices": {"headquarters": {"location": {"lat": 51.5074, "lon": -0.1278}, "address": "London HQ"}, "regional": {"location": {"lat": 48.8566, "lon": 2.3522}, "address": "Paris Regional"}}}
+{"index": {"_id": "6"}}
+{"id": "6", "location": {"name": "Berlin Office", "point": "u33dc0cpke7v", "city": "Berlin", "country": "Germany"}}

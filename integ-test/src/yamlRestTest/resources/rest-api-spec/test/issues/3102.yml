@@ -4,6 +4,11 @@ setup:
         - headers
         - allowed_warnings
   - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+  - do:
       indices.create:
         index: test
         body:
@@ -20,6 +25,14 @@ setup:
           - '{"id": 2}'
           - '{"index": {}}'
           - '{"id": 3}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
 
 ---
 "Prevent push down limit if the offset reach max_result_window":

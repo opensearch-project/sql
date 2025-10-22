@@ -1,0 +1,39 @@
+{
+  "mappings": {
+    "properties": {
+      "resource": {
+        "properties": {
+          "attributes": {
+            "properties": {
+              "telemetry": {
+                "properties": {
+                  "sdk": {
+                    "properties": {
+                      "language": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      },
+                      "name": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      },
+                      "version": {
+                        "type": "integer"
+                      },
+                      "enabled": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "severityNumber": {
+        "type": "integer"
+      }
+    }
+  }
+}

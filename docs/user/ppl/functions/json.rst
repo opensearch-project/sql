@@ -51,17 +51,16 @@ Return type: STRING
 
 Example::
 
-    > source=json_test | where json_valid(json_string) | eval json=json(json_string) | fields test_name, json_string, json
-    fetched rows / total rows = 5/5
-    +---------------------+---------------------------------+-------------------------+
-    | test_name           | json_string                     | json                    |
-    |---------------------|---------------------------------|-------------------------|
-    | json nested object  | {"a":"1","b":{"c":"2","d":"3"}} | {a:"1",b:{c:"2",d:"3"}} |
-    | json object         | {"a":"1","b":"2"}               | {a:"1",b:"2"}           |
-    | json array          | [1, 2, 3, 4]                    | [1,2,3,4]               |
-    | json scalar string  | "abc"                           | "abc"                   |
-    | json empty string   |                                 | null                    |
-    +---------------------+---------------------------------+-------------------------+
+    os> source=json_test | where json_valid(json_string) | eval json=json(json_string) | fields test_name, json_string, json
+    fetched rows / total rows = 4/4
+    +--------------------+---------------------------------+---------------------------------+
+    | test_name          | json_string                     | json                            |
+    |--------------------+---------------------------------+---------------------------------|
+    | json nested object | {"a":"1","b":{"c":"2","d":"3"}} | {"a":"1","b":{"c":"2","d":"3"}} |
+    | json object        | {"a":"1","b":"2"}               | {"a":"1","b":"2"}               |
+    | json array         | [1, 2, 3, 4]                    | [1, 2, 3, 4]                    |
+    | json scalar string | "abc"                           | "abc"                           |
+    +--------------------+---------------------------------+---------------------------------+
 
 JSON_OBJECT
 ----------
@@ -81,13 +80,13 @@ Return type: STRING
 
 Example::
 
-    > source=json_test | eval test_json = json_object('key', 123.45) | head 1 | fields test_json
+    os> source=json_test | eval test_json = json_object('key', 123.45) | head 1 | fields test_json
     fetched rows / total rows = 1/1
-    +-------------------------+
-    | test_json               |
-    |-------------------------|
-    | {"key":123.45}          |
-    +-------------------------+
+    +----------------+
+    | test_json      |
+    |----------------|
+    | {"key":123.45} |
+    +----------------+
 
 JSON_ARRAY
 ----------
@@ -107,13 +106,13 @@ Return type: STRING
 
 Example::
 
-    > source=json_test | eval test_json_array = json_array('key', 123.45) | head 1 | fields test_json_array
+    os> source=json_test | eval test_json_array = json_array('key', 123.45) | head 1 | fields test_json_array
     fetched rows / total rows = 1/1
-    +-------------------------+
-    | test_json_array         |
-    |-------------------------|
-    | ["key",123.45]          |
-    +-------------------------+
+    +-----------------+
+    | test_json_array |
+    |-----------------|
+    | ["key",123.45]  |
+    +-----------------+
 
 JSON_ARRAY_LENGTH
 ----------
@@ -133,21 +132,21 @@ Return type: INTEGER
 
 Example::
 
-    > source=json_test | eval array_length = json_array_length("[1,2,3]") | head 1 | fields array_length
+    os> source=json_test | eval array_length = json_array_length("[1,2,3]") | head 1 | fields array_length
     fetched rows / total rows = 1/1
-    +-------------------------+
-    | array_length            |
-    |-------------------------|
-    | 3                       |
-    +-------------------------+
+    +--------------+
+    | array_length |
+    |--------------|
+    | 3            |
+    +--------------+
 
-    > source=json_test | eval array_length = json_array_length("{\"1\": 2}") | head 1 | fields array_length
+    os> source=json_test | eval array_length = json_array_length("{\"1\": 2}") | head 1 | fields array_length
     fetched rows / total rows = 1/1
-    +-------------------------+
-    | array_length            |
-    |-------------------------|
-    | null                    |
-    +-------------------------+
+    +--------------+
+    | array_length |
+    |--------------|
+    | null         |
+    +--------------+
 
 JSON_EXTRACT
 ----------
@@ -167,21 +166,21 @@ Return type: STRING
 
 Example::
 
-    > source=json_test | eval extract = json_extract('{"a": [{"b": 1}, {"b": 2}]}', 'a{}.b') | head 1 | fields extract
+    os> source=json_test | eval extract = json_extract('{"a": [{"b": 1}, {"b": 2}]}', 'a{}.b') | head 1 | fields extract
     fetched rows / total rows = 1/1
-    +-------------------------+
-    | test_json_array         |
-    |-------------------------|
-    | [1,2]                   |
-    +-------------------------+
+    +---------+
+    | extract |
+    |---------|
+    | [1,2]   |
+    +---------+
 
-     > source=json_test | eval extract = json_extract('{"a": [{"b": 1}, {"b": 2}]}', 'a{}.b', 'a{}') | head 1 | fields extract
+    os> source=json_test | eval extract = json_extract('{"a": [{"b": 1}, {"b": 2}]}', 'a{}.b', 'a{}') | head 1 | fields extract
     fetched rows / total rows = 1/1
-    +---------------------------------+
-    | test_json_array                 |
-    |---------------------------------|
-    | [[1,2],[{"b": 1}, {"b": 2}]]    |
-    +---------------------------------+
+    +---------------------------+
+    | extract                   |
+    |---------------------------|
+    | [[1,2],[{"b":1},{"b":2}]] |
+    +---------------------------+
 
 JSON_DELETE
 ----------
@@ -201,29 +200,29 @@ Return type: STRING
 
 Example::
 
-    > source=json_test | eval delete = json_delete('{"a": [{"b": 1}, {"b": 2}]}', 'a{0}.b') | head 1 | fields delete
+    os> source=json_test | eval delete = json_delete('{"a": [{"b": 1}, {"b": 2}]}', 'a{0}.b') | head 1 | fields delete
+    fetched rows / total rows = 1/1
+    +--------------------+
+    | delete             |
+    |--------------------|
+    | {"a":[{},{"b":2}]} |
+    +--------------------+
+
+    os> source=json_test | eval delete = json_delete('{"a": [{"b": 1}, {"b": 2}]}', 'a{0}.b', 'a{1}.b') | head 1 | fields delete
+    fetched rows / total rows = 1/1
+    +---------------+
+    | delete        |
+    |---------------|
+    | {"a":[{},{}]} |
+    +---------------+
+
+    os> source=json_test | eval delete = json_delete('{"a": [{"b": 1}, {"b": 2}]}', 'a{2}.b') | head 1 | fields delete
     fetched rows / total rows = 1/1
     +-------------------------+
     | delete                  |
     |-------------------------|
-    | {"a": [{},{"b": 1}]}    |
+    | {"a":[{"b":1},{"b":2}]} |
     +-------------------------+
-
-    > source=json_test | eval delete = json_delete('{"a": [{"b": 1}, {"b": 2}]}', 'a{0}.b', 'a{1}.b') | head 1 | fields delete
-    fetched rows / total rows = 1/1
-    +-------------------------+
-    | delete                  |
-    |-------------------------|
-    | {"a": []}               |
-    +-------------------------+
-
-    > source=json_test | eval delete = json_delete('{"a": [{"b": 1}, {"b": 2}]}', 'a{2}.b') | head 1 | fields delete
-    fetched rows / total rows = 1/1
-    +------------------------------+
-    | delete                       |
-    |------------------------------|
-    | {"a": [{"b": 1}, {"b": 2}]}  |
-    +------------------------------+
 
 JSON_SET
 ----------
@@ -243,21 +242,21 @@ Return type: STRING
 
 Example::
 
-    > source=json_test | eval jsonSet = json_set('{"a": [{"b": 1}]}', 'a{0}.b', 3) | head 1 | fields jsonSet
+    os> source=json_test | eval jsonSet = json_set('{"a": [{"b": 1}]}', 'a{0}.b', 3) | head 1 | fields jsonSet
+    fetched rows / total rows = 1/1
+    +-----------------+
+    | jsonSet         |
+    |-----------------|
+    | {"a":[{"b":3}]} |
+    +-----------------+
+
+    os> source=json_test | eval jsonSet = json_set('{"a": [{"b": 1}, {"b": 2}]}', 'a{0}.b', 3, 'a{1}.b', 4) | head 1 | fields jsonSet
     fetched rows / total rows = 1/1
     +-------------------------+
     | jsonSet                 |
     |-------------------------|
-    | {"a": [{"b": 3}]}       |
+    | {"a":[{"b":3},{"b":4}]} |
     +-------------------------+
-
-    > source=json_test | eval jsonSet = json_set('{"a": [{"b": 1}, {"b": 2}]}', 'a{0}.b', 3, 'a{1}.b', 4) | head 1 | fields jsonSet
-    fetched rows / total rows = 1/1
-    +-----------------------------+
-    | jsonSet                     |
-    |-----------------------------|
-    | {"a": [{"b": 3},{"b": 4}]}  |
-    +-----------------------------+
 
 JSON_APPEND
 ----------
@@ -277,29 +276,29 @@ Return type: STRING
 
 Example::
 
-    > source=json_test | eval jsonAppend = json_set('{"a": [{"b": 1}]}', 'a', 3) | head 1 | fields jsonAppend
+    os> source=json_test | eval jsonAppend = json_set('{"a": [{"b": 1}]}', 'a', 3) | head 1 | fields jsonAppend
+    fetched rows / total rows = 1/1
+    +------------+
+    | jsonAppend |
+    |------------|
+    | {"a":3}    |
+    +------------+
+
+    os> source=json_test | eval jsonAppend = json_append('{"a": [{"b": 1}, {"b": 2}]}', 'a{0}.b', 3, 'a{1}.b', 4) | head 1 | fields jsonAppend
     fetched rows / total rows = 1/1
     +-------------------------+
     | jsonAppend              |
     |-------------------------|
-    | {"a": [{"b": 1}, 3]}    |
+    | {"a":[{"b":1},{"b":2}]} |
     +-------------------------+
 
-    > source=json_test | eval jsonAppend = json_append('{"a": [{"b": 1}, {"b": 2}]}', 'a{0}.b', 3, 'a{1}.b', 4) | head 1 | fields jsonAppend
+    os> source=json_test | eval jsonAppend = json_append('{"a": [{"b": 1}]}', 'a', '[1,2]', 'a{1}.b', 4) | head 1 | fields jsonAppend
     fetched rows / total rows = 1/1
     +-------------------------+
     | jsonAppend              |
     |-------------------------|
-    | {"a": [{"b": 1}, 3]}    |
+    | {"a":[{"b":1},"[1,2]"]} |
     +-------------------------+
-
-     > source=json_test | eval jsonAppend = json_append('{"a": [{"b": 1}]}', 'a', '[1,2]', 'a{1}.b', 4) | head 1 | fields jsonAppend
-    fetched rows / total rows = 1/1
-    +----------------------------+
-    | jsonAppend                 |
-    |----------------------------|
-    | {"a": [{"b": 1}, "[1,2]"]} |
-    +----------------------------+
 
 JSON_EXTEND
 ----------
@@ -319,29 +318,29 @@ Return type: STRING
 
 Example::
 
-    > source=json_test | eval jsonExtend = json_extend('{"a": [{"b": 1}]}', 'a', 3) | head 1 | fields jsonExtend
+    os> source=json_test | eval jsonExtend = json_extend('{"a": [{"b": 1}]}', 'a', 3) | head 1 | fields jsonExtend
+    fetched rows / total rows = 1/1
+    +-------------------+
+    | jsonExtend        |
+    |-------------------|
+    | {"a":[{"b":1},3]} |
+    +-------------------+
+
+    os> source=json_test | eval jsonExtend = json_extend('{"a": [{"b": 1}, {"b": 2}]}', 'a{0}.b', 3, 'a{1}.b', 4) | head 1 | fields jsonExtend
     fetched rows / total rows = 1/1
     +-------------------------+
     | jsonExtend              |
     |-------------------------|
-    | {"a": [{"b": 1}, 3]}    |
+    | {"a":[{"b":1},{"b":2}]} |
     +-------------------------+
 
-    > source=json_test | eval jsonExtend = json_extend('{"a": [{"b": 1}, {"b": 2}]}', 'a{0}.b', 3, 'a{1}.b', 4) | head 1 | fields jsonExtend
+    os> source=json_test | eval jsonExtend = json_extend('{"a": [{"b": 1}]}', 'a', '[1,2]') | head 1 | fields jsonExtend
     fetched rows / total rows = 1/1
     +-------------------------+
     | jsonExtend              |
     |-------------------------|
-    | {"a": [{"b": 1}, 3]}    |
+    | {"a":[{"b":1},1.0,2.0]} |
     +-------------------------+
-
-     > source=json_test | eval jsonExtend = json_extend('{"a": [{"b": 1}]}', 'a', '[1,2]') | head 1 | fields jsonExtend
-    fetched rows / total rows = 1/1
-    +----------------------------+
-    | jsonExtend                 |
-    |----------------------------|
-    | {"a": [{"b": 1},1,2]}      |
-    +----------------------------+
 
 JSON_KEYS
 ----------
@@ -361,18 +360,18 @@ Return type: STRING
 
 Example::
 
-    > source=json_test | eval jsonKeys = json_keys('{"a": 1, "b": 2}') | head 1 | fields jsonKeys
+    os> source=json_test | eval jsonKeys = json_keys('{"a": 1, "b": 2}') | head 1 | fields jsonKeys
     fetched rows / total rows = 1/1
-    +-------------------------+
-    | jsonKeys                |
-    |-------------------------|
-    | ["a","b"]               |
-    +-------------------------+
+    +-----------+
+    | jsonKeys  |
+    |-----------|
+    | ["a","b"] |
+    +-----------+
 
-    > source=json_test | eval jsonKeys = json_keys('{"a": {"c": 1}, "b": 2}') | head 1 | fields jsonKeys
+    os> source=json_test | eval jsonKeys = json_keys('{"a": {"c": 1}, "b": 2}') | head 1 | fields jsonKeys
     fetched rows / total rows = 1/1
-    +-------------------------+
-    | jsonKeys                |
-    |-------------------------|
-    | ["a","b"]               |
-    +-------------------------+
+    +-----------+
+    | jsonKeys  |
+    |-----------|
+    | ["a","b"] |
+    +-----------+

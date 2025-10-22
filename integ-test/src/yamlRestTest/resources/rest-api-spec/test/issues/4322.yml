@@ -1,0 +1,69 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"Fix bin with stats command exception":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      indices.create:
+        index: log-test
+        body:
+          mappings:
+            properties:
+              "@timestamp":
+                type: date
+
+  - do:
+      bulk:
+        index: log-test
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{ "@timestamp" : "2025-09-04T16:15:00.000Z" }'
+          - '{"index": {}}'
+          - '{ "@timestamp" : "2025-09-04T16:17:00.000Z" }'
+          - '{"index": {}}'
+          - '{ "@timestamp" : "2025-09-04T16:20:00.000Z" }'
+          - '{"index": {}}'
+          - '{ "@timestamp" : "2025-09-04T16:22:00.000Z" }'
+          - '{"index": {}}'
+          - '{ "@timestamp" : "2025-09-04T16:25:00.000Z" }'
+
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=log-test | bin @timestamp span=5m | stats count by @timestamp
+
+  - match: { total: 3 }
+  - length: { datarows: 3 }
+
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=log-test | stats count by span(@timestamp, 5m)
+
+  - match: { total: 3 }
+  - length: { datarows: 3 }

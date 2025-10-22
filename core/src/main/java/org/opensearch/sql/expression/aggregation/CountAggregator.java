@@ -44,7 +44,7 @@ public class CountAggregator extends Aggregator<CountState> {
 
   /** Count State. */
   protected static class CountState implements AggregationState {
-    protected int count;
+    protected long count;
 
     CountState() {
       this.count = 0;
@@ -56,7 +56,7 @@ public class CountAggregator extends Aggregator<CountState> {
 
     @Override
     public ExprValue result() {
-      return ExprValueUtils.integerValue(count);
+      return ExprValueUtils.longValue(count);
     }
   }
 

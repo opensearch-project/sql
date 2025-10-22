@@ -215,7 +215,7 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
             "SELECT count(*)" + " FROM %s GROUP BY hour_minute_second_OR_t_time",
             TEST_INDEX_DATE_FORMATS);
     JSONObject result = executeQuery(query);
-    verifySchema(result, schema("count(*)", null, "integer"));
+    verifySchema(result, schema("count(*)", null, "long"));
     verifyDataRows(result, rows(1), rows(1));
   }
 

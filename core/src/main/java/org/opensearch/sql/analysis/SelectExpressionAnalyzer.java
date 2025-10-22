@@ -34,31 +34,45 @@ import org.opensearch.sql.expression.ReferenceExpression;
  */
 @RequiredArgsConstructor
 public class SelectExpressionAnalyzer
-    extends AbstractNodeVisitor<List<NamedExpression>, AnalysisContext> {
+    extends AbstractNodeVisitor<
+        List<NamedExpression>, SelectExpressionAnalyzer.AnalysisContextWithOptimizer> {
   private final ExpressionAnalyzer expressionAnalyzer;
-
-  private ExpressionReferenceOptimizer optimizer;
 
   /** Analyze Select fields. */
   public List<NamedExpression> analyze(
       List<UnresolvedExpression> selectList,
       AnalysisContext analysisContext,
       ExpressionReferenceOptimizer optimizer) {
-    this.optimizer = optimizer;
+    // Create per-request context wrapper to avoid shared mutable state
+    AnalysisContextWithOptimizer contextWithOptimizer =
+        new AnalysisContextWithOptimizer(analysisContext, optimizer);
     ImmutableList.Builder<NamedExpression> builder = new ImmutableList.Builder<>();
     for (UnresolvedExpression unresolvedExpression : selectList) {
-      builder.addAll(unresolvedExpression.accept(this, analysisContext));
+      builder.addAll(unresolvedExpression.accept(this, contextWithOptimizer));
     }
     return builder.build();
   }
 
-  @Override
-  public List<NamedExpression> visitField(Field node, AnalysisContext context) {
-    return Collections.singletonList(DSL.named(node.accept(expressionAnalyzer, context)));
+  /** Context wrapper to pass optimizer per-request without shared state */
+  static class AnalysisContextWithOptimizer {
+    final AnalysisContext analysisContext;
+    final ExpressionReferenceOptimizer optimizer;
+
+    AnalysisContextWithOptimizer(
+        AnalysisContext analysisContext, ExpressionReferenceOptimizer optimizer) {
+      this.analysisContext = analysisContext;
+      this.optimizer = optimizer;
+    }
   }
 
   @Override
-  public List<NamedExpression> visitAlias(Alias node, AnalysisContext context) {
+  public List<NamedExpression> visitField(Field node, AnalysisContextWithOptimizer context) {
+    return Collections.singletonList(
+        DSL.named(node.accept(expressionAnalyzer, context.analysisContext)));
+  }
+
+  @Override
+  public List<NamedExpression> visitAlias(Alias node, AnalysisContextWithOptimizer context) {
     // Expand all nested fields if used in SELECT clause
     if (node.getDelegated() instanceof NestedAllTupleFields) {
       return node.getDelegated().accept(this, context);
@@ -82,20 +96,23 @@ public class SelectExpressionAnalyzer
    *       groupExpr))
    * </ol>
    */
-  private Expression referenceIfSymbolDefined(Alias expr, AnalysisContext context) {
+  private Expression referenceIfSymbolDefined(Alias expr, AnalysisContextWithOptimizer context) {
     UnresolvedExpression delegatedExpr = expr.getDelegated();
 
     // Pass named expression because expression like window function loses full name
     // (OVER clause) and thus depends on name in alias to be replaced correctly
-    return optimizer.optimize(
+    return context.optimizer.optimize(
         DSL.named(
-            expr.getName(), delegatedExpr.accept(expressionAnalyzer, context), expr.getAlias()),
-        context);
+            expr.getName(),
+            delegatedExpr.accept(expressionAnalyzer, context.analysisContext),
+            expr.getAlias()),
+        context.analysisContext);
   }
 
   @Override
-  public List<NamedExpression> visitAllFields(AllFields node, AnalysisContext context) {
-    TypeEnvironment environment = context.peek();
+  public List<NamedExpression> visitAllFields(
+      AllFields node, AnalysisContextWithOptimizer context) {
+    TypeEnvironment environment = context.analysisContext.peek();
     Map<String, ExprType> lookupAllFields = environment.lookupAllFields(Namespace.FIELD_NAME);
     return lookupAllFields.entrySet().stream()
         .map(
@@ -107,8 +124,8 @@ public class SelectExpressionAnalyzer
 
   @Override
   public List<NamedExpression> visitNestedAllTupleFields(
-      NestedAllTupleFields node, AnalysisContext context) {
-    TypeEnvironment environment = context.peek();
+      NestedAllTupleFields node, AnalysisContextWithOptimizer context) {
+    TypeEnvironment environment = context.analysisContext.peek();
     Map<String, ExprType> lookupAllTupleFields =
         environment.lookupAllTupleFields(Namespace.FIELD_NAME);
     environment.resolve(new Symbol(Namespace.FIELD_NAME, node.getPath()));
@@ -123,7 +140,7 @@ public class SelectExpressionAnalyzer
                   new Function(
                           "nested",
                           List.of(new QualifiedName(List.of(entry.getKey().split("\\.")))))
-                      .accept(expressionAnalyzer, context);
+                      .accept(expressionAnalyzer, context.analysisContext);
               return DSL.named("nested(" + entry.getKey() + ")", nestedFunc);
             })
         .collect(Collectors.toList());
@@ -137,10 +154,10 @@ public class SelectExpressionAnalyzer
    * this. Otherwise, what unqualified() returns will override Alias's name as NamedExpression's
    * name even though the QualifiedName doesn't have qualifier.
    */
-  private String unqualifiedNameIfFieldOnly(Alias node, AnalysisContext context) {
+  private String unqualifiedNameIfFieldOnly(Alias node, AnalysisContextWithOptimizer context) {
     UnresolvedExpression selectItem = node.getDelegated();
     if (selectItem instanceof QualifiedName) {
-      QualifierAnalyzer qualifierAnalyzer = new QualifierAnalyzer(context);
+      QualifierAnalyzer qualifierAnalyzer = new QualifierAnalyzer(context.analysisContext);
       return qualifierAnalyzer.unqualified((QualifiedName) selectItem);
     }
     return node.getName();

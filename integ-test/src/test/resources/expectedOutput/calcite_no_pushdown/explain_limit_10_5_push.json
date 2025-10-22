@@ -1,6 +1,0 @@
-{
-  "calcite": {
-    "logical": "LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])\n  LogicalProject(age=[$8])\n    LogicalSort(fetch=[5])\n      LogicalSort(fetch=[10])\n        CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
-    "physical": "EnumerableLimit(fetch=[10000])\n  EnumerableCalc(expr#0..16=[{inputs}], age=[$t8])\n    EnumerableLimit(fetch=[5])\n      EnumerableLimit(fetch=[10])\n        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n"
-  }
-}

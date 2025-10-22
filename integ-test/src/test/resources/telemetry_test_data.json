@@ -1,0 +1,10 @@
+{"index":{"_id":"1"}}
+{"resource": {"attributes": {"telemetry": {"sdk": {"language": "java", "name": "opentelemetry", "version": 10, "enabled": true}}}}, "severityNumber": 9}
+{"index":{"_id":"2"}}
+{"resource": {"attributes": {"telemetry": {"sdk": {"language": "python", "name": "opentelemetry", "version": 11, "enabled": false}}}}, "severityNumber": 12}
+{"index":{"_id":"3"}}
+{"resource": {"attributes": {"telemetry": {"sdk": {"language": "javascript", "name": "opentelemetry", "version": 12, "enabled": true}}}}, "severityNumber": 9}
+{"index":{"_id":"4"}}
+{"resource": {"attributes": {"telemetry": {"sdk": {"language": "go", "name": "opentelemetry", "version": 13, "enabled": false}}}}, "severityNumber": 16}
+{"index":{"_id":"5"}}
+{"resource": {"attributes": {"telemetry": {"sdk": {"language": "rust", "name": "opentelemetry", "version": 14, "enabled": true}}}}, "severityNumber": 12}

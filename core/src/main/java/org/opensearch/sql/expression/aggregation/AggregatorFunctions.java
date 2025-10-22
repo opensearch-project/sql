@@ -92,7 +92,7 @@ public class AggregatorFunctions {
                             new FunctionSignature(functionName, Collections.singletonList(type)),
                         type ->
                             (functionProperties, arguments) ->
-                                new CountAggregator(arguments, INTEGER))));
+                                new CountAggregator(arguments, LONG))));
     return functionResolver;
   }
 

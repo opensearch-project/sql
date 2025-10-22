@@ -13,8 +13,9 @@ import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_MISSING;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
 import static org.opensearch.sql.utils.DateTimeUtils.extractTimestamp;
 
-import java.time.LocalDate;
+import java.time.Instant;
 import java.time.Period;
+import java.time.ZoneOffset;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -22,8 +23,13 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.ExpressionTestBase;
+import org.opensearch.sql.expression.function.FunctionProperties;
 
 public class ExprValueCompareTest extends ExpressionTestBase {
+
+  // Use a fixed timestamp for consistent test results across timezones
+  private static final FunctionProperties FIXED_FUNCTION_PROPERTIES =
+      new FunctionProperties(Instant.parse("2023-05-15T00:00:00Z"), ZoneOffset.UTC);
 
   @Test
   public void timeValueCompare() {
@@ -60,13 +66,11 @@ public class ExprValueCompareTest extends ExpressionTestBase {
         Arguments.of(
             new ExprTimestampValue("1984-11-22 00:00:00"), new ExprDateValue("1984-11-22")),
         Arguments.of(
-            new ExprTimestampValue(LocalDate.now() + " 00:00:00"),
-            new ExprDateValue(LocalDate.now())),
-        Arguments.of(new ExprDateValue(LocalDate.now()), new ExprTimeValue("00:00:00")),
+            new ExprTimestampValue("2023-05-15 00:00:00"), new ExprDateValue("2023-05-15")),
+        Arguments.of(new ExprDateValue("2023-05-15"), new ExprTimeValue("00:00:00")),
         Arguments.of(
             new ExprTimestampValue("1984-11-22 00:00:00"), new ExprDateValue("1984-11-22")),
-        Arguments.of(
-            new ExprTimeValue("17:42:15"), new ExprTimestampValue(LocalDate.now() + " 17:42:15")));
+        Arguments.of(new ExprTimeValue("17:42:15"), new ExprTimestampValue("2023-05-15 17:42:15")));
   }
 
   /**
@@ -78,8 +82,8 @@ public class ExprValueCompareTest extends ExpressionTestBase {
   public void compareEqDifferentDateTimeValueTypes(ExprValue left, ExprValue right) {
     assertEquals(
         0,
-        extractTimestamp(left, functionProperties)
-            .compareTo(extractTimestamp(right, functionProperties)));
+        extractTimestamp(left, FIXED_FUNCTION_PROPERTIES)
+            .compareTo(extractTimestamp(right, FIXED_FUNCTION_PROPERTIES)));
   }
 
   private static Stream<Arguments> getNotEqualDatetimeValuesOfDifferentTypes() {
@@ -87,11 +91,10 @@ public class ExprValueCompareTest extends ExpressionTestBase {
         Arguments.of(
             new ExprDateValue("1984-11-22"), new ExprTimestampValue("2020-09-16 17:30:00")),
         Arguments.of(new ExprDateValue("1984-11-22"), new ExprTimeValue("19:14:38")),
-        Arguments.of(new ExprTimeValue("19:14:38"), new ExprDateValue(LocalDate.now())),
+        Arguments.of(new ExprTimeValue("19:14:38"), new ExprDateValue("2023-05-15")),
         Arguments.of(new ExprTimeValue("19:14:38"), new ExprTimestampValue("1984-02-03 04:05:07")),
         Arguments.of(new ExprTimestampValue("2012-08-07 19:14:38"), new ExprTimeValue("09:07:00")),
-        Arguments.of(
-            new ExprTimestampValue(LocalDate.now() + " 19:14:38"), new ExprTimeValue("09:07:00")),
+        Arguments.of(new ExprTimestampValue("2023-05-15 19:14:38"), new ExprTimeValue("09:07:00")),
         Arguments.of(
             new ExprTimestampValue("2012-08-07 00:00:00"), new ExprDateValue("1961-04-12")),
         Arguments.of(

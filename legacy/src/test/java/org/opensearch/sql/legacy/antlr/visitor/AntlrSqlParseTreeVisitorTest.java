@@ -20,6 +20,7 @@ import org.opensearch.sql.legacy.antlr.OpenSearchLegacySqlAnalyzer;
 import org.opensearch.sql.legacy.antlr.SqlAnalysisConfig;
 import org.opensearch.sql.legacy.antlr.semantic.scope.SemanticContext;
 import org.opensearch.sql.legacy.antlr.semantic.types.Type;
+import org.opensearch.sql.legacy.antlr.semantic.types.base.OpenSearchIndex;
 import org.opensearch.sql.legacy.antlr.semantic.types.special.Product;
 import org.opensearch.sql.legacy.antlr.semantic.visitor.TypeChecker;
 import org.opensearch.sql.legacy.exception.SqlFeatureNotImplementedException;
@@ -31,6 +32,11 @@ public class AntlrSqlParseTreeVisitorTest {
       new TypeChecker(new SemanticContext()) {
         @Override
         public Type visitIndexName(String indexName) {
+          // Special case: for JOIN tests (both implicit and explicit JOIN + GROUP BY validation)
+          // Return proper OpenSearchIndex to enable JOIN semantic analysis for "testIndex"
+          if ("testIndex".equals(indexName)) {
+            return new OpenSearchIndex(indexName, OpenSearchIndex.IndexType.INDEX);
+          }
           return null; // avoid querying mapping on null LocalClusterState
         }
 
@@ -99,6 +105,13 @@ public class AntlrSqlParseTreeVisitorTest {
     exceptionRule.expectMessage(
         "Aggregation calls with function aggregator like [max(abs(age))] are not supported yet");
     visit("SELECT max(abs(age)) FROM test");
+  }
+
+  @Test
+  public void visitExplicitJoinWithGroupByShouldThrowException() {
+    exceptionRule.expect(RuntimeException.class);
+    exceptionRule.expectMessage("JOIN queries do not support aggregations on the joined result.");
+    visit("SELECT COUNT(*) FROM testIndex t1 JOIN testIndex t2 ON t1.id = t2.id GROUP BY t1.field");
   }
 
   @Test

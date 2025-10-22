@@ -1,0 +1,20 @@
+{"index":{"_id":"1"}}
+{"description":"Central Park","age":"old","place_id":1001}
+{"index":{"_id":"2"}}
+{"description":"Times Square","age":"modern","place_id":1002}
+{"index":{"_id":"3"}}
+{"description":"Brooklyn Bridge","age":"historic","place_id":1003}
+{"index":{"_id":"4"}}
+{"description":"Empire State Building","age":"1931","place_id":1004}
+{"index":{"_id":"5"}}
+{"description":"Statue of Liberty","age":"1886","place_id":1005}
+{"index":{"_id":"6"}}
+{"description":"Grand Central Terminal","age":"vintage","place_id":1006}
+{"index":{"_id":"7"}}
+{"description":"One World Trade Center","age":"new","place_id":1007}
+{"index":{"_id":"8"}}
+{"description":"Madison Square Garden","age":"recent","place_id":1008}
+{"index":{"_id":"9"}}
+{"description":"Wall Street","age":"colonial","place_id":1009}
+{"index":{"_id":"10"}}
+{"description":"Fifth Avenue","age":"19th century","place_id":1010}

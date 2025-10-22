@@ -9,6 +9,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -19,6 +20,7 @@ import org.opensearch.sql.ast.dsl.AstDSL;
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
 @AllArgsConstructor
+@Getter
 public class SPath extends UnresolvedPlan {
   private UnresolvedPlan child;
 

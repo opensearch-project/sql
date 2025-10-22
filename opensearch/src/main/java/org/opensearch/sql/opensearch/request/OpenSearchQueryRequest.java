@@ -8,7 +8,6 @@ package org.opensearch.sql.opensearch.request;
 import static org.opensearch.core.xcontent.DeprecationHandler.IGNORE_DEPRECATIONS;
 import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
-import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -31,6 +30,9 @@ import org.opensearch.search.SearchHits;
 import org.opensearch.search.SearchModule;
 import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.sort.FieldSortBuilder;
+import org.opensearch.search.sort.ShardDocSortBuilder;
+import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
@@ -51,7 +53,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   private final IndexName indexName;
 
   /** Search request source builder. */
-  private SearchSourceBuilder sourceBuilder;
+  private final SearchSourceBuilder sourceBuilder;
 
   /** OpenSearchExprValueFactory. */
   @EqualsAndHashCode.Exclude @ToString.Exclude
@@ -119,6 +121,14 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     this.pitId = pitId;
   }
 
+  /** true if the request is a count aggregation request. */
+  public boolean isCountAggRequest() {
+    return !searchDone
+        && sourceBuilder.size() == 0
+        && sourceBuilder.trackTotalHitsUpTo() != null // only set in v3
+        && sourceBuilder.trackTotalHitsUpTo() == Integer.MAX_VALUE;
+  }
+
   /**
    * Constructs OpenSearchQueryRequest from serialized representation.
    *
@@ -163,14 +173,18 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     if (this.pitId == null) {
       // When SearchRequest doesn't contain PitId, fetch single page request
       if (searchDone) {
-        return new OpenSearchResponse(SearchHits.empty(), exprValueFactory, includes);
+        return new OpenSearchResponse(
+            SearchHits.empty(), exprValueFactory, includes, isCountAggRequest());
       } else {
+        // get the value before set searchDone = true
+        boolean isCountAggRequest = isCountAggRequest();
         searchDone = true;
         return new OpenSearchResponse(
             searchAction.apply(
                 new SearchRequest().indices(indexName.getIndexNames()).source(sourceBuilder)),
             exprValueFactory,
-            includes);
+            includes,
+            isCountAggRequest);
       }
     } else {
       // Search with PIT instead of scroll API
@@ -181,7 +195,9 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   public OpenSearchResponse searchWithPIT(Function<SearchRequest, SearchResponse> searchAction) {
     OpenSearchResponse openSearchResponse;
     if (searchDone) {
-      openSearchResponse = new OpenSearchResponse(SearchHits.empty(), exprValueFactory, includes);
+      openSearchResponse =
+          new OpenSearchResponse(
+              SearchHits.empty(), exprValueFactory, includes, isCountAggRequest());
     } else {
       this.sourceBuilder.pointInTimeBuilder(new PointInTimeBuilder(this.pitId));
       this.sourceBuilder.timeout(cursorKeepAlive);
@@ -189,18 +205,31 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       if (searchAfter != null) {
         this.sourceBuilder.searchAfter(searchAfter);
       }
-      // Set sort field for search_after
-      if (this.sourceBuilder.sorts() == null) {
+      // Add sort tiebreaker for PIT search.
+      // We cannot remove it since `_shard_doc` is not added implicitly in PIT now.
+      // Ref https://github.com/opensearch-project/OpenSearch/pull/18924#issuecomment-3342365950
+      if (this.sourceBuilder.sorts() == null || this.sourceBuilder.sorts().isEmpty()) {
+        // If no sort field specified, sort by `_doc` + `_shard_doc`to get better performance
         this.sourceBuilder.sort(DOC_FIELD_NAME, ASC);
-        // Workaround to preserve sort location more exactly,
-        // see https://github.com/opensearch-project/sql/pull/3061
-        this.sourceBuilder.sort(METADATA_FIELD_ID, ASC);
+        this.sourceBuilder.sort(SortBuilders.shardDocSort());
+      } else {
+        // If sort fields specified, sort by `fields` + `_doc` + `_shard_doc`.
+        if (this.sourceBuilder.sorts().stream()
+            .noneMatch(
+                b -> b instanceof FieldSortBuilder f && f.fieldName().equals(DOC_FIELD_NAME))) {
+          this.sourceBuilder.sort(DOC_FIELD_NAME, ASC);
+        }
+        if (this.sourceBuilder.sorts().stream().noneMatch(ShardDocSortBuilder.class::isInstance)) {
+          this.sourceBuilder.sort(SortBuilders.shardDocSort());
+        }
       }
       SearchRequest searchRequest =
           new SearchRequest().indices(indexName.getIndexNames()).source(this.sourceBuilder);
       this.searchResponse = searchAction.apply(searchRequest);
 
-      openSearchResponse = new OpenSearchResponse(this.searchResponse, exprValueFactory, includes);
+      openSearchResponse =
+          new OpenSearchResponse(
+              this.searchResponse, exprValueFactory, includes, isCountAggRequest());
 
       needClean = openSearchResponse.isEmpty();
       searchDone = openSearchResponse.isEmpty();
@@ -218,6 +247,18 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     try {
       // clean on the last page only, to prevent deleting the PitId in the middle of paging.
       if (this.pitId != null && needClean) {
+        cleanAction.accept(this.pitId);
+        searchDone = true;
+      }
+    } finally {
+      this.pitId = null;
+    }
+  }
+
+  @Override
+  public void forceClean(Consumer<String> cleanAction) {
+    try {
+      if (this.pitId != null) {
         cleanAction.accept(this.pitId);
         searchDone = true;
       }

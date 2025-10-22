@@ -40,7 +40,7 @@ public class AggregationIT extends SQLIntegTestCase {
   public void testFilteredAggregatePushDown() throws IOException {
     JSONObject response =
         executeQuery("SELECT COUNT(*) FILTER(WHERE age > 35) FROM " + TEST_INDEX_BANK);
-    verifySchema(response, schema("COUNT(*) FILTER(WHERE age > 35)", null, "integer"));
+    verifySchema(response, schema("COUNT(*) FILTER(WHERE age > 35)", null, "long"));
     verifyDataRows(response, rows(3));
   }
 
@@ -51,7 +51,7 @@ public class AggregationIT extends SQLIntegTestCase {
             "SELECT COUNT(*) FILTER(WHERE age > 35) FROM (SELECT * FROM "
                 + TEST_INDEX_BANK
                 + ") AS a");
-    verifySchema(response, schema("COUNT(*) FILTER(WHERE age > 35)", null, "integer"));
+    verifySchema(response, schema("COUNT(*) FILTER(WHERE age > 35)", null, "long"));
     verifyDataRows(response, rows(3));
   }
 

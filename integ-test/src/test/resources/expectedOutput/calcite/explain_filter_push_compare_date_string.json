@@ -1,6 +1,0 @@
-{
-  "calcite": {
-    "logical": "LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])\n  LogicalFilter(condition=[<($0, DATE('2018-11-09 00:00:00.000000000':VARCHAR))])\n    LogicalFilter(condition=[>($0, DATE('2016-12-08 00:00:00.123456789':VARCHAR))])\n      LogicalProject(yyyy-MM-dd=[$83])\n        CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_date_formats]])\n",
-    "physical": "CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_date_formats]], PushDownContext=[[PROJECT->[yyyy-MM-dd], FILTER->>($0, '2016-12-08'), FILTER-><($0, '2018-11-09'), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"query\":{\"bool\":{\"filter\":[{\"range\":{\"yyyy-MM-dd\":{\"from\":\"2016-12-08\",\"to\":null,\"include_lower\":false,\"include_upper\":true,\"boost\":1.0}}},{\"range\":{\"yyyy-MM-dd\":{\"from\":null,\"to\":\"2018-11-09\",\"include_lower\":true,\"include_upper\":false,\"boost\":1.0}}}],\"adjust_pure_negative\":true,\"boost\":1.0}},\"_source\":{\"includes\":[\"yyyy-MM-dd\"],\"excludes\":[]},\"sort\":[{\"_doc\":{\"order\":\"asc\"}}]}, requestedTotalSize=10000, pageSize=null, startFrom=0)])\n"
-  }
-}

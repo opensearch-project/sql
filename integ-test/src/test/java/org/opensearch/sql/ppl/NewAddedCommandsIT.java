@@ -125,28 +125,44 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   @Test
   public void testRegexMatch() throws IOException {
     // Test regex_match with pattern that matches substring
+    try {
+      executeQuery(
+          String.format(
+              "source=%s | eval f=regex_match(name, 'ell') | fields f", TEST_INDEX_STRINGS));
+    } catch (ResponseException e) {
+      JSONObject result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+      verifyQuery(result);
+    }
+  }
+
+  @Test
+  public void testAppend() throws IOException {
     JSONObject result;
     try {
-
-      String query1 =
-          String.format(
-              "source=%s | eval f=regex_match(name, 'ell') | fields f", TEST_INDEX_STRINGS);
-      result = executeQuery(query1);
       result =
           executeQuery(
               String.format(
-                  "search source=%s | where firstname = [ source=%s | where holdersName='Hattie'"
-                      + " | fields holdersName | head 1]",
-                  TEST_INDEX_BANK, TEST_INDEX_DOG));
+                  "search source=%s | stats count() by span(age, 10) | append [ search source=%s |"
+                      + " stats avg(balance) by span(age, 10) ]",
+                  TEST_INDEX_BANK, TEST_INDEX_BANK));
     } catch (ResponseException e) {
       result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
-      if (isCalciteEnabled()) {
-        assertFalse(result.getJSONArray("datarows").isEmpty());
-      } else {
-        JSONObject error = result.getJSONObject("error");
-        assertThat(
-            error.getString("details"), containsString("unsupported function name: regex_match"));
-      }
+    }
+    verifyQuery(result);
+  }
+
+  @Test
+  public void testStrftimeFunction() throws IOException {
+    JSONObject result;
+    try {
+      executeQuery(
+          String.format(
+              "search source=%s | eval formatted_time = strftime(1521467703, '%s') | fields"
+                  + " formatted_time",
+              TEST_INDEX_BANK, "%Y-%m-%d"));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+      verifyQuery(result);
     }
   }
 

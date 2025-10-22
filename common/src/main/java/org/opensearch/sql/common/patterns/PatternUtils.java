@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.common.patterns;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,8 @@ public final class PatternUtils {
   public static final Pattern WILDCARD_PATTERN = Pattern.compile("<\\*[^>]*>");
   public static final String TOKEN_PREFIX = "<token";
   public static final Pattern TOKEN_PATTERN = Pattern.compile("<token\\d+>");
+  public static final List<String> VALID_BRAIN_PARAMETERS =
+      ImmutableList.of("variable_count_threshold", "frequency_threshold_percentage");
 
   public static Map<String, Map<String, Object>> mergePatternGroups(
       Map<String, Map<String, Object>> left,
@@ -55,6 +58,7 @@ public final class PatternUtils {
   public static void extractVariables(
       ParseResult parseResult, String original, Map<String, List<String>> result, String prefix) {
     List<String> parts = parseResult.parts;
+    List<Boolean> isToken = parseResult.isToken;
     List<String> tokenOrder = parseResult.tokenOrder;
 
     if (parts.isEmpty()) {
@@ -67,7 +71,7 @@ public final class PatternUtils {
 
     while (i < parts.size()) {
       String currentPart = parts.get(i);
-      if (currentPart.startsWith(prefix)) { // Process already labeled part
+      if (isToken.get(i)) { // Process already labeled part
         String tokenKey = tokenOrder.get(tokenIndex++);
         if (i == parts.size() - 1) { // The last part
           String value = original.substring(pos);
@@ -97,19 +101,22 @@ public final class PatternUtils {
   }
 
   public static class ParseResult {
-    List<String> parts;
-    List<String> tokenOrder;
+    final List<String> parts;
+    final List<Boolean> isToken;
+    final List<String> tokenOrder;
 
-    public ParseResult(List<String> parts, List<String> tokenOrder) {
+    public ParseResult(List<String> parts, List<Boolean> isToken, List<String> tokenOrder) {
       this.parts = parts;
+      this.isToken = isToken;
       this.tokenOrder = tokenOrder;
     }
 
     public String toTokenOrderString(String prefix) {
       StringBuilder result = new StringBuilder();
       int tokenIndex = 0;
-      for (String currentPart : parts) {
-        if (currentPart.startsWith(prefix)) {
+      for (int i = 0; i < parts.size(); i++) {
+        String currentPart = parts.get(i);
+        if (isToken.get(i)) {
           result.append(tokenOrder.get(tokenIndex++));
         } else {
           result.append(currentPart);
@@ -126,6 +133,7 @@ public final class PatternUtils {
    */
   public static ParseResult parsePattern(String pattern, Pattern compiledPattern) {
     List<String> parts = new ArrayList<>();
+    List<Boolean> isToken = new ArrayList<>();
     List<String> tokenOrder = new ArrayList<>();
     Matcher matcher = compiledPattern.matcher(pattern);
     int lastEnd = 0;
@@ -137,10 +145,12 @@ public final class PatternUtils {
       // Add static part before the found match if there is
       if (start > lastEnd) {
         parts.add(pattern.substring(lastEnd, start));
+        isToken.add(false);
       }
       // Add matched wildcard part and generate token order key
       String wildcard = matcher.group();
       parts.add(wildcard);
+      isToken.add(true);
       tokenOrder.add("<token" + tokenCount++ + ">");
       lastEnd = end;
     }
@@ -148,9 +158,10 @@ public final class PatternUtils {
     // Add static part at the end
     if (lastEnd < pattern.length()) {
       parts.add(pattern.substring(lastEnd));
+      isToken.add(false);
     }
 
-    return new ParseResult(parts, tokenOrder);
+    return new ParseResult(parts, isToken, tokenOrder);
   }
 
   private static void addToResult(Map<String, List<String>> result, String key, String value) {

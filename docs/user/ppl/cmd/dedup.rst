@@ -32,7 +32,7 @@ The example show dedup the document with gender field.
 
 PPL query::
 
-    os> source=accounts | dedup gender | fields account_number, gender;
+    os> source=accounts | dedup gender | fields account_number, gender | sort account_number;
     fetched rows / total rows = 2/2
     +----------------+--------+
     | account_number | gender |
@@ -48,7 +48,7 @@ The example show dedup the document with gender field keep 2 duplication.
 
 PPL query::
 
-    os> source=accounts | dedup 2 gender | fields account_number, gender;
+    os> source=accounts | dedup 2 gender | fields account_number, gender | sort account_number;
     fetched rows / total rows = 3/3
     +----------------+--------+
     | account_number | gender |
@@ -65,7 +65,7 @@ The example show dedup the document by keep null value field.
 
 PPL query::
 
-    os> source=accounts | dedup email keepempty=true | fields account_number, email;
+    os> source=accounts | dedup email keepempty=true | fields account_number, email | sort account_number;
     fetched rows / total rows = 4/4
     +----------------+-----------------------+
     | account_number | email                 |
@@ -81,7 +81,7 @@ The example show dedup the document by ignore the empty value field.
 
 PPL query::
 
-    os> source=accounts | dedup email | fields account_number, email;
+    os> source=accounts | dedup email | fields account_number, email | sort account_number;
     fetched rows / total rows = 3/3
     +----------------+-----------------------+
     | account_number | email                 |
@@ -99,7 +99,7 @@ The example show dedup the consecutive document.
 
 PPL query::
 
-    os> source=accounts | dedup gender consecutive=true | fields account_number, gender;
+    os> source=accounts | dedup gender consecutive=true | fields account_number, gender | sort account_number;
     fetched rows / total rows = 3/3
     +----------------+--------+
     | account_number | gender |
@@ -109,6 +109,7 @@ PPL query::
     | 18             | M      |
     +----------------+--------+
 
-Limitation
-==========
-The ``dedup`` command is not rewritten to OpenSearch DSL, it is only executed on the coordination node.
+Limitations
+===========
+The ``dedup`` with ``consecutive=true`` command can only work with ``plugins.calcite.enabled=false``.
+It means ``dedup`` with ``consecutive=true`` command cannot work together with new PPL commands/functions introduced in 3.0.0 and above.

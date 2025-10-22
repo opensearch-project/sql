@@ -30,7 +30,11 @@ public class LogicalSystemLimit extends Sort {
      *
      * <p>This type is used to indicate that the limit is applied to the system level.
      */
-    QUERY_SIZE_LIMIT
+    QUERY_SIZE_LIMIT,
+    /** The max output from subsearch to join against. */
+    JOIN_SUBSEARCH_MAXOUT,
+    /** Max output to return from a subsearch. */
+    SUBSEARCH_MAXOUT,
   }
 
   @Getter private final SystemLimitType type;

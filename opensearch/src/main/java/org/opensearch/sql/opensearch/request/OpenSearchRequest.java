@@ -43,6 +43,9 @@ public interface OpenSearchRequest extends Writeable {
    */
   void clean(Consumer<String> cleanAction);
 
+  /** Force clean the request. */
+  void forceClean(Consumer<String> cleanAction);
+
   /**
    * Get the OpenSearchExprValueFactory.
    *

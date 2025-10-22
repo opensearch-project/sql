@@ -11,7 +11,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
-import static org.opensearch.sql.prometheus.constants.TestConstants.METRIC_NAME;
+import static org.opensearch.sql.prometheus.constant.TestConstants.METRIC_NAME;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.TIMESTAMP;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.VALUE;
 

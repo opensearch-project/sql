@@ -10,6 +10,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.experimental.UtilityClass;
 import org.apache.calcite.avatica.util.ArrayImpl;
 import org.apache.calcite.rel.type.RelDataType;
@@ -128,11 +130,47 @@ public class JdbcOpenSearchDataTypeConvertor {
               "Unchecked sql type: {}, return Object type {}",
               sqlType,
               value.getClass().getTypeName());
-          return ExprValueUtils.fromObjectValue(value);
+          return convertComplexValue(value);
       }
     } catch (SQLException e) {
       LOG.error("Error converting SQL type {}: {}", sqlType, e.getMessage());
       throw e;
     }
+  }
+
+  /**
+   * Convert complex values like Maps that may contain geo points. This method recursively processes
+   * Maps to handle nested geo points and converts them to appropriate ExprValue representations.
+   */
+  private static ExprValue convertComplexValue(Object value) {
+    Object converted = processValue(value);
+    return ExprValueUtils.fromObjectValue(converted);
+  }
+
+  /**
+   * Process values recursively, handling geo points and nested maps. Geo points are converted to
+   * OpenSearchExprGeoPointValue. Maps are recursively processed to handle nested structures.
+   */
+  private static Object processValue(Object value) {
+    if (value == null) {
+      return null;
+    }
+
+    if (value instanceof Point) {
+      Point point = (Point) value;
+      return new OpenSearchExprGeoPointValue(point.getY(), point.getX());
+    }
+
+    if (value instanceof Map) {
+      Map<String, Object> map = (Map<String, Object>) value;
+      Map<String, Object> convertedMap = new HashMap<>();
+      for (Map.Entry<String, Object> entry : map.entrySet()) {
+        convertedMap.put(entry.getKey(), processValue(entry.getValue()));
+      }
+      return convertedMap;
+    }
+
+    // For other types, return as-is
+    return value;
   }
 }

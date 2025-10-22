@@ -1,14 +1,6 @@
 /*
- *   Licensed under the Apache License, Version 2.0 (the "License").
- *   You may not use this file except in compliance with the License.
- *   A copy of the License is located at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *   or in the "license" file accompanying this file. This file is distributed
- *   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *   express or implied. See the License for the specific language governing
- *   permissions and limitations under the License.
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 package org.opensearch.sql.opensearch.response.agg;
@@ -31,10 +23,20 @@ import org.opensearch.sql.common.utils.StringUtils;
 public class MetricParserHelper {
 
   private final Map<String, MetricParser> metricParserMap;
+  // countAggNameList dedicated the list of count aggregations which are filled by doc_count
+  private final List<String> countAggNameList;
 
   public MetricParserHelper(List<MetricParser> metricParserList) {
     metricParserMap =
         metricParserList.stream().collect(Collectors.toMap(MetricParser::getName, m -> m));
+    this.countAggNameList = List.of();
+  }
+
+  /** MetricParserHelper with count aggregation name list, used in v3 */
+  public MetricParserHelper(List<MetricParser> metricParserList, List<String> countAggNameList) {
+    metricParserMap =
+        metricParserList.stream().collect(Collectors.toMap(MetricParser::getName, m -> m));
+    this.countAggNameList = countAggNameList;
   }
 
   /**
@@ -54,6 +56,7 @@ public class MetricParserHelper {
                 "couldn't parse field %s in aggregation response", aggregation.getName()));
       }
     }
+    //    countAggNameList.forEach(name -> resultMap.put(name, bucket.getDocCount()));
     return resultMap;
   }
 }

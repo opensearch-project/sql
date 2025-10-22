@@ -34,10 +34,13 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   private final List<String> fields;
 
   /** Search request. */
-  @EqualsAndHashCode.Include @ToString.Include private final OpenSearchRequest request;
+  @EqualsAndHashCode.Include @ToString.Include private OpenSearchRequest request;
 
   /** Largest number of rows allowed in the response. */
   @EqualsAndHashCode.Include @ToString.Include private final int maxResponseSize;
+
+  /** Largest number of rows allowed in the response. */
+  @EqualsAndHashCode.Include @ToString.Include private final int maxResultWindow;
 
   /** How many moveNext() calls to perform resource check once. */
   private static final long NUMBER_OF_NEXT_CALL_TO_CHECK = 1000;
@@ -53,16 +56,21 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
   private ExprValue current;
 
+  /** flag to indicate whether fetch more than one batch */
+  private boolean fetchOnce = false;
+
   public OpenSearchIndexEnumerator(
       OpenSearchClient client,
       List<String> fields,
       int maxResponseSize,
+      int maxResultWindow,
       OpenSearchRequest request,
       ResourceMonitor monitor) {
     this.client = client;
     this.fields = fields;
     this.request = request;
     this.maxResponseSize = maxResponseSize;
+    this.maxResultWindow = maxResultWindow;
     this.monitor = monitor;
     this.queryCount = 0;
     this.current = null;
@@ -73,6 +81,13 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
   private void fetchNextBatch() {
     OpenSearchResponse response = client.search(request);
+    if (response.isAggregationResponse()
+        || response.isCountResponse()
+        || response.getHitsSize() < maxResultWindow) {
+      // no need to fetch next batch if it's for an aggregation
+      // or the length of response hits is less than max result window size.
+      fetchOnce = true;
+    }
     if (!response.isEmpty()) {
       iterator = response.iterator();
     } else if (iterator == null) {
@@ -106,7 +121,7 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
       throw new NonFallbackCalciteException("insufficient resources to load next row, quit.");
     }
 
-    if (iterator == null || !iterator.hasNext()) {
+    if (iterator == null || (!iterator.hasNext() && !fetchOnce)) {
       fetchNextBatch();
     }
     if (iterator.hasNext()) {
@@ -132,7 +147,9 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   @Override
   public void close() {
     iterator = Collections.emptyIterator();
-    queryCount = 0;
-    client.cleanup(request);
+    if (request != null) {
+      client.forceCleanup(request);
+      request = null;
+    }
   }
 }

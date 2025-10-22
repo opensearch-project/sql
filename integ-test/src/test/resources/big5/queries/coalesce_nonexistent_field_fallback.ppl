@@ -1,0 +1,3 @@
+source = big5
+| eval result = coalesce(dummy_field, `host.name`, `metrics.size`, 'unknown')
+| head 10

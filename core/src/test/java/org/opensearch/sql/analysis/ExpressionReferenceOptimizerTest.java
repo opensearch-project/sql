@@ -138,6 +138,22 @@ class ExpressionReferenceOptimizerTest extends AnalyzerTestBase {
     return optimizer.optimize(DSL.named(expression), new AnalysisContext());
   }
 
+  @Test
+  void visitAggregator_with_missing_mapping_returns_original() {
+    BuiltinFunctionRepository repository = BuiltinFunctionRepository.getInstance();
+    LogicalPlan emptyPlan = LogicalPlanDSL.relation("test", table);
+    ExpressionReferenceOptimizer optimizer =
+        new ExpressionReferenceOptimizer(repository, emptyPlan);
+
+    Expression unmappedAggregator = DSL.count(DSL.ref("age", INTEGER));
+    AnalysisContext context = new AnalysisContext();
+
+    Expression result =
+        optimizer.visitAggregator(
+            (org.opensearch.sql.expression.aggregation.Aggregator<?>) unmappedAggregator, context);
+    assertEquals(unmappedAggregator, result);
+  }
+
   LogicalPlan logicalPlan() {
     return LogicalPlanDSL.aggregation(
         LogicalPlanDSL.relation("schema", table),

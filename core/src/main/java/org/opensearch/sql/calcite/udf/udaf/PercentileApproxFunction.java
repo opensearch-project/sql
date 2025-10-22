@@ -62,7 +62,7 @@ public class PercentileApproxFunction
         float floatRet = (float) retValue;
         return floatRet;
       default:
-        return acc.value();
+        return retValue;
     }
   }
 

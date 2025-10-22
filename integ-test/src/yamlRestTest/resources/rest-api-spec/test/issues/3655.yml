@@ -96,7 +96,7 @@ teardown:
 #      ppl.explain:
 #        body:
 #          query: "source=test | where match_phrase(body, 'field 2') | fields body"
-#  - match: { root.children.0.description.request: "OpenSearchQueryRequest(indexName=test, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"query\":{\"match_phrase\":{\"body\":{\"query\":\"field 2\",\"slop\":0,\"zero_terms_query\":\"NONE\",\"boost\":1.0}}},\"_source\":{\"includes\":[\"body\"],\"excludes\":[]},\"sort\":[{\"_doc\":{\"order\":\"asc\"}}]}, needClean=true, searchDone=false, pitId=.*, cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"}
+#  - match: { root.children.0.description.request: "OpenSearchQueryRequest(indexName=test, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"query\":{\"match_phrase\":{\"body\":{\"query\":\"field 2\",\"slop\":0,\"zero_terms_query\":\"NONE\",\"boost\":1.0}}},\"_source\":{\"includes\":[\"body\"],\"excludes\":[]}}, needClean=true, searchDone=false, pitId=.*, cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"}
 #
 #
 #  - do:
@@ -105,4 +105,4 @@ teardown:
 #      ppl.explain:
 #        body:
 #          query: "source=test | where like(body, '%field 2%') | fields body"
-#  - match: { root.children.0.description.request: "OpenSearchQueryRequest(indexName=test, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"query\":{\"wildcard\":{\"body\":{\"wildcard\":\"*field 2*\",\"case_insensitive\":true,\"boost\":1.0}}},\"_source\":{\"includes\":[\"body\"],\"excludes\":[]},\"sort\":[{\"_doc\":{\"order\":\"asc\"}}]}, needClean=true, searchDone=false, pitId=.*, cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"}
+#  - match: { root.children.0.description.request: "OpenSearchQueryRequest(indexName=test, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"query\":{\"wildcard\":{\"body\":{\"wildcard\":\"*field 2*\",\"case_insensitive\":true,\"boost\":1.0}}},\"_source\":{\"includes\":[\"body\"],\"excludes\":[]}}, needClean=true, searchDone=false, pitId=.*, cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"}

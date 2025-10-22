@@ -71,5 +71,5 @@ public abstract class ParseExpression extends FunctionExpression {
     return visitor.visitParse(this, context);
   }
 
-  abstract ExprValue parseValue(ExprValue value) throws ExpressionEvaluationException;
+  public abstract ExprValue parseValue(ExprValue value) throws ExpressionEvaluationException;
 }

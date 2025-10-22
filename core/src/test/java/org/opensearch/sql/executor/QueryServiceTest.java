@@ -1,9 +1,6 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
  */
 
 package org.opensearch.sql.executor;
@@ -106,6 +103,7 @@ class QueryServiceTest {
       lenient().when(analyzer.analyze(any(), any())).thenReturn(logicalPlan);
       lenient().when(planner.plan(any())).thenReturn(plan);
       lenient().when(settings.getSettingValue(Key.QUERY_SIZE_LIMIT)).thenReturn(200);
+      lenient().when(settings.getSettingValue(Key.QUERY_BUCKET_SIZE)).thenReturn(1000);
       lenient().when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(false);
 
       queryService = new QueryService(analyzer, executionEngine, planner, null, settings);

@@ -1,0 +1,73 @@
+{
+  "mappings": {
+    "properties": {
+      "id": {
+        "type": "keyword"
+      },
+      "location": {
+        "properties": {
+          "name": {
+            "type": "keyword"
+          },
+          "point": {
+            "type": "geo_point"
+          },
+          "city": {
+            "type": "keyword"
+          },
+          "country": {
+            "type": "keyword"
+          }
+        }
+      },
+      "nested_locations": {
+        "properties": {
+          "primary": {
+            "properties": {
+              "office": {
+                "type": "geo_point"
+              },
+              "warehouse": {
+                "type": "geo_point"
+              }
+            }
+          },
+          "secondary": {
+            "properties": {
+              "branch": {
+                "type": "geo_point"
+              },
+              "store": {
+                "type": "geo_point"
+              }
+            }
+          }
+        }
+      },
+      "multiple_offices": {
+        "properties": {
+          "headquarters": {
+            "properties": {
+              "location": {
+                "type": "geo_point"
+              },
+              "address": {
+                "type": "text"
+              }
+            }
+          },
+          "regional": {
+            "properties": {
+              "location": {
+                "type": "geo_point"
+              },
+              "address": {
+                "type": "text"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

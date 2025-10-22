@@ -94,6 +94,9 @@ public class ModFunction extends ImplementorUDF {
       BigDecimal b0 = new BigDecimal(dividend.toString());
       BigDecimal b1 = new BigDecimal(divisor.toString());
       BigDecimal result = b0.remainder(b1);
+      if (dividend instanceof BigDecimal || divisor instanceof BigDecimal) {
+        return result;
+      }
       return MathUtils.coerceToWidestFloatingType(dividend, divisor, result.doubleValue());
     }
   }

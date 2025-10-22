@@ -35,7 +35,7 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
   public void testExplainCommand() throws IOException {
     var result = explainQueryToString("source=test | where age = 20 | fields name, age");
     String expected =
-        isPushdownEnabled()
+        !isPushdownDisabled()
             ? loadFromFile("expectedOutput/calcite/explain_filter_w_pushdown.json")
             : loadFromFile("expectedOutput/calcite/explain_filter_wo_pushdown.json");
 
@@ -58,7 +58,7 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
   public void testExplainCommandExtendedWithoutCodegen() throws IOException {
     var result =
         executeWithReplace("explain extended source=test | where age = 20 | fields name, age");
-    if (isPushdownEnabled()) {
+    if (!isPushdownDisabled()) {
       assertFalse(
           result.contains(
               "public org.apache.calcite.linq4j.Enumerable bind(final"
@@ -75,7 +75,7 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
   public void testExplainCommandCost() throws IOException {
     var result = executeWithReplace("explain cost source=test | where age = 20 | fields name, age");
     String expected =
-        isPushdownEnabled()
+        !isPushdownDisabled()
             ? loadFromFile("expectedOutput/calcite/explain_filter_cost_w_pushdown.txt")
             : loadFromFile("expectedOutput/calcite/explain_filter_cost_wo_pushdown.txt");
     assertTrue(

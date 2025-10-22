@@ -9,8 +9,6 @@ import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
 import static org.opensearch.index.query.QueryBuilders.matchAllQuery;
 import static org.opensearch.index.query.QueryBuilders.nestedQuery;
-import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
-import static org.opensearch.search.sort.SortOrder.ASC;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,7 +37,6 @@ import org.opensearch.search.collapse.CollapseBuilder;
 import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.opensearch.search.sort.SortBuilder;
-import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -48,6 +45,7 @@ import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
+import org.opensearch.sql.opensearch.response.agg.CountAsTotalHitsParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 
 /** OpenSearch search request builder. */
@@ -179,10 +177,6 @@ public class OpenSearchRequestBuilder {
         sourceBuilder.query(QueryBuilders.boolQuery().filter(current).filter(query));
       }
     }
-
-    if (sourceBuilder.sorts() == null) {
-      sourceBuilder.sort(DOC_FIELD_NAME, ASC); // Make sure consistent order
-    }
   }
 
   /**
@@ -195,6 +189,13 @@ public class OpenSearchRequestBuilder {
     aggregationBuilder.getLeft().forEach(sourceBuilder::aggregation);
     sourceBuilder.size(0);
     exprValueFactory.setParser(aggregationBuilder.getRight());
+    // no need to sort docs for aggregation
+    if (sourceBuilder.sorts() != null) {
+      sourceBuilder.sorts().clear();
+    }
+    if (aggregationBuilder.getRight() instanceof CountAsTotalHitsParser) {
+      sourceBuilder.trackTotalHits(true);
+    }
   }
 
   /**
@@ -203,11 +204,6 @@ public class OpenSearchRequestBuilder {
    * @param sortBuilders sortBuilders.
    */
   public void pushDownSort(List<SortBuilder<?>> sortBuilders) {
-    // TODO: Sort by _doc is added when filter push down. Remove both logic once doctest fixed.
-    if (isSortByDocOnly()) {
-      sourceBuilder.sorts().clear();
-    }
-
     for (SortBuilder<?> sortBuilder : sortBuilders) {
       sourceBuilder.sort(sortBuilder);
     }
@@ -300,14 +296,6 @@ public class OpenSearchRequestBuilder {
 
   public void pushDownCollapse(String field) {
     sourceBuilder.collapse(new CollapseBuilder(field));
-  }
-
-  private boolean isSortByDocOnly() {
-    List<SortBuilder<?>> sorts = sourceBuilder.sorts();
-    if (sorts != null) {
-      return sorts.equals(List.of(SortBuilders.fieldSort(DOC_FIELD_NAME)));
-    }
-    return false;
   }
 
   /**

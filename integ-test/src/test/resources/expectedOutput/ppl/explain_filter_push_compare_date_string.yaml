@@ -1,0 +1,22 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[yyyy-MM-dd]"
+  children:
+    - name: FilterOperator
+      description:
+        conditions: "and(<(yyyy-MM-dd, cast_to_date(\"2018-11-09 00:00:00.000000000\"\
+          )), >(yyyy-MM-dd, cast_to_date(\"2016-12-08 00:00:00.123456789\")))"
+      children:
+        - name: ProjectOperator
+          description:
+            fields: "[yyyy-MM-dd]"
+          children:
+            - name: OpenSearchIndexScan
+              description:
+                request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_date_formats,\
+                  \ sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"\
+                  _source\":{\"includes\":[\"yyyy-MM-dd\"],\"excludes\":[]}}, needClean=true,\
+                  \ searchDone=false, pitId=*,\
+                  \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
+              children: []

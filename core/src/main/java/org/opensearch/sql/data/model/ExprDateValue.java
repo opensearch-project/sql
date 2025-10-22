@@ -8,6 +8,7 @@ package org.opensearch.sql.data.model;
 import com.google.common.base.Objects;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -32,7 +33,14 @@ public class ExprDateValue extends AbstractExprValue {
    */
   public ExprDateValue(String date) {
     try {
-      this.date = LocalDate.parse(date, DateTimeFormatters.DATE_TIMESTAMP_FORMATTER);
+      LocalDateTime ldt;
+      try {
+        ldt = LocalDateTime.parse(date, DateTimeFormatters.DATE_TIMESTAMP_FORMATTER);
+      } catch (DateTimeParseException ignored) {
+        ZonedDateTime zdt = ZonedDateTime.parse(date, DateTimeFormatter.ISO_DATE_TIME);
+        ldt = zdt.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime();
+      }
+      this.date = ldt.toLocalDate();
     } catch (DateTimeParseException e) {
       throw new ExpressionEvaluationException(
           String.format("date:%s in unsupported format, please use 'yyyy-MM-dd'", date));

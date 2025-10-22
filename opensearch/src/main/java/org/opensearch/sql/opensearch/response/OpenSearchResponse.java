@@ -48,6 +48,8 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
   /** List of requested include fields. */
   private final List<String> includes;
 
+  private final boolean isCountAgg;
+
   /** OpenSearchExprValueFactory used to build ExprValue from search result. */
   @EqualsAndHashCode.Exclude private final OpenSearchExprValueFactory exprValueFactory;
 
@@ -56,19 +58,33 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
       SearchResponse searchResponse,
       OpenSearchExprValueFactory exprValueFactory,
       List<String> includes) {
+    this(searchResponse, exprValueFactory, includes, false);
+  }
+
+  /** Constructor of OpenSearchResponse. */
+  public OpenSearchResponse(
+      SearchResponse searchResponse,
+      OpenSearchExprValueFactory exprValueFactory,
+      List<String> includes,
+      boolean isCountAgg) {
     this.hits = searchResponse.getHits();
     this.aggregations = searchResponse.getAggregations();
     this.exprValueFactory = exprValueFactory;
     this.includes = includes;
+    this.isCountAgg = isCountAgg;
   }
 
   /** Constructor of OpenSearchResponse with SearchHits. */
   public OpenSearchResponse(
-      SearchHits hits, OpenSearchExprValueFactory exprValueFactory, List<String> includes) {
+      SearchHits hits,
+      OpenSearchExprValueFactory exprValueFactory,
+      List<String> includes,
+      boolean isCountAgg) {
     this.hits = hits;
     this.aggregations = null;
     this.exprValueFactory = exprValueFactory;
     this.includes = includes;
+    this.isCountAgg = isCountAgg;
   }
 
   /**
@@ -78,11 +94,22 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
    * @return true for empty
    */
   public boolean isEmpty() {
-    return (hits.getHits() == null) || (hits.getHits().length == 0) && aggregations == null;
+    return (hits.getHits() == null)
+        || (((hits.getHits().length == 0) && aggregations == null)
+            && (!isCountAgg
+                || hits.getTotalHits() == null)); // check total hits if is count aggregation
   }
 
   public boolean isAggregationResponse() {
     return aggregations != null;
+  }
+
+  public boolean isCountResponse() {
+    return isCountAgg;
+  }
+
+  public int getHitsSize() {
+    return hits.getHits() == null ? 0 : hits.getHits().length;
   }
 
   /**
@@ -91,7 +118,7 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
    * @return search hit iterator
    */
   public Iterator<ExprValue> iterator() {
-    if (isAggregationResponse()) {
+    if (isAggregationResponse() || isCountAgg) {
       return handleAggregationResponse();
     } else {
       return Arrays.stream(hits.getHits())
@@ -191,7 +218,11 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
    * @return Parsed and built return values from response.
    */
   private Iterator<ExprValue> handleAggregationResponse() {
-    return exprValueFactory.getParser().parse(aggregations).stream()
+    List<Map<String, Object>> res =
+        isCountAgg
+            ? exprValueFactory.getParser().parse(hits)
+            : exprValueFactory.getParser().parse(aggregations);
+    return res.stream()
         .map(
             entry -> {
               ImmutableMap.Builder<String, ExprValue> builder = new ImmutableMap.Builder<>();

@@ -23,6 +23,9 @@ public class OpenSearchSortIndexScanRule extends RelRule<OpenSearchSortIndexScan
   public void onMatch(RelOptRuleCall call) {
     final Sort sort = call.rel(0);
     final AbstractCalciteIndexScan scan = call.rel(1);
+    if (sort.getConvention() != scan.getConvention()) {
+      return;
+    }
 
     var collations = sort.collation.getFieldCollations();
     AbstractCalciteIndexScan newScan = scan.pushDownSort(collations);

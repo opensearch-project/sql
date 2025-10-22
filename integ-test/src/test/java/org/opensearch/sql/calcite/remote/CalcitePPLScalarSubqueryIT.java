@@ -11,6 +11,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORK_INFORMATI
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -107,7 +108,7 @@ public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source = %s id > [ source = %s | stats count(department) ] + 999"
+                "source = %s | where id > [ source = %s | stats count(department) ] + 999"
                     + "| eval count_dept = ["
                     + "    source = %s | stats count(department)"
                     + "  ]"
@@ -193,7 +194,7 @@ public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source = %s id = [ source = %s | where id = uid | stats max(uid) ]"
+                "source = %s | where id = [ source = %s | where id = uid | stats max(uid) ]"
                     + "| fields id, name",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"));
@@ -307,5 +308,21 @@ public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_OCCUPATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"));
     verifyDataRows(result, rows(1000, "Jake"));
+  }
+
+  @Test
+  public void testSubsearchMaxOutZeroMeansUnlimited() throws IOException {
+    setSubsearchMaxOut(0);
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s"
+                    + "| where id = ["
+                    + "    source = %s | where id = uid | stats max(uid)"
+                    + "  ]"
+                    + "| fields id, name",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+    verifyNumOfRows(result, 5);
+    resetSubsearchMaxOut();
   }
 }
