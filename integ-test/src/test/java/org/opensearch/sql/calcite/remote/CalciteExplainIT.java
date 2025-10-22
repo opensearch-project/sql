@@ -1093,7 +1093,7 @@ public class CalciteExplainIT extends ExplainIT {
 
     assertYamlEqualsIgnoreId(
         loadExpectedPlan("explain_agg_script_timestamp_push.yaml"),
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | eval t = unix_timestamp(birthdate) | stats count() by t | sort t |"
                     + " head 3",
