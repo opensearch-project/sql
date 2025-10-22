@@ -1397,7 +1397,7 @@ public class PPLFuncImpTable {
       try {
         pplTypeChecker = PPLTypeChecker.wrapComposite(compositeTypeChecker, !isUserDefinedFunction);
       } catch (IllegalArgumentException | UnsupportedOperationException e) {
-        logger.warn(
+        logger.debug(
             String.format(
                 "Failed to create composite type checker for operator: %s. Will skip its type"
                     + " checking",
