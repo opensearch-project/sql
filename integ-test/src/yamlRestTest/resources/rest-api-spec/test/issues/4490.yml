@@ -1,0 +1,53 @@
+setup:
+  - do:
+      indices.create:
+        index: test
+        body:
+          mappings:
+            properties:
+              "startTimeMillis":
+                type: date
+                format: epoch_millis
+
+  - do:
+      bulk:
+        index: test
+        refresh: true
+        body:
+          - '{"index": {"_id": "1"}}'
+          - '{"startTimeMillis": 539325296000}'
+          - '{"index": {"_id": "2"}}'
+          - '{"startTimeMillis": "1715126504378"}'
+---
+"handle epoch_millis format field with equal":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test | eval example_time = STR_TO_DATE('1987-02-03 04:34:56', '%Y-%m-%d %H:%i:%S') | where startTimeMillis = example_time | fields startTimeMillis
+
+  - match: { total: 1 }
+  - match: {"schema": [{"name": "startTimeMillis", "type": "timestamp"}]}
+  - match: {"datarows": [["1987-02-03 04:34:56"]]}
+
+---
+"handle epoch_millis format field with comparison":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test | eval example_time = STR_TO_DATE('1987-02-03 04:34:56', '%Y-%m-%d %H:%i:%S') | where startTimeMillis >= example_time | fields startTimeMillis
+
+  - match: { total: 2 }
+  - match: {"schema": [{"name": "startTimeMillis", "type": "timestamp"}]}
+  - match: {"datarows": [["1987-02-03 04:34:56"], ["2024-05-08 00:01:44.378"]]}
