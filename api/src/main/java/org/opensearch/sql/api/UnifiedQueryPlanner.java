@@ -29,6 +29,7 @@ import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
+import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.common.antlr.Parser;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.executor.QueryType;
@@ -135,7 +136,8 @@ public class UnifiedQueryPlanner {
 
   private RelNode analyze(UnresolvedPlan ast) {
     // TODO: Hardcoded query size limit (10000) for now as only logical plan is generated.
-    CalcitePlanContext calcitePlanContext = CalcitePlanContext.create(config, 10000, queryType);
+    CalcitePlanContext calcitePlanContext =
+        CalcitePlanContext.create(config, new SysLimit(10000, 10000, 10000), queryType);
     return relNodeVisitor.analyze(ast, calcitePlanContext);
   }
 
