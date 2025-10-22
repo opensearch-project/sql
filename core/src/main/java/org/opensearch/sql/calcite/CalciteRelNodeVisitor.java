@@ -121,6 +121,8 @@ import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Replace;
+import org.opensearch.sql.ast.tree.ReplacePair;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Search;
@@ -133,6 +135,8 @@ import org.opensearch.sql.ast.tree.Trendline.TrendlineType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
+import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.BinUtils;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
@@ -1136,6 +1140,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitJoin(Join node, CalcitePlanContext context) {
     List<UnresolvedPlan> children = node.getChildren();
     children.forEach(c -> analyze(c, context));
+    // add join.subsearch_maxout limit to subsearch side, 0 and negative means unlimited.
+    if (context.sysLimit.joinSubsearchLimit() > 0) {
+      PlanUtils.replaceTop(
+          context.relBuilder,
+          LogicalSystemLimit.create(
+              SystemLimitType.JOIN_SUBSEARCH_MAXOUT,
+              context.relBuilder.peek(),
+              context.relBuilder.literal(context.sysLimit.joinSubsearchLimit())));
+    }
     if (node.getJoinCondition().isEmpty()) {
       // join-with-field-list grammar
       List<String> leftColumns = context.relBuilder.peek(1).getRowType().getFieldNames();
@@ -1914,6 +1927,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   /** Helper method to get the function name for proper column naming */
   private String getValueFunctionName(UnresolvedExpression aggregateFunction) {
+    if (aggregateFunction instanceof Alias) {
+      return ((Alias) aggregateFunction).getName();
+    }
     if (!(aggregateFunction instanceof AggregateFunction)) {
       return "value";
     }
@@ -2395,6 +2411,51 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     } else {
       throw new CalciteUnsupportedException("Explicit values node is unsupported in Calcite");
     }
+  }
+
+  @Override
+  public RelNode visitReplace(Replace node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+
+    // Create a set of field names to replace for quick lookup
+    Set<String> fieldsToReplace =
+        node.getFieldList().stream().map(f -> f.getField().toString()).collect(Collectors.toSet());
+
+    // Validate that all fields to replace exist by calling field() on each
+    // This leverages relBuilder.field()'s built-in validation which throws
+    // IllegalArgumentException if any field doesn't exist
+    for (String fieldToReplace : fieldsToReplace) {
+      context.relBuilder.field(fieldToReplace);
+    }
+
+    List<RexNode> projectList = new ArrayList<>();
+
+    // Project all fields, replacing specified ones in-place
+    for (String fieldName : fieldNames) {
+      if (fieldsToReplace.contains(fieldName)) {
+        // Replace this field in-place with all pattern/replacement pairs applied sequentially
+        RexNode fieldRef = context.relBuilder.field(fieldName);
+
+        // Apply all replacement pairs sequentially (nested REPLACE calls)
+        for (ReplacePair pair : node.getReplacePairs()) {
+          RexNode patternNode = rexVisitor.analyze(pair.getPattern(), context);
+          RexNode replacementNode = rexVisitor.analyze(pair.getReplacement(), context);
+          fieldRef =
+              context.relBuilder.call(
+                  SqlStdOperatorTable.REPLACE, fieldRef, patternNode, replacementNode);
+        }
+
+        projectList.add(fieldRef);
+      } else {
+        // Keep original field unchanged
+        projectList.add(context.relBuilder.field(fieldName));
+      }
+    }
+
+    context.relBuilder.project(projectList, fieldNames);
+    return context.relBuilder.peek();
   }
 
   private void buildParseRelNode(Parse node, CalcitePlanContext context) {

@@ -22,6 +22,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.defaultFieldsArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultSortFieldArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultStatsArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.describe;
+import static org.opensearch.sql.ast.dsl.AstDSL.doubleLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.eval;
 import static org.opensearch.sql.ast.dsl.AstDSL.exprList;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
@@ -75,6 +76,7 @@ import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
+import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
@@ -1089,6 +1091,36 @@ public class AstBuilderTest {
             ImmutableMap.of()));
   }
 
+  @Test
+  public void testTimechartWithPerSecondFunction() {
+    assertEqual(
+        "source=t | timechart per_second(a)",
+        eval(
+            new Timechart(relation("t"), alias("per_second(a)", aggregate("sum", field("a"))))
+                .span(span(field("@timestamp"), intLiteral(1), SpanUnit.of("m")))
+                .limit(10)
+                .useOther(true),
+            let(
+                field("per_second(a)"),
+                function(
+                    "/",
+                    function("*", field("per_second(a)"), doubleLiteral(1.0)),
+                    function(
+                        "timestampdiff",
+                        stringLiteral("SECOND"),
+                        field("@timestamp"),
+                        function(
+                            "timestampadd",
+                            stringLiteral("MINUTE"),
+                            intLiteral(1),
+                            field("@timestamp")))))));
+  }
+
+  @Test
+  public void testStatsWithPerSecondThrowsException() {
+    assertThrows(SyntaxCheckException.class, () -> plan("source=t | stats per_second(a)"));
+  }
+
   protected void assertEqual(String query, Node expectedPlan) {
     Node actualPlan = plan(query);
     assertEquals(expectedPlan, actualPlan);
@@ -1222,5 +1254,17 @@ public class AstBuilderTest {
     assertEquals(
         "Multisearch command requires at least two subsearches. Provided: 1",
         exception.getMessage());
+  }
+
+  @Test
+  public void testReplaceCommand() {
+    // Test basic single pattern replacement
+    plan("source=t | replace 'old' WITH 'new' IN field");
+  }
+
+  @Test
+  public void testReplaceCommandWithMultiplePairs() {
+    // Test multiple pattern/replacement pairs
+    plan("source=t | replace 'a' WITH 'A', 'b' WITH 'B' IN field");
   }
 }

@@ -1,0 +1,9 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(avg(balance)=[$3], count()=[$4], age_range=[$0], state=[$1], gender=[$2])
+        LogicalAggregate(group=[{0, 1, 2}], avg(balance)=[AVG($3)], count()=[COUNT()])
+          LogicalProject(age_range=[CASE(<($10, 30), 'u30':VARCHAR, 'a30':VARCHAR)], state=[$9], gender=[$4], balance=[$7])
+            CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
+  physical: |
+    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0, 1, 2},avg(balance)=AVG($3),count()=COUNT()), PROJECT->[avg(balance), count(), age_range, state, gender], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"state":{"terms":{"field":"state.keyword","missing_bucket":true,"missing_order":"first","order":"asc"}}},{"gender":{"terms":{"field":"gender.keyword","missing_bucket":true,"missing_order":"first","order":"asc"}}}]},"aggregations":{"age_range":{"range":{"field":"age","ranges":[{"key":"u30","to":30.0},{"key":"a30","from":30.0}],"keyed":true},"aggregations":{"avg(balance)":{"avg":{"field":"balance"}}}}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
