@@ -400,8 +400,8 @@ public class MatcherUtils {
     return s.replaceAll("pitId=[^,]+,", "pitId=*,");
   }
 
-  public static void assertYamlEqualsJsonIgnoreId(String expectedYaml, String actualJson) {
-    String cleanedYaml = cleanUpYaml(jsonToYaml(actualJson));
+  public static void assertYamlEqualsIgnoreId(String expectedYaml, String actualYaml) {
+    String cleanedYaml = cleanUpYaml(actualYaml);
     assertYamlEquals(expectedYaml, cleanedYaml);
   }
 
