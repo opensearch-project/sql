@@ -68,9 +68,13 @@ import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
+import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
+import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PlanUtils;
+import org.opensearch.sql.calcite.utils.SubsearchUtils;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
@@ -441,9 +445,26 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                   (arguments.isEmpty() || arguments.size() == 1)
                       ? Collections.emptyList()
                       : arguments.subList(1, arguments.size());
-              PPLFuncImpTable.INSTANCE.validateAggFunctionSignature(functionName, field, args);
-              return PlanUtils.makeOver(
-                  context, functionName, field, args, partitions, List.of(), node.getWindowFrame());
+              List<RexNode> nodes =
+                  PPLFuncImpTable.INSTANCE.validateAggFunctionSignature(
+                      functionName, field, args, context.rexBuilder);
+              return nodes != null
+                  ? PlanUtils.makeOver(
+                      context,
+                      functionName,
+                      nodes.getFirst(),
+                      nodes.size() <= 1 ? Collections.emptyList() : nodes.subList(1, nodes.size()),
+                      partitions,
+                      List.of(),
+                      node.getWindowFrame())
+                  : PlanUtils.makeOver(
+                      context,
+                      functionName,
+                      field,
+                      args,
+                      partitions,
+                      List.of(),
+                      node.getWindowFrame());
             })
         .orElseThrow(
             () ->
@@ -465,7 +486,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   public RexNode visitInSubquery(InSubquery node, CalcitePlanContext context) {
     List<RexNode> nodes = node.getChild().stream().map(child -> analyze(child, context)).toList();
     UnresolvedPlan subquery = node.getQuery();
-    RelNode subqueryRel = resolveSubqueryPlan(subquery, context);
+    RelNode subqueryRel = resolveSubqueryPlan(subquery, node, context);
     if (subqueryRel.getRowType().getFieldCount() != nodes.size()) {
       throw new SemanticCheckException(
           "The number of columns in the left hand side of an IN subquery does not match the number"
@@ -489,7 +510,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     return context.relBuilder.scalarQuery(
         b -> {
           UnresolvedPlan subquery = node.getQuery();
-          return resolveSubqueryPlan(subquery, context);
+          return resolveSubqueryPlan(subquery, node, context);
         });
   }
 
@@ -498,11 +519,12 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     return context.relBuilder.exists(
         b -> {
           UnresolvedPlan subquery = node.getQuery();
-          return resolveSubqueryPlan(subquery, context);
+          return resolveSubqueryPlan(subquery, node, context);
         });
   }
 
-  private RelNode resolveSubqueryPlan(UnresolvedPlan subquery, CalcitePlanContext context) {
+  private RelNode resolveSubqueryPlan(
+      UnresolvedPlan subquery, SubqueryExpression subqueryExpression, CalcitePlanContext context) {
     boolean isNestedSubquery = context.isResolvingSubquery();
     context.setResolvingSubquery(true);
     // clear and store the outer state
@@ -510,9 +532,26 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     if (isResolvingJoinConditionOuter) {
       context.setResolvingJoinCondition(false);
     }
-    RelNode subqueryRel = subquery.accept(planVisitor, context);
+    subquery.accept(planVisitor, context);
+    // add subsearch.maxout limit to exists-in subsearch, 0 and negative means unlimited
+    if (context.sysLimit.subsearchLimit() > 0 && !(subqueryExpression instanceof ScalarSubquery)) {
+      // Cannot add system limit to the top of subquery simply.
+      // Instead, add system limit under the correlated conditions.
+      SubsearchUtils.SystemLimitInsertionShuttle shuttle =
+          new SubsearchUtils.SystemLimitInsertionShuttle(context);
+      RelNode replacement = context.relBuilder.peek().accept(shuttle);
+      if (!shuttle.isCorrelatedConditionFound()) {
+        // If no correlated condition found, add system limit to the top of subquery.
+        replacement =
+            LogicalSystemLimit.create(
+                SystemLimitType.SUBSEARCH_MAXOUT,
+                replacement,
+                context.relBuilder.literal(context.sysLimit.subsearchLimit()));
+      }
+      PlanUtils.replaceTop(context.relBuilder, replacement);
+    }
     // pop the inner plan
-    context.relBuilder.build();
+    RelNode subqueryRel = context.relBuilder.build();
     // clear the exists subquery resolving state
     // restore to the previous state
     if (isResolvingJoinConditionOuter) {

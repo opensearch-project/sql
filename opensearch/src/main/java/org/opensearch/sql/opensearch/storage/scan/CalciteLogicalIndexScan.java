@@ -9,7 +9,6 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import org.apache.calcite.plan.Convention;
@@ -26,7 +25,6 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.hint.RelHint;
-import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -34,13 +32,10 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.search.aggregations.AggregationBuilder;
-import org.opensearch.search.aggregations.bucket.histogram.AutoDateHistogramAggregationBuilder;
-import org.opensearch.search.aggregations.metrics.ValueCountAggregationBuilder;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -124,7 +119,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       CalciteLogicalIndexScan newScan = this.copyWithNewSchema(filter.getRowType());
       List<String> schema = this.getRowType().getFieldNames();
       Map<String, ExprType> fieldTypes =
-          this.osIndex.getFieldTypes().entrySet().stream()
+          this.osIndex.getAllFieldTypes().entrySet().stream()
               .filter(entry -> schema.contains(entry.getKey()))
               .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
       QueryExpression queryExpression =
@@ -285,11 +280,16 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               aggregate.getRowType(),
               // Aggregation will eliminate all collations.
               pushDownContext.cloneWithoutSort());
-      Map<String, ExprType> fieldTypes = this.osIndex.getFieldTypes();
+      List<String> schema = this.getRowType().getFieldNames();
+      Map<String, ExprType> fieldTypes =
+          this.osIndex.getAllFieldTypes().entrySet().stream()
+              .filter(entry -> schema.contains(entry.getKey()))
+              .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
       List<String> outputFields = aggregate.getRowType().getFieldNames();
+      int bucketSize = osIndex.getBucketSize();
       final Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder =
           AggregateAnalyzer.analyze(
-              aggregate, project, getRowType(), fieldTypes, outputFields, getCluster());
+              aggregate, project, getRowType(), fieldTypes, outputFields, getCluster(), bucketSize);
       Map<String, OpenSearchDataType> extendedTypeMapping =
           aggregate.getRowType().getFieldList().stream()
               .collect(
@@ -305,24 +305,6 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               extendedTypeMapping,
               outputFields.subList(0, aggregate.getGroupSet().cardinality()));
       newScan.pushDownContext.add(PushDownType.AGGREGATION, aggregate, action);
-      if (aggregationBuilder.getLeft().size() == 1
-          && aggregationBuilder.getLeft().getFirst()
-              instanceof AutoDateHistogramAggregationBuilder autoDateHistogram) {
-        // If it's auto_date_histogram, filter the empty bucket by using the first aggregate metrics
-        RexBuilder rexBuilder = getCluster().getRexBuilder();
-        Optional<AggregationBuilder> aggBuilderOpt =
-            autoDateHistogram.getSubAggregations().stream().toList().stream().findFirst();
-        RexNode condition =
-            aggBuilderOpt.isEmpty() || aggBuilderOpt.get() instanceof ValueCountAggregationBuilder
-                ? rexBuilder.makeCall(
-                    SqlStdOperatorTable.GREATER_THAN,
-                    rexBuilder.makeInputRef(newScan, 1),
-                    rexBuilder.makeLiteral(
-                        0, rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER)))
-                : rexBuilder.makeCall(
-                    SqlStdOperatorTable.IS_NOT_NULL, rexBuilder.makeInputRef(newScan, 1));
-        return LogicalFilter.create(newScan, condition);
-      }
       return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {

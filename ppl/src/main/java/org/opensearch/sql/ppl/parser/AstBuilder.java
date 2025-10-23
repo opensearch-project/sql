@@ -76,6 +76,8 @@ import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Replace;
+import org.opensearch.sql.ast.tree.ReplacePair;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
@@ -381,6 +383,25 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             .collect(Collectors.toList()));
   }
 
+  /** Replace command. */
+  @Override
+  public UnresolvedPlan visitReplaceCommand(OpenSearchPPLParser.ReplaceCommandContext ctx) {
+    // Parse all replacement pairs
+    List<ReplacePair> replacePairs =
+        ctx.replacePair().stream().map(this::buildReplacePair).collect(Collectors.toList());
+
+    Set<Field> fieldList = getUniqueFieldSet(ctx.fieldList());
+
+    return new Replace(replacePairs, fieldList);
+  }
+
+  /** Build a ReplacePair from parse context. */
+  private ReplacePair buildReplacePair(OpenSearchPPLParser.ReplacePairContext ctx) {
+    Literal pattern = (Literal) internalVisitExpression(ctx.pattern);
+    Literal replacement = (Literal) internalVisitExpression(ctx.replacement);
+    return new ReplacePair(pattern, replacement);
+  }
+
   /** Stats command. */
   @Override
   public UnresolvedPlan visitStatsCommand(StatsCommandContext ctx) {
@@ -600,39 +621,20 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitTimechartCommand(OpenSearchPPLParser.TimechartCommandContext ctx) {
     UnresolvedExpression binExpression =
-        AstDSL.span(AstDSL.field("@timestamp"), AstDSL.intLiteral(1), SpanUnit.of("m"));
+        AstDSL.span(AstDSL.referImplicitTimestampField(), AstDSL.intLiteral(1), SpanUnit.m);
     Integer limit = 10;
     Boolean useOther = true;
     // Process timechart parameters
     for (OpenSearchPPLParser.TimechartParameterContext paramCtx : ctx.timechartParameter()) {
-      if (paramCtx.spanClause() != null) {
-        binExpression = internalVisitExpression(paramCtx.spanClause());
-      } else if (paramCtx.spanLiteral() != null) {
-        Literal literal = (Literal) internalVisitExpression(paramCtx.spanLiteral());
-        binExpression = AstDSL.spanFromSpanLengthLiteral(AstDSL.field("@timestamp"), literal);
-      } else if (paramCtx.timechartArg() != null) {
-        OpenSearchPPLParser.TimechartArgContext argCtx = paramCtx.timechartArg();
-        if (argCtx.LIMIT() != null && argCtx.integerLiteral() != null) {
-          limit = Integer.parseInt(argCtx.integerLiteral().getText());
-          if (limit < 0) {
-            throw new IllegalArgumentException("Limit must be a non-negative number");
-          }
-        } else if (argCtx.USEOTHER() != null) {
-          if (argCtx.booleanLiteral() != null) {
-            useOther = Boolean.parseBoolean(argCtx.booleanLiteral().getText());
-          } else if (argCtx.ident() != null) {
-            String useOtherValue = argCtx.ident().getText().toLowerCase();
-            if ("true".equals(useOtherValue) || "t".equals(useOtherValue)) {
-              useOther = true;
-            } else if ("false".equals(useOtherValue) || "f".equals(useOtherValue)) {
-              useOther = false;
-            } else {
-              throw new IllegalArgumentException(
-                  "Invalid useOther value: "
-                      + argCtx.ident().getText()
-                      + ". Expected true/false or t/f");
-            }
-          }
+      UnresolvedExpression param = internalVisitExpression(paramCtx);
+      if (param instanceof Span) {
+        binExpression = param;
+      } else if (param instanceof Literal literal) {
+        if (DataType.BOOLEAN.equals(literal.getType())) {
+          useOther = (Boolean) literal.getValue();
+        } else if (DataType.INTEGER.equals(literal.getType())
+            || DataType.LONG.equals(literal.getType())) {
+          limit = (Integer) literal.getValue();
         }
       }
     }
@@ -667,6 +669,30 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return ctx.fieldExpression().stream()
         .map(field -> (Field) internalVisitExpression(field))
         .collect(Collectors.toList());
+  }
+
+  private Set<Field> getUniqueFieldSet(FieldListContext ctx) {
+    List<Field> fields =
+        ctx.fieldExpression().stream()
+            .map(field -> (Field) internalVisitExpression(field))
+            .toList();
+
+    Set<Field> uniqueFields = new java.util.LinkedHashSet<>(fields);
+
+    if (uniqueFields.size() < fields.size()) {
+      // Find duplicates for error message
+      Set<String> seen = new HashSet<>();
+      Set<String> duplicates =
+          fields.stream()
+              .map(f -> f.getField().toString())
+              .filter(name -> !seen.add(name))
+              .collect(Collectors.toSet());
+
+      throw new IllegalArgumentException(
+          String.format("Duplicate fields [%s] in Replace command", String.join(", ", duplicates)));
+    }
+
+    return uniqueFields;
   }
 
   /** Rare command. */

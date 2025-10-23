@@ -79,6 +79,7 @@ commands
    | regexCommand
    | timechartCommand
    | rexCommand
+   | replaceCommand
    ;
 
 commandName
@@ -117,6 +118,7 @@ commandName
    | APPEND
    | MULTISEARCH
    | REX
+   | REPLACE
    ;
 
 searchCommand
@@ -204,6 +206,14 @@ renameCommand
    : RENAME renameClasue (COMMA? renameClasue)*
    ;
 
+replaceCommand
+   : REPLACE replacePair (COMMA replacePair)* IN fieldList
+   ;
+
+replacePair
+   : pattern=stringLiteral WITH replacement=stringLiteral
+   ;
+
 statsCommand
    : STATS statsArgs statsAggTerm (COMMA statsAggTerm)* (statsByClause)? (dedupSplitArg)?
    ;
@@ -253,12 +263,8 @@ timechartCommand
    ;
 
 timechartParameter
-   : (spanClause | SPAN EQUAL spanLiteral)
-   | timechartArg
-   ;
-
-timechartArg
    : LIMIT EQUAL integerLiteral
+   | SPAN EQUAL spanLiteral
    | USEOTHER EQUAL (booleanLiteral | ident)
    ;
 
@@ -615,7 +621,7 @@ bySpanClause
    ;
 
 spanClause
-   : SPAN LT_PRTHS fieldExpression COMMA value = spanLiteral RT_PRTHS
+   : SPAN LT_PRTHS (fieldExpression COMMA)? value = spanLiteral RT_PRTHS
    ;
 
 sortbyClause

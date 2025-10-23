@@ -133,6 +133,43 @@ Change the size_limit to 1000::
 
 Note: the legacy settings of ``opendistro.query.size_limit`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
 
+plugins.query.buckets
+=====================
+
+Version
+-------
+3.4.0
+
+Description
+-----------
+
+This configuration indicates how many aggregation buckets will return in a single response. The default value equals to ``plugins.query.size_limit``.
+You can change the value to any value not greater than the maximum number of aggregation buckets allowed in a single response (`search.max_buckets`), here is an example::
+
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	  "transient" : {
+	    "plugins.query.buckets" : 1000
+	  }
+	}'
+
+Result set::
+
+    {
+      "acknowledged" : true,
+      "persistent" : { },
+      "transient" : {
+        "plugins" : {
+          "query" : {
+            "buckets" : "1000"
+          }
+        }
+      }
+    }
+
+Limitations
+-----------
+The number of aggregation buckets is fixed to ``1000`` in v2. ``plugins.query.buckets`` can only effect the number of aggregation buckets when calcite enabled.
+
 plugins.calcite.all_join_types.allowed
 ======================================
 
@@ -281,4 +318,73 @@ PPL query::
           }
         }
       }
+    }
+
+
+plugins.ppl.subsearch.maxout
+============================
+
+Description
+-----------
+
+The size configures the maximum of rows to return from subsearch. The default value is: ``10000``. A value of ``0`` indicates that the restriction is unlimited.
+
+Version
+-------
+3.4.0
+
+Example
+-------
+
+Change the subsearch.maxout to unlimited::
+
+    sh$ curl -sS -H 'Content-Type: application/json' \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"persistent" : {"plugins.ppl.subsearch.maxout" : "0"}}'
+    {
+      "acknowledged": true,
+      "persistent": {
+        "plugins": {
+          "ppl": {
+            "subsearch": {
+              "maxout": "0"
+            }
+          }
+        }
+      },
+      "transient": {}
+    }
+
+plugins.ppl.join.subsearch_maxout
+=================================
+
+Description
+-----------
+
+The size configures the maximum of rows from subsearch to join against. This configuration impacts ``join`` command. The default value is: ``50000``. A value of ``0`` indicates that the restriction is unlimited.
+
+Version
+-------
+3.4.0
+
+Example
+-------
+
+Change the join.subsearch_maxout to 5000::
+
+    sh$ curl -sS -H 'Content-Type: application/json' \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"persistent" : {"plugins.ppl.join.subsearch_maxout" : "5000"}}'
+    {
+      "acknowledged": true,
+      "persistent": {
+        "plugins": {
+          "ppl": {
+            "join": {
+              "subsearch_maxout": "5000"
+            }
+          }
+        }
+      },
+      "transient": {}
     }

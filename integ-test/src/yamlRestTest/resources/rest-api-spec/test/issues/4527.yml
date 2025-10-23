@@ -1,0 +1,50 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  - do:
+      indices.create:
+        index: test_timechart_span_validation
+        body:
+          mappings:
+            properties:
+              "@timestamp":
+                type: date_nanos
+              packets:
+                type: long
+  - do:
+      bulk:
+        index: test_timechart_span_validation
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"@timestamp": "2024-01-15T10:30:04.567890123Z", "packets": 100}'
+          - '{"index": {}}'
+          - '{"@timestamp": "2024-01-15T10:31:04.567890123Z", "packets": 150}'
+          - '{"index": {}}'
+          - '{"@timestamp": "2024-01-15T10:32:04.567890123Z", "packets": 120}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"timechart with zero span should return validation error":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_timechart_span_validation | timechart span=0m per_second(packets)
+  - match: {"$body": "/Zero\\s+or\\s+negative\\s+time\\s+interval\\s+not\\s+supported/"}
