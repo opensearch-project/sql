@@ -61,6 +61,7 @@ repositories {
     mavenCentral()
     maven {
         url 'https://jitpack.io'
+        content { includeGroup "com.github.babbel" }
         maxRetries = 3
         retryDelay = 1000
     }
