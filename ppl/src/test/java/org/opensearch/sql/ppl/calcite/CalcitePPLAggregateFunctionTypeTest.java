@@ -17,48 +17,48 @@ public class CalcitePPLAggregateFunctionTypeTest extends CalcitePPLAbstractTest 
   @Test
   public void testAvgWithWrongArgType() {
     verifyQueryThrowsException(
-        "source=EMP | stats avg(ENAME) as avg_name",
-        "Aggregation function AVG expects field type {[INTEGER]|[DOUBLE]}, but got [STRING]");
+        "source=EMP | stats avg(HIREDATE) as avg_name",
+        "Aggregation function AVG expects field type {[INTEGER]|[DOUBLE]}, but got [DATE]");
   }
 
   @Test
   public void testVarsampWithWrongArgType() {
     verifyQueryThrowsException(
-        "source=EMP | stats var_samp(ENAME) as varsamp_name",
-        "Aggregation function VARSAMP expects field type {[INTEGER]|[DOUBLE]}, but got [STRING]");
+        "source=EMP | stats var_samp(HIREDATE) as varsamp_name",
+        "Aggregation function VARSAMP expects field type {[INTEGER]|[DOUBLE]}, but got [DATE]");
   }
 
   @Test
   public void testVarpopWithWrongArgType() {
     verifyQueryThrowsException(
-        "source=EMP | stats var_pop(ENAME) as varpop_name",
-        "Aggregation function VARPOP expects field type {[INTEGER]|[DOUBLE]}, but got [STRING]");
+        "source=EMP | stats var_pop(HIREDATE) as varpop_name",
+        "Aggregation function VARPOP expects field type {[INTEGER]|[DOUBLE]}, but got [DATE]");
   }
 
   @Test
   public void testStddevSampWithWrongArgType() {
     verifyQueryThrowsException(
-        "source=EMP | stats stddev_samp(ENAME) as stddev_name",
+        "source=EMP | stats stddev_samp(HIREDATE) as stddev_name",
         "Aggregation function STDDEV_SAMP expects field type {[INTEGER]|[DOUBLE]}, but got"
-            + " [STRING]");
+            + " [DATE]");
   }
 
   @Test
   public void testStddevPopWithWrongArgType() {
     verifyQueryThrowsException(
-        "source=EMP | stats stddev_pop(ENAME) as stddev_name",
+        "source=EMP | stats stddev_pop(HIREDATE) as stddev_name",
         "Aggregation function STDDEV_POP expects field type {[INTEGER]|[DOUBLE]}, but got"
-            + " [STRING]");
+            + " [DATE]");
   }
 
   @Test
   public void testPercentileApproxWithWrongArgType() {
     // First argument should be numeric
     verifyQueryThrowsException(
-        "source=EMP | stats percentile_approx(ENAME, 50) as percentile",
+        "source=EMP | stats percentile_approx(HIREDATE, 50) as percentile",
         "Aggregation function PERCENTILE_APPROX expects field type and additional arguments"
             + " {[INTEGER,INTEGER]|[INTEGER,DOUBLE]|[DOUBLE,INTEGER]|[DOUBLE,DOUBLE]|[INTEGER,INTEGER,INTEGER]|[INTEGER,INTEGER,DOUBLE]|[INTEGER,DOUBLE,INTEGER]|[INTEGER,DOUBLE,DOUBLE]|[DOUBLE,INTEGER,INTEGER]|[DOUBLE,INTEGER,DOUBLE]|[DOUBLE,DOUBLE,INTEGER]|[DOUBLE,DOUBLE,DOUBLE]},"
-            + " but got [STRING,INTEGER]");
+            + " but got [DATE,INTEGER]");
   }
 
   @Test
@@ -155,10 +155,10 @@ public class CalcitePPLAggregateFunctionTypeTest extends CalcitePPLAbstractTest 
   @Test
   public void testPercentileWithInvalidParameterTypesThrowsException() {
     verifyQueryThrowsException(
-        "source=EMP | stats percentile(EMPNO, 50, ENAME)",
+        "source=EMP | stats percentile(EMPNO, 50, HIREDATE)",
         "Aggregation function PERCENTILE_APPROX expects field type and additional arguments"
             + " {[INTEGER,INTEGER]|[INTEGER,DOUBLE]|[DOUBLE,INTEGER]|[DOUBLE,DOUBLE]|[INTEGER,INTEGER,INTEGER]|[INTEGER,INTEGER,DOUBLE]|[INTEGER,DOUBLE,INTEGER]|[INTEGER,DOUBLE,DOUBLE]|[DOUBLE,INTEGER,INTEGER]|[DOUBLE,INTEGER,DOUBLE]|[DOUBLE,DOUBLE,INTEGER]|[DOUBLE,DOUBLE,DOUBLE]},"
-            + " but got [SHORT,INTEGER,STRING]");
+            + " but got [SHORT,INTEGER,DATE]");
   }
 
   @Test
