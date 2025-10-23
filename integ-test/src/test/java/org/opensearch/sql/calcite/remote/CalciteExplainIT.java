@@ -1063,6 +1063,47 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testExplainCompositeRangeThenSortOnMetricsNotPushdown() throws IOException {
+    // For single bucket, only composite agg can apply pushdown sort agg metrics
+    enabledOnlyWhenPushdownIsEnabled();
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("agg_composite_range_sort_agg_metric_not_push.yaml"),
+        explainQueryYaml(
+            String.format(
+                "source=%s | eval value_range = case(value < 7000, 'small'"
+                    + " else 'great') | stats bucket_nullable=false avg(value), count() as cnt by"
+                    + " value_range, category | sort cnt",
+                TEST_INDEX_TIME_DATA)));
+  }
+
+  @Test
+  public void testExplainCompositeAutoDateThenSortOnMetricsNotPushdown() throws IOException {
+    // For single bucket, only composite agg can apply pushdown sort agg metrics
+    enabledOnlyWhenPushdownIsEnabled();
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("agg_composite_autodate_sort_agg_metric_not_push.yaml"),
+        explainQueryYaml(
+            String.format(
+                "source=%s | bin timestamp bins=3 | stats bucket_nullable=false avg(value), count()"
+                    + " as cnt by timestamp, category | sort cnt",
+                TEST_INDEX_TIME_DATA)));
+  }
+
+  @Test
+  public void testExplainCompositeRangeAutoDateThenSortOnMetricsNotPushdown() throws IOException {
+    // For multiple buckets, only all term-buckets can apply multi-terms
+    enabledOnlyWhenPushdownIsEnabled();
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("agg_composite_autodate_range_metric_sort_agg_metric_not_push.yaml"),
+        explainQueryYaml(
+            String.format(
+                "source=%s | bin timestamp bins=3 | eval value_range = case(value < 7000, 'small'"
+                    + " else 'great') | stats bucket_nullable=false avg(value), count() as cnt by"
+                    + " timestamp, value_range | sort cnt",
+                TEST_INDEX_TIME_DATA)));
+  }
+
+  @Test
   public void testExplainEvalMax() throws IOException {
     String expected = loadExpectedPlan("explain_eval_max.json");
     assertJsonEqualsIgnoreId(

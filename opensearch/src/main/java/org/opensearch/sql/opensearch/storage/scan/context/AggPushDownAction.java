@@ -153,11 +153,17 @@ public class AggPushDownAction implements OSRequestBuilderAction {
       List<String> fieldNames,
       CompositeAggregationBuilder composite) {
     String path;
-    if (composite.getSubAggregations().isEmpty()) {
+    AggregationBuilder metric = composite.getSubAggregations().stream().findFirst().orElse(null);
+    if (metric == null) {
       // count agg optimized, get the path name from field names
       path = fieldNames.get(collations.get(0).getFieldIndex());
+    } else if (metric instanceof ValuesSourceAggregationBuilder.LeafOnly) {
+      path = metric.getName();
     } else {
-      path = composite.getSubAggregations().stream().toList().get(0).getName();
+      // we do not support pushdown sort aggregate metrics for nested aggregation
+      throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
+          "Cannot pushdown sort aggregate metrics, composite.getSubAggregations() is not a"
+              + " LeafOnly");
     }
     return path;
   }
