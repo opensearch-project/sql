@@ -14,6 +14,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.allFields;
 import static org.opensearch.sql.ast.dsl.AstDSL.and;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
+import static org.opensearch.sql.ast.dsl.AstDSL.bin;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.caseWhen;
 import static org.opensearch.sql.ast.dsl.AstDSL.cast;
@@ -1604,5 +1605,67 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             .limit(10)
             .useOther(true)
             .build());
+  }
+
+  @Test
+  public void testBinOptionWithSpan() {
+    assertEqual(
+        "source=t | bin age span=10",
+        bin(relation("t"), field("age"), argument("span", intLiteral(10))));
+  }
+
+  @Test
+  public void testBinOptionWithBins() {
+    assertEqual(
+        "source=t | bin age bins=5",
+        bin(relation("t"), field("age"), argument("bins", intLiteral(5))));
+  }
+
+  @Test
+  public void testBinOptionWithMinspan() {
+    assertEqual(
+        "source=t | bin age minspan=100",
+        bin(relation("t"), field("age"), argument("minspan", intLiteral(100))));
+  }
+
+  @Test
+  public void testBinOptionWithAligntimeEarliest() {
+    assertEqual(
+        "source=t | bin age span=10 aligntime=earliest",
+        bin(
+            relation("t"),
+            field("age"),
+            argument("span", intLiteral(10)),
+            argument("aligntime", stringLiteral("earliest"))));
+  }
+
+  @Test
+  public void testBinOptionWithAligntimeLiteralValue() {
+    assertEqual(
+        "source=t | bin age span=10 aligntime=1000",
+        bin(
+            relation("t"),
+            field("age"),
+            argument("span", intLiteral(10)),
+            argument("aligntime", intLiteral(1000))));
+  }
+
+  @Test
+  public void testBinOptionWithStartAndEnd() {
+    assertEqual(
+        "source=t | bin age bins=10 start=0 end=100",
+        bin(
+            relation("t"),
+            field("age"),
+            argument("bins", intLiteral(10)),
+            argument("start", intLiteral(0)),
+            argument("end", intLiteral(100))));
+  }
+
+  @Test
+  public void testBinOptionWithTimeSpan() {
+    assertEqual(
+        "source=t | bin timestamp span=1h",
+        bin(relation("t"), field("timestamp"), argument("span", stringLiteral("1h"))));
   }
 }
