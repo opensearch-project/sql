@@ -606,23 +606,20 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testStreamstatsDistinctCountExplain() throws IOException {
-    enabledOnlyWhenPushdownIsEnabled();
     String query =
         "source=opensearch-sql_test_index_account | streamstats dc(state) as distinct_states";
     var result = explainQueryYaml(query);
-    String expected = loadFromFile("expectedOutput/calcite/explain_streamstats_dc.yaml");
+    String expected = loadExpectedPlan("explain_streamstats_dc.yaml");
     assertYamlEqualsIgnoreId(expected, result);
   }
 
   @Test
   public void testStreamstatsDistinctCountFunctionExplain() throws IOException {
-    enabledOnlyWhenPushdownIsEnabled();
     String query =
         "source=opensearch-sql_test_index_account | streamstats distinct_count(state) as"
             + " distinct_states by gender";
     var result = explainQueryYaml(query);
-    String expected =
-        loadFromFile("expectedOutput/calcite/explain_streamstats_distinct_count.yaml");
+    String expected = loadExpectedPlan("explain_streamstats_distinct_count.yaml");
     assertYamlEqualsIgnoreId(expected, result);
   }
 
