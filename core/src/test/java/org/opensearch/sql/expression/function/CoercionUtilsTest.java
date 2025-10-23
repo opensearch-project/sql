@@ -58,7 +58,7 @@ class CoercionUtilsTest {
     assertNotNull(result);
     assertEquals(1, result.size());
     assertEquals(
-        INTEGER, OpenSearchTypeFactory.convertRelDataTypeToExprType(result.getFirst().getType()));
+        INTEGER, OpenSearchTypeFactory.convertRelDataTypeToExprType(result.get(0).getType()));
   }
 
   @Test
@@ -71,7 +71,7 @@ class CoercionUtilsTest {
 
     assertNotNull(result);
     assertEquals(
-        DOUBLE, OpenSearchTypeFactory.convertRelDataTypeToExprType(result.getFirst().getType()));
+        DOUBLE, OpenSearchTypeFactory.convertRelDataTypeToExprType(result.get(0).getType()));
   }
 
   @Test
