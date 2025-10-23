@@ -56,6 +56,12 @@ import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
 @Getter
 public abstract class AbstractCalciteIndexScan extends TableScan {
   private static final Logger LOG = LogManager.getLogger(AbstractCalciteIndexScan.class);
+  // With mini benchmark of few rows, if we push down around 15 derived fields, the performance is
+  // almost equal to no pushdown query. To balance the pushdown benefit and cost, we pick an upper
+  // limit like half of 15, aka 7 script here. If the derived field script is less than 7,
+  // We think it will more likely bring performance benefit to the query.
+  private static final int SCRIPT_PROJECT_SOFT_CAP = 7;
+  private static final double SCRIPT_PROJECT_OVER_CAP_PENALITY = 3;
   public final OpenSearchIndex osIndex;
   // The schema of this scan operator, it's initialized with the row type of the table, but may be
   // changed by push down operations.
@@ -148,8 +154,26 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
         case PROJECT -> {}
         case SCRIPT_PROJECT -> {
           List<String> derivedNames = (List<String>) operation.digest();
+          int derivedFieldCount = derivedNames.size();
           // Based on default project rows * field size, add additional cost on derived fields
-          dCpu += NumberUtil.multiply(dRows, 0.1 * derivedNames.size());
+          dCpu += NumberUtil.multiply(dRows, 0.1 * derivedFieldCount);
+          /*
+           * Give more penalty if derived field script size is over this SCRIPT_PROJECT_SOFT_CAP.
+           * Considering the case of wide schema table, it will likely allow more than this
+           * cap derived field script pushdown.
+           *
+           * For example, say we have a 300 column wide table. We want to pushdown 9 derived fields.
+           * no pushdown rows = original scan rows + project rows
+           * = 10,000 * 300 * 0.5 (parallelism factor) + 9 * 10,000 = 1,590,000
+           * 9 derived field pushdown rows = (10,000 * 300 + 10,000 * (9 * 0.1 + 3 * 2 * 2)) * 0.5 = 1,564,500
+           *
+           * We can see 9 derived field script cost is still cheaper than whole scan with outside project.
+           * However, the query with 10 derived field scrips will not push down project in this case.
+           */
+          if (derivedFieldCount > SCRIPT_PROJECT_SOFT_CAP) {
+            final int over = derivedFieldCount - SCRIPT_PROJECT_SOFT_CAP;
+            dCpu += NumberUtil.multiply(dRows, SCRIPT_PROJECT_OVER_CAP_PENALITY * over * over);
+          }
         }
         case SORT -> dCpu += dRows;
           // Refer the org.apache.calcite.rel.metadata.RelMdRowCount.getRowCount(Aggregate rel,...)
