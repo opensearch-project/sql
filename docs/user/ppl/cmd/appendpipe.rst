@@ -12,7 +12,6 @@ appendpipe
 Description
 ============
 | Using ``appendpipe`` command to appends the result of the subpipeline to the search results. Unlike a subsearch, the subpipeline is not run first.The subpipeline is run when the search reaches the appendpipe command.
-The appendpipe command is used to append the output of transforming commands, such as chart, timechart, stats, and top.
 The command aligns columns with the same field names and types. For different column fields between the main search and sub-search, NULL values are filled in the respective rows.
 
 Version
@@ -32,7 +31,7 @@ This example appends rows from "total by gender" to "sum by gender, state" with 
 
 PPL query::
 
-    os> source=accounts | stats sum(age) as part by gender, state | sort -sum | head 5 | appendpipe [ stats sum(part) as total by gender ];
+    os> source=accounts | stats sum(age) as part by gender, state | sort -part | head 5 | appendpipe [ stats sum(part) as total by gender ];
     fetched rows / total rows = 6/6
     +------+--------+-------+-------+
     | part | gender | state | total |
@@ -54,7 +53,7 @@ This example appends rows from "count by gender" to "sum by gender, state".
 
 PPL query::
 
-    os> source=accounts | stats sum(age) as total by gender, state | sort -`sum(age)` | head 5 | appendpipe [ stats sum(total) as total by gender ];
+    os> source=accounts | stats sum(age) as total by gender, state | sort -total | head 5 | appendpipe [ stats sum(total) as total by gender ];
     fetched rows / total rows = 6/6
     +----------+--------+-------+
     | total    | gender | state |
@@ -74,7 +73,7 @@ This example shows how column type conflicts are handled when appending results.
 
 PPL query::
 
-    os> source=accounts | stats sum(age) as total by gender, state | sort -`sum(age)` | head 5 | appendpipe [ stats sum(total) as total by gender | eval state = 123 ];
+    os> source=accounts | stats sum(age) as total by gender, state | sort -total | head 5 | appendpipe [ stats sum(total) as total by gender | eval state = 123 ];
     fetched rows / total rows = 6/6
     +------+--------+-------+--------+
     | sum  | gender | state | state0 |
