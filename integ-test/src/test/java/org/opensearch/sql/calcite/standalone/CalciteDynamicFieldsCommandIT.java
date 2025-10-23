@@ -30,10 +30,26 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
 
   @Test
   public void testBasicProjection() throws IOException {
-    JSONObject result =
-        executeQuery(
-            source(TEST_INDEX_DYNAMIC, "fields firstname, lastname, department, salary | head 1"));
+    String query =
+        source(TEST_INDEX_DYNAMIC, "fields firstname, lastname, department, salary | head 1");
+    assertExplainYaml(
+        query,
+        "calcite:\n"
+            + "  logical: |\n"
+            + "    LogicalSystemLimit(fetch=[200], type=[QUERY_SIZE_LIMIT])\n"
+            + "      LogicalSort(fetch=[1])\n"
+            + "        LogicalProject(firstname=[$0], lastname=[$2], department=[ITEM($9,"
+            + " 'department')], salary=[ITEM($9, 'salary')])\n"
+            + "          CalciteLogicalIndexScan(table=[[OpenSearch, test_dynamic_fields]])\n"
+            + "  physical: |\n"
+            + "    EnumerableLimit(fetch=[200])\n"
+            + "      EnumerableCalc(expr#0..9=[{inputs}], expr#10=['department'],"
+            + " expr#11=[ITEM($t9, $t10)], expr#12=['salary'], expr#13=[ITEM($t9, $t12)],"
+            + " firstname=[$t0], lastname=[$t2], department=[$t11], salary=[$t13])\n"
+            + "        EnumerableLimit(fetch=[1])\n"
+            + "          CalciteEnumerableIndexScan(table=[[OpenSearch, test_dynamic_fields]])\n");
 
+    JSONObject result = executeQuery(query);
     verifySchema(
         result,
         schema("firstname", "string"),
@@ -45,12 +61,31 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
 
   @Test
   public void testEval() throws IOException {
-    JSONObject result =
-        executeQuery(
-            source(
-                TEST_INDEX_DYNAMIC,
-                "eval salary = cast(salary as int) * 2 | fields firstname,"
-                    + " lastname, salary | head 1"));
+    String query =
+        source(
+            TEST_INDEX_DYNAMIC,
+            "eval salary = cast(salary as int) * 2 | fields firstname,"
+                + " lastname, salary | head 1");
+
+    assertExplainYaml(
+        query,
+        "calcite:\n"
+            + "  logical: |\n"
+            + "    LogicalSystemLimit(fetch=[200], type=[QUERY_SIZE_LIMIT])\n"
+            + "      LogicalSort(fetch=[1])\n"
+            + "        LogicalProject(firstname=[$0], lastname=[$2], salary=[*(SAFE_CAST(ITEM($9,"
+            + " 'salary')), 2)])\n"
+            + "          CalciteLogicalIndexScan(table=[[OpenSearch, test_dynamic_fields]])\n"
+            + "  physical: |\n"
+            + "    EnumerableLimit(fetch=[200])\n"
+            + "      EnumerableCalc(expr#0..9=[{inputs}], expr#10=['salary'], expr#11=[ITEM($t9,"
+            + " $t10)], expr#12=[SAFE_CAST($t11)], expr#13=[2], expr#14=[*($t12, $t13)],"
+            + " firstname=[$t0], lastname=[$t2], salary=[$t14])\n"
+            + "        EnumerableLimit(fetch=[1])\n"
+            + "          CalciteEnumerableIndexScan(table=[[OpenSearch, test_dynamic_fields]])\n"
+            + "");
+
+    JSONObject result = executeQuery(query);
 
     verifySchema(
         result,
@@ -67,8 +102,8 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
     String mapping =
         "{"
             + "\"mappings\": {"
-            + "  \"dynamic\": false," // Disable dynamic mapping - extra fields won't be indexed but
-            // will be stored
+            // Disable dynamic mapping - extra fields won't be indexed but will be stored
+            + "  \"dynamic\": false,"
             + "  \"properties\": {"
             + "    \"firstname\": {\"type\": \"text\"},"
             + "    \"lastname\": {\"type\": \"text\"},"

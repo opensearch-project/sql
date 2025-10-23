@@ -34,4 +34,19 @@ public abstract class CalcitePPLPermissiveIntegTestCase extends CalcitePPLIntegT
   protected Settings getSettings() {
     return defaultSettings(getDefaultSettingsBuilder().put(Key.PPL_QUERY_PERMISSIVE, true).build());
   }
+
+  protected void assertExplainYaml(String query, String expectedYaml) {
+    String actualYaml = explainQueryYaml(query);
+    assertTrue(getMessage(expectedYaml, actualYaml), expectedYaml.equals(actualYaml));
+  }
+
+  private String getMessage(String expectedYaml, String actualYaml) {
+    return "Explain did not match:\n"
+        + String.format(
+            "# Expected: %s# Actual: %s", blockQuote(expectedYaml), blockQuote(actualYaml));
+  }
+
+  private String blockQuote(String str) {
+    return "```\n" + str + "```\n";
+  }
 }

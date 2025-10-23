@@ -65,7 +65,9 @@ import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
+import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
+import org.opensearch.sql.protocol.response.format.YamlResponseFormatter;
 import org.opensearch.sql.sql.SQLService;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.storage.DataSourceFactory;
@@ -232,28 +234,49 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
   protected String explainQuery(String query) {
     AtomicReference<String> actual = new AtomicReference<>();
     pplService.explain(
-        new PPLQueryRequest(query, null, null),
-        new ResponseListener<ExecutionEngine.ExplainResponse>() {
-
-          @Override
-          public void onResponse(ExecutionEngine.ExplainResponse response) {
-            String responseContent =
-                new JsonResponseFormatter<ExecutionEngine.ExplainResponse>(PRETTY) {
-                  @Override
-                  protected Object buildJsonObject(ExecutionEngine.ExplainResponse response) {
-                    return response;
-                  }
-                }.format(response);
-            actual.set(responseContent.replace("\\r\\n", "\\n"));
-          }
-
-          @Override
-          public void onFailure(Exception e) {
-            throw new IllegalStateException("Exception happened during execution", e);
-          }
-        });
+        new PPLQueryRequest("explain " + query, null, null), formatListener(jsonFormatter, actual));
     return actual.get();
   }
+
+  @Override
+  protected String explainQueryYaml(String query) {
+    AtomicReference<String> actual = new AtomicReference<>();
+    pplService.explain(
+        new PPLQueryRequest("explain " + query, null, null), formatListener(yamlFormatter, actual));
+    return actual.get();
+  }
+
+  private <T> ResponseListener<T> formatListener(
+      ResponseFormatter<T> formatter, AtomicReference<String> actual) {
+    return new ResponseListener<T>() {
+      @Override
+      public void onResponse(T response) {
+        String responseContent = formatter.format(response);
+        actual.set(responseContent.replace("\\r\\n", "\\n"));
+      }
+
+      @Override
+      public void onFailure(Exception e) {
+        throw new IllegalStateException("Exception happened during execution", e);
+      }
+    };
+  }
+
+  private JsonResponseFormatter<ExecutionEngine.ExplainResponse> jsonFormatter =
+      new JsonResponseFormatter<>(PRETTY) {
+        @Override
+        protected Object buildJsonObject(ExecutionEngine.ExplainResponse response) {
+          return ExecutionEngine.ExplainResponse.normalizeLf(response);
+        }
+      };
+
+  private YamlResponseFormatter<ExecutionEngine.ExplainResponse> yamlFormatter =
+      new YamlResponseFormatter<>() {
+        @Override
+        protected Object buildYamlObject(ExecutionEngine.ExplainResponse response) {
+          return ExecutionEngine.ExplainResponse.normalizeLf(response);
+        }
+      };
 
   public static DataSourceMetadataStorage getDataSourceMetadataStorage() {
     return new DataSourceMetadataStorage() {
