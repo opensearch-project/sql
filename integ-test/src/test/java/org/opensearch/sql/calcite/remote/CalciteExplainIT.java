@@ -1064,7 +1064,6 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainCompositeRangeThenSortOnMetricsNotPushdown() throws IOException {
-    // For single bucket, only composite agg can apply pushdown sort agg metrics
     enabledOnlyWhenPushdownIsEnabled();
     assertYamlEqualsIgnoreId(
         loadExpectedPlan("agg_composite_range_sort_agg_metric_not_push.yaml"),
@@ -1078,7 +1077,6 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainCompositeAutoDateThenSortOnMetricsNotPushdown() throws IOException {
-    // For single bucket, only composite agg can apply pushdown sort agg metrics
     enabledOnlyWhenPushdownIsEnabled();
     assertYamlEqualsIgnoreId(
         loadExpectedPlan("agg_composite_autodate_sort_agg_metric_not_push.yaml"),
@@ -1091,7 +1089,6 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainCompositeRangeAutoDateThenSortOnMetricsNotPushdown() throws IOException {
-    // For multiple buckets, only all term-buckets can apply multi-terms
     enabledOnlyWhenPushdownIsEnabled();
     assertYamlEqualsIgnoreId(
         loadExpectedPlan("agg_composite_autodate_range_metric_sort_agg_metric_not_push.yaml"),
