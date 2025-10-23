@@ -48,6 +48,65 @@ The query start with search command and then flowing a set of command delimited 
 
 * **Commands**
 
+  - `Syntax <cmd/syntax.rst>`_
+
+  - `ad command <cmd/ad.rst>`_
+
+  - `append command <cmd/append.rst>`_
+
+  - `appendcol command <cmd/appendcol.rst>`_
+
+  - `bin command <cmd/bin.rst>`_
+
+  - `dedup command <cmd/dedup.rst>`_
+
+  - `describe command <cmd/describe.rst>`_
+
+  - `eval command <cmd/eval.rst>`_
+
+  - `eventstats command <cmd/eventstats.rst>`_
+
+  - `expand command <cmd/expand.rst>`_
+
+  - `mvexpand command <cmd/mvexpand.rst>`_
+
+  - `explain command <cmd/explain.rst>`_
+
+  - `fields command <cmd/fields.rst>`_
+
+  - `fillnull command <cmd/fillnull.rst>`_
+
+  - `flatten command  <cmd/flatten.rst>`_
+
+  - `grok command <cmd/grok.rst>`_
+
+  - `head command <cmd/head.rst>`_
+  
+  - `join command  <cmd/join.rst>`_
+
+  - `kmeans command <cmd/kmeans.rst>`_
+
+  - `lookup command <cmd/lookup.rst>`_
+
+  - `ml command <cmd/ml.rst>`_
+
+  - `multisearch command <cmd/multisearch.rst>`_
+
+  - `parse command <cmd/parse.rst>`_
+
+  - `patterns command <cmd/patterns.rst>`_
+
+  - `rare command <cmd/rare.rst>`_
+
+  - `rename command <cmd/rename.rst>`_
+
+  - `regex command <cmd/regex.rst>`_
+
+  - `rex command <cmd/rex.rst>`_
+
+  - `search command <cmd/search.rst>`_
+
+  - `show datasources command <cmd/showdatasources.rst>`_
   The following commands are available in PPL:
 
   **Note:** Experimental commands are ready for use, but specific parameters may change based on feedback.
