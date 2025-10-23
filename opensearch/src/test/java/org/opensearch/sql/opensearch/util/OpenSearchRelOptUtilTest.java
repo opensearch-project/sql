@@ -288,7 +288,6 @@ public class OpenSearchRelOptUtilTest {
 
   @Test
   public void testComplexScenario() {
-    // 多级冲突处理
     List<String> input = Arrays.asList("x", "x", "x", "x");
     List<String> expected = Arrays.asList("x", "x", "x", "x");
     List<String> result = OpenSearchRelOptUtil.resolveColumnNameConflicts(input);
