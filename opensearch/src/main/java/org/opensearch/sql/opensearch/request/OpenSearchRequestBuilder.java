@@ -298,8 +298,6 @@ public class OpenSearchRequestBuilder {
     sourceBuilder.collapse(new CollapseBuilder(field));
   }
 
-  public void pushDownSortMetrics() {}
-
   /**
    * Push down nested to sourceBuilder.
    *

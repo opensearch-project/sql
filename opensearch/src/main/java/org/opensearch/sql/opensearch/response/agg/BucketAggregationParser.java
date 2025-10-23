@@ -8,11 +8,18 @@ package org.opensearch.sql.opensearch.response.agg;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.aggregations.Aggregation;
 import org.opensearch.search.aggregations.Aggregations;
 import org.opensearch.search.aggregations.bucket.MultiBucketsAggregation;
+import org.opensearch.search.aggregations.bucket.composite.CompositeAggregation;
+import org.opensearch.search.aggregations.bucket.histogram.InternalAutoDateHistogram;
+import org.opensearch.search.aggregations.bucket.range.Range;
+import org.opensearch.search.aggregations.bucket.terms.ParsedStringTerms;
 
 /**
  * Use BucketAggregationParser only when there is a single group-by key, it returns multiple
@@ -20,7 +27,7 @@ import org.opensearch.search.aggregations.bucket.MultiBucketsAggregation;
  */
 @EqualsAndHashCode
 public class BucketAggregationParser implements OpenSearchAggregationResponseParser {
-  private final MetricParserHelper metricsParser;
+  @Getter private final MetricParserHelper metricsParser;
   // countAggNameList dedicated the list of count aggregations which are filled by doc_count
   private List<String> countAggNameList = List.of();
 
@@ -44,20 +51,28 @@ public class BucketAggregationParser implements OpenSearchAggregationResponsePar
     return ((MultiBucketsAggregation) agg)
         .getBuckets().stream()
             .map(b -> parseBucket(b, agg.getName()))
+            .filter(Objects::nonNull)
             .flatMap(List::stream)
             .toList();
   }
 
   private List<Map<String, Object>> parseBucket(
       MultiBucketsAggregation.Bucket bucket, String name) {
+    // return null so that an empty bucket of range or date span will be filtered out
+    if (bucket instanceof Range.Bucket || bucket instanceof InternalAutoDateHistogram.Bucket) {
+      if (bucket.getDocCount() == 0) {
+        return null;
+      }
+    }
+
     Aggregations aggregations = bucket.getAggregations();
     List<Map<String, Object>> results =
         isLeafAgg(aggregations)
             ? parseLeafAgg(aggregations, bucket.getDocCount())
             : parse(aggregations);
-    for (Map<String, Object> r : results) {
-      r.put(name, bucket.getKey());
-    }
+
+    Optional<Map<String, Object>> common = extract(bucket, name);
+    common.ifPresent(commonMap -> results.forEach(r -> r.putAll(commonMap)));
     return results;
   }
 
@@ -76,5 +91,49 @@ public class BucketAggregationParser implements OpenSearchAggregationResponsePar
   public List<Map<String, Object>> parse(SearchHits hits) {
     throw new UnsupportedOperationException(
         "BucketAggregationParser doesn't support parse(SearchHits)");
+  }
+
+  /**
+   * Extracts key-value pairs from different types of aggregation buckets without processing their
+   * sub-aggregations.
+   *
+   * <p>For CompositeAggregation buckets, it extracts all key-value pairs from the bucket's key. For
+   * example, for the following CompositeAggregation bucket in response:
+   *
+   * <pre>{@code
+   * {
+   *   "key": {
+   *     "firstname": "William",
+   *     "lastname": "Shakespeare"
+   *   },
+   *   "sub_agg_name": {
+   *     "buckets": []
+   *   }
+   * }
+   * }</pre>
+   *
+   * It returns {@code {"firstname": "William", "lastname": "Shakespeare"}}.
+   *
+   * <p>For Range buckets, it creates a single key-value pair using the provided name and the
+   * bucket's key.
+   *
+   * @param bucket the aggregation bucket to extract data from
+   * @param name the field name to use for range buckets (ignored for composite buckets)
+   * @return an Optional containing the extracted key-value pairs, or empty if bucket type is
+   *     unsupported
+   */
+  protected Optional<Map<String, Object>> extract(
+      MultiBucketsAggregation.Bucket bucket, String name) {
+    Map<String, Object> extracted;
+    if (bucket instanceof CompositeAggregation.Bucket compositeBucket) {
+      extracted = compositeBucket.getKey();
+    } else if (bucket instanceof Range.Bucket
+        || bucket instanceof InternalAutoDateHistogram.Bucket
+        || bucket instanceof ParsedStringTerms.ParsedBucket) {
+      extracted = Map.of(name, bucket.getKey());
+    } else {
+      extracted = null;
+    }
+    return Optional.ofNullable(extracted);
   }
 }
