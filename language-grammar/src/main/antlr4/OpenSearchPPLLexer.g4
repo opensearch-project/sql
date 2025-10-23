@@ -13,12 +13,9 @@ options { caseInsensitive = true; }
 SEARCH:                             'SEARCH';
 DESCRIBE:                           'DESCRIBE';
 SHOW:                               'SHOW';
-EXPLAIN:                            'EXPLAIN';
 FROM:                               'FROM';
 WHERE:                              'WHERE';
 FIELDS:                             'FIELDS';
-FIELD:                              'FIELD';
-TABLE:                              'TABLE';  // Alias for FIELDS command
 RENAME:                             'RENAME';
 STATS:                              'STATS';
 EVENTSTATS:                         'EVENTSTATS';
@@ -26,14 +23,13 @@ DEDUP:                              'DEDUP';
 SORT:                               'SORT';
 EVAL:                               'EVAL';
 HEAD:                               'HEAD';
-BIN:                                'BIN';
+TOP_APPROX:                         'TOP_APPROX';
 TOP:                                'TOP';
+RARE_APPROX:                        'RARE_APPROX';
 RARE:                               'RARE';
 PARSE:                              'PARSE';
-SPATH:                              'SPATH';
+METHOD:                             'METHOD';
 REGEX:                              'REGEX';
-REX:                                'REX';
-SED:                                'SED';
 PUNCT:                              'PUNCT';
 GROK:                               'GROK';
 PATTERN:                            'PATTERN';
@@ -43,22 +39,10 @@ KMEANS:                             'KMEANS';
 AD:                                 'AD';
 ML:                                 'ML';
 FILLNULL:                           'FILLNULL';
+EXPAND:                             'EXPAND';
 FLATTEN:                            'FLATTEN';
 TRENDLINE:                          'TRENDLINE';
-TIMECHART:                          'TIMECHART';
 APPENDCOL:                          'APPENDCOL';
-EXPAND:                             'EXPAND';
-SIMPLE_PATTERN:                     'SIMPLE_PATTERN';
-BRAIN:                              'BRAIN';
-VARIABLE_COUNT_THRESHOLD:           'VARIABLE_COUNT_THRESHOLD';
-FREQUENCY_THRESHOLD_PERCENTAGE:     'FREQUENCY_THRESHOLD_PERCENTAGE';
-METHOD:                             'METHOD';
-MAX_SAMPLE_COUNT:                   'MAX_SAMPLE_COUNT';
-MAX_MATCH:                          'MAX_MATCH';
-OFFSET_FIELD:                       'OFFSET_FIELD';
-BUFFER_LIMIT:                       'BUFFER_LIMIT';
-LABEL:                              'LABEL';
-AGGREGATION:                        'AGGREGATION';
 
 //Native JOIN KEYWORDS
 JOIN:                               'JOIN';
@@ -72,34 +56,51 @@ CROSS:                              'CROSS';
 LEFT_HINT:                          'HINT.LEFT';
 RIGHT_HINT:                         'HINT.RIGHT';
 
+//CORRELATION KEYWORDS
+CORRELATE:                          'CORRELATE';
+SELF:                               'SELF';
+EXACT:                              'EXACT';
+APPROXIMATE:                        'APPROXIMATE';
+SCOPE:                              'SCOPE';
+MAPPING:                            'MAPPING';
+
+//EXPLAIN KEYWORDS
+EXPLAIN:                            'EXPLAIN';
+FORMATTED:                          'FORMATTED';
+COST:                               'COST';
+CODEGEN:                            'CODEGEN';
+EXTENDED:                           'EXTENDED';
+SIMPLE:                             'SIMPLE';
+
 // COMMAND ASSIST KEYWORDS
 AS:                                 'AS';
 BY:                                 'BY';
 SOURCE:                             'SOURCE';
 INDEX:                              'INDEX';
-A:                                  'A';
-ASC:                                'ASC';
 D:                                  'D';
 DESC:                               'DESC';
 DATASOURCES:                        'DATASOURCES';
 USING:                              'USING';
 WITH:                               'WITH';
-SIMPLE:                             'SIMPLE';
-STANDARD:                           'STANDARD';
-COST:                               'COST';
-EXTENDED:                           'EXTENDED';
-OVERRIDE:                           'OVERRIDE';
-OVERWRITE:                          'OVERWRITE';
 
 // SORT FIELD KEYWORDS
-// TODO #3180: Fix broken sort functionality
+// TODO #963: Implement 'num', 'str', and 'ip' sort syntax
 AUTO:                               'AUTO';
 STR:                                'STR';
+IP:                                 'IP';
 NUM:                                'NUM';
 
-// TRENDLINE KEYWORDS
+// FIELDSUMMARY keywords
+FIELDSUMMARY:                       'FIELDSUMMARY';
+INCLUDEFIELDS:                      'INCLUDEFIELDS';
+NULLS:                              'NULLS';
+
+//TRENDLINE KEYWORDS
 SMA:                                'SMA';
 WMA:                                'WMA';
+
+// APPENDCOL options
+OVERRIDE:                           'OVERRIDE';
 
 // ARGUMENT KEYWORDS
 KEEPEMPTY:                          'KEEPEMPTY';
@@ -108,7 +109,6 @@ DEDUP_SPLITVALUES:                  'DEDUP_SPLITVALUES';
 PARTITIONS:                         'PARTITIONS';
 ALLNUM:                             'ALLNUM';
 DELIM:                              'DELIM';
-BUCKET_NULLABLE:                    'BUCKET_NULLABLE';
 CENTROIDS:                          'CENTROIDS';
 ITERATIONS:                         'ITERATIONS';
 DISTANCE_TYPE:                      'DISTANCE_TYPE';
@@ -124,22 +124,12 @@ TIME_ZONE:                          'TIME_ZONE';
 TRAINING_DATA_SIZE:                 'TRAINING_DATA_SIZE';
 ANOMALY_SCORE_THRESHOLD:            'ANOMALY_SCORE_THRESHOLD';
 APPEND:                             'APPEND';
-COUNTFIELD:                         'COUNTFIELD';
-SHOWCOUNT:                          'SHOWCOUNT';
-LIMIT:                              'LIMIT';
-USEOTHER:                           'USEOTHER';
-INPUT:                              'INPUT';
-OUTPUT:                             'OUTPUT';
-PATH:                               'PATH';
 
 // COMPARISON FUNCTION KEYWORDS
 CASE:                               'CASE';
 ELSE:                               'ELSE';
 IN:                                 'IN';
 EXISTS:                             'EXISTS';
-
-// Geo IP eval function
-GEOIP:                              'GEOIP';
 
 // LOGICAL KEYWORDS
 NOT:                                'NOT';
@@ -149,7 +139,6 @@ XOR:                                'XOR';
 TRUE:                               'TRUE';
 FALSE:                              'FALSE';
 REGEXP:                             'REGEXP';
-REGEX_MATCH:                        'REGEX_MATCH';
 
 // DATETIME, INTERVAL AND UNIT KEYWORDS
 CONVERT_TZ:                         'CONVERT_TZ';
@@ -197,14 +186,12 @@ LONG:                               'LONG';
 FLOAT:                              'FLOAT';
 STRING:                             'STRING';
 BOOLEAN:                            'BOOLEAN';
-IP:                                 'IP';
 
 // SPECIAL CHARACTERS AND OPERATORS
 PIPE:                               '|';
 COMMA:                              ',';
 DOT:                                '.';
 EQUAL:                              '=';
-DOUBLE_EQUAL:                       '==';
 GREATER:                            '>';
 LESS:                               '<';
 NOT_GREATER:                        '<' '=';
@@ -221,8 +208,6 @@ LT_PRTHS:                           '(';
 RT_PRTHS:                           ')';
 LT_SQR_PRTHS:                       '[';
 RT_SQR_PRTHS:                       ']';
-LT_CURLY:                           '{';
-RT_CURLY:                           '}';
 SINGLE_QUOTE:                       '\'';
 DOUBLE_QUOTE:                       '"';
 BACKTICK:                           '`';
@@ -255,12 +240,11 @@ VAR_SAMP:                           'VAR_SAMP';
 VAR_POP:                            'VAR_POP';
 STDDEV_SAMP:                        'STDDEV_SAMP';
 STDDEV_POP:                         'STDDEV_POP';
-PERC:                               'PERC';
 PERCENTILE:                         'PERCENTILE';
 PERCENTILE_APPROX:                  'PERCENTILE_APPROX';
-EARLIEST:                           'EARLIEST';
-LATEST:                             'LATEST';
 TAKE:                               'TAKE';
+FIRST:                              'FIRST';
+LAST:                               'LAST';
 LIST:                               'LIST';
 VALUES:                             'VALUES';
 PER_DAY:                            'PER_DAY';
@@ -272,22 +256,7 @@ SPARKLINE:                          'SPARKLINE';
 C:                                  'C';
 DC:                                 'DC';
 
-// SCALAR WINDOW FUNCTIONS
-ROW_NUMBER:                         'ROW_NUMBER';
-RANK:                               'RANK';
-DENSE_RANK:                         'DENSE_RANK';
-PERCENT_RANK:                       'PERCENT_RANK';
-CUME_DIST:                          'CUME_DIST';
-FIRST:                              'FIRST';
-LAST:                               'LAST';
-NTH:                                'NTH';
-NTILE:                              'NTILE';
-
 // BASIC FUNCTIONS
-PLUS_FUCTION:                       'ADD';
-MINUS_FUCTION:                      'SUBTRACT';
-STAR_FUNCTION:                      'MULTIPLY';
-DIVIDE_FUNCTION:                    'DIVIDE';
 ABS:                                'ABS';
 CBRT:                               'CBRT';
 CEIL:                               'CEIL';
@@ -296,13 +265,12 @@ CONV:                               'CONV';
 CRC32:                              'CRC32';
 E:                                  'E';
 EXP:                                'EXP';
-EXPM1:                              'EXPM1';
 FLOOR:                              'FLOOR';
 LN:                                 'LN';
 LOG:                                'LOG';
-LOG_WITH_BASE:                      ([0-9]+ ('.' [0-9]+)?)? ('LOG' | 'log') [0-9]+ ('.' [0-9]+)?;
+LOG10:                              'LOG10';
+LOG2:                               'LOG2';
 MOD:                                'MOD';
-MODULUS:                            'MODULUS';
 PI:                                 'PI';
 POSITION:                           'POSITION';
 POW:                                'POW';
@@ -310,10 +278,9 @@ POWER:                              'POWER';
 RAND:                               'RAND';
 ROUND:                              'ROUND';
 SIGN:                               'SIGN';
+SIGNUM:                             'SIGNUM';
 SQRT:                               'SQRT';
 TRUNCATE:                           'TRUNCATE';
-RINT:                               'RINT';
-SIGNUM:                             'SIGNUM';
 
 // TRIGONOMETRIC FUNCTIONS
 ACOS:                               'ACOS';
@@ -321,12 +288,10 @@ ASIN:                               'ASIN';
 ATAN:                               'ATAN';
 ATAN2:                              'ATAN2';
 COS:                                'COS';
-COSH:                               'COSH';
 COT:                                'COT';
 DEGREES:                            'DEGREES';
 RADIANS:                            'RADIANS';
 SIN:                                'SIN';
-SINH:                               'SINH';
 TAN:                                'TAN';
 
 // CRYPTOGRAPHIC FUNCTIONS
@@ -341,6 +306,7 @@ CURDATE:                            'CURDATE';
 CURRENT_DATE:                       'CURRENT_DATE';
 CURRENT_TIME:                       'CURRENT_TIME';
 CURRENT_TIMESTAMP:                  'CURRENT_TIMESTAMP';
+CURRENT_TIMEZONE:                   'CURRENT_TIMEZONE';
 CURTIME:                            'CURTIME';
 DATE:                               'DATE';
 DATEDIFF:                           'DATEDIFF';
@@ -353,6 +319,7 @@ DAYOFWEEK:                          'DAYOFWEEK';
 DAYOFYEAR:                          'DAYOFYEAR';
 DAY_OF_MONTH:                       'DAY_OF_MONTH';
 DAY_OF_WEEK:                        'DAY_OF_WEEK';
+DURATION:                           'DURATION';
 EXTRACT:                            'EXTRACT';
 FROM_DAYS:                          'FROM_DAYS';
 FROM_UNIXTIME:                      'FROM_UNIXTIME';
@@ -361,6 +328,7 @@ LAST_DAY:                           'LAST_DAY';
 LOCALTIME:                          'LOCALTIME';
 LOCALTIMESTAMP:                     'LOCALTIMESTAMP';
 MAKEDATE:                           'MAKEDATE';
+MAKE_DATE:                          'MAKE_DATE';
 MAKETIME:                           'MAKETIME';
 MONTHNAME:                          'MONTHNAME';
 NOW:                                'NOW';
@@ -387,6 +355,11 @@ UTC_TIMESTAMP:                      'UTC_TIMESTAMP';
 WEEKDAY:                            'WEEKDAY';
 YEARWEEK:                           'YEARWEEK';
 
+// RELATIVE TIME FUNCTIONS
+RELATIVE_TIMESTAMP:                 'RELATIVE_TIMESTAMP';
+EARLIEST:                           'EARLIEST';
+LATEST:                             'LATEST';
+
 // TEXT FUNCTIONS
 SUBSTR:                             'SUBSTR';
 SUBSTRING:                          'SUBSTRING';
@@ -408,44 +381,66 @@ REPLACE:                            'REPLACE';
 REVERSE:                            'REVERSE';
 CAST:                               'CAST';
 
-// BOOL FUNCTIONS
-LIKE:                               'LIKE';
-ISNULL:                             'ISNULL';
-ISNOTNULL:                          'ISNOTNULL';
-CIDRMATCH:                          'CIDRMATCH';
-BETWEEN:                            'BETWEEN';
-ISPRESENT:                          'ISPRESENT';
-ISEMPTY:                            'ISEMPTY';
-ISBLANK:                            'ISBLANK';
+// JSON TEXT FUNCTIONS
+JSON:                               'JSON';
+JSON_OBJECT:                        'JSON_OBJECT';
+JSON_ARRAY:                         'JSON_ARRAY';
+JSON_ARRAY_LENGTH:                  'JSON_ARRAY_LENGTH';
+TO_JSON_STRING:                     'TO_JSON_STRING';
+JSON_EXTRACT:                       'JSON_EXTRACT';
+JSON_DELETE :                       'JSON_DELETE';
+JSON_KEYS:                          'JSON_KEYS';
+JSON_VALID:                         'JSON_VALID';
+JSON_APPEND:                        'JSON_APPEND';
+JSON_EXTEND :                       'JSON_EXTEND';
+JSON_SET:                           'JSON_SET';
+//JSON_ARRAY_ALL_MATCH:               'JSON_ARRAY_ALL_MATCH';
+//JSON_ARRAY_ANY_MATCH:               'JSON_ARRAY_ANY_MATCH';
+//JSON_ARRAY_FILTER:                  'JSON_ARRAY_FILTER';
+//JSON_ARRAY_MAP:                     'JSON_ARRAY_MAP';
+//JSON_ARRAY_REDUCE:                  'JSON_ARRAY_REDUCE';
 
 // COLLECTION FUNCTIONS
 ARRAY:                              'ARRAY';
 ARRAY_LENGTH:                       'ARRAY_LENGTH';
-MVJOIN:                             'MVJOIN';
+
+// LAMBDA FUNCTIONS
+//EXISTS:                             'EXISTS';
 FORALL:                             'FORALL';
 FILTER:                             'FILTER';
 TRANSFORM:                          'TRANSFORM';
 REDUCE:                             'REDUCE';
 
-// JSON FUNCTIONS
-JSON_VALID:                         'JSON_VALID';
-JSON:                               'JSON';
-JSON_OBJECT:                        'JSON_OBJECT';
-JSON_ARRAY:                         'JSON_ARRAY';
-JSON_ARRAY_LENGTH:                  'JSON_ARRAY_LENGTH';
-JSON_EXTRACT:                       'JSON_EXTRACT';
-JSON_KEYS:                          'JSON_KEYS';
-JSON_SET:                           'JSON_SET';
-JSON_DELETE:                        'JSON_DELETE';
-JSON_APPEND:                        'JSON_APPEND';
-JSON_EXTEND:                        'JSON_EXTEND';
+// BOOL FUNCTIONS
+LIKE:                               'LIKE';
+ISNULL:                             'ISNULL';
+ISNOTNULL:                          'ISNOTNULL';
+BETWEEN:                            'BETWEEN';
+CIDRMATCH:                          'CIDRMATCH';
+ISPRESENT:                          'ISPRESENT';
+ISEMPTY:                            'ISEMPTY';
+ISBLANK:                            'ISBLANK';
 
 // FLOWCONTROL FUNCTIONS
 IFNULL:                             'IFNULL';
 NULLIF:                             'NULLIF';
 IF:                                 'IF';
 TYPEOF:                             'TYPEOF';
+
+//OTHER CONDITIONAL EXPRESSIONS
 COALESCE:                           'COALESCE';
+
+//GEOLOCATION FUNCTIONS
+GEOIP:                              'GEOIP';
+
+//GEOLOCATION PROPERTIES
+COUNTRY_ISO_CODE:                   'COUNTRY_ISO_CODE';
+COUNTRY_NAME:                       'COUNTRY_NAME';
+CONTINENT_NAME:                     'CONTINENT_NAME';
+REGION_ISO_CODE:                    'REGION_ISO_CODE';
+REGION_NAME:                        'REGION_NAME';
+CITY_NAME:                          'CITY_NAME';
+LOCATION:                           'LOCATION';
 
 // RELEVANCE FUNCTIONS AND PARAMETERS
 MATCH:                              'MATCH';
@@ -490,11 +485,6 @@ ZERO_TERMS_QUERY:                   'ZERO_TERMS_QUERY';
 
 // SPAN KEYWORDS
 SPAN:                               'SPAN';
-BINS:                               'BINS';
-MINSPAN:                            'MINSPAN';
-START:                              'START';
-END:                                'END';
-ALIGNTIME:                          'ALIGNTIME';
 MS:                                 'MS';
 S:                                  'S';
 M:                                  'M';
@@ -503,26 +493,6 @@ W:                                  'W';
 Q:                                  'Q';
 Y:                                  'Y';
 
-// Extended timescale units
-SEC:                                'SEC';
-SECS:                               'SECS';
-SECONDS:                            'SECONDS';
-MINS:                               'MINS';
-MINUTES:                            'MINUTES';
-HR:                                 'HR';
-HRS:                                'HRS';
-HOURS:                              'HOURS';
-DAYS:                               'DAYS';
-MON:                                'MON';
-MONTHS:                             'MONTHS';
-US:                                 'US';
-CS:                                 'CS';
-DS:                                 'DS';
-
-
-// PERCENTILE SHORTCUT FUNCTIONS
-// Must precede ID to avoid conflicts with identifier matching
-PERCENTILE_SHORTCUT:                PERC(INTEGER_LITERAL | DECIMAL_LITERAL) | 'P'(INTEGER_LITERAL | DECIMAL_LITERAL);
 
 // LITERALS AND VALUES
 //STRING_LITERAL:                     DQUOTA_STRING | SQUOTA_STRING | BQUOTA_STRING;
@@ -530,20 +500,15 @@ ID:                                 ID_LITERAL;
 CLUSTER:                            CLUSTER_PREFIX_LITERAL;
 INTEGER_LITERAL:                    DEC_DIGIT+;
 DECIMAL_LITERAL:                    (DEC_DIGIT+)? '.' DEC_DIGIT+;
-FLOAT_LITERAL:                      (DEC_DIGIT+)? '.' DEC_DIGIT+ 'F';
-DOUBLE_LITERAL:                     (DEC_DIGIT+)? '.' DEC_DIGIT+ 'D';
 
 fragment DATE_SUFFIX:               ([\-.][*0-9]+)+;
+fragment ID_LITERAL:                [@*A-Z]+?[*A-Z_\-0-9]*;
 fragment CLUSTER_PREFIX_LITERAL:    [*A-Z]+?[*A-Z_\-0-9]* COLON;
 ID_DATE_SUFFIX:                     CLUSTER_PREFIX_LITERAL? ID_LITERAL DATE_SUFFIX;
 DQUOTA_STRING:                      '"' ( '\\'. | '""' | ~('"'| '\\') )* '"';
 SQUOTA_STRING:                      '\'' ('\\'. | '\'\'' | ~('\'' | '\\'))* '\'';
 BQUOTA_STRING:                      '`' ( '\\'. | '``' | ~('`'|'\\'))* '`';
 fragment DEC_DIGIT:                 [0-9];
-
-// Identifiers cannot start with a single '_' since this an OpenSearch reserved
-// metadata field.  Two underscores (or more) is acceptable, such as '__field'.
-fragment ID_LITERAL:                ([@*A-Z_])+?[*A-Z_\-0-9]*;
 
 LINE_COMMENT:                       '//' ('\\\n' | ~[\r\n])* '\r'? '\n'? -> channel(HIDDEN);
 BLOCK_COMMENT:                      '/*' .*? '*/' -> channel(HIDDEN);
