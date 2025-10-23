@@ -910,12 +910,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
    * @param groupExprList group by expression list
    * @param aggExprList aggregate expression list
    * @param context CalcitePlanContext
+   * @param hintBucketNonNull adda bucket nullable hint on LogicalAggregate if set
    * @return Pair of (group-by list, field list, aggregate list)
    */
   private Pair<List<RexNode>, List<AggCall>> aggregateWithTrimming(
       List<UnresolvedExpression> groupExprList,
       List<UnresolvedExpression> aggExprList,
-      CalcitePlanContext context) {
+      CalcitePlanContext context,
+      boolean hintBucketNonNull) {
     Pair<List<RexNode>, List<AggCall>> resolved =
         resolveAttributesForAggregation(groupExprList, aggExprList, context);
     List<RexNode> resolvedGroupByList = resolved.getLeft();
@@ -1019,12 +1021,31 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<String> intendedGroupKeyAliases = getGroupKeyNamesAfterAggregation(reResolved.getLeft());
     context.relBuilder.aggregate(
         context.relBuilder.groupKey(reResolved.getLeft()), reResolved.getRight());
+    if (hintBucketNonNull) hintBucketNonNullOnAggregate(context.relBuilder);
     // During aggregation, Calcite projects both input dependencies and output group-by fields.
     // When names conflict, Calcite adds numeric suffixes (e.g., "value0").
     // Apply explicit renaming to restore the intended aliases.
     context.relBuilder.rename(intendedGroupKeyAliases);
 
     return Pair.of(reResolved.getLeft(), reResolved.getRight());
+  }
+
+  private void hintBucketNonNullOnAggregate(RelBuilder relBuilder) {
+    final RelHint statHits =
+        RelHint.builder("stats_args").hintOption(Argument.BUCKET_NULLABLE, "false").build();
+    assert relBuilder.peek() instanceof LogicalAggregate
+        : "Stats hits should be added to LogicalAggregate";
+    relBuilder.hints(statHits);
+    relBuilder
+        .getCluster()
+        .setHintStrategies(
+            HintStrategyTable.builder()
+                .hintStrategy(
+                    "stats_args",
+                    (hint, rel) -> {
+                      return rel instanceof LogicalAggregate;
+                    })
+                .build());
   }
 
   /**
@@ -1128,25 +1149,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     Pair<List<RexNode>, List<AggCall>> aggregationAttributes =
-        aggregateWithTrimming(groupExprList, aggExprList, context);
-    if (toAddHintsOnAggregate) {
-      final RelHint statHits =
-          RelHint.builder("stats_args").hintOption(Argument.BUCKET_NULLABLE, "false").build();
-      assert context.relBuilder.peek() instanceof LogicalAggregate
-          : "Stats hits should be added to LogicalAggregate";
-      context.relBuilder.hints(statHits);
-      context
-          .relBuilder
-          .getCluster()
-          .setHintStrategies(
-              HintStrategyTable.builder()
-                  .hintStrategy(
-                      "stats_args",
-                      (hint, rel) -> {
-                        return rel instanceof LogicalAggregate;
-                      })
-                  .build());
-    }
+        aggregateWithTrimming(groupExprList, aggExprList, context, toAddHintsOnAggregate);
 
     // schema reordering
     // As an example, in command `stats count() by colA, colB`,
@@ -1881,7 +1884,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     groupExprList.addAll(fieldList);
     List<UnresolvedExpression> aggExprList =
         List.of(AstDSL.alias(countFieldName, AstDSL.aggregate("count", null)));
-    aggregateWithTrimming(groupExprList, aggExprList, context);
+    aggregateWithTrimming(groupExprList, aggExprList, context, false);
 
     // 2. add a window column
     List<RexNode> partitionKeys = rexVisitor.analyze(node.getGroupExprList(), context);
@@ -2205,7 +2208,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     try {
       // Step 1: Initial aggregation - IMPORTANT: order is [spanExpr, byField]
       groupExprList = Arrays.asList(spanExpr, byField);
-      aggregateWithTrimming(groupExprList, List.of(node.getAggregateFunction()), context);
+      aggregateWithTrimming(groupExprList, List.of(node.getAggregateFunction()), context, false);
 
       // First rename the timestamp field (2nd to last) to @timestamp
       List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
