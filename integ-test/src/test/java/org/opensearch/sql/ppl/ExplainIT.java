@@ -608,10 +608,10 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testExplainOnTake() throws IOException {
-    String expected = loadExpectedPlan("explain_take.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_take.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account | stats take(firstname, 2) as take"));
   }
 
