@@ -586,30 +586,32 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitSortCommand(SortCommandContext ctx) {
     Integer count = ctx.count != null ? Math.max(0, Integer.parseInt(ctx.count.getText())) : 0;
-    boolean desc = ctx.DESC() != null || ctx.D() != null;
+
+    // Check for mixed syntax usage and validate
+    List<OpenSearchPPLParser.SortFieldContext> sortFieldContexts = ctx.sortbyClause().sortField();
+    validateSortSyntax(sortFieldContexts);
 
     List<Field> sortFields =
-        ctx.sortbyClause().sortField().stream()
+        sortFieldContexts.stream()
             .map(sort -> (Field) internalVisitExpression(sort))
-            .map(field -> desc ? reverseSortDirection(field) : field)
             .collect(Collectors.toList());
 
     return new Sort(count, sortFields);
   }
 
-  private Field reverseSortDirection(Field field) {
-    List<Argument> updatedArgs =
-        field.getFieldArgs().stream()
-            .map(
-                arg ->
-                    "asc".equals(arg.getArgName())
-                        ? new Argument(
-                            "asc", booleanLiteral(!((Boolean) arg.getValue().getValue())))
-                        : arg)
-            .collect(Collectors.toList());
+  private void validateSortSyntax(List<OpenSearchPPLParser.SortFieldContext> sortFields) {
+    boolean hasPrefix = sortFields.stream()
+        .anyMatch(sortField -> sortField instanceof OpenSearchPPLParser.PrefixSortFieldContext);
+    boolean hasSuffix = sortFields.stream()
+        .anyMatch(sortField -> sortField instanceof OpenSearchPPLParser.SuffixSortFieldContext);
 
-    return new Field(field.getField(), updatedArgs);
+    if (hasPrefix && hasSuffix) {
+      throw new SemanticCheckException(
+          "Cannot mix prefix (+/-) and suffix (asc/desc) sort syntax in the same command. " +
+          "Use either 'sort +field1, -field2' or 'sort field1 asc, field2 desc'.");
+    }
   }
+
 
   /** Reverse command. */
   @Override

@@ -80,6 +80,7 @@ import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.utils.SystemIndexUtils;
 
@@ -520,9 +521,9 @@ public class AstBuilderTest {
   }
 
   @Test
-  public void testSortCommandWithMultipleFieldsAndDesc() {
+  public void testSortCommandWithMixedSuffixSyntax() {
     assertEqual(
-        "source=t | sort f1, -f2 desc",
+        "source=t | sort f1 desc, f2 asc",
         sort(
             relation("t"),
             field(
@@ -556,9 +557,9 @@ public class AstBuilderTest {
   }
 
   @Test
-  public void testSortCommandWithMultipleFieldsAndAsc() {
+  public void testSortCommandWithMixedPrefixSyntax() {
     assertEqual(
-        "source=t | sort f1, f2 asc",
+        "source=t | sort +f1, -f2",
         sort(
             relation("t"),
             field(
@@ -566,6 +567,42 @@ public class AstBuilderTest {
                 exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()))),
             field(
                 "f2",
+                exprList(argument("asc", booleanLiteral(false)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandMixedSyntaxValidation() {
+    // Test that mixing +/- with asc/desc throws exception
+    assertThrows(
+        SemanticCheckException.class,
+        () -> plan("source=t | sort +f1, f2 desc"));
+
+    // Test reverse mixing (asc/desc first, then +/-)
+    assertThrows(
+        SemanticCheckException.class,
+        () -> plan("source=t | sort f1 asc, +f2"));
+
+    // Test multiple mixed cases
+    assertThrows(
+        SemanticCheckException.class,
+        () -> plan("source=t | sort -f1, f2 asc, f3"));
+  }
+
+  @Test
+  public void testSortCommandMultipleSuffixSyntax() {
+    // Test multiple fields with asc/desc keywords
+    assertEqual(
+        "source=t | sort f1 asc, f2 desc, f3 asc",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()))),
+            field(
+                "f2",
+                exprList(argument("asc", booleanLiteral(false)), argument("type", nullLiteral()))),
+            field(
+                "f3",
                 exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));
   }
 

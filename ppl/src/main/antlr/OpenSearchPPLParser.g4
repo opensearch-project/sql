@@ -251,7 +251,7 @@ dedupCommand
    ;
 
 sortCommand
-   : SORT (count = integerLiteral)? sortbyClause (ASC | A | DESC | D)?
+   : SORT (count = integerLiteral)? sortbyClause
    ;
 
 reverseCommand
@@ -819,7 +819,8 @@ fieldList
    ;
 
 sortField
-   : (PLUS | MINUS)? sortFieldExpression
+   : (PLUS | MINUS)? sortFieldExpression                 # prefixSortField
+   | sortFieldExpression (ASC | A | DESC | D)            # suffixSortField
    ;
 
 sortFieldExpression

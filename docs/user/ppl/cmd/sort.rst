@@ -16,13 +16,16 @@ Description
 
 Syntax
 ============
-sort [count] <[+|-] sort-field>... [asc|a|desc|d]
+sort [count] <[+|-] sort-field | sort-field [asc|a|desc|d]>...
 
 
 * count (Since 3.3): optional. The number of results to return. **Default:** returns all results. Specifying a count of 0 or less than 0 also returns all results.
 * [+|-]: optional. The plus [+] stands for ascending order and NULL/MISSING first and a minus [-] stands for descending order and NULL/MISSING last. **Default:** ascending order and NULL/MISSING first.
+* [asc|a|desc|d]: optional. asc/a stands for ascending order and NULL/MISSING first. desc/d stands for descending order and NULL/MISSING last. **Default:** ascending order and NULL/MISSING first.
 * sort-field: mandatory. The field used to sort. Can use ``auto(field)``, ``str(field)``, ``ip(field)``, or ``num(field)`` to specify how to interpret field values.
-* [asc|a|desc|d] (Since 3.3): optional. asc/a keeps the sort order as specified. desc/d reverses the sort results. If multiple fields are specified with desc/d, reverses order of the first field then for all duplicate values of the first field, reverses the order of the values of the second field and so on. **Default:** asc.
+
+.. note::
+   You cannot mix +/- and asc/desc in the same sort command. Choose one approach for all fields in a single sort command.
 
 
 Example 1: Sort by one field
@@ -63,10 +66,10 @@ PPL query::
     +----------------+-----+
 
 
-Example 3: Sort by one field in descending order
-================================================
+Example 3: Sort by one field in descending order (using -)
+==========================================================
 
-The example show sort all the document with age field in descending order.
+The example show sort all the document with age field in descending order using the - operator.
 
 PPL query::
 
@@ -81,14 +84,50 @@ PPL query::
     | 13             | 28  |
     +----------------+-----+
 
-Example 4: Sort by multiple field
-=============================
+Example 3b: Sort by one field in descending order (using desc)
+==============================================================
 
-The example show sort all the document with gender field in ascending order and age field in descending.
+The example show sort all the document with age field in descending order using the desc keyword.
+
+PPL query::
+
+    os> source=accounts | sort age desc | fields account_number, age;
+    fetched rows / total rows = 4/4
+    +----------------+-----+
+    | account_number | age |
+    |----------------+-----|
+    | 6              | 36  |
+    | 18             | 33  |
+    | 1              | 32  |
+    | 13             | 28  |
+    +----------------+-----+
+
+Example 4: Sort by multiple fields (using +/-)
+==============================================
+
+The example show sort all the document with gender field in ascending order and age field in descending using +/- operators.
 
 PPL query::
 
     os> source=accounts | sort + gender, - age | fields account_number, gender, age;
+    fetched rows / total rows = 4/4
+    +----------------+--------+-----+
+    | account_number | gender | age |
+    |----------------+--------+-----|
+    | 13             | F      | 28  |
+    | 6              | M      | 36  |
+    | 18             | M      | 33  |
+    | 1              | M      | 32  |
+    +----------------+--------+-----+
+
+Example 4b: Sort by multiple fields (using asc/desc)
+====================================================
+
+The example show sort all the document with gender field in ascending order and age field in descending using asc/desc keywords.
+
+PPL query::
+
+    os> source=accounts | sort gender asc, age desc | fields account_number, gender, age;
     fetched rows / total rows = 4/4
     +----------------+--------+-----+
     | account_number | gender | age |
@@ -151,26 +190,7 @@ PPL query::
     | 13             | 28  |
     +----------------+-----+
 
-Example 7: Sort by multiple fields with desc modifier
-======================================================
-
-The example shows sorting by multiple fields using desc, which reverses the sort order for all specified fields. Gender is reversed from ascending to descending, and the descending age sort is reversed to ascending within each gender group.
-
-PPL query::
-
-    os> source=accounts | sort gender, -age desc | fields account_number, gender, age;
-    fetched rows / total rows = 4/4
-    +----------------+--------+-----+
-    | account_number | gender | age |
-    |----------------+--------+-----|
-    | 1              | M      | 32  |
-    | 18             | M      | 33  |
-    | 6              | M      | 36  |
-    | 13             | F      | 28  |
-    +----------------+--------+-----+
-
-
-Example 8: Sort with specifying field type
+Example 7: Sort with specifying field type
 ==================================
 
 The example shows sorting with str() to sort numeric values lexicographically.
