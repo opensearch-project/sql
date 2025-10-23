@@ -15,6 +15,7 @@ import org.jetbrains.annotations.NotNull;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
+/** Push down context is used to store all the push down operations that are applied to the query */
 @Getter
 public class PushDownContext extends AbstractCollection<PushDownOperation> {
   private final OpenSearchIndex osIndex;

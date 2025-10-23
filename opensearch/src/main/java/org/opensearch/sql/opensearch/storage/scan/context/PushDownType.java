@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.opensearch.storage.scan.context;
 
+/** Push down types. */
 public enum PushDownType {
   FILTER,
   PROJECT,

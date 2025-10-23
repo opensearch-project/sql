@@ -37,6 +37,7 @@ import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParserHelper;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 
+/** A lambda aggregation pushdown action to apply on the {@link OpenSearchRequestBuilder} */
 @Getter
 @EqualsAndHashCode
 public class AggPushDownAction implements OSRequestBuilderAction {
