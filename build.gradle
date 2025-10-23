@@ -92,13 +92,13 @@ apply plugin: 'opensearch.java-agent'
 repositories {
     mavenLocal()
     mavenCentral() // For Elastic Libs that you can use to get started coding until open OpenSearch libs are available
-    maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
     maven {
         url 'https://jitpack.io'
         content {
             includeGroup "com.github.babbel"
         }
     }
+    maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
 }
 
 spotless {
@@ -161,14 +161,14 @@ subprojects {
     repositories {
         mavenLocal()
         mavenCentral()
-        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
-        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/lucene/" }
         maven {
             url 'https://jitpack.io'
             content {
                 includeGroup "com.github.babbel"
             }
         }
+        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
+        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/lucene/" }
     }
 }
 
