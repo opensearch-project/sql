@@ -133,7 +133,7 @@ public final class CoercionUtils {
       return null; // No arguments to process
     }
     ExprType widestType =
-        OpenSearchTypeFactory.convertRelDataTypeToExprType(arguments.getFirst().getType());
+        OpenSearchTypeFactory.convertRelDataTypeToExprType(arguments.get(0).getType());
     if (arguments.size() == 1) {
       return widestType;
     }

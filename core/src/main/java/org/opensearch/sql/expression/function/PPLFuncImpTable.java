@@ -447,7 +447,7 @@ public class PPLFuncImpTable {
 
     var handler = implementation.getValue();
     return nodes != null
-        ? handler.apply(distinct, nodes.getFirst(), nodes.subList(1, nodes.size()), context)
+        ? handler.apply(distinct, nodes.get(0), nodes.subList(1, nodes.size()), context)
         : handler.apply(distinct, field, argList, context);
   }
 

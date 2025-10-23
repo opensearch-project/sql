@@ -453,7 +453,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                   ? PlanUtils.makeOver(
                       context,
                       functionName,
-                      nodes.getFirst(),
+                      nodes.get(0),
                       nodes.size() <= 1 ? Collections.emptyList() : nodes.subList(1, nodes.size()),
                       partitions,
                       List.of(),
