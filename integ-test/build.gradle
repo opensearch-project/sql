@@ -62,8 +62,6 @@ repositories {
     maven {
         url 'https://jitpack.io'
         content { includeGroup "com.github.babbel" }
-        maxRetries = 3
-        retryDelay = 1000
     }
 
     // Add extra repository for the JDBC driver if given by user

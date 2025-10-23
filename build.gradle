@@ -95,8 +95,6 @@ repositories {
     maven {
         url 'https://jitpack.io'
         content { includeGroup "com.github.babbel" }
-        maxRetries = 3
-        retryDelay = 1000
     }
     maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
 }
@@ -164,8 +162,6 @@ subprojects {
         maven {
             url 'https://jitpack.io'
             content { includeGroup "com.github.babbel" }
-            maxRetries = 3
-            retryDelay = 1000
         }
         maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
         maven { url "https://ci.opensearch.org/ci/dbc/snapshots/lucene/" }
