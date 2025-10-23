@@ -20,8 +20,11 @@ import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import static org.opensearch.sql.ast.dsl.AstDSL.sort;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 
+import com.google.common.collect.ImmutableList;
 import org.junit.Test;
+import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ppl.parser.AstBuilderTest;
 
 public class ArgumentFactoryTest extends AstBuilderTest {
@@ -98,6 +101,41 @@ public class ArgumentFactoryTest extends AstBuilderTest {
                 exprList(
                     argument("asc", booleanLiteral(false)),
                     argument("type", stringLiteral("auto"))))));
+  }
+
+  @Test
+  public void testChartCommandArguments() {
+    assertEqual(
+        "source=t | chart limit=5 useother=true otherstr='OTHER_VAL' usenull=false"
+            + " nullstr='NULL_VAL' count() by age",
+        Chart.builder()
+            .child(relation("t"))
+            .columnSplit(alias("age", field("age")))
+            .aggregationFunctions(
+                ImmutableList.of(alias("count()", aggregate("count", AllFields.of()))))
+            .arguments(
+                exprList(
+                    argument("limit", intLiteral(5)),
+                    argument("top", booleanLiteral(true)),
+                    argument("useother", booleanLiteral(true)),
+                    argument("otherstr", stringLiteral("OTHER_VAL")),
+                    argument("usenull", booleanLiteral(false)),
+                    argument("nullstr", stringLiteral("NULL_VAL"))))
+            .build());
+  }
+
+  @Test
+  public void testChartCommandBottomArguments() {
+    assertEqual(
+        "source=t | chart limit=bottom 3 count() by status",
+        Chart.builder()
+            .child(relation("t"))
+            .columnSplit(alias("status", field("status")))
+            .aggregationFunctions(
+                ImmutableList.of(alias("count()", aggregate("count", AllFields.of()))))
+            .arguments(
+                exprList(argument("limit", intLiteral(3)), argument("top", booleanLiteral(false))))
+            .build());
   }
 
   @Test
