@@ -2025,37 +2025,35 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitChart(Chart node, CalcitePlanContext context) {
     visitChildren(node, context);
     ArgumentMap argMap = ArgumentMap.of(node.getArguments());
-    List<UnresolvedExpression> groupExprList = new ArrayList<>();
-    UnresolvedExpression span;
-    if (node.getColumnSplit() instanceof Span && node.getRowSplit() instanceof Span) {
-      throw new UnsupportedOperationException("It is not supported to have two span splits");
-    } else if (node.getRowSplit() instanceof Span) {
-      if (node.getColumnSplit() != null) {
-        groupExprList.add(node.getColumnSplit());
-      }
-      span = node.getRowSplit();
-    } else if (node.getColumnSplit() instanceof Span) {
-      if (node.getRowSplit() != null) {
-        groupExprList.add(node.getRowSplit());
-      }
-      span = node.getColumnSplit();
-    } else {
-      groupExprList.addAll(
-          Stream.of(node.getRowSplit(), node.getColumnSplit()).filter(Objects::nonNull).toList());
-      span = null;
-    }
+    List<UnresolvedExpression> groupExprList =
+        Stream.of(node.getRowSplit(), node.getColumnSplit()).filter(Objects::nonNull).toList();
     Boolean useNull = (Boolean) argMap.getOrDefault("usenull", Chart.DEFAULT_USE_NULL).getValue();
     Aggregation aggregation =
         new Aggregation(
             node.getAggregationFunctions(),
             List.of(),
             groupExprList,
-            span,
+            null,
             List.of(new Argument(Argument.BUCKET_NULLABLE, AstDSL.booleanLiteral(useNull))));
-    visitAggregation(aggregation, context);
+    RelNode aggregated = visitAggregation(aggregation, context);
+
+    // If row or column split does not present or limit equals 0, this is the same as `stats agg
+    // [group by col]`
+    Integer limit = (Integer) argMap.getOrDefault("limit", Chart.DEFAULT_LIMIT).getValue();
+    if (node.getRowSplit() == null || node.getColumnSplit() == null || Objects.equals(limit, 0)) {
+      return aggregated;
+    }
+
+    String aggFunctionName = getAggFunctionName(node.getAggregationFunctions().getFirst());
+    Optional<BuiltinFunctionName> aggFuncNameOptional = BuiltinFunctionName.of(aggFunctionName);
+    if (aggFuncNameOptional.isEmpty()) {
+      throw new IllegalArgumentException(
+          StringUtils.format("Unrecognized aggregation function: %s", aggFunctionName));
+    }
+    BuiltinFunctionName aggFunction = aggFuncNameOptional.get();
 
     // Convert the column split to string if necessary: column split was supposed to be pivoted to
-    // column names. This guarantees that its type being compatible with useother and usenull
+    // column names. This guarantees that its type compatibility with useother and usenull
     RelBuilder relBuilder = context.relBuilder;
     RexNode colSplit = relBuilder.field(2);
     String columSplitName = relBuilder.peek().getRowType().getFieldNames().getLast();
@@ -2067,14 +2065,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               columSplitName);
     }
     relBuilder.project(relBuilder.field(0), relBuilder.field(1), colSplit);
-    RelNode aggregated = relBuilder.peek();
-
-    // If row or column split does not present or limit equals 0, this is the same as `stats agg
-    // [group by col]`
-    Integer limit = (Integer) argMap.getOrDefault("limit", Chart.DEFAULT_LIMIT).getValue();
-    if (node.getRowSplit() == null || node.getColumnSplit() == null || Objects.equals(limit, 0)) {
-      return aggregated;
-    }
+    aggregated = relBuilder.peek();
 
     Boolean top = (Boolean) argMap.getOrDefault("top", Chart.DEFAULT_TOP).getValue();
     Boolean useOther =
@@ -2087,11 +2078,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // 1: column split; 0: agg
     relBuilder.aggregate(
         relBuilder.groupKey(relBuilder.field(1)),
-        relBuilder.sum(relBuilder.field(0)).as("__grand_total__")); // results: group key, agg calls
+        buildAggCall(context.relBuilder, aggFunction, relBuilder.field(0))
+            .as("__grand_total__")); // results: group key, agg calls
     RexNode grandTotal = relBuilder.field("__grand_total__");
-    if (top) {
+    // Apply sorting: for MIN/EARLIEST, reverse the top/bottom logic
+    boolean smallestFirst =
+        aggFunction == BuiltinFunctionName.MIN || aggFunction == BuiltinFunctionName.EARLIEST;
+    if (top != smallestFirst) {
       grandTotal = relBuilder.desc(grandTotal);
     }
+
     // Always set it to null last so that it does not interfere with top / bottom calculation
     grandTotal = relBuilder.nullsLast(grandTotal);
     RexNode rowNum =
@@ -2150,7 +2146,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         relBuilder.alias(columnSplitExpr, columSplitName));
     relBuilder.aggregate(
         relBuilder.groupKey(relBuilder.field(1), relBuilder.field(2)),
-        relBuilder.sum(relBuilder.field(0)).as(aggFieldName));
+        buildAggCall(context.relBuilder, aggFunction, relBuilder.field(0)).as(aggFieldName));
     return relBuilder.peek();
   }
 
