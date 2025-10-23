@@ -252,7 +252,7 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
       @Override
       public void onResponse(T response) {
         String responseContent = formatter.format(response);
-        actual.set(responseContent.replace("\\r\\n", "\\n"));
+        actual.set(responseContent.replace("\r\n", "\n"));
       }
 
       @Override
