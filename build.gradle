@@ -94,9 +94,8 @@ repositories {
     mavenCentral() // For Elastic Libs that you can use to get started coding until open OpenSearch libs are available
     maven {
         url 'https://jitpack.io'
-        content {
-            includeGroup "com.github.babbel"
-        }
+        maxRetries = 3
+        retryDelay = 1000
     }
     maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
 }
@@ -163,9 +162,8 @@ subprojects {
         mavenCentral()
         maven {
             url 'https://jitpack.io'
-            content {
-                includeGroup "com.github.babbel"
-            }
+            maxRetries = 3
+            retryDelay = 1000
         }
         maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
         maven { url "https://ci.opensearch.org/ci/dbc/snapshots/lucene/" }

@@ -46,7 +46,11 @@ ext {
 repositories {
     mavenLocal()
     mavenCentral()
-    maven { url 'https://jitpack.io' }
+    maven {
+        url 'https://jitpack.io'
+        maxRetries = 3
+        retryDelay = 1000
+    }
 }
 
 opensearchplugin {
