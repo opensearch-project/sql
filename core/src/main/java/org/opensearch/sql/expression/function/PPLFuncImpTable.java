@@ -259,6 +259,7 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction.Flag;
 import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
+import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SameOperandTypeChecker;
@@ -417,10 +418,13 @@ public class PPLFuncImpTable {
     aggExternalFunctionRegistry.put(functionName, Pair.of(signature, handler));
   }
 
-  public void validateAggFunctionSignature(
-      BuiltinFunctionName functionName, RexNode field, List<RexNode> argList) {
+  public List<RexNode> validateAggFunctionSignature(
+      BuiltinFunctionName functionName,
+      RexNode field,
+      List<RexNode> argList,
+      RexBuilder rexBuilder) {
     var implementation = getImplementation(functionName);
-    validateFunctionArgs(implementation, functionName, field, argList);
+    return validateFunctionArgs(implementation, functionName, field, argList, rexBuilder);
   }
 
   public RelBuilder.AggCall resolveAgg(
@@ -432,17 +436,21 @@ public class PPLFuncImpTable {
     var implementation = getImplementation(functionName);
 
     // Validation is done based on original argument types to generate error from user perspective.
-    validateFunctionArgs(implementation, functionName, field, argList);
+    List<RexNode> nodes =
+        validateFunctionArgs(implementation, functionName, field, argList, context.rexBuilder);
 
     var handler = implementation.getValue();
-    return handler.apply(distinct, field, argList, context);
+    return nodes != null
+        ? handler.apply(distinct, nodes.getFirst(), nodes.subList(1, nodes.size()), context)
+        : handler.apply(distinct, field, argList, context);
   }
 
-  static void validateFunctionArgs(
+  static List<RexNode> validateFunctionArgs(
       Pair<CalciteFuncSignature, AggHandler> implementation,
       BuiltinFunctionName functionName,
       RexNode field,
-      List<RexNode> argList) {
+      List<RexNode> argList,
+      RexBuilder rexBuilder) {
     CalciteFuncSignature signature = implementation.getKey();
 
     List<RelDataType> argTypes = new ArrayList<>();
@@ -455,19 +463,29 @@ public class PPLFuncImpTable {
     List<RelDataType> additionalArgTypes =
         argList.stream().map(PlanUtils::derefMapCall).map(RexNode::getType).toList();
     argTypes.addAll(additionalArgTypes);
+    List<RexNode> coercionNodes = null;
     if (!signature.match(functionName.getName(), argTypes)) {
-      String errorMessagePattern =
-          argTypes.size() <= 1
-              ? "Aggregation function %s expects field type {%s}, but got %s"
-              : "Aggregation function %s expects field type and additional arguments {%s}, but got"
-                  + " %s";
-      throw new ExpressionEvaluationException(
-          String.format(
-              errorMessagePattern,
-              functionName,
-              signature.typeChecker().getAllowedSignatures(),
-              PlanUtils.getActualSignature(argTypes)));
+      List<RexNode> fields = new ArrayList<>();
+      fields.add(field);
+      fields.addAll(argList);
+      if (CoercionUtils.hasString(fields)) {
+        coercionNodes = CoercionUtils.castArguments(rexBuilder, signature.typeChecker(), fields);
+      }
+      if (coercionNodes == null) {
+        String errorMessagePattern =
+            argTypes.size() <= 1
+                ? "Aggregation function %s expects field type {%s}, but got %s"
+                : "Aggregation function %s expects field type and additional arguments {%s}, but"
+                    + " got %s";
+        throw new ExpressionEvaluationException(
+            String.format(
+                errorMessagePattern,
+                functionName,
+                signature.typeChecker().getAllowedSignatures(),
+                PlanUtils.getActualSignature(argTypes)));
+      }
     }
+    return coercionNodes;
   }
 
   private Pair<CalciteFuncSignature, AggHandler> getImplementation(
@@ -680,8 +698,14 @@ public class PPLFuncImpTable {
 
       // Register ADDFUNCTION for numeric addition only
       registerOperator(ADDFUNCTION, SqlStdOperatorTable.PLUS);
-      registerOperator(SUBTRACT, SqlStdOperatorTable.MINUS);
-      registerOperator(SUBTRACTFUNCTION, SqlStdOperatorTable.MINUS);
+      registerOperator(
+          SUBTRACTFUNCTION,
+          SqlStdOperatorTable.MINUS,
+          PPLTypeChecker.wrapFamily((FamilyOperandTypeChecker) OperandTypes.NUMERIC_NUMERIC));
+      registerOperator(
+          SUBTRACT,
+          SqlStdOperatorTable.MINUS,
+          PPLTypeChecker.wrapFamily((FamilyOperandTypeChecker) OperandTypes.NUMERIC_NUMERIC));
       registerOperator(MULTIPLY, SqlStdOperatorTable.MULTIPLY);
       registerOperator(MULTIPLYFUNCTION, SqlStdOperatorTable.MULTIPLY);
       registerOperator(TRUNCATE, SqlStdOperatorTable.TRUNCATE);
@@ -739,13 +763,37 @@ public class PPLFuncImpTable {
       registerOperator(ASIN, SqlStdOperatorTable.ASIN);
       registerOperator(ATAN, SqlStdOperatorTable.ATAN);
       registerOperator(ATAN2, SqlStdOperatorTable.ATAN2);
-      registerOperator(CEIL, SqlStdOperatorTable.CEIL);
-      registerOperator(CEILING, SqlStdOperatorTable.CEIL);
+      // TODO, workaround to support sequence CompositeOperandTypeChecker.
+      registerOperator(
+          CEIL,
+          SqlStdOperatorTable.CEIL,
+          PPLTypeChecker.wrapComposite(
+              (CompositeOperandTypeChecker)
+                  OperandTypes.NUMERIC_OR_INTERVAL.or(
+                      OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.ANY)),
+              false));
+      // TODO, workaround to support sequence CompositeOperandTypeChecker.
+      registerOperator(
+          CEILING,
+          SqlStdOperatorTable.CEIL,
+          PPLTypeChecker.wrapComposite(
+              (CompositeOperandTypeChecker)
+                  OperandTypes.NUMERIC_OR_INTERVAL.or(
+                      OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.ANY)),
+              false));
       registerOperator(COS, SqlStdOperatorTable.COS);
       registerOperator(COT, SqlStdOperatorTable.COT);
       registerOperator(DEGREES, SqlStdOperatorTable.DEGREES);
       registerOperator(EXP, SqlStdOperatorTable.EXP);
-      registerOperator(FLOOR, SqlStdOperatorTable.FLOOR);
+      // TODO, workaround to support sequence CompositeOperandTypeChecker.
+      registerOperator(
+          FLOOR,
+          SqlStdOperatorTable.FLOOR,
+          PPLTypeChecker.wrapComposite(
+              (CompositeOperandTypeChecker)
+                  OperandTypes.NUMERIC_OR_INTERVAL.or(
+                      OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.ANY)),
+              false));
       registerOperator(LN, SqlStdOperatorTable.LN);
       registerOperator(LOG10, SqlStdOperatorTable.LOG10);
       registerOperator(PI, SqlStdOperatorTable.PI);
@@ -753,7 +801,15 @@ public class PPLFuncImpTable {
       registerOperator(POWER, SqlStdOperatorTable.POWER);
       registerOperator(RADIANS, SqlStdOperatorTable.RADIANS);
       registerOperator(RAND, SqlStdOperatorTable.RAND);
-      registerOperator(ROUND, SqlStdOperatorTable.ROUND);
+      // TODO, workaround to support sequence CompositeOperandTypeChecker.
+      registerOperator(
+          ROUND,
+          SqlStdOperatorTable.ROUND,
+          PPLTypeChecker.wrapComposite(
+              (CompositeOperandTypeChecker)
+                  OperandTypes.NUMERIC.or(
+                      OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.INTEGER)),
+              false));
       registerOperator(SIGN, SqlStdOperatorTable.SIGN);
       registerOperator(SIGNUM, SqlStdOperatorTable.SIGN);
       registerOperator(SIN, SqlStdOperatorTable.SIN);

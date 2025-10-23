@@ -63,6 +63,7 @@
     "user/ppl/functions/math.rst",
     "user/ppl/functions/relevance.rst",
     "user/ppl/functions/string.rst",
+    "user/ppl/functions/conversion.rst",
     "user/ppl/general/datatypes.rst",
     "user/ppl/general/identifiers.rst"
   ],
