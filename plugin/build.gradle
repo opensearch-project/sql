@@ -44,8 +44,9 @@ ext {
 }
 
 repositories {
+    mavenLocal()
     mavenCentral()
-    maven { url 'https://jitpack.io' }
+    maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
 }
 
 opensearchplugin {
