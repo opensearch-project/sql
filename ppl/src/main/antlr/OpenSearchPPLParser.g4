@@ -278,7 +278,7 @@ evalCommand
    ;
 
 headCommand
-   : HEAD (number = integerLiteral)? (FROM from = integerLiteral)?
+   : HEAD ((LIMIT EQUAL)? number = integerLiteral)? (FROM from = integerLiteral)?
    ;
 
 binCommand
@@ -310,11 +310,11 @@ logSpanValue
    ;
 
 topCommand
-   : TOP (number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? fieldList (byClause)?
+   : TOP ((LIMIT EQUAL)? number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? fieldList (byClause)?
    ;
 
 rareCommand
-   : RARE (number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? fieldList (byClause)?
+   : RARE ((LIMIT EQUAL)? number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? fieldList (byClause)?
    ;
 
 grokCommand
@@ -1433,6 +1433,7 @@ searchableKeyWord
    | FREQUENCY_THRESHOLD_PERCENTAGE
    | MAX_SAMPLE_COUNT
    | BUFFER_LIMIT
+   | LIMIT
    | SHOW_NUMBERED_TOKEN
    | WITH
    | REGEX
