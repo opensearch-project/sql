@@ -1402,4 +1402,18 @@ public class CalciteExplainIT extends ExplainIT {
                     + " timestamp, value_range, category",
                 TEST_INDEX_TIME_DATA)));
   }
+
+  @Test
+  public void testTopKThenSortExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_top_k_then_sort_push.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account"
+                + "| sort balance"
+                + "| head 5 "
+                + "| sort age "
+                + "| fields age"));
+  }
 }

@@ -392,4 +392,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
   public boolean isMetricsOrderPushed() {
     return this.getPushDownContext().isMetricOrderPushed();
   }
+
+  public boolean isTopKPushed() {
+    return this.getPushDownContext().isTopKPushed();
+  }
 }
