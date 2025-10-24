@@ -422,10 +422,7 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testExplainWithTimechartAvg() throws IOException {
     var result = explainQueryYaml("source=events | timechart span=1m avg(cpu_usage) by host");
-    String expected =
-        !isPushdownDisabled()
-            ? loadFromFile("expectedOutput/calcite/explain_timechart.yaml")
-            : loadFromFile("expectedOutput/calcite/explain_timechart_no_pushdown.yaml");
+    String expected = loadExpectedPlan("explain_timechart.yaml");
     assertYamlEqualsIgnoreId(expected, result);
   }
 
