@@ -719,7 +719,7 @@ percentileApproxFunction
    ;
 
 perFunction
-   : funcName=PER_SECOND LT_PRTHS functionArg RT_PRTHS
+   : funcName=(PER_SECOND | PER_MINUTE | PER_HOUR | PER_DAY) LT_PRTHS functionArg RT_PRTHS
    ;
 
 numericLiteral
