@@ -34,7 +34,7 @@ public class Chart extends UnresolvedPlan {
   private UnresolvedPlan child;
   private UnresolvedExpression rowSplit;
   private UnresolvedExpression columnSplit;
-  private List<UnresolvedExpression> aggregationFunctions;
+  private UnresolvedExpression aggregationFunction;
   private List<Argument> arguments;
 
   @Override

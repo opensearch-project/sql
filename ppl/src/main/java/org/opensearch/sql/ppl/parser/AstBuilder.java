@@ -606,15 +606,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     UnresolvedExpression columnSplit =
         ctx.columnSplit() == null ? null : internalVisitExpression(ctx.columnSplit());
     List<Argument> arguments = ArgumentFactory.getArgumentList(ctx);
-    List<UnresolvedExpression> aggList = parseAggTerms(ctx.statsAggTerm());
-    if (aggList.size() > 1) {
-      throw new IllegalArgumentException(
-          "Chart command does not support multiple aggregation functions yet");
-    }
+    UnresolvedExpression aggFunction = parseAggTerms(List.of(ctx.statsAggTerm())).getFirst();
     return Chart.builder()
         .rowSplit(rowSplit)
         .columnSplit(columnSplit)
-        .aggregationFunctions(aggList)
+        .aggregationFunction(aggFunction)
         .arguments(arguments)
         .build();
   }

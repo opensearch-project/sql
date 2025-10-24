@@ -2030,30 +2030,31 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     ArgumentMap argMap = ArgumentMap.of(node.getArguments());
     List<UnresolvedExpression> groupExprList =
         Stream.of(node.getRowSplit(), node.getColumnSplit()).filter(Objects::nonNull).toList();
-    Boolean useNull = (Boolean) argMap.getOrDefault("usenull", Chart.DEFAULT_USE_NULL).getValue();
+    ChartConfig config = ChartConfig.fromArguments(argMap);
     Aggregation aggregation =
         new Aggregation(
-            node.getAggregationFunctions(),
+            List.of(node.getAggregationFunction()),
             List.of(),
             groupExprList,
             null,
-            List.of(new Argument(Argument.BUCKET_NULLABLE, AstDSL.booleanLiteral(useNull))));
+            List.of(new Argument(Argument.BUCKET_NULLABLE, AstDSL.booleanLiteral(config.useNull))));
     RelNode aggregated = visitAggregation(aggregation, context);
 
     // If row or column split does not present or limit equals 0, this is the same as `stats agg
-    // [group by col]`
+    // [group by col]` because all truncating is performed on the column split
     Integer limit = (Integer) argMap.getOrDefault("limit", Chart.DEFAULT_LIMIT).getValue();
     if (node.getRowSplit() == null || node.getColumnSplit() == null || Objects.equals(limit, 0)) {
       return aggregated;
     }
 
-    String aggFunctionName = getAggFunctionName(node.getAggregationFunctions().getFirst());
-    Optional<BuiltinFunctionName> aggFuncNameOptional = BuiltinFunctionName.of(aggFunctionName);
-    if (aggFuncNameOptional.isEmpty()) {
-      throw new IllegalArgumentException(
-          StringUtils.format("Unrecognized aggregation function: %s", aggFunctionName));
-    }
-    BuiltinFunctionName aggFunction = aggFuncNameOptional.get();
+    String aggFunctionName = getAggFunctionName(node.getAggregationFunction());
+    BuiltinFunctionName aggFunction =
+        BuiltinFunctionName.of(aggFunctionName)
+            .orElseThrow(
+                () ->
+                    new IllegalArgumentException(
+                        StringUtils.format(
+                            "Unrecognized aggregation function: %s", aggFunctionName)));
 
     // Convert the column split to string if necessary: column split was supposed to be pivoted to
     // column names. This guarantees that its type compatibility with useother and usenull
@@ -2070,12 +2071,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     relBuilder.project(relBuilder.field(0), relBuilder.field(1), colSplit);
     aggregated = relBuilder.peek();
 
-    Boolean top = (Boolean) argMap.getOrDefault("top", Chart.DEFAULT_TOP).getValue();
-    Boolean useOther =
-        (Boolean) argMap.getOrDefault("useother", Chart.DEFAULT_USE_OTHER).getValue();
-    String otherStr = (String) argMap.getOrDefault("otherstr", Chart.DEFAULT_OTHER_STR).getValue();
-    String nullStr = (String) argMap.getOrDefault("nullstr", Chart.DEFAULT_NULL_STR).getValue();
-
     // 0: agg; 2: column-split
     relBuilder.project(relBuilder.field(0), relBuilder.field(2));
     // 1: column split; 0: agg
@@ -2087,7 +2082,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Apply sorting: for MIN/EARLIEST, reverse the top/bottom logic
     boolean smallestFirst =
         aggFunction == BuiltinFunctionName.MIN || aggFunction == BuiltinFunctionName.EARLIEST;
-    if (top != smallestFirst) {
+    if (config.top != smallestFirst) {
       grandTotal = relBuilder.desc(grandTotal);
     }
 
@@ -2120,26 +2115,26 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             relBuilder.literal(limit));
     RexNode nullCondition = relBuilder.isNull(colSplitPostJoin);
     RexNode columnSplitExpr;
-    if (!useOther) {
+    if (!config.useOther) {
       relBuilder.filter(lteCondition);
     }
 
-    if (useNull) {
+    if (config.useNull) {
       columnSplitExpr =
           relBuilder.call(
               SqlStdOperatorTable.CASE,
               nullCondition,
-              relBuilder.literal(nullStr),
+              relBuilder.literal(config.nullStr),
               lteCondition,
               relBuilder.field(2),
-              relBuilder.literal(otherStr));
+              relBuilder.literal(config.otherStr));
     } else {
       columnSplitExpr =
           relBuilder.call(
               SqlStdOperatorTable.CASE,
               lteCondition,
               relBuilder.field(2),
-              relBuilder.literal(otherStr));
+              relBuilder.literal(config.otherStr));
     }
 
     String aggFieldName = relBuilder.peek().getRowType().getFieldNames().getFirst();
@@ -2153,6 +2148,21 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return relBuilder.peek();
   }
 
+  private record ChartConfig(
+      int limit, boolean top, boolean useOther, boolean useNull, String otherStr, String nullStr) {
+    static ChartConfig fromArguments(ArgumentMap argMap) {
+      int limit = (Integer) argMap.getOrDefault("limit", Chart.DEFAULT_LIMIT).getValue();
+      boolean top = (Boolean) argMap.getOrDefault("top", Chart.DEFAULT_TOP).getValue();
+      boolean useOther =
+          (Boolean) argMap.getOrDefault("useother", Chart.DEFAULT_USE_OTHER).getValue();
+      boolean useNull = (Boolean) argMap.getOrDefault("usenull", Chart.DEFAULT_USE_NULL).getValue();
+      String otherStr =
+          (String) argMap.getOrDefault("otherstr", Chart.DEFAULT_OTHER_STR).getValue();
+      String nullStr = (String) argMap.getOrDefault("nullstr", Chart.DEFAULT_NULL_STR).getValue();
+      return new ChartConfig(limit, top, useOther, useNull, otherStr, nullStr);
+    }
+  }
+
   /** Transforms timechart command into SQL-based operations. */
   @Override
   public RelNode visitTimechart(
@@ -2162,7 +2172,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Extract parameters
     UnresolvedExpression spanExpr = node.getBinExpression();
 
-    List<UnresolvedExpression> groupExprList = Arrays.asList(spanExpr);
+    List<UnresolvedExpression> groupExprList;
 
     // Handle no by field case
     if (node.getByField() == null) {

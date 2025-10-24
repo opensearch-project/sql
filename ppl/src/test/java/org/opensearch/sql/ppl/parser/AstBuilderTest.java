@@ -1458,7 +1458,7 @@ public class AstBuilderTest {
         Chart.builder()
             .child(relation("t"))
             .columnSplit(alias("age", field("age")))
-            .aggregationFunctions(List.of(alias("count()", aggregate("count", AllFields.of()))))
+            .aggregationFunction(alias("count()", aggregate("count", AllFields.of())))
             .arguments(emptyList())
             .build());
   }
@@ -1471,22 +1471,7 @@ public class AstBuilderTest {
             .child(relation("t"))
             .rowSplit(alias("status", field("status")))
             .columnSplit(alias("age", field("age")))
-            .aggregationFunctions(List.of(alias("count()", aggregate("count", AllFields.of()))))
-            .arguments(emptyList())
-            .build());
-  }
-
-  @Test
-  public void testChartCommandWithMultipleAggregations() {
-    assertEqual(
-        "source=t | chart avg(salary), max(age) by department",
-        Chart.builder()
-            .child(relation("t"))
-            .columnSplit(alias("department", field("department")))
-            .aggregationFunctions(
-                List.of(
-                    alias("avg(salary)", aggregate("avg", field("salary"))),
-                    alias("max(age)", aggregate("max", field("age")))))
+            .aggregationFunction(alias("count()", aggregate("count", AllFields.of())))
             .arguments(emptyList())
             .build());
   }
@@ -1498,7 +1483,7 @@ public class AstBuilderTest {
         Chart.builder()
             .child(relation("t"))
             .columnSplit(alias("status", field("status")))
-            .aggregationFunctions(List.of(alias("count()", aggregate("count", AllFields.of()))))
+            .aggregationFunction(alias("count()", aggregate("count", AllFields.of())))
             .arguments(
                 exprList(
                     argument("limit", intLiteral(10)),
@@ -1515,8 +1500,7 @@ public class AstBuilderTest {
         Chart.builder()
             .child(relation("t"))
             .columnSplit(alias("gender", field("gender")))
-            .aggregationFunctions(
-                List.of(alias("avg(balance)", aggregate("avg", field("balance")))))
+            .aggregationFunction(alias("avg(balance)", aggregate("avg", field("balance"))))
             .arguments(
                 exprList(
                     argument("limit", intLiteral(5)),
@@ -1535,7 +1519,7 @@ public class AstBuilderTest {
         Chart.builder()
             .child(relation("t"))
             .columnSplit(alias("category", field("category")))
-            .aggregationFunctions(List.of(alias("count()", aggregate("count", AllFields.of()))))
+            .aggregationFunction(alias("count()", aggregate("count", AllFields.of())))
             .arguments(
                 exprList(argument("limit", intLiteral(3)), argument("top", booleanLiteral(false))))
             .build());
