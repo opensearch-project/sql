@@ -119,10 +119,8 @@ public class ArgumentFactory {
       return getArgumentList((PrefixSortFieldContext) ctx);
     } else if (ctx instanceof SuffixSortFieldContext) {
       return getArgumentList((SuffixSortFieldContext) ctx);
-    } else if (ctx instanceof DefaultSortFieldContext) {
-      return getArgumentList((DefaultSortFieldContext) ctx);
     } else {
-      throw new SemanticCheckException("Unsupported sort field context: " + ctx.getClass());
+      return getArgumentList((DefaultSortFieldContext) ctx);
     }
   }
 

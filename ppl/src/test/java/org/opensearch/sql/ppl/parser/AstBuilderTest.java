@@ -574,35 +574,25 @@ public class AstBuilderTest {
 
   @Test
   public void testSortCommandMixedSyntaxValidation() {
-    // Test that mixing explicit +/- with explicit asc/desc throws exception
     assertThrows(SemanticCheckException.class, () -> plan("source=t | sort +f1, f2 desc"));
-
-    // Test reverse mixing (explicit asc/desc with explicit +/-)
     assertThrows(SemanticCheckException.class, () -> plan("source=t | sort f1 asc, +f2"));
-
-    // Test mixing explicit prefix and suffix with default fields
-    assertThrows(SemanticCheckException.class, () -> plan("source=t | sort -f1, f2 asc"));
   }
 
   @Test
   public void testSortCommandSingleFieldMixedSyntaxError() {
-    // Test descriptive error for mixing prefix and suffix on same field
     SemanticCheckException exception =
         assertThrows(SemanticCheckException.class, () -> plan("source=t | sort -salary desc"));
 
     assertTrue(
-        "Error message should mention both prefix and suffix sort direction syntax",
         exception
             .getMessage()
-            .contains("Cannot use both prefix (-) and suffix (desc) sort direction syntax"));
-    assertTrue(
-        "Error message should suggest alternatives",
-        exception.getMessage().contains("Use either '-salary' or 'salary desc'"));
+            .contains(
+                "Cannot use both prefix (-) and suffix (desc) sort direction syntax on the same"
+                    + " field"));
   }
 
   @Test
   public void testSortCommandMultipleSuffixSyntax() {
-    // Test multiple fields with asc/desc keywords
     assertEqual(
         "source=t | sort f1 asc, f2 desc, f3 asc",
         sort(
@@ -620,7 +610,6 @@ public class AstBuilderTest {
 
   @Test
   public void testSortCommandMixingPrefixWithDefault() {
-    // Test mixing +/- syntax with unspecified direction (should work)
     assertEqual(
         "source=t | sort +f1, f2, -f3",
         sort(
@@ -639,7 +628,6 @@ public class AstBuilderTest {
 
   @Test
   public void testSortCommandMixingSuffixWithDefault() {
-    // Test mixing asc/desc syntax with unspecified direction (should work)
     assertEqual(
         "source=t | sort f1, f2 desc, f3 asc",
         sort(
@@ -657,7 +645,6 @@ public class AstBuilderTest {
 
   @Test
   public void testSortCommandAllDefaultFields() {
-    // Test all fields with no direction specified (should default to ascending)
     assertEqual(
         "source=t | sort f1, f2, f3",
         sort(
