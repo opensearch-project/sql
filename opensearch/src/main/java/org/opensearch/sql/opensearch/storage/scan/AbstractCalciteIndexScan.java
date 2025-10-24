@@ -9,6 +9,7 @@ import static java.util.Objects.requireNonNull;
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Stream;
 import lombok.Getter;
@@ -230,24 +231,53 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
   }
 
   /**
-   * Check if the sort by collations contains any aggregators that are pushed down. E.g. In `stats
-   * avg(age) as avg_age by state | sort avg_age`, the sort clause has `avg_age` which is an
-   * aggregator. The function will return true in this case.
+   * Check if all sort-by collations equal aggregators that are pushed down. E.g. In `stats avg(age)
+   * as avg_age, sum(age) as sum_age by state | sort avg_age, sum_age`, the sort keys `avg_age`,
+   * `sum_age` which equal the pushed down aggregators `avg(age)`, `sum(age)`.
    *
    * @param collations List of collation names to check against aggregators.
-   * @return True if any collation name matches an aggregator output, false otherwise.
+   * @return True if all collation names match all aggregator output, false otherwise.
    */
-  protected boolean hasAggregatorInSortBy(List<String> collations) {
+  protected boolean isAllCollationNamesEqualAggregators(List<String> collations) {
     Stream<LogicalAggregate> aggregates =
         pushDownContext.stream()
             .filter(action -> action.type() == PushDownType.AGGREGATION)
             .map(action -> ((LogicalAggregate) action.digest()));
     return aggregates
-        .map(aggregate -> isAnyCollationNameInAggregateOutput(aggregate, collations))
+        .map(aggregate -> isAllCollationNamesEqualAggregators(aggregate, collations))
         .reduce(false, Boolean::logicalOr);
   }
 
-  private static boolean isAnyCollationNameInAggregateOutput(
+  private boolean isAllCollationNamesEqualAggregators(
+      LogicalAggregate aggregate, List<String> collations) {
+    List<String> fieldNames = aggregate.getRowType().getFieldNames();
+    // The output fields of the aggregate are in the format of
+    // [...grouping fields, ...aggregator fields], so we set an offset to skip
+    // the grouping fields.
+    int groupOffset = aggregate.getGroupSet().cardinality();
+    List<String> fieldsWithoutGrouping = fieldNames.subList(groupOffset, fieldNames.size());
+    return new HashSet<>(collations).equals(new HashSet<>(fieldsWithoutGrouping));
+  }
+
+  /**
+   * Check if any sort-by collations is in aggregators that are pushed down. E.g. In `stats avg(age)
+   * as avg_age by state | sort avg_age`, the sort clause has `avg_age` which is an aggregator. The
+   * function will return true in this case.
+   *
+   * @param collations List of collation names to check against aggregators.
+   * @return True if any collation name matches an aggregator output, false otherwise.
+   */
+  protected boolean isAnyCollationNameInAggregators(List<String> collations) {
+    Stream<LogicalAggregate> aggregates =
+        pushDownContext.stream()
+            .filter(action -> action.type() == PushDownType.AGGREGATION)
+            .map(action -> ((LogicalAggregate) action.digest()));
+    return aggregates
+        .map(aggregate -> isAnyCollationNameInAggregators(aggregate, collations))
+        .reduce(false, Boolean::logicalOr);
+  }
+
+  private boolean isAnyCollationNameInAggregators(
       LogicalAggregate aggregate, List<String> collations) {
     List<String> fieldNames = aggregate.getRowType().getFieldNames();
     // The output fields of the aggregate are in the format of
@@ -268,7 +298,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
   public AbstractCalciteIndexScan pushDownSort(List<RelFieldCollation> collations) {
     try {
       List<String> collationNames = getCollationNames(collations);
-      if (getPushDownContext().isAggregatePushed() && hasAggregatorInSortBy(collationNames)) {
+      if (getPushDownContext().isAggregatePushed()
+          && isAnyCollationNameInAggregators(collationNames)) {
         // If aggregation is pushed down, we cannot push down sorts where its by fields contain
         // aggregators.
         return null;

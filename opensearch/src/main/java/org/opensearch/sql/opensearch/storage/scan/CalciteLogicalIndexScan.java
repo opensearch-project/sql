@@ -296,7 +296,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         return null;
       }
       List<String> collationNames = getCollationNames(sort.getCollation().getFieldCollations());
-      if (!hasAggregatorInSortBy(collationNames)) {
+      if (!isAllCollationNamesEqualAggregators(collationNames)) {
         return null;
       }
       AbstractAction<?> newAction =

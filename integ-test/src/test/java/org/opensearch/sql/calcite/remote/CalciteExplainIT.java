@@ -1113,6 +1113,24 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testExplainMultipleAggregatorsWithSortOnOneMetricNotPushDown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected =
+        loadExpectedPlan("explain_multiple_agg_with_sort_on_one_metric_not_push1.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() as c,"
+                + " sum(balance) as s by state | sort c"));
+    expected = loadExpectedPlan("explain_multiple_agg_with_sort_on_one_metric_not_push2.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() as c,"
+                + " sum(balance) as s by state | sort c, s"));
+  }
+
+  @Test
   public void testExplainEvalMax() throws IOException {
     String expected = loadExpectedPlan("explain_eval_max.json");
     assertJsonEqualsIgnoreId(
