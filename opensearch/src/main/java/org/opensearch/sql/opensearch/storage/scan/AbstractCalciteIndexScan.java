@@ -7,10 +7,10 @@ package org.opensearch.sql.opensearch.storage.scan;
 
 import static java.util.Objects.requireNonNull;
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR;
-import static org.opensearch.sql.opensearch.storage.scan.PushDownType.AGGREGATION;
-import static org.opensearch.sql.opensearch.storage.scan.PushDownType.PROJECT;
+import static org.opensearch.sql.opensearch.storage.scan.context.PushDownType.AGGREGATION;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -48,6 +48,15 @@ import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
+import org.opensearch.sql.opensearch.storage.scan.context.AbstractAction;
+import org.opensearch.sql.opensearch.storage.scan.context.AggPushDownAction;
+import org.opensearch.sql.opensearch.storage.scan.context.AggregationBuilderAction;
+import org.opensearch.sql.opensearch.storage.scan.context.FilterDigest;
+import org.opensearch.sql.opensearch.storage.scan.context.LimitDigest;
+import org.opensearch.sql.opensearch.storage.scan.context.OSRequestBuilderAction;
+import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
+import org.opensearch.sql.opensearch.storage.scan.context.PushDownOperation;
+import org.opensearch.sql.opensearch.storage.scan.context.PushDownType;
 
 /** An abstract relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
@@ -105,21 +114,24 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
         .reduce(
             osIndex.getMaxResultWindow().doubleValue(),
             (rowCount, operation) -> {
-              switch (operation.getType()) {
+              switch (operation.type()) {
                 case AGGREGATION:
-                  return mq.getRowCount((RelNode) operation.getDigest());
+                  return mq.getRowCount((RelNode) operation.digest());
                 case PROJECT:
                 case SORT:
                   return rowCount;
+                case SORT_AGG_METRICS:
+                  return NumberUtil.min(
+                      rowCount, osIndex.getBucketSize().doubleValue());
                 case COLLAPSE:
                   return rowCount / 10;
                 case FILTER:
                 case SCRIPT:
                   return NumberUtil.multiply(
                       rowCount,
-                      RelMdUtil.guessSelectivity(((FilterDigest) operation.getDigest()).getCondition()));
+                      RelMdUtil.guessSelectivity(((FilterDigest) operation.digest()).condition()));
                 case LIMIT:
-                  return Math.min(rowCount, ((LimitDigest) operation.getDigest()).getLimit());
+                  return Math.min(rowCount, ((LimitDigest) operation.digest()).limit());
                 default:
                   return rowCount;
               }
@@ -145,15 +157,19 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
   public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
     double dRows = osIndex.getMaxResultWindow().doubleValue(), dCpu = 0.0d;
     for (PushDownOperation operation : pushDownContext) {
-      switch (operation.getType()) {
+      switch (operation.type()) {
         case AGGREGATION:
-          dRows = mq.getRowCount((RelNode) operation.getDigest());
+          dRows = mq.getRowCount((RelNode) operation.digest());
           dCpu += dRows * getAggMultiplier(operation);
           break;
         // Ignored Project in cost accumulation, but it will affect the external cost
         case PROJECT:
           break;
         case SORT:
+          dCpu += dRows;
+          break;
+        case SORT_AGG_METRICS:
+          dRows = dRows * .9 / 10;
           dCpu += dRows;
           break;
         // Refer the org.apache.calcite.rel.metadata.RelMdRowCount.getRowCount(Aggregate rel,...)
@@ -165,21 +181,21 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
         case FILTER:
           dRows =
               NumberUtil.multiply(
-                  dRows, RelMdUtil.guessSelectivity(((FilterDigest) operation.getDigest()).getCondition()));
+                  dRows, RelMdUtil.guessSelectivity(((FilterDigest) operation.digest()).condition()));
           break;
         case SCRIPT:
-          FilterDigest filterDigest = (FilterDigest) operation.getDigest();
-          dRows = NumberUtil.multiply(dRows, RelMdUtil.guessSelectivity(filterDigest.getCondition()));
+          FilterDigest filterDigest = (FilterDigest) operation.digest();
+          dRows = NumberUtil.multiply(dRows, RelMdUtil.guessSelectivity(filterDigest.condition()));
           // Calculate the cost of script filter by multiplying the selectivity of the filter and
           // the factor amplified by script count.
-          dCpu += NumberUtil.multiply(dRows, Math.pow(1.1, filterDigest.getScriptCount()));
+          dCpu += NumberUtil.multiply(dRows, Math.pow(1.1, filterDigest.scriptCount()));
           break;
         // Ignore cost the LIMIT but it will affect the rows count.
         // Try to reduce the rows count by 1 to make the cost cheaper slightly than non-push down.
         // Because we'd like to push down LIMIT even when the fetch in LIMIT is greater than
         // dRows.
         case LIMIT:
-          dRows = Math.min(dRows, ((LimitDigest) operation.getDigest()).getLimit()) - 1;
+          dRows = Math.min(dRows, ((LimitDigest) operation.digest()).limit()) - 1;
           break;
         default:
           // No-op for unhandled cases
@@ -203,7 +219,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
   /** See source in {@link org.apache.calcite.rel.core.Aggregate::computeSelfCost} */
   private static float getAggMultiplier(PushDownOperation operation) {
     // START CALCITE
-    List<AggregateCall> aggCalls = ((Aggregate) operation.getDigest()).getAggCallList();
+    List<AggregateCall> aggCalls = ((Aggregate) operation.digest()).getAggCallList();
     float multiplier = 1f + (float) aggCalls.size() * 0.125f;
     for (AggregateCall aggCall : aggCalls) {
       if (aggCall.getAggregation().getName().equals("SUM")) {
@@ -216,7 +232,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
 
     // For script aggregation, we need to multiply the multiplier by 1.1 to make up the cost. As we
     // prefer to have non-script agg push down after optimized by {@link PPLAggregateConvertRule}
-    multiplier *= (float) Math.pow(1.1f, ((AggPushDownAction) operation.getAction()).getScriptCount());
+    multiplier *= (float) Math.pow(1.1f, ((AggPushDownAction) operation.action()).getScriptCount());
     return multiplier;
   }
 
@@ -229,31 +245,60 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       RelDataType schema,
       PushDownContext pushDownContext);
 
-  private List<String> getCollationNames(List<RelFieldCollation> collations) {
+  protected List<String> getCollationNames(List<RelFieldCollation> collations) {
     return collations.stream()
         .map(collation -> getRowType().getFieldNames().get(collation.getFieldIndex()))
         .collect(Collectors.toList());
   }
 
   /**
-   * Check if the sort by collations contains any aggregators that are pushed down. E.g. In `stats
-   * avg(age) as avg_age by state | sort avg_age`, the sort clause has `avg_age` which is an
-   * aggregator. The function will return true in this case.
+   * Check if all sort-by collations equal aggregators that are pushed down. E.g. In `stats avg(age)
+   * as avg_age, sum(age) as sum_age by state | sort avg_age, sum_age`, the sort keys `avg_age`,
+   * `sum_age` which equal the pushed down aggregators `avg(age)`, `sum(age)`.
+   *
+   * @param collations List of collation names to check against aggregators.
+   * @return True if all collation names match all aggregator output, false otherwise.
+   */
+  protected boolean isAllCollationNamesEqualAggregators(List<String> collations) {
+    Stream<LogicalAggregate> aggregates =
+        pushDownContext.stream()
+            .filter(action -> action.type() == AGGREGATION)
+            .map(action -> ((LogicalAggregate) action.digest()));
+    return aggregates
+        .map(aggregate -> isAllCollationNamesEqualAggregators(aggregate, collations))
+        .reduce(false, Boolean::logicalOr);
+  }
+
+  private boolean isAllCollationNamesEqualAggregators(
+      LogicalAggregate aggregate, List<String> collations) {
+    List<String> fieldNames = aggregate.getRowType().getFieldNames();
+    // The output fields of the aggregate are in the format of
+    // [...grouping fields, ...aggregator fields], so we set an offset to skip
+    // the grouping fields.
+    int groupOffset = aggregate.getGroupSet().cardinality();
+    List<String> fieldsWithoutGrouping = fieldNames.subList(groupOffset, fieldNames.size());
+    return new HashSet<>(collations).equals(new HashSet<>(fieldsWithoutGrouping));
+  }
+
+  /**
+   * Check if any sort-by collations is in aggregators that are pushed down. E.g. In `stats avg(age)
+   * as avg_age by state | sort avg_age`, the sort clause has `avg_age` which is an aggregator. The
+   * function will return true in this case.
    *
    * @param collations List of collation names to check against aggregators.
    * @return True if any collation name matches an aggregator output, false otherwise.
    */
-  private boolean hasAggregatorInSortBy(List<String> collations) {
+  protected boolean isAnyCollationNameInAggregators(List<String> collations) {
     Stream<LogicalAggregate> aggregates =
         pushDownContext.stream()
-            .filter(action -> action.getType() == AGGREGATION)
-            .map(action -> ((LogicalAggregate) action.getDigest()));
+            .filter(action -> action.type() == AGGREGATION)
+            .map(action -> ((LogicalAggregate) action.digest()));
     return aggregates
-        .map(aggregate -> isAnyCollationNameInAggregateOutput(aggregate, collations))
+        .map(aggregate -> isAnyCollationNameInAggregators(aggregate, collations))
         .reduce(false, Boolean::logicalOr);
   }
 
-  private static boolean isAnyCollationNameInAggregateOutput(
+  private boolean isAnyCollationNameInAggregators(
       LogicalAggregate aggregate, List<String> collations) {
     List<String> fieldNames = aggregate.getRowType().getFieldNames();
     // The output fields of the aggregate are in the format of
@@ -274,7 +319,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
   public AbstractCalciteIndexScan pushDownSort(List<RelFieldCollation> collations) {
     try {
       List<String> collationNames = getCollationNames(collations);
-      if (getPushDownContext().isAggregatePushed() && hasAggregatorInSortBy(collationNames)) {
+      if (getPushDownContext().isAggregatePushed()
+          && isAnyCollationNameInAggregators(collationNames)) {
         // If aggregation is pushed down, we cannot push down sorts where its by fields contain
         // aggregators.
         return null;
@@ -356,5 +402,23 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       }
     }
     return null;
+  }
+
+  /**
+   * CalciteOpenSearchIndexScan doesn't allow push-down anymore (except Sort under some strict
+   * condition) after Aggregate push-down.
+   */
+  public boolean noAggregatePushed() {
+    if (this.getPushDownContext().isAggregatePushed()) return false;
+    final RelOptTable table = this.getTable();
+    return table.unwrap(OpenSearchIndex.class) != null;
+  }
+
+  public boolean isLimitPushed() {
+    return this.getPushDownContext().isLimitPushed();
+  }
+
+  public boolean isMetricsOrderPushed() {
+    return this.getPushDownContext().isMetricOrderPushed();
   }
 }

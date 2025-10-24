@@ -19,6 +19,7 @@ import org.apache.calcite.rel.RelFieldCollation.Direction;
 import org.apache.calcite.rel.core.Project;
 import org.apache.commons.lang3.tuple.Pair;
 import org.immutables.value.Value;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
 
 /**
@@ -108,7 +109,7 @@ public class ExpandCollationOnProjectExprRule
                         .oneInput(
                             b1 ->
                                 b1.operand(EnumerableProject.class)
-                                    .predicate(OpenSearchIndexScanRule::projectContainsExpr)
+                                    .predicate(PlanUtils::projectContainsExpr)
                                     .predicate(p -> !p.containsOver())
                                     .anyInputs()));
 
