@@ -1809,18 +1809,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   /**
-   * Finds the timestamp field for multisearch ordering.
+   * Finds the @timestamp field for multisearch ordering. Only @timestamp field is used for
+   * timestamp interleaving. Other timestamp-like fields are ignored.
    *
-   * @param rowType The row type to search for timestamp fields
-   * @return The name of the timestamp field, or null if not found
+   * @param rowType The row type to search for @timestamp field
+   * @return "@timestamp" if the field exists, or null if not found
    */
   private String findTimestampField(RelDataType rowType) {
-    String[] candidates = {"@timestamp", "_time", "timestamp", "time"};
-    for (String fieldName : candidates) {
-      RelDataTypeField field = rowType.getField(fieldName, false, false);
-      if (field != null) {
-        return fieldName;
-      }
+    RelDataTypeField field = rowType.getField("@timestamp", false, false);
+    if (field != null) {
+      return "@timestamp";
     }
     return null;
   }
