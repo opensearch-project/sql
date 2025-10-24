@@ -9,6 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -242,5 +244,85 @@ public class OpenSearchRelOptUtilTest {
     assertTrue(result.isPresent());
     assertEquals(index, result.get().getLeft().intValue());
     assertEquals(flipped, result.get().getRight());
+  }
+
+  @Test
+  public void testScenario1() {
+    List<String> input = Arrays.asList("a_b", "a.b");
+    List<String> expected = Arrays.asList("a_b", "a_b0");
+    List<String> result = OpenSearchRelOptUtil.resolveColumnNameConflicts(input);
+    assertEquals(expected, result);
+  }
+
+  @Test
+  public void testScenario2() {
+    List<String> input = Arrays.asList("a_b", "a_b0", "a.b");
+    List<String> expected = Arrays.asList("a_b", "a_b0", "a_b1");
+    List<String> result = OpenSearchRelOptUtil.resolveColumnNameConflicts(input);
+    assertEquals(expected, result);
+  }
+
+  @Test
+  public void testScenario3() {
+    List<String> input = Arrays.asList("a_b", "a_b1", "a.b");
+    List<String> expected = Arrays.asList("a_b", "a_b1", "a_b0");
+    List<String> result = OpenSearchRelOptUtil.resolveColumnNameConflicts(input);
+    assertEquals(expected, result);
+  }
+
+  @Test
+  public void testScenario4() {
+    List<String> input = Arrays.asList("a_b0", "a.b0", "a.b1");
+    List<String> expected = Arrays.asList("a_b0", "a_b00", "a_b1");
+    List<String> result = OpenSearchRelOptUtil.resolveColumnNameConflicts(input);
+    assertEquals(expected, result);
+  }
+
+  @Test
+  public void testMultipleDots() {
+    List<String> input = Arrays.asList("a.b.c", "a_b_c", "a.b.c");
+    List<String> expected = Arrays.asList("a_b_c0", "a_b_c", "a_b_c1");
+    List<String> result = OpenSearchRelOptUtil.resolveColumnNameConflicts(input);
+    assertEquals(expected, result);
+  }
+
+  @Test
+  public void testComplexScenario() {
+    List<String> input = Arrays.asList("x", "x", "x", "x");
+    List<String> expected = Arrays.asList("x", "x", "x", "x");
+    List<String> result = OpenSearchRelOptUtil.resolveColumnNameConflicts(input);
+    assertEquals(expected, result);
+  }
+
+  @Test
+  public void testNoConflict() {
+    List<String> input = Arrays.asList("col1", "col2", "col3");
+    List<String> expected = Arrays.asList("col1", "col2", "col3");
+    List<String> result = OpenSearchRelOptUtil.resolveColumnNameConflicts(input);
+    assertEquals(expected, result);
+  }
+
+  @Test
+  public void testMixedConflict() {
+    List<String> input = Arrays.asList("a.b", "a_b", "a.b", "a_b0");
+    List<String> expected = Arrays.asList("a_b1", "a_b", "a_b2", "a_b0");
+    List<String> result = OpenSearchRelOptUtil.resolveColumnNameConflicts(input);
+    assertEquals(expected, result);
+  }
+
+  @Test
+  public void testOriginalNamesPreserved() {
+    List<String> input = Arrays.asList("endpoint.ip", "account.id", "timestamp");
+    List<String> expected = Arrays.asList("endpoint_ip", "account_id", "timestamp");
+    List<String> result = OpenSearchRelOptUtil.resolveColumnNameConflicts(input);
+    assertEquals(expected, result);
+  }
+
+  @Test
+  public void testNoDots() {
+    List<String> input = Arrays.asList("col1", "col2", "col3");
+    List<String> expected = Arrays.asList("col1", "col2", "col3");
+    List<String> result = OpenSearchRelOptUtil.resolveColumnNameConflicts(input);
+    assertEquals(expected, result);
   }
 }
