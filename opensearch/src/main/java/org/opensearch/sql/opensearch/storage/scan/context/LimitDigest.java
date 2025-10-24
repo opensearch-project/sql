@@ -9,7 +9,6 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 @EqualsAndHashCode
-@ToString
 public class LimitDigest {
   private final int limit;
   private final int offset;
@@ -25,5 +24,10 @@ public class LimitDigest {
 
   public int offset() {
     return offset;
+  }
+
+  @Override
+  public String toString() {
+    return offset == 0 ? String.valueOf(limit) : "[" + limit + " from " + offset + "]";
   }
 }

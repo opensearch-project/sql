@@ -11,7 +11,6 @@ import org.apache.calcite.rex.RexNode;
 
 
 @EqualsAndHashCode
-@ToString
 public class FilterDigest {
   private final int scriptCount;
   private final RexNode condition;
@@ -27,5 +26,10 @@ public class FilterDigest {
 
   public RexNode condition() {
     return condition;
+  }
+
+  @Override
+  public String toString() {
+    return condition.toString();
   }
 }

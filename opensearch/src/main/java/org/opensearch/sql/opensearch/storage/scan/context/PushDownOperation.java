@@ -12,7 +12,6 @@ import lombok.ToString;
  * Represents a push down operation that can be applied to an OpenSearchRequestBuilder.
  */
 @EqualsAndHashCode
-@ToString
 public class PushDownOperation {
   private final PushDownType type;
   private final Object digest;
@@ -34,5 +33,10 @@ public class PushDownOperation {
 
   public AbstractAction<?> action() {
     return action;
+  }
+
+  @Override
+  public String toString() {
+    return type + "->" + digest;
   }
 }
