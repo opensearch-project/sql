@@ -587,9 +587,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitSortCommand(SortCommandContext ctx) {
     Integer count = ctx.count != null ? Math.max(0, Integer.parseInt(ctx.count.getText())) : 0;
 
-    // Check for mixed syntax usage and validate
     List<OpenSearchPPLParser.SortFieldContext> sortFieldContexts = ctx.sortbyClause().sortField();
-    validateSortSyntax(sortFieldContexts);
+    validateSortDirectionSyntax(sortFieldContexts);
 
     List<Field> sortFields =
         sortFieldContexts.stream()
@@ -599,19 +598,16 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return new Sort(count, sortFields);
   }
 
-  private void validateSortSyntax(List<OpenSearchPPLParser.SortFieldContext> sortFields) {
+  private void validateSortDirectionSyntax(List<OpenSearchPPLParser.SortFieldContext> sortFields) {
     boolean hasPrefix = sortFields.stream()
         .anyMatch(sortField -> sortField instanceof OpenSearchPPLParser.PrefixSortFieldContext);
     boolean hasSuffix = sortFields.stream()
         .anyMatch(sortField -> sortField instanceof OpenSearchPPLParser.SuffixSortFieldContext);
 
     if (hasPrefix && hasSuffix) {
-      throw new SemanticCheckException(
-          "Cannot mix prefix (+/-) and suffix (asc/desc) sort syntax in the same command. " +
-          "Use either 'sort +field1, -field2' or 'sort field1 asc, field2 desc'.");
+      throw new SemanticCheckException("Cannot mix prefix (+/-) and suffix (asc/desc) sort direction syntax in the same command.");
     }
   }
-
 
   /** Reverse command. */
   @Override

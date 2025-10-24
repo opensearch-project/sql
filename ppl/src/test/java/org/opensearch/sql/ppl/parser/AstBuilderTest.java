@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl.parser;
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
@@ -572,20 +573,33 @@ public class AstBuilderTest {
 
   @Test
   public void testSortCommandMixedSyntaxValidation() {
-    // Test that mixing +/- with asc/desc throws exception
+    // Test that mixing explicit +/- with explicit asc/desc throws exception
     assertThrows(
         SemanticCheckException.class,
         () -> plan("source=t | sort +f1, f2 desc"));
 
-    // Test reverse mixing (asc/desc first, then +/-)
+    // Test reverse mixing (explicit asc/desc with explicit +/-)
     assertThrows(
         SemanticCheckException.class,
         () -> plan("source=t | sort f1 asc, +f2"));
 
-    // Test multiple mixed cases
+    // Test mixing explicit prefix and suffix with default fields
     assertThrows(
         SemanticCheckException.class,
-        () -> plan("source=t | sort -f1, f2 asc, f3"));
+        () -> plan("source=t | sort -f1, f2 asc"));
+  }
+
+  @Test
+  public void testSortCommandSingleFieldMixedSyntaxError() {
+    // Test descriptive error for mixing prefix and suffix on same field
+    SemanticCheckException exception = assertThrows(
+        SemanticCheckException.class,
+        () -> plan("source=t | sort -salary desc"));
+
+    assertTrue("Error message should mention both prefix and suffix sort direction syntax",
+        exception.getMessage().contains("Cannot use both prefix (-) and suffix (desc) sort direction syntax"));
+    assertTrue("Error message should suggest alternatives",
+        exception.getMessage().contains("Use either '-salary' or 'salary desc'"));
   }
 
   @Test
@@ -601,6 +615,60 @@ public class AstBuilderTest {
             field(
                 "f2",
                 exprList(argument("asc", booleanLiteral(false)), argument("type", nullLiteral()))),
+            field(
+                "f3",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandMixingPrefixWithDefault() {
+    // Test mixing +/- syntax with unspecified direction (should work)
+    assertEqual(
+        "source=t | sort +f1, f2, -f3",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()))),
+            field(
+                "f2",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()))),
+            field(
+                "f3",
+                exprList(argument("asc", booleanLiteral(false)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandMixingSuffixWithDefault() {
+    // Test mixing asc/desc syntax with unspecified direction (should work)
+    assertEqual(
+        "source=t | sort f1, f2 desc, f3 asc",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()))),
+            field(
+                "f2",
+                exprList(argument("asc", booleanLiteral(false)), argument("type", nullLiteral()))),
+            field(
+                "f3",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandAllDefaultFields() {
+    // Test all fields with no direction specified (should default to ascending)
+    assertEqual(
+        "source=t | sort f1, f2, f3",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()))),
+            field(
+                "f2",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()))),
             field(
                 "f3",
                 exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));

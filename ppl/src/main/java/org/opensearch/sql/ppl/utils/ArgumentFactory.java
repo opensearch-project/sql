@@ -27,6 +27,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContex
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PrefixSortFieldContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SuffixSortFieldContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DefaultSortFieldContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 
 /** Util class to get all arguments as a list from the PPL command. */
@@ -118,6 +119,8 @@ public class ArgumentFactory {
       return getArgumentList((PrefixSortFieldContext) ctx);
     } else if (ctx instanceof SuffixSortFieldContext) {
       return getArgumentList((SuffixSortFieldContext) ctx);
+    } else if (ctx instanceof DefaultSortFieldContext) {
+      return getArgumentList((DefaultSortFieldContext) ctx);
     } else {
       throw new SemanticCheckException("Unsupported sort field context: " + ctx.getClass());
     }
@@ -148,6 +151,18 @@ public class ArgumentFactory {
         (ctx.DESC() != null || ctx.D() != null)
             ? new Argument("asc", new Literal(false, DataType.BOOLEAN))
             : new Argument("asc", new Literal(true, DataType.BOOLEAN)),
+        getTypeArgument(ctx.sortFieldExpression()));
+  }
+
+  /**
+   * Get list of {@link Argument} for default sort field (no direction specified).
+   *
+   * @param ctx DefaultSortFieldContext instance
+   * @return the list of arguments fetched from the default sort field
+   */
+  public static List<Argument> getArgumentList(DefaultSortFieldContext ctx) {
+    return Arrays.asList(
+        new Argument("asc", new Literal(true, DataType.BOOLEAN)),
         getTypeArgument(ctx.sortFieldExpression()));
   }
 

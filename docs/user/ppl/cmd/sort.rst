@@ -84,7 +84,7 @@ PPL query::
     | 13             | 28  |
     +----------------+-----+
 
-Example 3b: Sort by one field in descending order (using desc)
+Example 4: Sort by one field in descending order (using desc)
 ==============================================================
 
 The example show sort all the document with age field in descending order using the desc keyword.
@@ -102,7 +102,7 @@ PPL query::
     | 13             | 28  |
     +----------------+-----+
 
-Example 4: Sort by multiple fields (using +/-)
+Example 5: Sort by multiple fields (using +/-)
 ==============================================
 
 The example show sort all the document with gender field in ascending order and age field in descending using +/- operators.
@@ -120,7 +120,7 @@ PPL query::
     | 1              | M      | 32  |
     +----------------+--------+-----+
 
-Example 4b: Sort by multiple fields (using asc/desc)
+Example 6: Sort by multiple fields (using asc/desc)
 ====================================================
 
 The example show sort all the document with gender field in ascending order and age field in descending using asc/desc keywords.
@@ -138,7 +138,7 @@ PPL query::
     | 1              | M      | 32  |
     +----------------+--------+-----+
 
-Example 4: Sort by field include null value
+Example 7: Sort by field include null value
 ===========================================
 
 The example show sort employer field by default option (ascending order and null first), the result show that null value is in the first row.
@@ -156,7 +156,7 @@ PPL query::
     | Quility  |
     +----------+
 
-Example 5: Specify the number of sorted documents to return
+Example 8: Specify the number of sorted documents to return
 ============================================================
 
 The example shows sorting all the document and returning 2 documents.
@@ -172,7 +172,7 @@ PPL query::
     | 1              | 32  |
     +----------------+-----+
 
-Example 6: Sort with desc modifier
+Example 9: Sort with desc modifier
 ===================================
 
 The example shows sorting with the desc modifier to reverse sort order.
@@ -190,7 +190,7 @@ PPL query::
     | 13             | 28  |
     +----------------+-----+
 
-Example 7: Sort with specifying field type
+Example 10: Sort with specifying field type
 ==================================
 
 The example shows sorting with str() to sort numeric values lexicographically.
