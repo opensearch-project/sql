@@ -1,0 +1,9 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(avg(balance)=[$2], state=[$0], age_range=[$1])
+        LogicalAggregate(group=[{0, 1}], avg(balance)=[AVG($2)])
+          LogicalProject(state=[$9], age_range=[CASE(<($10, 30), 'u30':VARCHAR, 'a30':VARCHAR)], balance=[$7])
+            CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
+  physical: |
+    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0, 1},avg(balance)=AVG($2)), PROJECT->[avg(balance), state, age_range], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"state":{"terms":{"field":"state.keyword","missing_bucket":true,"missing_order":"first","order":"asc"}}}]},"aggregations":{"age_range":{"range":{"field":"age","ranges":[{"key":"u30","to":30.0},{"key":"a30","from":30.0}],"keyed":true},"aggregations":{"avg(balance)":{"avg":{"field":"balance"}}}}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
