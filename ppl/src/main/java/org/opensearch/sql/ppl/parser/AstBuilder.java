@@ -7,7 +7,6 @@ package org.opensearch.sql.ppl.parser;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
-import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.calcite.utils.CalciteUtils.getOnlyForCalciteException;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
@@ -599,13 +598,17 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   private void validateSortDirectionSyntax(List<OpenSearchPPLParser.SortFieldContext> sortFields) {
-    boolean hasPrefix = sortFields.stream()
-        .anyMatch(sortField -> sortField instanceof OpenSearchPPLParser.PrefixSortFieldContext);
-    boolean hasSuffix = sortFields.stream()
-        .anyMatch(sortField -> sortField instanceof OpenSearchPPLParser.SuffixSortFieldContext);
+    boolean hasPrefix =
+        sortFields.stream()
+            .anyMatch(sortField -> sortField instanceof OpenSearchPPLParser.PrefixSortFieldContext);
+    boolean hasSuffix =
+        sortFields.stream()
+            .anyMatch(sortField -> sortField instanceof OpenSearchPPLParser.SuffixSortFieldContext);
 
     if (hasPrefix && hasSuffix) {
-      throw new SemanticCheckException("Cannot mix prefix (+/-) and suffix (asc/desc) sort direction syntax in the same command.");
+      throw new SemanticCheckException(
+          "Cannot mix prefix (+/-) and suffix (asc/desc) sort direction syntax in the same"
+              + " command.");
     }
   }
 

@@ -568,37 +568,35 @@ public class AstBuilderTest {
                 exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()))),
             field(
                 "f2",
-                exprList(argument("asc", booleanLiteral(false)), argument("type", nullLiteral())))));
+                exprList(
+                    argument("asc", booleanLiteral(false)), argument("type", nullLiteral())))));
   }
 
   @Test
   public void testSortCommandMixedSyntaxValidation() {
     // Test that mixing explicit +/- with explicit asc/desc throws exception
-    assertThrows(
-        SemanticCheckException.class,
-        () -> plan("source=t | sort +f1, f2 desc"));
+    assertThrows(SemanticCheckException.class, () -> plan("source=t | sort +f1, f2 desc"));
 
     // Test reverse mixing (explicit asc/desc with explicit +/-)
-    assertThrows(
-        SemanticCheckException.class,
-        () -> plan("source=t | sort f1 asc, +f2"));
+    assertThrows(SemanticCheckException.class, () -> plan("source=t | sort f1 asc, +f2"));
 
     // Test mixing explicit prefix and suffix with default fields
-    assertThrows(
-        SemanticCheckException.class,
-        () -> plan("source=t | sort -f1, f2 asc"));
+    assertThrows(SemanticCheckException.class, () -> plan("source=t | sort -f1, f2 asc"));
   }
 
   @Test
   public void testSortCommandSingleFieldMixedSyntaxError() {
     // Test descriptive error for mixing prefix and suffix on same field
-    SemanticCheckException exception = assertThrows(
-        SemanticCheckException.class,
-        () -> plan("source=t | sort -salary desc"));
+    SemanticCheckException exception =
+        assertThrows(SemanticCheckException.class, () -> plan("source=t | sort -salary desc"));
 
-    assertTrue("Error message should mention both prefix and suffix sort direction syntax",
-        exception.getMessage().contains("Cannot use both prefix (-) and suffix (desc) sort direction syntax"));
-    assertTrue("Error message should suggest alternatives",
+    assertTrue(
+        "Error message should mention both prefix and suffix sort direction syntax",
+        exception
+            .getMessage()
+            .contains("Cannot use both prefix (-) and suffix (desc) sort direction syntax"));
+    assertTrue(
+        "Error message should suggest alternatives",
         exception.getMessage().contains("Use either '-salary' or 'salary desc'"));
   }
 
@@ -635,7 +633,8 @@ public class AstBuilderTest {
                 exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()))),
             field(
                 "f3",
-                exprList(argument("asc", booleanLiteral(false)), argument("type", nullLiteral())))));
+                exprList(
+                    argument("asc", booleanLiteral(false)), argument("type", nullLiteral())))));
   }
 
   @Test
