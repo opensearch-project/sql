@@ -41,7 +41,7 @@ public class OpenSearchSchema extends AbstractSchema {
         dataSourceService
             .getDataSource(nameResolver.getDataSourceName())
             .getStorageEngine()
-            .getTable(
+            .getPermissiveAwareTable(
                 new DataSourceSchemaName(
                     nameResolver.getDataSourceName(), nameResolver.getSchemaName()),
                 nameResolver.getIdentifierName());

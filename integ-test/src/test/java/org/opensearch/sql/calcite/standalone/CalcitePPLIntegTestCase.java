@@ -32,6 +32,7 @@ import org.opensearch.sql.analysis.ExpressionAnalyzer;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelper;
@@ -64,7 +65,9 @@ import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
+import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
+import org.opensearch.sql.protocol.response.format.YamlResponseFormatter;
 import org.opensearch.sql.sql.SQLService;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.storage.DataSourceFactory;
@@ -83,10 +86,11 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
     RestHighLevelClient restClient =
         new CalcitePPLIntegTestCase.InternalRestHighLevelClient(client());
     OpenSearchClient client = new OpenSearchRestClient(restClient);
+    Settings settings = getSettings();
     DataSourceService dataSourceService =
         new DataSourceServiceImpl(
             new ImmutableSet.Builder<DataSourceFactory>()
-                .add(new OpenSearchDataSourceFactory(client, getSettings()))
+                .add(getDataSourceFactory(client, settings))
                 .build(),
             getDataSourceMetadataStorage(),
             getDataSourceUserRoleHelper());
@@ -96,42 +100,48 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
     modules.add(
         new CalcitePPLIntegTestCase.StandaloneModule(
             new CalcitePPLIntegTestCase.InternalRestHighLevelClient(client()),
-            getSettings(),
+            settings,
             dataSourceService));
     Injector injector = modules.createInjector();
     pplService = SecurityAccess.doPrivileged(() -> injector.getInstance(PPLService.class));
   }
 
-  protected Settings getSettings() {
-    return defaultSettings();
+  protected OpenSearchDataSourceFactory getDataSourceFactory(
+      OpenSearchClient client, Settings settings) {
+    return new OpenSearchDataSourceFactory(client, settings);
   }
 
-  private Settings defaultSettings() {
+  protected Settings getSettings() {
+    return defaultSettings(getDefaultSettingsBuilder().build());
+  }
+
+  protected ImmutableMap.Builder<Key, Object> getDefaultSettingsBuilder() {
+    return new ImmutableMap.Builder<Key, Object>()
+        .put(Key.QUERY_SIZE_LIMIT, 200)
+        .put(Key.QUERY_BUCKET_SIZE, 1000)
+        .put(Key.SQL_CURSOR_KEEP_ALIVE, TimeValue.timeValueMinutes(1))
+        .put(Key.FIELD_TYPE_TOLERANCE, true)
+        .put(Key.CALCITE_ENGINE_ENABLED, true)
+        .put(Key.CALCITE_PUSHDOWN_ENABLED, false)
+        .put(Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR, 0.9)
+        .put(Key.PATTERN_METHOD, "SIMPLE_PATTERN")
+        .put(Key.PATTERN_MODE, "LABEL")
+        .put(Key.PATTERN_MAX_SAMPLE_COUNT, 10)
+        .put(Key.PATTERN_BUFFER_LIMIT, 100000);
+  }
+
+  protected Settings defaultSettings(Map<Key, Object> settings) {
     System.out.println(Settings.Key.CALCITE_PUSHDOWN_ENABLED.name() + " disabled");
     return new Settings() {
-      private final Map<Key, Object> defaultSettings =
-          new ImmutableMap.Builder<Key, Object>()
-              .put(Key.QUERY_SIZE_LIMIT, 200)
-              .put(Key.QUERY_BUCKET_SIZE, 1000)
-              .put(Key.SQL_CURSOR_KEEP_ALIVE, TimeValue.timeValueMinutes(1))
-              .put(Key.FIELD_TYPE_TOLERANCE, true)
-              .put(Key.CALCITE_ENGINE_ENABLED, true)
-              .put(Key.CALCITE_PUSHDOWN_ENABLED, false)
-              .put(Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR, 0.9)
-              .put(Key.PATTERN_METHOD, "SIMPLE_PATTERN")
-              .put(Key.PATTERN_MODE, "LABEL")
-              .put(Key.PATTERN_MAX_SAMPLE_COUNT, 10)
-              .put(Key.PATTERN_BUFFER_LIMIT, 100000)
-              .build();
 
       @Override
       public <T> T getSettingValue(Key key) {
-        return (T) defaultSettings.get(key);
+        return (T) settings.get(key);
       }
 
       @Override
       public List<?> getSettings() {
-        return (List<?>) defaultSettings;
+        return (List<?>) settings;
       }
     };
   }
@@ -224,28 +234,49 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
   protected String explainQuery(String query) {
     AtomicReference<String> actual = new AtomicReference<>();
     pplService.explain(
-        new PPLQueryRequest(query, null, null),
-        new ResponseListener<ExecutionEngine.ExplainResponse>() {
-
-          @Override
-          public void onResponse(ExecutionEngine.ExplainResponse response) {
-            String responseContent =
-                new JsonResponseFormatter<ExecutionEngine.ExplainResponse>(PRETTY) {
-                  @Override
-                  protected Object buildJsonObject(ExecutionEngine.ExplainResponse response) {
-                    return response;
-                  }
-                }.format(response);
-            actual.set(responseContent.replace("\\r\\n", "\\n"));
-          }
-
-          @Override
-          public void onFailure(Exception e) {
-            throw new IllegalStateException("Exception happened during execution", e);
-          }
-        });
+        new PPLQueryRequest("explain " + query, null, null), formatListener(jsonFormatter, actual));
     return actual.get();
   }
+
+  @Override
+  protected String explainQueryYaml(String query) {
+    AtomicReference<String> actual = new AtomicReference<>();
+    pplService.explain(
+        new PPLQueryRequest("explain " + query, null, null), formatListener(yamlFormatter, actual));
+    return actual.get();
+  }
+
+  private <T> ResponseListener<T> formatListener(
+      ResponseFormatter<T> formatter, AtomicReference<String> actual) {
+    return new ResponseListener<T>() {
+      @Override
+      public void onResponse(T response) {
+        String responseContent = formatter.format(response);
+        actual.set(responseContent.replace("\r\n", "\n"));
+      }
+
+      @Override
+      public void onFailure(Exception e) {
+        throw new IllegalStateException("Exception happened during execution", e);
+      }
+    };
+  }
+
+  private JsonResponseFormatter<ExecutionEngine.ExplainResponse> jsonFormatter =
+      new JsonResponseFormatter<>(PRETTY) {
+        @Override
+        protected Object buildJsonObject(ExecutionEngine.ExplainResponse response) {
+          return ExecutionEngine.ExplainResponse.normalizeLf(response);
+        }
+      };
+
+  private YamlResponseFormatter<ExecutionEngine.ExplainResponse> yamlFormatter =
+      new YamlResponseFormatter<>() {
+        @Override
+        protected Object buildYamlObject(ExecutionEngine.ExplainResponse response) {
+          return ExecutionEngine.ExplainResponse.normalizeLf(response);
+        }
+      };
 
   public static DataSourceMetadataStorage getDataSourceMetadataStorage() {
     return new DataSourceMetadataStorage() {

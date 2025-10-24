@@ -404,7 +404,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             }
             matchingFields.forEach(f -> expandedFields.add(context.relBuilder.field(f)));
           } else if (addedFields.add(fieldName)) {
-            expandedFields.add(rexVisitor.analyze(field, context));
+            RexNode analyzed = rexVisitor.analyze(field, context);
+            if (analyzed instanceof RexInputRef) {
+              expandedFields.add(analyzed);
+            } else {
+              expandedFields.add(context.relBuilder.alias(analyzed, fieldName));
+            }
           }
         }
         case AllFields ignored -> {

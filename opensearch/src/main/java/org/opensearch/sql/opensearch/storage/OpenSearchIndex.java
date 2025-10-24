@@ -55,7 +55,6 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
   public static final String METADATA_FIELD_SCORE = "_score";
   public static final String METADATA_FIELD_MAXSCORE = "_maxscore";
   public static final String METADATA_FIELD_SORT = "_sort";
-
   public static final String METADATA_FIELD_ROUTING = "_routing";
 
   public static final java.util.Map<String, ExprType> METADATAFIELD_TYPE_MAP =
