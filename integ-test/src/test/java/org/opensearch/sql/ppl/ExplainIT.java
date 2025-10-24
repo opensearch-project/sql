@@ -183,7 +183,7 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account | sort age, - firstname desc | fields age,"
+            "source=opensearch-sql_test_index_account | sort age desc, firstname | fields age,"
                 + " firstname"));
   }
 
