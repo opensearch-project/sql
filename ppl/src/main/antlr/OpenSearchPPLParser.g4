@@ -260,8 +260,8 @@ reverseCommand
    ;
 
 chartCommand
-  : CHART chartOptions* statsAggTerm (COMMA statsAggTerm)* (OVER rowSplit)? (BY columnSplit)?
-  | CHART chartOptions* statsAggTerm (COMMA statsAggTerm)* BY rowSplit (COMMA)? columnSplit
+  : CHART chartOptions* statsAggTerm (OVER rowSplit)? (BY columnSplit)?
+  | CHART chartOptions* statsAggTerm BY rowSplit (COMMA)? columnSplit
   ;
 
 chartOptions

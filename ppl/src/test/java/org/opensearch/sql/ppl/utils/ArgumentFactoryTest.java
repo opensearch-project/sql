@@ -20,7 +20,6 @@ import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import static org.opensearch.sql.ast.dsl.AstDSL.sort;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 
-import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.Argument;
@@ -111,8 +110,7 @@ public class ArgumentFactoryTest extends AstBuilderTest {
         Chart.builder()
             .child(relation("t"))
             .columnSplit(alias("age", field("age")))
-            .aggregationFunctions(
-                ImmutableList.of(alias("count()", aggregate("count", AllFields.of()))))
+            .aggregationFunction(alias("count()", aggregate("count", AllFields.of())))
             .arguments(
                 exprList(
                     argument("limit", intLiteral(5)),
@@ -131,8 +129,7 @@ public class ArgumentFactoryTest extends AstBuilderTest {
         Chart.builder()
             .child(relation("t"))
             .columnSplit(alias("status", field("status")))
-            .aggregationFunctions(
-                ImmutableList.of(alias("count()", aggregate("count", AllFields.of()))))
+            .aggregationFunction(alias("count()", aggregate("count", AllFields.of())))
             .arguments(
                 exprList(argument("limit", intLiteral(3)), argument("top", booleanLiteral(false))))
             .build());
