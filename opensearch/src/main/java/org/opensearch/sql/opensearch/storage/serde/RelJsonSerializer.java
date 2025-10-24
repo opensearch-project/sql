@@ -12,6 +12,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -31,6 +32,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+import org.opensearch.sql.opensearch.executor.OpenSearchExecutionEngine;
 import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
 
 /**
@@ -39,7 +41,7 @@ import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
  * <p>This serializer:
  * <li>Uses Calcite's RelJson class to convert RexNode and RelDataType to/from JSON string
  * <li>Manages required OpenSearch field mapping information Note: OpenSearch ExprType subclasses
- *     implement {@link java.io.Serializable} and are handled through standard Java serialization.
+ *     implement {@link Serializable} and are handled through standard Java serialization.
  */
 @Getter
 public class RelJsonSerializer {
@@ -52,13 +54,7 @@ public class RelJsonSerializer {
   private static final ObjectMapper mapper = new ObjectMapper();
   private static final TypeReference<LinkedHashMap<String, Object>> TYPE_REF =
       new TypeReference<>() {};
-  private static final SqlOperatorTable pplSqlOperatorTable =
-      SqlOperatorTables.chain(
-          PPLBuiltinOperators.instance(),
-          SqlStdOperatorTable.instance(),
-          // Add a list of necessary SqlLibrary if needed
-          SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
-              SqlLibrary.MYSQL, SqlLibrary.BIG_QUERY, SqlLibrary.SPARK, SqlLibrary.POSTGRESQL));
+  private static volatile SqlOperatorTable pplSqlOperatorTable;
 
   static {
     mapper.configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true);
@@ -66,6 +62,27 @@ public class RelJsonSerializer {
 
   public RelJsonSerializer(RelOptCluster cluster) {
     this.cluster = cluster;
+  }
+
+  private static SqlOperatorTable getPplSqlOperatorTable() {
+    if (pplSqlOperatorTable == null) {
+      synchronized (RelJsonSerializer.class) {
+        if (pplSqlOperatorTable == null) {
+          pplSqlOperatorTable =
+              SqlOperatorTables.chain(
+                  PPLBuiltinOperators.instance(),
+                  SqlStdOperatorTable.instance(),
+                  OpenSearchExecutionEngine.OperatorTable.instance(),
+                  // Add a list of necessary SqlLibrary if needed
+                  SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+                      SqlLibrary.MYSQL,
+                      SqlLibrary.BIG_QUERY,
+                      SqlLibrary.SPARK,
+                      SqlLibrary.POSTGRESQL));
+        }
+      }
+    }
+    return pplSqlOperatorTable;
   }
 
   /**
@@ -136,7 +153,8 @@ public class RelJsonSerializer {
       Map<String, Object> rowTypeMap = mapper.readValue((String) objectMap.get(ROW_TYPE), TYPE_REF);
       RelDataType rowType = relJson.toType(cluster.getTypeFactory(), rowTypeMap);
       OpenSearchRelInputTranslator inputTranslator = new OpenSearchRelInputTranslator(rowType);
-      relJson = relJson.withInputTranslator(inputTranslator).withOperatorTable(pplSqlOperatorTable);
+      relJson =
+          relJson.withInputTranslator(inputTranslator).withOperatorTable(getPplSqlOperatorTable());
       Map<String, Object> exprMap = mapper.readValue((String) objectMap.get(EXPR), TYPE_REF);
       RexNode rexNode = relJson.toRex(cluster, exprMap);
 
