@@ -42,14 +42,14 @@ public class TopHitsParser implements MetricParser {
     }
 
     if (returnSingleValue) {
-      // Extract the single value from the first (and only) hit from fields (docValueField)
+      // Extract the single value from the first (and only) hit from fields (fetchField)
       if (hits[0].getFields() != null && !hits[0].getFields().isEmpty()) {
         Object value = hits[0].getFields().values().iterator().next().getValue();
         return Collections.singletonMap(agg.getName(), value);
       }
       return Collections.singletonMap(agg.getName(), null);
     } else {
-      // Return all values as a list from fields (docValueField)
+      // Return all values as a list from fields (fetchField)
       if (hits[0].getFields() != null && !hits[0].getFields().isEmpty()) {
         return Collections.singletonMap(
             agg.getName(),

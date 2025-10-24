@@ -27,7 +27,7 @@ public class ArgMaxMinParser implements MetricParser {
       return Collections.singletonMap(agg.getName(), null);
     }
 
-    // Get value from fields (docValueField)
+    // Get value from fields (fetchField)
     if (hits[0].getFields() != null && !hits[0].getFields().isEmpty()) {
       Object value = hits[0].getFields().values().iterator().next().getValue();
       return Collections.singletonMap(agg.getName(), value);
