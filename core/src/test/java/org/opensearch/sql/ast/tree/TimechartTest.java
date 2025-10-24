@@ -14,9 +14,11 @@ import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Let;
@@ -26,17 +28,23 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 class TimechartTest {
 
+  /**
+   * @return test sources for per_* function test.
+   */
+  private static Stream<Arguments> perFuncTestSources() {
+    return Stream.of(
+        Arguments.of(30, "s", "SECOND"),
+        Arguments.of(5, "m", "MINUTE"),
+        Arguments.of(2, "h", "HOUR"),
+        Arguments.of(1, "d", "DAY"),
+        Arguments.of(1, "w", "WEEK"),
+        Arguments.of(1, "M", "MONTH"),
+        Arguments.of(1, "q", "QUARTER"),
+        Arguments.of(1, "y", "YEAR"));
+  }
+
   @ParameterizedTest
-  @CsvSource({
-    "30, s, SECOND",
-    "5, m, MINUTE",
-    "2, h, HOUR",
-    "1, d, DAY",
-    "1, w, WEEK",
-    "1, M, MONTH",
-    "1, q, QUARTER",
-    "1, y, YEAR"
-  })
+  @MethodSource("perFuncTestSources")
   void should_transform_per_second_for_different_spans(
       int spanValue, String spanUnit, String expectedIntervalUnit) {
     withTimechart(span(spanValue, spanUnit), perSecond("bytes"))
@@ -55,16 +63,7 @@ class TimechartTest {
   }
 
   @ParameterizedTest
-  @CsvSource({
-    "30, s, SECOND",
-    "5, m, MINUTE",
-    "2, h, HOUR",
-    "1, d, DAY",
-    "1, w, WEEK",
-    "1, M, MONTH",
-    "1, q, QUARTER",
-    "1, y, YEAR"
-  })
+  @MethodSource("perFuncTestSources")
   void should_transform_per_minute_for_different_spans(
       int spanValue, String spanUnit, String expectedIntervalUnit) {
     withTimechart(span(spanValue, spanUnit), perMinute("bytes"))
@@ -83,16 +82,7 @@ class TimechartTest {
   }
 
   @ParameterizedTest
-  @CsvSource({
-    "30, s, SECOND",
-    "5, m, MINUTE",
-    "2, h, HOUR",
-    "1, d, DAY",
-    "1, w, WEEK",
-    "1, M, MONTH",
-    "1, q, QUARTER",
-    "1, y, YEAR"
-  })
+  @MethodSource("perFuncTestSources")
   void should_transform_per_hour_for_different_spans(
       int spanValue, String spanUnit, String expectedIntervalUnit) {
     withTimechart(span(spanValue, spanUnit), perHour("bytes"))
@@ -111,16 +101,7 @@ class TimechartTest {
   }
 
   @ParameterizedTest
-  @CsvSource({
-    "30, s, SECOND",
-    "5, m, MINUTE",
-    "2, h, HOUR",
-    "1, d, DAY",
-    "1, w, WEEK",
-    "1, M, MONTH",
-    "1, q, QUARTER",
-    "1, y, YEAR"
-  })
+  @MethodSource("perFuncTestSources")
   void should_transform_per_day_for_different_spans(
       int spanValue, String spanUnit, String expectedIntervalUnit) {
     withTimechart(span(spanValue, spanUnit), perDay("bytes"))
