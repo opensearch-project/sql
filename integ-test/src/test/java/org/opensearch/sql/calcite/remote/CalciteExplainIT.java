@@ -671,10 +671,10 @@ public class CalciteExplainIT extends ExplainIT {
   // Only for Calcite
   @Test
   public void testExplainOnEarliestLatest() throws IOException {
-    String expected = loadExpectedPlan("explain_earliest_latest.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_earliest_latest.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | stats earliest(message) as earliest_message, latest(message) as"
                     + " latest_message by server",
@@ -684,10 +684,10 @@ public class CalciteExplainIT extends ExplainIT {
   // Only for Calcite
   @Test
   public void testExplainOnEarliestLatestWithCustomTimeField() throws IOException {
-    String expected = loadExpectedPlan("explain_earliest_latest_custom_time.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_earliest_latest_custom_time.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | stats earliest(message, created_at) as earliest_message,"
                     + " latest(message, created_at) as latest_message by level",
@@ -697,10 +697,10 @@ public class CalciteExplainIT extends ExplainIT {
   // Only for Calcite
   @Test
   public void testExplainOnFirstLast() throws IOException {
-    String expected = loadExpectedPlan("explain_first_last.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_first_last.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | stats first(firstname) as first_name, last(firstname) as"
                     + " last_name by gender",
@@ -896,18 +896,18 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainMaxOnStringField() throws IOException {
-    String expected = loadExpectedPlan("explain_max_string_field.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_max_string_field.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString("source=opensearch-sql_test_index_account | stats max(firstname)"));
+        explainQueryYaml("source=opensearch-sql_test_index_account | stats max(firstname)"));
   }
 
   @Test
   public void testExplainMinOnStringField() throws IOException {
-    String expected = loadExpectedPlan("explain_min_string_field.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_min_string_field.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString("source=opensearch-sql_test_index_account | stats min(firstname)"));
+        explainQueryYaml("source=opensearch-sql_test_index_account | stats min(firstname)"));
   }
 
   @Test
