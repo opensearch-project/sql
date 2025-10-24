@@ -425,7 +425,7 @@ public class AggregateAnalyzer {
         } else {
           return Pair.of(
                   AggregationBuilders.topHits(aggFieldName)
-                          .fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null)
+                          .fetchField(helper.inferNamedField(args.getFirst()).getReferenceForTermQuery())
                           .size(1)
                           .from(0)
                           .sort(
@@ -444,7 +444,7 @@ public class AggregateAnalyzer {
         } else {
           return Pair.of(
                   AggregationBuilders.topHits(aggFieldName)
-                          .fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null)
+                          .fetchField(helper.inferNamedField(args.getFirst()).getReferenceForTermQuery())
                           .size(1)
                           .from(0)
                           .sort(
@@ -482,7 +482,7 @@ public class AggregateAnalyzer {
       case ARG_MIN:
         return Pair.of(
                 AggregationBuilders.topHits(aggFieldName)
-                        .fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null)
+                        .fetchField(helper.inferNamedField(args.getFirst()).getReferenceForTermQuery())
                         .size(1)
                         .from(0)
                         .sort(
@@ -496,7 +496,7 @@ public class AggregateAnalyzer {
           case TAKE:
             return Pair.of(
                     AggregationBuilders.topHits(aggFieldName)
-                            .fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null)
+                            .fetchField(helper.inferNamedField(args.getFirst()).getReferenceForTermQuery())
                             .size(helper.inferValue(args.get(1), Integer.class))
                             .from(0),
                     new TopHitsParser(aggFieldName));
@@ -504,8 +504,8 @@ public class AggregateAnalyzer {
             TopHitsAggregationBuilder firstBuilder =
                     AggregationBuilders.topHits(aggFieldName).size(1).from(0);
             if (!args.isEmpty()) {
-              firstBuilder.fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null);
-            }
+                firstBuilder.fetchField(
+                        helper.inferNamedField(args.getFirst()).getReferenceForTermQuery());            }
             return Pair.of(firstBuilder, new TopHitsParser(aggFieldName, true));
           case LAST:
             TopHitsAggregationBuilder lastBuilder =
@@ -514,8 +514,8 @@ public class AggregateAnalyzer {
                             .from(0)
                             .sort("_doc", org.opensearch.search.sort.SortOrder.DESC);
             if (!args.isEmpty()) {
-              lastBuilder.fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null);
-            }
+                lastBuilder.fetchField(
+                        helper.inferNamedField(args.getFirst()).getReferenceForTermQuery());            }
             return Pair.of(lastBuilder, new TopHitsParser(aggFieldName, true));
           case PERCENTILE_APPROX:
             PercentilesAggregationBuilder aggBuilder =
