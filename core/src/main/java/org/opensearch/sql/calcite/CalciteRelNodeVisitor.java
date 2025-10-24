@@ -1000,10 +1000,54 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     Pair<List<RexNode>, List<AggCall>> reResolved =
         resolveAttributesForAggregation(groupExprList, aggExprList, context);
 
+    List<String> intendedGroupKeyAliases = getGroupKeyNamesAfterAggregation(reResolved.getLeft());
     context.relBuilder.aggregate(
         context.relBuilder.groupKey(reResolved.getLeft()), reResolved.getRight());
+    // During aggregation, Calcite projects both input dependencies and output group-by fields.
+    // When names conflict, Calcite adds numeric suffixes (e.g., "value0").
+    // Apply explicit renaming to restore the intended aliases.
+    context.relBuilder.rename(intendedGroupKeyAliases);
 
     return Pair.of(reResolved.getLeft(), reResolved.getRight());
+  }
+
+  /**
+   * Imitates {@code Registrar.registerExpression} of {@link RelBuilder} to derive the output order
+   * of group-by keys after aggregation.
+   *
+   * <p>The projected input reference comes first, while any other computed expression follows.
+   */
+  private List<String> getGroupKeyNamesAfterAggregation(List<RexNode> nodes) {
+    List<RexNode> reordered = new ArrayList<>();
+    List<RexNode> left = new ArrayList<>();
+    for (RexNode n : nodes) {
+      // The same group-key won't be added twice
+      if (reordered.contains(n) || left.contains(n)) {
+        continue;
+      }
+      if (isInputRef(n)) {
+        reordered.add(n);
+      } else {
+        left.add(n);
+      }
+    }
+    reordered.addAll(left);
+    return reordered.stream()
+        .map(this::extractAliasLiteral)
+        .flatMap(Optional::stream)
+        .map(RexLiteral::stringValue)
+        .toList();
+  }
+
+  /** Whether a rex node is an aliased input reference */
+  private boolean isInputRef(RexNode node) {
+    return switch (node.getKind()) {
+      case AS, DESCENDING, NULLS_FIRST, NULLS_LAST -> {
+        final List<RexNode> operands = ((RexCall) node).operands;
+        yield isInputRef(operands.getFirst());
+      }
+      default -> node instanceof RexInputRef;
+    };
   }
 
   /**
@@ -1104,7 +1148,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         aggregationAttributes.getLeft().stream()
             .map(this::extractAliasLiteral)
             .flatMap(Optional::stream)
-            .map(ref -> ((RexLiteral) ref).getValueAs(String.class))
+            .map(ref -> ref.getValueAs(String.class))
             .map(context.relBuilder::field)
             .map(f -> (RexNode) f)
             .toList();

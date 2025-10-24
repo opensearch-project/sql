@@ -42,15 +42,29 @@ public class ComparableLinkedHashMap<K, V> extends LinkedHashMap<K, V>
     if (!thisHasNext) return -1;
     if (!otherHasNext) return 1;
 
-    V thisValue = thisIterator.next().getValue();
-    V otherValue = otherIterator.next().getValue();
-    int comparison = compareValues(thisValue, otherValue);
+    Map.Entry<K, V> thisEntry = thisIterator.next();
+    Map.Entry<K, V> otherEntry = otherIterator.next();
+    K thisKey = thisEntry.getKey();
+    K otherKey = otherEntry.getKey();
+    V thisValue = thisEntry.getValue();
+    V otherValue = otherEntry.getValue();
+    int comparison = compareKV(thisKey, otherKey, thisValue, otherValue);
     if (comparison != 0) return comparison;
     return compareRecursive(thisIterator, otherIterator);
   }
 
   @SuppressWarnings("unchecked")
-  private int compareValues(V value1, V value2) {
+  private int compareKV(K key1, K key2, V value1, V value2) {
+    int keyCompare;
+    if (key1 instanceof Comparable) {
+      keyCompare = ((Comparable<K>) key1).compareTo(key2);
+    } else {
+      keyCompare = key1.toString().compareTo(key2.toString());
+    }
+    if (keyCompare != 0) {
+      return keyCompare;
+    }
+
     if (value1 == null && value2 == null) return 0;
     if (value1 == null) return -1;
     if (value2 == null) return 1;
