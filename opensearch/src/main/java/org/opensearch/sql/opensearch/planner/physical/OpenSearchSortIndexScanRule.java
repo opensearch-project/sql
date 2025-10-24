@@ -10,6 +10,7 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.core.Sort;
 import org.immutables.value.Value;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 
 @Value.Enclosing
@@ -43,7 +44,7 @@ public class OpenSearchSortIndexScanRule extends RelRule<OpenSearchSortIndexScan
             .withOperandSupplier(
                 b0 ->
                     b0.operand(Sort.class)
-                        .predicate(OpenSearchIndexScanRule::sortByFieldsOnly)
+                        .predicate(PlanUtils::sortByFieldsOnly)
                         .oneInput(
                             b1 ->
                                 b1.operand(AbstractCalciteIndexScan.class)
@@ -51,7 +52,12 @@ public class OpenSearchSortIndexScanRule extends RelRule<OpenSearchSortIndexScan
                                     // pushed down. Otherwise,
                                     // Continue to push down sort although limit has already been
                                     // pushed down since we don't promise collation with only limit.
-                                    .predicate(Predicate.not(OpenSearchIndexScanRule::isTopKPushed))
+                                    .predicate(
+                                        Predicate.not(AbstractCalciteIndexScan::isTopKPushed)
+                                            .and(
+                                                Predicate.not(
+                                                    AbstractCalciteIndexScan
+                                                        ::isMetricsOrderPushed)))
                                     .noInputs()));
 
     @Override
