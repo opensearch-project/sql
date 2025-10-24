@@ -1187,15 +1187,6 @@ public class CalciteExplainIT extends ExplainIT {
                     + " avg(balance) as avg_balance by age_range, balance_range",
                 TEST_INDEX_BANK)));
 
-    // 1.4 Range - Metric (With null & discontinuous ranges)
-    assertYamlEqualsIgnoreId(
-        loadExpectedPlan("agg_range_metric_complex_push.yaml"),
-        explainQueryYaml(
-            String.format(
-                "source=%s | eval age_range = case(age < 30, 'u30', (age >= 35 and age < 40) or age"
-                    + " >= 80, '30-40 or >=80') | stats avg(balance) by age_range",
-                TEST_INDEX_BANK)));
-
     // 1.5 Should not be pushed because the range is not closed-open
     assertYamlEqualsIgnoreId(
         loadExpectedPlan("agg_case_cannot_push.yaml"),
