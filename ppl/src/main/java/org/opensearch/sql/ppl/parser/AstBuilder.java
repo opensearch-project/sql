@@ -406,16 +406,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   /** Stats command. */
   @Override
   public UnresolvedPlan visitStatsCommand(StatsCommandContext ctx) {
-    ImmutableList.Builder<UnresolvedExpression> aggListBuilder = new ImmutableList.Builder<>();
-    for (OpenSearchPPLParser.StatsAggTermContext aggCtx : ctx.statsAggTerm()) {
-      UnresolvedExpression aggExpression = internalVisitExpression(aggCtx.statsFunction());
-      String name =
-          aggCtx.alias == null
-              ? getTextInQuery(aggCtx)
-              : StringUtils.unquoteIdentifier(aggCtx.alias.getText());
-      Alias alias = new Alias(name, aggExpression);
-      aggListBuilder.add(alias);
-    }
+    List<UnresolvedExpression> aggregations = parseAggTerms(ctx.statsAggTerm());
 
     List<UnresolvedExpression> groupList =
         Optional.ofNullable(ctx.statsByClause())
@@ -440,7 +431,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
     Aggregation aggregation =
         new Aggregation(
-            aggListBuilder.build(),
+            aggregations,
             Collections.emptyList(),
             groupList,
             span,
@@ -615,8 +606,23 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     UnresolvedExpression columnSplit =
         ctx.columnSplit() == null ? null : internalVisitExpression(ctx.columnSplit());
     List<Argument> arguments = ArgumentFactory.getArgumentList(ctx);
+    List<UnresolvedExpression> aggList = parseAggTerms(ctx.statsAggTerm());
+    if (aggList.size() > 1) {
+      throw new IllegalArgumentException(
+          "Chart command does not support multiple aggregation functions yet");
+    }
+    return Chart.builder()
+        .rowSplit(rowSplit)
+        .columnSplit(columnSplit)
+        .aggregationFunctions(aggList)
+        .arguments(arguments)
+        .build();
+  }
+
+  private List<UnresolvedExpression> parseAggTerms(
+      List<OpenSearchPPLParser.StatsAggTermContext> statsAggTermContexts) {
     ImmutableList.Builder<UnresolvedExpression> aggListBuilder = new ImmutableList.Builder<>();
-    for (OpenSearchPPLParser.StatsAggTermContext aggCtx : ctx.statsAggTerm()) {
+    for (OpenSearchPPLParser.StatsAggTermContext aggCtx : statsAggTermContexts) {
       UnresolvedExpression aggExpression = internalVisitExpression(aggCtx.statsFunction());
       String name =
           aggCtx.alias == null
@@ -625,12 +631,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       Alias alias = new Alias(name, aggExpression);
       aggListBuilder.add(alias);
     }
-    return Chart.builder()
-        .rowSplit(rowSplit)
-        .columnSplit(columnSplit)
-        .aggregationFunctions(aggListBuilder.build())
-        .arguments(arguments)
-        .build();
+    return aggListBuilder.build();
   }
 
   /** Timechart command. */
