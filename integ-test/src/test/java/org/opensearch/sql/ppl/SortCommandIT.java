@@ -258,6 +258,11 @@ public class SortCommandIT extends PPLIntegTestCase {
   public void testHeadThenSort() throws IOException {
     JSONObject result =
         executeQuery(String.format("source=%s | head 2 | sort age | fields age", TEST_INDEX_BANK));
-    verifyOrder(result, rows(28), rows(32));
+    if (isPushdownDisabled()) {
+      // Pushdown is disabled, it will retrieve the first 2 docs since there's only 1 shard.
+      verifyOrder(result, rows(32), rows(36));
+    } else {
+      verifyOrder(result, rows(28), rows(32));
+    }
   }
 }
