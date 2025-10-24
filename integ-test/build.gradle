@@ -57,8 +57,12 @@ String ignorePrometheusProp = System.getProperty("ignorePrometheus")
 boolean ignorePrometheus = ignorePrometheusProp != null && !ignorePrometheusProp.equalsIgnoreCase("false")
 
 repositories {
+    mavenLocal()
     mavenCentral()
-    maven { url 'https://jitpack.io' }
+    maven {
+        url 'https://jitpack.io'
+        content { includeGroup "com.github.babbel" }
+    }
 
     // Add extra repository for the JDBC driver if given by user
     if (System.getProperty("jdbcRepo") != null && new File(System.getProperty("jdbcRepo")).isDirectory()) {
