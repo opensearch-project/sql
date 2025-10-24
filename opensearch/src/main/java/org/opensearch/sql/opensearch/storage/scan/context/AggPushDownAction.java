@@ -14,6 +14,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.search.aggregations.AbstractAggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.AggregatorFactories;
@@ -28,6 +29,7 @@ import org.opensearch.search.aggregations.bucket.histogram.HistogramAggregationB
 import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
 import org.opensearch.search.aggregations.bucket.terms.MultiTermsAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
+import org.opensearch.search.aggregations.support.MultiTermsValuesSourceConfig;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
@@ -98,6 +100,9 @@ public class AggPushDownAction implements OSRequestBuilderAction {
           TermsAggregationBuilder termsBuilder = new TermsAggregationBuilder(terms.name());
           termsBuilder.size(composite.size());
           termsBuilder.field(terms.field());
+          if (terms.userValuetypeHint() != null) {
+            termsBuilder.userValueTypeHint(terms.userValuetypeHint());
+          }
           termsBuilder.order(bucketOrder);
           attachSubAggregations(composite.getSubAggregations(), path, termsBuilder);
           aggregationBuilder =
@@ -115,6 +120,9 @@ public class AggPushDownAction implements OSRequestBuilderAction {
           } catch (IllegalArgumentException e) {
             dateHistoBuilder.calendarInterval(dateHisto.getIntervalAsCalendar());
           }
+          if (dateHisto.userValuetypeHint() != null) {
+            dateHistoBuilder.userValueTypeHint(dateHisto.userValuetypeHint());
+          }
           dateHistoBuilder.order(bucketOrder);
           attachSubAggregations(composite.getSubAggregations(), path, dateHistoBuilder);
           aggregationBuilder =
@@ -127,6 +135,9 @@ public class AggPushDownAction implements OSRequestBuilderAction {
           HistogramAggregationBuilder histoBuilder = new HistogramAggregationBuilder(histo.name());
           histoBuilder.field(histo.field());
           histoBuilder.interval(histo.interval());
+          if (histo.userValuetypeHint() != null) {
+            histoBuilder.userValueTypeHint(histo.userValuetypeHint());
+          }
           histoBuilder.order(bucketOrder);
           attachSubAggregations(composite.getSubAggregations(), path, histoBuilder);
           aggregationBuilder =
@@ -140,6 +151,26 @@ public class AggPushDownAction implements OSRequestBuilderAction {
             .allMatch(
                 src -> src instanceof TermsValuesSourceBuilder terms && !terms.missingBucket())) {
           // multi-term agg
+          MultiTermsAggregationBuilder multiTermsBuilder =
+              new MultiTermsAggregationBuilder("multi_terms_buckets");
+          multiTermsBuilder.size(composite.size());
+          multiTermsBuilder.terms(
+              composite.sources().stream()
+                  .map(TermsValuesSourceBuilder.class::cast)
+                  .map(
+                      termValue -> {
+                        MultiTermsValuesSourceConfig.Builder config =
+                            new MultiTermsValuesSourceConfig.Builder();
+                        config.setFieldName(termValue.field());
+                        config.setUserValueTypeHint(termValue.userValuetypeHint());
+                        return config.build();
+                      })
+                  .toList());
+          attachSubAggregations(composite.getSubAggregations(), path, multiTermsBuilder);
+          aggregationBuilder =
+              Pair.of(
+                  Collections.singletonList(multiTermsBuilder),
+                  convertTo(aggregationBuilder.getRight()));
           return;
         }
       }
@@ -168,7 +199,7 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     return path;
   }
 
-  private <T extends ValuesSourceAggregationBuilder<T>> T attachSubAggregations(
+  private <T extends AbstractAggregationBuilder<T>> T attachSubAggregations(
       Collection<AggregationBuilder> subAggregations, String path, T aggregationBuilder) {
     AggregatorFactories.Builder metricBuilder = new AggregatorFactories.Builder();
     if (subAggregations.isEmpty()) {

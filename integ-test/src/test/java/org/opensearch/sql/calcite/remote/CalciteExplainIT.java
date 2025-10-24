@@ -1050,16 +1050,28 @@ public class CalciteExplainIT extends ExplainIT {
                 TEST_INDEX_BANK)));
   }
 
-  @Ignore
+  @Test
   public void testExplainSortOnMetricsMultiTerms() throws IOException {
-    // TODO support multi-terms
     enabledOnlyWhenPushdownIsEnabled();
-    String expected = loadExpectedPlan("explain_agg_sort_on_metrics_multi_terms1.yaml");
+    String expected = loadExpectedPlan("explain_agg_sort_on_metrics_multi_terms.yaml");
     assertYamlEqualsIgnoreId(
         expected,
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() by"
                 + " gender, state | sort `count()`"));
+  }
+
+  @Test
+  public void testExplainCompositeMultiBucketsAutoDateThenSortOnMetricsNotPushdown()
+      throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("agg_composite_multi_terms_autodate_sort_agg_metric_not_push.yaml"),
+        explainQueryYaml(
+            String.format(
+                "source=%s | bin timestamp bins=3 | stats bucket_nullable=false avg(value), count()"
+                    + " as cnt by category, value, timestamp | sort cnt",
+                TEST_INDEX_TIME_DATA)));
   }
 
   @Test
@@ -1096,7 +1108,7 @@ public class CalciteExplainIT extends ExplainIT {
             String.format(
                 "source=%s | bin timestamp bins=3 | eval value_range = case(value < 7000, 'small'"
                     + " else 'great') | stats bucket_nullable=false avg(value), count() as cnt by"
-                    + " timestamp, value_range | sort cnt",
+                    + " timestamp, value_range, category | sort cnt",
                 TEST_INDEX_TIME_DATA)));
   }
 
