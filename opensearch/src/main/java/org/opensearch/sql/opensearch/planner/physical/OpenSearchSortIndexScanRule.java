@@ -47,11 +47,11 @@ public class OpenSearchSortIndexScanRule extends RelRule<OpenSearchSortIndexScan
                         .oneInput(
                             b1 ->
                                 b1.operand(AbstractCalciteIndexScan.class)
-                                    // Skip the rule if a limit has already been pushed down
-                                    // because pushing down a sort after a limit will be treated
-                                    // as sort-then-limit by OpenSearch DSL.
-                                    .predicate(
-                                        Predicate.not(OpenSearchIndexScanRule::isLimitPushed))
+                                    // Skip the rule if Top-K(i.e. sort + limit) has already been
+                                    // pushed down. Otherwise,
+                                    // Continue to push down sort although limit has already been
+                                    // pushed down since we don't promise collation with only limit.
+                                    .predicate(Predicate.not(OpenSearchIndexScanRule::isTopKPushed))
                                     .noInputs()));
 
     @Override

@@ -48,6 +48,9 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
 
   private boolean isLimitPushed = false;
   private boolean isProjectPushed = false;
+  private boolean isSortPushed = false;
+  // True if sort + limit pushed where sort is pushed previous to limit
+  private boolean isTopKPushed = false;
 
   public PushDownContext(OpenSearchIndex osIndex) {
     this.osIndex = osIndex;
@@ -116,9 +119,15 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
     }
     if (operation.type() == PushDownType.LIMIT) {
       isLimitPushed = true;
+      if (isSortPushed) {
+        isTopKPushed = true;
+      }
     }
     if (operation.type() == PushDownType.PROJECT) {
       isProjectPushed = true;
+    }
+    if (operation.type() == PushDownType.SORT) {
+      isSortPushed = true;
     }
     operation.action().transform(this, operation);
     return true;
