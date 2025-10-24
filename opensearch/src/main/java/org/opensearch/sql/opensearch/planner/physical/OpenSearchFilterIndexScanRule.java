@@ -11,6 +11,7 @@ import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.immutables.value.Value;
+import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
 /** Planner rule that push a {@link LogicalFilter} down to {@link CalciteLogicalIndexScan} */
@@ -63,8 +64,8 @@ public class OpenSearchFilterIndexScanRule extends RelRule<OpenSearchFilterIndex
                                         // handle filter pushdown after limit. Both "limit after
                                         // filter" and "filter after limit" result in the same
                                         // limit-after-filter DSL.
-                                        Predicate.not(OpenSearchIndexScanRule::isLimitPushed)
-                                            .and(OpenSearchIndexScanRule::noAggregatePushed))
+                                        Predicate.not(AbstractCalciteIndexScan::isLimitPushed)
+                                            .and(AbstractCalciteIndexScan::noAggregatePushed))
                                     .noInputs()));
 
     @Override

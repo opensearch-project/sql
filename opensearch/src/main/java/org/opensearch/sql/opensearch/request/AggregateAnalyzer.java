@@ -74,7 +74,6 @@ import org.opensearch.search.aggregations.metrics.ValueCountAggregationBuilder;
 import org.opensearch.search.aggregations.support.ValueType;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.search.sort.SortOrder;
-import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -129,7 +128,7 @@ public class AggregateAnalyzer {
   private AggregateAnalyzer() {}
 
   @RequiredArgsConstructor
-  static class AggregateBuilderHelper {
+  public static class AggregateBuilderHelper {
     final RelDataType rowType;
     final Map<String, ExprType> fieldTypes;
     final RelOptCluster cluster;
@@ -182,24 +181,12 @@ public class AggregateAnalyzer {
   public static Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> analyze(
       Aggregate aggregate,
       Project project,
-      RelDataType rowType,
-      Map<String, ExprType> fieldTypes,
       List<String> outputFields,
-      RelOptCluster cluster,
-      int bucketSize)
+      AggregateBuilderHelper helper)
       throws ExpressionNotAnalyzableException {
     requireNonNull(aggregate, "aggregate");
     try {
-      boolean bucketNullable =
-          Boolean.parseBoolean(
-              aggregate.getHints().stream()
-                  .filter(hits -> hits.hintName.equals("stats_args"))
-                  .map(hint -> hint.kvOptions.getOrDefault(Argument.BUCKET_NULLABLE, "true"))
-                  .findFirst()
-                  .orElseGet(() -> "true"));
       List<Integer> groupList = aggregate.getGroupSet().asList();
-      AggregateBuilderHelper helper =
-          new AggregateBuilderHelper(rowType, fieldTypes, cluster, bucketNullable, bucketSize);
       List<String> aggFieldNames = outputFields.subList(groupList.size(), outputFields.size());
       // Process all aggregate calls
       Pair<Builder, List<MetricParser>> builderAndParser =
@@ -272,7 +259,7 @@ public class AggregateAnalyzer {
                     + " aggregation");
           }
           AggregationBuilder compositeBuilder =
-              AggregationBuilders.composite("composite_buckets", buckets).size(bucketSize);
+              AggregationBuilders.composite("composite_buckets", buckets).size(helper.bucketSize);
           if (subBuilder != null) {
             compositeBuilder.subAggregations(subBuilder);
           }
