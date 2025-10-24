@@ -253,4 +253,11 @@ public class SortCommandIT extends PPLIntegTestCase {
         rows(36, 20),
         rows(39, 25));
   }
+
+  @Test
+  public void testHeadThenSort() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source=%s | head 2 | sort age | fields age", TEST_INDEX_BANK));
+    verifyOrder(result, rows(28), rows(32));
+  }
 }
