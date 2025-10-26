@@ -1117,8 +1117,98 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testTimechartWithPerMinuteFunction() {
+    assertEqual(
+        "source=t | timechart per_minute(a)",
+        eval(
+            new Timechart(relation("t"), alias("per_minute(a)", aggregate("sum", field("a"))))
+                .span(span(field("@timestamp"), intLiteral(1), SpanUnit.of("m")))
+                .limit(10)
+                .useOther(true),
+            let(
+                field("per_minute(a)"),
+                function(
+                    "/",
+                    function("*", field("per_minute(a)"), doubleLiteral(60.0)),
+                    function(
+                        "timestampdiff",
+                        stringLiteral("SECOND"),
+                        field("@timestamp"),
+                        function(
+                            "timestampadd",
+                            stringLiteral("MINUTE"),
+                            intLiteral(1),
+                            field("@timestamp")))))));
+  }
+
+  @Test
+  public void testTimechartWithPerHourFunction() {
+    assertEqual(
+        "source=t | timechart per_hour(a)",
+        eval(
+            new Timechart(relation("t"), alias("per_hour(a)", aggregate("sum", field("a"))))
+                .span(span(field("@timestamp"), intLiteral(1), SpanUnit.of("m")))
+                .limit(10)
+                .useOther(true),
+            let(
+                field("per_hour(a)"),
+                function(
+                    "/",
+                    function("*", field("per_hour(a)"), doubleLiteral(3600.0)),
+                    function(
+                        "timestampdiff",
+                        stringLiteral("SECOND"),
+                        field("@timestamp"),
+                        function(
+                            "timestampadd",
+                            stringLiteral("MINUTE"),
+                            intLiteral(1),
+                            field("@timestamp")))))));
+  }
+
+  @Test
+  public void testTimechartWithPerDayFunction() {
+    assertEqual(
+        "source=t | timechart per_day(a)",
+        eval(
+            new Timechart(relation("t"), alias("per_day(a)", aggregate("sum", field("a"))))
+                .span(span(field("@timestamp"), intLiteral(1), SpanUnit.of("m")))
+                .limit(10)
+                .useOther(true),
+            let(
+                field("per_day(a)"),
+                function(
+                    "/",
+                    function("*", field("per_day(a)"), doubleLiteral(86400.0)),
+                    function(
+                        "timestampdiff",
+                        stringLiteral("SECOND"),
+                        field("@timestamp"),
+                        function(
+                            "timestampadd",
+                            stringLiteral("MINUTE"),
+                            intLiteral(1),
+                            field("@timestamp")))))));
+  }
+
+  @Test
   public void testStatsWithPerSecondThrowsException() {
-    assertThrows(SyntaxCheckException.class, () -> plan("source=t | stats per_second(a)"));
+    assertEquals(
+        "per_second function can only be used within timechart command",
+        assertThrows(SyntaxCheckException.class, () -> plan("source=t | stats per_second(a)"))
+            .getMessage());
+    assertEquals(
+        "per_minute function can only be used within timechart command",
+        assertThrows(SyntaxCheckException.class, () -> plan("source=t | stats per_minute(a)"))
+            .getMessage());
+    assertEquals(
+        "per_hour function can only be used within timechart command",
+        assertThrows(SyntaxCheckException.class, () -> plan("source=t | stats per_hour(a)"))
+            .getMessage());
+    assertEquals(
+        "per_day function can only be used within timechart command",
+        assertThrows(SyntaxCheckException.class, () -> plan("source=t | stats per_day(a)"))
+            .getMessage());
   }
 
   protected void assertEqual(String query, Node expectedPlan) {

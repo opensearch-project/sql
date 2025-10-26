@@ -9,6 +9,7 @@ import static java.util.Objects.requireNonNull;
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Stream;
 import lombok.Getter;
@@ -45,6 +46,15 @@ import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
+import org.opensearch.sql.opensearch.storage.scan.context.AbstractAction;
+import org.opensearch.sql.opensearch.storage.scan.context.AggPushDownAction;
+import org.opensearch.sql.opensearch.storage.scan.context.AggregationBuilderAction;
+import org.opensearch.sql.opensearch.storage.scan.context.FilterDigest;
+import org.opensearch.sql.opensearch.storage.scan.context.LimitDigest;
+import org.opensearch.sql.opensearch.storage.scan.context.OSRequestBuilderAction;
+import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
+import org.opensearch.sql.opensearch.storage.scan.context.PushDownOperation;
+import org.opensearch.sql.opensearch.storage.scan.context.PushDownType;
 
 /** An abstract relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
@@ -105,6 +115,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                 switch (operation.type()) {
                   case AGGREGATION -> mq.getRowCount((RelNode) operation.digest());
                   case PROJECT, SORT -> rowCount;
+                  case SORT_AGG_METRICS -> NumberUtil.min(
+                      rowCount, osIndex.getBucketSize().doubleValue());
                     // Refer the org.apache.calcite.rel.metadata.RelMdRowCount
                   case COLLAPSE -> rowCount / 10;
                   case FILTER, SCRIPT -> NumberUtil.multiply(
@@ -141,6 +153,10 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
           // Ignored Project in cost accumulation, but it will affect the external cost
         case PROJECT -> {}
         case SORT -> dCpu += dRows;
+        case SORT_AGG_METRICS -> {
+          dRows = dRows * .9 / 10; // *.9 because always bucket IS_NOT_NULL
+          dCpu += dRows;
+        }
           // Refer the org.apache.calcite.rel.metadata.RelMdRowCount.getRowCount(Aggregate rel,...)
         case COLLAPSE -> {
           dRows = dRows / 10;
@@ -208,31 +224,60 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       RelDataType schema,
       PushDownContext pushDownContext);
 
-  private List<String> getCollationNames(List<RelFieldCollation> collations) {
+  protected List<String> getCollationNames(List<RelFieldCollation> collations) {
     return collations.stream()
         .map(collation -> getRowType().getFieldNames().get(collation.getFieldIndex()))
         .toList();
   }
 
   /**
-   * Check if the sort by collations contains any aggregators that are pushed down. E.g. In `stats
-   * avg(age) as avg_age by state | sort avg_age`, the sort clause has `avg_age` which is an
-   * aggregator. The function will return true in this case.
+   * Check if all sort-by collations equal aggregators that are pushed down. E.g. In `stats avg(age)
+   * as avg_age, sum(age) as sum_age by state | sort avg_age, sum_age`, the sort keys `avg_age`,
+   * `sum_age` which equal the pushed down aggregators `avg(age)`, `sum(age)`.
    *
    * @param collations List of collation names to check against aggregators.
-   * @return True if any collation name matches an aggregator output, false otherwise.
+   * @return True if all collation names match all aggregator output, false otherwise.
    */
-  private boolean hasAggregatorInSortBy(List<String> collations) {
+  protected boolean isAllCollationNamesEqualAggregators(List<String> collations) {
     Stream<LogicalAggregate> aggregates =
         pushDownContext.stream()
             .filter(action -> action.type() == PushDownType.AGGREGATION)
             .map(action -> ((LogicalAggregate) action.digest()));
     return aggregates
-        .map(aggregate -> isAnyCollationNameInAggregateOutput(aggregate, collations))
+        .map(aggregate -> isAllCollationNamesEqualAggregators(aggregate, collations))
         .reduce(false, Boolean::logicalOr);
   }
 
-  private static boolean isAnyCollationNameInAggregateOutput(
+  private boolean isAllCollationNamesEqualAggregators(
+      LogicalAggregate aggregate, List<String> collations) {
+    List<String> fieldNames = aggregate.getRowType().getFieldNames();
+    // The output fields of the aggregate are in the format of
+    // [...grouping fields, ...aggregator fields], so we set an offset to skip
+    // the grouping fields.
+    int groupOffset = aggregate.getGroupSet().cardinality();
+    List<String> fieldsWithoutGrouping = fieldNames.subList(groupOffset, fieldNames.size());
+    return new HashSet<>(collations).equals(new HashSet<>(fieldsWithoutGrouping));
+  }
+
+  /**
+   * Check if any sort-by collations is in aggregators that are pushed down. E.g. In `stats avg(age)
+   * as avg_age by state | sort avg_age`, the sort clause has `avg_age` which is an aggregator. The
+   * function will return true in this case.
+   *
+   * @param collations List of collation names to check against aggregators.
+   * @return True if any collation name matches an aggregator output, false otherwise.
+   */
+  protected boolean isAnyCollationNameInAggregators(List<String> collations) {
+    Stream<LogicalAggregate> aggregates =
+        pushDownContext.stream()
+            .filter(action -> action.type() == PushDownType.AGGREGATION)
+            .map(action -> ((LogicalAggregate) action.digest()));
+    return aggregates
+        .map(aggregate -> isAnyCollationNameInAggregators(aggregate, collations))
+        .reduce(false, Boolean::logicalOr);
+  }
+
+  private boolean isAnyCollationNameInAggregators(
       LogicalAggregate aggregate, List<String> collations) {
     List<String> fieldNames = aggregate.getRowType().getFieldNames();
     // The output fields of the aggregate are in the format of
@@ -253,7 +298,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
   public AbstractCalciteIndexScan pushDownSort(List<RelFieldCollation> collations) {
     try {
       List<String> collationNames = getCollationNames(collations);
-      if (getPushDownContext().isAggregatePushed() && hasAggregatorInSortBy(collationNames)) {
+      if (getPushDownContext().isAggregatePushed()
+          && isAnyCollationNameInAggregators(collationNames)) {
         // If aggregation is pushed down, we cannot push down sorts where its by fields contain
         // aggregators.
         return null;
@@ -327,5 +373,23 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       }
     }
     return null;
+  }
+
+  /**
+   * CalciteOpenSearchIndexScan doesn't allow push-down anymore (except Sort under some strict
+   * condition) after Aggregate push-down.
+   */
+  public boolean noAggregatePushed() {
+    if (this.getPushDownContext().isAggregatePushed()) return false;
+    final RelOptTable table = this.getTable();
+    return table.unwrap(OpenSearchIndex.class) != null;
+  }
+
+  public boolean isLimitPushed() {
+    return this.getPushDownContext().isLimitPushed();
+  }
+
+  public boolean isMetricsOrderPushed() {
+    return this.getPushDownContext().isMetricOrderPushed();
   }
 }

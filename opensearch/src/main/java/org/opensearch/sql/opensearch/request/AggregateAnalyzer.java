@@ -74,7 +74,6 @@ import org.opensearch.search.aggregations.metrics.ValueCountAggregationBuilder;
 import org.opensearch.search.aggregations.support.ValueType;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.search.sort.SortOrder;
-import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -129,7 +128,7 @@ public class AggregateAnalyzer {
   private AggregateAnalyzer() {}
 
   @RequiredArgsConstructor
-  static class AggregateBuilderHelper {
+  public static class AggregateBuilderHelper {
     final RelDataType rowType;
     final Map<String, ExprType> fieldTypes;
     final RelOptCluster cluster;
@@ -179,24 +178,12 @@ public class AggregateAnalyzer {
   public static Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> analyze(
       Aggregate aggregate,
       Project project,
-      RelDataType rowType,
-      Map<String, ExprType> fieldTypes,
       List<String> outputFields,
-      RelOptCluster cluster,
-      int bucketSize)
+      AggregateBuilderHelper helper)
       throws ExpressionNotAnalyzableException {
     requireNonNull(aggregate, "aggregate");
     try {
-      boolean bucketNullable =
-          Boolean.parseBoolean(
-              aggregate.getHints().stream()
-                  .filter(hits -> hits.hintName.equals("stats_args"))
-                  .map(hint -> hint.kvOptions.getOrDefault(Argument.BUCKET_NULLABLE, "true"))
-                  .findFirst()
-                  .orElseGet(() -> "true"));
       List<Integer> groupList = aggregate.getGroupSet().asList();
-      AggregateBuilderHelper helper =
-          new AggregateBuilderHelper(rowType, fieldTypes, cluster, bucketNullable, bucketSize);
       List<String> aggFieldNames = outputFields.subList(groupList.size(), outputFields.size());
       // Process all aggregate calls
       Pair<Builder, List<MetricParser>> builderAndParser =
@@ -269,7 +256,7 @@ public class AggregateAnalyzer {
                     + " aggregation");
           }
           AggregationBuilder compositeBuilder =
-              AggregationBuilders.composite("composite_buckets", buckets).size(bucketSize);
+              AggregationBuilders.composite("composite_buckets", buckets).size(helper.bucketSize);
           if (subBuilder != null) {
             compositeBuilder.subAggregations(subBuilder);
           }
@@ -417,7 +404,7 @@ public class AggregateAnalyzer {
         } else {
           yield Pair.of(
               AggregationBuilders.topHits(aggFieldName)
-                  .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
+                  .fetchField(helper.inferNamedField(args.getFirst()).getReferenceForTermQuery())
                   .size(1)
                   .from(0)
                   .sort(
@@ -436,7 +423,7 @@ public class AggregateAnalyzer {
         } else {
           yield Pair.of(
               AggregationBuilders.topHits(aggFieldName)
-                  .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
+                  .fetchField(helper.inferNamedField(args.getFirst()).getReferenceForTermQuery())
                   .size(1)
                   .from(0)
                   .sort(
@@ -459,20 +446,20 @@ public class AggregateAnalyzer {
           new StatsParser(ExtendedStats::getStdDeviationPopulation, aggFieldName));
       case ARG_MAX -> Pair.of(
           AggregationBuilders.topHits(aggFieldName)
-              .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
+              .fetchField(helper.inferNamedField(args.getFirst()).getReferenceForTermQuery())
               .size(1)
               .from(0)
               .sort(
-                  helper.inferNamedField(args.get(1)).getRootName(),
+                  helper.inferNamedField(args.get(1)).getReferenceForTermQuery(),
                   org.opensearch.search.sort.SortOrder.DESC),
           new ArgMaxMinParser(aggFieldName));
       case ARG_MIN -> Pair.of(
           AggregationBuilders.topHits(aggFieldName)
-              .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
+              .fetchField(helper.inferNamedField(args.getFirst()).getReferenceForTermQuery())
               .size(1)
               .from(0)
               .sort(
-                  helper.inferNamedField(args.get(1)).getRootName(),
+                  helper.inferNamedField(args.get(1)).getReferenceForTermQuery(),
                   org.opensearch.search.sort.SortOrder.ASC),
           new ArgMaxMinParser(aggFieldName));
       case OTHER_FUNCTION -> {
@@ -481,7 +468,7 @@ public class AggregateAnalyzer {
         yield switch (functionName) {
           case TAKE -> Pair.of(
               AggregationBuilders.topHits(aggFieldName)
-                  .fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null)
+                  .fetchField(helper.inferNamedField(args.getFirst()).getReferenceForTermQuery())
                   .size(helper.inferValue(args.getLast(), Integer.class))
                   .from(0),
               new TopHitsParser(aggFieldName));
@@ -489,7 +476,8 @@ public class AggregateAnalyzer {
             TopHitsAggregationBuilder firstBuilder =
                 AggregationBuilders.topHits(aggFieldName).size(1).from(0);
             if (!args.isEmpty()) {
-              firstBuilder.fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null);
+              firstBuilder.fetchField(
+                  helper.inferNamedField(args.getFirst()).getReferenceForTermQuery());
             }
             yield Pair.of(firstBuilder, new TopHitsParser(aggFieldName, true));
           }
@@ -500,7 +488,8 @@ public class AggregateAnalyzer {
                     .from(0)
                     .sort("_doc", org.opensearch.search.sort.SortOrder.DESC);
             if (!args.isEmpty()) {
-              lastBuilder.fetchSource(helper.inferNamedField(args.getFirst()).getRootName(), null);
+              lastBuilder.fetchField(
+                  helper.inferNamedField(args.getFirst()).getReferenceForTermQuery());
             }
             yield Pair.of(lastBuilder, new TopHitsParser(aggFieldName, true));
           }

@@ -450,6 +450,36 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testExplainTimechartPerMinute() throws IOException {
+    var result = explainQueryToString("source=events | timechart span=2m per_minute(cpu_usage)");
+    assertTrue(
+        result.contains(
+            "per_minute(cpu_usage)=[DIVIDE(*($1, 60.0E0), "
+                + "TIMESTAMPDIFF('SECOND':VARCHAR, $0, TIMESTAMPADD('MINUTE':VARCHAR, 2, $0)))]"));
+    assertTrue(result.contains("per_minute(cpu_usage)=[SUM($0)]"));
+  }
+
+  @Test
+  public void testExplainTimechartPerHour() throws IOException {
+    var result = explainQueryToString("source=events | timechart span=2m per_hour(cpu_usage)");
+    assertTrue(
+        result.contains(
+            "per_hour(cpu_usage)=[DIVIDE(*($1, 3600.0E0), "
+                + "TIMESTAMPDIFF('SECOND':VARCHAR, $0, TIMESTAMPADD('MINUTE':VARCHAR, 2, $0)))]"));
+    assertTrue(result.contains("per_hour(cpu_usage)=[SUM($0)]"));
+  }
+
+  @Test
+  public void testExplainTimechartPerDay() throws IOException {
+    var result = explainQueryToString("source=events | timechart span=2m per_day(cpu_usage)");
+    assertTrue(
+        result.contains(
+            "per_day(cpu_usage)=[DIVIDE(*($1, 86400.0E0), "
+                + "TIMESTAMPDIFF('SECOND':VARCHAR, $0, TIMESTAMPADD('MINUTE':VARCHAR, 2, $0)))]"));
+    assertTrue(result.contains("per_day(cpu_usage)=[SUM($0)]"));
+  }
+
+  @Test
   public void noPushDownForAggOnWindow() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String query =
@@ -641,10 +671,10 @@ public class CalciteExplainIT extends ExplainIT {
   // Only for Calcite
   @Test
   public void testExplainOnEarliestLatest() throws IOException {
-    String expected = loadExpectedPlan("explain_earliest_latest.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_earliest_latest.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | stats earliest(message) as earliest_message, latest(message) as"
                     + " latest_message by server",
@@ -654,10 +684,10 @@ public class CalciteExplainIT extends ExplainIT {
   // Only for Calcite
   @Test
   public void testExplainOnEarliestLatestWithCustomTimeField() throws IOException {
-    String expected = loadExpectedPlan("explain_earliest_latest_custom_time.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_earliest_latest_custom_time.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | stats earliest(message, created_at) as earliest_message,"
                     + " latest(message, created_at) as latest_message by level",
@@ -667,10 +697,10 @@ public class CalciteExplainIT extends ExplainIT {
   // Only for Calcite
   @Test
   public void testExplainOnFirstLast() throws IOException {
-    String expected = loadExpectedPlan("explain_first_last.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_first_last.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | stats first(firstname) as first_name, last(firstname) as"
                     + " last_name by gender",
@@ -866,18 +896,18 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainMaxOnStringField() throws IOException {
-    String expected = loadExpectedPlan("explain_max_string_field.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_max_string_field.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString("source=opensearch-sql_test_index_account | stats max(firstname)"));
+        explainQueryYaml("source=opensearch-sql_test_index_account | stats max(firstname)"));
   }
 
   @Test
   public void testExplainMinOnStringField() throws IOException {
-    String expected = loadExpectedPlan("explain_min_string_field.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_min_string_field.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString("source=opensearch-sql_test_index_account | stats min(firstname)"));
+        explainQueryYaml("source=opensearch-sql_test_index_account | stats min(firstname)"));
   }
 
   @Test
@@ -1018,8 +1048,7 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testExplainSortOnMetricsNoBucketNullable() throws IOException {
-    // TODO enhancement later: https://github.com/opensearch-project/sql/issues/4282
+  public void testExplainSortOnMetrics() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_agg_sort_on_metrics1.yaml");
     assertYamlEqualsIgnoreId(
@@ -1027,13 +1056,108 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() by"
                 + " state | sort `count()`"));
-
     expected = loadExpectedPlan("explain_agg_sort_on_metrics2.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | stats bucket_nullable=false sum(balance)"
+                + " as sum by state | sort - sum"));
+    // TODO limit should pushdown to non-composite agg
+    expected = loadExpectedPlan("explain_agg_sort_on_metrics3.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            String.format(
+                "source=%s | stats count() as cnt by span(birthdate, 1d) | sort - cnt",
+                TEST_INDEX_BANK)));
+    expected = loadExpectedPlan("explain_agg_sort_on_metrics4.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            String.format(
+                "source=%s | stats bucket_nullable=false sum(balance) by span(age, 5) | sort -"
+                    + " `sum(balance)`",
+                TEST_INDEX_BANK)));
+  }
+
+  @Test
+  public void testExplainSortOnMetricsMultiTerms() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_agg_sort_on_metrics_multi_terms.yaml");
     assertYamlEqualsIgnoreId(
         expected,
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() by"
                 + " gender, state | sort `count()`"));
+  }
+
+  @Test
+  public void testExplainCompositeMultiBucketsAutoDateThenSortOnMetricsNotPushdown()
+      throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("agg_composite_multi_terms_autodate_sort_agg_metric_not_push.yaml"),
+        explainQueryYaml(
+            String.format(
+                "source=%s | bin timestamp bins=3 | stats bucket_nullable=false avg(value), count()"
+                    + " as cnt by category, value, timestamp | sort cnt",
+                TEST_INDEX_TIME_DATA)));
+  }
+
+  @Test
+  public void testExplainCompositeRangeThenSortOnMetricsNotPushdown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("agg_composite_range_sort_agg_metric_not_push.yaml"),
+        explainQueryYaml(
+            String.format(
+                "source=%s | eval value_range = case(value < 7000, 'small'"
+                    + " else 'great') | stats bucket_nullable=false avg(value), count() as cnt by"
+                    + " value_range, category | sort cnt",
+                TEST_INDEX_TIME_DATA)));
+  }
+
+  @Test
+  public void testExplainCompositeAutoDateThenSortOnMetricsNotPushdown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("agg_composite_autodate_sort_agg_metric_not_push.yaml"),
+        explainQueryYaml(
+            String.format(
+                "source=%s | bin timestamp bins=3 | stats bucket_nullable=false avg(value), count()"
+                    + " as cnt by timestamp, category | sort cnt",
+                TEST_INDEX_TIME_DATA)));
+  }
+
+  @Test
+  public void testExplainCompositeRangeAutoDateThenSortOnMetricsNotPushdown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("agg_composite_autodate_range_metric_sort_agg_metric_not_push.yaml"),
+        explainQueryYaml(
+            String.format(
+                "source=%s | bin timestamp bins=3 | eval value_range = case(value < 7000, 'small'"
+                    + " else 'great') | stats bucket_nullable=false avg(value), count() as cnt by"
+                    + " timestamp, value_range, category | sort cnt",
+                TEST_INDEX_TIME_DATA)));
+  }
+
+  @Test
+  public void testExplainMultipleAggregatorsWithSortOnOneMetricNotPushDown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected =
+        loadExpectedPlan("explain_multiple_agg_with_sort_on_one_metric_not_push1.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() as c,"
+                + " sum(balance) as s by state | sort c"));
+    expected = loadExpectedPlan("explain_multiple_agg_with_sort_on_one_metric_not_push2.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() as c,"
+                + " sum(balance) as s by state | sort c, s"));
   }
 
   @Test

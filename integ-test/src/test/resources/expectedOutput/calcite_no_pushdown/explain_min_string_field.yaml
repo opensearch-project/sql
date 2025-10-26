@@ -1,0 +1,10 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalAggregate(group=[{}], min(firstname)=[MIN($0)])
+        LogicalProject(firstname=[$1])
+          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableAggregate(group=[{}], min(firstname)=[MIN($1)])
+        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])

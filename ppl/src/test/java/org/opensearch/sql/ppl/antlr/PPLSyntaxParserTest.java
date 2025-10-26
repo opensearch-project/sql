@@ -106,6 +106,24 @@ public class PPLSyntaxParserTest {
   }
 
   @Test
+  public void testPerMinuteFunctionInTimechartShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("source=t | timechart per_minute(a)");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testPerHourFunctionInTimechartShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("source=t | timechart per_hour(a)");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testPerDayFunctionInTimechartShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("source=t | timechart per_day(a)");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
   public void testDynamicSourceClauseParseTreeStructure() {
     String query = "source=[myindex, logs, fieldIndex=\"test\", count=100]";
     OpenSearchPPLLexer lexer = new OpenSearchPPLLexer(new CaseInsensitiveCharStream(query));

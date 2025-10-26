@@ -97,6 +97,48 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testTimechartPerMinute() {
+    withPPLQuery("source=events | timechart per_minute(cpu_usage)")
+        .expectSparkSQL(
+            "SELECT `@timestamp`, `DIVIDE`(`per_minute(cpu_usage)` * 6.00E1,"
+                + " TIMESTAMPDIFF('SECOND', `@timestamp`, TIMESTAMPADD('MINUTE', 1, `@timestamp`)))"
+                + " `per_minute(cpu_usage)`\n"
+                + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'm') `@timestamp`, SUM(`cpu_usage`)"
+                + " `per_minute(cpu_usage)`\n"
+                + "FROM `scott`.`events`\n"
+                + "GROUP BY `SPAN`(`@timestamp`, 1, 'm')\n"
+                + "ORDER BY 1 NULLS LAST) `t2`");
+  }
+
+  @Test
+  public void testTimechartPerHour() {
+    withPPLQuery("source=events | timechart per_hour(cpu_usage)")
+        .expectSparkSQL(
+            "SELECT `@timestamp`, `DIVIDE`(`per_hour(cpu_usage)` * 3.6000E3,"
+                + " TIMESTAMPDIFF('SECOND', `@timestamp`, TIMESTAMPADD('MINUTE', 1, `@timestamp`)))"
+                + " `per_hour(cpu_usage)`\n"
+                + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'm') `@timestamp`, SUM(`cpu_usage`)"
+                + " `per_hour(cpu_usage)`\n"
+                + "FROM `scott`.`events`\n"
+                + "GROUP BY `SPAN`(`@timestamp`, 1, 'm')\n"
+                + "ORDER BY 1 NULLS LAST) `t2`");
+  }
+
+  @Test
+  public void testTimechartPerDay() {
+    withPPLQuery("source=events | timechart per_day(cpu_usage)")
+        .expectSparkSQL(
+            "SELECT `@timestamp`, `DIVIDE`(`per_day(cpu_usage)` * 8.64000E4,"
+                + " TIMESTAMPDIFF('SECOND', `@timestamp`, TIMESTAMPADD('MINUTE', 1, `@timestamp`)))"
+                + " `per_day(cpu_usage)`\n"
+                + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'm') `@timestamp`, SUM(`cpu_usage`)"
+                + " `per_day(cpu_usage)`\n"
+                + "FROM `scott`.`events`\n"
+                + "GROUP BY `SPAN`(`@timestamp`, 1, 'm')\n"
+                + "ORDER BY 1 NULLS LAST) `t2`");
+  }
+
+  @Test
   public void testTimechartWithSpan() {
     String ppl = "source=events | timechart span=1h count()";
 
