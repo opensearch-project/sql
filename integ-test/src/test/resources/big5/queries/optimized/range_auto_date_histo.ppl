@@ -55,5 +55,5 @@ source = big5
    `metrics.size` >= 100 and `metrics.size` < 1000, 'range_4',
    `metrics.size` >= 1000 and `metrics.size` < 2000, 'range_5',
    `metrics.size` >= 2000, 'range_6')
-| stats count() by range_bucket, span(`@timestamp`, 1h) as auto_span
-| sort + range_bucket, + auto_span
+| bin @timestamp bins=20
+| stats count() by range_bucket, @timestamp

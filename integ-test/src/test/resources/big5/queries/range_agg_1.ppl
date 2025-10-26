@@ -1,6 +1,6 @@
 /*
 {
-  "name": "range-auto-date-histo",
+  "name": "range-agg-1",
   "operation-type": "search",
   "index": "{{index_name | default('big5')}}",
   "body": {
@@ -33,14 +33,6 @@
               "from": 2000
             }
           ]
-        },
-        "aggs": {
-          "date": {
-            "auto_date_histogram": {
-              "field": "@timestamp",
-              "buckets": 20
-            }
-          }
         }
       }
     }
@@ -55,5 +47,4 @@ source = big5
    `metrics.size` >= 100 and `metrics.size` < 1000, 'range_4',
    `metrics.size` >= 1000 and `metrics.size` < 2000, 'range_5',
    `metrics.size` >= 2000, 'range_6')
-| stats count() by range_bucket, span(`@timestamp`, 1h) as auto_span
-| sort + range_bucket, + auto_span
+| stats count() by range_bucket

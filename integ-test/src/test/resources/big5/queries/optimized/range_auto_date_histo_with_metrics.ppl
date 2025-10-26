@@ -63,5 +63,5 @@ source = big5
    `metrics.size` >= 100 and `metrics.size` < 1000, 'range_2',
    `metrics.size` >= 1000 and `metrics.size` < 2000, 'range_3',
    `metrics.size` >= 2000, 'range_4')
-| stats min(`metrics.tmin`) as tmin, avg(`metrics.size`) as tavg, max(`metrics.size`) as tmax by range_bucket, span(`@timestamp`, 1h) as auto_span
-| sort + range_bucket, + auto_span
+| bin @timestamp bins=10
+| stats min(`metrics.tmin`) as tmin, avg(`metrics.size`) as tavg, max(`metrics.size`) as tmax by range_bucket, @timestamp
