@@ -123,16 +123,16 @@ Example::
 
     os> source=EMP |  eval salary_hex = tostring(SAL, "hex") | fields ENAME, salary_hex, SAL
     fetched rows / total rows = 1/1
-    +---------------+------------------+------------+
-    | ENAME         |   salary_hex  |  SAL          |
-    |---------------+------------------+------------+
-    | SMITH         |   13880       | 80000.00      |
-    +---------------+---------------+---------------+
+    +---------------+---------------+------------+
+    | ENAME         |   salary_hex  |  SAL       |
+    |---------------+------------------+---------+
+    | SMITH         |   13880       | 80000.00   |
+    +---------------+---------------+------------+
 
 The following example formats the column totalSales to display values  with commas.
 Example::
 
-     os> source=EMP |  eval salary_commas = tostring(SAL, "commas") | fields ENAME, salary_commas, SAL
+    os> source=EMP |  eval salary_commas = tostring(SAL, "commas") | fields ENAME, salary_commas, SAL
      fetched rows / total rows = 1/1
     +---------------+------------------+------------+
     | ENAME         |   salary_commas  |  SAL       |
@@ -143,7 +143,7 @@ Example::
 The following example converts number of seconds to HH:MM:SS format representing hours, minutes and seconds.
 Example::
 
-      os> source=EMP |  eval duration = tostring(6500, "duration") | fields ENAME, duration
+    os> source=EMP |  eval duration = tostring(6500, "duration") | fields ENAME, duration
           fetched rows / total rows = 1/1
     +---------------+-------------+
     | ENAME         |   duration  |

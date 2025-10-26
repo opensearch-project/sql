@@ -16,19 +16,6 @@ public class ToStringFunctionTest {
   private final ToStringFunction function = new ToStringFunction();
 
   @Test
-  void testBooleanToString() {
-    assertEquals("True", ToStringFunction.toString(true));
-    assertEquals("False", ToStringFunction.toString(false));
-  }
-
-  @Test
-  void testStringBooleanToString() {
-    assertEquals("True", ToStringFunction.toString("true"));
-    assertEquals("False", ToStringFunction.toString("false"));
-    assertEquals("False", ToStringFunction.toString("anythingElse"));
-  }
-
-  @Test
   void testBigDecimalToStringDurationFormat() {
     BigDecimal num = new BigDecimal("3661"); // 1 hour 1 minute 1 second
     String result = ToStringFunction.toString(num, ToStringFunction.DURATION_FORMAT);
@@ -74,7 +61,7 @@ public class ToStringFunctionTest {
   void testDoubleToStringHexFormat() {
     double num = 10.5;
     String result = ToStringFunction.toString(num, ToStringFunction.HEX_FORMAT);
-    assertTrue(result.startsWith("0x"));
+    assertTrue(result.equals("a"));
   }
 
   @Test

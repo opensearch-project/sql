@@ -48,7 +48,7 @@ public class ToStringFunction extends ImplementorUDF {
   public static final String BINARY_FORMAT = "binary";
   public static final SqlFunctions.DateFormatFunction dateTimeFormatter =
       new SqlFunctions.DateFormatFunction();
-  public static final String format24hour = "%H:%M:%S"; // 24-hour format
+  public static final String FORMAT_24_HOUR = "%H:%M:%S";
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
@@ -57,7 +57,7 @@ public class ToStringFunction extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return PPLOperandTypes.BOOLEAN_OR_NUMERIC_STRING_OR_STRING_STRING;
+    return PPLOperandTypes.NUMERIC_STRING_OR_STRING_STRING;
   }
 
   public static class ToStringImplementor implements NotNullImplementor {
@@ -66,39 +66,20 @@ public class ToStringFunction extends ImplementorUDF {
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
       Expression fieldValue = translatedOperands.get(0);
-
-      if (translatedOperands.size() > 1) {
-        Expression format = translatedOperands.get(1);
-        return Expressions.call(ToStringFunction.class, "toString", fieldValue, format);
-      } else {
-        return Expressions.call(ToStringFunction.class, "toString", fieldValue);
-      }
+      Expression format = translatedOperands.get(1);
+      return Expressions.call(ToStringFunction.class, "toString", fieldValue, format);
     }
-  }
-
-  @Strict
-  public static String toString(boolean fieldValue) {
-    if (fieldValue) {
-      return "True";
-    } else {
-      return "False";
-    }
-  }
-
-  @Strict
-  public static String toString(String fieldValue) {
-    return toString(Boolean.parseBoolean(fieldValue));
   }
 
   @Strict
   public static String toString(BigDecimal num, String format) {
     if (format.equals(DURATION_FORMAT)) {
 
-      return dateTimeFormatter.formatTime(format24hour, num.toBigInteger().intValue() * 1000);
+      return dateTimeFormatter.formatTime(FORMAT_24_HOUR, num.toBigInteger().intValue() * 1000);
 
     } else if (format.equals(DURATION_MILLIS_FORMAT)) {
 
-      return dateTimeFormatter.formatTime(format24hour, num.toBigInteger().intValue());
+      return dateTimeFormatter.formatTime(FORMAT_24_HOUR, num.toBigInteger().intValue());
 
     } else if (format.equals(HEX_FORMAT)) {
       return num.toBigInteger().toString(16);
@@ -117,53 +98,17 @@ public class ToStringFunction extends ImplementorUDF {
 
   @Strict
   public static String toString(double num, String format) {
-    if (format.equals(DURATION_FORMAT)) {
-      return dateTimeFormatter.formatTime(format24hour, ((int) Math.round(num)) * 1000);
-    } else if (format.equals(DURATION_MILLIS_FORMAT)) {
-
-      return dateTimeFormatter.formatTime(format24hour, ((int) Math.round(num)));
-
-    } else if (format.equals(HEX_FORMAT)) {
-      return Double.toHexString(num);
-    } else if (format.equals(COMMAS_FORMAT)) {
-      NumberFormat nf = NumberFormat.getNumberInstance(Locale.getDefault());
-      return nf.format(num);
-    } else if (format.equals(BINARY_FORMAT)) {
-      return Long.toBinaryString(Double.doubleToLongBits(num));
-    }
-    return Double.toString(num);
-  }
-
-  @Strict
-  public static String toString(short num, String format) {
-    int i = (int) num;
-    return toString(i, format);
+    return toString(BigDecimal.valueOf(num), format);
   }
 
   @Strict
   public static String toString(int num, String format) {
-
-    if (format.equals(DURATION_FORMAT)) {
-      return dateTimeFormatter.formatTime(format24hour, num * 1000);
-    } else if (format.equals(DURATION_MILLIS_FORMAT)) {
-      return dateTimeFormatter.formatTime(format24hour, num);
-    } else if (format.equals(HEX_FORMAT)) {
-      return Integer.toHexString(num);
-    } else if (format.equals(COMMAS_FORMAT)) {
-      NumberFormat nf = NumberFormat.getNumberInstance(Locale.getDefault());
-      return nf.format(num);
-    } else if (format.equals(BINARY_FORMAT)) {
-      return Integer.toBinaryString(num);
-    }
-    return Integer.toString(num);
+    return toString(BigDecimal.valueOf(num), format);
   }
 
   @Strict
   public static String toString(String str, String format) {
-    if (str.contains(".") || (str.length() > 10)) {
-      return toString(Double.parseDouble(str), format);
-    } else {
-      return toString(Integer.parseInt(str), format);
-    }
+    BigDecimal bd = new BigDecimal(str);
+    return toString(bd, format);
   }
 }

@@ -889,6 +889,12 @@ public class PPLFuncImpTable {
 
       registerOperator(INTERNAL_PATTERN_PARSER, PPLBuiltinOperators.PATTERN_PARSER);
       registerOperator(TOSTRING, PPLBuiltinOperators.TOSTRING);
+      register(
+          TOSTRING,
+          (FunctionImp1)
+              (builder, source) ->
+                  builder.makeCast(TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, true), source),
+          PPLTypeChecker.family(SqlTypeFamily.ANY));
 
       // Register MVJOIN to use Calcite's ARRAY_JOIN
       register(
