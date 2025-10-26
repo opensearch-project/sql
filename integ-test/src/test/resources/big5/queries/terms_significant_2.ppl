@@ -33,8 +33,8 @@
   }
 }
 */
-// significant_terms is unsupported in PPL
+/* significant_terms is unsupported in PPL */
 source = big5
 | where `@timestamp` >= '2023-01-01 00:00:00' and `@timestamp` < '2023-01-03 00:00:00'
-| stats count() by `process.name`
+| stats count() by `process.name`, `aws.cloudwatch.log_stream`
 | head 10
