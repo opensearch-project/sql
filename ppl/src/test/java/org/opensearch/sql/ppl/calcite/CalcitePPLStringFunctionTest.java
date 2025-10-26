@@ -55,8 +55,7 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
             + " fields string_value, cast_value";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(string_value=[CAST($3):VARCHAR NOT NULL], cast_value=[SAFE_CAST($3)])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+            "LogicalProject(string_value=[CAST($3):VARCHAR], cast_value=[SAFE_CAST($3)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     String expectedResult =
         "string_value=7902; cast_value=7902\n"
             + "string_value=7698; cast_value=7698\n"
