@@ -422,7 +422,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
         PPLFuncImpTable.INSTANCE.resolve(
             context.rexBuilder, node.getFuncName(), arguments.toArray(new RexNode[0]));
     if (resolvedNode != null) {
-
       return resolvedNode;
     }
     throw new IllegalArgumentException("Unsupported operator: " + node.getFuncName());
