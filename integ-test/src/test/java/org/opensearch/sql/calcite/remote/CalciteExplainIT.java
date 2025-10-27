@@ -315,11 +315,13 @@ public class CalciteExplainIT extends ExplainIT {
     assertYamlEqualsIgnoreId(expected, result);
   }
 
+  // Only for Calcite
   @Test
   public void testMvexpandExplain() throws IOException {
-    String query = "source=mvexpand_edge_cases | mvexpand skills";
+    // script pushdown
     String expected = loadExpectedPlan("explain_mvexpand.yaml");
-    assertYamlEqualsJsonIgnoreId(expected, explainQueryToString(query));
+    assertYamlEqualsIgnoreId(
+        expected, explainQueryYaml("source=mvexpand_edge_cases | mvexpand skills"));
   }
 
   // Only for Calcite
