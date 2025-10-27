@@ -16,6 +16,12 @@ public interface StorageEngine {
   /** Get {@link Table} from storage engine. */
   Table getTable(DataSourceSchemaName dataSourceSchemaName, String tableName);
 
+  /** Get {@link Table} which allows permissive mode or not. */
+  default Table getPermissiveAwareTable(
+      DataSourceSchemaName dataSourceSchemaName, String tableName) {
+    return getTable(dataSourceSchemaName, tableName);
+  }
+
   /**
    * Get list of datasource related functions.
    *
