@@ -42,21 +42,24 @@ public class TopHitsParser implements MetricParser {
     }
 
     if (returnSingleValue) {
-      // Extract the single value from the first (and only) hit
-      Map<String, Object> source = hits[0].getSourceAsMap();
-      if (source.isEmpty()) {
-        return Collections.singletonMap(agg.getName(), null);
+      // Extract the single value from the first (and only) hit from fields (fetchField)
+      if (hits[0].getFields() != null && !hits[0].getFields().isEmpty()) {
+        Object value = hits[0].getFields().values().iterator().next().getValue();
+        return Collections.singletonMap(agg.getName(), value);
       }
-      // Get the first value from the source map
-      Object value = source.values().iterator().next();
-      return Collections.singletonMap(agg.getName(), value);
+      return Collections.singletonMap(agg.getName(), null);
     } else {
-      // Return all values as a list
-      return Collections.singletonMap(
-          agg.getName(),
-          Arrays.stream(hits)
-              .flatMap(h -> h.getSourceAsMap().values().stream())
-              .collect(Collectors.toList()));
+      // Return all values as a list from fields (fetchField)
+      if (hits[0].getFields() != null && !hits[0].getFields().isEmpty()) {
+        return Collections.singletonMap(
+            agg.getName(),
+            Arrays.stream(hits)
+                .flatMap(h -> h.getFields().values().stream())
+                .map(f -> f.getValue())
+                .filter(v -> v != null) // Filter out null values
+                .collect(Collectors.toList()));
+      }
+      return Collections.singletonMap(agg.getName(), Collections.emptyList());
     }
   }
 }
