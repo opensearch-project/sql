@@ -623,6 +623,26 @@ public class CalciteExplainIT extends ExplainIT {
     assertYamlEqualsIgnoreId(expected, result);
   }
 
+  @Test
+  public void testStreamstatsGlobalExplain() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | streamstats window=2 global=true avg(age) as"
+            + " avg_age by gender";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_streamstats_global.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testStreamstatsResetExplain() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | streamstats current=false reset_before=age>34"
+            + " reset_after=age<25 avg(age) as avg_age by gender";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_streamstats_reset.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
   // Only for Calcite, as v2 gets unstable serialized string for function
   @Test
   public void testExplainOnAggregationWithSumEnhancement() throws IOException {
