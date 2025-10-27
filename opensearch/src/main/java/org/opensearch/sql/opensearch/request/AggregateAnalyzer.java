@@ -472,7 +472,7 @@ public class AggregateAnalyzer {
       case ARG_MAX:
         return Pair.of(
                 AggregationBuilders.topHits(aggFieldName)
-                        .fetchSource(helper.inferNamedField(args.get(0)).getRootName(), null)
+                        .fetchField(helper.inferNamedField(args.get(0)).getReferenceForTermQuery())
                         .size(1)
                         .from(0)
                         .sort(
