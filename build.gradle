@@ -160,6 +160,54 @@ subprojects {
         maven { url "https://ci.opensearch.org/ci/dbc/snapshots/lucene/" }
         maven { url 'https://jitpack.io' }
     }
+
+    // Publish internal modules as Maven artifacts for external use, such as by opensearch-spark and opensearch-cli.
+    def publishedModules = ['api', 'sql', 'ppl', 'core', 'opensearch', 'common', 'protocol', 'datasources', 'legacy']
+    if (publishedModules.contains(name)) {
+        apply plugin: 'java-library'
+        apply plugin: 'maven-publish'
+
+        def fullArtifactId = "unified-query-${project.name}"
+        publishing {
+            publications {
+                unifiedQuery(MavenPublication) {
+                    from components.java
+                    groupId = "org.opensearch.query"
+                    artifactId = fullArtifactId
+
+                    pom {
+                        name = fullArtifactId
+                        description = "OpenSearch unified query ${project.name} module"
+                        licenses {
+                            license {
+                                name = 'The Apache License, Version 2.0'
+                                url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                            }
+                        }
+                        developers {
+                            developer {
+                                name = 'OpenSearch'
+                                url = 'https://github.com/opensearch-project/sql'
+                            }
+                        }
+                    }
+                }
+            }
+
+            repositories {
+                maven {
+                    name = "Snapshots"
+                    url = "https://ci.opensearch.org/ci/dbc/snapshots/maven/"
+                    url = System.getenv("MAVEN_SNAPSHOTS_S3_REPO")
+                    credentials(AwsCredentials) {
+                        accessKey = System.getenv("AWS_ACCESS_KEY_ID")
+                        secretKey = System.getenv("AWS_SECRET_ACCESS_KEY")
+                        sessionToken = System.getenv("AWS_SESSION_TOKEN")
+                    }
+                }
+            }
+        }
+    }
 }
 
 // TODO: fix compiler warnings
