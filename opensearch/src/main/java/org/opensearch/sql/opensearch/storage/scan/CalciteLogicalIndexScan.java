@@ -102,6 +102,11 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         cluster, traitSet, hints, table, osIndex, schema, pushDownContext);
   }
 
+  public CalciteLogicalIndexScan copy() {
+    return new CalciteLogicalIndexScan(
+        getCluster(), traitSet, hints, table, osIndex, schema, pushDownContext.clone());
+  }
+
   public CalciteLogicalIndexScan copyWithNewSchema(RelDataType schema) {
     // Do shallow copy for requestBuilder, thus requestBuilder among different plans produced in the
     // optimization process won't affect each other.
@@ -131,8 +136,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
 
   public AbstractRelNode pushDownFilter(Filter filter) {
     try {
-      RelDataType rowType = filter.getRowType();
-      CalciteLogicalIndexScan newScan = this.copyWithNewSchema(filter.getRowType());
+      RelDataType rowType = this.getRowType();
       List<String> schema = this.getRowType().getFieldNames();
       Map<String, ExprType> fieldTypes =
           this.osIndex.getAllFieldTypes().entrySet().stream()
@@ -142,6 +146,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
           PredicateAnalyzer.analyzeExpression(
               filter.getCondition(), schema, fieldTypes, rowType, getCluster());
       // TODO: handle the case where condition contains a score function
+      CalciteLogicalIndexScan newScan = this.copy();
       newScan.pushDownContext.add(
           queryExpression.getScriptCount() > 0 ? PushDownType.SCRIPT : PushDownType.FILTER,
           new FilterDigest(
