@@ -1154,6 +1154,7 @@ extractFunctionCall
 
 simpleDateTimePart
    : MICROSECOND
+   | MILLISECOND
    | SECOND
    | MINUTE
    | HOUR
@@ -1332,6 +1333,7 @@ timestampLiteral
 
 intervalUnit
    : MICROSECOND
+   | MILLISECOND
    | SECOND
    | MINUTE
    | HOUR

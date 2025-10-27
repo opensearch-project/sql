@@ -68,7 +68,8 @@ public interface PlanUtils {
 
   static SpanUnit intervalUnitToSpanUnit(IntervalUnit unit) {
     return switch (unit) {
-      case MICROSECOND -> SpanUnit.MILLISECOND;
+      case MICROSECOND -> SpanUnit.MICROSECOND;
+      case MILLISECOND -> SpanUnit.MILLISECOND;
       case SECOND -> SpanUnit.SECOND;
       case MINUTE -> SpanUnit.MINUTE;
       case HOUR -> SpanUnit.HOUR;
@@ -84,9 +85,12 @@ public interface PlanUtils {
 
   static IntervalUnit spanUnitToIntervalUnit(SpanUnit unit) {
     switch (unit) {
+      case MICROSECOND:
+      case US:
+        return IntervalUnit.MICROSECOND;
       case MILLISECOND:
       case MS:
-        return IntervalUnit.MICROSECOND;
+        return IntervalUnit.MILLISECOND;
       case SECOND:
       case SECONDS:
       case SEC:
