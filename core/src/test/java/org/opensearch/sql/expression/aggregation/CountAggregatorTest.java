@@ -66,7 +66,7 @@ class CountAggregatorTest extends AggregationTest {
   @Test
   public void count_datetime_field_expression() {
     ExprValue result = aggregation(DSL.count(DSL.ref("datetime_value", DATETIME)), tuples);
-    assertEquals(4, result.value());
+    assertEquals(4L, result.value());
   }
 
   @Test

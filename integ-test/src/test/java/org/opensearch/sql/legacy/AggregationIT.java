@@ -492,7 +492,7 @@ public class AggregationIT extends SQLIntegTestCase {
                 "SELECT COUNT(*) FROM %s " + "GROUP BY gender ORDER BY COUNT(*)",
                 TEST_INDEX_ACCOUNT));
 
-    verifySchema(response, schema("COUNT(*)", null, "integer"));
+    verifySchema(response, schema("COUNT(*)", null, "long"));
     verifyDataRows(response, rows(493), rows(507));
   }
 
@@ -504,7 +504,7 @@ public class AggregationIT extends SQLIntegTestCase {
                 "SELECT COUNT(*) as count FROM %s " + "GROUP BY gender ORDER BY count",
                 TEST_INDEX_ACCOUNT));
 
-    verifySchema(response, schema("COUNT(*)", "count", "integer"));
+    verifySchema(response, schema("COUNT(*)", "count", "long"));
     verifyDataRowsInOrder(response, rows(493), rows(507));
   }
 
@@ -516,7 +516,7 @@ public class AggregationIT extends SQLIntegTestCase {
                 "SELECT COUNT(*) FROM %s " + "GROUP BY gender ORDER BY COUNT(*) DESC",
                 TEST_INDEX_ACCOUNT));
 
-    verifySchema(response, schema("COUNT(*)", null, "integer"));
+    verifySchema(response, schema("COUNT(*)", null, "long"));
     verifyDataRowsInOrder(response, rows(507), rows(493));
   }
 
@@ -528,7 +528,7 @@ public class AggregationIT extends SQLIntegTestCase {
                 "SELECT COUNT(*) as count FROM %s " + "GROUP BY gender ORDER BY count DESC",
                 TEST_INDEX_ACCOUNT));
 
-    verifySchema(response, schema("COUNT(*)", "count", "integer"));
+    verifySchema(response, schema("COUNT(*)", "count", "long"));
     verifyDataRowsInOrder(response, rows(507), rows(493));
   }
 
@@ -542,7 +542,7 @@ public class AggregationIT extends SQLIntegTestCase {
                     + "FROM %s GROUP BY gender ORDER BY gender",
                 TEST_INDEX_ACCOUNT));
 
-    verifySchema(response, schema("gender", "g", "text"), schema("COUNT(*)", "count", "integer"));
+    verifySchema(response, schema("gender", "g", "text"), schema("COUNT(*)", "count", "long"));
     verifyDataRowsInOrder(response, rows("F", 493), rows("M", 507));
 
     // ORDER BY field alias
@@ -552,7 +552,7 @@ public class AggregationIT extends SQLIntegTestCase {
                 "SELECT gender as g, COUNT(*) as count " + "FROM %s GROUP BY gender ORDER BY g",
                 TEST_INDEX_ACCOUNT));
 
-    verifySchema(response, schema("gender", "g", "text"), schema("COUNT(*)", "count", "integer"));
+    verifySchema(response, schema("gender", "g", "text"), schema("COUNT(*)", "count", "long"));
     verifyDataRowsInOrder(response, rows("F", 493), rows("M", 507));
   }
 
@@ -564,7 +564,7 @@ public class AggregationIT extends SQLIntegTestCase {
                 "SELECT COUNT(*) FROM %s " + "GROUP BY age ORDER BY COUNT(*) LIMIT 5",
                 TEST_INDEX_ACCOUNT));
 
-    verifySchema(response, schema("COUNT(*)", null, "integer"));
+    verifySchema(response, schema("COUNT(*)", null, "long"));
     verifyDataRowsInOrder(response, rows(35), rows(39), rows(39), rows(42), rows(42));
   }
 
