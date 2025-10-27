@@ -265,14 +265,8 @@ public class ExplainIT extends PPLIntegTestCase {
                 + "| fields age"));
   }
 
-  /**
-   * Push down LIMIT only Sort should NOT be pushed down since DSL process limit before sort when
-   * they coexist
-   */
   @Test
   public void testLimitThenSortExplain() throws IOException {
-    // TODO: Fix the expected output in expectedOutput/ppl/explain_limit_then_sort_push.json (v2)
-    //  limit-then-sort should not be pushed down.
     String expected = loadExpectedPlan("explain_limit_then_sort_push.yaml");
     assertYamlEqualsIgnoreId(
         expected,
