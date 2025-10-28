@@ -1,2 +1,14 @@
+/*
+{
+  "name": "match-all",
+  "operation-type": "search",
+  "index": "{{index_name | default('big5')}}",
+  "body": {
+    "query": {
+      "match_all": {}
+    }
+  }
+}
+*/
 source = big5
 | head 10
