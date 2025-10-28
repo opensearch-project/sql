@@ -22,6 +22,8 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.RelBuilder;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.calcite.rel.RelBuilderWrapper;
+import org.opensearch.sql.calcite.rel.RelFieldBuilder;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryType;
@@ -31,7 +33,8 @@ public class CalcitePlanContext {
 
   public FrameworkConfig config;
   public final Connection connection;
-  public final RelBuilder relBuilder;
+  public final RelBuilderWrapper relBuilder;
+  public final RelFieldBuilder fieldBuilder;
   public final ExtendedRexBuilder rexBuilder;
   public final FunctionProperties functionProperties;
   public final QueryType queryType;
@@ -66,8 +69,10 @@ public class CalcitePlanContext {
     this.sysLimit = sysLimit;
     this.queryType = queryType;
     this.connection = CalciteToolsHelper.connect(config, TYPE_FACTORY);
-    this.relBuilder = CalciteToolsHelper.create(config, TYPE_FACTORY, connection);
-    this.rexBuilder = new ExtendedRexBuilder(relBuilder.getRexBuilder());
+    RelBuilder rawRelBuilder = CalciteToolsHelper.create(config, TYPE_FACTORY, connection);
+    this.relBuilder = new RelBuilderWrapper(rawRelBuilder);
+    this.rexBuilder = new ExtendedRexBuilder(rawRelBuilder.getRexBuilder());
+    this.fieldBuilder = new RelFieldBuilder(rawRelBuilder, this.rexBuilder);
     this.functionProperties = new FunctionProperties(QueryType.PPL);
     this.rexLambdaRefMap = new HashMap<>();
   }

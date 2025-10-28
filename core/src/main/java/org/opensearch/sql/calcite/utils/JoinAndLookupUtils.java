@@ -16,6 +16,7 @@ import org.apache.calcite.util.Pair;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.rel.QualifiedNameResolver;
 
 public interface JoinAndLookupUtils {
 
@@ -62,10 +63,10 @@ public interface JoinAndLookupUtils {
     if (!outputField.isEmpty()) {
       HashSet<String> lookupMappingFields = new HashSet<>(outputField);
       lookupMappingFields.addAll(mappingField);
-      if (lookupMappingFields.size() != context.relBuilder.fields().size()) {
+      if (lookupMappingFields.size() != context.fieldBuilder.staticFields().size()) {
         List<RexNode> projectList =
             lookupMappingFields.stream()
-                .map(fieldName -> (RexNode) context.relBuilder.field(fieldName))
+                .map(fieldName -> (RexNode) context.fieldBuilder.staticField(fieldName))
                 .toList();
         context.relBuilder.project(projectList);
       }
@@ -88,7 +89,8 @@ public interface JoinAndLookupUtils {
 
   static RexNode analyzeFieldsForLookUp(
       String fieldName, boolean isSourceTable, CalcitePlanContext context) {
-    return context.relBuilder.field(2, isSourceTable ? 0 : 1, fieldName);
+    return QualifiedNameResolver.resolveField(2, isSourceTable ? 0 : 1, fieldName, context)
+        .orElseThrow(() -> new IllegalArgumentException("field not found: " + fieldName));
   }
 
   static void renameToExpectedFields(

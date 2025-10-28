@@ -64,7 +64,11 @@ public class SchemaUnifier {
       List<RelNode> renamedNodes = new ArrayList<>();
       for (RelNode node : projectedNodes) {
         RelNode renamedNode =
-            context.relBuilder.push(node).project(context.relBuilder.fields(), uniqueNames).build();
+            context
+                .relBuilder
+                .push(node)
+                .project(context.fieldBuilder.staticFields(), uniqueNames)
+                .build();
         renamedNodes.add(renamedNode);
       }
       return renamedNodes;

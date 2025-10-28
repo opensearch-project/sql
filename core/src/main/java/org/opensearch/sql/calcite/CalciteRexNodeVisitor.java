@@ -72,6 +72,7 @@ import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
+import org.opensearch.sql.calcite.rel.QualifiedNameResolver;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.SubsearchUtils;
@@ -548,7 +549,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                 replacement,
                 context.relBuilder.literal(context.sysLimit.subsearchLimit()));
       }
-      PlanUtils.replaceTop(context.relBuilder, replacement);
+      PlanUtils.replaceTop(context.relBuilder.getRawRelBuilder(), replacement);
     }
     // pop the inner plan
     RelNode subqueryRel = context.relBuilder.build();
