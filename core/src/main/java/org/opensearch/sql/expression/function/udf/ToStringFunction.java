@@ -108,7 +108,11 @@ public class ToStringFunction extends ImplementorUDF {
 
   @Strict
   public static String toString(String str, String format) {
-    BigDecimal bd = new BigDecimal(str);
-    return toString(bd, format);
+    try {
+      BigDecimal bd = new BigDecimal(str);
+      return toString(bd, format);
+    } catch (Exception e) {
+      return null;
+    }
   }
 }
