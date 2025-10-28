@@ -26,7 +26,8 @@ import org.opensearch.sql.executor.ExecutionEngine.Schema.Column;
 
 /** Utility class for processing dynamic fields in query results. */
 @UtilityClass
-public class DynamicFieldsProcessor {
+public class DynamicFieldsResultProcessor {
+
   /**
    * Expand dynamic fields into individual columns in QueryResponse.
    *
