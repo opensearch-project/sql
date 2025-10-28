@@ -531,19 +531,11 @@ tableSourceClause
    ;
 
 dynamicSourceClause
-   : LT_SQR_PRTHS sourceReferences (COMMA sourceFilterArgs)? RT_SQR_PRTHS
-   ;
-
-sourceReferences
-   : sourceReference (COMMA sourceReference)*
+   : LT_SQR_PRTHS (sourceReference | sourceFilterArg) (COMMA (sourceReference | sourceFilterArg))* RT_SQR_PRTHS
    ;
 
 sourceReference
    : (CLUSTER)? wcQualifiedName
-   ;
-
-sourceFilterArgs
-   : sourceFilterArg (COMMA sourceFilterArg)*
    ;
 
 sourceFilterArg
