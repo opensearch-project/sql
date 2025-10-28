@@ -1693,7 +1693,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         context.relBuilder.alias(subsearchRowNumber, ROW_NUMBER_COLUMN_NAME_SUBSEARCH));
 
     List<String> subsearchFields = context.fieldBuilder.getAllFieldNames();
-    List<String> mainFields = context.fieldBuilder.getAllFieldNames();
+    List<String> mainFields = context.fieldBuilder.getAllFieldNames(1);
     if (!node.isOverride()) {
       // 6. if override = false, drop all the duplicated columns in subsearch before join
       // TODO: consider dynamic fields
