@@ -51,6 +51,13 @@ public class FormatTest {
   }
 
   @Test
+  void yaml() {
+    Optional<Format> format = Format.ofExplain("yaml");
+    assertTrue(format.isPresent());
+    assertEquals(Format.YAML, format.get());
+  }
+
+  @Test
   void defaultExplainFormat() {
     Optional<Format> format = Format.ofExplain("");
     assertTrue(format.isPresent());

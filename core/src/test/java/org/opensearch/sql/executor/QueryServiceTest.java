@@ -103,6 +103,7 @@ class QueryServiceTest {
       lenient().when(analyzer.analyze(any(), any())).thenReturn(logicalPlan);
       lenient().when(planner.plan(any())).thenReturn(plan);
       lenient().when(settings.getSettingValue(Key.QUERY_SIZE_LIMIT)).thenReturn(200);
+      lenient().when(settings.getSettingValue(Key.QUERY_BUCKET_SIZE)).thenReturn(1000);
       lenient().when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(false);
 
       queryService = new QueryService(analyzer, executionEngine, planner, null, settings);

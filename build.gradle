@@ -6,7 +6,7 @@
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.3.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.4.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
         version_tokens = opensearch_version.tokenize('-')
@@ -67,8 +67,7 @@ buildscript {
     repositories {
         mavenLocal()
         mavenCentral()
-        maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
-        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/" }
+        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
     }
 
     dependencies {
@@ -93,9 +92,11 @@ apply plugin: 'opensearch.java-agent'
 repositories {
     mavenLocal()
     mavenCentral() // For Elastic Libs that you can use to get started coding until open OpenSearch libs are available
-    maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
-    maven { url 'https://jitpack.io' }
-    maven { url "https://ci.opensearch.org/ci/dbc/snapshots/" }
+    maven {
+        url 'https://jitpack.io'
+        content { includeGroup "com.github.babbel" }
+    }
+    maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
 }
 
 spotless {
@@ -158,9 +159,60 @@ subprojects {
     repositories {
         mavenLocal()
         mavenCentral()
-        maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
-        maven { url 'https://jitpack.io' }
-        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/" }
+        maven {
+            url 'https://jitpack.io'
+            content { includeGroup "com.github.babbel" }
+        }
+        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
+        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/lucene/" }
+    }
+
+    // Publish internal modules as Maven artifacts for external use, such as by opensearch-spark and opensearch-cli.
+    def publishedModules = ['api', 'sql', 'ppl', 'core', 'opensearch', 'common', 'protocol', 'datasources', 'legacy']
+    if (publishedModules.contains(name)) {
+        apply plugin: 'java-library'
+        apply plugin: 'maven-publish'
+
+        def fullArtifactId = "unified-query-${project.name}"
+        publishing {
+            publications {
+                unifiedQuery(MavenPublication) {
+                    from components.java
+                    groupId = "org.opensearch.query"
+                    artifactId = fullArtifactId
+
+                    pom {
+                        name = fullArtifactId
+                        description = "OpenSearch unified query ${project.name} module"
+                        licenses {
+                            license {
+                                name = 'The Apache License, Version 2.0'
+                                url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                            }
+                        }
+                        developers {
+                            developer {
+                                name = 'OpenSearch'
+                                url = 'https://github.com/opensearch-project/sql'
+                            }
+                        }
+                    }
+                }
+            }
+
+            repositories {
+                maven {
+                    name = "Snapshots"
+                    url = "https://ci.opensearch.org/ci/dbc/snapshots/maven/"
+                    url = System.getenv("MAVEN_SNAPSHOTS_S3_REPO")
+                    credentials(AwsCredentials) {
+                        accessKey = System.getenv("AWS_ACCESS_KEY_ID")
+                        secretKey = System.getenv("AWS_SECRET_ACCESS_KEY")
+                        sessionToken = System.getenv("AWS_SESSION_TOKEN")
+                    }
+                }
+            }
+        }
     }
 }
 

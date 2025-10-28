@@ -123,10 +123,14 @@ public class Timechart extends UnresolvedPlan {
     return this.toBuilder().aggregateFunction(newAggregateFunction).build();
   }
 
-  /** TODO: extend to support additional per_* functions */
   @RequiredArgsConstructor
   static class PerFunction {
-    private static final Map<String, Integer> UNIT_SECONDS = Map.of("per_second", 1);
+    private static final Map<String, Integer> UNIT_SECONDS =
+        Map.of(
+            "per_second", 1,
+            "per_minute", 60,
+            "per_hour", 3600,
+            "per_day", 86400);
     private final String aggName;
     private final UnresolvedExpression aggArg;
     private final int seconds;

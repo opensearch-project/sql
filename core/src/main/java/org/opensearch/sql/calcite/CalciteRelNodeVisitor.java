@@ -121,6 +121,8 @@ import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Replace;
+import org.opensearch.sql.ast.tree.ReplacePair;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Search;
@@ -848,7 +850,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<String> originalFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
     List<RexNode> toOverrideList =
         originalFieldNames.stream()
-            .filter(newNames::contains)
+            .filter(originalName -> shouldOverrideField(originalName, newNames))
             .map(a -> (RexNode) context.relBuilder.field(a))
             .toList();
     // 1. add the new fields, For example "age0, country0"
@@ -866,6 +868,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     expectedRenameFields.addAll(newNames);
     // 5. rename
     context.relBuilder.rename(expectedRenameFields);
+  }
+
+  private boolean shouldOverrideField(String originalName, List<String> newNames) {
+    return newNames.stream()
+        .anyMatch(
+            newName ->
+                // Match exact field names (e.g., "age" == "age") for flat fields
+                newName.equals(originalName)
+                    // OR match nested paths (e.g., "resource.attributes..." starts with
+                    // "resource.")
+                    || newName.startsWith(originalName + "."));
   }
 
   private List<List<RexInputRef>> extractInputRefList(List<RelBuilder.AggCall> aggCalls) {
@@ -998,10 +1011,54 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     Pair<List<RexNode>, List<AggCall>> reResolved =
         resolveAttributesForAggregation(groupExprList, aggExprList, context);
 
+    List<String> intendedGroupKeyAliases = getGroupKeyNamesAfterAggregation(reResolved.getLeft());
     context.relBuilder.aggregate(
         context.relBuilder.groupKey(reResolved.getLeft()), reResolved.getRight());
+    // During aggregation, Calcite projects both input dependencies and output group-by fields.
+    // When names conflict, Calcite adds numeric suffixes (e.g., "value0").
+    // Apply explicit renaming to restore the intended aliases.
+    context.relBuilder.rename(intendedGroupKeyAliases);
 
     return Pair.of(reResolved.getLeft(), reResolved.getRight());
+  }
+
+  /**
+   * Imitates {@code Registrar.registerExpression} of {@link RelBuilder} to derive the output order
+   * of group-by keys after aggregation.
+   *
+   * <p>The projected input reference comes first, while any other computed expression follows.
+   */
+  private List<String> getGroupKeyNamesAfterAggregation(List<RexNode> nodes) {
+    List<RexNode> reordered = new ArrayList<>();
+    List<RexNode> left = new ArrayList<>();
+    for (RexNode n : nodes) {
+      // The same group-key won't be added twice
+      if (reordered.contains(n) || left.contains(n)) {
+        continue;
+      }
+      if (isInputRef(n)) {
+        reordered.add(n);
+      } else {
+        left.add(n);
+      }
+    }
+    reordered.addAll(left);
+    return reordered.stream()
+        .map(this::extractAliasLiteral)
+        .flatMap(Optional::stream)
+        .map(RexLiteral::stringValue)
+        .toList();
+  }
+
+  /** Whether a rex node is an aliased input reference */
+  private boolean isInputRef(RexNode node) {
+    return switch (node.getKind()) {
+      case AS, DESCENDING, NULLS_FIRST, NULLS_LAST -> {
+        final List<RexNode> operands = ((RexCall) node).operands;
+        yield isInputRef(operands.getFirst());
+      }
+      default -> node instanceof RexInputRef;
+    };
   }
 
   /**
@@ -1102,7 +1159,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         aggregationAttributes.getLeft().stream()
             .map(this::extractAliasLiteral)
             .flatMap(Optional::stream)
-            .map(ref -> ((RexLiteral) ref).getValueAs(String.class))
+            .map(ref -> ref.getValueAs(String.class))
             .map(context.relBuilder::field)
             .map(f -> (RexNode) f)
             .toList();
@@ -2409,6 +2466,51 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     } else {
       throw new CalciteUnsupportedException("Explicit values node is unsupported in Calcite");
     }
+  }
+
+  @Override
+  public RelNode visitReplace(Replace node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+
+    // Create a set of field names to replace for quick lookup
+    Set<String> fieldsToReplace =
+        node.getFieldList().stream().map(f -> f.getField().toString()).collect(Collectors.toSet());
+
+    // Validate that all fields to replace exist by calling field() on each
+    // This leverages relBuilder.field()'s built-in validation which throws
+    // IllegalArgumentException if any field doesn't exist
+    for (String fieldToReplace : fieldsToReplace) {
+      context.relBuilder.field(fieldToReplace);
+    }
+
+    List<RexNode> projectList = new ArrayList<>();
+
+    // Project all fields, replacing specified ones in-place
+    for (String fieldName : fieldNames) {
+      if (fieldsToReplace.contains(fieldName)) {
+        // Replace this field in-place with all pattern/replacement pairs applied sequentially
+        RexNode fieldRef = context.relBuilder.field(fieldName);
+
+        // Apply all replacement pairs sequentially (nested REPLACE calls)
+        for (ReplacePair pair : node.getReplacePairs()) {
+          RexNode patternNode = rexVisitor.analyze(pair.getPattern(), context);
+          RexNode replacementNode = rexVisitor.analyze(pair.getReplacement(), context);
+          fieldRef =
+              context.relBuilder.call(
+                  SqlStdOperatorTable.REPLACE, fieldRef, patternNode, replacementNode);
+        }
+
+        projectList.add(fieldRef);
+      } else {
+        // Keep original field unchanged
+        projectList.add(context.relBuilder.field(fieldName));
+      }
+    }
+
+    context.relBuilder.project(projectList, fieldNames);
+    return context.relBuilder.peek();
   }
 
   private void buildParseRelNode(Parse node, CalcitePlanContext context) {

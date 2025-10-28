@@ -1,0 +1,19 @@
+/*
+{
+  "name": "cardinality-agg-low",
+  "operation-type": "search",
+  "index": "{{index_name | default('big5')}}",
+  "body": {
+    "size": 0,
+    "aggs": {
+      "region": {
+        "cardinality": {
+          "field": "cloud.region"
+        }
+      }
+    }
+  }
+}
+*/
+source = big5
+| stats bucket_nullable = false dc(`cloud.region`)

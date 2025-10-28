@@ -1,0 +1,21 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[agent, process, log, message, tags, cloud, input, @timestamp, ecs, data_stream,\
+      \ meta, host, metrics, aws, event]"
+  children:
+    - name: OpenSearchIndexScan
+      description:
+        request: "OpenSearchQueryRequest(indexName=big5, sourceBuilder={\"from\":0,\"\
+          size\":10,\"timeout\":\"1m\",\"query\":{\"query_string\":{\"query\":\"log.file.path:\\\
+          \\/var\\\\/log\\\\/messages\\\\/solarshark\",\"fields\":[],\"type\":\"best_fields\"\
+          ,\"default_operator\":\"or\",\"max_determinized_states\":10000,\"enable_position_increments\"\
+          :true,\"fuzziness\":\"AUTO\",\"fuzzy_prefix_length\":0,\"fuzzy_max_expansions\"\
+          :50,\"phrase_slop\":0,\"escape\":false,\"auto_generate_synonyms_phrase_query\"\
+          :true,\"fuzzy_transpositions\":true,\"boost\":1.0}},\"_source\":{\"includes\"\
+          :[\"agent\",\"process\",\"log\",\"message\",\"tags\",\"cloud\",\"input\"\
+          ,\"@timestamp\",\"ecs\",\"data_stream\",\"meta\",\"host\",\"metrics\",\"\
+          aws\",\"event\"],\"excludes\":[]},\"sort\":[{\"metrics.size\":{\"order\"\
+          :\"desc\",\"missing\":\"_last\"}}]}, needClean=true, searchDone=false, pitId=*,\
+          \ cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
+      children: []

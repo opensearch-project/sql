@@ -109,6 +109,22 @@ public interface ExecutionEngine {
     public int hashCode() {
       return Objects.hash(root, calcite);
     }
+
+    public static ExplainResponse normalizeLf(ExplainResponse response) {
+      ExecutionEngine.ExplainResponseNodeV2 calcite = response.getCalcite();
+      if (calcite != null) {
+        return new ExplainResponse(
+            new ExecutionEngine.ExplainResponseNodeV2(
+                normalizeLf(calcite.getLogical()),
+                normalizeLf(calcite.getPhysical()),
+                normalizeLf(calcite.getExtended())));
+      }
+      return response;
+    }
+
+    private static String normalizeLf(String value) {
+      return value == null ? null : value.replace("\r\n", "\n");
+    }
   }
 
   @AllArgsConstructor
