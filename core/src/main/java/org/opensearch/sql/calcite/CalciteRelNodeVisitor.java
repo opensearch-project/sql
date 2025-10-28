@@ -1038,18 +1038,22 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         .map(this::extractAliasLiteral)
         .flatMap(Optional::stream)
         .map(RexLiteral::stringValue)
-        .toList();
+        .collect(Collectors.toList());
   }
 
   /** Whether a rex node is an aliased input reference */
   private boolean isInputRef(RexNode node) {
-    return switch (node.getKind()) {
-      case AS, DESCENDING, NULLS_FIRST, NULLS_LAST -> {
+    switch (node.getKind()) {
+      case AS:
+      case DESCENDING:
+      case NULLS_FIRST:
+      case NULLS_LAST: {
         final List<RexNode> operands = ((RexCall) node).operands;
-        yield isInputRef(operands.getFirst());
+        return isInputRef(operands.get(0));
       }
-      default -> node instanceof RexInputRef;
-    };
+      default:
+        return node instanceof RexInputRef;
+    }
   }
 
   /**
