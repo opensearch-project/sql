@@ -14,6 +14,7 @@ import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.exception.SemanticCheckException;
 
 /** Utility class for field validation and type checking in bin operations. */
 public class BinFieldValidator {
@@ -58,5 +59,46 @@ public class BinFieldValidator {
 
     // Check if type string contains EXPR_TIMESTAMP
     return fieldType.toString().contains("EXPR_TIMESTAMP");
+  }
+
+  /**
+   * Validates that the field type is numeric for numeric binning operations.
+   *
+   * @param fieldType the RelDataType of the field to validate
+   * @param fieldName the name of the field being validated
+   * @throws SemanticCheckException if the field is not numeric
+   */
+  public static void validateNumericField(RelDataType fieldType, String fieldName) {
+    if (!isNumericField(fieldType)) {
+      throw new SemanticCheckException(
+          String.format(
+              "Cannot apply binning: field '%s' is non-numeric and not time-related, expected"
+                  + " numeric or time-related type",
+              fieldName));
+    }
+  }
+
+  /** Checks if the field type is numeric. */
+  private static boolean isNumericField(RelDataType fieldType) {
+    // Check standard SQL numeric types
+    SqlTypeName sqlType = fieldType.getSqlTypeName();
+    if (sqlType == SqlTypeName.INTEGER
+        || sqlType == SqlTypeName.BIGINT
+        || sqlType == SqlTypeName.SMALLINT
+        || sqlType == SqlTypeName.TINYINT
+        || sqlType == SqlTypeName.FLOAT
+        || sqlType == SqlTypeName.DOUBLE
+        || sqlType == SqlTypeName.DECIMAL
+        || sqlType == SqlTypeName.REAL) {
+      return true;
+    }
+
+    // Check for OpenSearch UDT numeric types
+    if (fieldType instanceof AbstractExprRelDataType<?> exprType) {
+      ExprType udtType = exprType.getExprType();
+      return ExprCoreType.numberTypes().contains(udtType);
+    }
+
+    return false;
   }
 }

@@ -13,6 +13,7 @@ import org.opensearch.sql.ast.tree.CountBin;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRexNodeVisitor;
 import org.opensearch.sql.calcite.utils.binning.BinConstants;
+import org.opensearch.sql.calcite.utils.binning.BinFieldValidator;
 import org.opensearch.sql.calcite.utils.binning.BinHandler;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
@@ -24,6 +25,12 @@ public class CountBinHandler implements BinHandler {
       Bin node, RexNode fieldExpr, CalcitePlanContext context, CalciteRexNodeVisitor visitor) {
 
     CountBin countBin = (CountBin) node;
+
+    // Validate that the field is numeric or time-based (bins works with both)
+    String fieldName = BinFieldValidator.extractFieldName(node);
+    if (!BinFieldValidator.isTimeBasedField(fieldExpr.getType())) {
+      BinFieldValidator.validateNumericField(fieldExpr.getType(), fieldName);
+    }
 
     Integer requestedBins = countBin.getBins();
     if (requestedBins == null) {

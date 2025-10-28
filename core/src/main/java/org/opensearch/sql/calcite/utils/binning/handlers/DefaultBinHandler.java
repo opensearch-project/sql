@@ -34,6 +34,9 @@ public class DefaultBinHandler implements BinHandler {
       return BinTimeSpanUtils.createBinTimeSpanExpression(fieldExpr, 1, "h", 0, context);
     }
 
+    // Validate that the field is numeric for default numeric binning
+    BinFieldValidator.validateNumericField(fieldType, fieldName);
+
     // Use numeric binning for numeric fields
     return createNumericDefaultBinning(fieldExpr, context);
   }

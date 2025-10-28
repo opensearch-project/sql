@@ -64,6 +64,10 @@ public class SpanBinHandler implements BinHandler {
   private RexNode handleNumericOrLogSpan(
       SpanBin node, RexNode fieldExpr, CalcitePlanContext context, CalciteRexNodeVisitor visitor) {
 
+    // Validate that the field is numeric
+    String fieldName = BinFieldValidator.extractFieldName(node);
+    BinFieldValidator.validateNumericField(fieldExpr.getType(), fieldName);
+
     RexNode spanValue = visitor.analyze(node.getSpan(), context);
 
     if (!spanValue.isA(LITERAL)) {

@@ -15,6 +15,7 @@ import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRexNodeVisitor;
+import org.opensearch.sql.calcite.utils.binning.BinFieldValidator;
 import org.opensearch.sql.calcite.utils.binning.BinHandler;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
@@ -26,6 +27,10 @@ public class MinSpanBinHandler implements BinHandler {
       Bin node, RexNode fieldExpr, CalcitePlanContext context, CalciteRexNodeVisitor visitor) {
 
     MinSpanBin minSpanBin = (MinSpanBin) node;
+
+    // Validate that the field is numeric
+    String fieldName = BinFieldValidator.extractFieldName(node);
+    BinFieldValidator.validateNumericField(fieldExpr.getType(), fieldName);
 
     RexNode minspanValue = visitor.analyze(minSpanBin.getMinspan(), context);
 
