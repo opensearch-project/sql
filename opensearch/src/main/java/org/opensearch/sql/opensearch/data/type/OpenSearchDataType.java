@@ -294,9 +294,8 @@ public class OpenSearchDataType implements ExprType, Serializable {
   private static void validateAliasType(Map<String, OpenSearchDataType> result) {
     result.forEach(
         (key, value) -> {
-          if (value instanceof OpenSearchAliasType aliasType
-              && aliasType.getOriginalPath().isPresent()) {
-            String originalPath = aliasType.getOriginalPath().get();
+          if (value instanceof OpenSearchAliasType && value.getOriginalPath().isPresent()) {
+            String originalPath = value.getOriginalPath().get();
             result.put(key, new OpenSearchAliasType(originalPath, result.get(originalPath)));
           }
         });
