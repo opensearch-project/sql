@@ -505,9 +505,14 @@ class OpenSearchDataTypeTest {
             "col0", Map.of("type", "alias", "path", "col1"),
             "col1", Map.of("type", "text"),
             "col2", Map.of("type", "alias", "path", "col3"));
-    IllegalStateException exception =
-        assertThrows(
-            IllegalStateException.class, () -> OpenSearchDataType.parseMapping(indexMapping2));
-    assertEquals("Cannot find the path [col3] for alias type field [col2]", exception.getMessage());
+    assertEquals(
+        Map.of(
+            "col0",
+            new OpenSearchAliasType("col1", textType),
+            "col1",
+            textType,
+            "col2",
+            new OpenSearchAliasType("col1", OpenSearchDataType.of(MappingType.Invalid))),
+        OpenSearchDataType.parseMapping(indexMapping2));
   }
 }

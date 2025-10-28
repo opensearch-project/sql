@@ -13,6 +13,7 @@ import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.immutables.value.Value;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
 /**
@@ -88,7 +89,7 @@ public class OpenSearchLimitIndexScanRule extends RelRule<OpenSearchLimitIndexSc
             .withOperandSupplier(
                 b0 ->
                     b0.operand(LogicalSort.class)
-                        .predicate(OpenSearchIndexScanRule::isLogicalSortLimit)
+                        .predicate(PlanUtils::isLogicalSortLimit)
                         .oneInput(b1 -> b1.operand(CalciteLogicalIndexScan.class).noInputs()));
 
     @Override

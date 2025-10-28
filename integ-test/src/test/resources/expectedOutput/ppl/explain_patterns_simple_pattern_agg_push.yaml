@@ -14,7 +14,7 @@ root:
           missing_order\":\"first\",\"order\":\"asc\"}}}]},\"aggregations\":{\"pattern_count\"\
           :{\"value_count\":{\"field\":\"_index\"}},\"sample_logs\":{\"top_hits\"\
           :{\"from\":0,\"size\":10,\"version\":false,\"seq_no_primary_term\":false,\"\
-          explain\":false,\"_source\":{\"includes\":[\"email\"],\"excludes\":[]}}}}}}},\
-          \ needClean=true, searchDone=false, pitId=*, cursorKeepAlive=null, searchAfter=null,\
+          explain\":false,\"fields\":[{\"field\":\"email\"}]}}}}}}, needClean=true,\
+          \ searchDone=false, pitId=*, cursorKeepAlive=null, searchAfter=null,\
           \ searchResponse=null)"
       children: []

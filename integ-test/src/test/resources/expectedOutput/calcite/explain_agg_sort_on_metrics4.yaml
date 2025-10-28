@@ -1,0 +1,12 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(sort0=[$0], dir0=[DESC-nulls-last], fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])
+        LogicalProject(sum(balance)=[$1], span(age,5)=[$0])
+          LogicalAggregate(group=[{1}], sum(balance)=[SUM($0)])
+            LogicalProject(balance=[$7], span(age,5)=[SPAN($10, 5, null:NULL)])
+              LogicalFilter(condition=[IS NOT NULL($10)])
+                CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]], PushDownContext=[[PROJECT->[balance, age], FILTER->IS NOT NULL($1), AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={1},sum(balance)=SUM($0)), SORT_AGG_METRICS->[1 DESC LAST], PROJECT->[sum(balance), span(age,5)]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","query":{"exists":{"field":"age","boost":1.0}},"_source":{"includes":["balance","age"],"excludes":[]},"aggregations":{"span(age,5)":{"histogram":{"field":"age","interval":5.0,"offset":0.0,"order":[{"sum(balance)":"desc"},{"_key":"asc"}],"keyed":false,"min_doc_count":0},"aggregations":{"sum(balance)":{"sum":{"field":"balance"}}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

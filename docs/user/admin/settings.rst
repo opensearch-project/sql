@@ -161,7 +161,7 @@ Result set::
 	}
 
 plugins.query.size_limit
-===========================
+========================
 
 Description
 -----------
@@ -187,6 +187,43 @@ Result set::
         }
       }
     }
+
+plugins.query.buckets
+=====================
+
+Version
+-------
+3.4.0
+
+Description
+-----------
+
+This configuration indicates how many aggregation buckets will return in a single response. The default value equals to ``plugins.query.size_limit``.
+You can change the value to any value not greater than the maximum number of aggregation buckets allowed in a single response (`search.max_buckets`), here is an example::
+
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	  "transient" : {
+	    "plugins.query.buckets" : 1000
+	  }
+	}'
+
+Result set::
+
+    {
+      "acknowledged" : true,
+      "persistent" : { },
+      "transient" : {
+        "plugins" : {
+          "query" : {
+            "buckets" : "1000"
+          }
+        }
+      }
+    }
+
+Limitations
+-----------
+The number of aggregation buckets is fixed to ``1000`` in v2. ``plugins.query.buckets`` can only effect the number of aggregation buckets when calcite enabled.
 
 plugins.query.memory_limit
 ==========================

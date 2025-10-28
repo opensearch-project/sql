@@ -1,0 +1,59 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  - do:
+      indices.create:
+        index: test
+        body:
+          mappings:
+            properties:
+              "timestamp":
+                type: date
+              "status":
+                type: integer
+              "client_ip":
+                type: ip
+  - do:
+      bulk:
+        index: test
+        refresh: true
+        body:
+          - '{"index":{}}'
+          - '{"datetime":"2025-01-15T00:30:00Z","status":200,"client_ip":"10.0.0.1"}'
+          - '{"index":{}}'
+          - '{"datetime":"2025-01-15T02:15:00Z","status":200,"client_ip":"10.0.0.2"}'
+          - '{"index":{}}'
+          - '{"datetime":"2025-01-15T10:50:00Z","status":200,"client_ip":"10.0.0.11"}'
+          - '{"index":{}}'
+          - '{"datetime":"2025-01-15T23:45:00Z","status":200,"client_ip":"10.0.0.24"}'
+
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"agg with script and sort on group key":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test | eval hour_of_day = HOUR(datetime) | stats count() as request_count by hour_of_day | sort hour_of_day asc
+
+
+  - match: { total: 4 }
+  - match: { "schema": [ { "name": "request_count", "type": "bigint" }, { "name": "hour_of_day", "type": "int" }] }
+  # it got [[1, 0], [1, 10], [1, 2], [1, 23]] without the fix of this issue
+  - match: {"datarows": [[1, 0], [1, 2], [1, 10], [1, 23]]}

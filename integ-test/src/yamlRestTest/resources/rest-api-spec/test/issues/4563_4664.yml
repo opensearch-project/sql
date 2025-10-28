@@ -1,0 +1,63 @@
+setup:
+  - do:
+      indices.create:
+        index: test
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+
+  - do:
+      bulk:
+        index: test
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"status":"200","service":"api","value":100,"time":"2025-01-01T00:00:00Z"}'
+          - '{"index": {}}'
+          - '{"status":"500","service":"web","value":200,"time":"2025-01-02T00:00:00Z"}'
+          - '{"index": {}}'
+          - '{"status":"200","service":"db","value":150,"time":"2025-01-03T00:00:00Z"}'
+          - '{"index": {}}'
+          - '{"status":"404","service":"api","value":50,"time":"2025-01-03T00:01:00Z"}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"4563: Test rename then dedup":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test | rename status as http_status | dedup http_status | fields http_status
+
+  - match: { total: 3 }
+  - match: { schema: [{"name": "http_status", "type": "string"}] }
+  - match: { datarows: [["200"], ["500"], ["404"]] }
+
+---
+"4664: Test rename then filter":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test | rename status as http_status | where http_status = '404' | fields http_status
+
+  - match: { total: 1 }
+  - match: { schema: [{"name": "http_status", "type": "string"}] }
+  - match: { datarows: [["404"]] }

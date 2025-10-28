@@ -13,6 +13,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.Getter;
@@ -26,9 +27,11 @@ import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.util.JsonBuilder;
+import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
 
 /**
  * A serializer that (de-)serializes Calcite RexNode, RelDataType and OpenSearch field mapping.
@@ -79,16 +82,23 @@ public class RelJsonSerializer {
    * @return serialized string of map structure for inputs
    */
   public String serialize(RexNode rexNode, RelDataType rowType, Map<String, ExprType> fieldTypes) {
+    // Extract necessary fields and remap expression input indices for original RexNode
+    Pair<RexNode, RelDataType> remappedRexInfo =
+        OpenSearchRelOptUtil.getRemappedRexAndType(rexNode, rowType);
+    Map<String, ExprType> filteredFieldTypes = new HashMap<>();
+    for (String fieldName : remappedRexInfo.getValue().getFieldNames()) {
+      filteredFieldTypes.put(fieldName, fieldTypes.get(fieldName));
+    }
     try {
       // Serialize RexNode and RelDataType by JSON
       JsonBuilder jsonBuilder = new JsonBuilder();
       RelJson relJson = ExtendedRelJson.create(jsonBuilder);
-      String rexNodeJson = jsonBuilder.toJsonString(relJson.toJson(rexNode));
-      Object rowTypeJsonObj = relJson.toJson(rowType);
+      String rexNodeJson = jsonBuilder.toJsonString(relJson.toJson(remappedRexInfo.getKey()));
+      Object rowTypeJsonObj = relJson.toJson(remappedRexInfo.getValue());
       String rowTypeJson = jsonBuilder.toJsonString(rowTypeJsonObj);
       // Construct envelope of serializable objects
       Map<String, Object> envelope =
-          Map.of(EXPR, rexNodeJson, FIELD_TYPES, fieldTypes, ROW_TYPE, rowTypeJson);
+          Map.of(EXPR, rexNodeJson, FIELD_TYPES, filteredFieldTypes, ROW_TYPE, rowTypeJson);
 
       // Write bytes of all serializable contents
       ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -99,7 +109,8 @@ public class RelJsonSerializer {
           ? rexNodeJson
           : Base64.getEncoder().encodeToString(output.toByteArray());
     } catch (Exception e) {
-      throw new IllegalStateException("Failed to serialize RexNode: " + rexNode, e);
+      throw new IllegalStateException(
+          "Failed to serialize RexNode: " + remappedRexInfo.getKey(), e);
     }
   }
 

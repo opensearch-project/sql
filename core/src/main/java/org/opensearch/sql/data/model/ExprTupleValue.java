@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.data.utils.ComparableLinkedHashMap;
 import org.opensearch.sql.storage.bindingtuple.BindingTuple;
 import org.opensearch.sql.storage.bindingtuple.LazyBindingTuple;
 
@@ -44,7 +45,7 @@ public class ExprTupleValue extends AbstractExprValue {
 
   @Override
   public Object valueForCalcite() {
-    LinkedHashMap<String, Object> resultMap = new LinkedHashMap<>();
+    ComparableLinkedHashMap<String, Object> resultMap = new ComparableLinkedHashMap<>();
     for (Entry<String, ExprValue> entry : valueMap.entrySet()) {
       resultMap.put(entry.getKey(), entry.getValue().valueForCalcite());
     }

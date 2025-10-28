@@ -27,13 +27,12 @@ public class ArgMaxMinParser implements MetricParser {
       return Collections.singletonMap(agg.getName(), null);
     }
 
-    Map<String, Object> source = hits[0].getSourceAsMap();
-
-    if (source.isEmpty()) {
-      return Collections.singletonMap(agg.getName(), null);
-    } else {
-      Object value = source.values().iterator().next();
+    // Get value from fields (fetchField)
+    if (hits[0].getFields() != null && !hits[0].getFields().isEmpty()) {
+      Object value = hits[0].getFields().values().iterator().next().getValue();
       return Collections.singletonMap(agg.getName(), value);
     }
+
+    return Collections.singletonMap(agg.getName(), null);
   }
 }

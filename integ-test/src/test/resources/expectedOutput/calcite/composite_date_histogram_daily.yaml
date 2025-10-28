@@ -1,0 +1,11 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(count()=[$1], span(`@timestamp`,1d)=[$0])
+        LogicalAggregate(group=[{0}], count()=[COUNT()])
+          LogicalProject(span(`@timestamp`,1d)=[SPAN($17, 1, 'd')])
+            LogicalFilter(condition=[IS NOT NULL($17)])
+              LogicalFilter(condition=[AND(>=($17, TIMESTAMP('2022-12-30 00:00:00':VARCHAR)), <($17, TIMESTAMP('2023-01-07 12:00:00':VARCHAR)))])
+                CalciteLogicalIndexScan(table=[[OpenSearch, big5]])
+  physical: |
+    CalciteEnumerableIndexScan(table=[[OpenSearch, big5]], PushDownContext=[[PROJECT->[@timestamp], FILTER->SEARCH($0, Sarg[['2022-12-30 00:00:00':VARCHAR..'2023-01-07 12:00:00':VARCHAR); NULL AS FALSE]:VARCHAR), AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0},count()=COUNT()), PROJECT->[count(), span(`@timestamp`,1d)], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","query":{"bool":{"must":[{"range":{"@timestamp":{"from":"2022-12-30T00:00:00.000Z","to":"2023-01-07T12:00:00.000Z","include_lower":true,"include_upper":false,"format":"date_time","boost":1.0}}},{"exists":{"field":"@timestamp","boost":1.0}}],"adjust_pure_negative":true,"boost":1.0}},"_source":{"includes":["@timestamp"],"excludes":[]},"aggregations":{"composite_buckets":{"composite":{"size":10000,"sources":[{"span(`@timestamp`,1d)":{"date_histogram":{"field":"@timestamp","missing_bucket":false,"order":"asc","fixed_interval":"1d"}}}]}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

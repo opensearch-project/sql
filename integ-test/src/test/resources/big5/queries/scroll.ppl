@@ -1,2 +1,17 @@
+/*
+{
+  "name": "scroll",
+  "operation-type": "search",
+  "index": "{{index_name | default('big5')}}",
+  "pages": 25,
+  "results-per-page": 1000,
+  "body": {
+    "query": {
+      "match_all": {}
+    }
+  }
+}
+*/
+/* scroll is unsupported in PPL */
 source = big5
 | head 10

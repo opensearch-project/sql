@@ -1,0 +1,68 @@
+setup:
+  - do:
+      indices.create:
+        index: test
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              aws:
+                properties:
+                  cloudtrail:
+                    properties:
+                      event_name:
+                        type: alias
+                        path: api.operation
+                  user_identity:
+                    type: text
+              api:
+                properties:
+                  operation:
+                    type: keyword
+
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"Handle nested alias field referring to the outer context":
+  - skip:
+      features:
+        - headers
+  - do:
+      bulk:
+        index: test
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{
+               "aws": {
+                 "cloudtrail": {
+                   "user_identity": "test-user"
+                 }
+               },
+               "api": {
+                 "operation": "CreateBucket"
+               }
+             }'
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test | fields aws.cloudtrail.event_name'
+  - match: {"total": 1}
+  - match: { "schema": [ { "name": "aws.cloudtrail.event_name", "type": "string" } ] }
+  - match: { "datarows": [ [ "CreateBucket" ] ] }

@@ -45,7 +45,7 @@ Description
 
 Usage: `geoip(dataSourceName, ipAddress[, options])` to lookup location information from given IP addresses via OpenSearch GeoSpatial plugin API.
 
-Argument type: STRING, STRING, STRING
+Argument type: STRING, STRING/IP, STRING
 
 Return type: OBJECT
 

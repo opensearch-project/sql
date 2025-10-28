@@ -24,7 +24,7 @@ stats [bucket_nullable=bool] <aggregation>... [by-clause]
     * When ``plugins.ppl.syntax.legacy.preferred=true``, ``bucket_nullable`` defaults to ``true``
     * When ``plugins.ppl.syntax.legacy.preferred=false``, ``bucket_nullable`` defaults to ``false``
 * by-clause: optional. Groups results by specified fields or expressions. Syntax: by [span-expression,] [field,]... **Default:** If no by-clause is specified, the stats command returns only one row, which is the aggregation over the entire result set.
-* span-expression: optional, at most one. Splits field into buckets by intervals. Syntax: span(field_expr, interval_expr). The unit of the interval expression is the natural unit by default. If the field is a date/time type field, the aggregation results always ignore null bucket. For example, ``span(age, 10)`` creates 10-year age buckets, ``span(timestamp, 1h)`` creates hourly buckets.
+* span-expression: optional, at most one. Splits field into buckets by intervals. Syntax: span([field_expr,] interval_expr). The unit of the interval expression is the natural unit by default. If ``field_expr`` is omitted, span will use the implicit ``@timestamp`` field. An error will be thrown if this field doesn't exist. If the field is a date/time type field, the aggregation results always ignore null bucket. For example, ``span(age, 10)`` creates 10-year age buckets, ``span(timestamp, 1h)`` creates hourly buckets.
     * Available time units:
         * millisecond (ms)
         * second (s)
@@ -35,34 +35,6 @@ stats [bucket_nullable=bool] <aggregation>... [by-clause]
         * month (M, case sensitive)
         * quarter (q)
         * year (y)
-
-Aggregation Functions
-=====================
-
-The stats command supports the following aggregation functions:
-
-* COUNT/C: Count of values
-* SUM: Sum of numeric values
-* AVG: Average of numeric values
-* MAX: Maximum value
-* MIN: Minimum value
-* VAR_SAMP: Sample variance
-* VAR_POP: Population variance
-* STDDEV_SAMP: Sample standard deviation
-* STDDEV_POP: Population standard deviation
-* DISTINCT_COUNT_APPROX: Approximate distinct count
-* TAKE: List of original values
-* PERCENTILE/PERCENTILE_APPROX: Percentile calculations
-* PERC<percent>/P<percent>: Percentile shortcut functions
-* MEDIAN: 50th percentile
-* EARLIEST: Earliest value by timestamp
-* LATEST: Latest value by timestamp
-* FIRST: First non-null value
-* LAST: Last non-null value
-* LIST: Collect all values into array
-* VALUES: Collect unique values into sorted array
-
-For detailed documentation of each function, see `Aggregation Functions <../functions/aggregation.rst>`_.
 
 Example 1: Calculate the count of events
 ========================================
@@ -388,3 +360,18 @@ PPL query::
     | 1   | 2025-01-01 | 2      |
     +-----+------------+--------+
 
+
+Example 18: Calculate the count by the implicit @timestamp field
+================================================================
+
+This example demonstrates that if you omit the field parameter in the span function, it will automatically use the implicit ``@timestamp`` field.
+
+PPL query::
+
+    PPL> source=big5 | stats count() by span(1month)
+    fetched rows / total rows = 1/1
+    +---------+---------------------+
+    | count() | span(1month)        |
+    |---------+---------------------|
+    | 1       | 2023-01-01 00:00:00 |
+    +---------+---------------------+

@@ -1,3 +1,26 @@
+/*
+{
+  "name": "range_field_conjunction_small_range_big_term_query",
+  "operation-type": "search",
+  "index": "{{index_name | default('big5')}}",
+  "body": {
+    "query": {
+      "bool": {
+        "must": [
+          {
+            "range": {
+              "metrics.size": {
+                "gte": 20,
+                "lte": 30
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
+*/
 source = big5
-| where `metrics.size` >= 1 and `metrics.size` <= 42
+| where `metrics.size` >= 20 and `metrics.size` <= 30
 | head 10

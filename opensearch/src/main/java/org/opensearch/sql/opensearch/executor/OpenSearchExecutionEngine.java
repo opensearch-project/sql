@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.opensearch.executor;
 
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DISTINCT_COUNT_APPROX;
+
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.sql.PreparedStatement;
@@ -282,10 +284,10 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     SqlUserDefinedAggFunction approxDistinctCountFunction =
         UserDefinedFunctionUtils.createUserDefinedAggFunction(
             DistinctCountApproxAggFunction.class,
-            "APPROX_DISTINCT_COUNT",
+            DISTINCT_COUNT_APPROX.toString(),
             ReturnTypes.BIGINT_FORCE_NULLABLE,
             null);
     PPLFuncImpTable.INSTANCE.registerExternalAggOperator(
-        BuiltinFunctionName.DISTINCT_COUNT_APPROX, approxDistinctCountFunction);
+        DISTINCT_COUNT_APPROX, approxDistinctCountFunction);
   }
 }

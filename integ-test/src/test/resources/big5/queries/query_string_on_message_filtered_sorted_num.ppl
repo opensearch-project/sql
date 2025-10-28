@@ -1,5 +1,40 @@
-source = big5 | where query_string(['message'], 'shield AND carp AND shark')
-| where `@timestamp` >= '2023-01-01 00:00:00'
-  and `@timestamp` < '2023-01-03 00:00:00'
-| sort - `metrics.size`
+/*
+{
+  "name": "query-string-on-message-filtered-sorted-num",
+  "operation-type": "search",
+  "index": "{{index_name | default('big5')}}",
+  "body": {
+    "query": {
+      "bool": {
+        "must": [
+          {
+            "range": {
+              "@timestamp": {
+                "gte": "2023-01-03T00:00:00",
+                "lt": "2023-01-03T10:00:00"
+              }
+            }
+          },
+          {
+            "query_string": {
+              "query": "message: monkey jackal bear"
+            }
+          }
+        ]
+      }
+    },
+    "sort": [
+      {
+        "@timestamp": {
+          "order": "asc"
+        }
+      }
+    ]
+  }
+}
+*/
+source = big5
+| where `@timestamp` >= '2023-01-03 00:00:00' and `@timestamp` < '2023-01-03 10:00:00'
+  AND query_string(['message'], 'monkey jackal bear')
+| sort `@timestamp`
 | head 10

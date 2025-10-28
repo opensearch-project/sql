@@ -1,3 +1,20 @@
+/*
+{
+  "name": "range",
+  "operation-type": "search",
+  "index": "{{index_name | default('big5')}}",
+  "body": {
+    "query": {
+      "range": {
+        "@timestamp": {
+          "gte": "2023-01-01T00:00:00",
+          "lt": "2023-01-03T00:00:00"
+        }
+      }
+    }
+  }
+}
+*/
 source = big5
 | where `@timestamp` >= '2023-01-01 00:00:00' and `@timestamp` < '2023-01-03 00:00:00'
 | head 10

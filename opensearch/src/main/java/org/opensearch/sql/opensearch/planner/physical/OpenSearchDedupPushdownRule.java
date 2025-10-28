@@ -23,6 +23,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.immutables.value.Value;
 import org.opensearch.sql.calcite.utils.PlanUtils;
+import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
 @Value.Enclosing
@@ -125,10 +126,10 @@ public class OpenSearchDedupPushdownRule extends RelRule<OpenSearchDedupPushdown
                                                         b3.operand(CalciteLogicalIndexScan.class)
                                                             .predicate(
                                                                 Predicate.not(
-                                                                        OpenSearchIndexScanRule
+                                                                        AbstractCalciteIndexScan
                                                                             ::isLimitPushed)
                                                                     .and(
-                                                                        OpenSearchIndexScanRule
+                                                                        AbstractCalciteIndexScan
                                                                             ::noAggregatePushed))
                                                             .noInputs()))));
 

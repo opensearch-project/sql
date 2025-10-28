@@ -1,0 +1,192 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+
+  - do:
+      indices.create:
+        index: log00001
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              v:
+                type: text
+              strnum:
+                type: keyword
+              vint:
+                type: integer
+              vdouble:
+                type: double
+              vboolean:
+                type: boolean
+
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "log00001", "_id": 1}}'
+          - '{"v": "value=1", "a": 1, "vint": 1, "vdouble": 1.0, "strnum": "1"}'
+          - '{"index": {"_index": "log00001", "_id": 2}}'
+          - '{"v": "value=1.5", "a": 2, "vint": 1, "vdouble": 1.5, "strnum": "2"}'
+          - '{"index": {"_index": "log00001", "_id": 3}}'
+          - '{"v": "value=true", "a": 3, "vint": 1, "vdouble": 1.0, "vboolean":true, "strnum": "3"}'
+          - '{"index": {"_index": "log00001", "_id": 4}}'
+          - '{"v": "value=abcde", "a": 4, "vint": 1, "vdouble": 1.0, "strnum": "malformed"}'
+  - do:
+      indices.create:
+        index: log00002
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              id:
+                type: integer
+
+
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "log00002", "_id": 1}}'
+          - '{"id": 1}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+  - do:
+      indices.delete:
+        index: log00001
+        ignore_unavailable: true
+
+---
+"Extracted value participate in arithmetic operator":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=log00001 | rex field=v 'value=(?<digits>[\\w\\d\\.]*)' | eval m=digits * 10 | eval d=digits/10 | sort a | fields m, d
+  - match: {"schema": [{"name": "m", "type": "double"}, {"name": "d", "type": "double"}]}
+  - match: {"datarows": [[10.0, 0.1], [15.0, 0.15], [null, null], [null, null]]}
+
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=log00001 | rex field=v 'value=(?<digits>[\\w\\d\\.]*)' | eval m=digits + digits, d=digits * digits | sort a | fields m, d
+  - match: { "schema": [ { "name": "m", "type": "string" }, { "name": "d", "type": "double" } ] }
+  - match: { "datarows": [ [ "11", 1.0 ], [ "1.51.5", 2.25 ], [ "truetrue", null ], [ "abcdeabcde", null ] ] }
+
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=log00002 | eval m="5" - 10 | eval r=round("1.5",  1) | eval f=floor("5.2") | eval c=ceil("5.2") | fields m, r, f, c
+  - match: { "schema": [ { "name": "m", "type": "double" }, { "name": "r", "type": "double" }, { "name": "f", "type": "double" }, { "name": "c", "type": "double" }] }
+  - match: { "datarows": [ [ -5.0, 1.5, 5.0, 6.0] ] }
+
+---
+"Extracted value participate in comparison operator":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=log00001 | rex field=v 'value=(?<digits>[\\w\\d\\.]*)' | eval i=digits==vint, d=digits==vdouble, b=digits==vboolean| fields i, d, b
+  - match: {"schema": [{"name": "i", "type": "boolean"}, {"name": "d", "type": "boolean"}, {"name": "b", "type": "boolean"}]}
+  - match: {"datarows": [[true,true,null], [false,true,null], [null, null, true], [null, null, null]]}
+
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=log00002 | eval e='1000'==1000, en='1000'!=1000, ed='1000'==1000.0, edn='1000'!=1000.0, l='1000'>999, ld='1000'>999.9, i="malformed"==1000 | fields e, en, ed, edn, l, ld, i
+  - match: {"schema": [{"name": "e", "type": "boolean"}, {"name": "en", "type": "boolean"}, {"name": "ed", "type": "boolean"}, {"name": "edn", "type": "boolean"}, {"name": "l", "type": "boolean"}, {"name": "ld", "type": "boolean"}, {"name": "i", "type": "boolean"}]}
+  - match: {"datarows": [[true, false, true, false, true, true, null]]}
+
+---
+"Extracted value participate in string func":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=log00001 | rex field=v 'value=(?<digits>[\\w\\d\\.]*)' | eval r=concat('v-', digits) | sort a | fields r
+  - match: {"schema": [{"name": "r", "type": "string"}]}
+  - match: {"datarows": [["v-1"], ["v-1.5"], ["v-true"], ["v-abcde"]]}
+
+
+---
+"Extracted value participate in condition func":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=log00001 | rex field=v 'value=(?<digits>[\\w\\d\\.]*)' | eval isNull=isnull(digits) | fields isNull
+  - match: {"schema": [{"name": "isNull", "type": "boolean"}]}
+  - match: {"datarows": [[false], [false], [false], [false]]}
+
+---
+"Extracted value participate in aggregation func":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=log00001 | rex field=v 'value=(?<digits>[\\w\\d\\.]*)' | stats count(digits) as cnt, sum(digits) as sum, avg(digits) as avg
+  - match: {"schema": [{"name": "cnt", "type": "bigint"}, {"name": "sum", "type": "double"}, {"name": "avg", "type": "double"}]}
+  - match: {"datarows": [[4, 2.5, 1.25]]}
+
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=log00001 | rex field=v 'value=(?<digits>[\\w\\d\\.]*)' | eventstats sum(digits) as sum, count(digits) as cnt| fields a, sum, cnt
+  - match: { "schema": [ { "name": "a", "type": "bigint" }, { "name": "sum", "type": "double" }, { "name": "cnt", "type": "bigint" } ] }
+  - match: { "datarows": [ [1, 2.5, 4], [2, 2.5, 4], [3, 2.5, 4], [4, 2.5, 4] ] }
+
+---
+"Safe cast keyword to int":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=log00001 | stats count(strnum) as cnt, sum(strnum) as sum, avg(strnum) as avg
+  - match: {"schema": [{"name": "cnt", "type": "bigint"}, {"name": "sum", "type": "double"}, {"name": "avg", "type": "double"}]}
+# Notice： Count is calculated on string value, sum and avg are calculated on numeric value, this is why sum/count!=avg
+  - match: {"datarows": [[4, 6.0, 2.0]]}

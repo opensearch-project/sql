@@ -107,37 +107,37 @@ public class CalcitePPLEventstatsTypeTest extends CalcitePPLAbstractTest {
   @Test
   public void testAvgWithWrongArgType() {
     verifyQueryThrowsException(
-        "source=EMP | eventstats avg(ENAME) as avg_name",
-        "Aggregation function AVG expects field type {[INTEGER]|[DOUBLE]}, but got [STRING]");
+        "source=EMP | eventstats avg(HIREDATE) as avg_name",
+        "Aggregation function AVG expects field type {[INTEGER]|[DOUBLE]}, but got [DATE]");
   }
 
   @Test
   public void testVarsampWithWrongArgType() {
     verifyQueryThrowsException(
-        "source=EMP | eventstats var_samp(ENAME) as varsamp_name",
-        "Aggregation function VARSAMP expects field type {[INTEGER]|[DOUBLE]}, but got [STRING]");
+        "source=EMP | eventstats var_samp(HIREDATE) as varsamp_name",
+        "Aggregation function VARSAMP expects field type {[INTEGER]|[DOUBLE]}, but got [DATE]");
   }
 
   @Test
   public void testVarpopWithWrongArgType() {
     verifyQueryThrowsException(
-        "source=EMP | eventstats var_pop(ENAME) as varpop_name",
-        "Aggregation function VARPOP expects field type {[INTEGER]|[DOUBLE]}, but got [STRING]");
+        "source=EMP | eventstats var_pop(HIREDATE) as varpop_name",
+        "Aggregation function VARPOP expects field type {[INTEGER]|[DOUBLE]}, but got [DATE]");
   }
 
   @Test
   public void testStddevSampWithWrongArgType() {
     verifyQueryThrowsException(
-        "source=EMP | eventstats stddev_samp(ENAME) as stddev_name",
+        "source=EMP | eventstats stddev_samp(HIREDATE) as stddev_name",
         "Aggregation function STDDEV_SAMP expects field type {[INTEGER]|[DOUBLE]}, but got"
-            + " [STRING]");
+            + " [DATE]");
   }
 
   @Test
   public void testStddevPopWithWrongArgType() {
     verifyQueryThrowsException(
-        "source=EMP | eventstats stddev_pop(ENAME) as stddev_name",
+        "source=EMP | eventstats stddev_pop(HIREDATE) as stddev_name",
         "Aggregation function STDDEV_POP expects field type {[INTEGER]|[DOUBLE]}, but got"
-            + " [STRING]");
+            + " [DATE]");
   }
 }

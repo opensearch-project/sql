@@ -5,46 +5,23 @@
 
 package org.opensearch.sql.calcite.standalone;
 
-import java.io.IOException;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.apache.calcite.plan.Contexts;
-import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.tools.Frameworks;
-import org.apache.calcite.tools.Programs;
-import org.apache.calcite.tools.RelBuilder;
 import org.junit.jupiter.api.Test;
-import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.calcite.SysLimit;
-import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
-import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
-/** Integration test for internal function JSON_EXTRACT_ALL in Calcite PPL. */
-public class JsonExtractAllFunctionIT extends CalcitePPLIntegTestCase {
+public class JsonExtractAllFunctionIT extends CalcitePPLRelNodeIntegTestCase {
 
   private static final String RESULT_FIELD = "result";
   private static final String ID_FIELD = "id";
-  TestContext context;
-
-  @Override
-  public void init() throws IOException {
-    super.init();
-    context = createTestContext();
-    enableCalcite();
-  }
 
   @Test
   public void testJsonExtractAllWithNullInput() throws Exception {
@@ -309,62 +286,5 @@ public class JsonExtractAllFunctionIT extends CalcitePPLIntegTestCase {
           assertEquals("John", map.get("name"));
           assertEquals(1, map.size());
         });
-  }
-
-  @FunctionalInterface
-  private interface ResultVerifier {
-    void verify(ResultSet resultSet) throws SQLException;
-  }
-
-  private static class TestContext {
-    final CalcitePlanContext planContext;
-    final RelBuilder relBuilder;
-    final RexBuilder rexBuilder;
-
-    TestContext(CalcitePlanContext planContext, RelBuilder relBuilder, RexBuilder rexBuilder) {
-      this.planContext = planContext;
-      this.relBuilder = relBuilder;
-      this.rexBuilder = rexBuilder;
-    }
-  }
-
-  private TestContext createTestContext() {
-    CalcitePlanContext planContext = createCalcitePlanContext();
-    return new TestContext(planContext, planContext.relBuilder, planContext.rexBuilder);
-  }
-
-  private void executeRelNodeAndVerify(
-      CalcitePlanContext planContext, RelNode relNode, ResultVerifier verifier)
-      throws SQLException {
-    try (PreparedStatement statement = OpenSearchRelRunners.run(planContext, relNode)) {
-      ResultSet resultSet = statement.executeQuery();
-      verifier.verify(resultSet);
-    }
-  }
-
-  private void verifyColumns(ResultSet resultSet, String... expectedColumnNames)
-      throws SQLException {
-    assertEquals(expectedColumnNames.length, resultSet.getMetaData().getColumnCount());
-
-    for (int i = 0; i < expectedColumnNames.length; i++) {
-      String expectedName = expectedColumnNames[i];
-      String actualName = resultSet.getMetaData().getColumnName(i + 1);
-      assertEquals(expectedName, actualName);
-    }
-  }
-
-  private CalcitePlanContext createCalcitePlanContext() {
-    // Create a Frameworks.ConfigBuilder similar to CalcitePPLAbstractTest
-    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
-    Frameworks.ConfigBuilder config =
-        Frameworks.newConfigBuilder()
-            .parserConfig(SqlParser.Config.DEFAULT)
-            .defaultSchema(rootSchema)
-            .traitDefs((List<RelTraitDef>) null)
-            .programs(Programs.heuristicJoinOrder(Programs.RULE_SET, true, 2));
-
-    config.context(Contexts.of(RelBuilder.Config.DEFAULT));
-
-    return CalcitePlanContext.create(config.build(), SysLimit.DEFAULT, QueryType.PPL);
   }
 }

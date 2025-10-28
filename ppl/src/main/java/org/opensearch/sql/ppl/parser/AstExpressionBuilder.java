@@ -636,7 +636,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     if (ctx.fieldExpression() != null) {
       fieldExpression = visit(ctx.fieldExpression());
     } else {
-      fieldExpression = AstDSL.field("@timestamp");
+      fieldExpression = AstDSL.referImplicitTimestampField();
     }
     Literal literal = (Literal) visit(ctx.value);
     return AstDSL.spanFromSpanLengthLiteral(fieldExpression, literal);
@@ -932,6 +932,47 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
       osDateMathExpression = DateTimeUtils.resolveTimeModifier(pplTimeModifier);
     }
     return AstDSL.stringLiteral(osDateMathExpression);
+  }
+
+  @Override
+  public UnresolvedExpression visitTimechartParameter(
+      OpenSearchPPLParser.TimechartParameterContext ctx) {
+    UnresolvedExpression timechartParameter;
+    if (ctx.SPAN() != null) {
+      // Convert span=1h to span(@timestamp, 1h)
+      Literal spanLiteral = (Literal) visit(ctx.spanLiteral());
+      timechartParameter =
+          AstDSL.spanFromSpanLengthLiteral(AstDSL.referImplicitTimestampField(), spanLiteral);
+    } else if (ctx.LIMIT() != null) {
+      Literal limit = (Literal) visit(ctx.integerLiteral());
+      if ((Integer) limit.getValue() < 0) {
+        throw new IllegalArgumentException("Limit must be a non-negative number");
+      }
+      timechartParameter = limit;
+    } else if (ctx.USEOTHER() != null) {
+      UnresolvedExpression useOther;
+      if (ctx.booleanLiteral() != null) {
+        useOther = visit(ctx.booleanLiteral());
+      } else if (ctx.ident() != null) {
+        QualifiedName ident = visitIdentifiers(List.of(ctx.ident()));
+        String useOtherValue = ident.toString();
+        if ("true".equalsIgnoreCase(useOtherValue) || "t".equalsIgnoreCase(useOtherValue)) {
+          useOther = AstDSL.booleanLiteral(true);
+        } else if ("false".equalsIgnoreCase(useOtherValue) || "f".equalsIgnoreCase(useOtherValue)) {
+          useOther = AstDSL.booleanLiteral(false);
+        } else {
+          throw new IllegalArgumentException(
+              "Invalid useOther value: " + ctx.ident().getText() + ". Expected true/false or t/f");
+        }
+      } else {
+        throw new IllegalArgumentException("value for useOther must be a boolean or identifier");
+      }
+      timechartParameter = useOther;
+    } else {
+      throw new IllegalArgumentException(
+          String.format("A parameter of timechart must be a span, limit or useOther, got %s", ctx));
+    }
+    return timechartParameter;
   }
 
   /**

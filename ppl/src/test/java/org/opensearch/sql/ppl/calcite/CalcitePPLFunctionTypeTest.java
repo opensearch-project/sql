@@ -45,12 +45,8 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
   public void testComparisonWithDifferentType() {
     getRelNode("source=EMP | where EMPNO > 6 | fields ENAME");
     getRelNode("source=EMP | where ENAME <= 'Jack' | fields ENAME");
-    verifyQueryThrowsException(
-        "source=EMP | where ENAME < 6 | fields ENAME",
-        // Temporary fix for the error message as LESS function has two variants. Will remove
-        // [IP,IP] when merging the two variants.
-        "LESS function expects {[IP,IP],[COMPARABLE_TYPE,COMPARABLE_TYPE]}, but got"
-            + " [STRING,INTEGER]");
+    // LogicalFilter(condition=[<(SAFE_CAST($1), 6.0E0)])
+    getRelNode("source=EMP | where ENAME < 6 | fields ENAME");
   }
 
   @Test
@@ -151,8 +147,8 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
   @Test
   public void testSqrtWithWrongArg() {
     verifyQueryThrowsException(
-        "source=EMP | head 1 | eval sqrt_name = sqrt(ENAME) | fields sqrt_name",
-        "SQRT function expects {[INTEGER]|[DOUBLE]}, but got [STRING]");
+        "source=EMP | head 1 | eval sqrt_name = sqrt(HIREDATE) | fields sqrt_name",
+        "SQRT function expects {[INTEGER]|[DOUBLE]}, but got [DATE]");
   }
 
   // Test UDF registered with PPL builtin operators: registerOperator(MOD, PPLBuiltinOperators.MOD);

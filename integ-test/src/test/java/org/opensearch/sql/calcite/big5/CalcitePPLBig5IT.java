@@ -21,24 +21,25 @@ public class CalcitePPLBig5IT extends PPLBig5IT {
 
   @Test
   public void bin_bins() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/bin_bins.ppl"));
+    String ppl = sanitize(loadExpectedQuery("bin_bins.ppl"));
     timing(summary, "bin_bins", ppl);
   }
 
   @Test
   public void bin_span_log() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/bin_span_log.ppl"));
+    String ppl = sanitize(loadExpectedQuery("bin_span_log.ppl"));
     timing(summary, "bin_span_log", ppl);
   }
 
   @Test
   public void bin_span_time() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/bin_span_time.ppl"));
+    String ppl = sanitize(loadExpectedQuery("bin_span_time.ppl"));
     timing(summary, "bin_span_time", ppl);
   }
 
+  @Test
   public void coalesce_nonexistent_field_fallback() throws IOException {
-    String ppl = sanitize(loadFromFile("big5/queries/coalesce_nonexistent_field_fallback.ppl"));
+    String ppl = sanitize(loadExpectedQuery("coalesce_nonexistent_field_fallback.ppl"));
     timing(summary, "coalesce_nonexistent_field_fallback", ppl);
   }
 }

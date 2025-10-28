@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.calcite.standalone;
 
-import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
@@ -22,13 +21,6 @@ public class MapAppendFunctionIT extends CalcitePPLRelNodeIntegTestCase {
 
   private static final String MAP_FIELD = "map";
   private static final String ID_FIELD = "id";
-
-  @Override
-  public void init() throws IOException {
-    super.init();
-    context = createTestContext();
-    enableCalcite();
-  }
 
   @Test
   public void testMapAppendWithNonOverlappingKeys() throws Exception {

@@ -1,3 +1,20 @@
+/*
+{
+  "name": "range-numeric",
+  "operation-type": "search",
+  "index": "{{index_name | default('big5')}}",
+  "body": {
+    "query": {
+      "range": {
+        "metrics.size": {
+          "gte": 20,
+          "lte": 200
+        }
+      }
+    }
+  }
+}
+*/
 source = big5
-| where `metrics.size` >= 1 and `metrics.size` <= 1000
+| where `metrics.size` >= 20 and `metrics.size` <= 200
 | head 10

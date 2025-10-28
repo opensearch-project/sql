@@ -42,7 +42,8 @@ public class OpenSearchDataType implements ExprType, Serializable {
     HalfFloat("half_float", ExprCoreType.FLOAT),
     ScaledFloat("scaled_float", ExprCoreType.DOUBLE),
     Double("double", ExprCoreType.DOUBLE),
-    Boolean("boolean", ExprCoreType.BOOLEAN);
+    Boolean("boolean", ExprCoreType.BOOLEAN),
+    Alias("alias", ExprCoreType.UNKNOWN);
     // TODO: ranges, geo shape, point, shape
 
     private final String name;
@@ -117,12 +118,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
           // by default, the type is treated as an Object if "type" is not provided
           var type = ((String) innerMap.getOrDefault("type", "object")).replace("_", "");
           if (!EnumUtils.isValidEnumIgnoreCase(OpenSearchDataType.MappingType.class, type)) {
-            // unknown type, e.g. `alias`
-            // Record fields of the alias type and resolve them later in case their references have
-            // not been resolved.
-            if (OpenSearchAliasType.typeName.equals(type)) {
-              aliasMapping.put(k, (String) innerMap.get(OpenSearchAliasType.pathPropertyName));
-            }
+            // unknown type, skip it.
             return;
           }
           // create OpenSearchDataType
@@ -132,21 +128,6 @@ public class OpenSearchDataType implements ExprType, Serializable {
                   EnumUtils.getEnumIgnoreCase(OpenSearchDataType.MappingType.class, type),
                   innerMap));
         });
-
-    // Begin to parse alias type fields
-    if (!aliasMapping.isEmpty()) {
-      // The path of alias type may point to a nested field, so we need to flatten the result.
-      Map<String, OpenSearchDataType> flattenResult = traverseAndFlatten(result);
-      aliasMapping.forEach(
-          (k, v) -> {
-            if (flattenResult.containsKey(v)) {
-              result.put(k, new OpenSearchAliasType(v, flattenResult.get(v)));
-            } else {
-              throw new IllegalStateException(
-                  String.format("Cannot find the path [%s] for alias type field [%s]", v, k));
-            }
-          });
-    }
 
     return result;
   }
@@ -188,6 +169,10 @@ public class OpenSearchDataType implements ExprType, Serializable {
         // Default date formatter is used when "" is passed as the second parameter
         String format = (String) innerMap.getOrDefault("format", "");
         return OpenSearchDateType.of(format);
+      case Alias:
+        return new OpenSearchAliasType(
+            (String) innerMap.get(OpenSearchAliasType.pathPropertyName),
+            OpenSearchDateType.of(MappingType.Invalid));
       default:
         return res;
     }
@@ -302,7 +287,18 @@ public class OpenSearchDataType implements ExprType, Serializable {
           }
         };
     visitLevel.accept(tree, "");
+    validateAliasType(result);
     return result;
+  }
+
+  private static void validateAliasType(Map<String, OpenSearchDataType> result) {
+    result.forEach(
+        (key, value) -> {
+          if (value instanceof OpenSearchAliasType && value.getOriginalPath().isPresent()) {
+            String originalPath = value.getOriginalPath().get();
+            result.put(key, new OpenSearchAliasType(originalPath, result.get(originalPath)));
+          }
+        });
   }
 
   /**

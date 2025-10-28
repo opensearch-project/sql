@@ -1,0 +1,40 @@
+/*
+{
+  "name": "range-agg-2",
+  "operation-type": "search",
+  "index": "{{index_name | default('big5')}}",
+  "body": {
+    "size": 0,
+    "aggs": {
+      "tmax": {
+        "range": {
+          "field": "metrics.size",
+          "ranges": [
+            {
+              "to": 100
+            },
+            {
+              "from": 100,
+              "to": 1000
+            },
+            {
+              "from": 1000,
+              "to": 2000
+            },
+            {
+              "from": 2000
+            }
+          ]
+        }
+      }
+    }
+  }
+}
+*/
+source = big5
+| eval range_bucket = case(
+   `metrics.size` < 100, 'range_1',
+   `metrics.size` >= 100 and `metrics.size` < 1000, 'range_2',
+   `metrics.size` >= 1000 and `metrics.size` < 2000, 'range_3',
+   `metrics.size` >= 2000, 'range_4')
+| stats count() by range_bucket

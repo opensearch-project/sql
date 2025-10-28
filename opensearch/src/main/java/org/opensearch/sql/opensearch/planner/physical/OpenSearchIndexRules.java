@@ -31,6 +31,8 @@ public class OpenSearchIndexRules {
       SortProjectExprTransposeRule.Config.DEFAULT.toRule();
   private static final ExpandCollationOnProjectExprRule EXPAND_COLLATION_ON_PROJECT_EXPR =
       ExpandCollationOnProjectExprRule.Config.DEFAULT.toRule();
+  private static final SortAggregationMetricsRule SORT_AGGREGATION_METRICS_RULE =
+      SortAggregationMetricsRule.Config.DEFAULT.toRule();
 
   // Rule that always pushes down relevance functions regardless of pushdown settings
   public static final OpenSearchRelevanceFunctionPushdownRule RELEVANCE_FUNCTION_PUSHDOWN =
@@ -48,6 +50,7 @@ public class OpenSearchIndexRules {
           // TODO enable if https://github.com/opensearch-project/OpenSearch/issues/3725 resolved
           // DEDUP_PUSH_DOWN,
           SORT_PROJECT_EXPR_TRANSPOSE,
+          SORT_AGGREGATION_METRICS_RULE,
           EXPAND_COLLATION_ON_PROJECT_EXPR);
 
   // prevent instantiation
