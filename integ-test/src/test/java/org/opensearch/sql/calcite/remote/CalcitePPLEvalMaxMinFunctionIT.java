@@ -32,7 +32,7 @@ public class CalcitePPLEvalMaxMinFunctionIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval new = max(1, 3, age) | fields age, new", TEST_INDEX_DOG));
-    verifySchema(result, schema("age", "bigint"), schema("new", "int"));
+    verifySchema(result, schema("age", "bigint"), schema("new", "bigint"));
     verifyDataRows(result, rows(2, 3), rows(4, 4));
   }
 

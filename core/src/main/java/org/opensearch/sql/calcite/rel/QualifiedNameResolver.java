@@ -3,7 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite;
+package org.opensearch.sql.calcite.rel;
+
+import static org.opensearch.sql.calcite.plan.DynamicFieldsConstants.DYNAMIC_FIELDS_MAP;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +18,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.ast.expression.QualifiedName;
-import org.opensearch.sql.calcite.plan.DynamicFieldsConstants;
+import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
@@ -28,6 +30,25 @@ import org.opensearch.sql.expression.function.PPLFuncImpTable;
 public class QualifiedNameResolver {
 
   private static final Logger log = LogManager.getLogger(QualifiedNameResolver.class);
+
+  /** Resolve field in a specific input */
+  public static Optional<RexNode> resolveField(
+      int inputCount, int inputOrdinal, String fieldName, CalcitePlanContext context) {
+    List<String> inputFieldNames = context.fieldBuilder.getAllFieldNames(inputCount, inputOrdinal);
+    if (inputFieldNames.contains(fieldName)) {
+      return Optional.of(context.fieldBuilder.staticField(inputCount, inputOrdinal, fieldName));
+    } else if (context.fieldBuilder.isDynamicFieldsExist()) {
+      return Optional.of(context.fieldBuilder.dynamicField(fieldName));
+    }
+    return Optional.empty();
+  }
+
+  public static RexNode resolveFieldOrThrow(
+      int inputCount, int inputOrdinal, String fieldName, CalcitePlanContext context) {
+    return resolveField(inputCount, inputOrdinal, fieldName, context)
+        .orElseThrow(
+            () -> new IllegalArgumentException(String.format("Field [%s] not found.", fieldName)));
+  }
 
   /**
    * Resolves a qualified name to a RexNode based on the current context.
@@ -130,10 +151,9 @@ public class QualifiedNameResolver {
     List<Set<String>> inputFieldNames = collectInputFieldNames(context, inputCount);
 
     for (int i = 0; i < inputCount; i++) {
-      if (inputFieldNames.get(i).contains(DynamicFieldsConstants.DYNAMIC_FIELDS_MAP)) {
+      if (inputFieldNames.get(i).contains(DYNAMIC_FIELDS_MAP)) {
         String fieldName = String.join(".", parts);
-        RexNode dynamicField =
-            context.relBuilder.field(inputCount, i, DynamicFieldsConstants.DYNAMIC_FIELDS_MAP);
+        RexNode dynamicField = context.relBuilder.field_(inputCount, i, DYNAMIC_FIELDS_MAP);
         RexNode itemAccess = createItemAccess(dynamicField, fieldName, context);
         return Optional.of(itemAccess);
       }
@@ -149,7 +169,7 @@ public class QualifiedNameResolver {
         fieldName,
         inputCount);
     try {
-      return Optional.of(context.relBuilder.field(inputCount, alias, fieldName));
+      return Optional.of(context.relBuilder.field_(inputCount, alias, fieldName));
     } catch (IllegalArgumentException e) {
       log.debug("tryToResolveField() failed: {}", e.getMessage());
     }
@@ -171,7 +191,7 @@ public class QualifiedNameResolver {
       int foundInput = findInputContainingFieldName(inputCount, inputFieldNames, fieldName);
       log.debug("resolveFieldWithoutAlias() foundInput={}", foundInput);
       if (foundInput != -1) {
-        RexNode fieldNode = context.relBuilder.field(inputCount, foundInput, fieldName);
+        RexNode fieldNode = context.relBuilder.field_(inputCount, foundInput, fieldName);
         return Optional.of(resolveFieldAccess(context, parts, 0, length, fieldNode));
       }
     }
@@ -219,7 +239,7 @@ public class QualifiedNameResolver {
       String alias = parts.get(0);
       for (String candidate : candidates) {
         try {
-          return Optional.of(context.relBuilder.field(alias, candidate));
+          return Optional.of(context.relBuilder.field_(alias, candidate));
         } catch (IllegalArgumentException e1) {
           // Indicates the field was not found.
         }
@@ -260,7 +280,7 @@ public class QualifiedNameResolver {
                   String fieldName = joinParts(parts, start, length);
                   log.debug("resolveCorrelationField() trying fieldName={}", fieldName);
                   if (fieldNameList.contains(fieldName)) {
-                    RexNode field = context.relBuilder.field(correlation, fieldName);
+                    RexNode field = context.relBuilder.field_(correlation, fieldName);
                     return resolveFieldAccess(context, parts, start, length, field);
                   }
                 }
