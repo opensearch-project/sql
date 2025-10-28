@@ -38,6 +38,7 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.LOGS);
     loadIndex(Index.WORKER);
     loadIndex(Index.WORK_INFORMATION);
+    loadIndex(Index.WEBLOG);
   }
 
   @Override
@@ -1415,5 +1416,17 @@ public class CalciteExplainIT extends ExplainIT {
                 + "| head 5 "
                 + "| sort age "
                 + "| fields age"));
+  }
+
+  @Test
+  public void testInternalItemAccessOnStructs() throws IOException {
+    String expected = loadExpectedPlan("access_struct_subfield_with_item.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            String.format(
+                "source=%s | eval info = geoip('dummy-datasource', host) | fields host, info,"
+                    + " info.dummy_sub_field",
+                TEST_INDEX_WEBLOGS)));
   }
 }
