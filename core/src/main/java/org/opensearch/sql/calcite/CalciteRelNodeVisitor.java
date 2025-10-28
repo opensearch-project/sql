@@ -1925,8 +1925,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return relBuilder.peek();
   }
 
-  /** Helper method to get the function name for proper column naming */
-  private String getAggFieldAlias(UnresolvedExpression aggregateFunction) {
+  /**
+   * Helper method to get the metric alias for proper column naming. E.g. It returns {@code cnt} for
+   * {@code count(balance) as cnt}, and returns {@code avg(cpu_usage)} for {@code avg(cpu_usage)}
+   */
+  private String getMetricAlias(UnresolvedExpression aggregateFunction) {
     if (aggregateFunction instanceof Alias) {
       return ((Alias) aggregateFunction).getName();
     }
@@ -1976,7 +1979,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // Handle no by field case
     if (node.getByField() == null) {
-      String aggFieldAlias = getAggFieldAlias(node.getAggregateFunction());
+      String aggFieldAlias = getMetricAlias(node.getAggregateFunction());
 
       // Create group expression list with just the timestamp span but use a different alias
       // to avoid @timestamp naming conflict
@@ -2010,7 +2013,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Extract parameters for byField case
     UnresolvedExpression byField = node.getByField();
     String byFieldName = ((Field) byField).getField().toString();
-    String aggFieldAlias = getAggFieldAlias(node.getAggregateFunction());
+    String aggFieldAlias = getMetricAlias(node.getAggregateFunction());
 
     int limit = Optional.ofNullable(node.getLimit()).orElse(10);
     boolean useOther = Optional.ofNullable(node.getUseOther()).orElse(true);
