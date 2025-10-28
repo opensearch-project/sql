@@ -141,7 +141,7 @@ PPL query::
 Example 7: Sort by field include null value
 ===========================================
 
-The example show sort employer field by default option (ascending order and null first), the result show that null value is in the first row.
+The example shows sorting the employer field by the default option (ascending order and null first), the result shows that the null value is in the first row.
 
 PPL query::
 

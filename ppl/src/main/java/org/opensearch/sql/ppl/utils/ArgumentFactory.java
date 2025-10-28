@@ -166,17 +166,15 @@ public class ArgumentFactory {
 
   /** Helper method to get type argument from sortFieldExpression. */
   private static Argument getTypeArgument(OpenSearchPPLParser.SortFieldExpressionContext ctx) {
-    if (ctx.AUTO() != null) {
-      return new Argument("type", new Literal("auto", DataType.STRING));
-    } else if (ctx.IP() != null) {
-      return new Argument("type", new Literal("ip", DataType.STRING));
-    } else if (ctx.NUM() != null) {
-      return new Argument("type", new Literal("num", DataType.STRING));
-    } else if (ctx.STR() != null) {
-      return new Argument("type", new Literal("str", DataType.STRING));
-    } else {
-      return new Argument("type", new Literal(null, DataType.NULL));
-    }
+    if (ctx.AUTO() != null) return createTypeArgument("auto");
+    if (ctx.IP() != null) return createTypeArgument("ip");
+    if (ctx.NUM() != null) return createTypeArgument("num");
+    if (ctx.STR() != null) return createTypeArgument("str");
+    return createTypeArgument(null);
+  }
+  private static Argument createTypeArgument(String value) {
+    DataType dataType = value != null ? DataType.STRING : DataType.NULL;
+    return new Argument("type", new Literal(value, dataType));
   }
 
   /**
