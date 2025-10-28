@@ -1,5 +1,31 @@
+/*
+{
+  "name": "range_field_conjunction_big_range_big_term_query",
+  "operation-type": "search",
+  "index": "{{index_name | default('big5')}}",
+  "body": {
+    "query": {
+      "bool": {
+        "must": [
+          {
+            "term": {
+              "process.name": "systemd"
+            }
+          },
+          {
+            "range": {
+              "metrics.size": {
+                "gte": 1,
+                "lte": 100
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
+*/
 source = big5
-| where `process.name` = 'systemd'
-  and `metrics.size` >= 1
-  and `metrics.size` <= 1000
+| where `process.name` = 'systemd' and `metrics.size` >= 1 and `metrics.size` <= 100
 | head 10

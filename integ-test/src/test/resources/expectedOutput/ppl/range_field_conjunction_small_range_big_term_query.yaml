@@ -1,0 +1,19 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[agent, process, log, message, tags, cloud, input, @timestamp, ecs, data_stream,\
+      \ meta, host, metrics, aws, event]"
+  children:
+    - name: OpenSearchIndexScan
+      description:
+        request: "OpenSearchQueryRequest(indexName=big5, sourceBuilder={\"from\":0,\"\
+          size\":10,\"timeout\":\"1m\",\"query\":{\"bool\":{\"filter\":[{\"range\"\
+          :{\"metrics.size\":{\"from\":20,\"to\":null,\"include_lower\":true,\"include_upper\"\
+          :true,\"boost\":1.0}}},{\"range\":{\"metrics.size\":{\"from\":null,\"to\"\
+          :30,\"include_lower\":true,\"include_upper\":true,\"boost\":1.0}}}],\"adjust_pure_negative\"\
+          :true,\"boost\":1.0}},\"_source\":{\"includes\":[\"agent\",\"process\",\"\
+          log\",\"message\",\"tags\",\"cloud\",\"input\",\"@timestamp\",\"ecs\",\"\
+          data_stream\",\"meta\",\"host\",\"metrics\",\"aws\",\"event\"],\"excludes\"\
+          :[]}}, needClean=true, searchDone=false, pitId=*, cursorKeepAlive=null,\
+          \ searchAfter=null, searchResponse=null)"
+      children: []
