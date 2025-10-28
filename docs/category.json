@@ -40,6 +40,7 @@
     "user/ppl/cmd/rare.rst",
     "user/ppl/cmd/regex.rst",
     "user/ppl/cmd/rename.rst",
+    "user/ppl/cmd/multisearch.rst",
     "user/ppl/cmd/replace.rst",
     "user/ppl/cmd/rex.rst",
     "user/ppl/cmd/search.rst",
