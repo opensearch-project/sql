@@ -1,0 +1,12 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[dc(`agent.name`)]"
+  children:
+    - name: OpenSearchIndexScan
+      description:
+        request: "OpenSearchQueryRequest(indexName=big5, sourceBuilder={\"from\":0,\"\
+          size\":0,\"timeout\":\"1m\",\"aggregations\":{\"dc(`agent.name`)\":{\"cardinality\"\
+          :{\"field\":\"agent.name\"}}}}, needClean=true, searchDone=false, pitId=*,\
+          \ cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
+      children: []

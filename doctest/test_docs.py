@@ -42,10 +42,16 @@ TEST_DATA = {
     'work_information': 'work_information.json',
     'events': 'events.json',
     'otellogs': 'otellogs.json',
+    'time_data': 'time_test_data.json',
+    'time_data2': 'time_test_data2.json',
     'time_test': 'time_test.json'
 }
 
 DEBUG_MODE = os.environ.get('DOCTEST_DEBUG', 'false').lower() == 'true'
+IGNORE_PROMETHEUS_DOCS = os.environ.get('IGNORE_PROMETHEUS_DOCS', 'false').lower() == 'true'
+PROMETHEUS_DOC_FILES = {
+    'user/ppl/cmd/showdatasources.rst'
+}
 
 
 def debug(message):
@@ -100,6 +106,13 @@ class CategoryManager:
         try:
             with open(file_path) as json_file:
                 categories = json.load(json_file)
+            if IGNORE_PROMETHEUS_DOCS:
+                categories = {
+                    category: [
+                        doc for doc in docs if doc not in PROMETHEUS_DOC_FILES
+                    ]
+                    for category, docs in categories.items()
+                }
             debug(f"Loaded {len(categories)} categories from {file_path}")
             return categories
         except Exception as e:
@@ -352,6 +365,7 @@ def create_cli_suite(filepaths, parser, setup_func):
 # Entry point for unittest discovery
 def load_tests(loader, suite, ignore):
     tests = []
+    settings_tests = []
     category_manager = CategoryManager()
     
     for category_name in category_manager.get_all_categories():
@@ -359,9 +373,16 @@ def load_tests(loader, suite, ignore):
         if not docs:
             continue
 
-        tests.append(get_test_suite(category_manager, category_name, get_doc_filepaths(docs)))
+        suite = get_test_suite(category_manager, category_name, get_doc_filepaths(docs))
+        if 'settings' in category_name:
+            settings_tests.append(suite)
+        else:
+            tests.append(suite)
 
     random.shuffle(tests)
+    if settings_tests:
+        random.shuffle(settings_tests)
+        tests.extend(settings_tests)
     return DocTests(tests)
 
 def get_test_suite(category_manager: CategoryManager, category_name, filepaths):

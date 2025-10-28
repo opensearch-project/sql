@@ -81,6 +81,7 @@ import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.args.RareTopNArguments;
+import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 
 /** Class of static methods to create specific node instances. */
 @UtilityClass
@@ -479,6 +480,41 @@ public class AstDSL {
     return new Span(field, value, unit);
   }
 
+  /**
+   * Creates a Span expression from a field and a span length literal. Parses string literals to
+   * extract numeric value and time unit (e.g., "1h" -> value=1, unit=h).
+   *
+   * @param field The field expression to apply the span to
+   * @param spanLengthLiteral The literal value containing either a string with embedded unit (e.g.,
+   *     "1h", "30m") or a plain number
+   * @return A Span expression with parsed value and unit
+   */
+  public static Span spanFromSpanLengthLiteral(
+      UnresolvedExpression field, Literal spanLengthLiteral) {
+    if (spanLengthLiteral.getType() == DataType.STRING) {
+      String spanText = spanLengthLiteral.getValue().toString();
+      String valueStr = spanText.replaceAll("[^0-9-]", "");
+      String unitStr = spanText.replaceAll("[0-9-]", "");
+
+      if (valueStr.isEmpty()) {
+        // No numeric value found, use the literal as-is
+        return new Span(field, spanLengthLiteral, SpanUnit.NONE);
+      } else {
+        // Parse numeric value and unit
+        Integer value = Integer.parseInt(valueStr);
+        if (value <= 0) {
+          throw new IllegalArgumentException(
+              String.format("Zero or negative time interval not supported: %s", spanText));
+        }
+        SpanUnit unit = unitStr.isEmpty() ? SpanUnit.NONE : SpanUnit.of(unitStr);
+        return span(field, intLiteral(value), unit);
+      }
+    } else {
+      // Non-string literal (e.g., integer)
+      return span(field, spanLengthLiteral, SpanUnit.NONE);
+    }
+  }
+
   public static Sort sort(UnresolvedPlan input, Field... sorts) {
     return new Sort(Arrays.asList(sorts)).attach(input);
   }
@@ -547,6 +583,7 @@ public class AstDSL {
       PatternMode patternMode,
       UnresolvedExpression patternMaxSampleCount,
       UnresolvedExpression patternBufferLimit,
+      UnresolvedExpression showNumberedToken,
       java.util.Map<String, Literal> arguments) {
     return new Patterns(
         sourceField,
@@ -556,6 +593,7 @@ public class AstDSL {
         patternMode,
         patternMaxSampleCount,
         patternBufferLimit,
+        showNumberedToken,
         arguments,
         input);
   }
@@ -565,8 +603,22 @@ public class AstDSL {
   }
 
   public static FillNull fillNull(
+      UnresolvedPlan input, UnresolvedExpression replacement, boolean useValueSyntax) {
+    return FillNull.ofSameValue(replacement, ImmutableList.of(), useValueSyntax).attach(input);
+  }
+
+  public static FillNull fillNull(
       UnresolvedPlan input, UnresolvedExpression replacement, Field... fields) {
     return FillNull.ofSameValue(replacement, ImmutableList.copyOf(fields)).attach(input);
+  }
+
+  public static FillNull fillNull(
+      UnresolvedPlan input,
+      UnresolvedExpression replacement,
+      boolean useValueSyntax,
+      Field... fields) {
+    return FillNull.ofSameValue(replacement, ImmutableList.copyOf(fields), useValueSyntax)
+        .attach(input);
   }
 
   public static FillNull fillNull(
@@ -666,5 +718,10 @@ public class AstDSL {
       // 5. No parameters (default) -> DefaultBin
       return DefaultBin.builder().field(field).alias(alias).build();
     }
+  }
+
+  /** Get a reference to the implicit timestamp field {@code @timestamp} */
+  public static Field referImplicitTimestampField() {
+    return AstDSL.field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP);
   }
 }

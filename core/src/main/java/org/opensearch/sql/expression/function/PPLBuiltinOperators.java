@@ -46,12 +46,16 @@ import org.opensearch.sql.expression.function.CollectionUDF.ArrayFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.ExistsFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.FilterFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.ForallFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.MVAppendFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.MapAppendFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.MapRemoveFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.ReduceFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.TransformFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonAppendFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonArrayLengthFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonDeleteFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonExtendFunctionImpl;
+import org.opensearch.sql.expression.function.jsonUDF.JsonExtractAllFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonExtractFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonKeysFunctionImpl;
@@ -94,6 +98,8 @@ import org.opensearch.sql.expression.function.udf.math.CRC32Function;
 import org.opensearch.sql.expression.function.udf.math.ConvFunction;
 import org.opensearch.sql.expression.function.udf.math.DivideFunction;
 import org.opensearch.sql.expression.function.udf.math.EulerFunction;
+import org.opensearch.sql.expression.function.udf.math.MaxFunction;
+import org.opensearch.sql.expression.function.udf.math.MinFunction;
 import org.opensearch.sql.expression.function.udf.math.ModFunction;
 import org.opensearch.sql.expression.function.udf.math.NumberToStringFunction;
 
@@ -109,6 +115,8 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       new JsonArrayLengthFunctionImpl().toUDF("JSON_ARRAY_LENGTH");
   public static final SqlOperator JSON_EXTRACT =
       new JsonExtractFunctionImpl().toUDF("JSON_EXTRACT");
+  public static final SqlOperator JSON_EXTRACT_ALL =
+      new JsonExtractAllFunctionImpl().toUDF("JSON_EXTRACT_ALL");
   public static final SqlOperator JSON_KEYS = new JsonKeysFunctionImpl().toUDF("JSON_KEYS");
   public static final SqlOperator JSON_SET = new JsonSetFunctionImpl().toUDF("JSON_SET");
   public static final SqlOperator JSON_DELETE = new JsonDeleteFunctionImpl().toUDF("JSON_DELETE");
@@ -124,6 +132,8 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator DIVIDE = new DivideFunction().toUDF("DIVIDE");
   public static final SqlOperator SHA2 = CryptographicFunction.sha2().toUDF("SHA2");
   public static final SqlOperator CIDRMATCH = new CidrMatchFunction().toUDF("CIDRMATCH");
+  public static final SqlOperator MAX = new MaxFunction().toUDF("MAX");
+  public static final SqlOperator MIN = new MinFunction().toUDF("MIN");
 
   public static final SqlOperator COSH =
       adaptMathFunctionToUDF(
@@ -379,6 +389,9 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator FORALL = new ForallFunctionImpl().toUDF("forall");
   public static final SqlOperator EXISTS = new ExistsFunctionImpl().toUDF("exists");
   public static final SqlOperator ARRAY = new ArrayFunctionImpl().toUDF("array");
+  public static final SqlOperator MAP_APPEND = new MapAppendFunctionImpl().toUDF("map_append");
+  public static final SqlOperator MAP_REMOVE = new MapRemoveFunctionImpl().toUDF("MAP_REMOVE");
+  public static final SqlOperator MVAPPEND = new MVAppendFunctionImpl().toUDF("mvappend");
   public static final SqlOperator FILTER = new FilterFunctionImpl().toUDF("filter");
   public static final SqlOperator TRANSFORM = new TransformFunctionImpl().toUDF("transform");
   public static final SqlOperator REDUCE = new ReduceFunctionImpl().toUDF("reduce");

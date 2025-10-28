@@ -1,0 +1,46 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  - do:
+      bulk:
+        index: test
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"category":"A","has_flag":true,"value":10}'
+          - '{"index": {}}'
+          - '{"category":"B","has_flag":true,"value":20}'
+          - '{"index": {}}'
+          - '{"category":"C","has_flag":true,"value":30}'
+          - '{"index": {}}'
+          - '{"category":"D","has_flag":false,"value":40}'
+          - '{"index": {}}'
+          - '{"category":"E","has_flag":false,"value":50}'
+          - '{"index": {}}'
+          - '{"category":"F","has_flag":false,"value":60}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"Join with fields":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test | stats COUNT() as cnt by category, has_flag | fields category, has_flag, cnt | join left=L right=R ON L.has_flag = R.has_flag [source=test | stats COUNT() as overall_cnt by has_flag]
+
+  - match: { total: 6 }

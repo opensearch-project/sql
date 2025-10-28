@@ -58,8 +58,8 @@ stats [bucket_nullable=bool] <aggregation>... [by-clause]
 
 * span-expression: optional, at most one.
 
- * Syntax: span(field_expr, interval_expr)
- * Description: The unit of the interval expression is the natural unit by default. **If the field is a date/time type field, the aggregation results always ignore null bucket**. And the interval is in date/time units, you will need to specify the unit in the interval expression. For example, to split the field ``age`` into buckets by 10 years, it looks like ``span(age, 10)``. And here is another example of time span, the span to split a ``timestamp`` field into hourly intervals, it looks like ``span(timestamp, 1h)``.
+ * Syntax: span([field_expr,] interval_expr)
+ * Description: The unit of the interval expression is the natural unit by default. If ``field_expr`` is omitted, span will use the implicit ``@timestamp`` field. An error will be thrown if this field doesn't exist. **If the field is a date/time type field, the aggregation results always ignore null bucket**. And the interval is in date/time units, you will need to specify the unit in the interval expression. For example, to split the field ``age`` into buckets by 10 years, it looks like ``span(age, 10)``. And here is another example of time span, the span to split a ``timestamp`` field into hourly intervals, it looks like ``span(timestamp, 1h)``.
 * Available time unit:
 
 +----------------------------+
@@ -580,7 +580,7 @@ Description
 
 Version: 3.3.0 (Calcite engine only)
 
-Usage: LIST(expr). Collects all values from the specified expression into an array. Values are converted to strings, nulls are filtered, and duplicates are preserved. 
+Usage: LIST(expr). Collects all values from the specified expression into an array. Values are converted to strings, nulls are filtered, and duplicates are preserved.
 The function returns up to 100 values with no guaranteed ordering.
 
 * expr: The field expression to collect values from.
@@ -977,3 +977,18 @@ PPL query::
     | 1   | 2025-01-01 | 2      |
     +-----+------------+--------+
 
+
+Example 18: Calculate the count by the implicit @timestamp field
+================================================================
+
+This example demonstrates that if you omit the field parameter in the span function, it will automatically use the implicit ``@timestamp`` field.
+
+PPL query::
+
+    PPL> source=big5 | stats count() by span(1month)
+    fetched rows / total rows = 1/1
+    +---------+---------------------+
+    | count() | span(1month)        |
+    |---------+---------------------|
+    | 1       | 2023-01-01 00:00:00 |
+    +---------+---------------------+
