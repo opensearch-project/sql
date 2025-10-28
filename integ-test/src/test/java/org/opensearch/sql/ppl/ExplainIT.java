@@ -704,18 +704,4 @@ public class ExplainIT extends PPLIntegTestCase {
         explainQueryToString(
             String.format("search source=%s severityText=ERR*", TEST_INDEX_OTEL_LOGS)));
   }
-
-  protected String loadExpectedPlan(String fileName) throws IOException {
-    String prefix;
-    if (isCalciteEnabled()) {
-      if (isPushdownDisabled()) {
-        prefix = "expectedOutput/calcite_no_pushdown/";
-      } else {
-        prefix = "expectedOutput/calcite/";
-      }
-    } else {
-      prefix = "expectedOutput/ppl/";
-    }
-    return loadFromFile(prefix + fileName);
-  }
 }
