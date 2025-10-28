@@ -82,8 +82,8 @@ public class SchemaUnifier {
           // Same field name but different type - throw exception
           throw new IllegalArgumentException(
               String.format(
-                  "Schema unification failed: field '%s' has conflicting types across subsearches",
-                  fieldName));
+                  "Unable to process column '%s' due to incompatible types: '%s' and '%s'",
+                  fieldName, existingType.getSqlTypeName(), fieldType.getSqlTypeName()));
         }
         // If we've seen this exact (name, type) combination, skip it
       }

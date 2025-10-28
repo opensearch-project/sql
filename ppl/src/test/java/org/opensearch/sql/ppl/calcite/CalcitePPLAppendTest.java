@@ -234,6 +234,6 @@ public class CalcitePPLAppendTest extends CalcitePPLAbstractTest {
     Exception exception =
         Assert.assertThrows(IllegalArgumentException.class, () -> getRelNode(ppl));
     verifyErrorMessageContains(
-        exception, "Schema unification failed: field 'DEPTNO' has conflicting types");
+        exception, "Unable to process column 'DEPTNO' due to incompatible types:");
   }
 }

@@ -316,7 +316,7 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
         "Error message should indicate type conflict",
         exception
             .getMessage()
-            .contains("Schema unification failed: field 'age' has conflicting types"));
+            .contains("Unable to process column 'age' due to incompatible types:"));
   }
 
   @Test
@@ -362,6 +362,6 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
         "Error message should indicate type conflict",
         exception
             .getMessage()
-            .contains("Schema unification failed: field 'age' has conflicting types"));
+            .contains("Unable to process column 'age' due to incompatible types:"));
   }
 }

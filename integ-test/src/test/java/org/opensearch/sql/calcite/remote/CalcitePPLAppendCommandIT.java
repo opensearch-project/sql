@@ -234,7 +234,7 @@ public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
         "Error message should indicate type conflict",
         exception
             .getMessage()
-            .contains("Schema unification failed: field 'sum' has conflicting types"));
+            .contains("Unable to process column 'sum' due to incompatible types:"));
   }
 
   @Test
