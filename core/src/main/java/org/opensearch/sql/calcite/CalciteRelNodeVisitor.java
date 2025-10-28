@@ -282,6 +282,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           "Rex pattern must contain at least one named capture group");
     }
 
+    // TODO: Once JDK 20+ is supported, consider using Pattern.namedGroups() API for more efficient
+    // named group handling instead of manual parsing in RegexCommonUtils
+
     List<RexNode> newFields = new ArrayList<>();
     List<String> newFieldNames = new ArrayList<>();
 
