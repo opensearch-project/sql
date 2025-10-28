@@ -26,7 +26,6 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandCont
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PrefixSortFieldContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
-import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SuffixSortFieldContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 
@@ -109,22 +108,6 @@ public class ArgumentFactory {
   }
 
   /**
-   * Get list of {@link Argument}.
-   *
-   * @param ctx SortFieldContext instance
-   * @return the list of arguments fetched from the sort field in sort command
-   */
-  public static List<Argument> getArgumentList(SortFieldContext ctx) {
-    if (ctx instanceof PrefixSortFieldContext) {
-      return getArgumentList((PrefixSortFieldContext) ctx);
-    } else if (ctx instanceof SuffixSortFieldContext) {
-      return getArgumentList((SuffixSortFieldContext) ctx);
-    } else {
-      return getArgumentList((DefaultSortFieldContext) ctx);
-    }
-  }
-
-  /**
    * Get list of {@link Argument} for prefix sort field (+/- syntax).
    *
    * @param ctx PrefixSortFieldContext instance
@@ -172,6 +155,7 @@ public class ArgumentFactory {
     if (ctx.STR() != null) return createTypeArgument("str");
     return createTypeArgument(null);
   }
+
   private static Argument createTypeArgument(String value) {
     DataType dataType = value != null ? DataType.STRING : DataType.NULL;
     return new Argument("type", new Literal(value, dataType));
