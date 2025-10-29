@@ -22,12 +22,7 @@ import org.opensearch.sql.calcite.utils.WildcardReplaceUtils;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
-/**
- * UDF for wildcard-based string replacement in PPL replace command.
- *
- * <p>This function wraps WildcardReplaceUtils.replaceWithWildcard to provide SPL-compatible
- * wildcard matching where '*' matches zero or more characters.
- */
+/** UDF for wildcard-based string replacement in PPL replace command. */
 public class WildcardReplaceFunctionImpl extends ImplementorUDF {
 
   public WildcardReplaceFunctionImpl() {

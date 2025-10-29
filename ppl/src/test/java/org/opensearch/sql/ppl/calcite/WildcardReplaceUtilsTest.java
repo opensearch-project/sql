@@ -12,10 +12,7 @@ import java.util.List;
 import org.junit.Test;
 import org.opensearch.sql.calcite.utils.WildcardReplaceUtils;
 
-/** Unit tests for {@link WildcardReplaceUtils}. */
 public class WildcardReplaceUtilsTest {
-
-  // ========== Basic Wildcard Matching Tests ==========
 
   @Test
   public void testWildcardMatch_prefixWildcard() {
@@ -52,8 +49,6 @@ public class WildcardReplaceUtilsTest {
     assertEquals("replaced", WildcardReplaceUtils.replaceWithWildcard("anything", "*", "replaced"));
   }
 
-  // ========== Wildcard Capture and Substitution Tests ==========
-
   @Test
   public void testWildcardCapture_single() {
     assertEquals(
@@ -63,7 +58,6 @@ public class WildcardReplaceUtilsTest {
 
   @Test
   public void testWildcardCapture_multiple() {
-    // Pattern "* - *" captures ["foo", "bar"], replacement "*_*" gives "foo_bar"
     assertEquals("foo_bar", WildcardReplaceUtils.replaceWithWildcard("foo - bar", "* - *", "*_*"));
   }
 
@@ -81,24 +75,18 @@ public class WildcardReplaceUtilsTest {
 
   @Test
   public void testWildcardSubstitute_moreCapturesThanWildcards() {
-    // Pattern: "* - * - *" captures 3 values
-    // Replacement: "*_*" uses only 2
     assertEquals(
         "foo_bar", WildcardReplaceUtils.replaceWithWildcard("foo - bar - baz", "* - * - *", "*_*"));
   }
 
-  // ========== Edge Cases ==========
-
   @Test
   public void testWildcard_emptyCapture() {
-    // Wildcard matches empty string
     assertEquals(
         "fixed", WildcardReplaceUtils.replaceWithWildcard("localhost", "*localhost", "fixed"));
   }
 
   @Test
   public void testWildcard_emptyCaptureWithSubstitution() {
-    // Empty capture should be substituted as empty string
     assertEquals(
         "localhost ",
         WildcardReplaceUtils.replaceWithWildcard("localhost", "*localhost", "localhost *"));
@@ -106,26 +94,21 @@ public class WildcardReplaceUtilsTest {
 
   @Test
   public void testWildcard_overlappingParts() {
-    // No valid match - parts overlap
     assertNull(WildcardReplaceUtils.matchAndCapture("foo", "foo*foo"));
   }
 
   @Test
   public void testWildcard_consecutiveWildcards() {
-    // "**" treated as two separate wildcards
-    // Pattern "**" splits to ["", "", ""], so first wildcard captures empty, second captures all
+    // "**" splits to ["", "", ""], first captures empty, second captures rest
     List<String> captures = WildcardReplaceUtils.matchAndCapture("foobar", "**");
     assertNotNull(captures);
     assertEquals(2, captures.size());
-    // First wildcard captures empty (greedy matching finds "" immediately)
-    // Second wildcard captures the rest
     assertEquals("", captures.get(0));
     assertEquals("foobar", captures.get(1));
   }
 
   @Test
   public void testWildcard_emptyString() {
-    // Pattern "*" matches empty string (wildcard matches zero or more chars)
     assertEquals("replacement", WildcardReplaceUtils.replaceWithWildcard("", "*", "replacement"));
   }
 
@@ -136,12 +119,9 @@ public class WildcardReplaceUtilsTest {
 
   @Test
   public void testWildcard_singleWildcardMatchesAll() {
-    // Pattern "*" contains a wildcard, so it matches the entire input
-    String input = "foo * bar";
-    assertEquals("replaced", WildcardReplaceUtils.replaceWithWildcard(input, "*", "replaced"));
+    assertEquals(
+        "replaced", WildcardReplaceUtils.replaceWithWildcard("foo * bar", "*", "replaced"));
   }
-
-  // ========== Literal Replacement (No Wildcards) ==========
 
   @Test
   public void testLiteral_noWildcards() {
@@ -160,17 +140,13 @@ public class WildcardReplaceUtilsTest {
     assertEquals(input, WildcardReplaceUtils.replaceWithWildcard(input, "IL", "Illinois"));
   }
 
-  // ========== Validation Tests ==========
-
   @Test
   public void testValidation_symmetryValid_sameCount() {
-    // Should not throw exception
     WildcardReplaceUtils.validateWildcardSymmetry("* - *", "*_*");
   }
 
   @Test
   public void testValidation_symmetryValid_zeroInReplacement() {
-    // Should not throw exception
     WildcardReplaceUtils.validateWildcardSymmetry("* - *", "fixed");
   }
 
@@ -188,11 +164,8 @@ public class WildcardReplaceUtilsTest {
 
   @Test
   public void testValidation_symmetryValid_noWildcardsInPattern() {
-    // Should not throw exception
     WildcardReplaceUtils.validateWildcardSymmetry("foo", "bar");
   }
-
-  // ========== Count Wildcards Tests ==========
 
   @Test
   public void testCountWildcards_none() {
@@ -213,8 +186,6 @@ public class WildcardReplaceUtilsTest {
   public void testCountWildcards_consecutive() {
     assertEquals(2, WildcardReplaceUtils.countWildcards("**"));
   }
-
-  // ========== Match and Capture Internal Tests ==========
 
   @Test
   public void testMatchAndCapture_prefixWildcard() {
@@ -256,8 +227,6 @@ public class WildcardReplaceUtilsTest {
     assertNull(WildcardReplaceUtils.matchAndCapture("foo bar", "* - *"));
   }
 
-  // ========== Substitute Wildcards Internal Tests ==========
-
   @Test
   public void testSubstituteWildcards_single() {
     assertEquals(
@@ -278,41 +247,30 @@ public class WildcardReplaceUtilsTest {
 
   @Test
   public void testSubstituteWildcards_moreWildcardsThanCaptures() {
-    // Should use available captures, skip extra wildcards
     assertEquals("foo_", WildcardReplaceUtils.substituteWildcards("*_*", Arrays.asList("foo")));
   }
 
-  // ========== SPL Examples from Documentation ==========
-
   @Test
-  public void testSPLExample1_replaceSuffix() {
-    // SPL: replace *localhost WITH localhost IN host
-    // Input: "server.localhost" → Output: "localhost"
+  public void testWildcardExample1_replaceSuffix() {
     assertEquals(
         "localhost",
         WildcardReplaceUtils.replaceWithWildcard("server.localhost", "*localhost", "localhost"));
   }
 
   @Test
-  public void testSPLExample2_reorderWithCapture() {
-    // SPL: replace "* localhost" WITH "localhost *" IN host
-    // Input: "server localhost" → Output: "localhost server"
+  public void testWildcardExample2_reorderWithCapture() {
     assertEquals(
         "localhost server",
         WildcardReplaceUtils.replaceWithWildcard("server localhost", "* localhost", "localhost *"));
   }
 
   @Test
-  public void testSPLExample3_multipleWildcards() {
-    // SPL: replace "* - *" WITH "*_*" IN field
-    // Input: "foo - bar" → Output: "foo_bar"
+  public void testWildcardExample3_multipleWildcards() {
     assertEquals("foo_bar", WildcardReplaceUtils.replaceWithWildcard("foo - bar", "* - *", "*_*"));
   }
 
   @Test
-  public void testSPLExample4_infixReplacement() {
-    // SPL: replace *XYZ* WITH *ALL* IN _time
-    // Input: "fooXYZbar" → Output: "fooALLbar"
+  public void testWildcardExample4_infixReplacement() {
     assertEquals(
         "fooALLbar", WildcardReplaceUtils.replaceWithWildcard("fooXYZbar", "*XYZ*", "*ALL*"));
   }
