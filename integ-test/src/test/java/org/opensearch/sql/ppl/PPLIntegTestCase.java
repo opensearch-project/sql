@@ -130,9 +130,7 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
 
   protected Request buildRequest(String query, String endpoint) {
     Request request = new Request("POST", endpoint);
-    String escapedQuery = query.replace("\\", "\\\\").replace("\"", "\\\"");
-    request.setJsonEntity(
-        String.format(Locale.ROOT, "{\n" + "  \"query\": \"%s\"\n" + "}", escapedQuery));
+    request.setJsonEntity(String.format(Locale.ROOT, "{\n" + "  \"query\": \"%s\"\n" + "}", query));
 
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");
