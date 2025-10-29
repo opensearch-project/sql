@@ -77,7 +77,7 @@ public class CloudTrailPplDashboardIT extends PPLIntegTestCase {
         response,
         schema("Count", null, "bigint"),
         schema("userIdentity.accountId", null, "string"));
-    verifyDataRows(response, rows(4, "481665107626"));
+    verifyDataRows(response, rows(4, "123456789012"));
   }
 
   @Test
@@ -174,13 +174,7 @@ public class CloudTrailPplDashboardIT extends PPLIntegTestCase {
         schema("Account Id", null, "string"),
         schema("Type", null, "string"));
     verifyDataRows(
-        response,
-        rows(
-            1,
-            "NexusIntegrationStack-DirectQueryForAmazonOpenSearc-iIy4asCVtbwc",
-            "481665107626",
-            "Role"),
-        rows(3, null, "481665107626", null));
+        response, rows(1, "TestRole", "123456789012", "Role"), rows(3, null, "123456789012", null));
   }
 
   @Test
@@ -210,7 +204,7 @@ public class CloudTrailPplDashboardIT extends PPLIntegTestCase {
         response,
         schema("Count", null, "bigint"),
         schema("requestParameters.bucketName", null, "string"));
-    verifyDataRows(response, rows(1, "aws-cloudtrail-logs-481665107626-69fb0771"));
+    verifyDataRows(response, rows(1, "test-cloudtrail-logs-123456789012"));
   }
 
   @Test

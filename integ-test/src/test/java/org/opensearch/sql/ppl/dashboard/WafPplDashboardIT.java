@@ -77,13 +77,13 @@ public class WafPplDashboardIT extends PPLIntegTestCase {
         response,
         rows(
             1,
-            "arn:aws:wafv2:us-west-2:269290782541:regional/webacl/TestWAF-pdx/bfeae622-3df5-4fbe-a377-329e3518a60a"),
+            "arn:aws:wafv2:us-west-2:111111111111:regional/webacl/TestWAF-pdx/12345678-1234-1234-1234-123456789012"),
         rows(
             1,
-            "arn:aws:wafv2:us-west-2:107897355464:regional/webacl/TestWAF-pdx/bfeae622-3df5-4fbe-a377-329e3518a60a"),
+            "arn:aws:wafv2:us-west-2:222222222222:regional/webacl/TestWAF-pdx/12345678-1234-1234-1234-123456789012"),
         rows(
             1,
-            "arn:aws:wafv2:us-west-2:167022069071:regional/webacl/TestWAF-pdx/bfeae622-3df5-4fbe-a377-329e3518a60a"));
+            "arn:aws:wafv2:us-west-2:333333333333:regional/webacl/TestWAF-pdx/12345678-1234-1234-1234-123456789012"));
   }
 
   @Test
@@ -97,9 +97,9 @@ public class WafPplDashboardIT extends PPLIntegTestCase {
     verifySchema(response, schema("Count", null, "bigint"), schema("httpSourceId", null, "string"));
     verifyDataRows(
         response,
-        rows(1, "269290782541:yhltew7mtf:dev"),
-        rows(1, "107897355464:yhltew7mtf:dev"),
-        rows(1, "167022069071:yhltew7mtf:dev"));
+        rows(1, "111111111111:yhltew7mtf:dev"),
+        rows(1, "222222222222:yhltew7mtf:dev"),
+        rows(1, "333333333333:yhltew7mtf:dev"));
   }
 
   @Test
