@@ -29,6 +29,7 @@ public class CalciteChartCommandIT extends PPLIntegTestCase {
     loadIndex(Index.BANK_WITH_NULL_VALUES);
     loadIndex(Index.OTELLOGS);
     loadIndex(Index.TIME_TEST_DATA);
+    loadIndex(Index.EVENTS_NULL);
   }
 
   @Test
@@ -280,6 +281,25 @@ public class CalciteChartCommandIT extends PPLIntegTestCase {
         rows("F", "30", 48086.0),
         rows("F", "20", 32838.0),
         rows("F", "nil", null));
+  }
+
+  @Test
+  public void testChartWithNullAndLimit() throws IOException {
+    JSONObject result =
+        executeQuery("source=events_null | chart limit=3 count() over @timestamp span=1d by host");
+
+    verifySchema(
+        result,
+        schema("@timestamp", "timestamp"),
+        schema("host", "string"),
+        schema("count()", "bigint"));
+
+    verifyDataRows(
+        result,
+        rows("2024-07-01 00:00:00", "db-01", 1),
+        rows("2024-07-01 00:00:00", "web-01", 2),
+        rows("2024-07-01 00:00:00", "web-02", 2),
+        rows("2024-07-01 00:00:00", "NULL", 1));
   }
 
   @Test

@@ -2094,11 +2094,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // 1: column-split, 2: agg
     relBuilder.project(relBuilder.field(1), relBuilder.field(2));
+    // Make sure that rows who don't have a column split not interfere grand total calculation
+    relBuilder.filter(relBuilder.isNotNull(relBuilder.field(0)));
+    final String GRAND_TOTAL_COL = "__grand_total__";
     relBuilder.aggregate(
         relBuilder.groupKey(relBuilder.field(0)),
         buildAggCall(context.relBuilder, aggFunction, relBuilder.field(1))
-            .as("__grand_total__")); // results: group key, agg calls
-    RexNode grandTotal = relBuilder.field("__grand_total__");
+            .as(GRAND_TOTAL_COL)); // results: group key, agg calls
+    RexNode grandTotal = relBuilder.field(GRAND_TOTAL_COL);
     // Apply sorting: for MIN/EARLIEST, reverse the top/bottom logic
     boolean smallestFirst =
         aggFunction == BuiltinFunctionName.MIN || aggFunction == BuiltinFunctionName.EARLIEST;
@@ -2108,6 +2111,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // Always set it to null last so that it does not interfere with top / bottom calculation
     grandTotal = relBuilder.nullsLast(grandTotal);
+    final String ROW_NUM_COL = "__row_number__";
     RexNode rowNum =
         PlanUtils.makeOver(
             context,
@@ -2117,7 +2121,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             List.of(),
             List.of(grandTotal),
             WindowFrame.toCurrentRow());
-    relBuilder.projectPlus(relBuilder.alias(rowNum, "__row_number__"));
+    relBuilder.projectPlus(relBuilder.alias(rowNum, ROW_NUM_COL));
     RelNode ranked = relBuilder.build();
 
     relBuilder.push(aggregated);
@@ -2131,7 +2135,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RexNode lteCondition =
         relBuilder.call(
             SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
-            relBuilder.field("__row_number__"),
+            relBuilder.field(ROW_NUM_COL),
             relBuilder.literal(limit));
     RexNode nullCondition = relBuilder.isNull(colSplitPostJoin);
     RexNode columnSplitExpr;
