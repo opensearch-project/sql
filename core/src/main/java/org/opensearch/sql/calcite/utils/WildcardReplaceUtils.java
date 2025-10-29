@@ -7,6 +7,8 @@ package org.opensearch.sql.calcite.utils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Utility for wildcard-based string replacement in PPL replace command.
@@ -40,38 +42,28 @@ public class WildcardReplaceUtils {
 
   /** Match pattern against input and capture wildcard portions. */
   public static List<String> matchAndCapture(String input, String pattern) {
-    List<String> captures = new ArrayList<>();
-    String[] parts = pattern.split("\\*", -1); // -1 keeps trailing empty strings
-
-    int inputIndex = 0;
+    String[] parts = pattern.split("\\*", -1);
+    StringBuilder regexBuilder = new StringBuilder("^");
 
     for (int i = 0; i < parts.length; i++) {
-      String part = parts[i];
-
-      if (i == 0) {
-        if (!input.startsWith(part)) {
-          return null;
-        }
-        inputIndex = part.length();
-      } else if (i == parts.length - 1) {
-        if (!input.endsWith(part)) {
-          return null;
-        }
-        int endIndex = input.length() - part.length();
-        if (endIndex < inputIndex) {
-          return null; // Parts overlap
-        }
-        captures.add(input.substring(inputIndex, endIndex));
-      } else {
-        int nextIndex = input.indexOf(part, inputIndex);
-        if (nextIndex == -1) {
-          return null;
-        }
-        captures.add(input.substring(inputIndex, nextIndex));
-        inputIndex = nextIndex + part.length();
+      regexBuilder.append(Pattern.quote(parts[i]));
+      if (i < parts.length - 1) {
+        regexBuilder.append("(.*?)");
       }
     }
+    regexBuilder.append("$");
 
+    Pattern compiledPattern = Pattern.compile(regexBuilder.toString());
+    Matcher matcher = compiledPattern.matcher(input);
+
+    if (!matcher.matches()) {
+      return null;
+    }
+
+    List<String> captures = new ArrayList<>();
+    for (int i = 1; i <= matcher.groupCount(); i++) {
+      captures.add(matcher.group(i));
+    }
     return captures;
   }
 
