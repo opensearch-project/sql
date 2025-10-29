@@ -1,3 +1,21 @@
+/*
+{
+  "name": "sort_numeric_asc",
+  "operation-type": "search",
+  "index": "{{index_name | default('big5')}}",
+  "body": {
+    "track_total_hits": false,
+    "query": {
+      "match_all": {}
+    },
+    "sort": [
+      {
+        "metrics.size": "asc"
+      }
+    ]
+  }
+}
+*/
 source = big5
 | sort + `metrics.size`
 | head 10

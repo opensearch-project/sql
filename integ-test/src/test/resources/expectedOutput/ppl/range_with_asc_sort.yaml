@@ -1,0 +1,20 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[agent, process, log, message, tags, cloud, input, @timestamp, ecs, data_stream,\
+      \ meta, host, metrics, aws, event]"
+  children:
+    - name: OpenSearchIndexScan
+      description:
+        request: "OpenSearchQueryRequest(indexName=big5, sourceBuilder={\"from\":0,\"\
+          size\":10,\"timeout\":\"1m\",\"query\":{\"bool\":{\"filter\":[{\"range\"\
+          :{\"@timestamp\":{\"from\":1672531200000,\"to\":null,\"include_lower\":true,\"\
+          include_upper\":true,\"boost\":1.0}}},{\"range\":{\"@timestamp\":{\"from\"\
+          :null,\"to\":1673568000000,\"include_lower\":true,\"include_upper\":true,\"\
+          boost\":1.0}}}],\"adjust_pure_negative\":true,\"boost\":1.0}},\"_source\"\
+          :{\"includes\":[\"agent\",\"process\",\"log\",\"message\",\"tags\",\"cloud\"\
+          ,\"input\",\"@timestamp\",\"ecs\",\"data_stream\",\"meta\",\"host\",\"metrics\"\
+          ,\"aws\",\"event\"],\"excludes\":[]},\"sort\":[{\"@timestamp\":{\"order\"\
+          :\"asc\",\"missing\":\"_first\"}}]}, needClean=true, searchDone=false, pitId=*,\
+          \ cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
+      children: []

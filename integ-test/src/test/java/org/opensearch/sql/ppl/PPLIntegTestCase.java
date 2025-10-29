@@ -31,12 +31,12 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.util.RetryProcessor;
-import org.opensearch.sql.utils.YamlFormatter;
 
 /** OpenSearch Rest integration test base for PPL testing. */
 public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   private static final String EXTENDED_EXPLAIN_API_ENDPOINT =
       "/_plugins/_ppl/_explain?format=extended";
+  private static final String YAML_EXPLAIN_API_ENDPOINT = "/_plugins/_ppl/_explain?format=yaml";
   private static final Logger LOG = LogManager.getLogger();
   @Rule public final RetryProcessor retryProcessor = new RetryProcessor();
   public static final Integer DEFAULT_SUBSEARCH_MAXOUT = 10000;
@@ -63,10 +63,11 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     return explainQueryToString(query, false);
   }
 
-  protected String explainQueryToYaml(String query) throws IOException {
-    String jsonResponse = explainQueryToString(query);
-    JSONObject jsonObject = jsonify(jsonResponse);
-    return YamlFormatter.formatToYaml(jsonObject);
+  protected String explainQueryYaml(String query) throws IOException {
+    Response response = client().performRequest(buildRequest(query, YAML_EXPLAIN_API_ENDPOINT));
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    String responseBody = getResponseBody(response, true);
+    return responseBody;
   }
 
   protected String explainQueryToString(String query, boolean extended) throws IOException {
@@ -392,5 +393,19 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+  }
+
+  protected String loadExpectedPlan(String fileName) throws IOException {
+    String prefix;
+    if (isCalciteEnabled()) {
+      if (isPushdownDisabled()) {
+        prefix = "expectedOutput/calcite_no_pushdown/";
+      } else {
+        prefix = "expectedOutput/calcite/";
+      }
+    } else {
+      prefix = "expectedOutput/ppl/";
+    }
+    return loadFromFile(prefix + fileName);
   }
 }

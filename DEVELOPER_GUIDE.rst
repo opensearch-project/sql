@@ -173,7 +173,6 @@ Here are other files and sub-folders that you are likely to touch:
 - ``build.gradle``: Gradle build script.
 - ``docs``: documentation for developers and reference manual for users.
 - ``doc-test``: code that run .rst docs in ``docs`` folder by Python doctest library.
-- ``language-grammar``: centralized package for ANTLR grammar files. See `Language Grammar Package`_ for details.
 
 Note that other related project code has already merged into this single repository together:
 
@@ -444,29 +443,3 @@ with an appropriate label `backport <backport-branch-name>` is merged to main wi
 PR. For example, if a PR on main needs to be backported to `1.x` branch, add a label `backport 1.x` to the PR and make sure the
 backport workflow runs on the PR along with other checks. Once this PR is merged to main, the workflow will create a backport PR
 to the `1.x` branch.
-
-Language Grammar Package
-========================
-
-The ``language-grammar`` package serves as a centralized repository for all ANTLR grammar files used throughout the OpenSearch SQL project. This package contains the definitive versions of grammar files for:
-
-- SQL parsing (``OpenSearchSQLParser.g4``, ``OpenSearchSQLLexer.g4``)
-- PPL parsing (``OpenSearchPPLParser.g4``, ``OpenSearchPPLLexer.g4``)
-- Legacy SQL parsing (``OpenSearchLegacySqlParser.g4``, ``OpenSearchLegacySqlLexer.g4``)
-- Spark SQL extensions (``SparkSqlBase.g4``, ``FlintSparkSqlExtensions.g4``, ``SqlBaseParser.g4``, ``SqlBaseLexer.g4``)
-
-Purpose
--------
-
-The language-grammar package enables sharing of grammar files between the main SQL repository and the Spark repository, ensuring consistency and reducing duplication. Once updated, the package automatically triggers CI to upload the new version to Maven Central for consumption by other projects.
-
-Updating Grammar Files
-----------------------
-
-When grammar files are modified in their respective modules (``sql/``, ``ppl/``, ``legacy/``, ``async-query-core/``), they must be manually copied to the ``language-grammar/src/main/antlr4/`` directory.
-
-**Workflow:**
-
-1. Modify grammar files in their source locations (e.g., ``sql/src/main/antlr/``)
-2. Copy updated files to ``language-grammar/src/main/antlr4/``
-3. Commit changes to trigger automatic Maven publication via CI

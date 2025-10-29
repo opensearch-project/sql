@@ -1,3 +1,24 @@
+/*
+{
+  "name": "desc_sort_with_after_timestamp",
+  "operation-type": "search",
+  "index": "{{index_name | default('big5')}}",
+  "body": {
+    "track_total_hits": false,
+    "query": {
+      "match_all": {}
+    },
+    "sort" : [
+      {"@timestamp" : "desc"}
+    ],
+{% if distribution_version.split('.') | map('int') | list < "6.0.0".split('.') | map('int') | list or distribution_version.split('.') | map('int') | list >= "7.0.0".split('.') | map('int') | list %}
+      "search_after": ["2023-01-01T23:59:58.000Z"]
+{% else %}
+      "search_after": [1673049598]
+{% endif %}
+  }
+}
+*/
 source = big5
 | sort - `@timestamp`
 | head 10

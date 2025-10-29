@@ -1,0 +1,80 @@
+setup:
+  - do:
+      indices.create:
+        index: test
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              log:
+                properties:
+                  url:
+                    properties:
+                      message:
+                        type: text
+                        fields:
+                          keyword:
+                            type: keyword
+                            ignore_above: 256
+                      time:
+                        type: long
+              message_alias:
+                type: alias
+                path: log.url.message
+              time_alias:
+                type: alias
+                path: log.url.time
+
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"dedup struct field name with dot":
+  - skip:
+      features:
+        - headers
+  - do:
+      bulk:
+        index: test
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"log": {"url": {"message": "/e2e/h/zap", "time": 1} } }'
+          - '{"index": {}}'
+          - '{"log": {"url": {"message": "/e2e/h/zap", "time": 1} } }'
+          - '{"index": {}}'
+          - '{"log": {"url": {"message": "/e2e/h/zap", "time": 2} } }'
+          - '{"index": {}}'
+          - '{"log": {"url": {"message": "/e2e/h/zap", "time": 2} } }'
+          - '{"index": {}}'
+          - '{"log": {"url": {"message": "/e2e/h/aap", "time": 1} } }'
+          - '{"index": {}}'
+          - '{"log": {"url": {"message": "/e2e/h/aap", "time": 1} } }'
+          - '{"index": {}}'
+          - '{"log": {"url": {"time": 1} } }'
+          - '{"index": {}}'
+          - '{"log": {"url": {"time": 1} } }'
+          - '{"index": {}}'
+          - '{"log": {"url": {"time": 2} } }'
+          - '{"index": {}}'
+          - '{"log": {"url": {"time": 2} } }'
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test | dedup log.url.time'
+  - match: {"total": 2}

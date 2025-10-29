@@ -40,7 +40,7 @@ public class GeoIpFunctionsIT extends PPLIntegTestCase {
           "endpoint",
           "https://raw.githubusercontent.com/opensearch-project/geospatial/main/src/test/resources/ip2geo/server/city/manifest.json");
 
-  private static String DATASOURCE_NAME = "dummycityindex";
+  protected static String DATASOURCE_NAME = "dummycityindex";
 
   private static String PLUGIN_NAME = "opensearch-geospatial";
 
@@ -83,7 +83,7 @@ public class GeoIpFunctionsIT extends PPLIntegTestCase {
             String.format(
                 "search source=%s | eval enrichmentResult = geoip(\\\"%s\\\",%s) | fields name, ip,"
                     + " enrichmentResult",
-                TEST_INDEX_GEOIP, "dummycityindex", "ip"));
+                TEST_INDEX_GEOIP, DATASOURCE_NAME, "ip"));
 
     verifyColumn(resultGeoIp, columnName("name"), columnName("ip"), columnName("enrichmentResult"));
     verifyDataRows(
@@ -101,7 +101,7 @@ public class GeoIpFunctionsIT extends PPLIntegTestCase {
             String.format(
                 "search source=%s | eval enrichmentResult = geoip(\\\"%s\\\",%s,\\\"%s\\\") |"
                     + " fields name, ip, enrichmentResult",
-                TEST_INDEX_GEOIP, "dummycityindex", "ip", "city"));
+                TEST_INDEX_GEOIP, DATASOURCE_NAME, "ip", "city"));
 
     verifyColumn(resultGeoIp, columnName("name"), columnName("ip"), columnName("enrichmentResult"));
     verifyDataRows(
@@ -119,7 +119,7 @@ public class GeoIpFunctionsIT extends PPLIntegTestCase {
             String.format(
                 "search source=%s | eval enrichmentResult = geoip(\\\"%s\\\",%s,\\\"%s\\\") |"
                     + " fields name, ip, enrichmentResult",
-                TEST_INDEX_GEOIP, "dummycityindex", "ip", "city , country"));
+                TEST_INDEX_GEOIP, DATASOURCE_NAME, "ip", "city , country"));
 
     verifyColumn(resultGeoIp, columnName("name"), columnName("ip"), columnName("enrichmentResult"));
     verifyDataRows(

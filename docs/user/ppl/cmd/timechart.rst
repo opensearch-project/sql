@@ -69,14 +69,36 @@ Syntax
 PER_SECOND
 ----------
 
-Description
->>>>>>>>>>>
-
 Usage: per_second(field) calculates the per-second rate for a numeric field within each time bucket.
 
 The calculation formula is: `per_second(field) = sum(field) / span_in_seconds`, where `span_in_seconds` is the span interval in seconds.
 
-Note: This function is available since 3.4.0.
+Return type: DOUBLE
+
+PER_MINUTE
+----------
+
+Usage: per_minute(field) calculates the per-minute rate for a numeric field within each time bucket.
+
+The calculation formula is: `per_minute(field) = sum(field) * 60 / span_in_seconds`, where `span_in_seconds` is the span interval in seconds.
+
+Return type: DOUBLE
+
+PER_HOUR
+--------
+
+Usage: per_hour(field) calculates the per-hour rate for a numeric field within each time bucket.
+
+The calculation formula is: `per_hour(field) = sum(field) * 3600 / span_in_seconds`, where `span_in_seconds` is the span interval in seconds.
+
+Return type: DOUBLE
+
+PER_DAY
+-------
+
+Usage: per_day(field) calculates the per-day rate for a numeric field within each time bucket.
+
+The calculation formula is: `per_day(field) = sum(field) * 86400 / span_in_seconds`, where `span_in_seconds` is the span interval in seconds.
 
 Return type: DOUBLE
 

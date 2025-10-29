@@ -24,14 +24,6 @@ public class CalciteSortCommandIT extends SortCommandIT {
     enableCalcite();
   }
 
-  // TODO: Move this test to SortCommandIT once head-then-sort is fixed in v2.
-  @Test
-  public void testHeadThenSort() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | head 2 | sort age | fields age", TEST_INDEX_BANK));
-    verifyOrder(result, rows(32), rows(36));
-  }
-
   @Test
   public void testPushdownSortPlusExpression() throws IOException {
     String ppl =
