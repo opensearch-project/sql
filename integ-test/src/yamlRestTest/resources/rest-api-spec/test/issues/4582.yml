@@ -24,21 +24,21 @@ setup:
         refresh: true
         body:
           - '{"index": {}}'
-          - '{"@timestamp": "2024-01-15T10:30:04.567890123Z", "severityNumber": 9, "severityText": "INFO", "body": "Info message"}'
+          - '{"@timestamp": "2024-01-15T10:30:04.567Z", "severityNumber": 9, "severityText": "INFO", "body": "Info message"}'
           - '{"index": {}}'
-          - '{"@timestamp": "2024-01-15T10:30:05.567890123Z", "severityNumber": 13, "severityText": "WARN", "body": "Warning message"}'
+          - '{"@timestamp": "2024-01-15T10:30:05.567Z", "severityNumber": 13, "severityText": "WARN", "body": "Warning message"}'
           - '{"index": {}}'
-          - '{"@timestamp": "2024-01-15T10:30:06.567890123Z", "severityNumber": 17, "severityText": "ERROR", "body": "Error message"}'
+          - '{"@timestamp": "2024-01-15T10:30:06.567Z", "severityNumber": 17, "severityText": "ERROR", "body": "Error message"}'
           - '{"index": {}}'
-          - '{"@timestamp": "2024-01-15T10:30:07.567890123Z", "severityNumber": 21, "severityText": "FATAL", "body": "Fatal message"}'
+          - '{"@timestamp": "2024-01-15T10:30:07.567Z", "severityNumber": 21, "severityText": "FATAL", "body": "Fatal message"}'
           - '{"index": {}}'
-          - '{"@timestamp": "2024-01-15T10:30:08.567890123Z", "severityNumber": 24, "severityText": "FATAL4", "body": "Fatal4 message"}'
+          - '{"@timestamp": "2024-01-15T10:30:08.567Z", "severityNumber": 24, "severityText": "FATAL4", "body": "Fatal4 message"}'
           - '{"index": {}}'
-          - '{"@timestamp": "2024-01-15T10:30:09.567890123Z", "severityNumber": 23, "severityText": "DEBUG", "body": "Debug message"}'
+          - '{"@timestamp": "2024-01-15T10:30:09.567Z", "severityNumber": 23, "severityText": "DEBUG", "body": "Debug message"}'
           - '{"index": {}}'
-          - '{"@timestamp": "2024-01-15T10:30:10.567890123Z", "severityNumber": 20, "severityText": "TRACE", "body": "Trace message"}'
+          - '{"@timestamp": "2024-01-15T10:30:10.567Z", "severityNumber": 20, "severityText": "TRACE", "body": "Trace message"}'
           - '{"index": {}}'
-          - '{"@timestamp": "2024-01-15T10:30:11.567890123Z", "severityNumber": 22, "severityText": "CUSTOM", "body": "Custom message"}'
+          - '{"@timestamp": "2024-01-15T10:30:11.567Z", "severityNumber": 22, "severityText": "CUSTOM", "body": "Custom message"}'
 
 ---
 teardown:
@@ -98,9 +98,9 @@ teardown:
   - match: { total: 3 }
   - match: { "schema": [{"name": "@timestamp", "type": "timestamp"}, {"name": "severityText", "type": "string"}, {"name": "earliest(@timestamp)", "type": "timestamp"}] }
   - match: { "datarows": [
-    ["2024-01-15 10:30:00", "INFO", "2024-01-15 10:30:04.567890123"],
-    ["2024-01-15 10:30:00", "OTHER", "2024-01-15 10:30:06.567890123"],
-    ["2024-01-15 10:30:00", "WARN", "2024-01-15 10:30:05.567890123"]] }
+    ["2024-01-15 10:30:00", "INFO", "2024-01-15 10:30:04.567"],
+    ["2024-01-15 10:30:00", "OTHER", "2024-01-15 10:30:06.567"],
+    ["2024-01-15 10:30:00", "WARN", "2024-01-15 10:30:05.567"]] }
 
 ---
 "timechart count aggregation with limit should sum OTHER values":
