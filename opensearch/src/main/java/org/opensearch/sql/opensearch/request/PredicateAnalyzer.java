@@ -1274,11 +1274,9 @@ public class PredicateAnalyzer {
     @Override
     public QueryExpression equals(LiteralExpression literal) {
       Object value = literal.value();
-      if (value instanceof GregorianCalendar) {
+      if (literal.isDateTime()) {
         builder =
-            boolQuery()
-                .must(addFormatIfNecessary(literal, rangeQuery(getFieldReference()).gte(value)))
-                .must(addFormatIfNecessary(literal, rangeQuery(getFieldReference()).lte(value)));
+            addFormatIfNecessary(literal, rangeQuery(getFieldReference()).gte(value).lte(value));
       } else {
         builder = termQuery(getFieldReferenceForTermQuery(), value);
       }
@@ -1288,7 +1286,7 @@ public class PredicateAnalyzer {
     @Override
     public QueryExpression notEquals(LiteralExpression literal) {
       Object value = literal.value();
-      if (value instanceof GregorianCalendar) {
+      if (literal.isDateTime()) {
         builder =
             boolQuery()
                 .should(addFormatIfNecessary(literal, rangeQuery(getFieldReference()).gt(value)))
@@ -1399,8 +1397,12 @@ public class PredicateAnalyzer {
 
     @Override
     public QueryExpression equals(Object point, boolean isTimeStamp) {
-      builder =
-          termQuery(getFieldReferenceForTermQuery(), convertEndpointValue(point, isTimeStamp));
+      Object value = convertEndpointValue(point, isTimeStamp);
+      if (isTimeStamp) {
+        builder = rangeQuery(getFieldReference()).gte(value).lte(value).format("date_time");
+      } else {
+        builder = termQuery(getFieldReferenceForTermQuery(), value);
+      }
       return this;
     }
 
@@ -1419,6 +1421,7 @@ public class PredicateAnalyzer {
           range.upperBoundType() == BoundType.CLOSED
               ? rangeQueryBuilder.lte(upperBound)
               : rangeQueryBuilder.lt(upperBound);
+      if (isTimeStamp) rangeQueryBuilder.format("date_time");
       builder = rangeQueryBuilder;
       return this;
     }
@@ -1511,7 +1514,7 @@ public class PredicateAnalyzer {
    */
   private static RangeQueryBuilder addFormatIfNecessary(
       LiteralExpression literal, RangeQueryBuilder rangeQueryBuilder) {
-    if (literal.value() instanceof GregorianCalendar) {
+    if (literal.isDateTime()) {
       rangeQueryBuilder.format("date_time");
     }
     return rangeQueryBuilder;
@@ -1634,7 +1637,7 @@ public class PredicateAnalyzer {
         return doubleValue();
       } else if (isBoolean()) {
         return booleanValue();
-      } else if (isTimestamp()) {
+      } else if (isTimestamp() || isDate()) {
         return timestampValueForPushDown(RexLiteral.stringValue(literal));
       } else if (isString()) {
         return RexLiteral.stringValue(literal);
@@ -1676,8 +1679,19 @@ public class PredicateAnalyzer {
       return false;
     }
 
+    public boolean isDate() {
+      if (literal.getType() instanceof ExprSqlType exprSqlType) {
+        return exprSqlType.getUdt() == ExprUDT.EXPR_DATE;
+      }
+      return false;
+    }
+
     public boolean isIp() {
       return literal.getType() instanceof ExprIPType;
+    }
+
+    public boolean isDateTime() {
+      return rawValue() instanceof GregorianCalendar || isTimestamp() || isDate();
     }
 
     long longValue() {

@@ -1,2 +1,24 @@
+/*
+{
+  "name": "date_histogram_hourly_agg",
+  "operation-type": "search",
+  "index": "{{index_name | default('big5')}}",
+  "body": {
+    "size": 0,
+    "aggs": {
+      "by_hour": {
+        "date_histogram": {
+          "field": "@timestamp",
+          {% if distribution_version.split('.') | map('int') | list < "6.0.0".split('.') | map('int') | list or distribution_version.split('.') | map('int') | list >= "7.0.0".split('.') | map('int') | list %}
+            "calendar_interval": "hour"
+          {% else %}
+            "interval": "hour"
+          {% endif %}
+        }
+      }
+    }
+  }
+}
+*/
 source = big5
 | stats count() by span(`@timestamp`, 1h)

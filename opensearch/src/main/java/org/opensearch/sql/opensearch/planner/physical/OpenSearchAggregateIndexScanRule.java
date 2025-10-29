@@ -23,7 +23,9 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.immutables.value.Value;
 import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.expression.function.udf.binning.WidthBucketFunction;
+import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
 /** Planner rule that push a {@link LogicalAggregate} down to {@link CalciteLogicalIndexScan} */
@@ -106,17 +108,17 @@ public class OpenSearchAggregateIndexScanRule
                                         // 1. No RexOver and no duplicate projection
                                         // 2. Contains width_bucket function on date field referring
                                         // to bin command with parameter bins
-                                        Predicate.not(OpenSearchIndexScanRule::containsRexOver)
-                                            .and(OpenSearchIndexScanRule::distinctProjectList)
+                                        Predicate.not(PlanUtils::containsRexOver)
+                                            .and(PlanUtils::distinctProjectList)
                                             .or(Config::containsWidthBucketFuncOnDate))
                                     .oneInput(
                                         b2 ->
                                             b2.operand(CalciteLogicalIndexScan.class)
                                                 .predicate(
                                                     Predicate.not(
-                                                            OpenSearchIndexScanRule::isLimitPushed)
+                                                            AbstractCalciteIndexScan::isLimitPushed)
                                                         .and(
-                                                            OpenSearchIndexScanRule
+                                                            AbstractCalciteIndexScan
                                                                 ::noAggregatePushed))
                                                 .noInputs())));
     Config COUNT_STAR =
@@ -138,8 +140,8 @@ public class OpenSearchAggregateIndexScanRule
                             b1 ->
                                 b1.operand(CalciteLogicalIndexScan.class)
                                     .predicate(
-                                        Predicate.not(OpenSearchIndexScanRule::isLimitPushed)
-                                            .and(OpenSearchIndexScanRule::noAggregatePushed))
+                                        Predicate.not(AbstractCalciteIndexScan::isLimitPushed)
+                                            .and(AbstractCalciteIndexScan::noAggregatePushed))
                                     .noInputs()));
     // TODO: No need this rule once https://github.com/opensearch-project/sql/issues/4403 is
     // addressed
@@ -173,22 +175,18 @@ public class OpenSearchAggregateIndexScanRule
                                                     // 2. Contains width_bucket function on date
                                                     // field referring
                                                     // to bin command with parameter bins
-                                                    Predicate.not(
-                                                            OpenSearchIndexScanRule
-                                                                ::containsRexOver)
-                                                        .and(
-                                                            OpenSearchIndexScanRule
-                                                                ::distinctProjectList)
+                                                    Predicate.not(PlanUtils::containsRexOver)
+                                                        .and(PlanUtils::distinctProjectList)
                                                         .or(Config::containsWidthBucketFuncOnDate))
                                                 .oneInput(
                                                     b3 ->
                                                         b3.operand(CalciteLogicalIndexScan.class)
                                                             .predicate(
                                                                 Predicate.not(
-                                                                        OpenSearchIndexScanRule
+                                                                        AbstractCalciteIndexScan
                                                                             ::isLimitPushed)
                                                                     .and(
-                                                                        OpenSearchIndexScanRule
+                                                                        AbstractCalciteIndexScan
                                                                             ::noAggregatePushed))
                                                             .noInputs()))));
 

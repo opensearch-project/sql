@@ -26,6 +26,7 @@ import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rex.RexNode;
 import org.apache.commons.lang3.tuple.Pair;
 import org.immutables.value.Value;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
 
 /**
@@ -132,7 +133,7 @@ public class SortProjectExprTransposeRule extends RelRule<SortProjectExprTranspo
                                 b1.operand(LogicalProject.class)
                                     .predicate(
                                         Predicate.not(LogicalProject::containsOver)
-                                            .and(OpenSearchIndexScanRule::projectContainsExpr))
+                                            .and(PlanUtils::projectContainsExpr))
                                     .anyInputs()));
 
     @Override

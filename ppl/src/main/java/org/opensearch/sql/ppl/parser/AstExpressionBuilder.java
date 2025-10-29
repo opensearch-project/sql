@@ -31,6 +31,7 @@ import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BinaryArithmeticContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
@@ -64,7 +65,6 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PatternModeContex
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PerFunctionCallContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameFieldExpressionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SingleFieldRelevanceFunctionContext;
-import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SpanClauseContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsFunctionCallContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StringLiteralContext;
@@ -226,20 +226,54 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   @Override
-  public UnresolvedExpression visitSortField(SortFieldContext ctx) {
+  public UnresolvedExpression visitPrefixSortField(OpenSearchPPLParser.PrefixSortFieldContext ctx) {
+    return buildSortField(ctx.sortFieldExpression(), ctx);
+  }
 
-    UnresolvedExpression fieldExpression =
-        visit(ctx.sortFieldExpression().fieldExpression().qualifiedName());
+  @Override
+  public UnresolvedExpression visitSuffixSortField(OpenSearchPPLParser.SuffixSortFieldContext ctx) {
+    return buildSortField(ctx.sortFieldExpression(), ctx);
+  }
 
-    if (ctx.sortFieldExpression().IP() != null) {
+  @Override
+  public UnresolvedExpression visitDefaultSortField(
+      OpenSearchPPLParser.DefaultSortFieldContext ctx) {
+    return buildSortField(ctx.sortFieldExpression(), ctx);
+  }
+
+  @Override
+  public UnresolvedExpression visitInvalidMixedSortField(
+      OpenSearchPPLParser.InvalidMixedSortFieldContext ctx) {
+    String prefixOperator = ctx.PLUS() != null ? "+" : "-";
+    String suffixKeyword =
+        ctx.ASC() != null ? "asc" : ctx.A() != null ? "a" : ctx.DESC() != null ? "desc" : "d";
+
+    throw new SemanticCheckException(
+        String.format(
+            "Cannot use both prefix (%s) and suffix (%s) sort direction syntax on the same field. "
+                + "Use either '%s%s' or '%s %s', not both.",
+            prefixOperator,
+            suffixKeyword,
+            prefixOperator,
+            ctx.sortFieldExpression().getText(),
+            ctx.sortFieldExpression().getText(),
+            suffixKeyword));
+  }
+
+  private Field buildSortField(
+      OpenSearchPPLParser.SortFieldExpressionContext sortFieldExpr,
+      OpenSearchPPLParser.SortFieldContext parentCtx) {
+    UnresolvedExpression fieldExpression = visit(sortFieldExpr.fieldExpression().qualifiedName());
+
+    if (sortFieldExpr.IP() != null) {
       fieldExpression = new Cast(fieldExpression, AstDSL.stringLiteral("ip"));
-    } else if (ctx.sortFieldExpression().NUM() != null) {
+    } else if (sortFieldExpr.NUM() != null) {
       fieldExpression = new Cast(fieldExpression, AstDSL.stringLiteral("double"));
-    } else if (ctx.sortFieldExpression().STR() != null) {
+    } else if (sortFieldExpr.STR() != null) {
       fieldExpression = new Cast(fieldExpression, AstDSL.stringLiteral("string"));
     }
     // AUTO() case uses the field expression as-is
-    return new Field(fieldExpression, ArgumentFactory.getArgumentList(ctx));
+    return new Field(fieldExpression, ArgumentFactory.getArgumentList(parentCtx));
   }
 
   @Override

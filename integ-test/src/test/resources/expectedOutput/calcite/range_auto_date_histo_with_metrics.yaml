@@ -1,0 +1,10 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(tmin=[$2], tavg=[$3], tmax=[$4], range_bucket=[$0], @timestamp=[$1])
+        LogicalAggregate(group=[{0, 1}], tmin=[MIN($2)], tavg=[AVG($3)], tmax=[MAX($3)])
+          LogicalProject(range_bucket=[CASE(<($28, 100), 'range_1':VARCHAR, SEARCH($28, Sarg[[100..1000)]), 'range_2':VARCHAR, SEARCH($28, Sarg[[1000..2000)]), 'range_3':VARCHAR, >=($28, 2000), 'range_4':VARCHAR, null:NULL)], @timestamp=[WIDTH_BUCKET($17, 10, -(MAX($17) OVER (), MIN($17) OVER ()), MAX($17) OVER ())], metrics.tmin=[$29], metrics.size=[$28])
+            CalciteLogicalIndexScan(table=[[OpenSearch, big5]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      CalciteEnumerableIndexScan(table=[[OpenSearch, big5]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0, 1},tmin=MIN($2),tavg=AVG($3),tmax=MAX($3)), PROJECT->[tmin, tavg, tmax, range_bucket, @timestamp]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"range_bucket":{"range":{"field":"metrics.size","ranges":[{"key":"range_1","to":100.0},{"key":"range_2","from":100.0,"to":1000.0},{"key":"range_3","from":1000.0,"to":2000.0},{"key":"range_4","from":2000.0}],"keyed":true},"aggregations":{"@timestamp":{"auto_date_histogram":{"field":"@timestamp","buckets":10,"minimum_interval":null},"aggregations":{"tmin":{"min":{"field":"metrics.tmin"}},"tavg":{"avg":{"field":"metrics.size"}},"tmax":{"max":{"field":"metrics.size"}}}}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

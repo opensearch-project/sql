@@ -1,4 +1,31 @@
+/*
+{
+  "name": "range_field_conjunction_small_range_small_term_query",
+  "operation-type": "search",
+  "index": "{{index_name | default('big5')}}",
+  "body": {
+    "query": {
+      "bool": {
+        "should": [
+          {
+            "term": {
+              "aws.cloudwatch.log_stream": "indigodagger"
+            }
+          },
+          {
+            "range": {
+              "metrics.size": {
+                "gte": 10,
+                "lte": 20
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
+*/
 source = big5
-| where `aws.cloudwatch.log_stream` = 'indigodagger'
-   or (`metrics.size` >= 1 and `metrics.size` <= 30)
+| where `aws.cloudwatch.log_stream` = 'indigodagger' or (`metrics.size` >= 10 and `metrics.size` <= 20)
 | head 10

@@ -21,10 +21,13 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DefaultSortFieldContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PrefixSortFieldContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SuffixSortFieldContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 
 /** Util class to get all arguments as a list from the PPL command. */
@@ -112,19 +115,68 @@ public class ArgumentFactory {
    * @return the list of arguments fetched from the sort field in sort command
    */
   public static List<Argument> getArgumentList(SortFieldContext ctx) {
+    if (ctx instanceof PrefixSortFieldContext) {
+      return getArgumentList((PrefixSortFieldContext) ctx);
+    } else if (ctx instanceof SuffixSortFieldContext) {
+      return getArgumentList((SuffixSortFieldContext) ctx);
+    } else {
+      return getArgumentList((DefaultSortFieldContext) ctx);
+    }
+  }
+
+  /**
+   * Get list of {@link Argument} for prefix sort field (+/- syntax).
+   *
+   * @param ctx PrefixSortFieldContext instance
+   * @return the list of arguments fetched from the prefix sort field
+   */
+  public static List<Argument> getArgumentList(PrefixSortFieldContext ctx) {
     return Arrays.asList(
         ctx.MINUS() != null
             ? new Argument("asc", new Literal(false, DataType.BOOLEAN))
             : new Argument("asc", new Literal(true, DataType.BOOLEAN)),
-        ctx.sortFieldExpression().AUTO() != null
-            ? new Argument("type", new Literal("auto", DataType.STRING))
-            : ctx.sortFieldExpression().IP() != null
-                ? new Argument("type", new Literal("ip", DataType.STRING))
-                : ctx.sortFieldExpression().NUM() != null
-                    ? new Argument("type", new Literal("num", DataType.STRING))
-                    : ctx.sortFieldExpression().STR() != null
-                        ? new Argument("type", new Literal("str", DataType.STRING))
-                        : new Argument("type", new Literal(null, DataType.NULL)));
+        getTypeArgument(ctx.sortFieldExpression()));
+  }
+
+  /**
+   * Get list of {@link Argument} for suffix sort field (asc/desc syntax).
+   *
+   * @param ctx SuffixSortFieldContext instance
+   * @return the list of arguments fetched from the suffix sort field
+   */
+  public static List<Argument> getArgumentList(SuffixSortFieldContext ctx) {
+    return Arrays.asList(
+        (ctx.DESC() != null || ctx.D() != null)
+            ? new Argument("asc", new Literal(false, DataType.BOOLEAN))
+            : new Argument("asc", new Literal(true, DataType.BOOLEAN)),
+        getTypeArgument(ctx.sortFieldExpression()));
+  }
+
+  /**
+   * Get list of {@link Argument} for default sort field (no direction specified).
+   *
+   * @param ctx DefaultSortFieldContext instance
+   * @return the list of arguments fetched from the default sort field
+   */
+  public static List<Argument> getArgumentList(DefaultSortFieldContext ctx) {
+    return Arrays.asList(
+        new Argument("asc", new Literal(true, DataType.BOOLEAN)),
+        getTypeArgument(ctx.sortFieldExpression()));
+  }
+
+  /** Helper method to get type argument from sortFieldExpression. */
+  private static Argument getTypeArgument(OpenSearchPPLParser.SortFieldExpressionContext ctx) {
+    if (ctx.AUTO() != null) {
+      return new Argument("type", new Literal("auto", DataType.STRING));
+    } else if (ctx.IP() != null) {
+      return new Argument("type", new Literal("ip", DataType.STRING));
+    } else if (ctx.NUM() != null) {
+      return new Argument("type", new Literal("num", DataType.STRING));
+    } else if (ctx.STR() != null) {
+      return new Argument("type", new Literal("str", DataType.STRING));
+    } else {
+      return new Argument("type", new Literal(null, DataType.NULL));
+    }
   }
 
   /**
