@@ -95,6 +95,13 @@ public class SortProjectExprTransposeRule extends RelRule<SortProjectExprTranspo
               RelCollations.EMPTY,
               sort.offset,
               sort.fetch);
+      //      Sort limitSort =
+      //          sort.copy(
+      //              sort.getTraitSet().replace(lowerSort.getCollation()),
+      //              project.getInput(),
+      //              lowerSort.getCollation(),
+      //              sort.offset,
+      //              sort.fetch);
       result =
           project.copy(sort.getTraitSet(), limitSort, project.getProjects(), project.getRowType());
     }

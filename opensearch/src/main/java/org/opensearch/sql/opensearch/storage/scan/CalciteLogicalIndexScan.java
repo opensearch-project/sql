@@ -60,6 +60,7 @@ import org.opensearch.sql.opensearch.storage.scan.context.LimitDigest;
 import org.opensearch.sql.opensearch.storage.scan.context.OSRequestBuilderAction;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownType;
+import org.opensearch.sql.opensearch.storage.scan.context.SortExpressionInfo;
 
 /** The logical relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
@@ -118,7 +119,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
   public void register(RelOptPlanner planner) {
     super.register(planner);
     planner.addRule(EnumerableIndexScanRule.DEFAULT_CONFIG.toRule());
-    if (osIndex.getSettings().getSettingValue(Settings.Key.CALCITE_PUSHDOWN_ENABLED)) {
+    if ((Boolean) osIndex.getSettings().getSettingValue(Settings.Key.CALCITE_PUSHDOWN_ENABLED)) {
       // When pushdown is enabled, use normal rules (they handle everything including relevance
       // functions)
       for (RelOptRule rule : OpenSearchIndexRules.OPEN_SEARCH_INDEX_SCAN_RULES) {
@@ -247,7 +248,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
             newSchema,
             pushDownContext.clone());
 
-    AbstractAction action;
+    AbstractAction<?> action;
     if (pushDownContext.isAggregatePushed()) {
       // For aggregate, we do nothing on query builder but only change the schema of the scan.
       action = (AggregationBuilderAction) aggAction -> {};
@@ -399,6 +400,58 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Cannot pushdown limit {} with offset {}", limit, offset, e);
+      }
+    }
+    return null;
+  }
+
+  public CalciteLogicalIndexScan pushDownLimitToScan(Integer limit, Integer offset) {
+    CalciteLogicalIndexScan newScan = this.copyWithNewSchema(getRowType());
+    newScan.pushDownContext.add(
+        PushDownType.LIMIT,
+        new LimitDigest(limit, offset),
+        (OSRequestBuilderAction) requestBuilder -> requestBuilder.pushDownLimit(limit, offset));
+    return newScan;
+  }
+
+  /**
+   * Push down sort expressions to OpenSearch level. Supports mixed RexCall and field sort
+   * expressions.
+   *
+   * @param sortExpressionInfos List of SortExpressionInfo with expressions and collation
+   *     information
+   * @return CalciteLogicalIndexScan with sort expressions pushed down, or null if pushdown fails
+   */
+  public CalciteLogicalIndexScan pushdownSortExpr(List<SortExpressionInfo> sortExpressionInfos) {
+    try {
+      if (sortExpressionInfos == null || sortExpressionInfos.isEmpty()) {
+        return null;
+      }
+
+      CalciteLogicalIndexScan newScan =
+          new CalciteLogicalIndexScan(
+              getCluster(),
+              traitSet,
+              hints,
+              table,
+              osIndex,
+              getRowType(),
+              pushDownContext.cloneWithoutSort());
+
+      // Create action to push down sort expressions to OpenSearch
+      OSRequestBuilderAction action =
+          requestBuilder -> {
+            for (SortExpressionInfo info : sortExpressionInfos) {
+              requestBuilder.pushDownSortExpression(
+                  info, osIndex.getAllFieldTypes(), getRowType(), getCluster());
+            }
+          };
+
+      newScan.pushDownContext.add(PushDownType.SORT_EXPR, sortExpressionInfos, action);
+      return newScan;
+    } catch (Exception e) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Cannot pushdown sort expressions: {}", sortExpressionInfos, e);
       }
     }
     return null;

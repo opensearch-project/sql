@@ -253,4 +253,33 @@ public class SortCommandIT extends PPLIntegTestCase {
         rows(36, 20),
         rows(39, 25));
   }
+
+  @Test
+  public void testSortComplexExpression() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval age2 = age + balance | sort age2 | fields age, balance, age2",
+                TEST_INDEX_BANK));
+    verifyOrder(
+        result,
+        rows(33, 4180, 4213),
+        rows(36, 5686, 5722),
+        rows(36, 16418, 16454),
+        rows(28, 32838, 32866),
+        rows(32, 39225, 39257),
+        rows(39, 40540, 40579),
+        rows(34, 48086, 48120));
+  }
+
+  @Test
+  public void testSortComplexExpressionThenHead() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval age2 = age + balance | sort age2 | fields age, balance, age2 |"
+                    + " head 2",
+                TEST_INDEX_BANK));
+    verifyOrder(result, rows(33, 4180, 4213), rows(36, 5686, 5722));
+  }
 }

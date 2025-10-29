@@ -13,6 +13,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import lombok.experimental.UtilityClass;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -30,6 +33,9 @@ import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
+import org.opensearch.sql.opensearch.storage.scan.context.PushDownType;
+import org.opensearch.sql.opensearch.storage.scan.context.SortExpressionInfo;
 
 @UtilityClass
 public class OpenSearchRelOptUtil {
@@ -273,5 +279,78 @@ public class OpenSearchRelOptUtil {
       }
       suffix++;
     }
+  }
+
+  /**
+   * Check if the scan can provide the required sort collation by matching toCollation's mapped
+   * project RexNodes with sort expressions from PushDownContext using a two-pointer approach.
+   *
+   * @param scan The scan RelNode to check
+   * @param project The project node to match expressions against
+   * @param toCollation The required collation to match
+   * @return true if scan can provide the required collation, false otherwise
+   */
+  public static boolean canScanProvideSortCollation(
+      AbstractCalciteIndexScan scan, Project project, RelCollation toCollation) {
+
+    // Check if the scan has sort expressions pushed down
+    if (scan.getPushDownContext().stream()
+        .noneMatch(operation -> operation.type() == PushDownType.SORT_EXPR)) {
+      return false;
+    }
+
+    // Get the sort expression infos from the pushdown context
+    @SuppressWarnings("unchecked")
+    List<SortExpressionInfo> sortExpressionInfos =
+        (List<SortExpressionInfo>)
+            scan.getPushDownContext().getDigestByType(PushDownType.SORT_EXPR);
+    if (sortExpressionInfos.isEmpty()) {
+      return false;
+    }
+
+    List<RexNode> projectOutputs = project.getProjects();
+    List<RelFieldCollation> requiredFieldCollations = toCollation.getFieldCollations();
+
+    // Use two-pointer approach to match required collations with scan sort expressions
+    int scanPointer = 0;
+    int requiredPointer = 0;
+
+    while (requiredPointer < requiredFieldCollations.size()
+        && scanPointer < sortExpressionInfos.size()) {
+      RelFieldCollation requiredFieldCollation = requiredFieldCollations.get(requiredPointer);
+      int projectIndex = requiredFieldCollation.getFieldIndex();
+
+      // Check bounds for project index
+      if (projectIndex >= projectOutputs.size()) {
+        return false;
+      }
+
+      RexNode requiredProjectOutput = projectOutputs.get(projectIndex);
+      SortExpressionInfo scanSortInfo = sortExpressionInfos.get(scanPointer);
+
+      // Get the effective expression for comparison
+      RexNode scanExpression = scanSortInfo.getEffectiveExpression(scan);
+
+      // Check if the required project output matches the scan sort expression
+      if (scanExpression != null && scanExpression.equals(requiredProjectOutput)) {
+        // Check if the collation direction and null handling match
+        RelFieldCollation scanFieldCollation = scanSortInfo.toRelFieldCollation(projectIndex);
+        if (requiredFieldCollation.getDirection() == scanFieldCollation.getDirection()
+            && requiredFieldCollation.nullDirection == scanFieldCollation.nullDirection) {
+          // Match found, advance both pointers
+          requiredPointer++;
+          scanPointer++;
+        } else {
+          // Direction or null handling mismatch
+          return false;
+        }
+      } else {
+        // Expression mismatch, advance scan pointer to look for a match
+        scanPointer++;
+      }
+    }
+
+    // All required collations must be matched
+    return requiredPointer == requiredFieldCollations.size();
   }
 }

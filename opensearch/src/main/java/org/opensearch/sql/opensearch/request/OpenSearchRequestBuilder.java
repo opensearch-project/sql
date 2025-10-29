@@ -22,6 +22,10 @@ import java.util.stream.Stream;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexNode;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.lucene.search.join.ScoreMode;
 import org.opensearch.action.search.CreatePitRequest;
@@ -31,15 +35,19 @@ import org.opensearch.index.query.InnerHitBuilder;
 import org.opensearch.index.query.NestedQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.script.Script;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.collapse.CollapseBuilder;
 import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
+import org.opensearch.search.sort.ScriptSortBuilder.ScriptSortType;
 import org.opensearch.search.sort.SortBuilder;
+import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
@@ -47,6 +55,7 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.agg.CountAsTotalHitsParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
+import org.opensearch.sql.opensearch.storage.scan.context.SortExpressionInfo;
 
 /** OpenSearch search request builder. */
 @EqualsAndHashCode
@@ -209,7 +218,40 @@ public class OpenSearchRequestBuilder {
     }
   }
 
-  /** Pushdown size (limit) and from (offset) to DSL request. */
+  /**
+   * Push down sort expression to DSL request. Uses ScriptQueryExpression infrastructure for script
+   * generation.
+   *
+   * @param sortExprInfo The sort expression info to push down
+   * @param fieldTypes Map of field names to their types for validation
+   * @param rowType The row type for script generation context
+   * @param cluster The RelOptCluster for script generation context
+   */
+  public void pushDownSortExpression(
+      SortExpressionInfo sortExprInfo,
+      Map<String, ExprType> fieldTypes,
+      RelDataType rowType,
+      RelOptCluster cluster) {
+    if (!org.apache.commons.lang3.StringUtils.isEmpty(sortExprInfo.getFieldName())) {
+      sourceBuilder.sort(SortBuilders.fieldSort(sortExprInfo.getFieldName()));
+      return;
+    }
+    RexNode sortExpr = sortExprInfo.getExpression();
+    assert sortExpr instanceof RexCall : "sort expression should be RexCall";
+    // Complex expression - use ScriptQueryExpression to generate script for sort
+    PredicateAnalyzer.ScriptQueryExpression scriptExpr =
+        new PredicateAnalyzer.ScriptQueryExpression(
+            sortExprInfo.getExpression(), rowType, fieldTypes, cluster);
+
+    Script script = scriptExpr.getScript();
+    if (script != null) {
+      // Determine the correct ScriptSortType based on the expression's return type
+      ScriptSortType sortType = getScriptSortType(sortExpr.getType());
+
+      sourceBuilder.sort(SortBuilders.scriptSort(script, sortType));
+    }
+  }
+
   public void pushDownLimit(Integer limit, Integer offset) {
     // If there are multiple limit, we take the minimum among them
     // E.g. for `source=t | head 10 | head 5`, we take 5
@@ -224,7 +266,7 @@ public class OpenSearchRequestBuilder {
     int newStartFrom = startFrom + offset;
 
     if (newStartFrom >= maxResultWindow) {
-      throw new PushDownUnSupportedException(
+      throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
           String.format(
               "Requested offset %d should be less than the max result window %d",
               newStartFrom, maxResultWindow));
@@ -418,5 +460,31 @@ public class OpenSearchRequestBuilder {
    */
   private BoolQueryBuilder query() {
     return (BoolQueryBuilder) sourceBuilder.query();
+  }
+
+  /**
+   * Determine the appropriate ScriptSortType based on the expression's return type.
+   *
+   * @param relDataType the return type of the expression
+   * @return the appropriate ScriptSortType
+   */
+  private ScriptSortType getScriptSortType(org.apache.calcite.rel.type.RelDataType relDataType) {
+    switch (relDataType.getSqlTypeName()) {
+      case TINYINT:
+      case SMALLINT:
+      case INTEGER:
+      case BIGINT:
+      case FLOAT:
+      case REAL:
+      case DOUBLE:
+      case DECIMAL:
+        return ScriptSortType.NUMBER;
+      case CHAR:
+      case VARCHAR:
+        return ScriptSortType.STRING;
+      default:
+        // Default to STRING for unknown types
+        return ScriptSortType.STRING;
+    }
   }
 }

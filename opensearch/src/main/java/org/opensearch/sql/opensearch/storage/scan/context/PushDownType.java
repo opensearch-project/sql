@@ -14,7 +14,8 @@ public enum PushDownType {
   LIMIT,
   SCRIPT,
   COLLAPSE,
-  SORT_AGG_METRICS
+  SORT_AGG_METRICS,
+  SORT_EXPR
   // HIGHLIGHT,
   // NESTED
 }

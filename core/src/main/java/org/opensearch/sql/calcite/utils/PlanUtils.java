@@ -518,6 +518,16 @@ public interface PlanUtils {
     return !sort.getCollation().getFieldCollations().isEmpty() && sort.fetch == null;
   }
 
+  static boolean sortReferencesExpr(Sort sort, Project project) {
+    if (sort.getCollation().getFieldCollations().isEmpty()) {
+      return false;
+    }
+    return sort.getCollation().getFieldCollations().stream()
+        .anyMatch(
+            relFieldCollation ->
+                project.getProjects().get(relFieldCollation.getFieldIndex()) instanceof RexCall);
+  }
+
   /**
    * Get a string representation of the argument types expressed in ExprType for error messages.
    *

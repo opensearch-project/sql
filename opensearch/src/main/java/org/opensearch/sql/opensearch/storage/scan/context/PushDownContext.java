@@ -50,7 +50,7 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
   public PushDownContext cloneWithoutSort() {
     PushDownContext newContext = new PushDownContext(osIndex);
     for (PushDownOperation action : this) {
-      if (action.type() != PushDownType.SORT) {
+      if (action.type() != PushDownType.SORT && action.type() != PushDownType.SORT_EXPR) {
         newContext.add(action);
       }
     }
@@ -114,6 +114,20 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
 
   public boolean containsDigest(Object digest) {
     return this.stream().anyMatch(action -> action.digest().equals(digest));
+  }
+
+  /**
+   * Get the digest of the first operation of a specific type.
+   *
+   * @param type The PushDownType to get the digest for
+   * @return The digest object, or null if no operation of the specified type exists
+   */
+  public Object getDigestByType(PushDownType type) {
+    return this.stream()
+        .filter(operation -> operation.type() == type)
+        .map(PushDownOperation::digest)
+        .findFirst()
+        .orElse(null);
   }
 
   public OpenSearchRequestBuilder createRequestBuilder() {

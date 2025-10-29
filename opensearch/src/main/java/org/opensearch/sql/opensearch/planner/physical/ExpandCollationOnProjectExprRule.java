@@ -12,14 +12,17 @@ import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.volcano.AbstractConverter;
+import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelFieldCollation.Direction;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
 import org.apache.commons.lang3.tuple.Pair;
 import org.immutables.value.Value;
 import org.opensearch.sql.calcite.utils.PlanUtils;
+import org.opensearch.sql.opensearch.storage.scan.CalciteEnumerableIndexScan;
 import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
 
 /**
@@ -47,8 +50,65 @@ public class ExpandCollationOnProjectExprRule
     final Project project = call.rel(1);
     final RelTraitSet toTraits = converter.getTraitSet();
     final RelCollation toCollation = toTraits.getTrait(RelCollationTraitDef.INSTANCE);
-    final RelTrait fromTrait =
-        project.getInput().getTraitSet().getTrait(RelCollationTraitDef.INSTANCE);
+
+    // Branch 1: Check if complex expressions are already sorted by scan
+    if (handleComplexExpressionsSortedByScan(call, converter, project, toTraits, toCollation)) {
+      return;
+    }
+
+    // Branch 2: Handle simple expressions that can be transformed to field sorts
+    handleSimpleExpressionFieldSorts(call, converter, project, toTraits, toCollation);
+  }
+
+  /**
+   * Handle the case where complex expressions are already sorted by the scan. In this case, we can
+   * directly assign toTrait to the new EnumerableProject.
+   *
+   * @return true if handled, false if not applicable
+   */
+  private boolean handleComplexExpressionsSortedByScan(
+      RelOptRuleCall call,
+      AbstractConverter converter,
+      Project project,
+      RelTraitSet toTraits,
+      RelCollation toCollation) {
+
+    // Check if toCollation is null or not a simple RelCollation with field collations
+    if (toCollation == null || toCollation.getFieldCollations().isEmpty()) {
+      return false;
+    }
+
+    // Extract the actual enumerable scan from the input, handling RelSubset case
+    CalciteEnumerableIndexScan scan = extractScanFromInput(project.getInput());
+    if (scan == null) {
+      return false;
+    }
+
+    // Check if the scan can provide the required sort collation
+    if (OpenSearchRelOptUtil.canScanProvideSortCollation(scan, project, toCollation)) {
+      // The scan has already provided the sorting for complex expressions
+      // We can directly assign toTrait to new EnumerableProject
+      Project newProject =
+          project.copy(toTraits, project.getInput(), project.getProjects(), project.getRowType());
+      call.transformTo(newProject);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Handle simple expressions that can be transformed to field sorts using
+   * getOrderEquivalentInputInfo.
+   */
+  private void handleSimpleExpressionFieldSorts(
+      RelOptRuleCall call,
+      AbstractConverter converter,
+      Project project,
+      RelTraitSet toTraits,
+      RelCollation toCollation) {
+
+    RelTrait fromTrait = project.getInput().getTraitSet().getTrait(RelCollationTraitDef.INSTANCE);
+
     // In case of fromTrait is an instance of RelCompositeTrait, it most likely finds equivalence by
     // default.
     // Let it go through default ExpandConversionRule to determine trait satisfaction.
@@ -85,12 +145,46 @@ public class ExpandCollationOnProjectExprRule
       }
 
       // After collation equivalence analysis, fromTrait satisfies toTrait. Copy the target trait
-      // set
-      // to new EnumerableProject.
+      // set to new EnumerableProject.
       Project newProject =
           project.copy(toTraits, project.getInput(), project.getProjects(), project.getRowType());
       call.transformTo(newProject);
     }
+  }
+
+  /**
+   * Extract CalciteEnumerableIndexScan from the input RelNode, handling RelSubset case. Since this
+   * rule matches EnumerableProject, we expect CalciteEnumerableIndexScan during physical
+   * optimization.
+   *
+   * @param input The input RelNode to extract scan from
+   * @return CalciteEnumerableIndexScan if found, null otherwise
+   */
+  private static CalciteEnumerableIndexScan extractScanFromInput(RelNode input) {
+
+    // Case 1: Direct CalciteEnumerableIndexScan (physical scan)
+    if (input instanceof CalciteEnumerableIndexScan) {
+      return (CalciteEnumerableIndexScan) input;
+    }
+
+    // Case 2: RelSubset with best plan being a CalciteEnumerableIndexScan
+    if (input instanceof RelSubset) {
+      RelSubset subset = (RelSubset) input;
+      RelNode bestPlan = subset.getBest();
+      if (bestPlan != null) {
+        // Recursively check the best plan
+        return extractScanFromInput(bestPlan);
+      }
+
+      // During physical optimization, we should have a best plan, but if not available yet,
+      // we can check the original node (though it's less likely to be CalciteEnumerableIndexScan)
+      RelNode original = subset.getOriginal();
+      if (original != null) {
+        return extractScanFromInput(original);
+      }
+    }
+
+    return null;
   }
 
   @Value.Immutable
