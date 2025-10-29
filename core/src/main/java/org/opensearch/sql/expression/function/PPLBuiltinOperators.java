@@ -428,6 +428,11 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       new RexExtractMultiFunction().toUDF("REX_EXTRACT_MULTI");
   public static final SqlOperator REX_OFFSET = new RexOffsetFunction().toUDF("REX_OFFSET");
 
+  // Wildcard replace function for replace command
+  public static final SqlOperator WILDCARD_REPLACE =
+      new org.opensearch.sql.expression.function.udf.WildcardReplaceFunctionImpl()
+          .toUDF("WILDCARD_REPLACE");
+
   // Aggregation functions
   public static final SqlAggFunction AVG_NULLABLE = new NullableSqlAvgAggFunction(SqlKind.AVG);
   public static final SqlAggFunction STDDEV_POP_NULLABLE =

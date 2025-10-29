@@ -2854,9 +2854,30 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         for (ReplacePair pair : node.getReplacePairs()) {
           RexNode patternNode = rexVisitor.analyze(pair.getPattern(), context);
           RexNode replacementNode = rexVisitor.analyze(pair.getReplacement(), context);
-          fieldRef =
-              context.relBuilder.call(
-                  SqlStdOperatorTable.REPLACE, fieldRef, patternNode, replacementNode);
+
+          // Extract pattern and replacement string values
+          String patternStr =
+              ((org.opensearch.sql.ast.expression.Literal) pair.getPattern()).getValue().toString();
+          String replacementStr =
+              ((org.opensearch.sql.ast.expression.Literal) pair.getReplacement())
+                  .getValue()
+                  .toString();
+
+          // Check if pattern contains wildcards
+          if (patternStr.contains("*")) {
+            // Validate wildcard symmetry
+            org.opensearch.sql.calcite.utils.WildcardReplaceUtils.validateWildcardSymmetry(
+                patternStr, replacementStr);
+
+            // For wildcard patterns, use custom wildcard replacement logic
+            fieldRef =
+                buildWildcardReplaceExpression(fieldRef, patternNode, replacementNode, context);
+          } else {
+            // For literal patterns, use Calcite's standard REPLACE function
+            fieldRef =
+                context.relBuilder.call(
+                    SqlStdOperatorTable.REPLACE, fieldRef, patternNode, replacementNode);
+          }
         }
 
         projectList.add(fieldRef);
@@ -2868,6 +2889,25 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     context.relBuilder.project(projectList, fieldNames);
     return context.relBuilder.peek();
+  }
+
+  /**
+   * Build a RexNode for wildcard-based replacement.
+   *
+   * @param fieldRex The field to apply replacement on
+   * @param patternNode The pattern RexNode
+   * @param replacementNode The replacement RexNode
+   * @param context The Calcite plan context
+   * @return RexNode representing the wildcard replacement operation
+   */
+  private RexNode buildWildcardReplaceExpression(
+      RexNode fieldRex, RexNode patternNode, RexNode replacementNode, CalcitePlanContext context) {
+    // Use the registered WILDCARD_REPLACE operator from PPLBuiltinOperators
+    return context.rexBuilder.makeCall(
+        org.opensearch.sql.expression.function.PPLBuiltinOperators.WILDCARD_REPLACE,
+        fieldRex,
+        patternNode,
+        replacementNode);
   }
 
   private void buildParseRelNode(Parse node, CalcitePlanContext context) {

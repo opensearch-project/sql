@@ -325,4 +325,71 @@ public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | replace \"CLERK\" WITH \"EMPLOYEE\", IN JOB";
     getRelNode(ppl);
   }
+
+  // ========== Wildcard Tests ==========
+
+  @Test
+  public void testWildcardReplace_prefixWildcard() {
+    // Replace suffix wildcard - e.g., "*MAN" matches "SALESMAN" → "SELLER"
+    String ppl = "source=EMP | replace \"*MAN\" WITH \"SELLER\" IN JOB";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[WILDCARD_REPLACE($2, '*MAN':VARCHAR,"
+            + " 'SELLER':VARCHAR)], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testWildcardReplace_multipleWildcards() {
+    // Replace with multiple wildcards for capture and substitution
+    String ppl = "source=EMP | replace \"* - *\" WITH \"*_*\" IN JOB";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[WILDCARD_REPLACE($2, '* - *':VARCHAR,"
+            + " '*_*':VARCHAR)], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testWildcardReplace_symmetryMismatch_shouldFail() {
+    // Pattern has 2 wildcards, replacement has 1 - should throw error
+    String ppl = "source=EMP | replace \"* - *\" WITH \"*\" IN JOB";
+    getRelNode(ppl);
+  }
+
+  @Test
+  public void testWildcardReplace_symmetryValid_zeroInReplacement() {
+    // Pattern has 2 wildcards, replacement has 0 - should work
+    String ppl = "source=EMP | replace \"* - *\" WITH \"FIXED\" IN JOB";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[WILDCARD_REPLACE($2, '* - *':VARCHAR,"
+            + " 'FIXED':VARCHAR)], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testWildcardAndLiteralReplace_mixedPairs() {
+    // Multiple pairs: one with wildcard, one literal
+    String ppl =
+        "source=EMP | replace \"*CLERK\" WITH \"EMPLOYEE\", \"MANAGER\" WITH \"SUPERVISOR\" IN JOB";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[REPLACE(WILDCARD_REPLACE($2,"
+            + " '*CLERK':VARCHAR, 'EMPLOYEE':VARCHAR), 'MANAGER':VARCHAR, 'SUPERVISOR':VARCHAR)],"
+            + " MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+
+    verifyLogical(root, expectedLogical);
+  }
 }

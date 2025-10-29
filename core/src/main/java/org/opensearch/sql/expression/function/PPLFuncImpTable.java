@@ -87,6 +87,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNA
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_5;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_PG_4;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_TRANSLATE3;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_WILDCARD_REPLACE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_BLANK;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_EMPTY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
@@ -837,6 +838,7 @@ public class PPLFuncImpTable {
       registerOperator(INTERNAL_REGEXP_REPLACE_PG_4, SqlLibraryOperators.REGEXP_REPLACE_PG_4);
       registerOperator(INTERNAL_REGEXP_REPLACE_5, SqlLibraryOperators.REGEXP_REPLACE_5);
       registerOperator(INTERNAL_TRANSLATE3, SqlLibraryOperators.TRANSLATE3);
+      registerOperator(INTERNAL_WILDCARD_REPLACE, PPLBuiltinOperators.WILDCARD_REPLACE);
 
       // Register eval functions for PPL max() and min() calls
       registerOperator(MAX, PPLBuiltinOperators.MAX);
