@@ -61,13 +61,7 @@ public class BinFieldValidator {
     return fieldType.toString().contains("EXPR_TIMESTAMP");
   }
 
-  /**
-   * Validates that the field type is numeric for numeric binning operations.
-   *
-   * @param fieldType the RelDataType of the field to validate
-   * @param fieldName the name of the field being validated
-   * @throws SemanticCheckException if the field is not numeric
-   */
+  /** Validates that the field type is numeric for numeric binning operations. */
   public static void validateNumericField(RelDataType fieldType, String fieldName) {
     if (!isNumericField(fieldType)) {
       throw new SemanticCheckException(
