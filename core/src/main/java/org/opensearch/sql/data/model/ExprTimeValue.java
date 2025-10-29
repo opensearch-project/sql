@@ -12,7 +12,10 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.OffsetTime;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +38,23 @@ public class ExprTimeValue extends AbstractExprValue {
    */
   public ExprTimeValue(String time) {
     try {
-      this.time = LocalTime.parse(time, DateTimeFormatters.TIME_TIMESTAMP_FORMATTER);
+      LocalTime lt;
+      try {
+        lt = LocalTime.parse(time, DateTimeFormatters.TIME_TIMESTAMP_FORMATTER);
+      } catch (DateTimeParseException ignore) {
+        try {
+          lt =
+              ZonedDateTime.parse(time, DateTimeFormatter.ISO_DATE_TIME)
+                  .withZoneSameInstant(ZoneOffset.UTC)
+                  .toLocalTime();
+        } catch (DateTimeParseException ignore2) {
+          lt =
+              OffsetTime.parse(time, DateTimeFormatter.ISO_TIME)
+                  .withOffsetSameInstant(ZoneOffset.UTC)
+                  .toLocalTime();
+        }
+      }
+      this.time = lt;
     } catch (DateTimeParseException e) {
       throw new ExpressionEvaluationException(
           String.format("time:%s in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'", time));

@@ -15,7 +15,9 @@ import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -126,15 +128,21 @@ public class DateTimeValueTest {
   }
 
   @Test
-  public void timestampInUnsupportedFormat() {
-    Throwable exception =
-        assertThrows(
-            ExpressionEvaluationException.class,
-            () -> new ExprTimestampValue("2020-07-07T01:01:01Z"));
+  public void timestampInISO8601Format() {
+    ExprTimestampValue timestampValue = new ExprTimestampValue("2020-07-07T01:01:01Z");
     assertEquals(
-        "timestamp:2020-07-07T01:01:01Z in unsupported format, "
-            + "please use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'",
-        exception.getMessage());
+        LocalDateTime.parse("2020-07-07T01:01:01Z", DateTimeFormatter.ISO_DATE_TIME)
+            .toInstant(ZoneOffset.UTC),
+        timestampValue.timestampValue());
+  }
+
+  @Test
+  public void timestampInISO8601FormatWithTimeZone() {
+    ExprTimestampValue timestampValue = new ExprTimestampValue("2020-07-07T01:01:01-01:00");
+    assertEquals(
+        LocalDateTime.parse("2020-07-07T02:01:01Z", DateTimeFormatter.ISO_DATE_TIME)
+            .toInstant(ZoneOffset.UTC),
+        timestampValue.timestampValue());
   }
 
   @Test
@@ -157,14 +165,11 @@ public class DateTimeValueTest {
     assertEquals(LocalTime.parse("19:44:00"), stringValue.timeValue());
     assertEquals("\"2020-08-17 19:44:00\"", stringValue.toString());
 
-    Throwable exception =
-        assertThrows(
-                ExpressionEvaluationException.class,
-            () -> new ExprStringValue("2020-07-07T01:01:01Z").datetimeValue());
+    ExprValue stringValueWithIsoTimestamp = new ExprStringValue("2020-07-07T01:01:01Z");
     assertEquals(
-        "datetime:2020-07-07T01:01:01Z in unsupported format, "
-            + "please use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'",
-        exception.getMessage());
+        LocalDateTime.parse("2020-07-07T01:01:01Z", DateTimeFormatter.ISO_DATE_TIME)
+            .toInstant(ZoneOffset.UTC),
+        stringValueWithIsoTimestamp.timestampValue());
   }
 
   @Test
@@ -263,7 +268,7 @@ public class DateTimeValueTest {
             () -> new ExprTimestampValue("2020-07-07 01:01:01.1234567890"));
     assertEquals(
         "timestamp:2020-07-07 01:01:01.1234567890 in unsupported format, please use "
-            + "'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'",
+            + "'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]' or ISO 8601 format",
         exception.getMessage());
   }
 
