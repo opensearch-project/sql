@@ -289,8 +289,6 @@ public class CalciteReplaceCommandIT extends PPLIntegTestCase {
         rows("Jane", "Quebec"));
   }
 
-  // ========== Wildcard Integration Tests ==========
-
   @Test
   public void testWildcardReplace_suffixMatch() throws IOException {
     // Pattern "*ada" should match "Canada" and replace with "CA"

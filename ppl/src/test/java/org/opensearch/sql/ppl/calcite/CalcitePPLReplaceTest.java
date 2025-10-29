@@ -326,8 +326,6 @@ public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
     getRelNode(ppl);
   }
 
-  // ========== Wildcard Tests ==========
-
   @Test
   public void testWildcardReplace_prefixWildcard() {
     // Replace suffix wildcard - e.g., "*MAN" matches "SALESMAN" → "SELLER"

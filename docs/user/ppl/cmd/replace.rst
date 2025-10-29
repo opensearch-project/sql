@@ -11,7 +11,7 @@ replace
 
 Description
 ============
-Using ``replace`` command to replace text in one or more fields in the search result.
+Using ``replace`` command to replace text in one or more fields in the search result. Supports both literal string replacement and wildcard pattern matching.
 
 Note: This command is only available when Calcite engine is enabled.
 
@@ -23,8 +23,17 @@ replace '<pattern>' WITH '<replacement>' [, '<pattern>' WITH '<replacement>']...
 
 Parameters
 ==========
-* **pattern**: mandatory. The text pattern you want to replace. Currently supports only plain text literals (no wildcards or regular expressions).
-* **replacement**: mandatory. The text you want to replace with.
+* **pattern**: mandatory. The text pattern you want to replace. Supports:
+
+  - Plain text literals for exact matching
+  - Wildcard patterns using ``*`` (asterisk) to match zero or more characters
+
+* **replacement**: mandatory. The text you want to replace with. When using wildcards:
+
+  - Can contain ``*`` to substitute captured wildcard portions
+  - Must have the same number of wildcards as the pattern, or zero wildcards
+  - Wildcards in replacement are substituted with values captured from the pattern match
+
 * **field-name**: mandatory. One or more field names where the replacement should occur.
 
 
@@ -120,8 +129,131 @@ PPL query::
  +-----------------+-------+--------+-----+--------+
 
 
+Wildcard Pattern Matching
+==========================
+
+The replace command supports wildcard patterns using ``*`` (asterisk) to match zero or more characters. This provides flexible pattern matching for text transformation.
+
+Example 6: Wildcard suffix match
+---------------------------------
+
+Replace values that end with a specific pattern. The wildcard ``*`` matches any prefix.
+
+PPL query::
+
+ os> source=accounts | replace "*IL" WITH "Illinois" IN state | fields state;
+ fetched rows / total rows = 4/4
+ +----------+
+ | state    |
+ |----------|
+ | Illinois |
+ | TN       |
+ | VA       |
+ | MD       |
+ +----------+
+
+
+Example 7: Wildcard prefix match
+---------------------------------
+
+Replace values that start with a specific pattern. The wildcard ``*`` matches any suffix.
+
+PPL query::
+
+ os> source=accounts | replace "IL*" WITH "Illinois" IN state | fields state;
+ fetched rows / total rows = 4/4
+ +----------+
+ | state    |
+ |----------|
+ | Illinois |
+ | TN       |
+ | VA       |
+ | MD       |
+ +----------+
+
+
+Example 8: Wildcard capture and substitution
+---------------------------------------------
+
+Use wildcards in both pattern and replacement to capture and reuse matched portions. The number of wildcards must match in pattern and replacement.
+
+PPL query::
+
+ os> source=accounts | replace "* Lane" WITH "Lane *" IN address | fields address;
+ fetched rows / total rows = 4/4
+ +----------------------+
+ | address              |
+ |----------------------|
+ | Lane 880 Holmes      |
+ | 671 Bristol Street   |
+ | 789 Madison Street   |
+ | 467 Hutchinson Court |
+ +----------------------+
+
+
+Example 9: Multiple wildcards for pattern transformation
+---------------------------------------------------------
+
+Use multiple wildcards to transform patterns. Each wildcard in the replacement substitutes the corresponding captured value.
+
+PPL query::
+
+ os> source=accounts | replace "* *" WITH "*_*" IN address | fields address;
+ fetched rows / total rows = 4/4
+ +----------------------+
+ | address              |
+ |----------------------|
+ | 880_Holmes Lane      |
+ | 671_Bristol Street   |
+ | 789_Madison Street   |
+ | 467_Hutchinson Court |
+ +----------------------+
+
+
+Example 10: Wildcard with zero wildcards in replacement
+--------------------------------------------------------
+
+When replacement has zero wildcards, all matching values are replaced with the literal replacement string.
+
+PPL query::
+
+ os> source=accounts | replace "*IL*" WITH "Illinois" IN state | fields state;
+ fetched rows / total rows = 4/4
+ +----------+
+ | state    |
+ |----------|
+ | Illinois |
+ | TN       |
+ | VA       |
+ | MD       |
+ +----------+
+
+
+Wildcard Rules
+==============
+
+When using wildcards in the replace command:
+
+* **Wildcard character**: Use ``*`` to match zero or more characters
+* **Symmetry requirement**: The replacement must have the same number of wildcards as the pattern, OR zero wildcards
+* **Substitution order**: Wildcards in replacement are substituted left-to-right with values captured from pattern
+* **No match behavior**: If pattern doesn't match, the original value is returned unchanged
+* **Case sensitivity**: Wildcard matching is case-sensitive
+
+**Valid wildcard pairs:**
+
+* Pattern: ``"*ada"`` (1 wildcard), Replacement: ``"CA"`` (0 wildcards) ✓
+* Pattern: ``"* localhost"`` (1 wildcard), Replacement: ``"localhost *"`` (1 wildcard) ✓
+* Pattern: ``"* - *"`` (2 wildcards), Replacement: ``"*_*"`` (2 wildcards) ✓
+
+**Invalid wildcard pair:**
+
+* Pattern: ``"* - *"`` (2 wildcards), Replacement: ``"*"`` (1 wildcard) ✗ (mismatch error)
+
+
 Limitations
 ===========
-* Only supports plain text literals for pattern matching. Wildcards and regular expressions are not supported.
 * Pattern and replacement values must be string literals.
 * The replace command modifies the specified fields in-place.
+* Wildcard matching is case-sensitive.
+* Regular expressions are not supported (only simple wildcard patterns with ``*``).

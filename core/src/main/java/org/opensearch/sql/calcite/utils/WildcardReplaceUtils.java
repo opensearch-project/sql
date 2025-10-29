@@ -11,8 +11,8 @@ import java.util.List;
 /**
  * Utility for wildcard-based string replacement in PPL replace command.
  *
- * <p>Supports SPL-style wildcard matching where '*' matches zero or more characters. Captured
- * wildcard portions can be reused in the replacement string.
+ * <p>Supports wildcard matching where '*' matches zero or more characters. Captured wildcard
+ * portions can be reused in the replacement string.
  *
  * <p>Examples:
  *
@@ -21,9 +21,6 @@ import java.util.List;
  *   <li>"* localhost" with replacement "localhost *" reorders to "localhost server"
  *   <li>"* - *" matches "foo - bar" and captures ["foo", " bar"]
  * </ul>
- *
- * @see <a href="https://docs.splunk.com/Documentation/Splunk/latest/SearchReference/Replace">SPL
- *     replace command</a>
  */
 public class WildcardReplaceUtils {
 
@@ -40,19 +37,15 @@ public class WildcardReplaceUtils {
       return null;
     }
 
-    // Fast path: no wildcards = literal replacement
     if (!pattern.contains("*")) {
       return input.replace(pattern, replacement);
     }
 
-    // Match and capture wildcard portions
     List<String> captures = matchAndCapture(input, pattern);
     if (captures == null) {
-      // No match - return original
       return input;
     }
 
-    // Substitute wildcards in replacement with captured values
     return substituteWildcards(replacement, captures);
   }
 
@@ -73,29 +66,24 @@ public class WildcardReplaceUtils {
       String part = parts[i];
 
       if (i == 0) {
-        // First part: must match at start
         if (!input.startsWith(part)) {
-          return null; // No match
+          return null;
         }
         inputIndex = part.length();
       } else if (i == parts.length - 1) {
-        // Last part: must match at end
         if (!input.endsWith(part)) {
-          return null; // No match
+          return null;
         }
-        // Capture everything between previous position and where this part starts
         int endIndex = input.length() - part.length();
         if (endIndex < inputIndex) {
-          return null; // Parts overlap - no valid match
+          return null; // Parts overlap
         }
         captures.add(input.substring(inputIndex, endIndex));
       } else {
-        // Middle part: find next occurrence
         int nextIndex = input.indexOf(part, inputIndex);
         if (nextIndex == -1) {
-          return null; // No match
+          return null;
         }
-        // Capture from current position to where this part starts
         captures.add(input.substring(inputIndex, nextIndex));
         inputIndex = nextIndex + part.length();
       }
@@ -113,7 +101,6 @@ public class WildcardReplaceUtils {
    */
   public static String substituteWildcards(String replacement, List<String> captures) {
     if (!replacement.contains("*")) {
-      // No wildcards in replacement - return as-is
       return replacement;
     }
 
@@ -126,7 +113,6 @@ public class WildcardReplaceUtils {
           result.append(captures.get(captureIndex));
           captureIndex++;
         }
-        // If more wildcards than captures, skip them (shouldn't happen with validation)
       } else {
         result.append(c);
       }
