@@ -696,26 +696,19 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return uniqueFields;
   }
 
-  /** Rare command. */
+  /** Rare and Top commands. */
   @Override
-  public UnresolvedPlan visitRareCommand(OpenSearchPPLParser.RareCommandContext ctx) {
+  public UnresolvedPlan visitRareTopCommand(OpenSearchPPLParser.RareTopCommandContext ctx) {
     List<UnresolvedExpression> groupList =
         ctx.byClause() == null ? emptyList() : getGroupByList(ctx.byClause());
+    Integer noOfResults =
+        ctx.number != null
+            ? (Integer) ((Literal) expressionBuilder.visitIntegerLiteral(ctx.number)).getValue()
+            : 10;
     return new RareTopN(
-        CommandType.RARE,
-        ArgumentFactory.getArgumentList(ctx),
-        getFieldList(ctx.fieldList()),
-        groupList);
-  }
-
-  /** Top command. */
-  @Override
-  public UnresolvedPlan visitTopCommand(OpenSearchPPLParser.TopCommandContext ctx) {
-    List<UnresolvedExpression> groupList =
-        ctx.byClause() == null ? emptyList() : getGroupByList(ctx.byClause());
-    return new RareTopN(
-        CommandType.TOP,
-        ArgumentFactory.getArgumentList(ctx),
+        ctx.TOP() != null ? CommandType.TOP : CommandType.RARE,
+        noOfResults,
+        ArgumentFactory.getArgumentList(ctx, settings),
         getFieldList(ctx.fieldList()),
         groupList);
   }

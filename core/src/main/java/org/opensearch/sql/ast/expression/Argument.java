@@ -37,6 +37,8 @@ public class Argument extends UnresolvedExpression {
   }
 
   /** ArgumentMap is a helper class to get argument value by name. */
+  @EqualsAndHashCode
+  @ToString
   public static class ArgumentMap {
     private final Map<String, Literal> map;
 
@@ -67,6 +69,10 @@ public class Argument extends UnresolvedExpression {
      */
     public Literal get(String name) {
       return map.get(name);
+    }
+
+    public void putAll(List<Argument> arguments) {
+      arguments.stream().forEach(arg -> map.put(arg.getArgName(), arg.getValue()));
     }
 
     public Literal getOrDefault(String name, Literal literal) {
