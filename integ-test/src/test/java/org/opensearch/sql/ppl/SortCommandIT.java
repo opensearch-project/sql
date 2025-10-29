@@ -195,9 +195,9 @@ public class SortCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | sort 4 age, - account_number desc | fields age, account_number",
+                "source=%s | sort 4 age desc, account_number desc | fields age, account_number",
                 TEST_INDEX_BANK));
-    verifyOrder(result, rows(39, 25), rows(36, 6), rows(36, 20), rows(34, 32));
+    verifyOrder(result, rows(39, 25), rows(36, 20), rows(36, 6), rows(34, 32));
   }
 
   @Test
@@ -241,7 +241,63 @@ public class SortCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | sort age, account_number asc | fields age, account_number",
+                "source=%s | sort age asc, account_number asc | fields age, account_number",
+                TEST_INDEX_BANK));
+    verifyOrder(
+        result,
+        rows(28, 13),
+        rows(32, 1),
+        rows(33, 18),
+        rows(34, 32),
+        rows(36, 6),
+        rows(36, 20),
+        rows(39, 25));
+  }
+
+  @Test
+  public void testSortMixingPrefixWithDefault() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | sort +age, account_number, -balance | fields age, account_number,"
+                    + " balance",
+                TEST_INDEX_BANK));
+    verifyOrder(
+        result,
+        rows(28, 13, 32838),
+        rows(32, 1, 39225),
+        rows(33, 18, 4180),
+        rows(34, 32, 48086),
+        rows(36, 6, 5686),
+        rows(36, 20, 16418),
+        rows(39, 25, 40540));
+  }
+
+  @Test
+  public void testSortMixingSuffixWithDefault() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | sort age, account_number desc, balance | fields age,"
+                    + " account_number, balance",
+                TEST_INDEX_BANK));
+    verifyOrder(
+        result,
+        rows(28, 13, 32838),
+        rows(32, 1, 39225),
+        rows(33, 18, 4180),
+        rows(34, 32, 48086),
+        rows(36, 20, 16418),
+        rows(36, 6, 5686),
+        rows(39, 25, 40540));
+  }
+
+  @Test
+  public void testSortAllDefaultFields() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | sort age, account_number | fields age, account_number",
                 TEST_INDEX_BANK));
     verifyOrder(
         result,

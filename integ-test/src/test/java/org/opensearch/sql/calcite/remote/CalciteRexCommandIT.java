@@ -306,4 +306,53 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
           new ClusterSetting(PERSISTENT, Settings.Key.PPL_REX_MAX_MATCH_LIMIT.getKeyValue(), null));
     }
   }
+
+  @Test
+  public void testRexNestedCaptureGroupsBugFix() throws IOException {
+    JSONObject resultWithNested =
+        executeQuery(
+            String.format(
+                "source=%s | rex field=email"
+                    + " \\\"(?<user>[^@]+)@(?<domain>(pyrami|gmail|yahoo))\\\\\\\\.(?<tld>(com|org|net))\\\""
+                    + " | fields user, domain, tld | head 1",
+                TEST_INDEX_ACCOUNT));
+
+    assertEquals(1, resultWithNested.getJSONArray("datarows").length());
+    assertEquals(
+        "amberduke",
+        resultWithNested
+            .getJSONArray("datarows")
+            .getJSONArray(0)
+            .get(0)); // user should be "amberduke"
+    assertEquals(
+        "pyrami",
+        resultWithNested
+            .getJSONArray("datarows")
+            .getJSONArray(0)
+            .get(1)); // domain should be "pyrami", NOT "amberduke"
+    assertEquals(
+        "com",
+        resultWithNested
+            .getJSONArray("datarows")
+            .getJSONArray(0)
+            .get(2)); // tld should be "com", NOT "pyrami"
+
+    // More complex nested alternation
+    JSONObject complexNested =
+        executeQuery(
+            String.format(
+                "source=%s | rex field=firstname"
+                    + " \\\"(?<initial>(A|B|C|D|E))[a-z]*(?<suffix>(ley|nne|ber|ton|son))\\\" |"
+                    + " fields initial, suffix | head 1",
+                TEST_INDEX_ACCOUNT));
+
+    if (!complexNested.getJSONArray("datarows").isEmpty()) {
+      String initial = complexNested.getJSONArray("datarows").getJSONArray(0).getString(0);
+      String suffix = complexNested.getJSONArray("datarows").getJSONArray(0).getString(1);
+
+      assertTrue("Initial should be a single letter A-E", initial.matches("[A-E]"));
+      assertTrue(
+          "Suffix should match alternation pattern", suffix.matches("(ley|nne|ber|ton|son)"));
+    }
+  }
 }

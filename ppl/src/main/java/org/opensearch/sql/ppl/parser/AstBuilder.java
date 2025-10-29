@@ -7,7 +7,6 @@ package org.opensearch.sql.ppl.parser;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
-import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.calcite.utils.CalciteUtils.getOnlyForCalciteException;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
@@ -586,29 +585,31 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitSortCommand(SortCommandContext ctx) {
     Integer count = ctx.count != null ? Math.max(0, Integer.parseInt(ctx.count.getText())) : 0;
-    boolean desc = ctx.DESC() != null || ctx.D() != null;
+
+    List<OpenSearchPPLParser.SortFieldContext> sortFieldContexts = ctx.sortbyClause().sortField();
+    validateSortDirectionSyntax(sortFieldContexts);
 
     List<Field> sortFields =
-        ctx.sortbyClause().sortField().stream()
+        sortFieldContexts.stream()
             .map(sort -> (Field) internalVisitExpression(sort))
-            .map(field -> desc ? reverseSortDirection(field) : field)
             .collect(Collectors.toList());
 
     return new Sort(count, sortFields);
   }
 
-  private Field reverseSortDirection(Field field) {
-    List<Argument> updatedArgs =
-        field.getFieldArgs().stream()
-            .map(
-                arg ->
-                    "asc".equals(arg.getArgName())
-                        ? new Argument(
-                            "asc", booleanLiteral(!((Boolean) arg.getValue().getValue())))
-                        : arg)
-            .collect(Collectors.toList());
+  private void validateSortDirectionSyntax(List<OpenSearchPPLParser.SortFieldContext> sortFields) {
+    boolean hasPrefix =
+        sortFields.stream()
+            .anyMatch(sortField -> sortField instanceof OpenSearchPPLParser.PrefixSortFieldContext);
+    boolean hasSuffix =
+        sortFields.stream()
+            .anyMatch(sortField -> sortField instanceof OpenSearchPPLParser.SuffixSortFieldContext);
 
-    return new Field(field.getField(), updatedArgs);
+    if (hasPrefix && hasSuffix) {
+      throw new SemanticCheckException(
+          "Cannot mix prefix (+/-) and suffix (asc/desc) sort direction syntax in the same"
+              + " command.");
+    }
   }
 
   /** Reverse command. */

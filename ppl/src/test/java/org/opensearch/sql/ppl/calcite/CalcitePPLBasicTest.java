@@ -317,7 +317,7 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testSortWithDescReversal() {
-    String ppl = "source=EMP | sort + DEPTNO, - SAL desc";
+    String ppl = "source=EMP | sort DEPTNO desc, SAL";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(sort0=[$7], sort1=[$5], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])\n"
@@ -327,7 +327,7 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testSortWithDReversal() {
-    String ppl = "source=EMP | sort + DEPTNO, - SAL d";
+    String ppl = "source=EMP | sort DEPTNO d, SAL";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(sort0=[$7], sort1=[$5], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])\n"

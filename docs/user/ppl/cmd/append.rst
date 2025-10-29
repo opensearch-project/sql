@@ -20,6 +20,11 @@ append <sub-search>
 
 * sub-search: mandatory. Executes PPL commands as a secondary search.
 
+Limitations
+===========
+
+* **Schema Compatibility**: When fields with the same name exist between the main search and sub-search but have incompatible types, the query will fail with an error. To avoid type conflicts, ensure that fields with the same name have the same data type, or use different field names (e.g., by renaming with ``eval`` or using ``fields`` to select non-conflicting columns).
+
 Example 1: Append rows from a count aggregation to existing search result
 =========================================================================
 
@@ -60,8 +65,6 @@ PPL query::
     | 101 | M      | null  |
     +-----+--------+-------+
 
-Example 3: Append rows with column type conflict
-================================================
 
 This example shows how column type conflicts are handled when appending results. Same name columns with different types will generate two different columns in appended result.
 

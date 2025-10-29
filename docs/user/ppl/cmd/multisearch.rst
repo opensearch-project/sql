@@ -59,8 +59,8 @@ PPL query::
     |-----------+-----+-----------|
     | Nanette   | 28  | young     |
     | Amber     | 32  | adult     |
+    | Dale      | 33  | adult     |
     | Hattie    | 36  | adult     |
-    | Dale      | 37  | adult     |
     +-----------+-----+-----------+
 
 Example 2: Success Rate Pattern
@@ -72,14 +72,14 @@ PPL query::
 
     os> | multisearch [search source=accounts | where balance > 20000 | eval query_type = "high_balance" | fields firstname, balance, query_type] [search source=accounts | where balance > 0 AND balance <= 20000 | eval query_type = "regular" | fields firstname, balance, query_type] | sort balance desc;
     fetched rows / total rows = 4/4
-    +-----------+---------+-------------+
-    | firstname | balance | query_type  |
-    |-----------+---------+-------------|
-    | Amber     | 39225   | high_balance|
-    | Nanette   | 32838   | high_balance|
-    | Hattie    | 5686    | regular     |
-    | Dale      | 4180    | regular     |
-    +-----------+---------+-------------+
+    +-----------+---------+--------------+
+    | firstname | balance | query_type   |
+    |-----------+---------+--------------|
+    | Amber     | 39225   | high_balance |
+    | Nanette   | 32838   | high_balance |
+    | Hattie    | 5686    | regular      |
+    | Dale      | 4180    | regular      |
+    +-----------+---------+--------------+
 
 Example 3: Timestamp Interleaving
 =================================
@@ -88,20 +88,8 @@ This example combines time-series data from multiple sources with automatic time
 
 PPL query::
 
-    os> | multisearch [search source=time_data | where category IN ("A", "B")] [search source=time_data2 | where category IN ("E", "F")] | head 5;
+    os> | multisearch [search source=time_data | where category IN ("A", "B")] [search source=time_data2 | where category IN ("E", "F")] | fields @timestamp, category, value, timestamp | head 5;
     fetched rows / total rows = 5/5
-    +-------+---------------------+----------+-------+---------------------+
-    | index | @timestamp          | category | value | timestamp           |
-    |-------+---------------------+----------+-------+---------------------|
-    | null  | 2025-08-01 04:00:00 | E        | 2001  | 2025-08-01 04:00:00 |
-    | null  | 2025-08-01 03:47:41 | A        | 8762  | 2025-08-01 03:47:41 |
-    | null  | 2025-08-01 02:30:00 | F        | 2002  | 2025-08-01 02:30:00 |
-    | null  | 2025-08-01 01:14:11 | B        | 9015  | 2025-08-01 01:14:11 |
-    | null  | 2025-08-01 01:00:00 | E        | 2003  | 2025-08-01 01:00:00 |
-    +-------+---------------------+----------+-------+---------------------+
-
-Example 4: Handling Empty Results
-=================================
 
 This example shows how multisearch gracefully handles cases where some subsearches return no results.
 
@@ -119,7 +107,17 @@ PPL query::
     +-----------+-----+------------+
 
 Example 5: Type Compatibility - Missing Fields
-==============================================
+    +---------------------+----------+-------+---------------------+
+    | @timestamp          | category | value | timestamp           |
+    |---------------------+----------+-------+---------------------|
+    | 2025-08-01 04:00:00 | E        | 2001  | 2025-08-01 04:00:00 |
+    | 2025-08-01 03:47:41 | A        | 8762  | 2025-08-01 03:47:41 |
+    | 2025-08-01 02:30:00 | F        | 2002  | 2025-08-01 02:30:00 |
+    | 2025-08-01 01:14:11 | B        | 9015  | 2025-08-01 01:14:11 |
+    | 2025-08-01 01:00:00 | E        | 2003  | 2025-08-01 01:00:00 |
+    +---------------------+----------+-------+---------------------+
+
+Example 4: Type Compatibility - Missing Fields
 
 This example demonstrates how missing fields are handled with NULL insertion.
 
@@ -132,12 +130,10 @@ PPL query::
     |-----------+-----+------------|
     | Nanette   | 28  | yes        |
     | Amber     | 32  | null       |
+    | Dale      | 33  | null       |
     | Hattie    | 36  | null       |
-    | Dale      | 37  | null       |
     +-----------+-----+------------+
 
-Example 6: Type Conflict Resolution - Automatic Renaming
-========================================================
 
 This example shows when the same field name has incompatible types across subsearches, the system automatically renames conflicting fields with numeric suffixes.
 
@@ -157,7 +153,6 @@ PPL query::
 In this example, the ``age`` field has type ``bigint`` in accounts but type ``string`` in locations. The system keeps the first occurrence as ``age`` (bigint) and renames the second occurrence to ``age0`` (string), preserving all data while avoiding type conflicts.
 
 Limitations
-===========
 
 * **Minimum Subsearches**: At least two subsearches must be specified
-* **Schema Compatibility**: When fields with the same name exist across subsearches but have incompatible types, the system automatically resolves conflicts by renaming the conflicting fields. The first occurrence retains the original name, while subsequent conflicting fields are renamed with a numeric suffix (e.g., ``age`` becomes ``age0``, ``age1``, etc.). This ensures all data is preserved while maintaining schema consistency.
+* **Schema Compatibility**: When fields with the same name exist across subsearches but have incompatible types, the query will fail with an error. To avoid type conflicts, ensure that fields with the same name have the same data type across all subsearches, or use different field names (e.g., by renaming with ``eval`` or using ``fields`` to select non-conflicting columns).

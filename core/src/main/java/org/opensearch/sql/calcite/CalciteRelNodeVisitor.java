@@ -282,10 +282,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           "Rex pattern must contain at least one named capture group");
     }
 
+    // TODO: Once JDK 20+ is supported, consider using Pattern.namedGroups() API for more efficient
+    // named group handling instead of manual parsing in RegexCommonUtils
+
     List<RexNode> newFields = new ArrayList<>();
     List<String> newFieldNames = new ArrayList<>();
 
-    for (int i = 0; i < namedGroups.size(); i++) {
+    for (String groupName : namedGroups) {
       RexNode extractCall;
       if (node.getMaxMatch().isPresent() && node.getMaxMatch().get() > 1) {
         extractCall =
@@ -294,7 +297,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 BuiltinFunctionName.REX_EXTRACT_MULTI,
                 fieldRex,
                 context.rexBuilder.makeLiteral(patternStr),
-                context.relBuilder.literal(i + 1),
+                context.rexBuilder.makeLiteral(groupName),
                 context.relBuilder.literal(node.getMaxMatch().get()));
       } else {
         extractCall =
@@ -303,10 +306,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 BuiltinFunctionName.REX_EXTRACT,
                 fieldRex,
                 context.rexBuilder.makeLiteral(patternStr),
-                context.relBuilder.literal(i + 1));
+                context.rexBuilder.makeLiteral(groupName));
       }
       newFields.add(extractCall);
-      newFieldNames.add(namedGroups.get(i));
+      newFieldNames.add(groupName);
     }
 
     if (node.getOffsetField().isPresent()) {
@@ -1809,18 +1812,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   /**
-   * Finds the timestamp field for multisearch ordering.
+   * Finds the @timestamp field for multisearch ordering. Only @timestamp field is used for
+   * timestamp interleaving. Other timestamp-like fields are ignored.
    *
-   * @param rowType The row type to search for timestamp fields
-   * @return The name of the timestamp field, or null if not found
+   * @param rowType The row type to search for @timestamp field
+   * @return "@timestamp" if the field exists, or null if not found
    */
   private String findTimestampField(RelDataType rowType) {
-    String[] candidates = {"@timestamp", "_time", "timestamp", "time"};
-    for (String fieldName : candidates) {
-      RelDataTypeField field = rowType.getField(fieldName, false, false);
-      if (field != null) {
-        return fieldName;
-      }
+    RelDataTypeField field = rowType.getField("@timestamp", false, false);
+    if (field != null) {
+      return "@timestamp";
     }
     return null;
   }
