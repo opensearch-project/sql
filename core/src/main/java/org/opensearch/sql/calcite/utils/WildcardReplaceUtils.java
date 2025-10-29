@@ -8,7 +8,16 @@ package org.opensearch.sql.calcite.utils;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Utility for wildcard-based string replacement in PPL replace command. */
+/**
+ * Utility for wildcard-based string replacement in PPL replace command.
+ *
+ * <p>Supports wildcard patterns using '*' to match zero or more characters. Wildcards in the
+ * replacement string are substituted with values captured from the pattern match.
+ *
+ * <p>Limitation: Literal asterisk characters cannot be matched or replaced when using wildcard
+ * patterns. To replace literal asterisks in data, use non-wildcard (literal) replacement mode by
+ * not including '*' in the pattern string.
+ */
 public class WildcardReplaceUtils {
 
   /** Perform wildcard-based replacement. */

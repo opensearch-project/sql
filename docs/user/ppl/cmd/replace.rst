@@ -257,3 +257,4 @@ Limitations
 * The replace command modifies the specified fields in-place.
 * Wildcard matching is case-sensitive.
 * Regular expressions are not supported (only simple wildcard patterns with ``*``).
+* Literal asterisk characters (``*``) cannot be matched or replaced when using wildcard patterns. To replace literal asterisks in your data, use non-wildcard patterns (do not include ``*`` in the pattern string).
