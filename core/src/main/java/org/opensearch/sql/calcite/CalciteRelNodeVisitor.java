@@ -1128,7 +1128,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     Pair<List<RexNode>, List<AggCall>> aggregationAttributes =
         aggregateWithTrimming(groupExprList, aggExprList, context);
     if (toAddHintsOnAggregate) {
-      addBucketNotNullHintToAggregate(context);
+      addIgnoreNullBucketHintToAggregate(context);
     }
 
     // schema reordering
@@ -1864,12 +1864,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<UnresolvedExpression> aggExprList =
         List.of(AstDSL.alias(countFieldName, AstDSL.aggregate("count", null)));
 
-    // if usenull=false, add a isNotNull before Aggregate and bucketNotNull hint to this Aggregate
+    // if usenull=false, add a isNotNull before Aggregate and the hint to this Aggregate
     Boolean bucketNullable = (Boolean) argumentMap.get(RareTopN.Option.useNull.name()).getValue();
-    boolean toAddBucketNotNullHintOnAggregate = false;
+    boolean toAddHintsOnAggregate = false;
     if (!bucketNullable && !groupExprList.isEmpty()) {
-      toAddBucketNotNullHintOnAggregate = true;
-      // add isNotNull filter before aggregation for non-nullable buckets
+      toAddHintsOnAggregate = true;
+      // add isNotNull filter before aggregation to filter out null bucket
       List<RexNode> groupByList =
           groupExprList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
       context.relBuilder.filter(
@@ -1880,8 +1880,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     aggregateWithTrimming(groupExprList, aggExprList, context);
 
-    if (toAddBucketNotNullHintOnAggregate) {
-      addBucketNotNullHintToAggregate(context);
+    if (toAddHintsOnAggregate) {
+      addIgnoreNullBucketHintToAggregate(context);
     }
 
     // 2. add a window column
@@ -1923,7 +1923,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-  private static void addBucketNotNullHintToAggregate(CalcitePlanContext context) {
+  private static void addIgnoreNullBucketHintToAggregate(CalcitePlanContext context) {
     final RelHint statHits =
         RelHint.builder("stats_args").hintOption(Argument.BUCKET_NULLABLE, "false").build();
     assert context.relBuilder.peek() instanceof LogicalAggregate

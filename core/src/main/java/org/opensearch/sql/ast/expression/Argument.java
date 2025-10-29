@@ -71,10 +71,6 @@ public class Argument extends UnresolvedExpression {
       return map.get(name);
     }
 
-    public void putAll(List<Argument> arguments) {
-      arguments.stream().forEach(arg -> map.put(arg.getArgName(), arg.getValue()));
-    }
-
     public Literal getOrDefault(String name, Literal literal) {
       return map.getOrDefault(name, literal);
     }

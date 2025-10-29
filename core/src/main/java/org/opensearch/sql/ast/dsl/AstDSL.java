@@ -537,20 +537,19 @@ public class AstDSL {
   public static RareTopN rareTopN(
       UnresolvedPlan input,
       CommandType commandType,
-      List<Argument> arguments,
+      List<Argument> noOfResults,
       List<UnresolvedExpression> groupList,
       Field... fields) {
-    Integer noOfResults =
+    Integer N =
         (Integer)
-            Argument.ArgumentMap.of(arguments)
+            Argument.ArgumentMap.of(noOfResults)
                 .getOrDefault("noOfResults", new Literal(10, DataType.INTEGER))
                 .getValue();
     List<Argument> removed =
-        arguments.stream()
+        noOfResults.stream()
             .filter(argument -> !argument.getArgName().equals("noOfResults"))
             .toList();
-    return new RareTopN(commandType, noOfResults, removed, Arrays.asList(fields), groupList)
-        .attach(input);
+    return new RareTopN(commandType, N, removed, Arrays.asList(fields), groupList).attach(input);
   }
 
   public static Limit limit(UnresolvedPlan input, Integer limit, Integer offset) {
