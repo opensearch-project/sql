@@ -204,8 +204,8 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
         String.format(
             "source=%s | stats sum(`event.netflow.pkts`) as packet_count by span(`event.timestamp`,"
                 + " 2d) as timestamp_span, `event.src_ip`, `event.dest_ip` |  eval `Src IP - Dst"
-                + " IP` = concat(`event.src_ip`, \"-\", `event.dest_ip`) | sort - packet_count |"
-                + " head 10",
+                + " IP` = concat(`event.src_ip`, \\\"-\\\", `event.dest_ip`) | sort - packet_count"
+                + " | head 10",
             NFW_LOGS_INDEX);
     JSONObject response = executeQuery(query);
     verifySchema(
@@ -250,7 +250,7 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
         String.format(
             "source=%s | stats sum(`event.netflow.bytes`) as bytes by span(`event.timestamp`, 2d)"
                 + " as timestamp_span, `event.src_ip`, `event.dest_ip` | eval `Src IP - Dst IP` ="
-                + " concat(`event.src_ip`, \"-\", `event.dest_ip`) | sort - bytes | head 10",
+                + " concat(`event.src_ip`, \\\"-\\\", `event.dest_ip`) | sort - bytes | head 10",
             NFW_LOGS_INDEX);
     JSONObject response = executeQuery(query);
     verifySchema(
@@ -294,7 +294,7 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
     String query =
         String.format(
             "source=%s | where `event.alert.action` ="
-                + " \"allowed\"| stats count() as event_count by span(`event.timestamp`, 2d) as"
+                + " \\\"allowed\\\"| stats count() as event_count by span(`event.timestamp`, 2d) as"
                 + " time_bucket, `event.http.hostname` | rename `event.http.hostname` as"
                 + " `Hostname`| sort - event_count",
             NFW_LOGS_INDEX);
@@ -311,7 +311,7 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
   public void testTopBlockedHTTPHostHeaders() throws IOException {
     String query =
         String.format(
-            "source=%s | where `event.alert.action` = \"blocked\" and"
+            "source=%s | where `event.alert.action` = \\\"blocked\\\" and"
                 + " isnotnull(`event.http.hostname`) | stats count() as event_count by"
                 + " span(`event.timestamp`, 2d) as time_bucket, `event.http.hostname` | rename"
                 + " `event.http.hostname` as `Hostname` | sort - event_count |"
@@ -330,8 +330,8 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
   public void testTopAllowedTLSSNI() throws IOException {
     String query =
         String.format(
-            "source=%s | where `event.alert.action` = \"allowed\"| stats count() as event_count by"
-                + " span(`event.timestamp`, 2d) as time_bucket, `event.tls.sni`| rename"
+            "source=%s | where `event.alert.action` = \\\"allowed\\\"| stats count() as event_count"
+                + " by span(`event.timestamp`, 2d) as time_bucket, `event.tls.sni`| rename"
                 + " `event.tls.sni` as `Hostname` | sort - event_count | HEAD 10",
             NFW_LOGS_INDEX);
     JSONObject response = executeQuery(query);
@@ -347,10 +347,10 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
   public void testTopBlockedTLSSNI() throws IOException {
     String query =
         String.format(
-            "source=%s | where `event.alert.action` = \"blocked\" and isnotnull(`event.tls.sni`)|"
-                + " stats count() as event_count by span(`event.timestamp`, 2d) as time_bucket,"
-                + " `event.tls.sni` | rename `event.tls.sni` as `Hostname` | sort - event_count|"
-                + " HEAD 10",
+            "source=%s | where `event.alert.action` = \\\"blocked\\\" and"
+                + " isnotnull(`event.tls.sni`)| stats count() as event_count by"
+                + " span(`event.timestamp`, 2d) as time_bucket, `event.tls.sni` | rename"
+                + " `event.tls.sni` as `Hostname` | sort - event_count| HEAD 10",
             NFW_LOGS_INDEX);
     JSONObject response = executeQuery(query);
     verifySchema(
@@ -487,11 +487,11 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
   public void testTopTCPFlows() throws IOException {
     String query =
         String.format(
-            "source=%s | WHERE `event.proto` = \"TCP\" | STATS count() as Count by"
+            "source=%s | WHERE `event.proto` = \\\"TCP\\\" | STATS count() as Count by"
                 + " SPAN(`event.timestamp`, 2d) as timestamp_span, `event.src_ip`, `event.dest_ip`,"
-                + " `event.dest_port` | EVAL `Src IP - Dst IP:Port` = CONCAT(`event.src_ip`, \" -"
-                + " \", `event.dest_ip`, \": \", CAST(`event.dest_port` AS STRING)) | SORT - Count"
-                + " | HEAD 10",
+                + " `event.dest_port` | EVAL `Src IP - Dst IP:Port` = CONCAT(`event.src_ip`, \\\" -"
+                + " \\\", `event.dest_ip`, \\\": \\\", CAST(`event.dest_port` AS STRING)) | SORT -"
+                + " Count | HEAD 10",
             NFW_LOGS_INDEX);
     JSONObject response = executeQuery(query);
     verifySchema(
@@ -508,11 +508,11 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
   public void testTopTCPFlowsByPackets() throws IOException {
     String query =
         String.format(
-            "source=%s | WHERE `event.proto` = \"TCP\" | STATS sum(`event.netflow.pkts`) as Packets"
-                + " by SPAN(`event.timestamp`, 2d) as timestamp_span, `event.src_ip`,"
+            "source=%s | WHERE `event.proto` = \\\"TCP\\\" | STATS sum(`event.netflow.pkts`) as"
+                + " Packets by SPAN(`event.timestamp`, 2d) as timestamp_span, `event.src_ip`,"
                 + " `event.dest_ip`, `event.dest_port` | EVAL `Src IP - Dst IP:Port` ="
-                + " CONCAT(`event.src_ip`, \" - \", `event.dest_ip`, \": \", CAST(`event.dest_port`"
-                + " AS STRING)) | SORT - Packets | HEAD 10",
+                + " CONCAT(`event.src_ip`, \\\" - \\\", `event.dest_ip`, \\\": \\\","
+                + " CAST(`event.dest_port` AS STRING)) | SORT - Packets | HEAD 10",
             NFW_LOGS_INDEX);
     JSONObject response = executeQuery(query);
     verifySchema(
@@ -529,11 +529,11 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
   public void testTopTCPFlowsByBytes() throws IOException {
     String query =
         String.format(
-            "source=%s | WHERE `event.proto` = \"TCP\" | STATS sum(event.netflow.bytes) as Bytes by"
-                + " SPAN(`event.timestamp`, 2d) as timestamp_span, `event.src_ip`, `event.dest_ip`,"
-                + " `event.dest_port` | EVAL `Src IP - Dst IP:Port` = CONCAT(`event.src_ip`, \" -"
-                + " \", `event.dest_ip`, \": \", CAST(`event.dest_port` AS STRING)) | SORT - Bytes"
-                + " | HEAD 10",
+            "source=%s | WHERE `event.proto` = \\\"TCP\\\" | STATS sum(event.netflow.bytes) as"
+                + " Bytes by SPAN(`event.timestamp`, 2d) as timestamp_span, `event.src_ip`,"
+                + " `event.dest_ip`, `event.dest_port` | EVAL `Src IP - Dst IP:Port` ="
+                + " CONCAT(`event.src_ip`, \\\" - \\\", `event.dest_ip`, \\\": \\\","
+                + " CAST(`event.dest_port` AS STRING)) | SORT - Bytes | HEAD 10",
             NFW_LOGS_INDEX);
     JSONObject response = executeQuery(query);
     verifySchema(
@@ -562,11 +562,11 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
   public void testTopUDPFlows() throws IOException {
     String query =
         String.format(
-            "source=%s | WHERE `event.proto` = \"UDP\"| STATS count() as Count by"
+            "source=%s | WHERE `event.proto` = \\\"UDP\\\"| STATS count() as Count by"
                 + " SPAN(`event.timestamp`, 2d) as timestamp_span, `event.src_ip`, `event.dest_ip`,"
-                + " `event.dest_port` | EVAL `Src IP - Dst IP:Port` = CONCAT(`event.src_ip`, \" -"
-                + " \", `event.dest_ip`, \": \", CAST(`event.dest_port` AS STRING)) | SORT - Count"
-                + " | HEAD 10",
+                + " `event.dest_port` | EVAL `Src IP - Dst IP:Port` = CONCAT(`event.src_ip`, \\\" -"
+                + " \\\", `event.dest_ip`, \\\": \\\", CAST(`event.dest_port` AS STRING)) | SORT -"
+                + " Count | HEAD 10",
             NFW_LOGS_INDEX);
     JSONObject response = executeQuery(query);
     verifySchema(
@@ -583,11 +583,11 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
   public void testTopUDPFlowsByPackets() throws IOException {
     String query =
         String.format(
-            "source=%s | WHERE `event.proto` = \"UDP\" | STATS sum(`event.netflow.pkts`) as Packets"
-                + " by SPAN(`event.timestamp`, 2d) as timestamp_span, `event.src_ip`,"
+            "source=%s | WHERE `event.proto` = \\\"UDP\\\" | STATS sum(`event.netflow.pkts`) as"
+                + " Packets by SPAN(`event.timestamp`, 2d) as timestamp_span, `event.src_ip`,"
                 + " `event.dest_ip`, `event.dest_port` | EVAL `Src IP - Dst IP:Port` ="
-                + " CONCAT(`event.src_ip`, \" - \", `event.dest_ip`, \": \", CAST(`event.dest_port`"
-                + " AS STRING)) | SORT - Packets | HEAD 10",
+                + " CONCAT(`event.src_ip`, \\\" - \\\", `event.dest_ip`, \\\": \\\","
+                + " CAST(`event.dest_port` AS STRING)) | SORT - Packets | HEAD 10",
             NFW_LOGS_INDEX);
     JSONObject response = executeQuery(query);
     verifySchema(
@@ -604,11 +604,11 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
   public void testTopUDPFlowsByBytes() throws IOException {
     String query =
         String.format(
-            "source=%s | WHERE `event.proto` = \"UDP\" | STATS sum(`event.netflow.bytes`) as Bytes"
-                + " by SPAN(`event.timestamp`, 2d) as timestamp_span, `event.src_ip`,"
+            "source=%s | WHERE `event.proto` = \\\"UDP\\\" | STATS sum(`event.netflow.bytes`) as"
+                + " Bytes by SPAN(`event.timestamp`, 2d) as timestamp_span, `event.src_ip`,"
                 + " `event.dest_ip`, `event.dest_port` | EVAL `Src IP - Dst IP:Port` ="
-                + " CONCAT(`event.src_ip`, \" - \", `event.dest_ip`, \": \", CAST(`event.dest_port`"
-                + " AS STRING)) | SORT - Bytes | HEAD 10",
+                + " CONCAT(`event.src_ip`, \\\" - \\\", `event.dest_ip`, \\\": \\\","
+                + " CAST(`event.dest_port` AS STRING)) | SORT - Bytes | HEAD 10",
             NFW_LOGS_INDEX);
     JSONObject response = executeQuery(query);
     verifySchema(
@@ -625,11 +625,11 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
   public void testTopICMPFlows() throws IOException {
     String query =
         String.format(
-            "source=%s | WHERE `event.proto` = \"ICMP\" | STATS count() as Count by"
+            "source=%s | WHERE `event.proto` = \\\"ICMP\\\" | STATS count() as Count by"
                 + " SPAN(`event.timestamp`, 1d) as timestamp_span, `event.src_ip`, `event.dest_ip`,"
-                + " `event.dest_port` | EVAL `Src IP - Dst IP:Port` = CONCAT(`event.src_ip`, \" -"
-                + " \", `event.dest_ip`, \": \", CAST(`event.dest_port` AS STRING)) | SORT - Count"
-                + " | HEAD 10",
+                + " `event.dest_port` | EVAL `Src IP - Dst IP:Port` = CONCAT(`event.src_ip`, \\\" -"
+                + " \\\", `event.dest_ip`, \\\": \\\", CAST(`event.dest_port` AS STRING)) | SORT -"
+                + " Count | HEAD 10",
             NFW_LOGS_INDEX);
     JSONObject response = executeQuery(query);
     verifySchema(
@@ -646,7 +646,7 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
   public void testTopDropRejectRules() throws IOException {
     String query =
         String.format(
-            "source=%s | WHERE `event.alert.action` = \"blocked\"| STATS count() as Count by"
+            "source=%s | WHERE `event.alert.action` = \\\"blocked\\\"| STATS count() as Count by"
                 + " `event.alert.signature_id`, `event.alert.action`, `event.alert.signature`,"
                 + " `event.proto`| RENAME  `event.alert.signature_id` as SID, `event.alert.action`"
                 + " as Action, `event.alert.signature` as Message, `event.proto` as Proto | SORT -"
@@ -666,7 +666,7 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
   public void testTopAllowedRules() throws IOException {
     String query =
         String.format(
-            "source=%s | where `event.alert.action` = \"allowed\" | stats count() as Count by"
+            "source=%s | where `event.alert.action` = \\\"allowed\\\" | stats count() as Count by"
                 + " `event.alert.signature_id`, `event.alert.action`, `event.alert.signature`,"
                 + " `event.proto` | rename `event.alert.signature_id` as SID, `event.alert.action`"
                 + " as Action, `event.alert.signature` as Message, `event.proto` as Proto | sort -"
@@ -686,7 +686,7 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
   public void testTopBlockedSourceIPs() throws IOException {
     String query =
         String.format(
-            "source=%s | WHERE `event.alert.action` = \"blocked\" | STATS COUNT() as Count by"
+            "source=%s | WHERE `event.alert.action` = \\\"blocked\\\" | STATS COUNT() as Count by"
                 + " `event.src_ip` | SORT - Count | HEAD 10",
             NFW_LOGS_INDEX);
     JSONObject response = executeQuery(query);
@@ -698,7 +698,7 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
   public void testTopBlockedDestinationIPs() throws IOException {
     String query =
         String.format(
-            "source=%s | WHERE `event.alert.action` = \"blocked\" | STATS COUNT() as Count by"
+            "source=%s | WHERE `event.alert.action` = \\\"blocked\\\" | STATS COUNT() as Count by"
                 + " `event.dest_ip` | SORT - Count | HEAD 10",
             NFW_LOGS_INDEX);
     JSONObject response = executeQuery(query);
@@ -715,7 +715,7 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
   public void testTopBlockedDestinationPorts() throws IOException {
     String query =
         String.format(
-            "source=%s | WHERE `event.alert.action` = \"blocked\" | STATS COUNT() as `Count` by"
+            "source=%s | WHERE `event.alert.action` = \\\"blocked\\\" | STATS COUNT() as `Count` by"
                 + " `event.dest_port` | EVAL `Destination Port` = CAST(`event.dest_port` as STRING)"
                 + " | SORT - `Count` | HEAD 10",
             NFW_LOGS_INDEX);
@@ -731,11 +731,11 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
   public void testTopBlockedRemoteAccessPorts() throws IOException {
     String query =
         String.format(
-            "source=%s | WHERE `event.alert.action` = \"blocked\" | STATS count() as Count by"
+            "source=%s | WHERE `event.alert.action` = \\\"blocked\\\" | STATS count() as Count by"
                 + " SPAN(`event.timestamp`, 2d) as timestamp_span, `event.src_ip`, `event.dest_ip`,"
-                + " `event.dest_port` | EVAL `Src IP - Dst IP:Port` = CONCAT(`event.src_ip`, \" -"
-                + " \", `event.dest_ip`, \": \", CAST(`event.dest_port` AS STRING)) | SORT - Count"
-                + " | HEAD 10",
+                + " `event.dest_port` | EVAL `Src IP - Dst IP:Port` = CONCAT(`event.src_ip`, \\\" -"
+                + " \\\", `event.dest_ip`, \\\": \\\", CAST(`event.dest_port` AS STRING)) | SORT -"
+                + " Count | HEAD 10",
             NFW_LOGS_INDEX);
     JSONObject response = executeQuery(query);
     verifySchema(
@@ -755,7 +755,7 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
             "source=%s | WHERE `event.alert.action` = 'blocked' and `event.proto` = 'TCP' | STATS"
                 + " count() as Count by SPAN(`event.timestamp`, 2d) as timestamp_span,"
                 + " `event.src_ip`, `event.dest_ip`, `event.dest_port`| EVAL `Src IP - Dst IP:Port`"
-                + " = CONCAT(`event.src_ip`, \" - \", `event.dest_ip`, \": \","
+                + " = CONCAT(`event.src_ip`, \\\" - \\\", `event.dest_ip`, \\\": \\\","
                 + " CAST(`event.dest_port` AS STRING)) | SORT - Count | HEAD 10",
             NFW_LOGS_INDEX);
     JSONObject response = executeQuery(query);
@@ -776,7 +776,7 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
             "source=%s | WHERE `event.alert.action` = 'blocked' and `event.proto` = 'UDP' | STATS"
                 + " count() as Count by SPAN(`event.timestamp`, 2d) as timestamp_span,"
                 + " `event.src_ip`, `event.dest_ip`, `event.dest_port` | EVAL `Src IP - Dst"
-                + " IP:Port` = CONCAT(`event.src_ip`, \" - \", `event.dest_ip`, \": \","
+                + " IP:Port` = CONCAT(`event.src_ip`, \\\" - \\\", `event.dest_ip`, \\\": \\\","
                 + " CAST(`event.dest_port` AS STRING)) | SORT - Count | HEAD 10",
             NFW_LOGS_INDEX);
     JSONObject response = executeQuery(query);
@@ -794,12 +794,13 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
   public void testTopTCPFlowsSynWithoutSynAck() throws IOException {
     String query =
         String.format(
-            "source=%s | WHERE `event.proto` = 'TCP' and `event.tcp.syn` = \"true\" and"
-                + " `event.tcp.ack` = \"true\" | STATS count() as Count by SPAN(`event.timestamp`,"
-                + " 2d) as timestamp_span, `event.src_ip`, `event.src_port`, `event.dest_ip`,"
-                + " `event.dest_port`| EVAL `Src IP:Port - Dst IP:Port` = CONCAT(`event.src_ip`,"
-                + " \": \", CAST(`event.src_port` AS STRING), \" - \", `event.dest_ip`, \": \","
-                + " CAST(`event.dest_port` AS STRING)) | SORT - Count | HEAD 10",
+            "source=%s | WHERE `event.proto` = 'TCP' and `event.tcp.syn` = \\\"true\\\" and"
+                + " `event.tcp.ack` = \\\"true\\\" | STATS count() as Count by"
+                + " SPAN(`event.timestamp`, 2d) as timestamp_span, `event.src_ip`,"
+                + " `event.src_port`, `event.dest_ip`, `event.dest_port`| EVAL `Src IP:Port - Dst"
+                + " IP:Port` = CONCAT(`event.src_ip`, \\\": \\\", CAST(`event.src_port` AS STRING),"
+                + " \\\" - \\\", `event.dest_ip`, \\\": \\\", CAST(`event.dest_port` AS STRING)) |"
+                + " SORT - Count | HEAD 10",
             NFW_LOGS_INDEX);
     JSONObject response = executeQuery(query);
     verifySchema(
@@ -854,9 +855,9 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
             "source=%s | WHERE `event.proto` = 'TCP' and `event.netflow.age` > 350 | STATS count()"
                 + " as Count by SPAN(`event.timestamp`, 2d) as timestamp_span, `event.src_ip`,"
                 + " `event.src_port`, `event.dest_ip`, `event.dest_port` | EVAL `Src IP:Port - Dst"
-                + " IP:Port` = CONCAT(`event.src_ip`, \": \", CAST(`event.src_port` AS STRING), \""
-                + " - \", `event.dest_ip`, \": \", CAST(`event.dest_port` AS STRING)) | SORT -"
-                + " Count | HEAD 10",
+                + " IP:Port` = CONCAT(`event.src_ip`, \\\": \\\", CAST(`event.src_port` AS STRING),"
+                + " \\\" - \\\", `event.dest_ip`, \\\": \\\", CAST(`event.dest_port` AS STRING)) |"
+                + " SORT - Count | HEAD 10",
             NFW_LOGS_INDEX);
     JSONObject response = executeQuery(query);
     verifySchema(

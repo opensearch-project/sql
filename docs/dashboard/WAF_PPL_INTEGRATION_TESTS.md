@@ -49,62 +49,52 @@ OpenSearch index mapping for WAF logs with proper field types:
 
 ## WAF Queries Tested
 
-The integration tests cover all the WAF PPL queries from the dashboard requirements:
+The integration tests cover the following WAF PPL queries:
 
 1. **Total Requests:**
    ```
-   source=waf_logs | stats count() as Count
+   source=waf_logs | stats count()
    ```
 
 2. **Requests History:**
    ```
-   source=waf_logs | stats count() by `@timestamp`, `aws.waf.action`
+   source=waf_logs | STATS count() as Count by span(timestamp, 30d), action | SORT - Count
    ```
 
 3. **Requests to WebACLs:**
    ```
-   source=waf_logs | stats count() as Count by `aws.waf.webaclId` | sort - Count | head 10
+   source=waf_logs | stats count() as Count by `webaclId` | sort - Count | head 3
    ```
 
-4. **Requests by Terminating Rules:**
+4. **Sources Analysis:**
    ```
-   source=waf_logs | stats count() as Count by `aws.waf.terminatingRuleId` | sort - Count | head 5
-   ```
-
-5. **Sources Analysis:**
-   ```
-   source=waf_logs | stats count() as Count by `aws.waf.httpSourceId` | sort - Count | head 5
+   source=waf_logs | stats count() as Count by `httpSourceId` | sort - Count | head 5
    ```
 
-6. **Top Client IPs:**
+5. **Top Client IPs:**
    ```
-   source=waf_logs | stats count() as Count by `aws.waf.httpRequest.clientIp` | sort - Count | head 10
-   ```
-
-7. **Top Countries:**
-   ```
-   source=waf_logs | stats count() as Count by `aws.waf.httpRequest.country` | sort - Count
+   source=waf_logs | stats count() as Count by `httpRequest.clientIp` | sort - Count | head 10
    ```
 
-8. **Top Terminating Rules:**
+6. **Top Countries:**
    ```
-   source=waf_logs | stats count() as Count by `aws.waf.terminatingRuleId` | sort - Count | head 10
-   ```
-
-9. **Top Request URIs:**
-   ```
-   source=waf_logs | stats count() as Count by `aws.waf.httpRequest.uri` | sort - Count | head 10
+   source=waf_logs | stats count() as Count by `httpRequest.country` | sort - Count 
    ```
 
-10. **Total Blocked Requests:**
-    ```
-    source=waf_logs | stats sum(if(`aws.waf.action` = 'BLOCK', 1, 0)) as Count
-    ```
+7. **Top Terminating Rules:**
+   ```
+   source=waf_logs | stats count() as Count by `terminatingRuleId` | sort - Count | head 10
+   ```
 
-11. **WAF Rules Analysis:**
-    ```
-    source=waf_logs | stats count() as Count by `aws.waf.terminatingRuleId` | sort - Count | head 5
-    ```
+8. **Top Request URIs:**
+   ```
+   source=waf_logs | stats count() as Count by `httpRequest.uri` | sort - Count | head 10
+   ```
+
+9. **Total Blocked Requests:**
+   ```
+   source=waf_logs | WHERE action = "BLOCK" | STATS count()
+   ```
 
 ## Test Strategy
 

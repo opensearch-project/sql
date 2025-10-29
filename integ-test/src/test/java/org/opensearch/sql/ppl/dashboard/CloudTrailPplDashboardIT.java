@@ -238,11 +238,11 @@ public class CloudTrailPplDashboardIT extends PPLIntegTestCase {
   public void testEC2ChangeEventCount() throws IOException {
     String query =
         String.format(
-            "source=%s | where eventSource like \"ec2%%\" and (eventName = \"RunInstances\" or"
-                + " eventName = \"TerminateInstances\" or eventName = \"StopInstances\") and not"
-                + " (eventName like \"Get%%\" or eventName like \"Describe%%\" or eventName like"
-                + " \"List%%\" or eventName like \"Head%%\") | stats count() as Count by eventName"
-                + " | sort - Count | head 5",
+            "source=%s | where eventSource like \\\"ec2%%\\\" and (eventName = \\\"RunInstances\\\""
+                + " or eventName = \\\"TerminateInstances\\\" or eventName = \\\"StopInstances\\\")"
+                + " and not (eventName like \\\"Get%%\\\" or eventName like \\\"Describe%%\\\" or"
+                + " eventName like \\\"List%%\\\" or eventName like \\\"Head%%\\\") | stats count()"
+                + " as Count by eventName | sort - Count | head 5",
             CLOUDTRAIL_LOGS_INDEX);
 
     JSONObject response = executeQuery(query);
@@ -273,10 +273,10 @@ public class CloudTrailPplDashboardIT extends PPLIntegTestCase {
   public void testEC2EventsByName() throws IOException {
     String query =
         String.format(
-            "source=%s | where `eventSource` like \"ec2%%\" and not (`eventName` like \"Get%%\" or"
-                + " `eventName` like \"Describe%%\" or `eventName` like \"List%%\" or `eventName`"
-                + " like \"Head%%\") | stats count() as Count by `eventName` | rename `eventName`"
-                + " as `Event Name` | sort - Count | head 10",
+            "source=%s | where `eventSource` like \\\"ec2%%\\\" and not (`eventName` like"
+                + " \\\"Get%%\\\" or `eventName` like \\\"Describe%%\\\" or `eventName` like"
+                + " \\\"List%%\\\" or `eventName` like \\\"Head%%\\\") | stats count() as Count by"
+                + " `eventName` | rename `eventName` as `Event Name` | sort - Count | head 10",
             CLOUDTRAIL_LOGS_INDEX);
 
     JSONObject response = executeQuery(query);

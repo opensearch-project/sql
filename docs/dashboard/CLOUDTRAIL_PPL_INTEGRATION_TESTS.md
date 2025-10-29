@@ -56,31 +56,31 @@ OpenSearch index mapping for CloudTrail logs with proper field types:
 
 ## CloudTrail Queries Tested
 
-The integration tests cover all the CloudTrail PPL queries from the dashboard requirements:
+The integration tests cover the following CloudTrail PPL queries:
 
 1. **Total Events Count:**
    ```
    source=cloudtrail_logs | stats count() as `Event Count`
    ```
 
-2. **Events Over Time/Event History:**
+2. **Events Over Time:**
    ```
-   source=cloudtrail_logs | stats count() by `@timestamp`
+   source=cloudtrail_logs | stats count() by span(eventTime, 30d)
    ```
 
 3. **Events by Account IDs:**
    ```
-   source=cloudtrail_logs | where isnotnull(`userIdentity.accountId`) | stats count() as Accounts by `userIdentity.accountId` | sort - Accounts | head 10
+   source=cloudtrail_logs | where isnotnull(userIdentity.accountId) | stats count() as Count by userIdentity.accountId | sort - Count | head 10
    ```
 
 4. **Events by Category:**
    ```
-   source=cloudtrail_logs | stats count() as Category by `eventCategory` | sort - Category | head 5
+   source=cloudtrail_logs | stats count() as Count by eventCategory | sort - Count | head 5
    ```
 
 5. **Events by Region:**
    ```
-   source=cloudtrail_logs | stats count() as Region by `awsRegion` | sort - Region | head 10
+   source=cloudtrail_logs | stats count() as Count by `awsRegion` | sort - Count | head 10
    ```
 
 6. **Top 10 Event APIs:**
@@ -95,32 +95,32 @@ The integration tests cover all the CloudTrail PPL queries from the dashboard re
 
 8. **Top 10 Source IPs:**
    ```
-   source=cloudtrail_logs | stats count() as Count by `sourceIPAddress` | sort - Count | head 10
+   source=cloudtrail_logs | WHERE NOT (sourceIPAddress LIKE '%amazon%.com%') | STATS count() as Count by sourceIPAddress| SORT - Count| HEAD 10
    ```
 
 9. **Top 10 Users Generating Events:**
    ```
-   source=cloudtrail_logs | where isnotnull(`userIdentity.sessionContext.sessionIssuer.userName`) and isnotnull(`userIdentity.sessionContext.sessionIssuer.arn`) and isnotnull(`userIdentity.accountId`) and isnotnull(`userIdentity.sessionContext.sessionIssuer.type`) | stats count() as Count by `userIdentity.sessionContext.sessionIssuer.userName`, `userIdentity.accountId`, `userIdentity.sessionContext.sessionIssuer.type`, `userIdentity.sessionContext.sessionIssuer.arn` | sort - Count | head 10
+   source=cloudtrail_logs | where ISNOTNULL(`userIdentity.accountId`)| STATS count() as Count by `userIdentity.sessionContext.sessionIssuer.userName`, `userIdentity.accountId`, `userIdentity.sessionContext.sessionIssuer.type` | rename `userIdentity.sessionContext.sessionIssuer.userName` as `User Name`, `userIdentity.accountId` as `Account Id`, `userIdentity.sessionContext.sessionIssuer.type` as `Type` | SORT - Count | HEAD 1000
    ```
 
 10. **S3 Access Denied:**
     ```
-    source=cloudtrail_logs | where `eventSource` like 's3%' and `errorCode`='AccessDenied' | stats count() as Count
+    source=cloudtrail_logs | parse `eventSource` '(?<service>s3.*)' | where isnotnull(service) and `errorCode`='AccessDenied' | stats count() as Count
     ```
 
 11. **S3 Buckets:**
     ```
-    source=cloudtrail_logs | where `eventSource` like 's3%' and isnotnull(`requestParameters.bucketName`) | stats count() as Bucket by `requestParameters.bucketName` | sort - Bucket | head 10
+    source=cloudtrail_logs | where `eventSource` like 's3%' and isnotnull(`requestParameters.bucketName`) | stats count() as Count by `requestParameters.bucketName` | sort - Count| head 10
     ```
 
 12. **Top S3 Change Events:**
     ```
-    source=cloudtrail_logs | where `eventSource` = 's3.amazonaws.com' and isnotnull(`requestParameters.bucketName`) and not like(`eventName`, 'Get%') and not like(`eventName`, 'Describe%') and not like(`eventName`, 'List%') and not like(`eventName`, 'Head%') | stats count() as Count by `eventName`, `requestParameters.bucketName` | sort - Count | head 10
+    source=cloudtrail_logs | where `eventSource` like 's3%' and not (`eventName` like 'Get%' or `eventName` like 'Describe%' or `eventName` like 'List%' or `eventName` like 'Head%') and isnotnull(`requestParameters.bucketName`) | stats count() as Count by `eventName`, `requestParameters.bucketName` | rename `eventName` as `Event`, `requestParameters.bucketName` as `Bucket Name`| sort - Count | head 100
     ```
 
 13. **EC2 Change Event Count:**
     ```
-    source=cloudtrail_logs | where `eventSource` like "ec2%" and (`eventName` = "RunInstances" or `eventName` = "TerminateInstances" or `eventName` = "StopInstances") and not (`eventName` like "Get%" or `eventName` like "Describe%" or `eventName` like "List%" or `eventName` like "Head%") | stats count() by `eventName`| sort - count | head 5
+    source=cloudtrail_logs | where eventSource like "ec2%" and (eventName = "RunInstances" or eventName = "TerminateInstances" or eventName = "StopInstances") and not (eventName like "Get%" or eventName like "Describe%" or eventName like "List%" or eventName like "Head%") | stats count() as Count by eventName | sort - Count | head 5
     ```
 
 14. **EC2 Users by Session Issuer:**

@@ -15,26 +15,33 @@ This document describes the integration tests for Network Firewall (NFW) PPL das
 
 The NFW dashboard tests cover 37 comprehensive dashboard scenarios:
 
-### 1. Top Source IP by Packets (`testTopSourceIPByPackets`)
+### 1. Top Application Protocols (`testTopApplicationProtocols`)
 ```sql
-source=nfw_logs | stats sum(`event.netflow.pkts`) as packet_count by `event.src_ip` | sort - packet_count | head 1
+source=nfw_logs | where isnotnull(`event.app_proto`) | STATS count() as Count by `event.app_proto` | SORT - Count| HEAD 10
 ```
-- **Purpose**: Identifies source IPs generating the most network packets
-- **Expected**: 3.80.106.210 with 10 packets
+- **Purpose**: Shows most common application layer protocols
+- **Expected**: unknown (5), http (3), tls (2), dns (2)
 
-### 2. Top Source IP by Bytes (`testTopSourceIPByBytes`)
+### 2. Top Source IP by Packets (`testTopSourceIPByPackets`)
 ```sql
-source=nfw_logs | stats sum(`event.netflow.bytes`) as sum_bytes by `event.src_ip` | sort - sum_bytes | head 1
+source=nfw_logs | stats sum(`event.netflow.pkts`) as packet_count by span(`event.timestamp`, 2d) as timestamp_span, `event.src_ip` | rename `event.src_ip` as `Source IP` | sort - packet_count | head 10
 ```
-- **Purpose**: Identifies source IPs generating the most network traffic by bytes
-- **Expected**: 3.80.106.210 with 440 bytes
+- **Purpose**: Identifies source IPs generating the most network packets over time
+- **Expected**: 10.170.18.235 with 53 packets
 
-### 3. Top Destination IP by Packets (`testTopDestinationIPByPackets`)
+### 3. Top Source IP by Bytes (`testTopSourceIPByBytes`)
 ```sql
-source=nfw_logs | stats sum(`event.netflow.pkts`) as packet_count by `event.dest_ip` | sort - packet_count | head 1
+source=nfw_logs | stats sum(`event.netflow.bytes`) as sum_bytes by span(`event.timestamp`, 2d) as timestamp_span, `event.src_ip` | rename  `event.src_ip` as `Source IP` | sort - sum_bytes | head 10
 ```
-- **Purpose**: Identifies destination IPs receiving the most packets
-- **Expected**: 10.2.1.120 with 10 packets
+- **Purpose**: Identifies source IPs generating the most network traffic by bytes over time
+- **Expected**: 10.170.18.235 with 4142 bytes
+
+### 4. Top Destination IP by Packets (`testTopDestinationIPByPackets`)
+```sql
+source=nfw_logs | stats sum(`event.netflow.pkts`) as packet_count by span(`event.timestamp`, 2d) as timestamp_span, `event.dest_ip` | rename `event.dest_ip` as `Destination IP` | sort - packet_count | head 10
+```
+- **Purpose**: Identifies destination IPs receiving the most packets over time
+- **Expected**: 8.8.8.8 with 31 packets
 
 ### 4. Top Protocols (`testTopProtocols`)
 ```sql

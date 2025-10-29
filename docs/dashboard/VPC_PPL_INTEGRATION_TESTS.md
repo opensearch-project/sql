@@ -55,59 +55,79 @@ OpenSearch index mapping for VPC flow logs with proper field types:
 
 ## VPC Flow Logs Queries Tested
 
-The integration tests cover VPC Flow Logs PPL queries for dashboard functionality:
+The integration tests cover the following VPC Flow Logs PPL queries:
 
-1. **Basic Count Query:**
+1. **Total Requests:**
    ```
    source=vpc_flow_logs | stats count()
    ```
 
-2. **Count by Action:**
+2. **Total Flows by Actions:**
    ```
    source=vpc_flow_logs | STATS count() as Count by action | SORT - Count | HEAD 5
    ```
 
-3. **Flows Over Time (with span function):**
+3. **Flows Over Time:**
    ```
    source=vpc_flow_logs | STATS count() by span(`start`, 30d)
    ```
 
-4. **Flow Direction Analysis:**
+4. **Requests by Direction:**
    ```
    source=vpc_flow_logs | STATS count() as Count by `flow-direction` | SORT - Count | HEAD 5
    ```
 
-5. **Bytes and Packets Over Time (with span function):**
+5. **Bytes Transferred Over Time:**
    ```
    source=vpc_flow_logs | STATS sum(bytes) by span(`start`, 30d)
+   ```
+
+6. **Packets Transferred Over Time:**
+   ```
    source=vpc_flow_logs | STATS sum(packets) by span(`start`, 30d)
    ```
 
-6. **AWS Service Analysis:**
+7. **Top Source AWS Services:**
    ```
    source=vpc_flow_logs | STATS count() as Count by `pkt-src-aws-service` | SORT - Count | HEAD 10
+   ```
+
+8. **Top Destination AWS Services:**
+   ```
    source=vpc_flow_logs | STATS count() as Count by `pkt-dst-aws-service` | SORT - Count | HEAD 10
    ```
 
-7. **Top Sources/Destinations by Bytes:**
+9. **Top Destination by Bytes:**
    ```
-   source=vpc_flow_logs | stats sum(bytes) as Bytes by srcaddr | sort - Bytes | head 10
    source=vpc_flow_logs | stats sum(bytes) as Bytes by dstaddr | sort - Bytes | head 10
    ```
 
-8. **Top Sources/Destinations by Packets:**
-   ```
-   source=vpc_flow_logs | stats sum(packets) as Packets by srcaddr | sort - Packets | head 10
-   source=vpc_flow_logs | stats sum(packets) as Packets by dstaddr | sort - Packets | head 10
-   ```
+10. **Top Talkers by Bytes:**
+    ```
+    source=vpc_flow_logs | stats sum(bytes) as Bytes by srcaddr | sort - Bytes | head 10
+    ```
 
-9. **Top Talkers/Destinations by IP Count:**
-   ```
-   source=vpc_flow_logs | STATS count() as Count by srcaddr | SORT - Count | HEAD 10
-   source=vpc_flow_logs | stats count() as Requests by dstaddr | sort - Requests | head 10
-   ```
+11. **Top Talkers by Packets:**
+    ```
+    source=vpc_flow_logs | stats sum(packets) as Packets by srcaddr | sort - Packets | head 10
+    ```
 
-10. **Heat Map Analysis:**
+12. **Top Destinations by Packets:**
+    ```
+    source=vpc_flow_logs | stats sum(packets) as Packets by dstaddr | sort - Packets | head 10
+    ```
+
+13. **Top Talkers by IPs:**
+    ```
+    source=vpc_flow_logs | STATS count() as Count by srcaddr | SORT - Count | HEAD 10
+    ```
+
+14. **Top Destinations by IPs:**
+    ```
+    source=vpc_flow_logs | stats count() as Requests by dstaddr | sort - Requests | head 10
+    ```
+
+15. **Top Talkers by Heat Map:**
     ```
     source=vpc_flow_logs | stats count() as Count by dstaddr, srcaddr | sort - Count | head 100
     ```

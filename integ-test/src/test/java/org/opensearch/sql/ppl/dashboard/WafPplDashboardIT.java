@@ -159,7 +159,7 @@ public class WafPplDashboardIT extends PPLIntegTestCase {
   @Test
   public void testTotalBlockedRequests() throws IOException {
     String query =
-        String.format("source=%s | WHERE action = \"BLOCK\" | STATS count()", WAF_LOGS_INDEX);
+        String.format("source=%s | WHERE action = \\\"BLOCK\\\" | STATS count()", WAF_LOGS_INDEX);
 
     JSONObject response = executeQuery(query);
     verifySchema(response, schema("count()", null, "bigint"));
