@@ -109,12 +109,12 @@ PPL query::
 
     os> source=accounts | chart count() by gender
     fetched rows / total rows = 2/2
-    +---------+--------+
-    | count() | gender |
-    |---------+--------|
-    | 1       | F      |
-    | 3       | M      |
-    +---------+--------+
+    +--------+---------+
+    | gender | count() |
+    |--------+---------|
+    | F      | 1       |
+    | M      | 3       |
+    +--------+---------+
 
 Example 3: Using over and by for multiple field grouping
 --------------------------------------------------------

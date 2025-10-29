@@ -35,8 +35,8 @@ public class CalciteChartCommandIT extends PPLIntegTestCase {
   public void testChartWithSingleGroupKey() throws IOException {
     JSONObject result1 =
         executeQuery(String.format("source=%s | chart avg(balance) by gender", TEST_INDEX_BANK));
-    verifySchema(result1, schema("avg(balance)", "double"), schema("gender", "string"));
-    verifyDataRows(result1, rows(40488, "F"), rows(16377.25, "M"));
+    verifySchema(result1, schema("gender", "string"), schema("avg(balance)", "double"));
+    verifyDataRows(result1, rows("F", 40488), rows("M", 16377.25));
     JSONObject result2 =
         executeQuery(String.format("source=%s | chart avg(balance) over gender", TEST_INDEX_BANK));
     assertJsonEquals(result1.toString(), result2.toString());
@@ -74,18 +74,18 @@ public class CalciteChartCommandIT extends PPLIntegTestCase {
                 "source=%s | chart limit=0 avg(balance) over state by gender", TEST_INDEX_BANK));
     verifySchema(
         result,
-        schema("avg(balance)", "double"),
         schema("state", "string"),
-        schema("gender", "string"));
+        schema("gender", "string"),
+        schema("avg(balance)", "double"));
     verifyDataRows(
         result,
-        rows(39225.0, "IL", "M"),
-        rows(48086.0, "IN", "F"),
-        rows(4180.0, "MD", "M"),
-        rows(40540.0, "PA", "F"),
-        rows(5686.0, "TN", "M"),
-        rows(32838.0, "VA", "F"),
-        rows(16418.0, "WA", "M"));
+        rows("IL", "M", 39225.0),
+        rows("IN", "F", 48086.0),
+        rows("MD", "M", 4180.0),
+        rows("PA", "F", 40540.0),
+        rows("TN", "M", 5686.0),
+        rows("VA", "F", 32838.0),
+        rows("WA", "M", 16418.0));
   }
 
   @Test
@@ -93,8 +93,8 @@ public class CalciteChartCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format("source=%s | chart max(balance) by age span=10", TEST_INDEX_BANK));
-    verifySchema(result, schema("max(balance)", "bigint"), schema("age", "int"));
-    verifyDataRows(result, rows(32838, 20), rows(48086, 30));
+    verifySchema(result, schema("age", "int"), schema("max(balance)", "bigint"));
+    verifyDataRows(result, rows(20, 32838), rows(30, 48086));
   }
 
   @Test
@@ -172,37 +172,37 @@ public class CalciteChartCommandIT extends PPLIntegTestCase {
                 TEST_INDEX_OTEL_LOGS));
     verifySchema(
         result,
-        schema("max(severityNumber)", "bigint"),
         schema("flags", "bigint"),
-        schema("severityText", "string"));
+        schema("severityText", "string"),
+        schema("max(severityNumber)", "bigint"));
     verifyDataRows(
         result,
-        rows(5, 0, "DEBUG"),
-        rows(6, 0, "DEBUG2"),
-        rows(7, 0, "DEBUG3"),
-        rows(8, 0, "DEBUG4"),
-        rows(17, 0, "ERROR"),
-        rows(18, 0, "ERROR2"),
-        rows(19, 0, "ERROR3"),
-        rows(20, 0, "ERROR4"),
-        rows(21, 0, "FATAL"),
-        rows(22, 0, "FATAL2"),
-        rows(23, 0, "FATAL3"),
-        rows(24, 0, "FATAL4"),
-        rows(9, 0, "INFO"),
-        rows(10, 0, "INFO2"),
-        rows(11, 0, "INFO3"),
-        rows(12, 0, "INFO4"),
-        rows(2, 0, "TRACE2"),
-        rows(3, 0, "TRACE3"),
-        rows(4, 0, "TRACE4"),
-        rows(13, 0, "WARN"),
-        rows(14, 0, "WARN2"),
-        rows(15, 0, "WARN3"),
-        rows(16, 0, "WARN4"),
-        rows(17, 1, "ERROR"),
-        rows(9, 1, "INFO"),
-        rows(1, 1, "TRACE"));
+        rows(0, "DEBUG", 5),
+        rows(0, "DEBUG2", 6),
+        rows(0, "DEBUG3", 7),
+        rows(0, "DEBUG4", 8),
+        rows(0, "ERROR", 17),
+        rows(0, "ERROR2", 18),
+        rows(0, "ERROR3", 19),
+        rows(0, "ERROR4", 20),
+        rows(0, "FATAL", 21),
+        rows(0, "FATAL2", 22),
+        rows(0, "FATAL3", 23),
+        rows(0, "FATAL4", 24),
+        rows(0, "INFO", 9),
+        rows(0, "INFO2", 10),
+        rows(0, "INFO3", 11),
+        rows(0, "INFO4", 12),
+        rows(0, "TRACE2", 2),
+        rows(0, "TRACE3", 3),
+        rows(0, "TRACE4", 4),
+        rows(0, "WARN", 13),
+        rows(0, "WARN2", 14),
+        rows(0, "WARN3", 15),
+        rows(0, "WARN4", 16),
+        rows(1, "ERROR", 17),
+        rows(1, "INFO", 9),
+        rows(1, "TRACE", 1));
   }
 
   @Test

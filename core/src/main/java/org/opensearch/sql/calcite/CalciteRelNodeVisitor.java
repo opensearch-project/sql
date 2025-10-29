@@ -1108,6 +1108,19 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitAggregation(Aggregation node, CalcitePlanContext context) {
+    visitAggregation(node, context, true);
+    return context.relBuilder.peek();
+  }
+
+  /**
+   * Visits an aggregation node and builds the corresponding Calcite RelNode.
+   *
+   * @param node the aggregation node containing group expressions and aggregation functions
+   * @param context the Calcite plan context for building RelNodes
+   * @param aggFirst if true, aggregation results (metrics) appear first in output schema (agg,
+   *     group-by fields); if false, group expressions appear first (group-by fields, agg).
+   */
+  private void visitAggregation(Aggregation node, CalcitePlanContext context, boolean aggFirst) {
     visitChildren(node, context);
 
     List<UnresolvedExpression> aggExprList = node.getAggExprList();
@@ -1152,8 +1165,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         aggregateWithTrimming(groupExprList, aggExprList, context, toAddHintsOnAggregate);
 
     // schema reordering
-    // As an example, in command `stats count() by colA, colB`,
-    // the sequence of output schema is "count, colA, colB".
     List<RexNode> outputFields = context.relBuilder.fields();
     int numOfOutputFields = outputFields.size();
     int numOfAggList = aggExprList.size();
@@ -1161,8 +1172,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Add aggregation results first
     List<RexNode> aggRexList =
         outputFields.subList(numOfOutputFields - numOfAggList, numOfOutputFields);
-    reordered.addAll(aggRexList);
-    // Add group by columns
     List<RexNode> aliasedGroupByList =
         aggregationAttributes.getLeft().stream()
             .map(this::extractAliasLiteral)
@@ -1171,10 +1180,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .map(context.relBuilder::field)
             .map(f -> (RexNode) f)
             .toList();
-    reordered.addAll(aliasedGroupByList);
+    if (aggFirst) {
+      // As an example, in command `stats count() by colA, colB`,
+      // the sequence of output schema is "count, colA, colB".
+      reordered.addAll(aggRexList);
+      // Add group by columns
+      reordered.addAll(aliasedGroupByList);
+    } else {
+      reordered.addAll(aliasedGroupByList);
+      reordered.addAll(aggRexList);
+    }
     context.relBuilder.project(reordered);
-
-    return context.relBuilder.peek();
   }
 
   private Optional<UnresolvedExpression> getTimeSpanField(UnresolvedExpression expr) {
@@ -2038,7 +2054,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             groupExprList,
             null,
             List.of(new Argument(Argument.BUCKET_NULLABLE, AstDSL.booleanLiteral(config.useNull))));
-    RelNode aggregated = visitAggregation(aggregation, context);
+    visitAggregation(aggregation, context, false);
+    RelBuilder relBuilder = context.relBuilder;
+    String columnSplitName =
+        relBuilder.peek().getRowType().getFieldNames().size() > 2
+            ? relBuilder.peek().getRowType().getFieldNames().get(1)
+            : null;
+    RelNode aggregated = context.relBuilder.peek();
 
     // If row or column split does not present or limit equals 0, this is the same as `stats agg
     // [group by col]` because all truncating is performed on the column split
@@ -2058,9 +2080,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // Convert the column split to string if necessary: column split was supposed to be pivoted to
     // column names. This guarantees that its type compatibility with useother and usenull
-    RelBuilder relBuilder = context.relBuilder;
-    RexNode colSplit = relBuilder.field(2);
-    String columSplitName = relBuilder.peek().getRowType().getFieldNames().getLast();
+    RexNode colSplit = relBuilder.field(1);
+    String columSplitName = relBuilder.peek().getRowType().getFieldNames().get(1);
     if (!SqlTypeUtil.isCharacter(colSplit.getType())) {
       colSplit =
           relBuilder.alias(
@@ -2068,15 +2089,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                   UserDefinedFunctionUtils.NULLABLE_STRING, colSplit, true, true),
               columSplitName);
     }
-    relBuilder.project(relBuilder.field(0), relBuilder.field(1), colSplit);
+    relBuilder.project(relBuilder.field(0), colSplit, relBuilder.field(2));
     aggregated = relBuilder.peek();
 
-    // 0: agg; 2: column-split
-    relBuilder.project(relBuilder.field(0), relBuilder.field(2));
-    // 1: column split; 0: agg
+    // 1: column-split, 2: agg
+    relBuilder.project(relBuilder.field(1), relBuilder.field(2));
     relBuilder.aggregate(
-        relBuilder.groupKey(relBuilder.field(1)),
-        buildAggCall(context.relBuilder, aggFunction, relBuilder.field(0))
+        relBuilder.groupKey(relBuilder.field(0)),
+        buildAggCall(context.relBuilder, aggFunction, relBuilder.field(1))
             .as("__grand_total__")); // results: group key, agg calls
     RexNode grandTotal = relBuilder.field("__grand_total__");
     // Apply sorting: for MIN/EARLIEST, reverse the top/bottom logic
@@ -2105,9 +2125,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // on column-split = group key
     relBuilder.join(
-        JoinRelType.LEFT, relBuilder.equals(relBuilder.field(2, 0, 2), relBuilder.field(2, 1, 0)));
+        JoinRelType.LEFT, relBuilder.equals(relBuilder.field(2, 0, 1), relBuilder.field(2, 1, 0)));
 
-    RexNode colSplitPostJoin = relBuilder.field(2);
+    RexNode colSplitPostJoin = relBuilder.field(1);
     RexNode lteCondition =
         relBuilder.call(
             SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
@@ -2126,25 +2146,25 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               nullCondition,
               relBuilder.literal(config.nullStr),
               lteCondition,
-              relBuilder.field(2),
+              relBuilder.field(1), // col split
               relBuilder.literal(config.otherStr));
     } else {
       columnSplitExpr =
           relBuilder.call(
               SqlStdOperatorTable.CASE,
               lteCondition,
-              relBuilder.field(2),
+              relBuilder.field(1),
               relBuilder.literal(config.otherStr));
     }
 
-    String aggFieldName = relBuilder.peek().getRowType().getFieldNames().getFirst();
+    String aggFieldName = relBuilder.peek().getRowType().getFieldNames().get(2);
     relBuilder.project(
         relBuilder.field(0),
-        relBuilder.field(1),
-        relBuilder.alias(columnSplitExpr, columSplitName));
+        relBuilder.alias(columnSplitExpr, columnSplitName),
+        relBuilder.field(2));
     relBuilder.aggregate(
-        relBuilder.groupKey(relBuilder.field(1), relBuilder.field(2)),
-        buildAggCall(context.relBuilder, aggFunction, relBuilder.field(0)).as(aggFieldName));
+        relBuilder.groupKey(relBuilder.field(0), relBuilder.field(1)),
+        buildAggCall(context.relBuilder, aggFunction, relBuilder.field(2)).as(aggFieldName));
     return relBuilder.peek();
   }
 
