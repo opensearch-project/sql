@@ -8,30 +8,10 @@ package org.opensearch.sql.calcite.utils;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Utility for wildcard-based string replacement in PPL replace command.
- *
- * <p>Supports wildcard matching where '*' matches zero or more characters. Captured wildcard
- * portions can be reused in the replacement string.
- *
- * <p>Examples:
- *
- * <ul>
- *   <li>"*localhost" matches "server.localhost" and captures "server."
- *   <li>"* localhost" with replacement "localhost *" reorders to "localhost server"
- *   <li>"* - *" matches "foo - bar" and captures ["foo", " bar"]
- * </ul>
- */
+/** Utility for wildcard-based string replacement in PPL replace command. */
 public class WildcardReplaceUtils {
 
-  /**
-   * Perform wildcard-based replacement.
-   *
-   * @param input The input string
-   * @param pattern The pattern (may contain wildcards)
-   * @param replacement The replacement (may contain wildcards)
-   * @return The replaced string, or original if no match
-   */
+  /** Perform wildcard-based replacement. */
   public static String replaceWithWildcard(String input, String pattern, String replacement) {
     if (input == null) {
       return null;
@@ -49,13 +29,7 @@ public class WildcardReplaceUtils {
     return substituteWildcards(replacement, captures);
   }
 
-  /**
-   * Match pattern against input and capture wildcard portions.
-   *
-   * @param input The input string
-   * @param pattern The pattern with wildcards
-   * @return List of captured strings (one per wildcard), or null if no match
-   */
+  /** Match pattern against input and capture wildcard portions. */
   public static List<String> matchAndCapture(String input, String pattern) {
     List<String> captures = new ArrayList<>();
     String[] parts = pattern.split("\\*", -1); // -1 keeps trailing empty strings
@@ -92,13 +66,7 @@ public class WildcardReplaceUtils {
     return captures;
   }
 
-  /**
-   * Substitute wildcards in replacement string with captured values.
-   *
-   * @param replacement The replacement string (may contain wildcards)
-   * @param captures The captured values from pattern matching
-   * @return The substituted string
-   */
+  /** Substitute wildcards in replacement string with captured values. */
   public static String substituteWildcards(String replacement, List<String> captures) {
     if (!replacement.contains("*")) {
       return replacement;
@@ -121,12 +89,7 @@ public class WildcardReplaceUtils {
     return result.toString();
   }
 
-  /**
-   * Count the number of wildcards in a string.
-   *
-   * @param str The string to count wildcards in
-   * @return The number of wildcard characters ('*')
-   */
+  /** Count the number of wildcards in a string. */
   public static int countWildcards(String str) {
     int count = 0;
     for (char c : str.toCharArray()) {
@@ -137,13 +100,7 @@ public class WildcardReplaceUtils {
     return count;
   }
 
-  /**
-   * Validate wildcard symmetry between pattern and replacement.
-   *
-   * @param pattern The pattern string
-   * @param replacement The replacement string
-   * @throws IllegalArgumentException if wildcard counts don't match (and replacement has wildcards)
-   */
+  /** Validate wildcard symmetry between pattern and replacement. */
   public static void validateWildcardSymmetry(String pattern, String replacement) {
     int patternWildcards = countWildcards(pattern);
     int replacementWildcards = countWildcards(replacement);
