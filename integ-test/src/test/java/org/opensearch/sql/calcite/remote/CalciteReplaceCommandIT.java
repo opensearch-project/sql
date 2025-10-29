@@ -288,4 +288,213 @@ public class CalciteReplaceCommandIT extends PPLIntegTestCase {
         rows("John", "Ontario Province"),
         rows("Jane", "Quebec"));
   }
+
+  // ========== Wildcard Integration Tests ==========
+
+  @Test
+  public void testWildcardReplace_suffixMatch() throws IOException {
+    // Pattern "*ada" should match "Canada" and replace with "CA"
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | replace '*ada' WITH 'CA' IN country | fields name, country",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(result, schema("name", "string"), schema("country", "string"));
+
+    verifyDataRows(
+        result, rows("Jake", "USA"), rows("Hello", "USA"), rows("John", "CA"), rows("Jane", "CA"));
+  }
+
+  @Test
+  public void testWildcardReplace_prefixMatch() throws IOException {
+    // Pattern "US*" should match "USA" and replace with "United States"
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | replace 'US*' WITH 'United States' IN country | fields name,"
+                    + " country",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(result, schema("name", "string"), schema("country", "string"));
+
+    verifyDataRows(
+        result,
+        rows("Jake", "United States"),
+        rows("Hello", "United States"),
+        rows("John", "Canada"),
+        rows("Jane", "Canada"));
+  }
+
+  @Test
+  public void testWildcardReplace_multipleWildcards() throws IOException {
+    // Pattern "* *" with replacement "*_*" should replace spaces with underscores
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | replace '* *' WITH '*_*' IN state | fields name, state",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(result, schema("name", "string"), schema("state", "string"));
+
+    verifyDataRows(
+        result,
+        rows("Jake", "California"),
+        rows("Hello", "New_York"),
+        rows("John", "Ontario"),
+        rows("Jane", "Quebec"));
+  }
+
+  @Test
+  public void testWildcardReplace_symmetryMismatch_shouldFail() {
+    // Pattern has 2 wildcards, replacement has 1 - should fail
+    Throwable e =
+        assertThrowsWithReplace(
+            IllegalArgumentException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source = %s | replace '* *' WITH '*' IN state",
+                        TEST_INDEX_STATE_COUNTRY)));
+    verifyErrorMessageContains(e, "Wildcard count mismatch");
+  }
+
+  @Test
+  public void testWildcardReplace_multipleFields() throws IOException {
+    // Test wildcard replacement across multiple fields
+    // Pattern "*A" should match "USA" in country
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | replace '*A' WITH 'United States' IN country, name | fields name,"
+                    + " country",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(result, schema("name", "string"), schema("country", "string"));
+
+    verifyDataRows(
+        result,
+        rows("Jake", "United States"),
+        rows("Hello", "United States"),
+        rows("John", "Canada"),
+        rows("Jane", "Canada"));
+  }
+
+  @Test
+  public void testWildcardReplace_internalField() throws IOException {
+    // Test wildcard replacement on internal fields
+    // Replace pattern in _index field
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | replace '*country' WITH 'test_index' IN _index | fields name,"
+                    + " _index",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(result, schema("name", "string"), schema("_index", "string"));
+
+    // All rows should have _index replaced since it matches "*country"
+    verifyDataRows(
+        result,
+        rows("Jake", "test_index"),
+        rows("Hello", "test_index"),
+        rows("John", "test_index"),
+        rows("Jane", "test_index"));
+  }
+
+  @Test
+  public void testWildcardReplace_multiplePairsWithWildcards() throws IOException {
+    // Test multiple wildcard pattern pairs in a single command
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | replace '*A' WITH 'United States', '*ada' WITH 'CA' IN country |"
+                    + " fields name, country",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(result, schema("name", "string"), schema("country", "string"));
+
+    // First pair: "*A" matches "USA" → "United States"
+    // Second pair: "*ada" matches "Canada" → "CA"
+    verifyDataRows(
+        result,
+        rows("Jake", "United States"),
+        rows("Hello", "United States"),
+        rows("John", "CA"),
+        rows("Jane", "CA"));
+  }
+
+  @Test
+  public void testWildcardReplace_withSort() throws IOException {
+    // Test wildcard replacement followed by sort command
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | replace '*A' WITH 'United States' IN country | fields name,"
+                    + " country | sort country",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(result, schema("name", "string"), schema("country", "string"));
+
+    // Results should be sorted by country after wildcard replacement
+    verifyDataRows(
+        result,
+        rows("John", "Canada"),
+        rows("Jane", "Canada"),
+        rows("Jake", "United States"),
+        rows("Hello", "United States"));
+  }
+
+  @Test
+  public void testWildcardReplace_withWhereClause() throws IOException {
+    // Test wildcard replacement with where clause filtering
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | where country = 'USA' | replace 'US*' WITH 'United States' IN"
+                    + " country | fields name, country",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(result, schema("name", "string"), schema("country", "string"));
+
+    // Only rows where country = 'USA' should be processed
+    verifyDataRows(result, rows("Jake", "United States"), rows("Hello", "United States"));
+  }
+
+  @Test
+  public void testWildcardReplace_nullValues() throws IOException {
+    // Test wildcard replacement behavior with null field values
+    // Use a query that might have null values in results
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | replace '*' WITH 'N/A' IN country | fields name, country | head 2",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(result, schema("name", "string"), schema("country", "string"));
+
+    // Wildcard pattern "*" matches everything, so all non-null values are replaced with "N/A"
+    verifyDataRows(result, rows("Jake", "N/A"), rows("Hello", "N/A"));
+  }
+
+  @Test
+  public void testWildcardReplace_emptyStringIntegration() throws IOException {
+    // Integration test for empty string replacement with wildcards
+    // Replace the entire country value with empty string
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | replace '*A' WITH '' IN country | fields name, country",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(result, schema("name", "string"), schema("country", "string"));
+
+    // "*A" matches "USA" → empty string, "Canada" stays unchanged
+    verifyDataRows(
+        result,
+        rows("Jake", ""),
+        rows("Hello", ""),
+        rows("John", "Canada"),
+        rows("Jane", "Canada"));
+  }
 }
