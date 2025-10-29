@@ -2137,12 +2137,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
             relBuilder.field(ROW_NUM_COL),
             relBuilder.literal(limit));
-    RexNode nullCondition = relBuilder.isNull(colSplitPostJoin);
-    RexNode columnSplitExpr;
     if (!config.useOther) {
       relBuilder.filter(lteCondition);
     }
+    RexNode nullCondition = relBuilder.isNull(colSplitPostJoin);
 
+    RexNode columnSplitExpr;
     if (config.useNull) {
       columnSplitExpr =
           relBuilder.call(
