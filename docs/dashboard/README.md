@@ -26,6 +26,12 @@ Dashboard integration tests ensure that PPL queries used in various OpenSearch d
   - Tests AWS API call monitoring with real CloudTrail log structure
   - Validates complex user identity, session analysis, and service-specific filtering
 
+### Network Firewall Dashboard
+- **[NFW PPL Integration Tests](NFW_PPL_INTEGRATION_TESTS.md)** - Tests for Network Firewall log dashboard queries
+  - Covers 36 NFW-specific PPL query patterns
+  - Tests network firewall analysis with netflow data and TCP flow tracking
+  - Validates traffic analysis by source/destination IPs, ports, protocols, and application layer data
+
 ## Adding New Dashboard Tests
 
 When creating tests for new dashboard types:
@@ -53,4 +59,5 @@ Each dashboard test should include:
 ./gradlew :integ-test:test --tests "*VpcPplDashboardIT*"
 ./gradlew :integ-test:test --tests "*WafPplDashboardIT*"
 ./gradlew :integ-test:test --tests "*CloudTrailPplDashboardIT*"
+./gradlew :integ-test:test --tests "*NfwPplDashboardIT*"
 ```

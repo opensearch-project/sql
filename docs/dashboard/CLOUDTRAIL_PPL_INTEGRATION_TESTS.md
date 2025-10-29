@@ -18,15 +18,16 @@ This is the main integration test class that contains test methods for all Cloud
 - `testEventsByAccountIds()` - Tests count by account ID with null filtering
 - `testEventsByCategory()` - Tests count by event category with sorting
 - `testEventsByRegion()` - Tests count by AWS region with sorting
-- `testTopEventAPIs()` - Tests count by event name (API calls)
-- `testTopServices()` - Tests count by event source (AWS services)
-- `testTopSourceIPs()` - Tests count by source IP addresses
-- `testTopUsersGeneratingEvents()` - Tests complex user analysis with multiple fields
+- `testTop10EventAPIs()` - Tests count by event name (API calls)
+- `testTop10Services()` - Tests count by event source (AWS services)
+- `testTop10SourceIPs()` - Tests count by source IP addresses
+- `testTop10UsersGeneratingEvents()` - Tests complex user analysis with multiple fields
 - `testS3AccessDenied()` - Tests S3 access denied events with filtering
 - `testS3Buckets()` - Tests S3 bucket analysis
 - `testTopS3ChangeEvents()` - Tests S3 change events excluding read operations
 - `testEC2ChangeEventCount()` - Tests EC2 instance change events
-- `testErrorEvents()` - Tests field selection for error event analysis
+- `testEC2UsersBySessionIssuer()` - Tests EC2 users by session issuer with filtering
+- `testEC2EventsByName()` - Tests EC2 events by name with rename operation
 
 ### 2. Test Data Files
 
@@ -119,12 +120,17 @@ The integration tests cover all the CloudTrail PPL queries from the dashboard re
 
 13. **EC2 Change Event Count:**
     ```
-    source=cloudtrail_logs | where `eventSource` = 'ec2.amazonaws.com' and (`eventName` = 'RunInstances' or `eventName` = 'TerminateInstances' or `eventName` = 'StopInstances') and not like(`eventName`, 'Get%') and not like(`eventName`, 'Describe%') and not like(`eventName`, 'List%') and not like(`eventName`, 'Head%') | stats count() as Count by `eventName` | sort - Count
+    source=cloudtrail_logs | where `eventSource` like "ec2%" and (`eventName` = "RunInstances" or `eventName` = "TerminateInstances" or `eventName` = "StopInstances") and not (`eventName` like "Get%" or `eventName` like "Describe%" or `eventName` like "List%" or `eventName` like "Head%") | stats count() by `eventName`| sort - count | head 5
     ```
 
-14. **Error Events:**
+14. **EC2 Users by Session Issuer:**
     ```
-    source=cloudtrail_logs | fields `@timestamp`, `errorCode`, `eventName`, `eventSource`, `userIdentity.sessionContext.sessionIssuer.userName`, `userIdentity.sessionContext.sessionIssuer.accountId`, `userIdentity.sessionContext.sessionIssuer.arn`, `userIdentity.sessionContext.sessionIssuer.type`, `awsRegion`, `sourceIPAddress`, `userIdentity.accountId` | sort - `@timestamp`
+    source=cloudtrail_logs | where isnotnull(`userIdentity.sessionContext.sessionIssuer.userName`) and `eventSource` like 'ec2%' and not (`eventName` like 'Get%' or `eventName` like 'Describe%' or `eventName` like 'List%' or `eventName` like 'Head%') | stats count() as Count by `userIdentity.sessionContext.sessionIssuer.userName` | sort - Count | head 10
+    ```
+
+15. **EC2 Events by Name:**
+    ```
+    source=cloudtrail_logs | where `eventSource` like "ec2%" and not (`eventName` like "Get%" or `eventName` like "Describe%" or `eventName` like "List%" or `eventName` like "Head%") | stats count() as Count by `eventName` | rename `eventName` as `Event Name` | sort - Count | head 10
     ```
 
 ## Test Strategy

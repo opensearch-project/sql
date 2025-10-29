@@ -1,38 +1,59 @@
 {
   "mappings": {
     "properties": {
-      "@timestamp": {
-        "type": "date"
-      },
       "version": {
+        "type": "keyword"
+      },
+      "account-id": {
+        "type": "keyword"
+      },
+      "interface-id": {
+        "type": "keyword"
+      },
+      "region": {
+        "type": "keyword"
+      },
+      "vpc-id": {
+        "type": "keyword"
+      },
+      "subnet-id": {
+        "type": "keyword"
+      },
+      "az-id": {
+        "type": "keyword"
+      },
+      "instance-id": {
+        "type": "keyword"
+      },
+      "srcaddr": {
+        "type": "keyword"
+      },
+      "dstaddr": {
+        "type": "keyword"
+      },
+      "srcport": {
         "type": "integer"
       },
-      "accountId": {
-        "type": "keyword"
-      },
-      "interfaceId": {
-        "type": "keyword"
-      },
-      "srcAddr": {
-        "type": "keyword"
-      },
-      "dstAddr": {
-        "type": "keyword"
-      },
-      "srcPort": {
-        "type": "integer"
-      },
-      "dstPort": {
+      "dstport": {
         "type": "integer"
       },
       "protocol": {
-        "type": "long"
+        "type": "keyword"
       },
       "packets": {
         "type": "long"
       },
       "bytes": {
         "type": "long"
+      },
+      "pkt-src-aws-service": {
+        "type": "keyword"
+      },
+      "pkt-dst-aws-service": {
+        "type": "keyword"
+      },
+      "flow-direction": {
+        "type": "keyword"
       },
       "start": {
         "type": "long"
@@ -43,101 +64,8 @@
       "action": {
         "type": "keyword"
       },
-      "logStatus": {
+      "log-status": {
         "type": "keyword"
-      },
-      "start_time": {
-        "type": "date"
-      },
-      "interval_start_time": {
-        "type": "date"
-      },
-      "end_time": {
-        "type": "date"
-      },
-      "aws": {
-        "properties": {
-          "vpc": {
-            "properties": {
-              "srcport": {
-                "type": "integer"
-              },
-              "pkt-src-aws-service": {
-                "type": "keyword"
-              },
-              "srcaddr": {
-                "type": "keyword"
-              },
-              "src-interface_uid": {
-                "type": "keyword"
-              },
-              "src-vpc_uid": {
-                "type": "keyword"
-              },
-              "src-instance_uid": {
-                "type": "keyword"
-              },
-              "src-subnet_uid": {
-                "type": "keyword"
-              },
-              "dstport": {
-                "type": "integer"
-              },
-              "pkt-dst-aws-service": {
-                "type": "keyword"
-              },
-              "dstaddr": {
-                "type": "keyword"
-              },
-              "flow-direction": {
-                "type": "keyword"
-              },
-              "connection": {
-                "properties": {
-                  "tcp_flags": {
-                    "type": "keyword"
-                  }
-                }
-              },
-              "packets": {
-                "type": "long"
-              },
-              "bytes": {
-                "type": "long"
-              },
-              "status_code": {
-                "type": "keyword"
-              },
-              "version": {
-                "type": "keyword"
-              },
-              "type_name": {
-                "type": "keyword"
-              },
-              "traffic_path": {
-                "type": "keyword"
-              },
-              "az_id": {
-                "type": "keyword"
-              },
-              "action": {
-                "type": "keyword"
-              },
-              "region": {
-                "type": "keyword"
-              },
-              "account-id": {
-                "type": "keyword"
-              },
-              "sublocation_type": {
-                "type": "keyword"
-              },
-              "sublocation_id": {
-                "type": "keyword"
-              }
-            }
-          }
-        }
       }
     }
   }

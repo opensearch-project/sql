@@ -1,113 +1,115 @@
-# VPC PPL Integration Tests
+# VPC Flow Logs PPL Integration Tests
 
-This document describes the integration tests created for VPC (Virtual Private Cloud) PPL (Piped Processing Language) dashboard queries to ensure they don't break the SQL plugin.
+This document describes the integration tests created for VPC Flow Logs PPL (Piped Processing Language) dashboard queries to ensure they don't break the SQL plugin.
 
 ## Overview
 
-The VPC PPL integration tests validate that VPC-related PPL queries can be parsed and executed without causing errors in the OpenSearch SQL plugin. These tests are designed to catch any regressions that might break VPC dashboard functionality.
+The VPC Flow Logs PPL integration tests validate that VPC Flow Logs-related PPL queries can be parsed and executed without causing errors in the OpenSearch SQL plugin. These tests are designed to catch any regressions that might break VPC Flow Logs dashboard functionality.
 
 ## Test Files Created
 
-### 1. VpcPplDashboardIT.java
-**Location:** `/integ-test/src/test/java/org/opensearch/sql/ppl/VpcPplDashboardIT.java`
+### 1. VpcFlowLogsPplDashboardIT.java
+**Location:** `/integ-test/src/test/java/org/opensearch/sql/ppl/dashboard/VpcFlowLogsPplDashboardIT.java`
 
-This is the main integration test class that contains test methods for all VPC PPL queries. Each test method validates a specific VPC query pattern:
+This is the main integration test class that contains test methods for all VPC Flow Logs PPL queries. Each test method validates a specific VPC query pattern:
 
 - `testTotalRequests()` - Tests basic count aggregation
-- `testTotalFlowsByActions()` - Tests count by VPC action field
-- `testRequestHistory()` - Tests count by timestamp field
+- `testTotalFlowsByActions()` - Tests count by action field with sorting
+- `testFlowsOvertime()` - Tests count by span function over time
 - `testRequestsByDirection()` - Tests count by flow direction with sorting
-- `testBytes()` - Tests sum of bytes by timestamp
-- `testPackets()` - Tests sum of packets by timestamp
+- `testBytesTransferredOverTime()` - Tests sum of bytes by span function over time
+- `testPacketsTransferredOverTime()` - Tests sum of packets by span function over time
 - `testTopSourceAwsServices()` - Tests count by source AWS service
 - `testTopDestinationAwsServices()` - Tests count by destination AWS service
-- `testRequestsByDirectionMetric()` - Tests count requests by flow direction
-- `testTopDestinationBytes()` - Tests sum bytes by destination address with sorting
-- `testTopSourceBytes()` - Tests sum bytes by source address with sorting
-- `testTopSources()` - Tests count requests by source address
-- `testTopDestinations()` - Tests count requests by destination address
-- `testTopTalkersByPackets()` - Tests sum packets by source address (top talkers)
-- `testTopDestinationsByPackets()` - Tests sum packets by destination address
-- `testHeatMap()` - Tests count by both destination and source addresses
-- `testVpcLiveRawSearch()` - Tests field selection with many VPC fields
-- `testFlow()` - Tests flow analysis with large result set handling
+- `testTopDestinationByBytes()` - Tests sum bytes by destination address with sorting
+- `testTopTalkersByBytes()` - Tests sum bytes by source address with sorting
+- `testTopTalkersByPackets()` - Tests sum packets by source address with sorting
+- `testTopDestinationsByPackets()` - Tests sum packets by destination address with sorting
+- `testTopTalkersByIPs()` - Tests count by source address with sorting
+- `testTopDestinationsByIPs()` - Tests count by destination address with sorting
+- `testTopTalkersByHeatMap()` - Tests count by both destination and source addresses
 
 ### 2. Test Data Files
 
 #### vpc_logs.json
 **Location:** `/integ-test/src/test/resources/vpc_logs.json`
 
-Sample VPC log data in OpenSearch bulk format containing realistic VPC flow log entries with fields like:
-- `@timestamp`, `start_time`, `end_time`
-- `aws.vpc.srcaddr`, `aws.vpc.dstaddr`
-- `aws.vpc.srcport`, `aws.vpc.dstport`
-- `aws.vpc.action`, `aws.vpc.flow-direction`
-- `aws.vpc.bytes`, `aws.vpc.packets`
-- `aws.vpc.pkt-src-aws-service`, `aws.vpc.pkt-dst-aws-service`
-- Various other VPC-related fields
+Sample VPC flow log data in OpenSearch bulk format containing 3 test records with fields:
+- `start`, `end` - Unix timestamp fields
+- `srcaddr`, `dstaddr` - Source and destination IP addresses
+- `srcport`, `dstport` - Source and destination ports
+- `action` - VPC flow action (ACCEPT/REJECT)
+- `flow-direction` - Flow direction (ingress/egress)
+- `bytes`, `packets` - Traffic volume metrics
+- `pkt-src-aws-service`, `pkt-dst-aws-service` - AWS service identifiers
+- Various other VPC flow log fields
 
 #### vpc_logs_index_mapping.json
 **Location:** `/integ-test/src/test/resources/indexDefinitions/vpc_logs_index_mapping.json`
 
-OpenSearch index mapping for VPC logs with proper field types:
-- Date fields for timestamps
+OpenSearch index mapping for VPC flow logs with proper field types:
+- Long fields for timestamps and numeric data
 - IP fields for addresses
 - Keyword fields for categorical data
-- Long fields for numeric data like bytes and packets
+- Integer fields for ports and protocol numbers
 
-## VPC Queries Tested
+## VPC Flow Logs Queries Tested
 
-The integration tests cover all the VPC PPL queries from the dashboard requirements:
+The integration tests cover VPC Flow Logs PPL queries for dashboard functionality:
 
 1. **Basic Count Query:**
    ```
-   source=vpc_logs | stats count()
+   source=vpc_flow_logs | stats count()
    ```
 
 2. **Count by Action:**
    ```
-   source=vpc_logs | stats count() as Count by `aws.vpc.action` | head 5
+   source=vpc_flow_logs | STATS count() as Count by action | SORT - Count | HEAD 5
    ```
 
-3. **Count by Timestamp:**
+3. **Flows Over Time (with span function):**
    ```
-   source=vpc_logs | stats count() by `@timestamp`
+   source=vpc_flow_logs | STATS count() by span(`start`, 30d)
    ```
 
 4. **Flow Direction Analysis:**
    ```
-   source=vpc_logs | stats count() as flow_direction by `aws.vpc.flow-direction` | sort - flow_direction | head 5
+   source=vpc_flow_logs | STATS count() as Count by `flow-direction` | SORT - Count | HEAD 5
    ```
 
-5. **Bytes and Packets Aggregation:**
+5. **Bytes and Packets Over Time (with span function):**
    ```
-   source=vpc_logs | stats sum(`aws.vpc.bytes`) by `@timestamp`
-   source=vpc_logs | stats sum(`aws.vpc.packets`) by `@timestamp`
+   source=vpc_flow_logs | STATS sum(bytes) by span(`start`, 30d)
+   source=vpc_flow_logs | STATS sum(packets) by span(`start`, 30d)
    ```
 
 6. **AWS Service Analysis:**
    ```
-   source=vpc_logs | stats count() as `src-aws-service` by `aws.vpc.pkt-src-aws-service` | sort - `src-aws-service` | head 10
+   source=vpc_flow_logs | STATS count() as Count by `pkt-src-aws-service` | SORT - Count | HEAD 10
+   source=vpc_flow_logs | STATS count() as Count by `pkt-dst-aws-service` | SORT - Count | HEAD 10
    ```
 
 7. **Top Sources/Destinations by Bytes:**
    ```
-   source=vpc_logs | stats sum(`aws.vpc.bytes`) as Bytes by `aws.vpc.srcaddr` | sort - Bytes | head 10
+   source=vpc_flow_logs | stats sum(bytes) as Bytes by srcaddr | sort - Bytes | head 10
+   source=vpc_flow_logs | stats sum(bytes) as Bytes by dstaddr | sort - Bytes | head 10
    ```
 
 8. **Top Sources/Destinations by Packets:**
    ```
-   source=vpc_logs | stats sum(`aws.vpc.packets`) as Packets by `aws.vpc.srcaddr` | sort - Packets | head 10
+   source=vpc_flow_logs | stats sum(packets) as Packets by srcaddr | sort - Packets | head 10
+   source=vpc_flow_logs | stats sum(packets) as Packets by dstaddr | sort - Packets | head 10
    ```
 
-9. **Heat Map Analysis:**
+9. **Top Talkers/Destinations by IP Count:**
    ```
-   source=vpc_logs | stats count() as Count by `aws.vpc.dstaddr`, `aws.vpc.srcaddr` | sort - Count | head 20
+   source=vpc_flow_logs | STATS count() as Count by srcaddr | SORT - Count | HEAD 10
+   source=vpc_flow_logs | stats count() as Requests by dstaddr | sort - Requests | head 10
    ```
 
-10. **Field Selection (Live Raw Search):**
+10. **Heat Map Analysis:**
     ```
-    source=vpc_logs | fields `@timestamp`, `start_time`, `interval_start_time`, `end_time`, `aws.vpc.srcport`, `aws.vpc.pkt-src-aws-service`, `aws.vpc.srcaddr` | sort - `@timestamp`
+    source=vpc_flow_logs | stats count() as Count by dstaddr, srcaddr | sort - Count | head 100
     ```
 
 ## Test Strategy
@@ -120,17 +122,20 @@ The tests use actual VPC test data loaded into a test index to verify end-to-end
 
 ## Running the Tests
 
-To run the VPC PPL integration tests:
+To run the VPC Flow Logs PPL integration tests:
 
 ```bash
 # Compile the tests
 ./gradlew :integ-test:compileTestJava
 
 # Run all PPL integration tests (includes VPC tests)
-./gradlew :integ-test:test --tests "*PPL*"
+./gradlew :integ-test:integTest --tests "*PPL*"
 
-# Run only VPC PPL tests
-./gradlew :integ-test:test --tests "*VpcPplDashboardIT*"
+# Run only VPC Flow Logs PPL tests
+./gradlew :integ-test:integTest --tests "*VpcFlowLogsPplDashboardIT*"
+
+# Run a specific test method
+./gradlew :integ-test:integTest --tests "VpcFlowLogsPplDashboardIT.testBytesTransferredOverTime"
 ```
 
 ## Expected Behavior
@@ -144,19 +149,19 @@ To run the VPC PPL integration tests:
 
 These integration tests provide:
 
-1. **Regression Protection:** Ensures VPC dashboard queries continue to work as the SQL plugin evolves
-2. **Query Validation:** Validates that all VPC PPL query patterns are syntactically correct
-3. **Field Compatibility:** Ensures VPC field names and types are properly handled
-4. **Performance Baseline:** Provides a baseline for VPC query performance testing
-5. **Documentation:** Serves as living documentation of supported VPC query patterns
+1. **Regression Protection:** Ensures VPC Flow Logs dashboard queries continue to work as the SQL plugin evolves
+2. **Span Function Validation:** Validates time-based aggregation functionality critical for dashboards
+3. **Query Validation:** Validates that all VPC PPL query patterns are syntactically correct
+4. **Field Compatibility:** Ensures VPC Flow Logs field names and types are properly handled
+5. **Documentation:** Serves as living documentation of supported VPC Flow Logs query patterns
 
 ## Maintenance
 
-When adding new VPC query patterns to dashboards:
+When adding new VPC Flow Logs query patterns to dashboards:
 
-1. Add the new query pattern to the test class
-2. Update test data if new fields are required
-3. Update the index mapping if new field types are needed
+1. Add the new query pattern to the `VpcFlowLogsPplDashboardIT` test class
+2. Update test data in `vpc_logs.json` if new fields are required
+3. Update the index mapping in `vpc_logs_index_mapping.json` if new field types are needed
 4. Run the tests to ensure compatibility
 
-This ensures that all VPC dashboard functionality remains stable and functional.
+This ensures that all VPC Flow Logs dashboard functionality remains stable and functional.
