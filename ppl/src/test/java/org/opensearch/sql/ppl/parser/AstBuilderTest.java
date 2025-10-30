@@ -729,7 +729,8 @@ public class AstBuilderTest {
             exprList(
                 argument("noOfResults", intLiteral(10)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             emptyList(),
             field("a")));
   }
@@ -744,7 +745,8 @@ public class AstBuilderTest {
             exprList(
                 argument("noOfResults", intLiteral(10)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             exprList(field("b")),
             field("a")));
   }
@@ -759,7 +761,8 @@ public class AstBuilderTest {
             exprList(
                 argument("noOfResults", intLiteral(10)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             exprList(field("c")),
             field("a"),
             field("b")));
@@ -775,7 +778,8 @@ public class AstBuilderTest {
             exprList(
                 argument("noOfResults", intLiteral(1)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             emptyList(),
             field("a")));
   }
@@ -790,7 +794,8 @@ public class AstBuilderTest {
             exprList(
                 argument("noOfResults", intLiteral(10)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             emptyList(),
             field("a")));
   }
@@ -805,7 +810,8 @@ public class AstBuilderTest {
             exprList(
                 argument("noOfResults", intLiteral(1)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             exprList(field("b")),
             field("a")));
   }
@@ -820,10 +826,44 @@ public class AstBuilderTest {
             exprList(
                 argument("noOfResults", intLiteral(1)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             exprList(field("c")),
             field("a"),
             field("b")));
+  }
+
+  @Test
+  public void testTopCommandWithUseNullFalse() {
+    assertEqual(
+        "source=t | top 1 usenull=false a by b",
+        rareTopN(
+            relation("t"),
+            CommandType.TOP,
+            exprList(
+                argument("noOfResults", intLiteral(1)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(false))),
+            exprList(field("b")),
+            field("a")));
+  }
+
+  @Test
+  public void testTopCommandWithLegacyFalse() {
+    when(settings.getSettingValue(Key.PPL_SYNTAX_LEGACY_PREFERRED)).thenReturn(false);
+    assertEqual(
+        "source=t | top 1 a by b",
+        rareTopN(
+            relation("t"),
+            CommandType.TOP,
+            exprList(
+                argument("noOfResults", intLiteral(1)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(false))),
+            exprList(field("b")),
+            field("a")));
   }
 
   @Test
