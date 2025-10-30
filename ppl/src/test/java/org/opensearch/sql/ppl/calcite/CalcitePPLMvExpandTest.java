@@ -43,8 +43,8 @@ import org.junit.Test;
 /**
  * Calcite tests for the mvexpand command.
  *
- * <p>This file contains a set of planner tests for mvexpand and a small helper to verify RelNode ->
- * SQL conversion (best-effort via reflection) so tests can run in various IDE/classpath setups.
+ * <p>This file contains planner tests for mvexpand and a small helper to verify RelNode -> SQL
+ * conversion (best-effort via reflection) so tests can run in various IDE/classpath setups.
  *
  * <p>Notes: - The scan() return type uses Enumerable<Object[]> (no type-use @Nullable) to avoid
  * "annotation not applicable to this kind of reference" in some environments. -
@@ -62,20 +62,10 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     final SchemaPlus schema = CalciteAssert.addSchema(rootSchema, schemaSpecs);
 
-    // Keep dataset minimal — planner tests here only need a representative schema and a couple of
-    // rows.
-    ImmutableList<Object[]> users =
-        ImmutableList.of(
-            // representative row with multiple skills
-            new Object[] {
-              "happy",
-              new Object[] {
-                new Object[] {"python", null},
-                new Object[] {"java", null}
-              }
-            },
-            // representative row with single skill
-            new Object[] {"single", new Object[] {new Object[] {"go", null}}});
+    // Intentionally keep dataset empty: these tests only need the schema/type information,
+    // not actual row values. This addresses the reviewer comment about overly-complicated test
+    // data.
+    ImmutableList<Object[]> users = ImmutableList.of();
 
     schema.add("USERS", new UsersTable(users));
 
