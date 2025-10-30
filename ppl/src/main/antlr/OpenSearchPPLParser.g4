@@ -528,7 +528,7 @@ expandCommand
     ;
 
 mvexpandCommand
-    : MVEXPAND fieldExpression (LIMIT INTEGER_LITERAL)?
+    : MVEXPAND fieldExpression (LIMIT '=' INTEGER_LITERAL)?
     ;
 
 flattenCommand

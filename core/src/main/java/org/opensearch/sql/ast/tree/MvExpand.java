@@ -34,10 +34,6 @@ public class MvExpand extends UnresolvedPlan {
     return this;
   }
 
-  public Field getField() {
-    return field;
-  }
-
   @Nullable
   public Integer getLimit() {
     return limit;

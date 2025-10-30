@@ -1613,78 +1613,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.projectExcept(_row_number_dedup_);
   }
 
-  private void buildMvExpandRelNode(
-      RexInputRef arrayFieldRex, String arrayFieldName, String alias, CalcitePlanContext context) {
-
-    // 1. Capture left node and its schema BEFORE calling build()
-    RelNode leftNode = context.relBuilder.peek();
-    RelDataType leftSchema = leftNode.getRowType();
-
-    // 2. Create correlation variable
-    Holder<RexCorrelVariable> correlVariable = Holder.empty();
-    context.relBuilder.variable(correlVariable::set);
-
-    // 3. Find the array field index in the left schema by name (robust)
-    RelDataTypeField leftField = leftSchema.getField(arrayFieldName, false, false);
-    int arrayFieldIndexInLeft;
-    if (leftField != null) {
-      arrayFieldIndexInLeft = leftField.getIndex();
-    } else {
-      // fallback (best effort)
-      arrayFieldIndexInLeft = arrayFieldRex.getIndex();
-    }
-
-    // 4. Build correlated field access for the right-side projection
-    RexNode correlArrayFieldAccess =
-        context.relBuilder.field(
-            context.rexBuilder.makeCorrel(leftSchema, correlVariable.get().id),
-            arrayFieldIndexInLeft);
-
-    // 5. Build left and right nodes (leftBuilt is the original left, rightNode uncollects the
-    // array)
-    RelNode leftBuilt = context.relBuilder.build();
-    RelNode rightNode =
-        context
-            .relBuilder
-            .push(LogicalValues.createOneRow(context.relBuilder.getCluster()))
-            .project(List.of(correlArrayFieldAccess), List.of(arrayFieldName))
-            .uncollect(List.of(), false)
-            .build();
-
-    // 6. Compute a proper RexInputRef that refers to leftBuilt's rowType at the
-    // arrayFieldIndexInLeft.
-    //    Use rexBuilder.makeInputRef with leftBuilt.getRowType()
-    RexNode requiredColumnRef =
-        context.rexBuilder.makeInputRef(leftBuilt.getRowType(), arrayFieldIndexInLeft);
-
-    // 7. Correlate left and right using the proper required column ref
-    context
-        .relBuilder
-        .push(leftBuilt)
-        .push(rightNode)
-        .correlate(JoinRelType.INNER, correlVariable.get().id, List.of(requiredColumnRef));
-
-    // 8. Remove the original array field from the output by name using the builder's field()
-    //    (this ensures we remove the correct column instance)
-    RexNode toRemove;
-    try {
-      toRemove = context.relBuilder.field(arrayFieldName);
-    } catch (Exception e) {
-      // Fallback in case name lookup fails
-      toRemove = arrayFieldRex;
-    }
-    context.relBuilder.projectExcept(toRemove);
-
-    // 9. Optional rename into alias (same as your prior logic)
-    if (alias != null) {
-      tryToRemoveNestedFields(context);
-      RexInputRef expandedField = context.relBuilder.field(arrayFieldName);
-      List<String> names = new ArrayList<>(context.relBuilder.peek().getRowType().getFieldNames());
-      names.set(expandedField.getIndex(), alias);
-      context.relBuilder.rename(names);
-    }
-  }
-
   @Override
   public RelNode visitMvExpand(MvExpand node, CalcitePlanContext context) {
     visitChildren(node, context);
@@ -3166,52 +3094,251 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     projectPlusOverriding(fattenedNodes, projectNames, context);
   }
 
-  private void buildExpandRelNode(
-      RexInputRef arrayFieldRex, String arrayFieldName, String alias, CalcitePlanContext context) {
-    // 3. Capture the outer row in a CorrelationId
-    Holder<RexCorrelVariable> correlVariable = Holder.empty();
-    context.relBuilder.variable(correlVariable::set);
+  //  private void buildExpandRelNode(
+  //      RexInputRef arrayFieldRex, String arrayFieldName, String alias, CalcitePlanContext
+  // context) {
+  //    // 3. Capture the outer row in a CorrelationId
+  //    Holder<RexCorrelVariable> correlVariable = Holder.empty();
+  //    context.relBuilder.variable(correlVariable::set);
+  //
+  //    // 4. Create RexFieldAccess to access left node's array field with correlationId and build
+  // join
+  //    // left node
+  //    RexNode correlArrayFieldAccess =
+  //        context.relBuilder.field(
+  //            context.rexBuilder.makeCorrel(
+  //                context.relBuilder.peek().getRowType(), correlVariable.get().id),
+  //            arrayFieldRex.getIndex());
+  //    RelNode leftNode = context.relBuilder.build();
+  //
+  //    // 5. Build join right node and expand the array field using uncollect
+  //    RelNode rightNode =
+  //        context
+  //            .relBuilder
+  //            // fake input, see convertUnnest and convertExpression in Calcite SqlToRelConverter
+  //            .push(LogicalValues.createOneRow(context.relBuilder.getCluster()))
+  //            .project(List.of(correlArrayFieldAccess), List.of(arrayFieldName))
+  //            .uncollect(List.of(), false)
+  //            .build();
+  //
+  //    // 6. Perform a nested-loop join (correlate) between the original table and the expanded
+  //    // array field.
+  //    // The last parameter has to refer to the array to be expanded on the left side. It will
+  //    // be used by the right side to correlate with the left side.
+  //    context
+  //        .relBuilder
+  //        .push(leftNode)
+  //        .push(rightNode)
+  //        .correlate(JoinRelType.INNER, correlVariable.get().id, List.of(arrayFieldRex))
+  //        // 7. Remove the original array field from the output.
+  //        // TODO: RFC: should we keep the original array field when alias is present?
+  //        .projectExcept(arrayFieldRex);
+  //
+  //    if (alias != null) {
+  //      // Sub-nested fields cannot be removed after renaming the nested field.
+  //      tryToRemoveNestedFields(context);
+  //      RexInputRef expandedField = context.relBuilder.field(arrayFieldName);
+  //      List<String> names = new
+  // ArrayList<>(context.relBuilder.peek().getRowType().getFieldNames());
+  //      names.set(expandedField.getIndex(), alias);
+  //      context.relBuilder.rename(names);
+  //    }
+  //  }
+  //
+  //  private void buildMvExpandRelNode(
+  //          RexInputRef arrayFieldRex, String arrayFieldName, String alias, CalcitePlanContext
+  // context) {
+  //
+  //    // 1. Capture left node and its schema BEFORE calling build()
+  //    RelNode leftNode = context.relBuilder.peek();
+  //    RelDataType leftSchema = leftNode.getRowType();
+  //
+  //    // 2. Create correlation variable
+  //    Holder<RexCorrelVariable> correlVariable = Holder.empty();
+  //    context.relBuilder.variable(correlVariable::set);
+  //
+  //    // 3. Find the array field index in the left schema by name (robust)
+  //    RelDataTypeField leftField = leftSchema.getField(arrayFieldName, false, false);
+  //    int arrayFieldIndexInLeft;
+  //    if (leftField != null) {
+  //      arrayFieldIndexInLeft = leftField.getIndex();
+  //    } else {
+  //      // fallback (best effort)
+  //      arrayFieldIndexInLeft = arrayFieldRex.getIndex();
+  //    }
+  //
+  //    // 4. Build correlated field access for the right-side projection
+  //    RexNode correlArrayFieldAccess =
+  //            context.relBuilder.field(
+  //                    context.rexBuilder.makeCorrel(leftSchema, correlVariable.get().id),
+  //                    arrayFieldIndexInLeft);
+  //
+  //    // 5. Build left and right nodes (leftBuilt is the original left, rightNode uncollects the
+  //    // array)
+  //    RelNode leftBuilt = context.relBuilder.build();
+  //    RelNode rightNode =
+  //            context
+  //                    .relBuilder
+  //                    .push(LogicalValues.createOneRow(context.relBuilder.getCluster()))
+  //                    .project(List.of(correlArrayFieldAccess), List.of(arrayFieldName))
+  //                    .uncollect(List.of(), false)
+  //                    .build();
+  //
+  //    // 6. Compute a proper RexInputRef that refers to leftBuilt's rowType at the
+  //    // arrayFieldIndexInLeft.
+  //    //    Use rexBuilder.makeInputRef with leftBuilt.getRowType()
+  //    RexNode requiredColumnRef =
+  //            context.rexBuilder.makeInputRef(leftBuilt.getRowType(), arrayFieldIndexInLeft);
+  //
+  //    // 7. Correlate left and right using the proper required column ref
+  //    context
+  //            .relBuilder
+  //            .push(leftBuilt)
+  //            .push(rightNode)
+  //            .correlate(JoinRelType.INNER, correlVariable.get().id, List.of(requiredColumnRef));
+  //
+  //    // 8. Remove the original array field from the output by name using the builder's field()
+  //    //    (this ensures we remove the correct column instance)
+  //    RexNode toRemove;
+  //    try {
+  //      toRemove = context.relBuilder.field(arrayFieldName);
+  //    } catch (Exception e) {
+  //      // Fallback in case name lookup fails
+  //      toRemove = arrayFieldRex;
+  //    }
+  //    context.relBuilder.projectExcept(toRemove);
+  //
+  //    // 9. Optional rename into alias (same as your prior logic)
+  //    if (alias != null) {
+  //      tryToRemoveNestedFields(context);
+  //      RexInputRef expandedField = context.relBuilder.field(arrayFieldName);
+  //      List<String> names = new
+  // ArrayList<>(context.relBuilder.peek().getRowType().getFieldNames());
+  //      names.set(expandedField.getIndex(), alias);
+  //      context.relBuilder.rename(names);
+  //    }
+  //  }
 
-    // 4. Create RexFieldAccess to access left node's array field with correlationId and build join
-    // left node
-    RexNode correlArrayFieldAccess =
-        context.relBuilder.field(
-            context.rexBuilder.makeCorrel(
-                context.relBuilder.peek().getRowType(), correlVariable.get().id),
-            arrayFieldRex.getIndex());
-    RelNode leftNode = context.relBuilder.build();
+  // Replace the existing three methods with these implementations.
 
-    // 5. Build join right node and expand the array field using uncollect
+  private void buildUnnestForLeft(
+      RelNode leftBuilt,
+      RelDataType leftRowType,
+      int arrayFieldIndex,
+      String arrayFieldName,
+      String alias,
+      Holder<RexCorrelVariable> correlVariable,
+      RexNode correlArrayFieldAccess,
+      CalcitePlanContext context) {
+
+    // Build right node: one-row -> project(correlated access) -> uncollect
     RelNode rightNode =
         context
             .relBuilder
-            // fake input, see convertUnnest and convertExpression in Calcite SqlToRelConverter
             .push(LogicalValues.createOneRow(context.relBuilder.getCluster()))
             .project(List.of(correlArrayFieldAccess), List.of(arrayFieldName))
             .uncollect(List.of(), false)
             .build();
 
-    // 6. Perform a nested-loop join (correlate) between the original table and the expanded
-    // array field.
-    // The last parameter has to refer to the array to be expanded on the left side. It will
-    // be used by the right side to correlate with the left side.
+    // Compute required column ref against leftBuilt's row type (robust)
+    RexNode requiredColumnRef =
+        context.rexBuilder.makeInputRef(leftBuilt.getRowType(), arrayFieldIndex);
+
+    // Correlate leftBuilt and rightNode using the proper required column ref
     context
         .relBuilder
-        .push(leftNode)
+        .push(leftBuilt)
         .push(rightNode)
-        .correlate(JoinRelType.INNER, correlVariable.get().id, List.of(arrayFieldRex))
-        // 7. Remove the original array field from the output.
-        // TODO: RFC: should we keep the original array field when alias is present?
-        .projectExcept(arrayFieldRex);
+        .correlate(JoinRelType.INNER, correlVariable.get().id, List.of(requiredColumnRef));
 
+    // Remove the original array field from the output by name if possible
+    RexNode toRemove;
+    try {
+      toRemove = context.relBuilder.field(arrayFieldName);
+    } catch (Exception e) {
+      // Fallback in case name lookup fails
+      toRemove = requiredColumnRef;
+    }
+    context.relBuilder.projectExcept(toRemove);
+
+    // Optional rename into alias (preserve the original logic)
     if (alias != null) {
-      // Sub-nested fields cannot be removed after renaming the nested field.
       tryToRemoveNestedFields(context);
       RexInputRef expandedField = context.relBuilder.field(arrayFieldName);
       List<String> names = new ArrayList<>(context.relBuilder.peek().getRowType().getFieldNames());
       names.set(expandedField.getIndex(), alias);
       context.relBuilder.rename(names);
     }
+  }
+
+  private void buildExpandRelNode(
+      RexInputRef arrayFieldRex, String arrayFieldName, String alias, CalcitePlanContext context) {
+
+    // Capture left node and its schema BEFORE calling build()
+    RelNode leftNode = context.relBuilder.peek();
+    RelDataType leftRowType = leftNode.getRowType();
+
+    // Create correlation variable while left is still on the builder stack
+    Holder<RexCorrelVariable> correlVariable = Holder.empty();
+    context.relBuilder.variable(correlVariable::set);
+
+    // Create correlated field access while left is still on the builder stack
+    // (preserve original expand semantics: use the input RexInputRef index)
+    RexNode correlArrayFieldAccess =
+        context.relBuilder.field(
+            context.rexBuilder.makeCorrel(leftRowType, correlVariable.get().id),
+            arrayFieldRex.getIndex());
+
+    // Materialize leftBuilt (this pops the left from the relBuilder stack)
+    RelNode leftBuilt = context.relBuilder.build();
+
+    // Use unified helper to build right/uncollect + correlate + cleanup
+    buildUnnestForLeft(
+        leftBuilt,
+        leftRowType,
+        arrayFieldRex.getIndex(),
+        arrayFieldName,
+        alias,
+        correlVariable,
+        correlArrayFieldAccess,
+        context);
+  }
+
+  private void buildMvExpandRelNode(
+      RexInputRef arrayFieldRex, String arrayFieldName, String alias, CalcitePlanContext context) {
+
+    // Capture left node and its schema BEFORE calling build()
+    RelNode leftNode = context.relBuilder.peek();
+    RelDataType leftRowType = leftNode.getRowType();
+
+    // Resolve the array field index in left schema by name (robust); fallback to original index
+    RelDataTypeField leftField = leftRowType.getField(arrayFieldName, false, false);
+    int arrayFieldIndexInLeft =
+        (leftField != null) ? leftField.getIndex() : arrayFieldRex.getIndex();
+
+    // Create correlation variable while left is still on the builder stack
+    Holder<RexCorrelVariable> correlVariable = Holder.empty();
+    context.relBuilder.variable(correlVariable::set);
+
+    // Create correlated field access while left is still on the builder stack
+    RexNode correlArrayFieldAccess =
+        context.relBuilder.field(
+            context.rexBuilder.makeCorrel(leftRowType, correlVariable.get().id),
+            arrayFieldIndexInLeft);
+
+    // Materialize leftBuilt
+    RelNode leftBuilt = context.relBuilder.build();
+
+    // Use unified helper to build right/uncollect + correlate + cleanup
+    buildUnnestForLeft(
+        leftBuilt,
+        leftRowType,
+        arrayFieldIndexInLeft,
+        arrayFieldName,
+        alias,
+        correlVariable,
+        correlArrayFieldAccess,
+        context);
   }
 
   /** Creates an optimized sed call using native Calcite functions */

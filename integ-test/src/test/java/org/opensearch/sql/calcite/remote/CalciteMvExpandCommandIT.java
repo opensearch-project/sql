@@ -12,11 +12,12 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.legacy.SQLIntegTestCase.Index;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
 
-  private static final String INDEX = "mvexpand_edge_cases";
+  private static final String INDEX = Index.MVEXPAND_EDGE_CASES.getName();
 
   @Override
   public void init() throws Exception {
@@ -29,20 +30,19 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
             + "\"username\": { \"type\": \"keyword\" },"
             + "\"skills\": { \"type\": \"nested\" }"
             + "} } }");
+
+    // Pass plain JSON documents; bulkInsert will auto-assign incremental ids.
     bulkInsert(
         INDEX,
-        "1|{\"username\":\"happy\","
-            + " \"skills\":[{\"name\":\"python\"},{\"name\":\"java\"},{\"name\":\"sql\"}]}",
-        "2|{\"username\":\"single\", \"skills\":[{\"name\":\"go\"}]}",
-        "3|{\"username\":\"empty\", \"skills\":[]}",
-        "4|{\"username\":\"nullskills\", \"skills\":null}",
-        "5|{\"username\":\"noskills\"}",
-        "6|{\"username\":\"missingattr\", \"skills\":[{\"name\":\"c\"},{\"level\":\"advanced\"}]}",
-        "7|{\"username\":\"complex\","
-            + " \"skills\":[{\"name\":\"ml\",\"level\":\"expert\"},{\"name\":\"ai\"},{\"level\":\"novice\"}]}",
-        "8|{\"username\":\"duplicate\", \"skills\":[{\"name\":\"dup\"},{\"name\":\"dup\"}]}",
-        "9|{\"username\":\"large\","
-            + " \"skills\":[{\"name\":\"s1\"},{\"name\":\"s2\"},{\"name\":\"s3\"},{\"name\":\"s4\"},{\"name\":\"s5\"},{\"name\":\"s6\"},{\"name\":\"s7\"},{\"name\":\"s8\"},{\"name\":\"s9\"},{\"name\":\"s10\"}]}");
+        "{\"username\":\"happy\",\"skills\":[{\"name\":\"python\"},{\"name\":\"java\"},{\"name\":\"sql\"}]}",
+        "{\"username\":\"single\",\"skills\":[{\"name\":\"go\"}]}",
+        "{\"username\":\"empty\",\"skills\":[]}",
+        "{\"username\":\"nullskills\",\"skills\":null}",
+        "{\"username\":\"noskills\"}",
+        "{\"username\":\"missingattr\",\"skills\":[{\"name\":\"c\"},{\"level\":\"advanced\"}]}",
+        "{\"username\":\"complex\",\"skills\":[{\"name\":\"ml\",\"level\":\"expert\"},{\"name\":\"ai\"},{\"level\":\"novice\"}]}",
+        "{\"username\":\"duplicate\",\"skills\":[{\"name\":\"dup\"},{\"name\":\"dup\"}]}",
+        "{\"username\":\"large\",\"skills\":[{\"name\":\"s1\"},{\"name\":\"s2\"},{\"name\":\"s3\"},{\"name\":\"s4\"},{\"name\":\"s5\"},{\"name\":\"s6\"},{\"name\":\"s7\"},{\"name\":\"s8\"},{\"name\":\"s9\"},{\"name\":\"s10\"}]}");
     refreshIndex(INDEX);
   }
 
@@ -115,12 +115,26 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
     PPLIntegTestCase.adminClient().performRequest(request);
   }
 
+  /**
+   * Bulk insert helper: - Accepts plain JSON strings (no id): assigns incremental numeric ids
+   * starting at 1. - Also accepts legacy "id|<json>" strings if a test prefers explicit ids.
+   */
   private static void bulkInsert(String index, String... docs) throws IOException {
     StringBuilder bulk = new StringBuilder();
+    int nextAutoId = 1;
     for (String doc : docs) {
-      String[] parts = doc.split("\\|", 2);
-      bulk.append("{\"index\":{\"_id\":").append(parts[0]).append("}}\n");
-      bulk.append(parts[1]).append("\n");
+      String id;
+      String json;
+      if (doc.contains("|")) {
+        String[] parts = doc.split("\\|", 2);
+        id = parts[0];
+        json = parts[1];
+      } else {
+        id = String.valueOf(nextAutoId++);
+        json = doc;
+      }
+      bulk.append("{\"index\":{\"_id\":").append(id).append("}}\n");
+      bulk.append(json).append("\n");
     }
     Request request = new Request("POST", "/" + index + "/_bulk?refresh=true");
     request.setJsonEntity(bulk.toString());

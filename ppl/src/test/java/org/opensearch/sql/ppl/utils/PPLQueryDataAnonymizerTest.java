@@ -33,7 +33,7 @@ public class PPLQueryDataAnonymizerTest {
 
   @Test
   public void testSearchCommand() {
-    assertEquals("source=table identifier = ***", anonymize("search source=t a=1"));
+    assertEquals("source=table a:***", anonymize("search source=t a=1"));
   }
 
   @Test
@@ -817,28 +817,29 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
-<<<<<<< HEAD
   public void testMvindex() {
-    // Test mvindex with single element access
-    assertEquals(
-        "source=table | eval identifier=mvindex(array(***,***,***),***) | fields + identifier",
-        anonymize("source=t | eval result=mvindex(array('a', 'b', 'c'), 1) | fields result"));
-    // Test mvindex with range access
-    assertEquals(
-        "source=table | eval identifier=mvindex(array(***,***,***,***,***),***,***) | fields +"
-            + " identifier",
-        anonymize("source=t | eval result=mvindex(array(1, 2, 3, 4, 5), 1, 3) | fields result"));
-=======
-  public void testMvexpandCommand() {
-    assertEquals("source=table | mvexpand identifier", anonymize("source=t | mvexpand skills"));
+      // Test mvindex with single element access
+      assertEquals(
+              "source=table | eval identifier=mvindex(array(***,***,***),***) | fields + identifier",
+              anonymize("source=t | eval result=mvindex(array('a', 'b', 'c'), 1) | fields result"));
+      // Test mvindex with range access
+      assertEquals(
+              "source=table | eval identifier=mvindex(array(***,***,***,***,***),***,***) | fields +"
+                      + " identifier",
+              anonymize("source=t | eval result=mvindex(array(1, 2, 3, 4, 5), 1, 3) | fields result"));
   }
+    @Test
+    public void testMvexpandCommand() {
+        assertEquals("source=table | mvexpand identifier", anonymize("source=t | mvexpand skills"));
+    }
 
   @Test
   public void testMvexpandCommandWithLimit() {
     assertEquals(
         "source=table | mvexpand identifier limit=***",
+        anonymize("source=t | mvexpand skills limit=5"));
         anonymize("source=t | mvexpand skills limit 5"));
->>>>>>> 148ccc5f2 (Add Tests)
+
   }
 
   @Test

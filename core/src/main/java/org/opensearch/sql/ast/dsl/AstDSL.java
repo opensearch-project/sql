@@ -138,7 +138,8 @@ public class AstDSL {
   }
 
   public static UnresolvedPlan mvexpand(UnresolvedPlan input, Field field, Integer limit) {
-    return new MvExpand(field, limit);
+    // attach the incoming child plan so the AST contains the pipeline link
+    return new MvExpand(field, limit).attach(input);
   }
 
   public static UnresolvedPlan projectWithArg(
