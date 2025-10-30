@@ -251,10 +251,75 @@ When using wildcards in the replace command:
 * Pattern: ``"* - *"`` (2 wildcards), Replacement: ``"*"`` (1 wildcard) ✗ (mismatch error)
 
 
+Escape Sequences
+================
+
+To match or replace literal asterisks or backslashes in your data, use escape sequences:
+
+* ``\*`` - Matches a literal asterisk character
+* ``\\`` - Matches a literal backslash character
+
+Without escapes, asterisks are interpreted as wildcards.
+
+Example 11: Matching literal asterisks
+---------------------------------------
+
+Match and replace literal asterisk characters in data.
+
+PPL query::
+
+ os> source=accounts | eval note = 'price: *sale*' | replace 'price: \*sale\*' WITH 'DISCOUNTED' IN note | fields note;
+ fetched rows / total rows = 4/4
+ +------------+
+ | note       |
+ |------------|
+ | DISCOUNTED |
+ | DISCOUNTED |
+ | DISCOUNTED |
+ | DISCOUNTED |
+ +------------+
+
+Example 12: Wildcard with no replacement wildcards
+----------------------------------------------------
+
+Use wildcards in pattern but none in replacement to create a fixed output.
+
+PPL query::
+
+ os> source=accounts | eval test = 'prefix-value-suffix' | replace 'prefix-*-suffix' WITH 'MATCHED' IN test | fields test;
+ fetched rows / total rows = 4/4
+ +---------+
+ | test    |
+ |---------|
+ | MATCHED |
+ | MATCHED |
+ | MATCHED |
+ | MATCHED |
+ +---------+
+
+Example 13: Escaped asterisks with wildcards
+---------------------------------------------
+
+Combine escaped asterisks (literal) with wildcards for complex patterns.
+
+PPL query::
+
+ os> source=accounts | eval label = 'file123.txt' | replace 'file*.*' WITH '\**.*' IN label | fields label;
+ fetched rows / total rows = 4/4
+ +----------+
+ | label    |
+ |----------|
+ | *123.txt |
+ | *123.txt |
+ | *123.txt |
+ | *123.txt |
+ +----------+
+
+
 Limitations
 ===========
 * Pattern and replacement values must be string literals.
 * The replace command modifies the specified fields in-place.
 * Wildcard matching is case-sensitive.
 * Regular expressions are not supported (only simple wildcard patterns with ``*``).
-* Literal asterisk characters (``*``) cannot be matched or replaced when using wildcard patterns. To replace literal asterisks in your data, use non-wildcard patterns (do not include ``*`` in the pattern string).
+* Use backslash escape sequences (``\*``, ``\\``) to match literal asterisks or backslashes.

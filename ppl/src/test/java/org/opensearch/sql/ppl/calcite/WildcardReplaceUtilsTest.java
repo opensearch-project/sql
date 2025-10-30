@@ -274,4 +274,82 @@ public class WildcardReplaceUtilsTest {
     assertEquals(
         "fooALLbar", WildcardReplaceUtils.replaceWithWildcard("fooXYZbar", "*XYZ*", "*ALL*"));
   }
+
+  @Test
+  public void testEscapedAsterisk_literal() {
+    assertEquals(
+        "foo*bar", WildcardReplaceUtils.replaceWithWildcard("foo*bar", "foo\\*bar", "foo\\*bar"));
+  }
+
+  @Test
+  public void testEscapedAsterisk_noMatch() {
+    assertEquals(
+        "fooXbar", WildcardReplaceUtils.replaceWithWildcard("fooXbar", "foo\\*bar", "replacement"));
+  }
+
+  @Test
+  public void testEscapedBackslash_beforeWildcard() {
+    assertEquals(
+        "foo\\123", WildcardReplaceUtils.replaceWithWildcard("foo\\abc", "foo\\\\*", "foo\\\\123"));
+  }
+
+  @Test
+  public void testEscapedBackslash_literal() {
+    assertEquals(
+        "foo\\bar",
+        WildcardReplaceUtils.replaceWithWildcard("foo\\bar", "foo\\\\bar", "foo\\\\bar"));
+  }
+
+  @Test
+  public void testMixedEscapes_asteriskAndBackslash() {
+    assertEquals(
+        "price: *special* $100\\ea",
+        WildcardReplaceUtils.replaceWithWildcard(
+            "price: *special* $100\\ea",
+            "price: \\*special\\* $*\\\\*",
+            "price: \\*special\\* $*\\\\*"));
+  }
+
+  @Test
+  public void testEscapedAsterisk_withWildcard_capture() {
+    assertEquals(
+        "file*.prefix-123",
+        WildcardReplaceUtils.replaceWithWildcard("file123.txt", "file*.*", "file\\*.prefix-*"));
+  }
+
+  @Test
+  public void testTrailingBackslash_shouldFail() {
+    try {
+      WildcardReplaceUtils.replaceWithWildcard("foo", "foo\\", "bar");
+      fail("Expected IllegalArgumentException");
+    } catch (IllegalArgumentException exception) {
+      assertTrue(exception.getMessage().contains("Invalid escape sequence"));
+    }
+  }
+
+  @Test
+  public void testOnlyEscapedAsterisks_noWildcards() {
+    assertEquals("***", WildcardReplaceUtils.replaceWithWildcard("***", "\\*\\*\\*", "\\*\\*\\*"));
+  }
+
+  @Test
+  public void testDoubleBackslashBeforeAsterisk() {
+    assertEquals(
+        "foo\\bar", WildcardReplaceUtils.replaceWithWildcard("foo\\abc", "foo\\\\*", "foo\\\\bar"));
+  }
+
+  @Test
+  public void testCountWildcards_withEscapes() {
+    assertEquals(2, WildcardReplaceUtils.countWildcards("foo\\*bar*baz*"));
+  }
+
+  @Test
+  public void testCountWildcards_allEscaped() {
+    assertEquals(0, WildcardReplaceUtils.countWildcards("\\*\\*\\*"));
+  }
+
+  @Test
+  public void testValidation_escapedWildcardsNotCounted() {
+    WildcardReplaceUtils.validateWildcardSymmetry("foo\\**", "bar*");
+  }
 }
