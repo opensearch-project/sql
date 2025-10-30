@@ -1336,6 +1336,17 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testReplaceCommandWildcardExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_replace_wildcard.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            String.format(
+                "source=%s | replace '*L' WITH 'STATE_IL' IN state | fields state",
+                TEST_INDEX_ACCOUNT)));
+  }
+
+  @Test
   public void testExplainRareCommandUseNull() throws IOException {
     String expected = loadExpectedPlan("explain_rare_usenull_false.yaml");
     assertYamlEqualsIgnoreId(
