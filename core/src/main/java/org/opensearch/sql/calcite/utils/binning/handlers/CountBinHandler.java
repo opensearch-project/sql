@@ -13,7 +13,9 @@ import org.opensearch.sql.ast.tree.CountBin;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRexNodeVisitor;
 import org.opensearch.sql.calcite.utils.binning.BinConstants;
+import org.opensearch.sql.calcite.utils.binning.BinFieldValidator;
 import org.opensearch.sql.calcite.utils.binning.BinHandler;
+import org.opensearch.sql.calcite.utils.binning.BinnableField;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
 /** Handler for bins-based (count) binning operations. */
@@ -24,6 +26,11 @@ public class CountBinHandler implements BinHandler {
       Bin node, RexNode fieldExpr, CalcitePlanContext context, CalciteRexNodeVisitor visitor) {
 
     CountBin countBin = (CountBin) node;
+
+    // Create validated binnable field (validates that field is numeric or time-based)
+    // Note: bins parameter works with both numeric and time-based fields
+    String fieldName = BinFieldValidator.extractFieldName(node);
+    BinnableField field = new BinnableField(fieldExpr, fieldExpr.getType(), fieldName);
 
     Integer requestedBins = countBin.getBins();
     if (requestedBins == null) {
