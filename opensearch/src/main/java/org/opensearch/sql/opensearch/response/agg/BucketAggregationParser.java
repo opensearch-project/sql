@@ -19,7 +19,6 @@ import org.opensearch.search.aggregations.bucket.MultiBucketsAggregation;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregation;
 import org.opensearch.search.aggregations.bucket.histogram.InternalAutoDateHistogram;
 import org.opensearch.search.aggregations.bucket.range.Range;
-import org.opensearch.search.aggregations.bucket.terms.ParsedStringTerms;
 
 /**
  * Use BucketAggregationParser only when there is a single group-by key, it returns multiple
@@ -119,20 +118,15 @@ public class BucketAggregationParser implements OpenSearchAggregationResponsePar
    *
    * @param bucket the aggregation bucket to extract data from
    * @param name the field name to use for range buckets (ignored for composite buckets)
-   * @return an Optional containing the extracted key-value pairs, or empty if bucket type is
-   *     unsupported
+   * @return an Optional containing the extracted key-value pairs
    */
   protected Optional<Map<String, Object>> extract(
       MultiBucketsAggregation.Bucket bucket, String name) {
     Map<String, Object> extracted;
     if (bucket instanceof CompositeAggregation.Bucket compositeBucket) {
       extracted = compositeBucket.getKey();
-    } else if (bucket instanceof Range.Bucket
-        || bucket instanceof InternalAutoDateHistogram.Bucket
-        || bucket instanceof ParsedStringTerms.ParsedBucket) {
-      extracted = Map.of(name, bucket.getKey());
     } else {
-      extracted = null;
+      extracted = Map.of(name, bucket.getKey());
     }
     return Optional.ofNullable(extracted);
   }
