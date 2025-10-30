@@ -1642,9 +1642,27 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     // Default
+    RexNode streamSeq =
+        PlanUtils.makeOver(
+            context,
+            BuiltinFunctionName.ROW_NUMBER,
+            null,
+            List.of(),
+            List.of(),
+            List.of(),
+            WindowFrame.toCurrentRow());
+    context.relBuilder.projectPlus(context.relBuilder.alias(streamSeq, SEQ_COL));
+
     List<RexNode> overExpressions =
         node.getWindowFunctionList().stream().map(w -> rexVisitor.analyze(w, context)).toList();
     context.relBuilder.projectPlus(overExpressions);
+
+    // resort when there is by condition
+    if (hasGroup) {
+      context.relBuilder.sort(context.relBuilder.field(SEQ_COL));
+    }
+
+    context.relBuilder.projectExcept(context.relBuilder.field(SEQ_COL));
     return context.relBuilder.peek();
   }
 
@@ -1693,6 +1711,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       requiredLeft.add(context.relBuilder.field(2, 0, segmentCol));
     }
     context.relBuilder.correlate(JoinRelType.LEFT, v.get().id, requiredLeft);
+
+    // resort to original order
+    boolean hasGroup = !groupList.isEmpty();
+    // resort when 1. global + window + by condition 2.reset + by condition
+    if (hasGroup) {
+      context.relBuilder.sort(context.relBuilder.field(seqCol));
+    }
 
     // cleanup helper columns
     List<RexNode> cleanup = new ArrayList<>();
