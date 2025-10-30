@@ -70,8 +70,10 @@ public interface PlanUtils {
     SpanUnit result;
     switch (unit) {
       case MICROSECOND:
-        result = SpanUnit.MILLISECOND;
+        result = SpanUnit.MICROSECOND;
         break;
+        case MILLISECOND:
+            result = SpanUnit.MILLISECOND;
       case SECOND:
         result = SpanUnit.SECOND;
         break;
@@ -108,9 +110,12 @@ public interface PlanUtils {
 
   static IntervalUnit spanUnitToIntervalUnit(SpanUnit unit) {
     switch (unit) {
+      case MICROSECOND:
+      case US:
+        return IntervalUnit.MICROSECOND;
       case MILLISECOND:
       case MS:
-        return IntervalUnit.MICROSECOND;
+        return IntervalUnit.MILLISECOND;
       case SECOND:
       case SECONDS:
       case SEC:

@@ -444,8 +444,8 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryToString("source=events | timechart span=2m per_second(cpu_usage)");
     assertTrue(
         result.contains(
-            "per_second(cpu_usage)=[DIVIDE(*($1, 1.0E0), "
-                + "TIMESTAMPDIFF('SECOND':VARCHAR, $0, TIMESTAMPADD('MINUTE':VARCHAR, 2, $0)))]"));
+            "per_second(cpu_usage)=[DIVIDE(*($1, 1000.0E0), TIMESTAMPDIFF('MILLISECOND':VARCHAR,"
+                + " $0, TIMESTAMPADD('MINUTE':VARCHAR, 2, $0)))]"));
     assertTrue(result.contains("per_second(cpu_usage)=[SUM($0)]"));
   }
 
@@ -454,8 +454,8 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryToString("source=events | timechart span=2m per_minute(cpu_usage)");
     assertTrue(
         result.contains(
-            "per_minute(cpu_usage)=[DIVIDE(*($1, 60.0E0), "
-                + "TIMESTAMPDIFF('SECOND':VARCHAR, $0, TIMESTAMPADD('MINUTE':VARCHAR, 2, $0)))]"));
+            "per_minute(cpu_usage)=[DIVIDE(*($1, 60000.0E0), TIMESTAMPDIFF('MILLISECOND':VARCHAR,"
+                + " $0, TIMESTAMPADD('MINUTE':VARCHAR, 2, $0)))]"));
     assertTrue(result.contains("per_minute(cpu_usage)=[SUM($0)]"));
   }
 
@@ -464,8 +464,8 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryToString("source=events | timechart span=2m per_hour(cpu_usage)");
     assertTrue(
         result.contains(
-            "per_hour(cpu_usage)=[DIVIDE(*($1, 3600.0E0), "
-                + "TIMESTAMPDIFF('SECOND':VARCHAR, $0, TIMESTAMPADD('MINUTE':VARCHAR, 2, $0)))]"));
+            "per_hour(cpu_usage)=[DIVIDE(*($1, 3600000.0E0), TIMESTAMPDIFF('MILLISECOND':VARCHAR,"
+                + " $0, TIMESTAMPADD('MINUTE':VARCHAR, 2, $0)))]"));
     assertTrue(result.contains("per_hour(cpu_usage)=[SUM($0)]"));
   }
 
@@ -474,8 +474,8 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryToString("source=events | timechart span=2m per_day(cpu_usage)");
     assertTrue(
         result.contains(
-            "per_day(cpu_usage)=[DIVIDE(*($1, 86400.0E0), "
-                + "TIMESTAMPDIFF('SECOND':VARCHAR, $0, TIMESTAMPADD('MINUTE':VARCHAR, 2, $0)))]"));
+            "per_day(cpu_usage)=[DIVIDE(*($1, 8.64E7), TIMESTAMPDIFF('MILLISECOND':VARCHAR, $0,"
+                + " TIMESTAMPADD('MINUTE':VARCHAR, 2, $0)))]"));
     assertTrue(result.contains("per_day(cpu_usage)=[SUM($0)]"));
   }
 
