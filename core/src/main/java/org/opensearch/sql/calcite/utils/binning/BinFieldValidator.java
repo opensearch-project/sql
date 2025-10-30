@@ -6,13 +6,11 @@
 package org.opensearch.sql.calcite.utils.binning;
 
 import java.util.List;
-import org.apache.calcite.rel.type.RelDataType;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 
-/** Utility class for field validation and type checking in bin operations. */
+/** Utility class for bin-specific field operations. */
 public class BinFieldValidator {
 
   /** Extracts the field name from a Bin node. */
@@ -33,10 +31,5 @@ public class BinFieldValidator {
           String.format(
               "Field '%s' not found in dataset. Available fields: %s", fieldName, availableFields));
     }
-  }
-
-  /** Checks if the field type is time-based. */
-  public static boolean isTimeBasedField(RelDataType fieldType) {
-    return OpenSearchTypeFactory.isTimeBasedType(fieldType);
   }
 }
