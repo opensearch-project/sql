@@ -47,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import org.junit.Assert;
 import org.junit.jupiter.api.Test;
 import org.opensearch.OpenSearchParseException;
 import org.opensearch.geometry.utils.Geohash;
@@ -191,8 +192,11 @@ class OpenSearchExprValueFactoryTest {
   public void constructLong() {
     assertAll(
         () -> assertEquals(longValue(1L), tupleValue("{\"longV\":1}").get("longV")),
+        () -> assertEquals(longValue(1L), tupleValue("{\"longV\":\"1\"}").get("longV")),
+        () -> assertEquals(longValue(0L), tupleValue("{\"longV\":\"\"}").get("longV")),
         () -> assertEquals(longValue(1L), constructFromObject("longV", 1L)),
         () -> assertEquals(longValue(1L), constructFromObject("longV", "1.0")));
+    Assert.assertThrows(OpenSearchParseException.class, () -> tupleValue("{\"longV\":true}"));
   }
 
   @Test
@@ -206,7 +210,10 @@ class OpenSearchExprValueFactoryTest {
   public void constructDouble() {
     assertAll(
         () -> assertEquals(doubleValue(1d), tupleValue("{\"doubleV\":1.0}").get("doubleV")),
+        () -> assertEquals(doubleValue(1d), tupleValue("{\"doubleV\":\"1.0\"}").get("doubleV")),
+        () -> assertEquals(doubleValue(0d), tupleValue("{\"doubleV\":\"\"}").get("doubleV")),
         () -> assertEquals(doubleValue(1d), constructFromObject("doubleV", 1d)));
+    Assert.assertThrows(OpenSearchParseException.class, () -> tupleValue("{\"doubleV\":true}"));
   }
 
   @Test
@@ -221,10 +228,12 @@ class OpenSearchExprValueFactoryTest {
   public void constructBoolean() {
     assertAll(
         () -> assertEquals(booleanValue(true), tupleValue("{\"boolV\":true}").get("boolV")),
+        () -> assertEquals(booleanValue(true), tupleValue("{\"boolV\":\"true\"}").get("boolV")),
         () -> assertEquals(booleanValue(true), constructFromObject("boolV", true)),
         () -> assertEquals(booleanValue(true), constructFromObject("boolV", "true")),
         () -> assertEquals(booleanValue(true), constructFromObject("boolV", 1)),
         () -> assertEquals(booleanValue(false), constructFromObject("boolV", 0)));
+    Assert.assertThrows(OpenSearchParseException.class, () -> tupleValue("{\"boolV\":1.0}"));
   }
 
   @Test

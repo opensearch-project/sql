@@ -14,6 +14,7 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.OpenSearchParseException;
+import org.opensearch.common.Numbers;
 import org.opensearch.common.geo.GeoPoint;
 import org.opensearch.common.geo.GeoUtils;
 import org.opensearch.common.xcontent.json.JsonXContentParser;
@@ -29,32 +30,32 @@ public class OpenSearchJsonContent implements Content {
 
   @Override
   public Integer intValue() {
-    return value().intValue();
+    return (int) parseLongValue(value());
   }
 
   @Override
   public Long longValue() {
-    return value().longValue();
+    return parseLongValue(value());
   }
 
   @Override
   public Short shortValue() {
-    return value().shortValue();
+    return (short) parseLongValue(value());
   }
 
   @Override
   public Byte byteValue() {
-    return (byte) value().shortValue();
+    return (byte) parseLongValue(value());
   }
 
   @Override
   public Float floatValue() {
-    return value().floatValue();
+    return (float) parseDoubleValue(value());
   }
 
   @Override
   public Double doubleValue() {
-    return value().doubleValue();
+    return parseDoubleValue(value());
   }
 
   @Override
@@ -64,7 +65,7 @@ public class OpenSearchJsonContent implements Content {
 
   @Override
   public Boolean booleanValue() {
-    return value().booleanValue();
+    return parseBooleanValue(value());
   }
 
   @Override
@@ -147,5 +148,44 @@ public class OpenSearchJsonContent implements Content {
   /** Getter for value. If value is array the whole array is returned. */
   private JsonNode value() {
     return value;
+  }
+
+  /** Parse long value from JsonNode. */
+  private long parseLongValue(JsonNode node) {
+    if (node.isNumber()) {
+      return node.longValue();
+    } else if (node.isTextual()) {
+      if (node.textValue().isEmpty()) {
+        return 0L;
+      }
+      return Numbers.toLong(node.textValue(), true);
+    } else {
+      throw new OpenSearchParseException("node must be a number");
+    }
+  }
+
+  /** Parse double value from JsonNode. */
+  private double parseDoubleValue(JsonNode node) {
+    if (node.isNumber()) {
+      return node.doubleValue();
+    } else if (node.isTextual()) {
+      if (node.textValue().isEmpty()) {
+        return 0.0;
+      }
+      return Double.parseDouble(node.textValue());
+    } else {
+      throw new OpenSearchParseException("node must be a number");
+    }
+  }
+
+  /** Parse boolean value from JsonNode. */
+  private boolean parseBooleanValue(JsonNode node) {
+    if (node.isBoolean()) {
+      return node.booleanValue();
+    } else if (node.isTextual()) {
+      return Boolean.parseBoolean(node.textValue());
+    } else {
+      throw new OpenSearchParseException("node must be a boolean");
+    }
   }
 }
