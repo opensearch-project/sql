@@ -147,7 +147,6 @@ import org.opensearch.sql.calcite.utils.BinUtils;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
-import org.opensearch.sql.calcite.utils.WildcardReplaceUtils;
 import org.opensearch.sql.calcite.utils.WildcardUtils;
 import org.opensearch.sql.common.patterns.PatternUtils;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -2860,11 +2859,35 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           String replacementStr = pair.getReplacement().getValue().toString();
 
           if (patternStr.contains("*")) {
-            WildcardReplaceUtils.validateWildcardSymmetry(patternStr, replacementStr);
+            // Wildcard pattern: convert to regex at planning time
+            validateWildcardSymmetry(patternStr, replacementStr);
 
+            // Convert wildcard pattern to regex pattern (e.g., "*ada" → "^(.*?)ada$")
+            String regexPattern = convertWildcardPatternToRegex(patternStr);
+            // Convert wildcard replacement to regex replacement (e.g., "*_*" → "$1_$2")
+            String regexReplacement = convertWildcardReplacementToRegex(replacementStr);
+
+            // Create regex pattern and replacement literals
+            RexNode regexPatternNode =
+                context.rexBuilder.makeLiteral(
+                    regexPattern,
+                    context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
+                    true);
+            RexNode regexReplacementNode =
+                context.rexBuilder.makeLiteral(
+                    regexReplacement,
+                    context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
+                    true);
+
+            // Use Calcite's REGEXP_REPLACE operator
             fieldRef =
-                buildWildcardReplaceExpression(fieldRef, patternNode, replacementNode, context);
+                context.rexBuilder.makeCall(
+                    org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE_3,
+                    fieldRef,
+                    regexPatternNode,
+                    regexReplacementNode);
           } else {
+            // Literal pattern: use standard REPLACE
             fieldRef =
                 context.relBuilder.call(
                     SqlStdOperatorTable.REPLACE, fieldRef, patternNode, replacementNode);
@@ -2882,15 +2905,123 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-  /** Build a RexNode for wildcard-based replacement. */
-  private RexNode buildWildcardReplaceExpression(
-      RexNode fieldRex, RexNode patternNode, RexNode replacementNode, CalcitePlanContext context) {
-    return context.rexBuilder.makeCall(
-        org.opensearch.sql.expression.function.PPLBuiltinOperators.WILDCARD_REPLACE,
-        fieldRex,
-        patternNode,
-        replacementNode);
+  // ============ Wildcard-to-Regex Conversion Utilities ============
+
+  /**
+   * Convert a wildcard pattern to a regex pattern string. Example: "*ada" → "^(.*?)ada$" Example:
+   * "* - *" → "^(.*?) - (.*?)$" Handles escape sequences: \* (literal asterisk), \\ (literal
+   * backslash)
+   */
+  private static String convertWildcardPatternToRegex(String wildcardPattern) {
+    String[] parts = splitWildcards(wildcardPattern);
+    StringBuilder regexBuilder = new StringBuilder("^");
+
+    for (int i = 0; i < parts.length; i++) {
+      regexBuilder.append(java.util.regex.Pattern.quote(parts[i]));
+      if (i < parts.length - 1) {
+        regexBuilder.append("(.*?)"); // Non-greedy capture group for wildcard
+      }
+    }
+    regexBuilder.append("$");
+
+    return regexBuilder.toString();
   }
+
+  /**
+   * Convert a wildcard replacement to a regex replacement string. Example: "*_*" → "$1_$2" Example:
+   * "SELLER" → "SELLER" (no wildcards) Handles escape sequences: \* (literal asterisk), \\ (literal
+   * backslash)
+   */
+  private static String convertWildcardReplacementToRegex(String wildcardReplacement) {
+    if (!wildcardReplacement.contains("*")) {
+      return wildcardReplacement; // No wildcards = literal replacement
+    }
+
+    StringBuilder result = new StringBuilder();
+    int captureIndex = 1; // Regex capture groups start at $1
+    boolean escaped = false;
+
+    for (char c : wildcardReplacement.toCharArray()) {
+      if (escaped) {
+        // Handle escape sequences: \* or \\
+        result.append(c);
+        escaped = false;
+      } else if (c == '\\') {
+        escaped = true;
+      } else if (c == '*') {
+        // Replace wildcard with $1, $2, etc.
+        result.append('$').append(captureIndex++);
+      } else {
+        result.append(c);
+      }
+    }
+
+    return result.toString();
+  }
+
+  /**
+   * Split pattern on unescaped wildcards, handling escape sequences. Supports: \* (literal
+   * asterisk), \\ (literal backslash)
+   */
+  private static String[] splitWildcards(String pattern) {
+    List<String> parts = new ArrayList<>();
+    StringBuilder current = new StringBuilder();
+    boolean escaped = false;
+
+    for (char c : pattern.toCharArray()) {
+      if (escaped) {
+        current.append(c);
+        escaped = false;
+      } else if (c == '\\') {
+        escaped = true;
+      } else if (c == '*') {
+        parts.add(current.toString());
+        current = new StringBuilder();
+      } else {
+        current.append(c);
+      }
+    }
+
+    if (escaped) {
+      throw new IllegalArgumentException(
+          "Invalid escape sequence: pattern ends with unescaped backslash");
+    }
+
+    parts.add(current.toString());
+    return parts.toArray(new String[0]);
+  }
+
+  /** Count the number of unescaped wildcards in a string. */
+  private static int countWildcards(String str) {
+    int count = 0;
+    boolean escaped = false;
+    for (char c : str.toCharArray()) {
+      if (escaped) {
+        escaped = false;
+      } else if (c == '\\') {
+        escaped = true;
+      } else if (c == '*') {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  /** Validate wildcard symmetry between pattern and replacement. */
+  private static void validateWildcardSymmetry(String pattern, String replacement) {
+    int patternWildcards = countWildcards(pattern);
+    int replacementWildcards = countWildcards(replacement);
+
+    if (replacementWildcards != 0 && replacementWildcards != patternWildcards) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Error in 'replace' command: Wildcard count mismatch - pattern has %d wildcard(s), "
+                  + "replacement has %d. Replacement must have same number of wildcards or none.",
+              patternWildcards, replacementWildcards));
+    }
+  }
+
+  // ============ End Wildcard Utilities ============
 
   private void buildParseRelNode(Parse node, CalcitePlanContext context) {
     RexNode sourceField = rexVisitor.analyze(node.getSourceField(), context);
