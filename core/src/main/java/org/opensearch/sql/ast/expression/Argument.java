@@ -37,6 +37,8 @@ public class Argument extends UnresolvedExpression {
   }
 
   /** ArgumentMap is a helper class to get argument value by name. */
+  @EqualsAndHashCode
+  @ToString
   public static class ArgumentMap {
     private final Map<String, Literal> map;
 
