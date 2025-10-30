@@ -45,8 +45,8 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
-import org.opensearch.sql.opensearch.planner.physical.EnumerableIndexScanRule;
-import org.opensearch.sql.opensearch.planner.physical.OpenSearchIndexRules;
+import org.opensearch.sql.opensearch.planner.rules.EnumerableIndexScanRule;
+import org.opensearch.sql.opensearch.planner.rules.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.QueryExpression;
@@ -60,6 +60,7 @@ import org.opensearch.sql.opensearch.storage.scan.context.LimitDigest;
 import org.opensearch.sql.opensearch.storage.scan.context.OSRequestBuilderAction;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownType;
+import org.opensearch.sql.opensearch.storage.scan.context.RareTopDigest;
 
 /** The logical relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
@@ -289,7 +290,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     return newTraitSet;
   }
 
-  public CalciteLogicalIndexScan pushDownSortAggregateMetrics(Sort sort) {
+  public CalciteLogicalIndexScan pushDownSortAggregateMeasure(Sort sort) {
     try {
       if (!pushDownContext.isAggregatePushed()) return null;
       List<AggregationBuilder> aggregationBuilders =
@@ -304,20 +305,36 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       if (!isAllCollationNamesEqualAggregators(collationNames)) {
         return null;
       }
+      CalciteLogicalIndexScan newScan = copyWithNewTraitSet(sort.getTraitSet());
       AbstractAction<?> newAction =
           (AggregationBuilderAction)
               aggAction ->
-                  aggAction.pushDownSortAggMetrics(
+                  aggAction.rePushDownSortAggMeasure(
                       sort.getCollation().getFieldCollations(), rowType.getFieldNames());
       Object digest = sort.getCollation().getFieldCollations();
-      pushDownContext.add(PushDownType.SORT_AGG_METRICS, digest, newAction);
-      return copyWithNewTraitSet(sort.getTraitSet());
+      newScan.pushDownContext.add(PushDownType.SORT_AGG_METRICS, digest, newAction);
+      return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Cannot pushdown the sort aggregate {}", sort, e);
       }
     }
     return null;
+  }
+
+  public CalciteLogicalIndexScan pushDownRareTop(Project project, RareTopDigest digest) {
+    try {
+      CalciteLogicalIndexScan newScan = copyWithNewSchema(project.getRowType());
+      AbstractAction<?> newAction =
+          (AggregationBuilderAction) aggAction -> aggAction.rePushDownRareTop(digest);
+      newScan.pushDownContext.add(PushDownType.RARE_TOP, digest, newAction);
+      return newScan;
+    } catch (Exception e) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Cannot pushdown {}", digest, e);
+      }
+      return null;
+    }
   }
 
   public AbstractRelNode pushDownAggregate(Aggregate aggregate, Project project) {

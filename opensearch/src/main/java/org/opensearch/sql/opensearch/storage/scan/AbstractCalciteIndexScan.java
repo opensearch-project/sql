@@ -55,6 +55,7 @@ import org.opensearch.sql.opensearch.storage.scan.context.OSRequestBuilderAction
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownOperation;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownType;
+import org.opensearch.sql.opensearch.storage.scan.context.RareTopDigest;
 
 /** An abstract relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
@@ -123,6 +124,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                       rowCount,
                       RelMdUtil.guessSelectivity(((FilterDigest) operation.digest()).condition()));
                   case LIMIT -> Math.min(rowCount, ((LimitDigest) operation.digest()).limit());
+                  case RARE_TOP -> Math.min(
+                      rowCount, ((RareTopDigest) operation.digest()).number());
                 },
             (a, b) -> null);
   }
@@ -178,6 +181,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
           // Because we'd like to push down LIMIT even when the fetch in LIMIT is greater than
           // dRows.
         case LIMIT -> dRows = Math.min(dRows, ((LimitDigest) operation.digest()).limit()) - 1;
+        case RARE_TOP -> dRows = Math.min(dRows, ((RareTopDigest) operation.digest()).number()) - 1;
       }
       ;
     }
@@ -390,7 +394,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
   }
 
   public boolean isMetricsOrderPushed() {
-    return this.getPushDownContext().isMetricOrderPushed();
+    return this.getPushDownContext().isMeasureOrderPushed();
   }
 
   public boolean isTopKPushed() {
