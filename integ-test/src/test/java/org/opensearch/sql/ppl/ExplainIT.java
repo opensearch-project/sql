@@ -183,7 +183,7 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account | sort age, - firstname desc | fields age,"
+            "source=opensearch-sql_test_index_account | sort age desc, firstname | fields age,"
                 + " firstname"));
   }
 
@@ -703,19 +703,5 @@ public class ExplainIT extends PPLIntegTestCase {
         expected,
         explainQueryToString(
             String.format("search source=%s severityText=ERR*", TEST_INDEX_OTEL_LOGS)));
-  }
-
-  protected String loadExpectedPlan(String fileName) throws IOException {
-    String prefix;
-    if (isCalciteEnabled()) {
-      if (isPushdownDisabled()) {
-        prefix = "expectedOutput/calcite_no_pushdown/";
-      } else {
-        prefix = "expectedOutput/calcite/";
-      }
-    } else {
-      prefix = "expectedOutput/ppl/";
-    }
-    return loadFromFile(prefix + fileName);
   }
 }

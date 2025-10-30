@@ -1,3 +1,21 @@
+/*
+{
+  "name": "keyword-terms",
+  "operation-type": "search",
+  "index": "{{index_name | default('big5')}}",
+  "body": {
+    "size": 0,
+    "aggs": {
+      "station": {
+        "terms": {
+          "field": "aws.cloudwatch.log_stream",
+          "size": 500
+        }
+      }
+    }
+  }
+}
+*/
 source = big5
 | stats count() as station by `aws.cloudwatch.log_stream`
 | sort - station

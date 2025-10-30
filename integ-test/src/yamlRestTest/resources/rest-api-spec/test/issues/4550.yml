@@ -1,0 +1,93 @@
+setup:
+  - do:
+      indices.create:
+        index: test_data_2023
+        body:
+          mappings:
+            properties:
+              "@timestamp":
+                type: date
+              "packets":
+                type: integer
+  - do:
+      bulk:
+        index: test_data_2023
+        refresh: true
+        body:
+          - '{"index":{}}'
+          - '{"@timestamp":"2023-10-08T10:00:00.000Z","packets":10}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2023-10-08T10:00:00.500Z","packets":15}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2023-10-08T10:00:01.000Z","packets":20}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2023-10-08T10:00:01.500Z","packets":25}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2023-10-08T10:00:02.000Z","packets":30}'
+
+---
+"timechart with millisecond span":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_data_2023 | timechart span=500ms count()
+
+  - match: { total: 5 }
+  - match: { "schema": [ { "name": "@timestamp", "type": "timestamp" }, { "name": "count", "type": "bigint" }] }
+  - match: {"datarows": [["2023-10-08 10:00:00", 1], ["2023-10-08 10:00:00.5", 1], ["2023-10-08 10:00:01", 1], ["2023-10-08 10:00:01.5", 1], ["2023-10-08 10:00:02", 1]]}
+
+---
+"timechart with millisecond span and per_second function":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_data_2023 | timechart span=1000ms per_second(packets)
+
+  - match: { total: 3 }
+  - match: { "schema": [ { "name": "@timestamp", "type": "timestamp" }, { "name": "per_second(packets)", "type": "double" }] }
+  - match: {"datarows": [["2023-10-08 10:00:00", 25.0], ["2023-10-08 10:00:01", 45.0], ["2023-10-08 10:00:02", 30.0]]}
+
+---
+"timechart with milliseconds":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_data_2023 | timechart span=250milliseconds count()
+
+  - match: { total: 5 }
+  - match: { "schema": [ { "name": "@timestamp", "type": "timestamp" }, { "name": "count", "type": "bigint" }] }
+
+---
+"timechart with second span for comparison":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_data_2023 | timechart span=1s count()
+
+  - match: { total: 3 }
+  - match: { "schema": [ { "name": "@timestamp", "type": "timestamp" }, { "name": "count", "type": "bigint" }] }
+  - match: {"datarows": [["2023-10-08 10:00:00", 2], ["2023-10-08 10:00:01", 2], ["2023-10-08 10:00:02", 1]]}

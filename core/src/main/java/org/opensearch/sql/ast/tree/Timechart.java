@@ -10,7 +10,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.doubleLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.eval;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
-import static org.opensearch.sql.ast.expression.IntervalUnit.SECOND;
+import static org.opensearch.sql.ast.expression.IntervalUnit.MILLISECOND;
 import static org.opensearch.sql.ast.tree.Timechart.PerFunctionRateExprBuilder.sum;
 import static org.opensearch.sql.ast.tree.Timechart.PerFunctionRateExprBuilder.timestampadd;
 import static org.opensearch.sql.ast.tree.Timechart.PerFunctionRateExprBuilder.timestampdiff;
@@ -112,11 +112,13 @@ public class Timechart extends UnresolvedPlan {
     Span span = (Span) this.binExpression;
     Field spanStartTime = AstDSL.field(IMPLICIT_FIELD_TIMESTAMP);
     Function spanEndTime = timestampadd(span.getUnit(), span.getValue(), spanStartTime);
-    Function spanSeconds = timestampdiff(SECOND, spanStartTime, spanEndTime);
-
+    Function spanMillis = timestampdiff(MILLISECOND, spanStartTime, spanEndTime);
+    final int SECOND_IN_MILLISECOND = 1000;
     return eval(
         timechart(AstDSL.alias(perFunc.aggName, sum(perFunc.aggArg))),
-        let(perFunc.aggName).multiply(perFunc.seconds).dividedBy(spanSeconds));
+        let(perFunc.aggName)
+            .multiply(perFunc.seconds * SECOND_IN_MILLISECOND)
+            .dividedBy(spanMillis));
   }
 
   private Timechart timechart(UnresolvedExpression newAggregateFunction) {

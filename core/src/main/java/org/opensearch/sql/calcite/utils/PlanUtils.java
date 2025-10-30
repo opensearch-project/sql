@@ -62,13 +62,14 @@ public interface PlanUtils {
   /** this is only for dedup command, do not reuse it in other command */
   String ROW_NUMBER_COLUMN_FOR_DEDUP = "_row_number_dedup_";
 
-  String ROW_NUMBER_COLUMN_NAME = "_row_number_";
+  String ROW_NUMBER_COLUMN_NAME_TOP_RARE = "_row_number_top_rare_";
   String ROW_NUMBER_COLUMN_NAME_MAIN = "_row_number_main_";
   String ROW_NUMBER_COLUMN_NAME_SUBSEARCH = "_row_number_subsearch_";
 
   static SpanUnit intervalUnitToSpanUnit(IntervalUnit unit) {
     return switch (unit) {
-      case MICROSECOND -> SpanUnit.MILLISECOND;
+      case MICROSECOND -> SpanUnit.MICROSECOND;
+      case MILLISECOND -> SpanUnit.MILLISECOND;
       case SECOND -> SpanUnit.SECOND;
       case MINUTE -> SpanUnit.MINUTE;
       case HOUR -> SpanUnit.HOUR;
@@ -84,9 +85,12 @@ public interface PlanUtils {
 
   static IntervalUnit spanUnitToIntervalUnit(SpanUnit unit) {
     switch (unit) {
+      case MICROSECOND:
+      case US:
+        return IntervalUnit.MICROSECOND;
       case MILLISECOND:
       case MS:
-        return IntervalUnit.MICROSECOND;
+        return IntervalUnit.MILLISECOND;
       case SECOND:
       case SECONDS:
       case SEC:

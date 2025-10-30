@@ -1,0 +1,67 @@
+/*
+{
+  "name": "range-auto-date-histo-with-metrics",
+  "operation-type": "search",
+  "index": "{{index_name | default('big5')}}",
+  "request-timeout": 7200,
+  "body": {
+    "size": 0,
+    "aggs": {
+      "tmax": {
+        "range": {
+          "field": "metrics.size",
+          "ranges": [
+            {
+              "to": 100
+            },
+            {
+              "from": 100,
+              "to": 1000
+            },
+            {
+              "from": 1000,
+              "to": 2000
+            },
+            {
+              "from": 2000
+            }
+          ]
+        },
+        "aggs": {
+          "date": {
+            "auto_date_histogram": {
+              "field": "@timestamp",
+              "buckets": 10
+            },
+            "aggs": {
+              "tmin": {
+                "min": {
+                  "field": "metrics.tmin"
+                }
+              },
+              "tavg": {
+                "avg": {
+                  "field": "metrics.size"
+                }
+              },
+              "tmax": {
+                "max": {
+                  "field": "metrics.size"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+*/
+source = big5
+| eval range_bucket = case(
+   `metrics.size` < 100, 'range_1',
+   `metrics.size` >= 100 and `metrics.size` < 1000, 'range_2',
+   `metrics.size` >= 1000 and `metrics.size` < 2000, 'range_3',
+   `metrics.size` >= 2000, 'range_4')
+| bin @timestamp bins=10
+| stats min(`metrics.tmin`) as tmin, avg(`metrics.size`) as tavg, max(`metrics.size`) as tmax by range_bucket, @timestamp

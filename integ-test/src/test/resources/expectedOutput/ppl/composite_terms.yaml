@@ -1,0 +1,21 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[count(), process.name, cloud.region]"
+  children:
+    - name: OpenSearchIndexScan
+      description:
+        request: "OpenSearchQueryRequest(indexName=big5, sourceBuilder={\"from\":0,\"\
+          size\":0,\"timeout\":\"1m\",\"query\":{\"bool\":{\"filter\":[{\"range\"\
+          :{\"@timestamp\":{\"from\":1672617600000,\"to\":null,\"include_lower\":true,\"\
+          include_upper\":true,\"boost\":1.0}}},{\"range\":{\"@timestamp\":{\"from\"\
+          :null,\"to\":1672653600000,\"include_lower\":true,\"include_upper\":false,\"\
+          boost\":1.0}}}],\"adjust_pure_negative\":true,\"boost\":1.0}},\"aggregations\"\
+          :{\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\":[{\"process.name\"\
+          :{\"terms\":{\"field\":\"process.name\",\"missing_bucket\":true,\"missing_order\"\
+          :\"last\",\"order\":\"desc\"}}},{\"cloud.region\":{\"terms\":{\"field\"\
+          :\"cloud.region\",\"missing_bucket\":true,\"missing_order\":\"first\",\"\
+          order\":\"asc\"}}}]},\"aggregations\":{\"count()\":{\"value_count\":{\"\
+          field\":\"_index\"}}}}}}, needClean=true, searchDone=false, pitId=*,\
+          \ cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
+      children: []

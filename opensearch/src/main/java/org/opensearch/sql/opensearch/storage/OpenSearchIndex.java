@@ -165,7 +165,7 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
     }
     if (aliasMapping == null) {
       aliasMapping =
-          cachedFieldOpenSearchTypes.entrySet().stream()
+          OpenSearchDataType.traverseAndFlatten(cachedFieldOpenSearchTypes).entrySet().stream()
               .filter(entry -> entry.getValue().getOriginalPath().isPresent())
               .collect(
                   Collectors.toUnmodifiableMap(

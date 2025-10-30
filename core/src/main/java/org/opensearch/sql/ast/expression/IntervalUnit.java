@@ -14,8 +14,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum IntervalUnit {
   UNKNOWN,
-
   MICROSECOND,
+  MILLISECOND,
   SECOND,
   MINUTE,
   HOUR,

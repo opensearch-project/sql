@@ -7,7 +7,6 @@ package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -24,12 +23,11 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @ToString
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
-@AllArgsConstructor
 public class RareTopN extends UnresolvedPlan {
 
   private UnresolvedPlan child;
   private final CommandType commandType;
-  // arguments: noOfResults: Integer, countField: String, showCount: Boolean
+  private final Integer noOfResults;
   private final List<Argument> arguments;
   private final List<Field> fields;
   private final List<UnresolvedExpression> groupExprList;
@@ -53,5 +51,11 @@ public class RareTopN extends UnresolvedPlan {
   public enum CommandType {
     TOP,
     RARE
+  }
+
+  public enum Option {
+    countField,
+    showCount,
+    useNull,
   }
 }

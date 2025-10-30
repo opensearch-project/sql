@@ -1,5 +1,40 @@
+/*
+{
+  "name": "terms-significant-2",
+  "operation-type": "search",
+  "request-timeout": 7200,
+  "index": "{{index_name | default('big5')}}",
+  "body": {
+    "track_total_hits": false,
+    "size": 0,
+    "query": {
+      "range": {
+        "@timestamp": {
+          "gte": "2023-01-01T00:00:00",
+          "lt": "2023-01-03T00:00:00"
+        }
+      }
+    },
+    "aggs": {
+      "terms": {
+        "terms": {
+          "field": "process.name",
+          "size": 10
+        },
+        "aggs": {
+          "significant_ips": {
+            "significant_terms": {
+              "field": "aws.cloudwatch.log_stream"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+*/
+/* significant_terms is unsupported in PPL */
 source = big5
-| where `@timestamp` >= '2023-01-01 00:00:00'
-  and `@timestamp` < '2023-01-03 00:00:00'
-| stats count() by `process.name`
+| where `@timestamp` >= '2023-01-01 00:00:00' and `@timestamp` < '2023-01-03 00:00:00'
+| stats count() by `process.name`, `aws.cloudwatch.log_stream`
 | head 10

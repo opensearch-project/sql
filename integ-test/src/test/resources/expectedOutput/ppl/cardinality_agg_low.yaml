@@ -1,0 +1,12 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[dc(`cloud.region`)]"
+  children:
+    - name: OpenSearchIndexScan
+      description:
+        request: "OpenSearchQueryRequest(indexName=big5, sourceBuilder={\"from\":0,\"\
+          size\":0,\"timeout\":\"1m\",\"aggregations\":{\"dc(`cloud.region`)\":{\"\
+          cardinality\":{\"field\":\"cloud.region\"}}}}, needClean=true, searchDone=false,\
+          \ pitId=*, cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
+      children: []

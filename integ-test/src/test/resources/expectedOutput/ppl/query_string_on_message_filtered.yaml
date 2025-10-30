@@ -1,0 +1,26 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[agent, process, log, message, tags, cloud, input, @timestamp, ecs, data_stream,\
+      \ meta, host, metrics, aws, event]"
+  children:
+    - name: OpenSearchIndexScan
+      description:
+        request: "OpenSearchQueryRequest(indexName=big5, sourceBuilder={\"from\":0,\"\
+          size\":10,\"timeout\":\"1m\",\"query\":{\"bool\":{\"filter\":[{\"bool\"\
+          :{\"filter\":[{\"range\":{\"@timestamp\":{\"from\":1672704000000,\"to\"\
+          :null,\"include_lower\":true,\"include_upper\":true,\"boost\":1.0}}},{\"\
+          range\":{\"@timestamp\":{\"from\":null,\"to\":1672740000000,\"include_lower\"\
+          :true,\"include_upper\":false,\"boost\":1.0}}}],\"adjust_pure_negative\"\
+          :true,\"boost\":1.0}},{\"query_string\":{\"query\":\"monkey jackal bear\"\
+          ,\"fields\":[\"message^1.0\"],\"type\":\"best_fields\",\"default_operator\"\
+          :\"or\",\"max_determinized_states\":10000,\"enable_position_increments\"\
+          :true,\"fuzziness\":\"AUTO\",\"fuzzy_prefix_length\":0,\"fuzzy_max_expansions\"\
+          :50,\"phrase_slop\":0,\"escape\":false,\"auto_generate_synonyms_phrase_query\"\
+          :true,\"fuzzy_transpositions\":true,\"boost\":1.0}}],\"adjust_pure_negative\"\
+          :true,\"boost\":1.0}},\"_source\":{\"includes\":[\"agent\",\"process\",\"\
+          log\",\"message\",\"tags\",\"cloud\",\"input\",\"@timestamp\",\"ecs\",\"\
+          data_stream\",\"meta\",\"host\",\"metrics\",\"aws\",\"event\"],\"excludes\"\
+          :[]}}, needClean=true, searchDone=false, pitId=*, cursorKeepAlive=null,\
+          \ searchAfter=null, searchResponse=null)"
+      children: []

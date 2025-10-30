@@ -1,0 +1,36 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[tmin, tavg, tmax, auto_span, range_bucket]"
+  children:
+    - name: SortOperator
+      description:
+        sortList:
+          range_bucket:
+            sortOrder: ASC
+            nullOrder: NULL_FIRST
+          auto_span:
+            sortOrder: ASC
+            nullOrder: NULL_FIRST
+      children:
+        - name: AggregationOperator
+          description:
+            aggregators: "[tmin, tavg, tmax]"
+            groupBy: "[auto_span, range_bucket]"
+          children:
+            - name: OpenSearchEvalOperator
+              description:
+                expressions:
+                  range_bucket: "CaseClause(whenClauses=[WhenClause(condition=<(metrics.size,\
+                    \ 100), result=\"range_1\"), WhenClause(condition=and(>=(metrics.size,\
+                    \ 100), <(metrics.size, 1000)), result=\"range_2\"), WhenClause(condition=and(>=(metrics.size,\
+                    \ 1000), <(metrics.size, 2000)), result=\"range_3\"), WhenClause(condition=>=(metrics.size,\
+                    \ 2000), result=\"range_4\")], defaultResult=null)"
+              children:
+                - name: OpenSearchIndexScan
+                  description:
+                    request: "OpenSearchQueryRequest(indexName=big5, sourceBuilder={\"\
+                      from\":0,\"size\":10000,\"timeout\":\"1m\"}, needClean=true,\
+                      \ searchDone=false, pitId=*,\
+                      \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
+                  children: []

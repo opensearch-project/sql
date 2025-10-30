@@ -1,3 +1,18 @@
+/*
+{
+  "name": "desc_sort_timestamp",
+  "operation-type": "search",
+  "index": "{{index_name | default('big5')}}",
+  "body": {
+    "query": {
+      "match_all": {}
+    },
+    "sort" : [
+      {"@timestamp" : "desc"}
+    ]
+  }
+}
+*/
 source = big5
 | sort - `@timestamp`
 | head 10

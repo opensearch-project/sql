@@ -16,11 +16,15 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
+import org.opensearch.sql.expression.parse.RegexCommonUtils;
 
 /** Custom REX_EXTRACT_MULTI function for extracting multiple regex matches. */
 public final class RexExtractMultiFunction extends ImplementorUDF {
@@ -40,7 +44,17 @@ public final class RexExtractMultiFunction extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return PPLOperandTypes.STRING_STRING_INTEGER_INTEGER;
+    // Support both (field, pattern, groupIndex, maxMatch) and (field, pattern, groupName, maxMatch)
+    return UDFOperandMetadata.wrap(
+        (CompositeOperandTypeChecker)
+            PPLOperandTypes.STRING_STRING_INTEGER_INTEGER
+                .getInnerTypeChecker()
+                .or(
+                    OperandTypes.family(
+                        SqlTypeFamily.CHARACTER,
+                        SqlTypeFamily.CHARACTER,
+                        SqlTypeFamily.CHARACTER,
+                        SqlTypeFamily.INTEGER)));
   }
 
   private static class RexExtractMultiImplementor implements NotNullImplementor {
@@ -50,7 +64,7 @@ public final class RexExtractMultiFunction extends ImplementorUDF {
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
       Expression field = translatedOperands.get(0);
       Expression pattern = translatedOperands.get(1);
-      Expression groupIndex = translatedOperands.get(2);
+      Expression groupIndexOrName = translatedOperands.get(2);
       Expression maxMatch = translatedOperands.get(3);
 
       return Expressions.call(
@@ -58,27 +72,97 @@ public final class RexExtractMultiFunction extends ImplementorUDF {
           "extractMultipleGroups",
           field,
           pattern,
-          groupIndex,
+          groupIndexOrName,
           maxMatch);
     }
   }
 
+  /**
+   * Extract multiple regex groups by index (1-based).
+   *
+   * @param text The input text to extract from
+   * @param pattern The regex pattern
+   * @param groupIndex The 1-based group index to extract
+   * @param maxMatch Maximum number of matches to return (0 = unlimited)
+   * @return List of extracted values or null if no matches found
+   */
   public static List<String> extractMultipleGroups(
       String text, String pattern, int groupIndex, int maxMatch) {
-    // Query planner already validates null inputs via NullPolicy.ARG0
+    if (text == null || pattern == null) {
+      return null;
+    }
+
+    return executeMultipleExtractions(
+        text,
+        pattern,
+        maxMatch,
+        matcher -> {
+          if (groupIndex > 0 && groupIndex <= matcher.groupCount()) {
+            return matcher.group(groupIndex);
+          }
+          return null;
+        });
+  }
+
+  /**
+   * Extract multiple occurrences of a named capture group from text. This method avoids the index
+   * shifting issue that occurs with nested unnamed groups.
+   *
+   * @param text The input text to extract from
+   * @param pattern The regex pattern with named capture groups
+   * @param groupName The name of the capture group to extract
+   * @param maxMatch Maximum number of matches to return (0 = unlimited)
+   * @return List of extracted values or null if no matches found
+   */
+  public static List<String> extractMultipleGroups(
+      String text, String pattern, String groupName, int maxMatch) {
+    if (text == null || pattern == null || groupName == null) {
+      return null;
+    }
+
+    return executeMultipleExtractions(
+        text,
+        pattern,
+        maxMatch,
+        matcher -> {
+          try {
+            return matcher.group(groupName);
+          } catch (IllegalArgumentException e) {
+            // Group name doesn't exist in the pattern, stop processing
+            return null;
+          }
+        });
+  }
+
+  /**
+   * Common extraction logic for multiple matches to avoid code duplication.
+   *
+   * @param text The input text
+   * @param pattern The regex pattern
+   * @param maxMatch Maximum matches (0 = unlimited)
+   * @param extractor Function to extract the value from the matcher
+   * @return List of extracted values or null if no matches found
+   */
+  private static List<String> executeMultipleExtractions(
+      String text,
+      String pattern,
+      int maxMatch,
+      java.util.function.Function<Matcher, String> extractor) {
     try {
-      Pattern compiledPattern = Pattern.compile(pattern);
+      Pattern compiledPattern = RegexCommonUtils.getCompiledPattern(pattern);
       Matcher matcher = compiledPattern.matcher(text);
       List<String> matches = new ArrayList<>();
 
       int matchCount = 0;
       while (matcher.find() && (maxMatch == 0 || matchCount < maxMatch)) {
-        if (groupIndex > 0 && groupIndex <= matcher.groupCount()) {
-          String match = matcher.group(groupIndex);
-          if (match != null) {
-            matches.add(match);
-            matchCount++;
-          }
+        String match = extractor.apply(matcher);
+        if (match != null) {
+          matches.add(match);
+          matchCount++;
+        } else {
+          // If extractor returns null, it might indicate an error (like invalid group name)
+          // Stop processing to avoid infinite loop
+          break;
         }
       }
 

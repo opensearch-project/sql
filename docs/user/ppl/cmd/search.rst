@@ -124,7 +124,7 @@ Field Types and Search Behavior
 
 * ``search client_ip="192.168.1.0/24" source=logs``
 
-* Limitations: No wildcards for partial IP matching
+* Limitations: No wildcards for partial IP matching. For wildcard search use multi field with keyword: ``search ip_address.keyword='1*' source=logs`` or WHERE clause: ``source=logs | where cast(ip_address as string) like '1%'``
 
 **Field Type Performance Tips**:
 
