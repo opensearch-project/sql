@@ -1195,10 +1195,10 @@ public class AstBuilderTest {
                 field("per_second(a)"),
                 function(
                     "/",
-                    function("*", field("per_second(a)"), doubleLiteral(1.0)),
+                    function("*", field("per_second(a)"), doubleLiteral(1000.0)),
                     function(
                         "timestampdiff",
-                        stringLiteral("SECOND"),
+                        stringLiteral("MILLISECOND"),
                         field("@timestamp"),
                         function(
                             "timestampadd",
@@ -1220,10 +1220,10 @@ public class AstBuilderTest {
                 field("per_minute(a)"),
                 function(
                     "/",
-                    function("*", field("per_minute(a)"), doubleLiteral(60.0)),
+                    function("*", field("per_minute(a)"), doubleLiteral(60000.0)),
                     function(
                         "timestampdiff",
-                        stringLiteral("SECOND"),
+                        stringLiteral("MILLISECOND"),
                         field("@timestamp"),
                         function(
                             "timestampadd",
@@ -1245,10 +1245,10 @@ public class AstBuilderTest {
                 field("per_hour(a)"),
                 function(
                     "/",
-                    function("*", field("per_hour(a)"), doubleLiteral(3600.0)),
+                    function("*", field("per_hour(a)"), doubleLiteral(3600000.0)),
                     function(
                         "timestampdiff",
-                        stringLiteral("SECOND"),
+                        stringLiteral("MILLISECOND"),
                         field("@timestamp"),
                         function(
                             "timestampadd",
@@ -1270,10 +1270,10 @@ public class AstBuilderTest {
                 field("per_day(a)"),
                 function(
                     "/",
-                    function("*", field("per_day(a)"), doubleLiteral(86400.0)),
+                    function("*", field("per_day(a)"), doubleLiteral(8.64E7)),
                     function(
                         "timestampdiff",
-                        stringLiteral("SECOND"),
+                        stringLiteral("MILLISECOND"),
                         field("@timestamp"),
                         function(
                             "timestampadd",
