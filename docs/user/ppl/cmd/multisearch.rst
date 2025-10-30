@@ -1,6 +1,6 @@
-=============
+===========
 multisearch
-=============
+===========
 
 .. rubric:: Table of contents
 
@@ -10,9 +10,8 @@ multisearch
 
 
 Description
-============
-| (Experimental)
-| Using ``multisearch`` command to run multiple search subsearches and merge their results together. The command allows you to combine data from different queries on the same or different sources, and optionally apply subsequent processing to the combined result set.
+===========
+| Use the ``multisearch`` command to run multiple search subsearches and merge their results together. The command allows you to combine data from different queries on the same or different sources, and optionally apply subsequent processing to the combined result set.
 
 | Key aspects of ``multisearch``:
 
@@ -32,30 +31,10 @@ Description
 
 Syntax
 ======
-| multisearch <subsearch1> <subsearch2> <subsearch3> ...
+multisearch <subsearch1> <subsearch2> <subsearch3> ...
 
-**Requirements:**
-
-* **Minimum 2 subsearches required** - multisearch must contain at least two subsearch blocks
-* **Maximum unlimited** - you can specify as many subsearches as needed
-
-**Subsearch Format:**
-
-* Each subsearch must be enclosed in square brackets: ``[search ...]``
-* Each subsearch must start with the ``search`` keyword
-* Syntax: ``[search source=index | commands...]``
-* Description: Each subsearch is a complete search pipeline enclosed in square brackets
- * Supported commands in subsearches: All PPL commands are supported (``where``, ``eval``, ``fields``, ``head``, ``rename``, ``stats``, ``sort``, ``dedup``, etc.)
-
-* result-processing: optional. Commands applied to the merged results.
-
- * Description: After the multisearch operation, you can apply any PPL command to process the combined results, such as ``stats``, ``sort``, ``head``, etc.
-
-Limitations
-===========
-
-* **Minimum Subsearches**: At least two subsearches must be specified
-* **Schema Compatibility**: When fields with the same name exist across subsearches but have incompatible types, the query will fail with an error. To avoid type conflicts, ensure that fields with the same name have the same data type across all subsearches, or use different field names (e.g., by renaming with ``eval`` or using ``fields`` to select non-conflicting columns).
+* subsearch1, subsearch2, ...: mandatory. At least two subsearches required. Each subsearch must be enclosed in square brackets and start with the ``search`` keyword. Format: ``[search source=index | commands...]``. All PPL commands are supported within subsearches.
+* result-processing: optional. Commands applied to the merged results after the multisearch operation, such as ``stats``, ``sort``, ``head``, etc.
 
 Usage
 =====
@@ -69,7 +48,7 @@ Basic multisearch::
 Example 1: Basic Age Group Analysis
 ===================================
 
-Combine young and adult customers into a single result set for further analysis.
+This example combines young and adult customers into a single result set for further analysis.
 
 PPL query::
 
@@ -87,7 +66,7 @@ PPL query::
 Example 2: Success Rate Pattern
 ===============================
 
-Combine high-balance and all valid accounts for comparison analysis.
+This example combines high-balance and all valid accounts for comparison analysis.
 
 PPL query::
 
@@ -103,14 +82,31 @@ PPL query::
     +-----------+---------+--------------+
 
 Example 3: Timestamp Interleaving
-==================================
+=================================
 
-Combine time-series data from multiple sources with automatic timestamp-based ordering.
+This example combines time-series data from multiple sources with automatic timestamp-based ordering.
 
 PPL query::
 
     os> | multisearch [search source=time_data | where category IN ("A", "B")] [search source=time_data2 | where category IN ("E", "F")] | fields @timestamp, category, value, timestamp | head 5;
     fetched rows / total rows = 5/5
+
+This example shows how multisearch gracefully handles cases where some subsearches return no results.
+
+PPL query::
+
+    os> | multisearch [search source=accounts | where age > 25 | fields firstname, age] [search source=accounts | where age > 200 | eval impossible = "yes" | fields firstname, age, impossible] | head 5;
+    fetched rows / total rows = 4/4
+    +-----------+-----+------------+
+    | firstname | age | impossible |
+    |-----------+-----+------------|
+    | Nanette   | 28  | null       |
+    | Amber     | 32  | null       |
+    | Hattie    | 36  | null       |
+    | Dale      | 37  | null       |
+    +-----------+-----+------------+
+
+Example 5: Type Compatibility - Missing Fields
     +---------------------+----------+-------+---------------------+
     | @timestamp          | category | value | timestamp           |
     |---------------------+----------+-------+---------------------|
@@ -122,9 +118,8 @@ PPL query::
     +---------------------+----------+-------+---------------------+
 
 Example 4: Type Compatibility - Missing Fields
-=================================================
 
-Demonstrate how missing fields are handled with NULL insertion.
+This example demonstrates how missing fields are handled with NULL insertion.
 
 PPL query::
 
@@ -139,3 +134,25 @@ PPL query::
     | Hattie    | 36  | null       |
     +-----------+-----+------------+
 
+
+This example shows when the same field name has incompatible types across subsearches, the system automatically renames conflicting fields with numeric suffixes.
+
+PPL query::
+
+    os> | multisearch [search source=accounts | fields firstname, age, balance | head 2] [search source=locations | fields description, age, place_id | head 2];
+    fetched rows / total rows = 4/4
+    +-----------+-----+---------+------------------+------+----------+
+    | firstname | age | balance | description      | age0 | place_id |
+    |-----------+-----+---------+------------------+------+----------|
+    | Amber     | 32  | 39225   | null             | null | null     |
+    | Hattie    | 36  | 5686    | null             | null | null     |
+    | null      | null| null    | Central Park     | old  | 1001     |
+    | null      | null| null    | Times Square     | modern| 1002    |
+    +-----------+-----+---------+------------------+------+----------+
+
+In this example, the ``age`` field has type ``bigint`` in accounts but type ``string`` in locations. The system keeps the first occurrence as ``age`` (bigint) and renames the second occurrence to ``age0`` (string), preserving all data while avoiding type conflicts.
+
+Limitations
+
+* **Minimum Subsearches**: At least two subsearches must be specified
+* **Schema Compatibility**: When fields with the same name exist across subsearches but have incompatible types, the query will fail with an error. To avoid type conflicts, ensure that fields with the same name have the same data type across all subsearches, or use different field names (e.g., by renaming with ``eval`` or using ``fields`` to select non-conflicting columns).
