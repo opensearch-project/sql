@@ -1878,12 +1878,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       toAddHintsOnAggregate = true;
       // add isNotNull filter before aggregation to filter out null bucket
       List<RexNode> groupByList =
-          groupExprList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
+          groupExprList.stream()
+              .map(expr -> rexVisitor.analyze(expr, context))
+              .collect(Collectors.toList());
       context.relBuilder.filter(
           PlanUtils.getSelectColumns(groupByList).stream()
               .map(context.relBuilder::field)
               .map(context.relBuilder::isNotNull)
-              .toList());
+              .collect(Collectors.toList()));
     }
     aggregateWithTrimming(groupExprList, aggExprList, context);
 
