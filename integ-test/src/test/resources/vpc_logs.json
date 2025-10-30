@@ -1,6 +1,200 @@
-{"index":{"_id":"1"}}
-{"version":"2","account-id":"111111111111","interface-id":"eni-0e250409d410e1290","region":"ap-southeast-2","vpc-id":"vpc-0d4d4e82b7d743527","subnet-id":"subnet-aaaaaaaa012345678","az-id":"apse2-az3","instance-id":"i-0c50d5961bcb2d47b","srcaddr":"10.0.0.200","dstaddr":"162.142.125.177","srcport":12313,"dstport":38471,"protocol":"6","packets":1,"bytes":440,"pkt-src-aws-service":"-","pkt-dst-aws-service":"S3","flow-direction":"egress","start":1674898496,"end":1674898507,"action":"REJECT","log-status":"OK"}
-{"index":{"_id":"2"}}
-{"version":"2","account-id":"111111111111","interface-id":"eni-0e250409d410e1291","region":"ap-southeast-2","vpc-id":"vpc-0d4d4e82b7d743527","subnet-id":"subnet-aaaaaaaa012345678","az-id":"apse2-az3","instance-id":"i-0c50d5961bcb2d47c","srcaddr":"10.0.0.201","dstaddr":"162.142.125.178","srcport":12314,"dstport":38472,"protocol":"6","packets":2,"bytes":880,"pkt-src-aws-service":"-","pkt-dst-aws-service":"EC2","flow-direction":"ingress","start":1674898497,"end":1674898508,"action":"ACCEPT","log-status":"OK"}
-{"index":{"_id":"3"}}
-{"version":"2","account-id":"111111111111","interface-id":"eni-0e250409d410e1292","region":"ap-southeast-2","vpc-id":"vpc-0d4d4e82b7d743527","subnet-id":"subnet-aaaaaaaa012345678","az-id":"apse2-az3","instance-id":"i-0c50d5961bcb2d47d","srcaddr":"10.0.0.202","dstaddr":"162.142.125.179","srcport":12315,"dstport":38473,"protocol":"6","packets":3,"bytes":1320,"pkt-src-aws-service":"-","pkt-dst-aws-service":"AMAZON","flow-direction":"egress","start":1674898498,"end":1674898509,"action":"ACCEPT","log-status":"OK"}
+{"index": {"_id": "1"}}
+{"start_time": "2025-09-21T06:53:40.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.27.251", "dstaddr": "10.0.239.177", "protocol": "6", "total_count": 9, "total_bytes": 37534, "total_packets": 49}
+{"index": {"_id": "2"}}
+{"start_time": "2025-05-24T21:57:29.858575+0000", "action": "ACCEPT", "srcaddr": "182.53.30.77", "dstaddr": "10.0.11.144", "protocol": "6", "total_count": 9, "total_bytes": 192355, "total_packets": 155}
+{"index": {"_id": "3"}}
+{"start_time": "2025-08-21T08:12:46.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.241.127", "dstaddr": "40.106.220.213", "protocol": "6", "total_count": 9, "total_bytes": 31605, "total_packets": 35}
+{"index": {"_id": "4"}}
+{"start_time": "2025-05-13T08:44:40.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.206.143", "dstaddr": "135.27.167.55", "protocol": "1", "total_count": 2, "total_bytes": 730, "total_packets": 10}
+{"index": {"_id": "5"}}
+{"start_time": "2025-10-27T16:25:42.858575+0000", "action": "ACCEPT", "srcaddr": "118.117.89.55", "dstaddr": "10.0.211.246", "protocol": "6", "total_count": 9, "total_bytes": 67196, "total_packets": 107}
+{"index": {"_id": "6"}}
+{"start_time": "2025-07-28T21:06:03.858575+0000", "action": "REJECT", "srcaddr": "10.0.56.120", "dstaddr": "10.0.156.146", "protocol": "6", "total_count": 1, "total_bytes": 52, "total_packets": 1}
+{"index": {"_id": "7"}}
+{"start_time": "2025-07-07T18:16:57.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.213.143", "dstaddr": "103.188.15.206", "protocol": "6", "total_count": 8, "total_bytes": 32968, "total_packets": 26}
+{"index": {"_id": "8"}}
+{"start_time": "2025-08-16T20:27:22.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.74.231", "dstaddr": "10.0.195.244", "protocol": "6", "total_count": 5, "total_bytes": 64885, "total_packets": 95}
+{"index": {"_id": "9"}}
+{"start_time": "2025-06-08T04:24:13.858575+0000", "action": "ACCEPT", "srcaddr": "39.40.182.87", "dstaddr": "10.0.3.220", "protocol": "6", "total_count": 6, "total_bytes": 176391, "total_packets": 141}
+{"index": {"_id": "10"}}
+{"start_time": "2025-09-18T18:09:58.858575+0000", "action": "ACCEPT", "srcaddr": "213.227.231.57", "dstaddr": "10.0.74.110", "protocol": "6", "total_count": 11, "total_bytes": 182055, "total_packets": 159}
+{"index": {"_id": "11"}}
+{"start_time": "2025-10-01T11:37:46.858575+0000", "action": "ACCEPT", "srcaddr": "120.70.95.174", "dstaddr": "10.0.92.100", "protocol": "17", "total_count": 14, "total_bytes": 25335, "total_packets": 45}
+{"index": {"_id": "12"}}
+{"start_time": "2025-07-07T00:38:16.858575+0000", "action": "REJECT", "srcaddr": "10.0.210.196", "dstaddr": "10.0.164.70", "protocol": "17", "total_count": 1, "total_bytes": 385, "total_packets": 5}
+{"index": {"_id": "13"}}
+{"start_time": "2025-05-31T15:08:25.858575+0000", "action": "REJECT", "srcaddr": "10.0.194.48", "dstaddr": "10.0.252.82", "protocol": "6", "total_count": 1, "total_bytes": 350, "total_packets": 5}
+{"index": {"_id": "14"}}
+{"start_time": "2025-07-03T03:27:57.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.67.31", "dstaddr": "10.0.215.177", "protocol": "6", "total_count": 2, "total_bytes": 64005, "total_packets": 85}
+{"index": {"_id": "15"}}
+{"start_time": "2025-08-11T09:50:23.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.230.218", "dstaddr": "10.0.166.73", "protocol": "6", "total_count": 14, "total_bytes": 58140, "total_packets": 76}
+{"index": {"_id": "16"}}
+{"start_time": "2025-06-13T06:31:10.858575+0000", "action": "ACCEPT", "srcaddr": "6.186.106.13", "dstaddr": "10.0.194.75", "protocol": "6", "total_count": 10, "total_bytes": 210396, "total_packets": 197}
+{"index": {"_id": "17"}}
+{"start_time": "2025-07-12T00:58:59.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.221.154", "dstaddr": "221.136.21.103", "protocol": "17", "total_count": 8, "total_bytes": 8386, "total_packets": 14}
+{"index": {"_id": "18"}}
+{"start_time": "2025-10-08T01:35:18.858575+0000", "action": "REJECT", "srcaddr": "10.0.126.80", "dstaddr": "199.233.17.192", "protocol": "6", "total_count": 1, "total_bytes": 128, "total_packets": 2}
+{"index": {"_id": "19"}}
+{"start_time": "2025-10-22T09:29:54.858575+0000", "action": "REJECT", "srcaddr": "10.0.96.32", "dstaddr": "218.167.81.66", "protocol": "6", "total_count": 1, "total_bytes": 220, "total_packets": 4}
+{"index": {"_id": "20"}}
+{"start_time": "2025-06-18T04:37:11.858575+0000", "action": "REJECT", "srcaddr": "10.0.168.154", "dstaddr": "147.103.27.169", "protocol": "6", "total_count": 1, "total_bytes": 420, "total_packets": 5}
+{"index": {"_id": "21"}}
+{"start_time": "2025-05-09T07:25:29.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.14.9", "dstaddr": "10.0.83.167", "protocol": "6", "total_count": 1, "total_bytes": 175820, "total_packets": 118}
+{"index": {"_id": "22"}}
+{"start_time": "2025-07-19T11:07:03.858575+0000", "action": "ACCEPT", "srcaddr": "45.210.22.48", "dstaddr": "10.0.161.180", "protocol": "6", "total_count": 12, "total_bytes": 70006, "total_packets": 58}
+{"index": {"_id": "23"}}
+{"start_time": "2025-06-21T11:42:48.858575+0000", "action": "ACCEPT", "srcaddr": "202.122.233.69", "dstaddr": "10.0.229.224", "protocol": "6", "total_count": 6, "total_bytes": 59852, "total_packets": 52}
+{"index": {"_id": "24"}}
+{"start_time": "2025-06-02T23:13:40.858575+0000", "action": "ACCEPT", "srcaddr": "1.24.59.183", "dstaddr": "10.0.60.144", "protocol": "6", "total_count": 5, "total_bytes": 48200, "total_packets": 50}
+{"index": {"_id": "25"}}
+{"start_time": "2025-06-02T05:07:52.858575+0000", "action": "ACCEPT", "srcaddr": "139.64.55.38", "dstaddr": "10.0.138.175", "protocol": "17", "total_count": 6, "total_bytes": 11856, "total_packets": 39}
+{"index": {"_id": "26"}}
+{"start_time": "2025-09-05T04:28:24.858575+0000", "action": "ACCEPT", "srcaddr": "214.53.147.28", "dstaddr": "10.0.149.151", "protocol": "17", "total_count": 11, "total_bytes": 5307, "total_packets": 29}
+{"index": {"_id": "27"}}
+{"start_time": "2025-09-19T03:49:51.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.231.176", "dstaddr": "34.55.235.91", "protocol": "6", "total_count": 6, "total_bytes": 149625, "total_packets": 171}
+{"index": {"_id": "28"}}
+{"start_time": "2025-07-16T08:06:05.858575+0000", "action": "ACCEPT", "srcaddr": "219.195.109.54", "dstaddr": "10.0.147.33", "protocol": "6", "total_count": 12, "total_bytes": 119064, "total_packets": 82}
+{"index": {"_id": "29"}}
+{"start_time": "2025-08-01T20:39:23.858575+0000", "action": "ACCEPT", "srcaddr": "204.252.1.34", "dstaddr": "10.0.2.231", "protocol": "6", "total_count": 6, "total_bytes": 44128, "total_packets": 56}
+{"index": {"_id": "30"}}
+{"start_time": "2025-10-12T18:22:52.858575+0000", "action": "ACCEPT", "srcaddr": "185.181.124.51", "dstaddr": "10.0.194.43", "protocol": "47", "total_count": 9, "total_bytes": 411, "total_packets": 3}
+{"index": {"_id": "31"}}
+{"start_time": "2025-10-29T03:40:55.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.165.194", "dstaddr": "223.252.77.226", "protocol": "6", "total_count": 11, "total_bytes": 214512, "total_packets": 164}
+{"index": {"_id": "32"}}
+{"start_time": "2025-05-22T05:06:51.858575+0000", "action": "ACCEPT", "srcaddr": "30.193.135.22", "dstaddr": "10.0.167.74", "protocol": "6", "total_count": 15, "total_bytes": 183353, "total_packets": 181}
+{"index": {"_id": "33"}}
+{"start_time": "2025-08-16T07:32:40.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.154.101", "dstaddr": "10.0.116.210", "protocol": "6", "total_count": 12, "total_bytes": 158235, "total_packets": 137}
+{"index": {"_id": "34"}}
+{"start_time": "2025-10-25T04:13:11.858575+0000", "action": "ACCEPT", "srcaddr": "180.211.253.62", "dstaddr": "10.0.148.76", "protocol": "17", "total_count": 8, "total_bytes": 17748, "total_packets": 34}
+{"index": {"_id": "35"}}
+{"start_time": "2025-10-06T14:32:09.858575+0000", "action": "ACCEPT", "srcaddr": "175.2.169.160", "dstaddr": "10.0.149.106", "protocol": "6", "total_count": 14, "total_bytes": 13806, "total_packets": 26}
+{"index": {"_id": "36"}}
+{"start_time": "2025-08-22T13:59:28.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.163.148", "dstaddr": "167.14.167.240", "protocol": "47", "total_count": 1, "total_bytes": 1755, "total_packets": 9}
+{"index": {"_id": "37"}}
+{"start_time": "2025-06-06T02:57:13.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.170.33", "dstaddr": "201.127.20.238", "protocol": "17", "total_count": 1, "total_bytes": 6129, "total_packets": 9}
+{"index": {"_id": "38"}}
+{"start_time": "2025-05-23T03:10:24.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.99.147", "dstaddr": "182.58.134.190", "protocol": "6", "total_count": 3, "total_bytes": 94656, "total_packets": 174}
+{"index": {"_id": "39"}}
+{"start_time": "2025-06-18T02:53:38.858575+0000", "action": "ACCEPT", "srcaddr": "202.158.178.15", "dstaddr": "10.0.25.187", "protocol": "6", "total_count": 3, "total_bytes": 113520, "total_packets": 129}
+{"index": {"_id": "40"}}
+{"start_time": "2025-08-01T01:27:16.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.8.9", "dstaddr": "10.0.160.34", "protocol": "17", "total_count": 14, "total_bytes": 17501, "total_packets": 37}
+{"index": {"_id": "41"}}
+{"start_time": "2025-08-26T17:30:21.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.249.79", "dstaddr": "10.0.163.35", "protocol": "6", "total_count": 2, "total_bytes": 118000, "total_packets": 80}
+{"index": {"_id": "42"}}
+{"start_time": "2025-05-16T04:06:52.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.177.109", "dstaddr": "10.0.56.203", "protocol": "6", "total_count": 10, "total_bytes": 34371, "total_packets": 67}
+{"index": {"_id": "43"}}
+{"start_time": "2025-06-30T11:03:56.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.230.242", "dstaddr": "10.0.163.246", "protocol": "6", "total_count": 2, "total_bytes": 116459, "total_packets": 127}
+{"index": {"_id": "44"}}
+{"start_time": "2025-10-15T12:04:50.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.247.123", "dstaddr": "10.0.248.107", "protocol": "17", "total_count": 13, "total_bytes": 1881, "total_packets": 11}
+{"index": {"_id": "45"}}
+{"start_time": "2025-10-13T16:09:54.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.140.174", "dstaddr": "150.160.32.84", "protocol": "6", "total_count": 10, "total_bytes": 30910, "total_packets": 22}
+{"index": {"_id": "46"}}
+{"start_time": "2025-10-19T21:25:27.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.163.249", "dstaddr": "120.67.35.74", "protocol": "6", "total_count": 5, "total_bytes": 187200, "total_packets": 200}
+{"index": {"_id": "47"}}
+{"start_time": "2025-05-21T11:13:18.858575+0000", "action": "ACCEPT", "srcaddr": "169.225.43.124", "dstaddr": "10.0.97.193", "protocol": "6", "total_count": 1, "total_bytes": 27650, "total_packets": 50}
+{"index": {"_id": "48"}}
+{"start_time": "2025-07-06T17:18:14.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.202.93", "dstaddr": "206.209.120.252", "protocol": "17", "total_count": 11, "total_bytes": 10656, "total_packets": 18}
+{"index": {"_id": "49"}}
+{"start_time": "2025-06-11T13:36:41.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.215.117", "dstaddr": "10.0.199.250", "protocol": "6", "total_count": 15, "total_bytes": 52542, "total_packets": 42}
+{"index": {"_id": "50"}}
+{"start_time": "2025-08-13T14:42:17.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.194.195", "dstaddr": "47.145.111.246", "protocol": "6", "total_count": 15, "total_bytes": 77113, "total_packets": 59}
+{"index": {"_id": "51"}}
+{"start_time": "2025-08-18T01:26:41.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.143.105", "dstaddr": "223.146.46.238", "protocol": "47", "total_count": 5, "total_bytes": 1764, "total_packets": 12}
+{"index": {"_id": "52"}}
+{"start_time": "2025-06-20T00:54:27.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.67.176", "dstaddr": "118.124.149.78", "protocol": "6", "total_count": 1, "total_bytes": 92168, "total_packets": 164}
+{"index": {"_id": "53"}}
+{"start_time": "2025-05-21T06:25:29.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.46.117", "dstaddr": "132.210.20.46", "protocol": "50", "total_count": 2, "total_bytes": 140, "total_packets": 2}
+{"index": {"_id": "54"}}
+{"start_time": "2025-05-18T15:18:33.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.161.136", "dstaddr": "218.219.227.80", "protocol": "6", "total_count": 3, "total_bytes": 50680, "total_packets": 40}
+{"index": {"_id": "55"}}
+{"start_time": "2025-05-09T10:50:30.858575+0000", "action": "ACCEPT", "srcaddr": "61.14.212.211", "dstaddr": "10.0.42.118", "protocol": "17", "total_count": 12, "total_bytes": 11076, "total_packets": 39}
+{"index": {"_id": "56"}}
+{"start_time": "2025-05-16T07:22:23.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.132.168", "dstaddr": "10.0.107.6", "protocol": "6", "total_count": 3, "total_bytes": 10878, "total_packets": 21}
+{"index": {"_id": "57"}}
+{"start_time": "2025-06-16T09:32:18.858575+0000", "action": "ACCEPT", "srcaddr": "174.146.45.248", "dstaddr": "10.0.16.145", "protocol": "6", "total_count": 2, "total_bytes": 163989, "total_packets": 137}
+{"index": {"_id": "58"}}
+{"start_time": "2025-05-30T01:59:37.858575+0000", "action": "ACCEPT", "srcaddr": "192.228.108.151", "dstaddr": "10.0.127.142", "protocol": "17", "total_count": 5, "total_bytes": 114, "total_packets": 1}
+{"index": {"_id": "59"}}
+{"start_time": "2025-09-19T15:41:12.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.77.5", "dstaddr": "213.39.134.186", "protocol": "17", "total_count": 12, "total_bytes": 9432, "total_packets": 24}
+{"index": {"_id": "60"}}
+{"start_time": "2025-07-12T15:05:15.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.91.27", "dstaddr": "11.111.108.48", "protocol": "6", "total_count": 1, "total_bytes": 259776, "total_packets": 198}
+{"index": {"_id": "61"}}
+{"start_time": "2025-09-30T19:06:29.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.101.123", "dstaddr": "10.0.231.202", "protocol": "6", "total_count": 2, "total_bytes": 75552, "total_packets": 96}
+{"index": {"_id": "62"}}
+{"start_time": "2025-05-09T01:50:41.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.3.100", "dstaddr": "10.0.182.11", "protocol": "6", "total_count": 5, "total_bytes": 68768, "total_packets": 56}
+{"index": {"_id": "63"}}
+{"start_time": "2025-07-28T21:56:37.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.55.35", "dstaddr": "207.1.132.190", "protocol": "6", "total_count": 3, "total_bytes": 70146, "total_packets": 54}
+{"index": {"_id": "64"}}
+{"start_time": "2025-05-25T23:52:18.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.108.29", "dstaddr": "10.0.173.102", "protocol": "6", "total_count": 7, "total_bytes": 17244, "total_packets": 18}
+{"index": {"_id": "65"}}
+{"start_time": "2025-08-27T01:53:23.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.211.40", "dstaddr": "115.77.29.14", "protocol": "1", "total_count": 15, "total_bytes": 2464, "total_packets": 14}
+{"index": {"_id": "66"}}
+{"start_time": "2025-05-30T07:32:16.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.150.131", "dstaddr": "25.206.144.45", "protocol": "6", "total_count": 4, "total_bytes": 163082, "total_packets": 146}
+{"index": {"_id": "67"}}
+{"start_time": "2025-07-10T19:06:03.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.13.162", "dstaddr": "223.41.232.96", "protocol": "6", "total_count": 11, "total_bytes": 135296, "total_packets": 112}
+{"index": {"_id": "68"}}
+{"start_time": "2025-07-19T22:23:50.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.138.68", "dstaddr": "10.0.9.3", "protocol": "17", "total_count": 11, "total_bytes": 11408, "total_packets": 31}
+{"index": {"_id": "69"}}
+{"start_time": "2025-06-04T00:12:04.858575+0000", "action": "ACCEPT", "srcaddr": "186.141.33.213", "dstaddr": "10.0.73.101", "protocol": "6", "total_count": 10, "total_bytes": 62988, "total_packets": 116}
+{"index": {"_id": "70"}}
+{"start_time": "2025-06-20T03:43:36.858575+0000", "action": "ACCEPT", "srcaddr": "192.252.93.160", "dstaddr": "10.0.94.154", "protocol": "6", "total_count": 12, "total_bytes": 111752, "total_packets": 122}
+{"index": {"_id": "71"}}
+{"start_time": "2025-08-20T05:09:17.858575+0000", "action": "ACCEPT", "srcaddr": "195.116.62.18", "dstaddr": "10.0.51.239", "protocol": "17", "total_count": 11, "total_bytes": 6808, "total_packets": 46}
+{"index": {"_id": "72"}}
+{"start_time": "2025-05-17T21:32:06.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.64.92", "dstaddr": "172.224.215.114", "protocol": "17", "total_count": 10, "total_bytes": 18496, "total_packets": 34}
+{"index": {"_id": "73"}}
+{"start_time": "2025-08-27T18:37:55.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.146.60", "dstaddr": "10.0.195.114", "protocol": "6", "total_count": 14, "total_bytes": 120127, "total_packets": 131}
+{"index": {"_id": "74"}}
+{"start_time": "2025-07-22T08:49:53.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.159.35", "dstaddr": "192.198.160.127", "protocol": "47", "total_count": 9, "total_bytes": 1665, "total_packets": 9}
+{"index": {"_id": "75"}}
+{"start_time": "2025-09-27T17:01:37.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.107.130", "dstaddr": "211.213.211.106", "protocol": "50", "total_count": 13, "total_bytes": 2774, "total_packets": 19}
+{"index": {"_id": "76"}}
+{"start_time": "2025-05-17T08:23:05.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.166.194", "dstaddr": "10.0.181.254", "protocol": "6", "total_count": 12, "total_bytes": 83249, "total_packets": 83}
+{"index": {"_id": "77"}}
+{"start_time": "2025-10-14T13:23:11.858575+0000", "action": "REJECT", "srcaddr": "10.0.7.206", "dstaddr": "207.190.86.69", "protocol": "6", "total_count": 1, "total_bytes": 142, "total_packets": 2}
+{"index": {"_id": "78"}}
+{"start_time": "2025-06-23T05:30:35.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.250.235", "dstaddr": "10.0.100.62", "protocol": "1", "total_count": 11, "total_bytes": 680, "total_packets": 4}
+{"index": {"_id": "79"}}
+{"start_time": "2025-08-17T21:28:18.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.43.29", "dstaddr": "10.0.46.89", "protocol": "6", "total_count": 2, "total_bytes": 21030, "total_packets": 30}
+{"index": {"_id": "80"}}
+{"start_time": "2025-08-01T06:29:53.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.78.132", "dstaddr": "10.0.207.33", "protocol": "6", "total_count": 11, "total_bytes": 76635, "total_packets": 65}
+{"index": {"_id": "81"}}
+{"start_time": "2025-10-13T07:41:19.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.77.97", "dstaddr": "72.196.249.251", "protocol": "6", "total_count": 6, "total_bytes": 120992, "total_packets": 152}
+{"index": {"_id": "82"}}
+{"start_time": "2025-05-03T16:05:16.858575+0000", "action": "ACCEPT", "srcaddr": "60.248.225.125", "dstaddr": "10.0.91.194", "protocol": "17", "total_count": 4, "total_bytes": 6480, "total_packets": 36}
+{"index": {"_id": "83"}}
+{"start_time": "2025-06-09T22:21:56.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.107.121", "dstaddr": "222.244.32.139", "protocol": "6", "total_count": 15, "total_bytes": 51828, "total_packets": 84}
+{"index": {"_id": "84"}}
+{"start_time": "2025-06-25T19:48:03.858575+0000", "action": "ACCEPT", "srcaddr": "201.141.77.3", "dstaddr": "10.0.118.54", "protocol": "6", "total_count": 13, "total_bytes": 103024, "total_packets": 94}
+{"index": {"_id": "85"}}
+{"start_time": "2025-10-07T03:38:12.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.227.35", "dstaddr": "10.0.62.137", "protocol": "6", "total_count": 5, "total_bytes": 127776, "total_packets": 176}
+{"index": {"_id": "86"}}
+{"start_time": "2025-10-14T11:20:39.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.25.231", "dstaddr": "63.198.81.91", "protocol": "47", "total_count": 2, "total_bytes": 1830, "total_packets": 10}
+{"index": {"_id": "87"}}
+{"start_time": "2025-08-27T04:01:58.858575+0000", "action": "ACCEPT", "srcaddr": "180.230.60.147", "dstaddr": "10.0.83.183", "protocol": "17", "total_count": 5, "total_bytes": 2568, "total_packets": 8}
+{"index": {"_id": "88"}}
+{"start_time": "2025-06-05T12:56:41.858575+0000", "action": "ACCEPT", "srcaddr": "210.231.198.95", "dstaddr": "10.0.170.20", "protocol": "6", "total_count": 9, "total_bytes": 17712, "total_packets": 12}
+{"index": {"_id": "89"}}
+{"start_time": "2025-08-17T11:35:53.858575+0000", "action": "ACCEPT", "srcaddr": "59.123.7.27", "dstaddr": "10.0.75.184", "protocol": "6", "total_count": 2, "total_bytes": 24534, "total_packets": 47}
+{"index": {"_id": "90"}}
+{"start_time": "2025-05-10T20:51:45.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.171.150", "dstaddr": "10.0.53.75", "protocol": "6", "total_count": 12, "total_bytes": 33516, "total_packets": 49}
+{"index": {"_id": "91"}}
+{"start_time": "2025-09-23T08:53:16.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.117.121", "dstaddr": "139.201.180.4", "protocol": "6", "total_count": 2, "total_bytes": 35035, "total_packets": 55}
+{"index": {"_id": "92"}}
+{"start_time": "2025-08-18T22:44:40.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.170.252", "dstaddr": "10.0.224.119", "protocol": "17", "total_count": 10, "total_bytes": 17182, "total_packets": 22}
+{"index": {"_id": "93"}}
+{"start_time": "2025-08-11T01:38:54.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.186.67", "dstaddr": "21.143.92.15", "protocol": "6", "total_count": 13, "total_bytes": 115440, "total_packets": 111}
+{"index": {"_id": "94"}}
+{"start_time": "2025-07-18T08:51:24.858575+0000", "action": "ACCEPT", "srcaddr": "121.65.198.154", "dstaddr": "10.0.113.54", "protocol": "6", "total_count": 1, "total_bytes": 267655, "total_packets": 199}
+{"index": {"_id": "95"}}
+{"start_time": "2025-05-12T14:02:16.858575+0000", "action": "ACCEPT", "srcaddr": "115.27.64.3", "dstaddr": "10.0.159.18", "protocol": "6", "total_count": 11, "total_bytes": 164891, "total_packets": 181}
+{"index": {"_id": "96"}}
+{"start_time": "2025-10-08T06:03:32.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.115.237", "dstaddr": "161.255.15.161", "protocol": "6", "total_count": 12, "total_bytes": 60588, "total_packets": 66}
+{"index": {"_id": "97"}}
+{"start_time": "2025-05-08T00:49:40.858575+0000", "action": "ACCEPT", "srcaddr": "10.0.229.44", "dstaddr": "194.69.206.150", "protocol": "6", "total_count": 6, "total_bytes": 89900, "total_packets": 62}
+{"index": {"_id": "98"}}
+{"start_time": "2025-10-04T08:31:06.858575+0000", "action": "REJECT", "srcaddr": "10.0.151.99", "dstaddr": "10.0.47.132", "protocol": "6", "total_count": 1, "total_bytes": 118, "total_packets": 2}
+{"index": {"_id": "99"}}
+{"start_time": "2025-06-25T12:26:40.858575+0000", "action": "ACCEPT", "srcaddr": "214.242.197.139", "dstaddr": "10.0.109.2", "protocol": "6", "total_count": 9, "total_bytes": 58058, "total_packets": 77}
+{"index": {"_id": "100"}}
+{"start_time": "2025-05-29T07:26:27.858575+0000", "action": "ACCEPT", "srcaddr": "135.29.206.112", "dstaddr": "10.0.192.106", "protocol": "6", "total_count": 6, "total_bytes": 53280, "total_packets": 96}
