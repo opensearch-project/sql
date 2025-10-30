@@ -94,7 +94,7 @@ public class PPLAggregateConvertRuleTest {
     assertEquals(
         "LogicalAggregate(group=[{0}], agg#0=[SUM($1)])\n"
             + "  LogicalProject(b=[$1], $f2=[+($0, 10)])\n",
-        aggregate.explain().replace("\\r\\n", "\\n"));
+        aggregate.explain().replaceAll("\\r\\n", "\n"));
     doAnswer(
             invocation -> {
               // Check the final plan
@@ -106,7 +106,7 @@ public class PPLAggregateConvertRuleTest {
                       + "  LogicalAggregate(group=[{0}], null_SUM=[SUM($1)],"
                       + " null_COUNT=[COUNT($1)])\n"
                       + "    LogicalProject(b=[$1], a=[$0])\n",
-                  rel.explain().replace("\\r\\n", "\\n"));
+                  rel.explain().replaceAll("\\r\\n", "\n"));
               return null;
             })
         .when(mockedCall)
