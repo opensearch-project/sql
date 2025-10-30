@@ -27,6 +27,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     loadIndex(Index.BANK);
     loadIndex(Index.EVENTS_NULL);
     loadIndex(Index.TIME_TEST_DATA);
+    loadIndex(Index.TELEMETRY);
   }
 
   @Test
@@ -867,9 +868,8 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
 
     JSONObject result =
         executeQuery("source=events_null | bin @timestamp bins=3 | stats count() by @timestamp");
-    // TODO: @timestamp should keep date as its type, to be addressed by this issue:
-    // https://github.com/opensearch-project/sql/issues/4317
-    verifySchema(result, schema("count()", null, "bigint"), schema("@timestamp", null, "string"));
+    verifySchema(
+        result, schema("count()", null, "bigint"), schema("@timestamp", null, "timestamp"));
     // auto_date_histogram will choose span=5m for bins=3
     verifyDataRows(result, rows(5, "2024-07-01 00:00:00"), rows(1, "2024-07-01 00:05:00"));
 
@@ -907,10 +907,8 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             "source=events_null | bin @timestamp bins=3 | stats avg(cpu_usage) by @timestamp");
-    // TODO: @timestamp should keep date as its type, to be addressed by this issue:
-    // https://github.com/opensearch-project/sql/issues/4317
     verifySchema(
-        result, schema("avg(cpu_usage)", null, "double"), schema("@timestamp", null, "string"));
+        result, schema("avg(cpu_usage)", null, "double"), schema("@timestamp", null, "timestamp"));
     // auto_date_histogram will choose span=5m for bins=3
     verifyDataRows(result, rows(44.62, "2024-07-01 00:00:00"), rows(50.0, "2024-07-01 00:05:00"));
 
@@ -940,5 +938,132 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         rows(42.1, "2024-07-01 00:03:00"),
         rows(41.8, "2024-07-01 00:04:00"),
         rows(50.0, "2024-07-01 00:05:00"));
+  }
+
+  @Test
+  public void testStatsWithBinsOnTimeAndTermField_Count() throws IOException {
+    // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
+    enabledOnlyWhenPushdownIsEnabled();
+
+    JSONObject result =
+        executeQuery(
+            "source=events_null | bin @timestamp bins=3 | stats bucket_nullable=false count() by"
+                + " region, @timestamp");
+    verifySchema(
+        result,
+        schema("count()", null, "bigint"),
+        schema("region", null, "string"),
+        schema("@timestamp", null, "timestamp"));
+    // auto_date_histogram will choose span=5m for bins=3
+    verifyDataRows(
+        result,
+        rows(1, "eu-west", "2024-07-01 00:03:00"),
+        rows(2, "us-east", "2024-07-01 00:00:00"),
+        rows(1, "us-east", "2024-07-01 00:05:00"),
+        rows(2, "us-west", "2024-07-01 00:01:00"));
+  }
+
+  @Test
+  public void testStatsWithBinsOnTimeAndTermField_Avg() throws IOException {
+    // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
+    enabledOnlyWhenPushdownIsEnabled();
+
+    JSONObject result =
+        executeQuery(
+            "source=events_null | bin @timestamp bins=3 | stats bucket_nullable=false "
+                + " avg(cpu_usage) by region, @timestamp");
+    verifySchema(
+        result,
+        schema("avg(cpu_usage)", null, "double"),
+        schema("region", null, "string"),
+        schema("@timestamp", null, "timestamp"));
+    // auto_date_histogram will choose span=5m for bins=3
+    verifyDataRows(
+        result,
+        rows(42.1, "eu-west", "2024-07-01 00:03:00"),
+        rows(50.25, "us-east", "2024-07-01 00:00:00"),
+        rows(50, "us-east", "2024-07-01 00:05:00"),
+        rows(40.25, "us-west", "2024-07-01 00:01:00"));
+  }
+
+  @Test
+  public void testBinWithNestedFieldWithoutExplicitProjection() throws IOException {
+    // Test bin command on nested field without explicit fields projection
+    // This reproduces the bug from https://github.com/opensearch-project/sql/issues/4482
+    // The telemetry index has: resource.attributes.telemetry.sdk.version (values: 10, 11, 12, 13,
+    // 14)
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | bin `resource.attributes.telemetry.sdk.version` span=2 | sort"
+                    + " `resource.attributes.telemetry.sdk.version`",
+                TEST_INDEX_TELEMETRY));
+
+    // When binning a nested field, all sibling fields in the struct are also returned
+    verifySchema(
+        result,
+        schema("resource.attributes.telemetry.sdk.enabled", null, "boolean"),
+        schema("resource.attributes.telemetry.sdk.language", null, "string"),
+        schema("resource.attributes.telemetry.sdk.name", null, "string"),
+        schema("severityNumber", null, "int"),
+        schema("resource.attributes.telemetry.sdk.version", null, "string"));
+
+    // With span=2 on values [10, 11, 12, 13, 14], we expect binned ranges:
+    // 10 -> 10-12, 11 -> 10-12, 12 -> 12-14, 13 -> 12-14, 14 -> 14-16
+    // The binned field is the last column
+    verifyDataRows(
+        result,
+        rows(true, "java", "opentelemetry", 9, "10-12"),
+        rows(false, "python", "opentelemetry", 12, "10-12"),
+        rows(true, "javascript", "opentelemetry", 9, "12-14"),
+        rows(false, "go", "opentelemetry", 16, "12-14"),
+        rows(true, "rust", "opentelemetry", 12, "14-16"));
+  }
+
+  @Test
+  public void testBinWithNestedFieldWithExplicitProjection() throws IOException {
+    // Test bin command on nested field WITH explicit fields projection (workaround)
+    // This is the workaround mentioned in https://github.com/opensearch-project/sql/issues/4482
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | bin `resource.attributes.telemetry.sdk.version` span=2 | fields"
+                    + " `resource.attributes.telemetry.sdk.version` | sort"
+                    + " `resource.attributes.telemetry.sdk.version`",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(result, schema("resource.attributes.telemetry.sdk.version", null, "string"));
+
+    // With span=2 on values [10, 11, 12, 13, 14], we expect binned ranges
+    verifyDataRows(
+        result, rows("10-12"), rows("10-12"), rows("12-14"), rows("12-14"), rows("14-16"));
+  }
+
+  @Test
+  public void testBinWithEvalCreatedDottedFieldName() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval `resource.temp` = 1 | bin"
+                    + " `resource.attributes.telemetry.sdk.version` span=2 | sort"
+                    + " `resource.attributes.telemetry.sdk.version`",
+                TEST_INDEX_TELEMETRY));
+
+    verifySchema(
+        result,
+        schema("resource.attributes.telemetry.sdk.enabled", null, "boolean"),
+        schema("resource.attributes.telemetry.sdk.language", null, "string"),
+        schema("resource.attributes.telemetry.sdk.name", null, "string"),
+        schema("resource.temp", null, "int"),
+        schema("severityNumber", null, "int"),
+        schema("resource.attributes.telemetry.sdk.version", null, "string"));
+
+    // Data column order: enabled, language, name, severityNumber, resource.temp, version
+    verifyDataRows(
+        result,
+        rows(true, "java", "opentelemetry", 9, 1, "10-12"),
+        rows(false, "python", "opentelemetry", 12, 1, "10-12"),
+        rows(true, "javascript", "opentelemetry", 9, 1, "12-14"),
+        rows(false, "go", "opentelemetry", 16, 1, "12-14"),
+        rows(true, "rust", "opentelemetry", 12, 1, "14-16"));
   }
 }

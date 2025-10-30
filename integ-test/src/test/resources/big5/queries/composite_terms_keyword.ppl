@@ -1,4 +1,33 @@
+/*
+{
+  "name": "composite_terms-keyword",
+  "operation-type": "search",
+  "index": "{{index_name | default('big5')}}",
+  "body": {
+    "size": 0,
+    "query": {
+      "range": {
+        "@timestamp": {
+          "gte": "2023-01-02T00:00:00",
+          "lt": "2023-01-02T10:00:00"
+        }
+      }
+    },
+    "aggs": {
+      "logs": {
+        "composite": {
+          "sources": [
+            { "process_name": { "terms": { "field": "process.name", "order": "desc" }}},
+            { "cloud_region": { "terms": { "field": "cloud.region", "order": "asc" }}},
+            { "cloudstream": { "terms": { "field": "aws.cloudwatch.log_stream", "order": "asc" }}}
+          ]
+        }
+      }
+    }
+  }
+}
+*/
 source = big5
-| where `@timestamp` >= '2023-01-02 00:00:00' and `@timestamp` < '2023-01-03 00:00:00'
+| where `@timestamp` >= '2023-01-02 00:00:00' and `@timestamp` < '2023-01-02 10:00:00'
 | stats count() by `process.name`, `cloud.region`, `aws.cloudwatch.log_stream`
 | sort - `process.name`, + `cloud.region`, + `aws.cloudwatch.log_stream`

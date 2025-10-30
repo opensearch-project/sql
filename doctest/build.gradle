@@ -19,6 +19,8 @@ def path = project(':').projectDir
 // temporary fix, because currently we are under migration to new architecture. Need to run ./gradlew run from
 // plugin module, and will only build ppl in it.
 def plugin_path = project(':doctest').projectDir
+String ignorePrometheusProp = System.getProperty("ignorePrometheus")
+boolean ignorePrometheus = ignorePrometheusProp != null && !ignorePrometheusProp.equalsIgnoreCase("false")
 
 task cloneSqlCli(type: Exec) {
     def repoDir = new File("${project.projectDir}/sql-cli")
@@ -41,6 +43,19 @@ task bootstrap(type: Exec, dependsOn: ['cloneSqlCli']) {
 
 }
 
+def isPrometheusRunning = { ->
+    try {
+        def process = "pgrep -f prometheus".execute()
+        def output = process.text
+        def result = !output.trim().isEmpty()
+        println "Prometheus running status: ${result}"
+        return result
+    } catch (Exception e) {
+        println "Error checking Prometheus process: ${e.message}"
+        return false
+    }
+}
+
 task startPrometheus(type: SpawnProcessTask) {
     doFirst {
         download.run {
@@ -61,6 +76,7 @@ task startPrometheus(type: SpawnProcessTask) {
     command "$projectDir/bin/prometheus/prometheus --storage.tsdb.path=$projectDir/bin/prometheus/data --config.file=$projectDir/bin/prometheus/prometheus.yml"
     ready 'TSDB started'
     pidLockFileName ".prom.pid.lock"
+    onlyIf { !ignorePrometheus && getOSFamilyType() != "windows" && !isPrometheusRunning() }
 }
 
 //evaluationDependsOn(':')
@@ -88,6 +104,7 @@ task doctest(type: Exec, dependsOn: ['bootstrap']) {
     if (debug == 'true') {
         environment 'DOCTEST_DEBUG', 'true'
     }
+    environment 'IGNORE_PROMETHEUS_DOCS', ignorePrometheus ? 'true' : 'false'
     
     if (docs) {
         def args = ['.venv/bin/python', 'test_docs.py']
@@ -121,14 +138,17 @@ task stopPrometheus(type: KillProcessTask) {
         file("$projectDir/bin/prometheus").deleteDir()
         file("$projectDir/bin/prometheus.tar.gz").delete()
     }
+    onlyIf { !ignorePrometheus && getOSFamilyType() != "windows" }
 }
 
 // Stop Prom AFTER Start Prom...
 if(getOSFamilyType() != "windows") {
     stopPrometheus.mustRunAfter startPrometheus
-    startOpenSearch.dependsOn startPrometheus
-    stopOpenSearch.finalizedBy stopPrometheus
-    startOpenSearch.finalizedBy stopPrometheus
+    if (!ignorePrometheus) {
+        startOpenSearch.dependsOn startPrometheus
+        stopOpenSearch.finalizedBy stopPrometheus
+        startOpenSearch.finalizedBy stopPrometheus
+    }
 }
 doctest.dependsOn startOpenSearch
 doctest.finalizedBy stopOpenSearch

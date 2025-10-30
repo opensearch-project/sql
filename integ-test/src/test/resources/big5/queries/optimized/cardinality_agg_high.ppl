@@ -1,0 +1,22 @@
+/*
+{
+  "name": "cardinality-agg-high",
+  "operation-type": "search",
+  "index": "{{index_name | default('big5')}}",
+  "body": {
+    "size": 0,
+    "aggs": {
+      "agent": {
+        "cardinality": {
+         "field": "agent.name"
+          {% if distribution_version.split('.') | map('int') | list  >= "2.19.1".split('.') | map('int') | list and distribution_version.split('.') | map('int') | list  < "6.0.0".split('.') | map('int') | list %}
+            , "execution_hint": "ordinals"
+          {% endif %}
+        }
+      }
+    }
+  }
+}
+*/
+source = big5
+| stats bucket_nullable = false dc(`agent.name`)

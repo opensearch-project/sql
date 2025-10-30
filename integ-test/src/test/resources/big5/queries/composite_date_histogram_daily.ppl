@@ -1,3 +1,34 @@
+/*
+{
+  "name": "composite-date_histogram-daily",
+  "operation-type": "search",
+  "index": "{{index_name | default('big5')}}",
+  "body": {
+    "size": 0,
+    "query": {
+      "range": {
+        "@timestamp": {
+          "gte": "2022-12-30T00:00:00",
+          "lt": "2023-01-07T12:00:00"
+        }
+      }
+    },
+    "aggs": {
+      "logs": {
+        "composite": {
+          "sources": [
+    {% if distribution_version.split('.') | map('int') | list < "6.0.0".split('.') | map('int') | list or distribution_version.split('.') | map('int') | list >= "7.0.0".split('.') | map('int') | list %}
+              { "date": { "date_histogram": { "field": "@timestamp", "calendar_interval": "day" } } }
+    {% else %}
+              { "date": { "date_histogram": { "field": "@timestamp", "interval": "day" } } }
+    {% endif %}
+          ]
+        }
+      }
+    }
+  }
+}
+*/
 source = big5
 | where `@timestamp` >= '2022-12-30 00:00:00' and `@timestamp` < '2023-01-07 12:00:00'
 | stats count() by span(`@timestamp`, 1d)

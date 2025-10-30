@@ -1,0 +1,98 @@
+setup:
+  - do:
+      indices.create:
+        index: time_test
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "time_test"}}'
+          - '{"category":"A","value":1000,"@timestamp":"2024-01-01T00:00:00Z"}'
+          - '{"index": {"_index": "time_test"}}'
+          - '{"category":"B","value":2000,"@timestamp":"2024-01-01T00:05:00Z"}'
+          - '{"index": {"_index": "time_test"}}'
+          - '{"category":"A","value":1500,"@timestamp":"2024-01-01T00:10:00Z"}'
+          - '{"index": {"_index": "time_test"}}'
+          - '{"category":"C","value":3000,"@timestamp":"2024-01-01T00:20:00Z"}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"Test span aggregation with field name collision - basic case":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=time_test | stats count() by span(value, 1000) as value
+
+  - match: { total: 3 }
+  - match: { schema: [{"name": "count()", "type": "bigint"}, {"name": "value", "type": "bigint"}] }
+  - match: { datarows: [[2, 1000], [1, 2000], [1, 3000]] }
+
+---
+"Test span aggregation with field name collision - multiple aggregations":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=time_test | stats count(), avg(value) by span(value, 1000) as value
+
+  - match: { total: 3 }
+  - match: { schema: [{"name": "count()", "type": "bigint"}, {"name": "avg(value)", "type": "double"}, {"name": "value", "type": "bigint"}] }
+  - match: { datarows: [[2, 1250.0, 1000], [1, 2000.0, 2000], [1, 3000.0, 3000]] }
+
+---
+"Test span aggregation without name collision - multiple group-by":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=time_test | stats count() by span(@timestamp, 10min) as @timestamp, category, value
+
+  - match: { total: 4 }
+  - match: { schema: [{"name": "count()", "type": "bigint"}, {"name": "@timestamp", "type": "timestamp"}, {"name": "category", "type": "string"}, {"name": "value", "type": "bigint"}] }
+  - match: { datarows: [[1, "2024-01-01 00:00:00", "A", 1000], [1, "2024-01-01 00:10:00", "A", 1500], [1, "2024-01-01 00:00:00", "B", 2000], [1, "2024-01-01 00:20:00", "C", 3000]] }
+
+---
+"Test span aggregation with duplicated group keys":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=time_test | stats count() by value, value, span(@timestamp, 10min) as @timestamp
+
+  - match: { total: 4 }
+  - match: { schema: [{"name": "count()", "type": "bigint"}, {"name": "@timestamp", "type": "timestamp"}, {"name": "value", "type": "bigint"}, {"name": "value0", "type": "bigint"}] }
+  - match: { datarows: [[1, "2024-01-01 00:00:00", 1000, 1000], [1, "2024-01-01 00:10:00", 1500, 1500], [1, "2024-01-01 00:00:00", 2000, 2000], [1, "2024-01-01 00:20:00", 3000, 3000]] }

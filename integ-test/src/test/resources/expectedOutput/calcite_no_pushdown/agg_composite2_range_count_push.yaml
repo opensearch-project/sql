@@ -1,0 +1,13 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(avg(balance)=[$3], count()=[$4], age_range=[$0], state=[$1], gender=[$2])
+        LogicalAggregate(group=[{0, 1, 2}], avg(balance)=[AVG($3)], count()=[COUNT()])
+          LogicalProject(age_range=[CASE(<($10, 30), 'u30':VARCHAR, 'a30':VARCHAR)], state=[$9], gender=[$4], balance=[$7])
+            CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..5=[{inputs}], expr#6=[0], expr#7=[=($t4, $t6)], expr#8=[null:BIGINT], expr#9=[CASE($t7, $t8, $t3)], expr#10=[CAST($t9):DOUBLE], expr#11=[/($t10, $t4)], avg(balance)=[$t11], count()=[$t5], age_range=[$t0], state=[$t1], gender=[$t2])
+        EnumerableAggregate(group=[{0, 1, 2}], agg#0=[$SUM0($3)], agg#1=[COUNT($3)], count()=[COUNT()])
+          EnumerableCalc(expr#0..18=[{inputs}], expr#19=[30], expr#20=[<($t10, $t19)], expr#21=['u30':VARCHAR], expr#22=['a30':VARCHAR], expr#23=[CASE($t20, $t21, $t22)], age_range=[$t23], state=[$t9], gender=[$t4], balance=[$t7])
+            CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])

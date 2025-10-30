@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl.parser;
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
@@ -22,6 +23,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.defaultFieldsArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultSortFieldArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultStatsArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.describe;
+import static org.opensearch.sql.ast.dsl.AstDSL.doubleLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.eval;
 import static org.opensearch.sql.ast.dsl.AstDSL.exprList;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
@@ -74,9 +76,12 @@ import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
+import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.ppl.AstPlanningTestBase;
+import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.utils.SystemIndexUtils;
 
 public class AstBuilderTest extends AstPlanningTestBase {
@@ -512,9 +517,9 @@ public class AstBuilderTest extends AstPlanningTestBase {
   }
 
   @Test
-  public void testSortCommandWithMultipleFieldsAndDesc() {
+  public void testSortCommandWithMixedSuffixSyntax() {
     assertEqual(
-        "source=t | sort f1, -f2 desc",
+        "source=t | sort f1 desc, f2 asc",
         sort(
             relation("t"),
             field(
@@ -548,9 +553,9 @@ public class AstBuilderTest extends AstPlanningTestBase {
   }
 
   @Test
-  public void testSortCommandWithMultipleFieldsAndAsc() {
+  public void testSortCommandWithMixedPrefixSyntax() {
     assertEqual(
-        "source=t | sort f1, f2 asc",
+        "source=t | sort +f1, -f2",
         sort(
             relation("t"),
             field(
@@ -558,6 +563,95 @@ public class AstBuilderTest extends AstPlanningTestBase {
                 exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()))),
             field(
                 "f2",
+                exprList(
+                    argument("asc", booleanLiteral(false)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandMixedSyntaxValidation() {
+    assertThrows(SemanticCheckException.class, () -> plan("source=t | sort +f1, f2 desc"));
+    assertThrows(SemanticCheckException.class, () -> plan("source=t | sort f1 asc, +f2"));
+  }
+
+  @Test
+  public void testSortCommandSingleFieldMixedSyntaxError() {
+    SemanticCheckException exception =
+        assertThrows(SemanticCheckException.class, () -> plan("source=t | sort -salary desc"));
+
+    assertTrue(
+        exception
+            .getMessage()
+            .contains(
+                "Cannot use both prefix (-) and suffix (desc) sort direction syntax on the same"
+                    + " field"));
+  }
+
+  @Test
+  public void testSortCommandMultipleSuffixSyntax() {
+    assertEqual(
+        "source=t | sort f1 asc, f2 desc, f3 asc",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()))),
+            field(
+                "f2",
+                exprList(argument("asc", booleanLiteral(false)), argument("type", nullLiteral()))),
+            field(
+                "f3",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandMixingPrefixWithDefault() {
+    assertEqual(
+        "source=t | sort +f1, f2, -f3",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()))),
+            field(
+                "f2",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()))),
+            field(
+                "f3",
+                exprList(
+                    argument("asc", booleanLiteral(false)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandMixingSuffixWithDefault() {
+    assertEqual(
+        "source=t | sort f1, f2 desc, f3 asc",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()))),
+            field(
+                "f2",
+                exprList(argument("asc", booleanLiteral(false)), argument("type", nullLiteral()))),
+            field(
+                "f3",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandAllDefaultFields() {
+    assertEqual(
+        "source=t | sort f1, f2, f3",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()))),
+            field(
+                "f2",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()))),
+            field(
+                "f3",
                 exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));
   }
 
@@ -630,7 +724,8 @@ public class AstBuilderTest extends AstPlanningTestBase {
             exprList(
                 argument("noOfResults", intLiteral(10)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             emptyList(),
             field("a")));
   }
@@ -645,7 +740,8 @@ public class AstBuilderTest extends AstPlanningTestBase {
             exprList(
                 argument("noOfResults", intLiteral(10)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             exprList(field("b")),
             field("a")));
   }
@@ -660,7 +756,8 @@ public class AstBuilderTest extends AstPlanningTestBase {
             exprList(
                 argument("noOfResults", intLiteral(10)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             exprList(field("c")),
             field("a"),
             field("b")));
@@ -676,7 +773,8 @@ public class AstBuilderTest extends AstPlanningTestBase {
             exprList(
                 argument("noOfResults", intLiteral(1)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             emptyList(),
             field("a")));
   }
@@ -691,7 +789,8 @@ public class AstBuilderTest extends AstPlanningTestBase {
             exprList(
                 argument("noOfResults", intLiteral(10)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             emptyList(),
             field("a")));
   }
@@ -706,7 +805,8 @@ public class AstBuilderTest extends AstPlanningTestBase {
             exprList(
                 argument("noOfResults", intLiteral(1)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             exprList(field("b")),
             field("a")));
   }
@@ -721,10 +821,44 @@ public class AstBuilderTest extends AstPlanningTestBase {
             exprList(
                 argument("noOfResults", intLiteral(1)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             exprList(field("c")),
             field("a"),
             field("b")));
+  }
+
+  @Test
+  public void testTopCommandWithUseNullFalse() {
+    assertEqual(
+        "source=t | top 1 usenull=false a by b",
+        rareTopN(
+            relation("t"),
+            CommandType.TOP,
+            exprList(
+                argument("noOfResults", intLiteral(1)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(false))),
+            exprList(field("b")),
+            field("a")));
+  }
+
+  @Test
+  public void testTopCommandWithLegacyFalse() {
+    when(settings.getSettingValue(Key.PPL_SYNTAX_LEGACY_PREFERRED)).thenReturn(false);
+    assertEqual(
+        "source=t | top 1 a by b",
+        rareTopN(
+            relation("t"),
+            CommandType.TOP,
+            exprList(
+                argument("noOfResults", intLiteral(1)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(false))),
+            exprList(field("b")),
+            field("a")));
   }
 
   @Test
@@ -847,6 +981,19 @@ public class AstBuilderTest extends AstPlanningTestBase {
                 Pair.of(field("a"), intLiteral(1)),
                 Pair.of(field("b"), intLiteral(2)),
                 Pair.of(field("c"), intLiteral(3)))));
+  }
+
+  @Test
+  public void testFillNullValueAllFields() {
+    assertEqual(
+        "source=t | fillnull value=\"N/A\"", fillNull(relation("t"), stringLiteral("N/A"), true));
+  }
+
+  @Test
+  public void testFillNullValueWithFields() {
+    assertEqual(
+        "source=t | fillnull value=0 a, b, c",
+        fillNull(relation("t"), intLiteral(0), true, field("a"), field("b"), field("c")));
   }
 
   public void testTrendline() {
@@ -1070,6 +1217,126 @@ public class AstBuilderTest extends AstPlanningTestBase {
             ImmutableMap.of()));
   }
 
+  @Test
+  public void testTimechartWithPerSecondFunction() {
+    assertEqual(
+        "source=t | timechart per_second(a)",
+        eval(
+            new Timechart(relation("t"), alias("per_second(a)", aggregate("sum", field("a"))))
+                .span(span(field("@timestamp"), intLiteral(1), SpanUnit.of("m")))
+                .limit(10)
+                .useOther(true),
+            let(
+                field("per_second(a)"),
+                function(
+                    "/",
+                    function("*", field("per_second(a)"), doubleLiteral(1000.0)),
+                    function(
+                        "timestampdiff",
+                        stringLiteral("MILLISECOND"),
+                        field("@timestamp"),
+                        function(
+                            "timestampadd",
+                            stringLiteral("MINUTE"),
+                            intLiteral(1),
+                            field("@timestamp")))))));
+  }
+
+  @Test
+  public void testTimechartWithPerMinuteFunction() {
+    assertEqual(
+        "source=t | timechart per_minute(a)",
+        eval(
+            new Timechart(relation("t"), alias("per_minute(a)", aggregate("sum", field("a"))))
+                .span(span(field("@timestamp"), intLiteral(1), SpanUnit.of("m")))
+                .limit(10)
+                .useOther(true),
+            let(
+                field("per_minute(a)"),
+                function(
+                    "/",
+                    function("*", field("per_minute(a)"), doubleLiteral(60000.0)),
+                    function(
+                        "timestampdiff",
+                        stringLiteral("MILLISECOND"),
+                        field("@timestamp"),
+                        function(
+                            "timestampadd",
+                            stringLiteral("MINUTE"),
+                            intLiteral(1),
+                            field("@timestamp")))))));
+  }
+
+  @Test
+  public void testTimechartWithPerHourFunction() {
+    assertEqual(
+        "source=t | timechart per_hour(a)",
+        eval(
+            new Timechart(relation("t"), alias("per_hour(a)", aggregate("sum", field("a"))))
+                .span(span(field("@timestamp"), intLiteral(1), SpanUnit.of("m")))
+                .limit(10)
+                .useOther(true),
+            let(
+                field("per_hour(a)"),
+                function(
+                    "/",
+                    function("*", field("per_hour(a)"), doubleLiteral(3600000.0)),
+                    function(
+                        "timestampdiff",
+                        stringLiteral("MILLISECOND"),
+                        field("@timestamp"),
+                        function(
+                            "timestampadd",
+                            stringLiteral("MINUTE"),
+                            intLiteral(1),
+                            field("@timestamp")))))));
+  }
+
+  @Test
+  public void testTimechartWithPerDayFunction() {
+    assertEqual(
+        "source=t | timechart per_day(a)",
+        eval(
+            new Timechart(relation("t"), alias("per_day(a)", aggregate("sum", field("a"))))
+                .span(span(field("@timestamp"), intLiteral(1), SpanUnit.of("m")))
+                .limit(10)
+                .useOther(true),
+            let(
+                field("per_day(a)"),
+                function(
+                    "/",
+                    function("*", field("per_day(a)"), doubleLiteral(8.64E7)),
+                    function(
+                        "timestampdiff",
+                        stringLiteral("MILLISECOND"),
+                        field("@timestamp"),
+                        function(
+                            "timestampadd",
+                            stringLiteral("MINUTE"),
+                            intLiteral(1),
+                            field("@timestamp")))))));
+  }
+
+  @Test
+  public void testStatsWithPerSecondThrowsException() {
+    assertEquals(
+        "per_second function can only be used within timechart command",
+        assertThrows(SyntaxCheckException.class, () -> plan("source=t | stats per_second(a)"))
+            .getMessage());
+    assertEquals(
+        "per_minute function can only be used within timechart command",
+        assertThrows(SyntaxCheckException.class, () -> plan("source=t | stats per_minute(a)"))
+            .getMessage());
+    assertEquals(
+        "per_hour function can only be used within timechart command",
+        assertThrows(SyntaxCheckException.class, () -> plan("source=t | stats per_hour(a)"))
+            .getMessage());
+    assertEquals(
+        "per_day function can only be used within timechart command",
+        assertThrows(SyntaxCheckException.class, () -> plan("source=t | stats per_day(a)"))
+            .getMessage());
+  }
+
   protected void assertEqual(String query, Node expectedPlan) {
     Node actualPlan = plan(query);
     assertEquals(expectedPlan, actualPlan);
@@ -1094,5 +1361,121 @@ public class AstBuilderTest extends AstPlanningTestBase {
   public void testRexSedModeWithOffsetFieldThrowsException() {
     // Test that SED mode and offset_field cannot be used together (align with Splunk behavior)
     plan("source=test | rex field=email mode=sed offset_field=matchpos \"s/@.*/@company.com/\"");
+  }
+
+  // Multisearch tests
+
+  @Test
+  public void testBasicMultisearchParsing() {
+    // Test basic multisearch parsing
+    plan("| multisearch [ search source=test1 ] [ search source=test2 ]");
+  }
+
+  @Test
+  public void testMultisearchWithStreamingCommands() {
+    // Test multisearch with streaming commands
+    plan(
+        "| multisearch [ search source=test1 | where age > 30 | fields name, age ] "
+            + "[ search source=test2 | eval category=\"young\" | rename id as user_id ]");
+  }
+
+  @Test
+  public void testMultisearchWithStatsCommand() {
+    // Test multisearch with stats command - now allowed
+    plan(
+        "| multisearch [ search source=test1 | stats count() by gender ] "
+            + "[ search source=test2 | fields name, age ]");
+  }
+
+  @Test
+  public void testMultisearchWithSortCommand() {
+    // Test multisearch with sort command - now allowed
+    plan(
+        "| multisearch [ search source=test1 | sort age ] "
+            + "[ search source=test2 | fields name, age ]");
+  }
+
+  @Test
+  public void testMultisearchWithBinCommand() {
+    // Test multisearch with bin command - now allowed
+    plan(
+        "| multisearch [ search source=test1 | bin age span=10 ] "
+            + "[ search source=test2 | fields name, age ]");
+  }
+
+  @Test
+  public void testMultisearchWithTimechartCommand() {
+    // Test multisearch with timechart command - now allowed
+    plan(
+        "| multisearch [ search source=test1 | timechart count() by age ] "
+            + "[ search source=test2 | fields name, age ]");
+  }
+
+  @Test
+  public void testMultisearchWithRareCommand() {
+    // Test multisearch with rare command - now allowed
+    plan(
+        "| multisearch [ search source=test1 | rare gender ] "
+            + "[ search source=test2 | fields name, age ]");
+  }
+
+  @Test
+  public void testMultisearchWithDedupeCommand() {
+    // Test multisearch with dedup command - now allowed
+    plan(
+        "| multisearch [ search source=test1 | dedup name ] "
+            + "[ search source=test2 | fields name, age ]");
+  }
+
+  @Test
+  public void testMultisearchWithJoinCommand() {
+    // Test multisearch with join command - now allowed
+    plan(
+        "| multisearch [ search source=test1 | join left=l right=r where l.id = r.id"
+            + " test2 ] [ search source=test3 | fields name, age ]");
+  }
+
+  @Test
+  public void testMultisearchWithComplexPipeline() {
+    // Test multisearch with complex pipeline (previously called streaming)
+    plan(
+        "| multisearch [ search source=test1 | where age > 30 | eval category=\"adult\""
+            + " | fields name, age, category | rename age as years_old | head 100 ] [ search"
+            + " source=test2 | where status=\"active\" | expand tags | flatten nested_data |"
+            + " fillnull with \"unknown\" | reverse ]");
+  }
+
+  @Test
+  public void testMultisearchMixedCommands() {
+    // Test multisearch with mix of commands - now all allowed
+    plan(
+        "| multisearch [ search source=test1 | where age > 30 | stats count() ] "
+            + "[ search source=test2 | where status=\"active\" | sort name ]");
+  }
+
+  @Test
+  public void testMultisearchSingleSubsearchThrowsException() {
+    // Test multisearch with only one subsearch - should throw descriptive runtime exception
+    SyntaxCheckException exception =
+        assertThrows(
+            SyntaxCheckException.class,
+            () -> plan("| multisearch [ search source=test1 | fields name, age ]"));
+
+    // Now we should get our descriptive runtime validation error message
+    assertEquals(
+        "Multisearch command requires at least two subsearches. Provided: 1",
+        exception.getMessage());
+  }
+
+  @Test
+  public void testReplaceCommand() {
+    // Test basic single pattern replacement
+    plan("source=t | replace 'old' WITH 'new' IN field");
+  }
+
+  @Test
+  public void testReplaceCommandWithMultiplePairs() {
+    // Test multiple pattern/replacement pairs
+    plan("source=t | replace 'a' WITH 'A', 'b' WITH 'B' IN field");
   }
 }

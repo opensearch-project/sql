@@ -20,7 +20,7 @@ pplStatement
    ;
 
 queryStatement
-   : pplCommands (PIPE commands)*
+   : (PIPE)? pplCommands (PIPE commands)*
    ;
 
 explainStatement
@@ -43,6 +43,7 @@ pplCommands
    : describeCommand
    | showDataSourcesCommand
    | searchCommand
+   | multisearchCommand
    ;
 
 commands
@@ -58,8 +59,7 @@ commands
    | evalCommand
    | headCommand
    | binCommand
-   | topCommand
-   | rareCommand
+   | rareTopCommand
    | grokCommand
    | parseCommand
    | spathCommand
@@ -78,6 +78,7 @@ commands
    | regexCommand
    | timechartCommand
    | rexCommand
+   | replaceCommand
    ;
 
 commandName
@@ -114,7 +115,9 @@ commandName
    | REVERSE
    | REGEX
    | APPEND
+   | MULTISEARCH
    | REX
+   | REPLACE
    ;
 
 searchCommand
@@ -202,6 +205,14 @@ renameCommand
    : RENAME renameClasue (COMMA? renameClasue)*
    ;
 
+replaceCommand
+   : REPLACE replacePair (COMMA replacePair)* IN fieldList
+   ;
+
+replacePair
+   : pattern=stringLiteral WITH replacement=stringLiteral
+   ;
+
 statsCommand
    : STATS statsArgs statsAggTerm (COMMA statsAggTerm)* (statsByClause)? (dedupSplitArg)?
    ;
@@ -239,7 +250,7 @@ dedupCommand
    ;
 
 sortCommand
-   : SORT (count = integerLiteral)? sortbyClause (ASC | A | DESC | D)?
+   : SORT (count = integerLiteral)? sortbyClause
    ;
 
 reverseCommand
@@ -251,12 +262,8 @@ timechartCommand
    ;
 
 timechartParameter
-   : (spanClause | SPAN EQUAL spanLiteral)
-   | timechartArg
-   ;
-
-timechartArg
    : LIMIT EQUAL integerLiteral
+   | SPAN EQUAL spanLiteral
    | USEOTHER EQUAL (booleanLiteral | ident)
    ;
 
@@ -301,12 +308,14 @@ logSpanValue
    : LOG_WITH_BASE                                                   # logWithBaseSpan
    ;
 
-topCommand
-   : TOP ((LIMIT EQUAL)? number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? fieldList (byClause)?
+rareTopCommand
+   : (TOP | RARE) ((LIMIT EQUAL)? number = integerLiteral)? rareTopOption* fieldList (byClause)?
    ;
 
-rareCommand
-   : RARE ((LIMIT EQUAL)? number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? fieldList (byClause)?
+rareTopOption
+   : COUNTFIELD EQUAL countField = stringLiteral
+   | SHOWCOUNT EQUAL showCount = booleanLiteral
+   | USENULL EQUAL useNull = booleanLiteral
    ;
 
 grokCommand
@@ -415,8 +424,10 @@ lookupPair
    ;
 
 fillnullCommand
-   : FILLNULL fillNullWith
-   | FILLNULL fillNullUsing
+   : FILLNULL fillNullWith                                                          # fillNullWithClause
+   | FILLNULL fillNullUsing                                                         # fillNullUsingClause
+   | FILLNULL VALUE EQUAL replacement = valueExpression fieldList                   # fillNullValueWithFields
+   | FILLNULL VALUE EQUAL replacement = valueExpression                             # fillNullValueAllFields
    ;
 
 fillNullWith
@@ -458,6 +469,10 @@ appendcolCommand
 
 appendCommand
    : APPEND LT_SQR_PRTHS searchCommand? (PIPE commands)* RT_SQR_PRTHS
+   ;
+
+multisearchCommand
+   : MULTISEARCH (LT_SQR_PRTHS subSearch RT_SQR_PRTHS)+
    ;
 
 kmeansCommand
@@ -517,19 +532,11 @@ tableSourceClause
    ;
 
 dynamicSourceClause
-   : LT_SQR_PRTHS sourceReferences (COMMA sourceFilterArgs)? RT_SQR_PRTHS
-   ;
-
-sourceReferences
-   : sourceReference (COMMA sourceReference)*
+   : LT_SQR_PRTHS (sourceReference | sourceFilterArg) (COMMA (sourceReference | sourceFilterArg))* RT_SQR_PRTHS
    ;
 
 sourceReference
    : (CLUSTER)? wcQualifiedName
-   ;
-
-sourceFilterArgs
-   : sourceFilterArg (COMMA sourceFilterArg)*
    ;
 
 sourceFilterArg
@@ -607,7 +614,7 @@ bySpanClause
    ;
 
 spanClause
-   : SPAN LT_PRTHS fieldExpression COMMA value = spanLiteral RT_PRTHS
+   : SPAN LT_PRTHS (fieldExpression COMMA)? value = spanLiteral RT_PRTHS
    ;
 
 sortbyClause
@@ -659,6 +666,7 @@ statsFunction
    | takeAggFunction                                            # takeAggFunctionCall
    | valuesAggFunction                                          # valuesAggFunctionCall
    | percentileApproxFunction                                   # percentileApproxFunctionCall
+   | perFunction                                                # perFunctionCall
    | statsFunctionName LT_PRTHS functionArgs RT_PRTHS           # statsFunctionCall
    ;
 
@@ -693,6 +701,10 @@ valuesAggFunction
 percentileApproxFunction
    : (PERCENTILE | PERCENTILE_APPROX) LT_PRTHS aggField = valueExpression
        COMMA percent = numericLiteral (COMMA compression = numericLiteral)? RT_PRTHS
+   ;
+
+perFunction
+   : funcName=(PER_SECOND | PER_MINUTE | PER_HOUR | PER_DAY) LT_PRTHS functionArg RT_PRTHS
    ;
 
 numericLiteral
@@ -800,7 +812,10 @@ fieldList
    ;
 
 sortField
-   : (PLUS | MINUS)? sortFieldExpression
+   : (PLUS | MINUS) sortFieldExpression (ASC | A | DESC | D)  # invalidMixedSortField
+   | (PLUS | MINUS) sortFieldExpression                  # prefixSortField
+   | sortFieldExpression (ASC | A | DESC | D)            # suffixSortField
+   | sortFieldExpression                                 # defaultSortField
    ;
 
 sortFieldExpression
@@ -1005,6 +1020,7 @@ geoipFunctionName
 collectionFunctionName
     : ARRAY
     | ARRAY_LENGTH
+    | MVAPPEND
     | MVJOIN
     | FORALL
     | EXISTS
@@ -1134,6 +1150,7 @@ extractFunctionCall
 
 simpleDateTimePart
    : MICROSECOND
+   | MILLISECOND
    | SECOND
    | MINUTE
    | HOUR
@@ -1312,6 +1329,7 @@ timestampLiteral
 
 intervalUnit
    : MICROSECOND
+   | MILLISECOND
    | SECOND
    | MINUTE
    | HOUR
@@ -1419,6 +1437,7 @@ searchableKeyWord
    | REGEX
    | PUNCT
    | USING
+   | VALUE
    | CAST
    | GET_FORMAT
    | EXTRACT
@@ -1439,6 +1458,7 @@ searchableKeyWord
    | ALLNUM
    | DELIM
    | BUCKET_NULLABLE
+   | USENULL
    | CENTROIDS
    | ITERATIONS
    | DISTANCE_TYPE
@@ -1458,7 +1478,16 @@ searchableKeyWord
    | PATH
    | INPUT
    | OUTPUT
-
+   | AS
+   | ON
+   | LIMIT
+   | OVERWRITE
+   | FIELD
+   | SED
+   | MAX_MATCH
+   | OFFSET_FIELD
+   | patternMethod
+   | patternMode
    // AGGREGATIONS AND WINDOW
    | statsFunctionName
    | windowFunctionName

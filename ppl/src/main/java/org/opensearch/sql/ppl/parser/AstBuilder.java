@@ -7,7 +7,6 @@ package org.opensearch.sql.ppl.parser;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
-import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.calcite.utils.CalciteUtils.getOnlyForCalciteException;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
@@ -66,6 +65,7 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.MinSpanBin;
+import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
@@ -75,6 +75,8 @@ import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Replace;
+import org.opensearch.sql.ast.tree.ReplacePair;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
@@ -87,6 +89,7 @@ import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -221,7 +224,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Argument.ArgumentMap argumentMap = Argument.ArgumentMap.of(arguments);
     if (argumentMap.get("type") != null) {
       Join.JoinType joinTypeFromArgument = ArgumentFactory.getJoinType(argumentMap);
-      if (sqlLike && joinType != joinTypeFromArgument) {
+      if (sqlLike && joinType != joinTypeFromArgument && ctx.sqlLikeJoinType() != null) {
         throw new SemanticCheckException(
             "Join type is ambiguous, remove either the join type before JOIN keyword or 'type='"
                 + " option.");
@@ -377,6 +380,25 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
                         internalVisitExpression(ct.orignalField),
                         internalVisitExpression(ct.renamedField)))
             .collect(Collectors.toList()));
+  }
+
+  /** Replace command. */
+  @Override
+  public UnresolvedPlan visitReplaceCommand(OpenSearchPPLParser.ReplaceCommandContext ctx) {
+    // Parse all replacement pairs
+    List<ReplacePair> replacePairs =
+        ctx.replacePair().stream().map(this::buildReplacePair).collect(Collectors.toList());
+
+    Set<Field> fieldList = getUniqueFieldSet(ctx.fieldList());
+
+    return new Replace(replacePairs, fieldList);
+  }
+
+  /** Build a ReplacePair from parse context. */
+  private ReplacePair buildReplacePair(OpenSearchPPLParser.ReplacePairContext ctx) {
+    Literal pattern = (Literal) internalVisitExpression(ctx.pattern);
+    Literal replacement = (Literal) internalVisitExpression(ctx.replacement);
+    return new ReplacePair(pattern, replacement);
   }
 
   /** Stats command. */
@@ -563,29 +585,31 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitSortCommand(SortCommandContext ctx) {
     Integer count = ctx.count != null ? Math.max(0, Integer.parseInt(ctx.count.getText())) : 0;
-    boolean desc = ctx.DESC() != null || ctx.D() != null;
+
+    List<OpenSearchPPLParser.SortFieldContext> sortFieldContexts = ctx.sortbyClause().sortField();
+    validateSortDirectionSyntax(sortFieldContexts);
 
     List<Field> sortFields =
-        ctx.sortbyClause().sortField().stream()
+        sortFieldContexts.stream()
             .map(sort -> (Field) internalVisitExpression(sort))
-            .map(field -> desc ? reverseSortDirection(field) : field)
             .collect(Collectors.toList());
 
     return new Sort(count, sortFields);
   }
 
-  private Field reverseSortDirection(Field field) {
-    List<Argument> updatedArgs =
-        field.getFieldArgs().stream()
-            .map(
-                arg ->
-                    "asc".equals(arg.getArgName())
-                        ? new Argument(
-                            "asc", booleanLiteral(!((Boolean) arg.getValue().getValue())))
-                        : arg)
-            .collect(Collectors.toList());
+  private void validateSortDirectionSyntax(List<OpenSearchPPLParser.SortFieldContext> sortFields) {
+    boolean hasPrefix =
+        sortFields.stream()
+            .anyMatch(sortField -> sortField instanceof OpenSearchPPLParser.PrefixSortFieldContext);
+    boolean hasSuffix =
+        sortFields.stream()
+            .anyMatch(sortField -> sortField instanceof OpenSearchPPLParser.SuffixSortFieldContext);
 
-    return new Field(field.getField(), updatedArgs);
+    if (hasPrefix && hasSuffix) {
+      throw new SemanticCheckException(
+          "Cannot mix prefix (+/-) and suffix (asc/desc) sort direction syntax in the same"
+              + " command.");
+    }
   }
 
   /** Reverse command. */
@@ -598,39 +622,20 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitTimechartCommand(OpenSearchPPLParser.TimechartCommandContext ctx) {
     UnresolvedExpression binExpression =
-        AstDSL.span(AstDSL.field("@timestamp"), AstDSL.intLiteral(1), SpanUnit.of("m"));
+        AstDSL.span(AstDSL.referImplicitTimestampField(), AstDSL.intLiteral(1), SpanUnit.m);
     Integer limit = 10;
     Boolean useOther = true;
     // Process timechart parameters
     for (OpenSearchPPLParser.TimechartParameterContext paramCtx : ctx.timechartParameter()) {
-      if (paramCtx.spanClause() != null) {
-        binExpression = internalVisitExpression(paramCtx.spanClause());
-      } else if (paramCtx.spanLiteral() != null) {
-        Literal literal = (Literal) internalVisitExpression(paramCtx.spanLiteral());
-        binExpression = AstDSL.spanFromSpanLengthLiteral(AstDSL.field("@timestamp"), literal);
-      } else if (paramCtx.timechartArg() != null) {
-        OpenSearchPPLParser.TimechartArgContext argCtx = paramCtx.timechartArg();
-        if (argCtx.LIMIT() != null && argCtx.integerLiteral() != null) {
-          limit = Integer.parseInt(argCtx.integerLiteral().getText());
-          if (limit < 0) {
-            throw new IllegalArgumentException("Limit must be a non-negative number");
-          }
-        } else if (argCtx.USEOTHER() != null) {
-          if (argCtx.booleanLiteral() != null) {
-            useOther = Boolean.parseBoolean(argCtx.booleanLiteral().getText());
-          } else if (argCtx.ident() != null) {
-            String useOtherValue = argCtx.ident().getText().toLowerCase();
-            if ("true".equals(useOtherValue) || "t".equals(useOtherValue)) {
-              useOther = true;
-            } else if ("false".equals(useOtherValue) || "f".equals(useOtherValue)) {
-              useOther = false;
-            } else {
-              throw new IllegalArgumentException(
-                  "Invalid useOther value: "
-                      + argCtx.ident().getText()
-                      + ". Expected true/false or t/f");
-            }
-          }
+      UnresolvedExpression param = internalVisitExpression(paramCtx);
+      if (param instanceof Span) {
+        binExpression = param;
+      } else if (param instanceof Literal literal) {
+        if (DataType.BOOLEAN.equals(literal.getType())) {
+          useOther = (Boolean) literal.getValue();
+        } else if (DataType.INTEGER.equals(literal.getType())
+            || DataType.LONG.equals(literal.getType())) {
+          limit = (Integer) literal.getValue();
         }
       }
     }
@@ -667,26 +672,43 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         .collect(Collectors.toList());
   }
 
-  /** Rare command. */
-  @Override
-  public UnresolvedPlan visitRareCommand(OpenSearchPPLParser.RareCommandContext ctx) {
-    List<UnresolvedExpression> groupList =
-        ctx.byClause() == null ? emptyList() : getGroupByList(ctx.byClause());
-    return new RareTopN(
-        CommandType.RARE,
-        ArgumentFactory.getArgumentList(ctx),
-        getFieldList(ctx.fieldList()),
-        groupList);
+  private Set<Field> getUniqueFieldSet(FieldListContext ctx) {
+    List<Field> fields =
+        ctx.fieldExpression().stream()
+            .map(field -> (Field) internalVisitExpression(field))
+            .toList();
+
+    Set<Field> uniqueFields = new java.util.LinkedHashSet<>(fields);
+
+    if (uniqueFields.size() < fields.size()) {
+      // Find duplicates for error message
+      Set<String> seen = new HashSet<>();
+      Set<String> duplicates =
+          fields.stream()
+              .map(f -> f.getField().toString())
+              .filter(name -> !seen.add(name))
+              .collect(Collectors.toSet());
+
+      throw new IllegalArgumentException(
+          String.format("Duplicate fields [%s] in Replace command", String.join(", ", duplicates)));
+    }
+
+    return uniqueFields;
   }
 
-  /** Top command. */
+  /** Rare and Top commands. */
   @Override
-  public UnresolvedPlan visitTopCommand(OpenSearchPPLParser.TopCommandContext ctx) {
+  public UnresolvedPlan visitRareTopCommand(OpenSearchPPLParser.RareTopCommandContext ctx) {
     List<UnresolvedExpression> groupList =
         ctx.byClause() == null ? emptyList() : getGroupByList(ctx.byClause());
+    Integer noOfResults =
+        ctx.number != null
+            ? (Integer) ((Literal) expressionBuilder.visitIntegerLiteral(ctx.number)).getValue()
+            : 10;
     return new RareTopN(
-        CommandType.TOP,
-        ArgumentFactory.getArgumentList(ctx),
+        ctx.TOP() != null ? CommandType.TOP : CommandType.RARE,
+        noOfResults,
+        ArgumentFactory.getArgumentList(ctx, settings),
         getFieldList(ctx.fieldList()),
         groupList);
   }
@@ -956,6 +978,25 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return FillNull.ofVariousValue(replacementsBuilder.build());
   }
 
+  /** fillnull command - value= syntax: fillnull value=<expr> field1 field2 ... */
+  @Override
+  public UnresolvedPlan visitFillNullValueWithFields(
+      OpenSearchPPLParser.FillNullValueWithFieldsContext ctx) {
+    return FillNull.ofSameValue(
+        internalVisitExpression(ctx.replacement),
+        ctx.fieldList().fieldExpression().stream()
+            .map(f -> (Field) internalVisitExpression(f))
+            .toList(),
+        true);
+  }
+
+  /** fillnull command - value= syntax: fillnull value=<expr> */
+  @Override
+  public UnresolvedPlan visitFillNullValueAllFields(
+      OpenSearchPPLParser.FillNullValueAllFieldsContext ctx) {
+    return FillNull.ofSameValue(internalVisitExpression(ctx.replacement), List.of(), true);
+  }
+
   @Override
   public UnresolvedPlan visitFlattenCommand(OpenSearchPPLParser.FlattenCommandContext ctx) {
     Field field = (Field) internalVisitExpression(ctx.fieldExpression());
@@ -1019,6 +1060,26 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             .reduce(searchCommandInSubSearch, (r, e) -> e.attach(r));
 
     return new Append(subsearch);
+  }
+
+  @Override
+  public UnresolvedPlan visitMultisearchCommand(OpenSearchPPLParser.MultisearchCommandContext ctx) {
+    List<UnresolvedPlan> subsearches = new ArrayList<>();
+
+    // Process each subsearch
+    for (OpenSearchPPLParser.SubSearchContext subsearchCtx : ctx.subSearch()) {
+      // Use the existing visitSubSearch logic
+      UnresolvedPlan fullSubsearch = visitSubSearch(subsearchCtx);
+      subsearches.add(fullSubsearch);
+    }
+
+    // Validate minimum number of subsearches
+    if (subsearches.size() < 2) {
+      throw new SyntaxCheckException(
+          "Multisearch command requires at least two subsearches. Provided: " + subsearches.size());
+    }
+
+    return new Multisearch(subsearches);
   }
 
   @Override

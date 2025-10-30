@@ -88,6 +88,8 @@ The query start with search command and then flowing a set of command delimited 
 
   - `ml command <cmd/ml.rst>`_
 
+  - `multisearch command <cmd/multisearch.rst>`_
+
   - `parse command <cmd/parse.rst>`_
 
   - `patterns command <cmd/patterns.rst>`_
@@ -121,6 +123,8 @@ The query start with search command and then flowing a set of command delimited 
   - `top command <cmd/top.rst>`_
 
   - `trendline command <cmd/trendline.rst>`_
+
+  - `replace command <cmd/replace.rst>`_
 
   - `where command <cmd/where.rst>`_
 

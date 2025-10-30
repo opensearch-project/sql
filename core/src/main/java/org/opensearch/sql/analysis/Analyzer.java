@@ -75,6 +75,7 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
@@ -84,6 +85,7 @@ import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Replace;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
@@ -378,8 +380,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     fields.forEach(
         field -> newEnv.define(new Symbol(Namespace.FIELD_NAME, field.toString()), field.type()));
 
-    List<Argument> options = node.getArguments();
-    Integer noOfResults = (Integer) options.get(0).getValue().getValue();
+    Integer noOfResults = node.getNoOfResults();
 
     return new LogicalRareTopN(child, node.getCommandType(), noOfResults, fields, groupBys);
   }
@@ -801,6 +802,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   @Override
+  public LogicalPlan visitReplace(Replace node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Replace");
+  }
+
+  @Override
   public LogicalPlan visitJoin(Join node, AnalysisContext context) {
     throw getOnlyForCalciteException("Join");
   }
@@ -818,6 +824,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitAppend(Append node, AnalysisContext context) {
     throw getOnlyForCalciteException("Append");
+  }
+
+  @Override
+  public LogicalPlan visitMultisearch(Multisearch node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Multisearch");
   }
 
   private LogicalSort buildSort(

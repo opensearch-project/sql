@@ -13,8 +13,7 @@ root:
           :true,\"include_upper\":false,\"boost\":1.0}}}],\"adjust_pure_negative\"\
           :true,\"boost\":1.0}},{\"range\":{\"age\":{\"from\":30,\"to\":null,\"include_lower\"\
           :false,\"include_upper\":true,\"boost\":1.0}}}],\"adjust_pure_negative\"\
-          :true,\"boost\":1.0}},\"_source\":{\"includes\":[\"age\"],\"excludes\":[]},\"\
-          sort\":[{\"_doc\":{\"order\":\"asc\"}}]}, needClean=true, searchDone=false,\
-          \ pitId=*,\
+          :true,\"boost\":1.0}},\"_source\":{\"includes\":[\"age\"],\"excludes\":[]}},\
+          \ needClean=true, searchDone=false, pitId=*,\
           \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
       children: []
