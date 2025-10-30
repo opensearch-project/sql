@@ -265,7 +265,6 @@ PPL query::
 
 Limitations
 ===========
-* Pattern and replacement must be string literals
 * Wildcards: ``*`` matches zero or more characters (case-sensitive)
 * Replacement wildcards must match pattern wildcard count, or be zero
 * Escape sequences: ``\*`` (literal asterisk), ``\\`` (literal backslash)
