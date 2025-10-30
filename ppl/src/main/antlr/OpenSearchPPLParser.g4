@@ -59,8 +59,7 @@ commands
    | evalCommand
    | headCommand
    | binCommand
-   | topCommand
-   | rareCommand
+   | rareTopCommand
    | grokCommand
    | parseCommand
    | spathCommand
@@ -309,12 +308,14 @@ logSpanValue
    : LOG_WITH_BASE                                                   # logWithBaseSpan
    ;
 
-topCommand
-   : TOP (number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? fieldList (byClause)?
+rareTopCommand
+   : (TOP | RARE) (number = integerLiteral)? rareTopOption* fieldList (byClause)?
    ;
 
-rareCommand
-   : RARE (number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? fieldList (byClause)?
+rareTopOption
+   : COUNTFIELD EQUAL countField = stringLiteral
+   | SHOWCOUNT EQUAL showCount = booleanLiteral
+   | USENULL EQUAL useNull = booleanLiteral
    ;
 
 grokCommand
@@ -1456,6 +1457,7 @@ searchableKeyWord
    | ALLNUM
    | DELIM
    | BUCKET_NULLABLE
+   | USENULL
    | CENTROIDS
    | ITERATIONS
    | DISTANCE_TYPE

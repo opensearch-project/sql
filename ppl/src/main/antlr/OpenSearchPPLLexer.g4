@@ -111,6 +111,7 @@ PARTITIONS:                         'PARTITIONS';
 ALLNUM:                             'ALLNUM';
 DELIM:                              'DELIM';
 BUCKET_NULLABLE:                    'BUCKET_NULLABLE';
+USENULL:                            'USENULL';
 CENTROIDS:                          'CENTROIDS';
 ITERATIONS:                         'ITERATIONS';
 DISTANCE_TYPE:                      'DISTANCE_TYPE';

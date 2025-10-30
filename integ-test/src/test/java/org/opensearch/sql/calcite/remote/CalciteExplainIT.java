@@ -22,6 +22,7 @@ import java.util.Locale;
 import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.ExplainIT;
 
 public class CalciteExplainIT extends ExplainIT {
@@ -1264,6 +1265,60 @@ public class CalciteExplainIT extends ExplainIT {
             String.format(
                 "source=%s | replace 'IL' WITH 'Illinois' IN state | fields state",
                 TEST_INDEX_ACCOUNT)));
+  }
+
+  @Test
+  public void testExplainRareCommandUseNull() throws IOException {
+    String expected = loadExpectedPlan("explain_rare_usenull_false.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            String.format("source=%s | rare 2 usenull=false state by gender", TEST_INDEX_ACCOUNT)));
+    expected = loadExpectedPlan("explain_rare_usenull_true.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            String.format("source=%s | rare 2 usenull=true state by gender", TEST_INDEX_ACCOUNT)));
+    withSettings(
+        Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED,
+        "false",
+        () -> {
+          try {
+            assertYamlEqualsIgnoreId(
+                loadExpectedPlan("explain_rare_usenull_false.yaml"),
+                explainQueryYaml(
+                    String.format("source=%s | rare 2 state by gender", TEST_INDEX_ACCOUNT)));
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        });
+  }
+
+  @Test
+  public void testExplainTopCommandUseNull() throws IOException {
+    String expected = loadExpectedPlan("explain_top_usenull_false.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            String.format("source=%s | top 2 usenull=false state by gender", TEST_INDEX_ACCOUNT)));
+    expected = loadExpectedPlan("explain_top_usenull_true.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            String.format("source=%s | top 2 usenull=true state by gender", TEST_INDEX_ACCOUNT)));
+    withSettings(
+        Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED,
+        "false",
+        () -> {
+          try {
+            assertYamlEqualsIgnoreId(
+                loadExpectedPlan("explain_top_usenull_false.yaml"),
+                explainQueryYaml(
+                    String.format("source=%s | top 2 state by gender", TEST_INDEX_ACCOUNT)));
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
   // Test cases for verifying the fix of https://github.com/opensearch-project/sql/issues/4571

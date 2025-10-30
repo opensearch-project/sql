@@ -15,9 +15,9 @@ import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_DEDUP;
-import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_MAIN;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_SUBSEARCH;
+import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_TOP_RARE;
 import static org.opensearch.sql.calcite.utils.PlanUtils.getRelation;
 import static org.opensearch.sql.calcite.utils.PlanUtils.getRexCall;
 import static org.opensearch.sql.calcite.utils.PlanUtils.transformPlanToAttachChild;
@@ -1128,22 +1128,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     Pair<List<RexNode>, List<AggCall>> aggregationAttributes =
         aggregateWithTrimming(groupExprList, aggExprList, context);
     if (toAddHintsOnAggregate) {
-      final RelHint statHits =
-          RelHint.builder("stats_args").hintOption(Argument.BUCKET_NULLABLE, "false").build();
-      assert context.relBuilder.peek() instanceof LogicalAggregate
-          : "Stats hits should be added to LogicalAggregate";
-      context.relBuilder.hints(statHits);
-      context
-          .relBuilder
-          .getCluster()
-          .setHintStrategies(
-              HintStrategyTable.builder()
-                  .hintStrategy(
-                      "stats_args",
-                      (hint, rel) -> {
-                        return rel instanceof LogicalAggregate;
-                      })
-                  .build());
+      addIgnoreNullBucketHintToAggregate(context);
     }
 
     // schema reordering
@@ -1862,9 +1847,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitRareTopN(RareTopN node, CalcitePlanContext context) {
     visitChildren(node, context);
-
-    ArgumentMap arguments = ArgumentMap.of(node.getArguments());
-    String countFieldName = (String) arguments.get("countField").getValue();
+    ArgumentMap argumentMap = ArgumentMap.of(node.getArguments());
+    String countFieldName = (String) argumentMap.get(RareTopN.Option.countField.name()).getValue();
     if (context.relBuilder.peek().getRowType().getFieldNames().contains(countFieldName)) {
       throw new IllegalArgumentException(
           "Field `"
@@ -1879,7 +1863,26 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     groupExprList.addAll(fieldList);
     List<UnresolvedExpression> aggExprList =
         List.of(AstDSL.alias(countFieldName, AstDSL.aggregate("count", null)));
+
+    // if usenull=false, add a isNotNull before Aggregate and the hint to this Aggregate
+    Boolean bucketNullable = (Boolean) argumentMap.get(RareTopN.Option.useNull.name()).getValue();
+    boolean toAddHintsOnAggregate = false;
+    if (!bucketNullable && !groupExprList.isEmpty()) {
+      toAddHintsOnAggregate = true;
+      // add isNotNull filter before aggregation to filter out null bucket
+      List<RexNode> groupByList =
+          groupExprList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
+      context.relBuilder.filter(
+          PlanUtils.getSelectColumns(groupByList).stream()
+              .map(context.relBuilder::field)
+              .map(context.relBuilder::isNotNull)
+              .toList());
+    }
     aggregateWithTrimming(groupExprList, aggExprList, context);
+
+    if (toAddHintsOnAggregate) {
+      addIgnoreNullBucketHintToAggregate(context);
+    }
 
     // 2. add a window column
     List<RexNode> partitionKeys = rexVisitor.analyze(node.getGroupExprList(), context);
@@ -1899,24 +1902,44 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             List.of(countField),
             WindowFrame.toCurrentRow());
     context.relBuilder.projectPlus(
-        context.relBuilder.alias(rowNumberWindowOver, ROW_NUMBER_COLUMN_NAME));
+        context.relBuilder.alias(rowNumberWindowOver, ROW_NUMBER_COLUMN_NAME_TOP_RARE));
 
     // 3. filter row_number() <= k in each partition
-    Integer N = (Integer) arguments.get("noOfResults").getValue();
+    int k = node.getNoOfResults();
     context.relBuilder.filter(
         context.relBuilder.lessThanOrEqual(
-            context.relBuilder.field(ROW_NUMBER_COLUMN_NAME), context.relBuilder.literal(N)));
+            context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_TOP_RARE),
+            context.relBuilder.literal(k)));
 
     // 4. project final output. the default output is group by list + field list
-    Boolean showCount = (Boolean) arguments.get("showCount").getValue();
+    Boolean showCount = (Boolean) argumentMap.get(RareTopN.Option.showCount.name()).getValue();
     if (showCount) {
-      context.relBuilder.projectExcept(context.relBuilder.field(ROW_NUMBER_COLUMN_NAME));
+      context.relBuilder.projectExcept(context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_TOP_RARE));
     } else {
       context.relBuilder.projectExcept(
-          context.relBuilder.field(ROW_NUMBER_COLUMN_NAME),
+          context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_TOP_RARE),
           context.relBuilder.field(countFieldName));
     }
     return context.relBuilder.peek();
+  }
+
+  private static void addIgnoreNullBucketHintToAggregate(CalcitePlanContext context) {
+    final RelHint statHits =
+        RelHint.builder("stats_args").hintOption(Argument.BUCKET_NULLABLE, "false").build();
+    assert context.relBuilder.peek() instanceof LogicalAggregate
+        : "Stats hits should be added to LogicalAggregate";
+    context.relBuilder.hints(statHits);
+    context
+        .relBuilder
+        .getCluster()
+        .setHintStrategies(
+            HintStrategyTable.builder()
+                .hintStrategy(
+                    "stats_args",
+                    (hint, rel) -> {
+                      return rel instanceof LogicalAggregate;
+                    })
+                .build());
   }
 
   @Override
