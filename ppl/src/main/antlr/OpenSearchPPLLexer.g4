@@ -129,6 +129,8 @@ APPEND:                             'APPEND';
 MULTISEARCH:                        'MULTISEARCH';
 COUNTFIELD:                         'COUNTFIELD';
 SHOWCOUNT:                          'SHOWCOUNT';
+SHOWPERC:                           'SHOWPERC';
+PERCENTFIELD:                       'PERCENTFIELD';
 LIMIT:                              'LIMIT';
 USEOTHER:                           'USEOTHER';
 INPUT:                              'INPUT';

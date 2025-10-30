@@ -78,7 +78,6 @@ import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.Argument;
-import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Let;
@@ -135,6 +134,7 @@ import org.opensearch.sql.ast.tree.Trendline.TrendlineType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.ast.tree.args.RareTopNArguments;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
@@ -1863,13 +1863,19 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitRareTopN(RareTopN node, CalcitePlanContext context) {
     visitChildren(node, context);
 
-    ArgumentMap arguments = ArgumentMap.of(node.getArguments());
-    String countFieldName = (String) arguments.get("countField").getValue();
+    RareTopNArguments arguments = node.getArguments();
+    String countFieldName = arguments.getCountField();
     if (context.relBuilder.peek().getRowType().getFieldNames().contains(countFieldName)) {
       throw new IllegalArgumentException(
-          "Field `"
+          "The top/rare output field `"
               + countFieldName
-              + "` is existed, change the count field by setting countfield='xyz'");
+              + "` already exists. Suggestion: change the count field by adding countfield='xyz'");
+    }
+    if (arguments.isUseOther()) {
+      throw new CalciteUnsupportedException("`useother` is currently unsupported. (Coming soon)");
+    }
+    if (arguments.isShowPerc()) {
+      throw new CalciteUnsupportedException("`showperc` is currently unsupported. (Coming soon)");
     }
 
     // 1. group the group-by list + field list and add a count() aggregation
@@ -1902,14 +1908,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         context.relBuilder.alias(rowNumberWindowOver, ROW_NUMBER_COLUMN_NAME));
 
     // 3. filter row_number() <= k in each partition
-    Integer N = (Integer) arguments.get("noOfResults").getValue();
     context.relBuilder.filter(
         context.relBuilder.lessThanOrEqual(
-            context.relBuilder.field(ROW_NUMBER_COLUMN_NAME), context.relBuilder.literal(N)));
+            context.relBuilder.field(ROW_NUMBER_COLUMN_NAME),
+            context.relBuilder.literal(arguments.getNoOfResults())));
 
     // 4. project final output. the default output is group by list + field list
-    Boolean showCount = (Boolean) arguments.get("showCount").getValue();
-    if (showCount) {
+    if (arguments.isShowCount()) {
       context.relBuilder.projectExcept(context.relBuilder.field(ROW_NUMBER_COLUMN_NAME));
     } else {
       context.relBuilder.projectExcept(

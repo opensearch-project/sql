@@ -14,6 +14,7 @@ import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.Join;
+import org.opensearch.sql.ast.tree.args.RareTopNArguments;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -180,22 +181,45 @@ public class ArgumentFactory {
   }
 
   /**
+   * Helper: dedupe list generation logic for top & rare. Helps ensure both commands consistently
+   * support the same args.
+   */
+  private static List<Argument> topRareArgList(
+      ParserRuleContext number, List<OpenSearchPPLParser.TopRareParameterContext> params) {
+    List<Argument> args = new ArrayList<>(6);
+    if (number != null) {
+      args.add(new Argument(RareTopNArguments.NUMBER_RESULTS, getArgumentValue(number)));
+    }
+
+    for (OpenSearchPPLParser.TopRareParameterContext param : params) {
+      if (param.countfield != null) {
+        args.add(new Argument(RareTopNArguments.COUNT_FIELD, getArgumentValue(param.countfield)));
+      }
+      if (param.showcount != null) {
+        args.add(new Argument(RareTopNArguments.SHOW_COUNT, getArgumentValue(param.showcount)));
+      }
+      if (param.percentfield != null) {
+        args.add(
+            new Argument(RareTopNArguments.PERCENT_FIELD, getArgumentValue(param.percentfield)));
+      }
+      if (param.showperc != null) {
+        args.add(new Argument(RareTopNArguments.SHOW_PERCENT, getArgumentValue(param.showperc)));
+      }
+      if (param.useother != null) {
+        args.add(new Argument(RareTopNArguments.USE_OTHER, getArgumentValue(param.useother)));
+      }
+    }
+    return args;
+  }
+
+  /**
    * Get list of {@link Argument}.
    *
    * @param ctx TopCommandContext instance
    * @return the list of arguments fetched from the top command
    */
   public static List<Argument> getArgumentList(TopCommandContext ctx) {
-    return Arrays.asList(
-        ctx.number != null
-            ? new Argument("noOfResults", getArgumentValue(ctx.number))
-            : new Argument("noOfResults", new Literal(10, DataType.INTEGER)),
-        ctx.countfield != null
-            ? new Argument("countField", getArgumentValue(ctx.countfield))
-            : new Argument("countField", new Literal("count", DataType.STRING)),
-        ctx.showcount != null
-            ? new Argument("showCount", getArgumentValue(ctx.showcount))
-            : new Argument("showCount", new Literal(true, DataType.BOOLEAN)));
+    return topRareArgList(ctx.number, ctx.topRareParameter());
   }
 
   /**
@@ -205,16 +229,7 @@ public class ArgumentFactory {
    * @return the list of argument with default number of results for the rare command
    */
   public static List<Argument> getArgumentList(RareCommandContext ctx) {
-    return Arrays.asList(
-        ctx.number != null
-            ? new Argument("noOfResults", getArgumentValue(ctx.number))
-            : new Argument("noOfResults", new Literal(10, DataType.INTEGER)),
-        ctx.countfield != null
-            ? new Argument("countField", getArgumentValue(ctx.countfield))
-            : new Argument("countField", new Literal("count", DataType.STRING)),
-        ctx.showcount != null
-            ? new Argument("showCount", getArgumentValue(ctx.showcount))
-            : new Argument("showCount", new Literal(true, DataType.BOOLEAN)));
+    return topRareArgList(ctx.number, ctx.topRareParameter());
   }
 
   /**
