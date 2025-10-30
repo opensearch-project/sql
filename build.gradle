@@ -6,7 +6,7 @@
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.19.3-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "2.19.4-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
         version_tokens = opensearch_version.tokenize('-')
@@ -55,8 +55,8 @@ buildscript {
 
     repositories {
         mavenLocal()
-        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
         mavenCentral()
+        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
     }
 
     dependencies {
@@ -79,8 +79,8 @@ apply plugin: 'opensearch.java'
 // Repository on root level is for dependencies that project code depends on. And this block must be placed after plugins{}
 repositories {
     mavenLocal()
-    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
     mavenCentral() // For Elastic Libs that you can use to get started coding until open OpenSearch libs are available
+    maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
     maven { url 'https://jitpack.io' }
 }
 
@@ -122,15 +122,16 @@ allprojects {
         resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.0"
         resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.0"
         resolutionStrategy.force "net.bytebuddy:byte-buddy:1.14.9"
+        resolutionStrategy.force "org.apache.commons:commons-lang3:3.18.0"
     }
 }
 
 subprojects {
     repositories {
         mavenLocal()
-        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
         mavenCentral()
-        maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
+        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
+        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/lucene/" }
         maven { url 'https://jitpack.io' }
     }
 }
@@ -196,6 +197,7 @@ configurations.all {
     // enforce 1.1.3, https://www.whitesourcesoftware.com/vulnerability-database/WS-2019-0379
     resolutionStrategy.force 'commons-codec:commons-codec:1.13'
     resolutionStrategy.force "com.google.guava:guava:${guava_version}"
+    resolutionStrategy.force "org.apache.commons:commons-lang3:3.18.0"
 }
 
 // updateVersion: Task to auto increment to the next development iteration
