@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.calcite.plan;
 
-import static org.opensearch.sql.calcite.utils.CalciteUtils.buildAggregateWithTrimUnusedFields;
-
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
@@ -184,10 +182,9 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
       }
     }
 
-    buildAggregateWithTrimUnusedFields(
-        aggregate.getGroupSet(), distinctAggregateCalls, newChildProjects.size(), relBuilder);
+    relBuilder.aggregate(relBuilder.groupKey(aggregate.getGroupSet()), distinctAggregateCalls);
 
-    /* Build the final project-aggregate-project after eliminating unused fields */
+    /* Build the final project-aggregate-project */
     List<RexNode> parentProjects =
         new ArrayList<>(relBuilder.fields(IntStream.range(0, groupSetOffset).boxed().toList()));
     parentProjects.addAll(

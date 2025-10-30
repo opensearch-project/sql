@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.calcite.plan;
 
-import static org.opensearch.sql.calcite.utils.CalciteUtils.buildAggregateWithTrimUnusedFields;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -86,13 +84,10 @@ public class PPLAggGroupMergeRule extends RelRule<PPLAggGroupMergeRule.Config> {
     final RelBuilder relBuilder = call.builder();
     relBuilder.push(project);
 
-    buildAggregateWithTrimUnusedFields(
-        ImmutableBitSet.of(baseGroupField),
-        aggregate.getAggCallList(),
-        project.getProjects().size(),
-        relBuilder);
+    relBuilder.aggregate(
+        relBuilder.groupKey(ImmutableBitSet.of(baseGroupField)), aggregate.getAggCallList());
 
-    /* Build the final project-aggregate-project after eliminating unused fields */
+    /* Build the final project-aggregate-project */
     final Mapping mapping =
         Mappings.target(
             List.of(baseGroupRef.getIndex()),

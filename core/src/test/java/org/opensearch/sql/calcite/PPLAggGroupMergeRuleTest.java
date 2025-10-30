@@ -100,7 +100,7 @@ public class PPLAggGroupMergeRuleTest {
     assertEquals(
         "LogicalAggregate(group=[{0, 1}], agg#0=[COUNT()])\n"
             + "  LogicalProject(a=[$0], $f2=[+($0, 10)])\n",
-        aggregate.explain());
+        aggregate.explain().replace("\\r\\n", "\\n"));
 
     doAnswer(
             invocation -> {
@@ -112,7 +112,7 @@ public class PPLAggGroupMergeRuleTest {
                   "LogicalProject(a=[$0], $f1=[+($0, 10)], $f10=[$1])\n"
                       + "  LogicalAggregate(group=[{0}], agg#0=[COUNT()])\n"
                       + "    LogicalProject(a=[$0])\n",
-                  rel.explain());
+                  rel.explain().replace("\\r\\n", "\\n"));
               return null;
             })
         .when(mockedCall)
@@ -147,7 +147,7 @@ public class PPLAggGroupMergeRuleTest {
     assertEquals(
         "LogicalAggregate(group=[{0, 1, 2}], agg#0=[COUNT()])\n"
             + "  LogicalProject(a=[$0], b=[$1], $f2=[+($0, 10)])\n",
-        aggregate.explain());
+        aggregate.explain().replace("\\r\\n", "\\n"));
 
     OpenSearchRules.AGG_GROUP_MERGE_RULE.apply(mockedCall, aggregate, project);
     // Assert don't invoke transformTo
