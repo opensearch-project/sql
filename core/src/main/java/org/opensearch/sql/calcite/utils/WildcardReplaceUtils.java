@@ -6,7 +6,10 @@
 package org.opensearch.sql.calcite.utils;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -21,6 +24,17 @@ import java.util.regex.Pattern;
  * not including '*' in the pattern string.
  */
 public class WildcardReplaceUtils {
+
+  private static final int PATTERN_CACHE_SIZE = 100;
+
+  private static final Map<String, Pattern> PATTERN_CACHE =
+      Collections.synchronizedMap(
+          new LinkedHashMap<>(16, 0.75f, true) {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<String, Pattern> eldest) {
+              return size() > PATTERN_CACHE_SIZE;
+            }
+          });
 
   /** Perform wildcard-based replacement. */
   public static String replaceWithWildcard(String input, String pattern, String replacement) {
@@ -42,6 +56,23 @@ public class WildcardReplaceUtils {
 
   /** Match pattern against input and capture wildcard portions. */
   public static List<String> matchAndCapture(String input, String pattern) {
+    Pattern compiledPattern =
+        PATTERN_CACHE.computeIfAbsent(pattern, WildcardReplaceUtils::compileWildcardPattern);
+
+    Matcher matcher = compiledPattern.matcher(input);
+    if (!matcher.matches()) {
+      return null;
+    }
+
+    List<String> captures = new ArrayList<>();
+    for (int i = 1; i <= matcher.groupCount(); i++) {
+      captures.add(matcher.group(i));
+    }
+    return captures;
+  }
+
+  /** Compile a wildcard pattern to a regex Pattern. */
+  private static Pattern compileWildcardPattern(String pattern) {
     String[] parts = pattern.split("\\*", -1);
     StringBuilder regexBuilder = new StringBuilder("^");
 
@@ -53,18 +84,7 @@ public class WildcardReplaceUtils {
     }
     regexBuilder.append("$");
 
-    Pattern compiledPattern = Pattern.compile(regexBuilder.toString());
-    Matcher matcher = compiledPattern.matcher(input);
-
-    if (!matcher.matches()) {
-      return null;
-    }
-
-    List<String> captures = new ArrayList<>();
-    for (int i = 1; i <= matcher.groupCount(); i++) {
-      captures.add(matcher.group(i));
-    }
-    return captures;
+    return Pattern.compile(regexBuilder.toString());
   }
 
   /** Substitute wildcards in replacement string with captured values. */
