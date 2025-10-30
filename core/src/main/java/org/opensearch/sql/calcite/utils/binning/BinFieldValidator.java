@@ -11,7 +11,6 @@ import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
-import org.opensearch.sql.exception.SemanticCheckException;
 
 /** Utility class for field validation and type checking in bin operations. */
 public class BinFieldValidator {
@@ -39,21 +38,5 @@ public class BinFieldValidator {
   /** Checks if the field type is time-based. */
   public static boolean isTimeBasedField(RelDataType fieldType) {
     return OpenSearchTypeFactory.isTimeBasedType(fieldType);
-  }
-
-  /** Validates that the field type is numeric for numeric binning operations. */
-  public static void validateNumericField(RelDataType fieldType, String fieldName) {
-    if (!isNumericField(fieldType)) {
-      throw new SemanticCheckException(
-          String.format(
-              "Cannot apply binning: field '%s' is non-numeric and not time-related, expected"
-                  + " numeric or time-related type",
-              fieldName));
-    }
-  }
-
-  /** Checks if the field type is numeric. */
-  private static boolean isNumericField(RelDataType fieldType) {
-    return OpenSearchTypeFactory.isNumericType(fieldType);
   }
 }

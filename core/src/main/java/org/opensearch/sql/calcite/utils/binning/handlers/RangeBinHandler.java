@@ -12,6 +12,7 @@ import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRexNodeVisitor;
 import org.opensearch.sql.calcite.utils.binning.BinFieldValidator;
 import org.opensearch.sql.calcite.utils.binning.BinHandler;
+import org.opensearch.sql.calcite.utils.binning.BinnableField;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
 /** Handler for range-based binning (start/end parameters only). */
@@ -23,9 +24,15 @@ public class RangeBinHandler implements BinHandler {
 
     RangeBin rangeBin = (RangeBin) node;
 
-    // Validate that the field is numeric
+    // Create validated binnable field (validates that field is numeric or time-based)
     String fieldName = BinFieldValidator.extractFieldName(node);
-    BinFieldValidator.validateNumericField(fieldExpr.getType(), fieldName);
+    BinnableField field = new BinnableField(fieldExpr, fieldExpr.getType(), fieldName);
+
+    // Range binning requires numeric fields
+    if (!field.requiresNumericBinning()) {
+      throw new IllegalArgumentException(
+          "Range binning (start/end) is only supported for numeric fields, not time-based fields");
+    }
 
     // Simple MIN/MAX calculation - cleaner than complex CASE expressions
     RexNode dataMin = context.relBuilder.min(fieldExpr).over().toRex();
