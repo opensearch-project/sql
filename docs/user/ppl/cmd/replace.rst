@@ -11,7 +11,7 @@ replace
 
 Description
 ============
-Using ``replace`` command to replace text in one or more fields in the search result. Supports both literal string replacement and wildcard pattern matching.
+Using ``replace`` command to replace text in one or more fields. Supports literal string replacement and wildcard patterns using ``*``.
 
 Note: This command is only available when Calcite engine is enabled.
 
@@ -19,22 +19,6 @@ Note: This command is only available when Calcite engine is enabled.
 Syntax
 ============
 replace '<pattern>' WITH '<replacement>' [, '<pattern>' WITH '<replacement>']... IN <field-name>[, <field-name>]...
-
-
-Parameters
-==========
-* **pattern**: mandatory. The text pattern you want to replace. Supports:
-
-  - Plain text literals for exact matching
-  - Wildcard patterns using ``*`` (asterisk) to match zero or more characters
-
-* **replacement**: mandatory. The text you want to replace with. When using wildcards:
-
-  - Can contain ``*`` to substitute captured wildcard portions
-  - Must have the same number of wildcards as the pattern, or zero wildcards
-  - Wildcards in replacement are substituted with values captured from the pattern match
-
-* **field-name**: mandatory. One or more field names where the replacement should occur.
 
 
 Examples
@@ -128,11 +112,6 @@ PPL query::
  | 880 HOLMES Lane | IL    | M      | 32  | Brogan |
  +-----------------+-------+--------+-----+--------+
 
-
-Wildcard Pattern Matching
-==========================
-
-The replace command supports wildcard patterns using ``*`` (asterisk) to match zero or more characters. This provides flexible pattern matching for text transformation.
 
 Example 6: Wildcard suffix match
 ---------------------------------
@@ -229,42 +208,10 @@ PPL query::
  +----------+
 
 
-Wildcard Rules
-==============
-
-When using wildcards in the replace command:
-
-* **Wildcard character**: Use ``*`` to match zero or more characters
-* **Symmetry requirement**: The replacement must have the same number of wildcards as the pattern, OR zero wildcards
-* **Substitution order**: Wildcards in replacement are substituted left-to-right with values captured from pattern
-* **No match behavior**: If pattern doesn't match, the original value is returned unchanged
-* **Case sensitivity**: Wildcard matching is case-sensitive
-
-**Valid wildcard pairs:**
-
-* Pattern: ``"*ada"`` (1 wildcard), Replacement: ``"CA"`` (0 wildcards) ✓
-* Pattern: ``"* localhost"`` (1 wildcard), Replacement: ``"localhost *"`` (1 wildcard) ✓
-* Pattern: ``"* - *"`` (2 wildcards), Replacement: ``"*_*"`` (2 wildcards) ✓
-
-**Invalid wildcard pair:**
-
-* Pattern: ``"* - *"`` (2 wildcards), Replacement: ``"*"`` (1 wildcard) ✗ (mismatch error)
-
-
-Escape Sequences
-================
-
-To match or replace literal asterisks or backslashes in your data, use escape sequences:
-
-* ``\*`` - Matches a literal asterisk character
-* ``\\`` - Matches a literal backslash character
-
-Without escapes, asterisks are interpreted as wildcards.
-
 Example 11: Matching literal asterisks
 ---------------------------------------
 
-Match and replace literal asterisk characters in data.
+Use ``\*`` to match literal asterisk characters (``\*`` = literal asterisk, ``\\`` = literal backslash).
 
 PPL query::
 
@@ -318,8 +265,7 @@ PPL query::
 
 Limitations
 ===========
-* Pattern and replacement values must be string literals.
-* The replace command modifies the specified fields in-place.
-* Wildcard matching is case-sensitive.
-* Regular expressions are not supported (only simple wildcard patterns with ``*``).
-* Use backslash escape sequences (``\*``, ``\\``) to match literal asterisks or backslashes.
+* Pattern and replacement must be string literals
+* Wildcards: ``*`` matches zero or more characters (case-sensitive)
+* Replacement wildcards must match pattern wildcard count, or be zero
+* Escape sequences: ``\*`` (literal asterisk), ``\\`` (literal backslash)
