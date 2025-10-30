@@ -495,4 +495,50 @@ public class CalciteReplaceCommandIT extends PPLIntegTestCase {
         rows("John", "Canada"),
         rows("Jane", "Canada"));
   }
+
+  @Test
+  public void testEscapeSequence_literalAsterisk() throws IOException {
+    // Test matching literal asterisks in data using \* escape sequence
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | eval note = 'price: *sale*' | replace 'price: \\\\*sale\\\\*' WITH"
+                    + " 'DISCOUNTED' IN note | fields note | head 1",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(result, schema("note", "string"));
+    // Pattern "price: \*sale\*" matches literal asterisks, result should be "DISCOUNTED"
+    verifyDataRows(result, rows("DISCOUNTED"));
+  }
+
+  @Test
+  public void testEscapeSequence_mixedEscapeAndWildcard() throws IOException {
+    // Test combining escaped asterisks (literal) with wildcards (pattern matching)
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | eval label = 'file123.txt' | replace 'file*.*' WITH"
+                    + " '\\\\**.*' IN label | fields label | head 1",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(result, schema("label", "string"));
+    // Pattern "file*.*" captures "123" and "txt"
+    // Replacement "\**.*" has escaped * (literal), then 2 wildcards, producing "*123.txt"
+    verifyDataRows(result, rows("*123.txt"));
+  }
+
+  @Test
+  public void testEscapeSequence_noMatchLiteral() throws IOException {
+    // Test that escaped asterisk doesn't match as wildcard
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | eval test = 'fooXbar' | replace 'foo\\\\*bar' WITH 'matched' IN test"
+                    + " | fields test | head 1",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(result, schema("test", "string"));
+    // Pattern "foo\*bar" matches literal "foo*bar", not "fooXbar", so original value returned
+    verifyDataRows(result, rows("fooXbar"));
+  }
 }

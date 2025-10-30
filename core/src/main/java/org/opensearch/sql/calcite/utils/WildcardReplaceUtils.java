@@ -19,9 +19,8 @@ import java.util.regex.Pattern;
  * <p>Supports wildcard patterns using '*' to match zero or more characters. Wildcards in the
  * replacement string are substituted with values captured from the pattern match.
  *
- * <p>Limitation: Literal asterisk characters cannot be matched or replaced when using wildcard
- * patterns. To replace literal asterisks in data, use non-wildcard (literal) replacement mode by
- * not including '*' in the pattern string.
+ * <p>Escape sequences: Use '\*' to match literal asterisks and '\\' to match literal backslashes.
+ * Without escapes, '*' is interpreted as a wildcard pattern.
  */
 public class WildcardReplaceUtils {
 
@@ -42,6 +41,9 @@ public class WildcardReplaceUtils {
       return null;
     }
 
+    validateEscapeSequences(pattern);
+    validateEscapeSequences(replacement);
+
     if (!pattern.contains("*")) {
       return input.replace(pattern, replacement);
     }
@@ -52,6 +54,22 @@ public class WildcardReplaceUtils {
     }
 
     return substituteWildcards(replacement, captures);
+  }
+
+  /** Validate that string doesn't end with unescaped backslash. */
+  private static void validateEscapeSequences(String str) {
+    boolean escaped = false;
+    for (char c : str.toCharArray()) {
+      if (escaped) {
+        escaped = false;
+      } else if (c == '\\') {
+        escaped = true;
+      }
+    }
+    if (escaped) {
+      throw new IllegalArgumentException(
+          "Invalid escape sequence: pattern ends with unescaped backslash");
+    }
   }
 
   /** Match pattern against input and capture wildcard portions. */
@@ -71,9 +89,46 @@ public class WildcardReplaceUtils {
     return captures;
   }
 
+  /**
+   * Split pattern on unescaped wildcards, handling escape sequences.
+   *
+   * <p>Supports: \* (literal asterisk), \\ (literal backslash)
+   *
+   * @param pattern Wildcard pattern with potential escapes
+   * @return Array of literal parts between wildcards
+   * @throws IllegalArgumentException if pattern ends with unescaped backslash
+   */
+  private static String[] splitWildcards(String pattern) {
+    List<String> parts = new ArrayList<>();
+    StringBuilder current = new StringBuilder();
+    boolean escaped = false;
+
+    for (char c : pattern.toCharArray()) {
+      if (escaped) {
+        current.append(c);
+        escaped = false;
+      } else if (c == '\\') {
+        escaped = true;
+      } else if (c == '*') {
+        parts.add(current.toString());
+        current = new StringBuilder();
+      } else {
+        current.append(c);
+      }
+    }
+
+    if (escaped) {
+      throw new IllegalArgumentException(
+          "Invalid escape sequence: pattern ends with unescaped backslash");
+    }
+
+    parts.add(current.toString());
+    return parts.toArray(new String[0]);
+  }
+
   /** Compile a wildcard pattern to a regex Pattern. */
   private static Pattern compileWildcardPattern(String pattern) {
-    String[] parts = pattern.split("\\*", -1);
+    String[] parts = splitWildcards(pattern);
     StringBuilder regexBuilder = new StringBuilder("^");
 
     for (int i = 0; i < parts.length; i++) {
@@ -89,15 +144,17 @@ public class WildcardReplaceUtils {
 
   /** Substitute wildcards in replacement string with captured values. */
   public static String substituteWildcards(String replacement, List<String> captures) {
-    if (!replacement.contains("*")) {
-      return replacement;
-    }
-
     StringBuilder result = new StringBuilder();
     int captureIndex = 0;
+    boolean escaped = false;
 
     for (char c : replacement.toCharArray()) {
-      if (c == '*') {
+      if (escaped) {
+        result.append(c);
+        escaped = false;
+      } else if (c == '\\') {
+        escaped = true;
+      } else if (c == '*') {
         if (captureIndex < captures.size()) {
           result.append(captures.get(captureIndex));
           captureIndex++;
@@ -107,14 +164,24 @@ public class WildcardReplaceUtils {
       }
     }
 
+    if (escaped) {
+      throw new IllegalArgumentException(
+          "Invalid escape sequence: replacement ends with unescaped backslash");
+    }
+
     return result.toString();
   }
 
-  /** Count the number of wildcards in a string. */
+  /** Count the number of unescaped wildcards in a string. */
   public static int countWildcards(String str) {
     int count = 0;
+    boolean escaped = false;
     for (char c : str.toCharArray()) {
-      if (c == '*') {
+      if (escaped) {
+        escaped = false;
+      } else if (c == '\\') {
+        escaped = true;
+      } else if (c == '*') {
         count++;
       }
     }
