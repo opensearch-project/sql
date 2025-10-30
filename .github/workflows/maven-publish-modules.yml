@@ -7,6 +7,7 @@ on:
       - main
       - '[0-9]+.[0-9]+'
       - '[0-9]+.x'
+      - unified-ppl-2.19-dev-publish-test
 
 env:
   SNAPSHOT_REPO_URL: https://ci.opensearch.org/ci/dbc/snapshots/maven/
@@ -26,7 +27,7 @@ jobs:
       - uses: actions/setup-java@v3
         with:
           distribution: temurin # Temurin is a distribution of adoptium
-          java-version: 21
+          java-version: 11
       - uses: actions/checkout@v3
       - name: Load secret
         uses: 1password/load-secrets-action@v2
