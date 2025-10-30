@@ -99,8 +99,8 @@ public class DataTypeIT extends PPLIntegTestCase {
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifySchema(
         result,
-        schema("long_number", "bigint"),
-        schema("integer_number", "int"),
+        schema("long_number", "long"),
+        schema("integer_number", "integer"),
         schema("double_number", "double"),
         schema("float_number", "float"));
     verifyDataRows(result, rows(12345678, 0, 1234.5678, 0));
