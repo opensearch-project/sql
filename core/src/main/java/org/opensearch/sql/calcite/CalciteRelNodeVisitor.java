@@ -3094,6 +3094,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     projectPlusOverriding(fattenedNodes, projectNames, context);
   }
 
+  // New generic helper: builds Uncollect + Correlate using a provided left node (so caller
+  // can ensure left rowType is fixed).
   private void buildUnnestForLeft(
       RelNode leftBuilt,
       RelDataType leftRowType,
