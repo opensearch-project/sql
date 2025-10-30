@@ -548,7 +548,7 @@ public class AstDSL {
     List<Argument> removed =
         noOfResults.stream()
             .filter(argument -> !argument.getArgName().equals("noOfResults"))
-            .toList();
+            .collect(Collectors.toList());
     return new RareTopN(commandType, N, removed, Arrays.asList(fields), groupList).attach(input);
   }
 
