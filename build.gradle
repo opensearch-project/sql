@@ -154,6 +154,9 @@ allprojects {
         resolutionStrategy.force 'commons-io:commons-io:2.15.0'
         resolutionStrategy.force 'org.yaml:snakeyaml:2.2'
         resolutionStrategy.force 'commons-beanutils:commons-beanutils:1.11.0'
+        resolutionStrategy.dependencySubstitution {
+            substitute module('commons-lang:commons-lang') using module('org.apache.commons:commons-lang3:3.18.0') because 'CVE-2025-48924: commons-lang 2.x vulnerable to StackOverflowError'
+        }
     }
 }
 
