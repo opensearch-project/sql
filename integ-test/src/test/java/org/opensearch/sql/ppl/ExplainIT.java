@@ -183,7 +183,7 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
-            "source=opensearch-sql_test_index_account | sort age, - firstname desc | fields age,"
+            "source=opensearch-sql_test_index_account | sort age desc, firstname | fields age,"
                 + " firstname"));
   }
 
@@ -265,14 +265,8 @@ public class ExplainIT extends PPLIntegTestCase {
                 + "| fields age"));
   }
 
-  /**
-   * Push down LIMIT only Sort should NOT be pushed down since DSL process limit before sort when
-   * they coexist
-   */
   @Test
   public void testLimitThenSortExplain() throws IOException {
-    // TODO: Fix the expected output in expectedOutput/ppl/explain_limit_then_sort_push.json (v2)
-    //  limit-then-sort should not be pushed down.
     String expected = loadExpectedPlan("explain_limit_then_sort_push.yaml");
     assertYamlEqualsIgnoreId(
         expected,
@@ -608,10 +602,10 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testExplainOnTake() throws IOException {
-    String expected = loadExpectedPlan("explain_take.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_take.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account | stats take(firstname, 2) as take"));
   }
 
@@ -709,19 +703,5 @@ public class ExplainIT extends PPLIntegTestCase {
         expected,
         explainQueryToString(
             String.format("search source=%s severityText=ERR*", TEST_INDEX_OTEL_LOGS)));
-  }
-
-  protected String loadExpectedPlan(String fileName) throws IOException {
-    String prefix;
-    if (isCalciteEnabled()) {
-      if (isPushdownDisabled()) {
-        prefix = "expectedOutput/calcite_no_pushdown/";
-      } else {
-        prefix = "expectedOutput/calcite/";
-      }
-    } else {
-      prefix = "expectedOutput/ppl/";
-    }
-    return loadFromFile(prefix + fileName);
   }
 }

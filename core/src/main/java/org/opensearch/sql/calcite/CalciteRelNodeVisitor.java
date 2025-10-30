@@ -283,10 +283,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           "Rex pattern must contain at least one named capture group");
     }
 
+    // TODO: Once JDK 20+ is supported, consider using Pattern.namedGroups() API for more efficient
+    // named group handling instead of manual parsing in RegexCommonUtils
+
     List<RexNode> newFields = new ArrayList<>();
     List<String> newFieldNames = new ArrayList<>();
 
-    for (int i = 0; i < namedGroups.size(); i++) {
+    for (String groupName : namedGroups) {
       RexNode extractCall;
       if (node.getMaxMatch().isPresent() && node.getMaxMatch().get() > 1) {
         extractCall =
@@ -295,7 +298,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 BuiltinFunctionName.REX_EXTRACT_MULTI,
                 fieldRex,
                 context.rexBuilder.makeLiteral(patternStr),
-                context.relBuilder.literal(i + 1),
+                context.rexBuilder.makeLiteral(groupName),
                 context.relBuilder.literal(node.getMaxMatch().get()));
       } else {
         extractCall =
@@ -304,10 +307,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 BuiltinFunctionName.REX_EXTRACT,
                 fieldRex,
                 context.rexBuilder.makeLiteral(patternStr),
-                context.relBuilder.literal(i + 1));
+                context.rexBuilder.makeLiteral(groupName));
       }
       newFields.add(extractCall);
-      newFieldNames.add(namedGroups.get(i));
+      newFieldNames.add(groupName);
     }
 
     if (node.getOffsetField().isPresent()) {
@@ -851,7 +854,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<String> originalFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
     List<RexNode> toOverrideList =
         originalFieldNames.stream()
-            .filter(newNames::contains)
+            .filter(originalName -> shouldOverrideField(originalName, newNames))
             .map(a -> (RexNode) context.relBuilder.field(a))
             .toList();
     // 1. add the new fields, For example "age0, country0"
@@ -869,6 +872,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     expectedRenameFields.addAll(newNames);
     // 5. rename
     context.relBuilder.rename(expectedRenameFields);
+  }
+
+  private boolean shouldOverrideField(String originalName, List<String> newNames) {
+    return newNames.stream()
+        .anyMatch(
+            newName ->
+                // Match exact field names (e.g., "age" == "age") for flat fields
+                newName.equals(originalName)
+                    // OR match nested paths (e.g., "resource.attributes..." starts with
+                    // "resource.")
+                    || newName.startsWith(originalName + "."));
   }
 
   private List<List<RexInputRef>> extractInputRefList(List<RelBuilder.AggCall> aggCalls) {
@@ -1001,10 +1015,54 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     Pair<List<RexNode>, List<AggCall>> reResolved =
         resolveAttributesForAggregation(groupExprList, aggExprList, context);
 
+    List<String> intendedGroupKeyAliases = getGroupKeyNamesAfterAggregation(reResolved.getLeft());
     context.relBuilder.aggregate(
         context.relBuilder.groupKey(reResolved.getLeft()), reResolved.getRight());
+    // During aggregation, Calcite projects both input dependencies and output group-by fields.
+    // When names conflict, Calcite adds numeric suffixes (e.g., "value0").
+    // Apply explicit renaming to restore the intended aliases.
+    context.relBuilder.rename(intendedGroupKeyAliases);
 
     return Pair.of(reResolved.getLeft(), reResolved.getRight());
+  }
+
+  /**
+   * Imitates {@code Registrar.registerExpression} of {@link RelBuilder} to derive the output order
+   * of group-by keys after aggregation.
+   *
+   * <p>The projected input reference comes first, while any other computed expression follows.
+   */
+  private List<String> getGroupKeyNamesAfterAggregation(List<RexNode> nodes) {
+    List<RexNode> reordered = new ArrayList<>();
+    List<RexNode> left = new ArrayList<>();
+    for (RexNode n : nodes) {
+      // The same group-key won't be added twice
+      if (reordered.contains(n) || left.contains(n)) {
+        continue;
+      }
+      if (isInputRef(n)) {
+        reordered.add(n);
+      } else {
+        left.add(n);
+      }
+    }
+    reordered.addAll(left);
+    return reordered.stream()
+        .map(this::extractAliasLiteral)
+        .flatMap(Optional::stream)
+        .map(RexLiteral::stringValue)
+        .toList();
+  }
+
+  /** Whether a rex node is an aliased input reference */
+  private boolean isInputRef(RexNode node) {
+    return switch (node.getKind()) {
+      case AS, DESCENDING, NULLS_FIRST, NULLS_LAST -> {
+        final List<RexNode> operands = ((RexCall) node).operands;
+        yield isInputRef(operands.getFirst());
+      }
+      default -> node instanceof RexInputRef;
+    };
   }
 
   /**
@@ -1105,7 +1163,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         aggregationAttributes.getLeft().stream()
             .map(this::extractAliasLiteral)
             .flatMap(Optional::stream)
-            .map(ref -> ((RexLiteral) ref).getValueAs(String.class))
+            .map(ref -> ref.getValueAs(String.class))
             .map(context.relBuilder::field)
             .map(f -> (RexNode) f)
             .toList();
@@ -2047,18 +2105,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   /**
-   * Finds the timestamp field for multisearch ordering.
+   * Finds the @timestamp field for multisearch ordering. Only @timestamp field is used for
+   * timestamp interleaving. Other timestamp-like fields are ignored.
    *
-   * @param rowType The row type to search for timestamp fields
-   * @return The name of the timestamp field, or null if not found
+   * @param rowType The row type to search for @timestamp field
+   * @return "@timestamp" if the field exists, or null if not found
    */
   private String findTimestampField(RelDataType rowType) {
-    String[] candidates = {"@timestamp", "_time", "timestamp", "time"};
-    for (String fieldName : candidates) {
-      RelDataTypeField field = rowType.getField(fieldName, false, false);
-      if (field != null) {
-        return fieldName;
-      }
+    RelDataTypeField field = rowType.getField("@timestamp", false, false);
+    if (field != null) {
+      return "@timestamp";
     }
     return null;
   }

@@ -8,12 +8,15 @@ package org.opensearch.sql.opensearch.util;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import lombok.experimental.UtilityClass;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rex.RexBiVisitorImpl;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
@@ -203,6 +206,72 @@ public class OpenSearchRelOptUtil {
         newMappings.add(oldIdx);
       }
       return null;
+    }
+  }
+
+  /**
+   * Replace dot in field name with underscore, since Calcite has bug in codegen if a field name
+   * contains dot.
+   *
+   * <p>Fields replacement examples:
+   *
+   * <p>a_b, a.b -> a_b, a_b0
+   *
+   * <p>a_b, a_b0, a.b -> a_b, a_b0, a_b1
+   *
+   * <p>a_b, a_b1, a.b -> a_b, a_b1, a_b0
+   *
+   * <p>a_b0, a.b0, a.b1 -> a_b0, a_b00, a_b1
+   *
+   * @param rowType RowType
+   * @return RowType with field name replaced
+   */
+  public RelDataType replaceDot(RelDataTypeFactory typeFactory, RelDataType rowType) {
+    final RelDataTypeFactory.Builder builder = typeFactory.builder();
+    final List<RelDataTypeField> fieldList = rowType.getFieldList();
+    List<String> originalNames = new ArrayList<>();
+    for (RelDataTypeField field : fieldList) {
+      originalNames.add(field.getName());
+    }
+    List<String> resolvedNames = OpenSearchRelOptUtil.resolveColumnNameConflicts(originalNames);
+    for (int i = 0; i < fieldList.size(); i++) {
+      RelDataTypeField field = fieldList.get(i);
+      builder.add(
+          new RelDataTypeFieldImpl(resolvedNames.get(i), field.getIndex(), field.getType()));
+    }
+    return builder.build();
+  }
+
+  public static List<String> resolveColumnNameConflicts(List<String> originalNames) {
+    List<String> result = new ArrayList<>(originalNames);
+    Set<String> usedNames = new HashSet<>(originalNames);
+    for (int i = 0; i < originalNames.size(); i++) {
+      String originalName = originalNames.get(i);
+      if (originalName.contains(".")) {
+        String baseName = originalName.replace('.', '_');
+        String newName = generateUniqueName(baseName, usedNames);
+        result.set(i, newName);
+        usedNames.add(newName);
+      }
+    }
+    return result;
+  }
+
+  private static String generateUniqueName(String baseName, Set<String> usedNames) {
+    if (!usedNames.contains(baseName)) {
+      return baseName;
+    }
+    String candidate = baseName + "0";
+    if (!usedNames.contains(candidate)) {
+      return candidate;
+    }
+    int suffix = 1;
+    while (true) {
+      candidate = baseName + suffix;
+      if (!usedNames.contains(candidate)) {
+        return candidate;
+      }
+      suffix++;
     }
   }
 }

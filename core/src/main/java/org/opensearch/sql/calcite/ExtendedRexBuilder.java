@@ -54,38 +54,59 @@ public class ExtendedRexBuilder extends RexBuilder {
   public SqlIntervalQualifier createIntervalUntil(SpanUnit unit) {
     TimeUnit timeUnit;
     switch (unit) {
+      case MICROSECOND:
+      case US:
+        timeUnit = TimeUnit.MICROSECOND;
+        break;
       case MILLISECOND:
       case MS:
         timeUnit = TimeUnit.MILLISECOND;
         break;
+      case SECONDS:
       case SECOND:
+      case SECS:
+      case SEC:
       case S:
         timeUnit = TimeUnit.SECOND;
         break;
+      case MINUTES:
       case MINUTE:
+      case MINS:
+      case MIN:
       case m:
         timeUnit = TimeUnit.MINUTE;
         break;
+      case HOURS:
       case HOUR:
+      case HRS:
+      case HR:
       case H:
         timeUnit = TimeUnit.HOUR;
         break;
+      case DAYS:
       case DAY:
       case D:
         timeUnit = TimeUnit.DAY;
         break;
+      case WEEKS:
       case WEEK:
       case W:
         timeUnit = TimeUnit.WEEK;
         break;
+      case MONTHS:
       case MONTH:
+      case MON:
       case M:
         timeUnit = TimeUnit.MONTH;
         break;
+      case QUARTERS:
       case QUARTER:
+      case QTRS:
+      case QTR:
       case Q:
         timeUnit = TimeUnit.QUARTER;
         break;
+      case YEARS:
       case YEAR:
       case Y:
         timeUnit = TimeUnit.YEAR;

@@ -1,3 +1,23 @@
+/*
+{
+  "name": "sort_numeric_desc_with_match",
+  "operation-type": "search",
+  "index": "{{index_name | default('big5')}}",
+  "body": {
+    "track_total_hits": false,
+    "query": {
+      "match": {
+        "log.file.path": "/var/log/messages/solarshark"
+      }
+    },
+    "sort": [
+      {
+        "metrics.size": "desc"
+      }
+    ]
+  }
+}
+*/
 source = big5 log.file.path=\"/var/log/messages/solarshark\"
 | sort - `metrics.size`
 | head 10

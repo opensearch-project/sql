@@ -1,5 +1,24 @@
+/*
+{
+  "name": "range_with_asc_sort",
+  "operation-type": "search",
+  "index": "{{ index_name | default('big5') }}",
+  "body": {
+    "query": {
+      "range": {
+        "@timestamp": {
+          "gte": "2023-01-01T00:00:00",
+          "lte":  "2023-01-13T00:00:00"
+        }
+      }
+    },
+    "sort": [
+      { "@timestamp": "asc" }
+    ]
+  }
+}
+*/
 source = big5
-| where `@timestamp` >= '2023-01-01 00:00:00'
-  and `@timestamp` <= '2023-01-13 00:00:00'
+| where `@timestamp` >= '2023-01-01 00:00:00' and `@timestamp` <= '2023-01-13 00:00:00'
 | sort + `@timestamp`
 | head 10
