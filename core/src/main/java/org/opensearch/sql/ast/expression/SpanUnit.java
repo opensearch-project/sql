@@ -15,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 public enum SpanUnit {
   UNKNOWN("unknown"),
   NONE(""),
+  MICROSECOND("us"),
+  US("us"),
   MILLISECOND("ms"),
   MS("ms"),
   SECONDS("s"),
