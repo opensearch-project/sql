@@ -1,0 +1,139 @@
+setup:
+  - do:
+      indices.create:
+        index: test
+        body:
+          mappings:
+            properties:
+              "dateV":
+                type: date
+              "intV":
+                type: integer
+              "boolV":
+                type: boolean
+              "stringV":
+                type: keyword
+  - do:
+      bulk:
+        index: test
+        refresh: true
+        body:
+          - '{"index":{}}'
+          - '{"dateV":"2023-10-08T10:00:00.000Z","intV":10,"boolV":true,"stringV":"hello"}'
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"String bucket parser should work in non-composite aggregate":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test | stats bucket_nullable=false count() by stringV
+
+  - match: { total: 1 }
+  - match: { datarows: [[1, "hello"]] }
+
+---
+"Boolean bucket parser should work in non-composite aggregate":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test | stats bucket_nullable=false count() by boolV
+
+  - match: { total: 1 }
+  - match: { datarows: [[1, true]] }
+
+---
+"Integer bucket parser should work in non-composite aggregate":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test | stats bucket_nullable=false count() by intV
+
+  - match: { total: 1 }
+  - match: { datarows: [[1, 10]] }
+
+---
+"Date bucket parser should work in non-composite aggregate":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test | stats bucket_nullable=false count() by dateV
+
+  - match: { total: 1 }
+  - match: { datarows: [[1, "2023-10-08 10:00:00"]] }
+
+---
+"Data histogram bucket parser should work in non-composite aggregate":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test | stats bucket_nullable=false count() by span(dateV, 1d)
+
+  - match: { total: 1 }
+  - match: { datarows: [[1, "2023-10-08 00:00:00"]] }
+
+---
+"Histogram bucket parser should work in non-composite aggregate":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test | stats bucket_nullable=false count() by span(intV, 1)
+
+  - match: { total: 1 }
+  - match: { datarows: [[1, 10]] }
+
+---
+"Multi-terms bucket parser should work in non-composite aggregate":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test | stats bucket_nullable=false count() by stringV, intV
+
+  - match: { total: 1 }
+  - match: { datarows: [[1, "hello", 10]] }
