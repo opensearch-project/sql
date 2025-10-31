@@ -1,7 +1,7 @@
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalProject(count(account_number)=[$1], c2=[$2], gender=[$0])
+      LogicalProject(c2=[$1], count(account_number)=[$2], gender=[$0])
         LogicalAggregate(group=[{0}], count(account_number)=[COUNT($1)], c2=[COUNT($2)])
           LogicalProject(gender=[$4], account_number=[$0], account_number_alias=[$0])
             CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])

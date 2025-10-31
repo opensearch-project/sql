@@ -199,10 +199,10 @@ public class ExplainIT extends PPLIntegTestCase {
   @Test
   public void testSortWithAggregationExplain() throws IOException {
     // Sorts whose by fields are aggregators should not be pushed down
-    String expected = loadExpectedPlan("explain_sort_agg_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_sort_agg_push.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account"
                 + "| stats avg(age) AS avg_age by state, city "
                 + "| sort avg_age"));
@@ -227,10 +227,10 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testSortThenAggregatePushDownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_sort_then_agg_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_sort_then_agg_push.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account"
                 + "| sort balance, age "
                 + "| stats avg(balance) by state"));
