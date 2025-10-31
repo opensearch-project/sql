@@ -36,7 +36,7 @@ public class MinSpanBinHandler implements BinHandler {
     Number minspanNum = (Number) ((RexLiteral) minspanValue).getValue();
     double minspan = minspanNum.doubleValue();
 
-    // Calculate data range using window functions
+    // Calculate global data range using window functions
     RexNode minValue = context.relBuilder.min(fieldExpr).over().toRex();
     RexNode maxValue = context.relBuilder.max(fieldExpr).over().toRex();
     RexNode dataRange = context.relBuilder.call(SqlStdOperatorTable.MINUS, maxValue, minValue);

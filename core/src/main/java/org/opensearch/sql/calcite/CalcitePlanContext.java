@@ -48,6 +48,13 @@ public class CalcitePlanContext {
   @Getter @Setter private boolean isResolvingSubquery = false;
   @Getter @Setter private boolean inCoalesceFunction = false;
 
+  /** Fields that are being grouped by in aggregation (for bin operations to preserve originals) */
+  @Getter @Setter
+  private java.util.Set<String> aggregationGroupByFields = new java.util.HashSet<>();
+
+  /** Total number of group-by fields in current aggregation */
+  @Getter @Setter private int aggregationGroupByCount = 0;
+
   /**
    * The flag used to determine whether we do metadata field projection for user 1. If a project is
    * never visited, we will do metadata field projection for user 2. Else not because user may
@@ -58,6 +65,14 @@ public class CalcitePlanContext {
 
   private final Stack<RexCorrelVariable> correlVar = new Stack<>();
   private final Stack<List<RexNode>> windowPartitions = new Stack<>();
+
+  /**
+   * Partition columns for bin operations. Used to create partitioned window functions for MIN/MAX
+   * calculations in WIDTH_BUCKET, matching auto_date_histogram's per-group behavior. Stores
+   * UnresolvedExpression objects that will be analyzed by bin handlers.
+   */
+  private final Stack<List<org.opensearch.sql.ast.expression.UnresolvedExpression>>
+      binPartitionExpressions = new Stack<>();
 
   @Getter public Map<String, RexLambdaRef> rexLambdaRefMap;
 
@@ -133,5 +148,28 @@ public class CalcitePlanContext {
 
   public void putRexLambdaRefMap(Map<String, RexLambdaRef> candidateMap) {
     this.rexLambdaRefMap.putAll(candidateMap);
+  }
+
+  /**
+   * Push partition expressions for bin operations. These will be analyzed by bin handlers to create
+   * PARTITION BY clauses for window functions in WIDTH_BUCKET.
+   */
+  public void pushBinPartitionExpressions(
+      List<org.opensearch.sql.ast.expression.UnresolvedExpression> partitionExpressions) {
+    binPartitionExpressions.push(partitionExpressions);
+  }
+
+  /** Pop partition expressions for bin operations. */
+  public void popBinPartitionExpressions() {
+    if (!binPartitionExpressions.empty()) {
+      binPartitionExpressions.pop();
+    }
+  }
+
+  /**
+   * Get current partition expressions for bin operations. Returns empty list if no partitions set.
+   */
+  public List<org.opensearch.sql.ast.expression.UnresolvedExpression> getBinPartitionExpressions() {
+    return binPartitionExpressions.empty() ? List.of() : binPartitionExpressions.peek();
   }
 }

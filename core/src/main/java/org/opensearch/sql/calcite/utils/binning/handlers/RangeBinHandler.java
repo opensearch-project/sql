@@ -22,7 +22,7 @@ public class RangeBinHandler implements BinHandler {
 
     RangeBin rangeBin = (RangeBin) node;
 
-    // Simple MIN/MAX calculation - cleaner than complex CASE expressions
+    // Simple global MIN/MAX calculation - cleaner than complex CASE expressions
     RexNode dataMin = context.relBuilder.min(fieldExpr).over().toRex();
     RexNode dataMax = context.relBuilder.max(fieldExpr).over().toRex();
 

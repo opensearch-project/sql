@@ -863,8 +863,6 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testStatsWithBinsOnTimeField_Count() throws IOException {
-    // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
-    enabledOnlyWhenPushdownIsEnabled();
 
     JSONObject result =
         executeQuery("source=events_null | bin @timestamp bins=3 | stats count() by @timestamp");
@@ -901,8 +899,6 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testStatsWithBinsOnTimeField_Avg() throws IOException {
-    // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
-    enabledOnlyWhenPushdownIsEnabled();
 
     JSONObject result =
         executeQuery(
@@ -942,8 +938,6 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testStatsWithBinsOnTimeAndTermField_Count() throws IOException {
-    // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
-    enabledOnlyWhenPushdownIsEnabled();
 
     JSONObject result =
         executeQuery(
@@ -965,8 +959,6 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testStatsWithBinsOnTimeAndTermField_Avg() throws IOException {
-    // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
-    enabledOnlyWhenPushdownIsEnabled();
 
     JSONObject result =
         executeQuery(

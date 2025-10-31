@@ -453,6 +453,22 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
   }
 
+  /** Extract field name from UnresolvedExpression. Handles Field and Alias expressions. */
+  private String extractFieldName(UnresolvedExpression expr) {
+    if (expr instanceof org.opensearch.sql.ast.expression.Field) {
+      return ((org.opensearch.sql.ast.expression.Field) expr).getField().toString();
+    } else if (expr instanceof org.opensearch.sql.ast.expression.Alias) {
+      org.opensearch.sql.ast.expression.Alias alias =
+          (org.opensearch.sql.ast.expression.Alias) expr;
+      if (alias.getDelegated() instanceof org.opensearch.sql.ast.expression.Field) {
+        return ((org.opensearch.sql.ast.expression.Field) alias.getDelegated())
+            .getField()
+            .toString();
+      }
+    }
+    return null;
+  }
+
   private boolean isMetadataField(String fieldName) {
     return OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(fieldName);
   }
@@ -662,7 +678,26 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RexNode binExpression = BinUtils.createBinExpression(node, fieldExpr, context, rexVisitor);
 
     String alias = node.getAlias() != null ? node.getAlias() : fieldName;
-    projectPlusOverriding(List.of(binExpression), List.of(alias), context);
+
+    // Check if this field is used in aggregation grouping with multiple fields
+    if (context.getAggregationGroupByFields().contains(fieldName)
+        && context.getAggregationGroupByCount() > 1) {
+      // For multi-field aggregation: preserve BOTH original field and binned field
+      // The binned field (fieldName_bin) is used for grouping
+      // The original field is used for MIN aggregation to show actual timestamps per group
+      List<RexNode> allFields = new ArrayList<>(context.relBuilder.fields());
+      List<String> allFieldNames =
+          new ArrayList<>(context.relBuilder.peek().getRowType().getFieldNames());
+
+      // Add the binned field with _bin suffix
+      allFields.add(binExpression);
+      allFieldNames.add(fieldName + "_bin");
+
+      context.relBuilder.project(allFields, allFieldNames);
+    } else {
+      // For non-aggregation queries OR single-field binning: replace field with binned value
+      projectPlusOverriding(List.of(binExpression), List.of(alias), context);
+    }
 
     return context.relBuilder.peek();
   }
@@ -1020,20 +1055,98 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       CalcitePlanContext context) {
     List<AggCall> aggCallList =
         aggExprList.stream().map(expr -> aggVisitor.analyze(expr, context)).toList();
-    List<RexNode> groupByList =
-        groupExprList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
-    return Pair.of(groupByList, aggCallList);
+
+    // Get available field names in the current relation
+    List<String> availableFields = context.relBuilder.peek().getRowType().getFieldNames();
+
+    // Build group-by list, replacing fields with their _bin columns if they exist
+    List<RexNode> groupByList = new ArrayList<>();
+    List<AggCall> additionalAggCalls = new ArrayList<>();
+
+    // Track if we have bin columns - we'll need this to decide whether to add MIN aggregations
+    boolean hasBinColumns = false;
+    int nonBinGroupByCount = 0;
+
+    for (UnresolvedExpression groupExpr : groupExprList) {
+      RexNode resolvedExpr = rexVisitor.analyze(groupExpr, context);
+
+      // Extract field name from UnresolvedExpression
+      String fieldName = extractFieldName(groupExpr);
+
+      // Check if this field has a corresponding _bin column
+      if (fieldName != null) {
+        String binColumnName = fieldName + "_bin";
+        if (availableFields.contains(binColumnName)) {
+          // Use the _bin column for grouping
+          groupByList.add(context.relBuilder.field(binColumnName));
+          hasBinColumns = true;
+          continue;
+        }
+      }
+
+      // Regular group-by field
+      groupByList.add(resolvedExpr);
+      nonBinGroupByCount++;
+    }
+
+    // Only add MIN aggregations for bin columns if there are OTHER group-by fields
+    // This matches OpenSearch behavior:
+    // - With multi-field grouping (e.g., by region, timestamp): Show MIN(timestamp) per group
+    // - With single-field grouping (e.g., by timestamp only): Show bin start time
+    if (hasBinColumns && nonBinGroupByCount > 0) {
+      for (UnresolvedExpression groupExpr : groupExprList) {
+        String fieldName = extractFieldName(groupExpr);
+        if (fieldName != null) {
+          String binColumnName = fieldName + "_bin";
+          if (availableFields.contains(binColumnName)) {
+            // Add MIN(original_field) to show minimum timestamp per bin
+            additionalAggCalls.add(
+                context.relBuilder.min(context.relBuilder.field(fieldName)).as(fieldName));
+          }
+        }
+      }
+    }
+
+    // Combine original aggregations with additional MIN aggregations for binned fields
+    List<AggCall> combinedAggCalls = new ArrayList<>(aggCallList);
+    combinedAggCalls.addAll(additionalAggCalls);
+
+    return Pair.of(groupByList, combinedAggCalls);
   }
 
   @Override
   public RelNode visitAggregation(Aggregation node, CalcitePlanContext context) {
-    visitChildren(node, context);
-
+    // Prepare partition columns for bin operations before visiting children
+    // This allows WIDTH_BUCKET to use per-group min/max (matching auto_date_histogram)
     List<UnresolvedExpression> aggExprList = node.getAggExprList();
     List<UnresolvedExpression> groupExprList = new ArrayList<>();
+    UnresolvedExpression span = node.getSpan();
+    if (Objects.nonNull(span)) {
+      groupExprList.add(span);
+    }
+    groupExprList.addAll(node.getGroupExprList());
+
+    // Store group-by field names and count so bin operations can preserve original fields
+    java.util.Set<String> savedGroupByFields = context.getAggregationGroupByFields();
+    int savedGroupByCount = context.getAggregationGroupByCount();
+    context.setAggregationGroupByFields(new java.util.HashSet<>());
+    context.setAggregationGroupByCount(groupExprList.size());
+    for (UnresolvedExpression groupExpr : groupExprList) {
+      String fieldName = extractFieldName(groupExpr);
+      if (fieldName != null) {
+        context.getAggregationGroupByFields().add(fieldName);
+      }
+    }
+
+    visitChildren(node, context);
+
+    // Restore previous group-by fields and count
+    context.setAggregationGroupByFields(savedGroupByFields);
+    context.setAggregationGroupByCount(savedGroupByCount);
+
+    groupExprList.clear();
     // The span column is always the first column in result whatever
     // the order of span in query is first or last one
-    UnresolvedExpression span = node.getSpan();
     if (Objects.nonNull(span)) {
       groupExprList.add(span);
       List<RexNode> timeSpanFilters =
@@ -1093,23 +1206,86 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // the sequence of output schema is "count, colA, colB".
     List<RexNode> outputFields = context.relBuilder.fields();
     int numOfOutputFields = outputFields.size();
-    int numOfAggList = aggExprList.size();
+    int numOfUserAggregations = aggExprList.size();
     List<RexNode> reordered = new ArrayList<>(numOfOutputFields);
-    // Add aggregation results first
-    List<RexNode> aggRexList =
-        outputFields.subList(numOfOutputFields - numOfAggList, numOfOutputFields);
-    reordered.addAll(aggRexList);
-    // Add group by columns
-    List<RexNode> aliasedGroupByList =
-        aggregationAttributes.getLeft().stream()
-            .map(this::extractAliasLiteral)
-            .flatMap(Optional::stream)
-            .map(ref -> ((RexLiteral) ref).getValueAs(String.class))
-            .map(context.relBuilder::field)
-            .map(f -> (RexNode) f)
-            .toList();
-    reordered.addAll(aliasedGroupByList);
-    context.relBuilder.project(reordered);
+
+    // Add user-specified aggregation results first (exclude MIN aggregations for binned fields)
+    List<RexNode> userAggRexList =
+        outputFields.subList(
+            numOfOutputFields - aggregationAttributes.getRight().size(),
+            numOfOutputFields - aggregationAttributes.getRight().size() + numOfUserAggregations);
+
+    // Wrap AVG aggregations with ROUND to fix floating point precision
+    for (int i = 0; i < userAggRexList.size(); i++) {
+      RexNode aggRex = userAggRexList.get(i);
+      UnresolvedExpression aggExpr = aggExprList.get(i);
+
+      // Unwrap Alias to get to the actual aggregation function
+      UnresolvedExpression actualAggExpr = aggExpr;
+      if (aggExpr instanceof org.opensearch.sql.ast.expression.Alias) {
+        actualAggExpr = ((org.opensearch.sql.ast.expression.Alias) aggExpr).getDelegated();
+      }
+
+      // Check if this is an AVG aggregation
+      if (actualAggExpr instanceof org.opensearch.sql.ast.expression.AggregateFunction) {
+        org.opensearch.sql.ast.expression.AggregateFunction aggFunc =
+            (org.opensearch.sql.ast.expression.AggregateFunction) actualAggExpr;
+        if ("avg".equalsIgnoreCase(aggFunc.getFuncName())) {
+          // Wrap with ROUND(value, 2)
+          aggRex =
+              context.relBuilder.call(
+                  org.apache.calcite.sql.fun.SqlStdOperatorTable.ROUND,
+                  aggRex,
+                  context.rexBuilder.makeLiteral(
+                      2,
+                      context
+                          .relBuilder
+                          .getTypeFactory()
+                          .createSqlType(org.apache.calcite.sql.type.SqlTypeName.INTEGER),
+                      false));
+        }
+      }
+      reordered.add(aggRex);
+    }
+
+    // Add group by columns, replacing _bin columns with their MIN aggregations
+    // Get field names from the aggregate output (group-by fields come first)
+    List<String> allFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+    int numGroupByFields = aggregationAttributes.getLeft().size();
+
+    List<String> outputFieldNames = new ArrayList<>();
+
+    for (int i = 0; i < numGroupByFields; i++) {
+      String fieldName = allFieldNames.get(i);
+      if (fieldName.endsWith("_bin")) {
+        // This is a bin column
+        String originalFieldName = fieldName.substring(0, fieldName.length() - 4); // Remove "_bin"
+        // Check if we have a MIN aggregation for this field (only present for multi-field grouping)
+        if (allFieldNames.contains(originalFieldName)) {
+          // Use the MIN aggregation
+          reordered.add(context.relBuilder.field(originalFieldName));
+          outputFieldNames.add(originalFieldName);
+        } else {
+          // Use the bin column directly (for single-field binning) - rename to original name
+          reordered.add(context.relBuilder.field(fieldName));
+          outputFieldNames.add(originalFieldName); // Rename _bin field to original name
+        }
+      } else {
+        // Regular group-by field
+        reordered.add(context.relBuilder.field(fieldName));
+        outputFieldNames.add(fieldName);
+      }
+    }
+
+    // Add aggregation field names (after group-by fields in the reordered list)
+    // The user aggregations are at the beginning of reordered list, so we add their names
+    int aggStartIndex = numOfOutputFields - aggregationAttributes.getRight().size();
+    for (int i = aggStartIndex; i < aggStartIndex + numOfUserAggregations; i++) {
+      outputFieldNames.add(
+          0, allFieldNames.get(i)); // Add at beginning to match reordered list order
+    }
+
+    context.relBuilder.project(reordered, outputFieldNames);
 
     return context.relBuilder.peek();
   }

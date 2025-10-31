@@ -29,7 +29,7 @@ public class CountBinHandler implements BinHandler {
       requestedBins = BinConstants.DEFAULT_BINS;
     }
 
-    // Calculate MIN and MAX using window functions
+    // Calculate global MIN and MAX using window functions
     RexNode minValue = context.relBuilder.min(fieldExpr).over().toRex();
     RexNode maxValue = context.relBuilder.max(fieldExpr).over().toRex();
 
