@@ -112,10 +112,10 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
 
     verifyDataRows(
         actual,
-        rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2, 22.5, 20, 25),
         rows("Jake", "USA", "California", 4, 2023, 70, 1, 70, 70, 70),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 2, 50, 30, 70));
+        rows("Hello", "USA", "New York", 4, 2023, 30, 2, 50, 30, 70),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2, 22.5, 20, 25));
   }
 
   @Test
@@ -142,12 +142,12 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
 
     verifyDataRows(
         actual,
-        rows("Kevin", null, null, 4, 2023, null, 1, null, null, null),
+        rows("Jake", "USA", "California", 4, 2023, 70, 1, 70, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 2, 50, 30, 70),
         rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2, 22.5, 20, 25),
         rows(null, "Canada", null, 4, 2023, 10, 3, 18.333333333333332, 10, 25),
-        rows("Jake", "USA", "California", 4, 2023, 70, 1, 70, 70, 70),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 2, 50, 30, 70));
+        rows("Kevin", null, null, 4, 2023, null, 1, null, null, null));
 
     actual =
         executeQuery(
@@ -157,12 +157,12 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
     verifyDataRows(
         actual,
-        rows(null, "Canada", null, 4, 2023, 10, 1, 10, 10, 10),
-        rows("Kevin", null, null, 4, 2023, null, 2, 10, 10, 10),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 1, 30, 30, 30),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 1, 20, 20, 20),
         rows("Jake", "USA", "California", 4, 2023, 70, 1, 70, 70, 70),
-        rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25));
+        rows("Hello", "USA", "New York", 4, 2023, 30, 1, 30, 30, 30),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 1, 20, 20, 20),
+        rows(null, "Canada", null, 4, 2023, 10, 1, 10, 10, 10),
+        rows("Kevin", null, null, 4, 2023, null, 2, 10, 10, 10));
   }
 
   @Test
@@ -176,10 +176,10 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
 
     verifyDataRows(
         actual,
-        rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2, 22.5, 20, 25),
         rows("Jake", "USA", "California", 4, 2023, 70, 1, 70, 70, 70),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 1, 30, 30, 30));
+        rows("Hello", "USA", "New York", 4, 2023, 30, 1, 30, 30, 30),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2, 22.5, 20, 25));
   }
 
   @Test
@@ -193,12 +193,12 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
 
     verifyDataRows(
         actual,
-        rows("Kevin", null, null, 4, 2023, null, 1, null, null, null),
+        rows("Jake", "USA", "California", 4, 2023, 70, 1, 70, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 1, 30, 30, 30),
         rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2, 22.5, 20, 25),
-        rows("Jake", "USA", "California", 4, 2023, 70, 1, 70, 70, 70),
         rows(null, "Canada", null, 4, 2023, 10, 1, 10, 10, 10),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 1, 30, 30, 30));
+        rows("Kevin", null, null, 4, 2023, null, 1, null, null, null));
   }
 
   @Test
@@ -213,9 +213,9 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     verifyDataRows(
         actual,
         rows("Jake", "USA", "California", 4, 2023, 70, 1, 70, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 1, 30, 30, 30),
         rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2, 22.5, 20, 25),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 1, 30, 30, 30));
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2, 22.5, 20, 25));
   }
 
   @Test
@@ -229,9 +229,9 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
 
     verifyDataRows(
         actual,
-        rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 1, 30, 30, 30),
         rows("Jake", "USA", "California", 4, 2023, 70, 1, 70, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 1, 30, 30, 30),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 1, 20, 20, 20));
   }
 
@@ -246,12 +246,12 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
 
     verifyDataRows(
         actual,
-        rows("Kevin", null, null, 4, 2023, null, 1, null, null, null),
         rows("Jake", "USA", "California", 4, 2023, 70, 1, 70, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 1, 30, 30, 30),
         rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2, 22.5, 20, 25),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 1, 30, 30, 30),
-        rows(null, "Canada", null, 4, 2023, 10, 1, 10, 10, 10));
+        rows(null, "Canada", null, 4, 2023, 10, 1, 10, 10, 10),
+        rows("Kevin", null, null, 4, 2023, null, 1, null, null, null));
   }
 
   @Test
@@ -265,12 +265,12 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
 
     verifyDataRows(
         actual,
-        rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
-        rows("Kevin", null, null, 4, 2023, null, 1, null, null, null),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 1, 30, 30, 30),
         rows("Jake", "USA", "California", 4, 2023, 70, 1, 70, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 1, 30, 30, 30),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 1, 20, 20, 20),
-        rows(null, "Canada", null, 4, 2023, 10, 1, 10, 10, 10));
+        rows(null, "Canada", null, 4, 2023, 10, 1, 10, 10, 10),
+        rows("Kevin", null, null, 4, 2023, null, 1, null, null, null));
   }
 
   @Test
@@ -421,10 +421,10 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
 
     verifyDataRows(
         actual,
-        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
         rows("Jake", "USA", "California", 4, 2023, 70, 70),
         rows("Hello", "USA", "New York", 4, 2023, 30, 50),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
         rows("Jay", "USA", "Quebec", 4, 2023, 40, 35));
 
     JSONObject actual2 =
@@ -435,10 +435,10 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
 
     verifyDataRows(
         actual2,
-        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
         rows("Jake", "USA", "California", 4, 2023, 70, 70),
         rows("Hello", "USA", "New York", 4, 2023, 30, 50),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
         rows("Jay", "USA", "Quebec", 4, 2023, 40, 40));
 
     Request deleteRequest =
@@ -468,12 +468,12 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
 
     verifyDataRows(
         actual,
-        rows("Kevin", null, null, 4, 2023, null, null),
+        rows("Jake", "USA", "California", 4, 2023, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 50),
         rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
         rows(null, "Canada", null, 4, 2023, 10, 15),
-        rows("Jake", "USA", "California", 4, 2023, 70, 70),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 50),
+        rows("Kevin", null, null, 4, 2023, null, null),
         rows("Jay", "USA", "Quebec", 4, 2023, 40, 35));
 
     JSONObject actual2 =
@@ -484,13 +484,13 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
 
     verifyDataRows(
         actual2,
+        rows("Jake", "USA", "California", 4, 2023, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 50),
         rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
         rows(null, "Canada", null, 4, 2023, 10, 15),
-        rows("Jake", "USA", "California", 4, 2023, 70, 70),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 50),
-        rows("Jay", "USA", "Quebec", 4, 2023, 40, 40),
-        rows("Kevin", null, null, 4, 2023, null, null));
+        rows("Kevin", null, null, 4, 2023, null, null),
+        rows("Jay", "USA", "Quebec", 4, 2023, 40, 40));
 
     Request deleteRequest =
         new Request(
@@ -519,10 +519,10 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
 
     verifyDataRows(
         actual,
-        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
         rows("Jake", "USA", "California", 4, 2023, 70, 70),
         rows("Hello", "USA", "New York", 4, 2023, 30, 30),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
         rows("Jay", "USA", "Quebec", 4, 2023, 28, 28));
 
     JSONObject actual2 =
@@ -533,10 +533,10 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
 
     verifyDataRows(
         actual2,
-        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20),
         rows("Jake", "USA", "California", 4, 2023, 70, 70),
         rows("Hello", "USA", "New York", 4, 2023, 30, 30),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20),
         rows("Jay", "USA", "Quebec", 4, 2023, 28, 28));
 
     Request deleteRequest =
@@ -566,13 +566,13 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
 
     verifyDataRows(
         actual,
+        rows("Jake", "USA", "California", 4, 2023, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 30),
         rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
         rows(null, "Canada", null, 4, 2023, 10, 15),
-        rows("Jake", "USA", "California", 4, 2023, 70, 70),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 30),
-        rows("Jay", "USA", "Quebec", 4, 2023, 28, 28),
-        rows("Kevin", null, null, 4, 2023, null, null));
+        rows("Kevin", null, null, 4, 2023, null, null),
+        rows("Jay", "USA", "Quebec", 4, 2023, 28, 28));
 
     JSONObject actual2 =
         executeQuery(
@@ -582,13 +582,13 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
 
     verifyDataRows(
         actual2,
+        rows("Jake", "USA", "California", 4, 2023, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 30),
         rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20),
         rows(null, "Canada", null, 4, 2023, 10, 15),
-        rows("Jake", "USA", "California", 4, 2023, 70, 70),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 30),
-        rows("Jay", "USA", "Quebec", 4, 2023, 28, 28),
-        rows("Kevin", null, null, 4, 2023, null, null));
+        rows("Kevin", null, null, 4, 2023, null, null),
+        rows("Jay", "USA", "Quebec", 4, 2023, 28, 28));
 
     Request deleteRequest =
         new Request(
@@ -623,10 +623,10 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
 
     verifyDataRows(
         actual,
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20, 20),
-        rows("John", "Canada", "Ontario", 4, 2023, 25, 25, 22.5),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 30, 30),
-        rows("Jake", "USA", "California", 4, 2023, 70, 70, 50));
+        rows("Jake", "USA", "California", 4, 2023, 70, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 30, 50),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20, 22.5));
   }
 
   @Test
@@ -640,12 +640,12 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
 
     verifyDataRows(
         actual,
-        rows("Kevin", null, null, 4, 2023, null, null, null),
-        rows(null, "Canada", null, 4, 2023, 10, 10, 10),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20, 15),
-        rows("John", "Canada", "Ontario", 4, 2023, 25, 25, 18.333333333333332),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 30, 30),
-        rows("Jake", "USA", "California", 4, 2023, 70, 70, 50));
+        rows("Jake", "USA", "California", 4, 2023, 70, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 30, 50),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20, 22.5),
+        rows(null, "Canada", null, 4, 2023, 10, 10, 18.333333333333332),
+        rows("Kevin", null, null, 4, 2023, null, null, null));
   }
 
   @Test
@@ -740,9 +740,9 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
 
     verifyDataRows(
         actual,
-        rows("John", "Canada", "Ontario", 4, 2023, 25, 25, 5, 5, 1),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 30, 10, 10, 1),
-        rows("Jake", "USA", "California", 4, 2023, 70, 70, 50, 50, 2));
+        rows("Jake", "USA", "California", 4, 2023, 70, 70, 50, 50, 1),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 30, 10, 10, 2),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 25, 5, 5, 1));
   }
 
   @Test
@@ -878,10 +878,10 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
 
     verifyDataRows(
         actual,
-        rows("John", "Canada", "Ontario", 4, 2023, 25, 0, null, 0, null),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2.5, 3.5355339059327378, 6.25, 12.5),
         rows("Jake", "USA", "California", 4, 2023, 70, 0, null, 0, null),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 20, 28.284271247461902, 400, 800));
+        rows("Hello", "USA", "New York", 4, 2023, 30, 20, 28.284271247461902, 400, 800),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 0, null, 0, null),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2.5, 3.5355339059327378, 6.25, 12.5));
   }
 
   @Test
@@ -910,7 +910,8 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
 
     verifyDataRows(
         actual,
-        rows("Kevin", null, null, 4, 2023, null, null, null, null, null),
+        rows("Jake", "USA", "California", 4, 2023, 70, 0, null, 0, null),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 20, 28.284271247461902, 400, 800),
         rows("John", "Canada", "Ontario", 4, 2023, 25, 0, null, 0, null),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2.5, 3.5355339059327378, 6.25, 12.5),
         rows(
@@ -924,8 +925,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
             7.6376261582597325,
             38.88888888888888,
             58.333333333333314),
-        rows("Jake", "USA", "California", 4, 2023, 70, 0, null, 0, null),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 20, 28.284271247461902, 400, 800));
+        rows("Kevin", null, null, 4, 2023, null, null, null, null, null));
   }
 
   @Test
@@ -973,10 +973,10 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
 
     verifyDataRows(
         actual,
-        rows("John", "Canada", "Ontario", 4, 2023, 25, 1),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2),
         rows("Jake", "USA", "California", 4, 2023, 70, 1),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 2));
+        rows("Hello", "USA", "New York", 4, 2023, 30, 2),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 1),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2));
   }
 
   @Test
@@ -1052,13 +1052,13 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     verifyDataRows(
         actual,
         rows(
-            "2023-01-02 00:00:00",
-            "server3",
-            "2023-01-04 00:00:00",
-            "Disk space low",
+            "2023-01-05 00:00:00",
+            "server1",
+            "2023-01-01 00:00:00",
+            "Database connection failed",
             "ERROR",
-            "Disk space low",
-            "Disk space low"),
+            "Database connection failed",
+            "Database connection failed"),
         rows(
             "2023-01-04 00:00:00",
             "server2",
@@ -1068,28 +1068,28 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
             "Service started",
             "Service started"),
         rows(
-            "2023-01-01 00:00:00",
-            "server2",
-            "2023-01-05 00:00:00",
-            "Backup completed",
-            "INFO",
-            "Service started",
-            "Backup completed"),
-        rows(
-            "2023-01-05 00:00:00",
-            "server1",
-            "2023-01-01 00:00:00",
-            "Database connection failed",
-            "ERROR",
-            "Database connection failed",
-            "Database connection failed"),
-        rows(
             "2023-01-03 00:00:00",
             "server1",
             "2023-01-03 00:00:00",
             "High memory usage",
             "WARN",
             "Database connection failed",
-            "High memory usage"));
+            "High memory usage"),
+        rows(
+            "2023-01-02 00:00:00",
+            "server3",
+            "2023-01-04 00:00:00",
+            "Disk space low",
+            "ERROR",
+            "Disk space low",
+            "Disk space low"),
+        rows(
+            "2023-01-01 00:00:00",
+            "server2",
+            "2023-01-05 00:00:00",
+            "Backup completed",
+            "INFO",
+            "Service started",
+            "Backup completed"));
   }
 }

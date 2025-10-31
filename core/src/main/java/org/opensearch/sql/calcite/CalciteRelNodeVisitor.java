@@ -1642,16 +1642,19 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     // Default
-    RexNode streamSeq =
-        PlanUtils.makeOver(
-            context,
-            BuiltinFunctionName.ROW_NUMBER,
-            null,
-            List.of(),
-            List.of(),
-            List.of(),
-            WindowFrame.toCurrentRow());
-    context.relBuilder.projectPlus(context.relBuilder.alias(streamSeq, SEQ_COL));
+    if (hasGroup) {
+      // only build sequence when there is by condition
+      RexNode streamSeq =
+          PlanUtils.makeOver(
+              context,
+              BuiltinFunctionName.ROW_NUMBER,
+              null,
+              List.of(),
+              List.of(),
+              List.of(),
+              WindowFrame.toCurrentRow());
+      context.relBuilder.projectPlus(context.relBuilder.alias(streamSeq, SEQ_COL));
+    }
 
     List<RexNode> overExpressions =
         node.getWindowFunctionList().stream().map(w -> rexVisitor.analyze(w, context)).toList();
@@ -1660,9 +1663,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // resort when there is by condition
     if (hasGroup) {
       context.relBuilder.sort(context.relBuilder.field(SEQ_COL));
+      context.relBuilder.projectExcept(context.relBuilder.field(SEQ_COL));
     }
 
-    context.relBuilder.projectExcept(context.relBuilder.field(SEQ_COL));
     return context.relBuilder.peek();
   }
 
