@@ -48,6 +48,13 @@ public class CalcitePlanContext {
   @Getter @Setter private boolean isResolvingSubquery = false;
   @Getter @Setter private boolean inCoalesceFunction = false;
 
+  /** Fields that are being grouped by in aggregation (for bin operations to preserve originals) */
+  @Getter @Setter
+  private java.util.Set<String> aggregationGroupByFields = new java.util.HashSet<>();
+
+  /** Total number of group-by fields in current aggregation */
+  @Getter @Setter private int aggregationGroupByCount = 0;
+
   /**
    * The flag used to determine whether we do metadata field projection for user 1. If a project is
    * never visited, we will do metadata field projection for user 2. Else not because user may
