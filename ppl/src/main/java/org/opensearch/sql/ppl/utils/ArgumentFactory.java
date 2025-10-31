@@ -185,9 +185,20 @@ public class ArgumentFactory {
     List<Argument> arguments = new ArrayList<>();
     for (var optionCtx : ctx.chartOptions()) {
       if (optionCtx.LIMIT() != null) {
-        arguments.add(new Argument("limit", getArgumentValue(optionCtx.integerLiteral())));
+        Literal limit;
+        if (optionCtx.integerLiteral() != null) {
+          limit = getArgumentValue(optionCtx.integerLiteral());
+        } else {
+          limit =
+              AstDSL.intLiteral(
+                  Integer.parseInt(
+                      (optionCtx.TOP_K() != null ? optionCtx.TOP_K() : optionCtx.BOTTOM_K())
+                          .getText()
+                          .replaceAll("[^0-9-]", "")));
+        }
+        arguments.add(new Argument("limit", limit));
         // not specified | top presents -> true; bottom presents -> false
-        arguments.add(new Argument("top", AstDSL.booleanLiteral(optionCtx.BOTTOM() == null)));
+        arguments.add(new Argument("top", AstDSL.booleanLiteral(optionCtx.BOTTOM_K() == null)));
       } else if (optionCtx.USEOTHER() != null) {
         arguments.add(new Argument("useother", getArgumentValue(optionCtx.booleanLiteral())));
       } else if (optionCtx.OTHERSTR() != null) {

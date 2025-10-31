@@ -1535,7 +1535,7 @@ public class AstBuilderTest {
   @Test
   public void testChartCommandWithAllOptions() {
     assertEqual(
-        "source=t | chart limit=5 useother=false otherstr='OTHER' usenull=true nullstr='NULL'"
+        "source=t | chart limit=top5 useother=false otherstr='OTHER' usenull=true nullstr='NULL'"
             + " avg(balance) by gender",
         Chart.builder()
             .child(relation("t"))
@@ -1555,7 +1555,7 @@ public class AstBuilderTest {
   @Test
   public void testChartCommandWithBottomLimit() {
     assertEqual(
-        "source=t | chart limit=bottom 3 count() by category",
+        "source=t | chart limit=bottom3 count() by category",
         Chart.builder()
             .child(relation("t"))
             .columnSplit(alias("category", field("category")))

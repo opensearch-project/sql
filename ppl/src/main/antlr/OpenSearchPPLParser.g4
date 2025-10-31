@@ -264,7 +264,8 @@ chartCommand
   ;
 
 chartOptions
-  : LIMIT EQUAL (TOP | BOTTOM)? integerLiteral
+  : LIMIT EQUAL integerLiteral
+  | LIMIT EQUAL (TOP_K | BOTTOM_K)
   | USEOTHER EQUAL booleanLiteral
   | OTHERSTR EQUAL stringLiteral
   | USENULL EQUAL booleanLiteral

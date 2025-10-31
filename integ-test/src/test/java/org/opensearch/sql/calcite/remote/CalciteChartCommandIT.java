@@ -211,7 +211,7 @@ public class CalciteChartCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | chart limit=top 2 useother=true otherstr='max_among_other'"
+                "source=%s | chart limit=top2 useother=true otherstr='max_among_other'"
                     + " max(severityNumber) over flags by severityText",
                 TEST_INDEX_OTEL_LOGS));
     verifySchema(
@@ -232,7 +232,7 @@ public class CalciteChartCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | chart limit=bottom 2 useother=false otherstr='other_small_not_shown'"
+                "source=%s | chart limit=bottom2 useother=false otherstr='other_small_not_shown'"
                     + " max(severityNumber) over flags by severityText",
                 TEST_INDEX_OTEL_LOGS));
     verifySchema(
@@ -248,7 +248,7 @@ public class CalciteChartCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | chart limit=top 2 min(severityNumber) over flags by severityText",
+                "source=%s | chart limit=top2 min(severityNumber) over flags by severityText",
                 TEST_INDEX_OTEL_LOGS));
     verifySchema(
         result,

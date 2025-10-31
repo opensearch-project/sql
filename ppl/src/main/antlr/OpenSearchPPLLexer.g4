@@ -94,7 +94,8 @@ COST:                               'COST';
 EXTENDED:                           'EXTENDED';
 OVERRIDE:                           'OVERRIDE';
 OVERWRITE:                          'OVERWRITE';
-BOTTOM:                             'BOTTOM';
+TOP_K:                              'TOP'[0-9]+;
+BOTTOM_K:                           'BOTTOM'[0-9]+;
 
 // SORT FIELD KEYWORDS
 // TODO #3180: Fix broken sort functionality

@@ -125,7 +125,7 @@ public class ArgumentFactoryTest extends AstBuilderTest {
   @Test
   public void testChartCommandBottomArguments() {
     assertEqual(
-        "source=t | chart limit=bottom 3 count() by status",
+        "source=t | chart limit=bottom3 count() by status",
         Chart.builder()
             .child(relation("t"))
             .columnSplit(alias("status", field("status")))

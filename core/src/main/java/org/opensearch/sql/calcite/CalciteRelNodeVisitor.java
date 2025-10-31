@@ -915,7 +915,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   private Pair<List<RexNode>, List<AggCall>> aggregateWithTrimming(
       List<UnresolvedExpression> groupExprList,
       List<UnresolvedExpression> aggExprList,
-      CalcitePlanContext context) {
+      CalcitePlanContext context,
+      boolean hintBucketNonNull) {
     Pair<List<RexNode>, List<AggCall>> resolved =
         resolveAttributesForAggregation(groupExprList, aggExprList, context);
     List<RexNode> resolvedGroupByList = resolved.getLeft();
@@ -1019,6 +1020,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<String> intendedGroupKeyAliases = getGroupKeyNamesAfterAggregation(reResolved.getLeft());
     context.relBuilder.aggregate(
         context.relBuilder.groupKey(reResolved.getLeft()), reResolved.getRight());
+    if (hintBucketNonNull) addIgnoreNullBucketHintToAggregate(context);
     // During aggregation, Calcite projects both input dependencies and output group-by fields.
     // When names conflict, Calcite adds numeric suffixes (e.g., "value0").
     // Apply explicit renaming to restore the intended aliases.
@@ -1141,10 +1143,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     Pair<List<RexNode>, List<AggCall>> aggregationAttributes =
-        aggregateWithTrimming(groupExprList, aggExprList, context);
-    if (toAddHintsOnAggregate) {
-      addIgnoreNullBucketHintToAggregate(context);
-    }
+        aggregateWithTrimming(groupExprList, aggExprList, context, toAddHintsOnAggregate);
 
     // schema reordering
     List<RexNode> outputFields = context.relBuilder.fields();
@@ -1896,11 +1895,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               .map(context.relBuilder::isNotNull)
               .toList());
     }
-    aggregateWithTrimming(groupExprList, aggExprList, context);
-
-    if (toAddHintsOnAggregate) {
-      addIgnoreNullBucketHintToAggregate(context);
-    }
+    aggregateWithTrimming(groupExprList, aggExprList, context, toAddHintsOnAggregate);
 
     // 2. add a window column
     List<RexNode> partitionKeys = rexVisitor.analyze(node.getGroupExprList(), context);
@@ -2262,7 +2257,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     try {
       // Step 1: Initial aggregation - IMPORTANT: order is [spanExpr, byField]
       groupExprList = Arrays.asList(spanExpr, byField);
-      aggregateWithTrimming(groupExprList, List.of(node.getAggregateFunction()), context);
+      aggregateWithTrimming(groupExprList, List.of(node.getAggregateFunction()), context, false);
 
       // First rename the timestamp field (2nd to last) to @timestamp
       List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
