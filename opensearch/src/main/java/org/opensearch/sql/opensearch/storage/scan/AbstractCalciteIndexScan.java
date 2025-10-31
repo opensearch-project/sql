@@ -124,8 +124,15 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                       rowCount,
                       RelMdUtil.guessSelectivity(((FilterDigest) operation.digest()).condition()));
                   case LIMIT -> Math.min(rowCount, ((LimitDigest) operation.digest()).limit());
-                  case RARE_TOP -> Math.min(
-                      rowCount, ((RareTopDigest) operation.digest()).number());
+                  case RARE_TOP -> {
+                    /** similar to {@link Aggregate#estimateRowCount(RelMetadataQuery)} */
+                    final RareTopDigest digest = (RareTopDigest) operation.digest();
+                    int factor = digest.number();
+                    final int groupCount = digest.byList().size();
+                    yield groupCount == 0
+                        ? factor
+                        : factor * rowCount * (1.0 - Math.pow(.5, groupCount));
+                  }
                 },
             (a, b) -> null);
   }
@@ -181,9 +188,15 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
           // Because we'd like to push down LIMIT even when the fetch in LIMIT is greater than
           // dRows.
         case LIMIT -> dRows = Math.min(dRows, ((LimitDigest) operation.digest()).limit()) - 1;
-        case RARE_TOP -> dRows = Math.min(dRows, ((RareTopDigest) operation.digest()).number()) - 1;
+        case RARE_TOP -> {
+          /** similar to {@link Aggregate#computeSelfCost(RelOptPlanner, RelMetadataQuery)} */
+          final RareTopDigest digest = (RareTopDigest) operation.digest();
+          int factor = digest.number();
+          final int groupCount = digest.byList().size();
+          dRows = groupCount == 0 ? factor : factor * dRows * (1.0 - Math.pow(.5, groupCount));
+          dCpu += dRows * 1.125f;
+        }
       }
-      ;
     }
     // Add the external cost to introduce the effect from FILTER, LIMIT and PROJECT.
     dCpu += dRows * getRowType().getFieldList().size();

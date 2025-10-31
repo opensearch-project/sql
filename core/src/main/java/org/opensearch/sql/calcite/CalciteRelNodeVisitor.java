@@ -1896,7 +1896,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       countField = context.relBuilder.field(countFieldName);
     }
 
-    //
     RexNode rowNumberWindowOver =
         PlanUtils.makeOver(
             context,
