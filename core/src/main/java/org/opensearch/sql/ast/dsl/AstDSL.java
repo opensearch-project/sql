@@ -61,6 +61,7 @@ import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.MinSpanBin;
+import org.opensearch.sql.ast.tree.MvExpand;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
@@ -133,6 +134,11 @@ public class AstDSL {
 
   public Expand expand(UnresolvedPlan input, Field field, String alias) {
     return new Expand(field, alias).attach(input);
+  }
+
+  public static UnresolvedPlan mvexpand(UnresolvedPlan input, Field field, Integer limit) {
+    // attach the incoming child plan so the AST contains the pipeline link
+    return new MvExpand(field, limit).attach(input);
   }
 
   public static UnresolvedPlan projectWithArg(
