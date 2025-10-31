@@ -24,8 +24,8 @@ import org.opensearch.search.aggregations.bucket.range.Range;
 import org.opensearch.search.aggregations.bucket.terms.InternalMultiTerms;
 
 /**
- * Use BucketAggregationParser only when there is a single group-by key, it returns multiple
- * buckets. {@link CompositeAggregationParser} is used for multiple group by keys
+ * Use BucketAggregationParser for {@link MultiBucketsAggregation}, where it returns multiple
+ * buckets.
  */
 @EqualsAndHashCode
 public class BucketAggregationParser implements OpenSearchAggregationResponseParser {
@@ -120,7 +120,7 @@ public class BucketAggregationParser implements OpenSearchAggregationResponsePar
    * bucket's key.
    *
    * @param bucket the aggregation bucket to extract data from
-   * @param name the field name to use for range buckets (ignored for composite buckets)
+   * @param name the aggregation name
    * @return an Optional containing the extracted key-value pairs
    */
   protected Optional<Map<String, Object>> extract(
