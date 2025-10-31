@@ -11,7 +11,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -84,6 +83,13 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     } else {
       throw new IllegalStateException("Unexpected parser type: " + parser.getClass());
     }
+  }
+
+  private String multiTermsBucketNameAsString(CompositeAggregationBuilder composite) {
+    return composite.sources().stream()
+        .map(TermsValuesSourceBuilder.class::cast)
+        .map(TermsValuesSourceBuilder::name)
+        .collect(Collectors.joining("|")); // PIPE cannot be used in identifier
   }
 
   public void pushDownSortAggMetrics(List<RelFieldCollation> collations, List<String> fieldNames) {
@@ -159,7 +165,7 @@ public class AggPushDownAction implements OSRequestBuilderAction {
                 src -> src instanceof TermsValuesSourceBuilder && !((TermsValuesSourceBuilder) src).missingBucket())) {
           // multi-term agg
           MultiTermsAggregationBuilder multiTermsBuilder =
-              new MultiTermsAggregationBuilder("multi_terms_buckets");
+              new MultiTermsAggregationBuilder(multiTermsBucketNameAsString(composite));
           multiTermsBuilder.size(composite.size());
           multiTermsBuilder.terms(
               composite.sources().stream()

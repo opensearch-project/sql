@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.opensearch.search.SearchHits;
@@ -20,11 +21,11 @@ import org.opensearch.search.aggregations.bucket.MultiBucketsAggregation;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregation;
 import org.opensearch.search.aggregations.bucket.histogram.InternalAutoDateHistogram;
 import org.opensearch.search.aggregations.bucket.range.Range;
-import org.opensearch.search.aggregations.bucket.terms.ParsedStringTerms;
+import org.opensearch.search.aggregations.bucket.terms.InternalMultiTerms;
 
 /**
- * Use BucketAggregationParser only when there is a single group-by key, it returns multiple
- * buckets. {@link CompositeAggregationParser} is used for multiple group by keys
+ * Use BucketAggregationParser for {@link MultiBucketsAggregation}, where it returns multiple
+ * buckets.
  */
 @EqualsAndHashCode
 public class BucketAggregationParser implements OpenSearchAggregationResponseParser {
@@ -119,9 +120,8 @@ public class BucketAggregationParser implements OpenSearchAggregationResponsePar
    * bucket's key.
    *
    * @param bucket the aggregation bucket to extract data from
-   * @param name the field name to use for range buckets (ignored for composite buckets)
-   * @return an Optional containing the extracted key-value pairs, or empty if bucket type is
-   *     unsupported
+   * @param name the aggregation name
+   * @return an Optional containing the extracted key-value pairs
    */
   protected Optional<Map<String, Object>> extract(
       MultiBucketsAggregation.Bucket bucket, String name) {
@@ -129,12 +129,14 @@ public class BucketAggregationParser implements OpenSearchAggregationResponsePar
     if (bucket instanceof CompositeAggregation.Bucket) {
       CompositeAggregation.Bucket compositeBucket = (CompositeAggregation.Bucket) bucket;
       extracted = compositeBucket.getKey();
-    } else if (bucket instanceof Range.Bucket
-        || bucket instanceof InternalAutoDateHistogram.Bucket
-        || bucket instanceof ParsedStringTerms.ParsedBucket) {
-      extracted = Map.of(name, bucket.getKey());
+    } else if (bucket instanceof InternalMultiTerms.Bucket) {
+      List<String> keys = Arrays.asList(name.split("\\|"));
+      extracted =
+          IntStream.range(0, keys.size())
+              .boxed()
+              .collect(Collectors.toMap(keys::get, ((List<Object>) bucket.getKey())::get));
     } else {
-      extracted = null;
+      extracted = Map.of(name, bucket.getKey());
     }
     return Optional.ofNullable(extracted);
   }
