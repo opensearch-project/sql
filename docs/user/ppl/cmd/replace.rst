@@ -11,7 +11,7 @@ replace
 
 Description
 ============
-Using ``replace`` command to replace text in one or more fields in the search result.
+Using ``replace`` command to replace text in one or more fields. Supports literal string replacement and wildcard patterns using ``*``.
 
 Note: This command is only available when Calcite engine is enabled.
 
@@ -19,13 +19,6 @@ Note: This command is only available when Calcite engine is enabled.
 Syntax
 ============
 replace '<pattern>' WITH '<replacement>' [, '<pattern>' WITH '<replacement>']... IN <field-name>[, <field-name>]...
-
-
-Parameters
-==========
-* **pattern**: mandatory. The text pattern you want to replace. Currently supports only plain text literals (no wildcards or regular expressions).
-* **replacement**: mandatory. The text you want to replace with.
-* **field-name**: mandatory. One or more field names where the replacement should occur.
 
 
 Examples
@@ -120,8 +113,158 @@ PPL query::
  +-----------------+-------+--------+-----+--------+
 
 
+Example 6: Wildcard suffix match
+---------------------------------
+
+Replace values that end with a specific pattern. The wildcard ``*`` matches any prefix.
+
+PPL query::
+
+ os> source=accounts | replace "*IL" WITH "Illinois" IN state | fields state;
+ fetched rows / total rows = 4/4
+ +----------+
+ | state    |
+ |----------|
+ | Illinois |
+ | TN       |
+ | VA       |
+ | MD       |
+ +----------+
+
+
+Example 7: Wildcard prefix match
+---------------------------------
+
+Replace values that start with a specific pattern. The wildcard ``*`` matches any suffix.
+
+PPL query::
+
+ os> source=accounts | replace "IL*" WITH "Illinois" IN state | fields state;
+ fetched rows / total rows = 4/4
+ +----------+
+ | state    |
+ |----------|
+ | Illinois |
+ | TN       |
+ | VA       |
+ | MD       |
+ +----------+
+
+
+Example 8: Wildcard capture and substitution
+---------------------------------------------
+
+Use wildcards in both pattern and replacement to capture and reuse matched portions. The number of wildcards must match in pattern and replacement.
+
+PPL query::
+
+ os> source=accounts | replace "* Lane" WITH "Lane *" IN address | fields address;
+ fetched rows / total rows = 4/4
+ +----------------------+
+ | address              |
+ |----------------------|
+ | Lane 880 Holmes      |
+ | 671 Bristol Street   |
+ | 789 Madison Street   |
+ | 467 Hutchinson Court |
+ +----------------------+
+
+
+Example 9: Multiple wildcards for pattern transformation
+---------------------------------------------------------
+
+Use multiple wildcards to transform patterns. Each wildcard in the replacement substitutes the corresponding captured value.
+
+PPL query::
+
+ os> source=accounts | replace "* *" WITH "*_*" IN address | fields address;
+ fetched rows / total rows = 4/4
+ +----------------------+
+ | address              |
+ |----------------------|
+ | 880_Holmes Lane      |
+ | 671_Bristol Street   |
+ | 789_Madison Street   |
+ | 467_Hutchinson Court |
+ +----------------------+
+
+
+Example 10: Wildcard with zero wildcards in replacement
+--------------------------------------------------------
+
+When replacement has zero wildcards, all matching values are replaced with the literal replacement string.
+
+PPL query::
+
+ os> source=accounts | replace "*IL*" WITH "Illinois" IN state | fields state;
+ fetched rows / total rows = 4/4
+ +----------+
+ | state    |
+ |----------|
+ | Illinois |
+ | TN       |
+ | VA       |
+ | MD       |
+ +----------+
+
+
+Example 11: Matching literal asterisks
+---------------------------------------
+
+Use ``\*`` to match literal asterisk characters (``\*`` = literal asterisk, ``\\`` = literal backslash).
+
+PPL query::
+
+ os> source=accounts | eval note = 'price: *sale*' | replace 'price: \*sale\*' WITH 'DISCOUNTED' IN note | fields note;
+ fetched rows / total rows = 4/4
+ +------------+
+ | note       |
+ |------------|
+ | DISCOUNTED |
+ | DISCOUNTED |
+ | DISCOUNTED |
+ | DISCOUNTED |
+ +------------+
+
+Example 12: Wildcard with no replacement wildcards
+----------------------------------------------------
+
+Use wildcards in pattern but none in replacement to create a fixed output.
+
+PPL query::
+
+ os> source=accounts | eval test = 'prefix-value-suffix' | replace 'prefix-*-suffix' WITH 'MATCHED' IN test | fields test;
+ fetched rows / total rows = 4/4
+ +---------+
+ | test    |
+ |---------|
+ | MATCHED |
+ | MATCHED |
+ | MATCHED |
+ | MATCHED |
+ +---------+
+
+Example 13: Escaped asterisks with wildcards
+---------------------------------------------
+
+Combine escaped asterisks (literal) with wildcards for complex patterns.
+
+PPL query::
+
+ os> source=accounts | eval label = 'file123.txt' | replace 'file*.*' WITH '\**.*' IN label | fields label;
+ fetched rows / total rows = 4/4
+ +----------+
+ | label    |
+ |----------|
+ | *123.txt |
+ | *123.txt |
+ | *123.txt |
+ | *123.txt |
+ +----------+
+
+
 Limitations
 ===========
-* Only supports plain text literals for pattern matching. Wildcards and regular expressions are not supported.
-* Pattern and replacement values must be string literals.
-* The replace command modifies the specified fields in-place.
+* Wildcards: ``*`` matches zero or more characters (case-sensitive)
+* Replacement wildcards must match pattern wildcard count, or be zero
+* Escape sequences: ``\*`` (literal asterisk), ``\\`` (literal backslash)
