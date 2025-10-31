@@ -222,7 +222,8 @@ class OpenSearchRequestBuilderTest {
                   .from(DEFAULT_OFFSET)
                   .size(MAX_RESULT_WINDOW)
                   .timeout(DEFAULT_QUERY_TIMEOUT)
-                  .query(query),
+                  .query(query)
+                  .sort(DOC_FIELD_NAME, ASC),
               searchRequest.source());
           return mock();
         };
@@ -305,7 +306,8 @@ class OpenSearchRequestBuilderTest {
             .from(DEFAULT_OFFSET)
             .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT)
-            .query(expectedQuery);
+            .query(expectedQuery)
+            .sort(DOC_FIELD_NAME, ASC);
 
     assertSearchSourceBuilder(expectedSourceBuilder, requestBuilder);
   }
@@ -326,7 +328,8 @@ class OpenSearchRequestBuilderTest {
             .from(DEFAULT_OFFSET)
             .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT)
-            .query(initialBoolQuery);
+            .query(initialBoolQuery)
+            .sort(DOC_FIELD_NAME, ASC);
 
     assertSearchSourceBuilder(expectedSourceBuilder, requestBuilder);
   }

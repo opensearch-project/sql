@@ -20,7 +20,6 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import org.json.JSONObject;
-import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.ResponseException;
@@ -1279,7 +1278,7 @@ public class SearchCommandIT extends PPLIntegTestCase {
     client().performRequest(deleteRequest);
   }
 
-  @Ignore("test fail in Oct 1st, 2025. Seems a test bug")
+  @Test
   public void testSearchWithComplexChainedExpressions() throws IOException {
     final int docId = 101;
 
