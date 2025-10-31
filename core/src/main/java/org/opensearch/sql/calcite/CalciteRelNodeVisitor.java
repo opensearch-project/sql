@@ -2007,8 +2007,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return relBuilder.peek();
   }
 
-  /** Helper method to get the function name for proper column naming */
-  private String getValueFunctionName(UnresolvedExpression aggregateFunction) {
+  /**
+   * Helper method to get the metric alias for proper column naming. E.g. It returns {@code cnt} for
+   * {@code count(balance) as cnt}, and returns {@code avg(cpu_usage)} for {@code avg(cpu_usage)}
+   */
+  private String getMetricAlias(UnresolvedExpression aggregateFunction) {
     if (aggregateFunction instanceof Alias) {
       return ((Alias) aggregateFunction).getName();
     }
@@ -2058,7 +2061,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // Handle no by field case
     if (node.getByField() == null) {
-      String valueFunctionName = getValueFunctionName(node.getAggregateFunction());
+      String aggFieldAlias = getMetricAlias(node.getAggregateFunction());
 
       // Create group expression list with just the timestamp span but use a different alias
       // to avoid @timestamp naming conflict
@@ -2066,7 +2069,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       simpleGroupExprList.add(new Alias("timestamp", spanExpr));
       // Create agg expression list with the aggregate function
       List<UnresolvedExpression> simpleAggExprList =
-          List.of(new Alias(valueFunctionName, node.getAggregateFunction()));
+          List.of(new Alias(aggFieldAlias, node.getAggregateFunction()));
       // Create an Aggregation object
       Aggregation aggregation =
           new Aggregation(
@@ -2081,9 +2084,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       context.relBuilder.push(result);
       // Reorder fields: timestamp first, then count
       context.relBuilder.project(
-          context.relBuilder.field("timestamp"), context.relBuilder.field(valueFunctionName));
+          context.relBuilder.field("timestamp"), context.relBuilder.field(aggFieldAlias));
       // Rename timestamp to @timestamp
-      context.relBuilder.rename(List.of("@timestamp", valueFunctionName));
+      context.relBuilder.rename(List.of("@timestamp", aggFieldAlias));
 
       context.relBuilder.sort(context.relBuilder.field(0));
       return context.relBuilder.peek();
@@ -2092,7 +2095,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Extract parameters for byField case
     UnresolvedExpression byField = node.getByField();
     String byFieldName = ((Field) byField).getField().toString();
-    String valueFunctionName = getValueFunctionName(node.getAggregateFunction());
+    String aggFieldAlias = getMetricAlias(node.getAggregateFunction());
 
     int limit = Optional.ofNullable(node.getLimit()).orElse(10);
     boolean useOther = Optional.ofNullable(node.getUseOther()).orElse(true);
@@ -2119,11 +2122,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
       // Handle no limit case - just sort and return with proper field aliases
       if (limit == 0) {
-        // Add final projection with proper aliases: [@timestamp, byField, valueFunctionName]
+        // Add final projection with proper aliases: [@timestamp, byField, aggFieldAlias]
         context.relBuilder.project(
             context.relBuilder.alias(context.relBuilder.field(0), "@timestamp"),
             context.relBuilder.alias(context.relBuilder.field(1), byFieldName),
-            context.relBuilder.alias(context.relBuilder.field(2), valueFunctionName));
+            context.relBuilder.alias(context.relBuilder.field(2), aggFieldAlias));
         context.relBuilder.sort(context.relBuilder.field(0), context.relBuilder.field(1));
         return context.relBuilder.peek();
       }
@@ -2133,32 +2136,64 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
       // Step 2: Find top N categories using window function approach (more efficient than separate
       // aggregation)
-      RelNode topCategories = buildTopCategoriesQuery(completeResults, limit, context);
+      String aggFunctionName = getAggFunctionName(node.getAggregateFunction());
+      Optional<BuiltinFunctionName> aggFuncNameOptional = BuiltinFunctionName.of(aggFunctionName);
+      if (aggFuncNameOptional.isEmpty()) {
+        throw new IllegalArgumentException(
+            StringUtils.format("Unrecognized aggregation function: %s", aggFunctionName));
+      }
+      BuiltinFunctionName aggFunction = aggFuncNameOptional.get();
+      RelNode topCategories = buildTopCategoriesQuery(completeResults, limit, aggFunction, context);
 
       // Step 3: Apply OTHER logic with single pass
       return buildFinalResultWithOther(
-          completeResults, topCategories, byFieldName, valueFunctionName, useOther, limit, context);
+          completeResults,
+          topCategories,
+          byFieldName,
+          aggFunction,
+          aggFieldAlias,
+          useOther,
+          limit,
+          context);
 
     } catch (Exception e) {
       throw new RuntimeException("Error in visitTimechart: " + e.getMessage(), e);
     }
   }
 
+  private String getAggFunctionName(UnresolvedExpression aggregateFunction) {
+    if (aggregateFunction instanceof Alias alias) {
+      return getAggFunctionName(alias.getDelegated());
+    }
+    return ((AggregateFunction) aggregateFunction).getFuncName();
+  }
+
   /** Build top categories query - simpler approach that works better with OTHER handling */
   private RelNode buildTopCategoriesQuery(
-      RelNode completeResults, int limit, CalcitePlanContext context) {
+      RelNode completeResults,
+      int limit,
+      BuiltinFunctionName aggFunction,
+      CalcitePlanContext context) {
     context.relBuilder.push(completeResults);
 
     // Filter out null values when determining top categories - null should not count towards limit
     context.relBuilder.filter(context.relBuilder.isNotNull(context.relBuilder.field(1)));
 
     // Get totals for non-null categories - field positions: 0=@timestamp, 1=byField, 2=value
+    RexInputRef valueField = context.relBuilder.field(2);
+    AggCall call = buildAggCall(context.relBuilder, aggFunction, valueField);
+
     context.relBuilder.aggregate(
-        context.relBuilder.groupKey(context.relBuilder.field(1)),
-        context.relBuilder.sum(context.relBuilder.field(2)).as("grand_total"));
+        context.relBuilder.groupKey(context.relBuilder.field(1)), call.as("grand_total"));
 
     // Apply sorting and limit to non-null categories only
-    context.relBuilder.sort(context.relBuilder.desc(context.relBuilder.field("grand_total")));
+    RexNode sortField = context.relBuilder.field("grand_total");
+    // For MIN and EARLIEST, top results should be the minimum ones
+    sortField =
+        aggFunction == BuiltinFunctionName.MIN || aggFunction == BuiltinFunctionName.EARLIEST
+            ? sortField
+            : context.relBuilder.desc(sortField);
+    context.relBuilder.sort(sortField);
     if (limit > 0) {
       context.relBuilder.limit(0, limit);
     }
@@ -2171,18 +2206,25 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       RelNode completeResults,
       RelNode topCategories,
       String byFieldName,
-      String valueFunctionName,
+      BuiltinFunctionName aggFunction,
+      String aggFieldAlias,
       boolean useOther,
       int limit,
       CalcitePlanContext context) {
 
     // Use zero-filling for count aggregations, standard result for others
-    if (valueFunctionName.equals("count")) {
+    if (aggFieldAlias.equals("count")) {
       return buildZeroFilledResult(
-          completeResults, topCategories, byFieldName, valueFunctionName, useOther, limit, context);
+          completeResults, topCategories, byFieldName, aggFieldAlias, useOther, limit, context);
     } else {
       return buildStandardResult(
-          completeResults, topCategories, byFieldName, valueFunctionName, useOther, context);
+          completeResults,
+          topCategories,
+          byFieldName,
+          aggFunction,
+          aggFieldAlias,
+          useOther,
+          context);
     }
   }
 
@@ -2191,7 +2233,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       RelNode completeResults,
       RelNode topCategories,
       String byFieldName,
-      String valueFunctionName,
+      BuiltinFunctionName aggFunctionName,
+      String aggFieldAlias,
       boolean useOther,
       CalcitePlanContext context) {
 
@@ -2214,11 +2257,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.project(
         context.relBuilder.alias(context.relBuilder.field(0), "@timestamp"),
         context.relBuilder.alias(categoryExpr, byFieldName),
-        context.relBuilder.alias(context.relBuilder.field(2), valueFunctionName));
+        context.relBuilder.alias(context.relBuilder.field(2), aggFieldAlias));
 
+    RexInputRef valueField = context.relBuilder.field(2);
+    AggCall aggCall = buildAggCall(context.relBuilder, aggFunctionName, valueField);
     context.relBuilder.aggregate(
         context.relBuilder.groupKey(context.relBuilder.field(0), context.relBuilder.field(1)),
-        context.relBuilder.sum(context.relBuilder.field(2)).as(valueFunctionName));
+        aggCall.as(aggFieldAlias));
 
     applyFiltersAndSort(useOther, context);
     return context.relBuilder.peek();
@@ -2253,7 +2298,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       RelNode completeResults,
       RelNode topCategories,
       String byFieldName,
-      String valueFunctionName,
+      String aggFieldAlias,
       boolean useOther,
       int limit,
       CalcitePlanContext context) {
@@ -2292,7 +2337,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             context.relBuilder.cast(context.relBuilder.field(0), SqlTypeName.TIMESTAMP),
             "@timestamp"),
         context.relBuilder.alias(context.relBuilder.field(1), byFieldName),
-        context.relBuilder.alias(context.relBuilder.literal(0), valueFunctionName));
+        context.relBuilder.alias(context.relBuilder.literal(0), aggFieldAlias));
     RelNode zeroFilledCombinations = context.relBuilder.build();
 
     // Get actual results with OTHER logic applied
@@ -2314,7 +2359,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             context.relBuilder.cast(context.relBuilder.field(0), SqlTypeName.TIMESTAMP),
             "@timestamp"),
         context.relBuilder.alias(actualCategoryExpr, byFieldName),
-        context.relBuilder.alias(context.relBuilder.field(2), valueFunctionName));
+        context.relBuilder.alias(context.relBuilder.field(2), aggFieldAlias));
 
     context.relBuilder.aggregate(
         context.relBuilder.groupKey(context.relBuilder.field(0), context.relBuilder.field(1)),
@@ -2329,10 +2374,28 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Aggregate to combine actual and zero-filled data
     context.relBuilder.aggregate(
         context.relBuilder.groupKey(context.relBuilder.field(0), context.relBuilder.field(1)),
-        context.relBuilder.sum(context.relBuilder.field(2)).as(valueFunctionName));
+        context.relBuilder.sum(context.relBuilder.field(2)).as(aggFieldAlias));
 
     applyFiltersAndSort(useOther, context);
     return context.relBuilder.peek();
+  }
+
+  /**
+   * Aggregate a field based on a given built-in aggregation function name.
+   *
+   * <p>It is intended for secondary aggregations in timechart and chart commands. Using it
+   * elsewhere may lead to unintended results. It handles explicitly only MIN, MAX, AVG, COUNT,
+   * DISTINCT_COUNT, EARLIEST, and LATEST. It sums the results for the rest aggregation types,
+   * assuming them to be accumulative.
+   */
+  private AggCall buildAggCall(
+      RelBuilder relBuilder, BuiltinFunctionName aggFunction, RexNode node) {
+    return switch (aggFunction) {
+      case MIN, EARLIEST -> relBuilder.min(node);
+      case MAX, LATEST -> relBuilder.max(node);
+      case AVG -> relBuilder.avg(node);
+      default -> relBuilder.sum(node);
+    };
   }
 
   @Override
