@@ -22,6 +22,7 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 @Getter
 @EqualsAndHashCode(callSuper = false)
 public class QualifiedName extends UnresolvedExpression {
+  public static final String DELIMITER = ".";
   private final List<String> parts;
 
   public QualifiedName(String name) {
@@ -94,7 +95,7 @@ public class QualifiedName extends UnresolvedExpression {
   }
 
   public String toString() {
-    return String.join(".", this.parts);
+    return String.join(DELIMITER, this.parts);
   }
 
   @Override

@@ -270,8 +270,10 @@ public class QualifiedNameResolver {
     if (length == parts.size() - start) {
       return field;
     } else {
-      String itemName = joinParts(parts, length + start, parts.size() - 1 - length);
-      return createItemAccess(field, itemName, context);
+      String itemName = joinParts(parts, length + start, parts.size() - length);
+      return context.relBuilder.alias(
+          createItemAccess(field, itemName, context),
+          String.join(QualifiedName.DELIMITER, parts.subList(start, parts.size())));
     }
   }
 
