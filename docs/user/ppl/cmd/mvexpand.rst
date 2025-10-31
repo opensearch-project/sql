@@ -35,11 +35,11 @@ Usage
 =====
 Basic expansion::
 
-    os> source=logs | mvexpand tags
+    source=logs | mvexpand tags
 
 Expansion with limit::
 
-    os> source=docs | mvexpand ids limit=3
+    source=docs | mvexpand ids limit=3
 
 Limitations
 ===========
@@ -61,7 +61,10 @@ Input document::
 
 PPL query::
 
-    os> source=logs | mvexpand tags
+    source=logs | mvexpand tags
+
+Output (example)::
+
     fetched rows / total rows = 3/3
     +--------+
     | tags   |
@@ -81,7 +84,10 @@ Input document::
 
 PPL query::
 
-    os> source=docs | mvexpand ids limit=3
+    source=docs | mvexpand ids limit=3
+
+Output (example)::
+
     fetched rows / total rows = 3/3
     +-----+
     | ids |
@@ -101,7 +107,10 @@ Input document::
 
 PPL query::
 
-    os> source=logs | mvexpand tags
+    source=logs | mvexpand tags
+
+Output (example)::
+
     fetched rows / total rows = 0/0
     +------+
     | tags |
@@ -114,7 +123,10 @@ Input document::
 
 PPL query::
 
-    os> source=logs | mvexpand tags
+    source=logs | mvexpand tags
+
+Output (example)::
+
     fetched rows / total rows = 0/0
     +------+
     | tags |
@@ -131,7 +143,10 @@ Input document::
 
 PPL query::
 
-    os> source=logs | mvexpand tags
+    source=logs | mvexpand tags
+
+Output (example)::
+
     fetched rows / total rows = 1/1
     +-------+
     | tags  |
@@ -149,7 +164,10 @@ Input document::
 
 PPL query::
 
-    os> source=docs | mvexpand ids
+    source=docs | mvexpand ids
+
+Output (example)::
+
     Error: Memory/resource limit exceeded while expanding field 'ids'. Please reduce the array size or specify a limit.
 
 Example 6: Multiple Fields (Limitation)
@@ -158,7 +176,7 @@ mvexpand only supports expanding one field per command. To expand multiple field
 
 PPL query::
 
-    os> source=docs | mvexpand a | mvexpand b
+    source=docs | mvexpand a | mvexpand b
 
 Example 7: Edge Case - Field Missing
 ------------------------------------
@@ -170,7 +188,10 @@ Input document::
 
 PPL query::
 
-    os> source=docs | mvexpand tags
+    source=docs | mvexpand tags
+
+Output (example)::
+
     fetched rows / total rows = 0/0
     +------+
     | tags |
