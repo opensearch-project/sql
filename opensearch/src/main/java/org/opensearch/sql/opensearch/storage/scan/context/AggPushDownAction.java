@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -83,6 +84,13 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     } else {
       throw new IllegalStateException("Unexpected parser type: " + parser.getClass());
     }
+  }
+
+  private String multiTermsBucketNameAsString(CompositeAggregationBuilder composite) {
+    return composite.sources().stream()
+        .map(TermsValuesSourceBuilder.class::cast)
+        .map(TermsValuesSourceBuilder::name)
+        .collect(Collectors.joining("|")); // PIPE cannot be used in identifier
   }
 
   /** Re-pushdown a sort aggregation measure to replace the pushed composite aggregation */
@@ -218,7 +226,7 @@ public class AggPushDownAction implements OSRequestBuilderAction {
   }
 
   /** Build a {@link TermsAggregationBuilder} by {@link TermsValuesSourceBuilder} */
-  private static TermsAggregationBuilder buildTermsAggregationBuilder(
+  private TermsAggregationBuilder buildTermsAggregationBuilder(
       TermsValuesSourceBuilder terms, BucketOrder bucketOrder, int newSize) {
     TermsAggregationBuilder termsBuilder = new TermsAggregationBuilder(terms.name());
     termsBuilder.size(newSize);
@@ -233,7 +241,7 @@ public class AggPushDownAction implements OSRequestBuilderAction {
   }
 
   /** Build a {@link DateHistogramAggregationBuilder} by {@link DateHistogramValuesSourceBuilder} */
-  private static DateHistogramAggregationBuilder buildDateHistogramAggregationBuilder(
+  private DateHistogramAggregationBuilder buildDateHistogramAggregationBuilder(
       DateHistogramValuesSourceBuilder dateHisto, BucketOrder bucketOrder) {
     DateHistogramAggregationBuilder dateHistoBuilder =
         new DateHistogramAggregationBuilder(dateHisto.name());
@@ -251,7 +259,7 @@ public class AggPushDownAction implements OSRequestBuilderAction {
   }
 
   /** Build a {@link HistogramAggregationBuilder} by {@link HistogramValuesSourceBuilder} */
-  private static HistogramAggregationBuilder buildHistogramAggregationBuilder(
+  private HistogramAggregationBuilder buildHistogramAggregationBuilder(
       HistogramValuesSourceBuilder histo, BucketOrder bucketOrder) {
     HistogramAggregationBuilder histoBuilder = new HistogramAggregationBuilder(histo.name());
     histoBuilder.field(histo.field());
@@ -264,10 +272,10 @@ public class AggPushDownAction implements OSRequestBuilderAction {
   }
 
   /** Build a {@link MultiTermsAggregationBuilder} by {@link CompositeAggregationBuilder} */
-  private static MultiTermsAggregationBuilder buildMultiTermsAggregationBuilder(
+  private MultiTermsAggregationBuilder buildMultiTermsAggregationBuilder(
       CompositeAggregationBuilder composite) {
     MultiTermsAggregationBuilder multiTermsBuilder =
-        new MultiTermsAggregationBuilder("multi_terms_buckets");
+        new MultiTermsAggregationBuilder(multiTermsBucketNameAsString(composite));
     multiTermsBuilder.size(composite.size());
     multiTermsBuilder.terms(
         composite.sources().stream()
