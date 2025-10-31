@@ -65,6 +65,7 @@ public class QualifiedNameResolver {
     log.debug("resolveInNonJoinCondition() called with nameNode={}", nameNode);
 
     return resolveLambdaVariable(nameNode, context)
+        .or(() -> resolveFieldDirectly(nameNode, context, 1))
         .or(() -> resolveFieldWithAlias(nameNode, context, 1))
         .or(() -> resolveFieldWithoutAlias(nameNode, context, 1))
         .or(() -> resolveRenamedField(nameNode, context))
@@ -86,6 +87,26 @@ public class QualifiedNameResolver {
 
   private static String joinParts(List<String> parts, int start) {
     return joinParts(parts, start, parts.size() - start);
+  }
+
+  private static Optional<RexNode> resolveFieldDirectly(
+      QualifiedName nameNode, CalcitePlanContext context, int inputCount) {
+    List<String> parts = nameNode.getParts();
+    log.debug(
+        "resolveFieldDirectly() called with nameNode={}, parts={}, inputCount={}",
+        nameNode,
+        parts,
+        inputCount);
+
+    List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
+    if (currentFields.contains(nameNode.toString())) {
+      try {
+        return Optional.of(context.relBuilder.field(nameNode.toString()));
+      } catch (IllegalArgumentException e) {
+        log.debug("resolveFieldDirectly() failed: {}", e.getMessage());
+      }
+    }
+    return Optional.empty();
   }
 
   private static Optional<RexNode> resolveFieldWithAlias(

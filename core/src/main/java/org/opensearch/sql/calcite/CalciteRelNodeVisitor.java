@@ -382,7 +382,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           "Invalid field exclusion: operation would exclude all fields from the result set");
     }
     AllFields allFields = (AllFields) node.getProjectList().get(0);
-    tryToRemoveNestedFields(context);
+    if (!(allFields instanceof AllFieldsExcludeMeta)) {
+      // Should not remove nested fields for AllFieldsExcludeMeta.
+      tryToRemoveNestedFields(context);
+    }
     tryToRemoveMetaFields(context, allFields instanceof AllFieldsExcludeMeta);
     return context.relBuilder.peek();
   }
