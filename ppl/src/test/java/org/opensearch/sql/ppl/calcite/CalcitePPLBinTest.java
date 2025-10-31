@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl.calcite;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Test;
+import org.opensearch.sql.exception.SemanticCheckException;
 
 public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
 
@@ -117,5 +118,35 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
         "SELECT `ID`, `SUPPLIER`, `SYS_END`, `FROM_UNIXTIME`(FLOOR(`UNIX_TIMESTAMP`(`SYS_START`) /"
             + " 3600 / 1) * 3600) `SYS_START`\n"
             + "FROM `scott`.`products_temporal`");
+  }
+
+  @Test(expected = SemanticCheckException.class)
+  public void testBinWithMinspanOnNonNumericField() {
+    String ppl = "source=EMP | bin ENAME minspan=10";
+    getRelNode(ppl); // Should throw SemanticCheckException
+  }
+
+  @Test(expected = SemanticCheckException.class)
+  public void testBinWithSpanOnNonNumericField() {
+    String ppl = "source=EMP | bin JOB span=5";
+    getRelNode(ppl); // Should throw SemanticCheckException
+  }
+
+  @Test(expected = SemanticCheckException.class)
+  public void testBinWithBinsOnNonNumericField() {
+    String ppl = "source=EMP | bin ENAME bins=10";
+    getRelNode(ppl); // Should throw SemanticCheckException
+  }
+
+  @Test(expected = SemanticCheckException.class)
+  public void testBinWithStartEndOnNonNumericField() {
+    String ppl = "source=EMP | bin JOB start=1 end=10";
+    getRelNode(ppl); // Should throw SemanticCheckException
+  }
+
+  @Test(expected = SemanticCheckException.class)
+  public void testBinDefaultOnNonNumericField() {
+    String ppl = "source=EMP | bin ENAME";
+    getRelNode(ppl); // Should throw SemanticCheckException
   }
 }

@@ -729,7 +729,8 @@ public class AstBuilderTest {
             exprList(
                 argument("noOfResults", intLiteral(10)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             emptyList(),
             field("a")));
   }
@@ -744,7 +745,8 @@ public class AstBuilderTest {
             exprList(
                 argument("noOfResults", intLiteral(10)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             exprList(field("b")),
             field("a")));
   }
@@ -759,7 +761,8 @@ public class AstBuilderTest {
             exprList(
                 argument("noOfResults", intLiteral(10)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             exprList(field("c")),
             field("a"),
             field("b")));
@@ -775,7 +778,8 @@ public class AstBuilderTest {
             exprList(
                 argument("noOfResults", intLiteral(1)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             emptyList(),
             field("a")));
   }
@@ -790,7 +794,8 @@ public class AstBuilderTest {
             exprList(
                 argument("noOfResults", intLiteral(10)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             emptyList(),
             field("a")));
   }
@@ -805,7 +810,8 @@ public class AstBuilderTest {
             exprList(
                 argument("noOfResults", intLiteral(1)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             exprList(field("b")),
             field("a")));
   }
@@ -820,10 +826,44 @@ public class AstBuilderTest {
             exprList(
                 argument("noOfResults", intLiteral(1)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             exprList(field("c")),
             field("a"),
             field("b")));
+  }
+
+  @Test
+  public void testTopCommandWithUseNullFalse() {
+    assertEqual(
+        "source=t | top 1 usenull=false a by b",
+        rareTopN(
+            relation("t"),
+            CommandType.TOP,
+            exprList(
+                argument("noOfResults", intLiteral(1)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(false))),
+            exprList(field("b")),
+            field("a")));
+  }
+
+  @Test
+  public void testTopCommandWithLegacyFalse() {
+    when(settings.getSettingValue(Key.PPL_SYNTAX_LEGACY_PREFERRED)).thenReturn(false);
+    assertEqual(
+        "source=t | top 1 a by b",
+        rareTopN(
+            relation("t"),
+            CommandType.TOP,
+            exprList(
+                argument("noOfResults", intLiteral(1)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(false))),
+            exprList(field("b")),
+            field("a")));
   }
 
   @Test
@@ -1195,10 +1235,10 @@ public class AstBuilderTest {
                 field("per_second(a)"),
                 function(
                     "/",
-                    function("*", field("per_second(a)"), doubleLiteral(1.0)),
+                    function("*", field("per_second(a)"), doubleLiteral(1000.0)),
                     function(
                         "timestampdiff",
-                        stringLiteral("SECOND"),
+                        stringLiteral("MILLISECOND"),
                         field("@timestamp"),
                         function(
                             "timestampadd",
@@ -1220,10 +1260,10 @@ public class AstBuilderTest {
                 field("per_minute(a)"),
                 function(
                     "/",
-                    function("*", field("per_minute(a)"), doubleLiteral(60.0)),
+                    function("*", field("per_minute(a)"), doubleLiteral(60000.0)),
                     function(
                         "timestampdiff",
-                        stringLiteral("SECOND"),
+                        stringLiteral("MILLISECOND"),
                         field("@timestamp"),
                         function(
                             "timestampadd",
@@ -1245,10 +1285,10 @@ public class AstBuilderTest {
                 field("per_hour(a)"),
                 function(
                     "/",
-                    function("*", field("per_hour(a)"), doubleLiteral(3600.0)),
+                    function("*", field("per_hour(a)"), doubleLiteral(3600000.0)),
                     function(
                         "timestampdiff",
-                        stringLiteral("SECOND"),
+                        stringLiteral("MILLISECOND"),
                         field("@timestamp"),
                         function(
                             "timestampadd",
@@ -1270,10 +1310,10 @@ public class AstBuilderTest {
                 field("per_day(a)"),
                 function(
                     "/",
-                    function("*", field("per_day(a)"), doubleLiteral(86400.0)),
+                    function("*", field("per_day(a)"), doubleLiteral(8.64E7)),
                     function(
                         "timestampdiff",
-                        stringLiteral("SECOND"),
+                        stringLiteral("MILLISECOND"),
                         field("@timestamp"),
                         function(
                             "timestampadd",
