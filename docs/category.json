@@ -47,6 +47,7 @@
     "user/ppl/cmd/showdatasources.rst",
     "user/ppl/cmd/sort.rst",
     "user/ppl/cmd/stats.rst",
+    "user/ppl/cmd/streamstats.rst",
     "user/ppl/cmd/subquery.rst",
     "user/ppl/cmd/syntax.rst",
     "user/ppl/cmd/timechart.rst",

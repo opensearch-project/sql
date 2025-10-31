@@ -85,6 +85,7 @@ import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SpanBin;
+import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Timechart;
@@ -374,6 +375,14 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String child = node.getChild().get(0).accept(this, context);
     return StringUtils.format(
         "%s | eventstats %s",
+        child, String.join(" ", visitExpressionList(node.getWindowFunctionList())).trim());
+  }
+
+  @Override
+  public String visitStreamWindow(StreamWindow node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    return StringUtils.format(
+        "%s | streamstats %s",
         child, String.join(" ", visitExpressionList(node.getWindowFunctionList())).trim());
   }
 
