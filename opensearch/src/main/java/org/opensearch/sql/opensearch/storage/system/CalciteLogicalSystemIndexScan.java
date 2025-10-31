@@ -14,7 +14,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.type.RelDataType;
-import org.opensearch.sql.opensearch.planner.physical.EnumerableSystemIndexScanRule;
+import org.opensearch.sql.opensearch.planner.rules.EnumerableSystemIndexScanRule;
 
 /** The logical relational operator representing a scan of an OpenSearchSystemIndex type. */
 public class CalciteLogicalSystemIndexScan extends AbstractCalciteSystemIndexScan {

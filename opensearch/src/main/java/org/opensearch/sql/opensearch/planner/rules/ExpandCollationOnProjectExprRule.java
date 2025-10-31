@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.opensearch.planner.physical;
+package org.opensearch.sql.opensearch.planner.rules;
 
 import java.util.Optional;
 import org.apache.calcite.adapter.enumerable.EnumerableProject;

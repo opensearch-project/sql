@@ -15,9 +15,9 @@ import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_DEDUP;
-import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_MAIN;
-import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_SUBSEARCH;
-import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_TOP_RARE;
+import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_MAIN;
+import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_RARE_TOP;
+import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_SUBSEARCH;
 import static org.opensearch.sql.calcite.utils.PlanUtils.getRelation;
 import static org.opensearch.sql.calcite.utils.PlanUtils.getRexCall;
 import static org.opensearch.sql.calcite.utils.PlanUtils.transformPlanToAttachChild;
@@ -1643,7 +1643,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             List.of(),
             WindowFrame.toCurrentRow());
     context.relBuilder.projectPlus(
-        context.relBuilder.alias(mainRowNumber, ROW_NUMBER_COLUMN_NAME_MAIN));
+        context.relBuilder.alias(mainRowNumber, ROW_NUMBER_COLUMN_FOR_MAIN));
 
     // 3. build subsearch tree (attach relation to subsearch)
     UnresolvedPlan relation = getRelation(node);
@@ -1661,7 +1661,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             List.of(),
             WindowFrame.toCurrentRow());
     context.relBuilder.projectPlus(
-        context.relBuilder.alias(subsearchRowNumber, ROW_NUMBER_COLUMN_NAME_SUBSEARCH));
+        context.relBuilder.alias(subsearchRowNumber, ROW_NUMBER_COLUMN_FOR_SUBSEARCH));
 
     List<String> subsearchFields = context.relBuilder.peek().getRowType().getFieldNames();
     List<String> mainFields = context.relBuilder.peek(1).getRowType().getFieldNames();
@@ -1675,8 +1675,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // 7. join with condition `_row_number_main_ = _row_number_subsearch_`
     RexNode joinCondition =
         context.relBuilder.equals(
-            context.relBuilder.field(2, 0, ROW_NUMBER_COLUMN_NAME_MAIN),
-            context.relBuilder.field(2, 1, ROW_NUMBER_COLUMN_NAME_SUBSEARCH));
+            context.relBuilder.field(2, 0, ROW_NUMBER_COLUMN_FOR_MAIN),
+            context.relBuilder.field(2, 1, ROW_NUMBER_COLUMN_FOR_SUBSEARCH));
     context.relBuilder.join(
         JoinAndLookupUtils.translateJoinType(Join.JoinType.FULL), joinCondition);
 
@@ -1684,8 +1684,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       // 8. if override = false, drop both _row_number_ columns
       context.relBuilder.projectExcept(
           List.of(
-              context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_MAIN),
-              context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_SUBSEARCH)));
+              context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_MAIN),
+              context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_SUBSEARCH)));
       return context.relBuilder.peek();
     } else {
       // 9. if override = true, override the duplicated columns in main by subsearch values
@@ -1697,11 +1697,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           mainFields.stream().filter(subsearchFields::contains).collect(Collectors.toSet());
       RexNode caseCondition =
           context.relBuilder.equals(
-              context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_MAIN),
-              context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_SUBSEARCH));
+              context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_MAIN),
+              context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_SUBSEARCH));
       for (int mainFieldIndex = 0; mainFieldIndex < mainFields.size(); mainFieldIndex++) {
         String mainFieldName = mainFields.get(mainFieldIndex);
-        if (mainFieldName.equals(ROW_NUMBER_COLUMN_NAME_MAIN)) {
+        if (mainFieldName.equals(ROW_NUMBER_COLUMN_FOR_MAIN)) {
           continue;
         }
         finalFieldNames.add(mainFieldName);
@@ -1726,7 +1726,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           subsearchFieldIndex < subsearchFields.size();
           subsearchFieldIndex++) {
         String subsearchFieldName = subsearchFields.get(subsearchFieldIndex);
-        if (subsearchFieldName.equals(ROW_NUMBER_COLUMN_NAME_SUBSEARCH)) {
+        if (subsearchFieldName.equals(ROW_NUMBER_COLUMN_FOR_SUBSEARCH)) {
           continue;
         }
         if (!duplicatedFields.contains(subsearchFieldName)) {
@@ -1887,7 +1887,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       addIgnoreNullBucketHintToAggregate(context);
     }
 
-    // 2. add a window column
+    // 2. add count() column with sort direction
     List<RexNode> partitionKeys = rexVisitor.analyze(node.getGroupExprList(), context);
     RexNode countField;
     if (node.getCommandType() == RareTopN.CommandType.TOP) {
@@ -1895,6 +1895,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     } else {
       countField = context.relBuilder.field(countFieldName);
     }
+
     RexNode rowNumberWindowOver =
         PlanUtils.makeOver(
             context,
@@ -1905,22 +1906,22 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             List.of(countField),
             WindowFrame.toCurrentRow());
     context.relBuilder.projectPlus(
-        context.relBuilder.alias(rowNumberWindowOver, ROW_NUMBER_COLUMN_NAME_TOP_RARE));
+        context.relBuilder.alias(rowNumberWindowOver, ROW_NUMBER_COLUMN_FOR_RARE_TOP));
 
     // 3. filter row_number() <= k in each partition
     int k = node.getNoOfResults();
     context.relBuilder.filter(
         context.relBuilder.lessThanOrEqual(
-            context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_TOP_RARE),
+            context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_RARE_TOP),
             context.relBuilder.literal(k)));
 
     // 4. project final output. the default output is group by list + field list
     Boolean showCount = (Boolean) argumentMap.get(RareTopN.Option.showCount.name()).getValue();
     if (showCount) {
-      context.relBuilder.projectExcept(context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_TOP_RARE));
+      context.relBuilder.projectExcept(context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_RARE_TOP));
     } else {
       context.relBuilder.projectExcept(
-          context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_TOP_RARE),
+          context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_RARE_TOP),
           context.relBuilder.field(countFieldName));
     }
     return context.relBuilder.peek();

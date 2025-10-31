@@ -86,6 +86,7 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     requestBuilder.pushTypeMapping(extendedTypeMapping);
   }
 
+  /** Convert a {@link CompositeAggregationParser} to {@link BucketAggregationParser} */
   private BucketAggregationParser convertTo(OpenSearchAggregationResponseParser parser) {
     if (parser instanceof BucketAggregationParser) {
       return (BucketAggregationParser) parser;
@@ -105,7 +106,9 @@ public class AggPushDownAction implements OSRequestBuilderAction {
         .collect(Collectors.joining("|")); // PIPE cannot be used in identifier
   }
 
-  public void pushDownSortAggMetrics(List<RelFieldCollation> collations, List<String> fieldNames) {
+  /** Re-pushdown a sort aggregation measure to replace the pushed composite aggregation */
+  public void rePushDownSortAggMeasure(
+      List<RelFieldCollation> collations, List<String> fieldNames) {
     if (aggregationBuilder.getLeft().isEmpty()) return;
     AggregationBuilder builder = aggregationBuilder.getLeft().getFirst();
     if (builder instanceof CompositeAggregationBuilder composite) {
@@ -118,13 +121,8 @@ public class AggPushDownAction implements OSRequestBuilderAction {
       if (composite.sources().size() == 1) {
         if (composite.sources().get(0) instanceof TermsValuesSourceBuilder terms
             && !terms.missingBucket()) {
-          TermsAggregationBuilder termsBuilder = new TermsAggregationBuilder(terms.name());
-          termsBuilder.size(composite.size());
-          termsBuilder.field(terms.field());
-          if (terms.userValuetypeHint() != null) {
-            termsBuilder.userValueTypeHint(terms.userValuetypeHint());
-          }
-          termsBuilder.order(bucketOrder);
+          TermsAggregationBuilder termsBuilder =
+              buildTermsAggregationBuilder(terms, bucketOrder, composite.size());
           attachSubAggregations(composite.getSubAggregations(), path, termsBuilder);
           aggregationBuilder =
               Pair.of(
@@ -134,17 +132,7 @@ public class AggPushDownAction implements OSRequestBuilderAction {
         } else if (composite.sources().get(0)
             instanceof DateHistogramValuesSourceBuilder dateHisto) {
           DateHistogramAggregationBuilder dateHistoBuilder =
-              new DateHistogramAggregationBuilder(dateHisto.name());
-          dateHistoBuilder.field(dateHisto.field());
-          try {
-            dateHistoBuilder.fixedInterval(dateHisto.getIntervalAsFixed());
-          } catch (IllegalArgumentException e) {
-            dateHistoBuilder.calendarInterval(dateHisto.getIntervalAsCalendar());
-          }
-          if (dateHisto.userValuetypeHint() != null) {
-            dateHistoBuilder.userValueTypeHint(dateHisto.userValuetypeHint());
-          }
-          dateHistoBuilder.order(bucketOrder);
+              buildDateHistogramAggregationBuilder(dateHisto, bucketOrder);
           attachSubAggregations(composite.getSubAggregations(), path, dateHistoBuilder);
           aggregationBuilder =
               Pair.of(
@@ -153,13 +141,8 @@ public class AggPushDownAction implements OSRequestBuilderAction {
           return;
         } else if (composite.sources().get(0) instanceof HistogramValuesSourceBuilder histo
             && !histo.missingBucket()) {
-          HistogramAggregationBuilder histoBuilder = new HistogramAggregationBuilder(histo.name());
-          histoBuilder.field(histo.field());
-          histoBuilder.interval(histo.interval());
-          if (histo.userValuetypeHint() != null) {
-            histoBuilder.userValueTypeHint(histo.userValuetypeHint());
-          }
-          histoBuilder.order(bucketOrder);
+          HistogramAggregationBuilder histoBuilder =
+              buildHistogramAggregationBuilder(histo, bucketOrder);
           attachSubAggregations(composite.getSubAggregations(), path, histoBuilder);
           aggregationBuilder =
               Pair.of(
@@ -173,20 +156,7 @@ public class AggPushDownAction implements OSRequestBuilderAction {
                 src -> src instanceof TermsValuesSourceBuilder terms && !terms.missingBucket())) {
           // multi-term agg
           MultiTermsAggregationBuilder multiTermsBuilder =
-              new MultiTermsAggregationBuilder(multiTermsBucketNameAsString(composite));
-          multiTermsBuilder.size(composite.size());
-          multiTermsBuilder.terms(
-              composite.sources().stream()
-                  .map(TermsValuesSourceBuilder.class::cast)
-                  .map(
-                      termValue -> {
-                        MultiTermsValuesSourceConfig.Builder config =
-                            new MultiTermsValuesSourceConfig.Builder();
-                        config.setFieldName(termValue.field());
-                        config.setUserValueTypeHint(termValue.userValuetypeHint());
-                        return config.build();
-                      })
-                  .toList());
+              buildMultiTermsAggregationBuilder(composite);
           attachSubAggregations(composite.getSubAggregations(), path, multiTermsBuilder);
           aggregationBuilder =
               Pair.of(
@@ -196,8 +166,143 @@ public class AggPushDownAction implements OSRequestBuilderAction {
         }
       }
       throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
-          "Cannot pushdown sort aggregate metrics");
+          "Cannot pushdown sort aggregate measure");
     }
+  }
+
+  /** Re-pushdown a nested aggregation for rare/top to replace the pushed composite aggregation */
+  public void rePushDownRareTop(RareTopDigest digest) {
+    if (aggregationBuilder.getLeft().isEmpty()) return;
+    AggregationBuilder builder = aggregationBuilder.getLeft().getFirst();
+    if (builder instanceof CompositeAggregationBuilder composite) {
+      BucketOrder bucketOrder =
+          digest.direction() == RelFieldCollation.Direction.ASCENDING
+              ? BucketOrder.count(true)
+              : BucketOrder.count(false);
+      if (composite.sources().size() == 1) {
+        if (composite.sources().get(0) instanceof TermsValuesSourceBuilder terms
+            && !terms.missingBucket()) {
+          TermsAggregationBuilder termsBuilder =
+              buildTermsAggregationBuilder(terms, bucketOrder, digest.number());
+          aggregationBuilder =
+              Pair.of(
+                  Collections.singletonList(termsBuilder),
+                  convertTo(aggregationBuilder.getRight()));
+          return;
+        } else if (composite.sources().get(0)
+            instanceof DateHistogramValuesSourceBuilder dateHisto) {
+          // for top/rare, only field can be used in by-clause, so this branch never accessed now
+          DateHistogramAggregationBuilder dateHistoBuilder =
+              buildDateHistogramAggregationBuilder(dateHisto, bucketOrder);
+          aggregationBuilder =
+              Pair.of(
+                  Collections.singletonList(dateHistoBuilder),
+                  convertTo(aggregationBuilder.getRight()));
+          return;
+        } else if (composite.sources().get(0) instanceof HistogramValuesSourceBuilder histo
+            && !histo.missingBucket()) {
+          // for top/rare, only field can be used in by-clause, so this branch never accessed now
+          HistogramAggregationBuilder histoBuilder =
+              buildHistogramAggregationBuilder(histo, bucketOrder);
+          aggregationBuilder =
+              Pair.of(
+                  Collections.singletonList(histoBuilder),
+                  convertTo(aggregationBuilder.getRight()));
+          return;
+        }
+      } else {
+        if (composite.sources().stream()
+            .allMatch(
+                src -> src instanceof TermsValuesSourceBuilder terms && !terms.missingBucket())) {
+          // nested term agg
+          TermsAggregationBuilder termsBuilder = null;
+          for (int i = 0; i < composite.sources().size(); i++) {
+            TermsValuesSourceBuilder terms = (TermsValuesSourceBuilder) composite.sources().get(i);
+            if (i == 0) { // first
+              termsBuilder = buildTermsAggregationBuilder(terms, null, 65535);
+            } else if (i == composite.sources().size() - 1) { // last
+              termsBuilder.subAggregation(
+                  buildTermsAggregationBuilder(terms, bucketOrder, digest.number()));
+            } else {
+              termsBuilder.subAggregation(buildTermsAggregationBuilder(terms, null, 65535));
+            }
+          }
+          aggregationBuilder =
+              Pair.of(
+                  Collections.singletonList(termsBuilder),
+                  convertTo(aggregationBuilder.getRight()));
+          return;
+        }
+      }
+      throw new OpenSearchRequestBuilder.PushDownUnSupportedException("Cannot pushdown " + digest);
+    }
+  }
+
+  /** Build a {@link TermsAggregationBuilder} by {@link TermsValuesSourceBuilder} */
+  private TermsAggregationBuilder buildTermsAggregationBuilder(
+      TermsValuesSourceBuilder terms, BucketOrder bucketOrder, int newSize) {
+    TermsAggregationBuilder termsBuilder = new TermsAggregationBuilder(terms.name());
+    termsBuilder.size(newSize);
+    termsBuilder.field(terms.field());
+    if (terms.userValuetypeHint() != null) {
+      termsBuilder.userValueTypeHint(terms.userValuetypeHint());
+    }
+    if (bucketOrder != null) {
+      termsBuilder.order(bucketOrder);
+    }
+    return termsBuilder;
+  }
+
+  /** Build a {@link DateHistogramAggregationBuilder} by {@link DateHistogramValuesSourceBuilder} */
+  private DateHistogramAggregationBuilder buildDateHistogramAggregationBuilder(
+      DateHistogramValuesSourceBuilder dateHisto, BucketOrder bucketOrder) {
+    DateHistogramAggregationBuilder dateHistoBuilder =
+        new DateHistogramAggregationBuilder(dateHisto.name());
+    dateHistoBuilder.field(dateHisto.field());
+    try {
+      dateHistoBuilder.fixedInterval(dateHisto.getIntervalAsFixed());
+    } catch (IllegalArgumentException e) {
+      dateHistoBuilder.calendarInterval(dateHisto.getIntervalAsCalendar());
+    }
+    if (dateHisto.userValuetypeHint() != null) {
+      dateHistoBuilder.userValueTypeHint(dateHisto.userValuetypeHint());
+    }
+    dateHistoBuilder.order(bucketOrder);
+    return dateHistoBuilder;
+  }
+
+  /** Build a {@link HistogramAggregationBuilder} by {@link HistogramValuesSourceBuilder} */
+  private HistogramAggregationBuilder buildHistogramAggregationBuilder(
+      HistogramValuesSourceBuilder histo, BucketOrder bucketOrder) {
+    HistogramAggregationBuilder histoBuilder = new HistogramAggregationBuilder(histo.name());
+    histoBuilder.field(histo.field());
+    histoBuilder.interval(histo.interval());
+    if (histo.userValuetypeHint() != null) {
+      histoBuilder.userValueTypeHint(histo.userValuetypeHint());
+    }
+    histoBuilder.order(bucketOrder);
+    return histoBuilder;
+  }
+
+  /** Build a {@link MultiTermsAggregationBuilder} by {@link CompositeAggregationBuilder} */
+  private MultiTermsAggregationBuilder buildMultiTermsAggregationBuilder(
+      CompositeAggregationBuilder composite) {
+    MultiTermsAggregationBuilder multiTermsBuilder =
+        new MultiTermsAggregationBuilder(multiTermsBucketNameAsString(composite));
+    multiTermsBuilder.size(composite.size());
+    multiTermsBuilder.terms(
+        composite.sources().stream()
+            .map(TermsValuesSourceBuilder.class::cast)
+            .map(
+                termValue -> {
+                  MultiTermsValuesSourceConfig.Builder config =
+                      new MultiTermsValuesSourceConfig.Builder();
+                  config.setFieldName(termValue.field());
+                  config.setUserValueTypeHint(termValue.userValuetypeHint());
+                  return config.build();
+                })
+            .toList());
+    return multiTermsBuilder;
   }
 
   private String getAggregationPath(
@@ -212,9 +317,9 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     } else if (metric instanceof ValuesSourceAggregationBuilder.LeafOnly) {
       path = metric.getName();
     } else {
-      // we do not support pushdown sort aggregate metrics for nested aggregation
+      // we do not support pushdown sort aggregate measure for nested aggregation
       throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
-          "Cannot pushdown sort aggregate metrics, composite.getSubAggregations() is not a"
+          "Cannot pushdown sort aggregate measure, composite.getSubAggregations() is not a"
               + " LeafOnly");
     }
     return path;

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.opensearch.planner.physical;
+package org.opensearch.sql.opensearch.planner.rules;
 
 import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -14,9 +14,9 @@ import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 
 @Value.Enclosing
-public class OpenSearchSortIndexScanRule extends RelRule<OpenSearchSortIndexScanRule.Config> {
+public class SortIndexScanRule extends RelRule<SortIndexScanRule.Config> {
 
-  protected OpenSearchSortIndexScanRule(Config config) {
+  protected SortIndexScanRule(Config config) {
     super(config);
   }
 
@@ -38,8 +38,8 @@ public class OpenSearchSortIndexScanRule extends RelRule<OpenSearchSortIndexScan
   /** Rule configuration. */
   @Value.Immutable
   public interface Config extends RelRule.Config {
-    OpenSearchSortIndexScanRule.Config DEFAULT =
-        ImmutableOpenSearchSortIndexScanRule.Config.builder()
+    SortIndexScanRule.Config DEFAULT =
+        ImmutableSortIndexScanRule.Config.builder()
             .build()
             .withOperandSupplier(
                 b0 ->
@@ -61,8 +61,8 @@ public class OpenSearchSortIndexScanRule extends RelRule<OpenSearchSortIndexScan
                                     .noInputs()));
 
     @Override
-    default OpenSearchSortIndexScanRule toRule() {
-      return new OpenSearchSortIndexScanRule(this);
+    default SortIndexScanRule toRule() {
+      return new SortIndexScanRule(this);
     }
   }
 }

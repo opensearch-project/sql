@@ -1049,29 +1049,29 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testExplainSortOnMetrics() throws IOException {
+  public void testExplainSortOnMeasure() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
-    String expected = loadExpectedPlan("explain_agg_sort_on_metrics1.yaml");
+    String expected = loadExpectedPlan("explain_agg_sort_on_measure1.yaml");
     assertYamlEqualsIgnoreId(
         expected,
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() by"
                 + " state | sort `count()`"));
-    expected = loadExpectedPlan("explain_agg_sort_on_metrics2.yaml");
+    expected = loadExpectedPlan("explain_agg_sort_on_measure2.yaml");
     assertYamlEqualsIgnoreId(
         expected,
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | stats bucket_nullable=false sum(balance)"
                 + " as sum by state | sort - sum"));
     // TODO limit should pushdown to non-composite agg
-    expected = loadExpectedPlan("explain_agg_sort_on_metrics3.yaml");
+    expected = loadExpectedPlan("explain_agg_sort_on_measure3.yaml");
     assertYamlEqualsIgnoreId(
         expected,
         explainQueryYaml(
             String.format(
                 "source=%s | stats count() as cnt by span(birthdate, 1d) | sort - cnt",
                 TEST_INDEX_BANK)));
-    expected = loadExpectedPlan("explain_agg_sort_on_metrics4.yaml");
+    expected = loadExpectedPlan("explain_agg_sort_on_measure4.yaml");
     assertYamlEqualsIgnoreId(
         expected,
         explainQueryYaml(
@@ -1082,9 +1082,9 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testExplainSortOnMetricsMultiTerms() throws IOException {
+  public void testExplainSortOnMeasureMultiTerms() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
-    String expected = loadExpectedPlan("explain_agg_sort_on_metrics_multi_terms.yaml");
+    String expected = loadExpectedPlan("explain_agg_sort_on_measure_multi_terms.yaml");
     assertYamlEqualsIgnoreId(
         expected,
         explainQueryYaml(
@@ -1093,11 +1093,11 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testExplainCompositeMultiBucketsAutoDateThenSortOnMetricsNotPushdown()
+  public void testExplainCompositeMultiBucketsAutoDateThenSortOnMeasureNotPushdown()
       throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     assertYamlEqualsIgnoreId(
-        loadExpectedPlan("agg_composite_multi_terms_autodate_sort_agg_metric_not_push.yaml"),
+        loadExpectedPlan("agg_composite_multi_terms_autodate_sort_agg_measure_not_push.yaml"),
         explainQueryYaml(
             String.format(
                 "source=%s | bin timestamp bins=3 | stats bucket_nullable=false avg(value), count()"
@@ -1106,10 +1106,10 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testExplainCompositeRangeThenSortOnMetricsNotPushdown() throws IOException {
+  public void testExplainCompositeRangeThenSortOnMeasureNotPushdown() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     assertYamlEqualsIgnoreId(
-        loadExpectedPlan("agg_composite_range_sort_agg_metric_not_push.yaml"),
+        loadExpectedPlan("agg_composite_range_sort_agg_measure_not_push.yaml"),
         explainQueryYaml(
             String.format(
                 "source=%s | eval value_range = case(value < 7000, 'small'"
@@ -1119,10 +1119,10 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testExplainCompositeAutoDateThenSortOnMetricsNotPushdown() throws IOException {
+  public void testExplainCompositeAutoDateThenSortOnMeasureNotPushdown() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     assertYamlEqualsIgnoreId(
-        loadExpectedPlan("agg_composite_autodate_sort_agg_metric_not_push.yaml"),
+        loadExpectedPlan("agg_composite_autodate_sort_agg_measure_not_push.yaml"),
         explainQueryYaml(
             String.format(
                 "source=%s | bin timestamp bins=3 | stats bucket_nullable=false avg(value), count()"
@@ -1131,10 +1131,10 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testExplainCompositeRangeAutoDateThenSortOnMetricsNotPushdown() throws IOException {
+  public void testExplainCompositeRangeAutoDateThenSortOnMeasureNotPushdown() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     assertYamlEqualsIgnoreId(
-        loadExpectedPlan("agg_composite_autodate_range_metric_sort_agg_metric_not_push.yaml"),
+        loadExpectedPlan("agg_composite_autodate_range_metric_sort_agg_measure_not_push.yaml"),
         explainQueryYaml(
             String.format(
                 "source=%s | bin timestamp bins=3 | eval value_range = case(value < 7000, 'small'"
@@ -1144,16 +1144,16 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testExplainMultipleAggregatorsWithSortOnOneMetricNotPushDown() throws IOException {
+  public void testExplainMultipleAggregatorsWithSortOnOneMeasureNotPushDown() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String expected =
-        loadExpectedPlan("explain_multiple_agg_with_sort_on_one_metric_not_push1.yaml");
+        loadExpectedPlan("explain_multiple_agg_with_sort_on_one_measure_not_push1.yaml");
     assertYamlEqualsIgnoreId(
         expected,
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() as c,"
                 + " sum(balance) as s by state | sort c"));
-    expected = loadExpectedPlan("explain_multiple_agg_with_sort_on_one_metric_not_push2.yaml");
+    expected = loadExpectedPlan("explain_multiple_agg_with_sort_on_one_measure_not_push2.yaml");
     assertYamlEqualsIgnoreId(
         expected,
         explainQueryYaml(
