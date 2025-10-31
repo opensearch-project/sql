@@ -6,7 +6,7 @@ calcite:
           LogicalAggregate(group=[{0, 1}], avg(value)=[AVG($2)], cnt=[COUNT()])
             LogicalProject(timestamp=[$9], category=[$1], value=[$2])
               LogicalFilter(condition=[AND(IS NOT NULL($9), IS NOT NULL($1))])
-                LogicalProject(@timestamp=[$0], category=[$1], value=[$2], _id=[$4], _index=[$5], _score=[$6], _maxscore=[$7], _sort=[$8], _routing=[$9], timestamp=[WIDTH_BUCKET($3, 3, -(MAX($3) OVER (), MIN($3) OVER ()), MAX($3) OVER ())])
+                LogicalProject(@timestamp=[$0], category=[$1], value=[$2], _id=[$4], _index=[$5], _score=[$6], _maxscore=[$7], _sort=[$8], _routing=[$9], timestamp=[WIDTH_BUCKET($3, 3, MIN($3) OVER (), MAX($3) OVER ())])
                   CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_time_data]])
   physical: |
     EnumerableLimit(fetch=[10000])

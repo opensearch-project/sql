@@ -6,7 +6,6 @@
 package org.opensearch.sql.calcite.utils.binning.handlers;
 
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CountBin;
