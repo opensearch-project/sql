@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -84,6 +85,13 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     }
   }
 
+  private String multiTermsBucketNameAsString(CompositeAggregationBuilder composite) {
+    return composite.sources().stream()
+        .map(TermsValuesSourceBuilder.class::cast)
+        .map(TermsValuesSourceBuilder::name)
+        .collect(Collectors.joining("|")); // PIPE cannot be used in identifier
+  }
+
   public void pushDownSortAggMetrics(List<RelFieldCollation> collations, List<String> fieldNames) {
     if (aggregationBuilder.getLeft().isEmpty()) return;
     AggregationBuilder builder = aggregationBuilder.getLeft().getFirst();
@@ -152,7 +160,7 @@ public class AggPushDownAction implements OSRequestBuilderAction {
                 src -> src instanceof TermsValuesSourceBuilder terms && !terms.missingBucket())) {
           // multi-term agg
           MultiTermsAggregationBuilder multiTermsBuilder =
-              new MultiTermsAggregationBuilder("multi_terms_buckets");
+              new MultiTermsAggregationBuilder(multiTermsBucketNameAsString(composite));
           multiTermsBuilder.size(composite.size());
           multiTermsBuilder.terms(
               composite.sources().stream()

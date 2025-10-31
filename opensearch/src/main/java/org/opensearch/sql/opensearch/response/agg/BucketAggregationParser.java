@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.opensearch.search.SearchHits;
@@ -19,6 +21,7 @@ import org.opensearch.search.aggregations.bucket.MultiBucketsAggregation;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregation;
 import org.opensearch.search.aggregations.bucket.histogram.InternalAutoDateHistogram;
 import org.opensearch.search.aggregations.bucket.range.Range;
+import org.opensearch.search.aggregations.bucket.terms.InternalMultiTerms;
 
 /**
  * Use BucketAggregationParser only when there is a single group-by key, it returns multiple
@@ -125,6 +128,12 @@ public class BucketAggregationParser implements OpenSearchAggregationResponsePar
     Map<String, Object> extracted;
     if (bucket instanceof CompositeAggregation.Bucket compositeBucket) {
       extracted = compositeBucket.getKey();
+    } else if (bucket instanceof InternalMultiTerms.Bucket) {
+      List<String> keys = Arrays.asList(name.split("\\|"));
+      extracted =
+          IntStream.range(0, keys.size())
+              .boxed()
+              .collect(Collectors.toMap(keys::get, ((List<Object>) bucket.getKey())::get));
     } else {
       extracted = Map.of(name, bucket.getKey());
     }

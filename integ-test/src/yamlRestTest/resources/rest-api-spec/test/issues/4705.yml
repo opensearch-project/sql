@@ -122,3 +122,18 @@ teardown:
 
   - match: { total: 1 }
   - match: { datarows: [[1, 10]] }
+
+---
+"Multi-terms bucket parser should work in non-composite aggregate":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test | stats bucket_nullable=false count() by stringV, intV
+
+  - match: { total: 1 }
+  - match: { datarows: [[1, "hello", 10]] }
