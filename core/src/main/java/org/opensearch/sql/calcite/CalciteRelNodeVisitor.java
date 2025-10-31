@@ -17,6 +17,7 @@ import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_DEDUP;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_MAIN;
+import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_STREAMSTATS;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_SUBSEARCH;
 import static org.opensearch.sql.calcite.utils.PlanUtils.getRelation;
 import static org.opensearch.sql.calcite.utils.PlanUtils.getRexCall;
@@ -1600,7 +1601,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     boolean hasReset = node.getResetBefore() != null || node.getResetAfter() != null;
 
     // Local helper column names
-    final String SEQ_COL = "__stream_seq__"; // global row number
     final String RESET_BEFORE_FLAG_COL = "__reset_before_flag__"; // flag for reset_before
     final String RESET_AFTER_FLAG_COL = "__reset_after_flag__"; // flag for reset_after
     final String SEGMENT_ID_COL = "__seg_id__"; // segment id
@@ -1616,44 +1616,51 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           leftWithSeg,
           node,
           groupList,
-          SEQ_COL,
+          ROW_NUMBER_COLUMN_NAME_STREAMSTATS,
           SEGMENT_ID_COL,
-          new String[] {SEQ_COL, RESET_BEFORE_FLAG_COL, RESET_AFTER_FLAG_COL, SEGMENT_ID_COL});
+          new String[] {
+            ROW_NUMBER_COLUMN_NAME_STREAMSTATS,
+            RESET_BEFORE_FLAG_COL,
+            RESET_AFTER_FLAG_COL,
+            SEGMENT_ID_COL
+          });
     }
 
     // CASE: global=true + window>0 + has group
     if (node.isGlobal() && hasWindow && hasGroup) {
       // 1. Add global sequence column for sliding window
       RexNode streamSeq =
-          PlanUtils.makeOver(
-              context,
-              BuiltinFunctionName.ROW_NUMBER,
-              null,
-              List.of(),
-              List.of(),
-              List.of(),
-              WindowFrame.toCurrentRow());
-      context.relBuilder.projectPlus(context.relBuilder.alias(streamSeq, SEQ_COL));
+          context
+              .relBuilder
+              .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+              .over()
+              .rowsTo(RexWindowBounds.CURRENT_ROW)
+              .as(ROW_NUMBER_COLUMN_NAME_STREAMSTATS);
+      context.relBuilder.projectPlus(streamSeq);
       RelNode left = context.relBuilder.build();
 
       // 2. Run correlate + aggregate
       return buildStreamWindowJoinPlan(
-          context, left, node, groupList, SEQ_COL, null, new String[] {SEQ_COL});
+          context,
+          left,
+          node,
+          groupList,
+          ROW_NUMBER_COLUMN_NAME_STREAMSTATS,
+          null,
+          new String[] {ROW_NUMBER_COLUMN_NAME_STREAMSTATS});
     }
 
     // Default
     if (hasGroup) {
       // only build sequence when there is by condition
       RexNode streamSeq =
-          PlanUtils.makeOver(
-              context,
-              BuiltinFunctionName.ROW_NUMBER,
-              null,
-              List.of(),
-              List.of(),
-              List.of(),
-              WindowFrame.toCurrentRow());
-      context.relBuilder.projectPlus(context.relBuilder.alias(streamSeq, SEQ_COL));
+          context
+              .relBuilder
+              .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+              .over()
+              .rowsTo(RexWindowBounds.CURRENT_ROW)
+              .as(ROW_NUMBER_COLUMN_NAME_STREAMSTATS);
+      context.relBuilder.projectPlus(streamSeq);
     }
 
     List<RexNode> overExpressions =
@@ -1662,8 +1669,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // resort when there is by condition
     if (hasGroup) {
-      context.relBuilder.sort(context.relBuilder.field(SEQ_COL));
-      context.relBuilder.projectExcept(context.relBuilder.field(SEQ_COL));
+      context.relBuilder.sort(context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_STREAMSTATS));
+      context.relBuilder.projectExcept(
+          context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_STREAMSTATS));
     }
 
     return context.relBuilder.peek();
@@ -1734,15 +1742,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   private RelNode buildResetHelperColumns(CalcitePlanContext context, StreamWindow node) {
     // 1. global sequence to define order
     RexNode rowNum =
-        PlanUtils.makeOver(
-            context,
-            BuiltinFunctionName.ROW_NUMBER,
-            null,
-            List.of(),
-            List.of(),
-            List.of(),
-            WindowFrame.toCurrentRow());
-    context.relBuilder.projectPlus(context.relBuilder.alias(rowNum, "__stream_seq__"));
+        context
+            .relBuilder
+            .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+            .over()
+            .rowsTo(RexWindowBounds.CURRENT_ROW)
+            .as(ROW_NUMBER_COLUMN_NAME_STREAMSTATS);
+    context.relBuilder.projectPlus(rowNum);
 
     // 2. before/after flags
     RexNode beforePred =
