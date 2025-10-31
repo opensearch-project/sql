@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.request;
 
 import static org.opensearch.core.xcontent.DeprecationHandler.IGNORE_DEPRECATIONS;
 import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
+import static org.opensearch.search.sort.FieldSortBuilder.ID_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
 
 import java.io.IOException;
@@ -31,8 +32,6 @@ import org.opensearch.search.SearchModule;
 import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.FieldSortBuilder;
-import org.opensearch.search.sort.ShardDocSortBuilder;
-import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
@@ -211,7 +210,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       if (this.sourceBuilder.sorts() == null || this.sourceBuilder.sorts().isEmpty()) {
         // If no sort field specified, sort by `_doc` + `_shard_doc`to get better performance
         this.sourceBuilder.sort(DOC_FIELD_NAME, ASC);
-        this.sourceBuilder.sort(SortBuilders.shardDocSort());
+        this.sourceBuilder.sort(ID_FIELD_NAME);
       } else {
         // If sort fields specified, sort by `fields` + `_doc` + `_shard_doc`.
         if (this.sourceBuilder.sorts().stream()
@@ -219,8 +218,10 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
                 b -> b instanceof FieldSortBuilder f && f.fieldName().equals(DOC_FIELD_NAME))) {
           this.sourceBuilder.sort(DOC_FIELD_NAME, ASC);
         }
-        if (this.sourceBuilder.sorts().stream().noneMatch(ShardDocSortBuilder.class::isInstance)) {
-          this.sourceBuilder.sort(SortBuilders.shardDocSort());
+        if (this.sourceBuilder.sorts().stream()
+            .noneMatch(
+                b -> b instanceof FieldSortBuilder f && f.fieldName().equals(ID_FIELD_NAME))) {
+          this.sourceBuilder.sort(ID_FIELD_NAME);
         }
       }
       SearchRequest searchRequest =
