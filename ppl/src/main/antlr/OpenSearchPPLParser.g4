@@ -1234,6 +1234,7 @@ textFunctionName
    | LOCATE
    | REPLACE
    | REVERSE
+   | TONUMBER
    ;
 
 positionFunctionName
@@ -1438,6 +1439,7 @@ searchableKeyWord
    | USING
    | VALUE
    | CAST
+   | TONUMBER
    | GET_FORMAT
    | EXTRACT
    | INTERVAL

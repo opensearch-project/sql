@@ -117,3 +117,54 @@ Use string in comparison operator example ::
     | True | False | True | False | True | True | null |
     +------+-------+------+-------+------+------+------+
 
+
+
+TONUMBER
+-----------
+
+Description
+>>>>>>>>>>>
+
+The following usage options are available, depending on the parameter types and the number of parameters.
+
+Usage: tonumber(string, [base]) converts the value in first argument to provided base type string in second argument. If second argument is not provided, then it converts to base 10 number representation.
+
+Return type: Number
+
+
+You can use this function with the eval commands and as part of eval expressions.
+Base values can be between 2 and 36.
+
+You can use this function to convert a string representation of a binary number to return the corresponding number in base 10.
+
+Following example converts a string in binary to the number representation::
+
+    os> source=EMP | eval int_value = tonumber('010101',2) | fields int_value | head 1
+    fetched rows / total rows = 1/1
+    +---------------+
+    |  int_value    |
+    |---------------+
+    |  21.0         |
+    +---------------+
+
+
+Following example converts a string in hex to the number representation::
+
+
+    os> source=EMP | eval int_value = tonumber('FA34',16) | fields int_value | head 1
+    fetched rows / total rows = 1/1
+    +---------------+
+    | int_value     |
+    |---------------+
+    | 64052.0       |
+    +---------------+
+
+Following example converts a string in decimal  to the number representation::
+
+     os> source=EMP | eval int_value = tonumber('4598') | fields int_value | head 1
+     fetched rows / total rows = 1/1
+    +---------------+
+    | int_value     |
+    |---------------+
+    | 4598.0        |
+    +---------------+
