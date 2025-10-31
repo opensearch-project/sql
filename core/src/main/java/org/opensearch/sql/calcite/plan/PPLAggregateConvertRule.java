@@ -7,14 +7,10 @@ package org.opensearch.sql.calcite.plan;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -30,8 +26,6 @@ import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.mapping.Mappings;
 import org.apache.commons.lang3.tuple.Pair;
 import org.immutables.value.Value;
 
@@ -188,36 +182,9 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
       }
     }
 
-    /* Eliminate unused fields in the child project */
-    ImmutableBitSet newGroupSet = aggregate.getGroupSet();
-    ;
-    ImmutableList<ImmutableBitSet> newGroupSets = aggregate.getGroupSets();
-    ;
-    final Set<Integer> fieldsUsed =
-        RelOptUtil.getAllFields2(aggregate.getGroupSet(), distinctAggregateCalls);
-    if (fieldsUsed.size() < newChildProjects.size()) {
-      // Some fields are computed but not used. Prune them.
-      final Map<Integer, Integer> sourceFieldToTargetFieldMap = new HashMap<>();
-      for (int source : fieldsUsed) {
-        sourceFieldToTargetFieldMap.put(source, sourceFieldToTargetFieldMap.size());
-      }
-      newGroupSet = aggregate.getGroupSet().permute(sourceFieldToTargetFieldMap);
-      newGroupSets =
-          ImmutableBitSet.ORDERING.immutableSortedCopy(
-              ImmutableBitSet.permute(aggregate.getGroupSets(), sourceFieldToTargetFieldMap));
-      final Mappings.TargetMapping targetMapping =
-          Mappings.target(sourceFieldToTargetFieldMap, newChildProjects.size(), fieldsUsed.size());
-      final List<AggregateCall> oldAggregateCalls = new ArrayList<>(distinctAggregateCalls);
-      distinctAggregateCalls.clear();
-      for (AggregateCall aggregateCall : oldAggregateCalls) {
-        distinctAggregateCalls.add(aggregateCall.transform(targetMapping));
-      }
-      // Project the used fields
-      relBuilder.project(relBuilder.fields(fieldsUsed.stream().toList()));
-    }
+    relBuilder.aggregate(relBuilder.groupKey(aggregate.getGroupSet()), distinctAggregateCalls);
 
-    /* Build the final project-aggregate-project after eliminating unused fields */
-    relBuilder.aggregate(relBuilder.groupKey(newGroupSet, newGroupSets), distinctAggregateCalls);
+    /* Build the final project-aggregate-project */
     List<RexNode> parentProjects =
         new ArrayList<>(relBuilder.fields(IntStream.range(0, groupSetOffset).boxed().toList()));
     parentProjects.addAll(

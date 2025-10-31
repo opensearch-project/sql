@@ -339,7 +339,8 @@ public class PPLQueryDataAnonymizerTest {
   public void testRareCommandWithGroupByWithCalcite() {
     when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
     assertEquals(
-        "source=table | rare 10 countield='count' showcount=true identifier by identifier",
+        "source=table | rare 10 countield='count' showcount=true usenull=true identifier by"
+            + " identifier",
         anonymize("source=t | rare a by b"));
   }
 
@@ -347,7 +348,8 @@ public class PPLQueryDataAnonymizerTest {
   public void testTopCommandWithNAndGroupByWithCalcite() {
     when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
     assertEquals(
-        "source=table | top 1 countield='count' showcount=true identifier by identifier",
+        "source=table | top 1 countield='count' showcount=true usenull=true identifier by"
+            + " identifier",
         anonymize("source=t | top 1 a by b"));
   }
 
