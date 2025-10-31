@@ -1,0 +1,60 @@
+setup:
+  - do:
+      indices.create:
+        index: test
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              a:
+                properties:
+                  b:
+                    properties:
+                      c:
+                        type: keyword
+              d:
+                properties:
+                  e:
+                    properties:
+                      f:
+                        type: keyword
+              num:
+                type: integer
+
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"Access struct fields after join":
+  - skip:
+      features:
+        - headers
+  - do:
+      bulk:
+        index: test
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"a": {"b": {"c": "/a/b/c"} }, "d": {"e": {"f": "/d/e/f"} }, "num": 10 }'
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test | eval N=d.e.f | join type=inner left=l, right=r ON l.N = r.F [ source=test | rename d.e.f as F | fields F ] | fields num, N, a.b.c, d.e.f'
+  - match: {"total": 1}
+  - match: { schema: [ { "name": "num", "type": "int" }, { "name": "N", "type": "string" }, { "name": "a.b.c", "type": "string" }, { "name": "d.e.f", "type": "string" } ] }
+  - match: { datarows: [ [ 10, "/d/e/f",  "/a/b/c",  "/d/e/f"] ] }
