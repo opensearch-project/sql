@@ -5,6 +5,10 @@
 
 package org.opensearch.sql.expression.function.udf.binning;
 
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -24,7 +28,7 @@ import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
- * WIDTH_BUCKET(field_value, num_bins, data_range, max_value) - Histogram bucketing function.
+ * WIDTH_BUCKET(field_value, num_bins, min_value, max_value) - Histogram bucketing function.
  *
  * <p>This function creates equal-width bins for histogram operations. It uses a mathematical O(1)
  * algorithm to determine optimal bin widths based on powers of 10.
@@ -32,13 +36,14 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
  * <p>Parameters:
  *
  * <ul>
- *   <li>field_value - The numeric value to bin
+ *   <li>field_value - The numeric or timestamp value to bin
  *   <li>num_bins - Number of bins to create
- *   <li>data_range - Range of the data (MAX - MIN)
+ *   <li>min_value - Minimum value in the dataset
  *   <li>max_value - Maximum value in the dataset
  * </ul>
  *
- * <p>Implements the same binning logic as BinCalculatorFunction for 'bins' type.
+ * <p>Supports both numeric and timestamp fields. For timestamps, uses auto_date_histogram interval
+ * selection.
  */
 public class WidthBucketFunction extends ImplementorUDF {
 
@@ -76,35 +81,76 @@ public class WidthBucketFunction extends ImplementorUDF {
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
       Expression fieldValue = translatedOperands.get(0);
       Expression numBins = translatedOperands.get(1);
-      Expression dataRange = translatedOperands.get(2);
+      Expression minValue = translatedOperands.get(2);
       Expression maxValue = translatedOperands.get(3);
+
+      // Pass the field type information to help detect timestamps
+      RelDataType fieldType = call.getOperands().get(0).getType();
+      boolean isTimestampField = dateRelatedType(fieldType);
+      Expression isTimestamp = Expressions.constant(isTimestampField);
+
+      // For timestamp fields, keep as-is (don't convert to Number)
+      // For numeric fields, convert to Number
+      Expression fieldValueExpr =
+          isTimestampField ? fieldValue : Expressions.convert_(fieldValue, Number.class);
+      Expression minValueExpr =
+          isTimestampField ? minValue : Expressions.convert_(minValue, Number.class);
+      Expression maxValueExpr =
+          isTimestampField ? maxValue : Expressions.convert_(maxValue, Number.class);
 
       return Expressions.call(
           WidthBucketImplementor.class,
           "calculateWidthBucket",
-          Expressions.convert_(fieldValue, Number.class),
+          fieldValueExpr,
           Expressions.convert_(numBins, Number.class),
-          Expressions.convert_(dataRange, Number.class),
-          Expressions.convert_(maxValue, Number.class));
+          minValueExpr,
+          maxValueExpr,
+          isTimestamp);
     }
 
     /** Width bucket calculation using nice number algorithm. */
     public static String calculateWidthBucket(
-        Number fieldValue, Number numBinsParam, Number dataRange, Number maxValue) {
-      if (fieldValue == null || numBinsParam == null || dataRange == null || maxValue == null) {
+        Object fieldValue,
+        Number numBinsParam,
+        Object minValue,
+        Object maxValue,
+        boolean isTimestamp) {
+      if (fieldValue == null || numBinsParam == null || minValue == null || maxValue == null) {
         return null;
       }
 
-      double value = fieldValue.doubleValue();
       int numBins = numBinsParam.intValue();
-
       if (numBins < BinConstants.MIN_BINS || numBins > BinConstants.MAX_BINS) {
         return null;
       }
 
-      double range = dataRange.doubleValue();
-      double max = maxValue.doubleValue();
+      // Handle timestamp fields differently
+      if (isTimestamp) {
+        // Convert all timestamp values to milliseconds
+        long fieldMillis = convertTimestampToMillis(fieldValue);
+        long minMillis = convertTimestampToMillis(minValue);
+        long maxMillis = convertTimestampToMillis(maxValue);
 
+        // Calculate range
+        long rangeMillis = maxMillis - minMillis;
+        if (rangeMillis <= 0) {
+          return null;
+        }
+
+        return calculateTimestampBucket(fieldMillis, numBins, rangeMillis, minMillis);
+      }
+
+      // Numeric field handling (existing logic)
+      Number numericValue = (Number) fieldValue;
+      Number numericMin = (Number) minValue;
+      Number numericMax = (Number) maxValue;
+
+      double value = numericValue.doubleValue();
+      double min = numericMin.doubleValue();
+      double max = numericMax.doubleValue();
+
+      // Calculate range
+      double range = max - min;
       if (range <= 0) {
         return null;
       }
@@ -189,6 +235,93 @@ public class WidthBucketFunction extends ImplementorUDF {
       } else {
         return 4;
       }
+    }
+
+    /**
+     * Convert timestamp value to milliseconds. Handles both numeric (Long) milliseconds and String
+     * formatted timestamps.
+     */
+    private static long convertTimestampToMillis(Object timestamp) {
+      if (timestamp instanceof Number) {
+        return ((Number) timestamp).longValue();
+      } else if (timestamp instanceof String) {
+        // Parse timestamp string "yyyy-MM-dd HH:mm:ss" to milliseconds
+        // Use LocalDateTime to parse without timezone, then convert to UTC
+        String timestampStr = (String) timestamp;
+        java.time.LocalDateTime localDateTime =
+            java.time.LocalDateTime.parse(
+                timestampStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        // Assume the timestamp is in UTC and convert to epoch millis
+        return localDateTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
+      } else {
+        throw new IllegalArgumentException("Unsupported timestamp type: " + timestamp.getClass());
+      }
+    }
+
+    /**
+     * Calculate timestamp bucket using auto_date_histogram interval selection. Timestamps are in
+     * milliseconds since epoch. Bins are aligned to the minimum timestamp, not to calendar
+     * boundaries.
+     */
+    private static String calculateTimestampBucket(
+        long timestampMillis, int numBins, long rangeMillis, long minMillis) {
+      // Calculate target width in milliseconds
+      long targetWidthMillis = rangeMillis / numBins;
+
+      // Select appropriate time interval (same as OpenSearch auto_date_histogram)
+      long intervalMillis = selectTimeInterval(targetWidthMillis);
+
+      // Floor timestamp to the interval boundary aligned with minMillis
+      // This ensures bins start at the data's minimum value, like OpenSearch auto_date_histogram
+      long offsetFromMin = timestampMillis - minMillis;
+      long intervalsSinceMin = offsetFromMin / intervalMillis;
+      long binStartMillis = minMillis + (intervalsSinceMin * intervalMillis);
+
+      // Format as ISO 8601 timestamp string
+      return formatTimestamp(binStartMillis);
+    }
+
+    /**
+     * Select the appropriate time interval based on target width. Uses the same intervals as
+     * OpenSearch auto_date_histogram: 1s, 5s, 10s, 30s, 1m, 5m, 10m, 30m, 1h, 3h, 12h, 1d, 7d, 1M,
+     * 1y
+     */
+    private static long selectTimeInterval(long targetWidthMillis) {
+      // Define nice time intervals in milliseconds
+      long[] intervals = {
+        1000L, // 1 second
+        5000L, // 5 seconds
+        10000L, // 10 seconds
+        30000L, // 30 seconds
+        60000L, // 1 minute
+        300000L, // 5 minutes
+        600000L, // 10 minutes
+        1800000L, // 30 minutes
+        3600000L, // 1 hour
+        10800000L, // 3 hours
+        43200000L, // 12 hours
+        86400000L, // 1 day
+        604800000L, // 7 days
+        2592000000L, // 30 days (approximate month)
+        31536000000L // 365 days (approximate year)
+      };
+
+      // Find the smallest interval that is >= target width
+      for (long interval : intervals) {
+        if (interval >= targetWidthMillis) {
+          return interval;
+        }
+      }
+
+      // If target is larger than all intervals, use the largest
+      return intervals[intervals.length - 1];
+    }
+
+    /** Format timestamp in milliseconds as ISO 8601 string. Format: "yyyy-MM-dd HH:mm:ss" */
+    private static String formatTimestamp(long timestampMillis) {
+      Instant instant = Instant.ofEpochMilli(timestampMillis);
+      ZonedDateTime zdt = instant.atZone(ZoneOffset.UTC);
+      return zdt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
     }
   }
 }
