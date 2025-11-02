@@ -251,9 +251,10 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
   @Test
   public void testPi() {
     RelNode root = getRelNode("source=EMP | eval PI = pi() | fields PI");
-    String expectedLogical = "LogicalProject(PI=[PI])\n  LogicalTableScan(table=[[scott, EMP]])\n";
+    String expectedLogical =
+        "LogicalProject(PI=[PI()])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedSparkSql = "SELECT PI `PI`\nFROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT PI() `PI`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
