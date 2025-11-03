@@ -1488,4 +1488,18 @@ public class AstBuilderTest {
     // Test multiple pattern/replacement pairs
     plan("source=t | replace 'a' WITH 'A', 'b' WITH 'B' IN field");
   }
+
+  @Test
+  public void testTimeSpanWithDecimalShouldThrow() {
+    Throwable t1 =
+        assertThrows(
+            SyntaxCheckException.class, () -> plan("source=t | timechart  span=1.5d count"));
+    assertTrue(t1.getMessage().contains("[1.5d] is not a valid term at this part of the query"));
+
+    Throwable t2 =
+        assertThrows(
+            SyntaxCheckException.class,
+            () -> plan("source=t | stats count by span(@timestamp, 2.5y)"));
+    assertTrue(t2.getMessage().contains("[y] is not a valid term at this part of the query"));
+  }
 }
