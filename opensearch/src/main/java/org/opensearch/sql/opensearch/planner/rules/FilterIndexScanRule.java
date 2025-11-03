@@ -2,7 +2,8 @@
  * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.opensearch.sql.opensearch.planner.physical;
+
+package org.opensearch.sql.opensearch.planner.rules;
 
 import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -16,10 +17,10 @@ import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
 /** Planner rule that push a {@link LogicalFilter} down to {@link CalciteLogicalIndexScan} */
 @Value.Enclosing
-public class OpenSearchFilterIndexScanRule extends RelRule<OpenSearchFilterIndexScanRule.Config> {
+public class FilterIndexScanRule extends RelRule<FilterIndexScanRule.Config> {
 
-  /** Creates a OpenSearchFilterIndexScanRule. */
-  protected OpenSearchFilterIndexScanRule(Config config) {
+  /** Creates a FilterIndexScanRule. */
+  protected FilterIndexScanRule(Config config) {
     super(config);
   }
 
@@ -50,7 +51,7 @@ public class OpenSearchFilterIndexScanRule extends RelRule<OpenSearchFilterIndex
   public interface Config extends RelRule.Config {
     /** Config that matches Filter on CalciteLogicalIndexScan. */
     Config DEFAULT =
-        ImmutableOpenSearchFilterIndexScanRule.Config.builder()
+        ImmutableFilterIndexScanRule.Config.builder()
             .build()
             .withOperandSupplier(
                 b0 ->
@@ -69,8 +70,8 @@ public class OpenSearchFilterIndexScanRule extends RelRule<OpenSearchFilterIndex
                                     .noInputs()));
 
     @Override
-    default OpenSearchFilterIndexScanRule toRule() {
-      return new OpenSearchFilterIndexScanRule(this);
+    default FilterIndexScanRule toRule() {
+      return new FilterIndexScanRule(this);
     }
   }
 }

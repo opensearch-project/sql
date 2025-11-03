@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.opensearch.planner.physical;
+package org.opensearch.sql.opensearch.planner.rules;
 
 import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -16,9 +16,9 @@ import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
 @Value.Enclosing
-public class SortAggregationMetricsRule extends RelRule<SortAggregationMetricsRule.Config> {
+public class SortAggregateMeasureRule extends RelRule<SortAggregateMeasureRule.Config> {
 
-  protected SortAggregationMetricsRule(Config config) {
+  protected SortAggregateMeasureRule(Config config) {
     super(config);
   }
 
@@ -26,7 +26,7 @@ public class SortAggregationMetricsRule extends RelRule<SortAggregationMetricsRu
   public void onMatch(RelOptRuleCall call) {
     final LogicalSort sort = call.rel(0);
     final CalciteLogicalIndexScan scan = call.rel(1);
-    CalciteLogicalIndexScan newScan = scan.pushDownSortAggregateMetrics(sort);
+    CalciteLogicalIndexScan newScan = scan.pushDownSortAggregateMeasure(sort);
     if (newScan != null) {
       call.transformTo(newScan);
     }
@@ -35,11 +35,11 @@ public class SortAggregationMetricsRule extends RelRule<SortAggregationMetricsRu
   /** Rule configuration. */
   @Value.Immutable
   public interface Config extends RelRule.Config {
-    // TODO support multiple metrics, only support single metric sort
+    // TODO support multiple measures, only support single measure sort
     Predicate<Sort> hasOneFieldCollation =
         sort -> sort.getCollation().getFieldCollations().size() == 1;
-    SortAggregationMetricsRule.Config DEFAULT =
-        ImmutableSortAggregationMetricsRule.Config.builder()
+    SortAggregateMeasureRule.Config DEFAULT =
+        ImmutableSortAggregateMeasureRule.Config.builder()
             .build()
             .withDescription("Sort-TableScan(agg-pushed)")
             .withOperandSupplier(
@@ -54,8 +54,8 @@ public class SortAggregationMetricsRule extends RelRule<SortAggregationMetricsRu
                                     .noInputs()));
 
     @Override
-    default SortAggregationMetricsRule toRule() {
-      return new SortAggregationMetricsRule(this);
+    default SortAggregateMeasureRule toRule() {
+      return new SortAggregateMeasureRule(this);
     }
   }
 }

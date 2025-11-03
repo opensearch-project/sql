@@ -6,19 +6,16 @@
 package org.opensearch.sql.opensearch.storage.scan.context;
 
 import lombok.EqualsAndHashCode;
+import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.apache.calcite.rex.RexNode;
 
 
 @EqualsAndHashCode
+@RequiredArgsConstructor
 public class FilterDigest {
   private final int scriptCount;
   private final RexNode condition;
-
-  public FilterDigest(int scriptCount, RexNode condition) {
-    this.scriptCount = scriptCount;
-    this.condition = condition;
-  }
 
   public int scriptCount() {
     return scriptCount;

@@ -2,7 +2,8 @@
  * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.opensearch.sql.opensearch.planner.physical;
+
+package org.opensearch.sql.opensearch.planner.rules;
 
 import static org.opensearch.sql.expression.function.PPLBuiltinOperators.WIDTH_BUCKET;
 
@@ -29,11 +30,10 @@ import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
 /** Planner rule that push a {@link LogicalAggregate} down to {@link CalciteLogicalIndexScan} */
 @Value.Enclosing
-public class OpenSearchAggregateIndexScanRule
-    extends RelRule<OpenSearchAggregateIndexScanRule.Config> {
+public class AggregateIndexScanRule extends RelRule<AggregateIndexScanRule.Config> {
 
-  /** Creates a OpenSearchAggregateIndexScanRule. */
-  protected OpenSearchAggregateIndexScanRule(Config config) {
+  /** Creates a AggregateIndexScanRule. */
+  protected AggregateIndexScanRule(Config config) {
     super(config);
   }
 
@@ -93,7 +93,7 @@ public class OpenSearchAggregateIndexScanRule
   @Value.Immutable
   public interface Config extends RelRule.Config {
     Config DEFAULT =
-        ImmutableOpenSearchAggregateIndexScanRule.Config.builder()
+        ImmutableAggregateIndexScanRule.Config.builder()
             .build()
             .withDescription("Agg-Project-TableScan")
             .withOperandSupplier(
@@ -121,7 +121,7 @@ public class OpenSearchAggregateIndexScanRule
                                                                 ::noAggregatePushed))
                                                 .noInputs())));
     Config COUNT_STAR =
-        ImmutableOpenSearchAggregateIndexScanRule.Config.builder()
+        ImmutableAggregateIndexScanRule.Config.builder()
             .build()
             .withDescription("Agg[count()]-TableScan")
             .withOperandSupplier(
@@ -145,7 +145,7 @@ public class OpenSearchAggregateIndexScanRule
     // TODO: No need this rule once https://github.com/opensearch-project/sql/issues/4403 is
     // addressed
     Config BUCKET_NON_NULL_AGG =
-        ImmutableOpenSearchAggregateIndexScanRule.Config.builder()
+        ImmutableAggregateIndexScanRule.Config.builder()
             .build()
             .withDescription("Agg-Filter-Project-TableScan")
             .withOperandSupplier(
@@ -190,8 +190,8 @@ public class OpenSearchAggregateIndexScanRule
                                                             .noInputs()))));
 
     @Override
-    default OpenSearchAggregateIndexScanRule toRule() {
-      return new OpenSearchAggregateIndexScanRule(this);
+    default AggregateIndexScanRule toRule() {
+      return new AggregateIndexScanRule(this);
     }
 
     static boolean mayBeFilterFromBucketNonNull(LogicalFilter filter) {
@@ -200,7 +200,7 @@ public class OpenSearchAggregateIndexScanRule
           || (condition instanceof RexCall
               && ((RexCall)condition).getOperator().equals(SqlStdOperatorTable.AND)
               && ((RexCall)condition).getOperands().stream()
-                  .allMatch(OpenSearchAggregateIndexScanRule.Config::isNotNullOnRef));
+                  .allMatch(AggregateIndexScanRule.Config::isNotNullOnRef));
     }
 
     private static boolean isNotNullOnRef(RexNode rex) {
