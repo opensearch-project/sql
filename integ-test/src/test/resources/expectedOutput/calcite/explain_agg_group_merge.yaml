@@ -1,0 +1,10 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(count()=[$4], age1=[$0], age2=[$1], age3=[$2], age=[$3])
+        LogicalAggregate(group=[{0, 1, 2, 3}], count()=[COUNT()])
+          LogicalProject(age1=[*($8, 10)], age2=[+($8, 10)], age3=[10], age=[$8])
+            CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+  physical: |
+    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[10], expr#3=[*($t0, $t2)], expr#4=[+($t0, $t2)], count()=[$t1], age1=[$t3], age2=[$t4], age3=[$t2], age=[$t0])
+      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0},count()=COUNT()), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"age":{"terms":{"field":"age","missing_bucket":true,"missing_order":"first","order":"asc"}}}]}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

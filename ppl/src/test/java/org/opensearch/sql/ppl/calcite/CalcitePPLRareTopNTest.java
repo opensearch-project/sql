@@ -26,7 +26,7 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalProject(JOB=[$0], count=[$1])\n"
             + "  LogicalFilter(condition=[<=($2, 10)])\n"
-            + "    LogicalProject(JOB=[$0], count=[$1], _row_number_top_rare_=[ROW_NUMBER() OVER"
+            + "    LogicalProject(JOB=[$0], count=[$1], _row_number_rare_top_=[ROW_NUMBER() OVER"
             + " (ORDER BY $1)])\n"
             + "      LogicalAggregate(group=[{0}], count=[COUNT()])\n"
             + "        LogicalProject(JOB=[$2])\n"
@@ -45,10 +45,10 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `JOB`, `count`\n"
             + "FROM (SELECT `JOB`, COUNT(*) `count`, ROW_NUMBER() OVER (ORDER BY COUNT(*) NULLS"
-            + " LAST) `_row_number_top_rare_`\n"
+            + " LAST) `_row_number_rare_top_`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `JOB`) `t1`\n"
-            + "WHERE `_row_number_top_rare_` <= 10";
+            + "WHERE `_row_number_rare_top_` <= 10";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -60,7 +60,7 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
         "LogicalProject(DEPTNO=[$0], JOB=[$1], count=[$2])\n"
             + "  LogicalFilter(condition=[<=($3, 10)])\n"
             + "    LogicalProject(DEPTNO=[$0], JOB=[$1], count=[$2],"
-            + " _row_number_top_rare_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2)])\n"
+            + " _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2)])\n"
             + "      LogicalAggregate(group=[{0, 1}], count=[COUNT()])\n"
             + "        LogicalProject(DEPTNO=[$7], JOB=[$2])\n"
             + "          LogicalTableScan(table=[[scott, EMP]])\n";
@@ -82,10 +82,10 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `DEPTNO`, `JOB`, `count`\n"
             + "FROM (SELECT `DEPTNO`, `JOB`, COUNT(*) `count`, ROW_NUMBER() OVER (PARTITION BY"
-            + " `DEPTNO` ORDER BY COUNT(*) NULLS LAST) `_row_number_top_rare_`\n"
+            + " `DEPTNO` ORDER BY COUNT(*) NULLS LAST) `_row_number_rare_top_`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`, `JOB`) `t1`\n"
-            + "WHERE `_row_number_top_rare_` <= 10";
+            + "WHERE `_row_number_rare_top_` <= 10";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -97,7 +97,7 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
         "LogicalProject(DEPTNO=[$0], JOB=[$1])\n"
             + "  LogicalFilter(condition=[<=($3, 10)])\n"
             + "    LogicalProject(DEPTNO=[$0], JOB=[$1], count=[$2],"
-            + " _row_number_top_rare_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2)])\n"
+            + " _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2)])\n"
             + "      LogicalAggregate(group=[{0, 1}], count=[COUNT()])\n"
             + "        LogicalProject(DEPTNO=[$7], JOB=[$2])\n"
             + "          LogicalTableScan(table=[[scott, EMP]])\n";
@@ -119,10 +119,10 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `DEPTNO`, `JOB`\n"
             + "FROM (SELECT `DEPTNO`, `JOB`, COUNT(*) `count`, ROW_NUMBER() OVER (PARTITION BY"
-            + " `DEPTNO` ORDER BY COUNT(*) NULLS LAST) `_row_number_top_rare_`\n"
+            + " `DEPTNO` ORDER BY COUNT(*) NULLS LAST) `_row_number_rare_top_`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`, `JOB`) `t1`\n"
-            + "WHERE `_row_number_top_rare_` <= 10";
+            + "WHERE `_row_number_rare_top_` <= 10";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -134,7 +134,7 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
         "LogicalProject(DEPTNO=[$0], JOB=[$1], my_cnt=[$2])\n"
             + "  LogicalFilter(condition=[<=($3, 10)])\n"
             + "    LogicalProject(DEPTNO=[$0], JOB=[$1], my_cnt=[$2],"
-            + " _row_number_top_rare_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2)])\n"
+            + " _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2)])\n"
             + "      LogicalAggregate(group=[{0, 1}], my_cnt=[COUNT()])\n"
             + "        LogicalProject(DEPTNO=[$7], JOB=[$2])\n"
             + "          LogicalTableScan(table=[[scott, EMP]])\n";
@@ -156,10 +156,10 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `DEPTNO`, `JOB`, `my_cnt`\n"
             + "FROM (SELECT `DEPTNO`, `JOB`, COUNT(*) `my_cnt`, ROW_NUMBER() OVER (PARTITION BY"
-            + " `DEPTNO` ORDER BY COUNT(*) NULLS LAST) `_row_number_top_rare_`\n"
+            + " `DEPTNO` ORDER BY COUNT(*) NULLS LAST) `_row_number_rare_top_`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`, `JOB`) `t1`\n"
-            + "WHERE `_row_number_top_rare_` <= 10";
+            + "WHERE `_row_number_rare_top_` <= 10";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -171,7 +171,7 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
         "LogicalProject(DEPTNO=[$0], JOB=[$1], count=[$2])\n"
             + "  LogicalFilter(condition=[<=($3, 10)])\n"
             + "    LogicalProject(DEPTNO=[$0], JOB=[$1], count=[$2],"
-            + " _row_number_top_rare_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2)])\n"
+            + " _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2)])\n"
             + "      LogicalAggregate(group=[{0, 1}], count=[COUNT()])\n"
             + "        LogicalProject(DEPTNO=[$7], JOB=[$2])\n"
             + "          LogicalFilter(condition=[AND(IS NOT NULL($7), IS NOT NULL($2))])\n"
@@ -194,11 +194,11 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `DEPTNO`, `JOB`, `count`\n"
             + "FROM (SELECT `DEPTNO`, `JOB`, COUNT(*) `count`, ROW_NUMBER() OVER (PARTITION BY"
-            + " `DEPTNO` ORDER BY COUNT(*) NULLS LAST) `_row_number_top_rare_`\n"
+            + " `DEPTNO` ORDER BY COUNT(*) NULLS LAST) `_row_number_rare_top_`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `DEPTNO` IS NOT NULL AND `JOB` IS NOT NULL\n"
             + "GROUP BY `DEPTNO`, `JOB`) `t2`\n"
-            + "WHERE `_row_number_top_rare_` <= 10";
+            + "WHERE `_row_number_rare_top_` <= 10";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -229,7 +229,7 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalProject(JOB=[$0], count=[$1])\n"
             + "  LogicalFilter(condition=[<=($2, 10)])\n"
-            + "    LogicalProject(JOB=[$0], count=[$1], _row_number_top_rare_=[ROW_NUMBER() OVER"
+            + "    LogicalProject(JOB=[$0], count=[$1], _row_number_rare_top_=[ROW_NUMBER() OVER"
             + " (ORDER BY $1 DESC)])\n"
             + "      LogicalAggregate(group=[{0}], count=[COUNT()])\n"
             + "        LogicalProject(JOB=[$2])\n"
@@ -248,10 +248,10 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `JOB`, `count`\n"
             + "FROM (SELECT `JOB`, COUNT(*) `count`, ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC"
-            + " NULLS FIRST) `_row_number_top_rare_`\n"
+            + " NULLS FIRST) `_row_number_rare_top_`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `JOB`) `t1`\n"
-            + "WHERE `_row_number_top_rare_` <= 10";
+            + "WHERE `_row_number_rare_top_` <= 10";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -263,7 +263,7 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
         "LogicalProject(DEPTNO=[$0], JOB=[$1], count=[$2])\n"
             + "  LogicalFilter(condition=[<=($3, 10)])\n"
             + "    LogicalProject(DEPTNO=[$0], JOB=[$1], count=[$2],"
-            + " _row_number_top_rare_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2 DESC)])\n"
+            + " _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2 DESC)])\n"
             + "      LogicalAggregate(group=[{0, 1}], count=[COUNT()])\n"
             + "        LogicalProject(DEPTNO=[$7], JOB=[$2])\n"
             + "          LogicalTableScan(table=[[scott, EMP]])\n";
@@ -285,10 +285,10 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `DEPTNO`, `JOB`, `count`\n"
             + "FROM (SELECT `DEPTNO`, `JOB`, COUNT(*) `count`, ROW_NUMBER() OVER (PARTITION BY"
-            + " `DEPTNO` ORDER BY COUNT(*) DESC NULLS FIRST) `_row_number_top_rare_`\n"
+            + " `DEPTNO` ORDER BY COUNT(*) DESC NULLS FIRST) `_row_number_rare_top_`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`, `JOB`) `t1`\n"
-            + "WHERE `_row_number_top_rare_` <= 10";
+            + "WHERE `_row_number_rare_top_` <= 10";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -300,7 +300,7 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
         "LogicalProject(DEPTNO=[$0], JOB=[$1])\n"
             + "  LogicalFilter(condition=[<=($3, 10)])\n"
             + "    LogicalProject(DEPTNO=[$0], JOB=[$1], count=[$2],"
-            + " _row_number_top_rare_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2 DESC)])\n"
+            + " _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2 DESC)])\n"
             + "      LogicalAggregate(group=[{0, 1}], count=[COUNT()])\n"
             + "        LogicalProject(DEPTNO=[$7], JOB=[$2])\n"
             + "          LogicalTableScan(table=[[scott, EMP]])\n";
@@ -322,10 +322,10 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `DEPTNO`, `JOB`\n"
             + "FROM (SELECT `DEPTNO`, `JOB`, COUNT(*) `count`, ROW_NUMBER() OVER (PARTITION BY"
-            + " `DEPTNO` ORDER BY COUNT(*) DESC NULLS FIRST) `_row_number_top_rare_`\n"
+            + " `DEPTNO` ORDER BY COUNT(*) DESC NULLS FIRST) `_row_number_rare_top_`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`, `JOB`) `t1`\n"
-            + "WHERE `_row_number_top_rare_` <= 10";
+            + "WHERE `_row_number_rare_top_` <= 10";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -337,7 +337,7 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
         "LogicalProject(DEPTNO=[$0], JOB=[$1], my_cnt=[$2])\n"
             + "  LogicalFilter(condition=[<=($3, 10)])\n"
             + "    LogicalProject(DEPTNO=[$0], JOB=[$1], my_cnt=[$2],"
-            + " _row_number_top_rare_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2 DESC)])\n"
+            + " _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2 DESC)])\n"
             + "      LogicalAggregate(group=[{0, 1}], my_cnt=[COUNT()])\n"
             + "        LogicalProject(DEPTNO=[$7], JOB=[$2])\n"
             + "          LogicalTableScan(table=[[scott, EMP]])\n";
@@ -359,10 +359,10 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `DEPTNO`, `JOB`, `my_cnt`\n"
             + "FROM (SELECT `DEPTNO`, `JOB`, COUNT(*) `my_cnt`, ROW_NUMBER() OVER (PARTITION BY"
-            + " `DEPTNO` ORDER BY COUNT(*) DESC NULLS FIRST) `_row_number_top_rare_`\n"
+            + " `DEPTNO` ORDER BY COUNT(*) DESC NULLS FIRST) `_row_number_rare_top_`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`, `JOB`) `t1`\n"
-            + "WHERE `_row_number_top_rare_` <= 10";
+            + "WHERE `_row_number_rare_top_` <= 10";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -374,7 +374,7 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
         "LogicalProject(DEPTNO=[$0], JOB=[$1], count=[$2])\n"
             + "  LogicalFilter(condition=[<=($3, 10)])\n"
             + "    LogicalProject(DEPTNO=[$0], JOB=[$1], count=[$2],"
-            + " _row_number_top_rare_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2 DESC)])\n"
+            + " _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2 DESC)])\n"
             + "      LogicalAggregate(group=[{0, 1}], count=[COUNT()])\n"
             + "        LogicalProject(DEPTNO=[$7], JOB=[$2])\n"
             + "          LogicalFilter(condition=[AND(IS NOT NULL($7), IS NOT NULL($2))])\n"
@@ -397,11 +397,11 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `DEPTNO`, `JOB`, `count`\n"
             + "FROM (SELECT `DEPTNO`, `JOB`, COUNT(*) `count`, ROW_NUMBER() OVER (PARTITION BY"
-            + " `DEPTNO` ORDER BY COUNT(*) DESC NULLS FIRST) `_row_number_top_rare_`\n"
+            + " `DEPTNO` ORDER BY COUNT(*) DESC NULLS FIRST) `_row_number_rare_top_`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `DEPTNO` IS NOT NULL AND `JOB` IS NOT NULL\n"
             + "GROUP BY `DEPTNO`, `JOB`) `t2`\n"
-            + "WHERE `_row_number_top_rare_` <= 10";
+            + "WHERE `_row_number_rare_top_` <= 10";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

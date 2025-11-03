@@ -66,7 +66,7 @@ public class DateAddSubFunction extends ImplementorUDF {
           Expressions.call(
               DateTimeConversionUtils.class,
               "convertToTemporalAmount",
-              Expressions.convert_(temporalDelta, long.class),
+              Expressions.convert_(Expressions.box(temporalDelta), long.class),
               Expressions.constant(
                   Objects.requireNonNull(temporalDeltaType.getIntervalQualifier()).getUnit()));
 

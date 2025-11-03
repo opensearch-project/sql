@@ -117,13 +117,13 @@ public class AddSubDateFunction extends ImplementorUDF {
             applyDaysFuncName,
             properties,
             base,
-            Expressions.convert_(temporalDelta, long.class));
+            Expressions.convert_(Expressions.box(temporalDelta), long.class));
       } else if (SqlTypeFamily.DATETIME_INTERVAL.contains(temporalDeltaType)) {
         Expression interval =
             Expressions.call(
                 DateTimeConversionUtils.class,
                 "convertToTemporalAmount",
-                Expressions.convert_(temporalDelta, long.class),
+                Expressions.convert_(Expressions.box(temporalDelta), long.class),
                 Expressions.constant(
                     Objects.requireNonNull(temporalDeltaType.getIntervalQualifier()).getUnit()));
 

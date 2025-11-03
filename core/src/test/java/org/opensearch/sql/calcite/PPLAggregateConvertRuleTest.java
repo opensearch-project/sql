@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.calcite;
 
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -23,9 +23,9 @@ import org.apache.calcite.plan.volcano.VolcanoRuleCall;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -37,17 +37,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.calcite.plan.OpenSearchRules;
 import org.opensearch.sql.calcite.plan.PPLAggregateConvertRule;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelBuilder;
 
 @ExtendWith(MockitoExtension.class)
 public class PPLAggregateConvertRuleTest {
-  public static final PPLAggregateConvertRule AGGREGATE_CONVERT_RULE =
-      PPLAggregateConvertRule.Config.SUM_CONVERTER.toRule();
   @Mock VolcanoRuleCall mockedCall;
   @Mock RelNode input;
   @Mock RelOptCluster cluster;
   @Mock RelOptPlanner planner;
+  @Mock RelMetadataQuery mq;
   RelDataType type = TYPE_FACTORY.createSqlType(SqlTypeName.BIGINT);
   RelDataType rowType = TYPE_FACTORY.createStructType(List.of(type, type), List.of("a", "b"));
   RexBuilder rexBuilder = new RexBuilder(TYPE_FACTORY);
@@ -57,6 +57,8 @@ public class PPLAggregateConvertRuleTest {
   public void setUp() throws IllegalAccessException, NoSuchFieldException {
     when(cluster.getTypeFactory()).thenReturn(TYPE_FACTORY);
     when(cluster.getRexBuilder()).thenReturn(rexBuilder);
+    when(mq.isVisibleInExplain(any(), any())).thenReturn(true);
+    when(cluster.getMetadataQuery()).thenReturn(mq);
     when(cluster.traitSet()).thenReturn(RelTraitSet.createEmpty());
     when(cluster.traitSetOf(Convention.NONE))
         .thenReturn(RelTraitSet.createEmpty().replace(Convention.NONE));
@@ -89,36 +91,26 @@ public class PPLAggregateConvertRuleTest {
     assertTrue(PPLAggregateConvertRule.Config.containsSumAggCall(aggregate));
     assertTrue(PPLAggregateConvertRule.Config.containsCallWithNumber(project));
 
+    assertEquals(
+        "LogicalAggregate(group=[{0}], agg#0=[SUM($1)])\n"
+            + "  LogicalProject(b=[$1], $f2=[+($0, 10)])\n",
+        aggregate.explain().replaceAll("\\r\\n", "\n"));
     doAnswer(
             invocation -> {
               // Check the final plan
               RelNode rel = invocation.getArgument(0);
               assertTrue(
-                  RelOptUtil.areRowTypesEqual(rel.getRowType(), aggregate.getRowType(), true));
-
-              assertInstanceOf(LogicalProject.class, rel);
-              LogicalProject parentProject = (LogicalProject) rel;
-              assertTrue(
-                  parentProject.getProjects().getLast() instanceof RexCall call
-                      && call.getOperator() == SqlStdOperatorTable.PLUS);
-
-              assertInstanceOf(LogicalAggregate.class, parentProject.getInput());
-              LogicalAggregate newAggregate = (LogicalAggregate) parentProject.getInput();
-              assertTrue(
-                  newAggregate.getAggCallList().getFirst().getAggregation()
-                          == SqlStdOperatorTable.SUM
-                      && newAggregate.getAggCallList().getLast().getAggregation()
-                          == SqlStdOperatorTable.COUNT);
-
-              assertInstanceOf(LogicalProject.class, newAggregate.getInput());
-              LogicalProject childProject = (LogicalProject) newAggregate.getInput();
-              assertTrue(
-                  childProject.getProjects().stream().allMatch(rex -> rex instanceof RexInputRef));
-
+                  RelOptUtil.areRowTypesEqual(rel.getRowType(), aggregate.getRowType(), false));
+              assertEquals(
+                  "LogicalProject(b=[$0], $f1=[+($1, *($2, 10))])\n"
+                      + "  LogicalAggregate(group=[{0}], null_SUM=[SUM($1)],"
+                      + " null_COUNT=[COUNT($1)])\n"
+                      + "    LogicalProject(b=[$1], a=[$0])\n",
+                  rel.explain().replaceAll("\\r\\n", "\n"));
               return null;
             })
         .when(mockedCall)
         .transformTo(any());
-    AGGREGATE_CONVERT_RULE.apply(mockedCall, aggregate, project);
+    OpenSearchRules.AGGREGATE_CONVERT_RULE.apply(mockedCall, aggregate, project);
   }
 }

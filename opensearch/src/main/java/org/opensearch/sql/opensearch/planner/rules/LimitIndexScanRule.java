@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.opensearch.planner.physical;
+package org.opensearch.sql.opensearch.planner.rules;
 
 import java.util.Objects;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -21,9 +21,9 @@ import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
  * down to {@link CalciteLogicalIndexScan}
  */
 @Value.Enclosing
-public class OpenSearchLimitIndexScanRule extends RelRule<OpenSearchLimitIndexScanRule.Config> {
+public class LimitIndexScanRule extends RelRule<LimitIndexScanRule.Config> {
 
-  protected OpenSearchLimitIndexScanRule(Config config) {
+  protected LimitIndexScanRule(Config config) {
     super(config);
   }
 
@@ -83,8 +83,8 @@ public class OpenSearchLimitIndexScanRule extends RelRule<OpenSearchLimitIndexSc
   /** Rule configuration. */
   @Value.Immutable
   public interface Config extends RelRule.Config {
-    OpenSearchLimitIndexScanRule.Config DEFAULT =
-        ImmutableOpenSearchLimitIndexScanRule.Config.builder()
+    LimitIndexScanRule.Config DEFAULT =
+        ImmutableLimitIndexScanRule.Config.builder()
             .build()
             .withOperandSupplier(
                 b0 ->
@@ -93,8 +93,8 @@ public class OpenSearchLimitIndexScanRule extends RelRule<OpenSearchLimitIndexSc
                         .oneInput(b1 -> b1.operand(CalciteLogicalIndexScan.class).noInputs()));
 
     @Override
-    default OpenSearchLimitIndexScanRule toRule() {
-      return new OpenSearchLimitIndexScanRule(this);
+    default LimitIndexScanRule toRule() {
+      return new LimitIndexScanRule(this);
     }
   }
 }

@@ -1,0 +1,24 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[count(), age1, age2, age3, age]"
+  children:
+    - name: AggregationOperator
+      description:
+        aggregators: "[count()]"
+        groupBy: "[age1, age2, age3, age]"
+      children:
+        - name: OpenSearchEvalOperator
+          description:
+            expressions:
+              age3: "10"
+              age2: "+(age, 10)"
+              age1: "*(age, 10)"
+          children:
+            - name: OpenSearchIndexScan
+              description:
+                request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account,\
+                  \ sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\"},\
+                  \ needClean=true, searchDone=false, pitId=*,\
+                  \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
+              children: []

@@ -64,10 +64,10 @@ public class MinspanBucketFunction extends ImplementorUDF {
       return Expressions.call(
           MinspanBucketImplementor.class,
           "calculateMinspanBucket",
-          Expressions.convert_(fieldValue, Number.class),
-          Expressions.convert_(minSpan, Number.class),
-          Expressions.convert_(dataRange, Number.class),
-          Expressions.convert_(maxValue, Number.class));
+          Expressions.convert_(Expressions.box(fieldValue), Number.class),
+          Expressions.convert_(Expressions.box(minSpan), Number.class),
+          Expressions.convert_(Expressions.box(dataRange), Number.class),
+          Expressions.convert_(Expressions.box(maxValue), Number.class));
     }
 
     /** Minspan bucket calculation. */

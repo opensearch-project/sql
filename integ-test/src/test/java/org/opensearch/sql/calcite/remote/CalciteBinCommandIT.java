@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.junit.Assert.assertTrue;
 import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -504,6 +505,145 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     assertTrue(
         "Error message should mention the non-existent field: " + errorMessage,
         errorMessage.contains("non_existent_field") || errorMessage.contains("not found"));
+  }
+
+  @Test
+  public void testBinWithMinspanOnNonNumericField() {
+    // Test that bin command with minspan throws clear error for non-numeric field
+    ResponseException exception =
+        assertThrows(
+            ResponseException.class,
+            () -> {
+              executeQuery(
+                  String.format(
+                      "source=%s | bin firstname minspan=10 | head 1", TEST_INDEX_ACCOUNT));
+            });
+
+    // Get the full error message
+    String errorMessage = exception.getMessage();
+
+    // Verify the error message is clear and specific
+    String expectedMessage =
+        "Cannot apply binning: field 'firstname' is non-numeric and not time-related, expected"
+            + " numeric or time-related type";
+    assertTrue(
+        "Error message should contain: '" + expectedMessage + "'",
+        errorMessage.contains(expectedMessage));
+  }
+
+  @Test
+  public void testBinWithSpanOnNonNumericField() {
+    // Test that bin command with span throws clear error for non-numeric field
+    ResponseException exception =
+        assertThrows(
+            ResponseException.class,
+            () -> {
+              executeQuery(
+                  String.format("source=%s | bin lastname span=5 | head 1", TEST_INDEX_ACCOUNT));
+            });
+
+    // Get the full error message
+    String errorMessage = exception.getMessage();
+
+    // Verify the error message is clear and specific
+    String expectedMessage =
+        "Cannot apply binning: field 'lastname' is non-numeric and not time-related, expected"
+            + " numeric or time-related type";
+    assertTrue(
+        "Error message should contain: '" + expectedMessage + "'",
+        errorMessage.contains(expectedMessage));
+  }
+
+  @Test
+  public void testBinWithBinsOnNonNumericField() {
+    // Test that bin command with bins throws clear error for non-numeric field
+    ResponseException exception =
+        assertThrows(
+            ResponseException.class,
+            () -> {
+              executeQuery(
+                  String.format("source=%s | bin state bins=10 | head 1", TEST_INDEX_ACCOUNT));
+            });
+
+    // Get the full error message
+    String errorMessage = exception.getMessage();
+
+    // Verify the error message is clear and specific
+    String expectedMessage =
+        "Cannot apply binning: field 'state' is non-numeric and not time-related, expected numeric"
+            + " or time-related type";
+    assertTrue(
+        "Error message should contain: '" + expectedMessage + "'",
+        errorMessage.contains(expectedMessage));
+  }
+
+  @Test
+  public void testBinWithStartEndOnNonNumericField() {
+    // Test that bin command with start/end throws clear error for non-numeric field
+    ResponseException exception =
+        assertThrows(
+            ResponseException.class,
+            () -> {
+              executeQuery(
+                  String.format(
+                      "source=%s | bin city start=0 end=100 | head 1", TEST_INDEX_ACCOUNT));
+            });
+
+    // Get the full error message
+    String errorMessage = exception.getMessage();
+
+    // Verify the error message is clear and specific
+    String expectedMessage =
+        "Cannot apply binning: field 'city' is non-numeric and not time-related, expected numeric"
+            + " or time-related type";
+    assertTrue(
+        "Error message should contain: '" + expectedMessage + "'",
+        errorMessage.contains(expectedMessage));
+  }
+
+  @Test
+  public void testBinDefaultOnNonNumericField() {
+    // Test that default bin (no parameters) throws clear error for non-numeric field
+    ResponseException exception =
+        assertThrows(
+            ResponseException.class,
+            () -> {
+              executeQuery(String.format("source=%s | bin email | head 1", TEST_INDEX_ACCOUNT));
+            });
+
+    // Get the full error message
+    String errorMessage = exception.getMessage();
+
+    // Verify the error message is clear and specific
+    String expectedMessage =
+        "Cannot apply binning: field 'email' is non-numeric and not time-related, expected numeric"
+            + " or time-related type";
+    assertTrue(
+        "Error message should contain: '" + expectedMessage + "'",
+        errorMessage.contains(expectedMessage));
+  }
+
+  @Test
+  public void testBinLogSpanOnNonNumericField() {
+    // Test that bin command with log span throws clear error for non-numeric field
+    ResponseException exception =
+        assertThrows(
+            ResponseException.class,
+            () -> {
+              executeQuery(
+                  String.format("source=%s | bin gender span=log10 | head 1", TEST_INDEX_ACCOUNT));
+            });
+
+    // Get the full error message
+    String errorMessage = exception.getMessage();
+
+    // Verify the error message is clear and specific
+    String expectedMessage =
+        "Cannot apply binning: field 'gender' is non-numeric and not time-related, expected numeric"
+            + " or time-related type";
+    assertTrue(
+        "Error message should contain: '" + expectedMessage + "'",
+        errorMessage.contains(expectedMessage));
   }
 
   @Test

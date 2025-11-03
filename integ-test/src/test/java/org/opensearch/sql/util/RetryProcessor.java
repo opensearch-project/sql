@@ -35,6 +35,7 @@ public class RetryProcessor extends TestWatcher {
           } catch (Throwable t) {
             lastException = t;
             LOG.info("Retrying {} {} times", description.getDisplayName(), (i + 1));
+            Thread.sleep(3000);
           }
         }
         assert lastException != null;

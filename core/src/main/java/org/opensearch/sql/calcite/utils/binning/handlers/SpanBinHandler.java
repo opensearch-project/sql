@@ -29,8 +29,12 @@ public class SpanBinHandler implements BinHandler {
 
     SpanBin spanBin = (SpanBin) node;
 
+    // Create validated binnable field (validates that field is numeric or time-based)
+    String fieldName = BinFieldValidator.extractFieldName(node);
+    BinnableField field = new BinnableField(fieldExpr, fieldExpr.getType(), fieldName);
+
     // Handle time-based fields
-    if (BinFieldValidator.isTimeBasedField(fieldExpr.getType())) {
+    if (field.isTimeBased()) {
       return handleTimeBasedSpan(spanBin, fieldExpr, context, visitor);
     }
 
@@ -64,6 +68,7 @@ public class SpanBinHandler implements BinHandler {
   private RexNode handleNumericOrLogSpan(
       SpanBin node, RexNode fieldExpr, CalcitePlanContext context, CalciteRexNodeVisitor visitor) {
 
+    // Field is already validated by createExpression - must be numeric since we're in this branch
     RexNode spanValue = visitor.analyze(node.getSpan(), context);
 
     if (!spanValue.isA(LITERAL)) {

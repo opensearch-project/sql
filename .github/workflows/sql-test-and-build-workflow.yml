@@ -179,7 +179,7 @@ jobs:
             doctest/build/testclusters/docTestCluster-0/logs/*
             integ-test/build/testclusters/*/logs/*
 
-  bwc-tests:
+  bwc-tests-rolling-upgrade:
     needs: Get-CI-Image-Tag
     runs-on: ubuntu-latest
     strategy:
@@ -190,37 +190,83 @@ jobs:
       options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}
 
     steps:
-    - name: Run start commands
-      run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
+      - name: Run start commands
+        run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
 
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up JDK ${{ matrix.java }}
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: ${{ matrix.java }}
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.java }}
 
-    - name: Run backward compatibility tests
-      run: |
-        chown -R 1000:1000 `pwd`
-        su `id -un 1000` -c "./scripts/bwctest.sh"
+      - name: Run backward compatibility tests in rolling upgrade
+        run: |
+          chown -R 1000:1000 `pwd`
+          su `id -un 1000` -c "./scripts/bwctest-rolling-upgrade.sh"
 
-    - name: Upload test reports
-      if: ${{ always() }}
-      uses: actions/upload-artifact@v4
-      continue-on-error: true
-      with:
-        name: test-reports-ubuntu-latest-${{ matrix.java }}-bwc
-        path: |
-          sql/build/reports/**
-          ppl/build/reports/**
-          core/build/reports/**
-          common/build/reports/**
-          opensearch/build/reports/**
-          integ-test/build/reports/**
-          protocol/build/reports/**
-          legacy/build/reports/**
-          plugin/build/reports/**
-          doctest/build/testclusters/docTestCluster-0/logs/*
-          integ-test/build/testclusters/*/logs/*
+      - name: Upload test reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: test-reports-ubuntu-latest-${{ matrix.java }}-bwc
+          path: |
+            sql/build/reports/**
+            ppl/build/reports/**
+            core/build/reports/**
+            common/build/reports/**
+            opensearch/build/reports/**
+            integ-test/build/reports/**
+            protocol/build/reports/**
+            legacy/build/reports/**
+            plugin/build/reports/**
+            doctest/build/testclusters/docTestCluster-0/logs/*
+            integ-test/build/testclusters/*/logs/*
+
+  bwc-tests-full-restart:
+    needs: Get-CI-Image-Tag
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: [21, 24]
+    container:
+      image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
+      options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}
+
+    steps:
+      - name: Run start commands
+        run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
+
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.java }}
+
+      - name: Run backward compatibility tests in full restart
+        run: |
+          chown -R 1000:1000 `pwd`
+          su `id -un 1000` -c "./scripts/bwctest-full-restart.sh"
+
+      - name: Upload test reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: test-reports-ubuntu-latest-${{ matrix.java }}-bwc
+          path: |
+            sql/build/reports/**
+            ppl/build/reports/**
+            core/build/reports/**
+            common/build/reports/**
+            opensearch/build/reports/**
+            integ-test/build/reports/**
+            protocol/build/reports/**
+            legacy/build/reports/**
+            plugin/build/reports/**
+            doctest/build/testclusters/docTestCluster-0/logs/*
+            integ-test/build/testclusters/*/logs/*

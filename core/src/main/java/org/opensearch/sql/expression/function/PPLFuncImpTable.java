@@ -832,6 +832,7 @@ public class PPLFuncImpTable {
       registerOperator(LOG2, SqlLibraryOperators.LOG2);
       registerOperator(MD5, SqlLibraryOperators.MD5);
       registerOperator(SHA1, SqlLibraryOperators.SHA1);
+      registerOperator(CRC32, SqlLibraryOperators.CRC32);
       registerOperator(INTERNAL_REGEXP_REPLACE_3, SqlLibraryOperators.REGEXP_REPLACE_3);
       registerOperator(INTERNAL_REGEXP_REPLACE_PG_4, SqlLibraryOperators.REGEXP_REPLACE_PG_4);
       registerOperator(INTERNAL_REGEXP_REPLACE_5, SqlLibraryOperators.REGEXP_REPLACE_5);
@@ -852,7 +853,6 @@ public class PPLFuncImpTable {
       registerOperator(MOD, PPLBuiltinOperators.MOD);
       registerOperator(MODULUS, PPLBuiltinOperators.MOD);
       registerOperator(MODULUSFUNCTION, PPLBuiltinOperators.MOD);
-      registerOperator(CRC32, PPLBuiltinOperators.CRC32);
       registerDivideFunction(DIVIDE);
       registerDivideFunction(DIVIDEFUNCTION);
       registerOperator(SHA2, PPLBuiltinOperators.SHA2);

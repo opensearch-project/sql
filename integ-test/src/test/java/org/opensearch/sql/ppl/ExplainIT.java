@@ -547,10 +547,10 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testKeywordLikeFunctionExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_keyword_like_function.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_keyword_like_function.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account | where like(firstname, '%mbe%')"));
   }
 
@@ -703,5 +703,16 @@ public class ExplainIT extends PPLIntegTestCase {
         expected,
         explainQueryToString(
             String.format("search source=%s severityText=ERR*", TEST_INDEX_OTEL_LOGS)));
+  }
+
+  @Test
+  public void testStatsByDependentGroupFieldsExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_agg_group_merge.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account"
+                + "| eval age1 = age * 10, age2 = age + 10, age3 = 10"
+                + "| stats count() by age1, age2, age3, age"));
   }
 }
