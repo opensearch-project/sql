@@ -39,6 +39,7 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.LOGS);
     loadIndex(Index.WORKER);
     loadIndex(Index.WORK_INFORMATION);
+    loadIndex(Index.WEBLOG);
   }
 
   @Override
@@ -1470,5 +1471,16 @@ public class CalciteExplainIT extends ExplainIT {
                 + "| head 5 "
                 + "| sort age "
                 + "| fields age"));
+  }
+
+  @Test
+  public void testGeoIpPushedInAgg() throws IOException {
+    // This explain IT verifies that externally registered UDF can be properly pushed down
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("udf_geoip_in_agg_pushed.yaml"),
+        explainQueryYaml(
+            String.format(
+                "source=%s | eval info = geoip('my-datasource', host) | stats count() by info.city",
+                TEST_INDEX_WEBLOGS)));
   }
 }
