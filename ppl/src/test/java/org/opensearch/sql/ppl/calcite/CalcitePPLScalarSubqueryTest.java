@@ -269,11 +269,13 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
         "SELECT *\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `SAL` = (((SELECT MAX(`HISAL`) `max(HISAL)`\n"
+            + "FROM (SELECT `HISAL`\n"
             + "FROM `scott`.`SALGRADE`\n"
-            + "ORDER BY `LOSAL`))) OR `SAL` = (((SELECT MIN(`HISAL`) `min(HISAL)`\n"
+            + "ORDER BY `LOSAL`) `t0`))) OR `SAL` = (((SELECT MIN(`HISAL`) `min(HISAL)`\n"
+            + "FROM (SELECT `HISAL`\n"
             + "FROM `scott`.`SALGRADE`\n"
             + "WHERE `LOSAL` > 1000.0\n"
-            + "ORDER BY `HISAL` DESC)))";
+            + "ORDER BY `HISAL` DESC) `t4`)))";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 

@@ -54,5 +54,5 @@ function setup_bwc_artifact() {
 }
 
 setup_bwc_artifact
-./gradlew bwcTestSuite -Dtests.security.manager=false
+./gradlew bwcTestFullRestartSuite -Dtests.security.manager=false
 

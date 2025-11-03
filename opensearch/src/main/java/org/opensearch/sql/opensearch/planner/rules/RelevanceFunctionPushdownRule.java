@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.opensearch.planner.physical;
+package org.opensearch.sql.opensearch.planner.rules;
 
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.MULTI_FIELDS_RELEVANCE_FUNCTION_SET;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.SINGLE_FIELD_RELEVANCE_FUNCTION_SET;
@@ -26,11 +26,10 @@ import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
  * relevance functions are always executed by OpenSearch for optimal performance and functionality.
  */
 @Value.Enclosing
-public class OpenSearchRelevanceFunctionPushdownRule
-    extends RelRule<OpenSearchRelevanceFunctionPushdownRule.Config> {
+public class RelevanceFunctionPushdownRule extends RelRule<RelevanceFunctionPushdownRule.Config> {
 
-  /** Creates an OpenSearchRelevanceFunctionPushdownRule. */
-  protected OpenSearchRelevanceFunctionPushdownRule(Config config) {
+  /** Creates an RelevanceFunctionPushdownRule. */
+  protected RelevanceFunctionPushdownRule(Config config) {
     super(config);
   }
 
@@ -104,7 +103,7 @@ public class OpenSearchRelevanceFunctionPushdownRule
   public interface Config extends RelRule.Config {
     /** Config that matches Filter on CalciteLogicalIndexScan. */
     Config DEFAULT =
-        ImmutableOpenSearchRelevanceFunctionPushdownRule.Config.builder()
+        ImmutableRelevanceFunctionPushdownRule.Config.builder()
             .build()
             .withOperandSupplier(
                 b0 ->
@@ -112,8 +111,8 @@ public class OpenSearchRelevanceFunctionPushdownRule
                         .oneInput(b1 -> b1.operand(CalciteLogicalIndexScan.class).noInputs()));
 
     @Override
-    default OpenSearchRelevanceFunctionPushdownRule toRule() {
-      return new OpenSearchRelevanceFunctionPushdownRule(this);
+    default RelevanceFunctionPushdownRule toRule() {
+      return new RelevanceFunctionPushdownRule(this);
     }
   }
 }

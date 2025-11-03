@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.opensearch.planner.physical;
+package org.opensearch.sql.opensearch.planner.rules;
 
 import static java.util.Objects.requireNonNull;
 
@@ -26,10 +26,10 @@ import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
 /** Planner rule that push a {@link LogicalProject} down to {@link CalciteLogicalIndexScan} */
 @Value.Enclosing
-public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectIndexScanRule.Config> {
+public class ProjectIndexScanRule extends RelRule<ProjectIndexScanRule.Config> {
 
-  /** Creates a OpenSearchProjectIndexScanRule. */
-  protected OpenSearchProjectIndexScanRule(Config config) {
+  /** Creates a ProjectIndexScanRule. */
+  protected ProjectIndexScanRule(Config config) {
     super(config);
   }
 
@@ -103,9 +103,9 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
   /** Rule configuration. */
   @Value.Immutable
   public interface Config extends RelRule.Config {
-    /** Config that matches Project on OpenSearchProjectIndexScanRule. */
+    /** Config that matches Project on ProjectIndexScanRule. */
     Config DEFAULT =
-        ImmutableOpenSearchProjectIndexScanRule.Config.builder()
+        ImmutableProjectIndexScanRule.Config.builder()
             .build()
             .withOperandSupplier(
                 b0 ->
@@ -113,8 +113,8 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
                         .oneInput(b1 -> b1.operand(CalciteLogicalIndexScan.class).noInputs()));
 
     @Override
-    default OpenSearchProjectIndexScanRule toRule() {
-      return new OpenSearchProjectIndexScanRule(this);
+    default ProjectIndexScanRule toRule() {
+      return new ProjectIndexScanRule(this);
     }
   }
 }

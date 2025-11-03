@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.opensearch.planner.physical;
+package org.opensearch.sql.opensearch.planner.rules;
 
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_DEDUP;
 
@@ -27,10 +27,10 @@ import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
 @Value.Enclosing
-public class OpenSearchDedupPushdownRule extends RelRule<OpenSearchDedupPushdownRule.Config> {
+public class DedupPushdownRule extends RelRule<DedupPushdownRule.Config> {
   private static final Logger LOG = LogManager.getLogger();
 
-  protected OpenSearchDedupPushdownRule(Config config) {
+  protected DedupPushdownRule(Config config) {
     super(config);
   }
 
@@ -108,7 +108,7 @@ public class OpenSearchDedupPushdownRule extends RelRule<OpenSearchDedupPushdown
   @Value.Immutable
   public interface Config extends RelRule.Config {
     Config DEFAULT =
-        ImmutableOpenSearchDedupPushdownRule.Config.builder()
+        ImmutableDedupPushdownRule.Config.builder()
             .build()
             .withOperandSupplier(
                 b0 ->
@@ -116,7 +116,7 @@ public class OpenSearchDedupPushdownRule extends RelRule<OpenSearchDedupPushdown
                         .oneInput(
                             b1 ->
                                 b1.operand(LogicalFilter.class)
-                                    .predicate(OpenSearchDedupPushdownRule::validFilter)
+                                    .predicate(DedupPushdownRule::validFilter)
                                     .oneInput(
                                         b2 ->
                                             b2.operand(LogicalProject.class)
@@ -134,8 +134,8 @@ public class OpenSearchDedupPushdownRule extends RelRule<OpenSearchDedupPushdown
                                                             .noInputs()))));
 
     @Override
-    default OpenSearchDedupPushdownRule toRule() {
-      return new OpenSearchDedupPushdownRule(this);
+    default DedupPushdownRule toRule() {
+      return new DedupPushdownRule(this);
     }
   }
 }
