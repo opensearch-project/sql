@@ -14,13 +14,29 @@ ISNULL
 Description
 >>>>>>>>>>>
 
-Usage: isnull(field) return true if field is null.
+Usage: isnull(field) returns TRUE if field is NULL, FALSE otherwise.
 
-Argument type: all the supported data type.
+The `isnull()` function is commonly used:
+- In `eval` expressions to create conditional fields
+- With the `if()` function to provide default values
+- In `where` clauses to filter null records
+
+Argument type: all the supported data types.
 
 Return type: BOOLEAN
 
-Example::
+Important Notes
+>>>>>>>>>>>>>>>
+
+- Empty strings ("") are NOT null and return FALSE
+- Whitespace strings ("   ") are NOT null and return FALSE
+- Only actual NULL values return TRUE
+- Function name is case-insensitive (isnull, ISNULL, IsNull all work)
+
+Examples
+>>>>>>>>
+
+Direct boolean evaluation::
 
     os> source=accounts | eval result = isnull(employer) | fields result, employer, firstname
     fetched rows / total rows = 4/4
@@ -33,21 +49,77 @@ Example::
     | True   | null     | Dale      |
     +--------+----------+-----------+
 
+Using with if() to label records::
+
+    os> source=accounts | eval status = if(isnull(employer), 'unemployed', 'employed') | fields firstname, employer, status
+    fetched rows / total rows = 4/4
+    +-----------+----------+------------+
+    | firstname | employer | status     |
+    |-----------+----------+------------|
+    | Amber     | Pyrami   | employed   |
+    | Hattie    | Netagy   | employed   |
+    | Nanette   | Quility  | employed   |
+    | Dale      | null     | unemployed |
+    +-----------+----------+------------+
+
+Providing default values for null fields::
+
+    os> source=accounts | eval safe_employer = if(isnull(employer), 'N/A', employer) | fields firstname, employer, safe_employer
+    fetched rows / total rows = 4/4
+    +-----------+----------+---------------+
+    | firstname | employer | safe_employer |
+    |-----------+----------+---------------|
+    | Amber     | Pyrami   | Pyrami        |
+    | Hattie    | Netagy   | Netagy        |
+    | Nanette   | Quility  | Quility       |
+    | Dale      | null     | N/A           |
+    +-----------+----------+---------------+
+
 ISNOTNULL
 ---------
 
 Description
 >>>>>>>>>>>
 
-Usage: isnotnull(field) return true if field is not null.
+Usage: isnotnull(field) returns TRUE if field is NOT NULL, FALSE otherwise.
 
-Argument type: all the supported data type.
+The `isnotnull()` function is commonly used:
+- In `eval` expressions to create boolean flags
+- In `where` clauses to filter out null values
+- With the `if()` function for conditional logic
+- To validate data presence
+
+Argument type: all the supported data types.
 
 Return type: BOOLEAN
 
 Synonyms: `ISPRESENT`_
 
-Example::
+Important Notes
+>>>>>>>>>>>>>>>
+
+- Empty strings ("") are NOT null and return TRUE
+- Whitespace strings ("   ") are NOT null and return TRUE
+- Only actual NULL values return FALSE
+- Function name is case-insensitive (isnotnull, ISNOTNULL, IsNotNull all work)
+
+Examples
+>>>>>>>>
+
+Direct boolean evaluation in eval::
+
+    os> source=accounts | eval has_employer = isnotnull(employer) | fields firstname, employer, has_employer
+    fetched rows / total rows = 4/4
+    +-----------+----------+--------------+
+    | firstname | employer | has_employer |
+    |-----------+----------+--------------|
+    | Amber     | Pyrami   | True         |
+    | Hattie    | Netagy   | True         |
+    | Nanette   | Quility  | True         |
+    | Dale      | null     | False        |
+    +-----------+----------+--------------+
+
+Filtering with where clause::
 
     os> source=accounts | where not isnotnull(employer) | fields account_number, employer
     fetched rows / total rows = 1/1
@@ -56,6 +128,19 @@ Example::
     |----------------+----------|
     | 18             | null     |
     +----------------+----------+
+
+Using with if() for validation messages::
+
+    os> source=accounts | eval validation = if(isnotnull(employer), 'valid', 'missing employer') | fields firstname, employer, validation
+    fetched rows / total rows = 4/4
+    +-----------+----------+------------------+
+    | firstname | employer | validation       |
+    |-----------+----------+------------------|
+    | Amber     | Pyrami   | valid            |
+    | Hattie    | Netagy   | valid            |
+    | Nanette   | Quility  | valid            |
+    | Dale      | null     | missing employer |
+    +-----------+----------+------------------+
 
 EXISTS
 ------
@@ -141,32 +226,6 @@ Example::
     | Quility | Quility  | Nanette   |
     | null    | null     | Dale      |
     +---------+----------+-----------+
-
-
-ISNULL
-------
-
-Description
->>>>>>>>>>>
-
-Usage: isnull(field1, field2) return null if two parameters are same, otherwise return field1.
-
-Argument type: all the supported data type
-
-Return type: any
-
-Example::
-
-    os> source=accounts | eval result = isnull(employer) | fields result, employer, firstname
-    fetched rows / total rows = 4/4
-    +--------+----------+-----------+
-    | result | employer | firstname |
-    |--------+----------+-----------|
-    | False  | Pyrami   | Amber     |
-    | False  | Netagy   | Hattie    |
-    | False  | Quility  | Nanette   |
-    | True   | null     | Dale      |
-    +--------+----------+-----------+
 
 IF
 ------
