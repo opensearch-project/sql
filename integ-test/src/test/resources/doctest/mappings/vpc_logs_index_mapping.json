@@ -56,10 +56,10 @@
         "type": "keyword"
       },
       "start": {
-        "type": "long"
+        "type": "date"
       },
       "end": {
-        "type": "long"
+        "type": "date"
       },
       "action": {
         "type": "keyword"

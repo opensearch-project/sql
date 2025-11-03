@@ -33,9 +33,10 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
       Request deleteRequest = new Request("DELETE", "/" + NFW_LOGS_INDEX);
       TestUtils.performRequest(client(), deleteRequest);
     }
-    String mapping = TestUtils.getMappingFile("indexDefinitions/nfw_logs_index_mapping.json");
+    String mapping = TestUtils.getMappingFile("doctest/mappings/nfw_logs_index_mapping.json");
     TestUtils.createIndexByRestClient(client(), NFW_LOGS_INDEX, mapping);
-    TestUtils.loadDataByRestClient(client(), NFW_LOGS_INDEX, "src/test/resources/nfw_logs.json");
+    TestUtils.loadDataByRestClient(
+        client(), NFW_LOGS_INDEX, "src/test/resources/doctest/testdata/nfw_logs.json");
   }
 
   @Test
