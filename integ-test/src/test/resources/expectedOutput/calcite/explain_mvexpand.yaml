@@ -9,9 +9,9 @@ calcite:
               LogicalValues(tuples=[[{ 0 }]])
   physical: |
     EnumerableLimit(fetch=[10000])
-      EnumerableCalc(expr#0..11=[{inputs}], skills.level=[$t1], skills.name=[$t2], username=[$t3], KEY=[$t10], VALUE=[$t11])
+      EnumerableCalc(expr#0..5=[{inputs}], skills.level=[$t1], skills.name=[$t2], username=[$t3], KEY=[$t4], VALUE=[$t5])
         EnumerableCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
-          CalciteEnumerableIndexScan(table=[[OpenSearch, mvexpand_edge_cases]])
+          CalciteEnumerableIndexScan(table=[[OpenSearch, mvexpand_edge_cases]], PushDownContext=[[PROJECT->[skills, skills.level, skills.name, username]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","_source":{"includes":["skills","skills.level","skills.name","username"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
           EnumerableUncollect
             EnumerableCalc(expr#0=[{inputs}], expr#1=[$cor0], expr#2=[$t1.skills], skills=[$t2])
               EnumerableValues(tuples=[[{ 0 }]])
