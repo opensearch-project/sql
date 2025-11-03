@@ -15,9 +15,9 @@ import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_DEDUP;
-import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME;
-import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_MAIN;
-import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME_SUBSEARCH;
+import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_MAIN;
+import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_RARE_TOP;
+import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_SUBSEARCH;
 import static org.opensearch.sql.calcite.utils.PlanUtils.getRelation;
 import static org.opensearch.sql.calcite.utils.PlanUtils.getRexCall;
 import static org.opensearch.sql.calcite.utils.PlanUtils.transformPlanToAttachChild;
@@ -282,10 +282,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           "Rex pattern must contain at least one named capture group");
     }
 
+    // TODO: Once JDK 20+ is supported, consider using Pattern.namedGroups() API for more efficient
+    // named group handling instead of manual parsing in RegexCommonUtils
+
     List<RexNode> newFields = new ArrayList<>();
     List<String> newFieldNames = new ArrayList<>();
 
-    for (int i = 0; i < namedGroups.size(); i++) {
+    for (String groupName : namedGroups) {
       RexNode extractCall;
       if (node.getMaxMatch().isPresent() && node.getMaxMatch().get() > 1) {
         extractCall =
@@ -294,7 +297,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 BuiltinFunctionName.REX_EXTRACT_MULTI,
                 fieldRex,
                 context.rexBuilder.makeLiteral(patternStr),
-                context.relBuilder.literal(i + 1),
+                context.rexBuilder.makeLiteral(groupName),
                 context.relBuilder.literal(node.getMaxMatch().get()));
       } else {
         extractCall =
@@ -303,10 +306,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 BuiltinFunctionName.REX_EXTRACT,
                 fieldRex,
                 context.rexBuilder.makeLiteral(patternStr),
-                context.relBuilder.literal(i + 1));
+                context.rexBuilder.makeLiteral(groupName));
       }
       newFields.add(extractCall);
-      newFieldNames.add(namedGroups.get(i));
+      newFieldNames.add(groupName);
     }
 
     if (node.getOffsetField().isPresent()) {
@@ -377,7 +380,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           "Invalid field exclusion: operation would exclude all fields from the result set");
     }
     AllFields allFields = (AllFields) node.getProjectList().getFirst();
-    tryToRemoveNestedFields(context);
+    if (!(allFields instanceof AllFieldsExcludeMeta)) {
+      // Should not remove nested fields for AllFieldsExcludeMeta.
+      tryToRemoveNestedFields(context);
+    }
     tryToRemoveMetaFields(context, allFields instanceof AllFieldsExcludeMeta);
     return context.relBuilder.peek();
   }
@@ -1125,22 +1131,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     Pair<List<RexNode>, List<AggCall>> aggregationAttributes =
         aggregateWithTrimming(groupExprList, aggExprList, context);
     if (toAddHintsOnAggregate) {
-      final RelHint statHits =
-          RelHint.builder("stats_args").hintOption(Argument.BUCKET_NULLABLE, "false").build();
-      assert context.relBuilder.peek() instanceof LogicalAggregate
-          : "Stats hits should be added to LogicalAggregate";
-      context.relBuilder.hints(statHits);
-      context
-          .relBuilder
-          .getCluster()
-          .setHintStrategies(
-              HintStrategyTable.builder()
-                  .hintStrategy(
-                      "stats_args",
-                      (hint, rel) -> {
-                        return rel instanceof LogicalAggregate;
-                      })
-                  .build());
+      addIgnoreNullBucketHintToAggregate(context);
     }
 
     // schema reordering
@@ -1652,7 +1643,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             List.of(),
             WindowFrame.toCurrentRow());
     context.relBuilder.projectPlus(
-        context.relBuilder.alias(mainRowNumber, ROW_NUMBER_COLUMN_NAME_MAIN));
+        context.relBuilder.alias(mainRowNumber, ROW_NUMBER_COLUMN_FOR_MAIN));
 
     // 3. build subsearch tree (attach relation to subsearch)
     UnresolvedPlan relation = getRelation(node);
@@ -1670,7 +1661,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             List.of(),
             WindowFrame.toCurrentRow());
     context.relBuilder.projectPlus(
-        context.relBuilder.alias(subsearchRowNumber, ROW_NUMBER_COLUMN_NAME_SUBSEARCH));
+        context.relBuilder.alias(subsearchRowNumber, ROW_NUMBER_COLUMN_FOR_SUBSEARCH));
 
     List<String> subsearchFields = context.relBuilder.peek().getRowType().getFieldNames();
     List<String> mainFields = context.relBuilder.peek(1).getRowType().getFieldNames();
@@ -1684,8 +1675,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // 7. join with condition `_row_number_main_ = _row_number_subsearch_`
     RexNode joinCondition =
         context.relBuilder.equals(
-            context.relBuilder.field(2, 0, ROW_NUMBER_COLUMN_NAME_MAIN),
-            context.relBuilder.field(2, 1, ROW_NUMBER_COLUMN_NAME_SUBSEARCH));
+            context.relBuilder.field(2, 0, ROW_NUMBER_COLUMN_FOR_MAIN),
+            context.relBuilder.field(2, 1, ROW_NUMBER_COLUMN_FOR_SUBSEARCH));
     context.relBuilder.join(
         JoinAndLookupUtils.translateJoinType(Join.JoinType.FULL), joinCondition);
 
@@ -1693,8 +1684,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       // 8. if override = false, drop both _row_number_ columns
       context.relBuilder.projectExcept(
           List.of(
-              context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_MAIN),
-              context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_SUBSEARCH)));
+              context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_MAIN),
+              context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_SUBSEARCH)));
       return context.relBuilder.peek();
     } else {
       // 9. if override = true, override the duplicated columns in main by subsearch values
@@ -1706,11 +1697,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           mainFields.stream().filter(subsearchFields::contains).collect(Collectors.toSet());
       RexNode caseCondition =
           context.relBuilder.equals(
-              context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_MAIN),
-              context.relBuilder.field(ROW_NUMBER_COLUMN_NAME_SUBSEARCH));
+              context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_MAIN),
+              context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_SUBSEARCH));
       for (int mainFieldIndex = 0; mainFieldIndex < mainFields.size(); mainFieldIndex++) {
         String mainFieldName = mainFields.get(mainFieldIndex);
-        if (mainFieldName.equals(ROW_NUMBER_COLUMN_NAME_MAIN)) {
+        if (mainFieldName.equals(ROW_NUMBER_COLUMN_FOR_MAIN)) {
           continue;
         }
         finalFieldNames.add(mainFieldName);
@@ -1735,7 +1726,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           subsearchFieldIndex < subsearchFields.size();
           subsearchFieldIndex++) {
         String subsearchFieldName = subsearchFields.get(subsearchFieldIndex);
-        if (subsearchFieldName.equals(ROW_NUMBER_COLUMN_NAME_SUBSEARCH)) {
+        if (subsearchFieldName.equals(ROW_NUMBER_COLUMN_FOR_SUBSEARCH)) {
           continue;
         }
         if (!duplicatedFields.contains(subsearchFieldName)) {
@@ -1809,18 +1800,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   /**
-   * Finds the timestamp field for multisearch ordering.
+   * Finds the @timestamp field for multisearch ordering. Only @timestamp field is used for
+   * timestamp interleaving. Other timestamp-like fields are ignored.
    *
-   * @param rowType The row type to search for timestamp fields
-   * @return The name of the timestamp field, or null if not found
+   * @param rowType The row type to search for @timestamp field
+   * @return "@timestamp" if the field exists, or null if not found
    */
   private String findTimestampField(RelDataType rowType) {
-    String[] candidates = {"@timestamp", "_time", "timestamp", "time"};
-    for (String fieldName : candidates) {
-      RelDataTypeField field = rowType.getField(fieldName, false, false);
-      if (field != null) {
-        return fieldName;
-      }
+    RelDataTypeField field = rowType.getField("@timestamp", false, false);
+    if (field != null) {
+      return "@timestamp";
     }
     return null;
   }
@@ -1861,9 +1850,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitRareTopN(RareTopN node, CalcitePlanContext context) {
     visitChildren(node, context);
-
-    ArgumentMap arguments = ArgumentMap.of(node.getArguments());
-    String countFieldName = (String) arguments.get("countField").getValue();
+    ArgumentMap argumentMap = ArgumentMap.of(node.getArguments());
+    String countFieldName = (String) argumentMap.get(RareTopN.Option.countField.name()).getValue();
     if (context.relBuilder.peek().getRowType().getFieldNames().contains(countFieldName)) {
       throw new IllegalArgumentException(
           "Field `"
@@ -1878,9 +1866,28 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     groupExprList.addAll(fieldList);
     List<UnresolvedExpression> aggExprList =
         List.of(AstDSL.alias(countFieldName, AstDSL.aggregate("count", null)));
+
+    // if usenull=false, add a isNotNull before Aggregate and the hint to this Aggregate
+    Boolean bucketNullable = (Boolean) argumentMap.get(RareTopN.Option.useNull.name()).getValue();
+    boolean toAddHintsOnAggregate = false;
+    if (!bucketNullable && !groupExprList.isEmpty()) {
+      toAddHintsOnAggregate = true;
+      // add isNotNull filter before aggregation to filter out null bucket
+      List<RexNode> groupByList =
+          groupExprList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
+      context.relBuilder.filter(
+          PlanUtils.getSelectColumns(groupByList).stream()
+              .map(context.relBuilder::field)
+              .map(context.relBuilder::isNotNull)
+              .toList());
+    }
     aggregateWithTrimming(groupExprList, aggExprList, context);
 
-    // 2. add a window column
+    if (toAddHintsOnAggregate) {
+      addIgnoreNullBucketHintToAggregate(context);
+    }
+
+    // 2. add count() column with sort direction
     List<RexNode> partitionKeys = rexVisitor.analyze(node.getGroupExprList(), context);
     RexNode countField;
     if (node.getCommandType() == RareTopN.CommandType.TOP) {
@@ -1888,6 +1895,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     } else {
       countField = context.relBuilder.field(countFieldName);
     }
+
     RexNode rowNumberWindowOver =
         PlanUtils.makeOver(
             context,
@@ -1898,24 +1906,44 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             List.of(countField),
             WindowFrame.toCurrentRow());
     context.relBuilder.projectPlus(
-        context.relBuilder.alias(rowNumberWindowOver, ROW_NUMBER_COLUMN_NAME));
+        context.relBuilder.alias(rowNumberWindowOver, ROW_NUMBER_COLUMN_FOR_RARE_TOP));
 
     // 3. filter row_number() <= k in each partition
-    Integer N = (Integer) arguments.get("noOfResults").getValue();
+    int k = node.getNoOfResults();
     context.relBuilder.filter(
         context.relBuilder.lessThanOrEqual(
-            context.relBuilder.field(ROW_NUMBER_COLUMN_NAME), context.relBuilder.literal(N)));
+            context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_RARE_TOP),
+            context.relBuilder.literal(k)));
 
     // 4. project final output. the default output is group by list + field list
-    Boolean showCount = (Boolean) arguments.get("showCount").getValue();
+    Boolean showCount = (Boolean) argumentMap.get(RareTopN.Option.showCount.name()).getValue();
     if (showCount) {
-      context.relBuilder.projectExcept(context.relBuilder.field(ROW_NUMBER_COLUMN_NAME));
+      context.relBuilder.projectExcept(context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_RARE_TOP));
     } else {
       context.relBuilder.projectExcept(
-          context.relBuilder.field(ROW_NUMBER_COLUMN_NAME),
+          context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_RARE_TOP),
           context.relBuilder.field(countFieldName));
     }
     return context.relBuilder.peek();
+  }
+
+  private static void addIgnoreNullBucketHintToAggregate(CalcitePlanContext context) {
+    final RelHint statHits =
+        RelHint.builder("stats_args").hintOption(Argument.BUCKET_NULLABLE, "false").build();
+    assert context.relBuilder.peek() instanceof LogicalAggregate
+        : "Stats hits should be added to LogicalAggregate";
+    context.relBuilder.hints(statHits);
+    context
+        .relBuilder
+        .getCluster()
+        .setHintStrategies(
+            HintStrategyTable.builder()
+                .hintStrategy(
+                    "stats_args",
+                    (hint, rel) -> {
+                      return rel instanceof LogicalAggregate;
+                    })
+                .build());
   }
 
   @Override

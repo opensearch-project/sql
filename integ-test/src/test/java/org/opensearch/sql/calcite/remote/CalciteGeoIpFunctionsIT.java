@@ -55,6 +55,37 @@ public class CalciteGeoIpFunctionsIT extends GeoIpFunctionsIT {
   }
 
   @Test
+  public void testGeoIpInAggregation() throws IOException {
+    JSONObject result1 =
+        executeQuery(
+            String.format(
+                "source=%s | where method='POST' | eval info = geoip('%s', host) | eval"
+                    + " date=DATE('2020-12-10') | stats count() by info.city, method, span(date,"
+                    + " 1month) as month",
+                TEST_INDEX_WEBLOGS, DATASOURCE_NAME));
+    verifySchema(
+        result1,
+        schema("count()", "bigint"),
+        schema("month", "date"),
+        schema("info.city", "string"),
+        schema("method", "string"));
+    verifyDataRows(
+        result1,
+        rows(1, "2020-12-01", "Seattle", "POST"),
+        rows(1, "2020-12-01", "Bengaluru", "POST"));
+
+    // This case is pushed down into DSL with scripts
+    JSONObject result2 =
+        executeQuery(
+            String.format(
+                "source=%s | where method='POST' | eval info = geoip('%s', host) | stats count() by"
+                    + " info.city",
+                TEST_INDEX_WEBLOGS, DATASOURCE_NAME));
+    verifySchema(result2, schema("count()", "bigint"), schema("info.city", "string"));
+    verifyDataRows(result2, rows(1, "Seattle"), rows(1, "Bengaluru"));
+  }
+
+  @Test
   public void testGeoIpEnrichmentAccessingSubField() throws IOException {
     JSONObject result =
         executeQuery(

@@ -54,9 +54,9 @@ class TimechartTest {
                 let(
                     "per_second(bytes)",
                     divide(
-                        multiply("per_second(bytes)", 1.0),
+                        multiply("per_second(bytes)", 1000.0),
                         timestampdiff(
-                            "SECOND",
+                            "MILLISECOND",
                             "@timestamp",
                             timestampadd(expectedIntervalUnit, spanValue, "@timestamp")))),
                 timechart(span(spanValue, spanUnit), alias("per_second(bytes)", sum("bytes")))));
@@ -73,9 +73,9 @@ class TimechartTest {
                 let(
                     "per_minute(bytes)",
                     divide(
-                        multiply("per_minute(bytes)", 60.0),
+                        multiply("per_minute(bytes)", 60000.0),
                         timestampdiff(
-                            "SECOND",
+                            "MILLISECOND",
                             "@timestamp",
                             timestampadd(expectedIntervalUnit, spanValue, "@timestamp")))),
                 timechart(span(spanValue, spanUnit), alias("per_minute(bytes)", sum("bytes")))));
@@ -92,9 +92,9 @@ class TimechartTest {
                 let(
                     "per_hour(bytes)",
                     divide(
-                        multiply("per_hour(bytes)", 3600.0),
+                        multiply("per_hour(bytes)", 3600000.0),
                         timestampdiff(
-                            "SECOND",
+                            "MILLISECOND",
                             "@timestamp",
                             timestampadd(expectedIntervalUnit, spanValue, "@timestamp")))),
                 timechart(span(spanValue, spanUnit), alias("per_hour(bytes)", sum("bytes")))));
@@ -111,9 +111,9 @@ class TimechartTest {
                 let(
                     "per_day(bytes)",
                     divide(
-                        multiply("per_day(bytes)", 86400.0),
+                        multiply("per_day(bytes)", 8.64E7),
                         timestampdiff(
-                            "SECOND",
+                            "MILLISECOND",
                             "@timestamp",
                             timestampadd(expectedIntervalUnit, spanValue, "@timestamp")))),
                 timechart(span(spanValue, spanUnit), alias("per_day(bytes)", sum("bytes")))));
@@ -149,9 +149,9 @@ class TimechartTest {
                 let(
                     "per_second(bytes)",
                     divide(
-                        multiply("per_second(bytes)", 1.0),
+                        multiply("per_second(bytes)", 1000.0),
                         timestampdiff(
-                            "SECOND", "@timestamp", timestampadd("MINUTE", 5, "@timestamp")))),
+                            "MILLISECOND", "@timestamp", timestampadd("MINUTE", 5, "@timestamp")))),
                 expected));
   }
 
