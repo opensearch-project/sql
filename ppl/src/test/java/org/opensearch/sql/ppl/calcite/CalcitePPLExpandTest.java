@@ -107,8 +107,8 @@ public class CalcitePPLExpandTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `$cor0`.`DEPTNO`, `t00`.`EMPNOS`\n"
             + "FROM `scott`.`DEPT` `$cor0`,\n"
-            + "LATERAL UNNEST (SELECT `$cor0`.`EMPNOS`\n"
-            + "FROM (VALUES (0)) `t` (`ZERO`)) `t0` (`EMPNOS`) `t00`";
+            + "LATERAL UNNEST((SELECT `$cor0`.`EMPNOS`\n"
+            + "FROM (VALUES (0)) `t` (`ZERO`))) `t00` (`EMPNOS`)";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -129,8 +129,8 @@ public class CalcitePPLExpandTest extends CalcitePPLAbstractTest {
         "SELECT `$cor0`.`DEPTNO`, `$cor0`.`EMPNOS`, `t10`.`employee_no`\n"
             + "FROM (SELECT `DEPTNO`, `EMPNOS`, `EMPNOS` `employee_no`\n"
             + "FROM `scott`.`DEPT`) `$cor0`,\n"
-            + "LATERAL UNNEST (SELECT `$cor0`.`employee_no`\n"
-            + "FROM (VALUES (0)) `t` (`ZERO`)) `t1` (`employee_no`) `t10`";
+            + "LATERAL UNNEST((SELECT `$cor0`.`employee_no`\n"
+            + "FROM (VALUES (0)) `t` (`ZERO`))) `t10` (`employee_no`)";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

@@ -58,8 +58,8 @@ public class DivideFunction extends ImplementorUDF {
       return Expressions.call(
           DivideImplementor.class,
           "divide",
-          Expressions.convert_(translatedOperands.get(0), Number.class),
-          Expressions.convert_(translatedOperands.get(1), Number.class));
+          Expressions.convert_(Expressions.box(translatedOperands.get(0)), Number.class),
+          Expressions.convert_(Expressions.box(translatedOperands.get(1)), Number.class));
     }
 
     public static Number divide(Number dividend, Number divisor) {
