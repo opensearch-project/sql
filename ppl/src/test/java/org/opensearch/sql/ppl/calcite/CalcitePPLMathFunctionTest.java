@@ -124,7 +124,7 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
         "LogicalProject(CRC32TEST=[CRC32('test':VARCHAR)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedSparkSql = "SELECT `CRC32`('test') `CRC32TEST`\nFROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT CRC32('test') `CRC32TEST`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -251,9 +251,10 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
   @Test
   public void testPi() {
     RelNode root = getRelNode("source=EMP | eval PI = pi() | fields PI");
-    String expectedLogical = "LogicalProject(PI=[PI])\n  LogicalTableScan(table=[[scott, EMP]])\n";
+    String expectedLogical =
+        "LogicalProject(PI=[PI()])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedSparkSql = "SELECT PI `PI`\nFROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT PI() `PI`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 

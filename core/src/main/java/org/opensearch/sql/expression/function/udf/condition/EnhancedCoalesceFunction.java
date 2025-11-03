@@ -35,7 +35,7 @@ public class EnhancedCoalesceFunction extends ImplementorUDF {
                           Expressions.call(
                               ExprValueUtils.class,
                               "fromObjectValue",
-                              Expressions.convert_(operand, Object.class)))
+                              Expressions.convert_(Expressions.box(operand), Object.class)))
               .collect(Collectors.toList());
 
       Expression returnTypeName = Expressions.constant(call.getType().getSqlTypeName().toString());
