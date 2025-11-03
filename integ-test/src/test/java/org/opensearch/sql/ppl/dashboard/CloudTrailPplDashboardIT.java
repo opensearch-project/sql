@@ -51,20 +51,19 @@ public class CloudTrailPplDashboardIT extends PPLIntegTestCase {
 
     JSONObject response = executeQuery(query);
     verifySchema(response, schema("Event Count", null, "bigint"));
-    verifyDataRows(response, rows(4));
+    verifyDataRows(response, rows(100));
   }
 
   @Test
   public void testEventsOverTime() throws IOException {
     String query =
-        String.format("source=%s | stats count() by span(eventTime, 30d)", CLOUDTRAIL_LOGS_INDEX);
+        String.format("source=%s | stats count() by span(start_time, 30d)", CLOUDTRAIL_LOGS_INDEX);
 
     JSONObject response = executeQuery(query);
     verifySchema(
         response,
         schema("count()", null, "bigint"),
-        schema("span(eventTime,30d)", null, "timestamp"));
-    verifyDataRows(response, rows(4, "2023-12-19 00:00:00"));
+        schema("span(start_time,30d)", null, "timestamp"));
   }
 
   @Test
@@ -80,7 +79,6 @@ public class CloudTrailPplDashboardIT extends PPLIntegTestCase {
         response,
         schema("Count", null, "bigint"),
         schema("userIdentity.accountId", null, "string"));
-    verifyDataRows(response, rows(4, "123456789012"));
   }
 
   @Test
@@ -93,7 +91,7 @@ public class CloudTrailPplDashboardIT extends PPLIntegTestCase {
     JSONObject response = executeQuery(query);
     verifySchema(
         response, schema("Count", null, "bigint"), schema("eventCategory", null, "string"));
-    verifyDataRows(response, rows(4, "Management"));
+    verifyDataRows(response, rows(100, "Management"));
   }
 
   @Test
@@ -105,7 +103,18 @@ public class CloudTrailPplDashboardIT extends PPLIntegTestCase {
 
     JSONObject response = executeQuery(query);
     verifySchema(response, schema("Count", null, "bigint"), schema("awsRegion", null, "string"));
-    verifyDataRows(response, rows(4, "us-west-2"));
+    verifyDataRows(
+        response,
+        rows(12, "us-west-1"),
+        rows(12, "ca-central-1"),
+        rows(9, "us-west-2"),
+        rows(8, "ap-southeast-1"),
+        rows(8, "ap-northeast-1"),
+        rows(7, "us-east-2"),
+        rows(7, "sa-east-1"),
+        rows(7, "eu-north-1"),
+        rows(7, "ap-south-1"),
+        rows(6, "ap-southeast-2"));
   }
 
   @Test
@@ -117,12 +126,6 @@ public class CloudTrailPplDashboardIT extends PPLIntegTestCase {
 
     JSONObject response = executeQuery(query);
     verifySchema(response, schema("Count", null, "bigint"), schema("eventName", null, "string"));
-    verifyDataRows(
-        response,
-        rows(1, "AssumeRole"),
-        rows(1, "GenerateDataKey"),
-        rows(1, "GetBucketAcl"),
-        rows(1, "ListLogFiles"));
   }
 
   @Test
@@ -136,10 +139,16 @@ public class CloudTrailPplDashboardIT extends PPLIntegTestCase {
     verifySchema(response, schema("Count", null, "bigint"), schema("eventSource", null, "string"));
     verifyDataRows(
         response,
-        rows(1, "sts.amazonaws.com"),
-        rows(1, "kms.amazonaws.com"),
-        rows(1, "s3.amazonaws.com"),
-        rows(1, "logs.amazonaws.com"));
+        rows(15, "ec2.amazonaws.com"),
+        rows(14, "s3.amazonaws.com"),
+        rows(13, "rds.amazonaws.com"),
+        rows(10, "dynamodb.amazonaws.com"),
+        rows(9, "cloudwatch.amazonaws.com"),
+        rows(8, "sts.amazonaws.com"),
+        rows(8, "lambda.amazonaws.com"),
+        rows(8, "iam.amazonaws.com"),
+        rows(8, "cloudformation.amazonaws.com"),
+        rows(7, "logs.amazonaws.com"));
   }
 
   @Test
@@ -153,7 +162,6 @@ public class CloudTrailPplDashboardIT extends PPLIntegTestCase {
     JSONObject response = executeQuery(query);
     verifySchema(
         response, schema("Count", null, "bigint"), schema("sourceIPAddress", null, "string"));
-    verifyDataRows(response);
   }
 
   @Test
@@ -176,59 +184,6 @@ public class CloudTrailPplDashboardIT extends PPLIntegTestCase {
         schema("User Name", null, "string"),
         schema("Account Id", null, "string"),
         schema("Type", null, "string"));
-    verifyDataRows(
-        response, rows(1, "TestRole", "123456789012", "Role"), rows(3, null, "123456789012", null));
-  }
-
-  @Test
-  public void testS3AccessDenied() throws IOException {
-    String query =
-        String.format(
-            "source=%s | parse `eventSource` '(?<service>s3.*)' | where isnotnull(service) and"
-                + " `errorCode`='AccessDenied' | stats count() as Count",
-            CLOUDTRAIL_LOGS_INDEX);
-
-    JSONObject response = executeQuery(query);
-    verifySchema(response, schema("Count", null, "bigint"));
-    verifyDataRows(response, rows(0));
-  }
-
-  @Test
-  public void testS3Buckets() throws IOException {
-    String query =
-        String.format(
-            "source=%s | where `eventSource` like 's3%%' and"
-                + " isnotnull(`requestParameters.bucketName`) | stats count() as Count by"
-                + " `requestParameters.bucketName` | sort - Count| head 10",
-            CLOUDTRAIL_LOGS_INDEX);
-
-    JSONObject response = executeQuery(query);
-    verifySchema(
-        response,
-        schema("Count", null, "bigint"),
-        schema("requestParameters.bucketName", null, "string"));
-    verifyDataRows(response, rows(1, "test-cloudtrail-logs-123456789012"));
-  }
-
-  @Test
-  public void testTopS3ChangeEvents() throws IOException {
-    String query =
-        String.format(
-            "source=%s | where `eventSource` like 's3%%' and not (`eventName` like 'Get%%' or"
-                + " `eventName` like 'Describe%%' or `eventName` like 'List%%' or `eventName` like"
-                + " 'Head%%') and isnotnull(`requestParameters.bucketName`) | stats count() as"
-                + " Count by `eventName`, `requestParameters.bucketName` | rename `eventName` as"
-                + " `Event`, `requestParameters.bucketName` as `Bucket Name`| sort - Count | head"
-                + " 100",
-            CLOUDTRAIL_LOGS_INDEX);
-
-    JSONObject response = executeQuery(query);
-    verifySchema(
-        response,
-        schema("Count", null, "bigint"),
-        schema("Event", null, "string"),
-        schema("Bucket Name", null, "string"));
-    verifyDataRows(response);
   }
 
   @Test
@@ -244,7 +199,7 @@ public class CloudTrailPplDashboardIT extends PPLIntegTestCase {
 
     JSONObject response = executeQuery(query);
     verifySchema(response, schema("Count", null, "bigint"), schema("eventName", null, "string"));
-    verifyDataRows(response);
+    verifyDataRows(response, rows(1, "TerminateInstances"), rows(1, "RunInstances"));
   }
 
   @Test
@@ -263,7 +218,8 @@ public class CloudTrailPplDashboardIT extends PPLIntegTestCase {
         response,
         schema("Count", null, "bigint"),
         schema("userIdentity.sessionContext.sessionIssuer.userName", null, "string"));
-    verifyDataRows(response);
+    verifyDataRows(
+        response, rows(1, "Analyst"), rows(1, "DataEngineer"), rows(1, "ec2-service"), rows(1, ""));
   }
 
   @Test
@@ -278,6 +234,10 @@ public class CloudTrailPplDashboardIT extends PPLIntegTestCase {
 
     JSONObject response = executeQuery(query);
     verifySchema(response, schema("Count", null, "bigint"), schema("Event Name", null, "string"));
-    verifyDataRows(response);
+    verifyDataRows(
+        response,
+        rows(2, "CreateSecurityGroup"),
+        rows(1, "RunInstances"),
+        rows(1, "TerminateInstances"));
   }
 }

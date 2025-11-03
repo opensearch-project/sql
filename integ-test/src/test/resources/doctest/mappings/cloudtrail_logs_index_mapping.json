@@ -62,6 +62,9 @@
       "eventTime": {
         "type": "date"
       },
+      "start_time": {
+        "type": "date"
+      },
       "eventSource": {
         "type": "keyword"
       },
