@@ -336,22 +336,6 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
     verifyDataRows(actual, rows(false, true));
   }
 
-  /**
-   * Test isnull function with if() in eval expression.
-   *
-   * <p>This test demonstrates the classic SPL pattern for checking null values: {@code eval
-   * n=if(isnull(field), 'yes', 'no')}
-   *
-   * <p>Example SPL query: {@code source=table | eval n=if(isnull(name), 'yes', 'no') | fields name,
-   * n}
-   *
-   * <p>Expected behavior:
-   *
-   * <ul>
-   *   <li>When field is NULL: returns 'yes'
-   *   <li>When field has any value (including empty string): returns 'no'
-   * </ul>
-   */
   @Test
   public void testEvalIsNullWithIf() throws IOException {
     JSONObject actual =
@@ -374,21 +358,6 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
         rows("", "no"));
   }
 
-  /**
-   * Test isnotnull function returning boolean directly in eval expression.
-   *
-   * <p>This test shows that isnotnull can be used directly without if() to return a boolean value.
-   *
-   * <p>Example SPL query: {@code source=table | eval has_value=isnotnull(name) | fields name,
-   * has_value}
-   *
-   * <p>Expected behavior:
-   *
-   * <ul>
-   *   <li>When field is NULL: returns FALSE
-   *   <li>When field has any value (including empty string or whitespace): returns TRUE
-   * </ul>
-   */
   @Test
   public void testEvalIsNotNullDirect() throws IOException {
     JSONObject actual =
@@ -411,22 +380,6 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
         rows("", true));
   }
 
-  /**
-   * Test isnull function for providing default values in eval expressions.
-   *
-   * <p>This test demonstrates a practical use case: replacing null values with a default value
-   * using isnull with if().
-   *
-   * <p>Example SPL query: {@code source=table | eval safe_name=if(isnull(name), 'Unknown', name) |
-   * fields safe_name}
-   *
-   * <p>Expected behavior:
-   *
-   * <ul>
-   *   <li>When field is NULL: uses the default value 'Unknown'
-   *   <li>When field has a value: uses the original value
-   * </ul>
-   */
   @Test
   public void testEvalIsNullInComplexExpression() throws IOException {
     JSONObject actual =

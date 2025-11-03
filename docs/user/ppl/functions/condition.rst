@@ -25,18 +25,7 @@ Argument type: all the supported data types.
 
 Return type: BOOLEAN
 
-Important Notes
->>>>>>>>>>>>>>>
-
-- Empty strings ("") are NOT null and return FALSE
-- Whitespace strings ("   ") are NOT null and return FALSE
-- Only actual NULL values return TRUE
-- Function name is case-insensitive (isnull, ISNULL, IsNull all work)
-
-Examples
->>>>>>>>
-
-Direct boolean evaluation::
+Example::
 
     os> source=accounts | eval result = isnull(employer) | fields result, employer, firstname
     fetched rows / total rows = 4/4
@@ -62,18 +51,15 @@ Using with if() to label records::
     | Dale      | null     | unemployed |
     +-----------+----------+------------+
 
-Providing default values for null fields::
+Filtering with where clause::
 
-    os> source=accounts | eval safe_employer = if(isnull(employer), 'N/A', employer) | fields firstname, employer, safe_employer
-    fetched rows / total rows = 4/4
-    +-----------+----------+---------------+
-    | firstname | employer | safe_employer |
-    |-----------+----------+---------------|
-    | Amber     | Pyrami   | Pyrami        |
-    | Hattie    | Netagy   | Netagy        |
-    | Nanette   | Quility  | Quility       |
-    | Dale      | null     | N/A           |
-    +-----------+----------+---------------+
+    os> source=accounts | where isnull(employer) | fields account_number, firstname, employer
+    fetched rows / total rows = 1/1
+    +----------------+-----------+----------+
+    | account_number | firstname | employer |
+    |----------------+-----------+----------|
+    | 18             | Dale      | null     |
+    +----------------+-----------+----------+
 
 ISNOTNULL
 ---------
@@ -95,18 +81,7 @@ Return type: BOOLEAN
 
 Synonyms: `ISPRESENT`_
 
-Important Notes
->>>>>>>>>>>>>>>
-
-- Empty strings ("") are NOT null and return TRUE
-- Whitespace strings ("   ") are NOT null and return TRUE
-- Only actual NULL values return FALSE
-- Function name is case-insensitive (isnotnull, ISNOTNULL, IsNotNull all work)
-
-Examples
->>>>>>>>
-
-Direct boolean evaluation in eval::
+Example::
 
     os> source=accounts | eval has_employer = isnotnull(employer) | fields firstname, employer, has_employer
     fetched rows / total rows = 4/4
