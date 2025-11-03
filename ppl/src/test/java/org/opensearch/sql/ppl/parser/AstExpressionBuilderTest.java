@@ -14,6 +14,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.allFields;
 import static org.opensearch.sql.ast.dsl.AstDSL.and;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
+import static org.opensearch.sql.ast.dsl.AstDSL.bin;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.caseWhen;
 import static org.opensearch.sql.ast.dsl.AstDSL.cast;
@@ -1604,5 +1605,18 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             .limit(10)
             .useOther(true)
             .build());
+
+    // Test span literal with decimal value
+    assertEqual(
+        "source=events_null | bin cpu_usage span=7.5 | stats count() by cpu_usage",
+        agg(
+            bin(
+                relation("events_null"),
+                field("cpu_usage"),
+                argument("span", decimalLiteral(new java.math.BigDecimal("7.5")))),
+            exprList(alias("count()", aggregate("count", allFields()))),
+            emptyList(),
+            exprList(alias("cpu_usage", field("cpu_usage"))),
+            defaultStatsArgs()));
   }
 }

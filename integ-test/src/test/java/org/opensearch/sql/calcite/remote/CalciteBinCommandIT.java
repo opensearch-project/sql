@@ -1206,4 +1206,12 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         rows(false, "go", "opentelemetry", 16, 1, "12-14"),
         rows(true, "rust", "opentelemetry", 12, 1, "14-16"));
   }
+
+  @Test
+  public void testBinWithDecimalSpan() throws IOException {
+    JSONObject result =
+        executeQuery("source=events_null | bin cpu_usage span=7.5 | stats count() by cpu_usage");
+    verifySchema(result, schema("count()", "bigint"), schema("cpu_usage", "string"));
+    verifyDataRows(result, rows(3, "37.5-45.0"), rows(2, "45.0-52.5"), rows(1, "52.5-60.0"));
+  }
 }

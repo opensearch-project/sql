@@ -270,6 +270,7 @@ timechartParameter
 spanLiteral
    : SPANLENGTH
    | INTEGER_LITERAL
+   | DECIMAL_LITERAL
    ;
 
 evalCommand
