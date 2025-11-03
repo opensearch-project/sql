@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
+import static org.opensearch.sql.ast.dsl.AstDSL.appendPipe;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
@@ -868,6 +869,20 @@ public class AstBuilderTest {
     assertEqual(
         "source=t | fillnull value=0 a, b, c",
         fillNull(relation("t"), intLiteral(0), true, field("a"), field("b"), field("c")));
+  }
+
+  @Test
+  public void testAppendPipe() {
+    assertEqual(
+        "source=t | appendpipe [ stats COUNT() ]",
+        appendPipe(
+            relation("t"),
+            agg(
+                null,
+                exprList(alias("COUNT()", aggregate("count", AstDSL.allFields()))),
+                emptyList(),
+                emptyList(),
+                defaultStatsArgs())));
   }
 
   public void testTrendline() {
