@@ -6,17 +6,14 @@
 package org.opensearch.sql.opensearch.storage.scan.context;
 
 import lombok.EqualsAndHashCode;
+import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 
 @EqualsAndHashCode
+@RequiredArgsConstructor
 public class LimitDigest {
   private final int limit;
   private final int offset;
-
-  public LimitDigest(int limit, int offset) {
-    this.limit = limit;
-    this.offset = offset;
-  }
 
   public int limit() {
     return limit;
