@@ -187,7 +187,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        java: [21, 24]
+        java: [11, 17, 21]
     container:
       image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
       options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}
