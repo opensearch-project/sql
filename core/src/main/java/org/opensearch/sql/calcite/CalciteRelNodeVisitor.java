@@ -39,6 +39,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelNode;
@@ -60,6 +61,8 @@ import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.ArraySqlType;
+import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
@@ -906,7 +909,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   /**
    * Resolve the aggregation with trimming unused fields to avoid bugs in {@link
-   * org.apache.calcite.sql2rel.RelDecorrelator#decorrelateRel(Aggregate, boolean)}
+   * org.apache.calcite.sql2rel.RelDecorrelator#decorrelateRel(Aggregate, boolean, boolean)}
    *
    * @param groupExprList group by expression list
    * @param aggExprList aggregate expression list
@@ -2614,6 +2617,21 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     projectPlusOverriding(newFields, groupCandidates, context);
   }
 
+  /**
+   * CALCITE-6981 introduced a stricter type checking for Array type in {@link RexToLixTranslator}.
+   * We defined a MAP(VARCHAR, ANY) in {@link UserDefinedFunctionUtils#nullablePatternAggList}, when
+   * we convert the value type to ArraySqlType, it will check the source data type by {@link
+   * RelDataType#getComponentType()} which will return null due to the source type is ANY.
+   */
+  private RexNode explicitMapType(
+      CalcitePlanContext context, RexNode origin, SqlTypeName targetType) {
+    MapSqlType originalMapType = (MapSqlType) origin.getType();
+    ArraySqlType newValueType =
+        new ArraySqlType(context.rexBuilder.getTypeFactory().createSqlType(targetType), true);
+    MapSqlType newMapType = new MapSqlType(originalMapType.getKeyType(), newValueType, true);
+    return new RexInputRef(((RexInputRef) origin).getIndex(), newMapType);
+  }
+
   private void flattenParsedPattern(
       String originalPatternResultAlias,
       RexNode parsedNode,
@@ -2674,7 +2692,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               PPLFuncImpTable.INSTANCE.resolve(
                   context.rexBuilder,
                   BuiltinFunctionName.INTERNAL_ITEM,
-                  parsedNode,
+                  explicitMapType(context, parsedNode, SqlTypeName.VARCHAR),
                   context.rexBuilder.makeLiteral(PatternUtils.SAMPLE_LOGS)),
               true,
               true);
