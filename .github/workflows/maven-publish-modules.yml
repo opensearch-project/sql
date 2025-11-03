@@ -7,7 +7,7 @@ on:
       - main
       - '[0-9]+.[0-9]+'
       - '[0-9]+.x'
-      - unified-ppl-2.19-dev-publish-test
+      - 2.19-dev
 
 env:
   SNAPSHOT_REPO_URL: https://ci.opensearch.org/ci/dbc/snapshots/maven/
