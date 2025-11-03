@@ -62,9 +62,9 @@ public interface PlanUtils {
   /** this is only for dedup command, do not reuse it in other command */
   String ROW_NUMBER_COLUMN_FOR_DEDUP = "_row_number_dedup_";
 
-  String ROW_NUMBER_COLUMN_NAME_TOP_RARE = "_row_number_top_rare_";
-  String ROW_NUMBER_COLUMN_NAME_MAIN = "_row_number_main_";
-  String ROW_NUMBER_COLUMN_NAME_SUBSEARCH = "_row_number_subsearch_";
+  String ROW_NUMBER_COLUMN_FOR_RARE_TOP = "_row_number_rare_top_";
+  String ROW_NUMBER_COLUMN_FOR_MAIN = "_row_number_main_";
+  String ROW_NUMBER_COLUMN_FOR_SUBSEARCH = "_row_number_subsearch_";
 
   static SpanUnit intervalUnitToSpanUnit(IntervalUnit unit) {
     return switch (unit) {
@@ -447,10 +447,18 @@ public interface PlanUtils {
     return rexNode;
   }
 
-  /** Check if contains RexOver */
+  /** Check if contains RexOver introduced by dedup */
   static boolean containsRowNumberDedup(LogicalProject project) {
     return project.getProjects().stream()
-        .anyMatch(p -> p instanceof RexOver && p.getKind() == SqlKind.ROW_NUMBER);
+            .anyMatch(p -> p instanceof RexOver && p.getKind() == SqlKind.ROW_NUMBER)
+        && project.getRowType().getFieldNames().contains(ROW_NUMBER_COLUMN_FOR_DEDUP);
+  }
+
+  /** Check if contains RexOver introduced by dedup top/rare */
+  static boolean containsRowNumberRareTop(LogicalProject project) {
+    return project.getProjects().stream()
+            .anyMatch(p -> p instanceof RexOver && p.getKind() == SqlKind.ROW_NUMBER)
+        && project.getRowType().getFieldNames().contains(ROW_NUMBER_COLUMN_FOR_RARE_TOP);
   }
 
   /** Get all RexWindow list from LogicalProject */

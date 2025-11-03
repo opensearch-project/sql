@@ -5,8 +5,7 @@
 
 package org.opensearch.sql.opensearch.executor;
 
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.DISTINCT_COUNT_APPROX;
-
+import com.google.common.base.Suppliers;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.sql.PreparedStatement;
@@ -17,7 +16,9 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
@@ -25,8 +26,11 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.ListSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.logging.log4j.LogManager;
@@ -273,8 +277,9 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
   private void registerOpenSearchFunctions() {
     if (client instanceof OpenSearchNodeClient) {
       SqlUserDefinedFunction geoIpFunction =
-          new GeoIpFunction(client.getNodeClient()).toUDF("GEOIP");
+          new GeoIpFunction(client.getNodeClient()).toUDF(BuiltinFunctionName.GEOIP.name());
       PPLFuncImpTable.INSTANCE.registerExternalOperator(BuiltinFunctionName.GEOIP, geoIpFunction);
+      OperatorTable.addOperator(BuiltinFunctionName.GEOIP.name(), geoIpFunction);
     } else {
       logger.info(
           "Function [GEOIP] not registered: incompatible client type {}",
@@ -284,10 +289,37 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     SqlUserDefinedAggFunction approxDistinctCountFunction =
         UserDefinedFunctionUtils.createUserDefinedAggFunction(
             DistinctCountApproxAggFunction.class,
-            DISTINCT_COUNT_APPROX.toString(),
+            BuiltinFunctionName.DISTINCT_COUNT_APPROX.name(),
             ReturnTypes.BIGINT_FORCE_NULLABLE,
             null);
     PPLFuncImpTable.INSTANCE.registerExternalAggOperator(
-        DISTINCT_COUNT_APPROX, approxDistinctCountFunction);
+        BuiltinFunctionName.DISTINCT_COUNT_APPROX, approxDistinctCountFunction);
+    OperatorTable.addOperator(
+        BuiltinFunctionName.DISTINCT_COUNT_APPROX.name(), approxDistinctCountFunction);
+  }
+
+  /**
+   * Dynamic SqlOperatorTable that allows adding operators after initialization. Similar to
+   * PPLBuiltinOperator.instance() or SqlStdOperatorTable.instance().
+   */
+  public static class OperatorTable extends ListSqlOperatorTable {
+    private static final Supplier<OperatorTable> INSTANCE =
+        Suppliers.memoize(() -> (OperatorTable) new OperatorTable().init());
+    // Use map instead of list to avoid duplicated elements if the class is initialized multiple
+    // times
+    private static final Map<String, SqlOperator> operators = new ConcurrentHashMap<>();
+
+    public static SqlOperatorTable instance() {
+      return INSTANCE.get();
+    }
+
+    private ListSqlOperatorTable init() {
+      setOperators(buildIndex(operators.values()));
+      return this;
+    }
+
+    public static synchronized void addOperator(String name, SqlOperator operator) {
+      operators.put(name, operator);
+    }
   }
 }
