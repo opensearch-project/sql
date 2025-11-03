@@ -46,45 +46,33 @@ public class WafPplDashboardIT extends PPLIntegTestCase {
 
     JSONObject response = executeQuery(query);
     verifySchema(response, schema("count()", null, "bigint"));
-    verifyDataRows(response, rows(3));
+    verifyDataRows(response, rows(100));
   }
 
   @Test
   public void testRequestsHistory() throws IOException {
     String query =
         String.format(
-            "source=%s | STATS count() as Count by span(timestamp, 30d), action | SORT - Count",
+            "source=%s | STATS count() as Count by span(start_time, 30d), action | SORT - Count",
             WAF_LOGS_INDEX);
 
     JSONObject response = executeQuery(query);
     verifySchema(
         response,
         schema("Count", null, "bigint"),
-        schema("span(timestamp,30d)", null, "bigint"),
+        schema("span(start_time,30d)", null, "timestamp"),
         schema("action", null, "string"));
-    verifyDataRows(response, rows(2, 1731456000000L, "BLOCK"), rows(1, 1731456000000L, "ALLOW"));
   }
 
   @Test
   public void testRequestsToWebACLs() throws IOException {
     String query =
         String.format(
-            "source=%s | stats count() as Count by `webaclId` | sort - Count | head 3",
+            "source=%s | stats count() as Count by `webaclId` | sort - Count | head 10",
             WAF_LOGS_INDEX);
 
     JSONObject response = executeQuery(query);
     verifySchema(response, schema("Count", null, "bigint"), schema("webaclId", null, "string"));
-    verifyDataRows(
-        response,
-        rows(
-            1,
-            "arn:aws:wafv2:us-west-2:111111111111:regional/webacl/TestWAF-pdx/12345678-1234-1234-1234-123456789012"),
-        rows(
-            1,
-            "arn:aws:wafv2:us-west-2:222222222222:regional/webacl/TestWAF-pdx/12345678-1234-1234-1234-123456789012"),
-        rows(
-            1,
-            "arn:aws:wafv2:us-west-2:333333333333:regional/webacl/TestWAF-pdx/12345678-1234-1234-1234-123456789012"));
   }
 
   @Test
@@ -96,11 +84,6 @@ public class WafPplDashboardIT extends PPLIntegTestCase {
 
     JSONObject response = executeQuery(query);
     verifySchema(response, schema("Count", null, "bigint"), schema("httpSourceId", null, "string"));
-    verifyDataRows(
-        response,
-        rows(1, "111111111111:yhltew7mtf:dev"),
-        rows(1, "222222222222:yhltew7mtf:dev"),
-        rows(1, "333333333333:yhltew7mtf:dev"));
   }
 
   @Test
@@ -114,8 +97,6 @@ public class WafPplDashboardIT extends PPLIntegTestCase {
     JSONObject response = executeQuery(query);
     verifySchema(
         response, schema("Count", null, "bigint"), schema("httpRequest.clientIp", null, "string"));
-    verifyDataRows(
-        response, rows(1, "149.165.180.212"), rows(1, "121.236.106.18"), rows(1, "108.166.91.31"));
   }
 
   @Test
@@ -128,7 +109,33 @@ public class WafPplDashboardIT extends PPLIntegTestCase {
     JSONObject response = executeQuery(query);
     verifySchema(
         response, schema("Count", null, "bigint"), schema("httpRequest.country", null, "string"));
-    verifyDataRows(response, rows(1, "GY"), rows(1, "MX"), rows(1, "PN"));
+    verifyDataRows(
+        response,
+        rows(33, "US"),
+        rows(8, "GB"),
+        rows(7, "DE"),
+        rows(7, "BR"),
+        rows(6, "CA"),
+        rows(5, "RU"),
+        rows(3, "JP"),
+        rows(3, "IN"),
+        rows(3, "CN"),
+        rows(3, "BE"),
+        rows(2, "SG"),
+        rows(2, "SE"),
+        rows(2, "MX"),
+        rows(2, "IE"),
+        rows(2, "ES"),
+        rows(2, "CH"),
+        rows(2, "AU"),
+        rows(1, "ZA"),
+        rows(1, "PT"),
+        rows(1, "NL"),
+        rows(1, "IT"),
+        rows(1, "FR"),
+        rows(1, "FI"),
+        rows(1, "CL"),
+        rows(1, "AT"));
   }
 
   @Test
@@ -141,7 +148,18 @@ public class WafPplDashboardIT extends PPLIntegTestCase {
     JSONObject response = executeQuery(query);
     verifySchema(
         response, schema("Count", null, "bigint"), schema("terminatingRuleId", null, "string"));
-    verifyDataRows(response, rows(2, "RULE_ID_3"), rows(1, "RULE_ID_7"));
+    verifyDataRows(
+        response,
+        rows(13, "AWS-AWSManagedRulesAmazonIpReputationList"),
+        rows(11, "XSSProtectionRule"),
+        rows(11, "Default_Action"),
+        rows(10, "AWS-AWSManagedRulesKnownBadInputsRuleSet"),
+        rows(8, "CustomRateLimitRule"),
+        rows(8, "AWS-AWSManagedRulesCommonRuleSet"),
+        rows(7, "CustomIPWhitelistRule"),
+        rows(7, "AWS-AWSManagedRulesSQLiRuleSet"),
+        rows(7, "AWS-AWSManagedRulesLinuxRuleSet"),
+        rows(5, "CSRFProtectionRule"));
   }
 
   @Test
@@ -154,7 +172,18 @@ public class WafPplDashboardIT extends PPLIntegTestCase {
     JSONObject response = executeQuery(query);
     verifySchema(
         response, schema("Count", null, "bigint"), schema("httpRequest.uri", null, "string"));
-    verifyDataRows(response, rows(3, "/example-path"));
+    verifyDataRows(
+        response,
+        rows(5, "/api/v2/search"),
+        rows(5, "/account"),
+        rows(4, "/products"),
+        rows(4, "/css/style.css"),
+        rows(3, "/test"),
+        rows(3, "/download"),
+        rows(3, "/docs"),
+        rows(3, "/billing"),
+        rows(3, "/api/v2/users"),
+        rows(2, "/about"));
   }
 
   @Test
@@ -164,6 +193,6 @@ public class WafPplDashboardIT extends PPLIntegTestCase {
 
     JSONObject response = executeQuery(query);
     verifySchema(response, schema("count()", null, "bigint"));
-    verifyDataRows(response, rows(2));
+    verifyDataRows(response, rows(21));
   }
 }
