@@ -1483,4 +1483,16 @@ public class CalciteExplainIT extends ExplainIT {
                 "source=%s | eval info = geoip('my-datasource', host) | stats count() by info.city",
                 TEST_INDEX_WEBLOGS)));
   }
+
+  @Test
+  public void testInternalItemAccessOnStructs() throws IOException {
+    String expected = loadExpectedPlan("access_struct_subfield_with_item.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            String.format(
+                "source=%s | eval info = geoip('dummy-datasource', host) | fields host, info,"
+                    + " info.dummy_sub_field",
+                TEST_INDEX_WEBLOGS)));
+  }
 }

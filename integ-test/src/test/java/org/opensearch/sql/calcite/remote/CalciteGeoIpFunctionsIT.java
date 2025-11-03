@@ -84,4 +84,23 @@ public class CalciteGeoIpFunctionsIT extends GeoIpFunctionsIT {
     verifySchema(result2, schema("count()", "bigint"), schema("info.city", "string"));
     verifyDataRows(result2, rows(1, "Seattle"), rows(1, "Bengaluru"));
   }
+
+  @Test
+  public void testGeoIpEnrichmentAccessingSubField() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where method='POST' | eval info = geoip('%s', host) | fields host,"
+                    + " info, info.country",
+                TEST_INDEX_WEBLOGS, DATASOURCE_NAME));
+    verifySchema(
+        result, schema("host", "ip"), schema("info", "struct"), schema("info.country", "string"));
+    verifyDataRows(
+        result,
+        rows("10.0.0.1", Map.of("country", "USA", "city", "Seattle"), "USA"),
+        rows(
+            "fd12:2345:6789:1:a1b2:c3d4:e5f6:789a",
+            Map.of("country", "India", "city", "Bengaluru"),
+            "India"));
+  }
 }
