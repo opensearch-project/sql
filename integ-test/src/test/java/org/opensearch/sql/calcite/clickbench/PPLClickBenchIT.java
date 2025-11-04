@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.calcite.clickbench;
 
+import static org.opensearch.sql.util.MatcherUtils.assertYamlEqualsIgnoreId;
+
 import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
@@ -68,6 +70,11 @@ public class PPLClickBenchIT extends PPLIntegTestCase {
       }
       String ppl = sanitize(loadFromFile("clickbench/queries/q" + i + ".ppl"));
       timing(summary, "q" + i, ppl);
+      // V2 gets unstable scripts, ignore them when comparing plan
+      if (isCalciteEnabled()) {
+        String expected = loadExpectedPlan("clickbench/q" + i + ".yaml");
+        assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
+      }
     }
   }
 }

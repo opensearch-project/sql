@@ -1,0 +1,33 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[c, ClientIP, ClientIP - 1, ClientIP - 2, ClientIP - 3]"
+  children:
+    - name: TakeOrderedOperator
+      description:
+        limit: 10
+        offset: 0
+        sortList:
+          c:
+            sortOrder: DESC
+            nullOrder: NULL_LAST
+      children:
+        - name: AggregationOperator
+          description:
+            aggregators: "[c]"
+            groupBy: "[ClientIP, ClientIP - 1, ClientIP - 2, ClientIP - 3]"
+          children:
+            - name: OpenSearchEvalOperator
+              description:
+                expressions:
+                  ClientIP - 2: "-(ClientIP, 2)"
+                  ClientIP - 1: "-(ClientIP, 1)"
+                  ClientIP - 3: "-(ClientIP, 3)"
+              children:
+                - name: OpenSearchIndexScan
+                  description:
+                    request: "OpenSearchQueryRequest(indexName=hits, sourceBuilder={\"\
+                      from\":0,\"size\":10000,\"timeout\":\"1m\"}, needClean=true,\
+                      \ searchDone=false, pitId=*,\
+                      \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
+                  children: []
