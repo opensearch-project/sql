@@ -12,23 +12,38 @@ import static org.apache.calcite.rex.RexWindowBounds.following;
 import static org.apache.calcite.rex.RexWindowBounds.preceding;
 
 import com.google.common.collect.ImmutableList;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
@@ -44,9 +59,13 @@ import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 public interface PlanUtils {
 
-  String ROW_NUMBER_COLUMN_NAME = "_row_number_";
-  String ROW_NUMBER_COLUMN_NAME_MAIN = "_row_number_main_";
-  String ROW_NUMBER_COLUMN_NAME_SUBSEARCH = "_row_number_subsearch_";
+  /** this is only for dedup command, do not reuse it in other command */
+  String ROW_NUMBER_COLUMN_FOR_DEDUP = "_row_number_dedup_";
+
+  String ROW_NUMBER_COLUMN_FOR_RARE_TOP = "_row_number_rare_top_";
+  String ROW_NUMBER_COLUMN_FOR_MAIN = "_row_number_main_";
+  String ROW_NUMBER_COLUMN_FOR_SUBSEARCH = "_row_number_subsearch_";
+  String ROW_NUMBER_COLUMN_FOR_STREAMSTATS = "__stream_seq__";
 
   static SpanUnit intervalUnitToSpanUnit(IntervalUnit unit) {
     SpanUnit result;
@@ -273,6 +292,9 @@ public interface PlanUtils {
 
   /** Get all uniq input references from a RexNode. */
   static List<RexInputRef> getInputRefs(RexNode node) {
+    if (node == null) {
+      return List.of();
+    }
     List<RexInputRef> inputRefs = new ArrayList<>();
     node.accept(
         new RexVisitorImpl<Void>(true) {
@@ -289,7 +311,27 @@ public interface PlanUtils {
 
   /** Get all uniq input references from a list of RexNodes. */
   static List<RexInputRef> getInputRefs(List<RexNode> nodes) {
-    return nodes.stream().flatMap(node -> getInputRefs(node).stream()).collect(Collectors.toList());
+    return nodes.stream().flatMap(node -> getInputRefs(node).stream()).toList();
+  }
+
+  /** Get all uniq RexCall from RexNode with a predicate */
+  static List<RexCall> getRexCall(RexNode node, Predicate<RexCall> predicate) {
+    List<RexCall> list = new ArrayList<>();
+    node.accept(
+        new RexVisitorImpl<Void>(true) {
+          @Override
+          public Void visitCall(RexCall inputCall) {
+            if (predicate.test(inputCall)) {
+              if (!list.contains(inputCall)) {
+                list.add(inputCall);
+              }
+            } else {
+              inputCall.getOperands().forEach(call -> call.accept(this));
+            }
+            return null;
+          }
+        });
+    return list;
   }
 
   /** Get all uniq input references from a list of agg calls. */
@@ -298,7 +340,7 @@ public interface PlanUtils {
         .map(RelBuilder.AggCall::over)
         .map(RelBuilder.OverCall::toRex)
         .flatMap(rex -> getInputRefs(rex).stream())
-            .collect(Collectors.toList());
+        .toList();
   }
 
   /**
@@ -374,5 +416,135 @@ public interface PlanUtils {
       }
     }
     return rexNode;
+  }
+
+  /** Check if contains RexOver introduced by dedup */
+  static boolean containsRowNumberDedup(LogicalProject project) {
+    return project.getProjects().stream()
+            .anyMatch(p -> p instanceof RexOver && p.getKind() == SqlKind.ROW_NUMBER)
+        && project.getRowType().getFieldNames().contains(ROW_NUMBER_COLUMN_FOR_DEDUP);
+  }
+
+  /** Check if contains RexOver introduced by dedup top/rare */
+  static boolean containsRowNumberRareTop(LogicalProject project) {
+    return project.getProjects().stream()
+            .anyMatch(p -> p instanceof RexOver && p.getKind() == SqlKind.ROW_NUMBER)
+        && project.getRowType().getFieldNames().contains(ROW_NUMBER_COLUMN_FOR_RARE_TOP);
+  }
+
+  /** Get all RexWindow list from LogicalProject */
+  static List<RexWindow> getRexWindowFromProject(LogicalProject project) {
+    final List<RexWindow> res = new ArrayList<>();
+    final RexVisitorImpl<Void> visitor =
+        new RexVisitorImpl<>(true) {
+          @Override
+          public Void visitOver(RexOver over) {
+            res.add(over.getWindow());
+            return null;
+          }
+        };
+    visitor.visitEach(project.getProjects());
+    return res;
+  }
+
+  static List<Integer> getSelectColumns(List<RexNode> rexNodes) {
+    final List<Integer> selectedColumns = new ArrayList<>();
+    final RexVisitorImpl<Void> visitor =
+        new RexVisitorImpl<Void>(true) {
+          @Override
+          public Void visitInputRef(RexInputRef inputRef) {
+            if (!selectedColumns.contains(inputRef.getIndex())) {
+              selectedColumns.add(inputRef.getIndex());
+            }
+            return null;
+          }
+        };
+    visitor.visitEach(rexNodes);
+    return selectedColumns;
+  }
+
+  // `RelDecorrelator` may generate a Project with duplicated fields, e.g. Project($0,$0).
+  // There will be problem if pushing down the pattern like `Aggregate(AGG($0),{1})-Project($0,$0)`,
+  // as it will lead to field-name conflict.
+  // We should wait and rely on `AggregateProjectMergeRule` to mitigate it by having this constraint
+  // Nevertheless, that rule cannot handle all cases if there is RexCall in the Project,
+  // e.g. Project($0, $0, +($0,1)). We cannot push down the Aggregate for this corner case.
+  // TODO: Simplify the Project where there is RexCall by adding a new rule.
+  static boolean distinctProjectList(LogicalProject project) {
+    // Change to Set<Pair<RexNode, String>> to resolve
+    // https://github.com/opensearch-project/sql/issues/4347
+    Set<Pair<RexNode, String>> rexSet = new HashSet<>();
+    return project.getNamedProjects().stream().allMatch(rexSet::add);
+  }
+
+  static boolean containsRexOver(LogicalProject project) {
+    return project.getProjects().stream().anyMatch(RexOver::containsOver);
+  }
+
+  /**
+   * The LogicalSort is a LIMIT that should be pushed down when its fetch field is not null and its
+   * collation is empty. For example: <code>sort name | head 5</code> should not be pushed down
+   * because it has a field collation.
+   *
+   * @param sort The LogicalSort to check.
+   * @return True if the LogicalSort is a LIMIT, false otherwise.
+   */
+  static boolean isLogicalSortLimit(LogicalSort sort) {
+    return sort.fetch != null;
+  }
+
+  static boolean projectContainsExpr(Project project) {
+    return project.getProjects().stream().anyMatch(p -> p instanceof RexCall);
+  }
+
+  static boolean sortByFieldsOnly(Sort sort) {
+    return !sort.getCollation().getFieldCollations().isEmpty() && sort.fetch == null;
+  }
+
+  /**
+   * Get a string representation of the argument types expressed in ExprType for error messages.
+   *
+   * @param argTypes the list of argument types as {@link RelDataType}
+   * @return a string in the format [type1,type2,...] representing the argument types
+   */
+  static String getActualSignature(List<RelDataType> argTypes) {
+    return "["
+        + argTypes.stream()
+            .map(OpenSearchTypeFactory::convertRelDataTypeToExprType)
+            .map(Objects::toString)
+            .collect(Collectors.joining(","))
+        + "]";
+  }
+
+  /**
+   * Check if the RexNode contains any CorrelVariable.
+   *
+   * @param node the RexNode to check
+   * @return true if the RexNode contains any CorrelVariable, false otherwise
+   */
+  static boolean containsCorrelVariable(RexNode node) {
+    try {
+      node.accept(
+          new RexVisitorImpl<Void>(true) {
+            @Override
+            public Void visitCorrelVariable(RexCorrelVariable correlVar) {
+              throw new RuntimeException("Correl found");
+            }
+          });
+      return false;
+    } catch (Exception e) {
+      return true;
+    }
+  }
+
+  /** Adds a rel node to the top of the stack while preserving the field names and aliases. */
+  static void replaceTop(RelBuilder relBuilder, RelNode relNode) {
+    try {
+      Method method = RelBuilder.class.getDeclaredMethod("replaceTop", RelNode.class);
+      method.setAccessible(true);
+      method.invoke(relBuilder, relNode);
+    } catch (Exception e) {
+      throw new IllegalStateException("Unable to invoke RelBuilder.replaceTop", e);
+    }
   }
 }

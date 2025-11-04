@@ -17,17 +17,24 @@ EXPLAIN:                            'EXPLAIN';
 FROM:                               'FROM';
 WHERE:                              'WHERE';
 FIELDS:                             'FIELDS';
+FIELD:                              'FIELD';
+TABLE:                              'TABLE';  // Alias for FIELDS command
 RENAME:                             'RENAME';
 STATS:                              'STATS';
 EVENTSTATS:                         'EVENTSTATS';
+STREAMSTATS:                        'STREAMSTATS';
 DEDUP:                              'DEDUP';
 SORT:                               'SORT';
 EVAL:                               'EVAL';
 HEAD:                               'HEAD';
+BIN:                                'BIN';
 TOP:                                'TOP';
 RARE:                               'RARE';
 PARSE:                              'PARSE';
+SPATH:                              'SPATH';
 REGEX:                              'REGEX';
+REX:                                'REX';
+SED:                                'SED';
 PUNCT:                              'PUNCT';
 GROK:                               'GROK';
 PATTERN:                            'PATTERN';
@@ -39,6 +46,7 @@ ML:                                 'ML';
 FILLNULL:                           'FILLNULL';
 FLATTEN:                            'FLATTEN';
 TRENDLINE:                          'TRENDLINE';
+TIMECHART:                          'TIMECHART';
 APPENDCOL:                          'APPENDCOL';
 EXPAND:                             'EXPAND';
 SIMPLE_PATTERN:                     'SIMPLE_PATTERN';
@@ -47,8 +55,11 @@ VARIABLE_COUNT_THRESHOLD:           'VARIABLE_COUNT_THRESHOLD';
 FREQUENCY_THRESHOLD_PERCENTAGE:     'FREQUENCY_THRESHOLD_PERCENTAGE';
 METHOD:                             'METHOD';
 MAX_SAMPLE_COUNT:                   'MAX_SAMPLE_COUNT';
+MAX_MATCH:                          'MAX_MATCH';
+OFFSET_FIELD:                       'OFFSET_FIELD';
 BUFFER_LIMIT:                       'BUFFER_LIMIT';
 LABEL:                              'LABEL';
+SHOW_NUMBERED_TOKEN:                'SHOW_NUMBERED_TOKEN';
 AGGREGATION:                        'AGGREGATION';
 
 //Native JOIN KEYWORDS
@@ -62,23 +73,26 @@ ANTI:                               'ANTI';
 CROSS:                              'CROSS';
 LEFT_HINT:                          'HINT.LEFT';
 RIGHT_HINT:                         'HINT.RIGHT';
-PATTERN_METHOD:                     'PATTERN_METHOD';
 
 // COMMAND ASSIST KEYWORDS
 AS:                                 'AS';
 BY:                                 'BY';
 SOURCE:                             'SOURCE';
 INDEX:                              'INDEX';
+A:                                  'A';
+ASC:                                'ASC';
 D:                                  'D';
 DESC:                               'DESC';
 DATASOURCES:                        'DATASOURCES';
 USING:                              'USING';
 WITH:                               'WITH';
+VALUE:                              'VALUE';
 SIMPLE:                             'SIMPLE';
 STANDARD:                           'STANDARD';
 COST:                               'COST';
 EXTENDED:                           'EXTENDED';
 OVERRIDE:                           'OVERRIDE';
+OVERWRITE:                          'OVERWRITE';
 
 // SORT FIELD KEYWORDS
 // TODO #3180: Fix broken sort functionality
@@ -97,6 +111,13 @@ DEDUP_SPLITVALUES:                  'DEDUP_SPLITVALUES';
 PARTITIONS:                         'PARTITIONS';
 ALLNUM:                             'ALLNUM';
 DELIM:                              'DELIM';
+CURRENT:                            'CURRENT';
+WINDOW:                             'WINDOW';
+GLOBAL:                             'GLOBAL';
+RESET_BEFORE:                       'RESET_BEFORE';
+RESET_AFTER:                        'RESET_AFTER';
+BUCKET_NULLABLE:                    'BUCKET_NULLABLE';
+USENULL:                            'USENULL';
 CENTROIDS:                          'CENTROIDS';
 ITERATIONS:                         'ITERATIONS';
 DISTANCE_TYPE:                      'DISTANCE_TYPE';
@@ -112,8 +133,14 @@ TIME_ZONE:                          'TIME_ZONE';
 TRAINING_DATA_SIZE:                 'TRAINING_DATA_SIZE';
 ANOMALY_SCORE_THRESHOLD:            'ANOMALY_SCORE_THRESHOLD';
 APPEND:                             'APPEND';
+MULTISEARCH:                        'MULTISEARCH';
 COUNTFIELD:                         'COUNTFIELD';
 SHOWCOUNT:                          'SHOWCOUNT';
+LIMIT:                              'LIMIT';
+USEOTHER:                           'USEOTHER';
+INPUT:                              'INPUT';
+OUTPUT:                             'OUTPUT';
+PATH:                               'PATH';
 
 // COMPARISON FUNCTION KEYWORDS
 CASE:                               'CASE';
@@ -132,6 +159,7 @@ XOR:                                'XOR';
 TRUE:                               'TRUE';
 FALSE:                              'FALSE';
 REGEXP:                             'REGEXP';
+REGEX_MATCH:                        'REGEX_MATCH';
 
 // DATETIME, INTERVAL AND UNIT KEYWORDS
 CONVERT_TZ:                         'CONVERT_TZ';
@@ -148,8 +176,8 @@ HOUR_MINUTE:                        'HOUR_MINUTE';
 HOUR_OF_DAY:                        'HOUR_OF_DAY';
 HOUR_SECOND:                        'HOUR_SECOND';
 INTERVAL:                           'INTERVAL';
-MICROSECOND:                        'MICROSECOND';
 MILLISECOND:                        'MILLISECOND';
+MICROSECOND:                        'MICROSECOND';
 MINUTE:                             'MINUTE';
 MINUTE_MICROSECOND:                 'MINUTE_MICROSECOND';
 MINUTE_OF_DAY:                      'MINUTE_OF_DAY';
@@ -167,9 +195,7 @@ YEAR:                               'YEAR';
 YEAR_MONTH:                         'YEAR_MONTH';
 
 // DATASET TYPES
-DATAMODEL:                          'DATAMODEL';
 LOOKUP:                             'LOOKUP';
-SAVEDSEARCH:                        'SAVEDSEARCH';
 
 // CONVERTED DATA TYPES
 INT:                                'INT';
@@ -186,6 +212,7 @@ PIPE:                               '|';
 COMMA:                              ',';
 DOT:                                '.';
 EQUAL:                              '=';
+DOUBLE_EQUAL:                       '==';
 GREATER:                            '>';
 LESS:                               '<';
 NOT_GREATER:                        '<' '=';
@@ -202,10 +229,13 @@ LT_PRTHS:                           '(';
 RT_PRTHS:                           ')';
 LT_SQR_PRTHS:                       '[';
 RT_SQR_PRTHS:                       ']';
+LT_CURLY:                           '{';
+RT_CURLY:                           '}';
 SINGLE_QUOTE:                       '\'';
 DOUBLE_QUOTE:                       '"';
 BACKTICK:                           '`';
 ARROW:                              '->';
+fragment AT:                        '@';
 
 // Operators. Bit
 
@@ -234,6 +264,7 @@ VAR_SAMP:                           'VAR_SAMP';
 VAR_POP:                            'VAR_POP';
 STDDEV_SAMP:                        'STDDEV_SAMP';
 STDDEV_POP:                         'STDDEV_POP';
+PERC:                               'PERC';
 PERCENTILE:                         'PERCENTILE';
 PERCENTILE_APPROX:                  'PERCENTILE_APPROX';
 EARLIEST:                           'EARLIEST';
@@ -241,8 +272,6 @@ LATEST:                             'LATEST';
 TAKE:                               'TAKE';
 LIST:                               'LIST';
 VALUES:                             'VALUES';
-EARLIEST_TIME:                      'EARLIEST_TIME';
-LATEST_TIME:                        'LATEST_TIME';
 PER_DAY:                            'PER_DAY';
 PER_HOUR:                           'PER_HOUR';
 PER_MINUTE:                         'PER_MINUTE';
@@ -264,6 +293,10 @@ NTH:                                'NTH';
 NTILE:                              'NTILE';
 
 // BASIC FUNCTIONS
+PLUS_FUCTION:                       'ADD';
+MINUS_FUCTION:                      'SUBTRACT';
+STAR_FUNCTION:                      'MULTIPLY';
+DIVIDE_FUNCTION:                    'DIVIDE';
 ABS:                                'ABS';
 CBRT:                               'CBRT';
 CEIL:                               'CEIL';
@@ -272,12 +305,13 @@ CONV:                               'CONV';
 CRC32:                              'CRC32';
 E:                                  'E';
 EXP:                                'EXP';
+EXPM1:                              'EXPM1';
 FLOOR:                              'FLOOR';
 LN:                                 'LN';
 LOG:                                'LOG';
-LOG10:                              'LOG10';
-LOG2:                               'LOG2';
+LOG_WITH_BASE:                      ([0-9]+ ('.' [0-9]+)?)? ('LOG' | 'log') [0-9]+ ('.' [0-9]+)?;
 MOD:                                'MOD';
+MODULUS:                            'MODULUS';
 PI:                                 'PI';
 POSITION:                           'POSITION';
 POW:                                'POW';
@@ -287,6 +321,8 @@ ROUND:                              'ROUND';
 SIGN:                               'SIGN';
 SQRT:                               'SQRT';
 TRUNCATE:                           'TRUNCATE';
+RINT:                               'RINT';
+SIGNUM:                             'SIGNUM';
 
 // TRIGONOMETRIC FUNCTIONS
 ACOS:                               'ACOS';
@@ -294,10 +330,12 @@ ASIN:                               'ASIN';
 ATAN:                               'ATAN';
 ATAN2:                              'ATAN2';
 COS:                                'COS';
+COSH:                               'COSH';
 COT:                                'COT';
 DEGREES:                            'DEGREES';
 RADIANS:                            'RADIANS';
 SIN:                                'SIN';
+SINH:                               'SINH';
 TAN:                                'TAN';
 
 // CRYPTOGRAPHIC FUNCTIONS
@@ -357,6 +395,7 @@ UTC_TIME:                           'UTC_TIME';
 UTC_TIMESTAMP:                      'UTC_TIMESTAMP';
 WEEKDAY:                            'WEEKDAY';
 YEARWEEK:                           'YEARWEEK';
+STRFTIME:                           'STRFTIME';
 
 // TEXT FUNCTIONS
 SUBSTR:                             'SUBSTR';
@@ -364,7 +403,6 @@ SUBSTRING:                          'SUBSTRING';
 LTRIM:                              'LTRIM';
 RTRIM:                              'RTRIM';
 TRIM:                               'TRIM';
-TO:                                 'TO';
 LOWER:                              'LOWER';
 UPPER:                              'UPPER';
 CONCAT:                             'CONCAT';
@@ -392,6 +430,8 @@ ISBLANK:                            'ISBLANK';
 // COLLECTION FUNCTIONS
 ARRAY:                              'ARRAY';
 ARRAY_LENGTH:                       'ARRAY_LENGTH';
+MVAPPEND:                           'MVAPPEND';
+MVJOIN:                             'MVJOIN';
 FORALL:                             'FORALL';
 FILTER:                             'FILTER';
 TRANSFORM:                          'TRANSFORM';
@@ -460,17 +500,43 @@ ZERO_TERMS_QUERY:                   'ZERO_TERMS_QUERY';
 
 // SPAN KEYWORDS
 SPAN:                               'SPAN';
-MS:                                 'MS';
-S:                                  'S';
-M:                                  'M';
-H:                                  'H';
-W:                                  'W';
-Q:                                  'Q';
-Y:                                  'Y';
+BINS:                               'BINS';
+MINSPAN:                            'MINSPAN';
+START:                              'START';
+END:                                'END';
+ALIGNTIME:                          'ALIGNTIME';
+// PERCENTILE SHORTCUT FUNCTIONS
+// Must precede ID to avoid conflicts with identifier matching
+PERCENTILE_SHORTCUT:                PERC(INTEGER_LITERAL | DECIMAL_LITERAL) | 'P'(INTEGER_LITERAL | DECIMAL_LITERAL);
 
+SPANLENGTH: [0-9]+ (
+    'US' |'CS'|'DS'
+    |'MS'|'MILLISECOND'|'MILLISECONDS'
+    |'S'|'SEC'|'SECS'|'SECOND'|'SECONDS'
+    |'MIN'|'MINS'|'MINUTE'|'MINUTES'
+    |'H'|'HR'|'HRS'|'HOUR'|'HOURS'
+    |'H'|'HR'|'HRS'|'HOUR'|'HOURS'
+    |'D'|'DAY'|'DAYS'
+    |'W'|'WEEK'|'WEEKS'
+    |'M'|'MON'|'MONTH'|'MONTHS'
+    |'Q'|'QTR'|'QTRS'|'QUARTER'|'QUARTERS'
+    |'Y'|'YR'|'YRS'|'YEAR'|'YEARS'
+);
+
+NUMERIC_ID : DEC_DIGIT+ ID_LITERAL;
 
 // LITERALS AND VALUES
 //STRING_LITERAL:                     DQUOTA_STRING | SQUOTA_STRING | BQUOTA_STRING;
+fragment WEEK_SNAP_UNIT:            'W' [0-7];
+fragment TIME_SNAP_UNIT:              'S' | 'SEC' | 'SECOND'
+                                    | 'M' | 'MIN' | 'MINUTE'
+                                    | 'H' | 'HR' | 'HOUR' | 'HOURS'
+                                    | 'D' | 'DAY'
+                                    | 'W' | 'WEEK' | WEEK_SNAP_UNIT
+                                    | 'MON' | 'MONTH'
+                                    | 'Q' | 'QTR' | 'QUARTER'
+                                    | 'Y' | 'YR' | 'YEAR';
+TIME_SNAP:                          AT TIME_SNAP_UNIT;
 ID:                                 ID_LITERAL;
 CLUSTER:                            CLUSTER_PREFIX_LITERAL;
 INTEGER_LITERAL:                    DEC_DIGIT+;
