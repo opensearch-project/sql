@@ -160,7 +160,7 @@ public class WildcardUtils {
    * @param pattern wildcard pattern with escape sequences
    * @return array of pattern parts
    */
-  public static String[] splitWildcards(String pattern) {
+  private static String[] splitWildcards(String pattern) {
     List<String> parts = new ArrayList<>();
     StringBuilder current = new StringBuilder();
     boolean escaped = false;
@@ -194,7 +194,7 @@ public class WildcardUtils {
    * @param str string to count wildcards in
    * @return number of unescaped wildcards
    */
-  public static int countWildcards(String str) {
+  private static int countWildcards(String str) {
     int count = 0;
     boolean escaped = false;
     for (char c : str.toCharArray()) {
