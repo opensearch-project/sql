@@ -31,10 +31,12 @@ public class VpcFlowLogsPplDashboardIT extends PPLIntegTestCase {
 
   private void loadVpcFlowLogsIndex() throws IOException {
     if (!TestUtils.isIndexExist(client(), VPC_FLOW_LOGS_INDEX)) {
-      String mapping = TestUtils.getMappingFile("doctest/mappings/vpc_logs_index_mapping.json");
+      String mapping = TestUtils.getMappingFile("mappings/vpc_logs_index_mapping.json");
       TestUtils.createIndexByRestClient(client(), VPC_FLOW_LOGS_INDEX, mapping);
       TestUtils.loadDataByRestClient(
-          client(), VPC_FLOW_LOGS_INDEX, "src/test/resources/doctest/testdata/vpc_logs.json");
+          client(),
+          VPC_FLOW_LOGS_INDEX,
+          "src/test/java/org/opensearch/sql/ppl/dashboard/testdata/vpc_logs.json");
     }
   }
 

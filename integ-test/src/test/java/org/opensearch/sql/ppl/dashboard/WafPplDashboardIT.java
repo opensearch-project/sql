@@ -33,10 +33,12 @@ public class WafPplDashboardIT extends PPLIntegTestCase {
 
   private void loadWafLogsIndex() throws IOException {
     if (!TestUtils.isIndexExist(client(), WAF_LOGS_INDEX)) {
-      String mapping = TestUtils.getMappingFile("doctest/mappings/waf_logs_index_mapping.json");
+      String mapping = TestUtils.getMappingFile("mappings/waf_logs_index_mapping.json");
       TestUtils.createIndexByRestClient(client(), WAF_LOGS_INDEX, mapping);
       TestUtils.loadDataByRestClient(
-          client(), WAF_LOGS_INDEX, "src/test/resources/doctest/testdata/waf_logs.json");
+          client(),
+          WAF_LOGS_INDEX,
+          "src/test/java/org/opensearch/sql/ppl/dashboard/testdata/waf_logs.json");
     }
   }
 

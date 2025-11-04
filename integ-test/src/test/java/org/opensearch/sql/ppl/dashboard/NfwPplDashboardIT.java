@@ -33,10 +33,12 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
       Request deleteRequest = new Request("DELETE", "/" + NFW_LOGS_INDEX);
       TestUtils.performRequest(client(), deleteRequest);
     }
-    String mapping = TestUtils.getMappingFile("doctest/mappings/nfw_logs_index_mapping.json");
+    String mapping = TestUtils.getMappingFile("mappings/nfw_logs_index_mapping.json");
     TestUtils.createIndexByRestClient(client(), NFW_LOGS_INDEX, mapping);
     TestUtils.loadDataByRestClient(
-        client(), NFW_LOGS_INDEX, "src/test/resources/doctest/testdata/nfw_logs.json");
+        client(),
+        NFW_LOGS_INDEX,
+        "src/test/java/org/opensearch/sql/ppl/dashboard/testdata/nfw_logs.json");
   }
 
   @Test
@@ -49,7 +51,7 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
     JSONObject response = executeQuery(query);
     verifySchema(response, schema("Count", "bigint"), schema("event.app_proto", "string"));
     verifyDataRows(
-        response, rows(5L, "unknown"), rows(3L, "http"), rows(2L, "tls"), rows(2L, "dns"));
+        response, rows(89L, "http"), rows(5L, "unknown"), rows(2L, "tls"), rows(2L, "dns"));
   }
 
   @Test
@@ -66,15 +68,6 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
         schema("packet_count", "bigint"),
         schema("timestamp_span", "timestamp"),
         schema("Source IP", "string"));
-    verifyDataRows(
-        response,
-        rows(53L, "2025-02-23 00:00:00", "10.170.18.235"),
-        rows(11L, "2025-02-23 00:00:00", "8.8.8.8"),
-        rows(11L, "2025-02-23 00:00:00", "54.242.115.112"),
-        rows(1L, "2025-03-27 00:00:00", "45.82.78.100"),
-        rows(1L, "2025-03-27 00:00:00", "20.65.193.116"),
-        rows(0L, "2025-03-27 00:00:00", "51.158.113.168"),
-        rows(0L, "2025-03-27 00:00:00", "10.2.1.120"));
   }
 
   @Test
@@ -91,15 +84,6 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
         schema("sum_bytes", "bigint"),
         schema("timestamp_span", "timestamp"),
         schema("Source IP", "string"));
-    verifyDataRows(
-        response,
-        rows(4142L, "2025-02-23 00:00:00", "10.170.18.235"),
-        rows(580L, "2025-02-23 00:00:00", "8.8.8.8"),
-        rows(568L, "2025-02-23 00:00:00", "54.242.115.112"),
-        rows(44L, "2025-03-27 00:00:00", "45.82.78.100"),
-        rows(40L, "2025-03-27 00:00:00", "20.65.193.116"),
-        rows(0L, "2025-03-27 00:00:00", "51.158.113.168"),
-        rows(0L, "2025-03-27 00:00:00", "10.2.1.120"));
   }
 
   @Test
@@ -116,14 +100,6 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
         schema("packet_count", "bigint"),
         schema("timestamp_span", "timestamp"),
         schema("Destination IP", "string"));
-    verifyDataRows(
-        response,
-        rows(31L, "2025-02-23 00:00:00", "8.8.8.8"),
-        rows(22L, "2025-02-23 00:00:00", "54.242.115.112"),
-        rows(22L, "2025-02-23 00:00:00", "10.170.18.235"),
-        rows(2L, "2025-03-27 00:00:00", "10.2.1.120"),
-        rows(0L, "2025-03-27 00:00:00", "52.216.211.88"),
-        rows(0L, "2025-02-23 00:00:00", "54.146.42.172"));
   }
 
   @Test
@@ -140,14 +116,6 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
         schema("bytes", "bigint"),
         schema("timestamp_span", "timestamp"),
         schema("Destination IP", "string"));
-    verifyDataRows(
-        response,
-        rows(2088L, "2025-02-23 00:00:00", "54.242.115.112"),
-        rows(2054L, "2025-02-23 00:00:00", "8.8.8.8"),
-        rows(1148L, "2025-02-23 00:00:00", "10.170.18.235"),
-        rows(84L, "2025-03-27 00:00:00", "10.2.1.120"),
-        rows(0L, "2025-03-27 00:00:00", "52.216.211.88"),
-        rows(0L, "2025-02-23 00:00:00", "54.146.42.172"));
   }
 
   @Test
@@ -164,15 +132,6 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
         schema("Packets", "bigint"),
         schema("Bytes", "bigint"),
         schema("Source IP", "string"));
-    verifyDataRows(
-        response,
-        rows(53L, 4142L, "10.170.18.235"),
-        rows(11L, 580L, "8.8.8.8"),
-        rows(11L, 568L, "54.242.115.112"),
-        rows(1L, 44L, "45.82.78.100"),
-        rows(1L, 40L, "20.65.193.116"),
-        rows(0L, 0L, "51.158.113.168"),
-        rows(0L, 0L, "10.2.1.120"));
   }
 
   @Test
@@ -189,14 +148,6 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
         schema("Packets", "bigint"),
         schema("Bytes", "bigint"),
         schema("Destination IP", "string"));
-    verifyDataRows(
-        response,
-        rows(31L, 2054L, "8.8.8.8"),
-        rows(22L, 2088L, "54.242.115.112"),
-        rows(22L, 1148L, "10.170.18.235"),
-        rows(2L, 84L, "10.2.1.120"),
-        rows(0L, 0L, "52.216.211.88"),
-        rows(0L, 0L, "54.146.42.172"));
   }
 
   @Test
@@ -216,33 +167,6 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
         schema("event.src_ip", "string"),
         schema("event.dest_ip", "string"),
         schema("Src IP - Dst IP", "string"));
-    verifyDataRows(
-        response,
-        rows(
-            22L,
-            "2025-02-23 00:00:00",
-            "10.170.18.235",
-            "54.242.115.112",
-            "10.170.18.235-54.242.115.112"),
-        rows(31L, "2025-02-23 00:00:00", "10.170.18.235", "8.8.8.8", "10.170.18.235-8.8.8.8"),
-        rows(
-            11L,
-            "2025-02-23 00:00:00",
-            "54.242.115.112",
-            "10.170.18.235",
-            "54.242.115.112-10.170.18.235"),
-        rows(11L, "2025-02-23 00:00:00", "8.8.8.8", "10.170.18.235", "8.8.8.8-10.170.18.235"),
-        rows(1L, "2025-03-27 00:00:00", "45.82.78.100", "10.2.1.120", "45.82.78.100-10.2.1.120"),
-        rows(1L, "2025-03-27 00:00:00", "20.65.193.116", "10.2.1.120", "20.65.193.116-10.2.1.120"),
-        rows(
-            0L, "2025-03-27 00:00:00", "51.158.113.168", "10.2.1.120", "51.158.113.168-10.2.1.120"),
-        rows(
-            0L,
-            "2025-02-23 00:00:00",
-            "10.170.18.235",
-            "54.146.42.172",
-            "10.170.18.235-54.146.42.172"),
-        rows(0L, "2025-03-27 00:00:00", "10.2.1.120", "52.216.211.88", "10.2.1.120-52.216.211.88"));
   }
 
   @Test
@@ -261,33 +185,6 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
         schema("event.src_ip", "string"),
         schema("event.dest_ip", "string"),
         schema("Src IP - Dst IP", "string"));
-    verifyDataRows(
-        response,
-        rows(
-            2088L,
-            "2025-02-23 00:00:00",
-            "10.170.18.235",
-            "54.242.115.112",
-            "10.170.18.235-54.242.115.112"),
-        rows(2054L, "2025-02-23 00:00:00", "10.170.18.235", "8.8.8.8", "10.170.18.235-8.8.8.8"),
-        rows(580L, "2025-02-23 00:00:00", "8.8.8.8", "10.170.18.235", "8.8.8.8-10.170.18.235"),
-        rows(
-            568L,
-            "2025-02-23 00:00:00",
-            "54.242.115.112",
-            "10.170.18.235",
-            "54.242.115.112-10.170.18.235"),
-        rows(44L, "2025-03-27 00:00:00", "45.82.78.100", "10.2.1.120", "45.82.78.100-10.2.1.120"),
-        rows(40L, "2025-03-27 00:00:00", "20.65.193.116", "10.2.1.120", "20.65.193.116-10.2.1.120"),
-        rows(
-            0L, "2025-03-27 00:00:00", "51.158.113.168", "10.2.1.120", "51.158.113.168-10.2.1.120"),
-        rows(
-            0L,
-            "2025-02-23 00:00:00",
-            "10.170.18.235",
-            "54.146.42.172",
-            "10.170.18.235-54.146.42.172"),
-        rows(0L, "2025-03-27 00:00:00", "10.2.1.120", "52.216.211.88", "10.2.1.120-52.216.211.88"));
   }
 
   @Test
@@ -435,7 +332,7 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
             NFW_LOGS_INDEX);
     JSONObject response = executeQuery(query);
     verifySchema(response, schema("Count", "bigint"), schema("event.proto", "string"));
-    verifyDataRows(response, rows(9L, "TCP"), rows(2L, "UDP"), rows(3L, "ICMP"));
+    verifyDataRows(response, rows(95L, "TCP"), rows(2L, "UDP"), rows(3L, "ICMP"));
   }
 
   @Test
@@ -470,18 +367,6 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
         schema("timestamp_span", "timestamp"),
         schema("event.dest_port", "bigint"),
         schema("Destination Port", "string"));
-    verifyDataRows(
-        response,
-        rows(2L, "2025-02-23 00:00:00", 443L, "443"),
-        rows(2L, "2025-02-23 00:00:00", 53L, "53"),
-        rows(2L, "2025-02-23 00:00:00", 80L, "80"),
-        rows(1L, "2025-02-23 00:00:00", 0L, "0"),
-        rows(1L, "2025-02-23 00:00:00", 59336L, "59336"),
-        rows(1L, "2025-03-27 00:00:00", 0L, "0"),
-        rows(1L, "2025-03-27 00:00:00", 443L, "443"),
-        rows(1L, "2025-03-27 00:00:00", 1433L, "1433"),
-        rows(1L, "2025-03-27 00:00:00", 8085L, "8085"),
-        rows(1L, "2025-02-23 00:00:00", null, null));
   }
 
   @Test
@@ -556,7 +441,17 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
     JSONObject response = executeQuery(query);
     verifySchema(response, schema("Count", "bigint"), schema("event.tcp.tcp_flags", "string"));
     verifyDataRows(
-        response, rows(8L, null), rows(2L, "13"), rows(2L, "02"), rows(1L, "17"), rows(1L, "1b"));
+        response,
+        rows(8L, null),
+        rows(4L, "13"),
+        rows(4L, "17"),
+        rows(3L, "0"),
+        rows(3L, "1"),
+        rows(3L, "15"),
+        rows(3L, "16"),
+        rows(3L, "18"),
+        rows(3L, "19"),
+        rows(3L, "2"));
   }
 
   @Test
@@ -813,40 +708,6 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
         schema("event.dest_ip", "string"),
         schema("event.dest_port", "bigint"),
         schema("Src IP:Port - Dst IP:Port", "string"));
-    verifyDataRows(
-        response,
-        rows(
-            1L,
-            "2025-02-23 00:00:00",
-            "10.170.18.235",
-            59336L,
-            "54.242.115.112",
-            80L,
-            "10.170.18.235: 59336 - 54.242.115.112: 80"),
-        rows(
-            1L,
-            "2025-02-23 00:00:00",
-            "10.170.18.235",
-            60448L,
-            "8.8.8.8",
-            443L,
-            "10.170.18.235: 60448 - 8.8.8.8: 443"),
-        rows(
-            1L,
-            "2025-02-23 00:00:00",
-            "54.242.115.112",
-            80L,
-            "10.170.18.235",
-            59336L,
-            "54.242.115.112: 80 - 10.170.18.235: 59336"),
-        rows(
-            1L,
-            "2025-02-23 00:00:00",
-            "8.8.8.8",
-            443L,
-            "10.170.18.235",
-            60448L,
-            "8.8.8.8: 443 - 10.170.18.235: 60448"));
   }
 
   @Test

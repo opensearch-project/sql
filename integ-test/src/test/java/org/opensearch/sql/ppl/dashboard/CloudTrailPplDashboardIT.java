@@ -34,13 +34,12 @@ public class CloudTrailPplDashboardIT extends PPLIntegTestCase {
 
   private void loadCloudTrailLogsIndex() throws IOException {
     if (!TestUtils.isIndexExist(client(), CLOUDTRAIL_LOGS_INDEX)) {
-      String mapping =
-          TestUtils.getMappingFile("doctest/mappings/cloudtrail_logs_index_mapping.json");
+      String mapping = TestUtils.getMappingFile("mappings/cloudtrail_logs_index_mapping.json");
       TestUtils.createIndexByRestClient(client(), CLOUDTRAIL_LOGS_INDEX, mapping);
       TestUtils.loadDataByRestClient(
           client(),
           CLOUDTRAIL_LOGS_INDEX,
-          "src/test/resources/doctest/testdata/cloudtrail_logs.json");
+          "src/test/java/org/opensearch/sql/ppl/dashboard/testdata/cloudtrail_logs.json");
     }
   }
 
