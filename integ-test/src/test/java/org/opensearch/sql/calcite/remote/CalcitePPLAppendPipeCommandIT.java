@@ -75,20 +75,16 @@ public class CalcitePPLAppendPipeCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testAppendpipeWithConflictTypeColumn() throws IOException {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                Locale.ROOT,
-                "source=%s | stats sum(age) as sum by gender | appendpipe [ eval sum = cast(sum as"
-                    + " double) ] | head 5",
-                TEST_INDEX_ACCOUNT));
-    verifySchemaInOrder(
-        actual, schema("sum", "bigint"), schema("gender", "string"), schema("sum0", "double"));
-    verifyDataRows(
-        actual,
-        rows(14947, "F", null),
-        rows(15224, "M", null),
-        rows(null, "F", 14947d),
-        rows(null, "M", 15224d));
+    Exception exception =
+        assertThrows(
+            Exception.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        Locale.ROOT,
+                        "source=%s | stats sum(age) as sum by gender | appendpipe [ eval sum ="
+                            + " cast(sum as double) ] | head 5",
+                        TEST_INDEX_ACCOUNT)));
+    assertTrue(exception.getMessage().contains("due to incompatible types"));
   }
 }

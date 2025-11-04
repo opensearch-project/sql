@@ -59,26 +59,4 @@ public class CalcitePPLAppendPipeTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
-
-  @Test
-  public void testAppendPipeWithConflictTypeColumn() {
-    String ppl = "source=EMP | fields DEPTNO | appendpipe [ | fields DEPTNO | eval DEPTNO = 20 ]";
-    RelNode root = getRelNode(ppl);
-    String expectedLogical =
-        "LogicalUnion(all=[true])\n"
-            + "  LogicalProject(DEPTNO=[$7], DEPTNO0=[null:INTEGER])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n"
-            + "  LogicalProject(DEPTNO=[null:TINYINT], DEPTNO0=[20])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    verifyLogical(root, expectedLogical);
-    verifyResultCount(root, 28);
-
-    String expectedSparkSql =
-        "SELECT `DEPTNO`, CAST(NULL AS INTEGER) `DEPTNO0`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "UNION ALL\n"
-            + "SELECT CAST(NULL AS TINYINT) `DEPTNO`, 20 `DEPTNO0`\n"
-            + "FROM `scott`.`EMP`";
-    verifyPPLToSparkSQL(root, expectedSparkSql);
-  }
 }

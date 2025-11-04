@@ -66,23 +66,7 @@ PPL query::
     | 101      | M      | null  |
     +----------+--------+-------+
 
-Example 3: Append rows with column type conflict
-=============================================
+Limitations
+===========
 
-This example shows how column type conflicts are handled when appending results. Same name columns with different types will generate two different columns in appended result.
-
-PPL query::
-
-    os> source=accounts | stats sum(age) as total by gender, state | sort -total | head 5 | appendpipe [ stats sum(total) as total by gender | eval state = 123 ];
-    fetched rows / total rows = 6/6
-    +------+--------+-------+--------+
-    | sum  | gender | state | state0 |
-    |------+--------+-------+--------|
-    | 36   | M      | TN    | null   |
-    | 33   | M      | MD    | null   |
-    | 32   | M      | IL    | null   |
-    | 28   | F      | VA    | null   |
-    | 28   | F      | null  | 123    |
-    | 101  | M      | null  | 123    |
-    +------+--------+-------+--------+
-
+* **Schema Compatibility**: Same as command ``append``, when fields with the same name exist between the main search and sub-search but have incompatible types, the query will fail with an error. To avoid type conflicts, ensure that fields with the same name have the same data type, or use different field names (e.g., by renaming with ``eval`` or using ``fields`` to select non-conflicting columns).
