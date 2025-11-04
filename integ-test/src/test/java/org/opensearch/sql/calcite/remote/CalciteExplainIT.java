@@ -1326,6 +1326,28 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testReplaceCommandExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_replace_command.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            String.format(
+                "source=%s | replace 'IL' WITH 'Illinois' IN state | fields state",
+                TEST_INDEX_ACCOUNT)));
+  }
+
+  @Test
+  public void testReplaceCommandWildcardExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_replace_wildcard.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            String.format(
+                "source=%s | replace '*L' WITH 'STATE_IL' IN state | fields state",
+                TEST_INDEX_ACCOUNT)));
+  }
+
+  @Test
   public void testExplainRareCommandUseNull() throws IOException {
     String expected = loadExpectedPlan("explain_rare_usenull_false.yaml");
     assertYamlEqualsIgnoreId(
@@ -1390,17 +1412,6 @@ public class CalciteExplainIT extends ExplainIT {
             String.format(
                 "source=%s | eval balance2 = CEIL(balance/10000.0) "
                     + "| stats MIN(balance2), MAX(balance2)",
-                TEST_INDEX_ACCOUNT)));
-  }
-
-  @Test
-  public void testReplaceCommandExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_replace_command.yaml");
-    assertYamlEqualsIgnoreId(
-        expected,
-            explainQueryYaml(
-            String.format(
-                "source=%s | replace 'IL' WITH 'Illinois' IN state | fields state",
                 TEST_INDEX_ACCOUNT)));
   }
 
