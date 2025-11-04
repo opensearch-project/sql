@@ -1459,10 +1459,12 @@ public class CalciteExplainIT extends ExplainIT {
   public void testGeoIpPushedInAgg() throws IOException {
     // This explain IT verifies that externally registered UDF can be properly pushed down
     assertYamlEqualsIgnoreId(
-        loadExpectedPlan("udf_geoip_in_agg_pushed.yaml"),
+        // In java 21, the position of host in the scanned table is different from the position in other java versions.
+        // Therefore, I mask all position with $*
+        loadExpectedPlan("udf_geoip_in_agg_pushed.yaml").replaceAll("\\$t?\\d+", "\\$*"),
         explainQueryYaml(
             String.format(
                 "source=%s | eval info = geoip('my-datasource', host) | stats count() by info.city",
-                TEST_INDEX_WEBLOGS)));
+                TEST_INDEX_WEBLOGS)).replaceAll("\\$t?\\d+", "\\$*"));
   }
 }
