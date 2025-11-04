@@ -37,10 +37,10 @@ public abstract class CalcitePPLPermissiveIntegTestCase extends CalcitePPLIntegT
 
   protected void assertExplainYaml(String query, String expectedYaml) {
     String actualYaml = explainQueryYaml(query);
-    assertTrue(getMessage(expectedYaml, actualYaml), expectedYaml.equals(actualYaml));
+    assertTrue(getDiffMessage(expectedYaml, actualYaml), expectedYaml.equals(actualYaml));
   }
 
-  private String getMessage(String expectedYaml, String actualYaml) {
+  private String getDiffMessage(String expectedYaml, String actualYaml) {
     return "Explain did not match:\n"
         + String.format(
             "# Expected: %s# Actual: %s", blockQuote(expectedYaml), blockQuote(actualYaml));

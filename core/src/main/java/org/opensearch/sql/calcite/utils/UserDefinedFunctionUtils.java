@@ -39,6 +39,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Optionality;
+import org.opensearch.sql.calcite.rel.RelBuilderWrapper;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
@@ -119,7 +120,7 @@ public class UserDefinedFunctionUtils {
       SqlAggFunction aggFunction,
       List<RexNode> fields,
       List<RexNode> argList,
-      RelBuilder relBuilder) {
+      RelBuilderWrapper relBuilder) {
     List<RexNode> addArgList = new ArrayList<>(fields);
     addArgList.addAll(argList);
     return relBuilder.aggregateCall(aggFunction, addArgList);

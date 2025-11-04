@@ -58,7 +58,8 @@ public abstract class CalcitePPLRelNodeIntegTestCase extends CalcitePPLIntegTest
 
   protected TestContext createTestContext() {
     CalcitePlanContext planContext = createCalcitePlanContext();
-    return new TestContext(planContext, planContext.relBuilder, planContext.rexBuilder);
+    return new TestContext(
+        planContext, planContext.relBuilder.getRawRelBuilder(), planContext.rexBuilder);
   }
 
   protected RelDataType createMapType(RexBuilder rexBuilder) {
