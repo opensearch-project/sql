@@ -1,3 +1,8 @@
+<!--
+Copyright OpenSearch Contributors
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Dashboard Integration Tests
 
 This directory contains documentation and integration tests for OpenSearch dashboard-related PPL queries.
