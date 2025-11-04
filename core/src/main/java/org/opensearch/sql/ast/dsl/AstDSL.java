@@ -112,7 +112,7 @@ public class AstDSL {
   }
 
   public static UnresolvedPlan search(UnresolvedPlan input, String queryString) {
-    return new Search(input, queryString);
+    return new Search(input, queryString, null);
   }
 
   public UnresolvedPlan subqueryAlias(UnresolvedPlan child, String alias) {

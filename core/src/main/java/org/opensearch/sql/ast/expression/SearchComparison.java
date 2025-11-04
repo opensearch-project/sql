@@ -64,6 +64,11 @@ public class SearchComparison extends SearchExpression {
   }
 
   @Override
+  public String toAnonymizedString() {
+    return "identifier " + operator.symbol + " ***";
+  }
+
+  @Override
   public List<? extends UnresolvedExpression> getChild() {
     return Arrays.asList(field, value);
   }

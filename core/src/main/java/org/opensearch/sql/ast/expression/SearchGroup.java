@@ -27,6 +27,11 @@ public class SearchGroup extends SearchExpression {
   }
 
   @Override
+  public String toAnonymizedString() {
+    return "(" + expression.toAnonymizedString() + ")";
+  }
+
+  @Override
   public List<? extends UnresolvedExpression> getChild() {
     return Collections.singletonList(expression);
   }

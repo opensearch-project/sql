@@ -33,7 +33,7 @@ public class PPLQueryDataAnonymizerTest {
 
   @Test
   public void testSearchCommand() {
-    assertEquals("source=table a:***", anonymize("search source=t a=1"));
+    assertEquals("source=table identifier = ***", anonymize("search source=t a=1"));
   }
 
   @Test
@@ -797,7 +797,7 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testSearchWithAbsoluteTimeRange() {
     assertEquals(
-        "source=table (@timestamp:*** AND (@timestamp:***",
+        "source=table (identifier >= ***) AND (identifier <= ***)",
         anonymize("search source=t earliest='2012-12-10 15:00:00' latest=now"));
   }
 
