@@ -8,7 +8,7 @@ calcite:
               LogicalAggregate(group=[{0, 2}], max(value)=[MAX($1)])
                 LogicalProject(category=[$1], value=[$2], timestamp0=[SPAN($3, 1, 'w')])
                   CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_time_data]])
-            LogicalProject(category=[$0], __grand_total__=[$1], __row_number__=[ROW_NUMBER() OVER (ORDER BY $1 DESC NULLS LAST)])
+            LogicalProject(category=[$0], __grand_total__=[$1], _row_number_chart_=[ROW_NUMBER() OVER (ORDER BY $1 DESC NULLS LAST)])
               LogicalAggregate(group=[{0}], __grand_total__=[MAX($1)])
                 LogicalFilter(condition=[IS NOT NULL($0)])
                   LogicalProject(category=[$0], max(value)=[$2])

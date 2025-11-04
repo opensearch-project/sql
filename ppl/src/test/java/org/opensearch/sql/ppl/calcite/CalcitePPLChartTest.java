@@ -104,22 +104,22 @@ public class CalcitePPLChartTest extends CalcitePPLAbstractTest {
 
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
-        "SELECT `t1`.`gender`, CASE WHEN `t1`.`age` IS NULL THEN 'NULL' WHEN `t7`.`__row_number__`"
-            + " <= 10 THEN `t1`.`age` ELSE 'OTHER' END `age`, AVG(`t1`.`avg(balance)`)"
-            + " `avg(balance)`\n"
+        "SELECT `t1`.`gender`, CASE WHEN `t1`.`age` IS NULL THEN 'NULL' WHEN"
+            + " `t7`.`_row_number_chart_` <= 10 THEN `t1`.`age` ELSE 'OTHER' END `age`,"
+            + " AVG(`t1`.`avg(balance)`) `avg(balance)`\n"
             + "FROM (SELECT `gender`, SAFE_CAST(`age` AS STRING) `age`, AVG(`balance`)"
             + " `avg(balance)`\n"
             + "FROM `scott`.`bank`\n"
             + "GROUP BY `gender`, `age`) `t1`\n"
             + "LEFT JOIN (SELECT `age`, AVG(`avg(balance)`) `__grand_total__`, ROW_NUMBER() OVER"
-            + " (ORDER BY AVG(`avg(balance)`) DESC) `__row_number__`\n"
+            + " (ORDER BY AVG(`avg(balance)`) DESC) `_row_number_chart_`\n"
             + "FROM (SELECT SAFE_CAST(`age` AS STRING) `age`, AVG(`balance`) `avg(balance)`\n"
             + "FROM `scott`.`bank`\n"
             + "GROUP BY `gender`, `age`) `t4`\n"
             + "WHERE `age` IS NOT NULL\n"
             + "GROUP BY `age`) `t7` ON `t1`.`age` = `t7`.`age`\n"
             + "GROUP BY `t1`.`gender`, CASE WHEN `t1`.`age` IS NULL THEN 'NULL' WHEN"
-            + " `t7`.`__row_number__` <= 10 THEN `t1`.`age` ELSE 'OTHER' END";
+            + " `t7`.`_row_number_chart_` <= 10 THEN `t1`.`age` ELSE 'OTHER' END";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -129,22 +129,22 @@ public class CalcitePPLChartTest extends CalcitePPLAbstractTest {
 
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
-        "SELECT `t1`.`gender`, CASE WHEN `t1`.`age` IS NULL THEN 'NULL' WHEN `t7`.`__row_number__`"
-            + " <= 10 THEN `t1`.`age` ELSE 'OTHER' END `age`, AVG(`t1`.`avg(balance)`)"
-            + " `avg(balance)`\n"
+        "SELECT `t1`.`gender`, CASE WHEN `t1`.`age` IS NULL THEN 'NULL' WHEN"
+            + " `t7`.`_row_number_chart_` <= 10 THEN `t1`.`age` ELSE 'OTHER' END `age`,"
+            + " AVG(`t1`.`avg(balance)`) `avg(balance)`\n"
             + "FROM (SELECT `gender`, SAFE_CAST(`age` AS STRING) `age`, AVG(`balance`)"
             + " `avg(balance)`\n"
             + "FROM `scott`.`bank`\n"
             + "GROUP BY `gender`, `age`) `t1`\n"
             + "LEFT JOIN (SELECT `age`, AVG(`avg(balance)`) `__grand_total__`, ROW_NUMBER() OVER"
-            + " (ORDER BY AVG(`avg(balance)`) DESC) `__row_number__`\n"
+            + " (ORDER BY AVG(`avg(balance)`) DESC) `_row_number_chart_`\n"
             + "FROM (SELECT SAFE_CAST(`age` AS STRING) `age`, AVG(`balance`) `avg(balance)`\n"
             + "FROM `scott`.`bank`\n"
             + "GROUP BY `gender`, `age`) `t4`\n"
             + "WHERE `age` IS NOT NULL\n"
             + "GROUP BY `age`) `t7` ON `t1`.`age` = `t7`.`age`\n"
             + "GROUP BY `t1`.`gender`, CASE WHEN `t1`.`age` IS NULL THEN 'NULL' WHEN"
-            + " `t7`.`__row_number__` <= 10 THEN `t1`.`age` ELSE 'OTHER' END";
+            + " `t7`.`_row_number_chart_` <= 10 THEN `t1`.`age` ELSE 'OTHER' END";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -191,21 +191,21 @@ public class CalcitePPLChartTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
         "SELECT `t1`.`timestamp`, CASE WHEN `t1`.`category` IS NULL THEN 'NULL' WHEN"
-            + " `t7`.`__row_number__` <= 10 THEN `t1`.`category` ELSE 'OTHER' END `category`,"
+            + " `t7`.`_row_number_chart_` <= 10 THEN `t1`.`category` ELSE 'OTHER' END `category`,"
             + " MAX(`t1`.`max(value)`) `max(value)`\n"
             + "FROM (SELECT `SPAN`(`timestamp`, 1, 'w') `timestamp`, `category`, MAX(`value`)"
             + " `max(value)`\n"
             + "FROM `scott`.`time_data`\n"
             + "GROUP BY `category`, `SPAN`(`timestamp`, 1, 'w')) `t1`\n"
             + "LEFT JOIN (SELECT `category`, MAX(`max(value)`) `__grand_total__`, ROW_NUMBER() OVER"
-            + " (ORDER BY MAX(`max(value)`) DESC) `__row_number__`\n"
+            + " (ORDER BY MAX(`max(value)`) DESC) `_row_number_chart_`\n"
             + "FROM (SELECT `category`, MAX(`value`) `max(value)`\n"
             + "FROM `scott`.`time_data`\n"
             + "GROUP BY `category`, `SPAN`(`timestamp`, 1, 'w')) `t4`\n"
             + "WHERE `category` IS NOT NULL\n"
             + "GROUP BY `category`) `t7` ON `t1`.`category` = `t7`.`category`\n"
             + "GROUP BY `t1`.`timestamp`, CASE WHEN `t1`.`category` IS NULL THEN 'NULL' WHEN"
-            + " `t7`.`__row_number__` <= 10 THEN `t1`.`category` ELSE 'OTHER' END";
+            + " `t7`.`_row_number_chart_` <= 10 THEN `t1`.`category` ELSE 'OTHER' END";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 

@@ -2459,7 +2459,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // Always set it to null last so that it does not interfere with top / bottom calculation
     grandTotal = relBuilder.nullsLast(grandTotal);
-    final String ROW_NUM_COL = "__row_number__";
     RexNode rowNum =
         PlanUtils.makeOver(
             context,
@@ -2469,7 +2468,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             List.of(),
             List.of(grandTotal),
             WindowFrame.toCurrentRow());
-    relBuilder.projectPlus(relBuilder.alias(rowNum, ROW_NUM_COL));
+    relBuilder.projectPlus(relBuilder.alias(rowNum, PlanUtils.ROW_NUMBER_COLUMN_FOR_CHART));
     RelNode ranked = relBuilder.build();
 
     relBuilder.push(aggregated);
@@ -2483,7 +2482,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RexNode lteCondition =
         relBuilder.call(
             SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
-            relBuilder.field(ROW_NUM_COL),
+            relBuilder.field(PlanUtils.ROW_NUMBER_COLUMN_FOR_CHART),
             relBuilder.literal(limit));
     if (!config.useOther) {
       relBuilder.filter(lteCondition);

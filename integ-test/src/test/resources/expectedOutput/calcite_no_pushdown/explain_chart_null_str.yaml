@@ -8,7 +8,7 @@ calcite:
               LogicalAggregate(group=[{0, 2}], avg(balance)=[AVG($1)])
                 LogicalProject(gender=[$4], balance=[$3], age0=[SPAN($5, 10, null:NULL)])
                   CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank_with_null_values]])
-            LogicalProject(age=[$0], __grand_total__=[$1], __row_number__=[ROW_NUMBER() OVER (ORDER BY $1 DESC NULLS LAST)])
+            LogicalProject(age=[$0], __grand_total__=[$1], _row_number_chart_=[ROW_NUMBER() OVER (ORDER BY $1 DESC NULLS LAST)])
               LogicalAggregate(group=[{0}], __grand_total__=[AVG($1)])
                 LogicalFilter(condition=[IS NOT NULL($0)])
                   LogicalProject(age=[SAFE_CAST($1)], avg(balance)=[$2])

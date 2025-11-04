@@ -7,7 +7,7 @@ calcite:
             LogicalAggregate(group=[{0, 1}], max(severityNumber)=[MAX($2)])
               LogicalProject(flags=[$23], severityText=[$7], severityNumber=[$163])
                 CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_otel_logs]])
-            LogicalProject(severityText=[$0], __grand_total__=[$1], __row_number__=[ROW_NUMBER() OVER (ORDER BY $1 DESC NULLS LAST)])
+            LogicalProject(severityText=[$0], __grand_total__=[$1], _row_number_chart_=[ROW_NUMBER() OVER (ORDER BY $1 DESC NULLS LAST)])
               LogicalAggregate(group=[{0}], __grand_total__=[MAX($1)])
                 LogicalFilter(condition=[IS NOT NULL($0)])
                   LogicalProject(severityText=[$1], max(severityNumber)=[$2])
