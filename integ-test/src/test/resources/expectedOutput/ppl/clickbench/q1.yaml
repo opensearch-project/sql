@@ -1,0 +1,12 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[count()]"
+  children:
+    - name: OpenSearchIndexScan
+      description:
+        request: "OpenSearchQueryRequest(indexName=hits, sourceBuilder={\"from\":0,\"\
+          size\":0,\"timeout\":\"1m\",\"aggregations\":{\"count()\":{\"value_count\"\
+          :{\"field\":\"_index\"}}}}, needClean=true, searchDone=false, pitId=*,\
+          \ cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
+      children: []

@@ -1,0 +1,15 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(sort0=[$0], dir0=[DESC-nulls-last], fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalSort(sort0=[$0], dir0=[DESC-nulls-last], fetch=[10])
+        LogicalProject(c=[$2], sum(IsRefresh)=[$3], avg(ResolutionWidth)=[$4], WatchID=[$0], ClientIP=[$1])
+          LogicalAggregate(group=[{0, 1}], c=[COUNT()], sum(IsRefresh)=[SUM($2)], avg(ResolutionWidth)=[AVG($3)])
+            LogicalProject(WatchID=[$41], ClientIP=[$76], IsRefresh=[$72], ResolutionWidth=[$80])
+              LogicalFilter(condition=[AND(IS NOT NULL($41), IS NOT NULL($76))])
+                LogicalFilter(condition=[<>($63, '')])
+                  CalciteLogicalIndexScan(table=[[OpenSearch, hits]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableLimit(fetch=[10])
+        EnumerableSort(sort0=[$0], dir0=[DESC-nulls-last])
+          CalciteEnumerableIndexScan(table=[[OpenSearch, hits]], PushDownContext=[[PROJECT->[WatchID, SearchPhrase, IsRefresh, ClientIP, ResolutionWidth], FILTER->AND(<>($1, ''), IS NOT NULL($0), IS NOT NULL($3)), AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0, 1},c=COUNT(),sum(IsRefresh)=SUM($2),avg(ResolutionWidth)=AVG($3)), PROJECT->[c, sum(IsRefresh), avg(ResolutionWidth), WatchID, ClientIP]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","query":{"bool":{"must":[{"bool":{"must":[{"exists":{"field":"SearchPhrase","boost":1.0}}],"must_not":[{"term":{"SearchPhrase":{"value":"","boost":1.0}}}],"adjust_pure_negative":true,"boost":1.0}},{"exists":{"field":"WatchID","boost":1.0}},{"exists":{"field":"ClientIP","boost":1.0}}],"adjust_pure_negative":true,"boost":1.0}},"_source":{"includes":["WatchID","SearchPhrase","IsRefresh","ClientIP","ResolutionWidth"],"excludes":[]},"aggregations":{"composite_buckets":{"composite":{"size":10000,"sources":[{"WatchID":{"terms":{"field":"WatchID","missing_bucket":false,"order":"asc"}}},{"ClientIP":{"terms":{"field":"ClientIP","missing_bucket":false,"order":"asc"}}}]},"aggregations":{"sum(IsRefresh)":{"sum":{"field":"IsRefresh"}},"avg(ResolutionWidth)":{"avg":{"field":"ResolutionWidth"}}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
