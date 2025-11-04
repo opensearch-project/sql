@@ -2854,9 +2854,39 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         for (ReplacePair pair : node.getReplacePairs()) {
           RexNode patternNode = rexVisitor.analyze(pair.getPattern(), context);
           RexNode replacementNode = rexVisitor.analyze(pair.getReplacement(), context);
-          fieldRef =
-              context.relBuilder.call(
-                  SqlStdOperatorTable.REPLACE, fieldRef, patternNode, replacementNode);
+
+          String patternStr = pair.getPattern().getValue().toString();
+          String replacementStr = pair.getReplacement().getValue().toString();
+
+          if (patternStr.contains("*")) {
+            WildcardUtils.validateWildcardSymmetry(patternStr, replacementStr);
+
+            String regexPattern = WildcardUtils.convertWildcardPatternToRegex(patternStr);
+            String regexReplacement =
+                WildcardUtils.convertWildcardReplacementToRegex(replacementStr);
+
+            RexNode regexPatternNode =
+                context.rexBuilder.makeLiteral(
+                    regexPattern,
+                    context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
+                    true);
+            RexNode regexReplacementNode =
+                context.rexBuilder.makeLiteral(
+                    regexReplacement,
+                    context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
+                    true);
+
+            fieldRef =
+                context.rexBuilder.makeCall(
+                    org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE_3,
+                    fieldRef,
+                    regexPatternNode,
+                    regexReplacementNode);
+          } else {
+            fieldRef =
+                context.relBuilder.call(
+                    SqlStdOperatorTable.REPLACE, fieldRef, patternNode, replacementNode);
+          }
         }
 
         projectList.add(fieldRef);
