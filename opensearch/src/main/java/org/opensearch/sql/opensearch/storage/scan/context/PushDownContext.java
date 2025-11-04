@@ -28,9 +28,10 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
 
   private boolean isLimitPushed = false;
   private boolean isProjectPushed = false;
-  private boolean isMetricOrderPushed = false;
+  private boolean isMeasureOrderPushed = false;
   private boolean isSortPushed = false;
   private boolean isTopKPushed = false;
+  private boolean isRareTopPushed = false;
 
   public PushDownContext(OpenSearchIndex osIndex) {
     this.osIndex = osIndex;
@@ -99,7 +100,7 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
     }
     if (operation.type() == PushDownType.LIMIT) {
       isLimitPushed = true;
-      if (isSortPushed || isMetricOrderPushed) {
+      if (isSortPushed || isMeasureOrderPushed) {
         isTopKPushed = true;
       }
     }
@@ -110,7 +111,10 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
       isSortPushed = true;
     }
     if (operation.type() == PushDownType.SORT_AGG_METRICS) {
-      isMetricOrderPushed = true;
+      isMeasureOrderPushed = true;
+    }
+    if (operation.type() == PushDownType.RARE_TOP) {
+      isRareTopPushed = true;
     }
     operation.action().transform(this, operation);
     return true;
