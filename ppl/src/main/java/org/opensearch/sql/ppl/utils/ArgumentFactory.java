@@ -28,6 +28,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandCont
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PrefixSortFieldContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StreamstatsCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SuffixSortFieldContext;
 
 /** Util class to get all arguments as a list from the PPL command. */
@@ -87,6 +88,25 @@ public class ArgumentFactory {
     return settings == null
         || settings.getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED) == null
         || Boolean.TRUE.equals(settings.getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED));
+  }
+
+  /**
+   * Get list of {@link Argument}.
+   *
+   * @param ctx StreamstatsCommandContext instance
+   * @return the list of arguments fetched from the streamstats command
+   */
+  public static List<Argument> getArgumentList(StreamstatsCommandContext ctx) {
+    return Arrays.asList(
+        ctx.streamstatsArgs().currentArg() != null && !ctx.streamstatsArgs().currentArg().isEmpty()
+            ? new Argument("current", getArgumentValue(ctx.streamstatsArgs().currentArg(0).current))
+            : new Argument("current", new Literal(true, DataType.BOOLEAN)),
+        ctx.streamstatsArgs().windowArg() != null && !ctx.streamstatsArgs().windowArg().isEmpty()
+            ? new Argument("window", getArgumentValue(ctx.streamstatsArgs().windowArg(0).window))
+            : new Argument("window", new Literal(0, DataType.INTEGER)),
+        ctx.streamstatsArgs().globalArg() != null && !ctx.streamstatsArgs().globalArg().isEmpty()
+            ? new Argument("global", getArgumentValue(ctx.streamstatsArgs().globalArg(0).global))
+            : new Argument("global", new Literal(true, DataType.BOOLEAN)));
   }
 
   /**
