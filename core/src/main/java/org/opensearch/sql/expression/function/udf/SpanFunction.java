@@ -80,8 +80,12 @@ public class SpanFunction extends ImplementorUDF {
       Expression interval = translatedOperands.get(1);
 
       RelDataType fieldType = call.getOperands().get(0).getType();
+      RelDataType intervalType = call.getOperands().get(1).getType();
       RelDataType unitType = call.getOperands().get(2).getType();
 
+      if (SqlTypeUtil.isDecimal(intervalType)) {
+        interval = Expressions.call(interval, "doubleValue");
+      }
       if (SqlTypeUtil.isNull(unitType)) {
         return switch (call.getType().getSqlTypeName()) {
           case BIGINT, INTEGER, SMALLINT, TINYINT -> Expressions.multiply(
