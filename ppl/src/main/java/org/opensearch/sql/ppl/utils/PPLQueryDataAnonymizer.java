@@ -237,7 +237,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     }
     // add "[]" only if its child is not a root
     String format = childNode.getChild().isEmpty() ? "%s as %s" : "[ %s ] as %s";
-    return StringUtils.format(format, child, node.getAlias());
+    return StringUtils.format(format, child, MASK_COLUMN);
   }
 
   @Override

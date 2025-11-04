@@ -531,7 +531,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
     for (OpenSearchPPLParser.StreamstatsAggTermContext aggCtx : ctx.streamstatsAggTerm()) {
       UnresolvedExpression windowFunction = internalVisitExpression(aggCtx.windowFunction());
-      if (windowFunction instanceof WindowFunction wf) {
+      if (windowFunction instanceof WindowFunction) {
+        WindowFunction wf = (WindowFunction) windowFunction;
         // Attach PARTITION BY clause expressions
         wf.setPartitionByList(groupList);
         // Inject the frame

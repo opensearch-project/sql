@@ -813,15 +813,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         context.relBuilder.aggregate(context.relBuilder.groupKey(groupByList), aggCall);
         buildExpandRelNode(
             context.relBuilder.field(node.getAlias()), node.getAlias(), node.getAlias(), context);
-          flattenParsedPattern(
-              node.getAlias(),
-              context.relBuilder.field(node.getAlias()),
-              context,
-              true,
-              showNumberedToken);
+        flattenParsedPattern(
+            node.getAlias(),
+            context.relBuilder.field(node.getAlias()),
+            context,
+            true,
+            showNumberedToken);
       }
     }
-      return context.relBuilder.peek();
+    return context.relBuilder.peek();
   }
 
   @Override
@@ -1474,7 +1474,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       throw new IllegalArgumentException("Number of duplicate events must be greater than 0");
     }
     if (consecutive) {
-      throw new UnsupportedOperationException("Consecutive deduplication is not supported");
+      throw new CalciteUnsupportedException("Consecutive deduplication is unsupported in Calcite");
     }
     // Columns to deduplicate
     List<RexNode> dedupeFields =
@@ -1900,6 +1900,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                     AggregateFunction aggFunc = new AggregateFunction(func.getFuncName(), field, rest);
                     AggCall call = aggVisitor.analyze(new Alias(a.getName(), aggFunc), context);
                     aggCalls.add(call);
+                } else {
+                  throw new IllegalArgumentException("Unsupported window function in streamstats");
                 }
             } else {
                 throw new IllegalArgumentException("Unsupported window function in streamstats");

@@ -406,7 +406,6 @@ SUBSTRING:                          'SUBSTRING';
 LTRIM:                              'LTRIM';
 RTRIM:                              'RTRIM';
 TRIM:                               'TRIM';
-TO:                                 'TO';
 LOWER:                              'LOWER';
 UPPER:                              'UPPER';
 CONCAT:                             'CONCAT';

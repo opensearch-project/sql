@@ -1498,6 +1498,8 @@ searchableKeyWord
    | EXISTS
    | SOURCE
    | INDEX
+   | A
+   | ASC
    | DESC
    | DATASOURCES
    | FROM
