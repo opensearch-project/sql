@@ -38,6 +38,7 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.LOGS);
     loadIndex(Index.WORKER);
     loadIndex(Index.WORK_INFORMATION);
+    loadIndex(Index.WEBLOG);
   }
 
   @Override
@@ -1452,5 +1453,31 @@ public class CalciteExplainIT extends ExplainIT {
                 + "| head 5 "
                 + "| sort age "
                 + "| fields age"));
+  }
+
+  @Test
+  public void testGeoIpPushedInAgg() throws IOException {
+    // This explain IT verifies that externally registered UDF can be properly pushed down
+    assertYamlEqualsIgnoreId(
+        // In java 21, the position of host in the scanned table is different from the position in other java versions.
+        // Therefore, I mask all position with $*
+        loadExpectedPlan("udf_geoip_in_agg_pushed.yaml").replaceAll("\\$t?\\d+", "\\$*"),
+        explainQueryYaml(
+            String.format(
+                "source=%s | eval info = geoip('my-datasource', host) | stats count() by info.city",
+                TEST_INDEX_WEBLOGS)).replaceAll("\\$t?\\d+", "\\$*"));
+  }
+
+  @Test
+  public void testInternalItemAccessOnStructs() throws IOException {
+    String expected = loadExpectedPlan("access_struct_subfield_with_item.yaml");
+    assertYamlEqualsIgnoreId(
+        // The position of host in the scanned table is different in backport (no pushdown). Therefore, we mask all positions with $*
+        expected.replaceAll("\\$t?\\d+", "\\$*"),
+        explainQueryYaml(
+            String.format(
+                "source=%s | eval info = geoip('dummy-datasource', host) | fields host, info,"
+                    + " info.dummy_sub_field",
+                TEST_INDEX_WEBLOGS)).replaceAll("\\$t?\\d+", "\\$*"));
   }
 }
