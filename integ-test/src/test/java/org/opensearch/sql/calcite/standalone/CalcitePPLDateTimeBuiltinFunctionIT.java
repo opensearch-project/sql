@@ -49,15 +49,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     initRelativeDocs();
   }
 
-  @Test
-  public void test() {
-    JSONObject actual =
-            executeQuery(
-                    String.format(
-                            "source=%s age=2",
-                            TEST_INDEX_BANK));
-  }
-
   private static String getFormattedLocalDate() {
     return LocalDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
   }

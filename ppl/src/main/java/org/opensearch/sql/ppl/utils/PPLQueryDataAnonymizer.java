@@ -41,7 +41,6 @@ import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.ParseMethod;
-import org.opensearch.sql.ast.expression.SearchExpression;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.When;
@@ -251,10 +250,10 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   @Override
   public String visitSearch(Search node, String context) {
     String source = node.getChild().get(0).accept(this, context);
-    //SearchExpression expression = node.getOriginalExpression();
+    // SearchExpression expression = node.getOriginalExpression();
 
-    //String queryString = node.getQueryString();
-    //String anonymized = queryString.replaceAll(":\\S+", ":" + MASK_LITERAL);
+    // String queryString = node.getQueryString();
+    // String anonymized = queryString.replaceAll(":\\S+", ":" + MASK_LITERAL);
     return StringUtils.format("%s %s", source, node.getOriginalExpression().toAnonymizedString());
   }
 
