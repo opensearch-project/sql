@@ -81,6 +81,7 @@ import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 
 /** Class of static methods to create specific node instances. */
 @UtilityClass
@@ -492,8 +493,8 @@ public class AstDSL {
       UnresolvedExpression field, Literal spanLengthLiteral) {
     if (spanLengthLiteral.getType() == DataType.STRING) {
       String spanText = spanLengthLiteral.getValue().toString();
-      String valueStr = spanText.replaceAll("[^0-9]", "");
-      String unitStr = spanText.replaceAll("[0-9]", "");
+      String valueStr = spanText.replaceAll("[^0-9-]", "");
+      String unitStr = spanText.replaceAll("[0-9-]", "");
 
       if (valueStr.isEmpty()) {
         // No numeric value found, use the literal as-is
@@ -501,6 +502,10 @@ public class AstDSL {
       } else {
         // Parse numeric value and unit
         Integer value = Integer.parseInt(valueStr);
+        if (value <= 0) {
+          throw new IllegalArgumentException(
+              String.format("Zero or negative time interval not supported: %s", spanText));
+        }
         SpanUnit unit = unitStr.isEmpty() ? SpanUnit.NONE : SpanUnit.of(unitStr);
         return span(field, intLiteral(value), unit);
       }
@@ -536,8 +541,16 @@ public class AstDSL {
       List<Argument> noOfResults,
       List<UnresolvedExpression> groupList,
       Field... fields) {
-    return new RareTopN(input, commandType, noOfResults, Arrays.asList(fields), groupList)
-        .attach(input);
+    Integer N =
+        (Integer)
+            Argument.ArgumentMap.of(noOfResults)
+                .getOrDefault("noOfResults", new Literal(10, DataType.INTEGER))
+                .getValue();
+    List<Argument> removed =
+        noOfResults.stream()
+            .filter(argument -> !argument.getArgName().equals("noOfResults"))
+            .toList();
+    return new RareTopN(commandType, N, removed, Arrays.asList(fields), groupList).attach(input);
   }
 
   public static Limit limit(UnresolvedPlan input, Integer limit, Integer offset) {
@@ -718,5 +731,10 @@ public class AstDSL {
       // 5. No parameters (default) -> DefaultBin
       return DefaultBin.builder().field(field).alias(alias).build();
     }
+  }
+
+  /** Get a reference to the implicit timestamp field {@code @timestamp} */
+  public static Field referImplicitTimestampField() {
+    return AstDSL.field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP);
   }
 }

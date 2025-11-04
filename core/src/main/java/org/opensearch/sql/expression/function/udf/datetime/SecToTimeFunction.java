@@ -57,7 +57,7 @@ public class SecToTimeFunction extends ImplementorUDF {
       return Expressions.call(
           SecToTimeImplementor.class,
           "secToTime",
-          Expressions.convert_(translatedOperands.getFirst(), Number.class));
+          Expressions.convert_(Expressions.box(translatedOperands.getFirst()), Number.class));
     }
 
     public static String secToTime(Number seconds) {

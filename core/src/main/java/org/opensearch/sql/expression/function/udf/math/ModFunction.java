@@ -64,14 +64,14 @@ public class ModFunction extends ImplementorUDF {
         return Expressions.call(
             ModImplementor.class,
             "integralMod",
-            Expressions.convert_(dividend, Number.class),
-            Expressions.convert_(divisor, Number.class));
+            Expressions.convert_(Expressions.box(dividend), Number.class),
+            Expressions.convert_(Expressions.box(divisor), Number.class));
       } else {
         return Expressions.call(
             ModImplementor.class,
             "floatingMod",
-            Expressions.convert_(dividend, Number.class),
-            Expressions.convert_(divisor, Number.class));
+            Expressions.convert_(Expressions.box(dividend), Number.class),
+            Expressions.convert_(Expressions.box(divisor), Number.class));
       }
     }
 

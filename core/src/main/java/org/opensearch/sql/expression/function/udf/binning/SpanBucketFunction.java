@@ -60,8 +60,8 @@ public class SpanBucketFunction extends ImplementorUDF {
       return Expressions.call(
           SpanBucketImplementor.class,
           "calculateSpanBucket",
-          Expressions.convert_(fieldValue, Number.class),
-          Expressions.convert_(spanValue, Number.class));
+          Expressions.convert_(Expressions.box(fieldValue), Number.class),
+          Expressions.convert_(Expressions.box(spanValue), Number.class));
     }
 
     /** Span bucket calculation. */

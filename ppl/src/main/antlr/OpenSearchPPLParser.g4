@@ -63,8 +63,7 @@ commands
    | evalCommand
    | headCommand
    | binCommand
-   | topCommand
-   | rareCommand
+   | rareTopCommand
    | grokCommand
    | parseCommand
    | spathCommand
@@ -261,7 +260,7 @@ dedupCommand
    ;
 
 sortCommand
-   : SORT (count = integerLiteral)? sortbyClause (ASC | A | DESC | D)?
+   : SORT (count = integerLiteral)? sortbyClause
    ;
 
 reverseCommand
@@ -273,12 +272,8 @@ timechartCommand
    ;
 
 timechartParameter
-   : (spanClause | SPAN EQUAL spanLiteral)
-   | timechartArg
-   ;
-
-timechartArg
    : LIMIT EQUAL integerLiteral
+   | SPAN EQUAL spanLiteral
    | USEOTHER EQUAL (booleanLiteral | ident)
    ;
 
@@ -323,12 +318,14 @@ logSpanValue
    : LOG_WITH_BASE                                                   # logWithBaseSpan
    ;
 
-topCommand
-   : TOP (number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? fieldList (byClause)?
+rareTopCommand
+   : (TOP | RARE) (number = integerLiteral)? rareTopOption* fieldList (byClause)?
    ;
 
-rareCommand
-   : RARE (number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? fieldList (byClause)?
+rareTopOption
+   : COUNTFIELD EQUAL countField = stringLiteral
+   | SHOWCOUNT EQUAL showCount = booleanLiteral
+   | USENULL EQUAL useNull = booleanLiteral
    ;
 
 grokCommand
@@ -545,19 +542,11 @@ tableSourceClause
    ;
 
 dynamicSourceClause
-   : LT_SQR_PRTHS sourceReferences (COMMA sourceFilterArgs)? RT_SQR_PRTHS
-   ;
-
-sourceReferences
-   : sourceReference (COMMA sourceReference)*
+   : LT_SQR_PRTHS (sourceReference | sourceFilterArg) (COMMA (sourceReference | sourceFilterArg))* RT_SQR_PRTHS
    ;
 
 sourceReference
    : (CLUSTER)? wcQualifiedName
-   ;
-
-sourceFilterArgs
-   : sourceFilterArg (COMMA sourceFilterArg)*
    ;
 
 sourceFilterArg
@@ -635,7 +624,7 @@ bySpanClause
    ;
 
 spanClause
-   : SPAN LT_PRTHS fieldExpression COMMA value = spanLiteral RT_PRTHS
+   : SPAN LT_PRTHS (fieldExpression COMMA)? value = spanLiteral RT_PRTHS
    ;
 
 sortbyClause
@@ -725,7 +714,7 @@ percentileApproxFunction
    ;
 
 perFunction
-   : funcName=PER_SECOND LT_PRTHS functionArg RT_PRTHS
+   : funcName=(PER_SECOND | PER_MINUTE | PER_HOUR | PER_DAY) LT_PRTHS functionArg RT_PRTHS
    ;
 
 numericLiteral
@@ -833,7 +822,10 @@ fieldList
    ;
 
 sortField
-   : (PLUS | MINUS)? sortFieldExpression
+   : (PLUS | MINUS) sortFieldExpression (ASC | A | DESC | D)  # invalidMixedSortField
+   | (PLUS | MINUS) sortFieldExpression                  # prefixSortField
+   | sortFieldExpression (ASC | A | DESC | D)            # suffixSortField
+   | sortFieldExpression                                 # defaultSortField
    ;
 
 sortFieldExpression
@@ -1168,6 +1160,7 @@ extractFunctionCall
 
 simpleDateTimePart
    : MICROSECOND
+   | MILLISECOND
    | SECOND
    | MINUTE
    | HOUR
@@ -1346,6 +1339,7 @@ timestampLiteral
 
 intervalUnit
    : MICROSECOND
+   | MILLISECOND
    | SECOND
    | MINUTE
    | HOUR
@@ -1473,6 +1467,7 @@ searchableKeyWord
    | ALLNUM
    | DELIM
    | BUCKET_NULLABLE
+   | USENULL
    | CENTROIDS
    | ITERATIONS
    | DISTANCE_TYPE

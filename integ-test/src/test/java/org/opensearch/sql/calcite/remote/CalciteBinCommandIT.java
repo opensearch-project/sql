@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.junit.Assert.assertTrue;
 import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -27,6 +28,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     loadIndex(Index.BANK);
     loadIndex(Index.EVENTS_NULL);
     loadIndex(Index.TIME_TEST_DATA);
+    loadIndex(Index.TELEMETRY);
   }
 
   @Test
@@ -503,6 +505,145 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     assertTrue(
         "Error message should mention the non-existent field: " + errorMessage,
         errorMessage.contains("non_existent_field") || errorMessage.contains("not found"));
+  }
+
+  @Test
+  public void testBinWithMinspanOnNonNumericField() {
+    // Test that bin command with minspan throws clear error for non-numeric field
+    ResponseException exception =
+        assertThrows(
+            ResponseException.class,
+            () -> {
+              executeQuery(
+                  String.format(
+                      "source=%s | bin firstname minspan=10 | head 1", TEST_INDEX_ACCOUNT));
+            });
+
+    // Get the full error message
+    String errorMessage = exception.getMessage();
+
+    // Verify the error message is clear and specific
+    String expectedMessage =
+        "Cannot apply binning: field 'firstname' is non-numeric and not time-related, expected"
+            + " numeric or time-related type";
+    assertTrue(
+        "Error message should contain: '" + expectedMessage + "'",
+        errorMessage.contains(expectedMessage));
+  }
+
+  @Test
+  public void testBinWithSpanOnNonNumericField() {
+    // Test that bin command with span throws clear error for non-numeric field
+    ResponseException exception =
+        assertThrows(
+            ResponseException.class,
+            () -> {
+              executeQuery(
+                  String.format("source=%s | bin lastname span=5 | head 1", TEST_INDEX_ACCOUNT));
+            });
+
+    // Get the full error message
+    String errorMessage = exception.getMessage();
+
+    // Verify the error message is clear and specific
+    String expectedMessage =
+        "Cannot apply binning: field 'lastname' is non-numeric and not time-related, expected"
+            + " numeric or time-related type";
+    assertTrue(
+        "Error message should contain: '" + expectedMessage + "'",
+        errorMessage.contains(expectedMessage));
+  }
+
+  @Test
+  public void testBinWithBinsOnNonNumericField() {
+    // Test that bin command with bins throws clear error for non-numeric field
+    ResponseException exception =
+        assertThrows(
+            ResponseException.class,
+            () -> {
+              executeQuery(
+                  String.format("source=%s | bin state bins=10 | head 1", TEST_INDEX_ACCOUNT));
+            });
+
+    // Get the full error message
+    String errorMessage = exception.getMessage();
+
+    // Verify the error message is clear and specific
+    String expectedMessage =
+        "Cannot apply binning: field 'state' is non-numeric and not time-related, expected numeric"
+            + " or time-related type";
+    assertTrue(
+        "Error message should contain: '" + expectedMessage + "'",
+        errorMessage.contains(expectedMessage));
+  }
+
+  @Test
+  public void testBinWithStartEndOnNonNumericField() {
+    // Test that bin command with start/end throws clear error for non-numeric field
+    ResponseException exception =
+        assertThrows(
+            ResponseException.class,
+            () -> {
+              executeQuery(
+                  String.format(
+                      "source=%s | bin city start=0 end=100 | head 1", TEST_INDEX_ACCOUNT));
+            });
+
+    // Get the full error message
+    String errorMessage = exception.getMessage();
+
+    // Verify the error message is clear and specific
+    String expectedMessage =
+        "Cannot apply binning: field 'city' is non-numeric and not time-related, expected numeric"
+            + " or time-related type";
+    assertTrue(
+        "Error message should contain: '" + expectedMessage + "'",
+        errorMessage.contains(expectedMessage));
+  }
+
+  @Test
+  public void testBinDefaultOnNonNumericField() {
+    // Test that default bin (no parameters) throws clear error for non-numeric field
+    ResponseException exception =
+        assertThrows(
+            ResponseException.class,
+            () -> {
+              executeQuery(String.format("source=%s | bin email | head 1", TEST_INDEX_ACCOUNT));
+            });
+
+    // Get the full error message
+    String errorMessage = exception.getMessage();
+
+    // Verify the error message is clear and specific
+    String expectedMessage =
+        "Cannot apply binning: field 'email' is non-numeric and not time-related, expected numeric"
+            + " or time-related type";
+    assertTrue(
+        "Error message should contain: '" + expectedMessage + "'",
+        errorMessage.contains(expectedMessage));
+  }
+
+  @Test
+  public void testBinLogSpanOnNonNumericField() {
+    // Test that bin command with log span throws clear error for non-numeric field
+    ResponseException exception =
+        assertThrows(
+            ResponseException.class,
+            () -> {
+              executeQuery(
+                  String.format("source=%s | bin gender span=log10 | head 1", TEST_INDEX_ACCOUNT));
+            });
+
+    // Get the full error message
+    String errorMessage = exception.getMessage();
+
+    // Verify the error message is clear and specific
+    String expectedMessage =
+        "Cannot apply binning: field 'gender' is non-numeric and not time-related, expected numeric"
+            + " or time-related type";
+    assertTrue(
+        "Error message should contain: '" + expectedMessage + "'",
+        errorMessage.contains(expectedMessage));
   }
 
   @Test
@@ -983,5 +1124,86 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         rows(50.25, "us-east", "2024-07-01 00:00:00"),
         rows(50, "us-east", "2024-07-01 00:05:00"),
         rows(40.25, "us-west", "2024-07-01 00:01:00"));
+  }
+
+  @Test
+  public void testBinWithNestedFieldWithoutExplicitProjection() throws IOException {
+    // Test bin command on nested field without explicit fields projection
+    // This reproduces the bug from https://github.com/opensearch-project/sql/issues/4482
+    // The telemetry index has: resource.attributes.telemetry.sdk.version (values: 10, 11, 12, 13,
+    // 14)
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | bin `resource.attributes.telemetry.sdk.version` span=2 | sort"
+                    + " `resource.attributes.telemetry.sdk.version`",
+                TEST_INDEX_TELEMETRY));
+
+    // When binning a nested field, all sibling fields in the struct are also returned
+    verifySchema(
+        result,
+        schema("resource.attributes.telemetry.sdk.enabled", null, "boolean"),
+        schema("resource.attributes.telemetry.sdk.language", null, "string"),
+        schema("resource.attributes.telemetry.sdk.name", null, "string"),
+        schema("severityNumber", null, "int"),
+        schema("resource.attributes.telemetry.sdk.version", null, "string"));
+
+    // With span=2 on values [10, 11, 12, 13, 14], we expect binned ranges:
+    // 10 -> 10-12, 11 -> 10-12, 12 -> 12-14, 13 -> 12-14, 14 -> 14-16
+    // The binned field is the last column
+    verifyDataRows(
+        result,
+        rows(true, "java", "opentelemetry", 9, "10-12"),
+        rows(false, "python", "opentelemetry", 12, "10-12"),
+        rows(true, "javascript", "opentelemetry", 9, "12-14"),
+        rows(false, "go", "opentelemetry", 16, "12-14"),
+        rows(true, "rust", "opentelemetry", 12, "14-16"));
+  }
+
+  @Test
+  public void testBinWithNestedFieldWithExplicitProjection() throws IOException {
+    // Test bin command on nested field WITH explicit fields projection (workaround)
+    // This is the workaround mentioned in https://github.com/opensearch-project/sql/issues/4482
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | bin `resource.attributes.telemetry.sdk.version` span=2 | fields"
+                    + " `resource.attributes.telemetry.sdk.version` | sort"
+                    + " `resource.attributes.telemetry.sdk.version`",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(result, schema("resource.attributes.telemetry.sdk.version", null, "string"));
+
+    // With span=2 on values [10, 11, 12, 13, 14], we expect binned ranges
+    verifyDataRows(
+        result, rows("10-12"), rows("10-12"), rows("12-14"), rows("12-14"), rows("14-16"));
+  }
+
+  @Test
+  public void testBinWithEvalCreatedDottedFieldName() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval `resource.temp` = 1 | bin"
+                    + " `resource.attributes.telemetry.sdk.version` span=2 | sort"
+                    + " `resource.attributes.telemetry.sdk.version`",
+                TEST_INDEX_TELEMETRY));
+
+    verifySchema(
+        result,
+        schema("resource.attributes.telemetry.sdk.enabled", null, "boolean"),
+        schema("resource.attributes.telemetry.sdk.language", null, "string"),
+        schema("resource.attributes.telemetry.sdk.name", null, "string"),
+        schema("resource.temp", null, "int"),
+        schema("severityNumber", null, "int"),
+        schema("resource.attributes.telemetry.sdk.version", null, "string"));
+
+    // Data column order: enabled, language, name, severityNumber, resource.temp, version
+    verifyDataRows(
+        result,
+        rows(true, "java", "opentelemetry", 9, 1, "10-12"),
+        rows(false, "python", "opentelemetry", 12, 1, "10-12"),
+        rows(true, "javascript", "opentelemetry", 9, 1, "12-14"),
+        rows(false, "go", "opentelemetry", 16, 1, "12-14"),
+        rows(true, "rust", "opentelemetry", 12, 1, "14-16"));
   }
 }

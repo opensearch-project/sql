@@ -1,4 +1,38 @@
+/*
+{
+  "name": "multi_terms-keyword",
+  "operation-type": "search",
+  "index": "{{index_name | default('big5')}}",
+  "request-timeout": 7200,
+  "body":{
+    "size": 0,
+    "query": {
+      "range": {
+        "@timestamp": {
+          "gte": "2023-01-05T00:00:00",
+          "lt": "2023-01-05T05:00:00"
+        }
+      }
+    },
+    "aggs": {
+      "important_terms": {
+        "multi_terms": {
+          "terms": [
+            {
+              "field": "process.name"
+            },
+            {
+              "field": "cloud.region"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
+*/
 source = big5
-| where `@timestamp` >= '2022-12-30 00:00:00' and `@timestamp` < '2023-01-01 03:00:00'
-| stats count() by `process.name`, `event.id`, `cloud.region`
+| where `@timestamp` >= '2023-01-05 00:00:00' and `@timestamp` < '2023-01-05 05:00:00'
+| stats count() by `process.name`, `cloud.region`
 | sort - `count()`
+| head 10

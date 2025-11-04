@@ -92,8 +92,11 @@ apply plugin: 'opensearch.java-agent'
 repositories {
     mavenLocal()
     mavenCentral() // For Elastic Libs that you can use to get started coding until open OpenSearch libs are available
+    maven {
+        url 'https://jitpack.io'
+        content { includeGroup "com.github.babbel" }
+    }
     maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
-    maven { url 'https://jitpack.io' }
 }
 
 spotless {
@@ -149,6 +152,9 @@ allprojects {
         resolutionStrategy.force 'org.apache.commons:commons-text:1.11.0'
         resolutionStrategy.force 'commons-io:commons-io:2.15.0'
         resolutionStrategy.force 'org.yaml:snakeyaml:2.2'
+        resolutionStrategy.dependencySubstitution {
+            substitute module('commons-lang:commons-lang') using module('org.apache.commons:commons-lang3:3.18.0') because 'CVE-2025-48924: commons-lang 2.x vulnerable to StackOverflowError'
+        }
     }
 }
 
@@ -156,9 +162,60 @@ subprojects {
     repositories {
         mavenLocal()
         mavenCentral()
+        maven {
+            url 'https://jitpack.io'
+            content { includeGroup "com.github.babbel" }
+        }
         maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
         maven { url "https://ci.opensearch.org/ci/dbc/snapshots/lucene/" }
-        maven { url 'https://jitpack.io' }
+    }
+
+    // Publish internal modules as Maven artifacts for external use, such as by opensearch-spark and opensearch-cli.
+    def publishedModules = ['api', 'sql', 'ppl', 'core', 'opensearch', 'common', 'protocol', 'datasources', 'legacy']
+    if (publishedModules.contains(name)) {
+        apply plugin: 'java-library'
+        apply plugin: 'maven-publish'
+
+        def fullArtifactId = "unified-query-${project.name}"
+        publishing {
+            publications {
+                unifiedQuery(MavenPublication) {
+                    from components.java
+                    groupId = "org.opensearch.query"
+                    artifactId = fullArtifactId
+
+                    pom {
+                        name = fullArtifactId
+                        description = "OpenSearch unified query ${project.name} module"
+                        licenses {
+                            license {
+                                name = 'The Apache License, Version 2.0'
+                                url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                            }
+                        }
+                        developers {
+                            developer {
+                                name = 'OpenSearch'
+                                url = 'https://github.com/opensearch-project/sql'
+                            }
+                        }
+                    }
+                }
+            }
+
+            repositories {
+                maven {
+                    name = "Snapshots"
+                    url = "https://ci.opensearch.org/ci/dbc/snapshots/maven/"
+                    url = System.getenv("MAVEN_SNAPSHOTS_S3_REPO")
+                    credentials(AwsCredentials) {
+                        accessKey = System.getenv("AWS_ACCESS_KEY_ID")
+                        secretKey = System.getenv("AWS_SECRET_ACCESS_KEY")
+                        sessionToken = System.getenv("AWS_SESSION_TOKEN")
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -156,7 +156,7 @@ public class QueryService {
             } else {
               if (t instanceof Error) {
                 // Calcite may throw AssertError during query execution.
-                listener.onFailure(new CalciteUnsupportedException(t.getMessage()));
+                listener.onFailure(new CalciteUnsupportedException(t.getMessage(), t));
               } else {
                 listener.onFailure((Exception) t);
               }
@@ -201,7 +201,8 @@ public class QueryService {
       Explain.ExplainFormat format,
       Optional<Throwable> calciteFailure) {
     try {
-      if (format != null && format != Explain.ExplainFormat.STANDARD) {
+      if (format != null
+          && (format != Explain.ExplainFormat.STANDARD && format != Explain.ExplainFormat.YAML)) {
         throw new UnsupportedOperationException(
             "Explain mode " + format.name() + " is not supported in v2 engine");
       }

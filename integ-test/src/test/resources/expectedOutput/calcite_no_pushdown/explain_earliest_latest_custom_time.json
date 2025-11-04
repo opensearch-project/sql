@@ -1,6 +1,0 @@
-{
-  "calcite": {
-    "logical": "LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])\n  LogicalProject(earliest_message=[$1], latest_message=[$2], level=[$0])\n    LogicalAggregate(group=[{0}], earliest_message=[ARG_MIN($1, $2)], latest_message=[ARG_MAX($1, $2)])\n      LogicalProject(level=[$4], message=[$3], created_at=[$0])\n        CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_logs]])\n",
-    "physical": "EnumerableLimit(fetch=[10000])\n  EnumerableCalc(expr#0..2=[{inputs}], earliest_message=[$t1], latest_message=[$t2], level=[$t0])\n    EnumerableAggregate(group=[{4}], earliest_message=[ARG_MIN($3, $0)], latest_message=[ARG_MAX($3, $0)])\n      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_logs]])\n"
-  }
-}

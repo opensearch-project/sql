@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.calcite.utils.binning.handlers;
 
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.opensearch.sql.ast.tree.Bin;
@@ -15,6 +14,7 @@ import org.opensearch.sql.calcite.CalciteRexNodeVisitor;
 import org.opensearch.sql.calcite.utils.BinTimeSpanUtils;
 import org.opensearch.sql.calcite.utils.binning.BinFieldValidator;
 import org.opensearch.sql.calcite.utils.binning.BinHandler;
+import org.opensearch.sql.calcite.utils.binning.BinnableField;
 import org.opensearch.sql.calcite.utils.binning.RangeFormatter;
 
 /** Handler for default binning when no parameters are specified. */
@@ -25,11 +25,13 @@ public class DefaultBinHandler implements BinHandler {
       Bin node, RexNode fieldExpr, CalcitePlanContext context, CalciteRexNodeVisitor visitor) {
 
     DefaultBin defaultBin = (DefaultBin) node;
-    RelDataType fieldType = fieldExpr.getType();
     String fieldName = BinFieldValidator.extractFieldName(node);
 
+    // Create validated binnable field (validates that field is numeric or time-based)
+    BinnableField field = new BinnableField(fieldExpr, fieldExpr.getType(), fieldName);
+
     // Use time-based binning for time fields
-    if (BinFieldValidator.isTimeBasedField(fieldType)) {
+    if (field.isTimeBased()) {
       BinFieldValidator.validateFieldExists(fieldName, context);
       return BinTimeSpanUtils.createBinTimeSpanExpression(fieldExpr, 1, "h", 0, context);
     }

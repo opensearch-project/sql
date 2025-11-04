@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl.parser;
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
@@ -81,6 +82,7 @@ import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.utils.SystemIndexUtils;
 
@@ -521,9 +523,9 @@ public class AstBuilderTest {
   }
 
   @Test
-  public void testSortCommandWithMultipleFieldsAndDesc() {
+  public void testSortCommandWithMixedSuffixSyntax() {
     assertEqual(
-        "source=t | sort f1, -f2 desc",
+        "source=t | sort f1 desc, f2 asc",
         sort(
             relation("t"),
             field(
@@ -557,9 +559,9 @@ public class AstBuilderTest {
   }
 
   @Test
-  public void testSortCommandWithMultipleFieldsAndAsc() {
+  public void testSortCommandWithMixedPrefixSyntax() {
     assertEqual(
-        "source=t | sort f1, f2 asc",
+        "source=t | sort +f1, -f2",
         sort(
             relation("t"),
             field(
@@ -567,6 +569,95 @@ public class AstBuilderTest {
                 exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()))),
             field(
                 "f2",
+                exprList(
+                    argument("asc", booleanLiteral(false)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandMixedSyntaxValidation() {
+    assertThrows(SemanticCheckException.class, () -> plan("source=t | sort +f1, f2 desc"));
+    assertThrows(SemanticCheckException.class, () -> plan("source=t | sort f1 asc, +f2"));
+  }
+
+  @Test
+  public void testSortCommandSingleFieldMixedSyntaxError() {
+    SemanticCheckException exception =
+        assertThrows(SemanticCheckException.class, () -> plan("source=t | sort -salary desc"));
+
+    assertTrue(
+        exception
+            .getMessage()
+            .contains(
+                "Cannot use both prefix (-) and suffix (desc) sort direction syntax on the same"
+                    + " field"));
+  }
+
+  @Test
+  public void testSortCommandMultipleSuffixSyntax() {
+    assertEqual(
+        "source=t | sort f1 asc, f2 desc, f3 asc",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()))),
+            field(
+                "f2",
+                exprList(argument("asc", booleanLiteral(false)), argument("type", nullLiteral()))),
+            field(
+                "f3",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandMixingPrefixWithDefault() {
+    assertEqual(
+        "source=t | sort +f1, f2, -f3",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()))),
+            field(
+                "f2",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()))),
+            field(
+                "f3",
+                exprList(
+                    argument("asc", booleanLiteral(false)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandMixingSuffixWithDefault() {
+    assertEqual(
+        "source=t | sort f1, f2 desc, f3 asc",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()))),
+            field(
+                "f2",
+                exprList(argument("asc", booleanLiteral(false)), argument("type", nullLiteral()))),
+            field(
+                "f3",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));
+  }
+
+  @Test
+  public void testSortCommandAllDefaultFields() {
+    assertEqual(
+        "source=t | sort f1, f2, f3",
+        sort(
+            relation("t"),
+            field(
+                "f1",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()))),
+            field(
+                "f2",
+                exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()))),
+            field(
+                "f3",
                 exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral())))));
   }
 
@@ -639,7 +730,8 @@ public class AstBuilderTest {
             exprList(
                 argument("noOfResults", intLiteral(10)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             emptyList(),
             field("a")));
   }
@@ -654,7 +746,8 @@ public class AstBuilderTest {
             exprList(
                 argument("noOfResults", intLiteral(10)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             exprList(field("b")),
             field("a")));
   }
@@ -669,7 +762,8 @@ public class AstBuilderTest {
             exprList(
                 argument("noOfResults", intLiteral(10)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             exprList(field("c")),
             field("a"),
             field("b")));
@@ -685,7 +779,8 @@ public class AstBuilderTest {
             exprList(
                 argument("noOfResults", intLiteral(1)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             emptyList(),
             field("a")));
   }
@@ -700,7 +795,8 @@ public class AstBuilderTest {
             exprList(
                 argument("noOfResults", intLiteral(10)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             emptyList(),
             field("a")));
   }
@@ -715,7 +811,8 @@ public class AstBuilderTest {
             exprList(
                 argument("noOfResults", intLiteral(1)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             exprList(field("b")),
             field("a")));
   }
@@ -730,10 +827,44 @@ public class AstBuilderTest {
             exprList(
                 argument("noOfResults", intLiteral(1)),
                 argument("countField", stringLiteral("count")),
-                argument("showCount", booleanLiteral(true))),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             exprList(field("c")),
             field("a"),
             field("b")));
+  }
+
+  @Test
+  public void testTopCommandWithUseNullFalse() {
+    assertEqual(
+        "source=t | top 1 usenull=false a by b",
+        rareTopN(
+            relation("t"),
+            CommandType.TOP,
+            exprList(
+                argument("noOfResults", intLiteral(1)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(false))),
+            exprList(field("b")),
+            field("a")));
+  }
+
+  @Test
+  public void testTopCommandWithLegacyFalse() {
+    when(settings.getSettingValue(Key.PPL_SYNTAX_LEGACY_PREFERRED)).thenReturn(false);
+    assertEqual(
+        "source=t | top 1 a by b",
+        rareTopN(
+            relation("t"),
+            CommandType.TOP,
+            exprList(
+                argument("noOfResults", intLiteral(1)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(false))),
+            exprList(field("b")),
+            field("a")));
   }
 
   @Test
@@ -1119,10 +1250,85 @@ public class AstBuilderTest {
                 field("per_second(a)"),
                 function(
                     "/",
-                    function("*", field("per_second(a)"), doubleLiteral(1.0)),
+                    function("*", field("per_second(a)"), doubleLiteral(1000.0)),
                     function(
                         "timestampdiff",
-                        stringLiteral("SECOND"),
+                        stringLiteral("MILLISECOND"),
+                        field("@timestamp"),
+                        function(
+                            "timestampadd",
+                            stringLiteral("MINUTE"),
+                            intLiteral(1),
+                            field("@timestamp")))))));
+  }
+
+  @Test
+  public void testTimechartWithPerMinuteFunction() {
+    assertEqual(
+        "source=t | timechart per_minute(a)",
+        eval(
+            new Timechart(relation("t"), alias("per_minute(a)", aggregate("sum", field("a"))))
+                .span(span(field("@timestamp"), intLiteral(1), SpanUnit.of("m")))
+                .limit(10)
+                .useOther(true),
+            let(
+                field("per_minute(a)"),
+                function(
+                    "/",
+                    function("*", field("per_minute(a)"), doubleLiteral(60000.0)),
+                    function(
+                        "timestampdiff",
+                        stringLiteral("MILLISECOND"),
+                        field("@timestamp"),
+                        function(
+                            "timestampadd",
+                            stringLiteral("MINUTE"),
+                            intLiteral(1),
+                            field("@timestamp")))))));
+  }
+
+  @Test
+  public void testTimechartWithPerHourFunction() {
+    assertEqual(
+        "source=t | timechart per_hour(a)",
+        eval(
+            new Timechart(relation("t"), alias("per_hour(a)", aggregate("sum", field("a"))))
+                .span(span(field("@timestamp"), intLiteral(1), SpanUnit.of("m")))
+                .limit(10)
+                .useOther(true),
+            let(
+                field("per_hour(a)"),
+                function(
+                    "/",
+                    function("*", field("per_hour(a)"), doubleLiteral(3600000.0)),
+                    function(
+                        "timestampdiff",
+                        stringLiteral("MILLISECOND"),
+                        field("@timestamp"),
+                        function(
+                            "timestampadd",
+                            stringLiteral("MINUTE"),
+                            intLiteral(1),
+                            field("@timestamp")))))));
+  }
+
+  @Test
+  public void testTimechartWithPerDayFunction() {
+    assertEqual(
+        "source=t | timechart per_day(a)",
+        eval(
+            new Timechart(relation("t"), alias("per_day(a)", aggregate("sum", field("a"))))
+                .span(span(field("@timestamp"), intLiteral(1), SpanUnit.of("m")))
+                .limit(10)
+                .useOther(true),
+            let(
+                field("per_day(a)"),
+                function(
+                    "/",
+                    function("*", field("per_day(a)"), doubleLiteral(8.64E7)),
+                    function(
+                        "timestampdiff",
+                        stringLiteral("MILLISECOND"),
                         field("@timestamp"),
                         function(
                             "timestampadd",
@@ -1133,7 +1339,22 @@ public class AstBuilderTest {
 
   @Test
   public void testStatsWithPerSecondThrowsException() {
-    assertThrows(SyntaxCheckException.class, () -> plan("source=t | stats per_second(a)"));
+    assertEquals(
+        "per_second function can only be used within timechart command",
+        assertThrows(SyntaxCheckException.class, () -> plan("source=t | stats per_second(a)"))
+            .getMessage());
+    assertEquals(
+        "per_minute function can only be used within timechart command",
+        assertThrows(SyntaxCheckException.class, () -> plan("source=t | stats per_minute(a)"))
+            .getMessage());
+    assertEquals(
+        "per_hour function can only be used within timechart command",
+        assertThrows(SyntaxCheckException.class, () -> plan("source=t | stats per_hour(a)"))
+            .getMessage());
+    assertEquals(
+        "per_day function can only be used within timechart command",
+        assertThrows(SyntaxCheckException.class, () -> plan("source=t | stats per_day(a)"))
+            .getMessage());
   }
 
   protected void assertEqual(String query, Node expectedPlan) {

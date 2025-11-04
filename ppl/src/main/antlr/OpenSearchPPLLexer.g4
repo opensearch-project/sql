@@ -112,6 +112,7 @@ PARTITIONS:                         'PARTITIONS';
 ALLNUM:                             'ALLNUM';
 DELIM:                              'DELIM';
 BUCKET_NULLABLE:                    'BUCKET_NULLABLE';
+USENULL:                            'USENULL';
 CENTROIDS:                          'CENTROIDS';
 ITERATIONS:                         'ITERATIONS';
 DISTANCE_TYPE:                      'DISTANCE_TYPE';
@@ -170,6 +171,7 @@ HOUR_MINUTE:                        'HOUR_MINUTE';
 HOUR_OF_DAY:                        'HOUR_OF_DAY';
 HOUR_SECOND:                        'HOUR_SECOND';
 INTERVAL:                           'INTERVAL';
+MILLISECOND:                        'MILLISECOND';
 MICROSECOND:                        'MICROSECOND';
 MINUTE:                             'MINUTE';
 MINUTE_MICROSECOND:                 'MINUTE_MICROSECOND';
@@ -503,7 +505,8 @@ ALIGNTIME:                          'ALIGNTIME';
 PERCENTILE_SHORTCUT:                PERC(INTEGER_LITERAL | DECIMAL_LITERAL) | 'P'(INTEGER_LITERAL | DECIMAL_LITERAL);
 
 SPANLENGTH: [0-9]+ (
-    'US'|'MS'|'CS'|'DS'
+    'US' |'CS'|'DS'
+    |'MS'|'MILLISECOND'|'MILLISECONDS'
     |'S'|'SEC'|'SECS'|'SECOND'|'SECONDS'
     |'MIN'|'MINS'|'MINUTE'|'MINUTES'
     |'H'|'HR'|'HRS'|'HOUR'|'HOURS'

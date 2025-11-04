@@ -1,0 +1,25 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[country, aws.cloudwatch.log_stream]"
+  children:
+    - name: TakeOrderedOperator
+      description:
+        limit: 50
+        offset: 0
+        sortList:
+          country:
+            sortOrder: DESC
+            nullOrder: NULL_LAST
+      children:
+        - name: OpenSearchIndexScan
+          description:
+            request: "OpenSearchQueryRequest(indexName=big5, sourceBuilder={\"from\"\
+              :0,\"size\":0,\"timeout\":\"1m\",\"aggregations\":{\"composite_buckets\"\
+              :{\"composite\":{\"size\":1000,\"sources\":[{\"aws.cloudwatch.log_stream\"\
+              :{\"terms\":{\"field\":\"aws.cloudwatch.log_stream\",\"missing_bucket\"\
+              :true,\"missing_order\":\"first\",\"order\":\"asc\"}}}]},\"aggregations\"\
+              :{\"country\":{\"value_count\":{\"field\":\"_index\"}}}}}}, needClean=true,\
+              \ searchDone=false, pitId=*, cursorKeepAlive=null, searchAfter=null,\
+              \ searchResponse=null)"
+          children: []
