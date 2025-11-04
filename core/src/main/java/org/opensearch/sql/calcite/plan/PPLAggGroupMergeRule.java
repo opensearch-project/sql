@@ -144,7 +144,10 @@ public class PPLAggGroupMergeRule extends RelRule<PPLAggGroupMergeRule.Config> {
     // to transform a field into such a literal
     if (node.getKind() == SqlKind.LITERAL) return true;
     if (node.getKind() == SqlKind.INPUT_REF && baseFields.contains(node)) return true;
-    if (node instanceof RexCall && ((RexCall) node).getOperator().isDeterministic()) {
+    // Use !isAggregator to rule out window functions like row_number()
+    if (node instanceof RexCall
+        && ((RexCall) node).getOperator().isDeterministic()
+        && !((RexCall) node).getOperator().isAggregator()) {
       return ((RexCall) node)
           .getOperands().stream().allMatch(op -> isDependentField(op, baseFields));
     }

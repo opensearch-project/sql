@@ -27,7 +27,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstat() throws IOException {
+  public void testEventstats() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -57,7 +57,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatWithNull() throws IOException {
+  public void testEventstatsWithNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -89,7 +89,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatBy() throws IOException {
+  public void testEventstatsBy() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -120,7 +120,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatByWithNull() throws IOException {
+  public void testEventstatsByWithNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -169,7 +169,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatBySpan() throws IOException {
+  public void testEventstatsBySpan() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -187,7 +187,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatBySpanWithNull() throws IOException {
+  public void testEventstatsBySpanWithNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -207,7 +207,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatByMultiplePartitions1() throws IOException {
+  public void testEventstatsByMultiplePartitions1() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -225,7 +225,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatByMultiplePartitions2() throws IOException {
+  public void testEventstatsByMultiplePartitions2() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -243,7 +243,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatByMultiplePartitionsWithNull1() throws IOException {
+  public void testEventstatsByMultiplePartitionsWithNull1() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -263,7 +263,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatByMultiplePartitionsWithNull2() throws IOException {
+  public void testEventstatsByMultiplePartitionsWithNull2() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -298,7 +298,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testMultipleEventstat() throws IOException {
+  public void testMultipleEventstats() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -316,7 +316,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testMultipleEventstatWithNull() throws IOException {
+  public void testMultipleEventstatsWithNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -336,7 +336,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testMultipleEventstatWithEval() throws IOException {
+  public void testMultipleEventstatsWithEval() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -356,7 +356,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatEmptyRows() throws IOException {
+  public void testEventstatsEmptyRows() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -376,7 +376,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatVariance() throws IOException {
+  public void testEventstatsVariance() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -447,7 +447,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatVarianceWithNull() throws IOException {
+  public void testEventstatsVarianceWithNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -511,7 +511,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatVarianceBy() throws IOException {
+  public void testEventstatsVarianceBy() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -529,7 +529,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatVarianceBySpan() throws IOException {
+  public void testEventstatsVarianceBySpan() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -544,7 +544,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatVarianceWithNullBy() throws IOException {
+  public void testEventstatsVarianceWithNullBy() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
