@@ -299,6 +299,8 @@ timechartParameter
 
 spanLiteral
    : SPANLENGTH
+   | DECIMAL_SPANLENGTH
+   | DOUBLE_LITERAL  // 1.5d can also represent decimal span length
    | INTEGER_LITERAL
    | DECIMAL_LITERAL
    ;

@@ -1493,13 +1493,19 @@ public class AstBuilderTest {
   public void testTimeSpanWithDecimalShouldThrow() {
     Throwable t1 =
         assertThrows(
-            SyntaxCheckException.class, () -> plan("source=t | timechart  span=1.5d count"));
-    assertTrue(t1.getMessage().contains("[1.5d] is not a valid term at this part of the query"));
+            IllegalArgumentException.class, () -> plan("source=t | timechart  span=1.5d count"));
+    assertTrue(
+        t1.getMessage()
+            .contains(
+                "Span length [1.5d] is invalid: floating-point time intervals are not supported."));
 
     Throwable t2 =
         assertThrows(
-            SyntaxCheckException.class,
+            IllegalArgumentException.class,
             () -> plan("source=t | stats count by span(@timestamp, 2.5y)"));
-    assertTrue(t2.getMessage().contains("[y] is not a valid term at this part of the query"));
+    assertTrue(
+        t2.getMessage()
+            .contains(
+                "Span length [2.5y] is invalid: floating-point time intervals are not supported."));
   }
 }

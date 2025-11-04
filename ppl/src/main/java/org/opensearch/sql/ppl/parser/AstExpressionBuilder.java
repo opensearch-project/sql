@@ -816,6 +816,13 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
       return AstDSL.intLiteral(Integer.parseInt(ctx.INTEGER_LITERAL().getText()));
     } else if (ctx.DECIMAL_LITERAL() != null) {
       return AstDSL.decimalLiteral(new BigDecimal(ctx.DECIMAL_LITERAL().getText()));
+    } else if (ctx.DECIMAL_SPANLENGTH() != null || ctx.DOUBLE_LITERAL() != null) {
+      throw new IllegalArgumentException(
+          StringUtils.format(
+              "Span length [%s] is invalid: floating-point time intervals are not supported.",
+              ctx.DECIMAL_SPANLENGTH() != null
+                  ? ctx.DECIMAL_SPANLENGTH().getText()
+                  : ctx.DOUBLE_LITERAL().getText()));
     } else {
       return AstDSL.stringLiteral(ctx.getText());
     }
