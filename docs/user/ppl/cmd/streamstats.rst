@@ -129,7 +129,7 @@ This example calculates the running maximum age over a 2-row window, excluding t
 
 PPL query::
 
-    os> source=state_country | streamstats current=false window=2 max(age) as prev_max_age
+    os> source=state_country | fields name, country, state, month, year, age | streamstats current=false window=2 max(age) as prev_max_age
     fetched rows / total rows = 8/8
     +-------+---------+------------+-------+------+-----+--------------+
     | name  | country | state      | month | year | age | prev_max_age |
@@ -175,7 +175,7 @@ original data::
 
 PPL query::
 
-    os> source=state_country | streamstats window=2 global=true avg(age) as running_avg by country ;
+    os> source=state_country | fields name, country, state, month, year, age | streamstats window=2 global=true avg(age) as running_avg by country ;
     fetched rows / total rows = 8/8
     +-------+---------+------------+-------+------+-----+-------------+
     | name  | country | state      | month | year | age | running_avg |
@@ -190,7 +190,7 @@ PPL query::
     | David | USA     | Washington | 4     | 2023 | 40  | 40.0        |
     +-------+---------+------------+-------+------+-----+-------------+
 
-    os> source=state_country | streamstats window=2 global=false avg(age) as running_avg by country ;
+    os> source=state_country | fields name, country, state, month, year, age | streamstats window=2 global=false avg(age) as running_avg by country ;
     fetched rows / total rows = 8/8
     +-------+---------+------------+-------+------+-----+-------------+
     | name  | country | state      | month | year | age | running_avg |
@@ -213,7 +213,7 @@ This example calculates the running average of age across accounts by country, w
 
 PPL query::
 
-    os> source=state_country | streamstats current=false reset_before=age>34 reset_after=age<25 avg(age) as avg_age by country;
+    os> source=state_country | fields name, country, state, month, year, age | streamstats current=false reset_before=age>34 reset_after=age<25 avg(age) as avg_age by country;
     fetched rows / total rows = 8/8
     +-------+---------+------------+-------+------+-----+---------+
     | name  | country | state      | month | year | age | avg_age |

@@ -32,7 +32,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | streamstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max",
+                    + " as max | fields name, country, state, month, year, age, cnt, avg, min, max",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifySchemaInOrder(
@@ -62,7 +62,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | streamstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max",
+                    + " as max | fields name, country, state, month, year, age, cnt, avg, min, max",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchemaInOrder(
@@ -94,7 +94,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | streamstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by country",
+                    + " as max by country | fields name, country, state, month, year, age, cnt, avg, min, max",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifySchemaInOrder(
@@ -124,7 +124,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | streamstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by country",
+                    + " as max by country | fields name, country, state, month, year, age, cnt, avg, min, max",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchemaInOrder(
@@ -153,7 +153,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | streamstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by state",
+                    + " as max by state | fields name, country, state, month, year, age, cnt, avg, min, max",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
     verifyDataRows(
         actual,
@@ -171,7 +171,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | streamstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by span(age, 10) as age_span",
+                    + " as max by span(age, 10) as age_span | fields name, country, state, month, year, age, cnt, avg, min, max",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifyDataRows(
@@ -188,7 +188,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | streamstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by span(age, 10) as age_span",
+                    + " as max by span(age, 10) as age_span | fields name, country, state, month, year, age, cnt, avg, min, max",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifyDataRows(
@@ -207,7 +207,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | streamstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by span(age, 10) as age_span, country",
+                    + " as max by span(age, 10) as age_span, country | fields name, country, state, month, year, age, cnt, avg, min, max",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifyDataRows(
@@ -224,7 +224,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | streamstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by span(age, 10) as age_span, state",
+                    + " as max by span(age, 10) as age_span, state | fields name, country, state, month, year, age, cnt, avg, min, max",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifyDataRows(
@@ -241,7 +241,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | streamstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by span(age, 10) as age_span, country",
+                    + " as max by span(age, 10) as age_span, country | fields name, country, state, month, year, age, cnt, avg, min, max",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifyDataRows(
@@ -260,7 +260,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | streamstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by span(age, 10) as age_span, state",
+                    + " as max by span(age, 10) as age_span, state | fields name, country, state, month, year, age, cnt, avg, min, max",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifyDataRows(
@@ -278,7 +278,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats current=false avg(age) as prev_avg",
+                "source=%s | streamstats current=false avg(age) as prev_avg | fields name, country, state, month, year, age, prev_avg",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifyDataRows(
@@ -294,7 +294,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats current=false avg(age) as prev_avg",
+                "source=%s | streamstats current=false avg(age) as prev_avg | fields name, country, state, month, year, age, prev_avg",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifyDataRows(
@@ -312,7 +312,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats window = 3 avg(age) as avg", TEST_INDEX_STATE_COUNTRY));
+                "source=%s | streamstats window = 3 avg(age) as avg | fields name, country, state, month, year, age, avg", TEST_INDEX_STATE_COUNTRY));
 
     verifyDataRows(
         actual,
@@ -327,7 +327,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats window = 3 avg(age) as avg",
+                "source=%s | streamstats window = 3 avg(age) as avg | fields name, country, state, month, year, age, avg",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifyDataRows(
@@ -344,7 +344,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats window = 10 avg(age) as avg", TEST_INDEX_STATE_COUNTRY));
+                "source=%s | streamstats window = 10 avg(age) as avg | fields name, country, state, month, year, age, avg", TEST_INDEX_STATE_COUNTRY));
 
     verifyDataRows(
         actual,
@@ -372,7 +372,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats current = false window = 2 avg(age) as avg",
+                "source=%s | streamstats current = false window = 2 avg(age) as avg | fields name, country, state, month, year, age, avg",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifyDataRows(
@@ -388,7 +388,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats current = false window = 2 avg(age) as avg",
+                "source=%s | streamstats current = false window = 2 avg(age) as avg | fields name, country, state, month, year, age, avg",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifyDataRows(
@@ -416,7 +416,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats window=2 global=false avg(age) as avg by country",
+                "source=%s | streamstats window=2 global=false avg(age) as avg by country | fields name, country, state, month, year, age, avg",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifyDataRows(
@@ -430,7 +430,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual2 =
         executeQuery(
             String.format(
-                "source=%s | streamstats window=2 global=true avg(age) as avg by country",
+                "source=%s | streamstats window=2 global=true avg(age) as avg by country | fields name, country, state, month, year, age, avg",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifyDataRows(
@@ -463,7 +463,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats window=2 global=false avg(age) as avg by country",
+                "source=%s | streamstats window=2 global=false avg(age) as avg by country | fields name, country, state, month, year, age, avg",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifyDataRows(
@@ -479,7 +479,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual2 =
         executeQuery(
             String.format(
-                "source=%s | streamstats window=2 global=true avg(age) as avg by country",
+                "source=%s | streamstats window=2 global=true avg(age) as avg by country | fields name, country, state, month, year, age, avg",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifyDataRows(
@@ -514,7 +514,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats window=2 reset_before=age>29 avg(age) as avg by country",
+                "source=%s | streamstats window=2 reset_before=age>29 avg(age) as avg by country | fields name, country, state, month, year, age, avg",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifyDataRows(
@@ -528,7 +528,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual2 =
         executeQuery(
             String.format(
-                "source=%s | streamstats window=2 reset_after=age>22 avg(age) as avg by country",
+                "source=%s | streamstats window=2 reset_after=age>22 avg(age) as avg by country | fields name, country, state, month, year, age, avg",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifyDataRows(
@@ -561,7 +561,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats window=2 reset_before=age>29 avg(age) as avg by country",
+                "source=%s | streamstats window=2 reset_before=age>29 avg(age) as avg by country | fields name, country, state, month, year, age, avg",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifyDataRows(
@@ -577,7 +577,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual2 =
         executeQuery(
             String.format(
-                "source=%s | streamstats window=2 reset_after=age>22 avg(age) as avg by country",
+                "source=%s | streamstats window=2 reset_after=age>22 avg(age) as avg by country | fields name, country, state, month, year, age, avg",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifyDataRows(
@@ -618,7 +618,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | streamstats avg(age) as avg_age by state, country | streamstats"
-                    + " avg(avg_age) as avg_state_age by country",
+                    + " avg(avg_age) as avg_state_age by country | fields name, country, state, month, year, age, avg_age, avg_state_age",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifyDataRows(
@@ -635,7 +635,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | streamstats avg(age) as avg_age by state, country | streamstats"
-                    + " avg(avg_age) as avg_state_age by country",
+                    + " avg(avg_age) as avg_state_age by country | fields name, country, state, month, year, age, avg_age, avg_state_age",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifyDataRows(
@@ -654,7 +654,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eventstats avg(age) as avg_age| streamstats"
-                    + " avg(age) as avg_age_stream",
+                    + " avg(age) as avg_age_stream | fields name, country, state, month, year, age, avg_age, avg_age_stream",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifyDataRows(
@@ -670,7 +670,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | sort age | streamstats window = 2 avg(age) as avg_age ",
+                "source=%s | sort age | streamstats window = 2 avg(age) as avg_age | fields name, country, state, month, year, age, avg_age",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifyDataRows(
@@ -687,7 +687,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s as l | left join left=l right=r on l.country = r.country [ source=%s |"
-                    + " streamstats window=2 avg(age) as avg_age]",
+                    + " streamstats window=2 avg(age) as avg_age] | fields l.name, l.country, l.state, l.month, l.year, l.age, r.name, r.country, r.state, r.month, r.year, r.age, avg_age",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifyDataRows(
@@ -718,7 +718,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | where country in [ source=%s | streamstats window=2 avg(age) as"
-                    + " avg_age | where avg_age > 40 | fields country ]",
+                    + " avg_age | where avg_age > 40 | fields country ] | fields name, country, state, month, year, age",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifyDataRows(
@@ -735,7 +735,9 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
                 "source=%s | streamstats avg(age) as avg_age by country, state, name | eval"
                     + " avg_age_divide_20 = avg_age - 20 | streamstats avg(avg_age_divide_20) as"
                     + " avg_state_age by country, state | where avg_state_age > 0 | streamstats"
-                    + " count(avg_state_age) as count_country_age_greater_20 by country",
+                    + " count(avg_state_age) as count_country_age_greater_20 by country | fields"
+                    + " name, country, state, month, year, age, avg_age, avg_age_divide_20,"
+                    + " avg_state_age, count_country_age_greater_20",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifyDataRows(
@@ -771,7 +773,8 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | streamstats stddev_pop(age), stddev_samp(age), var_pop(age),"
-                    + " var_samp(age)",
+                    + " var_samp(age) | fields name, country, state, month, year, age,"
+                    + " `stddev_pop(age)`, `stddev_samp(age)`, `var_pop(age)`, `var_samp(age)`",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifySchemaInOrder(
@@ -821,7 +824,8 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | streamstats stddev_pop(age), stddev_samp(age), var_pop(age),"
-                    + " var_samp(age)",
+                    + " var_samp(age) | fields name, country, state, month, year, age,"
+                    + " `stddev_pop(age)`, `stddev_samp(age)`, `var_pop(age)`, `var_samp(age)`",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchemaInOrder(
@@ -873,7 +877,8 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | streamstats stddev_pop(age), stddev_samp(age), var_pop(age),"
-                    + " var_samp(age) by country",
+                    + " var_samp(age) by country | fields name, country, state, month, year, age,"
+                    + " `stddev_pop(age)`, `stddev_samp(age)`, `var_pop(age)`, `var_samp(age)`",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifyDataRows(
@@ -890,7 +895,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | where country != 'USA' | streamstats stddev_samp(age) by span(age,"
-                    + " 10)",
+                    + " 10) | fields name, country, state, month, year, age, `stddev_samp(age)`",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifyDataRows(
@@ -905,7 +910,8 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | streamstats stddev_pop(age), stddev_samp(age), var_pop(age),"
-                    + " var_samp(age) by country",
+                    + " var_samp(age) by country | fields name, country, state, month, year, age,"
+                    + " `stddev_pop(age)`, `stddev_samp(age)`, `var_pop(age)`, `var_samp(age)`",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifyDataRows(
@@ -933,7 +939,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats dc(state) as dc_state", TEST_INDEX_STATE_COUNTRY));
+                "source=%s | streamstats dc(state) as dc_state | fields name, country, state, month, year, age, dc_state", TEST_INDEX_STATE_COUNTRY));
 
     verifySchemaInOrder(
         actual,
@@ -958,7 +964,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats dc(state) as dc_state by country",
+                "source=%s | streamstats dc(state) as dc_state by country | fields name, country, state, month, year, age, dc_state",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifySchemaInOrder(
@@ -984,7 +990,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats distinct_count(country) as dc_country",
+                "source=%s | streamstats distinct_count(country) as dc_country | fields name, country, state, month, year, age, dc_country",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifySchemaInOrder(
@@ -1010,7 +1016,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats dc(state) as dc_state",
+                "source=%s | streamstats dc(state) as dc_state | fields name, country, state, month, year, age, dc_state",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchemaInOrder(
