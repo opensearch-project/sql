@@ -1897,10 +1897,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     // 1. group the group-by list + field list and add a count() aggregation
-    List<UnresolvedExpression> groupExprList = new ArrayList<>(node.getGroupExprList());
-    List<UnresolvedExpression> fieldList =
-        node.getFields().stream().map(f -> (UnresolvedExpression) f).toList();
-    groupExprList.addAll(fieldList);
+    List<UnresolvedExpression> groupExprList = new ArrayList<>();
+    node.getGroupExprList().forEach(exp -> groupExprList.add(addAliasToDynamicFieldAccess(exp)));
+    // need alias for dynamic fields
+    node.getFields()
+        .forEach(field -> groupExprList.add(AstDSL.alias(field.getField().toString(), field)));
     List<UnresolvedExpression> aggExprList =
         List.of(AstDSL.alias(countFieldName, AstDSL.aggregate("count", null)));
     aggregateWithTrimming(groupExprList, aggExprList, context);
@@ -2048,6 +2049,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       org.opensearch.sql.ast.tree.Timechart node, CalcitePlanContext context) {
     visitChildren(node, context);
 
+    if (!context.fieldBuilder.isFieldSpecificType("@timestamp")) {
+      throw new IllegalArgumentException(
+          "`@timestamp` field needs to be specific type. Please cast explicitly.");
+    }
+
     // Extract parameters
     UnresolvedExpression spanExpr = node.getBinExpression();
 
@@ -2089,7 +2095,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // Extract parameters for byField case
     UnresolvedExpression byField = node.getByField();
-    String byFieldName = ((Field) byField).getField().toString();
+
+    String byFieldName = ((Field) node.getByField()).getField().toString();
+    if (!context.fieldBuilder.isFieldSpecificType(byFieldName)) {
+      throw new IllegalArgumentException(
+          String.format(
+              "By field `%s` needs to be specific type. Please cast explicitly.", byFieldName));
+    }
     String valueFunctionName = getValueFunctionName(node.getAggregateFunction());
 
     int limit = Optional.ofNullable(node.getLimit()).orElse(10);
@@ -2111,9 +2123,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       List<RexNode> outputFields = context.fieldBuilder.staticFields();
       List<RexNode> reordered = new ArrayList<>();
       reordered.add(context.fieldBuilder.staticField("@timestamp")); // timestamp first
-      reordered.add(
-          context.fieldBuilder.staticField(
-              byFieldName)); // byField second. TODO: allow dynamic fields
+      reordered.add(context.fieldBuilder.staticField(byFieldName)); // byField second.
       reordered.add(outputFields.get(outputFields.size() - 1)); // value function last
       context.relBuilder.project(reordered);
 
@@ -2142,6 +2152,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     } catch (Exception e) {
       throw new RuntimeException("Error in visitTimechart: " + e.getMessage(), e);
+    }
+  }
+
+  private UnresolvedExpression addAliasToDynamicFieldAccess(UnresolvedExpression exp) {
+    if (exp instanceof Field f) {
+      return AstDSL.alias(f.getField().toString(), f);
+    } else {
+      return exp;
     }
   }
 
@@ -2363,6 +2381,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         .forEach(
             trendlineComputation -> {
               RexNode field = rexVisitor.analyze(trendlineComputation.getDataField(), context);
+              String dataFieldName = trendlineComputation.getDataField().getField().toString();
+              if (!context.fieldBuilder.isFieldSpecificType(dataFieldName)) {
+                throw new IllegalArgumentException(
+                    String.format(
+                        "`%s` needs to be specific type. Please cast explicitly.", dataFieldName));
+              }
+
               context.relBuilder.filter(context.relBuilder.isNotNull(field));
 
               WindowFrame windowFrame =

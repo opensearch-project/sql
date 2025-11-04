@@ -11,6 +11,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.apache.calcite.avatica.SqlType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
@@ -42,6 +43,16 @@ public class RelFieldBuilder {
 
   public List<String> getAllFieldNames() {
     return getAllFieldNames(0);
+  }
+
+  public boolean isFieldSpecificType(String fieldName) {
+    List<RelDataTypeField> fields = relBuilder.peek().getRowType().getFieldList();
+    for (RelDataTypeField field : fields) {
+      if (field.getName().equals(fieldName)) {
+        return !field.getType().getSqlTypeName().equals(SqlType.ANY);
+      }
+    }
+    return false;
   }
 
   public List<String> getAllFieldNames(int inputCount, int inputOrdinal) {
