@@ -1,4 +1,4 @@
-# PPL Engine V3 (for 3.0.0-beta)
+# PPL Engine V3
 
 ---
 ## 1. Motivations
@@ -24,7 +24,7 @@ Find more details in [V3 Architecture](./intro-v3-architecture.md).
 ---
 ## 2. What's New
 
-In the initial release of the V3 engine (3.0.0-beta), the main new features focus on enhancing the PPL language while maintaining maximum compatibility with V2 behavior.
+In the initial release of the V3 engine (3.0.0), the main new features focus on enhancing the PPL language while maintaining maximum compatibility with V2 behavior.
 
 * **[Join](../user/ppl/cmd/join.rst) Command**
 * **[Lookup](../user/ppl/cmd/lookup.rst) Command**
@@ -51,40 +51,22 @@ Because of implementation changed internally, following behaviors are changed fr
 
 ### 3.2 Fallback Mechanism
 
-As v3 engine is experimental in 3.0.0-beta, not all PPL commands could work under this new engine. Those unsupported queries will be forwarded to V2 engine by fallback mechanism. To avoid impact on your side, normally you won't see any difference in a query response. If you want to check if and why your query falls back to be handled by V2 engine, please check OpenSearch log for "Fallback to V2 query engine since ...".
+- As v3 engine is experimental in 3.0.0, not all PPL commands could work under this new engine. Those unsupported queries will be forwarded to V2 engine by fallback mechanism. To avoid impact on your side, normally you won't see any difference in a query response. If you want to check if and why your query falls back to be handled by V2 engine, please check OpenSearch log for "Fallback to V2 query engine since ...".
+- Since 3.2.0, the fallback mechanism is disabled by default, to enable fallback, set `plugins.calcite.fallback.allowed=true`.
 
 ### 3.3 Limitations
 
 For the following functionalities in V3 engine, the query will be forwarded to the V2 query engine and thus you cannot use new features in [2. What's New](#2-whats-new).
 
-#### Unsupported functionalities
+#### Unsupported functionalities (up to latest)
 - All SQL queries
-- `trendline`
-- `show datasource`
-- `explain`
-- `describe`
-- `top` and `rare`
-- `fillnull`
-- `patterns`
+- PPL queries against non-OpenSearch data sources
 - `dedup` with `consecutive=true`
 - Search relevant commands
   - AD
   - ML
   - Kmeans
 - Commands with `fetch_size` parameter
-- query with metadata fields, `_id`, `_doc`, etc.
-- Json relevant functions
-  - cast to json
-  - json
-  - json_valid
-- Search relevant functions
-  - match
-  - match_phrase
-  - match_bool_prefix
-  - match_phrase_prefix
-  - simple_query_string
-  - query_string
-  - multi_match
 - [Existed limitations of V2](intro-v2-engine.md#33-limitations)
 
 ---

@@ -73,6 +73,7 @@ ANTI:                               'ANTI';
 CROSS:                              'CROSS';
 LEFT_HINT:                          'HINT.LEFT';
 RIGHT_HINT:                         'HINT.RIGHT';
+PATTERN_METHOD:                     'PATTERN_METHOD';
 
 // COMMAND ASSIST KEYWORDS
 AS:                                 'AS';
@@ -272,6 +273,8 @@ LATEST:                             'LATEST';
 TAKE:                               'TAKE';
 LIST:                               'LIST';
 VALUES:                             'VALUES';
+EARLIEST_TIME:                      'EARLIEST_TIME';
+LATEST_TIME:                        'LATEST_TIME';
 PER_DAY:                            'PER_DAY';
 PER_HOUR:                           'PER_HOUR';
 PER_MINUTE:                         'PER_MINUTE';
@@ -403,6 +406,7 @@ SUBSTRING:                          'SUBSTRING';
 LTRIM:                              'LTRIM';
 RTRIM:                              'RTRIM';
 TRIM:                               'TRIM';
+TO:                                 'TO';
 LOWER:                              'LOWER';
 UPPER:                              'UPPER';
 CONCAT:                             'CONCAT';

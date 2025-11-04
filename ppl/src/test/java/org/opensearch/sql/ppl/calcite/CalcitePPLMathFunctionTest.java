@@ -124,7 +124,7 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
         "LogicalProject(CRC32TEST=[CRC32('test':VARCHAR)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedSparkSql = "SELECT `CRC32`('test') `CRC32TEST`\nFROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT CRC32('test') `CRC32TEST`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -167,6 +167,22 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedSparkSql = "SELECT FLOOR(50.00005) `FLOOR1`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testFloorBigDecimal() {
+    RelNode root =
+        getRelNode(
+            "source=EMP | head 1 | eval FLOOR1 = floor(9223372036854775807.0000001) | fields"
+                + " FLOOR1");
+    String expectedLogical =
+        "LogicalProject(FLOOR1=[FLOOR(9223372036854775807.0000001:DECIMAL(26, 7))])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedSparkSql =
+        "SELECT FLOOR(9223372036854775807.0000001) `FLOOR1`\nFROM `scott`.`EMP`\nLIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -222,11 +238,23 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testModDecimal() {
+    RelNode root = getRelNode("source=EMP | eval MOD = mod(3.1, 2) | fields MOD");
+    String expectedLogical =
+        "LogicalProject(MOD=[MOD(3.1:DECIMAL(2, 1), 2)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedSparkSql = "SELECT MOD(3.1, 2) `MOD`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
   public void testPi() {
     RelNode root = getRelNode("source=EMP | eval PI = pi() | fields PI");
-    String expectedLogical = "LogicalProject(PI=[PI])\n  LogicalTableScan(table=[[scott, EMP]])\n";
+    String expectedLogical =
+        "LogicalProject(PI=[PI()])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedSparkSql = "SELECT PI `PI`\nFROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT PI() `PI`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 

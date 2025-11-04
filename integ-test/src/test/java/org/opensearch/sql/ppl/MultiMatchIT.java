@@ -59,4 +59,24 @@ public class MultiMatchIT extends PPLIntegTestCase {
     JSONObject result3 = executeQuery(query3);
     assertEquals(10, result3.getInt("total"));
   }
+
+  @Test
+  public void test_multi_match_without_fields() throws IOException {
+    // Test multi_match without fields parameter - should search in default fields
+    String query =
+        "SOURCE=" + TEST_INDEX_BEER + " | WHERE multi_match('taste brewing') | fields Id";
+    var result = executeQuery(query);
+    assertTrue("multi_match without fields should return results", result.getInt("total") > 0);
+  }
+
+  @Test
+  public void test_multi_match_without_fields_with_options() throws IOException {
+    // Test multi_match without fields but with optional parameters
+    String query =
+        "SOURCE=" + TEST_INDEX_BEER + " | WHERE multi_match('taste', operator='and') | fields Id";
+    var result = executeQuery(query);
+    assertTrue(
+        "multi_match without fields with options should return results",
+        result.getInt("total") > 0);
+  }
 }

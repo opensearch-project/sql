@@ -169,6 +169,11 @@ public class TestUtils {
     return getMappingFile(mappingFile);
   }
 
+  public static String getLocationsTypeConflictIndexMapping() {
+    String mappingFile = "locations_type_conflict_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
   public static String getEmployeeNestedTypeIndexMapping() {
     String mappingFile = "employee_nested_type_index_mapping.json";
     return getMappingFile(mappingFile);
@@ -254,6 +259,11 @@ public class TestUtils {
     return getMappingFile(mappingFile);
   }
 
+  public static String getComplexGeoIndexMapping() {
+    String mappingFile = "complex_geo_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
   public static String getStateCountryIndexMapping() {
     String mappingFile = "state_country_index_mapping.json";
     return getMappingFile(mappingFile);
@@ -301,6 +311,16 @@ public class TestUtils {
 
   public static String getHdfsLogsIndexMapping() {
     String mappingFile = "hdfs_logs_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
+  public static String getLogsIndexMapping() {
+    String mappingFile = "logs_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
+  public static String getOtelLogsIndexMapping() {
+    String mappingFile = "otellogs_mapping.json";
     return getMappingFile(mappingFile);
   }
 
@@ -480,6 +500,14 @@ public class TestUtils {
   public static String getBig5MappingFile(String fileName) {
     try {
       return TestUtils.fileToString("src/test/resources/big5/mappings/" + fileName, false);
+    } catch (IOException e) {
+      return null;
+    }
+  }
+
+  public static String getClickBenchMappingFile(String fileName) {
+    try {
+      return TestUtils.fileToString("src/test/resources/clickbench/mappings/" + fileName, false);
     } catch (IOException e) {
       return null;
     }

@@ -16,15 +16,15 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
-import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.geospatial.action.IpEnrichmentActionClient;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
@@ -37,8 +37,8 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
  * <p>Signatures:
  *
  * <ul>
- *   <li>(STRING, STRING) -> MAP
- *   <li>(STRING, STRING, STRING) -> MAP
+ *   <li>(STRING, IP) -> MAP
+ *   <li>(STRING, IP, STRING) -> MAP
  * </ul>
  */
 public class GeoIpFunction extends ImplementorUDF {
@@ -58,9 +58,10 @@ public class GeoIpFunction extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return UDFOperandMetadata.wrap(
-            (CompositeOperandTypeChecker)
-                    OperandTypes.STRING_STRING.or(OperandTypes.STRING_STRING_STRING));
+    return UDFOperandMetadata.wrapUDT(
+        List.of(
+            List.of(ExprCoreType.STRING, ExprCoreType.IP),
+            List.of(ExprCoreType.STRING, ExprCoreType.IP, ExprCoreType.STRING)));
   }
 
   public static class GeoIPImplementor implements NotNullImplementor {
@@ -84,16 +85,20 @@ public class GeoIpFunction extends ImplementorUDF {
     }
 
     public static Map<String, ?> fetchIpEnrichment(
-        String dataSource, String ipAddress, NodeClient nodeClient) {
-      return fetchIpEnrichment(dataSource, ipAddress, Collections.emptySet(), nodeClient);
+        String dataSource, ExprIpValue ipAddress, NodeClient nodeClient) {
+      return fetchIpEnrichment(
+          dataSource, ipAddress.toString(), Collections.emptySet(), nodeClient);
     }
 
     public static Map<String, ?> fetchIpEnrichment(
-        String dataSource, String ipAddress, String commaSeparatedOptions, NodeClient nodeClient) {
+        String dataSource,
+        ExprIpValue ipAddress,
+        String commaSeparatedOptions,
+        NodeClient nodeClient) {
       String unquotedOptions = StringUtils.unquoteText(commaSeparatedOptions);
       final Set<String> options =
           Arrays.stream(unquotedOptions.split(",")).map(String::trim).collect(Collectors.toSet());
-      return fetchIpEnrichment(dataSource, ipAddress, options, nodeClient);
+      return fetchIpEnrichment(dataSource, ipAddress.toString(), options, nodeClient);
     }
 
     private static Map<String, ?> fetchIpEnrichment(

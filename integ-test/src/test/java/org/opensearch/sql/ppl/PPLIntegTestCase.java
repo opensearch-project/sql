@@ -20,22 +20,33 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.Rule;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
+import org.opensearch.common.collect.MapBuilder;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RetryProcessor;
 
 /** OpenSearch Rest integration test base for PPL testing. */
 public abstract class PPLIntegTestCase extends SQLIntegTestCase {
+  private static final String EXTENDED_EXPLAIN_API_ENDPOINT =
+      "/_plugins/_ppl/_explain?format=extended";
+  private static final String YAML_EXPLAIN_API_ENDPOINT = "/_plugins/_ppl/_explain?format=yaml";
   private static final Logger LOG = LogManager.getLogger();
+  @Rule public final RetryProcessor retryProcessor = new RetryProcessor();
+  public static final Integer DEFAULT_SUBSEARCH_MAXOUT = 10000;
+  public static final Integer DEFAULT_JOIN_SUBSEARCH_MAXOUT = 50000;
 
   @Override
   protected void init() throws Exception {
     super.init();
     updatePushdownSettings();
+    disableCalcite(); // calcite is enabled by default from 3.3.0
   }
 
   protected JSONObject executeQuery(String query) throws IOException {
@@ -49,7 +60,22 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   }
 
   protected String explainQueryToString(String query) throws IOException {
-    Response response = client().performRequest(buildRequest(query, EXPLAIN_API_ENDPOINT));
+    return explainQueryToString(query, false);
+  }
+
+  protected String explainQueryYaml(String query) throws IOException {
+    Response response = client().performRequest(buildRequest(query, YAML_EXPLAIN_API_ENDPOINT));
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    String responseBody = getResponseBody(response, true);
+    return responseBody;
+  }
+
+  protected String explainQueryToString(String query, boolean extended) throws IOException {
+    Response response =
+        client()
+            .performRequest(
+                buildRequest(
+                    query, extended ? EXTENDED_EXPLAIN_API_ENDPOINT : EXPLAIN_API_ENDPOINT));
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
     String responseBody = getResponseBody(response, true);
     return responseBody.replace("\\r\\n", "\\n");
@@ -67,6 +93,31 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
 
   protected String executeCsvQuery(String query) throws IOException {
     return executeCsvQuery(query, true);
+  }
+
+  protected void verifyExplainException(String query, String expectedErrorMessage) {
+    ResponseException e = assertThrows(ResponseException.class, () -> explainQueryToString(query));
+    try {
+      String responseBody = getResponseBody(e.getResponse(), true);
+      JSONObject errorResponse = new JSONObject(responseBody);
+      String actualErrorMessage = errorResponse.getJSONObject("error").getString("details");
+      assertEquals(expectedErrorMessage, actualErrorMessage);
+    } catch (IOException | JSONException ex) {
+      throw new RuntimeException("Failed to parse error response", ex);
+    }
+  }
+
+  protected static String source(String index, String query) {
+    return String.format("source=%s | %s", index, query);
+  }
+
+  protected void timing(MapBuilder<String, Long> builder, String query, String ppl)
+      throws IOException {
+    executeQuery(ppl); // warm-up
+    long start = System.currentTimeMillis();
+    executeQuery(ppl);
+    long duration = System.currentTimeMillis() - start;
+    builder.put(query, duration);
   }
 
   protected void failWithMessage(String query, String message) {
@@ -155,6 +206,23 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
             "persistent", Settings.Key.CALCITE_ENGINE_ENABLED.getKeyValue(), "false"));
   }
 
+  public static void withCalciteEnabled(Runnable f) throws IOException {
+    boolean isCalciteEnabled = isCalciteEnabled();
+    if (isCalciteEnabled) f.run();
+    else {
+      try {
+        updateClusterSettings(
+            new SQLIntegTestCase.ClusterSetting(
+                "persistent", Key.CALCITE_ENGINE_ENABLED.getKeyValue(), "true"));
+        f.run();
+      } finally {
+        updateClusterSettings(
+            new SQLIntegTestCase.ClusterSetting(
+                "persistent", Settings.Key.CALCITE_ENGINE_ENABLED.getKeyValue(), "false"));
+      }
+    }
+  }
+
   public static void allowCalciteFallback() throws IOException {
     updateClusterSettings(
         new SQLIntegTestCase.ClusterSetting(
@@ -193,6 +261,12 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
         LOG.info("Reset {} back to disabled", Settings.Key.CALCITE_FALLBACK_ALLOWED.name());
       }
     }
+  }
+
+  public static void supportAllJoinTypes() throws IOException {
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            "persistent", Key.CALCITE_SUPPORT_ALL_JOIN_TYPES.getKeyValue(), "true"));
   }
 
   public static void withSettings(Key setting, String value, Runnable f) throws IOException {
@@ -243,15 +317,24 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     public static boolean enabled = true;
   }
 
-  public boolean isPushdownEnabled() throws IOException {
-    return Boolean.parseBoolean(
-        getClusterSetting(Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(), "transient"));
+  /**
+   * We check pushdown disabled instead enabled because enabled is the default value of pushdown
+   * config whatever calcite is enabled or not.
+   */
+  public boolean isPushdownDisabled() throws IOException {
+    return isCalciteEnabled()
+        && !Boolean.parseBoolean(
+            getClusterSetting(Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(), "transient"));
+  }
+
+  protected void enabledOnlyWhenPushdownIsEnabled() throws IOException {
+    Assume.assumeTrue("This test is only for when push down is enabled", !isPushdownDisabled());
   }
 
   public void updatePushdownSettings() throws IOException {
     String pushdownEnabled = String.valueOf(GlobalPushdownConfig.enabled);
     assert !pushdownEnabled.isBlank() : "Pushdown enabled setting cannot be empty";
-    if (isPushdownEnabled() != GlobalPushdownConfig.enabled) {
+    if (isPushdownDisabled() == GlobalPushdownConfig.enabled) {
       LOG.info(
           "Updating {} to {}",
           Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(),
@@ -262,6 +345,34 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
               Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(),
               String.valueOf(GlobalPushdownConfig.enabled)));
     }
+  }
+
+  protected void setSubsearchMaxOut(Integer limit) throws IOException {
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            "transient", Key.PPL_SUBSEARCH_MAXOUT.getKeyValue(), limit.toString()));
+  }
+
+  protected void resetSubsearchMaxOut() throws IOException {
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            "transient",
+            Settings.Key.PPL_SUBSEARCH_MAXOUT.getKeyValue(),
+            DEFAULT_SUBSEARCH_MAXOUT.toString()));
+  }
+
+  protected void setJoinSubsearchMaxOut(Integer limit) throws IOException {
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            "transient", Key.PPL_JOIN_SUBSEARCH_MAXOUT.getKeyValue(), limit.toString()));
+  }
+
+  protected void resetJoinSubsearchMaxOut() throws IOException {
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            "transient",
+            Settings.Key.PPL_JOIN_SUBSEARCH_MAXOUT.getKeyValue(),
+            DEFAULT_JOIN_SUBSEARCH_MAXOUT.toString()));
   }
 
   /**
@@ -290,5 +401,19 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+  }
+
+  protected String loadExpectedPlan(String fileName) throws IOException {
+    String prefix;
+    if (isCalciteEnabled()) {
+      if (isPushdownDisabled()) {
+        prefix = "expectedOutput/calcite_no_pushdown/";
+      } else {
+        prefix = "expectedOutput/calcite/";
+      }
+    } else {
+      prefix = "expectedOutput/ppl/";
+    }
+    return loadFromFile(prefix + fileName);
   }
 }

@@ -241,7 +241,7 @@ Result set::
 	}
 
 plugins.query.size_limit
-===========================
+========================
 
 Description
 -----------
@@ -269,6 +269,43 @@ Result set::
     }
 
 Note: the legacy settings of ``opendistro.query.size_limit`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
+
+plugins.query.buckets
+=====================
+
+Version
+-------
+3.4.0
+
+Description
+-----------
+
+This configuration indicates how many aggregation buckets will return in a single response. The default value equals to ``plugins.query.size_limit``.
+You can change the value to any value not greater than the maximum number of aggregation buckets allowed in a single response (`search.max_buckets`), here is an example::
+
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	  "transient" : {
+	    "plugins.query.buckets" : 1000
+	  }
+	}'
+
+Result set::
+
+    {
+      "acknowledged" : true,
+      "persistent" : { },
+      "transient" : {
+        "plugins" : {
+          "query" : {
+            "buckets" : "1000"
+          }
+        }
+      }
+    }
+
+Limitations
+-----------
+The number of aggregation buckets is fixed to ``1000`` in v2. ``plugins.query.buckets`` can only effect the number of aggregation buckets when calcite enabled.
 
 plugins.query.memory_limit
 ==========================
@@ -889,47 +926,60 @@ plugins.calcite.enabled
 Description
 -----------
 
-This setting is present from 3.0.0-beta. You can enable Calcite as new query optimizer and execution engine to all coming requests.
+You can enable Calcite as new query optimizer and execution engine to all coming requests.
 
-1. The default value is false in 3.0.0-beta.
-2. This setting is node scope.
-3. This setting can be updated dynamically.
+1. The default value is false in 3.0, 3.1 and 3.2.
+2. The default value is true since 3.3.0.
+3. This setting is node scope.
+4. This setting can be updated dynamically.
 
 Check `introduce v3 engine <../../../dev/intro-v3-engine.md>`_ for more details.
 Check `join doc <../../ppl/cmd/join.rst>`_ for example.
 
 plugins.calcite.fallback.allowed
-=======================
+================================
 
 Description
 -----------
 
-This setting is present from 3.0.0-beta. If Calcite is enabled, you can use this setting to decide whether to allow fallback to v2 engine for some queries which are not supported by v3 engine.
+If Calcite is enabled, you can use this setting to decide whether to allow fallback to v2 engine for some queries which are not supported by v3 engine.
 
-1. The default value is true in 3.0.0-beta.
+1. The default value is false since 3.2.0.
 2. This setting is node scope.
 3. This setting can be updated dynamically.
 
 plugins.calcite.pushdown.enabled
-=======================
+================================
 
 Description
 -----------
 
-This setting is present from 3.0.0-beta. If Calcite is enabled, you can use this setting to decide whether to enable the operator pushdown optimization for v3 engine.
+If Calcite is enabled, you can use this setting to decide whether to enable the operator pushdown optimization for v3 engine.
 
-1. The default value is true in 3.0.0-beta.
+1. The default value is true since 3.0.0.
 2. This setting is node scope.
 3. This setting can be updated dynamically.
 
 plugins.calcite.pushdown.rowcount.estimation.factor
-=======================
+===================================================
 
 Description
 -----------
 
-This setting is present from 3.1.0. If Calcite pushdown optimization is enabled, this setting is used to estimate the row count of the query plan. The value is a factor to multiply the row count of the table scan to get the estimated row count.
+If Calcite pushdown optimization is enabled, this setting is used to estimate the row count of the query plan. The value is a factor to multiply the row count of the table scan to get the estimated row count.
 
-1. The default value is 0.9 in 3.1.0.
+1. The default value is 0.9 since 3.1.0.
+2. This setting is node scope.
+3. This setting can be updated dynamically.
+
+plugins.calcite.all_join_types.allowed
+======================================
+
+Description
+-----------
+
+Join types ``inner``, ``left``, ``outer`` (alias of ``left``), ``semi`` and ``anti`` are supported by default. ``right``, ``full``, ``cross`` are performance sensitive join types which are disabled by default. Set config ``plugins.calcite.all_join_types.allowed = true`` to enable.
+
+1. The default value is false since 3.3.0.
 2. This setting is node scope.
 3. This setting can be updated dynamically.

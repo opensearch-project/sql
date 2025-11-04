@@ -40,6 +40,11 @@ configurations {
     compile {
         extendsFrom = extendsFrom.findAll { it != configurations.antlr }
     }
+    configureEach {
+        resolutionStrategy {
+            exclude group: 'commons-lang', module: 'commons-lang'
+        }
+    }
 }
 
 dependencies {
@@ -58,7 +63,7 @@ dependencies {
     testImplementation group: 'junit', name: 'junit', version: '4.13.2'
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
     testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.7.0'
-    testImplementation group: 'org.apache.calcite', name: 'calcite-testkit', version: '1.38.0'
+    testImplementation group: 'org.apache.calcite', name: 'calcite-testkit', version: '1.41.0'
     testImplementation(testFixtures(project(":core")))
 }
 
@@ -81,6 +86,7 @@ spotless {
 }
 
 test {
+    maxParallelForks = Runtime.runtime.availableProcessors()
     testLogging {
         events "passed", "skipped", "failed"
         exceptionFormat "full"

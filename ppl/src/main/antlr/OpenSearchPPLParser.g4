@@ -112,6 +112,10 @@ commandName
    | EXPAND
    | FLATTEN
    | TRENDLINE
+   | kmeansCommand
+   | adCommand
+   | mlCommand
+   | patternsCommand
    | TIMECHART
    | EXPLAIN
    | REVERSE
@@ -377,6 +381,7 @@ pathElement
 pathArrayAccess
    : LT_CURLY (INTEGER_LITERAL)? RT_CURLY
    ;
+
 regexCommand
     : REGEX regexExpr
     ;
@@ -398,6 +403,7 @@ rexOption
     | MODE EQUAL (EXTRACT | SED)
     | OFFSET_FIELD EQUAL offsetField=qualifiedName
     ;
+
 patternsMethod
    : PUNCT
    | REGEX
@@ -717,6 +723,8 @@ statsFunctionName
    | PERCENTILE
    | PERCENTILE_APPROX
    | MEDIAN
+   | EARLIEST
+   | LATEST
    | LIST
    | FIRST
    | EARLIEST
@@ -913,8 +921,8 @@ evalFunctionName
    | positionFunctionName
    | cryptographicFunctionName
    | jsonFunctionName
-   | geoipFunctionName
    | collectionFunctionName
+   | geoipFunctionName
    ;
 
 functionArgs
@@ -1047,9 +1055,7 @@ mathematicalFunctionName
    | trigonometricFunctionName
    ;
 
-geoipFunctionName
-   : GEOIP
-   ;
+
 
 collectionFunctionName
     : ARRAY
@@ -1062,7 +1068,9 @@ collectionFunctionName
     | TRANSFORM
     | REDUCE
     ;
-
+geoipFunctionName
+   : GEOIP
+   ;
 
 trigonometricFunctionName
    : ACOS
@@ -1442,6 +1450,43 @@ searchableKeyWord
    | multiFieldRelevanceFunctionName
    | commandName
    | collectionFunctionName
+   | dateTimeFunctionName
+   | textFunctionName
+   | mathematicalFunctionName
+   | positionFunctionName
+   | conditionFunctionName
+   | jsonFunctionName
+   | patternMethod
+   | patternsMethod
+   | geoipFunctionName
+   // commands
+   | SEARCH
+   | DESCRIBE
+   | SHOW
+   | FROM
+   | WHERE
+   | FIELDS
+   | RENAME
+   | STATS
+   | DEDUP
+   | SORT
+   | EVAL
+   | FILLNULL
+   | HEAD
+   | TOP
+   | RARE
+   | PARSE
+   | METHOD
+   | REGEX
+   | PUNCT
+   | GROK
+   | PATTERN
+   | PATTERNS
+   | NEW_FIELD
+   | KMEANS
+   | AD
+   | ML
+   | TRENDLINE
    | REGEX
    | explainMode
    | REGEXP
@@ -1453,8 +1498,6 @@ searchableKeyWord
    | EXISTS
    | SOURCE
    | INDEX
-   | A
-   | ASC
    | DESC
    | DATASOURCES
    | FROM

@@ -71,8 +71,10 @@ public interface PlanUtils {
     SpanUnit result;
     switch (unit) {
       case MICROSECOND:
-        result = SpanUnit.MILLISECOND;
+        result = SpanUnit.MICROSECOND;
         break;
+        case MILLISECOND:
+            result = SpanUnit.MILLISECOND;
       case SECOND:
         result = SpanUnit.SECOND;
         break;
@@ -105,6 +107,62 @@ public interface PlanUtils {
     }
     return result;
 
+  }
+
+  static IntervalUnit spanUnitToIntervalUnit(SpanUnit unit) {
+    switch (unit) {
+      case MICROSECOND:
+      case US:
+        return IntervalUnit.MICROSECOND;
+      case MILLISECOND:
+      case MS:
+        return IntervalUnit.MILLISECOND;
+      case SECOND:
+      case SECONDS:
+      case SEC:
+      case SECS:
+      case S:
+        return IntervalUnit.SECOND;
+      case MINUTE:
+      case MINUTES:
+      case MIN:
+      case MINS:
+      case m:
+        return IntervalUnit.MINUTE;
+      case HOUR:
+      case HOURS:
+      case HR:
+      case HRS:
+      case H:
+        return IntervalUnit.HOUR;
+      case DAY:
+      case DAYS:
+      case D:
+        return IntervalUnit.DAY;
+      case WEEK:
+      case WEEKS:
+      case W:
+        return IntervalUnit.WEEK;
+      case MONTH:
+      case MONTHS:
+      case MON:
+      case M:
+        return IntervalUnit.MONTH;
+      case QUARTER:
+      case QUARTERS:
+      case QTR:
+      case QTRS:
+      case Q:
+        return IntervalUnit.QUARTER;
+      case YEAR:
+      case YEARS:
+      case Y:
+        return IntervalUnit.YEAR;
+      case UNKNOWN:
+        return IntervalUnit.UNKNOWN;
+      default:
+        throw new UnsupportedOperationException("Unsupported span unit: " + unit);
+    }
   }
 
   static RexNode makeOver(
@@ -311,7 +369,7 @@ public interface PlanUtils {
 
   /** Get all uniq input references from a list of RexNodes. */
   static List<RexInputRef> getInputRefs(List<RexNode> nodes) {
-    return nodes.stream().flatMap(node -> getInputRefs(node).stream()).toList();
+    return nodes.stream().flatMap(node -> getInputRefs(node).stream()).collect(Collectors.toList());
   }
 
   /** Get all uniq RexCall from RexNode with a predicate */
@@ -340,7 +398,7 @@ public interface PlanUtils {
         .map(RelBuilder.AggCall::over)
         .map(RelBuilder.OverCall::toRex)
         .flatMap(rex -> getInputRefs(rex).stream())
-        .toList();
+            .collect(Collectors.toList());
   }
 
   /**

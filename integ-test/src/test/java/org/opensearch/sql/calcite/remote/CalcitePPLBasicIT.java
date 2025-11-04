@@ -26,7 +26,6 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
 
     Request request1 = new Request("PUT", "/test/_doc/1?refresh=true");
     request1.setJsonEntity("{\"name\": \"hello\", \"age\": 20}");
@@ -96,10 +95,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
     Throwable e =
         assertThrowsWithReplace(
             IllegalStateException.class, () -> executeQuery("source=test | fields NAME"));
-    verifyErrorMessageContains(
-        e,
-        "field [NAME] not found; input fields are: [name, age, _id, _index, _score, _maxscore,"
-            + " _sort, _routing]");
+    verifyErrorMessageContains(e, "Field [NAME] not found.");
   }
 
   @Test
@@ -537,11 +533,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
                   () ->
                       executeQuery(
                           String.format("source=%s | fields firstname1, age", TEST_INDEX_BANK)));
-          verifyErrorMessageContains(
-              e,
-              "field [firstname1] not found; input fields are: [account_number, firstname, address,"
-                  + " birthdate, gender, city, lastname, balance, employer, state, age, email,"
-                  + " male, _id, _index, _score, _maxscore, _sort, _routing]");
+          verifyErrorMessageContains(e, "Field [firstname1] not found.");
         },
         "");
   }

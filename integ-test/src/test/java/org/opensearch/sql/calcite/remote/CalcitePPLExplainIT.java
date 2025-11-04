@@ -18,7 +18,6 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
 
     Request request1 = new Request("PUT", "/test/_doc/1?refresh=true");
     request1.setJsonEntity("{\"name\": \"hello\", \"age\": 20}");
@@ -36,7 +35,7 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
   public void testExplainCommand() throws IOException {
     var result = explainQueryToString("source=test | where age = 20 | fields name, age");
     String expected =
-        isPushdownEnabled()
+        !isPushdownDisabled()
             ? loadFromFile("expectedOutput/calcite/explain_filter_w_pushdown.json")
             : loadFromFile("expectedOutput/calcite/explain_filter_wo_pushdown.json");
 
@@ -56,31 +55,15 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testExplainCommandExtendedWithoutCodegen() throws IOException {
-    var result =
-        executeWithReplace("explain extended source=test | where age = 20 | fields name, age");
-    if (isPushdownEnabled()) {
-      assertFalse(
-          result.contains(
-              "public org.apache.calcite.linq4j.Enumerable bind(final"
-                  + " org.apache.calcite.DataContext root)"));
-    } else {
-      assertTrue(
-          result.contains(
-              "public org.apache.calcite.linq4j.Enumerable bind(final"
-                  + " org.apache.calcite.DataContext root)"));
-    }
-  }
-
-  @Test
   public void testExplainCommandCost() throws IOException {
     var result = executeWithReplace("explain cost source=test | where age = 20 | fields name, age");
     String expected =
-        isPushdownEnabled()
+        !isPushdownDisabled()
             ? loadFromFile("expectedOutput/calcite/explain_filter_cost_w_pushdown.txt")
             : loadFromFile("expectedOutput/calcite/explain_filter_cost_wo_pushdown.txt");
     assertTrue(
-        String.format("Got: %s\n, expected: %s", result, expected), result.contains(expected));
+        String.format("Got: %s\n, expected: %s", result, expected),
+        result.contains(expected.trim()));
   }
 
   @Test

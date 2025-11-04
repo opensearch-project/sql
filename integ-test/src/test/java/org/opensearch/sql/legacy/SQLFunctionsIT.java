@@ -405,7 +405,7 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
     verifySchema(
         response,
         schema("CAST(male AS INT)", "cast_int", "integer"),
-        schema("COUNT(*)", "integer"));
+        schema("COUNT(*)", "long"));
     verifyDataRows(response, rows(0, 3), rows(1, 4));
   }
 

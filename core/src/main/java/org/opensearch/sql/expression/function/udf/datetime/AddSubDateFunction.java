@@ -76,10 +76,8 @@ public class AddSubDateFunction extends ImplementorUDF {
   public UDFOperandMetadata getOperandMetadata() {
     return UDFOperandMetadata.wrap(
         (CompositeOperandTypeChecker)
-            OperandTypes.DATETIME_INTERVAL
-                .or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER))
-                .or(OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.DATETIME_INTERVAL))
-                .or(OperandTypes.STRING_INTEGER));
+            OperandTypes.DATETIME_INTERVAL.or(
+                OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER)));
   }
 
   @RequiredArgsConstructor
@@ -119,13 +117,13 @@ public class AddSubDateFunction extends ImplementorUDF {
             applyDaysFuncName,
             properties,
             base,
-            Expressions.convert_(temporalDelta, long.class));
+            Expressions.convert_(Expressions.box(temporalDelta), long.class));
       } else if (SqlTypeFamily.DATETIME_INTERVAL.contains(temporalDeltaType)) {
         Expression interval =
             Expressions.call(
                 DateTimeConversionUtils.class,
                 "convertToTemporalAmount",
-                Expressions.convert_(temporalDelta, long.class),
+                Expressions.convert_(Expressions.box(temporalDelta), long.class),
                 Expressions.constant(
                     Objects.requireNonNull(temporalDeltaType.getIntervalQualifier()).getUnit()));
 

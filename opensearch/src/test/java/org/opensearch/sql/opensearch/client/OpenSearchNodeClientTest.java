@@ -188,7 +188,7 @@ class OpenSearchNodeClientTest {
         () -> assertEquals(OpenSearchTextType.of(MappingType.Text), parsedTypes.get("employer")),
         // `employer` is a `text` with `fields`
         () -> assertTrue(((OpenSearchTextType) parsedTypes.get("employer")).getFields().size() > 0),
-        () -> assertEquals("TEXT", mapping.get("employer_alias").legacyTypeName()),
+        () -> assertEquals("TEXT", parsedTypes.get("employer_alias").legacyTypeName()),
         () ->
             assertEquals(
                 new OpenSearchAliasType("employer", OpenSearchTextType.of(MappingType.Text)),
@@ -240,6 +240,12 @@ class OpenSearchNodeClientTest {
     when(nodeClient.admin().indices()).thenThrow(RuntimeException.class);
 
     assertThrows(IllegalStateException.class, () -> client.getIndexMappings(indexName));
+  }
+
+  @Test
+  void get_index_mappings_with_index_patterns() {
+    mockNodeClientIndicesMappings("", null);
+    assertThrows(IndexNotFoundException.class, () -> client.getIndexMappings("test*"));
   }
 
   @Test
@@ -495,7 +501,9 @@ class OpenSearchNodeClientTest {
         .thenReturn(mockResponse);
     try {
       Map<String, MappingMetadata> metadata;
-      if (mappings.isEmpty()) {
+      if (mappings == null) {
+        metadata = Map.of();
+      } else if (mappings.isEmpty()) {
         when(emptyMapping.getSourceAsMap()).thenReturn(Map.of());
         metadata = Map.of(indexName, emptyMapping);
       } else {

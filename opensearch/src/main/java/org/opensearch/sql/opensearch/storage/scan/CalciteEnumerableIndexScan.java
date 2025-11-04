@@ -34,6 +34,8 @@ import org.opensearch.sql.calcite.plan.OpenSearchRules;
 import org.opensearch.sql.calcite.plan.Scannable;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
+import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
+import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
 
 /** The physical relational operator representing a scan of an OpenSearchIndex type. */
 public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
@@ -59,6 +61,19 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
   }
 
   @Override
+  protected AbstractCalciteIndexScan buildScan(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      List<RelHint> hints,
+      RelOptTable table,
+      OpenSearchIndex osIndex,
+      RelDataType schema,
+      PushDownContext pushDownContext) {
+    return new CalciteEnumerableIndexScan(
+        cluster, traitSet, hints, table, osIndex, schema, pushDownContext);
+  }
+
+  @Override
   public void register(RelOptPlanner planner) {
     for (RelOptRule rule : OpenSearchRules.OPEN_SEARCH_OPT_RULES) {
       planner.addRule(rule);
@@ -77,9 +92,14 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
      * let's follow this convention to apply the optimization here and ensure `scan` method
      * returns the correct data format for single column rows.
      * See {@link OpenSearchIndexEnumerator}
+     * Besides, we replace all dots in fields to avoid the Calcite codegen bug.
+     * https://github.com/opensearch-project/sql/issues/4619
      */
     PhysType physType =
-        PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(), pref.preferArray());
+        PhysTypeImpl.of(
+            implementor.getTypeFactory(),
+            OpenSearchRelOptUtil.replaceDot(getCluster().getTypeFactory(), getRowType()),
+            pref.preferArray());
 
     Expression scanOperator = implementor.stash(this, CalciteEnumerableIndexScan.class);
     return implementor.result(physType, Blocks.toBlock(Expressions.call(scanOperator, "scan")));
@@ -95,12 +115,12 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
     return new AbstractEnumerable<>() {
       @Override
       public Enumerator<Object> enumerator() {
-        OpenSearchRequestBuilder requestBuilder = osIndex.createRequestBuilder();
-        pushDownContext.forEach(action -> action.apply(requestBuilder));
+        OpenSearchRequestBuilder requestBuilder = getOrCreateRequestBuilder();
         return new OpenSearchIndexEnumerator(
             osIndex.getClient(),
             getFieldPath(),
             requestBuilder.getMaxResponseSize(),
+            requestBuilder.getMaxResultWindow(),
             osIndex.buildRequest(requestBuilder),
             osIndex.createOpenSearchResourceMonitor());
       }
@@ -111,5 +131,29 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
     return getRowType().getFieldNames().stream()
         .map(f -> osIndex.getAliasMapping().getOrDefault(f, f))
             .collect(Collectors.toList());
+  }
+
+  /**
+   * In some edge cases where the digests of more than one scan are the same, and then the Calcite
+   * planner will reuse the same scan along with the same PushDownContext inner it. However, the
+   * `OpenSearchRequestBuilder` inner `PushDownContext` is not reusable since it has status changed
+   * in the search process.
+   *
+   * <p>To avoid this issue and try to construct `OpenSearchRequestBuilder` as less as possible,
+   * this method will get and reuse the `OpenSearchRequestBuilder` in PushDownContext for the first
+   * time, and then construct new ones for the following invoking.
+   *
+   * @return OpenSearchRequestBuilder to be used by enumerator
+   */
+  private volatile boolean isRequestBuilderUsedByEnumerator = false;
+
+  private OpenSearchRequestBuilder getOrCreateRequestBuilder() {
+    synchronized (this.pushDownContext) {
+      if (isRequestBuilderUsedByEnumerator) {
+        return this.pushDownContext.createRequestBuilder();
+      }
+      isRequestBuilderUsedByEnumerator = true;
+      return this.pushDownContext.getRequestBuilder();
+    }
   }
 }

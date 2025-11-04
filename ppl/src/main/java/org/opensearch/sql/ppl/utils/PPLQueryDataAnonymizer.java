@@ -108,6 +108,7 @@ import org.opensearch.sql.planner.logical.LogicalSort;
 public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> {
 
   private static final String MASK_LITERAL = "***";
+  private static final String MASK_IDENTIFIER = "identifier";
 
   private static final String MASK_COLUMN = "identifier";
 
@@ -123,7 +124,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   /**
    * This method is used to anonymize sensitive data in PPL query. Sensitive data includes user
-   * data.
+   * data.,
    *
    * @return ppl query string with all user data replace with "***"
    */
@@ -185,7 +186,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
                   ",",
                   node.getJoinFields().get().stream()
                       .map(c -> expressionAnalyzer.analyze(c, context))
-                      .toList());
+                      .collect(Collectors.toList()));
       return StringUtils.format(
           "%s | join type=%s overwrite=%s max=%s %s %s",
           left, joinType, MASK_LITERAL, MASK_LITERAL, fieldList, right);
@@ -228,13 +229,15 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   public String visitSubqueryAlias(SubqueryAlias node, String context) {
     Node childNode = node.getChild().get(0);
     String child = childNode.accept(this, context);
-    if (childNode instanceof Project project
-        && project.getProjectList().get(0) instanceof AllFields) {
-      childNode = childNode.getChild().get(0);
+    if (childNode instanceof Project) {
+      Project project = (Project) childNode;
+      if (project.getProjectList().get(0) instanceof AllFields) {
+        childNode = childNode.getChild().get(0);
+      }
     }
     // add "[]" only if its child is not a root
     String format = childNode.getChild().isEmpty() ? "%s as %s" : "[ %s ] as %s";
-    return StringUtils.format(format, child, MASK_COLUMN);
+    return StringUtils.format(format, child, node.getAlias());
   }
 
   @Override
@@ -451,7 +454,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitExpand(Expand node, String context) {
-    String child = node.getChild().getFirst().accept(this, context);
+    String child = node.getChild().get(0).accept(this, context);
     String field = visitExpression(node.getField());
 
     return StringUtils.format("%s | expand %s", child, field);
@@ -561,10 +564,10 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String commandName;
 
     switch (node.getParseMethod()) {
-      case ParseMethod.PATTERNS:
+      case PATTERNS:
         commandName = "patterns";
         break;
-      case ParseMethod.GROK:
+      case GROK:
         commandName = "grok";
         break;
       default:
@@ -588,7 +591,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitFlatten(Flatten node, String context) {
-    String child = node.getChild().getFirst().accept(this, context);
+    String child = node.getChild().get(0).accept(this, context);
     String field = visitExpression(node.getField());
     return StringUtils.format("%s | flatten %s", child, field);
   }
@@ -688,16 +691,14 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
           "%s | fillnull value=%s %s",
           child,
           MASK_LITERAL,
-          fieldFills.stream()
-              .map(n -> visitExpression(n.getLeft()))
-              .collect(Collectors.joining(" ")));
+          fieldFills.stream().map(n -> MASK_IDENTIFIER).collect(Collectors.joining(" ")));
     }
 
     // Distinguish between with...in and using based on whether all values are the same
     if (fieldFills.isEmpty()) {
       return StringUtils.format("%s | fillnull with %s", child, MASK_LITERAL);
     }
-    final UnresolvedExpression firstReplacement = fieldFills.getFirst().getRight();
+    final UnresolvedExpression firstReplacement = fieldFills.get(0).getRight();
     if (fieldFills.stream().allMatch(n -> firstReplacement == n.getRight())) {
       // All fields use same replacement value -> with...in syntax
       return StringUtils.format(

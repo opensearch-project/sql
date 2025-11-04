@@ -65,7 +65,7 @@ public class PPLAggGroupMergeRule extends RelRule<PPLAggGroupMergeRule.Config> {
   public void apply(RelOptRuleCall call, LogicalAggregate aggregate, LogicalProject project) {
     List<Integer> groupSet = aggregate.getGroupSet().asList();
     List<RexNode> groupNodes =
-        groupSet.stream().map(group -> project.getProjects().get(group)).toList();
+        groupSet.stream().map(group -> project.getProjects().get(group)).collect(Collectors.toList());
     Pair<List<Integer>, List<Integer>> baseFieldsAndOthers =
         CalciteUtils.partition(
             groupSet, i -> project.getProjects().get(i).getKind() == SqlKind.INPUT_REF);
@@ -97,7 +97,7 @@ public class PPLAggGroupMergeRule extends RelRule<PPLAggGroupMergeRule.Config> {
         relBuilder.fields(
             IntStream.range(baseGroupList.size(), relBuilder.peek().getRowType().getFieldCount())
                 .boxed()
-                .toList());
+                .collect(Collectors.toList()));
     parentProjections.addAll(aggCallRefs);
     relBuilder.project(parentProjections);
     call.transformTo(relBuilder.build());

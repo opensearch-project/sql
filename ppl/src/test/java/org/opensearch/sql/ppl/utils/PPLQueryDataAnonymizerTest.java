@@ -815,7 +815,7 @@ public class PPLQueryDataAnonymizerTest {
   private String anonymizeStatement(String query, boolean isExplain) {
     AstStatementBuilder builder =
         new AstStatementBuilder(
-            new AstBuilder(query, settings),
+            new AstBuilder(query),
             AstStatementBuilder.StatementBuilderContext.builder().isExplain(isExplain).build());
     Statement statement = builder.visit(parser.parse(query));
     PPLQueryDataAnonymizer anonymize = new PPLQueryDataAnonymizer(settings);
@@ -826,7 +826,7 @@ public class PPLQueryDataAnonymizerTest {
   public void testSearchWithAbsoluteTimeRange() {
     assertEquals(
         "source=table (@timestamp:*** AND (@timestamp:***",
-        anonymize("search source=t earliest='2012-12-10 15:00:00' latest=now"));
+        anonymize("search source=table earliest='2012-12-10 15:00:00' latest=now"));
   }
 
   @Test

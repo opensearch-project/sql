@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL;
 import static org.opensearch.sql.util.MatcherUtils.*;
@@ -21,10 +22,10 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disallowCalciteFallback();
 
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
+    loadIndex(Index.ACCOUNT);
   }
 
   @Test
@@ -302,6 +303,77 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testReplaceWithRegexPattern() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where account_number = 1 | eval street_only = replace(address,"
+                    + " '\\\\d+ ', '') | fields address, street_only",
+                TEST_INDEX_ACCOUNT));
+
+    verifySchema(actual, schema("address", "string"), schema("street_only", "string"));
+
+    verifyDataRows(actual, rows("880 Holmes Lane", "Holmes Lane"));
+  }
+
+  @Test
+  public void testReplaceWithCaptureGroups() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where account_number = 1 | eval swapped = replace(firstname,"
+                    + " '^(.)(.)', '\\\\2\\\\1') | fields firstname, swapped",
+                TEST_INDEX_ACCOUNT));
+
+    verifySchema(actual, schema("firstname", "string"), schema("swapped", "string"));
+
+    verifyDataRows(actual, rows("Amber", "mAber"));
+  }
+
+  @Test
+  public void testReplaceWithEmailDomainReplacement() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where account_number = 1 | eval new_email ="
+                    + " replace(email, '([^@]+)@(.+)', '\\\\1@newdomain.com') | fields email,"
+                    + " new_email",
+                TEST_INDEX_ACCOUNT));
+
+    verifySchema(actual, schema("email", "string"), schema("new_email", "string"));
+
+    verifyDataRows(actual, rows("amberduke@pyrami.com", "amberduke@newdomain.com"));
+  }
+
+  @Test
+  public void testReplaceWithCharacterClasses() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where account_number = 1 | eval masked = replace(address, '[a-zA-Z]',"
+                    + " 'X') | fields address, masked",
+                TEST_INDEX_ACCOUNT));
+
+    verifySchema(actual, schema("address", "string"), schema("masked", "string"));
+
+    verifyDataRows(actual, rows("880 Holmes Lane", "880 XXXXXX XXXX"));
+  }
+
+  @Test
+  public void testReplaceWithAnchors() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where account_number = 1 | eval street_name = replace(address,"
+                    + " '^\\\\d+\\\\s+', '') | fields address, street_name",
+                TEST_INDEX_ACCOUNT));
+
+    verifySchema(actual, schema("address", "string"), schema("street_name", "string"));
+
+    verifyDataRows(actual, rows("880 Holmes Lane", "Holmes Lane"));
+  }
+
+  @Test
   public void testLeft() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -325,6 +397,51 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
     verifySchema(actual, schema("name", "string"), schema("age", "int"));
 
     verifyDataRows(actual, rows("Jane", 20));
+  }
+
+  @Test
+  public void testReplaceWithInvalidRegexPattern() {
+    // Test invalid regex pattern - unclosed character class
+    Throwable e1 =
+        assertThrowsWithReplace(
+            Exception.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | eval result = replace(firstname, '[unclosed', 'X') | fields"
+                            + " firstname, result",
+                        TEST_INDEX_ACCOUNT)));
+    verifyErrorMessageContains(e1, "Invalid regex pattern");
+    verifyErrorMessageContains(e1, "Unclosed character class");
+    verifyErrorMessageContains(e1, "400 Bad Request");
+
+    // Test invalid regex pattern - unclosed group
+    Throwable e2 =
+        assertThrowsWithReplace(
+            Exception.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | eval result = replace(firstname, '(invalid', 'X') | fields"
+                            + " firstname, result",
+                        TEST_INDEX_ACCOUNT)));
+    verifyErrorMessageContains(e2, "Invalid regex pattern");
+    verifyErrorMessageContains(e2, "Unclosed group");
+    verifyErrorMessageContains(e2, "400 Bad Request");
+
+    // Test invalid regex pattern - dangling metacharacter
+    Throwable e3 =
+        assertThrowsWithReplace(
+            Exception.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | eval result = replace(firstname, '?invalid', 'X') | fields"
+                            + " firstname, result",
+                        TEST_INDEX_ACCOUNT)));
+    verifyErrorMessageContains(e3, "Invalid regex pattern");
+    verifyErrorMessageContains(e3, "Dangling meta character");
+    verifyErrorMessageContains(e3, "400 Bad Request");
   }
 
   private void prepareTrim() throws IOException {

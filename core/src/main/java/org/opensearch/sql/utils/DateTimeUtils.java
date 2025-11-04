@@ -5,10 +5,6 @@
 
 package org.opensearch.sql.utils;
 
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_DATE;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIME;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP;
-
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -20,24 +16,23 @@ import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.regex.Pattern;
+import java.util.Optional;
+import java.util.Set;
 import lombok.experimental.UtilityClass;
-import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.type.SqlTypeName;
-import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.calcite.type.ExprSqlType;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
-import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
 @UtilityClass
 public class DateTimeUtils {
 
-  private static final Pattern OFFSET_PATTERN = Pattern.compile("([+-])(\\d+)([smhdwMy]?)");
   private static final DateTimeFormatter DIRECT_FORMATTER =
       DateTimeFormatter.ofPattern("MM/dd/yyyy:HH:mm:ss");
+  public static final Set<DateTimeFormatter> SUPPORTED_FORMATTERS =
+      Set.of(
+          DIRECT_FORMATTER,
+          DateTimeFormatters.DATE_TIMESTAMP_FORMATTER,
+          DateTimeFormatter.ISO_DATE_TIME);
 
   /**
    * Util method to round the date/time with given unit.
@@ -47,7 +42,8 @@ public class DateTimeUtils {
    * @return Rounded date/time value in utc millis
    */
   public static long roundFloor(long utcMillis, long unitMillis) {
-    return utcMillis - utcMillis % unitMillis;
+    long res = utcMillis - utcMillis % unitMillis;
+    return (utcMillis < 0 && res != utcMillis) ? res - unitMillis : res;
   }
 
   /**
@@ -76,7 +72,9 @@ public class DateTimeUtils {
         (zonedDateTime.getYear() - initDateTime.getYear()) * 12L
             + zonedDateTime.getMonthValue()
             - initDateTime.getMonthValue();
-    long monthToAdd = (monthDiff / interval - 1) * interval;
+    long multiplier = monthDiff / interval - 1;
+    if (monthDiff < 0 && monthDiff % interval != 0) --multiplier;
+    long monthToAdd = multiplier * interval;
     return initDateTime.plusMonths(monthToAdd).toInstant().toEpochMilli();
   }
 
@@ -95,7 +93,9 @@ public class DateTimeUtils {
         ((zonedDateTime.getYear() - initDateTime.getYear()) * 12L
             + zonedDateTime.getMonthValue()
             - initDateTime.getMonthValue());
-    long monthToAdd = (monthDiff / (interval * 3L) - 1) * interval * 3;
+    long multiplier = monthDiff / (interval * 3L) - 1;
+    if (monthDiff < 0 && monthDiff % (interval * 3L) != 0) --multiplier;
+    long monthToAdd = multiplier * interval * 3;
     return initDateTime.plusMonths(monthToAdd).toInstant().toEpochMilli();
   }
 
@@ -110,7 +110,9 @@ public class DateTimeUtils {
     ZonedDateTime initDateTime = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC_ZONE_ID);
     ZonedDateTime zonedDateTime = Instant.ofEpochMilli(utcMillis).atZone(UTC_ZONE_ID);
     int yearDiff = zonedDateTime.getYear() - initDateTime.getYear();
-    int yearToAdd = (yearDiff / interval) * interval;
+    int multiplier = yearDiff / interval;
+    if (yearDiff < 0 && yearDiff % interval != 0) --multiplier;
+    int yearToAdd = multiplier * interval;
     return initDateTime.plusYears(yearToAdd).toInstant().toEpochMilli();
   }
 
@@ -186,10 +188,9 @@ public class DateTimeUtils {
   public static final ZoneId UTC_ZONE_ID = ZoneId.of("UTC");
 
   public static ZonedDateTime getRelativeZonedDateTime(String input, ZonedDateTime baseTime) {
-    try {
-      Instant parsed = LocalDateTime.parse(input, DIRECT_FORMATTER).toInstant(ZoneOffset.UTC);
-      return parsed.atZone(baseTime.getZone());
-    } catch (DateTimeParseException ignored) {
+    Optional<ZonedDateTime> parsed = tryParseAbsoluteTime(input);
+    if (parsed.isPresent()) {
+      return parsed.get().withZoneSameInstant(baseTime.getZone());
     }
 
     if ("now".equalsIgnoreCase(input) || "now()".equalsIgnoreCase(input)) {
@@ -228,7 +229,6 @@ public class DateTimeUtils {
             "Unexpected character '" + c + "' at position " + i + " in input: " + input);
       }
     }
-
     return result;
   }
 
@@ -240,34 +240,7 @@ public class DateTimeUtils {
       return sign.equals("-") ? base.minusMonths(months) : base.plusMonths(months);
     }
 
-    ChronoUnit chronoUnit;
-    switch (unit) {
-      case "s":
-        chronoUnit = ChronoUnit.SECONDS;
-        break;
-      case "m":
-        chronoUnit = ChronoUnit.MINUTES;
-        break;
-      case "h":
-        chronoUnit = ChronoUnit.HOURS;
-        break;
-      case "d":
-        chronoUnit = ChronoUnit.DAYS;
-        break;
-      case "w":
-        chronoUnit = ChronoUnit.WEEKS;
-        break;
-      case "M":
-        chronoUnit = ChronoUnit.MONTHS;
-        break;
-      case "y":
-        chronoUnit = ChronoUnit.YEARS;
-        break;
-      default:
-        throw new IllegalArgumentException("Unsupported offset unit: " + rawUnit);
-    }
-
-
+    ChronoUnit chronoUnit = mapChronoUnit(unit, "Unsupported offset unit: " + rawUnit);
     return sign.equals("-") ? base.minus(value, chronoUnit) : base.plus(value, chronoUnit);
   }
 
@@ -370,80 +343,422 @@ public class DateTimeUtils {
   }
 
   /**
-   * The function add cast for date-related target node
+   * Translate a PPL time modifier expression to a <a
+   * href="https://docs.opensearch.org/latest/field-types/supported-field-types/date/#date-math"
+   * >OpenSearch date math expression</a>.
    *
-   * @param candidate The candidate node
-   * @param context calcite context
-   * @param castTarget the target cast type
-   * @return the rexnode after casting
+   * <p>Examples:
+   *
+   * <ul>
+   *   <li>2020-12-10 12:00:00.123 -> 2020-12-10T12:00:00.123Z
+   *   <li>now, now() -> now
+   *   <li>-30seconds, -30s -> now-30s
+   *   <li>-1h@d -> now-1h/d
+   *   <li>2020-12-10 12:00:00.123@month -> 2020-12-10T12:00:00.123Z/M
+   * </ul>
+   *
+   * @param timeModifier The time modifier string in PPL format
+   * @return The time string in OpenSearch date math format
    */
-  public static RexNode transferCompareForDateRelated(
-      RexNode candidate, CalcitePlanContext context, SqlTypeName castTarget) {
-    if (!(Objects.isNull(castTarget))) {
-      switch (castTarget) {
-        case DATE:
-          if (!(candidate.getType() instanceof ExprSqlType
-              && ((ExprSqlType) candidate.getType()).getUdt() == EXPR_DATE)) {
-            return context.rexBuilder.makeCall(PPLBuiltinOperators.DATE, candidate);
-          }
-          break;
-        case TIME:
-          if (!(candidate.getType() instanceof ExprSqlType
-              && ((ExprSqlType) candidate.getType()).getUdt() == EXPR_TIME)) {
-            return context.rexBuilder.makeCall(PPLBuiltinOperators.TIME, candidate);
-          }
-          break;
-        case TIMESTAMP:
-          if (!(candidate.getType() instanceof ExprSqlType
-              && ((ExprSqlType) candidate.getType()).getUdt() == EXPR_TIMESTAMP)) {
-            return context.rexBuilder.makeCall(PPLBuiltinOperators.TIMESTAMP, candidate);
-          }
-          break;
-        default:
-          return candidate;
-      }
-    }
-    return candidate;
+  public static String resolveTimeModifier(String timeModifier) {
+    return resolveTimeModifier(timeModifier, ZonedDateTime.now(ZoneOffset.UTC));
   }
 
   /**
-   * The function find the target cast type according to the left and right node. When the two node
-   * are both related to date with different type, cast to timestamp
+   * Convert time modifier with a reference for now. This is mainly useful for quarter conversion,
+   * which is time-sensitive.
    *
-   * @param left
-   * @param right
-   * @return
+   * <p>Background: PPL time modifier supports alignment to quarter, while OpenSearch does not
+   * support so in time math. We implement a workaround by first aligning the date to the current
+   * month then subtracting 0 to 2 months from it. In order to know how many months to subtract, it
+   * is useful to know when is it now.
    */
-  public static SqlTypeName findCastType(RexNode left, RexNode right) {
-    SqlTypeName leftType = returnCorrespondingSqlType(left);
-    SqlTypeName rightType = returnCorrespondingSqlType(right);
-    if (leftType != null && rightType != null && rightType != leftType) {
-      return SqlTypeName.TIMESTAMP;
+  static String resolveTimeModifier(String input, ZonedDateTime nowReference) {
+    if (input == null || input.isEmpty()) {
+      return null;
     }
-    return leftType == null ? rightType : leftType;
+
+    if ("now".equalsIgnoreCase(input) || "now()".equalsIgnoreCase(input)) {
+      return "now";
+    }
+
+    String absoluteTime = tryParseAbsoluteTimeAndFormat(input);
+    if (absoluteTime != null) {
+      return absoluteTime;
+    }
+
+    return parseRelativeTimeExpression(input, nowReference);
   }
 
   /**
-   * Find corresponding cast type according to the node's type. If they're not related to the date,
-   * return null
+   * Try to parse the input as an absolute datetime.
    *
-   * @param node the candidate node
-   * @return the sql type name
+   * @param input The time string
+   * @return ISO formatted datetime string or null if parsing fails
    */
-  public static SqlTypeName returnCorrespondingSqlType(RexNode node) {
-    if (node.getType() instanceof ExprSqlType) {
-      OpenSearchTypeFactory.ExprUDT udt = ((ExprSqlType) node.getType()).getUdt();
-      switch (udt) {
-        case EXPR_DATE:
-          return SqlTypeName.DATE;
-        case EXPR_TIME:
-          return SqlTypeName.TIME;
-        case EXPR_TIMESTAMP:
-          return SqlTypeName.TIMESTAMP;
-        default:
-          return null;
+  private static String tryParseAbsoluteTimeAndFormat(String input) {
+    Optional<ZonedDateTime> parsed = tryParseAbsoluteTime(input);
+    return parsed
+        .map(zonedDateTime -> zonedDateTime.format(DateTimeFormatter.ISO_INSTANT))
+        .orElse(null);
+  }
+
+  private static Optional<ZonedDateTime> tryParseAbsoluteTime(String input) {
+    for (DateTimeFormatter formatter : SUPPORTED_FORMATTERS) {
+      try {
+        ZonedDateTime parsed;
+        if (formatter == DateTimeFormatter.ISO_DATE_TIME) {
+          // ISO_DATE_TIME can handle zone information
+          parsed = ZonedDateTime.parse(input, formatter);
+        } else {
+          // Treat LocalDateTime formatters as UTC
+          LocalDateTime localDateTime = LocalDateTime.parse(input, formatter);
+          parsed = localDateTime.atZone(ZoneOffset.UTC);
+        }
+        return Optional.of(parsed);
+      } catch (DateTimeParseException ignored) {
+        // Try next formatter
       }
     }
-    return null;
+    return Optional.empty();
+  }
+
+  /**
+   * Parse a PPL relative time expression and convert it to OpenSearch date math format. This
+   * overload accepts a reference time for date calculations, particularly useful for quarters.
+   */
+  private static String parseRelativeTimeExpression(String input, ZonedDateTime nowReference) {
+    if (!containsRelativeTimeOperators(input)) {
+      return input;
+    }
+
+    StringBuilder result = new StringBuilder("now");
+    int position = 0;
+    ZonedDateTime currentReference =
+        nowReference; // Track current reference time as operations are applied
+
+    while (position < input.length()) {
+      char currentChar = input.charAt(position);
+
+      if (currentChar == '@') {
+        // Handle snap operation (@unit -> /unit)
+        position = processSnap(input, position, result, currentReference);
+      } else if (currentChar == '+' || currentChar == '-') {
+        // Handle offset operation (+/-value[unit]) and update reference time
+        OffsetResult offsetResult = processOffset(input, position, result, currentReference);
+        position = offsetResult.newPosition;
+        currentReference = offsetResult.updatedReference; // Update the reference time
+      } else {
+        throw new IllegalArgumentException(
+            "Unexpected character '"
+                + currentChar
+                + "' at position "
+                + position
+                + " in input: "
+                + input);
+      }
+    }
+    return result.toString();
+  }
+
+    /**
+     * Helper class to return multiple values from processOffset
+     */
+    private static final class OffsetResult {
+        private final int newPosition;
+        private final ZonedDateTime updatedReference;
+
+        /**
+         *
+         */
+        private OffsetResult(int newPosition, ZonedDateTime updatedReference) {
+            this.newPosition = newPosition;
+            this.updatedReference = updatedReference;
+        }
+
+        public int newPosition() {
+            return newPosition;
+        }
+
+        public ZonedDateTime updatedReference() {
+            return updatedReference;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == this) return true;
+            if (obj == null || obj.getClass() != this.getClass()) return false;
+            var that = (OffsetResult) obj;
+            return this.newPosition == that.newPosition &&
+                    Objects.equals(this.updatedReference, that.updatedReference);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(newPosition, updatedReference);
+        }
+
+        @Override
+        public String toString() {
+            return "OffsetResult[" +
+                    "newPosition=" + newPosition + ", " +
+                    "updatedReference=" + updatedReference + ']';
+        }
+    }
+
+  /** Check if the input contains relative time operators (+ - @). */
+  private static boolean containsRelativeTimeOperators(String input) {
+    for (int i = 0; i < input.length(); i++) {
+      char c = input.charAt(i);
+      if (c == '+' || c == '-' || c == '@') {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Process a snap operation in the input string. Returns the new position after processing. */
+  private static int processSnap(
+      String input, int position, StringBuilder result, ZonedDateTime nowReference) {
+    // Skip the '@' character
+    int nextPosition = position + 1;
+
+    // Extract the unit
+    int endOfUnit = nextPosition;
+    while (endOfUnit < input.length() && Character.isLetterOrDigit(input.charAt(endOfUnit))) {
+      endOfUnit++;
+    }
+
+    String rawUnit = input.substring(nextPosition, endOfUnit);
+    String normalizedUnit = normalizeUnit(rawUnit);
+
+    // Special handling for quarter
+    if ("q".equals(normalizedUnit)) {
+      return processQuarterSnap(result, nowReference, endOfUnit);
+    }
+
+    // Special handling for week and week days
+    // In PPL, plain @w is equivalent to @w0 (Sunday)
+    if ("w".equals(normalizedUnit)) {
+      return processWeekDaySnap(result, "w0", nowReference, endOfUnit);
+    }
+    // Special handling for week days (w0-w7)
+    else if (normalizedUnit.matches("w[0-7]")) {
+      return processWeekDaySnap(result, normalizedUnit, nowReference, endOfUnit);
+    }
+
+    String osUnit = convertToOsUnit(rawUnit);
+
+    // Append the OpenSearch format (/unit)
+    result.append('/').append(osUnit);
+
+    return endOfUnit;
+  }
+
+  /**
+   * Process a week day snap operation, mapping a normalized week day unit (w0-w7) to the OpenSearch
+   * date math format.
+   *
+   * <p>PPL and OpenSearch have different week start conventions:
+   *
+   * <ul>
+   *   <li>PPL: Week starts on Sunday (@w0 or @w7), @w1 is Monday, ..., @w6 is Saturday
+   *   <li>OpenSearch: Week starts on Monday (/w)
+   * </ul>
+   *
+   * <p>Additionally, PPL always aligns to the most recent occurrence of the specified day in the
+   * past. This means the result will depend on the current reference day (nowReference).
+   *
+   * <p>Examples with different reference days:
+   *
+   * <ul>
+   *   <li>Reference=Wednesday, Target=Tuesday: now/w+1d (Tuesday in current week)
+   *   <li>Reference=Wednesday, Target=Thursday: now/w-4d (Thursday from previous week)
+   *   <li>Reference=Sunday, Target=Monday: now/w (Align to last Monday)
+   *   <li>Reference=Sunday, Target=Sunday: now/w+6d (PPL expects to align to today, so we align to
+   *       Monday then plus 6 days)
+   * </ul>
+   */
+  private static int processWeekDaySnap(
+      StringBuilder result, String weekDay, ZonedDateTime nowReference, int endOfUnit) {
+    int dayNumber;
+    try {
+      dayNumber = Integer.parseInt(weekDay.substring(1));
+      if (dayNumber < 0 || dayNumber > 7) {
+        throw new IllegalArgumentException("Invalid week day: " + weekDay);
+      }
+    } catch (NumberFormatException e) {
+      throw new IllegalArgumentException("Invalid week day format: " + weekDay);
+    }
+
+    result.append("/w");
+
+    int dayAdjust = 0;
+    int dayNumberReference = nowReference.getDayOfWeek().getValue();
+    if (dayNumber == 0 || dayNumber == 7) {
+      dayNumber = 7; // normalize to 7
+      if (dayNumber == dayNumberReference) {
+        // If aligning to Sunday on Sunday, align to Monday then plus 6 days
+        dayAdjust = 6;
+      } else {
+        // Otherwise, align to Monday then subtract 1 day
+        dayAdjust = -1;
+      }
+    } else if (dayNumber > 1) {
+      // Other days are (dayNumber-1) days after Monday
+      dayAdjust = dayNumber - 1;
+      // If the expected day is greater than today, then align to this day in the last week.
+      if (dayNumber > dayNumberReference) {
+        dayAdjust -= 7; // Move to the previous week
+      }
+    }
+
+    if (dayAdjust > 0) {
+      result.append("+").append(dayAdjust).append("d");
+    } else if (dayAdjust < 0) {
+      result.append(dayAdjust).append("d");
+    }
+
+    return endOfUnit;
+  }
+
+  /** Process a quarter snap operation, aligning to the start of the current quarter. */
+  private static int processQuarterSnap(
+      StringBuilder result, ZonedDateTime nowReference, int endOfUnit) {
+    // Calculate which month to snap to based on the current month
+    int month = nowReference.getMonthValue();
+    int quarterStartMonth = ((month - 1) / 3) * 3 + 1; // 1->1, 2->1, 3->1, 4->4, etc.
+    int monthsToSubtract = month - quarterStartMonth;
+
+    // Format for OpenSearch: now/M-NM where N is the number of months to subtract
+    result.append("/M");
+    if (monthsToSubtract > 0) {
+      result.append("-").append(monthsToSubtract).append("M");
+    }
+
+    return endOfUnit;
+  }
+
+  /**
+   * Process an offset operation in the input string. It returns an OffsetResult containing new
+   * position and updated reference time
+   */
+  private static OffsetResult processOffset(
+      String input, int position, StringBuilder result, ZonedDateTime nowReference) {
+    // Get the sign (+ or -)
+    char sign = input.charAt(position);
+    result.append(sign);
+    int nextPosition = position + 1;
+
+    // Extract the value
+    int endOfValue = nextPosition;
+    while (endOfValue < input.length() && Character.isDigit(input.charAt(endOfValue))) {
+      endOfValue++;
+    }
+    String valueStr = input.substring(nextPosition, endOfValue);
+    int value = valueStr.isEmpty() ? 1 : Integer.parseInt(valueStr);
+    result.append(value);
+
+    // Extract the unit
+    int endOfUnit = endOfValue;
+    while (endOfUnit < input.length() && Character.isLetter(input.charAt(endOfUnit))) {
+      endOfUnit++;
+    }
+    String rawUnit = input.substring(endOfValue, endOfUnit);
+    String normalizedUnit = normalizeUnit(rawUnit);
+
+    // Calculate the updated reference time based on the offset
+    ZonedDateTime updatedReference =
+        applyOffsetToReference(nowReference, sign, value, normalizedUnit);
+
+    // Special handling for quarter
+    if ("q".equals(normalizedUnit)) {
+      int newPosition = processQuarterOffset(value, result, endOfUnit);
+      return new OffsetResult(newPosition, updatedReference);
+    }
+    String osUnit = convertToOsUnit(rawUnit);
+    result.append(osUnit);
+
+    return new OffsetResult(endOfUnit, updatedReference);
+  }
+
+  /** Apply an offset with normalized unit to the reference time */
+  private static ZonedDateTime applyOffsetToReference(
+      ZonedDateTime reference, char sign, int value, String unit) {
+    if ("q".equals(unit)) {
+      // Convert quarters to months
+      int months = value * 3;
+      return sign == '+' ? reference.plusMonths(months) : reference.minusMonths(months);
+    }
+
+    ChronoUnit chronoUnit = mapChronoUnit(unit, "Unsupported offset unit: " + unit);
+
+    return sign == '+' ? reference.plus(value, chronoUnit) : reference.minus(value, chronoUnit);
+  }
+
+  private static ChronoUnit mapChronoUnit(String unit, String errorMessage) {
+      ChronoUnit chronoUnit;
+      switch (unit) {
+          case "s":
+              chronoUnit = ChronoUnit.SECONDS;
+              break;
+          case "m":
+              chronoUnit = ChronoUnit.MINUTES;
+              break;
+          case "h":
+              chronoUnit = ChronoUnit.HOURS;
+              break;
+          case "d":
+              chronoUnit = ChronoUnit.DAYS;
+              break;
+          case "w":
+              chronoUnit = ChronoUnit.WEEKS;
+              break;
+          case "M":
+              chronoUnit = ChronoUnit.MONTHS;
+              break;
+          case "y":
+              chronoUnit = ChronoUnit.YEARS;
+              break;
+          default:
+              throw new IllegalArgumentException(errorMessage);
+      }
+      return chronoUnit;
+  }
+
+  /**
+   * Process a quarter offset operation, converting it to months for OpenSearch. Returns the new
+   * position after processing
+   */
+  private static int processQuarterOffset(int value, StringBuilder result, int endOfUnit) {
+    // Convert quarters to months (1 quarter = 3 months)
+    int months = value * 3;
+
+    // We already added the sign and value to the result string in the calling method,
+    // so we need to remove what was added before adding the correct value
+    result.delete(result.length() - String.valueOf(value).length(), result.length());
+
+    // Now append the correct value in months with the M unit
+    result.append(months).append("M");
+
+    return endOfUnit;
+  }
+
+  /** Convert PPL time unit to OpenSearch time unit. */
+  private static String convertToOsUnit(String PPLUnit) {
+    String normalizedUnit = normalizeUnit(PPLUnit);
+
+    // Special handling for quarter
+    if ("q".equals(normalizedUnit)) {
+      // OpenSearch doesn't have native quarter support, use month (M) instead
+      return "M";
+    } else if ("M".equals(normalizedUnit)) {
+      // Month is already correctly represented as 'M' in OpenSearch
+      return normalizedUnit;
+    } else {
+      // For other units, use the normalized unit directly
+      // Note: week day specifications (w0-w7) are handled separately in processWeekDaySnap
+      return normalizedUnit;
+    }
   }
 }

@@ -94,8 +94,8 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by country | fields name, country, state, month, year, age, cnt,"
-                    + " avg, min, max",
+                + " as max by country | fields name, country, state, month, year, age, cnt,"
+                + " avg, min, max",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifySchemaInOrder(
@@ -594,11 +594,11 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatsDistinctCount() throws IOException {
+  public void testEventstatDistinctCount() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eventstats dc(state) as dc_state", TEST_INDEX_STATE_COUNTRY));
+                "source=%s | eventstats dc(state) as dc_state | fields name, country, state, month, year, age, dc_state", TEST_INDEX_STATE_COUNTRY));
 
     verifySchemaInOrder(
         actual,
@@ -619,7 +619,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatsDistinctCountByCountry() throws IOException {
+  public void testEventstatDistinctCountByCountry() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -645,7 +645,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatsDistinctCountFunction() throws IOException {
+  public void testEventstatDistinctCountFunction() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -671,7 +671,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatsDistinctCountWithNull() throws IOException {
+  public void testEventstatDistinctCountWithNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -699,7 +699,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatsEarliestAndLatest() throws IOException {
+  public void testEventstatEarliestAndLatest() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(

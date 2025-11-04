@@ -99,6 +99,73 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testEvalSum() {
+    String ppl = "source=EMP | eval total = sum(1, 2, 3) | fields EMPNO, total";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], total=[+(1, +(2, 3))])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql = "SELECT `EMPNO`, 1 + (2 + 3) `total`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testEvalSumWithFields() {
+    String ppl = "source=EMP | eval total = sum(SAL, COMM, 100) | fields EMPNO, total";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], total=[+($5, +($6, 100))])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `SAL` + (`COMM` + 100) `total`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testEvalAvg() {
+    String ppl = "source=EMP | eval average = avg(10, 20, 30) | fields EMPNO, average";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], average=[DIVIDE(+(10, +(20, 30)), 3.0E0:DOUBLE)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `DIVIDE`(10 + (20 + 30), 3.0E0) `average`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testEvalAvgWithFields() {
+    String ppl = "source=EMP | eval avgSal = avg(SAL, COMM) | fields EMPNO, avgSal";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], avgSal=[DIVIDE(+($5, $6), 2.0E0:DOUBLE)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `DIVIDE`(`SAL` + `COMM`, 2.0E0) `avgSal`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testEvalSumSingleArg() {
+    String ppl = "source=EMP | eval total = sum(42) | fields EMPNO, total";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], total=[42])\n" + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql = "SELECT `EMPNO`, 42 `total`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
   public void testEvalWithSort() {
     String ppl = "source=EMP | eval a = EMPNO | sort - a | fields a";
     RelNode root = getRelNode(ppl);
@@ -276,8 +343,7 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
             () -> {
               RelNode root = getRelNode(ppl);
             });
-    assertThat(
-        e.getMessage(), is("field [HIREDATE] not found; input fields are: [ENAME, col2, col3]"));
+    assertThat(e.getMessage(), is("Field [HIREDATE] not found."));
   }
 
   @Test
@@ -352,6 +418,204 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
             + "SELECT AVG(`SAL` + 10000) `avg(b)`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testListAggregationWithOtherAgg() {
+    String ppl = "source=EMP | stats list(DEPTNO), avg(DEPTNO)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalAggregate(group=[{}], list(DEPTNO)=[LIST($0)], avg(DEPTNO)=[AVG($0)])\n"
+            + "  LogicalProject(DEPTNO=[$7])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `LIST`(`DEPTNO`) `list(DEPTNO)`, AVG(`DEPTNO`) `avg(DEPTNO)`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testListAggregationAlone() {
+    String ppl = "source=EMP | stats list(DEPTNO)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalAggregate(group=[{}], list(DEPTNO)=[LIST($0)])\n"
+            + "  LogicalProject(DEPTNO=[$7])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql = "SELECT `LIST`(`DEPTNO`) `list(DEPTNO)`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testListAggregationWithGroupBy() {
+    String ppl = "source=EMP | stats list(ENAME) by DEPTNO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(list(ENAME)=[$1], DEPTNO=[$0])\n"
+            + "  LogicalAggregate(group=[{0}], list(ENAME)=[LIST($1)])\n"
+            + "    LogicalProject(DEPTNO=[$7], ENAME=[$1])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `LIST`(`ENAME`) `list(ENAME)`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "GROUP BY `DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testValuesAggregationAlone() {
+    String ppl = "source=EMP | stats values(DEPTNO)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalAggregate(group=[{}], values(DEPTNO)=[VALUES($0)])\n"
+            + "  LogicalProject(DEPTNO=[$7])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql = "SELECT `VALUES`(`DEPTNO`) `values(DEPTNO)`\n" + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testValuesAggregationWithOtherAgg() {
+    String ppl = "source=EMP | stats values(DEPTNO), count(DEPTNO)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalAggregate(group=[{}], values(DEPTNO)=[VALUES($0)], count(DEPTNO)=[COUNT($0)])\n"
+            + "  LogicalProject(DEPTNO=[$7])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `VALUES`(`DEPTNO`) `values(DEPTNO)`, COUNT(`DEPTNO`) `count(DEPTNO)`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testValuesAggregationWithGroupBy() {
+    String ppl = "source=EMP | stats values(ENAME) by DEPTNO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(values(ENAME)=[$1], DEPTNO=[$0])\n"
+            + "  LogicalAggregate(group=[{0}], values(ENAME)=[VALUES($1)])\n"
+            + "    LogicalProject(DEPTNO=[$7], ENAME=[$1])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `VALUES`(`ENAME`) `values(ENAME)`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "GROUP BY `DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testEvalMaxOnNumbers() {
+    String ppl = "source=EMP | eval a = max(5, 30, DEPTNO)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], a=[MAX(5, 30, $7)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, MAX(5, 30,"
+            + " `DEPTNO`) `a`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testEvalMaxOnStrings() {
+    String ppl = "source=EMP | eval a = max('banana', 'Door', ENAME)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], a=[MAX('banana':VARCHAR, 'Door':VARCHAR, $1)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, MAX('banana',"
+            + " 'Door', `ENAME`) `a`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testEvalMaxOnNumericAndString() {
+    String ppl = "source=EMP | eval a = max(5, 30, DEPTNO, 'banana', 'Door', ENAME)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], a=[MAX(5, 30, $7, 'banana':VARCHAR, 'Door':VARCHAR, $1)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, MAX(5, 30,"
+            + " `DEPTNO`, 'banana', 'Door', `ENAME`) `a`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testEvalMinOnNumbers() {
+    String ppl = "source=EMP | eval a = min(5, 30, DEPTNO)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], a=[MIN(5, 30, $7)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, MIN(5, 30,"
+            + " `DEPTNO`) `a`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testEvalMinOnStrings() {
+    String ppl = "source=EMP | eval a = min('banana', 'Door', ENAME)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], a=[MIN('banana':VARCHAR, 'Door':VARCHAR, $1)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, MIN('banana',"
+            + " 'Door', `ENAME`) `a`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testEvalMinOnNumericAndString() {
+    String ppl = "source=EMP | eval a = min(5, 30, DEPTNO, 'banana', 'Door', ENAME)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], a=[MIN(5, 30, $7, 'banana':VARCHAR, 'Door':VARCHAR, $1)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, MIN(5, 30,"
+            + " `DEPTNO`, 'banana', 'Door', `ENAME`) `a`\n"
+            + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

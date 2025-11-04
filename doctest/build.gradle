@@ -19,17 +19,19 @@ def path = project(':').projectDir
 // temporary fix, because currently we are under migration to new architecture. Need to run ./gradlew run from
 // plugin module, and will only build ppl in it.
 def plugin_path = project(':doctest').projectDir
+String ignorePrometheusProp = System.getProperty("ignorePrometheus")
+boolean ignorePrometheus = ignorePrometheusProp != null && !ignorePrometheusProp.equalsIgnoreCase("false")
 
 task cloneSqlCli(type: Exec) {
     def repoDir = new File("${project.projectDir}/sql-cli")
     
     if (repoDir.exists()) {
         // Repository already exists, fetch and checkout latest
-        commandLine 'git', '-C', repoDir.absolutePath, 'fetch', 'origin', 'main'
-        commandLine 'git', '-C', repoDir.absolutePath, 'checkout', 'origin/main'
+        commandLine 'git', '-C', repoDir.absolutePath, 'fetch', 'origin', '1.0-legacy'
+        commandLine 'git', '-C', repoDir.absolutePath, 'checkout', 'origin/1.0-legacy'
     } else {
         // Repository doesn't exist, clone it
-        commandLine 'git', 'clone', 'https://github.com/opensearch-project/sql-cli.git', repoDir.absolutePath
+        commandLine 'git', 'clone', '-b', '1.0-legacy', 'https://github.com/opensearch-project/sql-cli.git', repoDir.absolutePath
     }
 }
 
@@ -38,6 +40,19 @@ task bootstrap(type: Exec, dependsOn: ['cloneSqlCli']) {
     outputs.dir "$projectDir/.venv"
 
     commandLine 'sh', "$projectDir/bootstrap.sh"
+}
+
+def isPrometheusRunning = { ->
+    try {
+        def process = "pgrep -f prometheus".execute()
+        def output = process.text
+        def result = !output.trim().isEmpty()
+        println "Prometheus running status: ${result}"
+        return result
+    } catch (Exception e) {
+        println "Error checking Prometheus process: ${e.message}"
+        return false
+    }
 }
 
 task startPrometheus(type: SpawnProcessTask) {
@@ -60,11 +75,14 @@ task startPrometheus(type: SpawnProcessTask) {
     command "$projectDir/bin/prometheus/prometheus --storage.tsdb.path=$projectDir/bin/prometheus/data --config.file=$projectDir/bin/prometheus/prometheus.yml"
     ready 'TSDB started'
     pidLockFileName ".prom.pid.lock"
+    onlyIf { !ignorePrometheus && getOSFamilyType() != "windows" && !isPrometheusRunning() }
 }
 
 
 //evaluationDependsOn(':')
 task startOpenSearch(type: SpawnProcessTask) {
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+
     if( getOSFamilyType() == "windows") {
         command "${path}\\gradlew.bat -p ${plugin_path} runRestTestCluster"
     }
@@ -75,13 +93,40 @@ task startOpenSearch(type: SpawnProcessTask) {
 }
 
 task doctest(type: Exec, dependsOn: ['bootstrap']) {
-
-    commandLine "$projectDir/bin/test-docs"
+    description = 'Run doctest for all files, or specific files if provided'
+    
+    def docs = project.findProperty('docs')
+    def verbose = project.findProperty('verbose')
+    def endpoint = project.findProperty('endpoint')
+    def debug = project.findProperty('debug')
+    
+    // Set environment variables for debug mode
+    if (debug == 'true') {
+        environment 'DOCTEST_DEBUG', 'true'
+    }
+    environment 'IGNORE_PROMETHEUS_DOCS', ignorePrometheus ? 'true' : 'false'
+    
+    if (docs) {
+        def args = ['.venv/bin/python', 'test_docs.py']
+        
+        args.addAll(docs.split(',').collect { it.trim() })
+        
+        if (verbose == 'true') {
+            args.add('--verbose')
+        }
+        if (endpoint) {
+            args.addAll(['--endpoint', endpoint])
+        }
+        
+        commandLine args
+    } else {
+        // Full test suite mode (original behavior)
+        commandLine "$projectDir/bin/test-docs"
+    }
 
     doLast {
         // remove the cloned sql-cli folder
         file("$projectDir/sql-cli").deleteDir()
-        println("Doctest Done")
     }
 }
 
@@ -93,14 +138,17 @@ task stopPrometheus(type: KillProcessTask) {
         file("$projectDir/bin/prometheus").deleteDir()
         file("$projectDir/bin/prometheus.tar.gz").delete()
     }
+    onlyIf { !ignorePrometheus && getOSFamilyType() != "windows" }
 }
 
 // Stop Prom AFTER Start Prom...
 if(getOSFamilyType() != "windows") {
     stopPrometheus.mustRunAfter startPrometheus
-    startOpenSearch.dependsOn startPrometheus
-    stopOpenSearch.finalizedBy stopPrometheus
-    startOpenSearch.finalizedBy stopPrometheus
+    if (!ignorePrometheus) {
+        startOpenSearch.dependsOn startPrometheus
+        stopOpenSearch.finalizedBy stopPrometheus
+        startOpenSearch.finalizedBy stopPrometheus
+    }
 }
 doctest.dependsOn startOpenSearch
 doctest.finalizedBy stopOpenSearch

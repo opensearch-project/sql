@@ -191,7 +191,7 @@ public class WildcardQueryIT extends SQLIntegTestCase {
     String query =
         "SELECT KeywordBody FROM "
             + TEST_INDEX_WILDCARD
-            + " WHERE wildcard_query(KeywordBody, '*\\\\\\\\\\\\_')";
+            + " WHERE wildcard_query(KeywordBody, '*\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\_')";
     JSONObject result = executeJdbcRequest(query);
     verifyDataRows(result, rows("test backslash wildcard \\_"));
   }

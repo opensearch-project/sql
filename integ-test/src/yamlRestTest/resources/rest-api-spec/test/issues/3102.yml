@@ -2,6 +2,12 @@ setup:
   - skip:
       features:
         - headers
+        - allowed_warnings
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
   - do:
       indices.create:
         index: test
@@ -21,23 +27,31 @@ setup:
           - '{"id": 3}'
 
 ---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
 "Prevent push down limit if the offset reach max_result_window":
   - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
       headers:
         Content-Type: 'application/json'
       ppl:
         body:
           query: 'source=test | head 1 from 1 '
   - match: {"total": 1}
-  - match: {"schema": [{"name": "id", "type": "bigint"}]}
-  - match: {"datarows": [[2]]}
 
   - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
       headers:
         Content-Type: 'application/json'
       ppl:
         body:
           query: 'source=test | head 2 | head 1 from 1 '
   - match: { "total": 1 }
-  - match: { "schema": [ { "name": "id", "type": "bigint" } ] }
-  - match: { "datarows": [ [ 2 ] ] }

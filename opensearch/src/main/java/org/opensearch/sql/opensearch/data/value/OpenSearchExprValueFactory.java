@@ -18,7 +18,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER;
 import static org.opensearch.sql.utils.DateTimeFormatters.STRICT_HOUR_MINUTE_SECOND_FORMATTER;
 import static org.opensearch.sql.utils.DateTimeFormatters.STRICT_YEAR_MONTH_DAY_FORMATTER;
 import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
@@ -30,6 +29,7 @@ import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
@@ -87,11 +87,7 @@ public class OpenSearchExprValueFactory {
    * @param typeMapping A data type mapping produced by aggregation.
    */
   public void extendTypeMapping(Map<String, OpenSearchDataType> typeMapping) {
-    for (var field : typeMapping.keySet()) {
-      // Prevent overwriting, because aggregation engine may be not aware
-      // of all niceties of all types.
-      this.typeMapping.putIfAbsent(field, typeMapping.get(field));
-    }
+    this.typeMapping.putAll(typeMapping);
   }
 
   @Getter @Setter private OpenSearchAggregationResponseParser parser;
@@ -178,7 +174,8 @@ public class OpenSearchExprValueFactory {
    * @return ExprValue
    */
   public ExprValue construct(String field, Object value, boolean supportArrays) {
-    return parse(new ObjectContent(value), field, type(field), supportArrays);
+    Object extractedValue = extractFinalPrimitiveValue(value);
+    return parse(new ObjectContent(extractedValue), field, type(field), supportArrays);
   }
 
   private ExprValue parse(
@@ -189,7 +186,12 @@ public class OpenSearchExprValueFactory {
 
     // Field type may be not defined in mapping if users have disabled dynamic mapping.
     // Then try to parse content directly based on the value itself
-    if (fieldType.isEmpty()) {
+    // Besides, sub-fields of generated objects are also of type UNDEFINED. We parse the content
+    // directly on the value itself for this case as well.
+    // TODO: Remove the second condition once https://github.com/opensearch-project/sql/issues/3751
+    //  is resolved
+    if (fieldType.isEmpty()
+        || fieldType.get().equals(OpenSearchDataType.of(ExprCoreType.UNDEFINED))) {
       return parseContent(content);
     }
 
@@ -216,6 +218,10 @@ public class OpenSearchExprValueFactory {
     if (content.isNumber()) {
       if (content.isInt()) {
         return new ExprIntegerValue(content.intValue());
+      } else if (content.isShort()) {
+        return new ExprShortValue(content.shortValue());
+      } else if (content.isByte()) {
+        return new ExprByteValue(content.byteValue());
       } else if (content.isLong()) {
         return new ExprLongValue(content.longValue());
       } else if (content.isFloat()) {
@@ -327,6 +333,11 @@ public class OpenSearchExprValueFactory {
     }
     if (value.isString()) {
       return parseDateTimeString(value.stringValue(), dt);
+    }
+
+    if (value.objectValue() instanceof ZonedDateTime) {
+      ZonedDateTime zonedDateTime = (ZonedDateTime) value.objectValue();
+      return new ExprTimestampValue(zonedDateTime.withZoneSameLocal(ZoneOffset.UTC).toInstant());
     }
 
     return new ExprTimestampValue((Instant) value.objectValue());
@@ -516,5 +527,27 @@ public class OpenSearchExprValueFactory {
    */
   private String makeField(String path, String field) {
     return path.equalsIgnoreCase(TOP_PATH) ? field : String.join(".", path, field);
+  }
+
+  /**
+   * Recursively extracts the final primitive value from nested Map structures. For example:
+   * {attributes={telemetry={sdk={language=java}}}} -> "java"
+   *
+   * @param value The value to extract from
+   * @return The extracted primitive value, or the original value if extraction is not possible
+   */
+  @SuppressWarnings("unchecked")
+  private Object extractFinalPrimitiveValue(Object value) {
+    if (value == null || !(value instanceof Map)) {
+      return value;
+    }
+
+    Map<String, Object> map = (Map<String, Object>) value;
+    if (map.size() == 1) {
+      Object singleValue = map.values().iterator().next();
+      return extractFinalPrimitiveValue(singleValue);
+    }
+
+    return value;
   }
 }

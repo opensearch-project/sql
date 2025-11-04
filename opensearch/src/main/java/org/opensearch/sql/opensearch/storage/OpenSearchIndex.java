@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.util.CompositeMap;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.calcite.plan.AbstractOpenSearchTable;
 import org.opensearch.sql.common.setting.Settings;
@@ -152,6 +153,11 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
     return METADATAFIELD_TYPE_MAP;
   }
 
+  // Return all field types including reserved fields
+  public Map<String, ExprType> getAllFieldTypes() {
+    return CompositeMap.of(getFieldTypes(), getReservedFieldTypes());
+  }
+
   public Map<String, String> getAliasMapping() {
     if (cachedFieldOpenSearchTypes == null) {
       cachedFieldOpenSearchTypes =
@@ -159,7 +165,7 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
     }
     if (aliasMapping == null) {
       aliasMapping =
-          cachedFieldOpenSearchTypes.entrySet().stream()
+          OpenSearchDataType.traverseAndFlatten(cachedFieldOpenSearchTypes).entrySet().stream()
               .filter(entry -> entry.getValue().getOriginalPath().isPresent())
               .collect(
                   Collectors.toUnmodifiableMap(
@@ -188,6 +194,12 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
           new OpenSearchDescribeIndexRequest(client, indexName).getMaxResultWindow();
     }
     return cachedMaxResultWindow;
+  }
+
+  public Integer getBucketSize() {
+    return Math.min(
+        settings.getSettingValue(Settings.Key.QUERY_BUCKET_SIZE),
+        settings.getSettingValue(Settings.Key.SEARCH_MAX_BUCKETS));
   }
 
   /** TODO: Push down operations to index scan operator as much as possible in future. */
@@ -260,7 +272,7 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
   }
 
   public OpenSearchResourceMonitor createOpenSearchResourceMonitor() {
-    return new OpenSearchResourceMonitor(getSettings(), new OpenSearchMemoryHealthy());
+    return new OpenSearchResourceMonitor(getSettings(), new OpenSearchMemoryHealthy(settings));
   }
 
   public OpenSearchRequest buildRequest(OpenSearchRequestBuilder requestBuilder) {

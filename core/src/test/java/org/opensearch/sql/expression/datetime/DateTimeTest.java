@@ -11,9 +11,9 @@ import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.TimeZone;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.expression.DSL;
@@ -44,21 +44,19 @@ class DateTimeTest extends ExpressionTestBase {
     assertEquals(new ExprDatetimeValue("2008-05-15 14:00:00"), expr.valueOf());
   }
 
-  // When no timezone argument is passed inside the datetime field, it assumes local time.
+  // When no timezone argument is passed inside the datetime field, it assumes UTC time.
   @Test
   public void localDateTimeConversion() {
-    // needs to work for all time zones because it defaults to local timezone.
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     String dt = "2008-05-15 22:00:00";
     String timeZone = "America/Los_Angeles";
-    LocalDateTime timeConverted = LocalDateTime.parse(dt, formatter);
-    ZonedDateTime timeZoneLocal =
-        timeConverted
-            .atZone(ZoneId.of(TimeZone.getDefault().getID()))
-            .withZoneSameInstant(ZoneId.of(timeZone));
+    LocalDateTime utcDatetime = LocalDateTime.parse(dt, formatter);
+    ZonedDateTime laDatetime =
+        utcDatetime.atZone(ZoneOffset.UTC).withZoneSameInstant(ZoneId.of(timeZone));
+    // Convert dt (assumed to be in UTC) to the specified time zone.
     FunctionExpression expr = DSL.datetime(DSL.literal(dt), DSL.literal(timeZone));
     assertEquals(DATETIME, expr.type());
-    assertEquals(new ExprDatetimeValue(timeZoneLocal.toLocalDateTime()), expr.valueOf());
+    assertEquals(new ExprDatetimeValue(laDatetime.toLocalDateTime()), expr.valueOf());
   }
 
   @Test

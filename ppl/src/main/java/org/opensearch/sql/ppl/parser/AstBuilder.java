@@ -181,11 +181,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       List<SearchExpression> searchExprs =
           ctx.searchExpression().stream()
               .map(expr -> (SearchExpression) expressionBuilder.visit(expr))
-              .toList();
+              .collect(Collectors.toList());
       // Combine multiple expressions with AND
       SearchExpression combined;
       if (searchExprs.size() == 1) {
-        combined = searchExprs.getFirst();
+        combined = searchExprs.get(0);
       } else {
         // before being combined with AND (e.g., "a=1 b=-1" becomes "(a:1) AND (b:-1)")
         combined =
@@ -206,11 +206,10 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   /**
-   * <b>Describe command.</b><br>
-   * Current logic separates table and metadata info about table by adding MAPPING_ODFE_SYS_TABLE as
-   * suffix. Even with the introduction of datasource and schema name in fully qualified table name,
-   * we do the same thing by appending MAPPING_ODFE_SYS_TABLE as syffix to the last part of
-   * qualified name.
+   * Describe command. Current logic separates table and metadata info about table by adding
+   * MAPPING_ODFE_SYS_TABLE as suffix. Even with the introduction of datasource and schema name in
+   * fully qualified table name, we do the same thing by appending MAPPING_ODFE_SYS_TABLE as syffix
+   * to the last part of qualified name.
    */
   @Override
   public UnresolvedPlan visitDescribeCommand(DescribeCommandContext ctx) {
@@ -243,7 +242,9 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       joinType = ArgumentFactory.getJoinType(ctx.sqlLikeJoinType());
     }
     List<Argument> arguments =
-        ctx.joinOption().stream().map(o -> (Argument) expressionBuilder.visit(o)).toList();
+        ctx.joinOption().stream()
+            .map(o -> (Argument) expressionBuilder.visit(o))
+            .collect(Collectors.toList());
     Argument.ArgumentMap argumentMap = Argument.ArgumentMap.of(arguments);
     if (argumentMap.get("type") != null) {
       Join.JoinType joinTypeFromArgument = ArgumentFactory.getJoinType(argumentMap);
@@ -740,7 +741,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       UnresolvedExpression param = internalVisitExpression(paramCtx);
       if (param instanceof Span) {
         binExpression = param;
-      } else if (param instanceof Literal literal) {
+      } else if (param instanceof Literal) {
+        Literal literal = (Literal) param;
         if (DataType.BOOLEAN.equals(literal.getType())) {
           useOther = (Boolean) literal.getValue();
         } else if (DataType.INTEGER.equals(literal.getType())
@@ -786,7 +788,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     List<Field> fields =
         ctx.fieldExpression().stream()
             .map(field -> (Field) internalVisitExpression(field))
-            .toList();
+            .collect(Collectors.toList());
 
     Set<Field> uniqueFields = new java.util.LinkedHashSet<>(fields);
 
@@ -1067,7 +1069,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
           internalVisitExpression(ctx.replacement),
           ctx.fieldList().fieldExpression().stream()
               .map(f -> (Field) internalVisitExpression(f))
-              .toList());
+              .collect(Collectors.toList()));
     } else {
       return FillNull.ofSameValue(internalVisitExpression(ctx.replacement), List.of());
     }
@@ -1096,7 +1098,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         internalVisitExpression(ctx.replacement),
         ctx.fieldList().fieldExpression().stream()
             .map(f -> (Field) internalVisitExpression(f))
-            .toList(),
+            .collect(Collectors.toList()),
         true);
   }
 
@@ -1263,12 +1265,13 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   private UnresolvedPlan projectExceptMeta(UnresolvedPlan plan) {
     if ((plan instanceof Project) && !((Project) plan).isExcluded()) {
       return plan;
-    } else if (plan instanceof SubqueryAlias subqueryAlias) {
+    } else if (plan instanceof SubqueryAlias) {
+      SubqueryAlias subqueryAlias = (SubqueryAlias) plan;
       // don't wrap subquery alias with project, wrap its child
       return new SubqueryAlias(
           subqueryAlias.getAlias(),
           new Project(ImmutableList.of(AllFieldsExcludeMeta.of()))
-              .attach(subqueryAlias.getChild().getFirst()));
+              .attach(subqueryAlias.getChild().get(0)));
     } else {
       return new Project(ImmutableList.of(AllFieldsExcludeMeta.of())).attach(plan);
     }

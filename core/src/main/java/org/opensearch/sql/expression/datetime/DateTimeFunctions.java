@@ -8,6 +8,7 @@ package org.opensearch.sql.expression.datetime;
 import static java.time.temporal.ChronoUnit.DAYS;
 import static java.time.temporal.ChronoUnit.HOURS;
 import static java.time.temporal.ChronoUnit.MICROS;
+import static java.time.temporal.ChronoUnit.MILLIS;
 import static java.time.temporal.ChronoUnit.MINUTES;
 import static java.time.temporal.ChronoUnit.MONTHS;
 import static java.time.temporal.ChronoUnit.SECONDS;
@@ -42,7 +43,6 @@ import static org.opensearch.sql.utils.DateTimeFormatters.SHORT_DATE_LENGTH;
 import static org.opensearch.sql.utils.DateTimeFormatters.SINGLE_DIGIT_MONTH_DATE_LENGTH;
 import static org.opensearch.sql.utils.DateTimeFormatters.SINGLE_DIGIT_YEAR_DATE_LENGTH;
 import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
-import static org.opensearch.sql.utils.DateTimeFormatters.*;
 import static org.opensearch.sql.utils.DateTimeUtils.extractDate;
 import static org.opensearch.sql.utils.DateTimeUtils.extractDateTime;
 
@@ -70,7 +70,6 @@ import java.time.temporal.IsoFields;
 import java.time.temporal.TemporalAmount;
 import java.util.Locale;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import lombok.experimental.UtilityClass;
@@ -97,6 +96,7 @@ import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.expression.function.FunctionSignature;
 import org.opensearch.sql.expression.function.SerializableFunction;
 import org.opensearch.sql.expression.function.SerializableTriFunction;
+import org.opensearch.sql.utils.DateTimeFormatters;
 import org.opensearch.sql.utils.DateTimeUtils;
 
 /**
@@ -285,12 +285,14 @@ public class DateTimeFunctions {
     return define(
         BuiltinFunctionName.SYSDATE.getName(),
         implWithProperties(
-            functionProperties -> new ExprDatetimeValue(formatNow(Clock.systemDefaultZone())),
-            DATETIME),
+            functionProperties ->
+                new ExprDatetimeValue(formatNow(functionProperties.getSystemClock())),
+                DATETIME),
         FunctionDSL.implWithProperties(
             (functionProperties, v) ->
-                new ExprDatetimeValue(formatNow(Clock.systemDefaultZone(), v.integerValue())),
-            DATETIME,
+                new ExprDatetimeValue(
+                    formatNow(functionProperties.getSystemClock(), v.integerValue())),
+                DATETIME,
             INTEGER));
   }
 
@@ -581,8 +583,15 @@ public class DateTimeFunctions {
   private FunctionResolver datetime() {
     return define(
         BuiltinFunctionName.DATETIME.getName(),
-        impl(nullMissingHandling(DateTimeFunctions::exprDateTime), DATETIME, STRING, STRING),
-        impl(nullMissingHandling(DateTimeFunctions::exprDateTimeNoTimezone), DATETIME, STRING));
+        implWithProperties(
+            nullMissingHandlingWithProperties(DateTimeFunctions::exprDateTime),
+DATETIME,
+            STRING,
+            STRING),
+        implWithProperties(
+            nullMissingHandlingWithProperties(DateTimeFunctions::exprDateTimeNoTimezone),
+                DATETIME,
+            STRING));
   }
 
   private DefaultFunctionResolver date_add() {
@@ -1531,7 +1540,16 @@ public class DateTimeFunctions {
   public static ExprValue exprConvertTZ(
       ExprValue startingDateTime, ExprValue fromTz, ExprValue toTz) {
     if (startingDateTime.type() == ExprCoreType.STRING) {
-      startingDateTime = exprDateTimeNoTimezone(startingDateTime);
+      try {
+        // CONVERT_TZ only expects a timestamp in the format "yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]".
+        startingDateTime =
+            new ExprDatetimeValue(
+                LocalDateTime.parse(
+                    startingDateTime.stringValue(),
+                    DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS));
+      } catch (DateTimeParseException e) {
+        return ExprNullValue.of();
+      }
     }
     try {
       ZoneId convertedFromTz = ZoneId.of(fromTz.stringValue());
@@ -1591,8 +1609,10 @@ public class DateTimeFunctions {
    * @param timeZone ExprValue of String type (or null).
    * @return ExprValue of date type.
    */
-  public static ExprValue exprDateTime(ExprValue dateTime, ExprValue timeZone) {
-    String defaultTimeZone = TimeZone.getDefault().toZoneId().toString();
+  public static ExprValue exprDateTime(
+      FunctionProperties properties, ExprValue dateTime, ExprValue timeZone) {
+    // Get default time zone from function properties instead of ZoneId.systemDefault()
+    String defaultTimeZone = properties.getCurrentZoneId().toString();
 
     try {
       LocalDateTime ldtFormatted =
@@ -1632,8 +1652,9 @@ public class DateTimeFunctions {
    * @param dateTime ExprValue of String type.
    * @return ExprValue of date type.
    */
-  public static ExprValue exprDateTimeNoTimezone(ExprValue dateTime) {
-    return exprDateTime(dateTime, ExprNullValue.of());
+  public static ExprValue exprDateTimeNoTimezone(
+      FunctionProperties properties, ExprValue dateTime) {
+    return exprDateTime(properties, dateTime, ExprNullValue.of());
   }
 
   /**
@@ -2132,6 +2153,9 @@ public class DateTimeFunctions {
       case "MICROSECOND":
         temporalUnit = MICROS;
         break;
+      case "MILLISECOND":
+        temporalUnit = MILLIS;
+        break;
       case "SECOND":
         temporalUnit = SECONDS;
         break;
@@ -2171,9 +2195,12 @@ public class DateTimeFunctions {
 
   private ExprValue getTimeDifference(String part, LocalDateTime startTime, LocalDateTime endTime) {
     long returnVal;
-    switch (part) {
+    switch (part.toUpperCase(Locale.ROOT)) {
       case "MICROSECOND":
         returnVal = MICROS.between(startTime, endTime);
+        break;
+      case "MILLISECOND":
+        returnVal = MILLIS.between(startTime, endTime);
         break;
       case "SECOND":
         returnVal = SECONDS.between(startTime, endTime);
@@ -2246,9 +2273,8 @@ public class DateTimeFunctions {
    * @return ExprValue.
    */
   public static ExprValue exprUtcTimestamp(FunctionProperties functionProperties) {
-    var zdt =
-        ZonedDateTime.now(functionProperties.getQueryStartClock()).withZoneSameInstant(UTC_ZONE_ID);
-    return new ExprDatetimeValue(zdt.toLocalDateTime());
+    var dt = formatNow(functionProperties.getQueryStartClock());
+    return new ExprDatetimeValue(dt);
   }
 
   /**

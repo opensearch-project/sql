@@ -117,7 +117,8 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testFilterQueryWithOr2() {
-    String ppl = "source=EMP (DEPTNO = 20 or MGR = 30) and SAL > 1000 | fields EMPNO, ENAME";
+    String ppl =
+        "source=EMP | where (DEPTNO = 20 or MGR = 30) and SAL > 1000 | fields EMPNO, ENAME";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
@@ -206,9 +207,7 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
             () -> {
               RelNode root = getRelNode(ppl);
             });
-    assertThat(
-        e.getMessage(),
-        is("field [DEPTNO] not found; input fields are: [EMPNO, ENAME, JOB, MGR, HIREDATE, COMM]"));
+    assertThat(e.getMessage(), is("Field [DEPTNO] not found."));
   }
 
   @Test
@@ -294,6 +293,46 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
             + "EMPNO=7788; DEPTNO=20; SAL=3000.00\n"
             + "EMPNO=7902; DEPTNO=20; SAL=3000.00\n";
     verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testSortWithCountLimit() {
+    String ppl = "source=EMP | sort 3 DEPTNO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(sort0=[$7], dir0=[ASC-nulls-first], fetch=[3])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testSortWithCountZero() {
+    String ppl = "source=EMP | sort 0 DEPTNO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(sort0=[$7], dir0=[ASC-nulls-first])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testSortWithDescReversal() {
+    String ppl = "source=EMP | sort DEPTNO desc, SAL";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(sort0=[$7], sort1=[$5], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testSortWithDReversal() {
+    String ppl = "source=EMP | sort DEPTNO d, SAL";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(sort0=[$7], sort1=[$5], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
   }
 
   @Test

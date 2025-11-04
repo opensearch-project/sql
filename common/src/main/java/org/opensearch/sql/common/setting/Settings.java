@@ -31,6 +31,12 @@ public abstract class Settings {
     PATTERN_MODE("plugins.ppl.pattern.mode"),
     PATTERN_MAX_SAMPLE_COUNT("plugins.ppl.pattern.max.sample.count"),
     PATTERN_BUFFER_LIMIT("plugins.ppl.pattern.buffer.limit"),
+    PATTERN_SHOW_NUMBERED_TOKEN("plugins.ppl.pattern.show.numbered.token"),
+    PPL_REX_MAX_MATCH_LIMIT("plugins.ppl.rex.max_match.limit"),
+    PPL_VALUES_MAX_LIMIT("plugins.ppl.values.max.limit"),
+    PPL_SYNTAX_LEGACY_PREFERRED("plugins.ppl.syntax.legacy.preferred"),
+    PPL_SUBSEARCH_MAXOUT("plugins.ppl.subsearch.maxout"),
+    PPL_JOIN_SUBSEARCH_MAXOUT("plugins.ppl.join.subsearch_maxout"),
 
     /** Enable Calcite as execution engine */
     CALCITE_ENGINE_ENABLED("plugins.calcite.enabled"),
@@ -38,6 +44,7 @@ public abstract class Settings {
     CALCITE_PUSHDOWN_ENABLED("plugins.calcite.pushdown.enabled"),
     CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR(
         "plugins.calcite.pushdown.rowcount.estimation.factor"),
+    CALCITE_SUPPORT_ALL_JOIN_TYPES("plugins.calcite.all_join_types.allowed"),
 
     /** Query Settings. */
     FIELD_TYPE_TOLERANCE("plugins.query.field_type_tolerance"),
@@ -45,6 +52,8 @@ public abstract class Settings {
     /** Common Settings for SQL and PPL. */
     QUERY_MEMORY_LIMIT("plugins.query.memory_limit"),
     QUERY_SIZE_LIMIT("plugins.query.size_limit"),
+    QUERY_BUCKET_SIZE("plugins.query.buckets"),
+    SEARCH_MAX_BUCKETS("search.max_buckets"),
     ENCYRPTION_MASTER_KEY("plugins.query.datasources.encryption.masterkey"),
     DATASOURCES_URI_HOSTS_DENY_LIST("plugins.query.datasources.uri.hosts.denylist"),
     DATASOURCES_LIMIT("plugins.query.datasources.limit"),

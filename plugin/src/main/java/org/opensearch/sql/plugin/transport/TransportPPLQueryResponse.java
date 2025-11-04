@@ -10,25 +10,36 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.io.stream.InputStreamStreamInput;
 import org.opensearch.core.common.io.stream.OutputStreamStreamOutput;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 
-@RequiredArgsConstructor
 public class TransportPPLQueryResponse extends ActionResponse {
   @Getter private final String result;
+  @Getter private final String contentType;
+
+  public TransportPPLQueryResponse(String result) {
+    this.result = result;
+    this.contentType = "application/json; charset=UTF-8";
+  }
+
+  public TransportPPLQueryResponse(String result, String contentType) {
+    this.result = result;
+    this.contentType = contentType;
+  }
 
   public TransportPPLQueryResponse(StreamInput in) throws IOException {
     super(in);
     result = in.readString();
+    contentType = in.readString();
   }
 
   @Override
   public void writeTo(StreamOutput out) throws IOException {
     out.writeString(result);
+    out.writeString(contentType);
   }
 
   public static TransportPPLQueryResponse fromActionResponse(ActionResponse actionResponse) {

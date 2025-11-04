@@ -9,6 +9,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -61,6 +62,11 @@ public enum BuiltinFunctionName {
   /** Collection functions */
   ARRAY(FunctionName.of("array")),
   ARRAY_LENGTH(FunctionName.of("array_length")),
+  MAP_APPEND(FunctionName.of("map_append"), true),
+  MAP_CONCAT(FunctionName.of("map_concat"), true),
+  MAP_REMOVE(FunctionName.of("map_remove"), true),
+  MVAPPEND(FunctionName.of("mvappend")),
+  MVJOIN(FunctionName.of("mvjoin")),
   FORALL(FunctionName.of("forall")),
   EXISTS(FunctionName.of("exists")),
   FILTER(FunctionName.of("filter")),
@@ -123,6 +129,7 @@ public enum BuiltinFunctionName {
   UTC_TIME(FunctionName.of("utc_time")),
   UTC_TIMESTAMP(FunctionName.of("utc_timestamp")),
   UNIX_TIMESTAMP(FunctionName.of("unix_timestamp")),
+  STRFTIME(FunctionName.of("strftime")),
   WEEK(FunctionName.of("week")),
   WEEKDAY(FunctionName.of("weekday")),
   WEEKOFYEAR(FunctionName.of("weekofyear")),
@@ -197,11 +204,19 @@ public enum BuiltinFunctionName {
   TAKE(FunctionName.of("take")),
   // t-digest percentile which is used in OpenSearch core by default.
   PERCENTILE_APPROX(FunctionName.of("percentile_approx")),
+  MEDIAN(FunctionName.of("median")),
   EARLIEST(FunctionName.of("earliest")),
   LATEST(FunctionName.of("latest")),
   DISTINCT_COUNT_APPROX(FunctionName.of("distinct_count_approx")),
+
+  // Multivalue aggregation function
+  LIST(FunctionName.of("list")),
+  VALUES(FunctionName.of("values")),
   // Not always an aggregation query
   NESTED(FunctionName.of("nested")),
+  // Document order aggregation functions
+  FIRST(FunctionName.of("first")),
+  LAST(FunctionName.of("last")),
 
   /** Text Functions. */
   ASCII(FunctionName.of("ascii")),
@@ -214,6 +229,10 @@ public enum BuiltinFunctionName {
   LTRIM(FunctionName.of("ltrim")),
   POSITION(FunctionName.of("position")),
   REGEXP(FunctionName.of("regexp")),
+  REGEX_MATCH(FunctionName.of("regex_match")),
+  REX_EXTRACT(FunctionName.of("REX_EXTRACT")),
+  REX_EXTRACT_MULTI(FunctionName.of("REX_EXTRACT_MULTI")),
+  REX_OFFSET(FunctionName.of("REX_OFFSET")),
   REPLACE(FunctionName.of("replace")),
   REVERSE(FunctionName.of("reverse")),
   RIGHT(FunctionName.of("right")),
@@ -231,6 +250,7 @@ public enum BuiltinFunctionName {
   JSON_ARRAY(FunctionName.of("json_array")),
   JSON_ARRAY_LENGTH(FunctionName.of("json_array_length")),
   JSON_EXTRACT(FunctionName.of("json_extract")),
+  JSON_EXTRACT_ALL(FunctionName.of("json_extract_all"), true),
   JSON_KEYS(FunctionName.of("json_keys")),
   JSON_SET(FunctionName.of("json_set")),
   JSON_DELETE(FunctionName.of("json_delete")),
@@ -308,9 +328,12 @@ public enum BuiltinFunctionName {
   INTERNAL_PATTERN_PARSER(FunctionName.of("pattern_parser")),
   INTERNAL_PATTERN(FunctionName.of("pattern")),
   INTERNAL_UNCOLLECT_PATTERNS(FunctionName.of("uncollect_patterns")),
-  INTERNAL_REGEXP_EXTRACT(FunctionName.of("regexp_extract"), true),
   INTERNAL_GROK(FunctionName.of("grok"), true),
-  INTERNAL_REGEXP_REPLACE_3(FunctionName.of("regexp_replace_3"), true);
+  INTERNAL_PARSE(FunctionName.of("parse"), true),
+  INTERNAL_REGEXP_REPLACE_3(FunctionName.of("regexp_replace_3"), true),
+  INTERNAL_REGEXP_REPLACE_PG_4(FunctionName.of("regexp_replace_pg_4"), true),
+  INTERNAL_REGEXP_REPLACE_5(FunctionName.of("regexp_replace_5"), true),
+  INTERNAL_TRANSLATE3(FunctionName.of("translate3"), true);
 
   private final FunctionName name;
   private boolean isInternal;
@@ -342,10 +365,15 @@ public enum BuiltinFunctionName {
           .put("take", BuiltinFunctionName.TAKE)
           .put("percentile", BuiltinFunctionName.PERCENTILE_APPROX)
           .put("percentile_approx", BuiltinFunctionName.PERCENTILE_APPROX)
-          // .put("earliest", BuiltinFunctionName.EARLIEST)
-          // .put("latest", BuiltinFunctionName.LATEST)
+          .put("median", BuiltinFunctionName.MEDIAN)
+          .put("earliest", BuiltinFunctionName.EARLIEST)
+          .put("latest", BuiltinFunctionName.LATEST)
           .put("distinct_count_approx", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
+          .put("list", BuiltinFunctionName.LIST)
+          .put("values", BuiltinFunctionName.VALUES)
           .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
+          .put("first", BuiltinFunctionName.FIRST)
+          .put("last", BuiltinFunctionName.LAST)
           .build();
 
   private static final Map<String, BuiltinFunctionName> WINDOW_FUNC_MAPPING =
@@ -362,8 +390,11 @@ public enum BuiltinFunctionName {
           .put("stddev", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_pop", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_samp", BuiltinFunctionName.STDDEV_SAMP)
-          // .put("earliest", BuiltinFunctionName.EARLIEST)
-          // .put("latest", BuiltinFunctionName.LATEST)
+          .put("earliest", BuiltinFunctionName.EARLIEST)
+          .put("latest", BuiltinFunctionName.LATEST)
+          .put("distinct_count_approx", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
+          .put("dc", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
+          .put("distinct_count", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
           .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
           .build();
 
@@ -380,4 +411,13 @@ public enum BuiltinFunctionName {
     return Optional.ofNullable(
         WINDOW_FUNC_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), null));
   }
+
+  public static final Set<BuiltinFunctionName> COMPARATORS =
+      Set.of(
+          BuiltinFunctionName.EQUAL,
+          BuiltinFunctionName.NOTEQUAL,
+          BuiltinFunctionName.LESS,
+          BuiltinFunctionName.LTE,
+          BuiltinFunctionName.GREATER,
+          BuiltinFunctionName.GTE);
 }

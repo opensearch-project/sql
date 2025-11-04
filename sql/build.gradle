@@ -60,6 +60,7 @@ dependencies {
 }
 
 test {
+    maxParallelForks = Runtime.runtime.availableProcessors()
     useJUnitPlatform()
     testLogging {
         events "passed", "skipped", "failed"

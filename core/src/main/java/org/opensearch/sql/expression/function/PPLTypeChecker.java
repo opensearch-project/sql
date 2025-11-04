@@ -15,6 +15,9 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
@@ -23,7 +26,8 @@ import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
+import org.apache.calcite.util.Pair;
+import org.opensearch.sql.calcite.type.ExprIPType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -48,11 +52,21 @@ public interface PPLTypeChecker {
 
   /**
    * Get a string representation of the allowed signatures. The format is like {@code
-   * [STRING,STRING],[INTEGER,INTEGER]}.
+   * [STRING,STRING]|[INTEGER,INTEGER]}.
    *
    * @return a string representation of the allowed signatures
    */
   String getAllowedSignatures();
+
+  /**
+   * Get a list of all possible parameter type combinations for the function.
+   *
+   * <p>This method is used to generate the allowed signatures for the function based on the
+   * parameter types.
+   *
+   * @return a list of lists, where each inner list represents an allowed parameter type combination
+   */
+  List<List<ExprType>> getParameterTypes();
 
   private static boolean validateOperands(
       List<SqlTypeFamily> funcTypeFamilies, List<RelDataType> operandTypes) {
@@ -97,6 +111,11 @@ public interface PPLTypeChecker {
     }
 
     @Override
+    public List<List<ExprType>> getParameterTypes() {
+      return PPLTypeChecker.getExprSignatures(families);
+    }
+
+    @Override
     public String toString() {
       return String.format("PPLFamilyTypeChecker[families=%s]", getAllowedSignatures());
     }
@@ -136,10 +155,22 @@ public interface PPLTypeChecker {
     public String getAllowedSignatures() {
       if (innerTypeChecker instanceof FamilyOperandTypeChecker) {
         FamilyOperandTypeChecker familyOperandTypeChecker = (FamilyOperandTypeChecker) innerTypeChecker;
-        var allowedSignatures = PPLTypeChecker.getFamilySignatures(familyOperandTypeChecker);
-        return String.join(",", allowedSignatures);
+        var allowedExprSignatures = getExprSignatures(familyOperandTypeChecker);
+        return PPLTypeChecker.formatExprSignatures(allowedExprSignatures);
       } else {
         return "";
+      }
+    }
+
+    @Override
+    public List<List<ExprType>> getParameterTypes() {
+      if (innerTypeChecker instanceof FamilyOperandTypeChecker) {
+          FamilyOperandTypeChecker familyOperandTypeChecker = (FamilyOperandTypeChecker) innerTypeChecker;
+          return getExprSignatures(familyOperandTypeChecker);
+      } else {
+        // If the inner type checker is not a FamilyOperandTypeChecker, we cannot provide
+        // parameter types.
+        return Collections.emptyList();
       }
     }
   }
@@ -155,6 +186,7 @@ public interface PPLTypeChecker {
    * ImplicitCastOperandTypeChecker}.
    */
   class PPLCompositeTypeChecker implements PPLTypeChecker {
+
     private final List<? extends SqlOperandTypeChecker> allowedRules;
 
     public PPLCompositeTypeChecker(CompositeOperandTypeChecker typeChecker) {
@@ -191,17 +223,35 @@ public interface PPLTypeChecker {
 
     @Override
     public String getAllowedSignatures() {
-      List<String> allowedSignatures = new ArrayList<>();
+      StringBuilder builder = new StringBuilder();
       for (SqlOperandTypeChecker rule : allowedRules) {
         if (rule instanceof FamilyOperandTypeChecker) {
-          FamilyOperandTypeChecker familyOperandTypeChecker = (FamilyOperandTypeChecker) rule;
-          allowedSignatures.addAll(PPLTypeChecker.getFamilySignatures(familyOperandTypeChecker));
+            FamilyOperandTypeChecker familyOperandTypeChecker = (FamilyOperandTypeChecker) rule;
+          if (builder.length() > 0) {
+            builder.append("|");
+          }
+          builder.append(PPLTypeChecker.getFamilySignatures(familyOperandTypeChecker));
         } else {
           throw new IllegalArgumentException(
               "Currently only compositions of FamilyOperandTypeChecker are supported");
         }
       }
-      return String.join(",", allowedSignatures);
+      return builder.toString();
+    }
+
+    @Override
+    public List<List<ExprType>> getParameterTypes() {
+      List<List<ExprType>> parameterTypes = new ArrayList<>();
+      for (SqlOperandTypeChecker rule : allowedRules) {
+        if (rule instanceof FamilyOperandTypeChecker) {
+            FamilyOperandTypeChecker familyOperandTypeChecker = (FamilyOperandTypeChecker) rule;
+            parameterTypes.addAll(getExprSignatures(familyOperandTypeChecker));
+        } else {
+          throw new IllegalArgumentException(
+              "Currently only compositions of FamilyOperandTypeChecker are supported");
+        }
+      }
+      return parameterTypes;
     }
   }
 
@@ -218,47 +268,60 @@ public interface PPLTypeChecker {
       for (int i = 0; i < types.size() - 1; i++) {
         // TODO: Binary, Array UDT?
         // DATETIME, NUMERIC, BOOLEAN will be regarded as comparable
-        // with strings in SqlTypeUtil.isComparable
+        // with strings in isComparable
         RelDataType type_l = types.get(i);
         RelDataType type_r = types.get(i + 1);
-        if (!SqlTypeUtil.isComparable(type_l, type_r)) {
-          if (areIpAndStringTypes(type_l, type_r) || areIpAndStringTypes(type_r, type_l)) {
-            // Allow IP and string comparison
-            continue;
-          }
+        // Rule out IP types from built-in comparable functions
+        if (type_l instanceof ExprIPType || type_r instanceof ExprIPType) {
           return false;
         }
-        // Disallow coercing between strings and numeric, boolean
-        if ((type_l.getFamily() == SqlTypeFamily.CHARACTER
-                && cannotConvertStringInCompare((SqlTypeFamily) type_r.getFamily()))
-            || (type_r.getFamily() == SqlTypeFamily.CHARACTER
-                && cannotConvertStringInCompare((SqlTypeFamily) type_l.getFamily()))) {
+        if (!isComparable(type_l, type_r)) {
           return false;
         }
       }
       return true;
     }
 
-    private static boolean cannotConvertStringInCompare(SqlTypeFamily typeFamily) {
-      switch (typeFamily) {
-        case BOOLEAN:
-        case INTEGER:
-        case NUMERIC:
-        case EXACT_NUMERIC:
-        case APPROXIMATE_NUMERIC:
-          return true;
-        default:
-          return false;
+    /**
+     * Modified from {@link SqlTypeUtil#isComparable(RelDataType, RelDataType)} to
+     *
+     * @param type1 first type
+     * @param type2 second type
+     * @return true if the two types are comparable, false otherwise
+     */
+    private static boolean isComparable(RelDataType type1, RelDataType type2) {
+      if (type1.isStruct() != type2.isStruct()) {
+        return false;
       }
-    }
 
-    private static boolean areIpAndStringTypes(RelDataType typeIp, RelDataType typeString) {
-      if (typeIp instanceof AbstractExprRelDataType<?>) {
-        AbstractExprRelDataType<?> exprRelDataType = (AbstractExprRelDataType<?>) typeIp;
-        return exprRelDataType.getExprType() == ExprCoreType.IP
-            && typeString.getFamily() == SqlTypeFamily.CHARACTER;
+      if (type1.isStruct()) {
+        int n = type1.getFieldCount();
+        if (n != type2.getFieldCount()) {
+          return false;
+        }
+        for (Pair<RelDataTypeField, RelDataTypeField> pair :
+            Pair.zip(type1.getFieldList(), type2.getFieldList())) {
+          if (!isComparable(pair.left.getType(), pair.right.getType())) {
+            return false;
+          }
+        }
+        return true;
       }
-      return false;
+
+      // Numeric types are comparable without the need to cast
+      if (SqlTypeUtil.isNumeric(type1) && SqlTypeUtil.isNumeric(type2)) {
+        return true;
+      }
+
+      ExprType exprType1 = OpenSearchTypeFactory.convertRelDataTypeToExprType(type1);
+      ExprType exprType2 = OpenSearchTypeFactory.convertRelDataTypeToExprType(type2);
+
+      if (!exprType1.shouldCast(exprType2)) {
+        return true;
+      }
+
+      // If one of the arguments is of type 'ANY', return true.
+      return type1.getFamily() == SqlTypeFamily.ANY || type2.getFamily() == SqlTypeFamily.ANY;
     }
 
     @Override
@@ -279,6 +342,93 @@ public interface PPLTypeChecker {
           signatures.add("[" + String.join(",", Collections.nCopies(i, typeName)) + "]");
         }
         return String.join(",", signatures);
+      }
+    }
+
+    @Override
+    public List<List<ExprType>> getParameterTypes() {
+      // Should not be used
+      return List.of(List.of(ExprCoreType.UNKNOWN, ExprCoreType.UNKNOWN));
+    }
+  }
+
+  class PPLDefaultTypeChecker implements PPLTypeChecker {
+    private final SqlOperandTypeChecker internal;
+
+    public PPLDefaultTypeChecker(SqlOperandTypeChecker typeChecker) {
+      internal = typeChecker;
+    }
+
+    @Override
+    public boolean checkOperandTypes(List<RelDataType> types) {
+      // Basic operand count validation
+      if (!internal.getOperandCountRange().isValidCount(types.size())) {
+        return false;
+      }
+
+      // If the internal checker is a FamilyOperandTypeChecker, use type family validation
+      if (internal instanceof FamilyOperandTypeChecker) {
+        FamilyOperandTypeChecker familyChecker = (FamilyOperandTypeChecker) internal;
+        List<SqlTypeFamily> families =
+            IntStream.range(0, types.size())
+                .mapToObj(familyChecker::getOperandSqlTypeFamily)
+                .collect(Collectors.toList());
+        return validateOperands(families, types);
+      }
+
+      // For other types of checkers, we can only validate operand count
+      // This is a fallback - we assume the types are valid if count is correct
+      return true;
+    }
+
+    @Override
+    public String getAllowedSignatures() {
+      if (internal instanceof FamilyOperandTypeChecker) {
+        FamilyOperandTypeChecker familyChecker = (FamilyOperandTypeChecker) internal;
+        return getFamilySignatures(familyChecker);
+      } else {
+        // Generate a generic signature based on operand count range
+        int min = internal.getOperandCountRange().getMin();
+        int max = internal.getOperandCountRange().getMax();
+
+        if (min == -1 || max == -1) {
+          return "[ANY...]";
+        } else if (min == max) {
+          return "[" + String.join(",", Collections.nCopies(min, "ANY")) + "]";
+        } else {
+          List<String> signatures = new ArrayList<>();
+          final int MAX_ARGS = 10;
+          max = Math.min(MAX_ARGS, max);
+          for (int i = min; i <= max; i++) {
+            signatures.add("[" + String.join(",", Collections.nCopies(i, "ANY")) + "]");
+          }
+          return String.join("|", signatures);
+        }
+      }
+    }
+
+    @Override
+    public List<List<ExprType>> getParameterTypes() {
+      if (internal instanceof FamilyOperandTypeChecker) {
+        FamilyOperandTypeChecker familyChecker = (FamilyOperandTypeChecker) internal;
+        return getExprSignatures(familyChecker);
+      } else {
+        // For unknown type checkers, return UNKNOWN types
+        int min = internal.getOperandCountRange().getMin();
+        int max = internal.getOperandCountRange().getMax();
+
+        if (min == -1 || max == -1) {
+          // Variable arguments - return a single signature with UNKNOWN
+          return List.of(List.of(ExprCoreType.UNKNOWN));
+        } else {
+          List<List<ExprType>> parameterTypes = new ArrayList<>();
+          final int MAX_ARGS = 10;
+          max = Math.min(MAX_ARGS, max);
+          for (int i = min; i <= max; i++) {
+            parameterTypes.add(Collections.nCopies(i, ExprCoreType.UNKNOWN));
+          }
+          return parameterTypes;
+        }
       }
     }
   }
@@ -358,6 +508,63 @@ public interface PPLTypeChecker {
     return new PPLComparableTypeChecker(typeChecker);
   }
 
+  /**
+   * Creates a {@link PPLDefaultTypeChecker} that wraps any {@link SqlOperandTypeChecker} and
+   * provides basic type checking functionality when specialized PPL type checkers cannot be used.
+   *
+   * <p>This is a fallback wrapper that provides basic operand count validation and attempts to
+   * extract type family information when possible. It should be used when other specialized PPL
+   * type checkers (like {@link PPLFamilyTypeChecker}, {@link PPLCompositeTypeChecker}, etc.) are
+   * not applicable.
+   *
+   * @param typeChecker the Calcite type checker to wrap
+   * @return a {@link PPLDefaultTypeChecker} that provides basic type checking functionality
+   */
+  static PPLDefaultTypeChecker wrapDefault(SqlOperandTypeChecker typeChecker) {
+    return new PPLDefaultTypeChecker(typeChecker);
+  }
+
+  /**
+   * Create a {@link PPLTypeChecker} from a list of allowed signatures consisted of {@link
+   * ExprType}. This is useful to validate arguments against user-defined types (UDT) that does not
+   * match any Calcite {@link SqlTypeFamily}.
+   *
+   * @param allowedSignatures a list of allowed signatures, where each signature is a list of {@link
+   *     ExprType} representing the expected types of the function arguments.
+   * @return a {@link PPLTypeChecker} that checks if the operand types match any of the allowed
+   *     signatures
+   */
+  static PPLTypeChecker wrapUDT(List<List<ExprType>> allowedSignatures) {
+    return new PPLTypeChecker() {
+      @Override
+      public boolean checkOperandTypes(List<RelDataType> types) {
+        List<ExprType> argExprTypes =
+            types.stream().map(OpenSearchTypeFactory::convertRelDataTypeToExprType).collect(Collectors.toList());
+        for (var allowedSignature : allowedSignatures) {
+          if (allowedSignature.size() != types.size()) {
+            continue; // Skip signatures that do not match the operand count
+          }
+          // Check if the argument types match the allowed signature
+          if (IntStream.range(0, allowedSignature.size())
+              .allMatch(i -> allowedSignature.get(i).equals(argExprTypes.get(i)))) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      @Override
+      public String getAllowedSignatures() {
+        return PPLTypeChecker.formatExprSignatures(allowedSignatures);
+      }
+
+      @Override
+      public List<List<ExprType>> getParameterTypes() {
+        return allowedSignatures;
+      }
+    };
+  }
+
   // Util Functions
   /**
    * Generates a list of allowed function signatures based on the provided {@link
@@ -370,24 +577,27 @@ public interface PPLTypeChecker {
    * @param typeChecker the {@link FamilyOperandTypeChecker} to use for generating signatures
    * @return a list of allowed function signatures
    */
-  private static List<String> getFamilySignatures(FamilyOperandTypeChecker typeChecker) {
+  private static String getFamilySignatures(FamilyOperandTypeChecker typeChecker) {
+    var allowedExprSignatures = getExprSignatures(typeChecker);
+    return formatExprSignatures(allowedExprSignatures);
+  }
+
+  private static List<List<ExprType>> getExprSignatures(FamilyOperandTypeChecker typeChecker) {
     var operandCountRange = typeChecker.getOperandCountRange();
     int min = operandCountRange.getMin();
     int max = operandCountRange.getMax();
-    List<String> allowedSignatures = new ArrayList<>();
     List<SqlTypeFamily> families = new ArrayList<>();
     for (int i = 0; i < min; i++) {
       families.add(typeChecker.getOperandSqlTypeFamily(i));
     }
-    allowedSignatures.add(getFamilySignature(families));
+    List<List<ExprType>> allowedSignatures = new ArrayList<>(getExprSignatures(families));
 
     // Avoid enumerating signatures for infinite args
     final int MAX_ARGS = 10;
     max = Math.min(max, MAX_ARGS);
-
     for (int i = min; i < max; i++) {
       families.add(typeChecker.getOperandSqlTypeFamily(i));
-      allowedSignatures.add(getFamilySignature(families));
+      allowedSignatures.addAll(getExprSignatures(families));
     }
     return allowedSignatures;
   }
@@ -401,40 +611,61 @@ public interface PPLTypeChecker {
    */
   private static List<ExprType> getExprTypes(SqlTypeFamily family) {
     List<RelDataType> concreteTypes;
-    switch (family) {
-      case DATETIME:
-        concreteTypes = List.of(
-                OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.DATE),
-                OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.TIME),
-                OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.TIMESTAMP));
-        break;
-      case NUMERIC:
-        concreteTypes = List.of(
-                OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER),
-                OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE));
-        break;
-      case INTEGER:
-        concreteTypes = List.of(
-                OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER));
-        break;
-      case ANY:
-      case IGNORE:
-        concreteTypes = List.of(
-                OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.ANY));
-        break;
-      default:
-        RelDataType type = family.getDefaultConcreteType(OpenSearchTypeFactory.TYPE_FACTORY);
-        if (type == null) {
-          concreteTypes = List.of(
-                  OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.OTHER));
-        } else {
-          concreteTypes = List.of(type);
-        }
-        break;
-    }
+        switch (family) {
+            case DATETIME:
+                concreteTypes = List.of(
+              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.TIMESTAMP),
+              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.DATE),
+              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.TIME));
+                break;
+            case NUMERIC: concreteTypes = List.of(
+              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER),
+              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE));
+            break;
+            // Integer is mapped to BIGINT in family.getDefaultConcreteType
+            case INTEGER: concreteTypes = List.of(
+              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER));
+            break;
+          case ANY:
+            case IGNORE: concreteTypes = List.of(
+              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.ANY));
+            break;
+            case DATETIME_INTERVAL: concreteTypes = SqlTypeName.INTERVAL_TYPES.stream()
+              .map(
+                  type ->
+                      OpenSearchTypeFactory.TYPE_FACTORY.createSqlIntervalType(
+                          new SqlIntervalQualifier(
+                              type.getStartUnit(), type.getEndUnit(), SqlParserPos.ZERO)))
+              .collect(Collectors.toList());
+          break;
+            default:
+            RelDataType type = family.getDefaultConcreteType(OpenSearchTypeFactory.TYPE_FACTORY);
+            if (type == null) {
+                concreteTypes = List.of(OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.OTHER));
+            } else {
+                concreteTypes = List.of(type);
+            }
+          break;
+        };
     return concreteTypes.stream()
         .map(OpenSearchTypeFactory::convertRelDataTypeToExprType)
+        .distinct()
         .collect(Collectors.toList());
+  }
+
+  /**
+   * Generates a list of all possible {@link ExprType} signatures based on the provided {@link
+   * SqlTypeFamily} list.
+   *
+   * @param families the list of {@link SqlTypeFamily} to generate signatures for
+   * @return a list of lists, where each inner list contains {@link ExprType} signatures
+   */
+  private static List<List<ExprType>> getExprSignatures(List<SqlTypeFamily> families) {
+    List<List<ExprType>> exprTypes =
+        families.stream().map(PPLTypeChecker::getExprTypes).collect(Collectors.toList());
+
+    // Do a cartesian product of all ExprTypes in the family
+    return Lists.cartesianProduct(exprTypes);
   }
 
   /**
@@ -446,23 +677,9 @@ public interface PPLTypeChecker {
    * @return a string representation of the function signature
    */
   private static String getFamilySignature(List<SqlTypeFamily> families) {
-    List<List<ExprType>> exprTypes =
-        families.stream().map(PPLTypeChecker::getExprTypes).collect(Collectors.toList());
-
-    // Do a cartesian product of all ExprTypes in the family
-    List<List<ExprType>> signatures = Lists.cartesianProduct(exprTypes);
-
+    List<List<ExprType>> signatures = getExprSignatures(families);
     // Convert each signature to a string representation and then concatenate them
-    return signatures.stream()
-        .map(
-            types ->
-                "["
-                    + types.stream()
-                        // Display ExprCoreType.UNDEFINED as "ANY" for better interpretability
-                        .map(t -> t == ExprCoreType.UNDEFINED ? "ANY" : t.toString())
-                        .collect(Collectors.joining(","))
-                    + "]")
-        .collect(Collectors.joining(","));
+    return formatExprSignatures(signatures);
   }
 
   /**
@@ -484,5 +701,18 @@ public interface PPLTypeChecker {
     CompositeOperandTypeChecker.Composition composition =
         (CompositeOperandTypeChecker.Composition) compositionField.get(typeChecker);
     return composition == CompositeOperandTypeChecker.Composition.OR;
+  }
+
+  private static String formatExprSignatures(List<List<ExprType>> signatures) {
+    return signatures.stream()
+        .map(
+            types ->
+                "["
+                    + types.stream()
+                        // Display ExprCoreType.UNDEFINED as "ANY" for better interpretability
+                        .map(t -> t == ExprCoreType.UNDEFINED ? "ANY" : t.toString())
+                        .collect(Collectors.joining(","))
+                    + "]")
+        .collect(Collectors.joining("|"));
   }
 }

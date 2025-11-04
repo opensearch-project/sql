@@ -90,20 +90,14 @@ Firstly you need to add the following configuration to the JVM used by your IDE.
 License Header
 --------------
 
-Because our code is licensed under Apache 2, you need to add the following license header to all new source code files. To automate this whenever creating new file, you can follow instructions for your IDE::
+Because our code is licensed under Apache 2, you need to add the following license header to all new source code files. To automate this whenever creating new file, you can follow instructions for your IDE.
 
-   /*
-    * Licensed under the Apache License, Version 2.0 (the "License").
-    * You may not use this file except in compliance with the License.
-    * A copy of the License is located at
-    * 
-    *    http://www.apache.org/licenses/LICENSE-2.0
-    * 
-    * or in the "license" file accompanying this file. This file is distributed 
-    * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either 
-    * express or implied. See the License for the specific language governing 
-    * permissions and limitations under the License.
-    */
+.. code:: java
+
+  /*
+   * Copyright OpenSearch Contributors
+   * SPDX-License-Identifier: Apache-2.0
+   */
 
 For example, `here are the instructions for adding copyright profiles in IntelliJ IDEA <https://www.jetbrains.com/help/idea/copyright.html>`__.
 
@@ -211,13 +205,23 @@ Java files are formatted using `Spotless <https://github.com/diffplug/spotless>`
    * - Javadoc format can be maintained by wrapping javadoc with `<pre></pre>` HTML tags
    * - Strings can be formatted on multiple lines with a `+` with the correct indentation for the string.
 
+Development Guidelines
+----------------------
+
+For detailed development documentation, please refer to the `development documentation <docs/dev/index.md>`_. For specific guidance on implementing PPL components, see the following resources:
+
+- `PPL Commands <docs/dev/ppl-commands.md>`_: Guidelines for adding new commands to PPL
+- `PPL Functions <docs/dev/ppl-functions.md>`_: Instructions for implementing and integrating custom functions
+
 Building and Running Tests
 ==========================
 
 Gradle Build
 ------------
 
-Most of the time you just need to run ./gradlew build which will make sure you pass all checks and testing. While you’re developing, you may want to run specific Gradle task only. In this case, you can run ./gradlew with task name which only triggers the task along with those it depends on. Here is a list for common tasks:
+Most of the time you just need to run ``./gradlew build`` which will make sure you pass all checks and testing. While you're developing, you may want to run specific Gradle task only. In this case, you can run ./gradlew with task name which only triggers the task along with those it depends on. Here is a list for common tasks:
+
+For faster local iterations, skip integration tests. ``./gradlew build -x integTest``.
 
 .. list-table::
    :widths: 30 50
@@ -238,7 +242,7 @@ Most of the time you just need to run ./gradlew build which will make sure you p
    * - ./gradlew :integ-test:yamlRestTest
      - Run rest integration test.
    * - ./gradlew :doctest:doctest
-     - Run doctests
+     - Run doctests in docs folder. You can use ``-Pdocs=file1,file2`` to run specific file(s). See more info in `Documentation <#documentation>`_ section.
    * - ./gradlew build
      - Build plugin by run all tasks above (this takes time).
    * - ./gradlew pitest
@@ -249,6 +253,8 @@ Most of the time you just need to run ./gradlew build which will make sure you p
      - Automatically apply spotless code style changes.
 
 For integration test, you can use ``-Dtests.class`` “UT full path” to run a task individually. For example ``./gradlew :integ-test:integTest -Dtests.class="*QueryIT"``.
+
+If Prometheus isn't available in your environment, you can skip downloading and starting it by adding ``-DignorePrometheus`` (or setting it to any value other than ``false``) to the command. For example ``./gradlew :integ-test:integTest -DignorePrometheus`` bypasses Prometheus setup and excludes Prometheus-specific integration tests, and ``./gradlew :doctest:doctest -DignorePrometheus`` skips the Prometheus-dependent doctest cases.
 
 To run the task above for specific module, you can do ``./gradlew :<module_name>:task``. For example, only build core module by ``./gradlew :core:build``.
 
@@ -411,6 +417,18 @@ Doctest
 
 Python doctest library makes our document executable which keeps it up-to-date to source code. The doc generator aforementioned served as scaffolding and generated many docs in short time. Now the examples inside is changed to doctest gradually. For more details please read `testing-doctest <./docs/dev/testing-doctest.md>`_.
 
+.. code-block:: bash
+   # Test all docs
+   ./gradlew :doctest:doctest
+
+   # Test single file using main doctest task
+   ./gradlew :doctest:doctest -Pdocs=search
+   
+   # Test multiple files at once
+   ./gradlew :doctest:doctest -Pdocs=search,fields,basics
+   
+   # With verbose output
+   ./gradlew :doctest:doctest -Pdocs=stats -Pverbose=true
 
 Backports
 >>>>>>>>>

@@ -20,13 +20,12 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | dedup 1 DEPTNO";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        ""
-            + "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
             + " COMM=[$6], DEPTNO=[$7])\n"
             + "  LogicalFilter(condition=[<=($8, 1)])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], _row_number_=[ROW_NUMBER() OVER (PARTITION BY $7"
-            + " ORDER BY $7)])\n"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION"
+            + " BY $7 ORDER BY $7)])\n"
             + "      LogicalFilter(condition=[IS NOT NULL($7)])\n"
             + "        LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
@@ -44,10 +43,10 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
             + "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
             + " ROW_NUMBER() OVER (PARTITION BY `DEPTNO` ORDER BY `DEPTNO` NULLS LAST)"
-            + " `_row_number_`\n"
+            + " `_row_number_dedup_`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `DEPTNO` IS NOT NULL) `t0`\n"
-            + "WHERE `_row_number_` <= 1";
+            + "WHERE `_row_number_dedup_` <= 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -56,13 +55,12 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | dedup 2 DEPTNO";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        ""
-            + "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
             + " COMM=[$6], DEPTNO=[$7])\n"
             + "  LogicalFilter(condition=[<=($8, 2)])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], _row_number_=[ROW_NUMBER() OVER (PARTITION BY $7"
-            + " ORDER BY $7)])\n"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION"
+            + " BY $7 ORDER BY $7)])\n"
             + "      LogicalFilter(condition=[IS NOT NULL($7)])\n"
             + "        LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
@@ -86,10 +84,10 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
             + "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
             + " ROW_NUMBER() OVER (PARTITION BY `DEPTNO` ORDER BY `DEPTNO` NULLS LAST)"
-            + " `_row_number_`\n"
+            + " `_row_number_dedup_`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `DEPTNO` IS NOT NULL) `t0`\n"
-            + "WHERE `_row_number_` <= 2";
+            + "WHERE `_row_number_dedup_` <= 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -102,8 +100,8 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
             + " COMM=[$6], DEPTNO=[$7])\n"
             + "  LogicalFilter(condition=[OR(IS NULL($7), IS NULL($2), <=($8, 1))])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], _row_number_=[ROW_NUMBER() OVER (PARTITION BY $7,"
-            + " $2 ORDER BY $7, $2)])\n"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION"
+            + " BY $7, $2 ORDER BY $7, $2)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
@@ -131,9 +129,9 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
         "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
             + " ROW_NUMBER() OVER (PARTITION BY `DEPTNO`, `JOB` ORDER BY `DEPTNO` NULLS LAST, `JOB`"
-            + " NULLS LAST) `_row_number_`\n"
+            + " NULLS LAST) `_row_number_dedup_`\n"
             + "FROM `scott`.`EMP`) `t`\n"
-            + "WHERE `DEPTNO` IS NULL OR `JOB` IS NULL OR `_row_number_` <= 1";
+            + "WHERE `DEPTNO` IS NULL OR `JOB` IS NULL OR `_row_number_dedup_` <= 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -146,8 +144,8 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
             + " COMM=[$6], DEPTNO=[$7])\n"
             + "  LogicalFilter(condition=[OR(IS NULL($7), IS NULL($2), <=($8, 2))])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], _row_number_=[ROW_NUMBER() OVER (PARTITION BY $7,"
-            + " $2 ORDER BY $7, $2)])\n"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION"
+            + " BY $7, $2 ORDER BY $7, $2)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
@@ -181,9 +179,9 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
         "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
             + " ROW_NUMBER() OVER (PARTITION BY `DEPTNO`, `JOB` ORDER BY `DEPTNO` NULLS LAST, `JOB`"
-            + " NULLS LAST) `_row_number_`\n"
+            + " NULLS LAST) `_row_number_dedup_`\n"
             + "FROM `scott`.`EMP`) `t`\n"
-            + "WHERE `DEPTNO` IS NULL OR `JOB` IS NULL OR `_row_number_` <= 2";
+            + "WHERE `DEPTNO` IS NULL OR `JOB` IS NULL OR `_row_number_dedup_` <= 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

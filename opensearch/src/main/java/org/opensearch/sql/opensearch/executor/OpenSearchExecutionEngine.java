@@ -5,10 +5,7 @@
 
 package org.opensearch.sql.opensearch.executor;
 
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.convertRelDataTypeToExprType;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedAggFunction;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.DISTINCT_COUNT_APPROX;
-
+import com.google.common.base.Suppliers;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.sql.PreparedStatement;
@@ -19,9 +16,11 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
@@ -29,11 +28,20 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.ListSqlOperatorTable;
+import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
+import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.ast.statement.Explain.ExplainFormat;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -51,6 +59,7 @@ import org.opensearch.sql.opensearch.functions.DistinctCountApproxAggFunction;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
 import org.opensearch.sql.opensearch.functions.GeoIpFunction;
 import org.opensearch.sql.opensearch.util.JdbcOpenSearchDataTypeConvertor;
@@ -59,6 +68,7 @@ import org.opensearch.sql.storage.TableScanOperator;
 
 /** OpenSearch execution engine implementation. */
 public class OpenSearchExecutionEngine implements ExecutionEngine {
+  private static final Logger logger = LogManager.getLogger(OpenSearchExecutionEngine.class);
 
   private final OpenSearchClient client;
 
@@ -182,6 +192,7 @@ public OpenSearchExecutionEngine(
               try (Hook.Closeable closeable = getPhysicalPlanInHook(physical, level)) {
                 if (format == ExplainFormat.EXTENDED) {
                   getCodegenInHook(javaCode);
+                  CalcitePlanContext.skipEncoding.set(true);
                 }
                 // triggers the hook
                 AccessController.doPrivileged(
@@ -194,6 +205,8 @@ public OpenSearchExecutionEngine(
             }
           } catch (Exception e) {
             listener.onFailure(e);
+          } finally {
+            CalcitePlanContext.skipEncoding.remove();
           }
         });
   }
@@ -208,7 +221,8 @@ public OpenSearchExecutionEngine(
                     () -> {
                       try (PreparedStatement statement = OpenSearchRelRunners.run(context, rel)) {
                         ResultSet result = statement.executeQuery();
-                        buildResultSet(result, rel.getRowType(), context.querySizeLimit, listener);
+                        buildResultSet(
+                            result, rel.getRowType(), context.sysLimit.querySizeLimit(), listener);
                       } catch (SQLException e) {
                         throw new RuntimeException(e);
                       }
@@ -260,7 +274,7 @@ public OpenSearchExecutionEngine(
           exprType = ExprCoreType.UNDEFINED;
         }
       } else {
-        exprType = convertRelDataTypeToExprType(fieldType);
+        exprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(fieldType);
       }
       columns.add(new Column(columnName, null, exprType));
     }
@@ -271,19 +285,51 @@ public OpenSearchExecutionEngine(
 
   /** Registers opensearch-dependent functions */
   private void registerOpenSearchFunctions() {
-    PPLFuncImpTable.INSTANCE.registerExternalAggFunction(
-        DISTINCT_COUNT_APPROX,
-        (distinct, field, argList, ctx) ->
-            TransferUserDefinedAggFunction(
-                DistinctCountApproxAggFunction.class,
-                "APPROX_DISTINCT_COUNT",
-                ReturnTypes.BIGINT_FORCE_NULLABLE,
-                List.of(field),
-                argList,
-                ctx.relBuilder));
-    PPLFuncImpTable.FunctionImp geoIpImpl =
-        (builder, args) ->
-            builder.makeCall(new GeoIpFunction(client.getNodeClient()).toUDF("GEOIP"), args);
-    PPLFuncImpTable.INSTANCE.registerExternalFunction(BuiltinFunctionName.GEOIP, geoIpImpl);
+    if (client instanceof OpenSearchNodeClient) {
+      SqlUserDefinedFunction geoIpFunction =
+          new GeoIpFunction(client.getNodeClient()).toUDF(BuiltinFunctionName.GEOIP.name());
+      PPLFuncImpTable.INSTANCE.registerExternalOperator(BuiltinFunctionName.GEOIP, geoIpFunction);
+      OperatorTable.addOperator(BuiltinFunctionName.GEOIP.name(), geoIpFunction);
+    } else {
+      logger.info(
+          "Function [GEOIP] not registered: incompatible client type {}",
+          client.getClass().getName());
+    }
+
+    SqlUserDefinedAggFunction approxDistinctCountFunction =
+        UserDefinedFunctionUtils.createUserDefinedAggFunction(
+            DistinctCountApproxAggFunction.class,
+            BuiltinFunctionName.DISTINCT_COUNT_APPROX.name(),
+            ReturnTypes.BIGINT_FORCE_NULLABLE,
+            null);
+    PPLFuncImpTable.INSTANCE.registerExternalAggOperator(
+        BuiltinFunctionName.DISTINCT_COUNT_APPROX, approxDistinctCountFunction);
+    OperatorTable.addOperator(
+        BuiltinFunctionName.DISTINCT_COUNT_APPROX.name(), approxDistinctCountFunction);
+  }
+
+  /**
+   * Dynamic SqlOperatorTable that allows adding operators after initialization. Similar to
+   * PPLBuiltinOperator.instance() or SqlStdOperatorTable.instance().
+   */
+  public static class OperatorTable extends ListSqlOperatorTable {
+    private static final Supplier<OperatorTable> INSTANCE =
+        Suppliers.memoize(() -> (OperatorTable) new OperatorTable().init());
+    // Use map instead of list to avoid duplicated elements if the class is initialized multiple
+    // times
+    private static final Map<String, SqlOperator> operators = new ConcurrentHashMap<>();
+
+    public static SqlOperatorTable instance() {
+      return INSTANCE.get();
+    }
+
+    private ListSqlOperatorTable init() {
+      setOperators(buildIndex(operators.values()));
+      return this;
+    }
+
+    public static synchronized void addOperator(String name, SqlOperator operator) {
+      operators.put(name, operator);
+    }
   }
 }

@@ -29,6 +29,7 @@ import org.opensearch.common.settings.Setting;
 import org.opensearch.common.unit.MemorySizeValue;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.IndexSettings;
+import org.opensearch.search.aggregations.MultiBucketConsumerService;
 import org.opensearch.sql.common.setting.LegacySettings;
 import org.opensearch.sql.common.setting.Settings;
 
@@ -85,6 +86,13 @@ public class OpenSearchSettings extends Settings {
               Setting.Property.NodeScope,
               Setting.Property.Dynamic);
 
+  public static final Setting<?> PPL_SYNTAX_LEGACY_PREFERRED_SETTING =
+      Setting.boolSetting(
+          Key.PPL_SYNTAX_LEGACY_PREFERRED.getKeyValue(),
+          true,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   public static final Setting<?> DEFAULT_PATTERN_METHOD_SETTING =
       Setting.simpleString(
           Key.PATTERN_METHOD.getKeyValue(),
@@ -115,17 +123,54 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<?> DEFAULT_PATTERN_SHOW_NUMBERED_TOKEN_SETTING =
+      Setting.boolSetting(
+          Key.PATTERN_SHOW_NUMBERED_TOKEN.getKeyValue(),
+          false,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<?> PPL_REX_MAX_MATCH_LIMIT_SETTING =
+      Setting.intSetting(
+          Key.PPL_REX_MAX_MATCH_LIMIT.getKeyValue(),
+          10,
+          1,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<?> PPL_VALUES_MAX_LIMIT_SETTING =
+      Setting.intSetting(
+          Key.PPL_VALUES_MAX_LIMIT.getKeyValue(),
+          0,
+          -1,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<?> PPL_SUBSEARCH_MAXOUT_SETTING =
+      Setting.intSetting(
+          Key.PPL_SUBSEARCH_MAXOUT.getKeyValue(),
+          10000,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<?> PPL_JOIN_SUBSEARCH_MAXOUT_SETTING =
+      Setting.intSetting(
+          Key.PPL_JOIN_SUBSEARCH_MAXOUT.getKeyValue(),
+          50000,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   public static final Setting<?> CALCITE_ENGINE_ENABLED_SETTING =
       Setting.boolSetting(
           Key.CALCITE_ENGINE_ENABLED.getKeyValue(),
-          false,
+          true,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
   public static final Setting<?> CALCITE_FALLBACK_ALLOWED_SETTING =
       Setting.boolSetting(
           Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(),
-          true,
+          false,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
@@ -143,6 +188,13 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<?> CALCITE_SUPPORT_ALL_JOIN_TYPES_SETTING =
+      Setting.boolSetting(
+          Key.CALCITE_SUPPORT_ALL_JOIN_TYPES.getKeyValue(),
+          false,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   public static final Setting<?> QUERY_MEMORY_LIMIT_SETTING =
       new Setting<>(
           Key.QUERY_MEMORY_LIMIT.getKeyValue(),
@@ -153,10 +205,19 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
-  public static final Setting<?> QUERY_SIZE_LIMIT_SETTING =
+  public static final Setting<Integer> QUERY_SIZE_LIMIT_SETTING =
       Setting.intSetting(
           Key.QUERY_SIZE_LIMIT.getKeyValue(),
           IndexSettings.MAX_RESULT_WINDOW_SETTING,
+          0,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  // Set the default value to QUERY_SIZE_LIMIT_SETTING
+  public static final Setting<?> QUERY_BUCKET_SIZE_SETTING =
+      Setting.intSetting(
+          Key.QUERY_BUCKET_SIZE.getKeyValue(),
+          OpenSearchSettings.QUERY_SIZE_LIMIT_SETTING,
           0,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
@@ -335,11 +396,17 @@ public class OpenSearchSettings extends Settings {
         PPL_ENABLED_SETTING,
         new Updater(Key.PPL_ENABLED));
     register(
-            settingBuilder,
-            clusterSettings,
-            Key.PATTERN_METHOD,
-            DEFAULT_PATTERN_METHOD_SETTING,
-            new Updater(Key.PATTERN_METHOD));
+        settingBuilder,
+        clusterSettings,
+        Key.PPL_SYNTAX_LEGACY_PREFERRED,
+        PPL_SYNTAX_LEGACY_PREFERRED_SETTING,
+        new Updater(Key.PPL_SYNTAX_LEGACY_PREFERRED));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.PATTERN_METHOD,
+        DEFAULT_PATTERN_METHOD_SETTING,
+        new Updater(Key.PATTERN_METHOD));
     register(
         settingBuilder,
         clusterSettings,
@@ -358,6 +425,36 @@ public class OpenSearchSettings extends Settings {
         Key.PATTERN_BUFFER_LIMIT,
         DEFAULT_PATTERN_BUFFER_LIMIT_SETTING,
         new Updater(Key.PATTERN_BUFFER_LIMIT));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.PATTERN_SHOW_NUMBERED_TOKEN,
+        DEFAULT_PATTERN_SHOW_NUMBERED_TOKEN_SETTING,
+        new Updater(Key.PATTERN_SHOW_NUMBERED_TOKEN));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.PPL_REX_MAX_MATCH_LIMIT,
+        PPL_REX_MAX_MATCH_LIMIT_SETTING,
+        new Updater(Key.PPL_REX_MAX_MATCH_LIMIT));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.PPL_VALUES_MAX_LIMIT,
+        PPL_VALUES_MAX_LIMIT_SETTING,
+        new Updater(Key.PPL_VALUES_MAX_LIMIT));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.PPL_SUBSEARCH_MAXOUT,
+        PPL_SUBSEARCH_MAXOUT_SETTING,
+        new Updater(Key.PPL_SUBSEARCH_MAXOUT));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.PPL_JOIN_SUBSEARCH_MAXOUT,
+        PPL_JOIN_SUBSEARCH_MAXOUT_SETTING,
+        new Updater(Key.PPL_JOIN_SUBSEARCH_MAXOUT));
     register(
         settingBuilder,
         clusterSettings,
@@ -385,6 +482,12 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.CALCITE_SUPPORT_ALL_JOIN_TYPES,
+        CALCITE_SUPPORT_ALL_JOIN_TYPES_SETTING,
+        new Updater(Key.CALCITE_SUPPORT_ALL_JOIN_TYPES));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.QUERY_MEMORY_LIMIT,
         QUERY_MEMORY_LIMIT_SETTING,
         new Updater(Key.QUERY_MEMORY_LIMIT));
@@ -394,6 +497,18 @@ public class OpenSearchSettings extends Settings {
         Key.QUERY_SIZE_LIMIT,
         QUERY_SIZE_LIMIT_SETTING,
         new Updater(Key.QUERY_SIZE_LIMIT));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.QUERY_BUCKET_SIZE,
+        QUERY_BUCKET_SIZE_SETTING,
+        new Updater(Key.QUERY_BUCKET_SIZE));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.SEARCH_MAX_BUCKETS,
+        MultiBucketConsumerService.MAX_BUCKET_SETTING,
+        new Updater(Key.SEARCH_MAX_BUCKETS));
     register(
         settingBuilder,
         clusterSettings,
@@ -556,16 +671,24 @@ public class OpenSearchSettings extends Settings {
         .add(SQL_DELETE_ENABLED_SETTING)
         .add(SQL_PAGINATION_API_SEARCH_AFTER_SETTING)
         .add(PPL_ENABLED_SETTING)
+        .add(PPL_SYNTAX_LEGACY_PREFERRED_SETTING)
         .add(CALCITE_ENGINE_ENABLED_SETTING)
         .add(CALCITE_FALLBACK_ALLOWED_SETTING)
         .add(CALCITE_PUSHDOWN_ENABLED_SETTING)
         .add(CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR_SETTING)
+        .add(CALCITE_SUPPORT_ALL_JOIN_TYPES_SETTING)
         .add(DEFAULT_PATTERN_METHOD_SETTING)
         .add(DEFAULT_PATTERN_MODE_SETTING)
         .add(DEFAULT_PATTERN_MAX_SAMPLE_COUNT_SETTING)
         .add(DEFAULT_PATTERN_BUFFER_LIMIT_SETTING)
+        .add(DEFAULT_PATTERN_SHOW_NUMBERED_TOKEN_SETTING)
+        .add(PPL_REX_MAX_MATCH_LIMIT_SETTING)
+        .add(PPL_VALUES_MAX_LIMIT_SETTING)
+        .add(PPL_SUBSEARCH_MAXOUT_SETTING)
+        .add(PPL_JOIN_SUBSEARCH_MAXOUT_SETTING)
         .add(QUERY_MEMORY_LIMIT_SETTING)
         .add(QUERY_SIZE_LIMIT_SETTING)
+        .add(QUERY_BUCKET_SIZE_SETTING)
         .add(METRICS_ROLLING_WINDOW_SETTING)
         .add(METRICS_ROLLING_INTERVAL_SETTING)
         .add(DATASOURCE_URI_HOSTS_DENY_LIST)

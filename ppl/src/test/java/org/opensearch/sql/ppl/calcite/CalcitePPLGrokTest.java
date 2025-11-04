@@ -19,12 +19,14 @@ public class CalcitePPLGrokTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | grok ENAME '.+@%{HOSTNAME:host}' | fields ENAME, host";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(ENAME=[$1], host=[ITEM(GROK($1, '.+@%{HOSTNAME:host}':VARCHAR), 'host')])\n"
+        "LogicalProject(ENAME=[$1], host=[ITEM(GROK($1, '.+@%{HOSTNAME:host}':VARCHAR,"
+            + " 'grok':VARCHAR), 'host':VARCHAR)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `GROK`(`ENAME`, '.+@%{HOSTNAME:host}')['host'] `host`\nFROM `scott`.`EMP`";
+        "SELECT `ENAME`, `GROK`(`ENAME`, '.+@%{HOSTNAME:host}', 'grok')['host'] `host`\n"
+            + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -33,12 +35,13 @@ public class CalcitePPLGrokTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | grok ENAME '%{NUMBER} %{GREEDYDATA:ENAME}' | fields ENAME";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(ENAME=[ITEM(GROK($1, '%{NUMBER} %{GREEDYDATA:ENAME}':VARCHAR), 'ENAME')])\n"
+        "LogicalProject(ENAME=[ITEM(GROK($1, '%{NUMBER} %{GREEDYDATA:ENAME}':VARCHAR,"
+            + " 'grok':VARCHAR), 'ENAME':VARCHAR)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `GROK`(`ENAME`, '%{NUMBER} %{GREEDYDATA:ENAME}')['ENAME'] `ENAME`\n"
+        "SELECT `GROK`(`ENAME`, '%{NUMBER} %{GREEDYDATA:ENAME}', 'grok')['ENAME'] `ENAME`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
