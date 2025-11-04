@@ -220,10 +220,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Visit the Relation child to get the scan
     node.getChild().get(0).accept(this, context);
     // Create query_string function
-    Function queryStringFunc =
-        AstDSL.function(
-            "query_string",
-            AstDSL.unresolvedArg("query", AstDSL.stringLiteral(node.getQueryString())));
+    Function queryStringFunc = node.getOriginalExpression().toDSLFunction();
     RexNode queryStringRex = rexVisitor.analyze(queryStringFunc, context);
 
     context.relBuilder.filter(queryStringRex);

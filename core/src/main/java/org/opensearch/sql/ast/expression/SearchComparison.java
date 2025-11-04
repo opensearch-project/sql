@@ -6,6 +6,7 @@
 package org.opensearch.sql.ast.expression;
 
 import static org.opensearch.sql.utils.QueryStringUtils.maskField;
+import static org.opensearch.sql.ast.expression.SearchComparison.Operator.EQUALS;
 
 import java.util.Arrays;
 import java.util.List;
@@ -13,6 +14,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.utils.QueryStringUtils;
 
 /** Search expression for field comparisons. */
@@ -62,6 +64,23 @@ public class SearchComparison extends SearchExpression {
         return fieldName + ":<=" + valueStr;
       default:
         return fieldName + ":" + valueStr;
+    }
+  }
+
+  @Override
+  public Function toDSLFunction() {
+    String fieldName = QueryStringUtils.escapeFieldName(field.getField().toString());
+    String valueStr = value.toQueryString();
+    switch (operator) {
+      case EQUALS:
+        return AstDSL.function(
+            "match",
+            AstDSL.unresolvedArg("field_name", AstDSL.qualifiedName(fieldName)),
+            AstDSL.unresolvedArg("value", AstDSL.stringLiteral(valueStr)));
+      default:
+        return AstDSL.function(
+            "query_string",
+            AstDSL.unresolvedArg("query", AstDSL.stringLiteral(this.toQueryString())));
     }
   }
 
