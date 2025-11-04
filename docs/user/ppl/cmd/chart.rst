@@ -149,9 +149,9 @@ PPL query::
     +--------+-------+---------+
     | gender | age   | count() |
     |--------+-------+---------|
-    | M      | OTHER | 2       |
-    | M      | 33    | 1       |
     | F      | OTHER | 1       |
+    | M      | 33    | 1       |
+    | M      | OTHER | 2       |
     +--------+-------+---------+
 
 Example 5: Using limit with other parameters
@@ -166,10 +166,10 @@ PPL query::
     +-------+--------------+---------+
     | state | gender       | count() |
     |-------+--------------+---------|
-    | TN    | M            | 1       |
-    | MD    | M            | 1       |
-    | VA    | minor_gender | 1       |
     | IL    | M            | 1       |
+    | MD    | M            | 1       |
+    | TN    | M            | 1       |
+    | VA    | minor_gender | 1       |
     +-------+--------------+---------+
 
 Example 6: Using null parameters
@@ -184,10 +184,10 @@ PPL query::
     +-----------+------------------------+---------+
     | firstname | employer               | count() |
     |-----------+------------------------+---------|
-    | Nanette   | Quility                | 1       |
     | Amber     | Pyrami                 | 1       |
     | Dale      | employer not specified | 1       |
     | Hattie    | Netagy                 | 1       |
+    | Nanette   | Quility                | 1       |
     +-----------+------------------------+---------+
 
 Example 7: Using chart command with span
@@ -202,8 +202,8 @@ PPL query::
     +-----+--------+--------------+
     | age | gender | max(balance) |
     |-----+--------+--------------|
-    | 30  | M      | 39225        |
     | 20  | F      | 32838        |
+    | 30  | M      | 39225        |
     +-----+--------+--------------+
 
 Limitations

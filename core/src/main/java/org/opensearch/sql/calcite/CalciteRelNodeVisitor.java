@@ -2408,13 +2408,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         relBuilder.peek().getRowType().getFieldNames().size() > 2
             ? relBuilder.peek().getRowType().getFieldNames().get(1)
             : null;
-    RelNode aggregated = context.relBuilder.peek();
 
     // If row or column split does not present or limit equals 0, this is the same as `stats agg
     // [group by col]` because all truncating is performed on the column split
     Integer limit = (Integer) argMap.getOrDefault("limit", Chart.DEFAULT_LIMIT).getValue();
     if (node.getRowSplit() == null || node.getColumnSplit() == null || Objects.equals(limit, 0)) {
-      return aggregated;
+      // The output of chart is expected to be ordered by row split names
+      relBuilder.sort(relBuilder.field(0));
+      return relBuilder.peek();
     }
 
     String aggFunctionName = getAggFunctionName(node.getAggregationFunction());
@@ -2438,7 +2439,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               columSplitName);
     }
     relBuilder.project(relBuilder.field(0), colSplit, relBuilder.field(2));
-    aggregated = relBuilder.peek();
+    RelNode aggregated = relBuilder.peek();
 
     // 1: column-split, 2: agg
     relBuilder.project(relBuilder.field(1), relBuilder.field(2));
@@ -2516,6 +2517,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     relBuilder.aggregate(
         relBuilder.groupKey(relBuilder.field(0), relBuilder.field(1)),
         buildAggCall(context.relBuilder, aggFunction, relBuilder.field(2)).as(aggFieldName));
+    // The output of chart is expected to be ordered by row and column split names
+    relBuilder.sort(relBuilder.field(0), relBuilder.field(1));
     return relBuilder.peek();
   }
 
