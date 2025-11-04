@@ -547,10 +547,10 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testKeywordLikeFunctionExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_keyword_like_function.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_keyword_like_function.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account | where like(firstname, '%mbe%')"));
   }
 

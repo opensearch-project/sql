@@ -174,6 +174,34 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testStreamstatsCommandWithByClause() {
+    assertEquals(
+        "source=table | streamstats count(identifier) by identifier",
+        anonymize("source=t | streamstats count(a) by b"));
+  }
+
+  @Test
+  public void testStreamstatsCommandWithWindowAndCurrent() {
+    assertEquals(
+        "source=table | streamstats max(identifier)",
+        anonymize("source=t | streamstats current=false window=2 max(a)"));
+  }
+
+  @Test
+  public void testStreamstatsCommandWithNestedFunctions() {
+    assertEquals(
+        "source=table | streamstats sum(+(identifier,identifier))",
+        anonymize("source=t | streamstats sum(a+b)"));
+  }
+
+  @Test
+  public void testStreamstatsCommandWithSpanFunction() {
+    assertEquals(
+        "source=table | streamstats count(identifier) by span(identifier, *** d),identifier",
+        anonymize("source=t | streamstats count(a) by span(b, 1d), c"));
+  }
+
+  @Test
   public void testBinCommandBasic() {
     assertEquals("source=table | bin identifier span=***", anonymize("source=t | bin f span=10"));
   }

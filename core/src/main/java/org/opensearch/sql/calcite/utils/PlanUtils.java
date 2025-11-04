@@ -65,6 +65,7 @@ public interface PlanUtils {
   String ROW_NUMBER_COLUMN_FOR_RARE_TOP = "_row_number_rare_top_";
   String ROW_NUMBER_COLUMN_FOR_MAIN = "_row_number_main_";
   String ROW_NUMBER_COLUMN_FOR_SUBSEARCH = "_row_number_subsearch_";
+  String ROW_NUMBER_COLUMN_FOR_STREAMSTATS = "__stream_seq__";
 
   static SpanUnit intervalUnitToSpanUnit(IntervalUnit unit) {
     return switch (unit) {
