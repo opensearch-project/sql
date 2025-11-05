@@ -121,8 +121,8 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
             + "  LogicalTableScan(table=[[scott, products_temporal]])\n");
 
     String expectedSparkSql =
-        "SELECT `ID`, `SUPPLIER`, `SYS_END`, `WIDTH_BUCKET`(`SYS_START`, 10, (MAX(`SYS_START`)"
-            + " OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)) - (MIN(`SYS_START`)"
+        "SELECT `ID`, `SUPPLIER`, `SYS_END`, `WIDTH_BUCKET`(`SYS_START`, 10, (MAX(`SYS_START`) OVER"
+            + " (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)) - (MIN(`SYS_START`)"
             + " OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)), MAX(`SYS_START`)"
             + " OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)) `SYS_START`\n"
             + "FROM `scott`.`products_temporal`";
