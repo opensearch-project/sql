@@ -79,7 +79,7 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
     final RelBuilder rawRelBuilder = call.builder();
     final RelBuilderWrapper relBuilder = new RelBuilderWrapper(rawRelBuilder);
     final ExtendedRexBuilder rexBuilder =
-        (ExtendedRexBuilder) aggregate.getCluster().getRexBuilder();
+        new ExtendedRexBuilder(aggregate.getCluster().getRexBuilder());
     final RelFieldBuilder fieldBuilder = new RelFieldBuilder(rawRelBuilder, rexBuilder);
     relBuilder.push(project.getInput());
 
