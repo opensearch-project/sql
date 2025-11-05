@@ -1,0 +1,14 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(sort0=[$1], dir0=[DESC-nulls-last], fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalSort(sort0=[$1], dir0=[DESC-nulls-last], fetch=[10])
+        LogicalProject(sum(AdvEngineID)=[$1], c=[$2], avg(ResolutionWidth)=[$3], dc(UserID)=[$4], RegionID=[$0])
+          LogicalAggregate(group=[{0}], sum(AdvEngineID)=[SUM($1)], c=[COUNT()], avg(ResolutionWidth)=[AVG($2)], dc(UserID)=[COUNT(DISTINCT $3)])
+            LogicalProject(RegionID=[$68], AdvEngineID=[$19], ResolutionWidth=[$80], UserID=[$84])
+              LogicalFilter(condition=[IS NOT NULL($68)])
+                CalciteLogicalIndexScan(table=[[OpenSearch, hits]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableLimit(fetch=[10])
+        EnumerableSort(sort0=[$1], dir0=[DESC-nulls-last])
+          CalciteEnumerableIndexScan(table=[[OpenSearch, hits]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={1},sum(AdvEngineID)=SUM($0),c=COUNT(),avg(ResolutionWidth)=AVG($2),dc(UserID)=COUNT(DISTINCT $3)), PROJECT->[sum(AdvEngineID), c, avg(ResolutionWidth), dc(UserID), RegionID]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"composite_buckets":{"composite":{"size":10000,"sources":[{"RegionID":{"terms":{"field":"RegionID","missing_bucket":false,"order":"asc"}}}]},"aggregations":{"sum(AdvEngineID)":{"sum":{"field":"AdvEngineID"}},"avg(ResolutionWidth)":{"avg":{"field":"ResolutionWidth"}},"dc(UserID)":{"cardinality":{"field":"UserID"}}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

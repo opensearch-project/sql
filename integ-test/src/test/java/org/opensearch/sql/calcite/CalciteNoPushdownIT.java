@@ -67,6 +67,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalcitePPLCryptographicFunctionIT.class,
   CalcitePPLDedupIT.class,
   CalcitePPLEventstatsIT.class,
+  CalciteStreamstatsCommandIT.class,
   CalcitePPLExistsSubqueryIT.class,
   CalcitePPLExplainIT.class,
   CalcitePPLFillnullIT.class,

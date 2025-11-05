@@ -1,0 +1,61 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+
+  - do:
+      indices.create:
+        index: test
+        body:
+          mappings:
+            properties:
+              parent_field:
+                properties:
+                  child_field:
+                    type: integer
+
+  - do:
+      bulk:
+        index: test
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{ "parent_field": { "child_field": 4 } }'
+          - '{"index": {}}'
+          - '{ "parent_field": { "child_field": 3 } }'
+          - '{"index": {}}'
+          - '{ "parent_field": { "child_field": 2 } }'
+          - '{"index": {}}'
+          - '{ "parent_field": { "child_field": 1 } }'
+          - '{"index": {}}'
+          - '{ "parent_field": { "child_field": 5 } }'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"Access to nested field after field command":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test | fields parent_field | sort parent_field.child_field | head 3
+
+  - match: { total: 3 }
+  - match: { schema: [ { "name": "parent_field", "type": "struct" } ] }
+  - match: { datarows: [ [ {"child_field": 1} ], [ {"child_field": 2} ], [ {"child_field": 3} ] ] }

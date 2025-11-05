@@ -1,0 +1,8 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(UserID=[$84])
+        LogicalFilter(condition=[=($84, 435090932899640449)])
+          CalciteLogicalIndexScan(table=[[OpenSearch, hits]])
+  physical: |
+    CalciteEnumerableIndexScan(table=[[OpenSearch, hits]], PushDownContext=[[PROJECT->[UserID], FILTER->=($0, 435090932899640449), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10000,"timeout":"1m","query":{"term":{"UserID":{"value":435090932899640449,"boost":1.0}}},"_source":{"includes":["UserID"],"excludes":[]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])

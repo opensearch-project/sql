@@ -157,7 +157,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
                       queryExpression.getAnalyzedNodes(), getCluster().getRexBuilder())
                   : filter.getCondition()),
           (OSRequestBuilderAction)
-              requestBuilder -> requestBuilder.pushDownFilter(queryExpression.builder()));
+              requestBuilder -> requestBuilder.pushDownFilterForCalcite(queryExpression.builder()));
 
       // If the query expression is partial, we need to replace the input of the filter with the
       // partial pushed scan and the filter condition with non-pushed-down conditions.

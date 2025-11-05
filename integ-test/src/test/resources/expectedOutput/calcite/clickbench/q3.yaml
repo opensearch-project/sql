@@ -1,0 +1,8 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalAggregate(group=[{}], sum(AdvEngineID)=[SUM($0)], count()=[COUNT()], avg(ResolutionWidth)=[AVG($1)])
+        LogicalProject(AdvEngineID=[$19], ResolutionWidth=[$80])
+          CalciteLogicalIndexScan(table=[[OpenSearch, hits]])
+  physical: |
+    CalciteEnumerableIndexScan(table=[[OpenSearch, hits]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={},sum(AdvEngineID)=SUM($0),count()=COUNT(),avg(ResolutionWidth)=AVG($1)), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"sum(AdvEngineID)":{"sum":{"field":"AdvEngineID"}},"count()":{"value_count":{"field":"_index"}},"avg(ResolutionWidth)":{"avg":{"field":"ResolutionWidth"}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

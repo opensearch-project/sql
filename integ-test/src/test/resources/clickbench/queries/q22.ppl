@@ -5,6 +5,6 @@ GROUP BY SearchPhrase ORDER BY c DESC LIMIT 10;
 */
 source=hits
 | where like(URL, '%google%') and SearchPhrase != ''
-| stats /* min(URL), */ count() as c by SearchPhrase
+| stats bucket_nullable=false /* min(URL), */ count() as c by SearchPhrase
 | sort - c
 | head 10

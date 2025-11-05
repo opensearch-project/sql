@@ -36,6 +36,8 @@ teardown:
         - headers
         - allowed_warnings
   - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
       headers:
         Content-Type: 'application/json'
       ppl:
@@ -53,6 +55,8 @@ teardown:
         - headers
         - allowed_warnings
   - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
       headers:
         Content-Type: 'application/json'
       ppl:
@@ -70,6 +74,8 @@ teardown:
         - headers
         - allowed_warnings
   - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
       headers:
         Content-Type: 'application/json'
       ppl:
@@ -87,6 +93,8 @@ teardown:
         - headers
         - allowed_warnings
   - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
       headers:
         Content-Type: 'application/json'
       ppl:

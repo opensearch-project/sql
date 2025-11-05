@@ -335,4 +335,71 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
 
     verifyDataRows(actual, rows(false, true));
   }
+
+  @Test
+  public void testEvalIsNullWithIf() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval n=if(isnull(name), 'yes', 'no') | fields name, n",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("name", "string"), schema("n", "string"));
+
+    verifyDataRows(
+        actual,
+        rows("John", "no"),
+        rows("Jane", "no"),
+        rows(null, "yes"),
+        rows("Jake", "no"),
+        rows("Kevin", "no"),
+        rows("Hello", "no"),
+        rows("    ", "no"),
+        rows("", "no"));
+  }
+
+  @Test
+  public void testEvalIsNotNullDirect() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval is_not_null_name=isnotnull(name) | fields name, is_not_null_name",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("name", "string"), schema("is_not_null_name", "boolean"));
+
+    verifyDataRows(
+        actual,
+        rows("John", true),
+        rows("Jane", true),
+        rows(null, false),
+        rows("Jake", true),
+        rows("Kevin", true),
+        rows("Hello", true),
+        rows("    ", true),
+        rows("", true));
+  }
+
+  @Test
+  public void testEvalIsNullInComplexExpression() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval safe_name=if(isnull(name), 'Unknown', name) | fields safe_name,"
+                    + " age",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("safe_name", "string"), schema("age", "int"));
+
+    verifyDataRows(
+        actual,
+        rows("John", 25),
+        rows("Jane", 20),
+        rows("Unknown", 10),
+        rows("Jake", 70),
+        rows("Kevin", null),
+        rows("Hello", 30),
+        rows("    ", 27),
+        rows("", 57));
+  }
 }

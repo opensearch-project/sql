@@ -4,6 +4,6 @@ FROM hits WHERE SearchPhrase <> '' GROUP BY SearchEngineID, ClientIP ORDER BY c 
 */
 source=hits
 | where SearchPhrase != ''
-| stats count() as c, sum(IsRefresh), avg(ResolutionWidth) by SearchEngineID, ClientIP
+| stats bucket_nullable=false count() as c, sum(IsRefresh), avg(ResolutionWidth) by SearchEngineID, ClientIP
 | sort - c
 | head 10

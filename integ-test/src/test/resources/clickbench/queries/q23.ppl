@@ -5,6 +5,6 @@ GROUP BY SearchPhrase ORDER BY c DESC LIMIT 10;
 */
 source=hits
 | where like(Title, '%Google%') and not like(URL, '%.google.%') and SearchPhrase != ''
-| stats /* min(URL), min(Title), */ count() as c, dc(UserID) by SearchPhrase
+| stats bucket_nullable=false /* min(URL), min(Title), */ count() as c, dc(UserID) by SearchPhrase
 | sort - c
 | head 10

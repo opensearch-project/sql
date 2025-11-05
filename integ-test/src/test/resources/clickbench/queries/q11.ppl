@@ -5,6 +5,6 @@ GROUP BY MobilePhoneModel ORDER BY u DESC LIMIT 10;
 */
 source=hits
 | where MobilePhoneModel != ''
-| stats dc(UserID) as u by MobilePhoneModel
+| stats bucket_nullable=false dc(UserID) as u by MobilePhoneModel
 | sort - u
 | head 10

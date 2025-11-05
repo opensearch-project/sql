@@ -4,7 +4,7 @@ FROM hits WHERE URL <> '' GROUP BY CounterID HAVING COUNT(*) > 100000 ORDER BY l
 */
 source=hits
 | where URL != ''
-| stats avg(length(URL)) as l, count() as c by CounterID
+| stats bucket_nullable=false avg(length(URL)) as l, count() as c by CounterID
 | where c > 100000
 | sort - l
 | head 25

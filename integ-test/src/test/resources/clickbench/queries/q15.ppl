@@ -5,6 +5,6 @@ GROUP BY SearchEngineID, SearchPhrase ORDER BY c DESC LIMIT 10;
 */
 source=hits
 | where SearchPhrase != ''
-| stats count() as c by SearchEngineID, SearchPhrase
+| stats bucket_nullable=false count() as c by SearchEngineID, SearchPhrase
 | sort - c
 | head 10

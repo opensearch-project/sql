@@ -1,0 +1,43 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[PageViews, TraficSourceID, SearchEngineID, AdvEngineID, Src, Dst]"
+  children:
+    - name: TakeOrderedOperator
+      description:
+        limit: 10
+        offset: 1000
+        sortList:
+          PageViews:
+            sortOrder: DESC
+            nullOrder: NULL_LAST
+      children:
+        - name: AggregationOperator
+          description:
+            aggregators: "[PageViews]"
+            groupBy: "[TraficSourceID, SearchEngineID, AdvEngineID, Src, Dst]"
+          children:
+            - name: OpenSearchEvalOperator
+              description:
+                expressions:
+                  Dst: URL
+                  Src: "CaseClause(whenClauses=[WhenClause(condition=and(=(SearchEngineID,\
+                    \ 0), =(AdvEngineID, 0)), result=Referer)], defaultResult=\"\"\
+                    )"
+              children:
+                - name: OpenSearchIndexScan
+                  description:
+                    request: "OpenSearchQueryRequest(indexName=hits, sourceBuilder={\"\
+                      from\":0,\"size\":10000,\"timeout\":\"1m\",\"query\":{\"bool\"\
+                      :{\"filter\":[{\"bool\":{\"filter\":[{\"bool\":{\"filter\":[{\"\
+                      term\":{\"CounterID\":{\"value\":62,\"boost\":1.0}}},{\"range\"\
+                      :{\"EventDate\":{\"from\":\"2013-07-01 00:00:00\",\"to\":null,\"\
+                      include_lower\":true,\"include_upper\":true,\"boost\":1.0}}}],\"\
+                      adjust_pure_negative\":true,\"boost\":1.0}},{\"range\":{\"EventDate\"\
+                      :{\"from\":null,\"to\":\"2013-07-31 00:00:00\",\"include_lower\"\
+                      :true,\"include_upper\":true,\"boost\":1.0}}}],\"adjust_pure_negative\"\
+                      :true,\"boost\":1.0}},{\"term\":{\"IsRefresh\":{\"value\":0,\"\
+                      boost\":1.0}}}],\"adjust_pure_negative\":true,\"boost\":1.0}}},\
+                      \ needClean=true, searchDone=false, pitId=*,\
+                      \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
+                  children: []

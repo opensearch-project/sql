@@ -1,0 +1,27 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[c, sum(IsRefresh), avg(ResolutionWidth), WatchID, ClientIP]"
+  children:
+    - name: TakeOrderedOperator
+      description:
+        limit: 10
+        offset: 0
+        sortList:
+          c:
+            sortOrder: DESC
+            nullOrder: NULL_LAST
+      children:
+        - name: OpenSearchIndexScan
+          description:
+            request: "OpenSearchQueryRequest(indexName=hits, sourceBuilder={\"from\"\
+              :0,\"size\":0,\"timeout\":\"1m\",\"aggregations\":{\"composite_buckets\"\
+              :{\"composite\":{\"size\":1000,\"sources\":[{\"WatchID\":{\"terms\"\
+              :{\"field\":\"WatchID\",\"missing_bucket\":false,\"order\":\"asc\"}}},{\"\
+              ClientIP\":{\"terms\":{\"field\":\"ClientIP\",\"missing_bucket\":false,\"\
+              order\":\"asc\"}}}]},\"aggregations\":{\"c\":{\"value_count\":{\"field\"\
+              :\"_index\"}},\"sum(IsRefresh)\":{\"sum\":{\"field\":\"IsRefresh\"}},\"\
+              avg(ResolutionWidth)\":{\"avg\":{\"field\":\"ResolutionWidth\"}}}}}},\
+              \ needClean=true, searchDone=false, pitId=*, cursorKeepAlive=null,\
+              \ searchAfter=null, searchResponse=null)"
+          children: []
