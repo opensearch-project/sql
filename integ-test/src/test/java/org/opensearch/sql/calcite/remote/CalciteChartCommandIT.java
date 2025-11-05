@@ -314,4 +314,21 @@ public class CalciteChartCommandIT extends PPLIntegTestCase {
         result, schema("gender", "string"), schema("age", "string"), schema("count()", "bigint"));
     verifyDataRows(result, rows("M", "30", 4), rows("F", "30", 1), rows("F", "20", 1));
   }
+
+  @Test
+    public void testChartNullsInRowSplitShouldBeIgnored() throws IOException {
+      JSONObject result =
+          executeQuery(
+                  "source=events_null | chart min(cpu_usage) by host region");
+      verifySchema(
+              result,
+              schema("host", "string"),
+              schema("region", "string"),
+              schema("min(cpu_usage)", "double"));
+      verifyDataRows(
+              result,
+              rows("db-01", "eu-west",  42.1),
+              rows("web-01", "us-east",  45.2),
+              rows("web-02", "us-west",  38.7));
+  }
 }

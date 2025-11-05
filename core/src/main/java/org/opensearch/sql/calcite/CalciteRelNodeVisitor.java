@@ -30,6 +30,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -39,6 +40,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.plan.RelOptTable;
@@ -1097,7 +1099,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitAggregation(Aggregation node, CalcitePlanContext context) {
-    visitAggregation(node, context, true);
+    Argument.ArgumentMap statsArgs = Argument.ArgumentMap.of(node.getArgExprList());
+    Boolean bucketNullable =
+        (Boolean) statsArgs.getOrDefault(Argument.BUCKET_NULLABLE, Literal.TRUE).getValue();
+    int nGroup = node.getGroupExprList().size() + (Objects.nonNull(node.getSpan()) ? 1 : 0);
+    BitSet nonNullGroupMask = new BitSet(nGroup);
+    if (!bucketNullable) {
+      nonNullGroupMask.set(0, nGroup);
+    }
+    visitAggregation(node, context, true, nonNullGroupMask);
     return context.relBuilder.peek();
   }
 
@@ -1108,8 +1118,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
    * @param context the Calcite plan context for building RelNodes
    * @param aggFirst if true, aggregation results (metrics) appear first in output schema (agg,
    *     group-by fields); if false, group expressions appear first (group-by fields, agg).
+   * @param nonNullGroupMask bit set indicating group by fields that need to be non-null
    */
-  private void visitAggregation(Aggregation node, CalcitePlanContext context, boolean aggFirst) {
+  private void visitAggregation(
+      Aggregation node, CalcitePlanContext context, boolean aggFirst, BitSet nonNullGroupMask) {
     visitChildren(node, context);
 
     List<UnresolvedExpression> aggExprList = node.getAggExprList();
@@ -1119,36 +1131,30 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     UnresolvedExpression span = node.getSpan();
     if (Objects.nonNull(span)) {
       groupExprList.add(span);
-      List<RexNode> timeSpanFilters =
-          getTimeSpanField(span).stream()
-              .map(f -> rexVisitor.analyze(f, context))
-              .map(context.relBuilder::isNotNull)
-              .toList();
-      if (!timeSpanFilters.isEmpty()) {
-        // add isNotNull filter before aggregation for time span
-        context.relBuilder.filter(timeSpanFilters);
+      if (getTimeSpanField(span).isPresent()){
+          nonNullGroupMask.set(0);
       }
     }
     groupExprList.addAll(node.getGroupExprList());
 
     // add stats hint to LogicalAggregation
-    Argument.ArgumentMap statsArgs = Argument.ArgumentMap.of(node.getArgExprList());
-    Boolean bucketNullable =
-        (Boolean) statsArgs.getOrDefault(Argument.BUCKET_NULLABLE, Literal.TRUE).getValue();
-    boolean toAddHintsOnAggregate = false;
-    if (!bucketNullable
-        && !groupExprList.isEmpty()
-        && !(groupExprList.size() == 1 && getTimeSpanField(span).isPresent())) {
-      toAddHintsOnAggregate = true;
-      // add isNotNull filter before aggregation for non-nullable buckets
-      List<RexNode> groupByList =
-          groupExprList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
-      context.relBuilder.filter(
-          PlanUtils.getSelectColumns(groupByList).stream()
-              .map(context.relBuilder::field)
-              .map(context.relBuilder::isNotNull)
-              .toList());
-    }
+    boolean toAddHintsOnAggregate =
+        nonNullGroupMask.nextClearBit(0) >= groupExprList.size() // This checks if all group-bys are nonnull
+            && !groupExprList.isEmpty()
+            && !(groupExprList.size() == 1 && getTimeSpanField(span).isPresent());
+    // add isNotNull filter before aggregation for non-nullable buckets
+    List<RexNode> groupByList =
+        groupExprList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
+    List<RexNode> nonNullGroupBys =
+        IntStream.range(0, groupByList.size())
+            .filter(nonNullGroupMask::get)
+            .mapToObj(groupByList::get)
+            .toList();
+    context.relBuilder.filter(
+        PlanUtils.getSelectColumns(nonNullGroupBys).stream()
+            .map(context.relBuilder::field)
+            .map(context.relBuilder::isNotNull)
+            .toList());
 
     Pair<List<RexNode>, List<AggCall>> aggregationAttributes =
         aggregateWithTrimming(groupExprList, aggExprList, context, toAddHintsOnAggregate);
@@ -2397,12 +2403,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     ChartConfig config = ChartConfig.fromArguments(argMap);
     Aggregation aggregation =
         new Aggregation(
-            List.of(node.getAggregationFunction()),
-            List.of(),
-            groupExprList,
-            null,
-            List.of(new Argument(Argument.BUCKET_NULLABLE, AstDSL.booleanLiteral(config.useNull))));
-    visitAggregation(aggregation, context, false);
+            List.of(node.getAggregationFunction()), List.of(), groupExprList, null, List.of());
+    BitSet nonNullGroupMask = new BitSet(groupExprList.size());
+    // Rows without a row-split are always ignored
+    if (config.useNull) {
+      nonNullGroupMask.set(0);
+    } else {
+      nonNullGroupMask.set(0, groupExprList.size());
+    }
+    visitAggregation(aggregation, context, false, nonNullGroupMask);
     RelBuilder relBuilder = context.relBuilder;
     String columnSplitName =
         relBuilder.peek().getRowType().getFieldNames().size() > 2

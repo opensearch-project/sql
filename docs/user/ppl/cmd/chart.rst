@@ -30,28 +30,29 @@ Syntax
 
 **Parameters:**
 
-* **limit**: optional. Specifies the number of distinct values to display when using column split.
+* **limit**: optional. Specifies the number of categories to display when using column split. Each unique value in the column split field represents a category.
 
   * Default: top10
   * Syntax: ``limit=(top|bottom)<number>`` or ``limit=<number>`` (defaults to top)
-  * When ``limit=K`` is set, the top or bottom K distinct column split values are retained; the additional values are grouped into an "OTHER" category if ``useother`` is not set to false.
-  * Set limit to 0 to show all distinct values without any limit.
-  * Use ``limit=topK`` or ``limit=bottomK`` to specify whether to retain the top or bottom K column categories. The ranking is based on the aggregated values for each distinct column-split value.  For example, ``chart limit=top3 count() by a b`` retains the 3 most common b categories; ``chart limit=top5 min(value) by a b`` selects the 5 b categories that contains smallest aggregated values. If not specified, top is used by default.
-  * Only applies when column split presents (by 2 fields or over...by... coexists).
+  * When ``limit=K`` is set, the top or bottom K categories from the column split field are retained; the remaining categories are grouped into an "OTHER" category if ``useother`` is not set to false.
+  * Set limit to 0 to show all categories without any limit.
+  * Use ``limit=topK`` or ``limit=bottomK`` to specify whether to retain the top or bottom K column categories. The ranking is based on the aggregated values for each category.  For example, ``chart limit=top3 count() by a b`` retains the 3 most common b categories; ``chart limit=top5 min(value) by a b`` selects the 5 b categories that contain the smallest aggregated values. If not specified, top is used by default.
+  * Only applies when column split is present (by 2 fields or over...by... coexists).
 
-* **useother**: optional. Controls whether to create an "OTHER" category for distinct column-split values beyond the limit.
+* **useother**: optional. Controls whether to create an "OTHER" category for categories beyond the limit.
 
   * Default: true
-  * When set to false, only the top/bottom N distinct column-split values (based on limit) are shown without an "OTHER" category.
-  * When set to true, distinct values beyond the limit are grouped into an "OTHER" category.
-  * Only applies when using column split and when there are more distinct column-split values than the limit.
+  * When set to false, only the top/bottom N categories (based on limit) are shown without an "OTHER" category.
+  * When set to true, categories beyond the limit are grouped into an "OTHER" category.
+  * Only applies when using column split and when there are more categories than the limit.
 
 * **usenull**: optional. Controls whether to group events without a column split (i.e. whose column split is null) into a separate "NULL" category.
 
   * Default: true
+  * ``usenull`` only applies to column split.
+  * Row split should always be non-null value. Events with null values in row split will be ignored.
   * When ``usenull=false``, events with a null column split are excluded from results.
   * When ``usenull=true``, events with a null column split are grouped into a separate "NULL" category.
-  * ``usenull`` only applies to column split. Null values in the row split are handled in the same way as normal aggregations.
 
 * **nullstr**: optional. Specifies the category name for rows that do not contain the column split value.
 
