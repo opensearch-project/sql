@@ -135,38 +135,6 @@ public class PPLOperandTypes {
               SqlTypeFamily.NUMERIC,
               SqlTypeFamily.NUMERIC));
 
-  /**
-   * Operand type checker for WIDTH_BUCKET function.
-   *
-   * <p>WIDTH_BUCKET(field_value, num_bins, data_range, max_value) requires multiple type variants
-   * because the data_range parameter (result of MAX(field) - MIN(field)) has different types
-   * depending on the type system in use:
-   *
-   * <p>1. Numeric fields: (NUMERIC, INTEGER, NUMERIC, NUMERIC) - Standard binning for numeric data
-   * (e.g., `bin age bins=10`)
-   *
-   * <p>2. Timestamp fields with OpenSearch type system: (TIMESTAMP, INTEGER, STRING, TIMESTAMP) -
-   * OpenSearchTypeFactory treats (TIMESTAMP - TIMESTAMP) as INTERVAL, which is represented as
-   * VARCHAR/STRING (e.g., "PT5H" for 5 hours). This variant is used in:
-   *
-   * <ul>
-   *   <li>Production queries with real OpenSearch data
-   *   <li>Integration tests (e.g., CalciteBinCommandIT with pushdown enabled)
-   * </ul>
-   *
-   * <p>3. Timestamp fields with Calcite default type system: (TIMESTAMP, INTEGER, TIMESTAMP,
-   * TIMESTAMP) - Calcite's SCOTT schema TypeFactory treats (TIMESTAMP - TIMESTAMP) as returning a
-   * TIMESTAMP value representing the duration. This variant is used in:
-   *
-   * <ul>
-   *   <li>Unit tests with CalciteAssert.SchemaSpec (e.g., CalcitePPLBinTest using
-   *       SCOTT_WITH_TEMPORAL)
-   * </ul>
-   *
-   * <p>The same code (SqlStdOperatorTable.MINUS on two TIMESTAMP values) produces different result
-   * types depending on which TypeFactory is active, requiring both variants to support all use
-   * cases.
-   */
   public static final UDFOperandMetadata WIDTH_BUCKET_OPERAND =
       UDFOperandMetadata.wrap(
           (CompositeOperandTypeChecker)
