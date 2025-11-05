@@ -70,17 +70,16 @@ public class SearchComparison extends SearchExpression {
   public Function toDSLFunction() {
     String fieldName = QueryStringUtils.escapeFieldName(field.getField().toString());
     String valueStr = value.toQueryString();
-    switch (operator) {
-      case EQUALS:
-        return AstDSL.function(
-            "match",
-            AstDSL.unresolvedArg("field_name", AstDSL.qualifiedName(fieldName)),
-            AstDSL.unresolvedArg("value", AstDSL.stringLiteral(valueStr)));
-      default:
-        return AstDSL.function(
-            "query_string",
-            AstDSL.unresolvedArg("query", AstDSL.stringLiteral(this.toQueryString())));
+    if (operator == EQUALS
+        && !(valueStr.contains("*")
+            || valueStr.contains("?"))) { // for regex case, we cannot use match
+      return AstDSL.function(
+          "match",
+          AstDSL.unresolvedArg("field_name", AstDSL.qualifiedName(fieldName)),
+          AstDSL.unresolvedArg("value", AstDSL.stringLiteral(valueStr)));
     }
+    return AstDSL.function(
+        "query_string", AstDSL.unresolvedArg("query", AstDSL.stringLiteral(this.toQueryString())));
   }
 
   @Override
