@@ -1258,12 +1258,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           || (node.getArgumentMap().get("overwrite").equals(Literal.TRUE))) {
         toBeRemovedFields =
             duplicatedFieldNames.stream()
-                .map(field -> JoinAndLookupUtils.analyzeFieldsInRight(field, context))
+                .map(field -> JoinAndLookupUtils.analyzeFieldsInLeft(field, context))
                 .toList();
       } else {
         toBeRemovedFields =
             duplicatedFieldNames.stream()
-                .map(field -> JoinAndLookupUtils.analyzeFieldsInLeft(field, context))
+                .map(field -> JoinAndLookupUtils.analyzeFieldsInRight(field, context))
                 .toList();
       }
       Literal max = node.getArgumentMap().get("max");
