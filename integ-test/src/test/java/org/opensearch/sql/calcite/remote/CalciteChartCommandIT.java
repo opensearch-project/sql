@@ -13,6 +13,7 @@ import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -221,10 +222,11 @@ public class CalciteChartCommandIT extends PPLIntegTestCase {
         schema("max(severityNumber)", "bigint"));
     verifyDataRows(
         result,
-        rows(1, "max_among_other", 17),
-        rows(0, "max_among_other", 22),
-        rows(0, "FATAL3", 23),
-        rows(0, "FATAL4", 24));
+        rows(0, "ERROR", 17),
+        rows(0, "FATAL4", 24),
+        rows(0, "max_among_other", 23),
+        rows(1, "ERROR", 17),
+        rows(1, "max_among_other", 9));
   }
 
   @Test
@@ -255,12 +257,13 @@ public class CalciteChartCommandIT extends PPLIntegTestCase {
         schema("flags", "bigint"),
         schema("severityText", "string"),
         schema("min(severityNumber)", "bigint"));
-    verifyDataRows(
+    verifyDataRowsInOrder(
         result,
-        rows(1, "OTHER", 9),
-        rows(1, "TRACE", 1),
-        rows(0, "OTHER", 3),
-        rows(0, "TRACE2", 2));
+        rows(0, "ERROR", 17),
+        rows(0, "FATAL4", 24),
+        rows(0, "OTHER", 2),
+        rows(1, "ERROR", 17),
+        rows(1, "OTHER", 1));
   }
 
   @Test
@@ -316,19 +319,17 @@ public class CalciteChartCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-    public void testChartNullsInRowSplitShouldBeIgnored() throws IOException {
-      JSONObject result =
-          executeQuery(
-                  "source=events_null | chart min(cpu_usage) by host region");
-      verifySchema(
-              result,
-              schema("host", "string"),
-              schema("region", "string"),
-              schema("min(cpu_usage)", "double"));
-      verifyDataRows(
-              result,
-              rows("db-01", "eu-west",  42.1),
-              rows("web-01", "us-east",  45.2),
-              rows("web-02", "us-west",  38.7));
+  public void testChartNullsInRowSplitShouldBeIgnored() throws IOException {
+    JSONObject result = executeQuery("source=events_null | chart min(cpu_usage) by host region");
+    verifySchema(
+        result,
+        schema("host", "string"),
+        schema("region", "string"),
+        schema("min(cpu_usage)", "double"));
+    verifyDataRows(
+        result,
+        rows("db-01", "eu-west", 42.1),
+        rows("web-01", "us-east", 45.2),
+        rows("web-02", "us-west", 38.7));
   }
 }

@@ -82,6 +82,7 @@ public class CalcitePPLChartTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `gender`, AVG(`balance`) `avg(balance)`\n"
             + "FROM `scott`.`bank`\n"
+            + "WHERE `gender` IS NOT NULL\n"
             + "GROUP BY `gender`\n"
             + "ORDER BY `gender` NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -95,6 +96,7 @@ public class CalcitePPLChartTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `gender`, AVG(`balance`) `avg(balance)`\n"
             + "FROM `scott`.`bank`\n"
+            + "WHERE `gender` IS NOT NULL\n"
             + "GROUP BY `gender`\n"
             + "ORDER BY `gender` NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -106,23 +108,25 @@ public class CalcitePPLChartTest extends CalcitePPLAbstractTest {
 
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
-        "SELECT `t1`.`gender`, CASE WHEN `t1`.`age` IS NULL THEN 'NULL' WHEN"
-            + " `t7`.`_row_number_chart_` <= 10 THEN `t1`.`age` ELSE 'OTHER' END `age`,"
-            + " AVG(`t1`.`avg(balance)`) `avg(balance)`\n"
+        "SELECT `t2`.`gender`, CASE WHEN `t2`.`age` IS NULL THEN 'NULL' WHEN"
+            + " `t9`.`_row_number_chart_` <= 10 THEN `t2`.`age` ELSE 'OTHER' END `age`,"
+            + " AVG(`t2`.`avg(balance)`) `avg(balance)`\n"
             + "FROM (SELECT `gender`, SAFE_CAST(`age` AS STRING) `age`, AVG(`balance`)"
             + " `avg(balance)`\n"
             + "FROM `scott`.`bank`\n"
-            + "GROUP BY `gender`, `age`) `t1`\n"
-            + "LEFT JOIN (SELECT `age`, AVG(`avg(balance)`) `__grand_total__`, ROW_NUMBER() OVER"
-            + " (ORDER BY AVG(`avg(balance)`) DESC) `_row_number_chart_`\n"
+            + "WHERE `gender` IS NOT NULL\n"
+            + "GROUP BY `gender`, `age`) `t2`\n"
+            + "LEFT JOIN (SELECT `age`, SUM(`avg(balance)`) `__grand_total__`, ROW_NUMBER() OVER"
+            + " (ORDER BY SUM(`avg(balance)`) DESC) `_row_number_chart_`\n"
             + "FROM (SELECT SAFE_CAST(`age` AS STRING) `age`, AVG(`balance`) `avg(balance)`\n"
             + "FROM `scott`.`bank`\n"
-            + "GROUP BY `gender`, `age`) `t4`\n"
+            + "WHERE `gender` IS NOT NULL\n"
+            + "GROUP BY `gender`, `age`) `t6`\n"
             + "WHERE `age` IS NOT NULL\n"
-            + "GROUP BY `age`) `t7` ON `t1`.`age` = `t7`.`age`\n"
-            + "GROUP BY `t1`.`gender`, CASE WHEN `t1`.`age` IS NULL THEN 'NULL' WHEN"
-            + " `t7`.`_row_number_chart_` <= 10 THEN `t1`.`age` ELSE 'OTHER' END\n"
-            + "ORDER BY `t1`.`gender` NULLS LAST, 2 NULLS LAST";
+            + "GROUP BY `age`) `t9` ON `t2`.`age` = `t9`.`age`\n"
+            + "GROUP BY `t2`.`gender`, CASE WHEN `t2`.`age` IS NULL THEN 'NULL' WHEN"
+            + " `t9`.`_row_number_chart_` <= 10 THEN `t2`.`age` ELSE 'OTHER' END\n"
+            + "ORDER BY `t2`.`gender` NULLS LAST, 2 NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -132,23 +136,25 @@ public class CalcitePPLChartTest extends CalcitePPLAbstractTest {
 
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
-        "SELECT `t1`.`gender`, CASE WHEN `t1`.`age` IS NULL THEN 'NULL' WHEN"
-            + " `t7`.`_row_number_chart_` <= 10 THEN `t1`.`age` ELSE 'OTHER' END `age`,"
-            + " AVG(`t1`.`avg(balance)`) `avg(balance)`\n"
+        "SELECT `t2`.`gender`, CASE WHEN `t2`.`age` IS NULL THEN 'NULL' WHEN"
+            + " `t9`.`_row_number_chart_` <= 10 THEN `t2`.`age` ELSE 'OTHER' END `age`,"
+            + " AVG(`t2`.`avg(balance)`) `avg(balance)`\n"
             + "FROM (SELECT `gender`, SAFE_CAST(`age` AS STRING) `age`, AVG(`balance`)"
             + " `avg(balance)`\n"
             + "FROM `scott`.`bank`\n"
-            + "GROUP BY `gender`, `age`) `t1`\n"
-            + "LEFT JOIN (SELECT `age`, AVG(`avg(balance)`) `__grand_total__`, ROW_NUMBER() OVER"
-            + " (ORDER BY AVG(`avg(balance)`) DESC) `_row_number_chart_`\n"
+            + "WHERE `gender` IS NOT NULL\n"
+            + "GROUP BY `gender`, `age`) `t2`\n"
+            + "LEFT JOIN (SELECT `age`, SUM(`avg(balance)`) `__grand_total__`, ROW_NUMBER() OVER"
+            + " (ORDER BY SUM(`avg(balance)`) DESC) `_row_number_chart_`\n"
             + "FROM (SELECT SAFE_CAST(`age` AS STRING) `age`, AVG(`balance`) `avg(balance)`\n"
             + "FROM `scott`.`bank`\n"
-            + "GROUP BY `gender`, `age`) `t4`\n"
+            + "WHERE `gender` IS NOT NULL\n"
+            + "GROUP BY `gender`, `age`) `t6`\n"
             + "WHERE `age` IS NOT NULL\n"
-            + "GROUP BY `age`) `t7` ON `t1`.`age` = `t7`.`age`\n"
-            + "GROUP BY `t1`.`gender`, CASE WHEN `t1`.`age` IS NULL THEN 'NULL' WHEN"
-            + " `t7`.`_row_number_chart_` <= 10 THEN `t1`.`age` ELSE 'OTHER' END\n"
-            + "ORDER BY `t1`.`gender` NULLS LAST, 2 NULLS LAST";
+            + "GROUP BY `age`) `t9` ON `t2`.`age` = `t9`.`age`\n"
+            + "GROUP BY `t2`.`gender`, CASE WHEN `t2`.`age` IS NULL THEN 'NULL' WHEN"
+            + " `t9`.`_row_number_chart_` <= 10 THEN `t2`.`age` ELSE 'OTHER' END\n"
+            + "ORDER BY `t2`.`gender` NULLS LAST, 2 NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -160,6 +166,7 @@ public class CalcitePPLChartTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `gender`, AVG(`balance`) `avg(balance)`\n"
             + "FROM `scott`.`bank`\n"
+            + "WHERE `gender` IS NOT NULL\n"
             + "GROUP BY `gender`\n"
             + "ORDER BY `gender` NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -173,6 +180,7 @@ public class CalcitePPLChartTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `state`, `gender`, AVG(`balance`) `avg(balance)`\n"
             + "FROM `scott`.`bank`\n"
+            + "WHERE `state` IS NOT NULL\n"
             + "GROUP BY `state`, `gender`\n"
             + "ORDER BY `state` NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -186,6 +194,7 @@ public class CalcitePPLChartTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `SPAN`(`age`, 10, NULL) `age`, MAX(`balance`) `max(balance)`\n"
             + "FROM `scott`.`bank`\n"
+            + "WHERE `age` IS NOT NULL\n"
             + "GROUP BY `SPAN`(`age`, 10, NULL)\n"
             + "ORDER BY 1 NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -197,23 +206,25 @@ public class CalcitePPLChartTest extends CalcitePPLAbstractTest {
 
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
-        "SELECT `t1`.`timestamp`, CASE WHEN `t1`.`category` IS NULL THEN 'NULL' WHEN"
-            + " `t7`.`_row_number_chart_` <= 10 THEN `t1`.`category` ELSE 'OTHER' END `category`,"
-            + " MAX(`t1`.`max(value)`) `max(value)`\n"
+        "SELECT `t2`.`timestamp`, CASE WHEN `t2`.`category` IS NULL THEN 'NULL' WHEN"
+            + " `t9`.`_row_number_chart_` <= 10 THEN `t2`.`category` ELSE 'OTHER' END `category`,"
+            + " MAX(`t2`.`max(value)`) `max(value)`\n"
             + "FROM (SELECT `SPAN`(`timestamp`, 1, 'w') `timestamp`, `category`, MAX(`value`)"
             + " `max(value)`\n"
             + "FROM `scott`.`time_data`\n"
-            + "GROUP BY `category`, `SPAN`(`timestamp`, 1, 'w')) `t1`\n"
-            + "LEFT JOIN (SELECT `category`, MAX(`max(value)`) `__grand_total__`, ROW_NUMBER() OVER"
-            + " (ORDER BY MAX(`max(value)`) DESC) `_row_number_chart_`\n"
+            + "WHERE `timestamp` IS NOT NULL\n"
+            + "GROUP BY `category`, `SPAN`(`timestamp`, 1, 'w')) `t2`\n"
+            + "LEFT JOIN (SELECT `category`, SUM(`max(value)`) `__grand_total__`, ROW_NUMBER() OVER"
+            + " (ORDER BY SUM(`max(value)`) DESC) `_row_number_chart_`\n"
             + "FROM (SELECT `category`, MAX(`value`) `max(value)`\n"
             + "FROM `scott`.`time_data`\n"
-            + "GROUP BY `category`, `SPAN`(`timestamp`, 1, 'w')) `t4`\n"
+            + "WHERE `timestamp` IS NOT NULL\n"
+            + "GROUP BY `category`, `SPAN`(`timestamp`, 1, 'w')) `t6`\n"
             + "WHERE `category` IS NOT NULL\n"
-            + "GROUP BY `category`) `t7` ON `t1`.`category` = `t7`.`category`\n"
-            + "GROUP BY `t1`.`timestamp`, CASE WHEN `t1`.`category` IS NULL THEN 'NULL' WHEN"
-            + " `t7`.`_row_number_chart_` <= 10 THEN `t1`.`category` ELSE 'OTHER' END\n"
-            + "ORDER BY `t1`.`timestamp` NULLS LAST, 2 NULLS LAST";
+            + "GROUP BY `category`) `t9` ON `t2`.`category` = `t9`.`category`\n"
+            + "GROUP BY `t2`.`timestamp`, CASE WHEN `t2`.`category` IS NULL THEN 'NULL' WHEN"
+            + " `t9`.`_row_number_chart_` <= 10 THEN `t2`.`category` ELSE 'OTHER' END\n"
+            + "ORDER BY `t2`.`timestamp` NULLS LAST, 2 NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -225,6 +236,7 @@ public class CalcitePPLChartTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `gender`, AVG(`balance`) `avg(balance)`\n"
             + "FROM `scott`.`bank`\n"
+            + "WHERE `gender` IS NOT NULL\n"
             + "GROUP BY `gender`\n"
             + "ORDER BY `gender` NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -238,6 +250,7 @@ public class CalcitePPLChartTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `gender`, AVG(`balance`) `avg(balance)`\n"
             + "FROM `scott`.`bank`\n"
+            + "WHERE `gender` IS NOT NULL\n"
             + "GROUP BY `gender`\n"
             + "ORDER BY `gender` NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -251,6 +264,7 @@ public class CalcitePPLChartTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `gender`, AVG(`balance`) `avg(balance)`\n"
             + "FROM `scott`.`bank`\n"
+            + "WHERE `gender` IS NOT NULL\n"
             + "GROUP BY `gender`\n"
             + "ORDER BY `gender` NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -264,6 +278,7 @@ public class CalcitePPLChartTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `gender`, AVG(`balance`) `avg(balance)`\n"
             + "FROM `scott`.`bank`\n"
+            + "WHERE `gender` IS NOT NULL\n"
             + "GROUP BY `gender`\n"
             + "ORDER BY `gender` NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);

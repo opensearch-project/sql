@@ -1131,15 +1131,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     UnresolvedExpression span = node.getSpan();
     if (Objects.nonNull(span)) {
       groupExprList.add(span);
-      if (getTimeSpanField(span).isPresent()){
-          nonNullGroupMask.set(0);
+      if (getTimeSpanField(span).isPresent()) {
+        nonNullGroupMask.set(0);
       }
     }
     groupExprList.addAll(node.getGroupExprList());
 
     // add stats hint to LogicalAggregation
     boolean toAddHintsOnAggregate =
-        nonNullGroupMask.nextClearBit(0) >= groupExprList.size() // This checks if all group-bys are nonnull
+        nonNullGroupMask.nextClearBit(0)
+                >= groupExprList.size() // This checks if all group-bys should be nonnull
             && !groupExprList.isEmpty()
             && !(groupExprList.size() == 1 && getTimeSpanField(span).isPresent());
     // add isNotNull filter before aggregation for non-nullable buckets
@@ -2413,10 +2414,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     visitAggregation(aggregation, context, false, nonNullGroupMask);
     RelBuilder relBuilder = context.relBuilder;
-    String columnSplitName =
-        relBuilder.peek().getRowType().getFieldNames().size() > 2
-            ? relBuilder.peek().getRowType().getFieldNames().get(1)
-            : null;
 
     // If row or column split does not present or limit equals 0, this is the same as `stats agg
     // [group by col]` because all truncating is performed on the column split
@@ -2457,16 +2454,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     final String GRAND_TOTAL_COL = "__grand_total__";
     relBuilder.aggregate(
         relBuilder.groupKey(relBuilder.field(0)),
-        buildAggCall(context.relBuilder, aggFunction, relBuilder.field(1))
-            .as(GRAND_TOTAL_COL)); // results: group key, agg calls
+        // Top-K semantic: Retain categories whose summed values are among the greatest
+        relBuilder.sum(relBuilder.field(1)).as(GRAND_TOTAL_COL)); // results: group key, agg calls
     RexNode grandTotal = relBuilder.field(GRAND_TOTAL_COL);
-    // Apply sorting: for MIN/EARLIEST, reverse the top/bottom logic
-    boolean smallestFirst =
-        aggFunction == BuiltinFunctionName.MIN || aggFunction == BuiltinFunctionName.EARLIEST;
-    if (config.top != smallestFirst) {
+    // Apply sorting: keep the max values if top is set
+    if (config.top) {
       grandTotal = relBuilder.desc(grandTotal);
     }
-
     // Always set it to null last so that it does not interfere with top / bottom calculation
     grandTotal = relBuilder.nullsLast(grandTotal);
     RexNode rowNum =
@@ -2518,6 +2512,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               relBuilder.literal(config.otherStr));
     }
 
+    String columnSplitName = ((Alias) node.getColumnSplit()).getName();
     String aggFieldName = relBuilder.peek().getRowType().getFieldNames().get(2);
     relBuilder.project(
         relBuilder.field(0),

@@ -5,10 +5,11 @@ calcite:
         LogicalProject(age=[$0], max(balance)=[$1])
           LogicalAggregate(group=[{1}], max(balance)=[MAX($0)])
             LogicalProject(balance=[$7], age0=[SPAN($10, 10, null:NULL)])
-              CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
+              LogicalFilter(condition=[IS NOT NULL($10)])
+                CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
   physical: |
     EnumerableLimit(fetch=[10000])
       EnumerableSort(sort0=[$0], dir0=[ASC])
         EnumerableAggregate(group=[{1}], max(balance)=[MAX($0)])
-          EnumerableCalc(expr#0..18=[{inputs}], expr#19=[10], expr#20=[null:NULL], expr#21=[SPAN($t10, $t19, $t20)], balance=[$t7], age0=[$t21])
+          EnumerableCalc(expr#0..18=[{inputs}], expr#19=[10], expr#20=[null:NULL], expr#21=[SPAN($t10, $t19, $t20)], expr#22=[IS NOT NULL($t10)], balance=[$t7], age0=[$t21], $condition=[$t22])
             CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
