@@ -400,6 +400,7 @@ STRFTIME:                           'STRFTIME';
 // TEXT FUNCTIONS
 SUBSTR:                             'SUBSTR';
 SUBSTRING:                          'SUBSTRING';
+TOSTRING:                           'TOSTRING';
 LTRIM:                              'LTRIM';
 RTRIM:                              'RTRIM';
 TRIM:                               'TRIM';
