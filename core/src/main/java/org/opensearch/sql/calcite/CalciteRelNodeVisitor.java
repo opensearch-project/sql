@@ -2416,8 +2416,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // If row or column split does not present or limit equals 0, this is the same as `stats agg
     // [group by col]` because all truncating is performed on the column split
-    Integer limit = (Integer) argMap.getOrDefault("limit", Chart.DEFAULT_LIMIT).getValue();
-    if (node.getRowSplit() == null || node.getColumnSplit() == null || Objects.equals(limit, 0)) {
+    if (node.getRowSplit() == null
+        || node.getColumnSplit() == null
+        || Objects.equals(config.limit, 0)) {
       // The output of chart is expected to be ordered by row split names
       relBuilder.sort(relBuilder.field(0));
       return relBuilder.peek();
@@ -2435,13 +2436,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Convert the column split to string if necessary: column split was supposed to be pivoted to
     // column names. This guarantees that its type compatibility with useother and usenull
     RexNode colSplit = relBuilder.field(1);
-    String columSplitName = relBuilder.peek().getRowType().getFieldNames().get(1);
+    String columnSplitName = relBuilder.peek().getRowType().getFieldNames().get(1);
     if (!SqlTypeUtil.isCharacter(colSplit.getType())) {
       colSplit =
           relBuilder.alias(
               context.rexBuilder.makeCast(
                   UserDefinedFunctionUtils.NULLABLE_STRING, colSplit, true, true),
-              columSplitName);
+              columnSplitName);
     }
     relBuilder.project(relBuilder.field(0), colSplit, relBuilder.field(2));
     RelNode aggregated = relBuilder.peek();
@@ -2460,7 +2461,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (config.top) {
       grandTotal = relBuilder.desc(grandTotal);
     }
-    // Always set it to null last so that it does not interfere with top / bottom calculation
+    // Always set it to null last so that nulls don't interfere with top / bottom calculation
     grandTotal = relBuilder.nullsLast(grandTotal);
     RexNode rowNum =
         PlanUtils.makeOver(
@@ -2486,7 +2487,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         relBuilder.call(
             SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
             relBuilder.field(PlanUtils.ROW_NUMBER_COLUMN_FOR_CHART),
-            relBuilder.literal(limit));
+            relBuilder.literal(config.limit));
     if (!config.useOther) {
       relBuilder.filter(lteCondition);
     }
@@ -2511,7 +2512,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               relBuilder.literal(config.otherStr));
     }
 
-    String columnSplitName = ((Alias) node.getColumnSplit()).getName();
     String aggFieldName = relBuilder.peek().getRowType().getFieldNames().get(2);
     relBuilder.project(
         relBuilder.field(0),
