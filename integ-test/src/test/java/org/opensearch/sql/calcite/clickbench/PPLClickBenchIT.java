@@ -68,6 +68,7 @@ public class PPLClickBenchIT extends PPLIntegTestCase {
       if (ignored().contains(i)) {
         continue;
       }
+      logger.info("Running Query{}", i);
       String ppl = sanitize(loadFromFile("clickbench/queries/q" + i + ".ppl"));
       timing(summary, "q" + i, ppl);
       // V2 gets unstable scripts, ignore them when comparing plan
