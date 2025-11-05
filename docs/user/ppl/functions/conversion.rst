@@ -150,11 +150,11 @@ Example::
 city, city.name, city.location.latitude
     os> source=accounts |  where firstname = "Amber" |  eval balance_binary = tostring(balance, "binary") | fields firstname, balance_binary, balance
     fetched rows / total rows = 1/1
-    +-------------+------------------+-----------+
-    | firstname   | balance_binary   | balance   |
-    |-------------+------------------+-----------|
-    | Amber       | 1001100100111001 | 39225     |
-    +-------------+------------------+-----------+
+    +-----------+------------------+---------+
+    | firstname | balance_binary   | balance |
+    |-----------+------------------+---------|
+    | Amber     | 1001100100111001 | 39225   |
+    +-----------+------------------+---------+
 
 
 You can use this function to convert a number to a string of its hex representation.
@@ -162,42 +162,42 @@ Example::
 
     os> source=accounts |  where firstname = "Amber" |  eval balance_hex = tostring(balance, "hex") | fields firstname, balance_hex, balance
     fetched rows / total rows = 1/1
-    +-------------+---------------+-----------+
-    | firstname   | balance_hex   | balance   |
-    |-------------+---------------+-----------|
-    | Amber       | 9939          | 39225     |
-    +-------------+---------------+-----------+
+    +-----------+-------------+---------+
+    | firstname | balance_hex | balance |
+    |-----------+-------------+---------|
+    | Amber     | 9939        | 39225   |
+    +-----------+-------------+---------+
 
 The following example formats the column totalSales to display values  with commas.
 Example::
 
     os> source=accounts |  where firstname = "Amber" |  eval balance_commas = tostring(balance, "commas") | fields firstname, balance_commas, balance
     fetched rows / total rows = 1/1
-    +-------------+------------------+-----------+
-    | firstname   | balance_commas   | balance   |
-    |-------------+------------------+-----------|
-    | Amber       | 39,225           | 39225     |
-    +-------------+------------------+-----------+
+    +-----------+----------------+---------+
+    | firstname | balance_commas | balance |
+    |-----------+----------------+---------|
+    | Amber     | 39,225         | 39225   |
+    +-----------+----------------+---------+
 
 The following example converts number of seconds to HH:MM:SS format representing hours, minutes and seconds.
 Example::
 
     os> source=accounts |  where firstname = "Amber" | eval duration = tostring(6500, "duration") | fields firstname, duration
     fetched rows / total rows = 1/1
-    +-------------+------------+
-    | firstname   | duration   |
-    |-------------+------------|
-    | Amber       | 01:48:20   |
-    +-------------+------------+
+    +-----------+----------+
+    | firstname | duration |
+    |-----------+----------|
+    | Amber     | 01:48:20 |
+    +-----------+----------+
 
 The following example for converts boolean parameter to string.
 Example::
 
     os> source=accounts |  where firstname = "Amber"| eval `boolean_str` = tostring(1=1)| fields `boolean_str`
     fetched rows / total rows = 1/1
-    +---------------+
-    | boolean_str   |
-    |---------------|
-    | TRUE          |
-    +---------------+
+    +-------------+
+    | boolean_str |
+    |-------------|
+    | TRUE        |
+    +-------------+
 
