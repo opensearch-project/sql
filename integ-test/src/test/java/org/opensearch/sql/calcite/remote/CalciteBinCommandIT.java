@@ -992,7 +992,6 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   @Test
   public void testBinsOnTimeFieldWithPushdownDisabled_ShouldFail() throws IOException {
     // Verify that bins parameter on timestamp fields fails with clear error when pushdown disabled
-    // This is a known limitation: Calcite cannot execute window functions in expressions
     enabledOnlyWhenPushdownIsDisabled();
 
     ResponseException exception =
@@ -1004,7 +1003,6 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
 
     // Verify the error message clearly explains the limitation and suggests solutions
     String errorMessage = exception.getMessage();
-    System.out.println("Debugging error message: " + errorMessage);
     assertTrue(
         "Expected clear error message about bins parameter not supported on timestamp fields when "
             + "pushdown is disabled, but got: "
