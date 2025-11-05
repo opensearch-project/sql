@@ -117,3 +117,87 @@ Use string in comparison operator example ::
     | True | False | True | False | True | True | null |
     +------+-------+------+-------+------+------+------+
 
+
+TOSTRING
+-----------
+
+Description
+>>>>>>>>>>>
+The following usage options are available, depending on the parameter types and the number of parameters.
+
+Usage with format type: tostring(ANY, [format]): Converts the value in first argument  to provided format type string in second argument. If second argument is not provided, then it converts to default string representation.
+Return type: string
+
+Usage for boolean parameter without format type tostring(boolean): Converts the string to 'TRUE' or 'FALSE'.
+Return type: string
+
+You can use this function with the eval commands and as part of eval expressions. If first argument can be any valid type , second argument is optional and if provided , it needs to be format name to convert to where first argument contains only numbers. If first argument is boolean, then second argument is not used even if its provided.
+
+Format types:
+
+a) "binary" Converts a number to a binary value.
+b) "hex" Converts the number to a hexadecimal value.
+c) "commas" Formats the number with commas. If the number includes a decimal, the function rounds the number to nearest two decimal places.
+d) "duration" Converts the value in seconds to the readable time format HH:MM:SS.
+e) "duration_millis" Converts the value in milliseconds to the readable time format HH:MM:SS.
+
+The format argument is optional and is only used when the value argument is a number. The tostring function supports the following formats.
+
+Basic examples:
+
+You can use this function to convert a number to a string of its binary representation.
+Example::
+city, city.name, city.location.latitude
+    os> source=accounts |  where firstname = "Amber" |  eval balance_binary = tostring(balance, "binary") | fields firstname, balance_binary, balance
+    fetched rows / total rows = 1/1
+    +-----------+------------------+---------+
+    | firstname | balance_binary   | balance |
+    |-----------+------------------+---------|
+    | Amber     | 1001100100111001 | 39225   |
+    +-----------+------------------+---------+
+
+
+You can use this function to convert a number to a string of its hex representation.
+Example::
+
+    os> source=accounts |  where firstname = "Amber" |  eval balance_hex = tostring(balance, "hex") | fields firstname, balance_hex, balance
+    fetched rows / total rows = 1/1
+    +-----------+-------------+---------+
+    | firstname | balance_hex | balance |
+    |-----------+-------------+---------|
+    | Amber     | 9939        | 39225   |
+    +-----------+-------------+---------+
+
+The following example formats the column totalSales to display values  with commas.
+Example::
+
+    os> source=accounts |  where firstname = "Amber" |  eval balance_commas = tostring(balance, "commas") | fields firstname, balance_commas, balance
+    fetched rows / total rows = 1/1
+    +-----------+----------------+---------+
+    | firstname | balance_commas | balance |
+    |-----------+----------------+---------|
+    | Amber     | 39,225         | 39225   |
+    +-----------+----------------+---------+
+
+The following example converts number of seconds to HH:MM:SS format representing hours, minutes and seconds.
+Example::
+
+    os> source=accounts |  where firstname = "Amber" | eval duration = tostring(6500, "duration") | fields firstname, duration
+    fetched rows / total rows = 1/1
+    +-----------+----------+
+    | firstname | duration |
+    |-----------+----------|
+    | Amber     | 01:48:20 |
+    +-----------+----------+
+
+The following example for converts boolean parameter to string.
+Example::
+
+    os> source=accounts |  where firstname = "Amber"| eval `boolean_str` = tostring(1=1)| fields `boolean_str`
+    fetched rows / total rows = 1/1
+    +-------------+
+    | boolean_str |
+    |-------------|
+    | TRUE        |
+    +-------------+
+
