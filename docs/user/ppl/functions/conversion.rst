@@ -147,58 +147,57 @@ Basic examples:
 
 You can use this function to convert a number to a string of its binary representation.
 Example::
-
-    os> source=EMP |  eval salary_binary = tostring(SAL, "binary") | fields ENAME, salary_binary, SAL
+city, city.name, city.location.latitude
+    os> source=accounts |  where firstname = "Amber" |  eval balance_binary = tostring(balance, "binary") | fields firstname, balance_binary, balance
     fetched rows / total rows = 1/1
-    +---------------+------------------+------------+
-    | ENAME         |   salary_binary  |  SAL       |
-    |---------------+------------------+------------+
-    | SMITH         | 1001110001000000 | 80000.00   |
-    +---------------+------------------+------------+
+    +-------------+------------------+-----------+
+    | firstname   | balance_binary   | balance   |
+    |-------------+------------------+-----------|
+    | Amber       | 1001100100111001 | 39225     |
+    +-------------+------------------+-----------+
 
 
 You can use this function to convert a number to a string of its hex representation.
 Example::
 
-    os> source=EMP |  eval salary_hex = tostring(SAL, "hex") | fields ENAME, salary_hex, SAL
+    os> source=accounts |  where firstname = "Amber" |  eval balance_hex = tostring(balance, "hex") | fields firstname, balance_hex, balance
     fetched rows / total rows = 1/1
-    +---------------+---------------+------------+
-    | ENAME         |   salary_hex  |  SAL       |
-    |---------------+------------------+---------+
-    | SMITH         |   13880       | 80000.00   |
-    +---------------+---------------+------------+
+    +-------------+---------------+-----------+
+    | firstname   | balance_hex   | balance   |
+    |-------------+---------------+-----------|
+    | Amber       | 9939          | 39225     |
+    +-------------+---------------+-----------+
 
 The following example formats the column totalSales to display values  with commas.
 Example::
 
-    os> source=EMP |  eval salary_commas = tostring(SAL, "commas") | fields ENAME, salary_commas, SAL
-     fetched rows / total rows = 1/1
-    +---------------+------------------+------------+
-    | ENAME         |   salary_commas  |  SAL       |
-    |---------------+------------------+------------+
-    | SMITH         |   80,000         | 80000.00   |
-    +---------------+------------------+------------+
+    os> source=accounts |  where firstname = "Amber" |  eval balance_commas = tostring(balance, "commas") | fields firstname, balance_commas, balance
+    fetched rows / total rows = 1/1
+    +-------------+------------------+-----------+
+    | firstname   | balance_commas   | balance   |
+    |-------------+------------------+-----------|
+    | Amber       | 39,225           | 39225     |
+    +-------------+------------------+-----------+
 
 The following example converts number of seconds to HH:MM:SS format representing hours, minutes and seconds.
 Example::
 
-    os> source=EMP |  eval duration = tostring(6500, "duration") | fields ENAME, duration
-          fetched rows / total rows = 1/1
-    +---------------+-------------+
-    | ENAME         |   duration  |
-    |---------------+-------------+
-    | SMITH         |   01:48:20  |
-    +---------------+-------------+
+    os> source=accounts |  where firstname = "Amber" | eval duration = tostring(6500, "duration") | fields firstname, duration
+    fetched rows / total rows = 1/1
+    +-------------+------------+
+    | firstname   | duration   |
+    |-------------+------------|
+    | Amber       | 01:48:20   |
+    +-------------+------------+
 
 The following example for converts boolean parameter to string.
 Example::
 
-    os> source=people | eval `boolean_str` = tostring(1=1)| fields `boolean_str`
+    os> source=accounts |  where firstname = "Amber"| eval `boolean_str` = tostring(1=1)| fields `boolean_str`
     fetched rows / total rows = 1/1
-
-    +---------------------+
-    | boolean_str         |
-    |---------------------+
-    | TRUE                |
-    +---------------------+
+    +---------------+
+    | boolean_str   |
+    |---------------|
+    | TRUE          |
+    +---------------+
 
