@@ -114,6 +114,12 @@ public class PPLOperandTypes {
               SqlTypeFamily.INTEGER,
               SqlTypeFamily.INTEGER));
 
+  public static final UDFOperandMetadata NUMERIC_STRING_OR_STRING_STRING =
+      UDFOperandMetadata.wrap(
+          (CompositeOperandTypeChecker)
+              (OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING))
+                  .or(OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING)));
+
   public static final UDFOperandMetadata NUMERIC_NUMERIC_OPTIONAL_NUMERIC =
       UDFOperandMetadata.wrap(
           (CompositeOperandTypeChecker)
