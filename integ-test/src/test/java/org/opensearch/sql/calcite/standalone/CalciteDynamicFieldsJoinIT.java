@@ -52,7 +52,7 @@ public class CalciteDynamicFieldsJoinIT extends CalcitePPLPermissiveIntegTestCas
         "calcite:\n"
             + "  logical: |\n"
             + "    LogicalSystemLimit(fetch=[200], type=[QUERY_SIZE_LIMIT])\n"
-            + "      LogicalProject(a1=[COALESCE(ITEM($5, 'a1'), $0)], a2=[$1], a3=[$4],"
+            + "      LogicalProject(a1=[COALESCE(ITEM($5, 'a1'), $0)], a2=[$3], a3=[$4],"
             + " a4=[ITEM(MAP_CONCAT($2, $5), 'a4')], a5=[ITEM(MAP_CONCAT($2, $5), 'a5')])\n"
             + "        LogicalJoin(condition=[=($1, $3)], joinType=[inner])\n"
             + "          LogicalProject(a1=[$0], a2=[$1], _MAP=[$8])\n"
@@ -64,7 +64,7 @@ public class CalciteDynamicFieldsJoinIT extends CalcitePPLPermissiveIntegTestCas
             + "    EnumerableCalc(expr#0..5=[{inputs}], expr#6=['a1'], expr#7=[ITEM($t5, $t6)],"
             + " expr#8=[COALESCE($t7, $t0)], expr#9=[MAP_CONCAT($t2, $t5)], expr#10=['a4'],"
             + " expr#11=[ITEM($t9, $t10)], expr#12=['a5'], expr#13=[ITEM($t9, $t12)], a1=[$t8],"
-            + " a2=[$t1], a3=[$t4], a4=[$t11], a5=[$t13])\n"
+            + " a2=[$t3], a3=[$t4], a4=[$t11], a5=[$t13])\n"
             + "      EnumerableLimit(fetch=[200])\n"
             + "        EnumerableMergeJoin(condition=[=($1, $3)], joinType=[inner])\n"
             + "          EnumerableSort(sort0=[$1], dir0=[ASC])\n"
@@ -157,7 +157,7 @@ public class CalciteDynamicFieldsJoinIT extends CalcitePPLPermissiveIntegTestCas
             + "            EnumerableLimit(fetch=[50000])\n"
             + "              EnumerableCalc(expr#0..8=[{inputs}], a3=[$t1], _MAP=[$t8])\n"
             + "                CalciteEnumerableIndexScan(table=[[OpenSearch,"
-            + " test_dynamic_right]])");
+            + " test_dynamic_right]])\n");
 
     JSONObject result = executeQuery(query);
     verifyJoinResult(result);
@@ -173,7 +173,7 @@ public class CalciteDynamicFieldsJoinIT extends CalcitePPLPermissiveIntegTestCas
         "calcite:\n"
             + "  logical: |\n"
             + "    LogicalSystemLimit(fetch=[200], type=[QUERY_SIZE_LIMIT])\n"
-            + "      LogicalProject(a1=[COALESCE(ITEM($5, 'a1'), $0)], a2=[$1], a3=[$4],"
+            + "      LogicalProject(a1=[COALESCE(ITEM($5, 'a1'), $0)], a2=[$3], a3=[$4],"
             + " a4=[ITEM(MAP_CONCAT($2, $5), 'a4')], a5=[ITEM(MAP_CONCAT($2, $5), 'a5')])\n"
             + "        LogicalJoin(condition=[=($0, ITEM($5, 'a1'))], joinType=[inner])\n"
             + "          LogicalProject(a1=[$0], a2=[$1], _MAP=[$8])\n"
@@ -183,17 +183,17 @@ public class CalciteDynamicFieldsJoinIT extends CalcitePPLPermissiveIntegTestCas
             + "              CalciteLogicalIndexScan(table=[[OpenSearch, test_dynamic_right]])\n"
             + "  physical: |\n"
             + "    EnumerableCalc(expr#0..5=[{inputs}], expr#6=['a1'], expr#7=[ITEM($t4, $t6)],"
-            + " expr#8=[COALESCE($t7, $t0)], expr#9=[MAP_CONCAT($t2, $t4)], expr#10=['a4'],"
+            + " expr#8=[COALESCE($t7, $t0)], expr#9=[MAP_CONCAT($t1, $t4)], expr#10=['a4'],"
             + " expr#11=[ITEM($t9, $t10)], expr#12=['a5'], expr#13=[ITEM($t9, $t12)], a1=[$t8],"
-            + " a2=[$t1], a3=[$t3], a4=[$t11], a5=[$t13])\n"
+            + " a2=[$t2], a3=[$t3], a4=[$t11], a5=[$t13])\n"
             + "      EnumerableLimit(fetch=[200])\n"
             + "        EnumerableMergeJoin(condition=[=($0, $5)], joinType=[inner])\n"
             + "          EnumerableSort(sort0=[$0], dir0=[ASC])\n"
-            + "            EnumerableCalc(expr#0..8=[{inputs}], proj#0..1=[{exprs}], _MAP=[$t8])\n"
+            + "            EnumerableCalc(expr#0..8=[{inputs}], a1=[$t0], _MAP=[$t8])\n"
             + "              CalciteEnumerableIndexScan(table=[[OpenSearch, test_dynamic_left]])\n"
-            + "          EnumerableSort(sort0=[$2], dir0=[ASC])\n"
+            + "          EnumerableSort(sort0=[$3], dir0=[ASC])\n"
             + "            EnumerableCalc(expr#0..8=[{inputs}], expr#9=['a1'], expr#10=[ITEM($t8,"
-            + " $t9)], a3=[$t1], _MAP=[$t8], $f2=[$t10])\n"
+            + " $t9)], proj#0..1=[{exprs}], _MAP=[$t8], $f3=[$t10])\n"
             + "              EnumerableLimit(fetch=[50000])\n"
             + "                CalciteEnumerableIndexScan(table=[[OpenSearch,"
             + " test_dynamic_right]])\n");
