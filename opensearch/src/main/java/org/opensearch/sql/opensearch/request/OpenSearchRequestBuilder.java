@@ -206,6 +206,22 @@ public class OpenSearchRequestBuilder {
   }
 
   /**
+   * Push down query to DSL request specific for Calcite. It won't update the current query builder
+   * due to Calcite's special planning mechanism.
+   *
+   * @param query query request
+   */
+  public void pushDownFilterForCalcite(QueryBuilder query) {
+    QueryBuilder current = sourceBuilder.query();
+
+    if (current == null) {
+      sourceBuilder.query(query);
+    } else {
+      sourceBuilder.query(QueryBuilders.boolQuery().filter(current).filter(query));
+    }
+  }
+
+  /**
    * Push down aggregation to DSL request.
    *
    * @param aggregationBuilder pair of aggregation query and aggregation parser.
