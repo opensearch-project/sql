@@ -364,8 +364,7 @@ public class CalciteToolsHelper {
         String errorMsg = e.getMessage();
         if (errorMsg != null
             && errorMsg.contains("Error while preparing plan")
-            && errorMsg.contains("WIDTH_BUCKET")
-            && (errorMsg.contains("OVER") || errorMsg.contains("window"))) {
+            && errorMsg.contains("WIDTH_BUCKET")) {
           throw new UnsupportedOperationException(
               "The 'bins' parameter on timestamp fields is not supported when pushdown is"
                   + " disabled.");
