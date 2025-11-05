@@ -1137,13 +1137,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     groupExprList.addAll(node.getGroupExprList());
 
-    // add stats hint to LogicalAggregation
+    // Add stats hint to LogicalAggregation.
     boolean toAddHintsOnAggregate =
-        nonNullGroupMask.nextClearBit(0)
-                >= groupExprList.size() // This checks if all group-bys should be nonnull
-            && !groupExprList.isEmpty()
-            && !(groupExprList.size() == 1 && getTimeSpanField(span).isPresent());
-    // add isNotNull filter before aggregation for non-nullable buckets
+        !groupExprList.isEmpty()
+            // This checks if all group-bys should be nonnull
+            && nonNullGroupMask.nextClearBit(0) >= groupExprList.size();
+    // Add isNotNull filter before aggregation for non-nullable buckets
     List<RexNode> groupByList =
         groupExprList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
     List<RexNode> nonNullGroupBys =
