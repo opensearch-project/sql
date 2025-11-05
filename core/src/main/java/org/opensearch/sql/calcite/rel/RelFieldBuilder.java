@@ -170,6 +170,10 @@ public class RelFieldBuilder {
     boolean leftHasDynamicFields = leftAllFields.contains(DYNAMIC_FIELDS_MAP);
     boolean rightHasDynamicFields = rightAllFields.contains(DYNAMIC_FIELDS_MAP);
 
+    if (!leftHasDynamicFields && !rightHasDynamicFields) {
+      return;
+    }
+
     List<JoinedField> fields = collectStaticFieldsInfo(leftAllFields, rightAllFields);
     Optional<JoinedField> leftMap =
         leftHasDynamicFields ? Optional.of(getLeftDynamicFieldMapInfo()) : Optional.empty();
