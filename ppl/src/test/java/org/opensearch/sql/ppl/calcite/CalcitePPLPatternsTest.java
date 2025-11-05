@@ -351,11 +351,11 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT SAFE_CAST(`t20`.`patterns_field`['pattern'] AS STRING) `patterns_field`,"
             + " SAFE_CAST(`t20`.`patterns_field`['pattern_count'] AS BIGINT) `pattern_count`,"
-            + " SAFE_CAST(`t20`.`patterns_field`['sample_logs'] AS VARCHAR ARRAY) `sample_logs`\n"
+            + " SAFE_CAST(`t20`.`patterns_field`['sample_logs'] AS ARRAY< STRING >) `sample_logs`\n"
             + "FROM (SELECT `pattern`(`ENAME`, 10, 100000, FALSE) `patterns_field`\n"
             + "FROM `scott`.`EMP`) `$cor0`,\n"
-            + "LATERAL UNNEST (SELECT `$cor0`.`patterns_field`\n"
-            + "FROM (VALUES (0)) `t` (`ZERO`)) `t2` (`patterns_field`) `t20`";
+            + "LATERAL UNNEST((SELECT `$cor0`.`patterns_field`\n"
+            + "FROM (VALUES (0)) `t` (`ZERO`))) `t20` (`patterns_field`)";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -386,12 +386,12 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
         "SELECT SAFE_CAST(`t20`.`patterns_field`['pattern'] AS STRING) `patterns_field`,"
             + " SAFE_CAST(`t20`.`patterns_field`['pattern_count'] AS BIGINT) `pattern_count`,"
             + " SAFE_CAST(`t20`.`patterns_field`['tokens'] AS MAP< VARCHAR, VARCHAR ARRAY >)"
-            + " `tokens`, SAFE_CAST(`t20`.`patterns_field`['sample_logs'] AS VARCHAR ARRAY)"
+            + " `tokens`, SAFE_CAST(`t20`.`patterns_field`['sample_logs'] AS ARRAY< STRING >)"
             + " `sample_logs`\n"
             + "FROM (SELECT `pattern`(`ENAME`, 10, 100000, TRUE) `patterns_field`\n"
             + "FROM `scott`.`EMP`) `$cor0`,\n"
-            + "LATERAL UNNEST (SELECT `$cor0`.`patterns_field`\n"
-            + "FROM (VALUES (0)) `t` (`ZERO`)) `t2` (`patterns_field`) `t20`";
+            + "LATERAL UNNEST((SELECT `$cor0`.`patterns_field`\n"
+            + "FROM (VALUES (0)) `t` (`ZERO`))) `t20` (`patterns_field`)";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -421,13 +421,13 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `$cor0`.`DEPTNO`, SAFE_CAST(`t20`.`patterns_field`['pattern'] AS STRING)"
             + " `patterns_field`, SAFE_CAST(`t20`.`patterns_field`['pattern_count'] AS BIGINT)"
-            + " `pattern_count`, SAFE_CAST(`t20`.`patterns_field`['sample_logs'] AS VARCHAR ARRAY)"
-            + " `sample_logs`\n"
+            + " `pattern_count`, SAFE_CAST(`t20`.`patterns_field`['sample_logs'] AS ARRAY< STRING"
+            + " >) `sample_logs`\n"
             + "FROM (SELECT `DEPTNO`, `pattern`(`ENAME`, 10, 100000, FALSE) `patterns_field`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`) `$cor0`,\n"
-            + "LATERAL UNNEST (SELECT `$cor0`.`patterns_field`\n"
-            + "FROM (VALUES (0)) `t` (`ZERO`)) `t2` (`patterns_field`) `t20`";
+            + "LATERAL UNNEST((SELECT `$cor0`.`patterns_field`\n"
+            + "FROM (VALUES (0)) `t` (`ZERO`))) `t20` (`patterns_field`)";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -460,12 +460,12 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
             + " `patterns_field`, SAFE_CAST(`t20`.`patterns_field`['pattern_count'] AS BIGINT)"
             + " `pattern_count`, SAFE_CAST(`t20`.`patterns_field`['tokens'] AS MAP< VARCHAR,"
             + " VARCHAR ARRAY >) `tokens`, SAFE_CAST(`t20`.`patterns_field`['sample_logs'] AS"
-            + " VARCHAR ARRAY) `sample_logs`\n"
+            + " ARRAY< STRING >) `sample_logs`\n"
             + "FROM (SELECT `DEPTNO`, `pattern`(`ENAME`, 10, 100000, TRUE) `patterns_field`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`) `$cor0`,\n"
-            + "LATERAL UNNEST (SELECT `$cor0`.`patterns_field`\n"
-            + "FROM (VALUES (0)) `t` (`ZERO`)) `t2` (`patterns_field`) `t20`";
+            + "LATERAL UNNEST((SELECT `$cor0`.`patterns_field`\n"
+            + "FROM (VALUES (0)) `t` (`ZERO`))) `t20` (`patterns_field`)";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

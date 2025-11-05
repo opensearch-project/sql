@@ -1,0 +1,28 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[count(), range_bucket]"
+  children:
+    - name: AggregationOperator
+      description:
+        aggregators: "[count()]"
+        groupBy: "[range_bucket]"
+      children:
+        - name: OpenSearchEvalOperator
+          description:
+            expressions:
+              range_bucket: "CaseClause(whenClauses=[WhenClause(condition=<(metrics.size,\
+                \ -10), result=\"range_1\"), WhenClause(condition=and(>=(metrics.size,\
+                \ -10), <(metrics.size, 10)), result=\"range_2\"), WhenClause(condition=and(>=(metrics.size,\
+                \ 10), <(metrics.size, 100)), result=\"range_3\"), WhenClause(condition=and(>=(metrics.size,\
+                \ 100), <(metrics.size, 1000)), result=\"range_4\"), WhenClause(condition=and(>=(metrics.size,\
+                \ 1000), <(metrics.size, 2000)), result=\"range_5\"), WhenClause(condition=>=(metrics.size,\
+                \ 2000), result=\"range_6\")], defaultResult=null)"
+          children:
+            - name: OpenSearchIndexScan
+              description:
+                request: "OpenSearchQueryRequest(indexName=big5, sourceBuilder={\"\
+                  from\":0,\"size\":10000,\"timeout\":\"1m\"}, needClean=true, searchDone=false,\
+                  \ pitId=*,\
+                  \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
+              children: []

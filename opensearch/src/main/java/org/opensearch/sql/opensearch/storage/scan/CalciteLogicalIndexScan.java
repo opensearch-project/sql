@@ -45,8 +45,8 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
-import org.opensearch.sql.opensearch.planner.physical.EnumerableIndexScanRule;
-import org.opensearch.sql.opensearch.planner.physical.OpenSearchIndexRules;
+import org.opensearch.sql.opensearch.planner.rules.EnumerableIndexScanRule;
+import org.opensearch.sql.opensearch.planner.rules.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.QueryExpression;
@@ -60,6 +60,7 @@ import org.opensearch.sql.opensearch.storage.scan.context.LimitDigest;
 import org.opensearch.sql.opensearch.storage.scan.context.OSRequestBuilderAction;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownType;
+import org.opensearch.sql.opensearch.storage.scan.context.RareTopDigest;
 import org.opensearch.sql.opensearch.storage.scan.context.SortExpressionInfo;
 
 /** The logical relational operator representing a scan of an OpenSearchIndex type. */
@@ -103,6 +104,11 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         cluster, traitSet, hints, table, osIndex, schema, pushDownContext);
   }
 
+  public CalciteLogicalIndexScan copy() {
+    return new CalciteLogicalIndexScan(
+        getCluster(), traitSet, hints, table, osIndex, schema, pushDownContext.clone());
+  }
+
   public CalciteLogicalIndexScan copyWithNewSchema(RelDataType schema) {
     // Do shallow copy for requestBuilder, thus requestBuilder among different plans produced in the
     // optimization process won't affect each other.
@@ -132,8 +138,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
 
   public AbstractRelNode pushDownFilter(Filter filter) {
     try {
-      RelDataType rowType = filter.getRowType();
-      CalciteLogicalIndexScan newScan = this.copyWithNewSchema(filter.getRowType());
+      RelDataType rowType = this.getRowType();
       List<String> schema = this.getRowType().getFieldNames();
       Map<String, ExprType> fieldTypes =
           this.osIndex.getAllFieldTypes().entrySet().stream()
@@ -143,6 +148,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
           PredicateAnalyzer.analyzeExpression(
               filter.getCondition(), schema, fieldTypes, rowType, getCluster());
       // TODO: handle the case where condition contains a score function
+      CalciteLogicalIndexScan newScan = this.copy();
       newScan.pushDownContext.add(
           queryExpression.getScriptCount() > 0 ? PushDownType.SCRIPT : PushDownType.FILTER,
           new FilterDigest(
@@ -285,7 +291,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     return newTraitSet;
   }
 
-  public CalciteLogicalIndexScan pushDownSortAggregateMetrics(Sort sort) {
+  public CalciteLogicalIndexScan pushDownSortAggregateMeasure(Sort sort) {
     try {
       if (!pushDownContext.isAggregatePushed()) return null;
       List<AggregationBuilder> aggregationBuilders =
@@ -300,20 +306,36 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       if (!isAllCollationNamesEqualAggregators(collationNames)) {
         return null;
       }
+      CalciteLogicalIndexScan newScan = copyWithNewTraitSet(sort.getTraitSet());
       AbstractAction<?> newAction =
           (AggregationBuilderAction)
               aggAction ->
-                  aggAction.pushDownSortAggMetrics(
+                  aggAction.rePushDownSortAggMeasure(
                       sort.getCollation().getFieldCollations(), rowType.getFieldNames());
       Object digest = sort.getCollation().getFieldCollations();
-      pushDownContext.add(PushDownType.SORT_AGG_METRICS, digest, newAction);
-      return copyWithNewTraitSet(sort.getTraitSet());
+      newScan.pushDownContext.add(PushDownType.SORT_AGG_METRICS, digest, newAction);
+      return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Cannot pushdown the sort aggregate {}", sort, e);
       }
     }
     return null;
+  }
+
+  public CalciteLogicalIndexScan pushDownRareTop(Project project, RareTopDigest digest) {
+    try {
+      CalciteLogicalIndexScan newScan = copyWithNewSchema(project.getRowType());
+      AbstractAction<?> newAction =
+          (AggregationBuilderAction) aggAction -> aggAction.rePushDownRareTop(digest);
+      newScan.pushDownContext.add(PushDownType.RARE_TOP, digest, newAction);
+      return newScan;
+    } catch (Exception e) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Cannot pushdown {}", digest, e);
+      }
+      return null;
+    }
   }
 
   public AbstractRelNode pushDownAggregate(Aggregate aggregate, Project project) {

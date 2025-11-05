@@ -1,0 +1,14 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[sum(AdvEngineID), count(), avg(ResolutionWidth)]"
+  children:
+    - name: OpenSearchIndexScan
+      description:
+        request: "OpenSearchQueryRequest(indexName=hits, sourceBuilder={\"from\":0,\"\
+          size\":0,\"timeout\":\"1m\",\"aggregations\":{\"sum(AdvEngineID)\":{\"sum\"\
+          :{\"field\":\"AdvEngineID\"}},\"count()\":{\"value_count\":{\"field\":\"\
+          _index\"}},\"avg(ResolutionWidth)\":{\"avg\":{\"field\":\"ResolutionWidth\"\
+          }}}}, needClean=true, searchDone=false, pitId=*, cursorKeepAlive=null,\
+          \ searchAfter=null, searchResponse=null)"
+      children: []

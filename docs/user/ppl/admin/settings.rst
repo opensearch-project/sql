@@ -211,6 +211,7 @@ The behaviours it controlled includes:
 
 - The default value of argument ``bucket_nullable`` in ``stats`` command. Check `stats command <../cmd/stats.rst>`_ for details.
 - The return value of ``divide`` and ``/`` operator. Check `expressions <../functions/expressions.rst>`_ for details.
+- The default value of argument ``usenull`` in ``top`` and ``rare`` commands. Check `top command <../cmd/top.rst>`_  and `rare command <../cmd/rare.rst>`_ for details.
 
 Example 1
 -------

@@ -7,29 +7,27 @@ package org.opensearch.sql.calcite;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
 /**
- * Utility class for unifying schemas across multiple RelNodes with type conflict resolution. Uses
- * the same strategy as append command - renames conflicting fields to avoid type conflicts.
+ * Utility class for unifying schemas across multiple RelNodes. Throws an exception when type
+ * conflicts are detected.
  */
 public class SchemaUnifier {
 
   /**
-   * Builds a unified schema for multiple nodes with type conflict resolution.
+   * Builds a unified schema for multiple nodes. Throws an exception if type conflicts are detected.
    *
    * @param nodes List of RelNodes to unify schemas for
    * @param context Calcite plan context
    * @return List of projected RelNodes with unified schema
+   * @throws IllegalArgumentException if type conflicts are detected
    */
   public static List<RelNode> buildUnifiedSchemaWithConflictResolution(
       List<RelNode> nodes, CalcitePlanContext context) {
@@ -41,7 +39,7 @@ public class SchemaUnifier {
       return nodes;
     }
 
-    // Step 1: Build the unified schema by processing all nodes
+    // Step 1: Build the unified schema by processing all nodes (throws on conflict)
     List<SchemaField> unifiedSchema = buildUnifiedSchema(nodes);
 
     // Step 2: Create projections for each node to align with unified schema
@@ -55,53 +53,47 @@ public class SchemaUnifier {
       projectedNodes.add(projectedNode);
     }
 
-    // Step 3: Unify names to handle type conflicts (this creates age0, age1, etc.)
-    List<String> uniqueNames =
-        SqlValidatorUtil.uniquify(fieldNames, SqlValidatorUtil.EXPR_SUGGESTER, true);
-
-    // Step 4: Re-project with unique names if needed
-    if (!uniqueNames.equals(fieldNames)) {
-      List<RelNode> renamedNodes = new ArrayList<>();
-      for (RelNode node : projectedNodes) {
-        RelNode renamedNode =
-            context.relBuilder.push(node).project(context.relBuilder.fields(), uniqueNames).build();
-        renamedNodes.add(renamedNode);
-      }
-      return renamedNodes;
-    }
-
     return projectedNodes;
   }
 
   /**
-   * Builds a unified schema by merging fields from all nodes. Fields with the same name but
-   * different types are added as separate entries (which will be renamed during uniquification).
+   * Builds a unified schema by merging fields from all nodes. Throws an exception if fields with
+   * the same name have different types.
    *
    * @param nodes List of RelNodes to merge schemas from
-   * @return List of SchemaField representing the unified schema (may contain duplicate names)
+   * @return List of SchemaField representing the unified schema
+   * @throws IllegalArgumentException if type conflicts are detected
    */
   private static List<SchemaField> buildUnifiedSchema(List<RelNode> nodes) {
     List<SchemaField> schema = new ArrayList<>();
-    Map<String, Set<RelDataType>> seenFields = new HashMap<>();
+    Map<String, RelDataType> seenFields = new HashMap<>();
 
     for (RelNode node : nodes) {
       for (RelDataTypeField field : node.getRowType().getFieldList()) {
         String fieldName = field.getName();
         RelDataType fieldType = field.getType();
 
-        // Track which (name, type) combinations we've seen
-        Set<RelDataType> typesForName = seenFields.computeIfAbsent(fieldName, k -> new HashSet<>());
-
-        if (!typesForName.contains(fieldType)) {
-          // New field or same name with different type - add to schema
+        RelDataType existingType = seenFields.get(fieldName);
+        if (existingType == null) {
+          // New field - add to schema
           schema.add(new SchemaField(fieldName, fieldType));
-          typesForName.add(fieldType);
+          seenFields.put(fieldName, fieldType);
+        } else if (!areTypesCompatible(existingType, fieldType)) {
+          // Same field name but different type - throw exception
+          throw new IllegalArgumentException(
+              String.format(
+                  "Unable to process column '%s' due to incompatible types: '%s' and '%s'",
+                  fieldName, existingType.getSqlTypeName(), fieldType.getSqlTypeName()));
         }
         // If we've seen this exact (name, type) combination, skip it
       }
     }
 
     return schema;
+  }
+
+  private static boolean areTypesCompatible(RelDataType type1, RelDataType type2) {
+    return type1.getSqlTypeName() != null && type1.getSqlTypeName().equals(type2.getSqlTypeName());
   }
 
   /**
@@ -125,8 +117,8 @@ public class SchemaUnifier {
       RelDataType expectedType = schemaField.getType();
       RelDataTypeField nodeField = nodeFieldMap.get(fieldName);
 
-      if (nodeField != null && nodeField.getType().equals(expectedType)) {
-        // Field exists with matching type - use it
+      if (nodeField != null && areTypesCompatible(nodeField.getType(), expectedType)) {
+        // Field exists with compatible type - use it
         projection.add(context.rexBuilder.makeInputRef(node, nodeField.getIndex()));
       } else {
         // Field missing or type mismatch - project NULL

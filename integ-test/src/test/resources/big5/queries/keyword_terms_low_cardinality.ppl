@@ -1,4 +1,22 @@
+/*
+{
+  "name": "keyword-terms-low-cardinality",
+  "operation-type": "search",
+  "index": "{{index_name | default('big5')}}",
+  "body": {
+    "size": 0,
+    "aggs": {
+      "country": {
+        "terms": {
+          "field": "aws.cloudwatch.log_stream",
+          "size": 50
+        }
+      }
+    }
+  }
+}
+*/
 source = big5
 | stats count() as country by `aws.cloudwatch.log_stream`
 | sort - country
-| head 100
+| head 50

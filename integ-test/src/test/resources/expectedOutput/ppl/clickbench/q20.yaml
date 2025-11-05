@@ -1,0 +1,13 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[UserID]"
+  children:
+    - name: OpenSearchIndexScan
+      description:
+        request: "OpenSearchQueryRequest(indexName=hits, sourceBuilder={\"from\":0,\"\
+          size\":10000,\"timeout\":\"1m\",\"query\":{\"term\":{\"UserID\":{\"value\"\
+          :435090932899640449,\"boost\":1.0}}},\"_source\":{\"includes\":[\"UserID\"\
+          ],\"excludes\":[]}}, needClean=true, searchDone=false, pitId=*,\
+          \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
+      children: []

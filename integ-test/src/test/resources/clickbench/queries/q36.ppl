@@ -4,6 +4,6 @@ FROM hits GROUP BY ClientIP, ClientIP - 1, ClientIP - 2, ClientIP - 3 ORDER BY c
 */
 source=hits
 | eval `ClientIP - 1` = ClientIP - 1, `ClientIP - 2` = ClientIP - 2, `ClientIP - 3` = ClientIP - 3
-| stats count() as c by `ClientIP`, `ClientIP - 1`, `ClientIP - 2`, `ClientIP - 3`
+| stats bucket_nullable=false count() as c by `ClientIP`, `ClientIP - 1`, `ClientIP - 2`, `ClientIP - 3`
 | sort - c
 | head 10

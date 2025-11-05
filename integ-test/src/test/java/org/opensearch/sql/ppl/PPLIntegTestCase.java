@@ -392,4 +392,18 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
       throw new RuntimeException(e);
     }
   }
+
+  protected String loadExpectedPlan(String fileName) throws IOException {
+    String prefix;
+    if (isCalciteEnabled()) {
+      if (isPushdownDisabled()) {
+        prefix = "expectedOutput/calcite_no_pushdown/";
+      } else {
+        prefix = "expectedOutput/calcite/";
+      }
+    } else {
+      prefix = "expectedOutput/ppl/";
+    }
+    return loadFromFile(prefix + fileName);
+  }
 }

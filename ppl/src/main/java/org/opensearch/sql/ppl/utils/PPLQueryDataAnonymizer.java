@@ -85,6 +85,7 @@ import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SpanBin;
+import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Timechart;
@@ -377,19 +378,29 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
         child, String.join(" ", visitExpressionList(node.getWindowFunctionList())).trim());
   }
 
+  @Override
+  public String visitStreamWindow(StreamWindow node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    return StringUtils.format(
+        "%s | streamstats %s",
+        child, String.join(" ", visitExpressionList(node.getWindowFunctionList())).trim());
+  }
+
   /** Build {@link LogicalRareTopN}. */
   @Override
   public String visitRareTopN(RareTopN node, String context) {
     final String child = node.getChild().get(0).accept(this, context);
     ArgumentMap arguments = ArgumentMap.of(node.getArguments());
-    Integer noOfResults = (Integer) arguments.get("noOfResults").getValue();
-    String countField = (String) arguments.get("countField").getValue();
-    Boolean showCount = (Boolean) arguments.get("showCount").getValue();
+    Integer noOfResults = node.getNoOfResults();
+    String countField = (String) arguments.get(RareTopN.Option.countField.name()).getValue();
+    Boolean showCount = (Boolean) arguments.get(RareTopN.Option.showCount.name()).getValue();
+    Boolean useNull = (Boolean) arguments.get(RareTopN.Option.useNull.name()).getValue();
     String fields = visitFieldList(node.getFields());
     String group = visitExpressionList(node.getGroupExprList());
     String options =
         isCalciteEnabled(settings)
-            ? StringUtils.format("countield='%s' showcount=%s ", countField, showCount)
+            ? StringUtils.format(
+                "countield='%s' showcount=%s usenull=%s ", countField, showCount, useNull)
             : "";
     return StringUtils.format(
         "%s | %s %d %s%s",

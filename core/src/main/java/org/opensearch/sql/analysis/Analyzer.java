@@ -92,6 +92,7 @@ import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Timechart;
@@ -380,8 +381,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     fields.forEach(
         field -> newEnv.define(new Symbol(Namespace.FIELD_NAME, field.toString()), field.type()));
 
-    List<Argument> options = node.getArguments();
-    Integer noOfResults = (Integer) options.get(0).getValue().getValue();
+    Integer noOfResults = node.getNoOfResults();
 
     return new LogicalRareTopN(child, node.getCommandType(), noOfResults, fields, groupBys);
   }
@@ -747,6 +747,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     return new LogicalTrendline(
         buildSort(child, context, 0, Collections.singletonList(node.getSortByField().get())),
         computationsAndTypes.build());
+  }
+
+  @Override
+  public LogicalPlan visitStreamWindow(StreamWindow node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Streamstats");
   }
 
   @Override

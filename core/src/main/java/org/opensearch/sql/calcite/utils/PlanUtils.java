@@ -62,13 +62,15 @@ public interface PlanUtils {
   /** this is only for dedup command, do not reuse it in other command */
   String ROW_NUMBER_COLUMN_FOR_DEDUP = "_row_number_dedup_";
 
-  String ROW_NUMBER_COLUMN_NAME = "_row_number_";
-  String ROW_NUMBER_COLUMN_NAME_MAIN = "_row_number_main_";
-  String ROW_NUMBER_COLUMN_NAME_SUBSEARCH = "_row_number_subsearch_";
+  String ROW_NUMBER_COLUMN_FOR_RARE_TOP = "_row_number_rare_top_";
+  String ROW_NUMBER_COLUMN_FOR_MAIN = "_row_number_main_";
+  String ROW_NUMBER_COLUMN_FOR_SUBSEARCH = "_row_number_subsearch_";
+  String ROW_NUMBER_COLUMN_FOR_STREAMSTATS = "__stream_seq__";
 
   static SpanUnit intervalUnitToSpanUnit(IntervalUnit unit) {
     return switch (unit) {
-      case MICROSECOND -> SpanUnit.MILLISECOND;
+      case MICROSECOND -> SpanUnit.MICROSECOND;
+      case MILLISECOND -> SpanUnit.MILLISECOND;
       case SECOND -> SpanUnit.SECOND;
       case MINUTE -> SpanUnit.MINUTE;
       case HOUR -> SpanUnit.HOUR;
@@ -84,9 +86,12 @@ public interface PlanUtils {
 
   static IntervalUnit spanUnitToIntervalUnit(SpanUnit unit) {
     switch (unit) {
+      case MICROSECOND:
+      case US:
+        return IntervalUnit.MICROSECOND;
       case MILLISECOND:
       case MS:
-        return IntervalUnit.MICROSECOND;
+        return IntervalUnit.MILLISECOND;
       case SECOND:
       case SECONDS:
       case SEC:
@@ -443,10 +448,18 @@ public interface PlanUtils {
     return rexNode;
   }
 
-  /** Check if contains RexOver */
+  /** Check if contains RexOver introduced by dedup */
   static boolean containsRowNumberDedup(LogicalProject project) {
     return project.getProjects().stream()
-        .anyMatch(p -> p instanceof RexOver && p.getKind() == SqlKind.ROW_NUMBER);
+            .anyMatch(p -> p instanceof RexOver && p.getKind() == SqlKind.ROW_NUMBER)
+        && project.getRowType().getFieldNames().contains(ROW_NUMBER_COLUMN_FOR_DEDUP);
+  }
+
+  /** Check if contains RexOver introduced by dedup top/rare */
+  static boolean containsRowNumberRareTop(LogicalProject project) {
+    return project.getProjects().stream()
+            .anyMatch(p -> p instanceof RexOver && p.getKind() == SqlKind.ROW_NUMBER)
+        && project.getRowType().getFieldNames().contains(ROW_NUMBER_COLUMN_FOR_RARE_TOP);
   }
 
   /** Get all RexWindow list from LogicalProject */
