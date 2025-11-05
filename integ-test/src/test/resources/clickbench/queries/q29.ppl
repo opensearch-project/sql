@@ -6,7 +6,7 @@ FROM hits WHERE Referer <> '' GROUP BY k HAVING COUNT(*) > 100000 ORDER BY l DES
 source=hits
 | Referer != ''
 | eval k = regexp_replace(Referer, '^https?://(?:www\.)?([^/]+)/.*$', '\1')
-| stats avg(length(Referer)) as l, count() as c, min(Referer) by k
+| stats bucket_nullable=false avg(length(Referer)) as l, count() as c, min(Referer) by k
 | where c > 100000
 | sort - l
 | head 25
