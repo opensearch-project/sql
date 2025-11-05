@@ -360,6 +360,16 @@ public class CalciteToolsHelper {
         final RelRunner runner = connection.unwrap(RelRunner.class);
         return runner.prepareStatement(rel);
       } catch (SQLException e) {
+        // Detect if error is due to window functions in unsupported context (bins on time fields)
+        String errorMsg = e.getMessage();
+        if (errorMsg != null
+            && errorMsg.contains("Error while preparing plan")
+            && errorMsg.contains("WIDTH_BUCKET")
+            && (errorMsg.contains("OVER") || errorMsg.contains("window"))) {
+          throw new UnsupportedOperationException(
+              "The 'bins' parameter on timestamp fields is not supported when pushdown is"
+                  + " disabled.");
+        }
         throw Util.throwAsRuntime(e);
       }
     }

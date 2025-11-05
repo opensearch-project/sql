@@ -28,7 +28,7 @@ public class CountBinHandler implements BinHandler {
     CountBin countBin = (CountBin) node;
 
     // Create validated binnable field (validates that field is numeric or time-based)
-    // Note: bins parameter works with both numeric and time-based fields
+    // Note: bins parameter on time-based fields requires pushdown to be enabled
     String fieldName = BinFieldValidator.extractFieldName(node);
     BinnableField field = new BinnableField(fieldExpr, fieldExpr.getType(), fieldName);
 
