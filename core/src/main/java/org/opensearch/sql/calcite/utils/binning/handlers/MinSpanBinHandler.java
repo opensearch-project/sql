@@ -18,7 +18,8 @@ import org.opensearch.sql.calcite.CalciteRexNodeVisitor;
 import org.opensearch.sql.calcite.utils.binning.BinFieldValidator;
 import org.opensearch.sql.calcite.utils.binning.BinHandler;
 import org.opensearch.sql.calcite.utils.binning.BinnableField;
-import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 /** Handler for minspan-based binning operations. */
 public class MinSpanBinHandler implements BinHandler {
@@ -60,8 +61,13 @@ public class MinSpanBinHandler implements BinHandler {
     // MINSPAN_BUCKET(field_value, min_span, data_range, max_value)
     RexNode minSpanParam = context.relBuilder.literal(minspan);
 
-    return context.rexBuilder.makeCall(
-        PPLBuiltinOperators.MINSPAN_BUCKET, fieldExpr, minSpanParam, dataRange, maxValue);
+    return PPLFuncImpTable.INSTANCE.resolve(
+        context.rexBuilder,
+        BuiltinFunctionName.MINSPAN_BUCKET,
+        fieldExpr,
+        minSpanParam,
+        dataRange,
+        maxValue);
   }
 
   private RexNode convertParameter(

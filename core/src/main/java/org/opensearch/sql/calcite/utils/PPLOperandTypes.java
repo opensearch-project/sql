@@ -134,6 +134,50 @@ public class PPLOperandTypes {
               SqlTypeFamily.NUMERIC,
               SqlTypeFamily.NUMERIC,
               SqlTypeFamily.NUMERIC));
+  public static final UDFOperandMetadata WIDTH_BUCKET_OPERAND =
+      UDFOperandMetadata.wrap(
+          (CompositeOperandTypeChecker)
+              OperandTypes.family(
+                      SqlTypeFamily.NUMERIC,
+                      SqlTypeFamily.INTEGER,
+                      SqlTypeFamily.NUMERIC,
+                      SqlTypeFamily.NUMERIC)
+                  .or(
+                      OperandTypes.family(
+                          SqlTypeFamily.TIMESTAMP,
+                          SqlTypeFamily.INTEGER,
+                          SqlTypeFamily.CHARACTER,
+                          SqlTypeFamily.TIMESTAMP))
+                  .or(
+                      OperandTypes.family(
+                          SqlTypeFamily.TIMESTAMP,
+                          SqlTypeFamily.INTEGER,
+                          SqlTypeFamily.TIMESTAMP,
+                          SqlTypeFamily.TIMESTAMP))
+                  .or(
+                      OperandTypes.family(
+                          SqlTypeFamily.DATE,
+                          SqlTypeFamily.INTEGER,
+                          SqlTypeFamily.CHARACTER,
+                          SqlTypeFamily.DATE))
+                  .or(
+                      OperandTypes.family(
+                          SqlTypeFamily.DATE,
+                          SqlTypeFamily.INTEGER,
+                          SqlTypeFamily.DATE,
+                          SqlTypeFamily.DATE))
+                  .or(
+                      OperandTypes.family(
+                          SqlTypeFamily.TIME,
+                          SqlTypeFamily.INTEGER,
+                          SqlTypeFamily.CHARACTER,
+                          SqlTypeFamily.TIME))
+                  .or(
+                      OperandTypes.family(
+                          SqlTypeFamily.TIME,
+                          SqlTypeFamily.INTEGER,
+                          SqlTypeFamily.TIME,
+                          SqlTypeFamily.TIME)));
   public static final UDFOperandMetadata NUMERIC_NUMERIC_NUMERIC_NUMERIC_NUMERIC =
       UDFOperandMetadata.wrap(
           OperandTypes.family(

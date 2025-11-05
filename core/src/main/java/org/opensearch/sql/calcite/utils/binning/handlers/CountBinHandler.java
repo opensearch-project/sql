@@ -16,7 +16,8 @@ import org.opensearch.sql.calcite.utils.binning.BinConstants;
 import org.opensearch.sql.calcite.utils.binning.BinFieldValidator;
 import org.opensearch.sql.calcite.utils.binning.BinHandler;
 import org.opensearch.sql.calcite.utils.binning.BinnableField;
-import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 /** Handler for bins-based (count) binning operations. */
 public class CountBinHandler implements BinHandler {
@@ -49,8 +50,13 @@ public class CountBinHandler implements BinHandler {
     // WIDTH_BUCKET(field_value, num_bins, data_range, max_value)
     RexNode numBins = context.relBuilder.literal(requestedBins);
 
-    return context.rexBuilder.makeCall(
-        PPLBuiltinOperators.WIDTH_BUCKET, fieldExpr, numBins, dataRange, maxValue);
+    return PPLFuncImpTable.INSTANCE.resolve(
+        context.rexBuilder,
+        BuiltinFunctionName.WIDTH_BUCKET,
+        fieldExpr,
+        numBins,
+        dataRange,
+        maxValue);
   }
 
   private RexNode convertParameter(
