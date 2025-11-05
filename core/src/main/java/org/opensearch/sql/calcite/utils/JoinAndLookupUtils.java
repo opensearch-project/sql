@@ -11,7 +11,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.Pair;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
@@ -66,11 +69,32 @@ public interface JoinAndLookupUtils {
       if (lookupMappingFields.size() != context.fieldBuilder.staticFields().size()) {
         List<RexNode> projectList =
             lookupMappingFields.stream()
-                .map(fieldName -> (RexNode) context.fieldBuilder.staticField(fieldName))
+                .map(
+                    fieldName ->
+                        (RexNode) QualifiedNameResolver.resolveFieldOrThrow(fieldName, context))
                 .toList();
         context.relBuilder.project(projectList);
       }
     }
+  }
+
+  /** Utility to verify join condition does not use ANY typed field to avoid */
+  static void verifyJoinConditionNotUseAnyType(RexNode rexNode, CalcitePlanContext context) {
+    rexNode.accept(
+        new RexVisitorImpl<Void>(true) {
+          @Override
+          public Void visitCall(RexCall call) {
+            if (call.getKind() == SqlKind.EQUALS) {
+              RexNode left = call.operands.get(0);
+              RexNode right = call.operands.get(1);
+              if (context.fieldBuilder.isAnyType(left) || context.fieldBuilder.isAnyType(right)) {
+                throw new IllegalArgumentException(
+                    "Join condition needs to use specific type. Please cast explicitly.");
+              }
+            }
+            return super.visitCall(call);
+          }
+        });
   }
 
   static void addJoinForLookUp(Lookup node, CalcitePlanContext context) {
@@ -78,8 +102,14 @@ public interface JoinAndLookupUtils {
         node.getMappingAliasMap().entrySet().stream()
             .map(
                 entry -> {
-                  RexNode lookupKey = analyzeFieldsForLookUp(entry.getKey(), false, context);
-                  RexNode sourceKey = analyzeFieldsForLookUp(entry.getValue(), true, context);
+                  RexNode lookupKey = analyzeFieldsInRight(entry.getKey(), context);
+                  RexNode sourceKey = analyzeFieldsInLeft(entry.getValue(), context);
+                  if (context.fieldBuilder.isAnyType(sourceKey)) {
+                    throw new IllegalArgumentException(
+                        String.format(
+                            "Source key `%s` needs to be specific type. Please cast explicitly.",
+                            entry.getValue()));
+                  }
                   return context.rexBuilder.equals(sourceKey, lookupKey);
                 })
             .reduce(context.rexBuilder::and)
@@ -87,9 +117,13 @@ public interface JoinAndLookupUtils {
     context.relBuilder.join(JoinRelType.LEFT, joinCondition);
   }
 
-  static RexNode analyzeFieldsForLookUp(
-      String fieldName, boolean isSourceTable, CalcitePlanContext context) {
-    return QualifiedNameResolver.resolveField(2, isSourceTable ? 0 : 1, fieldName, context)
+  static RexNode analyzeFieldsInLeft(String fieldName, CalcitePlanContext context) {
+    return QualifiedNameResolver.resolveField(2, 0, fieldName, context)
+        .orElseThrow(() -> new IllegalArgumentException("field not found: " + fieldName));
+  }
+
+  static RexNode analyzeFieldsInRight(String fieldName, CalcitePlanContext context) {
+    return QualifiedNameResolver.resolveField(2, 1, fieldName, context)
         .orElseThrow(() -> new IllegalArgumentException("field not found: " + fieldName));
   }
 
@@ -97,7 +131,7 @@ public interface JoinAndLookupUtils {
       List<String> expectedProvidedFieldNames,
       int sourceFieldsCountLeft,
       CalcitePlanContext context) {
-    List<String> oldFields = context.relBuilder.peek().getRowType().getFieldNames();
+    List<String> oldFields = context.fieldBuilder.getStaticFieldNames();
     assert sourceFieldsCountLeft + expectedProvidedFieldNames.size() == oldFields.size()
         : "The source fields count left plus new provided fields count must equal to the output"
             + " fields count of current plan(i.e project-join).";
