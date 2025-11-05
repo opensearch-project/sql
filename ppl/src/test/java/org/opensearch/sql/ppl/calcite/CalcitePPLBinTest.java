@@ -111,7 +111,7 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
     String ppl = "source=products_temporal | bin SYS_START bins=10";
     RelNode root = getRelNode(ppl);
 
-    // WIDTH_BUCKET with timestamp field - tests the fix for issue #4740
+    // WIDTH_BUCKET with timestamp field
     // The third parameter (data_range) is a STRING interval, not numeric
     verifyLogical(
         root,
