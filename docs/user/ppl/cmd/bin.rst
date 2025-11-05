@@ -182,6 +182,8 @@ Automatically calculates the span using a mathematical O(1) algorithm to create 
 
 **Validation**: The bins parameter must be between 2 and 50000 (inclusive). Values outside this range will result in an error.
 
+**Limitation**: The bins parameter on timestamp fields requires pushdown to be enabled. When pushdown is disabled, use the ``span`` parameter instead (e.g., ``bin @timestamp span=5m``).
+
 The algorithm uses **mathematical optimization** instead of iteration for O(1) performance:
 
 1. **Validate bins**: Ensure ``2 ≤ bins ≤ 50000``
