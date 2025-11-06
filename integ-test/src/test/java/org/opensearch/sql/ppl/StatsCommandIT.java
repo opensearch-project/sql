@@ -806,4 +806,322 @@ public class StatsCommandIT extends PPLIntegTestCase {
     verifyDataRows(
         response, rows(61, 310, 41, 10, 31), rows(60, 390, 49, 10, 39), rows(59, 260, 36, 10, 26));
   }
+
+  @Test
+  public void testStatsSortOnMeasure() throws IOException {
+    try {
+      setQueryBucketSize(5);
+      JSONObject response =
+          executeQuery(
+              String.format(
+                  "source=%s | stats bucket_nullable=false count() by state | sort - `count()` |"
+                      + " head 5",
+                  TEST_INDEX_ACCOUNT));
+      verifyDataRows(
+          response, rows(30, "TX"), rows(28, "MD"), rows(27, "ID"), rows(25, "ME"), rows(25, "AL"));
+      response =
+          executeQuery(
+              String.format(
+                  "source=%s | stats bucket_nullable=false count() by state | sort `count()` | head"
+                      + " 5",
+                  TEST_INDEX_ACCOUNT));
+      verifyDataRows(
+          response, rows(13, "NV"), rows(13, "SC"), rows(14, "CO"), rows(14, "AZ"), rows(14, "DE"));
+      response =
+          executeQuery(
+              String.format(
+                  "source=%s | stats bucket_nullable=false sum(balance) as sum by state | sort sum"
+                      + " | head 5",
+                  TEST_INDEX_ACCOUNT));
+      verifyDataRows(
+          response,
+          rows(266971, "NV"),
+          rows(279840, "SC"),
+          rows(303856, "WV"),
+          rows(339454, "OR"),
+          rows(346934, "IN"));
+      response =
+          executeQuery(
+              String.format(
+                  "source=%s | stats bucket_nullable=false sum(balance) as sum by state | sort -"
+                      + " sum | head 5",
+                  TEST_INDEX_ACCOUNT));
+      verifyDataRows(
+          response,
+          rows(782199, "TX"),
+          rows(732523, "MD"),
+          rows(710408, "MA"),
+          rows(709135, "TN"),
+          rows(657957, "ID"));
+    } finally {
+      resetQueryBucketSize();
+    }
+  }
+
+  @Test
+  public void testStatsSpanSortOnMeasure() throws IOException {
+    try {
+      setQueryBucketSize(5);
+      JSONObject response =
+          executeQuery(
+              String.format(
+                  "source=%s | stats bucket_nullable=false count() as cnt by span(birthdate,"
+                      + " 1month) | sort - cnt | head 5",
+                  TEST_INDEX_BANK));
+      verifyDataRows(
+          response,
+          rows(2, "2018-06-01 00:00:00"),
+          rows(2, "2018-08-01 00:00:00"),
+          rows(1, "2017-10-01 00:00:00"),
+          rows(1, "2017-11-01 00:00:00"),
+          rows(1, "2018-11-01 00:00:00"));
+      response =
+          executeQuery(
+              String.format(
+                  "source=%s | stats bucket_nullable=false count() as cnt by span(birthdate,"
+                      + " 1month) | sort cnt | head 5",
+                  TEST_INDEX_BANK));
+      verifyDataRows(
+          response,
+          rows(1, "2018-11-01 00:00:00"),
+          rows(1, "2017-11-01 00:00:00"),
+          rows(1, "2017-10-01 00:00:00"),
+          rows(2, "2018-08-01 00:00:00"),
+          rows(2, "2018-06-01 00:00:00"));
+      response =
+          executeQuery(
+              String.format(
+                  "source=%s | stats bucket_nullable=false sum(balance) by span(age, 2) | sort -"
+                      + " `sum(balance)` | head 5",
+                  TEST_INDEX_ACCOUNT));
+      verifyDataRows(
+          response,
+          rows(2800620, 30),
+          rows(2537475, 38),
+          rows(2500167, 32),
+          rows(2473878, 28),
+          rows(2464796, 34));
+      response =
+          executeQuery(
+              String.format(
+                  "source=%s | stats bucket_nullable=false sum(balance) by span(age, 2) | sort"
+                      + " `sum(balance)` | head 5",
+                  TEST_INDEX_ACCOUNT));
+      verifyDataRows(
+          response,
+          rows(1223243, 40),
+          rows(2205897, 26),
+          rows(2288020, 36),
+          rows(2350499, 24),
+          rows(2408482, 22));
+    } finally {
+      resetQueryBucketSize();
+    }
+  }
+
+  @Test
+  public void testStatsSortOnMeasureWithScript() throws IOException {
+    try {
+      setQueryBucketSize(5);
+      JSONObject response =
+          executeQuery(
+              String.format(
+                  "source=%s | eval new_state = lower(state) | stats bucket_nullable=false count()"
+                      + " by new_state | sort - `count()` | head 5",
+                  TEST_INDEX_ACCOUNT));
+      verifyDataRows(
+          response, rows(30, "tx"), rows(28, "md"), rows(27, "id"), rows(25, "me"), rows(25, "al"));
+      response =
+          executeQuery(
+              String.format(
+                  "source=%s | eval new_state = lower(state) | stats bucket_nullable=false count()"
+                      + " by new_state | sort `count()` | head 5",
+                  TEST_INDEX_ACCOUNT));
+      verifyDataRows(
+          response, rows(13, "nv"), rows(13, "sc"), rows(14, "co"), rows(14, "az"), rows(14, "de"));
+    } finally {
+      resetQueryBucketSize();
+    }
+  }
+
+  @Test
+  public void testStatsSpanSortOnMeasureWithScript() throws IOException {
+    try {
+      setQueryBucketSize(5);
+      JSONObject response =
+          executeQuery(
+              String.format(
+                  "source=%s | eval new_age = age + 2 | stats bucket_nullable=false sum(balance) by"
+                      + " span(new_age, 2) | sort - `sum(balance)` | head 5",
+                  TEST_INDEX_ACCOUNT));
+      verifyDataRows(
+          response,
+          rows(2800620, 32),
+          rows(2537475, 40),
+          rows(2500167, 34),
+          rows(2473878, 30),
+          rows(2464796, 36));
+      response =
+          executeQuery(
+              String.format(
+                  "source=%s | eval new_age = age + 2 | stats bucket_nullable=false sum(balance) by"
+                      + " span(new_age, 2) | sort `sum(balance)` | head 5",
+                  TEST_INDEX_ACCOUNT));
+      verifyDataRows(
+          response,
+          rows(1223243, 42),
+          rows(2205897, 28),
+          rows(2288020, 38),
+          rows(2350499, 26),
+          rows(2408482, 24));
+    } finally {
+      resetQueryBucketSize();
+    }
+  }
+
+  @Test
+  public void testStatsSpanSortOnMeasureMultiTerms() throws IOException {
+    try {
+      setQueryBucketSize(5);
+      JSONObject response =
+          executeQuery(
+              String.format(
+                  "source=%s | stats bucket_nullable=false count() by gender, state | sort -"
+                      + " `count()` | head 5",
+                  TEST_INDEX_ACCOUNT));
+      verifyDataRows(
+          response,
+          rows(18, "M", "MD"),
+          rows(17, "M", "ID"),
+          rows(17, "F", "TX"),
+          rows(16, "M", "ME"),
+          rows(15, "M", "OK"));
+      response =
+          executeQuery(
+              String.format(
+                  "source=%s | stats bucket_nullable=false count() by gender, state | sort"
+                      + " `count()` | head 5",
+                  TEST_INDEX_ACCOUNT));
+      if (isCalciteEnabled()) {
+        verifyDataRows(
+            response,
+            rows(3, "F", "DE"),
+            rows(5, "F", "CT"),
+            rows(5, "F", "OR"),
+            rows(5, "F", "WI"),
+            rows(5, "M", "MI"));
+      } else {
+        verifyDataRows(
+            response,
+            rows(3, "F", "DE"),
+            rows(5, "M", "RI"),
+            rows(5, "M", "MI"),
+            rows(5, "F", "WI"),
+            rows(5, "M", "NE"));
+      }
+      response =
+          executeQuery(
+              String.format(
+                  "source=%s | stats bucket_nullable=false sum(balance) as sum by gender, state |"
+                      + " sort sum | head 5",
+                  TEST_INDEX_ACCOUNT));
+      verifyDataRows(
+          response,
+          rows(85753, "F", "OR"),
+          rows(86793, "F", "DE"),
+          rows(100197, "F", "WI"),
+          rows(105693, "M", "NV"),
+          rows(124878, "M", "IN"));
+      response =
+          executeQuery(
+              String.format(
+                  "source=%s | stats bucket_nullable=false sum(balance) as sum by gender, state |"
+                      + " sort - sum | head 5",
+                  TEST_INDEX_ACCOUNT));
+      verifyDataRows(
+          response,
+          rows(505688, "F", "TX"),
+          rows(484567, "M", "MD"),
+          rows(432776, "M", "OK"),
+          rows(388568, "F", "AL"),
+          rows(382314, "F", "RI"));
+    } finally {
+      resetQueryBucketSize();
+    }
+  }
+
+  @Test
+  public void testStatsSpanSortOnMeasureMultiTermsWithScript() throws IOException {
+    try {
+      setQueryBucketSize(5);
+      JSONObject response =
+          executeQuery(
+              String.format(
+                  "source=%s | eval new_gender = lower(gender), new_state = lower(state) | stats"
+                      + " bucket_nullable=false count() by new_gender, new_state | sort - `count()`"
+                      + " | head 5",
+                  TEST_INDEX_ACCOUNT));
+      verifyDataRows(
+          response,
+          rows(18, "m", "md"),
+          rows(17, "m", "id"),
+          rows(17, "f", "tx"),
+          rows(16, "m", "me"),
+          rows(15, "m", "ok"));
+      response =
+          executeQuery(
+              String.format(
+                  "source=%s | eval new_gender = lower(gender), new_state = lower(state) | stats"
+                      + " bucket_nullable=false count() by new_gender, new_state | sort `count()` |"
+                      + " head 5",
+                  TEST_INDEX_ACCOUNT));
+      if (isCalciteEnabled()) {
+        verifyDataRows(
+            response,
+            rows(3, "f", "de"),
+            rows(5, "f", "ct"),
+            rows(5, "f", "or"),
+            rows(5, "f", "wi"),
+            rows(5, "m", "mi"));
+      } else {
+        verifyDataRows(
+            response,
+            rows(3, "f", "de"),
+            rows(5, "m", "ri"),
+            rows(5, "m", "mi"),
+            rows(5, "f", "wi"),
+            rows(5, "m", "ne"));
+      }
+      response =
+          executeQuery(
+              String.format(
+                  "source=%s | eval new_gender = lower(gender), new_state = lower(state) | stats"
+                      + " bucket_nullable=false sum(balance) as sum by new_gender, new_state | sort"
+                      + " sum | head 5",
+                  TEST_INDEX_ACCOUNT));
+      verifyDataRows(
+          response,
+          rows(85753, "f", "or"),
+          rows(86793, "f", "de"),
+          rows(100197, "f", "wi"),
+          rows(105693, "m", "nv"),
+          rows(124878, "m", "in"));
+      response =
+          executeQuery(
+              String.format(
+                  "source=%s | eval new_gender = lower(gender), new_state = lower(state) | stats"
+                      + " bucket_nullable=false sum(balance) as sum by new_gender, new_state | sort"
+                      + " - sum | head 5",
+                  TEST_INDEX_ACCOUNT));
+      verifyDataRows(
+          response,
+          rows(505688, "f", "tx"),
+          rows(484567, "m", "md"),
+          rows(432776, "m", "ok"),
+          rows(388568, "f", "al"),
+          rows(382314, "f", "ri"));
+    } finally {
+      resetQueryBucketSize();
+    }
+  }
 }
