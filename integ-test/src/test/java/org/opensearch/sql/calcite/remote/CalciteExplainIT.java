@@ -1151,6 +1151,17 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testExplainSortOnMeasureWithScript() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_agg_sort_on_measure_script.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | eval new_state = lower(state) | "
+                + "stats bucket_nullable=false count() by new_state | sort `count()`"));
+  }
+
+  @Test
   public void testExplainSortOnMeasureMultiTerms() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_agg_sort_on_measure_multi_terms.yaml");
@@ -1159,6 +1170,18 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() by"
                 + " gender, state | sort `count()`"));
+  }
+
+  @Test
+  public void testExplainSortOnMeasureMultiTermsWithScript() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_agg_sort_on_measure_multi_terms_script.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | eval new_gender = lower(gender), new_state"
+                + " = lower(state) | stats bucket_nullable=false count() by new_gender, new_state |"
+                + " sort `count()`"));
   }
 
   @Test
