@@ -20,10 +20,6 @@ Description
 - Handles empty, null, and non-array fields gracefully.
 - Works as a streaming/distributable command for performance and scalability.
 
-Version
-=======
-3.3.0
-
 Syntax
 ======
 mvexpand <field> [limit=<int>]
@@ -47,6 +43,10 @@ Limitations
 - For non-array fields, the value is returned as-is.
 - For empty or null arrays, no rows are returned.
 - Large arrays may be subject to resource/memory limits; exceeding them results in an error or warning.
+
+Output ordering and default limit
+--------------------------------
+If no `limit` is specified, mvexpand expands all elements in the array (there is no implicit per-document cap). Elements are emitted in the same order they appear in the array (array iteration order). If the underlying field does not provide a defined order, the output order is undefined. Use `limit` to bound the number of expanded rows per document and to avoid resource issues on very large arrays.
 
 Examples and Edge Cases
 =======================
@@ -156,18 +156,18 @@ Output (example)::
 
 Example 5: Large Arrays and Memory Limits
 ----------------------------------------
-If an array exceeds configured memory/resource limits, mvexpand returns an error.
+If an array is very large it can trigger engine/cluster resource limits (memory, circuit-breakers, or query execution limits). Note: this behavior is enforced by the underlying engine and cluster settings, not by a mvexpand-specific configuration.
 
-Input document::
-
-    { "ids": [1, 2, ..., 100000] }
+To avoid failures when expanding large arrays:
+- Use the `limit` parameter to restrict the number of expanded values per document (for example: `mvexpand field limit=1000`).
+- Filter or narrow the input before expanding (use `where` and `fields` to reduce rows and columns).
+- Tune cluster and SQL/PPL execution settings (circuit breakers, query size/timeouts, memory limits) appropriate for your deployment.
 
 PPL query::
 
     source=docs | mvexpand ids
 
 Output (example)::
-
     Error: Memory/resource limit exceeded while expanding field 'ids'. Please reduce the array size or specify a limit.
 
 Example 6: Multiple Fields (Limitation)
