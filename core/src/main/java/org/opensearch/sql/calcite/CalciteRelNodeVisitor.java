@@ -42,6 +42,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import lombok.AllArgsConstructor;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.ViewExpanders;
@@ -2541,8 +2542,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return relBuilder.peek();
   }
 
-  private record ChartConfig(
-      int limit, boolean top, boolean useOther, boolean useNull, String otherStr, String nullStr) {
+  @AllArgsConstructor
+  private static class ChartConfig {
+    private final int limit;
+    private final boolean top;
+    private final boolean useOther;
+    private final boolean useNull;
+    private final String otherStr;
+    private final String nullStr;
+
     static ChartConfig fromArguments(ArgumentMap argMap) {
       int limit = (Integer) argMap.getOrDefault("limit", Chart.DEFAULT_LIMIT).getValue();
       boolean top = (Boolean) argMap.getOrDefault("top", Chart.DEFAULT_TOP).getValue();
