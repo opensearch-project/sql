@@ -61,6 +61,7 @@ import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.Bin;
+import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
@@ -767,6 +768,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitSpath(SPath node, AnalysisContext context) {
     throw getOnlyForCalciteException("Spath");
+  }
+
+  @Override
+  public LogicalPlan visitChart(Chart node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Chart");
   }
 
   @Override
