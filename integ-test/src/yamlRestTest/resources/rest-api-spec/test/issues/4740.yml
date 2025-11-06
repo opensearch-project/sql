@@ -42,11 +42,10 @@ setup:
         Content-Type: 'application/json'
       ppl:
         body:
-          query: source=test_binning_4740 | bin age bins=2 | stats count() by age | sort age
+          query: source=test_binning_4740 | bin age bins=3 | stats count() by age | sort age
 
-  - is_true: datarows
-  - gte: { total: 1 }
-  - gte: { size: 1 }
+  - match: { "schema": [ { "name": "count()", "type": "bigint" }, { "name": "age", "type": "string" } ] }
+  - match: { "datarows": [ [ 1, "20-30" ], [ 2, "30-40" ], [ 2, "40-50" ] ] }
 
 ---
 "bin with timestamp field using WIDTH_BUCKET - issue 4740":
@@ -63,9 +62,8 @@ setup:
         body:
           query: source=test_binning_4740 | bin @timestamp bins=3 | stats count() by @timestamp | sort @timestamp
 
-  - is_true: datarows
-  - gte: { total: 1 }
-  - gte: { size: 1 }
+  - match: { "schema": [ { "name": "count()", "type": "bigint" }, { "name": "@timestamp", "type": "timestamp" } ] }
+  - match: { "datarows": [ [ 2, "2024-01-01 00:00:00" ], [ 2, "2024-01-01 00:10:00" ], [ 1, "2024-01-01 00:20:00" ] ] }
 
 ---
 "bin with numeric span using SPAN_BUCKET - issue 4740":
@@ -82,9 +80,8 @@ setup:
         body:
           query: source=test_binning_4740 | bin age span=10 | stats count() by age | sort age
 
-  - is_true: datarows
-  - gte: { total: 1 }
-  - gte: { size: 1 }
+  - match: { "schema": [ { "name": "count()", "type": "bigint" }, { "name": "age", "type": "string" } ] }
+  - match: { "datarows": [ [ 1, "20-30" ], [ 2, "30-40" ], [ 2, "40-50" ] ] }
 
 ---
 "bin with timestamp span using SPAN_BUCKET - issue 4740":
@@ -101,9 +98,8 @@ setup:
         body:
           query: source=test_binning_4740 | bin @timestamp span=10m | stats count() by @timestamp | sort @timestamp
 
-  - is_true: datarows
-  - gte: { total: 1 }
-  - gte: { size: 1 }
+  - match: { "schema": [ { "name": "count()", "type": "bigint" }, { "name": "@timestamp", "type": "timestamp" } ] }
+  - match: { "datarows": [ [ 2, "2024-01-01 00:00:00" ], [ 2, "2024-01-01 00:10:00" ], [ 1, "2024-01-01 00:20:00" ] ] }
 
 ---
 "bin with minspan using MINSPAN_BUCKET - issue 4740":
@@ -120,9 +116,8 @@ setup:
         body:
           query: source=test_binning_4740 | bin balance minspan=1000 | stats count() by balance | sort balance
 
-  - is_true: datarows
-  - gte: { total: 1 }
-  - gte: { size: 1 }
+  - match: { "schema": [ { "name": "count()", "type": "bigint" }, { "name": "balance", "type": "string" } ] }
+  - match: { "datarows": [ [ 1, "1000-2000" ], [ 1, "2000-3000" ], [ 1, "3000-4000" ], [ 1, "4000-5000" ], [ 1, "5000-6000" ] ] }
 
 ---
 "bin with start and end using RANGE_BUCKET - issue 4740":
@@ -139,6 +134,5 @@ setup:
         body:
           query: source=test_binning_4740 | bin age start=20 end=50 | stats count() by age | sort age
 
-  - is_true: datarows
-  - gte: { total: 1 }
-  - gte: { size: 1 }
+  - match: { "schema": [ { "name": "count()", "type": "bigint" }, { "name": "age", "type": "string" } ] }
+  - match: { "datarows": [ [ 1, "20-30" ], [ 2, "30-40" ], [ 2, "40-50" ] ] }
