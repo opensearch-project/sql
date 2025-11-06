@@ -9,7 +9,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/** Utility class for debugging operations. Should not be committed. */
+/** Utility class for debugging operations. */
 public class DebugUtils {
 
   private static void print(String format, Object... args) {

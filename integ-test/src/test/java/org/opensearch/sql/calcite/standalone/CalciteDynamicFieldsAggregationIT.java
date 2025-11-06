@@ -128,7 +128,7 @@ public class CalciteDynamicFieldsAggregationIT extends CalcitePPLPermissiveInteg
     String query =
         source(
             TEST_INDEX_DYNAMIC,
-            "eventstats count() as c by department" + "| fields id, city, department, c");
+            "eventstats count() as c by department | fields id, city, department, c");
 
     assertExplainYaml(
         query,

@@ -1898,10 +1898,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // 1. group the group-by list + field list and add a count() aggregation
     List<UnresolvedExpression> groupExprList = new ArrayList<>();
-    node.getGroupExprList().forEach(exp -> groupExprList.add(addAliasToDynamicFieldAccess(exp)));
+    node.getGroupExprList().forEach(exp -> groupExprList.add(addAliasToFieldAccess(exp)));
     // need alias for dynamic fields
-    node.getFields()
-        .forEach(field -> groupExprList.add(AstDSL.alias(field.getField().toString(), field)));
+    node.getFields().forEach(field -> groupExprList.add(addAliasToFieldAccess(field)));
     List<UnresolvedExpression> aggExprList =
         List.of(AstDSL.alias(countFieldName, AstDSL.aggregate("count", null)));
     aggregateWithTrimming(groupExprList, aggExprList, context);
@@ -2155,7 +2154,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
   }
 
-  private UnresolvedExpression addAliasToDynamicFieldAccess(UnresolvedExpression exp) {
+  /** Add alias to Field. Needed for when the field is resolved as dynamic field access. */
+  private UnresolvedExpression addAliasToFieldAccess(UnresolvedExpression exp) {
     if (exp instanceof Field f) {
       return AstDSL.alias(f.getField().toString(), f);
     } else {
