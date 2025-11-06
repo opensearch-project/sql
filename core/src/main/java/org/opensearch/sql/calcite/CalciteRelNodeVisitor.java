@@ -1619,11 +1619,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     Field arrayField = node.getField();
     RexInputRef arrayFieldRex = (RexInputRef) rexVisitor.analyze(arrayField, context);
 
-    buildMvExpandRelNode(arrayFieldRex, arrayField.getField().toString(), null, context);
+    // buildMvExpandRelNode(arrayFieldRex, arrayField.getField().toString(), null, context);
 
-    if (node.getLimit() != null) {
-      context.relBuilder.limit(0, node.getLimit());
-    }
+    // pass the per-document limit into the builder so it can be applied inside the UNNEST inner
+    // query
+    buildMvExpandRelNode(
+        arrayFieldRex, arrayField.getField().toString(), null, node.getLimit(), context);
+
+    //    if (node.getLimit() != null) {
+    //      context.relBuilder.limit(0, node.getLimit());
+    //    }
     return context.relBuilder.peek();
   }
 
@@ -3104,16 +3109,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       String alias,
       Holder<RexCorrelVariable> correlVariable,
       RexNode correlArrayFieldAccess,
+      Integer mvExpandLimit,
       CalcitePlanContext context) {
 
-    // Build right node: one-row -> project(correlated access) -> uncollect
-    RelNode rightNode =
-        context
-            .relBuilder
-            .push(LogicalValues.createOneRow(context.relBuilder.getCluster()))
-            .project(List.of(correlArrayFieldAccess), List.of(arrayFieldName))
-            .uncollect(List.of(), false)
-            .build();
+    RelBuilder rb = context.relBuilder;
+    rb.push(LogicalValues.createOneRow(rb.getCluster()))
+        .project(List.of(correlArrayFieldAccess), List.of(arrayFieldName));
+    // apply per-document limit into the inner SELECT if provided
+    if (mvExpandLimit != null && mvExpandLimit > 0) {
+      rb.limit(0, mvExpandLimit);
+    }
+    RelNode rightNode = rb.uncollect(List.of(), false).build();
 
     // Compute required column ref against leftBuilt's row type (robust)
     RexNode requiredColumnRef =
@@ -3176,11 +3182,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         alias,
         correlVariable,
         correlArrayFieldAccess,
+        null,
         context);
   }
 
   private void buildMvExpandRelNode(
-      RexInputRef arrayFieldRex, String arrayFieldName, String alias, CalcitePlanContext context) {
+      RexInputRef arrayFieldRex,
+      String arrayFieldName,
+      String alias,
+      Integer mvExpandLimit,
+      CalcitePlanContext context) {
 
     // Capture left node and its schema BEFORE calling build()
     RelNode leftNode = context.relBuilder.peek();
@@ -3213,6 +3224,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         alias,
         correlVariable,
         correlArrayFieldAccess,
+        mvExpandLimit,
         context);
   }
 
