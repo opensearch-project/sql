@@ -247,7 +247,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RexNode fieldRex = rexVisitor.analyze(node.getField(), context);
     RexNode patternRex = rexVisitor.analyze(node.getPattern(), context);
 
-    if (!SqlTypeFamily.CHARACTER.contains(fieldRex.getType())) {
+    if (!SqlTypeFamily.CHARACTER.contains(fieldRex.getType())
+        && !SqlTypeName.ANY.equals(fieldRex.getType().getSqlTypeName())) {
       throw new IllegalArgumentException(
           String.format(
               "Regex command requires field of string type, but got %s for field '%s'",
@@ -255,8 +256,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     RexNode regexCondition =
-        context.rexBuilder.makeCall(
-            org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_CONTAINS, fieldRex, patternRex);
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder, BuiltinFunctionName.REGEX_MATCH, fieldRex, patternRex);
 
     if (node.isNegated()) {
       regexCondition = context.rexBuilder.makeCall(SqlStdOperatorTable.NOT, regexCondition);

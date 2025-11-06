@@ -17,8 +17,10 @@ import java.util.function.BiPredicate;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -106,6 +108,14 @@ public final class CoercionUtils {
 
   private static @Nullable RexNode cast(RexBuilder builder, ExprType targetType, RexNode arg) {
     ExprType argType = OpenSearchTypeFactory.convertRelDataTypeToExprType(arg.getType());
+
+    // Special handling for ANY type (dynamic fields)
+    if (isAnyType(arg.getType())) {
+      // ANY type can be cast to any target type
+      return builder.makeCast(
+          OpenSearchTypeFactory.convertExprTypeToRelDataType(targetType), arg, true, true);
+    }
+
     if (!argType.shouldCast(targetType)) {
       return arg;
     }
@@ -176,6 +186,10 @@ public final class CoercionUtils {
 
   private static final List<CoercionRule> COMMON_COERCION_RULES =
       List.of(
+          // ANY type coercion: if one side is ANY, use the other type
+          CoercionRule.of(
+              (left, right) -> isAnyType(left) || isAnyType(right),
+              (left, right) -> isAnyType(left) ? right : left),
           CoercionRule.of(
               (left, right) -> areDateAndTime(left, right),
               (left, right) -> ExprCoreType.TIMESTAMP),
@@ -212,6 +226,7 @@ public final class CoercionUtils {
 
   private static final int IMPOSSIBLE_WIDENING = Integer.MAX_VALUE;
   private static final int TYPE_EQUAL = 0;
+  private static final int ANY_TYPE_DISTANCE = 1;
 
   private static int distance(ExprType type1, ExprType type2) {
     return distance(type1, type2, TYPE_EQUAL);
@@ -222,6 +237,9 @@ public final class CoercionUtils {
       return distance;
     } else if (type1 == UNKNOWN) {
       return IMPOSSIBLE_WIDENING;
+    } else if (isAnyType(type1)) {
+      // ANY type (from dynamic fields) can coerce to any other type with distance 1
+      return distance + ANY_TYPE_DISTANCE;
     } else if (type1 == ExprCoreType.STRING && type2 == ExprCoreType.DOUBLE) {
       return 1;
     } else {
@@ -230,6 +248,20 @@ public final class CoercionUtils {
           .reduce(Math::min)
           .get();
     }
+  }
+
+  private static boolean isAnyType(RelDataType type) {
+    return type.getSqlTypeName() == SqlTypeName.ANY;
+  }
+
+  private static boolean isAnyType(ExprType type) {
+    // UNDEFINED is the ExprType representation of SqlTypeName.ANY
+    // but we need to distinguish it from actual UNDEFINED (NULL type)
+    // In the context of dynamic fields, UNDEFINED with no parents represents ANY type
+    if (type == ExprCoreType.UNDEFINED) {
+      return type.getParent().isEmpty();
+    }
+    return false;
   }
 
   /**
