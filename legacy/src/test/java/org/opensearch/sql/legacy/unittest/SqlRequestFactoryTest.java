@@ -167,7 +167,6 @@ public class SqlRequestFactoryTest {
     Assert.assertTrue(
         preparedStatementRequest.getParameters().get(2)
             instanceof PreparedStatementRequest.StringParameter);
-    System.out.println(preparedStatementRequest.getParameters().get(3));
     Assert.assertTrue(
         preparedStatementRequest.getParameters().get(3).getValue() instanceof Boolean);
     Assert.assertTrue(preparedStatementRequest.getParameters().get(4).getValue() instanceof Long);

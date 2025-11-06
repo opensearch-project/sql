@@ -106,7 +106,6 @@ public class BinUtilsTest {
   public void testMonthUnitDetection() {
     // Specifically test that 1mon is detected as "mon" not "m"
     String result = SpanParser.extractTimeUnit("1mon");
-    System.out.println("Result for '1mon': " + result);
     assertEquals("mon", result);
   }
 
@@ -114,13 +113,6 @@ public class BinUtilsTest {
   public void testFullMonthParsingChain() {
     // Test the full parsing chain for 1mon
     var spanInfo = SpanParser.parse("1mon");
-    System.out.println(
-        "SpanInfo: type="
-            + spanInfo.getType()
-            + ", value="
-            + spanInfo.getValue()
-            + ", unit="
-            + spanInfo.getUnit());
     assertEquals(SpanType.TIME, spanInfo.getType());
     assertEquals(1.0, spanInfo.getValue(), 0.001);
     assertEquals("mon", spanInfo.getUnit());
