@@ -1002,6 +1002,10 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
                     "source=events_null | bin @timestamp bins=3 | stats count() by @timestamp"));
 
     // Verify the error message clearly explains the limitation and suggests solutions
+    // Note: bins parameter on timestamp fields requires BOTH:
+    //   1. Pushdown to be enabled (plugins.calcite.pushdown.enabled=true, enabled by default)
+    //   2. The timestamp field to be used as an aggregation bucket (e.g., stats count() by
+    // @timestamp)
     String errorMessage = exception.getMessage();
     assertTrue(
         "Expected clear error message about bins parameter not supported on timestamp fields when "

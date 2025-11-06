@@ -28,7 +28,12 @@ public class CountBinHandler implements BinHandler {
     CountBin countBin = (CountBin) node;
 
     // Create validated binnable field (validates that field is numeric or time-based)
-    // Note: bins parameter on time-based fields requires pushdown to be enabled
+    // Note: bins parameter works with both numeric and time-based fields
+    // Note: bins parameter on time-based fields requires:
+    //       1. Pushdown to be enabled (controlled by plugins.calcite.pushdown.enabled, enabled by
+    //          default)
+    //       2. The time-based field to be used as an aggregation bucket
+    //          (e.g., stats count() by @timestamp)
     String fieldName = BinFieldValidator.extractFieldName(node);
     BinnableField field = new BinnableField(fieldExpr, fieldExpr.getType(), fieldName);
 
