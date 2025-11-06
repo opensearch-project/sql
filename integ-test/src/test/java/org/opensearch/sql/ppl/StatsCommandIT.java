@@ -825,7 +825,6 @@ public class StatsCommandIT extends PPLIntegTestCase {
                   "source=%s | stats bucket_nullable=false count() by state | sort `count()` | head"
                       + " 5",
                   TEST_INDEX_ACCOUNT));
-      System.out.println(response);
       if (!isPushdownDisabled()) {
         verifyDataRows(
             response,
@@ -953,7 +952,6 @@ public class StatsCommandIT extends PPLIntegTestCase {
                   "source=%s | eval new_state = lower(state) | stats bucket_nullable=false count()"
                       + " by new_state | sort `count()` | head 5",
                   TEST_INDEX_ACCOUNT));
-      System.out.println(response);
       if (!isPushdownDisabled()) {
         verifyDataRows(
             response,
@@ -1034,7 +1032,6 @@ public class StatsCommandIT extends PPLIntegTestCase {
                   "source=%s | stats bucket_nullable=false count() by gender, state | sort"
                       + " `count()` | head 5",
                   TEST_INDEX_ACCOUNT));
-      System.out.println(response);
       if (isCalciteEnabled()) {
         if (!isPushdownDisabled()) {
           verifyDataRows(
@@ -1118,7 +1115,6 @@ public class StatsCommandIT extends PPLIntegTestCase {
                       + " bucket_nullable=false count() by new_gender, new_state | sort `count()` |"
                       + " head 5",
                   TEST_INDEX_ACCOUNT));
-      System.out.println(response);
       if (isCalciteEnabled()) {
         if (!isPushdownDisabled()) {
           verifyDataRows(
