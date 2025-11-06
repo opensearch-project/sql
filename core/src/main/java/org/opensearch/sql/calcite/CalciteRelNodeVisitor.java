@@ -1097,6 +1097,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return Pair.of(groupByList, aggCallList);
   }
 
+  /** Visits an aggregation for stats command */
   @Override
   public RelNode visitAggregation(Aggregation node, CalcitePlanContext context) {
     Argument.ArgumentMap statsArgs = Argument.ArgumentMap.of(node.getArgExprList());
@@ -1107,7 +1108,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (!bucketNullable) {
       nonNullGroupMask.set(0, nGroup);
     }
-    visitAggregation(node, context, true, nonNullGroupMask);
+    visitAggregation(node, context, nonNullGroupMask, true, false);
     return context.relBuilder.peek();
   }
 
@@ -1116,12 +1117,19 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
    *
    * @param node the aggregation node containing group expressions and aggregation functions
    * @param context the Calcite plan context for building RelNodes
-   * @param aggFirst if true, aggregation results (metrics) appear first in output schema (agg,
-   *     group-by fields); if false, group expressions appear first (group-by fields, agg).
    * @param nonNullGroupMask bit set indicating group by fields that need to be non-null
+   * @param metricsFirst if true, aggregation results (metrics) appear first in output schema
+   *     (metrics, group-by fields); if false, group expressions appear first (group-by fields,
+   *     metrics).
+   * @param includeAggFieldsInNullFilter if true, also applies non-null filters to aggregation input
+   *     fields in addition to group-by fields
    */
   private void visitAggregation(
-      Aggregation node, CalcitePlanContext context, boolean aggFirst, BitSet nonNullGroupMask) {
+      Aggregation node,
+      CalcitePlanContext context,
+      BitSet nonNullGroupMask,
+      boolean metricsFirst,
+      boolean includeAggFieldsInNullFilter) {
     visitChildren(node, context);
 
     List<UnresolvedExpression> aggExprList = node.getAggExprList();
@@ -1143,15 +1151,23 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             // This checks if all group-bys should be nonnull
             && nonNullGroupMask.nextClearBit(0) >= groupExprList.size();
     // Add isNotNull filter before aggregation for non-nullable buckets
-    List<RexNode> groupByList =
-        groupExprList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
-    List<RexNode> nonNullGroupBys =
-        IntStream.range(0, groupByList.size())
+    List<RexNode> nonNullCandidates =
+        groupExprList.stream()
+            .map(expr -> rexVisitor.analyze(expr, context))
+            .collect(Collectors.toCollection(ArrayList::new));
+    if (includeAggFieldsInNullFilter) {
+      nonNullCandidates.addAll(
+          PlanUtils.getInputRefsFromAggCall(
+              aggExprList.stream().map(expr -> aggVisitor.analyze(expr, context)).toList()));
+      nonNullGroupMask.set(groupExprList.size(), nonNullCandidates.size());
+    }
+    List<RexNode> nonNullFields =
+        IntStream.range(0, nonNullCandidates.size())
             .filter(nonNullGroupMask::get)
-            .mapToObj(groupByList::get)
+            .mapToObj(nonNullCandidates::get)
             .toList();
     context.relBuilder.filter(
-        PlanUtils.getSelectColumns(nonNullGroupBys).stream()
+        PlanUtils.getSelectColumns(nonNullFields).stream()
             .map(context.relBuilder::field)
             .map(context.relBuilder::isNotNull)
             .toList());
@@ -1175,7 +1191,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .map(context.relBuilder::field)
             .map(f -> (RexNode) f)
             .toList();
-    if (aggFirst) {
+    if (metricsFirst) {
       // As an example, in command `stats count() by colA, colB`,
       // the sequence of output schema is "count, colA, colB".
       reordered.addAll(aggRexList);
@@ -2411,11 +2427,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     } else {
       nonNullGroupMask.set(0, groupExprList.size());
     }
-    visitAggregation(aggregation, context, false, nonNullGroupMask);
+    visitAggregation(aggregation, context, nonNullGroupMask, false, true);
     RelBuilder relBuilder = context.relBuilder;
 
-    // If row or column split does not present or limit equals 0, this is the same as `stats agg
-    // [group by col]` because all truncating is performed on the column split
+    // If a second split does not present or limit equals 0, we go no further for limit, nullstr,
+    // otherstr parameters because all truncating & renaming is performed on the column split
     if (node.getRowSplit() == null
         || node.getColumnSplit() == null
         || Objects.equals(config.limit, 0)) {

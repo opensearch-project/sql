@@ -279,11 +279,7 @@ public class CalciteChartCommandIT extends PPLIntegTestCase {
         schema("age", "string"),
         schema("avg(balance)", "double"));
     verifyDataRows(
-        result,
-        rows("M", "30", 21702.5),
-        rows("F", "30", 48086.0),
-        rows("F", "20", 32838.0),
-        rows("F", "nil", null));
+        result, rows("M", "30", 21702.5), rows("F", "30", 48086.0), rows("F", "20", 32838.0));
   }
 
   @Test

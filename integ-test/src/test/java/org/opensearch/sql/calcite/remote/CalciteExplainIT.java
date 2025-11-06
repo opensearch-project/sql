@@ -1409,17 +1409,31 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testExplainChartWithSingleGroupKey() throws IOException {
     assertYamlEqualsIgnoreId(
-        loadExpectedPlan("explain_chart_single_group_key.yaml"),
+        loadExpectedPlan("chart_single_group_key.yaml"),
         explainQueryYaml(
             String.format("source=%s | chart avg(balance) by gender", TEST_INDEX_BANK)));
 
     assertYamlEqualsIgnoreId(
-        loadExpectedPlan("explain_chart_with_span.yaml"),
+        loadExpectedPlan("chart_with_integer_span.yaml"),
         explainQueryYaml(
             String.format("source=%s | chart max(balance) by age span=10", TEST_INDEX_BANK)));
 
     assertYamlEqualsIgnoreId(
-        loadExpectedPlan("explain_chart_timestamp_span.yaml"),
+        loadExpectedPlan("chart_with_timestamp_span.yaml"),
+        explainQueryYaml(
+            String.format(
+                "source=%s | chart count by @timestamp span=1day", TEST_INDEX_TIME_DATA)));
+  }
+
+  @Test
+  public void testExplainChartWithMultipleGroupKeys() throws IOException {
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("chart_multiple_group_keys.yaml"),
+        explainQueryYaml(
+            String.format("source=%s | chart avg(balance) over gender by age", TEST_INDEX_BANK)));
+
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("chart_timestamp_span_and_category.yaml"),
         explainQueryYaml(
             String.format(
                 "source=%s | chart max(value) over timestamp span=1week by category",
@@ -1427,17 +1441,8 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testExplainChartWithMultipleGroupKeys() throws IOException {
-    String expected = loadExpectedPlan("explain_chart_multiple_group_keys.yaml");
-    assertYamlEqualsIgnoreId(
-        expected,
-        explainQueryYaml(
-            String.format("source=%s | chart avg(balance) over gender by age", TEST_INDEX_BANK)));
-  }
-
-  @Test
   public void testExplainChartWithLimits() throws IOException {
-    String expected = loadExpectedPlan("explain_chart_with_limit.yaml");
+    String expected = loadExpectedPlan("chart_with_limit.yaml");
     assertYamlEqualsIgnoreId(
         expected,
         explainQueryYaml(
@@ -1445,7 +1450,7 @@ public class CalciteExplainIT extends ExplainIT {
                 "source=%s | chart limit=0 avg(balance) over state by gender", TEST_INDEX_BANK)));
 
     assertYamlEqualsIgnoreId(
-        loadExpectedPlan("explain_chart_use_other.yaml"),
+        loadExpectedPlan("chart_use_other.yaml"),
         explainQueryYaml(
             String.format(
                 "source=%s | chart limit=2 useother=true otherstr='max_among_other'"
@@ -1455,7 +1460,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainChartWithNullStr() throws IOException {
-    String expected = loadExpectedPlan("explain_chart_null_str.yaml");
+    String expected = loadExpectedPlan("chart_null_str.yaml");
     assertYamlEqualsIgnoreId(
         expected,
         explainQueryYaml(
