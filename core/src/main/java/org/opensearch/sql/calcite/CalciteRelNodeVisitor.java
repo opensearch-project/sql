@@ -2415,9 +2415,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitChart(Chart node, CalcitePlanContext context) {
     visitChildren(node, context);
     ArgumentMap argMap = ArgumentMap.of(node.getArguments());
+    ChartConfig config = ChartConfig.fromArguments(argMap);
     List<UnresolvedExpression> groupExprList =
         Stream.of(node.getRowSplit(), node.getColumnSplit()).filter(Objects::nonNull).toList();
-    ChartConfig config = ChartConfig.fromArguments(argMap);
     Aggregation aggregation =
         new Aggregation(
             List.of(node.getAggregationFunction()), List.of(), groupExprList, null, List.of());
@@ -2441,15 +2441,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       return relBuilder.peek();
     }
 
-    String aggFunctionName = getAggFunctionName(node.getAggregationFunction());
-    BuiltinFunctionName aggFunction =
-        BuiltinFunctionName.of(aggFunctionName)
-            .orElseThrow(
-                () ->
-                    new IllegalArgumentException(
-                        StringUtils.format(
-                            "Unrecognized aggregation function: %s", aggFunctionName)));
-
     // Convert the column split to string if necessary: column split was supposed to be pivoted to
     // column names. This guarantees that its type compatibility with useother and usenull
     RexNode colSplit = relBuilder.field(1);
@@ -2463,34 +2454,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     relBuilder.project(relBuilder.field(0), colSplit, relBuilder.field(2));
     RelNode aggregated = relBuilder.peek();
-
     // 1: column-split, 2: agg
-    relBuilder.project(relBuilder.field(1), relBuilder.field(2));
-    // Make sure that rows who don't have a column split not interfere grand total calculation
-    relBuilder.filter(relBuilder.isNotNull(relBuilder.field(0)));
-    final String GRAND_TOTAL_COL = "__grand_total__";
-    relBuilder.aggregate(
-        relBuilder.groupKey(relBuilder.field(0)),
-        // Top-K semantic: Retain categories whose summed values are among the greatest
-        relBuilder.sum(relBuilder.field(1)).as(GRAND_TOTAL_COL)); // results: group key, agg calls
-    RexNode grandTotal = relBuilder.field(GRAND_TOTAL_COL);
-    // Apply sorting: keep the max values if top is set
-    if (config.top) {
-      grandTotal = relBuilder.desc(grandTotal);
-    }
-    // Always set it to null last so that nulls don't interfere with top / bottom calculation
-    grandTotal = relBuilder.nullsLast(grandTotal);
-    RexNode rowNum =
-        PlanUtils.makeOver(
-            context,
-            BuiltinFunctionName.ROW_NUMBER,
-            relBuilder.literal(1), // dummy expression for row number calculation
-            List.of(),
-            List.of(),
-            List.of(grandTotal),
-            WindowFrame.toCurrentRow());
-    relBuilder.projectPlus(relBuilder.alias(rowNum, PlanUtils.ROW_NUMBER_COLUMN_FOR_CHART));
-    RelNode ranked = relBuilder.build();
+    RelNode ranked = rankByColumnSplit(context, 1, 2, config.top);
 
     relBuilder.push(aggregated);
     relBuilder.push(ranked);
@@ -2534,12 +2499,56 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         relBuilder.field(0),
         relBuilder.alias(columnSplitExpr, columnSplitName),
         relBuilder.field(2));
+    String aggFunctionName = getAggFunctionName(node.getAggregationFunction());
+    BuiltinFunctionName aggFunction =
+        BuiltinFunctionName.of(aggFunctionName)
+            .orElseThrow(
+                () ->
+                    new IllegalArgumentException(
+                        StringUtils.format(
+                            "Unrecognized aggregation function: %s", aggFunctionName)));
     relBuilder.aggregate(
         relBuilder.groupKey(relBuilder.field(0), relBuilder.field(1)),
         buildAggCall(context.relBuilder, aggFunction, relBuilder.field(2)).as(aggFieldName));
     // The output of chart is expected to be ordered by row and column split names
     relBuilder.sort(relBuilder.field(0), relBuilder.field(1));
     return relBuilder.peek();
+  }
+
+  /**
+   * Aggregate by column split then rank by grand total (summed value of each category). The output
+   * is <code>[col-split, grand-total, row-number]</code>
+   */
+  private RelNode rankByColumnSplit(
+      CalcitePlanContext context, int columnSplitOrdinal, int aggOrdinal, boolean top) {
+    RelBuilder relBuilder = context.relBuilder;
+
+    relBuilder.project(relBuilder.field(columnSplitOrdinal), relBuilder.field(aggOrdinal));
+    // Make sure that rows who don't have a column split not interfere grand total calculation
+    relBuilder.filter(relBuilder.isNotNull(relBuilder.field(0)));
+    final String GRAND_TOTAL_COL = "__grand_total__";
+    relBuilder.aggregate(
+        relBuilder.groupKey(relBuilder.field(0)),
+        // Top-K semantic: Retain categories whose summed values are among the greatest
+        relBuilder.sum(relBuilder.field(1)).as(GRAND_TOTAL_COL)); // results: group key, agg calls
+    RexNode grandTotal = relBuilder.field(GRAND_TOTAL_COL);
+    // Apply sorting: keep the max values if top is set
+    if (top) {
+      grandTotal = relBuilder.desc(grandTotal);
+    }
+    // Always set it to null last so that nulls don't interfere with top / bottom calculation
+    grandTotal = relBuilder.nullsLast(grandTotal);
+    RexNode rowNum =
+        PlanUtils.makeOver(
+            context,
+            BuiltinFunctionName.ROW_NUMBER,
+            relBuilder.literal(1), // dummy expression for row number calculation
+            List.of(),
+            List.of(),
+            List.of(grandTotal),
+            WindowFrame.toCurrentRow());
+    relBuilder.projectPlus(relBuilder.alias(rowNum, PlanUtils.ROW_NUMBER_COLUMN_FOR_CHART));
+    return relBuilder.build();
   }
 
   @AllArgsConstructor
