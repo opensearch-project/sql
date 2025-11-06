@@ -162,7 +162,7 @@ public class AggPushDownAction implements OSRequestBuilderAction {
                     && !((TermsValuesSourceBuilder) src).missingBucket())) {
           // multi-term agg
           MultiTermsAggregationBuilder multiTermsBuilder =
-              buildMultiTermsAggregationBuilder(composite);
+              buildMultiTermsAggregationBuilder(composite, bucketOrder);
           attachSubAggregations(composite.getSubAggregations(), path, multiTermsBuilder);
           aggregationBuilder =
               Pair.of(
@@ -256,7 +256,12 @@ public class AggPushDownAction implements OSRequestBuilderAction {
       TermsValuesSourceBuilder terms, BucketOrder bucketOrder, int newSize) {
     TermsAggregationBuilder termsBuilder = new TermsAggregationBuilder(terms.name());
     termsBuilder.size(newSize);
-    termsBuilder.field(terms.field());
+    if (terms.field() != null) {
+      termsBuilder.field(terms.field());
+    }
+    if (terms.script() != null) {
+      termsBuilder.script(terms.script());
+    }
     if (terms.userValuetypeHint() != null) {
       termsBuilder.userValueTypeHint(terms.userValuetypeHint());
     }
@@ -271,7 +276,12 @@ public class AggPushDownAction implements OSRequestBuilderAction {
       DateHistogramValuesSourceBuilder dateHisto, BucketOrder bucketOrder) {
     DateHistogramAggregationBuilder dateHistoBuilder =
         new DateHistogramAggregationBuilder(dateHisto.name());
-    dateHistoBuilder.field(dateHisto.field());
+    if (dateHisto.field() != null) {
+      dateHistoBuilder.field(dateHisto.field());
+    }
+    if (dateHisto.script() != null) {
+      dateHistoBuilder.script(dateHisto.script());
+    }
     try {
       dateHistoBuilder.fixedInterval(dateHisto.getIntervalAsFixed());
     } catch (IllegalArgumentException e) {
@@ -288,7 +298,12 @@ public class AggPushDownAction implements OSRequestBuilderAction {
   private HistogramAggregationBuilder buildHistogramAggregationBuilder(
       HistogramValuesSourceBuilder histo, BucketOrder bucketOrder) {
     HistogramAggregationBuilder histoBuilder = new HistogramAggregationBuilder(histo.name());
-    histoBuilder.field(histo.field());
+    if (histo.field() != null) {
+      histoBuilder.field(histo.field());
+    }
+    if (histo.script() != null) {
+      histoBuilder.script(histo.script());
+    }
     histoBuilder.interval(histo.interval());
     if (histo.userValuetypeHint() != null) {
       histoBuilder.userValueTypeHint(histo.userValuetypeHint());
@@ -299,7 +314,7 @@ public class AggPushDownAction implements OSRequestBuilderAction {
 
   /** Build a {@link MultiTermsAggregationBuilder} by {@link CompositeAggregationBuilder} */
   private MultiTermsAggregationBuilder buildMultiTermsAggregationBuilder(
-      CompositeAggregationBuilder composite) {
+      CompositeAggregationBuilder composite, BucketOrder bucketOrder) {
     MultiTermsAggregationBuilder multiTermsBuilder =
         new MultiTermsAggregationBuilder(multiTermsBucketNameAsString(composite));
     multiTermsBuilder.size(composite.size());
@@ -311,10 +326,14 @@ public class AggPushDownAction implements OSRequestBuilderAction {
                   MultiTermsValuesSourceConfig.Builder config =
                       new MultiTermsValuesSourceConfig.Builder();
                   config.setFieldName(termValue.field());
+                  if (termValue.script() != null) {
+                    config.setScript(termValue.script());
+                  }
                   config.setUserValueTypeHint(termValue.userValuetypeHint());
                   return config.build();
                 })
             .collect(Collectors.toList()));
+    multiTermsBuilder.order(bucketOrder);
     return multiTermsBuilder;
   }
 
