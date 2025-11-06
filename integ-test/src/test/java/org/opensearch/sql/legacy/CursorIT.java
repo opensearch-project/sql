@@ -146,7 +146,6 @@ public class CursorIT extends SQLIntegTestCase {
     response = new JSONObject(executeFetchQuery(selectQuery, 28, JDBC));
     cursor = response.getString(CURSOR);
     verifyIsV2Cursor(response);
-    System.out.println(response);
     pageCount = 1;
 
     while (!cursor.isEmpty()) {
