@@ -28,7 +28,6 @@ public class CountBinHandler implements BinHandler {
     CountBin countBin = (CountBin) node;
 
     // Create validated binnable field (validates that field is numeric or time-based)
-    // Note: bins parameter works with both numeric and time-based fields
     // Note: bins parameter on time-based fields requires:
     //       1. Pushdown to be enabled (controlled by plugins.calcite.pushdown.enabled, enabled by
     //          default)
