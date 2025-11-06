@@ -46,14 +46,14 @@ public class SortExprIndexScanRule extends RelRule<SortExprIndexScanRule.Config>
     final LogicalProject project = call.rel(1);
     final CalciteLogicalIndexScan scan = call.rel(2);
 
-    // Only match sort - project - scan when sort keys have expression
+    // Only match sort - project - scan when any sort key references an expression
     if (!PlanUtils.sortReferencesExpr(sort, project)) {
       return;
     }
 
     boolean scanProvidesRequiredCollation =
         OpenSearchRelOptUtil.canScanProvideSortCollation(scan, project, sort.collation);
-    if (scan.isLimitPushed() && !scanProvidesRequiredCollation) {
+    if (scan.isTopKPushed() && !scanProvidesRequiredCollation) {
       return;
     }
 
@@ -66,42 +66,21 @@ public class SortExprIndexScanRule extends RelRule<SortExprIndexScanRule.Config>
     }
 
     CalciteLogicalIndexScan newScan;
-    // If the pushed sort is the same with new one, just pushdown limit if there is
-    if (scanProvidesRequiredCollation
-        && sortExpressionInfos.size() == sort.getCollation().getFieldCollations().size()) {
-      newScan = scan.copyWithNewSchema(scan.getSchema());
-      if (sort.fetch != null || sort.offset != null) {
-        Integer limitValue = LimitIndexScanRule.extractLimitValue(sort.fetch);
-        Integer offsetValue = LimitIndexScanRule.extractOffsetValue(sort.offset);
-        if (limitValue != null && offsetValue != null) {
-          newScan = newScan.pushDownLimitToScan(limitValue, offsetValue);
-        }
-        Project newProject =
-            project.copy(sort.getTraitSet(), newScan, project.getProjects(), project.getRowType());
-        call.transformTo(newProject);
-      }
+    // If the scan's sort info already satisfies new sort, just pushdown limit if there is
+    if (scanProvidesRequiredCollation && (sort.fetch != null || sort.offset != null)) {
+      newScan = scan.pushDownLimitToScan(sort.fetch, sort.offset);
     } else {
       // Attempt to push down sort expressions
       newScan = scan.pushdownSortExpr(sortExpressionInfos);
-      if (newScan != null) {
-        if (sort.fetch != null || sort.offset != null) {
-          Integer limitValue = LimitIndexScanRule.extractLimitValue(sort.fetch);
-          Integer offsetValue = LimitIndexScanRule.extractOffsetValue(sort.offset);
-          if (limitValue != null && offsetValue != null) {
-            newScan = newScan.pushDownLimitToScan(limitValue, offsetValue);
-          }
-          Project newProject =
-              project.copy(
-                  sort.getTraitSet(), newScan, project.getProjects(), project.getRowType());
-          call.transformTo(newProject);
-        } else {
-          // Transform the plan to use the new scan with pushed down sort expressions
-          Project newProject =
-              project.copy(
-                  sort.getTraitSet(), newScan, project.getProjects(), project.getRowType());
-          call.transformTo(newProject);
-        }
+      if (newScan != null && (sort.fetch != null || sort.offset != null)) {
+        newScan = newScan.pushDownLimitToScan(sort.fetch, sort.offset);
       }
+    }
+
+    if (newScan != null) {
+      Project newProject =
+          project.copy(sort.getTraitSet(), newScan, project.getProjects(), project.getRowType());
+      call.transformTo(newProject);
     }
   }
 
@@ -243,6 +222,7 @@ public class SortExprIndexScanRule extends RelRule<SortExprIndexScanRule.Config>
                         .oneInput(
                             b1 ->
                                 b1.operand(LogicalProject.class)
+                                    .predicate(Predicate.not(Project::containsOver))
                                     .oneInput(
                                         b2 ->
                                             b2.operand(CalciteLogicalIndexScan.class)

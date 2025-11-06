@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.planner.rules;
 
 import java.util.Optional;
+import java.util.function.Predicate;
 import org.apache.calcite.adapter.enumerable.EnumerableProject;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
@@ -176,7 +177,7 @@ public class ExpandCollationOnProjectExprRule
         return extractScanFromInput(bestPlan);
       }
 
-      // During physical optimization, we should have a best plan, but if not available yet,
+      // During physical optimization, we should have the best plan. But if not available yet,
       // we can check the original node (though it's less likely to be CalciteEnumerableIndexScan)
       RelNode original = subset.getOriginal();
       if (original != null) {
@@ -203,8 +204,9 @@ public class ExpandCollationOnProjectExprRule
                         .oneInput(
                             b1 ->
                                 b1.operand(EnumerableProject.class)
-                                    .predicate(PlanUtils::projectContainsExpr)
-                                    .predicate(p -> !p.containsOver())
+                                    .predicate(
+                                        Predicate.not(Project::containsOver)
+                                            .and(PlanUtils::projectContainsExpr))
                                     .anyInputs()));
 
     @Override

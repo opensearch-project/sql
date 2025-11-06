@@ -30,6 +30,7 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
   private boolean isProjectPushed = false;
   private boolean isMeasureOrderPushed = false;
   private boolean isSortPushed = false;
+  private boolean isSortExprPushed = false;
   private boolean isTopKPushed = false;
   private boolean isRareTopPushed = false;
 
@@ -100,7 +101,7 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
     }
     if (operation.type() == PushDownType.LIMIT) {
       isLimitPushed = true;
-      if (isSortPushed || isMeasureOrderPushed) {
+      if (isSortPushed || isMeasureOrderPushed || isSortExprPushed) {
         isTopKPushed = true;
       }
     }
@@ -109,6 +110,9 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
     }
     if (operation.type() == PushDownType.SORT) {
       isSortPushed = true;
+    }
+    if (operation.type() == PushDownType.SORT_EXPR) {
+      isSortExprPushed = true;
     }
     if (operation.type() == PushDownType.SORT_AGG_METRICS) {
       isMeasureOrderPushed = true;

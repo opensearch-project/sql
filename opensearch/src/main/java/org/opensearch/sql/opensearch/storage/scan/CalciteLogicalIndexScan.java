@@ -46,6 +46,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.planner.rules.EnumerableIndexScanRule;
+import org.opensearch.sql.opensearch.planner.rules.LimitIndexScanRule;
 import org.opensearch.sql.opensearch.planner.rules.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
@@ -427,13 +428,19 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     return null;
   }
 
-  public CalciteLogicalIndexScan pushDownLimitToScan(Integer limit, Integer offset) {
-    CalciteLogicalIndexScan newScan = this.copyWithNewSchema(getRowType());
-    newScan.pushDownContext.add(
-        PushDownType.LIMIT,
-        new LimitDigest(limit, offset),
-        (OSRequestBuilderAction) requestBuilder -> requestBuilder.pushDownLimit(limit, offset));
-    return newScan;
+  public CalciteLogicalIndexScan pushDownLimitToScan(RexNode limit, RexNode offset) {
+    Integer limitValue = LimitIndexScanRule.extractLimitValue(limit);
+    Integer offsetValue = LimitIndexScanRule.extractOffsetValue(offset);
+    if (limitValue != null && offsetValue != null) {
+      CalciteLogicalIndexScan newScan = this.copyWithNewSchema(getRowType());
+      newScan.pushDownContext.add(
+          PushDownType.LIMIT,
+          new LimitDigest(limitValue, offsetValue),
+          (OSRequestBuilderAction)
+              requestBuilder -> requestBuilder.pushDownLimit(limitValue, offsetValue));
+      return newScan;
+    }
+    return null;
   }
 
   /**
