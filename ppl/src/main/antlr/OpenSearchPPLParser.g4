@@ -311,7 +311,7 @@ columnSplit
   ;
 
 timechartCommand
-   : TIMECHART timechartParameter* statsFunction (BY fieldExpression)?
+   : TIMECHART timechartParameter* statsAggTerm (BY fieldExpression)?
    ;
 
 timechartParameter
