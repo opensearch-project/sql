@@ -182,7 +182,10 @@ Automatically calculates the span using a mathematical O(1) algorithm to create 
 
 **Validation**: The bins parameter must be between 2 and 50000 (inclusive). Values outside this range will result in an error.
 
-**Limitation**: The bins parameter on timestamp fields requires pushdown to be enabled. When pushdown is disabled, use the ``span`` parameter instead (e.g., ``bin @timestamp span=5m``).
+**Limitation**: The bins parameter on timestamp fields has the following requirements:
+
+1. **Pushdown must be enabled**: Controlled by ``plugins.calcite.pushdown.enabled`` (enabled by default). When pushdown is disabled, use the ``span`` parameter instead (e.g., ``bin @timestamp span=5m``).
+2. **Timestamp field must be used as an aggregation bucket**: The binned timestamp field must be used in a ``stats`` aggregation (e.g., ``source=events | bin @timestamp bins=3 | stats count() by @timestamp``). Using bins on timestamp fields outside of aggregation buckets is not supported.
 
 The algorithm uses **mathematical optimization** instead of iteration for O(1) performance:
 
