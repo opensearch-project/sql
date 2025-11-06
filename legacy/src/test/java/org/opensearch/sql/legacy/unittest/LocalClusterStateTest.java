@@ -88,7 +88,7 @@ public class LocalClusterStateTest {
           + "        \"number_of_shards\": 5,\n"
           + "        \"number_of_replicas\": 0,\n"
           + "        \"version\": {\n"
-          + "          \"created\": \"6050399\"\n"
+          + "          \"created\": \"137217827\"\n"
           + "        }\n"
           + "      }\n"
           + "    },\n"
