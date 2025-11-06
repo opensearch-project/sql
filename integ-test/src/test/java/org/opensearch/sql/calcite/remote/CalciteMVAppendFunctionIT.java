@@ -97,8 +97,6 @@ public class CalciteMVAppendFunctionIT extends PPLIntegTestCase {
         executeQuery(
             source(TEST_INDEX_BANK, "eval result = mvappend(1, 2.5) | head 1 | fields result"));
 
-    System.out.println(actual);
-
     verifySchema(actual, schema("result", "array"));
     verifyDataRows(actual, rows(List.of(1, 2.5)));
   }

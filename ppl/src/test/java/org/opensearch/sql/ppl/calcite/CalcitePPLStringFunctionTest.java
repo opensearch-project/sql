@@ -46,6 +46,239 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
+  // This test evalutes tostring where it gets converted to cast call
+
+  @Test
+  public void testToStringFormatNotSpecified() {
+    String ppl =
+        "source=EMP | eval string_value = tostring(MGR) | eval cast_value = cast(MGR as string)|"
+            + " fields string_value, cast_value";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(string_value=[CAST($3):VARCHAR], cast_value=[SAFE_CAST($3)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    String expectedResult =
+        "string_value=7902; cast_value=7902\n"
+            + "string_value=7698; cast_value=7698\n"
+            + "string_value=7698; cast_value=7698\n"
+            + "string_value=7839; cast_value=7839\n"
+            + "string_value=7698; cast_value=7698\n"
+            + "string_value=7839; cast_value=7839\n"
+            + "string_value=7839; cast_value=7839\n"
+            + "string_value=7566; cast_value=7566\n"
+            + "string_value=null; cast_value=null\n"
+            + "string_value=7698; cast_value=7698\n"
+            + "string_value=7788; cast_value=7788\n"
+            + "string_value=7698; cast_value=7698\n"
+            + "string_value=7566; cast_value=7566\n"
+            + "string_value=7782; cast_value=7782\n";
+    verifyLogical(root, expectedLogical);
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT CAST(`MGR` AS STRING) `string_value`, SAFE_CAST(`MGR` AS STRING) `cast_value`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testToStringBoolean() {
+    String ppl = "source=EMP | eval boolean_value = tostring(1==1) | fields boolean_value |head 1";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(fetch=[1])\n"
+            + "  LogicalProject(boolean_value=['TRUE':VARCHAR])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    String expectedResult = "boolean_value=TRUE\n";
+    verifyLogical(root, expectedLogical);
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql = "SELECT 'TRUE' `boolean_value`\nFROM `scott`.`EMP`\nLIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testToStringBin() {
+    String ppl =
+        "source=EMP |  eval salary_binary = tostring(SAL, \"binary\") | fields ENAME,"
+            + " salary_binary, SAL";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(ENAME=[$1], salary_binary=[TOSTRING($5, 'binary':VARCHAR)], SAL=[$5])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    String expectedResult =
+        "ENAME=SMITH; salary_binary=1100100000; SAL=800.00\n"
+            + "ENAME=ALLEN; salary_binary=11001000000; SAL=1600.00\n"
+            + "ENAME=WARD; salary_binary=10011100010; SAL=1250.00\n"
+            + "ENAME=JONES; salary_binary=101110011111; SAL=2975.00\n"
+            + "ENAME=MARTIN; salary_binary=10011100010; SAL=1250.00\n"
+            + "ENAME=BLAKE; salary_binary=101100100010; SAL=2850.00\n"
+            + "ENAME=CLARK; salary_binary=100110010010; SAL=2450.00\n"
+            + "ENAME=SCOTT; salary_binary=101110111000; SAL=3000.00\n"
+            + "ENAME=KING; salary_binary=1001110001000; SAL=5000.00\n"
+            + "ENAME=TURNER; salary_binary=10111011100; SAL=1500.00\n"
+            + "ENAME=ADAMS; salary_binary=10001001100; SAL=1100.00\n"
+            + "ENAME=JAMES; salary_binary=1110110110; SAL=950.00\n"
+            + "ENAME=FORD; salary_binary=101110111000; SAL=3000.00\n"
+            + "ENAME=MILLER; salary_binary=10100010100; SAL=1300.00\n";
+    verifyLogical(root, expectedLogical);
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT `ENAME`, `TOSTRING`(`SAL`, 'binary') `salary_binary`, `SAL`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testToStringHex() {
+    String ppl =
+        "source=EMP |  eval salary_hex = tostring(SAL, \"hex\") | fields ENAME, salary_hex, SAL";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(ENAME=[$1], salary_hex=[TOSTRING($5, 'hex':VARCHAR)], SAL=[$5])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    String expectedResult =
+        "ENAME=SMITH; salary_hex=320; SAL=800.00\n"
+            + "ENAME=ALLEN; salary_hex=640; SAL=1600.00\n"
+            + "ENAME=WARD; salary_hex=4e2; SAL=1250.00\n"
+            + "ENAME=JONES; salary_hex=b9f; SAL=2975.00\n"
+            + "ENAME=MARTIN; salary_hex=4e2; SAL=1250.00\n"
+            + "ENAME=BLAKE; salary_hex=b22; SAL=2850.00\n"
+            + "ENAME=CLARK; salary_hex=992; SAL=2450.00\n"
+            + "ENAME=SCOTT; salary_hex=bb8; SAL=3000.00\n"
+            + "ENAME=KING; salary_hex=1388; SAL=5000.00\n"
+            + "ENAME=TURNER; salary_hex=5dc; SAL=1500.00\n"
+            + "ENAME=ADAMS; salary_hex=44c; SAL=1100.00\n"
+            + "ENAME=JAMES; salary_hex=3b6; SAL=950.00\n"
+            + "ENAME=FORD; salary_hex=bb8; SAL=3000.00\n"
+            + "ENAME=MILLER; salary_hex=514; SAL=1300.00\n";
+    verifyLogical(root, expectedLogical);
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT `ENAME`, `TOSTRING`(`SAL`, 'hex') `salary_hex`, `SAL`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testToStringHexFromNumberAsString() {
+    String ppl =
+        "source=EMP |  eval salary_hex = tostring(\"1600\", \"hex\") | fields ENAME, salary_hex|"
+            + " head 1";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(fetch=[1])\n"
+            + "  LogicalProject(ENAME=[$1], salary_hex=[TOSTRING('1600':VARCHAR, 'hex':VARCHAR)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    String expectedResult = "ENAME=SMITH; salary_hex=640\n";
+    verifyLogical(root, expectedLogical);
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT `ENAME`, `TOSTRING`('1600', 'hex') `salary_hex`\nFROM `scott`.`EMP`\nLIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testToStringCommaFromNumberAsString() {
+    String ppl =
+        "source=EMP |  eval salary_comma = tostring(\"160040222\", \"commas\") | fields ENAME,"
+            + " salary_comma| head 1";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(fetch=[1])\n"
+            + "  LogicalProject(ENAME=[$1], salary_comma=[TOSTRING('160040222':VARCHAR,"
+            + " 'commas':VARCHAR)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    String expectedResult = "ENAME=SMITH; salary_comma=160,040,222\n";
+    verifyLogical(root, expectedLogical);
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT `ENAME`, `TOSTRING`('160040222', 'commas') `salary_comma`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testToStringBinaryFromNumberAsString() {
+    String ppl =
+        "source=EMP |  eval salary_binary = tostring(\"160040222\", \"binary\") | fields ENAME,"
+            + " salary_binary| head 1";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalSort(fetch=[1])\n"
+            + "  LogicalProject(ENAME=[$1], salary_binary=[TOSTRING('160040222':VARCHAR,"
+            + " 'binary':VARCHAR)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    String expectedResult = "ENAME=SMITH; salary_binary=1001100010100000010100011110\n";
+    verifyLogical(root, expectedLogical);
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT `ENAME`, `TOSTRING`('160040222', 'binary') `salary_binary`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testToStringCommas() {
+    String ppl =
+        "source=EMP |  eval salary_commas = tostring(SAL, \"commas\") | fields ENAME,"
+            + " salary_commas, SAL";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(ENAME=[$1], salary_commas=[TOSTRING($5, 'commas':VARCHAR)], SAL=[$5])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    String expectedResult =
+        "ENAME=SMITH; salary_commas=800; SAL=800.00\n"
+            + "ENAME=ALLEN; salary_commas=1,600; SAL=1600.00\n"
+            + "ENAME=WARD; salary_commas=1,250; SAL=1250.00\n"
+            + "ENAME=JONES; salary_commas=2,975; SAL=2975.00\n"
+            + "ENAME=MARTIN; salary_commas=1,250; SAL=1250.00\n"
+            + "ENAME=BLAKE; salary_commas=2,850; SAL=2850.00\n"
+            + "ENAME=CLARK; salary_commas=2,450; SAL=2450.00\n"
+            + "ENAME=SCOTT; salary_commas=3,000; SAL=3000.00\n"
+            + "ENAME=KING; salary_commas=5,000; SAL=5000.00\n"
+            + "ENAME=TURNER; salary_commas=1,500; SAL=1500.00\n"
+            + "ENAME=ADAMS; salary_commas=1,100; SAL=1100.00\n"
+            + "ENAME=JAMES; salary_commas=950; SAL=950.00\n"
+            + "ENAME=FORD; salary_commas=3,000; SAL=3000.00\n"
+            + "ENAME=MILLER; salary_commas=1,300; SAL=1300.00\n";
+    verifyLogical(root, expectedLogical);
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT `ENAME`, `TOSTRING`(`SAL`, 'commas') `salary_commas`, `SAL`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testToStringDuration() {
+    String ppl =
+        "source=EMP |  eval duration_commas = tostring(6500, \"duration\") | fields ENAME,"
+            + " duration_commas|HEAD 1";
+
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalSort(fetch=[1])\n"
+            + "  LogicalProject(ENAME=[$1], duration_commas=[TOSTRING(6500, 'duration':VARCHAR)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    String expectedResult = "ENAME=SMITH; duration_commas=01:48:20\n";
+    verifyLogical(root, expectedLogical);
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT `ENAME`, `TOSTRING`(6500, 'duration') `duration_commas`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
   @Test
   public void testLike() {
     String ppl = "source=EMP | where like(JOB, 'SALE%') | stats count() as cnt";

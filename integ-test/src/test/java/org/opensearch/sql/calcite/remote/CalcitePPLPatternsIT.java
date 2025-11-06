@@ -428,7 +428,6 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
                     + " mode=aggregation show_numbered_token=true max_sample_count=5"
                     + " variable_count_threshold=2 frequency_threshold_percentage=0.2",
                 TEST_INDEX_HDFS_LOGS));
-    System.out.println(result);
     verifySchema(
         result,
         schema("level", "string"),

@@ -137,7 +137,6 @@ public class CalciteFillNullCommandIT extends FillNullCommandIT {
                         "source=%s | fields num0, str2 | fillnull value='test' num0 str2",
                         TEST_INDEX_CALCS)));
 
-    System.out.println("Debugging error message: " + t);
     verifyErrorMessageContains(
         t,
         "fillnull failed: replacement value type VARCHAR is not compatible with field 'num0' "

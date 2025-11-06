@@ -9,7 +9,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
@@ -84,14 +83,7 @@ public class JsonExtractAllFunctionIT extends CalcitePPLRelNodeIntegTestCase {
     assertNotNull(result);
     assertTrue(result instanceof Map);
 
-    @SuppressWarnings("unchecked")
-    Map<String, Object> map = (Map<String, Object>) result;
-    System.out.println(
-        "map: "
-            + map.entrySet().stream()
-                .map(entry -> entry.getKey() + "=" + entry.getValue())
-                .collect(Collectors.joining(", ")));
-    return map;
+    return (Map<String, Object>) result;
   }
 
   @Test

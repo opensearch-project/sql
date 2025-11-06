@@ -317,7 +317,6 @@ public class GrokTest {
     try (FileReader fr = new FileReader(Resources.getResource(ResourceManager.IP).getFile());
         BufferedReader br = new BufferedReader(fr)) {
       String line;
-      System.out.println("Starting test with ip");
       while ((line = br.readLine()) != null) {
         Match gm = grok.match(line);
         final Map<String, Object> map = gm.capture();

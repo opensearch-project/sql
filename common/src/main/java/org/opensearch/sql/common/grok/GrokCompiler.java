@@ -185,7 +185,6 @@ public class GrokCompiler implements Serializable {
               (group.get("subname") != null ? group.get("subname") : group.get("name")));
           namedRegex =
               StringUtils.replace(namedRegex, "%{" + group.get("name") + "}", replacement, 1);
-          // System.out.println(_expanded_pattern);
           index++;
         }
       }

@@ -38,7 +38,6 @@ public class ApacheTest {
 
     BufferedReader br = new BufferedReader(new FileReader(LOG_FILE));
     String line;
-    System.out.println("Starting test with httpd log");
     while ((line = br.readLine()) != null) {
       Match gm = grok.match(line);
       final Map<String, Object> capture = gm.capture();
@@ -50,7 +49,6 @@ public class ApacheTest {
   @Test
   public void test002_nasa_httpd_access() throws GrokException, IOException {
     Grok grok = compiler.compile("%{COMMONAPACHELOG}");
-    System.out.println("Starting test with nasa log -- may take a while");
     BufferedReader br;
     String line;
     File dir = new File(LOG_DIR_NASA);
