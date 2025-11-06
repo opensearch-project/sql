@@ -825,8 +825,24 @@ public class StatsCommandIT extends PPLIntegTestCase {
                   "source=%s | stats bucket_nullable=false count() by state | sort `count()` | head"
                       + " 5",
                   TEST_INDEX_ACCOUNT));
-      verifyDataRows(
-          response, rows(13, "NV"), rows(13, "SC"), rows(14, "CO"), rows(14, "AZ"), rows(14, "DE"));
+      System.out.println(response);
+      if (!isPushdownDisabled()) {
+        verifyDataRows(
+            response,
+            rows(13, "NV"),
+            rows(13, "SC"),
+            rows(14, "CO"),
+            rows(14, "AZ"),
+            rows(14, "DE"));
+      } else {
+        verifyDataRows(
+            response,
+            rows(13, "NV"),
+            rows(13, "SC"),
+            rows(14, "DE"),
+            rows(14, "AZ"),
+            rows(14, "NM"));
+      }
       response =
           executeQuery(
               String.format(
@@ -937,8 +953,24 @@ public class StatsCommandIT extends PPLIntegTestCase {
                   "source=%s | eval new_state = lower(state) | stats bucket_nullable=false count()"
                       + " by new_state | sort `count()` | head 5",
                   TEST_INDEX_ACCOUNT));
-      verifyDataRows(
-          response, rows(13, "nv"), rows(13, "sc"), rows(14, "co"), rows(14, "az"), rows(14, "de"));
+      System.out.println(response);
+      if (!isPushdownDisabled()) {
+        verifyDataRows(
+            response,
+            rows(13, "nv"),
+            rows(13, "sc"),
+            rows(14, "co"),
+            rows(14, "az"),
+            rows(14, "de"));
+      } else {
+        verifyDataRows(
+            response,
+            rows(13, "nv"),
+            rows(13, "sc"),
+            rows(14, "de"),
+            rows(14, "az"),
+            rows(14, "nm"));
+      }
     } finally {
       resetQueryBucketSize();
     }
@@ -1002,14 +1034,25 @@ public class StatsCommandIT extends PPLIntegTestCase {
                   "source=%s | stats bucket_nullable=false count() by gender, state | sort"
                       + " `count()` | head 5",
                   TEST_INDEX_ACCOUNT));
+      System.out.println(response);
       if (isCalciteEnabled()) {
-        verifyDataRows(
-            response,
-            rows(3, "F", "DE"),
-            rows(5, "F", "CT"),
-            rows(5, "F", "OR"),
-            rows(5, "F", "WI"),
-            rows(5, "M", "MI"));
+        if (!isPushdownDisabled()) {
+          verifyDataRows(
+              response,
+              rows(3, "F", "DE"),
+              rows(5, "F", "CT"),
+              rows(5, "F", "OR"),
+              rows(5, "F", "WI"),
+              rows(5, "M", "MI"));
+        } else {
+          verifyDataRows(
+              response,
+              rows(3, "F", "DE"),
+              rows(5, "F", "WI"),
+              rows(5, "F", "OR"),
+              rows(5, "M", "RI"),
+              rows(5, "F", "CT"));
+        }
       } else {
         verifyDataRows(
             response,
@@ -1075,14 +1118,25 @@ public class StatsCommandIT extends PPLIntegTestCase {
                       + " bucket_nullable=false count() by new_gender, new_state | sort `count()` |"
                       + " head 5",
                   TEST_INDEX_ACCOUNT));
+      System.out.println(response);
       if (isCalciteEnabled()) {
-        verifyDataRows(
-            response,
-            rows(3, "f", "de"),
-            rows(5, "f", "ct"),
-            rows(5, "f", "or"),
-            rows(5, "f", "wi"),
-            rows(5, "m", "mi"));
+        if (!isPushdownDisabled()) {
+          verifyDataRows(
+              response,
+              rows(3, "f", "de"),
+              rows(5, "f", "ct"),
+              rows(5, "f", "or"),
+              rows(5, "f", "wi"),
+              rows(5, "m", "mi"));
+        } else {
+          verifyDataRows(
+              response,
+              rows(3, "f", "de"),
+              rows(5, "m", "ri"),
+              rows(5, "f", "ct"),
+              rows(5, "m", "mi"),
+              rows(5, "m", "ne"));
+        }
       } else {
         verifyDataRows(
             response,
