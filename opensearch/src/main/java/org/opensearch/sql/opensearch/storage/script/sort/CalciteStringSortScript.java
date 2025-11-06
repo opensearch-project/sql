@@ -37,12 +37,7 @@ public class CalciteStringSortScript extends StringSortScript {
 
   @Override
   public String execute() {
-    Object[] result = calciteScript.execute(this.getDoc(), this.sourceLookup);
-    if (result == null || result.length == 0 || result[0] == null) {
-      return "";
-    }
-
-    Object value = result[0];
-    return value.toString();
+    Object value = calciteScript.execute(this.getDoc(), this.sourceLookup)[0];
+    return value == null ? null : value.toString();
   }
 }

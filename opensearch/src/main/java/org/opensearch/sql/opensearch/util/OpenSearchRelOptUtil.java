@@ -312,12 +312,13 @@ public class OpenSearchRelOptUtil {
     List<RelFieldCollation> requiredFieldCollations = toCollation.getFieldCollations();
 
     // Use two-pointer approach to match required collations with scan sort expressions
-    int scanPointer = 0;
-    int requiredPointer = 0;
+    int scanSortExprPointer = 0;
+    int requiredSortExprPointer = 0;
 
-    while (requiredPointer < requiredFieldCollations.size()
-        && scanPointer < sortExpressionInfos.size()) {
-      RelFieldCollation requiredFieldCollation = requiredFieldCollations.get(requiredPointer);
+    while (requiredSortExprPointer < requiredFieldCollations.size()
+        && scanSortExprPointer < sortExpressionInfos.size()) {
+      RelFieldCollation requiredFieldCollation =
+          requiredFieldCollations.get(requiredSortExprPointer);
       int projectIndex = requiredFieldCollation.getFieldIndex();
 
       // Check bounds for project index
@@ -326,31 +327,31 @@ public class OpenSearchRelOptUtil {
       }
 
       RexNode requiredProjectOutput = projectOutputs.get(projectIndex);
-      SortExpressionInfo scanSortInfo = sortExpressionInfos.get(scanPointer);
+      SortExpressionInfo scanSortInfo = sortExpressionInfos.get(scanSortExprPointer);
 
       // Get the effective expression for comparison
-      RexNode scanExpression = scanSortInfo.getEffectiveExpression(scan);
+      RexNode scanSortExpression = scanSortInfo.getEffectiveExpression(scan);
 
       // Check if the required project output matches the scan sort expression
-      if (scanExpression != null && scanExpression.equals(requiredProjectOutput)) {
+      if (scanSortExpression != null && scanSortExpression.equals(requiredProjectOutput)) {
         // Check if the collation direction and null handling match
         RelFieldCollation scanFieldCollation = scanSortInfo.toRelFieldCollation(projectIndex);
         if (requiredFieldCollation.getDirection() == scanFieldCollation.getDirection()
             && requiredFieldCollation.nullDirection == scanFieldCollation.nullDirection) {
           // Match found, advance both pointers
-          requiredPointer++;
-          scanPointer++;
+          requiredSortExprPointer++;
+          scanSortExprPointer++;
         } else {
           // Direction or null handling mismatch
           return false;
         }
       } else {
         // Expression mismatch, advance scan pointer to look for a match
-        scanPointer++;
+        scanSortExprPointer++;
       }
     }
 
     // All required collations must be matched
-    return requiredPointer == requiredFieldCollations.size();
+    return requiredSortExprPointer == requiredFieldCollations.size();
   }
 }

@@ -232,7 +232,7 @@ public class OpenSearchRequestBuilder {
       Map<String, ExprType> fieldTypes,
       RelDataType rowType,
       RelOptCluster cluster) {
-    if (!org.apache.commons.lang3.StringUtils.isEmpty(sortExprInfo.getFieldName())) {
+    if (sortExprInfo.isSimpleFieldReference()) {
       sourceBuilder.sort(SortBuilders.fieldSort(sortExprInfo.getFieldName()));
       return;
     }
@@ -266,7 +266,7 @@ public class OpenSearchRequestBuilder {
     int newStartFrom = startFrom + offset;
 
     if (newStartFrom >= maxResultWindow) {
-      throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
+      throw new PushDownUnSupportedException(
           String.format(
               "Requested offset %d should be less than the max result window %d",
               newStartFrom, maxResultWindow));
@@ -468,7 +468,7 @@ public class OpenSearchRequestBuilder {
    * @param relDataType the return type of the expression
    * @return the appropriate ScriptSortType
    */
-  private ScriptSortType getScriptSortType(org.apache.calcite.rel.type.RelDataType relDataType) {
+  private ScriptSortType getScriptSortType(RelDataType relDataType) {
     switch (relDataType.getSqlTypeName()) {
       case TINYINT:
       case SMALLINT:
@@ -477,14 +477,13 @@ public class OpenSearchRequestBuilder {
       case FLOAT:
       case REAL:
       case DOUBLE:
-      case DECIMAL:
         return ScriptSortType.NUMBER;
       case CHAR:
       case VARCHAR:
         return ScriptSortType.STRING;
       default:
-        // Default to STRING for unknown types
-        return ScriptSortType.STRING;
+        throw new PushDownUnSupportedException(
+            "Unsupported type for sort expression pushdown: " + relDataType);
     }
   }
 }

@@ -32,6 +32,9 @@ import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
  * takes effect, the input collation is changed to a sort over field instead of original sort over
  * expression. It changes the collation requirement of the whole query.
  *
+ * <p>Another problem is if sort expression is pushed down to scan, the Enumerable project doesn't
+ * know the collation is already satisfied.
+ *
  * <p>AbstractConverter physical node is supposed to resolve the problem of inconsistent collation
  * requirement between physical node input and output. This optimization rule finds equivalent
  * output expression collations and input field collations. If their collation traits are satisfied,
@@ -53,12 +56,12 @@ public class ExpandCollationOnProjectExprRule
     final RelCollation toCollation = toTraits.getTrait(RelCollationTraitDef.INSTANCE);
 
     // Branch 1: Check if complex expressions are already sorted by scan
-    if (handleComplexExpressionsSortedByScan(call, converter, project, toTraits, toCollation)) {
+    if (handleComplexExpressionsSortedByScan(call, project, toTraits, toCollation)) {
       return;
     }
 
     // Branch 2: Handle simple expressions that can be transformed to field sorts
-    handleSimpleExpressionFieldSorts(call, converter, project, toTraits, toCollation);
+    handleSimpleExpressionFieldSorts(call, project, toTraits, toCollation);
   }
 
   /**
@@ -68,11 +71,7 @@ public class ExpandCollationOnProjectExprRule
    * @return true if handled, false if not applicable
    */
   private boolean handleComplexExpressionsSortedByScan(
-      RelOptRuleCall call,
-      AbstractConverter converter,
-      Project project,
-      RelTraitSet toTraits,
-      RelCollation toCollation) {
+      RelOptRuleCall call, Project project, RelTraitSet toTraits, RelCollation toCollation) {
 
     // Check if toCollation is null or not a simple RelCollation with field collations
     if (toCollation == null || toCollation.getFieldCollations().isEmpty()) {
@@ -80,7 +79,7 @@ public class ExpandCollationOnProjectExprRule
     }
 
     // Extract the actual enumerable scan from the input, handling RelSubset case
-    CalciteEnumerableIndexScan scan = extractScanFromInput(project.getInput());
+    CalciteEnumerableIndexScan scan = extractEnumerableScanFromInput(project.getInput());
     if (scan == null) {
       return false;
     }
@@ -102,11 +101,7 @@ public class ExpandCollationOnProjectExprRule
    * getOrderEquivalentInputInfo.
    */
   private void handleSimpleExpressionFieldSorts(
-      RelOptRuleCall call,
-      AbstractConverter converter,
-      Project project,
-      RelTraitSet toTraits,
-      RelCollation toCollation) {
+      RelOptRuleCall call, Project project, RelTraitSet toTraits, RelCollation toCollation) {
 
     RelTrait fromTrait = project.getInput().getTraitSet().getTrait(RelCollationTraitDef.INSTANCE);
 
@@ -161,7 +156,7 @@ public class ExpandCollationOnProjectExprRule
    * @param input The input RelNode to extract scan from
    * @return CalciteEnumerableIndexScan if found, null otherwise
    */
-  private static CalciteEnumerableIndexScan extractScanFromInput(RelNode input) {
+  private static CalciteEnumerableIndexScan extractEnumerableScanFromInput(RelNode input) {
 
     // Case 1: Direct CalciteEnumerableIndexScan (physical scan)
     if (input instanceof CalciteEnumerableIndexScan) {
@@ -174,14 +169,7 @@ public class ExpandCollationOnProjectExprRule
       RelNode bestPlan = subset.getBest();
       if (bestPlan != null) {
         // Recursively check the best plan
-        return extractScanFromInput(bestPlan);
-      }
-
-      // During physical optimization, we should have the best plan. But if not available yet,
-      // we can check the original node (though it's less likely to be CalciteEnumerableIndexScan)
-      RelNode original = subset.getOriginal();
-      if (original != null) {
-        return extractScanFromInput(original);
+        return extractEnumerableScanFromInput(bestPlan);
       }
     }
 

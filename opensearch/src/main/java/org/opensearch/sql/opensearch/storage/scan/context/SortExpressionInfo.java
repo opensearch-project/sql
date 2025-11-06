@@ -9,8 +9,8 @@ import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.apache.calcite.rel.RelFieldCollation;
-import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.commons.lang3.StringUtils;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 
 /**
@@ -67,7 +67,7 @@ public class SortExpressionInfo {
    * @return true if this represents a simple field reference, false for complex expressions
    */
   public boolean isSimpleFieldReference() {
-    return fieldName != null && expression == null;
+    return expression == null && !StringUtils.isEmpty(fieldName);
   }
 
   /**
@@ -84,9 +84,9 @@ public class SortExpressionInfo {
       int fieldIndex = currentFieldNames.indexOf(fieldName);
       if (fieldIndex >= 0) {
         // Create a RexInputRef for this field
-        RexBuilder rexBuilder = scan.getCluster().getRexBuilder();
-        return rexBuilder.makeInputRef(
-            scan.getRowType().getFieldList().get(fieldIndex).getType(), fieldIndex);
+        return scan.getCluster()
+            .getRexBuilder()
+            .makeInputRef(scan.getRowType().getFieldList().get(fieldIndex).getType(), fieldIndex);
       }
       // Field not found in current schema - this shouldn't happen in normal cases
       return null;

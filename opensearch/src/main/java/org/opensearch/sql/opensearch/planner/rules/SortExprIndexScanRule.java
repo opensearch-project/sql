@@ -126,38 +126,26 @@ public class SortExprIndexScanRule extends RelRule<SortExprIndexScanRule.Config>
    */
   private SortExpressionInfo mapThroughProject(
       RexNode sortKey, Project project, CalciteLogicalIndexScan scan, RelFieldCollation collation) {
+    assert sortKey instanceof RexInputRef : "sort key should be always RexInputRef";
 
-    if (sortKey instanceof RexInputRef) {
-      RexInputRef inputRef = (RexInputRef) sortKey;
-      int index = inputRef.getIndex();
-      if (index < project.getProjects().size()) {
-        RexNode projectExpression = project.getProjects().get(index);
+    RexInputRef inputRef = (RexInputRef) sortKey;
+    RexNode projectExpression = project.getProjects().get(inputRef.getIndex());
 
-        // If the project expression is a simple RexInputRef pointing to a scan field,
-        // store the field name for stability
-        if (projectExpression instanceof RexInputRef) {
-          RexInputRef scanInputRef = (RexInputRef) projectExpression;
-          int scanFieldIndex = scanInputRef.getIndex();
-
-          // Get the field name from the scan's row type
-          List<String> scanFieldNames = scan.getRowType().getFieldNames();
-          if (scanFieldIndex < scanFieldNames.size()) {
-            String fieldName = scanFieldNames.get(scanFieldIndex);
-
-            // Create SortExpressionInfo with field name (stable reference)
-            return new SortExpressionInfo(
-                fieldName, collation.getDirection(), collation.nullDirection);
-          }
-        }
-
-        // For complex expressions, store the RexNode
-        return new SortExpressionInfo(
-            projectExpression, collation.getDirection(), collation.nullDirection);
-      }
+    // If the project expression is a simple RexInputRef pointing to a scan field,
+    // store the field name for stability
+    if (projectExpression instanceof RexInputRef) {
+      RexInputRef scanInputRef = (RexInputRef) projectExpression;
+      int scanFieldIndex = scanInputRef.getIndex();
+      // Get the field name from the scan's row type
+      List<String> scanFieldNames = scan.getRowType().getFieldNames();
+      // Create SortExpressionInfo with field name (stable reference)
+      return new SortExpressionInfo(
+          scanFieldNames.get(scanFieldIndex), collation.getDirection(), collation.nullDirection);
     }
 
-    // Fallback: store the sort key as-is
-    return new SortExpressionInfo(sortKey, collation.getDirection(), collation.nullDirection);
+    // For complex expressions, store the RexNode
+    return new SortExpressionInfo(
+        projectExpression, collation.getDirection(), collation.nullDirection);
   }
 
   /**
@@ -172,7 +160,7 @@ public class SortExprIndexScanRule extends RelRule<SortExprIndexScanRule.Config>
       RexNode expr = info.getExpression();
       if (expr == null && StringUtils.isEmpty(info.getFieldName())) {
         return false;
-      } else if (expr == null && !StringUtils.isEmpty(info.getFieldName())) {
+      } else if (info.isSimpleFieldReference()) {
         continue;
       }
       // Reject literals or constant expression - they don't provide meaningful sorting
@@ -194,11 +182,13 @@ public class SortExprIndexScanRule extends RelRule<SortExprIndexScanRule.Config>
    */
   private boolean isSupportedSortScriptType(SqlTypeName sqlTypeName) {
     switch (sqlTypeName) {
+      case TINYINT:
+      case SMALLINT:
       case INTEGER:
       case BIGINT:
       case FLOAT:
+      case REAL:
       case DOUBLE:
-      case DECIMAL:
       case VARCHAR:
       case CHAR:
         return true;
