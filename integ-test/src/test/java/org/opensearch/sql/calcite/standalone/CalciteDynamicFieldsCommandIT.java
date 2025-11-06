@@ -124,16 +124,6 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
     String query =
         source(
             TEST_INDEX_DYNAMIC, "regex department=\"Eng.*\" | fields account_number, department");
-    assertThrows(RuntimeException.class, () -> executeQuery(query));
-  }
-
-  @Test
-  public void testCastAndRegex() throws IOException {
-    String query =
-        source(
-            TEST_INDEX_DYNAMIC,
-            "eval department=CAST(department AS string) | regex department=\"Eng.*\" | fields"
-                + " account_number, department");
     JSONObject result = executeQuery(query);
 
     verifySchema(result, schema("account_number", "bigint"), schema("department", "string"));
@@ -145,20 +135,7 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
     String query =
         source(
             TEST_INDEX_DYNAMIC,
-            "rex field=firstname \"(?<initial>[A-Z])\" | fields firstname, initial | head 1");
-    JSONObject result = executeQuery(query);
-
-    verifySchema(result, schema("firstname", "string"), schema("initial", "string"));
-    verifyDataRows(result, rows("John", "J"));
-  }
-
-  @Test
-  public void testCastAndRex() throws IOException {
-    String query =
-        source(
-            TEST_INDEX_DYNAMIC,
-            "eval department=CAST(department AS string) | rex field=department '(?<initial>[A-Z])'"
-                + " | fields department, initial | head 1");
+            "rex field=department '(?<initial>[A-Z])'" + " | fields department, initial | head 1");
     JSONObject result = executeQuery(query);
 
     verifySchema(result, schema("department", "string"), schema("initial", "string"));
@@ -166,19 +143,31 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
   }
 
   @Test
-  public void testCastAndParse() throws IOException {
+  public void testRexWithNumeric() throws IOException {
     String query =
         source(
             TEST_INDEX_DYNAMIC,
-            "eval department=CAST(department AS string) | fields department | parse department"
-                + " '(?<initial>[A-Z]).*' | fields department, initial | head 1");
+            "rex field=salary '(?<initial>[0-9])'" + " | fields salary, initial | head 1");
+    JSONObject result = executeQuery(query);
+
+    verifySchema(result, schema("salary", "int"), schema("initial", "string"));
+    verifyDataRows(result, rows(75000, "7"));
+  }
+
+  @Test
+  public void testParse() throws IOException {
+    String query =
+        source(
+            TEST_INDEX_DYNAMIC,
+            "parse department '(?<initial>[A-Z]).*' | fields department, initial | head 1");
+
     assertExplainYaml(
         query,
         "calcite:\n"
             + "  logical: |\n"
             + "    LogicalSystemLimit(fetch=[200], type=[QUERY_SIZE_LIMIT])\n"
             + "      LogicalSort(fetch=[1])\n"
-            + "        LogicalProject(department=[SAFE_CAST(ITEM($9, 'department'))],"
+            + "        LogicalProject(department=[ITEM($9, 'department')],"
             + " initial=[ITEM(PARSE(SAFE_CAST(ITEM($9, 'department')),"
             + " '(?<initial>[A-Z]).*':VARCHAR, 'regex':VARCHAR), 'initial':VARCHAR)])\n"
             + "          CalciteLogicalIndexScan(table=[[OpenSearch, test_dynamic_fields]])\n"
@@ -188,7 +177,7 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
             + " expr#11=[ITEM($t9, $t10)], expr#12=[SAFE_CAST($t11)],"
             + " expr#13=['(?<initial>[A-Z]).*':VARCHAR], expr#14=['regex':VARCHAR],"
             + " expr#15=[PARSE($t12, $t13, $t14)], expr#16=['initial':VARCHAR], expr#17=[ITEM($t15,"
-            + " $t16)], department=[$t12], initial=[$t17])\n"
+            + " $t16)], department=[$t11], initial=[$t17])\n"
             + "        EnumerableLimit(fetch=[1])\n"
             + "          CalciteEnumerableIndexScan(table=[[OpenSearch, test_dynamic_fields]])\n");
 
@@ -235,28 +224,41 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
 
   @Test
   public void testBin() throws IOException {
-    String query = source(TEST_INDEX_DYNAMIC, "bin salary span=10000 | head 1");
+    String query =
+        source(TEST_INDEX_DYNAMIC, "bin salary span=10000 | fields account_number, salary");
     JSONObject result = executeQuery(query);
 
-    verifySchema(
-        result,
-        schema("account_number", "bigint"),
-        schema("firstname", "string"),
-        schema("lastname", "string"),
-        schema("salary", "string"),
-        schema("city", "string"),
-        schema("department", "string"),
-        schema("json", "string"));
+    assertExplainYaml(
+        query,
+        "calcite:\n"
+            + "  logical: |\n"
+            + "    LogicalSystemLimit(fetch=[200], type=[QUERY_SIZE_LIMIT])\n"
+            + "      LogicalProject(account_number=[$0], salary=[SPAN_BUCKET(ITEM($9, 'salary'),"
+            + " 10000)])\n"
+            + "        CalciteLogicalIndexScan(table=[[OpenSearch, test_dynamic_fields]])\n"
+            + "  physical: |\n"
+            + "    EnumerableCalc(expr#0..9=[{inputs}], expr#10=['salary'], expr#11=[ITEM($t9,"
+            + " $t10)], expr#12=[10000], expr#13=[SPAN_BUCKET($t11, $t12)], account_number=[$t0],"
+            + " salary=[$t13])\n"
+            + "      EnumerableLimit(fetch=[200])\n"
+            + "        CalciteEnumerableIndexScan(table=[[OpenSearch, test_dynamic_fields]])\n");
+
+    verifySchema(result, schema("account_number", "bigint"), schema("salary", "string"));
     verifyDataRows(
-        result, rows(1, "John", "Doe", "70000-80000", "NYC", "{\"n\":1}", "Engineering"));
+        result,
+        rows(1, "70000-80000"),
+        rows(2, "60000-70000"),
+        rows(3, null),
+        rows(4, "80000-90000"),
+        rows(5, "60000-70000"));
   }
 
   @Test
-  public void testCastAndPatterns() throws IOException {
+  public void testPatterns() throws IOException {
     String query =
         source(
             TEST_INDEX_DYNAMIC,
-            "eval department=CAST(department as string) | patterns department method=simple_pattern"
+            "patterns department method=simple_pattern"
                 + " | fields department, patterns_field | head 1");
     JSONObject result = executeQuery(query);
 
@@ -265,12 +267,12 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
   }
 
   @Test
-  public void testCastAndPatternsWithAggregation() throws IOException {
+  public void testPatternsWithAggregation() throws IOException {
     // TODO:
     String query =
         source(
             TEST_INDEX_DYNAMIC,
-            "eval department=CAST(department as string) | patterns department mode=aggregation"
+            "patterns department mode=aggregation"
                 + " method=simple_pattern | fields patterns_field, pattern_count, sample_logs |"
                 + " head 1");
     JSONObject result = executeQuery(query);
@@ -490,8 +492,7 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
     String query =
         source(
             TEST_INDEX_DYNAMIC,
-            "eval salary = cast(salary as int) * 2 | fields firstname,"
-                + " lastname, salary | head 1");
+            "eval salary = 1 + salary * 2 | fields account_number, salary | head 1");
 
     assertExplainYaml(
         query,
@@ -499,25 +500,21 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
             + "  logical: |\n"
             + "    LogicalSystemLimit(fetch=[200], type=[QUERY_SIZE_LIMIT])\n"
             + "      LogicalSort(fetch=[1])\n"
-            + "        LogicalProject(firstname=[$1], lastname=[$2], salary=[*(SAFE_CAST(ITEM($9,"
-            + " 'salary')), 2)])\n"
+            + "        LogicalProject(account_number=[$0], salary=[+(1, *(SAFE_CAST(ITEM($9,"
+            + " 'salary')), 2.0E0:DOUBLE))])\n"
             + "          CalciteLogicalIndexScan(table=[[OpenSearch, test_dynamic_fields]])\n"
             + "  physical: |\n"
             + "    EnumerableLimit(fetch=[200])\n"
-            + "      EnumerableCalc(expr#0..9=[{inputs}], expr#10=['salary'], expr#11=[ITEM($t9,"
-            + " $t10)], expr#12=[SAFE_CAST($t11)], expr#13=[2], expr#14=[*($t12, $t13)],"
-            + " firstname=[$t1], lastname=[$t2], salary=[$t14])\n"
+            + "      EnumerableCalc(expr#0..9=[{inputs}], expr#10=[1], expr#11=['salary'],"
+            + " expr#12=[ITEM($t9, $t11)], expr#13=[SAFE_CAST($t12)], expr#14=[2.0E0:DOUBLE],"
+            + " expr#15=[*($t13, $t14)], expr#16=[+($t10, $t15)], account_number=[$t0],"
+            + " salary=[$t16])\n"
             + "        EnumerableLimit(fetch=[1])\n"
-            + "          CalciteEnumerableIndexScan(table=[[OpenSearch, test_dynamic_fields]])\n"
-            + "");
+            + "          CalciteEnumerableIndexScan(table=[[OpenSearch, test_dynamic_fields]])\n");
 
     JSONObject result = executeQuery(query);
 
-    verifySchema(
-        result,
-        schema("firstname", "string"),
-        schema("lastname", "string"),
-        schema("salary", "int"));
+    verifySchema(result, schema("account_number", "bigint"), schema("salary", "double"));
   }
 
   private void createTestIndexWithUnmappedFields() throws IOException {

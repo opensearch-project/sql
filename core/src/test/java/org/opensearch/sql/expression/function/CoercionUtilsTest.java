@@ -16,6 +16,7 @@ import java.util.stream.Stream;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -30,6 +31,11 @@ class CoercionUtilsTest {
 
   private static RexNode nullLiteral(ExprCoreType type) {
     return REX_BUILDER.makeNullLiteral(OpenSearchTypeFactory.convertExprTypeToRelDataType(type));
+  }
+
+  private static RexNode anyTypedLiteral() {
+    return REX_BUILDER.makeNullLiteral(
+        OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.ANY));
   }
 
   private static Stream<Arguments> commonWidestTypeArguments() {
@@ -80,6 +86,26 @@ class CoercionUtilsTest {
     List<RexNode> arguments = List.of(nullLiteral(INTEGER));
 
     assertNull(CoercionUtils.castArguments(REX_BUILDER, typeChecker, arguments));
+  }
+
+  @Test
+  void coerceAnyToString() {
+    testAnyToSpecificTypeCoercion(STRING);
+    testAnyToSpecificTypeCoercion(INTEGER);
+    testAnyToSpecificTypeCoercion(DOUBLE);
+    testAnyToSpecificTypeCoercion(BOOLEAN);
+    testAnyToSpecificTypeCoercion(ExprCoreType.TIMESTAMP);
+  }
+
+  void testAnyToSpecificTypeCoercion(ExprCoreType toType) {
+    PPLTypeChecker typeChecker = new StubTypeChecker(List.of(List.of(toType)));
+    List<RexNode> arguments = List.of(anyTypedLiteral());
+
+    List<RexNode> result = CoercionUtils.castArguments(REX_BUILDER, typeChecker, arguments);
+
+    assertEquals(1, result.size());
+    assertEquals(
+        toType, OpenSearchTypeFactory.convertRelDataTypeToExprType(result.getFirst().getType()));
   }
 
   private static class StubTypeChecker implements PPLTypeChecker {
