@@ -158,7 +158,7 @@ public class PPLOperandTypes {
                       OperandTypes.family(
                           SqlTypeFamily.TIMESTAMP,
                           SqlTypeFamily.INTEGER,
-                          SqlTypeFamily.TIMESTAMP, // TIMESTAMP - TIMESTAMP = TIMESTAMP (duration)
+                          SqlTypeFamily.TIMESTAMP, // TIMESTAMP - TIMESTAMP = TIMESTAMP
                           SqlTypeFamily.TIMESTAMP))
                   // DATE field with OpenSearch type system
                   // Used in: Production + Integration tests (CalciteBinCommandIT)
@@ -174,7 +174,7 @@ public class PPLOperandTypes {
                       OperandTypes.family(
                           SqlTypeFamily.DATE,
                           SqlTypeFamily.INTEGER,
-                          SqlTypeFamily.DATE, // DATE - DATE = DATE (duration)
+                          SqlTypeFamily.DATE, // DATE - DATE = DATE
                           SqlTypeFamily.DATE))
                   // TIME field with OpenSearch type system
                   // Used in: Production + Integration tests (CalciteBinCommandIT)
@@ -190,7 +190,7 @@ public class PPLOperandTypes {
                       OperandTypes.family(
                           SqlTypeFamily.TIME,
                           SqlTypeFamily.INTEGER,
-                          SqlTypeFamily.TIME, // TIME - TIME = TIME (duration)
+                          SqlTypeFamily.TIME, // TIME - TIME = TIME
                           SqlTypeFamily.TIME)));
 
   public static final UDFOperandMetadata NUMERIC_NUMERIC_NUMERIC_NUMERIC_NUMERIC =
