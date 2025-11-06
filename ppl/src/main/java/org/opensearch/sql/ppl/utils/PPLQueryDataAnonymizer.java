@@ -536,7 +536,10 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   public String visitChart(Chart node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     StringBuilder chartCommand = new StringBuilder();
-    chartCommand.append(" | chart");
+
+    // Check if this is a timechart by looking for timestamp span in rowSplit
+    boolean isTimechart = isTimechartNode(node);
+    chartCommand.append(isTimechart ? " | timechart" : " | chart");
 
     for (Argument arg : node.getArguments()) {
       String argName = arg.getArgName();
@@ -566,6 +569,20 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     }
 
     return StringUtils.format("%s%s", child, chartCommand.toString());
+  }
+
+  private boolean isTimechartNode(Chart node) {
+    // A Chart node represents a timechart if it has a rowSplit that's an alias containing
+    // a span on the implicit timestamp field
+    if (node.getRowSplit() instanceof Alias) {
+      Alias alias = (Alias) node.getRowSplit();
+      if (alias.getDelegated() instanceof Span) {
+        Span span = (Span) alias.getDelegated();
+        return span.getField() instanceof Field
+            && "@timestamp".equals(((Field) span.getField()).getField().toString());
+      }
+    }
+    return false;
   }
 
   public String visitRex(Rex node, String context) {
