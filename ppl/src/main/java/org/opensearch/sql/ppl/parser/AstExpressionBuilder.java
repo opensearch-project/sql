@@ -96,6 +96,12 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return new Xor(visit(ctx.left), visit(ctx.right));
   }
 
+  @Override
+  public UnresolvedExpression visitParentheticLogicalExpr(
+      OpenSearchPPLParser.ParentheticLogicalExprContext ctx) {
+    return visit(ctx.logicalExpression()); // Discard parenthesis around
+  }
+
   /** Comparison expression. */
   @Override
   public UnresolvedExpression visitCompareExpr(CompareExprContext ctx) {

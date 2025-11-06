@@ -98,6 +98,55 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void testParentheticLogicalExpr() {
+    assertEqual(
+        "source=t | where (a=1)",
+        filter(relation("t"), compare("=", field("a"), intLiteral(1))));
+  }
+
+  @Test
+  public void testParentheticLogicalExprWithAnd() {
+    assertEqual(
+        "source=t | where (a=1 and b=2) or c=3",
+        filter(
+            relation("t"),
+            or(
+                and(compare("=", field("a"), intLiteral(1)), compare("=", field("b"), intLiteral(2))),
+                compare("=", field("c"), intLiteral(3)))));
+  }
+
+  @Test
+  public void testParentheticLogicalExprWithOr() {
+    assertEqual(
+        "source=t | where a=1 and (b=2 or c=3)",
+        filter(
+            relation("t"),
+            and(
+                compare("=", field("a"), intLiteral(1)),
+                or(compare("=", field("b"), intLiteral(2)), compare("=", field("c"), intLiteral(3))))));
+  }
+
+  @Test
+  public void testNestedParentheticLogicalExpr() {
+    assertEqual(
+        "source=t | where ((a=1 and b=2) or (c=3 and d=4))",
+        filter(
+            relation("t"),
+            or(
+                and(compare("=", field("a"), intLiteral(1)), compare("=", field("b"), intLiteral(2))),
+                and(compare("=", field("c"), intLiteral(3)), compare("=", field("d"), intLiteral(4))))));
+  }
+
+  @Test
+  public void testParentheticLogicalExprWithNot() {
+    assertEqual(
+        "source=t | where not (a=1 and b=2)",
+        filter(
+            relation("t"),
+            not(and(compare("=", field("a"), intLiteral(1)), compare("=", field("b"), intLiteral(2))))));
+  }
+
+  @Test
   public void testLogicalLikeExpr() {
     assertEqual(
         "source=t like(a, '_a%b%c_d_')",

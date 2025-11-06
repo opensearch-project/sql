@@ -98,4 +98,44 @@ public class WhereCommandIT extends PPLIntegTestCase {
                 TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifyDataRows(result, rows("Amber JOHnny"));
   }
+
+  @Test
+  public void testWhereWithParentheses() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where (firstname='Amber') | fields firstname",
+                TEST_INDEX_ACCOUNT));
+    verifyDataRows(result, rows("Amber"));
+  }
+
+  @Test
+  public void testWhereWithParenthesesAndLogicalOperators() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where (firstname='Amber' and lastname='Duke') or age=36 | fields firstname, lastname, age",
+                TEST_INDEX_ACCOUNT));
+    verifyDataRows(result, rows("Amber", "Duke", 32), rows("Hattie", "Bond", 36));
+  }
+
+  @Test
+  public void testWhereWithNestedParentheses() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where ((firstname='Amber' and lastname='Duke') or (firstname='Hattie' and lastname='Bond')) | fields firstname, lastname",
+                TEST_INDEX_ACCOUNT));
+    verifyDataRows(result, rows("Amber", "Duke"), rows("Hattie", "Bond"));
+  }
+
+  @Test
+  public void testWhereWithParenthesesAndNot() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where not (age < 30) and firstname='Amber' | fields firstname, age",
+                TEST_INDEX_ACCOUNT));
+    verifyDataRows(result, rows("Amber", 32));
+  }
 }
