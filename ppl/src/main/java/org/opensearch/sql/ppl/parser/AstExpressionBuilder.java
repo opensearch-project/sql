@@ -678,7 +678,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     if (ctx.fieldExpression() != null) {
       fieldExpression = visit(ctx.fieldExpression());
     } else {
-      fieldExpression = AstDSL.referImplicitTimestampField();
+      fieldExpression = AstDSL.implicitTimestampField();
     }
     Literal literal = (Literal) visit(ctx.value);
     return AstDSL.spanFromSpanLengthLiteral(fieldExpression, literal);
@@ -984,7 +984,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
       // Convert span=1h to span(@timestamp, 1h)
       Literal spanLiteral = (Literal) visit(ctx.spanLiteral());
       timechartParameter =
-          AstDSL.spanFromSpanLengthLiteral(AstDSL.referImplicitTimestampField(), spanLiteral);
+          AstDSL.spanFromSpanLengthLiteral(AstDSL.implicitTimestampField(), spanLiteral);
     } else if (ctx.LIMIT() != null) {
       Literal limit = (Literal) visit(ctx.integerLiteral());
       if ((Integer) limit.getValue() < 0) {

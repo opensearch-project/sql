@@ -11,14 +11,13 @@ import static org.opensearch.sql.ast.dsl.AstDSL.eval;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.expression.IntervalUnit.MILLISECOND;
-import static org.opensearch.sql.calcite.plan.OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP;
+import static org.opensearch.sql.ast.tree.Chart.PerFunctionRateExprBuilder.timestampadd;
+import static org.opensearch.sql.ast.tree.Chart.PerFunctionRateExprBuilder.timestampdiff;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMPADD;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMPDIFF;
-import static org.opensearch.sql.ast.tree.Chart.PerFunctionRateExprBuilder.timestampadd;
-import static org.opensearch.sql.ast.tree.Chart.PerFunctionRateExprBuilder.timestampdiff;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -107,7 +106,7 @@ public class Chart extends UnresolvedPlan {
     }
 
     Span span = (Span) spanExpr;
-    Field spanStartTime = AstDSL.field(IMPLICIT_FIELD_TIMESTAMP);
+    Field spanStartTime = AstDSL.implicitTimestampField();
     Function spanEndTime = timestampadd(span.getUnit(), span.getValue(), spanStartTime);
     Function spanMillis = timestampdiff(MILLISECOND, spanStartTime, spanEndTime);
     final int SECOND_IN_MILLISECOND = 1000;
@@ -135,9 +134,10 @@ public class Chart extends UnresolvedPlan {
     private final int seconds;
 
     static Optional<PerFunction> from(UnresolvedExpression aggExpr) {
-        if (aggExpr instanceof Alias) {
-          return from(((Alias) aggExpr).getDelegated());
-      };
+      if (aggExpr instanceof Alias) {
+        return from(((Alias) aggExpr).getDelegated());
+      }
+      ;
       if (!(aggExpr instanceof AggregateFunction)) {
         return Optional.empty();
       }
