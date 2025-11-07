@@ -141,13 +141,15 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
     verifyLogical(
         root,
         "LogicalProject(ID=[$0], SUPPLIER=[$1], SYS_END=[$3],"
-            + " SYS_START=[FROM_UNIXTIME(*(FLOOR(/(/(UNIX_TIMESTAMP($2), 3600), 1)), 3600))])\n"
+            + " SYS_START=[FROM_UNIXTIME(*(FLOOR(DIVIDE(DIVIDE(UNIX_TIMESTAMP($2), 3600), 1)),"
+            + " 3600))])\n"
             + "  LogicalTableScan(table=[[scott, products_temporal]])\n");
 
     verifyPPLToSparkSQL(
         root,
-        "SELECT `ID`, `SUPPLIER`, `SYS_END`, `FROM_UNIXTIME`(FLOOR(`UNIX_TIMESTAMP`(`SYS_START`) /"
-            + " 3600 / 1) * 3600) `SYS_START`\n"
+        "SELECT `ID`, `SUPPLIER`, `SYS_END`,"
+            + " `FROM_UNIXTIME`(FLOOR(`DIVIDE`(`DIVIDE`(`UNIX_TIMESTAMP`(`SYS_START`), 3600), 1)) *"
+            + " 3600) `SYS_START`\n"
             + "FROM `scott`.`products_temporal`");
   }
 
@@ -161,13 +163,15 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
     verifyLogical(
         root,
         "LogicalProject(ID=[$0], SUPPLIER=[$1], SYS_END=[$3],"
-            + " SYS_START=[FROM_UNIXTIME(*(FLOOR(/(/(UNIX_TIMESTAMP($2), 3600), 1)), 3600))])\n"
+            + " SYS_START=[FROM_UNIXTIME(*(FLOOR(DIVIDE(DIVIDE(UNIX_TIMESTAMP($2), 3600), 1)),"
+            + " 3600))])\n"
             + "  LogicalTableScan(table=[[scott, products_temporal]])\n");
 
     verifyPPLToSparkSQL(
         root,
-        "SELECT `ID`, `SUPPLIER`, `SYS_END`, `FROM_UNIXTIME`(FLOOR(`UNIX_TIMESTAMP`(`SYS_START`) /"
-            + " 3600 / 1) * 3600) `SYS_START`\n"
+        "SELECT `ID`, `SUPPLIER`, `SYS_END`,"
+            + " `FROM_UNIXTIME`(FLOOR(`DIVIDE`(`DIVIDE`(`UNIX_TIMESTAMP`(`SYS_START`), 3600), 1)) *"
+            + " 3600) `SYS_START`\n"
             + "FROM `scott`.`products_temporal`");
   }
 
