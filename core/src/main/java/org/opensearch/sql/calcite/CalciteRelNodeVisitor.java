@@ -841,7 +841,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 .toList();
         context.relBuilder.aggregate(context.relBuilder.groupKey(groupByList), aggCall);
         buildExpandRelNode(
-            context.relBuilder.field(node.getAlias()), node.getAlias(), node.getAlias(), context);
+            context.relBuilder.field(node.getAlias()),
+            node.getAlias(),
+            node.getAlias(),
+            null,
+            context);
+
         flattenParsedPattern(
             node.getAlias(),
             context.relBuilder.field(node.getAlias()),
@@ -1619,16 +1624,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     Field arrayField = node.getField();
     RexInputRef arrayFieldRex = (RexInputRef) rexVisitor.analyze(arrayField, context);
 
-    // buildMvExpandRelNode(arrayFieldRex, arrayField.getField().toString(), null, context);
-
     // pass the per-document limit into the builder so it can be applied inside the UNNEST inner
     // query
     buildMvExpandRelNode(
         arrayFieldRex, arrayField.getField().toString(), null, node.getLimit(), context);
 
-    //    if (node.getLimit() != null) {
-    //      context.relBuilder.limit(0, node.getLimit());
-    //    }
     return context.relBuilder.peek();
   }
 
@@ -2851,7 +2851,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RexInputRef arrayFieldRex = (RexInputRef) rexVisitor.analyze(arrayField, context);
     String alias = expand.getAlias();
 
-    buildExpandRelNode(arrayFieldRex, arrayField.getField().toString(), alias, context);
+    buildExpandRelNode(arrayFieldRex, arrayField.getField().toString(), alias, null, context);
 
     return context.relBuilder.peek();
   }
@@ -3153,45 +3153,26 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   private void buildExpandRelNode(
-      RexInputRef arrayFieldRex, String arrayFieldName, String alias, CalcitePlanContext context) {
-
-    // Capture left node and its schema BEFORE calling build()
-    RelNode leftNode = context.relBuilder.peek();
-    RelDataType leftRowType = leftNode.getRowType();
-
-    // Create correlation variable while left is still on the builder stack
-    Holder<RexCorrelVariable> correlVariable = Holder.empty();
-    context.relBuilder.variable(correlVariable::set);
-
-    // Create correlated field access while left is still on the builder stack
-    // (preserve original expand semantics: use the input RexInputRef index)
-    RexNode correlArrayFieldAccess =
-        context.relBuilder.field(
-            context.rexBuilder.makeCorrel(leftRowType, correlVariable.get().id),
-            arrayFieldRex.getIndex());
-
-    // Materialize leftBuilt (this pops the left from the relBuilder stack)
-    RelNode leftBuilt = context.relBuilder.build();
-
-    // Use unified helper to build right/uncollect + correlate + cleanup
-    buildUnnestForLeft(
-        leftBuilt,
-        leftRowType,
-        arrayFieldRex.getIndex(),
-        arrayFieldName,
-        alias,
-        correlVariable,
-        correlArrayFieldAccess,
-        null,
-        context);
-  }
-
-  private void buildMvExpandRelNode(
-      RexInputRef arrayFieldRex,
+      RexNode arrayFieldRexNode,
       String arrayFieldName,
       String alias,
       Integer mvExpandLimit,
       CalcitePlanContext context) {
+
+    // Convert incoming RexNode to RexInputRef when possible; otherwise resolve by field name.
+    RexInputRef arrayFieldRex;
+    if (arrayFieldRexNode instanceof RexInputRef) {
+      arrayFieldRex = (RexInputRef) arrayFieldRexNode;
+    } else {
+      RelDataType currentRowType = context.relBuilder.peek().getRowType();
+      RelDataTypeField fld = currentRowType.getField(arrayFieldName, false, false);
+      if (fld != null) {
+        arrayFieldRex = context.rexBuilder.makeInputRef(currentRowType, fld.getIndex());
+      } else {
+        throw new IllegalArgumentException(
+            "buildExpandRelNode: expected RexInputRef or resolvable field name: " + arrayFieldName);
+      }
+    }
 
     // Capture left node and its schema BEFORE calling build()
     RelNode leftNode = context.relBuilder.peek();
@@ -3226,6 +3207,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         correlArrayFieldAccess,
         mvExpandLimit,
         context);
+  }
+
+  private void buildMvExpandRelNode(
+      RexInputRef arrayFieldRex,
+      String arrayFieldName,
+      String alias,
+      Integer mvExpandLimit,
+      CalcitePlanContext context) {
+
+    // Delegate to the canonical expand implementation (pass the per-document limit through).
+    buildExpandRelNode(arrayFieldRex, arrayFieldName, alias, mvExpandLimit, context);
   }
 
   /** Creates an optimized sed call using native Calcite functions */
