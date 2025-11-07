@@ -1,0 +1,26 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[sum(AdvEngineID), c, avg(ResolutionWidth), dc(UserID), RegionID]"
+  children:
+    - name: TakeOrderedOperator
+      description:
+        limit: 10
+        offset: 0
+        sortList:
+          c:
+            sortOrder: DESC
+            nullOrder: NULL_LAST
+      children:
+        - name: OpenSearchIndexScan
+          description:
+            request: "OpenSearchQueryRequest(indexName=hits, sourceBuilder={\"from\"\
+              :0,\"size\":0,\"timeout\":\"1m\",\"aggregations\":{\"composite_buckets\"\
+              :{\"composite\":{\"size\":1000,\"sources\":[{\"RegionID\":{\"terms\"\
+              :{\"field\":\"RegionID\",\"missing_bucket\":false,\"order\":\"asc\"\
+              }}}]},\"aggregations\":{\"sum(AdvEngineID)\":{\"sum\":{\"field\":\"\
+              AdvEngineID\"}},\"c\":{\"value_count\":{\"field\":\"_index\"}},\"avg(ResolutionWidth)\"\
+              :{\"avg\":{\"field\":\"ResolutionWidth\"}},\"dc(UserID)\":{\"cardinality\"\
+              :{\"field\":\"UserID\"}}}}}}, needClean=true, searchDone=false, pitId=*,\
+              \ cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
+          children: []

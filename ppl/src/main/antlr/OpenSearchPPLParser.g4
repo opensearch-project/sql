@@ -77,6 +77,7 @@ commands
    | flattenCommand
    | reverseCommand
    | regexCommand
+   | chartCommand
    | timechartCommand
    | rexCommand
    | replaceCommand
@@ -286,6 +287,28 @@ sortCommand
 reverseCommand
    : REVERSE
    ;
+
+chartCommand
+  : CHART chartOptions* statsAggTerm (OVER rowSplit)? (BY columnSplit)?
+  | CHART chartOptions* statsAggTerm BY rowSplit (COMMA)? columnSplit
+  ;
+
+chartOptions
+  : LIMIT EQUAL integerLiteral
+  | LIMIT EQUAL (TOP_K | BOTTOM_K)
+  | USEOTHER EQUAL booleanLiteral
+  | OTHERSTR EQUAL stringLiteral
+  | USENULL EQUAL booleanLiteral
+  | NULLSTR EQUAL stringLiteral
+  ;
+
+rowSplit
+  : fieldExpression binOption*
+  ;
+
+columnSplit
+  : fieldExpression binOption*
+  ;
 
 timechartCommand
    : TIMECHART timechartParameter* statsFunction (BY fieldExpression)?
@@ -886,10 +909,12 @@ evalFunctionCall
    : evalFunctionName LT_PRTHS functionArgs RT_PRTHS
    ;
 
+
 // cast function
 dataTypeFunctionCall
    : CAST LT_PRTHS logicalExpression AS convertedDataType RT_PRTHS
    ;
+
 
 convertedDataType
    : typeName = DATE
@@ -1256,6 +1281,7 @@ systemFunctionName
 textFunctionName
    : SUBSTR
    | SUBSTRING
+   | TOSTRING
    | TRIM
    | LTRIM
    | RTRIM
@@ -1475,6 +1501,7 @@ searchableKeyWord
    | USING
    | VALUE
    | CAST
+   | TOSTRING
    | GET_FORMAT
    | EXTRACT
    | INTERVAL
