@@ -34,11 +34,6 @@ public class MvExpand extends UnresolvedPlan {
     return this;
   }
 
-  @Nullable
-  public Integer getLimit() {
-    return limit;
-  }
-
   @Override
   public List<UnresolvedPlan> getChild() {
     return this.child == null ? ImmutableList.of() : ImmutableList.of(this.child);
