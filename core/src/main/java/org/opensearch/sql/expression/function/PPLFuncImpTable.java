@@ -468,7 +468,7 @@ public class PPLFuncImpTable {
       List<RexNode> fields = new ArrayList<>();
       fields.add(field);
       fields.addAll(argList);
-      if (CoercionUtils.hasString(fields)) {
+      if (CoercionUtils.hasString(fields) || CoercionUtils.hasAny(fields)) {
         coercionNodes = CoercionUtils.castArguments(rexBuilder, signature.typeChecker(), fields);
       }
       if (coercionNodes == null) {

@@ -182,6 +182,13 @@ public final class CoercionUtils {
         .anyMatch(t -> t == ExprCoreType.STRING);
   }
 
+  public static boolean hasAny(List<RexNode> rexNodeList) {
+    return rexNodeList.stream()
+        .map(RexNode::getType)
+        .map(OpenSearchTypeFactory::convertRelDataTypeToExprType)
+        .anyMatch(t -> t == ExprCoreType.UNDEFINED);
+  }
+
   private static final Set<ExprType> NUMBER_TYPES = ExprCoreType.numberTypes();
 
   private static final List<CoercionRule> COMMON_COERCION_RULES =

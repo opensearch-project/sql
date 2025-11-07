@@ -93,8 +93,7 @@ public class CalciteDynamicFieldsAggregationIT extends CalcitePPLPermissiveInteg
   public void testStatsWithDynamicField() throws IOException {
     String query =
         source(
-            TEST_INDEX_DYNAMIC,
-            "stats avg(cast(salary as int)) as avg by department | fields department, avg");
+            TEST_INDEX_DYNAMIC, "stats avg(salary) as avg by department | fields department, avg");
 
     assertExplainYaml(
         query,
@@ -168,8 +167,7 @@ public class CalciteDynamicFieldsAggregationIT extends CalcitePPLPermissiveInteg
     String query =
         source(
             TEST_INDEX_DYNAMIC,
-            "eventstats avg(cast(salary as int)) as"
-                + " avg by department | fields id, city, department, avg");
+            "eventstats avg(salary) as avg by department " + "| fields id, city, department, avg");
 
     assertExplainYaml(
         query,
