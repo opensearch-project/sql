@@ -1008,11 +1008,12 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     // @timestamp)
     String errorMessage = exception.getMessage();
     assertTrue(
-        "Expected clear error message about bins parameter not supported on timestamp fields when "
-            + "pushdown is disabled, but got: "
+        "Expected clear error message about bins parameter requirements on timestamp fields, but"
+            + " got: "
             + errorMessage,
-        errorMessage.contains(
-            "bins' parameter on timestamp fields is not supported when pushdown is disabled"));
+        errorMessage.contains("bins' parameter on timestamp fields requires")
+            && errorMessage.contains("pushdown to be enabled")
+            && errorMessage.contains("aggregation bucket"));
   }
 
   @Test

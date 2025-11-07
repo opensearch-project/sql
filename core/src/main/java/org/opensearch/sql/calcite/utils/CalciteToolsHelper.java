@@ -366,8 +366,10 @@ public class CalciteToolsHelper {
             && errorMsg.contains("Error while preparing plan")
             && errorMsg.contains("WIDTH_BUCKET")) {
           throw new UnsupportedOperationException(
-              "The 'bins' parameter on timestamp fields is not supported when pushdown is"
-                  + " disabled.");
+              "The 'bins' parameter on timestamp fields requires: (1) pushdown to be enabled"
+                  + " (controlled by plugins.calcite.pushdown.enabled, enabled by default), and"
+                  + " (2) the timestamp field to be used as an aggregation bucket (e.g., 'stats"
+                  + " count() by @timestamp').");
         }
         throw Util.throwAsRuntime(e);
       }
