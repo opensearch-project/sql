@@ -42,7 +42,7 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
 public class RangeBucketFunction extends ImplementorUDF {
 
   public RangeBucketFunction() {
-    super(new RangeBucketImplementor(), NullPolicy.ANY);
+    super(new RangeBucketImplementor(), NullPolicy.NONE);
   }
 
   @Override

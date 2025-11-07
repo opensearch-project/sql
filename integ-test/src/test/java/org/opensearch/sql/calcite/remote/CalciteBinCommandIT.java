@@ -1076,13 +1076,13 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         assertThrows(
             ResponseException.class,
             () -> {
-              executeQuery(
-                  String.format("source=%s | bin firstname bins=3 | head 1", TEST_INDEX_ACCOUNT));
+              executeQuery(String.format("source=%s | bin firstname bins=3", TEST_INDEX_ACCOUNT));
             });
 
+    // Verify the error message contains information about non-numeric string values
     String errorMessage = exception.getMessage();
     assertTrue(
-        "Error should indicate non-numeric string values",
+        "Error message should indicate non-numeric string values: " + errorMessage,
         errorMessage.contains("non-numeric string values"));
   }
 }

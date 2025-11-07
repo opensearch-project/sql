@@ -38,7 +38,7 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
 public class MinspanBucketFunction extends ImplementorUDF {
 
   public MinspanBucketFunction() {
-    super(new MinspanBucketImplementor(), NullPolicy.ANY);
+    super(new MinspanBucketImplementor(), NullPolicy.NONE);
   }
 
   @Override

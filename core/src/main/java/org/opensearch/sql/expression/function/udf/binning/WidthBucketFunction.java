@@ -43,7 +43,7 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
 public class WidthBucketFunction extends ImplementorUDF {
 
   public WidthBucketFunction() {
-    super(new WidthBucketImplementor(), NullPolicy.ANY);
+    super(new WidthBucketImplementor(), NullPolicy.NONE);
   }
 
   @Override

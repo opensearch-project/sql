@@ -36,7 +36,7 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
 public class SpanBucketFunction extends ImplementorUDF {
 
   public SpanBucketFunction() {
-    super(new SpanBucketImplementor(), NullPolicy.ANY);
+    super(new SpanBucketImplementor(), NullPolicy.NONE);
   }
 
   @Override
