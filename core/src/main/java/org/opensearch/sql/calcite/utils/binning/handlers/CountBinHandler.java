@@ -6,7 +6,6 @@
 package org.opensearch.sql.calcite.utils.binning.handlers;
 
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CountBin;
@@ -41,7 +40,9 @@ public class CountBinHandler implements BinHandler {
     // Calculate data range using window functions
     RexNode minValue = context.relBuilder.min(fieldExpr).over().toRex();
     RexNode maxValue = context.relBuilder.max(fieldExpr).over().toRex();
-    RexNode dataRange = context.relBuilder.call(SqlStdOperatorTable.MINUS, maxValue, minValue);
+    RexNode dataRange =
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder, BuiltinFunctionName.SUBTRACT, maxValue, minValue);
 
     // Convert start/end parameters
     RexNode startValue = convertParameter(countBin.getStart(), context);

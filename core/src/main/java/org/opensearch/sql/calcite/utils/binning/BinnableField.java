@@ -9,14 +9,10 @@ import lombok.Getter;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
-import org.opensearch.sql.exception.SemanticCheckException;
 
 /**
- * Represents a validated field that supports binning operations. The existence of this class
- * guarantees that validation has been run - the field is either numeric or time-based.
- *
- * <p>This design encodes validation in the type system, preventing downstream code from forgetting
- * to validate or running validation multiple times.
+ * Represents a field that supports binning operations. Supports numeric, time-based, and string
+ * fields. Type coercion for string fields is handled automatically by Calcite's type system.
  */
 @Getter
 public class BinnableField {
@@ -27,13 +23,12 @@ public class BinnableField {
   private final boolean isNumeric;
 
   /**
-   * Creates a validated BinnableField. Throws SemanticCheckException if the field is neither
-   * numeric nor time-based.
+   * Creates a BinnableField for binning operations. Supports numeric, time-based, and string
+   * fields. Type coercion for string fields is handled by Calcite's type system.
    *
    * @param fieldExpr The Rex expression for the field
    * @param fieldType The relational data type of the field
    * @param fieldName The name of the field (for error messages)
-   * @throws SemanticCheckException if the field is neither numeric nor time-based
    */
   public BinnableField(RexNode fieldExpr, RelDataType fieldType, String fieldName) {
     this.fieldExpr = fieldExpr;
@@ -42,15 +37,6 @@ public class BinnableField {
 
     this.isTimeBased = OpenSearchTypeFactory.isTimeBasedType(fieldType);
     this.isNumeric = OpenSearchTypeFactory.isNumericType(fieldType);
-
-    // Validation: field must be either numeric or time-based
-    if (!isNumeric && !isTimeBased) {
-      throw new SemanticCheckException(
-          String.format(
-              "Cannot apply binning: field '%s' is non-numeric and not time-related, expected"
-                  + " numeric or time-related type",
-              fieldName));
-    }
   }
 
   /**
