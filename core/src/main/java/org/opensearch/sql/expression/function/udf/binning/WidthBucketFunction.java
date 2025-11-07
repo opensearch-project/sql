@@ -43,7 +43,7 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
 public class WidthBucketFunction extends ImplementorUDF {
 
   public WidthBucketFunction() {
-    super(new WidthBucketImplementor(), NullPolicy.NONE);
+    super(new WidthBucketImplementor(), NullPolicy.ANY);
   }
 
   @Override
@@ -91,14 +91,7 @@ public class WidthBucketFunction extends ImplementorUDF {
     /** Width bucket calculation using nice number algorithm. */
     public static String calculateWidthBucket(
         Number fieldValue, Number numBinsParam, Number dataRange, Number maxValue) {
-      // Detect NULL from failed type coercion (e.g., CAST("abc" AS DOUBLE) returns NULL)
-      if (dataRange == null || maxValue == null) {
-        throw new IllegalArgumentException(
-            "Cannot apply binning: field contains non-numeric string values. "
-                + "Only numeric types or string types with valid numeric values are supported.");
-      }
-
-      if (fieldValue == null || numBinsParam == null) {
+      if (fieldValue == null || numBinsParam == null || dataRange == null || maxValue == null) {
         return null;
       }
 

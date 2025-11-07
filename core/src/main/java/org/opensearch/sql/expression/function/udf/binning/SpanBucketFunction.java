@@ -36,7 +36,7 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
 public class SpanBucketFunction extends ImplementorUDF {
 
   public SpanBucketFunction() {
-    super(new SpanBucketImplementor(), NullPolicy.NONE);
+    super(new SpanBucketImplementor(), NullPolicy.ANY);
   }
 
   @Override
@@ -66,14 +66,7 @@ public class SpanBucketFunction extends ImplementorUDF {
 
     /** Span bucket calculation. */
     public static String calculateSpanBucket(Number fieldValue, Number spanParam) {
-      // Detect NULL from failed type coercion (e.g., CAST("abc" AS DOUBLE) returns NULL)
-      if (fieldValue == null) {
-        throw new IllegalArgumentException(
-            "Cannot apply binning: field contains non-numeric string values. "
-                + "Only numeric types or string types with valid numeric values are supported.");
-      }
-
-      if (spanParam == null) {
+      if (fieldValue == null || spanParam == null) {
         return null;
       }
 

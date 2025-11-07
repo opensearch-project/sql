@@ -38,7 +38,7 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
 public class MinspanBucketFunction extends ImplementorUDF {
 
   public MinspanBucketFunction() {
-    super(new MinspanBucketImplementor(), NullPolicy.NONE);
+    super(new MinspanBucketImplementor(), NullPolicy.ANY);
   }
 
   @Override
@@ -73,14 +73,7 @@ public class MinspanBucketFunction extends ImplementorUDF {
     /** Minspan bucket calculation. */
     public static String calculateMinspanBucket(
         Number fieldValue, Number minSpanParam, Number dataRange, Number maxValue) {
-      // Detect NULL from failed type coercion (e.g., CAST("abc" AS DOUBLE) returns NULL)
-      if (dataRange == null || maxValue == null) {
-        throw new IllegalArgumentException(
-            "Cannot apply binning: field contains non-numeric string values. "
-                + "Only numeric types or string types with valid numeric values are supported.");
-      }
-
-      if (fieldValue == null || minSpanParam == null) {
+      if (fieldValue == null || minSpanParam == null || dataRange == null || maxValue == null) {
         return null;
       }
 

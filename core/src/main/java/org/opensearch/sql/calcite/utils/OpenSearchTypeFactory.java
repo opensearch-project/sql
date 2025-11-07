@@ -338,13 +338,12 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   }
 
   /**
-   * Checks if the RelDataType represents a numeric field or a string field that can be coerced to
-   * numeric. Supports standard SQL numeric types (INTEGER, BIGINT, SMALLINT, TINYINT, FLOAT,
-   * DOUBLE, DECIMAL, REAL), OpenSearch UDT numeric types, and string types (VARCHAR, CHAR) which
-   * can contain numeric values and will be automatically coerced.
+   * Checks if the RelDataType represents a numeric type. Supports standard SQL numeric types
+   * (INTEGER, BIGINT, SMALLINT, TINYINT, FLOAT, DOUBLE, DECIMAL, REAL), OpenSearch UDT numeric
+   * types, and string types (VARCHAR, CHAR).
    *
    * @param fieldType the RelDataType to check
-   * @return true if the type is numeric or a coercible string type, false otherwise
+   * @return true if the type is numeric or string, false otherwise
    */
   public static boolean isNumericType(RelDataType fieldType) {
     // Check standard SQL numeric types
@@ -360,7 +359,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       return true;
     }
 
-    // Check string types (VARCHAR, CHAR) which can be coerced to numeric for binning
+    // Check string types (VARCHAR, CHAR)
     if (sqlType == SqlTypeName.VARCHAR || sqlType == SqlTypeName.CHAR) {
       return true;
     }

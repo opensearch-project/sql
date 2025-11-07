@@ -1068,21 +1068,4 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         rows(false, "go", "opentelemetry", 16, 1, "12-14"),
         rows(true, "rust", "opentelemetry", 12, 1, "14-16"));
   }
-
-  @Test
-  public void testBinOnNonNumericStringField() {
-    // Test that binning on a string field with non-numeric values fails with clear error
-    ResponseException exception =
-        assertThrows(
-            ResponseException.class,
-            () -> {
-              executeQuery(String.format("source=%s | bin firstname bins=3", TEST_INDEX_ACCOUNT));
-            });
-
-    // Verify the error message contains information about non-numeric string values
-    String errorMessage = exception.getMessage();
-    assertTrue(
-        "Error message should indicate non-numeric string values: " + errorMessage,
-        errorMessage.contains("non-numeric string values"));
-  }
 }
