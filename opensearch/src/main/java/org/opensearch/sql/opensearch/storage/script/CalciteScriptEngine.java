@@ -63,6 +63,7 @@ import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexExecutable;
 import org.apache.calcite.rex.RexNode;
@@ -128,11 +129,10 @@ public class CalciteScriptEngine implements ScriptEngine {
     Map<String, Object> objectMap = relJsonSerializer.deserialize(scriptCode);
     RexNode rexNode = (RexNode) objectMap.get(RelJsonSerializer.EXPR);
     RelDataType rowType = (RelDataType) objectMap.get(RelJsonSerializer.ROW_TYPE);
-    Map<String, ExprType> fieldTypes =
-        (Map<String, ExprType>) objectMap.get(RelJsonSerializer.FIELD_TYPES);
+    List<String> sourceOnlyFields = (List<String>) objectMap.get(RelJsonSerializer.FIELD_TYPES);
 
     JavaTypeFactory typeFactory = OpenSearchTypeFactory.TYPE_FACTORY;
-    RexToLixTranslator.InputGetter getter = new ScriptInputGetter(typeFactory, rowType, fieldTypes);
+    RexToLixTranslator.InputGetter getter = new ScriptInputGetter(typeFactory, rowType, sourceOnlyFields);
     String code =
         CalciteScriptEngine.translate(
             relJsonSerializer.getCluster().getRexBuilder(), List.of(rexNode), getter, rowType);
@@ -174,24 +174,29 @@ public class CalciteScriptEngine implements ScriptEngine {
   public static class ScriptInputGetter implements InputGetter {
     private final RelDataTypeFactory typeFactory;
     private final RelDataType rowType;
-    private final Map<String, ExprType> fieldTypes;
+    private final List<String> sourceOnlyFields;
 
     public ScriptInputGetter(
-        RelDataTypeFactory typeFactory, RelDataType rowType, Map<String, ExprType> fieldTypes) {
+        RelDataTypeFactory typeFactory, RelDataType rowType, List<String> sourceOnlyFields) {
       this.typeFactory = typeFactory;
       this.rowType = rowType;
-      this.fieldTypes = fieldTypes;
+      this.sourceOnlyFields = sourceOnlyFields;
     }
 
     @Override
     public org.apache.calcite.linq4j.tree.Expression field(
         BlockBuilder list, int index, @Nullable Type storageType) {
-      String fieldName = rowType.getFieldList().get(index).getName();
-      ExprType exprType = fieldTypes.get(fieldName);
-      String referenceField = OpenSearchTextType.toKeywordSubField(fieldName, exprType);
+      RelDataTypeField field = rowType.getFieldList().get(index);
+      String fieldName = field.getName();
+      ExprType exprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(field.getType());
+
+      if (index > rowType.getFieldCount()) return Expressions.call(
+          EnumUtils.convert(DataContext.ROOT, ScriptDataContext.class),
+          Types.lookupMethod(ScriptDataContext.class, "getFromParameter", Integer.class),
+          Expressions.constant(index - rowType.getFieldCount()));
       MethodCallExpression fieldValueExpr =
           // Have to invoke `getFromSource` if the field is the text without keyword or struct
-          (referenceField == null || exprType == ExprCoreType.STRUCT)
+          sourceOnlyFields.contains(fieldName)
               ? Expressions.call(
                   EnumUtils.convert(DataContext.ROOT, ScriptDataContext.class),
                   Types.lookupMethod(ScriptDataContext.class, "getFromSource", String.class),
@@ -199,7 +204,7 @@ public class CalciteScriptEngine implements ScriptEngine {
               : Expressions.call(
                   DataContext.ROOT,
                   BuiltInMethod.DATA_CONTEXT_GET.method,
-                  Expressions.constant(referenceField));
+                  Expressions.constant(fieldName));
       if (storageType == null) {
         final RelDataType fieldType = rowType.getFieldList().get(index).getType();
         storageType = ((JavaTypeFactory) typeFactory).getJavaClass(fieldType);
@@ -276,6 +281,10 @@ public class CalciteScriptEngine implements ScriptEngine {
 
     public Object getFromSource(String name) {
       return this.sourceLookup.get(name);
+    }
+
+    public Object getFromParameter(Integer name) {
+      return ((List<Object>)this.params.get("REX_LITERALS")).get(name);
     }
   }
 

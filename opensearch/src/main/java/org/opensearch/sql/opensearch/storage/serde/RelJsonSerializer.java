@@ -13,14 +13,17 @@ import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import lombok.Getter;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.externalize.RelJson;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlLibrary;
@@ -51,6 +54,7 @@ public class RelJsonSerializer {
   public static final String EXPR = "expr";
   public static final String FIELD_TYPES = "fieldTypes";
   public static final String ROW_TYPE = "rowType";
+  public static final String SOURCE_ONLY_FIELD = "sourceOnlyFields";
   private static final ObjectMapper mapper = new ObjectMapper();
   private static final TypeReference<LinkedHashMap<String, Object>> TYPE_REF =
       new TypeReference<>() {};
@@ -99,13 +103,19 @@ public class RelJsonSerializer {
    * @return serialized string of map structure for inputs
    */
   public String serialize(RexNode rexNode, RelDataType rowType, Map<String, ExprType> fieldTypes) {
+    return serialize(rexNode, rowType, fieldTypes, new ArrayList<>());
+  }
+
+  public String serialize(RexNode rexNode, RelDataType rowType, Map<String, ExprType> fieldTypes, List<RexLiteral> literals) {
     // Extract necessary fields and remap expression input indices for original RexNode
+    /*
     Pair<RexNode, RelDataType> remappedRexInfo =
         OpenSearchRelOptUtil.getRemappedRexAndType(rexNode, rowType);
-    Map<String, ExprType> filteredFieldTypes = new HashMap<>();
-    for (String fieldName : remappedRexInfo.getValue().getFieldNames()) {
-      filteredFieldTypes.put(fieldName, fieldTypes.get(fieldName));
-    }
+
+     */
+    List<String> sourceOnlyField = new ArrayList<>();
+    Pair<RexNode, RelDataType> remappedRexInfo =
+        OpenSearchRelOptUtil.getRemappedRexAndType2(rexNode, rowType, fieldTypes, sourceOnlyField, literals);
     try {
       // Serialize RexNode and RelDataType by JSON
       JsonBuilder jsonBuilder = new JsonBuilder();
@@ -115,7 +125,7 @@ public class RelJsonSerializer {
       String rowTypeJson = jsonBuilder.toJsonString(rowTypeJsonObj);
       // Construct envelope of serializable objects
       Map<String, Object> envelope =
-          Map.of(EXPR, rexNodeJson, FIELD_TYPES, filteredFieldTypes, ROW_TYPE, rowTypeJson);
+          Map.of(EXPR, rexNodeJson, ROW_TYPE, rowTypeJson, SOURCE_ONLY_FIELD, sourceOnlyField);
 
       // Write bytes of all serializable contents
       ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -146,8 +156,6 @@ public class RelJsonSerializer {
       ObjectInputStream objectInput = new ObjectInputStream(input);
       objectMap = (Map<String, Object>) objectInput.readObject();
 
-      // PPL Expr types are all serializable
-      Map<String, ExprType> fieldTypes = (Map<String, ExprType>) objectMap.get(FIELD_TYPES);
       // Deserialize RelDataType and RexNode by JSON
       RelJson relJson = ExtendedRelJson.create((JsonBuilder) null);
       Map<String, Object> rowTypeMap = mapper.readValue((String) objectMap.get(ROW_TYPE), TYPE_REF);
@@ -158,7 +166,9 @@ public class RelJsonSerializer {
       Map<String, Object> exprMap = mapper.readValue((String) objectMap.get(EXPR), TYPE_REF);
       RexNode rexNode = relJson.toRex(cluster, exprMap);
 
-      return Map.of(EXPR, rexNode, FIELD_TYPES, fieldTypes, ROW_TYPE, rowType);
+      List<String> sourceOnlyFields = (List<String>) objectMap.get(SOURCE_ONLY_FIELD);
+
+      return Map.of(EXPR, rexNode, ROW_TYPE, rowType, SOURCE_ONLY_FIELD, sourceOnlyFields);
     } catch (Exception e) {
       if (objectMap == null) {
         throw new IllegalStateException(
