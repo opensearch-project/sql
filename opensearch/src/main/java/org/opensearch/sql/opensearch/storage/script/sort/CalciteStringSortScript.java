@@ -9,6 +9,8 @@ import java.util.Map;
 import lombok.EqualsAndHashCode;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.rel.RelFieldCollation.Direction;
+import org.apache.calcite.rel.RelFieldCollation.NullDirection;
 import org.apache.lucene.index.LeafReaderContext;
 import org.opensearch.script.StringSortScript;
 import org.opensearch.search.lookup.SearchLookup;
@@ -23,6 +25,11 @@ public class CalciteStringSortScript extends StringSortScript {
   private final CalciteScript calciteScript;
 
   private final SourceLookup sourceLookup;
+  private final Direction direction;
+  private final NullDirection nullDirection;
+
+  private static final String MAX_SENTINEL = "\uFFFF\uFFFF_NULL_PLACEHOLDER_";
+  private static final String MIN_SENTINEL = "\u0000\u0000_NULL_PLACEHOLDER_";
 
   public CalciteStringSortScript(
       Function1<DataContext, Object[]> function,
@@ -33,11 +40,24 @@ public class CalciteStringSortScript extends StringSortScript {
     this.calciteScript = new CalciteScript(function, params);
     // TODO: we'd better get source from the leafLookup of super once it's available
     this.sourceLookup = lookup.getLeafSearchLookup(context).source();
+    this.direction =
+        params.containsKey("DIRECTION") ? (Direction) params.get("DIRECTION") : Direction.ASCENDING;
+    this.nullDirection =
+        params.containsKey("NULL_DIRECTION")
+            ? (NullDirection) params.get("NULL_DIRECTION")
+            : NullDirection.FIRST;
   }
 
   @Override
   public String execute() {
     Object value = calciteScript.execute(this.getDoc(), this.sourceLookup)[0];
-    return value == null ? null : value.toString();
+    // There is a limitation here when the String value is larger or smaller than sentinel values.
+    // It can't guarantee the lexigraphic ordering between null and special strings.
+    if (value == null) {
+      boolean isAscending = direction == Direction.ASCENDING;
+      boolean isNullFirst = nullDirection == NullDirection.FIRST;
+      return isAscending == isNullFirst ? MIN_SENTINEL : MAX_SENTINEL;
+    }
+    return value.toString();
   }
 }

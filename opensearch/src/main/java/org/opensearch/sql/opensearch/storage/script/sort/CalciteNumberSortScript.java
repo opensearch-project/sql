@@ -9,6 +9,8 @@ import java.util.Map;
 import lombok.EqualsAndHashCode;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.rel.RelFieldCollation.Direction;
+import org.apache.calcite.rel.RelFieldCollation.NullDirection;
 import org.apache.lucene.index.LeafReaderContext;
 import org.opensearch.script.NumberSortScript;
 import org.opensearch.search.lookup.SearchLookup;
@@ -23,6 +25,8 @@ public class CalciteNumberSortScript extends NumberSortScript {
   private final CalciteScript calciteScript;
 
   private final SourceLookup sourceLookup;
+  private final Direction direction;
+  private final NullDirection nullDirection;
 
   public CalciteNumberSortScript(
       Function1<DataContext, Object[]> function,
@@ -33,11 +37,25 @@ public class CalciteNumberSortScript extends NumberSortScript {
     this.calciteScript = new CalciteScript(function, params);
     // TODO: we'd better get source from the leafLookup of super once it's available
     this.sourceLookup = lookup.getLeafSearchLookup(context).source();
+    this.direction =
+        params.containsKey("DIRECTION") ? (Direction) params.get("DIRECTION") : Direction.ASCENDING;
+    this.nullDirection =
+        params.containsKey("NULL_DIRECTION")
+            ? (NullDirection) params.get("NULL_DIRECTION")
+            : NullDirection.FIRST;
   }
 
   @Override
   public double execute() {
     Object value = calciteScript.execute(this.getDoc(), this.sourceLookup)[0];
+    // There is a limitation here when the Double value is exactly theoretical min/max value.
+    // It can't distinguish the ordering between null and exact Double.NEGATIVE_INFINITY or
+    // Double.NaN.
+    if (value == null) {
+      boolean isAscending = direction == Direction.ASCENDING;
+      boolean isNullFirst = nullDirection == NullDirection.FIRST;
+      return isAscending == isNullFirst ? Double.NEGATIVE_INFINITY : Double.NaN;
+    }
     return ((Number) value).doubleValue();
   }
 }

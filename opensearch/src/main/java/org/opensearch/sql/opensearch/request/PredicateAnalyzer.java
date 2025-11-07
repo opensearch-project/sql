@@ -222,7 +222,7 @@ public class PredicateAnalyzer {
         throw new ExpressionNotAnalyzableException("Can't convert " + expression, e);
       }
       try {
-        return new ScriptQueryExpression(expression, rowType, fieldTypes, cluster);
+        return new ScriptQueryExpression(expression, rowType, fieldTypes, cluster, Map.of());
       } catch (Throwable e2) {
         throw new ExpressionNotAnalyzableException("Can't convert " + expression, e2);
       }
@@ -794,7 +794,8 @@ public class PredicateAnalyzer {
         return qe;
       } catch (PredicateAnalyzerException firstFailed) {
         try {
-          QueryExpression qe = new ScriptQueryExpression(node, rowType, fieldTypes, cluster);
+          QueryExpression qe =
+              new ScriptQueryExpression(node, rowType, fieldTypes, cluster, Map.of());
           if (!qe.isPartial()) {
             qe.updateAnalyzedNodes(node);
           }
@@ -1448,12 +1449,14 @@ public class PredicateAnalyzer {
     private RexNode analyzedNode;
     // use lambda to generate code lazily to avoid store generated code
     private final Supplier<String> codeGenerator;
+    private final Map<String, Object> params;
 
     public ScriptQueryExpression(
         RexNode rexNode,
         RelDataType rowType,
         Map<String, ExprType> fieldTypes,
-        RelOptCluster cluster) {
+        RelOptCluster cluster,
+        Map<String, Object> params) {
       // We prevent is_null(nested_field) from being pushed down because pushed-down scripts can not
       // access nested fields for the time being
       if (rexNode instanceof RexCall
@@ -1467,6 +1470,7 @@ public class PredicateAnalyzer {
           () ->
               SerializationWrapper.wrapWithLangType(
                   ScriptEngineType.CALCITE, serializer.serialize(rexNode, rowType, fieldTypes));
+      this.params = params;
     }
 
     @Override
@@ -1480,12 +1484,14 @@ public class PredicateAnalyzer {
         throw new UnsupportedScriptException(
             "ScriptQueryExpression requires a valid current time from hook, but it is not set");
       }
+      Map<String, Object> mergedParams = new HashMap<>(params);
+      mergedParams.put(Variable.UTC_TIMESTAMP.camelName, currentTime);
       return new Script(
           DEFAULT_SCRIPT_TYPE,
           COMPOUNDED_LANG_NAME,
           codeGenerator.get(),
           Collections.emptyMap(),
-          Map.of(Variable.UTC_TIMESTAMP.camelName, currentTime));
+          mergedParams);
     }
 
     @Override

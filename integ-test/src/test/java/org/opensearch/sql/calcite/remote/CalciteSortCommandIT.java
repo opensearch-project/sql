@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyOrder;
@@ -101,5 +102,25 @@ public class CalciteSortCommandIT extends SortCommandIT {
     JSONObject result = executeQuery(ppl);
     verifySchema(result, schema("age", "int"), schema("age2", "double"));
     verifyOrder(result, rows(28, 28d), rows(32, 32d));
+  }
+
+  @Test
+  public void testPushdownSortExpressionContainsNull() throws IOException {
+    String ppl =
+        String.format(
+            "source=%s | eval balance2 = abs(balance) | sort -balance2 | fields balance, balance2",
+            TEST_INDEX_BANK_WITH_NULL_VALUES);
+
+    JSONObject result = executeQuery(ppl);
+    verifySchema(result, schema("balance", "bigint"), schema("balance2", "bigint"));
+    verifyOrder(
+        result,
+        rows(48086, 48086),
+        rows(39225, 39225),
+        rows(32838, 32838),
+        rows(4180, 4180),
+        rows(null, null),
+        rows(null, null),
+        rows(null, null));
   }
 }

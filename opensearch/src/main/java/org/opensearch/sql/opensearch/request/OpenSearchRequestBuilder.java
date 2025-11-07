@@ -23,6 +23,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.rel.RelFieldCollation.Direction;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
@@ -44,6 +45,7 @@ import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.opensearch.search.sort.ScriptSortBuilder.ScriptSortType;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
+import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -232,8 +234,18 @@ public class OpenSearchRequestBuilder {
       Map<String, ExprType> fieldTypes,
       RelDataType rowType,
       RelOptCluster cluster) {
+    SortOrder order =
+        Direction.DESCENDING.equals(sortExprInfo.getDirection()) ? SortOrder.DESC : SortOrder.ASC;
+
     if (sortExprInfo.isSimpleFieldReference()) {
-      sourceBuilder.sort(SortBuilders.fieldSort(sortExprInfo.getFieldName()));
+      String missing =
+          switch (sortExprInfo.getNullDirection()) {
+            case FIRST -> "_first";
+            case LAST -> "_last";
+            default -> null;
+          };
+      sourceBuilder.sort(
+          SortBuilders.fieldSort(sortExprInfo.getFieldName()).order(order).missing(missing));
       return;
     }
     RexNode sortExpr = sortExprInfo.getExpression();
@@ -241,14 +253,22 @@ public class OpenSearchRequestBuilder {
     // Complex expression - use ScriptQueryExpression to generate script for sort
     PredicateAnalyzer.ScriptQueryExpression scriptExpr =
         new PredicateAnalyzer.ScriptQueryExpression(
-            sortExprInfo.getExpression(), rowType, fieldTypes, cluster);
+            sortExprInfo.getExpression(),
+            rowType,
+            fieldTypes,
+            cluster,
+            Map.of(
+                "NULL_DIRECTION",
+                sortExprInfo.getNullDirection(),
+                "DIRECTION",
+                sortExprInfo.getDirection()));
 
     Script script = scriptExpr.getScript();
     if (script != null) {
       // Determine the correct ScriptSortType based on the expression's return type
       ScriptSortType sortType = getScriptSortType(sortExpr.getType());
 
-      sourceBuilder.sort(SortBuilders.scriptSort(script, sortType));
+      sourceBuilder.sort(SortBuilders.scriptSort(script, sortType).order(order));
     }
   }
 
