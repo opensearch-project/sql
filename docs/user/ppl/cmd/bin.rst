@@ -16,13 +16,13 @@ bin
 
 Description
 ============
-| The ``bin`` command groups numeric values into buckets of equal intervals, making it useful for creating histograms and analyzing data distribution. It takes a numeric or time-based field and generates a new field with values that represent the lower bound of each bucket. String fields containing numeric values are automatically converted to numeric types through type coercion.
+| The ``bin`` command groups numeric values into buckets of equal intervals, making it useful for creating histograms and analyzing data distribution. It takes a numeric or time-based field and generates a new field with values that represent the lower bound of each bucket. String fields containing valid numeric values (e.g., "25", "30.5") are automatically converted to numeric types through type coercion.
 
 Syntax
 ============
 bin <field> [span=<interval>] [minspan=<interval>] [bins=<count>] [aligntime=(earliest | latest | <time-specifier>)] [start=<value>] [end=<value>]
 
-* field: mandatory. The field to bin. Accepts numeric fields, time-based fields, or string fields containing numeric values (automatically coerced to numeric type).
+* field: mandatory. The field to bin. Accepts numeric fields, time-based fields, or string fields containing valid numeric values (e.g., "25", "30.5"). String fields with numeric values are automatically coerced to numeric type. Non-numeric strings will result in an error.
 * span: optional. The interval size for each bin. Cannot be used with bins or minspan parameters.
 * minspan: optional. The minimum interval size for automatic span calculation. Cannot be used with span or bins parameters.
 * bins: optional. The maximum number of equal-width bins to create. Cannot be used with span or minspan parameters.
@@ -534,7 +534,7 @@ PPL query::
 Example 20: Type coercion with string fields
 ==============================================
 
-The ``bin`` command automatically converts string fields containing numeric values to numeric types, enabling binning operations on keyword/text fields.
+The ``bin`` command automatically converts string fields containing valid numeric values to numeric types, enabling binning operations on keyword/text fields. Only strings that represent valid numbers (e.g., "25", "30.5", "100") are supported. Non-numeric strings will cause an error.
 
 PPL query::
 
@@ -547,5 +547,5 @@ PPL query::
     | 3       | 30-40   |
     +---------+---------+
 
-In this example, even though ``age_str`` is a string field (keyword type), the bin command automatically coerces it to numeric values for binning.
+In this example, even though ``age_str`` is a string field (keyword type) containing numeric values like "28", "32", etc., the bin command automatically coerces these numeric strings to numeric values for binning. If ``age_str`` contained non-numeric strings like "young" or "old", the query would fail.
 

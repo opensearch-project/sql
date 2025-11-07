@@ -91,7 +91,14 @@ public class WidthBucketFunction extends ImplementorUDF {
     /** Width bucket calculation using nice number algorithm. */
     public static String calculateWidthBucket(
         Number fieldValue, Number numBinsParam, Number dataRange, Number maxValue) {
-      if (fieldValue == null || numBinsParam == null || dataRange == null || maxValue == null) {
+      // Detect NULL from failed type coercion (e.g., CAST("abc" AS DOUBLE) returns NULL)
+      if (dataRange == null || maxValue == null) {
+        throw new IllegalArgumentException(
+            "Cannot apply binning: field contains non-numeric string values. "
+                + "Only numeric types or string types with valid numeric values are supported.");
+      }
+
+      if (fieldValue == null || numBinsParam == null) {
         return null;
       }
 

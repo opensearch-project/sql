@@ -73,7 +73,14 @@ public class MinspanBucketFunction extends ImplementorUDF {
     /** Minspan bucket calculation. */
     public static String calculateMinspanBucket(
         Number fieldValue, Number minSpanParam, Number dataRange, Number maxValue) {
-      if (fieldValue == null || minSpanParam == null || dataRange == null || maxValue == null) {
+      // Detect NULL from failed type coercion (e.g., CAST("abc" AS DOUBLE) returns NULL)
+      if (dataRange == null || maxValue == null) {
+        throw new IllegalArgumentException(
+            "Cannot apply binning: field contains non-numeric string values. "
+                + "Only numeric types or string types with valid numeric values are supported.");
+      }
+
+      if (fieldValue == null || minSpanParam == null) {
         return null;
       }
 

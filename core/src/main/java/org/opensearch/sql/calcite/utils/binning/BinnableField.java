@@ -9,11 +9,9 @@ import lombok.Getter;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.exception.SemanticCheckException;
 
-/**
- * Represents a field that supports binning operations. Supports numeric, time-based, and string
- * fields. Type coercion for string fields is handled automatically by Calcite's type system.
- */
+/** Represents a field that supports binning operations. */
 @Getter
 public class BinnableField {
   private final RexNode fieldExpr;
@@ -23,12 +21,12 @@ public class BinnableField {
   private final boolean isNumeric;
 
   /**
-   * Creates a BinnableField for binning operations. Supports numeric, time-based, and string
-   * fields. Type coercion for string fields is handled by Calcite's type system.
+   * Creates a BinnableField. Validates that the field type is compatible with binning operations.
    *
    * @param fieldExpr The Rex expression for the field
    * @param fieldType The relational data type of the field
    * @param fieldName The name of the field (for error messages)
+   * @throws SemanticCheckException if the field type is not supported for binning
    */
   public BinnableField(RexNode fieldExpr, RelDataType fieldType, String fieldName) {
     this.fieldExpr = fieldExpr;
@@ -37,6 +35,12 @@ public class BinnableField {
 
     this.isTimeBased = OpenSearchTypeFactory.isTimeBasedType(fieldType);
     this.isNumeric = OpenSearchTypeFactory.isNumericType(fieldType);
+
+    // Reject truly unsupported types (e.g., BOOLEAN, ARRAY, MAP)
+    if (!isNumeric && !isTimeBased) {
+      throw new SemanticCheckException(
+          String.format("Cannot apply binning to field '%s': unsupported type", fieldName));
+    }
   }
 
   /**

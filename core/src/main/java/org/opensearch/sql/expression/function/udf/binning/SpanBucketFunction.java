@@ -66,7 +66,14 @@ public class SpanBucketFunction extends ImplementorUDF {
 
     /** Span bucket calculation. */
     public static String calculateSpanBucket(Number fieldValue, Number spanParam) {
-      if (fieldValue == null || spanParam == null) {
+      // Detect NULL from failed type coercion (e.g., CAST("abc" AS DOUBLE) returns NULL)
+      if (fieldValue == null) {
+        throw new IllegalArgumentException(
+            "Cannot apply binning: field contains non-numeric string values. "
+                + "Only numeric types or string types with valid numeric values are supported.");
+      }
+
+      if (spanParam == null) {
         return null;
       }
 

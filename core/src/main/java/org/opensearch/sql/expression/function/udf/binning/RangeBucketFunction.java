@@ -79,7 +79,14 @@ public class RangeBucketFunction extends ImplementorUDF {
     /** Range bucket calculation with expansion algorithm and magnitude-based width. */
     public static String calculateRangeBucket(
         Number fieldValue, Number dataMin, Number dataMax, Number startParam, Number endParam) {
-      if (fieldValue == null || dataMin == null || dataMax == null) {
+      // Detect NULL from failed type coercion (e.g., CAST("abc" AS DOUBLE) returns NULL)
+      if (dataMin == null || dataMax == null) {
+        throw new IllegalArgumentException(
+            "Cannot apply binning: field contains non-numeric string values. "
+                + "Only numeric types or string types with valid numeric values are supported.");
+      }
+
+      if (fieldValue == null) {
         return null;
       }
 

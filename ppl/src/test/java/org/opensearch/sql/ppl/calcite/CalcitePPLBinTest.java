@@ -5,9 +5,13 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Test;
+import org.opensearch.sql.exception.SemanticCheckException;
 
 public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
 
@@ -165,5 +169,16 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
         "SELECT `ID`, `SUPPLIER`, `SYS_END`, `FROM_UNIXTIME`(FLOOR(`UNIX_TIMESTAMP`(`SYS_START`) /"
             + " 3600 / 1) * 3600) `SYS_START`\n"
             + "FROM `scott`.`products_temporal`");
+  }
+
+  @Test
+  public void testBinOnNonBinnableType() {
+    // Test that binning on truly unsupported types (not numeric, time, or string) fails
+    String ppl = "source=products_temporal | eval bool_field = true | bin bool_field bins=3";
+
+    SemanticCheckException exception =
+        assertThrows(SemanticCheckException.class, () -> getRelNode(ppl));
+    assertTrue(exception.getMessage().contains("Cannot apply binning"));
+    assertTrue(exception.getMessage().contains("unsupported type"));
   }
 }
