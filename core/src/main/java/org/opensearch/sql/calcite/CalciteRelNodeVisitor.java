@@ -1165,19 +1165,19 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (includeAggFieldsInNullFilter) {
       nonNullCandidates.addAll(
           PlanUtils.getInputRefsFromAggCall(
-              aggExprList.stream().map(expr -> aggVisitor.analyze(expr, context)).toList()));
+              aggExprList.stream().map(expr -> aggVisitor.analyze(expr, context)).collect(Collectors.toList())));
       nonNullGroupMask.set(groupExprList.size(), nonNullCandidates.size());
     }
     List<RexNode> nonNullFields =
         IntStream.range(0, nonNullCandidates.size())
             .filter(nonNullGroupMask::get)
             .mapToObj(nonNullCandidates::get)
-            .toList();
+            .collect(Collectors.toList());
     context.relBuilder.filter(
         PlanUtils.getSelectColumns(nonNullFields).stream()
             .map(context.relBuilder::field)
             .map(context.relBuilder::isNotNull)
-            .toList());
+            .collect(Collectors.toList()));
 
     Pair<List<RexNode>, List<AggCall>> aggregationAttributes =
         aggregateWithTrimming(groupExprList, aggExprList, context, toAddHintsOnAggregate);
@@ -1197,7 +1197,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .map(ref -> ref.getValueAs(String.class))
             .map(context.relBuilder::field)
             .map(f -> (RexNode) f)
-            .toList();
+            .collect(Collectors.toList());
     if (metricsFirst) {
       // As an example, in command `stats count() by colA, colB`,
       // the sequence of output schema is "count, colA, colB".
@@ -2435,7 +2435,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     ArgumentMap argMap = ArgumentMap.of(node.getArguments());
     ChartConfig config = ChartConfig.fromArguments(argMap);
     List<UnresolvedExpression> groupExprList =
-        Stream.of(node.getRowSplit(), node.getColumnSplit()).filter(Objects::nonNull).toList();
+        Stream.of(node.getRowSplit(), node.getColumnSplit()).filter(Objects::nonNull).collect(Collectors.toList());
     Aggregation aggregation =
         new Aggregation(
             List.of(node.getAggregationFunction()), List.of(), groupExprList, null, List.of());
@@ -2705,7 +2705,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   private String getAggFunctionName(UnresolvedExpression aggregateFunction) {
-    if (aggregateFunction instanceof Alias alias) {
+    if (aggregateFunction instanceof Alias) {
+      Alias alias = (Alias) aggregateFunction;
       return getAggFunctionName(alias.getDelegated());
     }
     return ((AggregateFunction) aggregateFunction).getFuncName();
@@ -2932,12 +2933,18 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
    */
   private AggCall buildAggCall(
       RelBuilder relBuilder, BuiltinFunctionName aggFunction, RexNode node) {
-    return switch (aggFunction) {
-      case MIN, EARLIEST -> relBuilder.min(node);
-      case MAX, LATEST -> relBuilder.max(node);
-      case AVG -> relBuilder.avg(node);
-      default -> relBuilder.sum(node);
-    };
+    switch (aggFunction) {
+      case MIN:
+      case EARLIEST:
+        return relBuilder.min(node);
+      case MAX:
+      case LATEST:
+        return relBuilder.max(node);
+      case AVG:
+        return relBuilder.avg(node);
+      default:
+        return relBuilder.sum(node);
+    }
   }
 
   @Override

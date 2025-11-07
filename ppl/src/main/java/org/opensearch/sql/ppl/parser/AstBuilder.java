@@ -718,7 +718,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     UnresolvedExpression columnSplit =
         ctx.columnSplit() == null ? null : internalVisitExpression(ctx.columnSplit());
     List<Argument> arguments = ArgumentFactory.getArgumentList(ctx);
-    UnresolvedExpression aggFunction = parseAggTerms(List.of(ctx.statsAggTerm())).getFirst();
+    UnresolvedExpression aggFunction = parseAggTerms(List.of(ctx.statsAggTerm())).get(0);
     return Chart.builder()
         .rowSplit(rowSplit)
         .columnSplit(columnSplit)
