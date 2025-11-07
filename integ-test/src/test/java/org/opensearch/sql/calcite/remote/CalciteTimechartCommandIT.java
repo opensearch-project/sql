@@ -183,27 +183,13 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
         schema("host", "string"),
         schema("avg(cpu_usage)", "double"));
 
-    // Verify we have rows for web-01, web-02, and OTHER
-    boolean foundWeb01 = false;
-    boolean foundWeb02 = false;
-    boolean foundOther = false;
-
-    for (int i = 0; i < result.getJSONArray("datarows").length(); i++) {
-      Object[] row = result.getJSONArray("datarows").getJSONArray(i).toList().toArray();
-      String label = (String) row[1];
-
-      if ("web-01".equals(label)) {
-        foundWeb01 = true;
-      } else if ("web-02".equals(label)) {
-        foundWeb02 = true;
-      } else if ("OTHER".equals(label)) {
-        foundOther = true;
-      }
-    }
-
-    assertTrue("web-01 not found in results", foundWeb01);
-    assertTrue("web-02 not found in results", foundWeb02);
-    assertTrue("OTHER category not found in results", foundOther);
+    verifyDataRows(
+        result,
+        rows("2024-07-01 00:00:00", "web-01", 45.2),
+        rows("2024-07-01 00:01:00", "OTHER", 38.7),
+        rows("2024-07-01 00:02:00", "web-01", 55.3),
+        rows("2024-07-01 00:03:00", "db-01", 42.1),
+        rows("2024-07-01 00:04:00", "OTHER", 41.8));
   }
 
   @Test
@@ -383,7 +369,7 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
 
       if ("OTHER".equals(host)) {
         foundOther = true;
-        assertEquals(330.4, cpuUsage, 0.1);
+        assertEquals(41.3, cpuUsage, 0.1);
       } else if ("web-03".equals(host)) {
         foundWeb03 = true;
         assertEquals(55.3, cpuUsage, 0.1);
