@@ -289,8 +289,8 @@ reverseCommand
    ;
 
 chartCommand
-  : CHART chartOptions* statsAggTerm (OVER rowSplit)? (BY columnSplit)?
-  | CHART chartOptions* statsAggTerm BY rowSplit (COMMA)? columnSplit
+  : CHART chartOptions* statsAggTerm (OVER rowSplit)? (BY columnSplit)? chartOptions*
+  | CHART chartOptions* statsAggTerm BY rowSplit (COMMA)? columnSplit chartOptions*
   ;
 
 chartOptions
@@ -311,7 +311,7 @@ columnSplit
   ;
 
 timechartCommand
-   : TIMECHART timechartParameter* statsAggTerm (BY fieldExpression)?
+   : TIMECHART timechartParameter* statsAggTerm (BY fieldExpression)? timechartParameter*
    ;
 
 timechartParameter

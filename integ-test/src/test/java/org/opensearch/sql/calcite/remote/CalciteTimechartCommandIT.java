@@ -361,7 +361,7 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
   @Test
   public void testTimechartWithNullAndOther() throws IOException {
     JSONObject result =
-        executeQuery("source=events_null | timechart span=1d limit=2 count() by host");
+        executeQuery("source=events_null | timechart count() by host span=1d limit=2");
 
     verifySchema(
         result,
@@ -380,7 +380,7 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
   @Test
   public void testTimechartWithNullAndLimit() throws IOException {
     JSONObject result =
-        executeQuery("source=events_null | timechart span=1d limit=3 count() by host");
+        executeQuery("source=events_null | timechart span=1d count() by host limit=3");
 
     verifySchema(
         result,
