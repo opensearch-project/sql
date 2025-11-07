@@ -79,7 +79,6 @@ import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
-import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
@@ -1229,10 +1228,17 @@ public class AstBuilderTest {
     assertEqual(
         "source=t | timechart per_second(a)",
         eval(
-            new Timechart(relation("t"), alias("per_second(a)", aggregate("sum", field("a"))))
-                .span(span(field("@timestamp"), intLiteral(1), SpanUnit.of("m")))
-                .limit(10)
-                .useOther(true),
+            Chart.builder()
+                .child(relation("t"))
+                .rowSplit(
+                    alias("@timestamp", span(field("@timestamp"), intLiteral(1), SpanUnit.of("m"))))
+                .columnSplit(null)
+                .aggregationFunction(alias("per_second(a)", aggregate("sum", field("a"))))
+                .arguments(
+                    exprList(
+                        argument("limit", intLiteral(10)),
+                        argument("useother", booleanLiteral(true))))
+                .build(),
             let(
                 field("per_second(a)"),
                 function(
@@ -1254,10 +1260,17 @@ public class AstBuilderTest {
     assertEqual(
         "source=t | timechart per_minute(a)",
         eval(
-            new Timechart(relation("t"), alias("per_minute(a)", aggregate("sum", field("a"))))
-                .span(span(field("@timestamp"), intLiteral(1), SpanUnit.of("m")))
-                .limit(10)
-                .useOther(true),
+            Chart.builder()
+                .child(relation("t"))
+                .rowSplit(
+                    alias("@timestamp", span(field("@timestamp"), intLiteral(1), SpanUnit.of("m"))))
+                .columnSplit(null)
+                .aggregationFunction(alias("per_minute(a)", aggregate("sum", field("a"))))
+                .arguments(
+                    exprList(
+                        argument("limit", intLiteral(10)),
+                        argument("useother", booleanLiteral(true))))
+                .build(),
             let(
                 field("per_minute(a)"),
                 function(
@@ -1279,10 +1292,17 @@ public class AstBuilderTest {
     assertEqual(
         "source=t | timechart per_hour(a)",
         eval(
-            new Timechart(relation("t"), alias("per_hour(a)", aggregate("sum", field("a"))))
-                .span(span(field("@timestamp"), intLiteral(1), SpanUnit.of("m")))
-                .limit(10)
-                .useOther(true),
+            Chart.builder()
+                .child(relation("t"))
+                .rowSplit(
+                    alias("@timestamp", span(field("@timestamp"), intLiteral(1), SpanUnit.of("m"))))
+                .columnSplit(null)
+                .aggregationFunction(alias("per_hour(a)", aggregate("sum", field("a"))))
+                .arguments(
+                    exprList(
+                        argument("limit", intLiteral(10)),
+                        argument("useother", booleanLiteral(true))))
+                .build(),
             let(
                 field("per_hour(a)"),
                 function(
@@ -1304,10 +1324,17 @@ public class AstBuilderTest {
     assertEqual(
         "source=t | timechart per_day(a)",
         eval(
-            new Timechart(relation("t"), alias("per_day(a)", aggregate("sum", field("a"))))
-                .span(span(field("@timestamp"), intLiteral(1), SpanUnit.of("m")))
-                .limit(10)
-                .useOther(true),
+            Chart.builder()
+                .child(relation("t"))
+                .rowSplit(
+                    alias("@timestamp", span(field("@timestamp"), intLiteral(1), SpanUnit.of("m"))))
+                .columnSplit(null)
+                .aggregationFunction(alias("per_day(a)", aggregate("sum", field("a"))))
+                .arguments(
+                    exprList(
+                        argument("limit", intLiteral(10)),
+                        argument("useother", booleanLiteral(true))))
+                .build(),
             let(
                 field("per_day(a)"),
                 function(
