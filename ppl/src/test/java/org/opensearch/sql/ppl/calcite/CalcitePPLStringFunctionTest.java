@@ -301,7 +301,29 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testRegexMatch() {
+  public void testRegexpMatch() {
+    String ppl = "source=EMP | where regexp_match(ENAME, '^[A-C]') | fields ENAME";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        ""
+            + "LogicalProject(ENAME=[$1])\n"
+            + "  LogicalFilter(condition=[REGEXP_CONTAINS($1, '^[A-C]':VARCHAR)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedResult =
+        "" + "ENAME=ALLEN\n" + "ENAME=BLAKE\n" + "ENAME=CLARK\n" + "ENAME=ADAMS\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        ""
+            + "SELECT `ENAME`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE REGEXP_CONTAINS(`ENAME`, '^[A-C]')";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testRegexMatchCompatibility() {
     String ppl = "source=EMP | where regex_match(ENAME, '^[A-C]') | fields ENAME";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
@@ -323,8 +345,8 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testRegexMatchWithPattern() {
-    String ppl = "source=EMP | eval matches = regex_match(JOB, 'MAN.*') | fields JOB, matches";
+  public void testRegexpMatchWithPattern() {
+    String ppl = "source=EMP | eval matches = regexp_match(JOB, 'MAN.*') | fields JOB, matches";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -338,9 +360,9 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testRegexMatchInEval() {
+  public void testRegexpMatchInEval() {
     String ppl =
-        "source=EMP | eval result = if(regex_match(ENAME, '^S'), 1, 0) | where result = 1 | fields"
+        "source=EMP | eval result = if(regexp_match(ENAME, '^S'), 1, 0) | where result = 1 | fields"
             + " ENAME";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
@@ -364,9 +386,9 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testRegexMatchInWhereClause() {
+  public void testRegexpMatchInWhereClause() {
     // Test with WHERE clause to filter employees with names ending in 'ES'
-    String ppl = "source=EMP | where regex_match(ENAME, 'ES$') | fields ENAME, JOB";
+    String ppl = "source=EMP | where regexp_match(ENAME, 'ES$') | fields ENAME, JOB";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -386,10 +408,10 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testRegexMatchWithJobPattern() {
+  public void testRegexpMatchWithJobPattern() {
     // Test filtering ANALYST and MANAGER positions using regex
     String ppl =
-        "source=EMP | where regex_match(JOB, '(ANALYST|MANAGER)') | fields ENAME, JOB, SAL";
+        "source=EMP | where regexp_match(JOB, '(ANALYST|MANAGER)') | fields ENAME, JOB, SAL";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -408,9 +430,9 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testRegexMatchCaseInsensitive() {
+  public void testRegexpMatchCaseInsensitive() {
     // Test case-insensitive pattern matching
-    String ppl = "source=EMP | where regex_match(ENAME, '(?i)^[m-s]') | fields ENAME | head 5";
+    String ppl = "source=EMP | where regexp_match(ENAME, '(?i)^[m-s]') | fields ENAME | head 5";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -431,10 +453,10 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testRegexMatchWithMultipleConditions() {
-    // Test combining regex_match with other conditions
+  public void testRegexpMatchWithMultipleConditions() {
+    // Test combining regexp_match with other conditions
     String ppl =
-        "source=EMP | where regex_match(JOB, 'CLERK') AND SAL > 1000 | fields ENAME, JOB, SAL";
+        "source=EMP | where regexp_match(JOB, 'CLERK') AND SAL > 1000 | fields ENAME, JOB, SAL";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5])\n"
@@ -453,9 +475,9 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testRegexMatchNegation() {
-    // Test NOT regex_match pattern
-    String ppl = "source=EMP | where NOT regex_match(JOB, 'CLERK|SALESMAN') | fields ENAME, JOB";
+  public void testRegexpMatchNegation() {
+    // Test NOT regexp_match pattern
+    String ppl = "source=EMP | where NOT regexp_match(JOB, 'CLERK|SALESMAN') | fields ENAME, JOB";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
@@ -474,10 +496,10 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testRegexMatchWithStats() {
-    // Test regex_match with aggregation
+  public void testRegexpMatchWithStats() {
+    // Test regexp_match with aggregation
     String ppl =
-        "source=EMP | where regex_match(JOB, 'MAN') | stats count() as manager_count, avg(SAL) as"
+        "source=EMP | where regexp_match(JOB, 'MAN') | stats count() as manager_count, avg(SAL) as"
             + " avg_salary";
     RelNode root = getRelNode(ppl);
     String expectedLogical =

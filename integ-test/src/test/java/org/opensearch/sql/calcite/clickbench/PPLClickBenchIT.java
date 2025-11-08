@@ -54,11 +54,11 @@ public class PPLClickBenchIT extends PPLIntegTestCase {
   /** Ignore queries that are not supported by Calcite. */
   protected Set<Integer> ignored() {
     if (GCedMemoryUsage.initialized()) {
-      return Set.of(29);
+      return Set.of();
     } else {
       // Ignore q30 when use RuntimeMemoryUsage,
       // because of too much script push down, which will cause ResourceMonitor restriction.
-      return Set.of(29, 30);
+      return Set.of(30);
     }
   }
 
@@ -70,12 +70,12 @@ public class PPLClickBenchIT extends PPLIntegTestCase {
       }
       logger.info("Running Query{}", i);
       String ppl = sanitize(loadFromFile("clickbench/queries/q" + i + ".ppl"));
-      timing(summary, "q" + i, ppl);
       // V2 gets unstable scripts, ignore them when comparing plan
       if (isCalciteEnabled()) {
         String expected = loadExpectedPlan("clickbench/q" + i + ".yaml");
         assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
       }
+      timing(summary, "q" + i, ppl);
     }
   }
 }

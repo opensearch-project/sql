@@ -415,3 +415,27 @@ Example::
     |---------------------+---------------------|
     | HELLOWORLD          | HELLOWORLD          |
     +---------------------+---------------------+
+
+
+REGEXP_REPLACE
+-------------
+
+Description
+>>>>>>>>>>>
+
+Usage: regexp_replace(string, pattern, replacement) replace all substrings of the string value that match pattern with replacement and returns modified string value.
+
+Argument type: STRING, STRING, STRING
+
+Return type: STRING
+
+Example::
+
+    os> source=people | eval `REGEXP_REPLACE1` = REGEXP_REPLACE('helloworld', '^he', '\1'), `REGEXP_REPLACE2` = REGEXP_REPLACE('helloworld', 'ld$', '\1') | fields `REGEXP_REPLACE1`, `REGEXP_REPLACE2`
+    fetched rows / total rows = 1/1
+    +-----------------+-----------------+
+    | REGEXP_REPLACE1 | REGEXP_REPLACE2 |
+    |-----------------+-----------------|
+    | \1lloworld      | hellowor\1      |
+    +-----------------+-----------------+
+
