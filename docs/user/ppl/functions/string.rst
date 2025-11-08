@@ -436,6 +436,6 @@ Example::
     +-----------------+-----------------+
     | REGEXP_REPLACE1 | REGEXP_REPLACE2 |
     |-----------------+-----------------|
-    | \1lloworld      | hellowor\1      |
+    | 1lloworld       | hellowor1       |
     +-----------------+-----------------+
 
