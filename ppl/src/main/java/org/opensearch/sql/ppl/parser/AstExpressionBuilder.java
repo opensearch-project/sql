@@ -86,6 +86,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
           .put("isnull", IS_NULL.getName().getFunctionName())
           .put("isnotnull", IS_NOT_NULL.getName().getFunctionName())
           .put("regex_match", REGEXP_MATCH.getName().getFunctionName()) // compatible with old one
+          .put("regexp_replace", REPLACE.getName().getFunctionName())
           .build();
 
   private final AstBuilder astBuilder;

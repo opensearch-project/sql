@@ -9,6 +9,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STRINGS;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
+import java.util.stream.Stream;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ppl.TextFunctionIT;
@@ -21,39 +22,50 @@ public class CalciteTextFunctionIT extends TextFunctionIT {
   }
 
   @Test
-  public void testRegexpReplace() throws Exception {
-    // Test regexp_replace with pattern that matches substring
-    String query1 =
-        String.format(
-            "source=%s | eval f=regexp_replace(name, 'ell', '\1') | fields f", TEST_INDEX_STRINGS);
-    JSONObject result1 = executeQuery(query1);
-    verifySchema(result1, schema("f", null, "string"));
-    verifyDataRows(result1, rows("h\1o"), rows("world"), rows("h\1oworld"));
+  public void testReplaceAndRegexpReplace() {
+    Stream.of("replace", "regexp_replace")
+        .forEach(
+            func -> {
+              try {
+                // Test regexp_replace with pattern that matches substring
+                String query1 =
+                    String.format(
+                        "source=%s | eval f=%s(name, 'ell', '\1') | fields f",
+                        TEST_INDEX_STRINGS, func);
+                JSONObject result1 = executeQuery(query1);
+                verifySchema(result1, schema("f", null, "string"));
+                verifyDataRows(result1, rows("h\u0001o"), rows("world"), rows("h\u0001oworld"));
 
-    // Test regexp_replace with pattern for beginning of string
-    String query2 =
-        String.format(
-            "source=%s | eval f=regexp_replace(name, '^he', '\1') | fields f", TEST_INDEX_STRINGS);
-    JSONObject result2 = executeQuery(query2);
-    verifySchema(result2, schema("f", null, "string"));
-    verifyDataRows(result2, rows("\1llo"), rows("world"), rows("\1lloworld"));
+                // Test regexp_replace with pattern for beginning of string
+                String query2 =
+                    String.format(
+                        "source=%s | eval f=%s(name, '^he', '\1') | fields f",
+                        TEST_INDEX_STRINGS, func);
+                JSONObject result2 = executeQuery(query2);
+                verifySchema(result2, schema("f", null, "string"));
+                verifyDataRows(result2, rows("\u0001llo"), rows("world"), rows("\u0001lloworld"));
 
-    // Test regexp_replace with pattern for end of string
-    String query3 =
-        String.format(
-            "source=%s | eval f=regexp_replace(name, 'ld$', '\1') | fields f", TEST_INDEX_STRINGS);
-    JSONObject result3 = executeQuery(query3);
-    verifySchema(result3, schema("f", null, "string"));
-    verifyDataRows(result3, rows("hello"), rows("wor\1"), rows("hellowor\1"));
+                // Test regexp_replace with pattern for end of string
+                String query3 =
+                    String.format(
+                        "source=%s | eval f=%s(name, 'ld$', '\1') | fields f",
+                        TEST_INDEX_STRINGS, func);
+                JSONObject result3 = executeQuery(query3);
+                verifySchema(result3, schema("f", null, "string"));
+                verifyDataRows(result3, rows("hello"), rows("wor\u0001"), rows("hellowor\u0001"));
 
-    // Test regexp_replace with complex pattern
-    String query4 =
-        String.format(
-            "source=%s | eval f=regexp_replace(name, '[hw]o.*d', '\1') | fields f",
-            TEST_INDEX_STRINGS);
-    JSONObject result4 = executeQuery(query4);
-    verifySchema(result4, schema("f", null, "string"));
-    verifyDataRows(result4, rows("hello"), rows("\1"), rows("hello\1"));
+                // Test regexp_replace with complex pattern
+                String query4 =
+                    String.format(
+                        "source=%s | eval f=%s(name, '[hw]o.*d', '\1') | fields f",
+                        TEST_INDEX_STRINGS, func);
+                JSONObject result4 = executeQuery(query4);
+                verifySchema(result4, schema("f", null, "string"));
+                verifyDataRows(result4, rows("hello"), rows("\u0001"), rows("hello\u0001"));
+              } catch (IOException e) {
+                throw new RuntimeException(e);
+              }
+            });
   }
 
   @Test

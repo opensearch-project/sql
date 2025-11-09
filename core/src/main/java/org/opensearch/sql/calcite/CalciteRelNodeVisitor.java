@@ -3407,7 +3407,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         // 3-parameter REGEXP_REPLACE
         return PPLFuncImpTable.INSTANCE.resolve(
             context.rexBuilder,
-            BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_3,
+            BuiltinFunctionName.REPLACE,
             fieldRex,
             context.rexBuilder.makeLiteral(pattern),
             context.rexBuilder.makeLiteral(javaReplacement));

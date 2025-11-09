@@ -423,11 +423,13 @@ REGEXP_REPLACE
 Description
 >>>>>>>>>>>
 
-Usage: regexp_replace(string, pattern, replacement) replace all substrings of the string value that match pattern with replacement and returns modified string value.
+Usage: regexp_replace(str, pattern, replacement) replace all substrings of the string value that match pattern with replacement and returns modified string value.
 
 Argument type: STRING, STRING, STRING
 
 Return type: STRING
+
+Synonyms: `REPLACE`_
 
 Example::
 

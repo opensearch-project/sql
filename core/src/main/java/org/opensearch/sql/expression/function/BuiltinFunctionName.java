@@ -230,7 +230,6 @@ public enum BuiltinFunctionName {
   POSITION(FunctionName.of("position")),
   REGEXP(FunctionName.of("regexp")),
   REGEXP_MATCH(FunctionName.of("regexp_match")),
-  REGEXP_REPLACE(FunctionName.of("regexp_replace")),
   REX_EXTRACT(FunctionName.of("REX_EXTRACT")),
   REX_EXTRACT_MULTI(FunctionName.of("REX_EXTRACT_MULTI")),
   REX_OFFSET(FunctionName.of("REX_OFFSET")),
@@ -331,7 +330,6 @@ public enum BuiltinFunctionName {
   INTERNAL_UNCOLLECT_PATTERNS(FunctionName.of("uncollect_patterns")),
   INTERNAL_GROK(FunctionName.of("grok"), true),
   INTERNAL_PARSE(FunctionName.of("parse"), true),
-  INTERNAL_REGEXP_REPLACE_3(FunctionName.of("regexp_replace_3"), true),
   INTERNAL_REGEXP_REPLACE_PG_4(FunctionName.of("regexp_replace_pg_4"), true),
   INTERNAL_REGEXP_REPLACE_5(FunctionName.of("regexp_replace_5"), true),
   INTERNAL_TRANSLATE3(FunctionName.of("translate3"), true);
