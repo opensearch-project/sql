@@ -433,11 +433,11 @@ Synonyms: `REPLACE`_
 
 Example::
 
-    os> source=people | eval `REGEXP_REPLACE1` = REGEXP_REPLACE('helloworld', '^he', '\1'), `REGEXP_REPLACE2` = REGEXP_REPLACE('helloworld', 'ld$', '\1') | fields `REGEXP_REPLACE1`, `REGEXP_REPLACE2`
+    os> source=people | eval `DOMAIN` = REGEXP_REPLACE('https://opensearch.org/downloads/', '^https?://(?:www\.)?([^/]+)/.*$', '\1') | fields `DOMAIN`
     fetched rows / total rows = 1/1
-    +-----------------+-----------------+
-    | REGEXP_REPLACE1 | REGEXP_REPLACE2 |
-    |-----------------+-----------------|
-    | 1lloworld       | hellowor1       |
-    +-----------------+-----------------+
+    +----------------+
+    | DOMAIN         |
+    |----------------|
+    | opensearch.org |
+    +----------------+
 

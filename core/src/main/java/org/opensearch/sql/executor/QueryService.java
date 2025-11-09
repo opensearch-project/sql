@@ -112,6 +112,9 @@ public class QueryService {
             } else {
               if (t instanceof Exception) {
                 listener.onFailure((Exception) t);
+              } else if (t instanceof ExceptionInInitializerError
+                  && ((ExceptionInInitializerError) t).getException() instanceof Exception) {
+                listener.onFailure((Exception) ((ExceptionInInitializerError) t).getException());
               } else if (t instanceof VirtualMachineError) {
                 // throw and fast fail the VM errors such as OOM (same with v2).
                 throw t;
