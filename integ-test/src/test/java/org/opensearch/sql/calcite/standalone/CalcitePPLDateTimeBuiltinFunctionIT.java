@@ -51,11 +51,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
 
   @Test
   public void test() {
-    JSONObject actual =
-            executeQuery(
-                    String.format(
-                            "source=%s age=2",
-                            TEST_INDEX_BANK));
+    JSONObject actual = executeQuery(String.format("source=%s age=2", TEST_INDEX_BANK));
   }
 
   private static String getFormattedLocalDate() {
