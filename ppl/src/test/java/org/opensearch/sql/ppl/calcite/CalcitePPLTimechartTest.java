@@ -260,13 +260,13 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
         "SELECT `t1`.`@timestamp`, CASE WHEN `t7`.`region` IS NOT NULL THEN `t1`.`region` ELSE CASE"
-            + " WHEN `t1`.`region` IS NULL THEN NULL ELSE 'OTHER' END END `region`, SUM(`t1`.`$f2`)"
+            + " WHEN `t1`.`region` IS NULL THEN NULL ELSE 'OTHER' END END `region`, AVG(`t1`.`$f2`)"
             + " `avg(cpu_usage)`\n"
             + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'm') `@timestamp`, `region`, AVG(`cpu_usage`)"
             + " `$f2`\n"
             + "FROM `scott`.`events`\n"
             + "GROUP BY `region`, `SPAN`(`@timestamp`, 1, 'm')) `t1`\n"
-            + "LEFT JOIN (SELECT `region`, SUM(`$f2`) `grand_total`\n"
+            + "LEFT JOIN (SELECT `region`, AVG(`$f2`) `grand_total`\n"
             + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'm') `@timestamp`, `region`, AVG(`cpu_usage`)"
             + " `$f2`\n"
             + "FROM `scott`.`events`\n"
@@ -297,13 +297,13 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
         "SELECT `t1`.`@timestamp`, CASE WHEN `t7`.`host` IS NOT NULL THEN `t1`.`host` ELSE CASE"
-            + " WHEN `t1`.`host` IS NULL THEN NULL ELSE 'OTHER' END END `host`, SUM(`t1`.`$f2`)"
+            + " WHEN `t1`.`host` IS NULL THEN NULL ELSE 'OTHER' END END `host`, AVG(`t1`.`$f2`)"
             + " `avg(cpu_usage)`\n"
             + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'h') `@timestamp`, `host`, AVG(`cpu_usage`)"
             + " `$f2`\n"
             + "FROM `scott`.`events`\n"
             + "GROUP BY `host`, `SPAN`(`@timestamp`, 1, 'h')) `t1`\n"
-            + "LEFT JOIN (SELECT `host`, SUM(`$f2`) `grand_total`\n"
+            + "LEFT JOIN (SELECT `host`, AVG(`$f2`) `grand_total`\n"
             + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'h') `@timestamp`, `host`, AVG(`cpu_usage`)"
             + " `$f2`\n"
             + "FROM `scott`.`events`\n"

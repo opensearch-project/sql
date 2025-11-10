@@ -1,0 +1,15 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(sort0=[$0], dir0=[ASC], fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalSort(sort0=[$0], dir0=[ASC])
+        LogicalAggregate(group=[{0, 1}], avg(balance)=[AVG($2)])
+          LogicalProject(state=[$9], gender=[$4], balance=[$7])
+            LogicalFilter(condition=[AND(IS NOT NULL($9), IS NOT NULL($7))])
+              CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableSort(sort0=[$0], dir0=[ASC])
+        EnumerableCalc(expr#0..3=[{inputs}], expr#4=[0], expr#5=[=($t3, $t4)], expr#6=[null:BIGINT], expr#7=[CASE($t5, $t6, $t2)], expr#8=[CAST($t7):DOUBLE], expr#9=[/($t8, $t3)], state=[$t1], gender=[$t0], avg(balance)=[$t9])
+          EnumerableAggregate(group=[{4, 9}], agg#0=[$SUM0($7)], agg#1=[COUNT($7)])
+            EnumerableCalc(expr#0..18=[{inputs}], expr#19=[IS NOT NULL($t9)], expr#20=[IS NOT NULL($t7)], expr#21=[AND($t19, $t20)], proj#0..18=[{exprs}], $condition=[$t21])
+              CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])

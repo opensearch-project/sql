@@ -260,6 +260,34 @@ public class PPLQueryDataAnonymizerTest {
         anonymize("source=t | timechart count() by host"));
   }
 
+  @Test
+  public void testChartCommand() {
+    assertEquals(
+        "source=table | chart count(identifier) by identifier identifier",
+        anonymize("source=t | chart count(age) by gender country"));
+  }
+
+  @Test
+  public void testChartCommandWithParameters() {
+    assertEquals(
+        "source=table | chart limit=*** useother=*** avg(identifier) by identifier",
+        anonymize("source=t | chart limit=5 useother=false avg(balance) by state"));
+  }
+
+  @Test
+  public void testChartCommandOver() {
+    assertEquals(
+        "source=table | chart avg(identifier) by identifier",
+        anonymize("source=t | chart avg(balance) over gender"));
+  }
+
+  @Test
+  public void testChartCommandOverBy() {
+    assertEquals(
+        "source=table | chart sum(identifier) by identifier identifier",
+        anonymize("source=t | chart sum(amount) over gender by age"));
+  }
+
   // todo, sort order is ignored, it doesn't impact the log analysis.
   @Test
   public void testSortCommandWithOptions() {
