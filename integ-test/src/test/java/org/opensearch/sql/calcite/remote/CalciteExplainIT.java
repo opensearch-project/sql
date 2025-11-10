@@ -448,25 +448,25 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testExplainWithReverse() throws IOException {
     String query = "source=opensearch-sql_test_index_account | reverse | head 5";
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_reverse_fallback.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_reverse_fallback.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   @Test
   public void testExplainWithReversePushdown() throws IOException {
     String query = "source=opensearch-sql_test_index_account | sort - age | reverse";
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_reverse_pushdown_single.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_reverse_pushdown_single.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   @Test
   public void testExplainWithReversePushdownMultipleFields() throws IOException {
     String query = "source=opensearch-sql_test_index_account | sort - age, + firstname | reverse";
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_reverse_pushdown_multiple.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_reverse_pushdown_multiple.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   @Test
