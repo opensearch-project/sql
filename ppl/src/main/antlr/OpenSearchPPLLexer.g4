@@ -525,7 +525,7 @@ fragment COMMON_TIME_UNIT:           'S'|'SEC'|'SECOND'
                                     |'Q'|'QTR'|'QUARTER'
                                     |'Y'|'YR'|'YEAR';
 fragment PLURAL_UNIT:               'MILLISECONDS'|'SECS'|'SECONDS'|'MINS'|'MINUTES'|'HRS'|'HOURS'
-                                    |'DAYS'|'MONTHS'|'QTRS'|'QUARTERS'|'YRS'|'YEARS';
+                                    |'DAYS'|'WEEKS'|'MONTHS'|'QTRS'|'QUARTERS'|'YRS'|'YEARS';
 fragment SPANUNIT:                  COMMON_TIME_UNIT | PLURAL_UNIT
                                     |'US'|'CS'|'DS'
                                     |'MS'|'MILLISECOND';
