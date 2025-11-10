@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.immutables.value.Value;
+import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
@@ -106,7 +107,7 @@ public class DedupPushdownRule extends RelRule<DedupPushdownRule.Config> {
    * LogicalFilter(condition=[IS NOT NULL($0)]) <br>
    */
   @Value.Immutable
-  public interface Config extends RelRule.Config {
+  public interface Config extends OpenSearchRuleConfig {
     Config DEFAULT =
         ImmutableDedupPushdownRule.Config.builder()
             .build()
