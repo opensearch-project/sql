@@ -62,7 +62,7 @@ public class CalciteDynamicFieldsTimechartIT extends CalcitePPLPermissiveIntegTe
     String query =
         source(
             TEST_INDEX_DYNAMIC,
-            "trendline sma(2, latency) as latency_trend" + "| fields id, latency, latency_trend");
+            "trendline sma(2, latency) as latency_trend| fields id, latency, latency_trend");
     JSONObject result = executeQuery(query);
 
     verifySchema(
@@ -94,7 +94,7 @@ public class CalciteDynamicFieldsTimechartIT extends CalcitePPLPermissiveIntegTe
         schema("latency", "int"),
         schema("latency_trend", "double"));
     verifyDataRows(
-        result, // [1,10,null],[3,40,25],[5,160,100],[2,20,90],[4,80,50]
+        result,
         rows(1, 10, null),
         rows(3, 40, 25),
         rows(5, 160, 100),

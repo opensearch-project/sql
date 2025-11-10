@@ -99,6 +99,7 @@ public class SpanFunction extends ImplementorUDF {
                         SpanFunction.class, methodName, String.class, int.class, String.class));
         return function.getImplementor().implement(translator, call, RexImpTable.NullAs.NULL);
       } else if (SqlTypeUtil.isCharacter(fieldType)) {
+        // if first argument is string, consider it as timestamp
         ScalarFunctionImpl function =
             (ScalarFunctionImpl)
                 ScalarFunctionImpl.create(
