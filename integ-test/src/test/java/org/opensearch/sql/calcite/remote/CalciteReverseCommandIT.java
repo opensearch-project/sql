@@ -97,14 +97,70 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testReverseWithMultipleSorts() throws IOException {
-    // Use the existing BANK data but with a simpler, more predictable query
+  public void testReverseWithDescendingSort() throws IOException {
+    // Test reverse with descending sort (- age)
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | sort account_number | fields account_number | reverse | head 3",
+                "source=%s | sort - account_number | fields account_number | reverse",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("account_number", "bigint"));
-    verifyDataRowsInOrder(result, rows(32), rows(25), rows(20));
+    verifyDataRowsInOrder(
+        result, rows(1), rows(6), rows(13), rows(18), rows(20), rows(25), rows(32));
+  }
+
+  @Test
+  public void testReverseWithMixedSortDirections() throws IOException {
+    // Test reverse with mixed sort directions (- age, + firstname)
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | sort - account_number, + firstname | fields account_number, firstname"
+                    + " | reverse",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("account_number", "bigint"), schema("firstname", "string"));
+    verifyDataRowsInOrder(
+        result,
+        rows(1, "Amber JOHnny"),
+        rows(6, "Hattie"),
+        rows(13, "Nanette"),
+        rows(18, "Dale"),
+        rows(20, "Elinor"),
+        rows(25, "Virginia"),
+        rows(32, "Dillard"));
+  }
+
+  @Test
+  public void testDoubleReverseWithDescendingSort() throws IOException {
+    // Test double reverse with descending sort (- age)
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | sort - account_number | fields account_number | reverse | reverse",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("account_number", "bigint"));
+    verifyDataRowsInOrder(
+        result, rows(32), rows(25), rows(20), rows(18), rows(13), rows(6), rows(1));
+  }
+
+  @Test
+  public void testDoubleReverseWithMixedSortDirections() throws IOException {
+    // Test double reverse with mixed sort directions (- age, + firstname)
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | sort - account_number, + firstname | fields account_number, firstname"
+                    + " | reverse | reverse",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("account_number", "bigint"), schema("firstname", "string"));
+    verifyDataRowsInOrder(
+        result,
+        rows(32, "Dillard"),
+        rows(25, "Virginia"),
+        rows(20, "Elinor"),
+        rows(18, "Dale"),
+        rows(13, "Nanette"),
+        rows(6, "Hattie"),
+        rows(1, "Amber JOHnny"));
   }
 }
