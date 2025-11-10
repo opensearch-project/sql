@@ -1,0 +1,103 @@
+name: SQL CLI Integration Test
+
+# This workflow tests sql-cli against the current SQL changes
+# to catch breaking changes before they're published
+
+on:
+  pull_request:
+    paths:
+      - 'api/**'
+      - 'sql/**'
+      - 'ppl/**'
+      - 'core/**'
+      - 'opensearch/**'
+      - 'common/**'
+      - 'protocol/**'
+      - '**/*.gradle'
+      - '.github/workflows/sql-cli-integration-test.yml'
+  push:
+    branches:
+      - main
+      - '[0-9]+.[0-9]+'
+      - '[0-9]+.x'
+    paths:
+      - 'api/**'
+      - 'sql/**'
+      - 'ppl/**'
+      - 'core/**'
+      - 'opensearch/**'
+      - 'common/**'
+      - 'protocol/**'
+      - '**/*.gradle'
+      - '.github/workflows/sql-cli-integration-test.yml'
+  workflow_dispatch:
+
+jobs:
+  test-sql-cli-integration:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        java: [21]
+
+    steps:
+      - name: Checkout SQL repository (current changes)
+        uses: actions/checkout@v4
+        with:
+          path: sql
+
+      - name: Checkout SQL CLI repository (latest main)
+        uses: actions/checkout@v4
+        with:
+          repository: opensearch-project/sql-cli
+          path: sql-cli
+          ref: main
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.java }}
+
+      - name: Build and publish SQL modules to Maven Local
+        working-directory: sql
+        run: |
+          echo "Building SQL modules from current branch..."
+          ./gradlew publishToMavenLocal -x test -x integTest
+          echo "SQL modules published to Maven Local"
+
+      - name: Verify SQL CLI settings.gradle exists
+        working-directory: sql-cli
+        run: |
+          if [ ! -f "settings.gradle" ]; then
+            echo "ERROR: settings.gradle not found in sql-cli repository"
+            echo "The composite build configuration may not be merged yet."
+            echo "This workflow requires the composite build setup to work."
+            exit 1
+          fi
+          echo "settings.gradle found, proceeding with tests"
+
+      - name: Run SQL CLI tests with local SQL modules
+        working-directory: sql-cli
+        run: |
+          echo "Running SQL CLI tests against local SQL modules..."
+          ./gradlew clean test -PuseLocalSql=true --info --stacktrace
+
+      - name: Upload SQL CLI test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: sql-cli-test-reports-java-${{ matrix.java }}
+          path: |
+            sql-cli/build/reports/**
+            sql-cli/build/test-results/**
+
+      - name: Test Summary
+        if: always()
+        run: |
+          echo "## SQL CLI Integration Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Tested SQL CLI against SQL changes from: \`${{ github.ref }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "SQL CLI version: main branch (latest)" >> $GITHUB_STEP_SUMMARY
+          echo "Java version: ${{ matrix.java }}" >> $GITHUB_STEP_SUMMARY
