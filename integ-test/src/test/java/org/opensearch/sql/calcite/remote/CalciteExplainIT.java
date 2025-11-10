@@ -470,6 +470,31 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testExplainWithDoubleReverse() throws IOException {
+    String query = "source=opensearch-sql_test_index_account | reverse | reverse";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_double_reverse_fallback.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainWithDoubleReversePushdown() throws IOException {
+    String query = "source=opensearch-sql_test_index_account | sort - age | reverse | reverse";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_double_reverse_pushdown_single.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainWithDoubleReversePushdownMultipleFields() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | sort - age, + firstname | reverse | reverse";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_double_reverse_pushdown_multiple.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
   public void testExplainWithTimechartAvg() throws IOException {
     var result = explainQueryYaml("source=events | timechart span=1m avg(cpu_usage) by host");
     String expected = loadExpectedPlan("explain_timechart.yaml");
