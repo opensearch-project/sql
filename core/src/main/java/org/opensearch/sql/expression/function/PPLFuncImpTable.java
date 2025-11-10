@@ -153,6 +153,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVJOIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOTEQUAL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOW;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.NTH_VALUE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NULLIF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.OR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.PERCENTILE_APPROX;
@@ -177,6 +178,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.REX_OFF
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RIGHT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RINT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ROUND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ROW_NUMBER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RTRIM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SECOND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SECOND_OF_MINUTE;
@@ -1227,10 +1229,11 @@ public class PPLFuncImpTable {
           wrapSqlOperandTypeChecker(innerTypeChecker, functionName.name(), true);
       AggHandler handler =
           (distinct, field, argList, ctx) -> {
+            List<RexNode> fields = field != null ? List.of(field) : List.of();
             List<RexNode> newArgList =
                 argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
             return UserDefinedFunctionUtils.makeAggregateCall(
-                aggFunction, List.of(field), newArgList, ctx.relBuilder);
+                aggFunction, fields, newArgList, ctx.relBuilder);
           };
       register(functionName, handler, typeChecker);
     }
@@ -1247,6 +1250,8 @@ public class PPLFuncImpTable {
       registerOperator(INTERNAL_PATTERN, PPLBuiltinOperators.INTERNAL_PATTERN);
       registerOperator(LIST, PPLBuiltinOperators.LIST);
       registerOperator(VALUES, PPLBuiltinOperators.VALUES);
+      registerOperator(NTH_VALUE, SqlStdOperatorTable.NTH_VALUE);
+      registerOperator(ROW_NUMBER, SqlStdOperatorTable.ROW_NUMBER);
 
       register(
           AVG,

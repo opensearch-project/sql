@@ -80,6 +80,7 @@ import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
+import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Let;
@@ -1898,9 +1899,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // 1. group the group-by list + field list and add a count() aggregation
     List<UnresolvedExpression> groupExprList = new ArrayList<>();
-    node.getGroupExprList().forEach(exp -> groupExprList.add(addAliasToFieldAccess(exp)));
+    node.getGroupExprList().forEach(exp -> groupExprList.add(exp));
     // need alias for dynamic fields
-    node.getFields().forEach(field -> groupExprList.add(addAliasToFieldAccess(field)));
+    node.getFields().forEach(field -> groupExprList.add(field));
+    groupExprList.forEach(expr -> projectDynamicField(expr, context));
     List<UnresolvedExpression> aggExprList =
         List.of(AstDSL.alias(countFieldName, AstDSL.aggregate("count", null)));
     aggregateWithTrimming(groupExprList, aggExprList, context);
@@ -2048,10 +2050,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       org.opensearch.sql.ast.tree.Timechart node, CalcitePlanContext context) {
     visitChildren(node, context);
 
-    if (!context.fieldBuilder.isFieldSpecificType("@timestamp")) {
-      throw new IllegalArgumentException(
-          "`@timestamp` field needs to be specific type. Please cast explicitly.");
-    }
+    projectDynamicFieldAsString(
+        node.getBinExpression(), context); // spanExpr would become static field.
+    projectDynamicFieldAsString(node.getByField(), context); // byField would become static field.
 
     // Extract parameters
     UnresolvedExpression spanExpr = node.getBinExpression();
@@ -2096,11 +2097,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     UnresolvedExpression byField = node.getByField();
 
     String byFieldName = ((Field) node.getByField()).getField().toString();
-    if (!context.fieldBuilder.isFieldSpecificType(byFieldName)) {
-      throw new IllegalArgumentException(
-          String.format(
-              "By field `%s` needs to be specific type. Please cast explicitly.", byFieldName));
-    }
     String valueFunctionName = getValueFunctionName(node.getAggregateFunction());
 
     int limit = Optional.ofNullable(node.getLimit()).orElse(10);
@@ -2152,6 +2148,55 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     } catch (Exception e) {
       throw new RuntimeException("Error in visitTimechart: " + e.getMessage(), e);
     }
+  }
+
+  private void projectDynamicFieldAsString(UnresolvedExpression exp, CalcitePlanContext context) {
+    projectDynamicField(exp, true, context);
+  }
+
+  private void projectDynamicField(UnresolvedExpression exp, CalcitePlanContext context) {
+    projectDynamicField(exp, false, context);
+  }
+
+  private void projectDynamicField(
+      UnresolvedExpression exp, boolean castNeeded, CalcitePlanContext context) {
+    if (exp != null) {
+      exp.accept(
+          new AbstractNodeVisitor<Void, CalcitePlanContext>() {
+            @Override
+            public Void visitField(Field field, CalcitePlanContext context) {
+              RexNode node = rexVisitor.analyze(field, context);
+              if (node.isA(SqlKind.ITEM)) {
+                RexNode casted = castNeeded ? castToString(node, context) : node;
+                RexNode alias = context.relBuilder.alias(casted, field.getField().toString());
+                context.relBuilder.projectPlus(alias);
+              }
+              return null;
+            }
+          },
+          context);
+    }
+  }
+
+  private RexNode castToString(RexNode node, CalcitePlanContext context) {
+    RelDataType stringType = context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+    RelDataType nullableStringType =
+        context.rexBuilder.getTypeFactory().createTypeWithNullability(stringType, true);
+    return context.rexBuilder.makeCast(nullableStringType, node, true, true);
+  }
+
+  /** Add cast and alias to Field. Needed for when the field is resolved as dynamic field access. */
+  private UnresolvedExpression castAndAliasToFieldAccess(UnresolvedExpression exp) {
+    if (exp instanceof Field) {
+      Field f = (Field) exp;
+      return AstDSL.alias(f.getField().toString(), castToString(f));
+    } else {
+      return castToString(exp);
+    }
+  }
+
+  private UnresolvedExpression castToString(UnresolvedExpression exp) {
+    return new Cast(exp, AstDSL.stringLiteral("STRING"));
   }
 
   /** Add alias to Field. Needed for when the field is resolved as dynamic field access. */
@@ -2367,6 +2412,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         .ifPresent(
             sortField -> {
               SortOption sortOption = analyzeSortOption(sortField.getFieldArgs());
+              projectDynamicFieldAsString(sortField, context);
               RexNode field = rexVisitor.analyze(sortField, context);
               if (sortOption == DEFAULT_DESC) {
                 context.relBuilder.sort(context.relBuilder.desc(field));
@@ -2380,13 +2426,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     node.getComputations()
         .forEach(
             trendlineComputation -> {
+              projectDynamicField(trendlineComputation.getDataField(), context);
               RexNode field = rexVisitor.analyze(trendlineComputation.getDataField(), context);
-              String dataFieldName = trendlineComputation.getDataField().getField().toString();
-              if (!context.fieldBuilder.isFieldSpecificType(dataFieldName)) {
-                throw new IllegalArgumentException(
-                    String.format(
-                        "`%s` needs to be specific type. Please cast explicitly.", dataFieldName));
-              }
 
               context.relBuilder.filter(context.relBuilder.isNotNull(field));
 

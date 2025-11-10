@@ -52,10 +52,10 @@ public class SpanFunction extends ImplementorUDF {
     return UDFOperandMetadata.wrap(
         (CompositeOperandTypeChecker)
             OperandTypes.family(
-                    SqlTypeFamily.CHARACTER, SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER)
+                    SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER, SqlTypeFamily.CHARACTER)
                 .or(
                     OperandTypes.family(
-                        SqlTypeFamily.DATETIME, SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER))
+                        SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER, SqlTypeFamily.CHARACTER))
                 // TODO: numeric span should support decimal as its interval
                 .or(
                     OperandTypes.family(
@@ -97,6 +97,17 @@ public class SpanFunction extends ImplementorUDF {
                 ScalarFunctionImpl.create(
                     Types.lookupMethod(
                         SpanFunction.class, methodName, String.class, int.class, String.class));
+        return function.getImplementor().implement(translator, call, RexImpTable.NullAs.NULL);
+      } else if (SqlTypeUtil.isCharacter(fieldType)) {
+        ScalarFunctionImpl function =
+            (ScalarFunctionImpl)
+                ScalarFunctionImpl.create(
+                    Types.lookupMethod(
+                        SpanFunction.class,
+                        "evalTimestamp",
+                        String.class,
+                        int.class,
+                        String.class));
         return function.getImplementor().implement(translator, call, RexImpTable.NullAs.NULL);
       }
       throw new IllegalArgumentException(

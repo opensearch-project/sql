@@ -30,38 +30,8 @@ public class CalciteDynamicFieldsTimechartIT extends CalcitePPLPermissiveIntegTe
   }
 
   @Test
-  public void testTimechartByDynamicFieldWithoutCast() throws IOException {
-    String query =
-        source(
-            TEST_INDEX_DYNAMIC,
-            "eval @timestamp=cast(@timestamp as timestamp)"
-                + "| timechart span=1d count() by event");
-
-    Throwable e = assertThrows(IllegalArgumentException.class, () -> executeQuery(query));
-    assertEquals(
-        "By field `event` needs to be specific type. Please cast explicitly.", e.getMessage());
-  }
-
-  @Test
-  public void testTimechartWithDynamicTimestampField() throws IOException {
-    String query =
-        source(
-            TEST_INDEX_DYNAMIC,
-            "eval event=cast(event as string)" + "| timechart span=1d count() by event");
-
-    Throwable e = assertThrows(IllegalArgumentException.class, () -> executeQuery(query));
-    assertEquals(
-        "`@timestamp` field needs to be specific type. Please cast explicitly.", e.getMessage());
-  }
-
-  @Test
   public void testTimechartByDynamicField() throws IOException {
-    // Dynamic fields requires explicit cast before used in timechart
-    String query =
-        source(
-            TEST_INDEX_DYNAMIC,
-            "eval @timestamp=cast(@timestamp as timestamp), event=cast(event as string)"
-                + "| timechart span=1d count() by event");
+    String query = source(TEST_INDEX_DYNAMIC, "timechart span=1d count() by event");
 
     JSONObject result = executeQuery(query);
 
@@ -79,28 +49,12 @@ public class CalciteDynamicFieldsTimechartIT extends CalcitePPLPermissiveIntegTe
 
   @Test
   public void testTimechartWithDynamicField() throws IOException {
-    // Dynamic fields requires explicit cast before used in timechart
-    String query =
-        source(
-            TEST_INDEX_DYNAMIC,
-            "eval @timestamp=cast(@timestamp as timestamp), latency=cast(latency as int)"
-                + "| timechart span=1d avg(latency)");
+    String query = source(TEST_INDEX_DYNAMIC, "timechart span=1d avg(latency)");
 
     JSONObject result = executeQuery(query);
 
-    verifySchema(result, schema("@timestamp", "timestamp"), schema("avg(latency)", "double"));
+    verifySchema(result, schema("@timestamp", "string"), schema("avg(latency)", "double"));
     verifyDataRows(result, rows("2025-10-25 00:00:00", 62));
-  }
-
-  @Test
-  public void testTrendlineWithDynamicFieldWithoutCast() throws IOException {
-    String query =
-        source(
-            TEST_INDEX_DYNAMIC,
-            "trendline sma(2, latency) as latency_trend | fields id, latency, latency_trend");
-
-    Throwable e = assertThrows(IllegalArgumentException.class, () -> executeQuery(query));
-    assertEquals("`latency` needs to be specific type. Please cast explicitly.", e.getMessage());
   }
 
   @Test
@@ -108,9 +62,7 @@ public class CalciteDynamicFieldsTimechartIT extends CalcitePPLPermissiveIntegTe
     String query =
         source(
             TEST_INDEX_DYNAMIC,
-            "eval latency = cast(latency as int)"
-                + "| trendline sma(2, latency) as latency_trend"
-                + "| fields id, latency, latency_trend");
+            "trendline sma(2, latency) as latency_trend" + "| fields id, latency, latency_trend");
     JSONObject result = executeQuery(query);
 
     verifySchema(
@@ -132,8 +84,7 @@ public class CalciteDynamicFieldsTimechartIT extends CalcitePPLPermissiveIntegTe
     String query =
         source(
             TEST_INDEX_DYNAMIC,
-            "eval latency = cast(latency as int)"
-                + "| trendline sort event sma(2, latency) as latency_trend "
+            "trendline sort event sma(2, latency) as latency_trend "
                 + "| fields id, latency, latency_trend");
     JSONObject result = executeQuery(query);
 
