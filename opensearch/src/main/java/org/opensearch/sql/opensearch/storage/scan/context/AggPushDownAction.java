@@ -125,6 +125,9 @@ public class AggPushDownAction implements OSRequestBuilderAction {
           if (!terms.missingBucket()) {
             aggregationBuilder = buildTermsAggregationBuilder(terms, bucketOrder, composite.size());
             attachSubAggregations(composite.getSubAggregations(), path, aggregationBuilder);
+          } else {
+            throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
+                "Cannot pushdown sort aggregate measure");
           }
         } else if (composite.sources().get(0) instanceof DateHistogramValuesSourceBuilder) {
           DateHistogramValuesSourceBuilder dateHisto = (DateHistogramValuesSourceBuilder) composite.sources().get(0);
@@ -174,6 +177,9 @@ public class AggPushDownAction implements OSRequestBuilderAction {
           TermsValuesSourceBuilder terms = (TermsValuesSourceBuilder) composite.sources().get(0);
           if (!terms.missingBucket()) {
             aggregationBuilder = buildTermsAggregationBuilder(terms, bucketOrder, digest.number());
+          } else {
+            throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
+                "Cannot pushdown " + digest);
           }
         } else if (composite.sources().get(0)
             instanceof DateHistogramValuesSourceBuilder) {
@@ -189,6 +195,9 @@ public class AggPushDownAction implements OSRequestBuilderAction {
             throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
                 "Cannot pushdown " + digest);
           }
+        } else {
+          throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
+              "Cannot pushdown " + digest);
         }
       } else {
         if (composite.sources().stream()
