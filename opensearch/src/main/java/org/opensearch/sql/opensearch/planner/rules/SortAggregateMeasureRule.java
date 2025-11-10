@@ -11,6 +11,7 @@ import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.immutables.value.Value;
+import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
@@ -34,7 +35,7 @@ public class SortAggregateMeasureRule extends RelRule<SortAggregateMeasureRule.C
 
   /** Rule configuration. */
   @Value.Immutable
-  public interface Config extends RelRule.Config {
+  public interface Config extends OpenSearchRuleConfig {
     // TODO support multiple measures, only support single measure sort
     Predicate<Sort> hasOneFieldCollation =
         sort -> sort.getCollation().getFieldCollations().size() == 1;

@@ -46,6 +46,7 @@ ML:                                 'ML';
 FILLNULL:                           'FILLNULL';
 FLATTEN:                            'FLATTEN';
 TRENDLINE:                          'TRENDLINE';
+CHART:                              'CHART';
 TIMECHART:                          'TIMECHART';
 APPENDCOL:                          'APPENDCOL';
 EXPAND:                             'EXPAND';
@@ -77,6 +78,7 @@ RIGHT_HINT:                         'HINT.RIGHT';
 // COMMAND ASSIST KEYWORDS
 AS:                                 'AS';
 BY:                                 'BY';
+OVER:                               'OVER';
 SOURCE:                             'SOURCE';
 INDEX:                              'INDEX';
 A:                                  'A';
@@ -93,6 +95,8 @@ COST:                               'COST';
 EXTENDED:                           'EXTENDED';
 OVERRIDE:                           'OVERRIDE';
 OVERWRITE:                          'OVERWRITE';
+TOP_K:                              'TOP'[0-9]+;
+BOTTOM_K:                           'BOTTOM'[0-9]+;
 
 // SORT FIELD KEYWORDS
 // TODO #3180: Fix broken sort functionality
@@ -138,6 +142,8 @@ COUNTFIELD:                         'COUNTFIELD';
 SHOWCOUNT:                          'SHOWCOUNT';
 LIMIT:                              'LIMIT';
 USEOTHER:                           'USEOTHER';
+OTHERSTR:                           'OTHERSTR';
+NULLSTR:                            'NULLSTR';
 INPUT:                              'INPUT';
 OUTPUT:                             'OUTPUT';
 PATH:                               'PATH';
@@ -400,6 +406,7 @@ STRFTIME:                           'STRFTIME';
 // TEXT FUNCTIONS
 SUBSTR:                             'SUBSTR';
 SUBSTRING:                          'SUBSTRING';
+TOSTRING:                           'TOSTRING';
 LTRIM:                              'LTRIM';
 RTRIM:                              'RTRIM';
 TRIM:                               'TRIM';

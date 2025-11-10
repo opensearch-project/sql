@@ -22,6 +22,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
 import org.apache.commons.lang3.tuple.Pair;
 import org.immutables.value.Value;
+import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.storage.scan.CalciteEnumerableIndexScan;
 import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
@@ -177,7 +178,7 @@ public class ExpandCollationOnProjectExprRule
   }
 
   @Value.Immutable
-  public interface Config extends RelRule.Config {
+  public interface Config extends OpenSearchRuleConfig {
 
     /**
      * Only match ENUMERABLE convention RelNode combination like below to narrow the optimization
