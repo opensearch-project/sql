@@ -83,6 +83,7 @@ import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Util;
@@ -125,6 +126,10 @@ public class CalciteToolsHelper {
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  public static RelBuilderFactory proto(final Context context) {
+    return (cluster, schema) -> new OpenSearchRelBuilder(context, cluster, schema);
   }
 
   /**
