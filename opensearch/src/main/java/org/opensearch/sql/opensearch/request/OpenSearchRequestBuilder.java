@@ -27,6 +27,7 @@ import org.apache.calcite.rel.RelFieldCollation.Direction;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.lucene.search.join.ScoreMode;
 import org.opensearch.action.search.CreatePitRequest;
@@ -47,6 +48,7 @@ import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprType;
@@ -258,10 +260,10 @@ public class OpenSearchRequestBuilder {
             fieldTypes,
             cluster,
             Map.of(
-                "NULL_DIRECTION",
-                sortExprInfo.getNullDirection(),
-                "DIRECTION",
-                sortExprInfo.getDirection()));
+                PlanUtils.NULL_DIRECTION,
+                sortExprInfo.getNullDirection().name(),
+                PlanUtils.DIRECTION,
+                sortExprInfo.getDirection().name()));
 
     Script script = scriptExpr.getScript();
     if (script != null) {
@@ -489,21 +491,14 @@ public class OpenSearchRequestBuilder {
    * @return the appropriate ScriptSortType
    */
   private ScriptSortType getScriptSortType(RelDataType relDataType) {
-    switch (relDataType.getSqlTypeName()) {
-      case TINYINT:
-      case SMALLINT:
-      case INTEGER:
-      case BIGINT:
-      case FLOAT:
-      case REAL:
-      case DOUBLE:
-        return ScriptSortType.NUMBER;
-      case CHAR:
-      case VARCHAR:
-        return ScriptSortType.STRING;
-      default:
-        throw new PushDownUnSupportedException(
-            "Unsupported type for sort expression pushdown: " + relDataType);
+    if (SqlTypeName.CHAR_TYPES.contains(relDataType.getSqlTypeName())) {
+      return ScriptSortType.STRING;
+    } else if (SqlTypeName.INT_TYPES.contains(relDataType.getSqlTypeName())
+        || SqlTypeName.APPROX_TYPES.contains(relDataType.getSqlTypeName())) {
+      return ScriptSortType.NUMBER;
+    } else {
+      throw new PushDownUnSupportedException(
+          "Unsupported type for sort expression pushdown: " + relDataType);
     }
   }
 }

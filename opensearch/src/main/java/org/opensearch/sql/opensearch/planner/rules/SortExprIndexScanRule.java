@@ -181,20 +181,9 @@ public class SortExprIndexScanRule extends RelRule<SortExprIndexScanRule.Config>
    * @return true if the type is supported for sort scripts, false otherwise
    */
   private boolean isSupportedSortScriptType(SqlTypeName sqlTypeName) {
-    switch (sqlTypeName) {
-      case TINYINT:
-      case SMALLINT:
-      case INTEGER:
-      case BIGINT:
-      case FLOAT:
-      case REAL:
-      case DOUBLE:
-      case VARCHAR:
-      case CHAR:
-        return true;
-      default:
-        return false;
-    }
+    return SqlTypeName.CHAR_TYPES.contains(sqlTypeName)
+        || SqlTypeName.APPROX_TYPES.contains(sqlTypeName)
+        || SqlTypeName.INT_TYPES.contains(sqlTypeName);
   }
 
   /** Rule configuration. */

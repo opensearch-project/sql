@@ -15,6 +15,7 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.opensearch.script.NumberSortScript;
 import org.opensearch.search.lookup.SearchLookup;
 import org.opensearch.search.lookup.SourceLookup;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.storage.script.core.CalciteScript;
 
 /** Calcite number sort script. */
@@ -38,10 +39,12 @@ public class CalciteNumberSortScript extends NumberSortScript {
     // TODO: we'd better get source from the leafLookup of super once it's available
     this.sourceLookup = lookup.getLeafSearchLookup(context).source();
     this.direction =
-        params.containsKey("DIRECTION") ? (Direction) params.get("DIRECTION") : Direction.ASCENDING;
+        params.containsKey(PlanUtils.DIRECTION)
+            ? Direction.valueOf((String) params.get(PlanUtils.DIRECTION))
+            : Direction.ASCENDING;
     this.nullDirection =
-        params.containsKey("NULL_DIRECTION")
-            ? (NullDirection) params.get("NULL_DIRECTION")
+        params.containsKey(PlanUtils.NULL_DIRECTION)
+            ? NullDirection.valueOf((String) params.get(PlanUtils.NULL_DIRECTION))
             : NullDirection.FIRST;
   }
 

@@ -109,6 +109,7 @@ public class SortExpressionInfo {
   @Override
   public String toString() {
     String sortTarget = isSimpleFieldReference() ? fieldName : expression.toString();
-    return String.format("%s %s %s", sortTarget, direction.toString(), nullDirection.toString());
+    return String.format(
+        "%s %s NULLS_%s", sortTarget, direction.toString(), nullDirection.toString());
   }
 }
