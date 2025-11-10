@@ -447,16 +447,26 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainWithReverse() throws IOException {
-    String result =
-        executeWithReplace(
-            "explain source=opensearch-sql_test_index_account | sort age | reverse | head 5");
+    String query = "source=opensearch-sql_test_index_account | reverse | head 5";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_reverse_fallback.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
 
-    // Verify that the plan contains a LogicalSort with fetch (from head 5)
-    assertTrue(result.contains("LogicalSort") && result.contains("fetch=[5]"));
+  @Test
+  public void testExplainWithReversePushdown() throws IOException {
+    String query = "source=opensearch-sql_test_index_account | sort - age | reverse";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_reverse_pushdown_single.json");
+    assertJsonEqualsIgnoreId(expected, result);
+  }
 
-    // Verify that reverse added a ROW_NUMBER and another sort (descending)
-    assertTrue(result.contains("ROW_NUMBER()"));
-    assertTrue(result.contains("dir0=[DESC]"));
+  @Test
+  public void testExplainWithReversePushdownMultipleFields() throws IOException {
+    String query = "source=opensearch-sql_test_index_account | sort - age, + firstname | reverse";
+    var result = explainQueryToString(query);
+    String expected = loadExpectedPlan("explain_reverse_pushdown_multiple.json");
+    assertJsonEqualsIgnoreId(expected, result);
   }
 
   @Test
