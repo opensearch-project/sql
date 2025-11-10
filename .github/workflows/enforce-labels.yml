@@ -9,5 +9,5 @@ jobs:
     steps:
     - uses: yogevbd/enforce-label-action@2.1.0
       with:
-        REQUIRED_LABELS_ANY: "breaking,feature,enhancement,bugfix,infrastructure,dependencies,documentation,maintenance,skip-changelog,testing,security fix"
-        REQUIRED_LABELS_ANY_DESCRIPTION: "A release label is required: ['breaking', 'bugfix', 'dependencies', 'documentation', 'enhancement', 'feature', 'infrastructure', 'maintenance', 'skip-changelog', 'testing', 'security fix']"
+        REQUIRED_LABELS_ANY: "breaking,feature,enhancement,bugFix,infrastructure,dependencies,documentation,maintenance,skip-changelog,testing,security fix"
+        REQUIRED_LABELS_ANY_DESCRIPTION: "A release label is required: ['breaking', 'bugFix', 'dependencies', 'documentation', 'enhancement', 'feature', 'infrastructure', 'maintenance', 'skip-changelog', 'testing', 'security fix']"
