@@ -198,18 +198,18 @@ public class OpenSearchRequestBuilder {
   /**
    * Push down aggregation to DSL request.
    *
-   * @param aggregationBuilder pair of aggregation query and aggregation parser.
+   * @param builderAndParser pair of aggregation query and aggregation parser.
    */
   public void pushDownAggregation(
-      Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder) {
-    aggregationBuilder.getLeft().forEach(sourceBuilder::aggregation);
+      Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> builderAndParser) {
+    builderAndParser.getLeft().forEach(sourceBuilder::aggregation);
     sourceBuilder.size(0);
-    exprValueFactory.setParser(aggregationBuilder.getRight());
+    exprValueFactory.setParser(builderAndParser.getRight());
     // no need to sort docs for aggregation
     if (sourceBuilder.sorts() != null) {
       sourceBuilder.sorts().clear();
     }
-    if (aggregationBuilder.getRight() instanceof CountAsTotalHitsParser) {
+    if (builderAndParser.getRight() instanceof CountAsTotalHitsParser) {
       sourceBuilder.trackTotalHits(true);
     }
   }
