@@ -16,6 +16,8 @@ import org.opensearch.sql.calcite.utils.binning.BinFieldValidator;
 import org.opensearch.sql.calcite.utils.binning.BinHandler;
 import org.opensearch.sql.calcite.utils.binning.BinnableField;
 import org.opensearch.sql.calcite.utils.binning.RangeFormatter;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 /** Handler for default binning when no parameters are specified. */
 public class DefaultBinHandler implements BinHandler {
@@ -45,7 +47,9 @@ public class DefaultBinHandler implements BinHandler {
     // Calculate data range
     RexNode minValue = context.relBuilder.min(fieldExpr).over().toRex();
     RexNode maxValue = context.relBuilder.max(fieldExpr).over().toRex();
-    RexNode dataRange = context.relBuilder.call(SqlStdOperatorTable.MINUS, maxValue, minValue);
+    RexNode dataRange =
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder, BuiltinFunctionName.SUBTRACT, maxValue, minValue);
 
     // Calculate magnitude-based width
     RexNode log10Range = context.relBuilder.call(SqlStdOperatorTable.LOG10, dataRange);
@@ -60,17 +64,21 @@ public class DefaultBinHandler implements BinHandler {
     // Calculate bin value
     RexNode binStartValue = calculateBinValue(fieldExpr, widthInt, context);
     RexNode binEndValue =
-        context.relBuilder.call(SqlStdOperatorTable.PLUS, binStartValue, widthInt);
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder, BuiltinFunctionName.ADD, binStartValue, widthInt);
 
     return RangeFormatter.createRangeString(binStartValue, binEndValue, context);
   }
 
   private RexNode calculateBinValue(RexNode fieldExpr, RexNode width, CalcitePlanContext context) {
 
-    RexNode divided = context.relBuilder.call(SqlStdOperatorTable.DIVIDE, fieldExpr, width);
+    RexNode divided =
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder, BuiltinFunctionName.DIVIDE, fieldExpr, width);
 
     RexNode floored = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
 
-    return context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, floored, width);
+    return PPLFuncImpTable.INSTANCE.resolve(
+        context.rexBuilder, BuiltinFunctionName.MULTIPLY, floored, width);
   }
 }

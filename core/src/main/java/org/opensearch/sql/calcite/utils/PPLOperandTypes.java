@@ -136,6 +136,65 @@ public class PPLOperandTypes {
               SqlTypeFamily.NUMERIC,
               SqlTypeFamily.NUMERIC,
               SqlTypeFamily.NUMERIC));
+
+  public static final UDFOperandMetadata WIDTH_BUCKET_OPERAND =
+      UDFOperandMetadata.wrap(
+          (CompositeOperandTypeChecker)
+              // 1. Numeric fields: bin age span=10
+              OperandTypes.family(
+                      SqlTypeFamily.NUMERIC,
+                      SqlTypeFamily.INTEGER,
+                      SqlTypeFamily.NUMERIC,
+                      SqlTypeFamily.NUMERIC)
+                  // 2. Timestamp fields with OpenSearch type system
+                  // Used in: Production + Integration tests (CalciteBinCommandIT)
+                  .or(
+                      OperandTypes.family(
+                          SqlTypeFamily.TIMESTAMP,
+                          SqlTypeFamily.INTEGER,
+                          SqlTypeFamily.CHARACTER, // TIMESTAMP - TIMESTAMP = INTERVAL (as STRING)
+                          SqlTypeFamily.TIMESTAMP))
+                  // 3. Timestamp fields with Calcite SCOTT schema
+                  // Used in: Unit tests (CalcitePPLBinTest)
+                  .or(
+                      OperandTypes.family(
+                          SqlTypeFamily.TIMESTAMP,
+                          SqlTypeFamily.INTEGER,
+                          SqlTypeFamily.TIMESTAMP, // TIMESTAMP - TIMESTAMP = TIMESTAMP
+                          SqlTypeFamily.TIMESTAMP))
+                  // DATE field with OpenSearch type system
+                  // Used in: Production + Integration tests (CalciteBinCommandIT)
+                  .or(
+                      OperandTypes.family(
+                          SqlTypeFamily.DATE,
+                          SqlTypeFamily.INTEGER,
+                          SqlTypeFamily.CHARACTER, // DATE - DATE = INTERVAL (as STRING)
+                          SqlTypeFamily.DATE))
+                  // DATE field with Calcite SCOTT schema
+                  // Used in: Unit tests (CalcitePPLBinTest)
+                  .or(
+                      OperandTypes.family(
+                          SqlTypeFamily.DATE,
+                          SqlTypeFamily.INTEGER,
+                          SqlTypeFamily.DATE, // DATE - DATE = DATE
+                          SqlTypeFamily.DATE))
+                  // TIME field with OpenSearch type system
+                  // Used in: Production + Integration tests (CalciteBinCommandIT)
+                  .or(
+                      OperandTypes.family(
+                          SqlTypeFamily.TIME,
+                          SqlTypeFamily.INTEGER,
+                          SqlTypeFamily.CHARACTER, // TIME - TIME = INTERVAL (as STRING)
+                          SqlTypeFamily.TIME))
+                  // TIME field with Calcite SCOTT schema
+                  // Used in: Unit tests (CalcitePPLBinTest)
+                  .or(
+                      OperandTypes.family(
+                          SqlTypeFamily.TIME,
+                          SqlTypeFamily.INTEGER,
+                          SqlTypeFamily.TIME, // TIME - TIME = TIME
+                          SqlTypeFamily.TIME)));
+
   public static final UDFOperandMetadata NUMERIC_NUMERIC_NUMERIC_NUMERIC_NUMERIC =
       UDFOperandMetadata.wrap(
           OperandTypes.family(
