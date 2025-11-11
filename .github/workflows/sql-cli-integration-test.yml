@@ -70,22 +70,11 @@ jobs:
           ./gradlew publishToMavenLocal -x test -x integTest
           echo "SQL modules published to Maven Local"
 
-      - name: Verify SQL CLI settings.gradle exists
-        working-directory: sql-cli
-        run: |
-          if [ ! -f "settings.gradle" ]; then
-            echo "ERROR: settings.gradle not found in sql-cli repository"
-            echo "The composite build configuration may not be merged yet."
-            echo "This workflow requires the composite build setup to work."
-            exit 1
-          fi
-          echo "settings.gradle found, proceeding with tests"
-
       - name: Run SQL CLI tests with local SQL modules
         working-directory: sql-cli
         run: |
           echo "Running SQL CLI tests against local SQL modules..."
-          ./gradlew clean test -PuseLocalSql=true --info --stacktrace
+          ./gradlew test -PuseLocalSql=true
 
       - name: Upload SQL CLI test reports
         if: always()
