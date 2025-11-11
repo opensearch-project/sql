@@ -107,9 +107,9 @@ jobs:
           - { os: windows-latest, java: 11, os_build_args: -PbuildPlatform=windows }
           - { os: windows-latest, java: 17, os_build_args: -PbuildPlatform=windows }
           - { os: windows-latest, java: 21, os_build_args: -PbuildPlatform=windows }
-          - { os: macos-13, java: 11, os_build_args: '' }
-          - { os: macos-13, java: 17, os_build_args: '' }
-          - { os: macos-13, java: 21, os_build_args: '' }
+          - { os: macos-14, java: 11, os_build_args: '' }
+          - { os: macos-14, java: 17, os_build_args: '' }
+          - { os: macos-14, java: 21, os_build_args: '' }
         test-type: ['unit', 'integration', 'doc']
         exclude:
           # Exclude doctest for Windows
