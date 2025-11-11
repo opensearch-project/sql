@@ -19,7 +19,6 @@ import lombok.Value;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.opensearch.sql.calcite.ExtendedRexBuilder;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
@@ -102,10 +101,6 @@ public class RelFieldBuilder {
 
   public ImmutableList<RexNode> staticFields(List<? extends Number> ordinals) {
     return relBuilder.fields(ordinals);
-  }
-
-  public boolean isAnyType(RexNode node) {
-    return node.getType().getSqlTypeName().equals(SqlTypeName.ANY);
   }
 
   public boolean isDynamicFieldsExist() {
