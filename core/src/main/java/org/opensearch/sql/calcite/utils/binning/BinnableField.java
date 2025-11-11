@@ -11,13 +11,7 @@ import org.apache.calcite.rex.RexNode;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.exception.SemanticCheckException;
 
-/**
- * Represents a validated field that supports binning operations. The existence of this class
- * guarantees that validation has been run - the field is either numeric or time-based.
- *
- * <p>This design encodes validation in the type system, preventing downstream code from forgetting
- * to validate or running validation multiple times.
- */
+/** Represents a field that supports binning operations. */
 @Getter
 public class BinnableField {
   private final RexNode fieldExpr;
@@ -27,13 +21,12 @@ public class BinnableField {
   private final boolean isNumeric;
 
   /**
-   * Creates a validated BinnableField. Throws SemanticCheckException if the field is neither
-   * numeric nor time-based.
+   * Creates a BinnableField. Validates that the field type is compatible with binning operations.
    *
    * @param fieldExpr The Rex expression for the field
    * @param fieldType The relational data type of the field
    * @param fieldName The name of the field (for error messages)
-   * @throws SemanticCheckException if the field is neither numeric nor time-based
+   * @throws SemanticCheckException if the field type is not supported for binning
    */
   public BinnableField(RexNode fieldExpr, RelDataType fieldType, String fieldName) {
     this.fieldExpr = fieldExpr;
@@ -43,13 +36,10 @@ public class BinnableField {
     this.isTimeBased = OpenSearchTypeFactory.isTimeBasedType(fieldType);
     this.isNumeric = OpenSearchTypeFactory.isNumericType(fieldType);
 
-    // Validation: field must be either numeric or time-based
+    // Reject truly unsupported types (e.g., BOOLEAN, ARRAY, MAP)
     if (!isNumeric && !isTimeBased) {
       throw new SemanticCheckException(
-          String.format(
-              "Cannot apply binning: field '%s' is non-numeric and not time-related, expected"
-                  + " numeric or time-related type",
-              fieldName));
+          String.format("Cannot apply binning to field '%s': unsupported type", fieldName));
     }
   }
 

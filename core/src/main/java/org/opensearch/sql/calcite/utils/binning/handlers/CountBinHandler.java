@@ -6,7 +6,6 @@
 package org.opensearch.sql.calcite.utils.binning.handlers;
 
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CountBin;
@@ -16,7 +15,8 @@ import org.opensearch.sql.calcite.utils.binning.BinConstants;
 import org.opensearch.sql.calcite.utils.binning.BinFieldValidator;
 import org.opensearch.sql.calcite.utils.binning.BinHandler;
 import org.opensearch.sql.calcite.utils.binning.BinnableField;
-import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 /** Handler for bins-based (count) binning operations. */
 public class CountBinHandler implements BinHandler {
@@ -40,7 +40,9 @@ public class CountBinHandler implements BinHandler {
     // Calculate data range using window functions
     RexNode minValue = context.relBuilder.min(fieldExpr).over().toRex();
     RexNode maxValue = context.relBuilder.max(fieldExpr).over().toRex();
-    RexNode dataRange = context.relBuilder.call(SqlStdOperatorTable.MINUS, maxValue, minValue);
+    RexNode dataRange =
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder, BuiltinFunctionName.SUBTRACT, maxValue, minValue);
 
     // Convert start/end parameters
     RexNode startValue = convertParameter(countBin.getStart(), context);
@@ -49,8 +51,13 @@ public class CountBinHandler implements BinHandler {
     // WIDTH_BUCKET(field_value, num_bins, data_range, max_value)
     RexNode numBins = context.relBuilder.literal(requestedBins);
 
-    return context.rexBuilder.makeCall(
-        PPLBuiltinOperators.WIDTH_BUCKET, fieldExpr, numBins, dataRange, maxValue);
+    return PPLFuncImpTable.INSTANCE.resolve(
+        context.rexBuilder,
+        BuiltinFunctionName.WIDTH_BUCKET,
+        fieldExpr,
+        numBins,
+        dataRange,
+        maxValue);
   }
 
   private RexNode convertParameter(
