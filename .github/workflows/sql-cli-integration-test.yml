@@ -41,17 +41,17 @@ jobs:
         java: [21]
 
     steps:
-      - name: Checkout SQL repository (current changes)
-        uses: actions/checkout@v4
-        with:
-          path: sql
-
       - name: Checkout SQL CLI repository (latest main)
         uses: actions/checkout@v4
         with:
           repository: opensearch-project/sql-cli
           path: sql-cli
           ref: main
+
+      - name: Checkout SQL repository (current changes)
+        uses: actions/checkout@v4
+        with:
+          path: sql-cli/remote/sql
 
       - name: Set up JDK ${{ matrix.java }}
         uses: actions/setup-java@v4
@@ -60,7 +60,7 @@ jobs:
           java-version: ${{ matrix.java }}
 
       - name: Build and publish SQL modules to Maven Local
-        working-directory: sql
+        working-directory: sql-cli/remote/sql
         run: |
           echo "Building SQL modules from current branch..."
           ./gradlew publishToMavenLocal -x test -x integTest
