@@ -1641,34 +1641,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           new String[] {ROW_NUMBER_COLUMN_FOR_STREAMSTATS});
     }
 
-    //    // Default
-    //    if (hasGroup) {
-    //      // only build sequence when there is by condition
-    //      RexNode streamSeq =
-    //          context
-    //              .relBuilder
-    //              .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
-    //              .over()
-    //              .rowsTo(RexWindowBounds.CURRENT_ROW)
-    //              .as(ROW_NUMBER_COLUMN_FOR_STREAMSTATS);
-    //      context.relBuilder.projectPlus(streamSeq);
-    //    }
-    //
-    //    List<RexNode> overExpressions =
-    //        node.getWindowFunctionList().stream().map(w -> rexVisitor.analyze(w,
-    // context)).toList();
-    //    context.relBuilder.projectPlus(overExpressions);
-    //
-    //    // resort when there is by condition
-    //    if (hasGroup) {
-    //      context.relBuilder.sort(context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_STREAMSTATS));
-    //
-    // context.relBuilder.projectExcept(context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_STREAMSTATS));
-    //    }
-    //
-    //    return context.relBuilder.peek();
-
-    // Default
+    // default
     if (hasGroup) {
       // only build sequence when there is by condition
       RexNode streamSeq =
@@ -1683,54 +1656,55 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       // construct groupNotNull predicate: true only when all grouping fields are non-null
       List<RexNode> groupByList =
           groupList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
-      List<RexNode> notNullConds =
+      List<RexNode> notNullList =
           PlanUtils.getSelectColumns(groupByList).stream()
               .map(context.relBuilder::field)
               .map(context.relBuilder::isNotNull)
               .toList();
       RexNode groupNotNull =
-          notNullConds.isEmpty()
+          notNullList.isEmpty()
               ? context.relBuilder.literal(true)
-              : context.relBuilder.and(notNullConds);
+              : context.relBuilder.and(notNullList);
 
+      // get rawExpr
       List<RexNode> overExpressions =
           node.getWindowFunctionList().stream().map(w -> rexVisitor.analyze(w, context)).toList();
-
       // wrap each expr: CASE WHEN groupNotNull THEN rawExpr ELSE CAST(NULL AS rawType) END
-      List<RexNode> wrappedOverExprs = new ArrayList<>(overExpressions.size());
-      for (RexNode overExpr : overExpressions) {
-        // unwrap alias if exists
-        RexNode rawExpr = overExpr;
-        String aliasName = null;
-        if (overExpr instanceof RexCall rc && rc.getOperator() == SqlStdOperatorTable.AS) {
-          rawExpr = rc.getOperands().get(0);
-          if (rc.getOperands().size() >= 2 && rc.getOperands().get(1) instanceof RexLiteral lit) {
-            aliasName = lit.getValueAs(String.class);
-          }
-        }
-        RexNode nullLiteral = context.rexBuilder.makeNullLiteral(rawExpr.getType());
-        // CASE WHEN groupNotNull THEN rawExpr ELSE NULL
-        RexNode caseExpr =
-            context.rexBuilder.makeCall(
-                SqlStdOperatorTable.CASE, groupNotNull, rawExpr, nullLiteral);
-        // restore alias if any
-        if (aliasName != null) {
-          caseExpr = context.relBuilder.alias(caseExpr, aliasName);
-        }
-        wrappedOverExprs.add(caseExpr);
-      }
-
+      List<RexNode> wrappedOverExprs =
+          wrapWindowFunctionsWithGroupNotNull(overExpressions, groupNotNull, context);
       context.relBuilder.projectPlus(wrappedOverExprs);
       // resort when there is by condition
       context.relBuilder.sort(context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_STREAMSTATS));
       context.relBuilder.projectExcept(context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_STREAMSTATS));
     } else {
-      // no group
       List<RexNode> overExpressions =
           node.getWindowFunctionList().stream().map(w -> rexVisitor.analyze(w, context)).toList();
       context.relBuilder.projectPlus(overExpressions);
     }
     return context.relBuilder.peek();
+  }
+
+  private List<RexNode> wrapWindowFunctionsWithGroupNotNull(
+      List<RexNode> overExpressions, RexNode groupNotNull, CalcitePlanContext context) {
+    List<RexNode> wrappedOverExprs = new ArrayList<>(overExpressions.size());
+    for (RexNode overExpr : overExpressions) {
+      RexNode rawExpr = overExpr;
+      String aliasName = null;
+      if (overExpr instanceof RexCall rc && rc.getOperator() == SqlStdOperatorTable.AS) {
+        rawExpr = rc.getOperands().get(0);
+        if (rc.getOperands().size() >= 2 && rc.getOperands().get(1) instanceof RexLiteral lit) {
+          aliasName = lit.getValueAs(String.class);
+        }
+      }
+      RexNode nullLiteral = context.rexBuilder.makeNullLiteral(rawExpr.getType());
+      RexNode caseExpr =
+          context.rexBuilder.makeCall(SqlStdOperatorTable.CASE, groupNotNull, rawExpr, nullLiteral);
+      if (aliasName != null) {
+        caseExpr = context.relBuilder.alias(caseExpr, aliasName);
+      }
+      wrappedOverExprs.add(caseExpr);
+    }
+    return wrappedOverExprs;
   }
 
   private RelNode buildStreamWindowJoinPlan(

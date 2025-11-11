@@ -147,7 +147,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2, 22.5, 20, 25),
         rows(null, "Canada", null, 4, 2023, 10, 3, 18.333333333333332, 10, 25),
-        rows("Kevin", null, null, 4, 2023, null, 1, null, null, null));
+        rows("Kevin", null, null, 4, 2023, null, null, null, null, null));
 
     actual =
         executeQuery(
@@ -161,8 +161,8 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         rows("Hello", "USA", "New York", 4, 2023, 30, 1, 30, 30, 30),
         rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 1, 20, 20, 20),
-        rows(null, "Canada", null, 4, 2023, 10, 1, 10, 10, 10),
-        rows("Kevin", null, null, 4, 2023, null, 2, 10, 10, 10));
+        rows(null, "Canada", null, 4, 2023, 10, null, null, null, null),
+        rows("Kevin", null, null, 4, 2023, null, null, null, null, null));
   }
 
   @Test
@@ -198,7 +198,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2, 22.5, 20, 25),
         rows(null, "Canada", null, 4, 2023, 10, 1, 10, 10, 10),
-        rows("Kevin", null, null, 4, 2023, null, 1, null, null, null));
+        rows("Kevin", null, null, 4, 2023, null, null, null, null, null));
   }
 
   @Test
@@ -251,7 +251,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2, 22.5, 20, 25),
         rows(null, "Canada", null, 4, 2023, 10, 1, 10, 10, 10),
-        rows("Kevin", null, null, 4, 2023, null, 1, null, null, null));
+        rows("Kevin", null, null, 4, 2023, null, null, null, null, null));
   }
 
   @Test
@@ -269,8 +269,8 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         rows("Hello", "USA", "New York", 4, 2023, 30, 1, 30, 30, 30),
         rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 1, 20, 20, 20),
-        rows(null, "Canada", null, 4, 2023, 10, 1, 10, 10, 10),
-        rows("Kevin", null, null, 4, 2023, null, 1, null, null, null));
+        rows(null, "Canada", null, 4, 2023, 10, null, null, null, null),
+        rows("Kevin", null, null, 4, 2023, null, null, null, null, null));
   }
 
   @Test
@@ -645,7 +645,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         rows("Hello", "USA", "New York", 4, 2023, 30, 30, 50),
         rows("John", "Canada", "Ontario", 4, 2023, 25, 25, 25),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20, 22.5),
-        rows(null, "Canada", null, 4, 2023, 10, 10, 18.333333333333332),
+        rows(null, "Canada", null, 4, 2023, 10, null, 22.5),
         rows("Kevin", null, null, 4, 2023, null, null, null));
   }
 
