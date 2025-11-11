@@ -340,6 +340,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         rows("Kevin", null, null, 4, 2023, null, 15));
   }
 
+  @Test
   public void testStreamstatsBigWindow() throws IOException {
     JSONObject actual =
         executeQuery(
