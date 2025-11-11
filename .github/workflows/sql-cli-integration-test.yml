@@ -14,7 +14,7 @@ on:
       - 'integ-test/**'
       - '**/*.jar'
       - '**/*.pom'
-      - '.github/workflows/sql-test-and-build-workflow.yml'
+      - '.github/workflows/sql-cli-integration-test.yml'
   push:
     branches:
       - main
@@ -29,7 +29,7 @@ on:
       - 'integ-test/**'
       - '**/*.jar'
       - '**/*.pom'
-      - '.github/workflows/sql-test-and-build-workflow.yml'
+      - '.github/workflows/sql-cli-integration-test.yml'
   workflow_dispatch:
 
 jobs:
