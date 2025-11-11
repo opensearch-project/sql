@@ -74,7 +74,7 @@ jobs:
         working-directory: sql-cli
         run: |
           echo "Running SQL CLI tests against local SQL modules..."
-          ./gradlew test -PuseLocalSql=true
+          ./gradlew test -PuseLocalSql=true -PskipSqlRepoPull=true
 
       - name: Upload SQL CLI test reports
         if: always()
