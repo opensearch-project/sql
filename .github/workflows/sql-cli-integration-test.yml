@@ -6,30 +6,30 @@ name: SQL CLI Integration Test
 on:
   pull_request:
     paths:
-      - 'api/**'
-      - 'sql/**'
-      - 'ppl/**'
-      - 'core/**'
-      - 'opensearch/**'
-      - 'common/**'
-      - 'protocol/**'
-      - '**/*.gradle'
-      - '.github/workflows/sql-cli-integration-test.yml'
+      - '**/*.java'
+      - '**/*.g4'
+      - '!sql-jdbc/**'
+      - '**gradle*'
+      - '**lombok*'
+      - 'integ-test/**'
+      - '**/*.jar'
+      - '**/*.pom'
+      - '.github/workflows/sql-test-and-build-workflow.yml'
   push:
     branches:
       - main
       - '[0-9]+.[0-9]+'
       - '[0-9]+.x'
     paths:
-      - 'api/**'
-      - 'sql/**'
-      - 'ppl/**'
-      - 'core/**'
-      - 'opensearch/**'
-      - 'common/**'
-      - 'protocol/**'
-      - '**/*.gradle'
-      - '.github/workflows/sql-cli-integration-test.yml'
+      - '**/*.java'
+      - '**/*.g4'
+      - '!sql-jdbc/**'
+      - '**gradle*'
+      - '**lombok*'
+      - 'integ-test/**'
+      - '**/*.jar'
+      - '**/*.pom'
+      - '.github/workflows/sql-test-and-build-workflow.yml'
   workflow_dispatch:
 
 jobs:
@@ -47,6 +47,10 @@ jobs:
           repository: opensearch-project/sql-cli
           path: sql-cli
           ref: main
+
+      - name: Make a directory for the SQL repo
+        working-directory: sql-cli
+        run: mkdir remote
 
       - name: Checkout SQL repository (current changes)
         uses: actions/checkout@v4
