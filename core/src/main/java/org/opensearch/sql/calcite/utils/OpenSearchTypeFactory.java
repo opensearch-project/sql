@@ -177,11 +177,10 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
           return TYPE_FACTORY.createArrayType(
               TYPE_FACTORY.createSqlType(SqlTypeName.ANY, nullable), -1);
         case STRUCT:
-          // TODO: should use RelRecordType instead of MapSqlType here
-          // https://github.com/opensearch-project/sql/issues/3459
           final RelDataType relKey = TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR);
+          // TODO: should we provide more precise type here?
           return TYPE_FACTORY.createMapType(
-              relKey, TYPE_FACTORY.createSqlType(SqlTypeName.BINARY), nullable);
+              relKey, TYPE_FACTORY.createSqlType(SqlTypeName.ANY), nullable);
         case UNKNOWN:
         default:
           throw new IllegalArgumentException(
@@ -339,12 +338,12 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   }
 
   /**
-   * Checks if the RelDataType represents a numeric field. Supports both standard SQL numeric types
-   * (INTEGER, BIGINT, SMALLINT, TINYINT, FLOAT, DOUBLE, DECIMAL, REAL) and OpenSearch UDT numeric
-   * types.
+   * Checks if the RelDataType represents a numeric type. Supports standard SQL numeric types
+   * (INTEGER, BIGINT, SMALLINT, TINYINT, FLOAT, DOUBLE, DECIMAL, REAL), OpenSearch UDT numeric
+   * types, and string types (VARCHAR, CHAR).
    *
    * @param fieldType the RelDataType to check
-   * @return true if the type is numeric, false otherwise
+   * @return true if the type is numeric or string, false otherwise
    */
   public static boolean isNumericType(RelDataType fieldType) {
     // Check standard SQL numeric types
@@ -357,6 +356,11 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         || sqlType == SqlTypeName.DOUBLE
         || sqlType == SqlTypeName.DECIMAL
         || sqlType == SqlTypeName.REAL) {
+      return true;
+    }
+
+    // Check string types (VARCHAR, CHAR)
+    if (sqlType == SqlTypeName.VARCHAR || sqlType == SqlTypeName.CHAR) {
       return true;
     }
 

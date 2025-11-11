@@ -1,0 +1,13 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[min(EventDate), max(EventDate)]"
+  children:
+    - name: OpenSearchIndexScan
+      description:
+        request: "OpenSearchQueryRequest(indexName=hits, sourceBuilder={\"from\":0,\"\
+          size\":0,\"timeout\":\"1m\",\"aggregations\":{\"min(EventDate)\":{\"min\"\
+          :{\"field\":\"EventDate\"}},\"max(EventDate)\":{\"max\":{\"field\":\"EventDate\"\
+          }}}}, needClean=true, searchDone=false, pitId=*, cursorKeepAlive=null,\
+          \ searchAfter=null, searchResponse=null)"
+      children: []

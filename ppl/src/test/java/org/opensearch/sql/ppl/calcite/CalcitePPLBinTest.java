@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Test;
@@ -39,8 +42,7 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | bin SAL bins=10";
     RelNode root = getRelNode(ppl);
 
-    // Note: WIDTH_BUCKET uses window functions without ROWS UNBOUNDED PRECEDING in the actual
-    // output
+    // Note: WIDTH_BUCKET uses window functions and now properly resolves via PPLFuncImpTable
     verifyLogical(
         root,
         "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], "
@@ -48,6 +50,15 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
             + "-(MAX($5) OVER (), MIN($5) OVER ()), "
             + "MAX($5) OVER ())])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n");
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `COMM`, `DEPTNO`, `WIDTH_BUCKET`(`SAL`,"
+            + " 10, (MAX(`SAL`) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)) -"
+            + " (MIN(`SAL`) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)),"
+            + " MAX(`SAL`) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING))"
+            + " `SAL`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
@@ -64,6 +75,15 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
             + "-(MAX($5) OVER (), MIN($5) OVER ()), "
             + "MAX($5) OVER ())])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n");
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `COMM`, `DEPTNO`,"
+            + " `MINSPAN_BUCKET`(`SAL`, 1.000E2, (MAX(`SAL`) OVER (RANGE BETWEEN UNBOUNDED"
+            + " PRECEDING AND UNBOUNDED FOLLOWING)) - (MIN(`SAL`) OVER (RANGE BETWEEN UNBOUNDED"
+            + " PRECEDING AND UNBOUNDED FOLLOWING)), MAX(`SAL`) OVER (RANGE BETWEEN UNBOUNDED"
+            + " PRECEDING AND UNBOUNDED FOLLOWING)) `SAL`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
@@ -79,6 +99,37 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
             + "MIN($5) OVER (), MAX($5) OVER (), "
             + "1000, 5000)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n");
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `COMM`, `DEPTNO`, `RANGE_BUCKET`(`SAL`,"
+            + " MIN(`SAL`) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING),"
+            + " MAX(`SAL`) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING), 1000,"
+            + " 5000) `SAL`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testBinWithTimestampFieldUsingBins() {
+    String ppl = "source=products_temporal | bin SYS_START bins=10";
+    RelNode root = getRelNode(ppl);
+
+    // WIDTH_BUCKET with timestamp field
+    // The third parameter (data_range) is a STRING interval, not numeric
+    verifyLogical(
+        root,
+        "LogicalProject(ID=[$0], SUPPLIER=[$1], SYS_END=[$3], SYS_START=[WIDTH_BUCKET($2, 10, "
+            + "-(MAX($2) OVER (), MIN($2) OVER ()), "
+            + "MAX($2) OVER ())])\n"
+            + "  LogicalTableScan(table=[[scott, products_temporal]])\n");
+
+    String expectedSparkSql =
+        "SELECT `ID`, `SUPPLIER`, `SYS_END`, `WIDTH_BUCKET`(`SYS_START`, 10, (MAX(`SYS_START`) OVER"
+            + " (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)) - (MIN(`SYS_START`)"
+            + " OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)), MAX(`SYS_START`)"
+            + " OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)) `SYS_START`\n"
+            + "FROM `scott`.`products_temporal`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
@@ -90,13 +141,15 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
     verifyLogical(
         root,
         "LogicalProject(ID=[$0], SUPPLIER=[$1], SYS_END=[$3],"
-            + " SYS_START=[FROM_UNIXTIME(*(FLOOR(/(/(UNIX_TIMESTAMP($2), 3600), 1)), 3600))])\n"
+            + " SYS_START=[FROM_UNIXTIME(*(FLOOR(DIVIDE(DIVIDE(UNIX_TIMESTAMP($2), 3600), 1)),"
+            + " 3600))])\n"
             + "  LogicalTableScan(table=[[scott, products_temporal]])\n");
 
     verifyPPLToSparkSQL(
         root,
-        "SELECT `ID`, `SUPPLIER`, `SYS_END`, `FROM_UNIXTIME`(FLOOR(`UNIX_TIMESTAMP`(`SYS_START`) /"
-            + " 3600 / 1) * 3600) `SYS_START`\n"
+        "SELECT `ID`, `SUPPLIER`, `SYS_END`,"
+            + " `FROM_UNIXTIME`(FLOOR(`DIVIDE`(`DIVIDE`(`UNIX_TIMESTAMP`(`SYS_START`), 3600), 1)) *"
+            + " 3600) `SYS_START`\n"
             + "FROM `scott`.`products_temporal`");
   }
 
@@ -110,43 +163,26 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
     verifyLogical(
         root,
         "LogicalProject(ID=[$0], SUPPLIER=[$1], SYS_END=[$3],"
-            + " SYS_START=[FROM_UNIXTIME(*(FLOOR(/(/(UNIX_TIMESTAMP($2), 3600), 1)), 3600))])\n"
+            + " SYS_START=[FROM_UNIXTIME(*(FLOOR(DIVIDE(DIVIDE(UNIX_TIMESTAMP($2), 3600), 1)),"
+            + " 3600))])\n"
             + "  LogicalTableScan(table=[[scott, products_temporal]])\n");
 
     verifyPPLToSparkSQL(
         root,
-        "SELECT `ID`, `SUPPLIER`, `SYS_END`, `FROM_UNIXTIME`(FLOOR(`UNIX_TIMESTAMP`(`SYS_START`) /"
-            + " 3600 / 1) * 3600) `SYS_START`\n"
+        "SELECT `ID`, `SUPPLIER`, `SYS_END`,"
+            + " `FROM_UNIXTIME`(FLOOR(`DIVIDE`(`DIVIDE`(`UNIX_TIMESTAMP`(`SYS_START`), 3600), 1)) *"
+            + " 3600) `SYS_START`\n"
             + "FROM `scott`.`products_temporal`");
   }
 
-  @Test(expected = SemanticCheckException.class)
-  public void testBinWithMinspanOnNonNumericField() {
-    String ppl = "source=EMP | bin ENAME minspan=10";
-    getRelNode(ppl); // Should throw SemanticCheckException
-  }
+  @Test
+  public void testBinOnNonBinnableType() {
+    // Test that binning on truly unsupported types (not numeric, time, or string) fails
+    String ppl = "source=products_temporal | eval bool_field = true | bin bool_field bins=3";
 
-  @Test(expected = SemanticCheckException.class)
-  public void testBinWithSpanOnNonNumericField() {
-    String ppl = "source=EMP | bin JOB span=5";
-    getRelNode(ppl); // Should throw SemanticCheckException
-  }
-
-  @Test(expected = SemanticCheckException.class)
-  public void testBinWithBinsOnNonNumericField() {
-    String ppl = "source=EMP | bin ENAME bins=10";
-    getRelNode(ppl); // Should throw SemanticCheckException
-  }
-
-  @Test(expected = SemanticCheckException.class)
-  public void testBinWithStartEndOnNonNumericField() {
-    String ppl = "source=EMP | bin JOB start=1 end=10";
-    getRelNode(ppl); // Should throw SemanticCheckException
-  }
-
-  @Test(expected = SemanticCheckException.class)
-  public void testBinDefaultOnNonNumericField() {
-    String ppl = "source=EMP | bin ENAME";
-    getRelNode(ppl); // Should throw SemanticCheckException
+    SemanticCheckException exception =
+        assertThrows(SemanticCheckException.class, () -> getRelNode(ppl));
+    assertTrue(exception.getMessage().contains("Cannot apply binning"));
+    assertTrue(exception.getMessage().contains("unsupported type"));
   }
 }

@@ -49,6 +49,7 @@ import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.Bin;
+import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
@@ -79,6 +80,7 @@ import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Timechart;
@@ -274,6 +276,10 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(node, context);
   }
 
+  public T visitChart(Chart node, C context) {
+    return visitChildren(node, context);
+  }
+
   public T visitTimechart(Timechart node, C context) {
     return visitChildren(node, context);
   }
@@ -408,6 +414,10 @@ public abstract class AbstractNodeVisitor<T, C> {
 
   public T visitWindow(Window window, C context) {
     return visitChildren(window, context);
+  }
+
+  public T visitStreamWindow(StreamWindow node, C context) {
+    return visitChildren(node, context);
   }
 
   public T visitJoin(Join node, C context) {

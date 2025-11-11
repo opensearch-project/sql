@@ -94,6 +94,7 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
 
   @Override
   public boolean add(PushDownOperation operation) {
+    operation.action().transform(this, operation);
     if (operation.type() == PushDownType.AGGREGATION) {
       isAggregatePushed = true;
       this.aggPushDownAction = (AggPushDownAction) operation.action();
@@ -116,7 +117,6 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
     if (operation.type() == PushDownType.RARE_TOP) {
       isRareTopPushed = true;
     }
-    operation.action().transform(this, operation);
     return true;
   }
 

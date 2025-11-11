@@ -288,4 +288,118 @@ public class CalciteReplaceCommandIT extends PPLIntegTestCase {
         rows("John", "Ontario Province"),
         rows("Jane", "Quebec"));
   }
+
+  @Test
+  public void testWildcardReplace_suffixMatch() throws IOException {
+    // Pattern "*ada" should match "Canada" and replace with "CA"
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | replace '*ada' WITH 'CA' IN country | fields name, country",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(result, schema("name", "string"), schema("country", "string"));
+
+    verifyDataRows(
+        result, rows("Jake", "USA"), rows("Hello", "USA"), rows("John", "CA"), rows("Jane", "CA"));
+  }
+
+  @Test
+  public void testWildcardReplace_prefixMatch() throws IOException {
+    // Pattern "US*" should match "USA" and replace with "United States"
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | replace 'US*' WITH 'United States' IN country | fields name,"
+                    + " country",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(result, schema("name", "string"), schema("country", "string"));
+
+    verifyDataRows(
+        result,
+        rows("Jake", "United States"),
+        rows("Hello", "United States"),
+        rows("John", "Canada"),
+        rows("Jane", "Canada"));
+  }
+
+  @Test
+  public void testWildcardReplace_multipleWildcards() throws IOException {
+    // Pattern "* *" with replacement "*_*" should replace spaces with underscores
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | replace '* *' WITH '*_*' IN state | fields name, state",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(result, schema("name", "string"), schema("state", "string"));
+
+    verifyDataRows(
+        result,
+        rows("Jake", "California"),
+        rows("Hello", "New_York"),
+        rows("John", "Ontario"),
+        rows("Jane", "Quebec"));
+  }
+
+  @Test
+  public void testWildcardReplace_symmetryMismatch_shouldFail() {
+    // Pattern has 2 wildcards, replacement has 1 - should fail
+    Throwable e =
+        assertThrowsWithReplace(
+            IllegalArgumentException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source = %s | replace '* *' WITH '*' IN state",
+                        TEST_INDEX_STATE_COUNTRY)));
+    verifyErrorMessageContains(e, "Wildcard count mismatch");
+  }
+
+  @Test
+  public void testEscapeSequence_literalAsterisk() throws IOException {
+    // Test matching literal asterisks in data using \* escape sequence
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | eval note = 'price: *sale*' | replace 'price: \\\\*sale\\\\*' WITH"
+                    + " 'DISCOUNTED' IN note | fields note | head 1",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(result, schema("note", "string"));
+    // Pattern "price: \*sale\*" matches literal asterisks, result should be "DISCOUNTED"
+    verifyDataRows(result, rows("DISCOUNTED"));
+  }
+
+  @Test
+  public void testEscapeSequence_mixedEscapeAndWildcard() throws IOException {
+    // Test combining escaped asterisks (literal) with wildcards (pattern matching)
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | eval label = 'file123.txt' | replace 'file*.*' WITH"
+                    + " '\\\\**.*' IN label | fields label | head 1",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(result, schema("label", "string"));
+    // Pattern "file*.*" captures "123" and "txt"
+    // Replacement "\**.*" has escaped * (literal), then 2 wildcards, producing "*123.txt"
+    verifyDataRows(result, rows("*123.txt"));
+  }
+
+  @Test
+  public void testEscapeSequence_noMatchLiteral() throws IOException {
+    // Test that escaped asterisk doesn't match as wildcard
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s | eval test = 'fooXbar' | replace 'foo\\\\*bar' WITH 'matched' IN test"
+                    + " | fields test | head 1",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(result, schema("test", "string"));
+    // Pattern "foo\*bar" matches literal "foo*bar", not "fooXbar", so original value returned
+    verifyDataRows(result, rows("fooXbar"));
+  }
 }

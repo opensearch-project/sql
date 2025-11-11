@@ -8,7 +8,9 @@ package org.opensearch.sql.calcite.utils.binning.time;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 /** Handler for time alignment operations (@d, @d+offset, epoch alignment). */
 public class AlignmentHandler {
@@ -30,18 +32,22 @@ public class AlignmentHandler {
 
     // SPL Universal Formula: bin_start = reference + floor((timestamp - reference) / span) * span
     RexNode timeOffset =
-        context.relBuilder.call(SqlStdOperatorTable.MINUS, epochSeconds, referenceTimestamp);
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder, BuiltinFunctionName.SUBTRACT, epochSeconds, referenceTimestamp);
 
     RexNode binNumber =
         context.relBuilder.call(
             SqlStdOperatorTable.FLOOR,
-            context.relBuilder.call(SqlStdOperatorTable.DIVIDE, timeOffset, intervalLiteral));
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder, BuiltinFunctionName.DIVIDE, timeOffset, intervalLiteral));
 
     RexNode binOffset =
-        context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, binNumber, intervalLiteral);
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder, BuiltinFunctionName.MULTIPLY, binNumber, intervalLiteral);
 
     RexNode binStartSeconds =
-        context.relBuilder.call(SqlStdOperatorTable.PLUS, referenceTimestamp, binOffset);
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder, BuiltinFunctionName.ADD, referenceTimestamp, binOffset);
 
     return context.rexBuilder.makeCall(PPLBuiltinOperators.FROM_UNIXTIME, binStartSeconds);
   }
@@ -75,19 +81,24 @@ public class AlignmentHandler {
       RexNode daysSinceEpoch =
           context.relBuilder.call(
               SqlStdOperatorTable.FLOOR,
-              context.relBuilder.call(
-                  SqlStdOperatorTable.DIVIDE, earliestTimestamp, secondsPerDay));
+              PPLFuncImpTable.INSTANCE.resolve(
+                  context.rexBuilder,
+                  BuiltinFunctionName.DIVIDE,
+                  earliestTimestamp,
+                  secondsPerDay));
 
       RexNode startOfEarliestDay =
-          context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, daysSinceEpoch, secondsPerDay);
+          PPLFuncImpTable.INSTANCE.resolve(
+              context.rexBuilder, BuiltinFunctionName.MULTIPLY, daysSinceEpoch, secondsPerDay);
 
       // Calculate alignment reference point
       RexNode alignmentReference;
       if (offsetMillis != 0) {
         long offsetSeconds = offsetMillis / 1000L;
         alignmentReference =
-            context.relBuilder.call(
-                SqlStdOperatorTable.PLUS,
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder,
+                BuiltinFunctionName.ADD,
                 startOfEarliestDay,
                 context.relBuilder.literal(offsetSeconds));
       } else {
@@ -96,27 +107,33 @@ public class AlignmentHandler {
 
       // Apply SPL Universal Formula
       RexNode timeOffset =
-          context.relBuilder.call(SqlStdOperatorTable.MINUS, epochSeconds, alignmentReference);
+          PPLFuncImpTable.INSTANCE.resolve(
+              context.rexBuilder, BuiltinFunctionName.SUBTRACT, epochSeconds, alignmentReference);
 
       RexNode binNumber =
           context.relBuilder.call(
               SqlStdOperatorTable.FLOOR,
-              context.relBuilder.call(SqlStdOperatorTable.DIVIDE, timeOffset, intervalLiteral));
+              PPLFuncImpTable.INSTANCE.resolve(
+                  context.rexBuilder, BuiltinFunctionName.DIVIDE, timeOffset, intervalLiteral));
 
       RexNode binOffset =
-          context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, binNumber, intervalLiteral);
+          PPLFuncImpTable.INSTANCE.resolve(
+              context.rexBuilder, BuiltinFunctionName.MULTIPLY, binNumber, intervalLiteral);
 
       RexNode binStartSeconds =
-          context.relBuilder.call(SqlStdOperatorTable.PLUS, alignmentReference, binOffset);
+          PPLFuncImpTable.INSTANCE.resolve(
+              context.rexBuilder, BuiltinFunctionName.ADD, alignmentReference, binOffset);
 
       return context.rexBuilder.makeCall(PPLBuiltinOperators.FROM_UNIXTIME, binStartSeconds);
     } else {
       // No day alignment
       RexNode divided =
-          context.relBuilder.call(SqlStdOperatorTable.DIVIDE, epochSeconds, intervalLiteral);
+          PPLFuncImpTable.INSTANCE.resolve(
+              context.rexBuilder, BuiltinFunctionName.DIVIDE, epochSeconds, intervalLiteral);
       RexNode binNumber = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
       RexNode binStartSeconds =
-          context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, binNumber, intervalLiteral);
+          PPLFuncImpTable.INSTANCE.resolve(
+              context.rexBuilder, BuiltinFunctionName.MULTIPLY, binNumber, intervalLiteral);
 
       return context.rexBuilder.makeCall(PPLBuiltinOperators.FROM_UNIXTIME, binStartSeconds);
     }

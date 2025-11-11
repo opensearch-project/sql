@@ -174,6 +174,34 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testStreamstatsCommandWithByClause() {
+    assertEquals(
+        "source=table | streamstats count(identifier) by identifier",
+        anonymize("source=t | streamstats count(a) by b"));
+  }
+
+  @Test
+  public void testStreamstatsCommandWithWindowAndCurrent() {
+    assertEquals(
+        "source=table | streamstats max(identifier)",
+        anonymize("source=t | streamstats current=false window=2 max(a)"));
+  }
+
+  @Test
+  public void testStreamstatsCommandWithNestedFunctions() {
+    assertEquals(
+        "source=table | streamstats sum(+(identifier,identifier))",
+        anonymize("source=t | streamstats sum(a+b)"));
+  }
+
+  @Test
+  public void testStreamstatsCommandWithSpanFunction() {
+    assertEquals(
+        "source=table | streamstats count(identifier) by span(identifier, *** d),identifier",
+        anonymize("source=t | streamstats count(a) by span(b, 1d), c"));
+  }
+
+  @Test
   public void testBinCommandBasic() {
     assertEquals("source=table | bin identifier span=***", anonymize("source=t | bin f span=10"));
   }
@@ -230,6 +258,34 @@ public class PPLQueryDataAnonymizerTest {
         "source=table | timechart span=span(identifier, *** m) limit=10 useother=true count() by"
             + " identifier",
         anonymize("source=t | timechart count() by host"));
+  }
+
+  @Test
+  public void testChartCommand() {
+    assertEquals(
+        "source=table | chart count(identifier) by identifier identifier",
+        anonymize("source=t | chart count(age) by gender country"));
+  }
+
+  @Test
+  public void testChartCommandWithParameters() {
+    assertEquals(
+        "source=table | chart limit=*** useother=*** avg(identifier) by identifier",
+        anonymize("source=t | chart limit=5 useother=false avg(balance) by state"));
+  }
+
+  @Test
+  public void testChartCommandOver() {
+    assertEquals(
+        "source=table | chart avg(identifier) by identifier",
+        anonymize("source=t | chart avg(balance) over gender"));
+  }
+
+  @Test
+  public void testChartCommandOverBy() {
+    assertEquals(
+        "source=table | chart sum(identifier) by identifier identifier",
+        anonymize("source=t | chart sum(amount) over gender by age"));
   }
 
   // todo, sort order is ignored, it doesn't impact the log analysis.

@@ -61,6 +61,7 @@ import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.Bin;
+import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
@@ -92,6 +93,7 @@ import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Timechart;
@@ -749,6 +751,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   @Override
+  public LogicalPlan visitStreamWindow(StreamWindow node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Streamstats");
+  }
+
+  @Override
   public LogicalPlan visitFlatten(Flatten node, AnalysisContext context) {
     throw getOnlyForCalciteException("Flatten");
   }
@@ -761,6 +768,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitSpath(SPath node, AnalysisContext context) {
     throw getOnlyForCalciteException("Spath");
+  }
+
+  @Override
+  public LogicalPlan visitChart(Chart node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Chart");
   }
 
   @Override
