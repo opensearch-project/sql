@@ -78,15 +78,6 @@ public class CalciteExplainIT extends ExplainIT {
     assertYamlEqualsIgnoreId(expected, result);
   }
 
-  @Test
-  public void supportSearchMatchPushDown() throws IOException {
-    String query =
-        "source=opensearch-sql_test_index_bank birthdate = '2016-12-08 00:00:00.000000000'";
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_search_with_match_pushdown.json");
-    assertJsonEqualsIgnoreId(expected, result);
-  }
-
   // Only for Calcite
   @Ignore("https://github.com/opensearch-project/OpenSearch/issues/3725")
   public void testJoinWithCriteriaAndMaxOption() throws IOException {

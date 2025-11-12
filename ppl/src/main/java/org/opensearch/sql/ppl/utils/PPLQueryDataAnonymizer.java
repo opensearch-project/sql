@@ -250,10 +250,6 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   @Override
   public String visitSearch(Search node, String context) {
     String source = node.getChild().get(0).accept(this, context);
-    // SearchExpression expression = node.getOriginalExpression();
-
-    // String queryString = node.getQueryString();
-    // String anonymized = queryString.replaceAll(":\\S+", ":" + MASK_LITERAL);
     return StringUtils.format("%s %s", source, node.getOriginalExpression().toAnonymizedString());
   }
 
