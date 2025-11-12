@@ -57,6 +57,7 @@ import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
+import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.CountBin;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.DefaultBin;
@@ -86,6 +87,7 @@ import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SpanBin;
+import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Timechart;
@@ -378,6 +380,14 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
         child, String.join(" ", visitExpressionList(node.getWindowFunctionList())).trim());
   }
 
+  @Override
+  public String visitStreamWindow(StreamWindow node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    return StringUtils.format(
+        "%s | streamstats %s",
+        child, String.join(" ", visitExpressionList(node.getWindowFunctionList())).trim());
+  }
+
   /** Build {@link LogicalRareTopN}. */
   @Override
   public String visitRareTopN(RareTopN node, String context) {
@@ -521,6 +531,42 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     }
 
     return StringUtils.format("%s%s", child, timechartCommand.toString());
+  }
+
+  @Override
+  public String visitChart(Chart node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    StringBuilder chartCommand = new StringBuilder();
+    chartCommand.append(" | chart");
+
+    for (Argument arg : node.getArguments()) {
+      String argName = arg.getArgName();
+      // Skip the auto-generated "top" parameter that's added when limit is specified
+      if ("top".equals(argName)) {
+        continue;
+      }
+      if ("limit".equals(argName) || "useother".equals(argName) || "usenull".equals(argName)) {
+        chartCommand.append(" ").append(argName).append("=").append(MASK_LITERAL);
+      } else if ("otherstr".equals(argName) || "nullstr".equals(argName)) {
+        chartCommand.append(" ").append(argName).append("=").append(MASK_LITERAL);
+      }
+    }
+
+    chartCommand.append(" ").append(visitExpression(node.getAggregationFunction()));
+
+    if (node.getRowSplit() != null && node.getColumnSplit() != null) {
+      chartCommand
+          .append(" by ")
+          .append(visitExpression(node.getRowSplit()))
+          .append(" ")
+          .append(visitExpression(node.getColumnSplit()));
+    } else if (node.getRowSplit() != null) {
+      chartCommand.append(" by ").append(visitExpression(node.getRowSplit()));
+    } else if (node.getColumnSplit() != null) {
+      chartCommand.append(" by ").append(visitExpression(node.getColumnSplit()));
+    }
+
+    return StringUtils.format("%s%s", child, chartCommand.toString());
   }
 
   public String visitRex(Rex node, String context) {

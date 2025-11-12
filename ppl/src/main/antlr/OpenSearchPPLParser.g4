@@ -58,6 +58,7 @@ commands
    | renameCommand
    | statsCommand
    | eventstatsCommand
+   | streamstatsCommand
    | dedupCommand
    | sortCommand
    | evalCommand
@@ -80,6 +81,7 @@ commands
    | flattenCommand
    | reverseCommand
    | regexCommand
+   | chartCommand
    | timechartCommand
    | rexCommand
    | appendPipeCommand
@@ -97,6 +99,7 @@ commandName
    | RENAME
    | STATS
    | EVENTSTATS
+   | STREAMSTATS
    | DEDUP
    | SORT
    | EVAL
@@ -255,6 +258,34 @@ eventstatsCommand
    : EVENTSTATS eventstatsAggTerm (COMMA eventstatsAggTerm)* (statsByClause)?
    ;
 
+streamstatsCommand
+   : STREAMSTATS streamstatsArgs streamstatsAggTerm (COMMA streamstatsAggTerm)* (statsByClause)?
+   ;
+
+streamstatsArgs
+   : (currentArg | windowArg | globalArg | resetBeforeArg | resetAfterArg)*
+   ;
+
+currentArg
+   : CURRENT EQUAL current = booleanLiteral
+   ;
+
+windowArg
+   : WINDOW EQUAL window = integerLiteral
+   ;
+
+globalArg
+   : GLOBAL EQUAL global = booleanLiteral
+   ;
+
+resetBeforeArg
+   : RESET_BEFORE EQUAL logicalExpression
+   ;
+
+resetAfterArg
+   : RESET_AFTER EQUAL logicalExpression
+   ;
+
 dedupCommand
    : DEDUP (number = integerLiteral)? fieldList (KEEPEMPTY EQUAL keepempty = booleanLiteral)? (CONSECUTIVE EQUAL consecutive = booleanLiteral)?
    ;
@@ -266,6 +297,28 @@ sortCommand
 reverseCommand
    : REVERSE
    ;
+
+chartCommand
+  : CHART chartOptions* statsAggTerm (OVER rowSplit)? (BY columnSplit)?
+  | CHART chartOptions* statsAggTerm BY rowSplit (COMMA)? columnSplit
+  ;
+
+chartOptions
+  : LIMIT EQUAL integerLiteral
+  | LIMIT EQUAL (TOP_K | BOTTOM_K)
+  | USEOTHER EQUAL booleanLiteral
+  | OTHERSTR EQUAL stringLiteral
+  | USENULL EQUAL booleanLiteral
+  | NULLSTR EQUAL stringLiteral
+  ;
+
+rowSplit
+  : fieldExpression binOption*
+  ;
+
+columnSplit
+  : fieldExpression binOption*
+  ;
 
 timechartCommand
    : TIMECHART timechartParameter* statsFunction (BY fieldExpression)?
@@ -639,6 +692,10 @@ eventstatsAggTerm
    : windowFunction (AS alias = wcFieldExpression)?
    ;
 
+streamstatsAggTerm
+   : windowFunction (AS alias = wcFieldExpression)?
+   ;
+
 windowFunction
    : windowFunctionName LT_PRTHS functionArgs RT_PRTHS
    ;
@@ -859,10 +916,12 @@ evalFunctionCall
    : evalFunctionName LT_PRTHS functionArgs RT_PRTHS
    ;
 
+
 // cast function
 dataTypeFunctionCall
    : CAST LT_PRTHS logicalExpression AS convertedDataType RT_PRTHS
    ;
+
 
 convertedDataType
    : typeName = DATE
@@ -1229,6 +1288,7 @@ systemFunctionName
 textFunctionName
    : SUBSTR
    | SUBSTRING
+   | TOSTRING
    | TRIM
    | LTRIM
    | RTRIM
@@ -1448,6 +1508,7 @@ searchableKeyWord
    | USING
    | VALUE
    | CAST
+   | TOSTRING
    | GET_FORMAT
    | EXTRACT
    | INTERVAL
@@ -1466,6 +1527,11 @@ searchableKeyWord
    | PARTITIONS
    | ALLNUM
    | DELIM
+   | CURRENT
+   | WINDOW
+   | GLOBAL
+   | RESET_BEFORE
+   | RESET_AFTER
    | BUCKET_NULLABLE
    | USENULL
    | CENTROIDS

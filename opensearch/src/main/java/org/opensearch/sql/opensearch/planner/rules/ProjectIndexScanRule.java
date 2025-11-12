@@ -21,6 +21,7 @@ import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
 import org.immutables.value.Value;
+import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
@@ -102,7 +103,7 @@ public class ProjectIndexScanRule extends RelRule<ProjectIndexScanRule.Config> {
 
   /** Rule configuration. */
   @Value.Immutable
-  public interface Config extends RelRule.Config {
+  public interface Config extends OpenSearchRuleConfig {
     /** Config that matches Project on ProjectIndexScanRule. */
     Config DEFAULT =
         ImmutableProjectIndexScanRule.Config.builder()

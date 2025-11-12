@@ -59,6 +59,12 @@ public enum BuiltinFunctionName {
   TAN(FunctionName.of("tan")),
   SPAN(FunctionName.of("span")),
 
+  /** Binning Functions. */
+  SPAN_BUCKET(FunctionName.of("span_bucket")),
+  WIDTH_BUCKET(FunctionName.of("width_bucket")),
+  MINSPAN_BUCKET(FunctionName.of("minspan_bucket")),
+  RANGE_BUCKET(FunctionName.of("range_bucket")),
+
   /** Collection functions */
   ARRAY(FunctionName.of("array")),
   ARRAY_LENGTH(FunctionName.of("array_length")),
