@@ -682,8 +682,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-  private static final String REVERSE_ROW_NUM = "__reverse_row_num__";
-
   @Override
   public RelNode visitReverse(
       org.opensearch.sql.ast.tree.Reverse node, CalcitePlanContext context) {
@@ -699,17 +697,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       RelCollation reversedCollation = PlanUtils.reverseCollation(collation);
       context.relBuilder.sort(reversedCollation);
     } else {
-      // Fallback: use ROW_NUMBER approach when no existing sort
-      RexNode rowNumber =
-          context
-              .relBuilder
-              .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
-              .over()
-              .rowsTo(RexWindowBounds.CURRENT_ROW)
-              .as(REVERSE_ROW_NUM);
-      context.relBuilder.projectPlus(rowNumber);
-      context.relBuilder.sort(context.relBuilder.desc(context.relBuilder.field(REVERSE_ROW_NUM)));
-      context.relBuilder.projectExcept(context.relBuilder.field(REVERSE_ROW_NUM));
+      // Check if @timestamp field exists in the row type
+      List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+      if (fieldNames.contains(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP)) {
+        // If @timestamp exists, sort by it in descending order
+        context.relBuilder.sort(
+            context.relBuilder.desc(
+                context.relBuilder.field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP)));
+      }
+      // If neither collation nor @timestamp exists, ignore the reverse command (no-op)
     }
 
     return context.relBuilder.peek();

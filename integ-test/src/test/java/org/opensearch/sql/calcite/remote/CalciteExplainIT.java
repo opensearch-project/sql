@@ -446,10 +446,11 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testExplainWithReverse() throws IOException {
+  public void testExplainWithReverseIgnored() throws IOException {
+    // Reverse is ignored when there's no existing sort and no @timestamp field
     String query = "source=opensearch-sql_test_index_account | reverse | head 5";
     var result = explainQueryYaml(query);
-    String expected = loadExpectedPlan("explain_reverse_fallback.yaml");
+    String expected = loadExpectedPlan("explain_reverse_ignored.yaml");
     assertYamlEqualsIgnoreId(expected, result);
   }
 
@@ -470,10 +471,11 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testExplainWithDoubleReverse() throws IOException {
+  public void testExplainWithDoubleReverseIgnored() throws IOException {
+    // Double reverse is ignored when there's no existing sort and no @timestamp field
     String query = "source=opensearch-sql_test_index_account | reverse | reverse";
     var result = explainQueryYaml(query);
-    String expected = loadExpectedPlan("explain_double_reverse_fallback.yaml");
+    String expected = loadExpectedPlan("explain_double_reverse_ignored.yaml");
     assertYamlEqualsIgnoreId(expected, result);
   }
 
@@ -491,6 +493,15 @@ public class CalciteExplainIT extends ExplainIT {
         "source=opensearch-sql_test_index_account | sort - age, + firstname | reverse | reverse";
     var result = explainQueryYaml(query);
     String expected = loadExpectedPlan("explain_double_reverse_pushdown_multiple.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testExplainReverseWithTimestamp() throws IOException {
+    // Test that reverse with @timestamp field sorts by @timestamp DESC
+    String query = "source=opensearch-sql_test_index_time_data | reverse | head 5";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_reverse_with_timestamp.yaml");
     assertYamlEqualsIgnoreId(expected, result);
   }
 

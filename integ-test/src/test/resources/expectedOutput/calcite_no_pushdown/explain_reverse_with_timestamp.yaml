@@ -1,0 +1,12 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(sort0=[$0], dir0=[DESC], fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(@timestamp=[$0], category=[$1], value=[$2], timestamp=[$3])
+        LogicalSort(sort0=[$0], dir0=[DESC], fetch=[5])
+          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_time_data]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..9=[{inputs}], proj#0..3=[{exprs}])
+        EnumerableLimit(fetch=[5])
+          EnumerableSort(sort0=[$0], dir0=[DESC])
+            CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_time_data]])
