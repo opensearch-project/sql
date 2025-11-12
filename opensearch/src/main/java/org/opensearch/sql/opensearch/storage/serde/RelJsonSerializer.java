@@ -13,7 +13,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -99,13 +98,13 @@ public class RelJsonSerializer {
    * @param rexNode pushed down RexNode
    * @param rowType row type of RexNode input
    * @param fieldTypes input field and ExprType mapping
-   * @return serialized string of map structure for inputs
+   * @param sources one of the script parameters, the sources to retrieve value for the parameters
+   * @param digests one of the script parameters, the digest of the parameters. It'll store the
+   *     field name for sources of DOC_VALUE and SOURCE while index for the source of LITERAL
+   * @param literals one of the script parameters, the literal value for the parameters with source
+   *     of LITERAL
+   * @return serialized string of RexNode expression.
    */
-  public String serialize(RexNode rexNode, RelDataType rowType, Map<String, ExprType> fieldTypes) {
-    return serialize(
-        rexNode, rowType, fieldTypes, new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
-  }
-
   public String serialize(
       RexNode rexNode,
       RelDataType rowType,

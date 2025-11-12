@@ -1453,9 +1453,9 @@ public class PredicateAnalyzer {
     private RexNode analyzedNode;
     private final Supplier<String> codeGenerator;
     private String generatedCode;
-    private final List<Object> literals;
     private final List<Integer> sources;
     private final List<Object> digests;
+    private final List<Object> literals;
 
     public ScriptQueryExpression(
         RexNode rexNode,
@@ -1471,9 +1471,9 @@ public class PredicateAnalyzer {
       }
       accumulateScriptCount(1);
       RelJsonSerializer serializer = new RelJsonSerializer(cluster);
-      this.literals = new ArrayList<>();
       this.sources = new ArrayList<>();
       this.digests = new ArrayList<>();
+      this.literals = new ArrayList<>();
       this.codeGenerator =
           () ->
               SerializationWrapper.wrapWithLangType(

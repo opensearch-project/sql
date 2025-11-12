@@ -367,7 +367,9 @@ public class ExtendedRelJson extends RelJson {
       OpenSearchTypeFactory.ExprUDT udt = OpenSearchTypeFactory.ExprUDT.valueOf((String) udtName);
       // View IP as string to avoid using a value of customized java type in the script.
       if (udt == ExprUDT.EXPR_IP) return super.toType(typeFactory, o);
-      return ((OpenSearchTypeFactory) typeFactory).createUDT(udt);
+      RelDataType type = ((OpenSearchTypeFactory) typeFactory).createUDT(udt);
+      boolean nullable = (Boolean) ((Map<?, ?>) o).get("nullable");
+      return typeFactory.createTypeWithNullability(type, nullable);
     }
     return super.toType(typeFactory, o);
   }
