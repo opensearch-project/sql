@@ -76,7 +76,7 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT CAST(`MGR` AS STRING) `string_value`, SAFE_CAST(`MGR` AS STRING) `cast_value`\n"
+        "SELECT CAST(`MGR` AS STRING) `string_value`, TRY_CAST(`MGR` AS STRING) `cast_value`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
