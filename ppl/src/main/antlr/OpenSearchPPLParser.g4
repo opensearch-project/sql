@@ -1264,7 +1264,7 @@ conditionFunctionName
    | ISNULL
    | ISNOTNULL
    | CIDRMATCH
-   | REGEX_MATCH
+   | REGEXP_MATCH
    | JSON_VALID
    | ISPRESENT
    | ISEMPTY
@@ -1304,6 +1304,7 @@ textFunctionName
    | LOCATE
    | REPLACE
    | REVERSE
+   | REGEXP_REPLACE
    ;
 
 positionFunctionName

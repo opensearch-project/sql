@@ -32,7 +32,7 @@ public class CalciteExplainIT extends ExplainIT {
     super.init();
     enableCalcite();
     setQueryBucketSize(1000);
-    loadIndex(Index.BANK_WITH_STRING_VALUES);
+    loadIndex(Index.STRINGS);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
     loadIndex(Index.NESTED_SIMPLE);
     loadIndex(Index.TIME_TEST_DATA);
@@ -687,9 +687,9 @@ public class CalciteExplainIT extends ExplainIT {
   public void testExplainRegexMatchInWhereWithScriptPushdown() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String query =
-        String.format("source=%s | where regex_match(name, 'hello')", TEST_INDEX_STRINGS);
+        String.format("source=%s | where regexp_match(name, 'hello')", TEST_INDEX_STRINGS);
     var result = explainQueryToString(query);
-    String expected = loadFromFile("expectedOutput/calcite/explain_regex_match_in_where.json");
+    String expected = loadFromFile("expectedOutput/calcite/explain_regexp_match_in_where.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
 
@@ -698,10 +698,10 @@ public class CalciteExplainIT extends ExplainIT {
     enabledOnlyWhenPushdownIsEnabled();
     String query =
         String.format(
-            "source=%s |eval has_hello = regex_match(name, 'hello') | fields has_hello",
+            "source=%s |eval has_hello = regexp_match(name, 'hello') | fields has_hello",
             TEST_INDEX_STRINGS);
     var result = explainQueryToString(query);
-    String expected = loadFromFile("expectedOutput/calcite/explain_regex_match_in_eval.json");
+    String expected = loadFromFile("expectedOutput/calcite/explain_regexp_match_in_eval.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
 
