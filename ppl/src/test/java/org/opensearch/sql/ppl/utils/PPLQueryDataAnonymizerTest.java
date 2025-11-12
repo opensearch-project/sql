@@ -255,7 +255,7 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testTimechartCommand() {
     assertEquals(
-        "source=table | timechart span=span(identifier, *** m) limit=10 useother=true count() by"
+        "source=table | timechart limit=*** useother=*** count() by span(identifier, *** m)"
             + " identifier",
         anonymize("source=t | timechart count() by host"));
   }

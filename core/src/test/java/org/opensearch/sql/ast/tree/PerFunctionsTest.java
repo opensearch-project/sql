@@ -13,7 +13,9 @@ import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
+import static org.opensearch.sql.calcite.plan.OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP;
 
+import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -21,13 +23,15 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AggregateFunction;
+import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Let;
+import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
-class TimechartTest {
-
+class PerFunctionsTest {
   /**
    * @return test sources for per_* function test.
    */
@@ -57,8 +61,9 @@ class TimechartTest {
                         multiply("per_second(bytes)", 1000.0),
                         timestampdiff(
                             "MILLISECOND",
-                            "@timestamp",
-                            timestampadd(expectedIntervalUnit, spanValue, "@timestamp")))),
+                            IMPLICIT_FIELD_TIMESTAMP,
+                            timestampadd(
+                                expectedIntervalUnit, spanValue, IMPLICIT_FIELD_TIMESTAMP)))),
                 timechart(span(spanValue, spanUnit), alias("per_second(bytes)", sum("bytes")))));
   }
 
@@ -76,8 +81,9 @@ class TimechartTest {
                         multiply("per_minute(bytes)", 60000.0),
                         timestampdiff(
                             "MILLISECOND",
-                            "@timestamp",
-                            timestampadd(expectedIntervalUnit, spanValue, "@timestamp")))),
+                            IMPLICIT_FIELD_TIMESTAMP,
+                            timestampadd(
+                                expectedIntervalUnit, spanValue, IMPLICIT_FIELD_TIMESTAMP)))),
                 timechart(span(spanValue, spanUnit), alias("per_minute(bytes)", sum("bytes")))));
   }
 
@@ -95,8 +101,9 @@ class TimechartTest {
                         multiply("per_hour(bytes)", 3600000.0),
                         timestampdiff(
                             "MILLISECOND",
-                            "@timestamp",
-                            timestampadd(expectedIntervalUnit, spanValue, "@timestamp")))),
+                            IMPLICIT_FIELD_TIMESTAMP,
+                            timestampadd(
+                                expectedIntervalUnit, spanValue, IMPLICIT_FIELD_TIMESTAMP)))),
                 timechart(span(spanValue, spanUnit), alias("per_hour(bytes)", sum("bytes")))));
   }
 
@@ -114,8 +121,9 @@ class TimechartTest {
                         multiply("per_day(bytes)", 8.64E7),
                         timestampdiff(
                             "MILLISECOND",
-                            "@timestamp",
-                            timestampadd(expectedIntervalUnit, spanValue, "@timestamp")))),
+                            IMPLICIT_FIELD_TIMESTAMP,
+                            timestampadd(
+                                expectedIntervalUnit, spanValue, IMPLICIT_FIELD_TIMESTAMP)))),
                 timechart(span(spanValue, spanUnit), alias("per_day(bytes)", sum("bytes")))));
   }
 
@@ -128,19 +136,27 @@ class TimechartTest {
 
   @Test
   void should_preserve_all_fields_during_per_function_transformation() {
-    Timechart original =
-        new Timechart(relation("logs"), perSecond("bytes"))
-            .span(span(5, "m"))
-            .by(field("status"))
-            .limit(20)
-            .useOther(false);
+    Chart original =
+        Chart.builder()
+            .child(relation("logs"))
+            .aggregationFunction(perSecond("bytes"))
+            .rowSplit(span(5, "m"))
+            .columnSplit(field("status"))
+            .arguments(
+                List.of(
+                    new Argument("limit", intLiteral(20)), new Argument("useOther", Literal.FALSE)))
+            .build();
 
-    Timechart expected =
-        new Timechart(relation("logs"), alias("per_second(bytes)", sum("bytes")))
-            .span(span(5, "m"))
-            .by(field("status"))
-            .limit(20)
-            .useOther(false);
+    Chart expected =
+        Chart.builder()
+            .child(relation("logs"))
+            .aggregationFunction(alias("per_second(bytes)", sum("bytes")))
+            .rowSplit(span(5, "m"))
+            .columnSplit(field("status"))
+            .arguments(
+                List.of(
+                    new Argument("limit", intLiteral(20)), new Argument("useOther", Literal.FALSE)))
+            .build();
 
     withTimechart(original)
         .whenTransformingPerFunction()
@@ -151,7 +167,9 @@ class TimechartTest {
                     divide(
                         multiply("per_second(bytes)", 1000.0),
                         timestampdiff(
-                            "MILLISECOND", "@timestamp", timestampadd("MINUTE", 5, "@timestamp")))),
+                            "MILLISECOND",
+                            IMPLICIT_FIELD_TIMESTAMP,
+                            timestampadd("MINUTE", 5, IMPLICIT_FIELD_TIMESTAMP)))),
                 expected));
   }
 
@@ -161,17 +179,21 @@ class TimechartTest {
     return new TransformationAssertion(timechart(spanExpr, aggFunc));
   }
 
-  private static TransformationAssertion withTimechart(Timechart timechart) {
+  private static TransformationAssertion withTimechart(Chart timechart) {
     return new TransformationAssertion(timechart);
   }
 
-  private static Timechart timechart(Span spanExpr, UnresolvedExpression aggExpr) {
+  private static Chart timechart(Span spanExpr, UnresolvedExpression aggExpr) {
     // Set child here because expected object won't call attach below
-    return new Timechart(relation("t"), aggExpr).span(spanExpr).limit(10).useOther(true);
+    return Chart.builder()
+        .child(relation("t"))
+        .aggregationFunction(aggExpr)
+        .rowSplit(spanExpr)
+        .build();
   }
 
   private static Span span(int value, String unit) {
-    return AstDSL.span(field("@timestamp"), intLiteral(value), SpanUnit.of(unit));
+    return AstDSL.span(AstDSL.implicitTimestampField(), intLiteral(value), SpanUnit.of(unit));
   }
 
   private static AggregateFunction perSecond(String fieldName) {
@@ -209,23 +231,31 @@ class TimechartTest {
 
   private static UnresolvedExpression timestampadd(String unit, int value, String timestampField) {
     return function(
-        "timestampadd", AstDSL.stringLiteral(unit), intLiteral(value), field(timestampField));
+        BuiltinFunctionName.TIMESTAMPADD.getName().getFunctionName(),
+        AstDSL.stringLiteral(unit),
+        intLiteral(value),
+        field(timestampField));
   }
 
   private static UnresolvedExpression timestampdiff(
       String unit, String startField, UnresolvedExpression end) {
-    return function("timestampdiff", AstDSL.stringLiteral(unit), field(startField), end);
+
+    return function(
+        BuiltinFunctionName.TIMESTAMPDIFF.getName().getFunctionName(),
+        AstDSL.stringLiteral(unit),
+        field(startField),
+        end);
   }
 
-  private static UnresolvedPlan eval(Let letExpr, Timechart timechartExpr) {
+  private static UnresolvedPlan eval(Let letExpr, Chart timechartExpr) {
     return AstDSL.eval(timechartExpr, letExpr);
   }
 
   private static class TransformationAssertion {
-    private final Timechart timechart;
+    private final Chart timechart;
     private UnresolvedPlan result;
 
-    TransformationAssertion(Timechart timechart) {
+    TransformationAssertion(Chart timechart) {
       this.timechart = timechart;
     }
 
