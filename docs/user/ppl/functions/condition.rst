@@ -587,8 +587,6 @@ Argument type: STRING, STRING
 
 Return type: BOOLEAN
 
-Synonyms: `REGEX_MATCH`_
-
 Example::
 
     #os> source=logs | where regexp_match(message, 'ERROR|WARN|FATAL') | fields timestamp, message
