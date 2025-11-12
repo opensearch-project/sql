@@ -43,9 +43,11 @@ import static org.opensearch.script.Script.DEFAULT_SCRIPT_TYPE;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.MULTI_FIELDS_RELEVANCE_FUNCTION_SET;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.SINGLE_FIELD_RELEVANCE_FUNCTION_SET;
 import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.COMPOUNDED_LANG_NAME;
+import static org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer.DIGESTS;
+import static org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer.LITERALS;
+import static org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer.SOURCES;
 
 import com.google.common.collect.BoundType;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Range;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -58,14 +60,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import lombok.Getter;
 import org.apache.calcite.DataContext.Variable;
-import org.apache.calcite.adapter.enumerable.RexImpTable;
 import org.apache.calcite.adapter.enumerable.RexImpTable.NullAs;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
-import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.RelNode;
@@ -1455,9 +1453,11 @@ public class PredicateAnalyzer {
 
   public static class ScriptQueryExpression extends QueryExpression {
     private RexNode analyzedNode;
-    // use lambda to generate code lazily to avoid store generated code
     private final Supplier<String> codeGenerator;
-    private final List<RexLiteral> literals;
+    private String generatedCode;
+    private List<RexLiteral> literals;
+    private List<Integer> sources;
+    private List<Object> digests;
 
     public ScriptQueryExpression(
         RexNode rexNode,
@@ -1474,10 +1474,20 @@ public class PredicateAnalyzer {
       accumulateScriptCount(1);
       RelJsonSerializer serializer = new RelJsonSerializer(cluster);
       this.literals = new ArrayList<>();
+      this.sources = new ArrayList<>();
+      this.digests = new ArrayList<>();
       this.codeGenerator =
           () ->
               SerializationWrapper.wrapWithLangType(
-                  ScriptEngineType.CALCITE, serializer.serialize(rexNode, rowType, fieldTypes, literals));
+                  ScriptEngineType.CALCITE,
+                  serializer.serialize(rexNode, rowType, fieldTypes, sources, digests, literals));
+    }
+
+    private String getOrCreateGeneratedCode() {
+      if (generatedCode == null) {
+        generatedCode = codeGenerator.get();
+      }
+      return generatedCode;
     }
 
     @Override
@@ -1494,33 +1504,27 @@ public class PredicateAnalyzer {
       return new Script(
           DEFAULT_SCRIPT_TYPE,
           COMPOUNDED_LANG_NAME,
-          codeGenerator.get(),
+          getOrCreateGeneratedCode(),
           Collections.emptyMap(),
           Map.of(
-              Variable.UTC_TIMESTAMP.camelName, currentTime,
-              // "REX_LITERALS", translatePushedLiterals(this.literals)
-              "REX_LITERALS", this.literals.stream().map(literal ->
-                  ((ConstantExpression) RexToLixTranslator.translateLiteral(literal, literal.getType(),  OpenSearchTypeFactory.TYPE_FACTORY, NullAs.NOT_POSSIBLE)).value).toList()
-          ));
-    }
-
-    private Map<Integer, Object> translatePushedLiterals(
-       List<RexLiteral> literals) {
-      if (literals.isEmpty()) {
-        return ImmutableMap.of();
-      }
-      JavaTypeFactory typeFactory = OpenSearchTypeFactory.TYPE_FACTORY;
-      return IntStream.range(0, literals.size()).boxed()
-          .collect(Collectors.toMap(
-              i -> i,
-              i -> {
-                RexLiteral literal = literals.get(i);
-                ConstantExpression constant = (ConstantExpression) RexToLixTranslator.translateLiteral(literal, literal.getType(), typeFactory, RexImpTable.NullAs.NOT_POSSIBLE);
-                assert constant.value != null;
-                return constant.value;
-              },
-              (existingValue, newValue) -> existingValue
-          ));
+              Variable.UTC_TIMESTAMP.camelName,
+              currentTime,
+              SOURCES,
+              this.sources,
+              DIGESTS,
+              this.digests,
+              LITERALS,
+              this.literals.stream()
+                  .map(
+                      literal ->
+                          ((ConstantExpression)
+                                  RexToLixTranslator.translateLiteral(
+                                      literal,
+                                      literal.getType(),
+                                      OpenSearchTypeFactory.TYPE_FACTORY,
+                                      NullAs.NOT_POSSIBLE))
+                              .value)
+                  .toList()));
     }
 
     @Override

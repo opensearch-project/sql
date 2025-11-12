@@ -19,7 +19,6 @@ import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 @Getter
 public class PushDownContext extends AbstractCollection<PushDownOperation> {
   private final OpenSearchIndex osIndex;
-  private final OpenSearchRequestBuilder requestBuilder;
   private ArrayDeque<PushDownOperation> operationsForRequestBuilder;
 
   private boolean isAggregatePushed = false;
@@ -35,7 +34,6 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
 
   public PushDownContext(OpenSearchIndex osIndex) {
     this.osIndex = osIndex;
-    this.requestBuilder = osIndex.createRequestBuilder();
   }
 
   @Override
@@ -116,7 +114,7 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
     if (operation.type() == PushDownType.RARE_TOP) {
       isRareTopPushed = true;
     }
-    operation.action().transform(this, operation);
+    operation.action().pushOperation(this, operation);
     return true;
   }
 

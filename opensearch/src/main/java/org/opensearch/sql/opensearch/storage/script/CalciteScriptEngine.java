@@ -27,43 +27,33 @@
 
 package org.opensearch.sql.opensearch.storage.script;
 
-import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
-import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
-import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
-import static org.opensearch.sql.data.type.ExprCoreType.IP;
-import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.lang.reflect.Type;
 import java.time.chrono.ChronoZonedDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.DataContext;
-import org.apache.calcite.adapter.enumerable.EnumUtils;
 import org.apache.calcite.adapter.enumerable.PhysType;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
-import org.apache.calcite.adapter.enumerable.RexToLixTranslator.InputGetter;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
-import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.LabelTarget;
-import org.apache.calcite.linq4j.tree.MethodCallExpression;
 import org.apache.calcite.linq4j.tree.MethodDeclaration;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
-import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexExecutable;
 import org.apache.calcite.rex.RexNode;
@@ -81,12 +71,7 @@ import org.opensearch.script.FilterScript;
 import org.opensearch.script.ScriptContext;
 import org.opensearch.script.ScriptEngine;
 import org.opensearch.search.lookup.SourceLookup;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
-import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
-import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.data.type.ExprType;
-import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.script.aggregation.CalciteAggregationScriptFactory;
 import org.opensearch.sql.opensearch.storage.script.filter.CalciteFilterScriptFactory;
 import org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer;
@@ -126,16 +111,18 @@ public class CalciteScriptEngine implements ScriptEngine {
   @Override
   public <T> T compile(
       String scriptName, String scriptCode, ScriptContext<T> context, Map<String, String> options) {
-    Map<String, Object> objectMap = relJsonSerializer.deserialize(scriptCode);
-    RexNode rexNode = (RexNode) objectMap.get(RelJsonSerializer.EXPR);
-    RelDataType rowType = (RelDataType) objectMap.get(RelJsonSerializer.ROW_TYPE);
-    List<String> sourceOnlyFields = (List<String>) objectMap.get(RelJsonSerializer.FIELD_TYPES);
+    RexNode rexNode = relJsonSerializer.deserialize(scriptCode);
 
-    JavaTypeFactory typeFactory = OpenSearchTypeFactory.TYPE_FACTORY;
-    RexToLixTranslator.InputGetter getter = new ScriptInputGetter(typeFactory, rowType, sourceOnlyFields);
+    RexToLixTranslator.InputGetter getter =
+        (blockBuilder, i, type) -> {
+          throw new UnsupportedScriptException("There shouldn't be RexInputRef in the RexNode.");
+        };
     String code =
         CalciteScriptEngine.translate(
-            relJsonSerializer.getCluster().getRexBuilder(), List.of(rexNode), getter, rowType);
+            relJsonSerializer.getCluster().getRexBuilder(),
+            List.of(rexNode),
+            getter,
+            new RelRecordType(List.of()));
 
     Function1<DataContext, Object[]> function =
         new RexExecutable(code, "generated Rex code").getFunction();
@@ -166,73 +153,14 @@ public class CalciteScriptEngine implements ScriptEngine {
     }
   }
 
-  /**
-   * Implementation of {@link org.apache.calcite.adapter.enumerable.RexToLixTranslator.InputGetter}
-   * that reads the values of input fields by calling <code>
-   * {@link org.apache.calcite.DataContext#get}("inputRecord")</code>.
-   */
-  public static class ScriptInputGetter implements InputGetter {
-    private final RelDataTypeFactory typeFactory;
-    private final RelDataType rowType;
-    private final List<String> sourceOnlyFields;
-
-    public ScriptInputGetter(
-        RelDataTypeFactory typeFactory, RelDataType rowType, List<String> sourceOnlyFields) {
-      this.typeFactory = typeFactory;
-      this.rowType = rowType;
-      this.sourceOnlyFields = sourceOnlyFields;
-    }
-
-    @Override
-    public org.apache.calcite.linq4j.tree.Expression field(
-        BlockBuilder list, int index, @Nullable Type storageType) {
-      RelDataTypeField field = rowType.getFieldList().get(index);
-      String fieldName = field.getName();
-      ExprType exprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(field.getType());
-
-      if (index > rowType.getFieldCount()) return Expressions.call(
-          EnumUtils.convert(DataContext.ROOT, ScriptDataContext.class),
-          Types.lookupMethod(ScriptDataContext.class, "getFromParameter", Integer.class),
-          Expressions.constant(index - rowType.getFieldCount()));
-      MethodCallExpression fieldValueExpr =
-          // Have to invoke `getFromSource` if the field is the text without keyword or struct
-          sourceOnlyFields.contains(fieldName)
-              ? Expressions.call(
-                  EnumUtils.convert(DataContext.ROOT, ScriptDataContext.class),
-                  Types.lookupMethod(ScriptDataContext.class, "getFromSource", String.class),
-                  Expressions.constant(fieldName))
-              : Expressions.call(
-                  DataContext.ROOT,
-                  BuiltInMethod.DATA_CONTEXT_GET.method,
-                  Expressions.constant(fieldName));
-      if (storageType == null) {
-        final RelDataType fieldType = rowType.getFieldList().get(index).getType();
-        storageType = ((JavaTypeFactory) typeFactory).getJavaClass(fieldType);
-      }
-      return EnumUtils.convert(tryConvertDocValue(fieldValueExpr, exprType), storageType);
-    }
-
-    /**
-     * DocValue only support long and double for integer and float, cast to the related type first
-     */
-    private Expression tryConvertDocValue(Expression docValueExpr, ExprType exprType) {
-      return switch (exprType) {
-        case INTEGER, SHORT, BYTE -> EnumUtils.convert(docValueExpr, Long.class);
-        case FLOAT -> EnumUtils.convert(docValueExpr, Double.class);
-          // IP is scanned in as a string but used as ExprIpValue later. We call the constructor
-          // beforehand.
-        case IP -> Expressions.new_(
-            ExprIpValue.class, EnumUtils.convert(docValueExpr, String.class));
-        default -> docValueExpr;
-      };
-    }
-  }
-
   public static class ScriptDataContext implements DataContext {
 
     private final Map<String, ScriptDocValues<?>> docProvider;
     private final SourceLookup sourceLookup;
-    private final Map<String, Object> params;
+    private final long utcTimestamp;
+    private final List<Source> sources;
+    private final List<Object> digests;
+    private final List<Object> literals;
 
     public ScriptDataContext(
         Map<String, ScriptDocValues<?>> docProvider,
@@ -240,7 +168,11 @@ public class CalciteScriptEngine implements ScriptEngine {
         Map<String, Object> params) {
       this.docProvider = docProvider;
       this.sourceLookup = sourceLookup;
-      this.params = params;
+      this.utcTimestamp = (long) params.get(Variable.UTC_TIMESTAMP.camelName);
+      this.sources =
+          ((List<Integer>) params.get("SOURCES")).stream().map(Source::fromValue).toList();
+      this.digests = (List<Object>) params.get("DIGESTS");
+      this.literals = (List<Object>) params.get("LITERALS");
     }
 
     @Override
@@ -261,9 +193,20 @@ public class CalciteScriptEngine implements ScriptEngine {
     @Override
     public Object get(String name) {
       // UTC_TIMESTAMP is a special variable used for some time related functions.
-      if (Variable.UTC_TIMESTAMP.camelName.equals(name))
-        return params.get(Variable.UTC_TIMESTAMP.camelName);
+      if (Variable.UTC_TIMESTAMP.camelName.equals(name)) return this.utcTimestamp;
 
+      assert name.startsWith("?")
+          : "The the field name of RexDynamicParameter should begin with `?` but got " + name;
+
+      int index = Integer.parseInt(name.substring(1));
+      return switch (sources.get(index)) {
+        case DOC_VALUE -> getFromDocValue((String) digests.get(index));
+        case SOURCE -> getFromSource((String) digests.get(index));
+        case LITERAL -> getFromLiteral((Integer) digests.get(index));
+      };
+    }
+
+    public Object getFromDocValue(String name) {
       ScriptDocValues<?> docValue = this.docProvider.get(name);
       if (docValue == null || docValue.isEmpty()) {
         return null; // No way to differentiate null and missing from doc value
@@ -283,8 +226,37 @@ public class CalciteScriptEngine implements ScriptEngine {
       return this.sourceLookup.get(name);
     }
 
-    public Object getFromParameter(Integer name) {
-      return ((List<Object>)this.params.get("REX_LITERALS")).get(name);
+    public Object getFromLiteral(Integer index) {
+      return literals.get(index);
+    }
+  }
+
+  @Getter
+  public enum Source {
+    DOC_VALUE(0),
+    SOURCE(1),
+    LITERAL(2);
+
+    private final int value;
+
+    Source(int value) {
+      this.value = value;
+    }
+
+    private static final Map<Integer, Source> VALUE_TO_SOURCE = new HashMap<>();
+
+    static {
+      for (Source source : Source.values()) {
+        VALUE_TO_SOURCE.put(source.value, source);
+      }
+    }
+
+    public static Source fromValue(int value) {
+      Source source = VALUE_TO_SOURCE.get(value);
+      if (source == null) {
+        throw new IllegalArgumentException("No Source with value: " + value);
+      }
+      return source;
     }
   }
 

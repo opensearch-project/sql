@@ -79,6 +79,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 
 /**
  * An extension to {@link RelJson} to allow serialization & deserialization of UDTs
@@ -364,6 +365,8 @@ public class ExtendedRelJson extends RelJson {
       // Reconstruct UDT from its udt tag
       Object udtName = ((Map<?, ?>) o).get("udt");
       OpenSearchTypeFactory.ExprUDT udt = OpenSearchTypeFactory.ExprUDT.valueOf((String) udtName);
+      // View IP as string to avoid using a value of customized java type in the script.
+      if (udt == ExprUDT.EXPR_IP) return super.toType(typeFactory, o);
       return ((OpenSearchTypeFactory) typeFactory).createUDT(udt);
     }
     return super.toType(typeFactory, o);
@@ -801,5 +804,11 @@ public class ExtendedRelJson extends RelJson {
     public boolean getBoolean(String tag, boolean default_) {
       throw new UnsupportedOperationException();
     }
+  }
+
+  static RexNode translateInput(
+      RelJson relJson, int input, Map<String, @Nullable Object> map, RelInput relInput) {
+    throw new UnsupportedOperationException(
+        "There shouldn't be any RexInputRef in the serialized RexNode.");
   }
 }

@@ -13,9 +13,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 
 /**
  * InputTranslator translates RelInput to specific RexInputRef given slot index. Assumes the
@@ -38,9 +36,8 @@ public class OpenSearchRelInputTranslator implements RelJson.InputTranslator {
 
     if (input < rowType.getFieldCount()) {
       final RelDataTypeField field = rowType.getFieldList().get(input);
-      return rexBuilder.makeInputRef(field.getType(), input);
+      return rexBuilder.makeLocalRef(field.getType(), input);
     }
-    return rexBuilder.makeInputRef(OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.ANY, false), input);
-    // throw new RuntimeException("input field " + input + " is out of range");
+    throw new RuntimeException("input field " + input + " is out of range");
   }
 }

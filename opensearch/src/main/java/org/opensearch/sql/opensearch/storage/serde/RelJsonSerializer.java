@@ -15,7 +15,6 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,11 +30,10 @@ import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.util.JsonBuilder;
-import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
-import org.opensearch.sql.opensearch.executor.OpenSearchExecutionEngine;
+import org.opensearch.sql.opensearch.executor.OpenSearchExecutionEngine.OperatorTable;
 import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
 
 /**
@@ -54,7 +52,9 @@ public class RelJsonSerializer {
   public static final String EXPR = "expr";
   public static final String FIELD_TYPES = "fieldTypes";
   public static final String ROW_TYPE = "rowType";
-  public static final String SOURCE_ONLY_FIELD = "sourceOnlyFields";
+  public static final String SOURCES = "SOURCES";
+  public static final String DIGESTS = "DIGESTS";
+  public static final String LITERALS = "LITERALS";
   private static final ObjectMapper mapper = new ObjectMapper();
   private static final TypeReference<LinkedHashMap<String, Object>> TYPE_REF =
       new TypeReference<>() {};
@@ -76,7 +76,7 @@ public class RelJsonSerializer {
               SqlOperatorTables.chain(
                   PPLBuiltinOperators.instance(),
                   SqlStdOperatorTable.instance(),
-                  OpenSearchExecutionEngine.OperatorTable.instance(),
+                  OperatorTable.instance(),
                   // Add a list of necessary SqlLibrary if needed
                   SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
                       SqlLibrary.MYSQL,
@@ -103,41 +103,35 @@ public class RelJsonSerializer {
    * @return serialized string of map structure for inputs
    */
   public String serialize(RexNode rexNode, RelDataType rowType, Map<String, ExprType> fieldTypes) {
-    return serialize(rexNode, rowType, fieldTypes, new ArrayList<>());
+    return serialize(
+        rexNode, rowType, fieldTypes, new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
   }
 
-  public String serialize(RexNode rexNode, RelDataType rowType, Map<String, ExprType> fieldTypes, List<RexLiteral> literals) {
-    // Extract necessary fields and remap expression input indices for original RexNode
-    /*
-    Pair<RexNode, RelDataType> remappedRexInfo =
-        OpenSearchRelOptUtil.getRemappedRexAndType(rexNode, rowType);
-
-     */
-    List<String> sourceOnlyField = new ArrayList<>();
-    Pair<RexNode, RelDataType> remappedRexInfo =
-        OpenSearchRelOptUtil.getRemappedRexAndType2(rexNode, rowType, fieldTypes, sourceOnlyField, literals);
+  public String serialize(
+      RexNode rexNode,
+      RelDataType rowType,
+      Map<String, ExprType> fieldTypes,
+      List<Integer> sources,
+      List<Object> digests,
+      List<RexLiteral> literals) {
+    RexNode standardizedRexExpr =
+        OpenSearchRelOptUtil.standardizeRexNodeExpression(
+            rexNode, rowType, fieldTypes, sources, digests, literals);
     try {
       // Serialize RexNode and RelDataType by JSON
       JsonBuilder jsonBuilder = new JsonBuilder();
       RelJson relJson = ExtendedRelJson.create(jsonBuilder);
-      String rexNodeJson = jsonBuilder.toJsonString(relJson.toJson(remappedRexInfo.getKey()));
-      Object rowTypeJsonObj = relJson.toJson(remappedRexInfo.getValue());
-      String rowTypeJson = jsonBuilder.toJsonString(rowTypeJsonObj);
-      // Construct envelope of serializable objects
-      Map<String, Object> envelope =
-          Map.of(EXPR, rexNodeJson, ROW_TYPE, rowTypeJson, SOURCE_ONLY_FIELD, sourceOnlyField);
+      String rexNodeJson = jsonBuilder.toJsonString(relJson.toJson(standardizedRexExpr));
 
+      if (CalcitePlanContext.skipEncoding.get()) return rexNodeJson;
       // Write bytes of all serializable contents
       ByteArrayOutputStream output = new ByteArrayOutputStream();
       ObjectOutputStream objectOutput = new ObjectOutputStream(output);
-      objectOutput.writeObject(envelope);
+      objectOutput.writeObject(rexNodeJson);
       objectOutput.flush();
-      return CalcitePlanContext.skipEncoding.get()
-          ? rexNodeJson
-          : Base64.getEncoder().encodeToString(output.toByteArray());
+      return Base64.getEncoder().encodeToString(output.toByteArray());
     } catch (Exception e) {
-      throw new IllegalStateException(
-          "Failed to serialize RexNode: " + remappedRexInfo.getKey(), e);
+      throw new IllegalStateException("Failed to serialize RexNode: " + standardizedRexExpr, e);
     }
   }
 
@@ -148,34 +142,23 @@ public class RelJsonSerializer {
    * @param struct input serialized map structure string
    * @return map of RexNode, RelDataType and OpenSearch field types
    */
-  public Map<String, Object> deserialize(String struct) {
-    Map<String, Object> objectMap = null;
+  public RexNode deserialize(String struct) {
+    String exprStr = null;
     try {
-      // Recover Map object from bytes
       ByteArrayInputStream input = new ByteArrayInputStream(Base64.getDecoder().decode(struct));
       ObjectInputStream objectInput = new ObjectInputStream(input);
-      objectMap = (Map<String, Object>) objectInput.readObject();
+      exprStr = (String) objectInput.readObject();
 
       // Deserialize RelDataType and RexNode by JSON
       RelJson relJson = ExtendedRelJson.create((JsonBuilder) null);
-      Map<String, Object> rowTypeMap = mapper.readValue((String) objectMap.get(ROW_TYPE), TYPE_REF);
-      RelDataType rowType = relJson.toType(cluster.getTypeFactory(), rowTypeMap);
-      OpenSearchRelInputTranslator inputTranslator = new OpenSearchRelInputTranslator(rowType);
       relJson =
-          relJson.withInputTranslator(inputTranslator).withOperatorTable(getPplSqlOperatorTable());
-      Map<String, Object> exprMap = mapper.readValue((String) objectMap.get(EXPR), TYPE_REF);
-      RexNode rexNode = relJson.toRex(cluster, exprMap);
-
-      List<String> sourceOnlyFields = (List<String>) objectMap.get(SOURCE_ONLY_FIELD);
-
-      return Map.of(EXPR, rexNode, ROW_TYPE, rowType, SOURCE_ONLY_FIELD, sourceOnlyFields);
+          relJson
+              .withInputTranslator(ExtendedRelJson::translateInput)
+              .withOperatorTable(getPplSqlOperatorTable());
+      Map<String, Object> exprMap = mapper.readValue(exprStr, TYPE_REF);
+      return relJson.toRex(cluster, exprMap);
     } catch (Exception e) {
-      if (objectMap == null) {
-        throw new IllegalStateException(
-            "Failed to deserialize RexNode due to object map is null", e);
-      }
-      throw new IllegalStateException(
-          "Failed to deserialize RexNode and its required structure: " + objectMap.get(EXPR), e);
+      throw new IllegalStateException("Failed to deserialize RexNode " + exprStr, e);
     }
   }
 }

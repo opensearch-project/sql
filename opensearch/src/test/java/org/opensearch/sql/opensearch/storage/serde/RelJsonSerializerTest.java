@@ -54,11 +54,9 @@ public class RelJsonSerializerTest {
             rexBuilder.makeInputRef(rowType.getFieldList().get(0).getType(), 0));
 
     String code = serializer.serialize(rexUpper, rowType, fieldTypes);
-    Map<String, Object> objects = serializer.deserialize(code);
+    RexNode rexNode = serializer.deserialize(code);
 
-    assertEquals(rexUpper, objects.get(RelJsonSerializer.EXPR));
-    assertEquals(rowType, objects.get(RelJsonSerializer.ROW_TYPE));
-    assertEquals(fieldTypes, objects.get(RelJsonSerializer.FIELD_TYPES));
+    assertEquals(rexUpper, rexNode);
   }
 
   @Test

@@ -13,8 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import lombok.experimental.UtilityClass;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -22,24 +20,23 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rex.RexBiVisitorImpl;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexPermuteInputsShuttle;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
-import org.apache.calcite.util.mapping.Mappings.TargetMapping;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.commons.lang3.tuple.Triple;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.Source;
 
 @UtilityClass
 public class OpenSearchRelOptUtil {
@@ -72,72 +69,62 @@ public class OpenSearchRelOptUtil {
     return Pair.of(newMappedRex, builder.build());
   }
 
-  public static Pair<RexNode, RelDataType> getRemappedRexAndType2(
-      final RexNode rexNode, final RelDataType inputRowType, final Map<String, ExprType> fieldTypes,
-      List<String> sourceOnlyFields, List<RexLiteral> literals) {
+  public static RexNode standardizeRexNodeExpression(
+      final RexNode rexNode,
+      final RelDataType inputRowType,
+      final Map<String, ExprType> fieldTypes,
+      List<Integer> sources,
+      List<Object> digests,
+      List<RexLiteral> literals) {
     final List<RelDataTypeField> inputFieldList = inputRowType.getFieldList();
-    final RelDataTypeFactory.Builder builder = OpenSearchTypeFactory.TYPE_FACTORY.builder();
 
-    final Set<Integer> visitedFields = new HashSet<>();
-    final Set<RexLiteral> visitedLiterals = new HashSet<>();
-    final RexVisitorImpl<Void> visitor =
-        new RexVisitorImpl<>(true) {
+    final int[] currentIndex = {0};
+    final RexShuttle rexShuttle =
+        new RexShuttle() {
           @Override
-          public Void visitInputRef(RexInputRef inputRef) {
+          public RexNode visitInputRef(RexInputRef inputRef) {
             int index = inputRef.getIndex();
-            visitedFields.add(index);
             RelDataTypeField field = inputFieldList.get(index);
             ExprType exprType = fieldTypes.get(field.getName());
             String docFieldName =
-                exprType == ExprCoreType.STRUCT || exprType == ExprCoreType.ARRAY ?
-                null : OpenSearchTextType.toKeywordSubField(field.getName(), exprType);
+                exprType == ExprCoreType.STRUCT || exprType == ExprCoreType.ARRAY
+                    ? null
+                    : OpenSearchTextType.toKeywordSubField(field.getName(), exprType);
+            int newIndex = currentIndex[0]++;
             if (docFieldName != null) {
-              builder.add(docFieldName, field.getType());
+              digests.add(docFieldName);
+              sources.add(Source.DOC_VALUE.getValue());
             } else {
-              sourceOnlyFields.add(field.getName());
-              builder.add(field.getName(), field.getType());
+              digests.add(field.getName());
+              sources.add(Source.SOURCE.getValue());
             }
-            return null;
+            return new RexDynamicParam(field.getType(), newIndex);
           }
 
           @Override
-          public Void visitLiteral(RexLiteral literal) {
-            visitedLiterals.add(literal);
-            return null;
+          public RexNode visitLiteral(RexLiteral literal) {
+            /*
+             * 1. Skip replacing SARG as it is not supported to translate
+             * 2. Skip replacing SYMBOL as it affects codegen
+             * 3. Skip INTERVAL_TYPES as it has bug, TODO: remove this when fixed
+             */
+            if (literal.getTypeName() == SqlTypeName.SARG
+                || literal.getTypeName() == SqlTypeName.SYMBOL
+                || SqlTypeName.INTERVAL_TYPES.contains(literal.getTypeName())) {
+              return literal;
+            }
+            int newIndex = currentIndex[0]++;
+            sources.add(Source.LITERAL.getValue());
+            if (literals.contains(literal)) {
+              digests.add(literals.indexOf(literal));
+            } else {
+              digests.add(literals.size());
+              literals.add(literal);
+            }
+            return new RexDynamicParam(literal.getType(), newIndex);
           }
         };
-    rexNode.accept(visitor);
-
-    final Mapping mapping = Mappings.target(visitedFields.stream().toList(), inputRowType.getFieldCount());
-    literals.addAll(visitedLiterals);
-    final Map<RexLiteral, Integer> literalToIndex = IntStream.range(0, literals.size()).boxed()
-        .collect(Collectors.toMap(
-            literals::get,
-            i -> i,
-            (existingValue, newValue) -> existingValue
-        ));
-    return Pair.of(rexNode.accept(MyRexPermuteInputsShuttle.of(mapping, literalToIndex)), builder.build());
-  }
-
-  static class MyRexPermuteInputsShuttle extends RexPermuteInputsShuttle {
-    final int fieldCount;
-    final Map<RexLiteral, Integer> literals;
-
-    public static MyRexPermuteInputsShuttle of(TargetMapping mapping,
-        Map<RexLiteral, Integer> literals) {
-      return new MyRexPermuteInputsShuttle(mapping, literals);
-    }
-
-    public MyRexPermuteInputsShuttle(TargetMapping mapping, Map<RexLiteral, Integer> literals) {
-      super(mapping);
-      this.fieldCount = mapping.getTargetCount();
-      this.literals = literals;
-    }
-
-    @Override
-    public RexNode visitLiteral(RexLiteral literal) {
-      return new RexInputRef(literals.get(literal) + fieldCount, literal.getType());
-    }
+    return rexNode.accept(rexShuttle);
   }
 
   /**
@@ -159,56 +146,56 @@ public class OpenSearchRelOptUtil {
         return getOrderEquivalentInputInfo(((RexCall) expr).getOperands().get(0))
             .map(inputInfo -> Pair.of(inputInfo.getLeft(), !inputInfo.getRight()));
       case PLUS, MINUS:
-      {
-        RexNode operand0 = ((RexCall) expr).getOperands().get(0);
-        RexNode operand1 = ((RexCall) expr).getOperands().get(1);
+        {
+          RexNode operand0 = ((RexCall) expr).getOperands().get(0);
+          RexNode operand1 = ((RexCall) expr).getOperands().get(1);
 
-        boolean operand0Lit = operand0.isA(SqlKind.LITERAL);
-        boolean operand1Lit = operand1.isA(SqlKind.LITERAL);
+          boolean operand0Lit = operand0.isA(SqlKind.LITERAL);
+          boolean operand1Lit = operand1.isA(SqlKind.LITERAL);
 
-        if (operand0Lit == operand1Lit) {
-          return Optional.empty();
+          if (operand0Lit == operand1Lit) {
+            return Optional.empty();
+          }
+
+          RexNode variable = operand0Lit ? operand1 : operand0;
+          boolean flipped = (expr.getKind() == SqlKind.MINUS) && operand0Lit;
+
+          return getOrderEquivalentInputInfo(variable)
+              .map(inputInfo -> Pair.of(inputInfo.getLeft(), flipped != inputInfo.getRight()));
         }
-
-        RexNode variable = operand0Lit ? operand1 : operand0;
-        boolean flipped = (expr.getKind() == SqlKind.MINUS) && operand0Lit;
-
-        return getOrderEquivalentInputInfo(variable)
-            .map(inputInfo -> Pair.of(inputInfo.getLeft(), flipped != inputInfo.getRight()));
-      }
       case TIMES:
-      {
-        RexNode operand0 = ((RexCall) expr).getOperands().get(0);
-        RexNode operand1 = ((RexCall) expr).getOperands().get(1);
+        {
+          RexNode operand0 = ((RexCall) expr).getOperands().get(0);
+          RexNode operand1 = ((RexCall) expr).getOperands().get(1);
 
-        RexNode lit =
-            operand0.isA(SqlKind.LITERAL)
-                ? operand0
-                : (operand1.isA(SqlKind.LITERAL) ? operand1 : null);
-        RexNode variable = (lit == operand0) ? operand1 : operand0;
+          RexNode lit =
+              operand0.isA(SqlKind.LITERAL)
+                  ? operand0
+                  : (operand1.isA(SqlKind.LITERAL) ? operand1 : null);
+          RexNode variable = (lit == operand0) ? operand1 : operand0;
 
-        if (lit == null) {
-          return Optional.empty();
+          if (lit == null) {
+            return Optional.empty();
+          }
+
+          BigDecimal k = ((RexLiteral) lit).getValueAs(BigDecimal.class);
+          if (k == null || k.signum() == 0) {
+            return Optional.empty();
+          }
+          boolean flipped = k.signum() < 0;
+
+          return getOrderEquivalentInputInfo(variable)
+              .map(inputInfo -> Pair.of(inputInfo.getLeft(), flipped != inputInfo.getRight()));
         }
-
-        BigDecimal k = ((RexLiteral) lit).getValueAs(BigDecimal.class);
-        if (k == null || k.signum() == 0) {
-          return Optional.empty();
-        }
-        boolean flipped = k.signum() < 0;
-
-        return getOrderEquivalentInputInfo(variable)
-            .map(inputInfo -> Pair.of(inputInfo.getLeft(), flipped != inputInfo.getRight()));
-      }
-      // Ignore DIVIDE operator for now because it has too many precision issues
+        // Ignore DIVIDE operator for now because it has too many precision issues
       case CAST, SAFE_CAST:
-      {
-        RexNode child = ((RexCall) expr).getOperands().get(0);
-        if (!isOrderPreservingCast(child.getType(), expr.getType())) {
-          return Optional.empty();
+        {
+          RexNode child = ((RexCall) expr).getOperands().get(0);
+          if (!isOrderPreservingCast(child.getType(), expr.getType())) {
+            return Optional.empty();
+          }
+          return getOrderEquivalentInputInfo(child);
         }
-        return getOrderEquivalentInputInfo(child);
-      }
       default:
         return Optional.empty();
     }
@@ -251,13 +238,13 @@ public class OpenSearchRelOptUtil {
 
     if (srcType == SqlTypeName.DATE
         && (dstType == SqlTypeName.TIMESTAMP
-        || dstType == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)) {
+            || dstType == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)) {
       return true;
     }
 
     if (srcType == SqlTypeName.TIME
         && (dstType == SqlTypeName.TIMESTAMP
-        || dstType == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)) {
+            || dstType == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)) {
       return true;
     }
 
