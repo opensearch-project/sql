@@ -9,6 +9,18 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Test;
 
+/**
+ * Tests for reverse command optimization.
+ *
+ * <p>The reverse command behavior depends on the presence of: 1. Existing collation (sort): Reverse
+ * the sort direction 2. @timestamp field: Sort by @timestamp DESC 3. Neither: No-op (ignore reverse
+ * command)
+ *
+ * <p>These tests use SCOTT_WITH_TEMPORAL schema where EMP table has a default collation on EMPNO
+ * (primary key), demonstrating case #1 (reverse existing collation).
+ *
+ * <p>For @timestamp and no-op cases, see CalciteReverseCommandIT integration tests.
+ */
 public class CalcitePPLReverseTest extends CalcitePPLAbstractTest {
   public CalcitePPLReverseTest() {
     super(CalciteAssert.SchemaSpec.SCOTT_WITH_TEMPORAL);
@@ -16,6 +28,7 @@ public class CalcitePPLReverseTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testReverseParserSuccess() {
+    // EMP table has default collation on EMPNO, so reverse flips it to DESC
     String ppl = "source=EMP | reverse";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
