@@ -1641,7 +1641,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           new String[] {ROW_NUMBER_COLUMN_FOR_STREAMSTATS});
     }
 
-    // default
+    // Default: first get rawExpr
+    List<RexNode> overExpressions =
+        node.getWindowFunctionList().stream().map(w -> rexVisitor.analyze(w, context)).toList();
+
     if (hasGroup) {
       // only build sequence when there is by condition
       RexNode streamSeq =
@@ -1653,7 +1656,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               .as(ROW_NUMBER_COLUMN_FOR_STREAMSTATS);
       context.relBuilder.projectPlus(streamSeq);
 
-      // construct groupNotNull predicate: true only when all grouping fields are non-null
+      // construct groupNotNull predicate
       List<RexNode> groupByList =
           groupList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
       List<RexNode> notNullList =
@@ -1661,14 +1664,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               .map(context.relBuilder::field)
               .map(context.relBuilder::isNotNull)
               .toList();
-      RexNode groupNotNull =
-          notNullList.isEmpty()
-              ? context.relBuilder.literal(true)
-              : context.relBuilder.and(notNullList);
+      RexNode groupNotNull = context.relBuilder.and(notNullList);
 
-      // get rawExpr
-      List<RexNode> overExpressions =
-          node.getWindowFunctionList().stream().map(w -> rexVisitor.analyze(w, context)).toList();
       // wrap each expr: CASE WHEN groupNotNull THEN rawExpr ELSE CAST(NULL AS rawType) END
       List<RexNode> wrappedOverExprs =
           wrapWindowFunctionsWithGroupNotNull(overExpressions, groupNotNull, context);
@@ -1677,10 +1674,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       context.relBuilder.sort(context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_STREAMSTATS));
       context.relBuilder.projectExcept(context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_STREAMSTATS));
     } else {
-      List<RexNode> overExpressions =
-          node.getWindowFunctionList().stream().map(w -> rexVisitor.analyze(w, context)).toList();
       context.relBuilder.projectPlus(overExpressions);
     }
+
     return context.relBuilder.peek();
   }
 
@@ -1715,6 +1711,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       String seqCol,
       String segmentCol,
       String[] helperColsToCleanup) {
+
     final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
     context.relBuilder.push(leftWithHelpers);
     context.relBuilder.variable(v::set);

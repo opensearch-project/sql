@@ -631,7 +631,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testMultipleStreamstatsWithNull() throws IOException {
+  public void testMultipleStreamstatsWithNull1() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -647,6 +647,39 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20, 22.5),
         rows(null, "Canada", null, 4, 2023, 10, null, 22.5),
         rows("Kevin", null, null, 4, 2023, null, null, null));
+  }
+
+  @Test
+  public void testMultipleStreamstatsWithNull2() throws IOException {
+    final int docId = 5;
+    Request insertRequest =
+        new Request(
+            "PUT", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY, docId));
+    insertRequest.setJsonEntity(
+        "{\"name\": \"Jay\",\"age\": 28,"
+            + " \"country\": \"USA\",\"year\": 2023,\"month\":"
+            + " 4}\n");
+    client().performRequest(insertRequest);
+
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | streamstats avg(age) as avg_age by state, country | streamstats"
+                    + " avg(avg_age) as avg_state_age by country",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifyDataRows(
+        actual,
+        rows("Jake", "USA", "California", 4, 2023, 70, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 30, 50),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20, 22.5),
+        rows("Jay", "USA", null, 4, 2023, 28, null, 50));
+
+    Request deleteRequest =
+        new Request(
+            "DELETE", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY, docId));
+    client().performRequest(deleteRequest);
   }
 
   @Test
