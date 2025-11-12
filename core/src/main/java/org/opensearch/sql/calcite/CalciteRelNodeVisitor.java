@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.calcite.plan.RelOptTable;
@@ -80,7 +81,6 @@ import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
-import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Let;
@@ -1900,7 +1900,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // 1. group the group-by list + field list and add a count() aggregation
     List<UnresolvedExpression> groupExprList = new ArrayList<>();
     node.getGroupExprList().forEach(exp -> groupExprList.add(exp));
-    // need alias for dynamic fields
     node.getFields().forEach(field -> groupExprList.add(field));
     groupExprList.forEach(expr -> projectDynamicField(expr, context));
     List<UnresolvedExpression> aggExprList =
@@ -2050,9 +2049,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       org.opensearch.sql.ast.tree.Timechart node, CalcitePlanContext context) {
     visitChildren(node, context);
 
-    projectDynamicFieldAsString(
-        node.getBinExpression(), context); // spanExpr would become static field.
-    projectDynamicFieldAsString(node.getByField(), context); // byField would become static field.
+    projectDynamicFieldAsString(node.getBinExpression(), context);
+    projectDynamicFieldAsString(node.getByField(), context);
 
     // Extract parameters
     UnresolvedExpression spanExpr = node.getBinExpression();
@@ -2095,8 +2093,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // Extract parameters for byField case
     UnresolvedExpression byField = node.getByField();
-
-    String byFieldName = ((Field) node.getByField()).getField().toString();
+    String byFieldName = ((Field) byField).getField().toString();
     String valueFunctionName = getValueFunctionName(node.getAggregateFunction());
 
     int limit = Optional.ofNullable(node.getLimit()).orElse(10);
@@ -2150,16 +2147,25 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
   }
 
+  /**
+   * Project dynamic field to static field and cast to string to make it easier to handle. It does
+   * nothing if exp does not refer dynamic field.
+   */
   private void projectDynamicFieldAsString(UnresolvedExpression exp, CalcitePlanContext context) {
-    projectDynamicField(exp, true, context);
+    projectDynamicField(exp, context, node -> context.rexBuilder.castToString(node));
   }
 
+  /**
+   * Project dynamic field to static field to make it easier to handle. It does nothing if exp does
+   * not refer dynamic field.
+   */
   private void projectDynamicField(UnresolvedExpression exp, CalcitePlanContext context) {
-    projectDynamicField(exp, false, context);
+    UnaryOperator<RexNode> noWrap = node -> node;
+    projectDynamicField(exp, context, noWrap);
   }
 
   private void projectDynamicField(
-      UnresolvedExpression exp, boolean castNeeded, CalcitePlanContext context) {
+      UnresolvedExpression exp, CalcitePlanContext context, UnaryOperator<RexNode> nodeWrapper) {
     if (exp != null) {
       exp.accept(
           new AbstractNodeVisitor<Void, CalcitePlanContext>() {
@@ -2167,44 +2173,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             public Void visitField(Field field, CalcitePlanContext context) {
               RexNode node = rexVisitor.analyze(field, context);
               if (node.isA(SqlKind.ITEM)) {
-                RexNode casted = castNeeded ? castToString(node, context) : node;
-                RexNode alias = context.relBuilder.alias(casted, field.getField().toString());
+                RexNode alias =
+                    context.relBuilder.alias(nodeWrapper.apply(node), field.getField().toString());
                 context.relBuilder.projectPlus(alias);
               }
               return null;
             }
           },
           context);
-    }
-  }
-
-  private RexNode castToString(RexNode node, CalcitePlanContext context) {
-    RelDataType stringType = context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
-    RelDataType nullableStringType =
-        context.rexBuilder.getTypeFactory().createTypeWithNullability(stringType, true);
-    return context.rexBuilder.makeCast(nullableStringType, node, true, true);
-  }
-
-  /** Add cast and alias to Field. Needed for when the field is resolved as dynamic field access. */
-  private UnresolvedExpression castAndAliasToFieldAccess(UnresolvedExpression exp) {
-    if (exp instanceof Field) {
-      Field f = (Field) exp;
-      return AstDSL.alias(f.getField().toString(), castToString(f));
-    } else {
-      return castToString(exp);
-    }
-  }
-
-  private UnresolvedExpression castToString(UnresolvedExpression exp) {
-    return new Cast(exp, AstDSL.stringLiteral("STRING"));
-  }
-
-  /** Add alias to Field. Needed for when the field is resolved as dynamic field access. */
-  private UnresolvedExpression addAliasToFieldAccess(UnresolvedExpression exp) {
-    if (exp instanceof Field f) {
-      return AstDSL.alias(f.getField().toString(), f);
-    } else {
-      return exp;
     }
   }
 
