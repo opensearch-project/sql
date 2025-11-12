@@ -172,7 +172,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     if (cmds.isEmpty()) {
       throw new IllegalArgumentException("appendpipe [] is empty");
     }
-    UnresolvedPlan seed = visit(cmds.getFirst());
+    UnresolvedPlan seed = visit(cmds.get(0));
     return cmds.stream().skip(1).map(this::visit).reduce(seed, (left, op) -> op.attach(left));
   }
 
