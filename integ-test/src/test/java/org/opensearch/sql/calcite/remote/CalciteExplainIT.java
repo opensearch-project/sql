@@ -82,25 +82,29 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   // Only for Calcite
-  @Ignore("https://github.com/opensearch-project/OpenSearch/issues/3725")
+  @Test
   public void testJoinWithCriteriaAndMaxOption() throws IOException {
+    // TODO could be optimized with https://github.com/opensearch-project/OpenSearch/issues/3725
+    enabledOnlyWhenPushdownIsEnabled();
     String query =
         "source=opensearch-sql_test_index_bank | join max=1 left=l right=r on"
             + " l.account_number=r.account_number opensearch-sql_test_index_bank";
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_join_with_criteria_max_option.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_join_with_criteria_max_option.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   // Only for Calcite
-  @Ignore("https://github.com/opensearch-project/OpenSearch/issues/3725")
+  @Test
   public void testJoinWithFieldListAndMaxOption() throws IOException {
+    // TODO could be optimized with https://github.com/opensearch-project/OpenSearch/issues/3725
+    enabledOnlyWhenPushdownIsEnabled();
     String query =
         "source=opensearch-sql_test_index_bank | join type=inner max=1 account_number"
             + " opensearch-sql_test_index_bank";
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_join_with_fields_max_option.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_join_with_fields_max_option.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   // Only for Calcite

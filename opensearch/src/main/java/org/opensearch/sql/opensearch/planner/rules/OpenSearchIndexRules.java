@@ -49,8 +49,7 @@ public class OpenSearchIndexRules {
           BUCKET_NON_NULL_AGG_INDEX_SCAN,
           LIMIT_INDEX_SCAN,
           SORT_INDEX_SCAN,
-          // TODO enable if https://github.com/opensearch-project/OpenSearch/issues/3725 resolved
-          // DEDUP_PUSH_DOWN,
+          DEDUP_PUSH_DOWN,
           SORT_PROJECT_EXPR_TRANSPOSE,
           SORT_AGGREGATION_METRICS_RULE,
           RARE_TOP_PUSH_DOWN,
