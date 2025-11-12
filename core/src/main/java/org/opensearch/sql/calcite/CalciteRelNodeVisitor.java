@@ -248,6 +248,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     while (childNode.getChild() != null
         && !childNode.getChild().isEmpty()
         && !(childNode.getChild().getFirst() instanceof Values)) {
+      if (childNode.getChild().size() > 1) {
+        throw new RuntimeException("AppendPipe doesn't support multiply children subquery.");
+      }
       childNode = (UnresolvedPlan) childNode.getChild().getFirst();
     }
     childNode.attach(node.getChild().getFirst());
