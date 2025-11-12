@@ -27,7 +27,7 @@ public class CalcitePPLSpathTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
-            + " `JSON_EXTRACT`(`ENAME`, 'src.path') `src.path`\n"
+            + " JSON_EXTRACT(`ENAME`, 'src.path') `src.path`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -42,7 +42,7 @@ public class CalcitePPLSpathTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `JSON_EXTRACT`(`ENAME`, 'src.path') `custom`\n" + "FROM `scott`.`EMP`";
+        "SELECT JSON_EXTRACT(`ENAME`, 'src.path') `custom`\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

@@ -24,9 +24,9 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
  * MIN(value1, value2, ...) returns the minimum value from the arguments. For mixed types, numbers
  * have higher precedence than strings.
  */
-public class MinFunction extends ImplementorUDF {
+public class ScalarMinFunction extends ImplementorUDF {
 
-  public MinFunction() {
+  public ScalarMinFunction() {
     super(new MinImplementor(), NullPolicy.ALL);
   }
 

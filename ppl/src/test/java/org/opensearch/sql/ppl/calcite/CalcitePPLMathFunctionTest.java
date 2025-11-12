@@ -145,7 +145,7 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalProject(EULER=[E()])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedSparkSql = "SELECT `E`() `EULER`\nFROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT E() `EULER`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
