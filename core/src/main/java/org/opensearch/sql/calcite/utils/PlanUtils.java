@@ -535,6 +535,13 @@ public interface PlanUtils {
     return !sort.getCollation().getFieldCollations().isEmpty() && sort.fetch == null;
   }
 
+  /**
+   * Check if the sort collation points to non field project expression.
+   *
+   * @param sort the sort operator adding sort order over project
+   * @param project project operation that may contain non field expressions
+   * @return flag to indicate whether non field project expression will be sorted
+   */
   static boolean sortReferencesExpr(Sort sort, Project project) {
     if (sort.getCollation().getFieldCollations().isEmpty()) {
       return false;

@@ -10,7 +10,9 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
+import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyOrder;
+import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -349,5 +351,67 @@ public class SortCommandIT extends PPLIntegTestCase {
                     + " head 2",
                 TEST_INDEX_BANK));
     verifyOrder(result, rows(33, 4180, 4213), rows(36, 5686, 5722));
+  }
+
+  @Test
+  public void testPushdownSortStringExpression() throws IOException {
+    String ppl =
+        String.format(
+            "source=%s | eval firstname2 = substring(firstname, 1, 3) | sort firstname2 | fields"
+                + " firstname2, firstname",
+            TEST_INDEX_BANK_WITH_NULL_VALUES);
+
+    JSONObject result = executeQuery(ppl);
+    verifySchema(result, schema("firstname2", "string"), schema("firstname", "string"));
+    verifyOrder(
+        result,
+        rows("Amb", "Amber JOHnny"),
+        rows("Dal", "Dale"),
+        rows("Dil", "Dillard"),
+        rows("Eli", "Elinor"),
+        rows("Hat", "Hattie"),
+        rows("Nan", "Nanette"),
+        rows("Vir", "Virginia"));
+  }
+
+  @Test
+  public void testPushdownSortExpressionContainsNull() throws IOException {
+    String ppl =
+        String.format(
+            "source=%s | eval balance2 = abs(balance) | sort -balance2 | fields balance, balance2",
+            TEST_INDEX_BANK_WITH_NULL_VALUES);
+
+    JSONObject result = executeQuery(ppl);
+    verifySchema(result, schema("balance", "bigint"), schema("balance2", "bigint"));
+    verifyOrder(
+        result,
+        rows(48086, 48086),
+        rows(39225, 39225),
+        rows(32838, 32838),
+        rows(4180, 4180),
+        rows(null, null),
+        rows(null, null),
+        rows(null, null));
+  }
+
+  @Test
+  public void testPushdownSortExpressionWithMixedFieldSort() throws IOException {
+    String ppl =
+        String.format(
+            "source=%s | eval balance2 = abs(balance) | sort -balance2, account_number | fields"
+                + " balance2, account_number",
+            TEST_INDEX_BANK_WITH_NULL_VALUES);
+
+    JSONObject result = executeQuery(ppl);
+    verifySchema(result, schema("balance2", "bigint"), schema("account_number", "bigint"));
+    verifyOrder(
+        result,
+        rows(48086, 32),
+        rows(39225, 1),
+        rows(32838, 13),
+        rows(4180, 18),
+        rows(null, 6),
+        rows(null, 20),
+        rows(null, 25));
   }
 }

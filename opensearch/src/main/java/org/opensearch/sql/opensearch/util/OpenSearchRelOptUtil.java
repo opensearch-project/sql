@@ -15,6 +15,7 @@ import java.util.Set;
 import lombok.experimental.UtilityClass;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelFieldCollation.Direction;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -35,7 +36,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownType;
-import org.opensearch.sql.opensearch.storage.scan.context.SortExpressionInfo;
+import org.opensearch.sql.opensearch.storage.scan.context.SortExprDigest;
 
 @UtilityClass
 public class OpenSearchRelOptUtil {
@@ -140,6 +141,36 @@ public class OpenSearchRelOptUtil {
       default:
         return Optional.empty();
     }
+  }
+
+  /**
+   * Suppose single project input is already sorted, this method evaluates whether the input field
+   * sort collation satisfies the simple project expression's output collation.
+   *
+   * @param sourceFieldCollation project input field collation
+   * @param targetFieldCollation simple project expression output collation
+   * @param project project operator
+   * @return if single project input collation satisfies project expression output collation
+   */
+  public boolean sourceCollationSatisfiesTargetCollation(
+      RelFieldCollation sourceFieldCollation,
+      RelFieldCollation targetFieldCollation,
+      Project project) {
+    Optional<Pair<Integer, Boolean>> equivalentCollationInputInfo =
+        OpenSearchRelOptUtil.getOrderEquivalentInputInfo(
+            project.getProjects().get(targetFieldCollation.getFieldIndex()));
+
+    if (equivalentCollationInputInfo.isEmpty()) {
+      return false;
+    }
+
+    int equivalentSourceIndex = equivalentCollationInputInfo.get().getLeft();
+    Direction equivalentSourceDirection =
+        equivalentCollationInputInfo.get().getRight()
+            ? targetFieldCollation.getDirection().reverse()
+            : targetFieldCollation.getDirection();
+    return equivalentSourceIndex == sourceFieldCollation.getFieldIndex()
+        && equivalentSourceDirection == sourceFieldCollation.getDirection();
   }
 
   private static boolean isOrderPreservingCast(RelDataType src, RelDataType dst) {
@@ -283,7 +314,7 @@ public class OpenSearchRelOptUtil {
 
   /**
    * Check if the scan can provide the required sort collation by matching toCollation's mapped
-   * project RexNodes with sort expressions from PushDownContext using a two-pointer approach.
+   * project RexNodes with sort expressions from PushDownContext.
    *
    * @param scan The scan RelNode to check
    * @param project The project node to match expressions against
@@ -301,57 +332,49 @@ public class OpenSearchRelOptUtil {
 
     // Get the sort expression infos from the pushdown context
     @SuppressWarnings("unchecked")
-    List<SortExpressionInfo> sortExpressionInfos =
-        (List<SortExpressionInfo>)
-            scan.getPushDownContext().getDigestByType(PushDownType.SORT_EXPR);
-    if (sortExpressionInfos.isEmpty()) {
+    List<SortExprDigest> sortExprDigests =
+        (List<SortExprDigest>) scan.getPushDownContext().getDigestByType(PushDownType.SORT_EXPR);
+    if (sortExprDigests.isEmpty()
+        || sortExprDigests.size() < toCollation.getFieldCollations().size()) {
       return false;
     }
 
-    List<RexNode> projectOutputs = project.getProjects();
-    List<RelFieldCollation> requiredFieldCollations = toCollation.getFieldCollations();
-
-    // Use two-pointer approach to match required collations with scan sort expressions
-    int scanSortExprPointer = 0;
-    int requiredSortExprPointer = 0;
-
-    while (requiredSortExprPointer < requiredFieldCollations.size()
-        && scanSortExprPointer < sortExpressionInfos.size()) {
-      RelFieldCollation requiredFieldCollation =
-          requiredFieldCollations.get(requiredSortExprPointer);
-      int projectIndex = requiredFieldCollation.getFieldIndex();
-
-      // Check bounds for project index
-      if (projectIndex >= projectOutputs.size()) {
-        return false;
-      }
-
-      RexNode requiredProjectOutput = projectOutputs.get(projectIndex);
-      SortExpressionInfo scanSortInfo = sortExpressionInfos.get(scanSortExprPointer);
-
+    for (int i = 0; i < toCollation.getFieldCollations().size(); i++) {
+      RelFieldCollation requiredFieldCollation = toCollation.getFieldCollations().get(i);
+      RexNode projectExpr = project.getProjects().get(requiredFieldCollation.getFieldIndex());
+      SortExprDigest scanSortInfo = sortExprDigests.get(i);
       // Get the effective expression for comparison
       RexNode scanSortExpression = scanSortInfo.getEffectiveExpression(scan);
 
       // Check if the required project output matches the scan sort expression
-      if (scanSortExpression != null && scanSortExpression.equals(requiredProjectOutput)) {
+      if (scanSortExpression != null && scanSortExpression.equals(projectExpr)) {
         // Check if the collation direction and null handling match
-        RelFieldCollation scanFieldCollation = scanSortInfo.toRelFieldCollation(projectIndex);
-        if (requiredFieldCollation.getDirection() == scanFieldCollation.getDirection()
-            && requiredFieldCollation.nullDirection == scanFieldCollation.nullDirection) {
-          // Match found, advance both pointers
-          requiredSortExprPointer++;
-          scanSortExprPointer++;
-        } else {
+        if (requiredFieldCollation.getDirection() == scanSortInfo.getDirection()
+            && requiredFieldCollation.nullDirection == scanSortInfo.getNullDirection()) {
           // Direction or null handling mismatch
-          return false;
+          continue;
         }
-      } else {
-        // Expression mismatch, advance scan pointer to look for a match
-        scanSortExprPointer++;
+        return false;
       }
+
+      // Check if sorting simple RexCall is equivalent to field sort
+      if (scanSortExpression instanceof RexInputRef && projectExpr instanceof RexCall) {
+        RexInputRef scanInputRef = (RexInputRef) scanSortExpression;
+        RelFieldCollation sourceCollation =
+            new RelFieldCollation(
+                scanInputRef.getIndex(),
+                scanSortInfo.getDirection(),
+                scanSortInfo.getNullDirection());
+        if (sourceCollationSatisfiesTargetCollation(
+            sourceCollation, requiredFieldCollation, project)) {
+          continue;
+        }
+      }
+
+      return false;
     }
 
-    // All required collations must be matched
-    return requiredSortExprPointer == requiredFieldCollations.size();
+    // All required collations are matched
+    return true;
   }
 }

@@ -59,7 +59,7 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.agg.CountAsTotalHitsParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
-import org.opensearch.sql.opensearch.storage.scan.context.SortExpressionInfo;
+import org.opensearch.sql.opensearch.storage.scan.context.SortExprDigest;
 
 /** OpenSearch search request builder. */
 @EqualsAndHashCode
@@ -242,44 +242,44 @@ public class OpenSearchRequestBuilder {
    * Push down sort expression to DSL request. Uses ScriptQueryExpression infrastructure for script
    * generation.
    *
-   * @param sortExprInfo The sort expression info to push down
+   * @param sortExprDigest The sort expression info to push down
    * @param fieldTypes Map of field names to their types for validation
    * @param rowType The row type for script generation context
    * @param cluster The RelOptCluster for script generation context
    */
   public void pushDownSortExpression(
-      SortExpressionInfo sortExprInfo,
+      SortExprDigest sortExprDigest,
       Map<String, ExprType> fieldTypes,
       RelDataType rowType,
       RelOptCluster cluster) {
     SortOrder order =
-        Direction.DESCENDING.equals(sortExprInfo.getDirection()) ? SortOrder.DESC : SortOrder.ASC;
+        Direction.DESCENDING.equals(sortExprDigest.getDirection()) ? SortOrder.DESC : SortOrder.ASC;
 
-    if (sortExprInfo.isSimpleFieldReference()) {
+    if (sortExprDigest.isSimpleFieldReference()) {
       String missing =
-          switch (sortExprInfo.getNullDirection()) {
+          switch (sortExprDigest.getNullDirection()) {
             case FIRST -> "_first";
             case LAST -> "_last";
             default -> null;
           };
       sourceBuilder.sort(
-          SortBuilders.fieldSort(sortExprInfo.getFieldName()).order(order).missing(missing));
+          SortBuilders.fieldSort(sortExprDigest.getFieldName()).order(order).missing(missing));
       return;
     }
-    RexNode sortExpr = sortExprInfo.getExpression();
+    RexNode sortExpr = sortExprDigest.getExpression();
     assert sortExpr instanceof RexCall : "sort expression should be RexCall";
     // Complex expression - use ScriptQueryExpression to generate script for sort
     PredicateAnalyzer.ScriptQueryExpression scriptExpr =
         new PredicateAnalyzer.ScriptQueryExpression(
-            sortExprInfo.getExpression(),
+            sortExprDigest.getExpression(),
             rowType,
             fieldTypes,
             cluster,
             Map.of(
                 PlanUtils.NULL_DIRECTION,
-                sortExprInfo.getNullDirection().name(),
+                sortExprDigest.getNullDirection().name(),
                 PlanUtils.DIRECTION,
-                sortExprInfo.getDirection().name()));
+                sortExprDigest.getDirection().name()));
 
     Script script = scriptExpr.getScript();
     if (script != null) {

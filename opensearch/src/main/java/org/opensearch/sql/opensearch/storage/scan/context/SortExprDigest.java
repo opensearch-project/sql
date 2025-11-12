@@ -20,7 +20,7 @@ import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
  */
 @Getter
 @AllArgsConstructor
-public class SortExpressionInfo {
+public class SortExprDigest {
   /** The RexNode expression being sorted (nullable for simple field references) */
   private final RexNode expression;
 
@@ -40,7 +40,7 @@ public class SortExpressionInfo {
    * @param direction Sort direction
    * @param nullDirection Null handling direction
    */
-  public SortExpressionInfo(
+  public SortExprDigest(
       RexNode expression,
       RelFieldCollation.Direction direction,
       RelFieldCollation.NullDirection nullDirection) {
@@ -54,7 +54,7 @@ public class SortExpressionInfo {
    * @param direction Sort direction
    * @param nullDirection Null handling direction
    */
-  public SortExpressionInfo(
+  public SortExprDigest(
       String fieldName,
       RelFieldCollation.Direction direction,
       RelFieldCollation.NullDirection nullDirection) {
@@ -94,16 +94,6 @@ public class SortExpressionInfo {
       // Complex expression - return as-is
       return expression;
     }
-  }
-
-  /**
-   * Create a RelFieldCollation for this sort expression at the given field index.
-   *
-   * @param fieldIndex The field index in the output schema
-   * @return RelFieldCollation representing this sort expression
-   */
-  public RelFieldCollation toRelFieldCollation(int fieldIndex) {
-    return new RelFieldCollation(fieldIndex, direction, nullDirection);
   }
 
   @Override

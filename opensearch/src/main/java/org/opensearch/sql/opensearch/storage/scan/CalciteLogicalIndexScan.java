@@ -46,7 +46,6 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.planner.rules.EnumerableIndexScanRule;
-import org.opensearch.sql.opensearch.planner.rules.LimitIndexScanRule;
 import org.opensearch.sql.opensearch.planner.rules.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
@@ -62,7 +61,7 @@ import org.opensearch.sql.opensearch.storage.scan.context.OSRequestBuilderAction
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownType;
 import org.opensearch.sql.opensearch.storage.scan.context.RareTopDigest;
-import org.opensearch.sql.opensearch.storage.scan.context.SortExpressionInfo;
+import org.opensearch.sql.opensearch.storage.scan.context.SortExprDigest;
 
 /** The logical relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
@@ -428,32 +427,16 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     return null;
   }
 
-  public CalciteLogicalIndexScan pushDownLimitToScan(RexNode limit, RexNode offset) {
-    Integer limitValue = LimitIndexScanRule.extractLimitValue(limit);
-    Integer offsetValue = LimitIndexScanRule.extractOffsetValue(offset);
-    if (limitValue != null && offsetValue != null) {
-      CalciteLogicalIndexScan newScan = this.copyWithNewSchema(getRowType());
-      newScan.pushDownContext.add(
-          PushDownType.LIMIT,
-          new LimitDigest(limitValue, offsetValue),
-          (OSRequestBuilderAction)
-              requestBuilder -> requestBuilder.pushDownLimit(limitValue, offsetValue));
-      return newScan;
-    }
-    return null;
-  }
-
   /**
    * Push down sort expressions to OpenSearch level. Supports mixed RexCall and field sort
    * expressions.
    *
-   * @param sortExpressionInfos List of SortExpressionInfo with expressions and collation
-   *     information
+   * @param sortExprDigests List of SortExprDigest with expressions and collation information
    * @return CalciteLogicalIndexScan with sort expressions pushed down, or null if pushdown fails
    */
-  public CalciteLogicalIndexScan pushdownSortExpr(List<SortExpressionInfo> sortExpressionInfos) {
+  public CalciteLogicalIndexScan pushdownSortExpr(List<SortExprDigest> sortExprDigests) {
     try {
-      if (sortExpressionInfos == null || sortExpressionInfos.isEmpty()) {
+      if (sortExprDigests == null || sortExprDigests.isEmpty()) {
         return null;
       }
 
@@ -470,17 +453,17 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       // Create action to push down sort expressions to OpenSearch
       OSRequestBuilderAction action =
           requestBuilder -> {
-            for (SortExpressionInfo info : sortExpressionInfos) {
+            for (SortExprDigest info : sortExprDigests) {
               requestBuilder.pushDownSortExpression(
                   info, osIndex.getAllFieldTypes(), getRowType(), getCluster());
             }
           };
 
-      newScan.pushDownContext.add(PushDownType.SORT_EXPR, sortExpressionInfos, action);
+      newScan.pushDownContext.add(PushDownType.SORT_EXPR, sortExprDigests, action);
       return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
-        LOG.debug("Cannot pushdown sort expressions: {}", sortExpressionInfos, e);
+        LOG.debug("Cannot pushdown sort expressions: {}", sortExprDigests, e);
       }
     }
     return null;

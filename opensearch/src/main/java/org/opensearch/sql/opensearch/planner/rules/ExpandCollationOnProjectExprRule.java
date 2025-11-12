@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.opensearch.planner.rules;
 
-import java.util.Optional;
 import java.util.function.Predicate;
 import org.apache.calcite.adapter.enumerable.EnumerableProject;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -16,11 +15,8 @@ import org.apache.calcite.plan.volcano.AbstractConverter;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
-import org.apache.calcite.rel.RelFieldCollation;
-import org.apache.calcite.rel.RelFieldCollation.Direction;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
-import org.apache.commons.lang3.tuple.Pair;
 import org.immutables.value.Value;
 import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
 import org.opensearch.sql.calcite.utils.PlanUtils;
@@ -56,7 +52,7 @@ public class ExpandCollationOnProjectExprRule
     final RelTraitSet toTraits = converter.getTraitSet();
     final RelCollation toCollation = toTraits.getTrait(RelCollationTraitDef.INSTANCE);
 
-    // Branch 1: Check if complex expressions are already sorted by scan
+    // Branch 1: Check if complex expressions are already sorted by scan and assign collation
     if (handleComplexExpressionsSortedByScan(call, project, toTraits, toCollation)) {
       return;
     }
@@ -109,34 +105,20 @@ public class ExpandCollationOnProjectExprRule
     // In case of fromTrait is an instance of RelCompositeTrait, it most likely finds equivalence by
     // default.
     // Let it go through default ExpandConversionRule to determine trait satisfaction.
-    if (fromTrait != null && fromTrait instanceof RelCollation) {
+    if (fromTrait instanceof RelCollation) {
       RelCollation fromCollation = (RelCollation) fromTrait;
       // TODO: Handle the case where multi expr collations are mapped to the same source field
       if (toCollation == null
           || toCollation.getFieldCollations().isEmpty()
-          || fromCollation == null
           || fromCollation.getFieldCollations().size() < toCollation.getFieldCollations().size()) {
         return;
       }
 
       for (int i = 0; i < toCollation.getFieldCollations().size(); i++) {
-        RelFieldCollation targetFieldCollation = toCollation.getFieldCollations().get(i);
-        Optional<Pair<Integer, Boolean>> equivalentCollationInputInfo =
-            OpenSearchRelOptUtil.getOrderEquivalentInputInfo(
-                project.getProjects().get(targetFieldCollation.getFieldIndex()));
-
-        if (equivalentCollationInputInfo.isEmpty()) {
-          return;
-        }
-
-        RelFieldCollation sourceFieldCollation = fromCollation.getFieldCollations().get(i);
-        int equivalentSourceIndex = equivalentCollationInputInfo.get().getLeft();
-        Direction equivalentSourceDirection =
-            equivalentCollationInputInfo.get().getRight()
-                ? targetFieldCollation.getDirection().reverse()
-                : targetFieldCollation.getDirection();
-        if (!(equivalentSourceIndex == sourceFieldCollation.getFieldIndex()
-            && equivalentSourceDirection == sourceFieldCollation.getDirection())) {
+        if (!OpenSearchRelOptUtil.sourceCollationSatisfiesTargetCollation(
+            fromCollation.getFieldCollations().get(i),
+            toCollation.getFieldCollations().get(i),
+            project)) {
           return;
         }
       }

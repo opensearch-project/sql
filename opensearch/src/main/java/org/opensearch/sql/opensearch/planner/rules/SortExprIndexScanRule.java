@@ -7,10 +7,12 @@ package org.opensearch.sql.opensearch.planner.rules;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelFieldCollation.Direction;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalProject;
@@ -21,11 +23,12 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.immutables.value.Value;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
-import org.opensearch.sql.opensearch.storage.scan.context.SortExpressionInfo;
+import org.opensearch.sql.opensearch.storage.scan.context.SortExprDigest;
 import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
 
 /**
@@ -58,22 +61,29 @@ public class SortExprIndexScanRule extends RelRule<SortExprIndexScanRule.Config>
     }
 
     // Extract sort expressions with collation information from the sort node
-    List<SortExpressionInfo> sortExpressionInfos = extractSortExpressionInfos(sort, project, scan);
+    List<SortExprDigest> sortExprDigests = extractSortExpressionInfos(sort, project, scan);
 
     // Check if any sort expressions can be pushed down
-    if (sortExpressionInfos.isEmpty() || !canPushDownSortExpressionInfos(sortExpressionInfos)) {
+    if (sortExprDigests.isEmpty() || !canPushDownSortExpressionInfos(sortExprDigests)) {
       return;
     }
 
     CalciteLogicalIndexScan newScan;
     // If the scan's sort info already satisfies new sort, just pushdown limit if there is
-    if (scanProvidesRequiredCollation && (sort.fetch != null || sort.offset != null)) {
-      newScan = scan.pushDownLimitToScan(sort.fetch, sort.offset);
+    if (scan.isTopKPushed()
+        && scanProvidesRequiredCollation
+        && (sort.fetch != null || sort.offset != null)) {
+      Integer limitValue = LimitIndexScanRule.extractLimitValue(sort.fetch);
+      Integer offsetValue = LimitIndexScanRule.extractOffsetValue(sort.offset);
+      newScan = (CalciteLogicalIndexScan) scan.pushDownLimit(sort, limitValue, offsetValue);
     } else {
       // Attempt to push down sort expressions
-      newScan = scan.pushdownSortExpr(sortExpressionInfos);
+
+      newScan = scan.pushdownSortExpr(sortExprDigests);
       if (newScan != null && (sort.fetch != null || sort.offset != null)) {
-        newScan = newScan.pushDownLimitToScan(sort.fetch, sort.offset);
+        Integer limitValue = LimitIndexScanRule.extractLimitValue(sort.fetch);
+        Integer offsetValue = LimitIndexScanRule.extractOffsetValue(sort.offset);
+        newScan = (CalciteLogicalIndexScan) newScan.pushDownLimit(sort, limitValue, offsetValue);
       }
     }
 
@@ -91,11 +101,11 @@ public class SortExprIndexScanRule extends RelRule<SortExprIndexScanRule.Config>
    * @param sort The sort node
    * @param project The project node
    * @param scan The scan node to get stable field references
-   * @return List of SortExpressionInfo with stable field references or complex expressions
+   * @return List of SortExprDigest with stable field references or complex expressions
    */
-  private List<SortExpressionInfo> extractSortExpressionInfos(
+  private List<SortExprDigest> extractSortExpressionInfos(
       Sort sort, Project project, CalciteLogicalIndexScan scan) {
-    List<SortExpressionInfo> sortExpressionInfos = new ArrayList<>();
+    List<SortExprDigest> sortExprDigests = new ArrayList<>();
 
     List<RexNode> sortKeys = sort.getSortExps();
     List<RelFieldCollation> collations = sort.getCollation().getFieldCollations();
@@ -104,59 +114,65 @@ public class SortExprIndexScanRule extends RelRule<SortExprIndexScanRule.Config>
       RexNode sortKey = sortKeys.get(i);
       RelFieldCollation collation = collations.get(i);
 
-      SortExpressionInfo info = mapThroughProject(sortKey, project, scan, collation);
+      SortExprDigest info = mapThroughProject(sortKey, project, scan, collation);
 
       if (info != null) {
-        sortExpressionInfos.add(info);
+        sortExprDigests.add(info);
       }
     }
 
-    return sortExpressionInfos;
+    return sortExprDigests;
   }
 
   /**
-   * Map a sort key through the project to create a SortExpressionInfo. For simple field references,
+   * Map a sort key through the project to create a SortExprDigest. For simple field references,
    * stores the field name for stability. For complex expressions, stores the RexNode.
    *
    * @param sortKey The sort key (usually a RexInputRef)
    * @param project The project node
    * @param scan The scan node to get field names from
    * @param collation The collation information
-   * @return SortExpressionInfo with stable field reference or complex expression
+   * @return SortExprDigest with stable field reference or complex expression
    */
-  private SortExpressionInfo mapThroughProject(
+  private SortExprDigest mapThroughProject(
       RexNode sortKey, Project project, CalciteLogicalIndexScan scan, RelFieldCollation collation) {
     assert sortKey instanceof RexInputRef : "sort key should be always RexInputRef";
 
     RexInputRef inputRef = (RexInputRef) sortKey;
     RexNode projectExpression = project.getProjects().get(inputRef.getIndex());
+    // Get the field name from the scan's row type
+    List<String> scanFieldNames = scan.getRowType().getFieldNames();
 
     // If the project expression is a simple RexInputRef pointing to a scan field,
+    // or it can be optimized to sort by field,
     // store the field name for stability
-    if (projectExpression instanceof RexInputRef) {
-      RexInputRef scanInputRef = (RexInputRef) projectExpression;
-      int scanFieldIndex = scanInputRef.getIndex();
-      // Get the field name from the scan's row type
-      List<String> scanFieldNames = scan.getRowType().getFieldNames();
-      // Create SortExpressionInfo with field name (stable reference)
-      return new SortExpressionInfo(
-          scanFieldNames.get(scanFieldIndex), collation.getDirection(), collation.nullDirection);
+    Optional<Pair<Integer, Boolean>> orderEquivalentInfo =
+        OpenSearchRelOptUtil.getOrderEquivalentInputInfo(projectExpression);
+    if (orderEquivalentInfo.isPresent()) {
+      Direction equivalentDirection =
+          orderEquivalentInfo.get().getRight()
+              ? collation.getDirection().reverse()
+              : collation.getDirection();
+      // Create SortExprDigest with field name (stable reference)
+      return new SortExprDigest(
+          scanFieldNames.get(orderEquivalentInfo.get().getLeft()),
+          equivalentDirection,
+          collation.nullDirection);
     }
 
     // For complex expressions, store the RexNode
-    return new SortExpressionInfo(
-        projectExpression, collation.getDirection(), collation.nullDirection);
+    return new SortExprDigest(projectExpression, collation.getDirection(), collation.nullDirection);
   }
 
   /**
    * Check if sort expressions can be pushed down to OpenSearch. Rejects literals and expressions
    * that only contain literals. Only supports number and string types for sort scripts.
    *
-   * @param sortExpressionInfos List of sort expression infos to check
+   * @param sortExprDigests List of sort expression infos to check
    * @return true if expressions can be pushed down, false otherwise
    */
-  private boolean canPushDownSortExpressionInfos(List<SortExpressionInfo> sortExpressionInfos) {
-    for (SortExpressionInfo info : sortExpressionInfos) {
+  private boolean canPushDownSortExpressionInfos(List<SortExprDigest> sortExprDigests) {
+    for (SortExprDigest info : sortExprDigests) {
       RexNode expr = info.getExpression();
       if (expr == null && StringUtils.isEmpty(info.getFieldName())) {
         return false;

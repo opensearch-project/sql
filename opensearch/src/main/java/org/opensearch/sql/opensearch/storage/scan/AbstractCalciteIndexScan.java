@@ -56,7 +56,7 @@ import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownOperation;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownType;
 import org.opensearch.sql.opensearch.storage.scan.context.RareTopDigest;
-import org.opensearch.sql.opensearch.storage.scan.context.SortExpressionInfo;
+import org.opensearch.sql.opensearch.storage.scan.context.SortExprDigest;
 
 /** An abstract relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
@@ -170,10 +170,8 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
         }
         case SORT_EXPR -> {
           @SuppressWarnings("unchecked")
-          List<SortExpressionInfo> sortKeys = (List<SortExpressionInfo>) operation.digest();
-          long complexExprCount =
-              sortKeys.stream().filter(info -> info.getExpression() != null).count();
-          dCpu += NumberUtil.multiply(dRows, 1.1 * complexExprCount);
+          List<SortExprDigest> sortKeys = (List<SortExprDigest>) operation.digest();
+          dCpu += NumberUtil.multiply(dRows, 1.1 * sortKeys.size());
         }
           // Refer the org.apache.calcite.rel.metadata.RelMdRowCount.getRowCount(Aggregate rel,...)
         case COLLAPSE -> {

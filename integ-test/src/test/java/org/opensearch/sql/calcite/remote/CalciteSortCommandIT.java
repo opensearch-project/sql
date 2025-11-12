@@ -6,7 +6,6 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyOrder;
@@ -102,81 +101,5 @@ public class CalciteSortCommandIT extends SortCommandIT {
     JSONObject result = executeQuery(ppl);
     verifySchema(result, schema("age", "int"), schema("age2", "double"));
     verifyOrder(result, rows(28, 28d), rows(32, 32d));
-  }
-
-  @Test
-  public void testPushdownSortStringExpression() throws IOException {
-    String ppl =
-        String.format(
-            "source=%s | eval firstname2 = substring(firstname, 0, 3) | sort firstname2 | fields"
-                + " firstname2, firstname",
-            TEST_INDEX_BANK_WITH_NULL_VALUES);
-    if (!isPushdownDisabled()) {
-      String explained = explainQueryToString(ppl);
-      assertTrue(explained.contains("SORT_EXPR->[SUBSTRING($0, 0, 3) ASCENDING NULLS_FIRST]"));
-    }
-
-    JSONObject result = executeQuery(ppl);
-    verifySchema(result, schema("firstname2", "string"), schema("firstname", "string"));
-    verifyOrder(
-        result,
-        rows("Am", "Amber JOHnny"),
-        rows("Da", "Dale"),
-        rows("Di", "Dillard"),
-        rows("El", "Elinor"),
-        rows("Ha", "Hattie"),
-        rows("Na", "Nanette"),
-        rows("Vi", "Virginia"));
-  }
-
-  @Test
-  public void testPushdownSortExpressionContainsNull() throws IOException {
-    String ppl =
-        String.format(
-            "source=%s | eval balance2 = abs(balance) | sort -balance2 | fields balance, balance2",
-            TEST_INDEX_BANK_WITH_NULL_VALUES);
-    if (!isPushdownDisabled()) {
-      String explained = explainQueryToString(ppl);
-      assertTrue(explained.contains("SORT_EXPR->[ABS($0) DESCENDING NULLS_LAST]"));
-    }
-
-    JSONObject result = executeQuery(ppl);
-    verifySchema(result, schema("balance", "bigint"), schema("balance2", "bigint"));
-    verifyOrder(
-        result,
-        rows(48086, 48086),
-        rows(39225, 39225),
-        rows(32838, 32838),
-        rows(4180, 4180),
-        rows(null, null),
-        rows(null, null),
-        rows(null, null));
-  }
-
-  @Test
-  public void testPushdownSortExpressionWithMixedFieldSort() throws IOException {
-    String ppl =
-        String.format(
-            "source=%s | eval balance2 = abs(balance) | sort -balance2, account_number | fields"
-                + " balance2, account_number",
-            TEST_INDEX_BANK_WITH_NULL_VALUES);
-    if (!isPushdownDisabled()) {
-      String explained = explainQueryToString(ppl);
-      assertTrue(
-          explained.contains(
-              "SORT_EXPR->[ABS($1) DESCENDING NULLS_LAST, account_number ASCENDING NULLS_FIRST]"));
-    }
-
-    JSONObject result = executeQuery(ppl);
-    verifySchema(result, schema("balance2", "bigint"), schema("account_number", "bigint"));
-    verifyOrder(
-        result,
-        rows(48086, 32),
-        rows(39225, 1),
-        rows(32838, 13),
-        rows(4180, 18),
-        rows(null, 6),
-        rows(null, 20),
-        rows(null, 25));
   }
 }
