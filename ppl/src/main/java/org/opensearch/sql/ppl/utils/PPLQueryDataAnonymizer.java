@@ -109,11 +109,11 @@ import org.opensearch.sql.planner.logical.LogicalSort;
 /** Utility class to mask sensitive information in incoming PPL queries. */
 public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> {
 
-  private static final String MASK_LITERAL = "***";
+  public static final String MASK_LITERAL = "***";
 
-  private static final String MASK_COLUMN = "identifier";
+  public static final String MASK_COLUMN = "identifier";
 
-  private static final String MASK_TABLE = "table";
+  public static final String MASK_TABLE = "table";
 
   private final AnonymizerExpressionAnalyzer expressionAnalyzer;
   private final Settings settings;
@@ -253,9 +253,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   @Override
   public String visitSearch(Search node, String context) {
     String source = node.getChild().get(0).accept(this, context);
-    String queryString = node.getQueryString();
-    String anonymized = queryString.replaceAll(":\\S+", ":" + MASK_LITERAL);
-    return StringUtils.format("%s %s", source, anonymized);
+    return StringUtils.format("%s %s", source, node.getOriginalExpression().toAnonymizedString());
   }
 
   @Override

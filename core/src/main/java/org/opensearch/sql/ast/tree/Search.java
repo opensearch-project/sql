@@ -12,6 +12,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.expression.SearchExpression;
 
 /**
  * Logical plan node for Search operation. Represents search expressions that get converted to
@@ -25,6 +26,7 @@ public class Search extends UnresolvedPlan {
 
   private final UnresolvedPlan child;
   private final String queryString;
+  private final SearchExpression originalExpression;
 
   @Override
   public List<UnresolvedPlan> getChild() {
@@ -38,6 +40,6 @@ public class Search extends UnresolvedPlan {
 
   @Override
   public UnresolvedPlan attach(UnresolvedPlan child) {
-    return new Search(child, queryString);
+    return new Search(child, queryString, originalExpression);
   }
 }

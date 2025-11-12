@@ -214,7 +214,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
       // Create Search node with relation and query string
       Relation relation = (Relation) visitFromClause(ctx.fromClause());
-      return new Search(relation, queryString);
+      return new Search(relation, queryString, combined);
     }
   }
 

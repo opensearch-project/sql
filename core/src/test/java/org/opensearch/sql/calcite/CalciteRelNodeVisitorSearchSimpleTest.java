@@ -36,7 +36,7 @@ public class CalciteRelNodeVisitorSearchSimpleTest {
     // Arrange
     String queryString = "field:value";
     Relation relation = new Relation(AstDSL.qualifiedName("test_index"));
-    Search searchNode = new Search(relation, queryString);
+    Search searchNode = new Search(relation, queryString, null);
 
     // Act & Assert - should throw NPE without proper context
     assertThrows(
@@ -53,7 +53,7 @@ public class CalciteRelNodeVisitorSearchSimpleTest {
     Relation relation = new Relation(AstDSL.qualifiedName("test_index"));
 
     // Act
-    Search searchNode = new Search(relation, queryString);
+    Search searchNode = new Search(relation, queryString, null);
 
     // Assert
     assertNotNull(searchNode);
@@ -70,7 +70,7 @@ public class CalciteRelNodeVisitorSearchSimpleTest {
     Relation relation = new Relation(AstDSL.qualifiedName("test_index"));
 
     // Act
-    Search searchNode = new Search(relation, queryString);
+    Search searchNode = new Search(relation, queryString, null);
 
     // Assert
     assertEquals("", searchNode.getQueryString());
@@ -84,7 +84,7 @@ public class CalciteRelNodeVisitorSearchSimpleTest {
     Relation relation = new Relation(AstDSL.qualifiedName("test_index"));
 
     // Act
-    Search searchNode = new Search(relation, queryString);
+    Search searchNode = new Search(relation, queryString, null);
 
     // Assert
     assertEquals(queryString, searchNode.getQueryString());
@@ -97,7 +97,7 @@ public class CalciteRelNodeVisitorSearchSimpleTest {
     Relation relation = new Relation(AstDSL.qualifiedName("test_index"));
 
     // Act
-    Search searchNode = new Search(relation, queryString);
+    Search searchNode = new Search(relation, queryString, null);
 
     // Assert
     assertEquals(queryString, searchNode.getQueryString());
