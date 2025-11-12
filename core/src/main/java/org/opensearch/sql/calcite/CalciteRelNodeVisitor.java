@@ -105,6 +105,7 @@ import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.CloseCursor;
@@ -245,6 +246,28 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       context.relBuilder.filter(condition);
     }
     return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitAppendPipe(AppendPipe node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    UnresolvedPlan subqueryPlan = node.getSubQuery();
+    UnresolvedPlan childNode = subqueryPlan;
+    while (childNode.getChild() != null
+        && !childNode.getChild().isEmpty()
+        && !(childNode.getChild().get(0) instanceof Values)) {
+      if (childNode.getChild().size() > 1) {
+        throw new RuntimeException("AppendPipe doesn't support multiply children subquery.");
+      }
+      childNode = (UnresolvedPlan) childNode.getChild().get(0);
+    }
+    childNode.attach(node.getChild().get(0));
+
+    subqueryPlan.accept(this, context);
+
+    RelNode subPipelineNode = context.relBuilder.build();
+    RelNode mainNode = context.relBuilder.build();
+    return mergeTableAndResolveColumnConflict(mainNode, subPipelineNode, context);
   }
 
   @Override
@@ -2137,9 +2160,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // 3. Merge two query schemas using shared logic
     RelNode subsearchNode = context.relBuilder.build();
     RelNode mainNode = context.relBuilder.build();
+    return mergeTableAndResolveColumnConflict(mainNode, subsearchNode, context);
+  }
 
+  private RelNode mergeTableAndResolveColumnConflict(
+      RelNode mainNode, RelNode subqueryNode, CalcitePlanContext context) {
     // Use shared schema merging logic that handles type conflicts via field renaming
-    List<RelNode> nodesToMerge = Arrays.asList(mainNode, subsearchNode);
+    List<RelNode> nodesToMerge = Arrays.asList(mainNode, subqueryNode);
     List<RelNode> projectedNodes =
         SchemaUnifier.buildUnifiedSchemaWithConflictResolution(nodesToMerge, context);
 
