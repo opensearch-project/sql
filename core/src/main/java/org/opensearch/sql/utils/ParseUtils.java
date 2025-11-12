@@ -32,7 +32,7 @@ public class ParseUtils {
       ImmutableMap.of(
           ParseMethod.REGEX, BuiltinFunctionName.INTERNAL_PARSE,
           ParseMethod.GROK, BuiltinFunctionName.INTERNAL_GROK,
-          ParseMethod.PATTERNS, BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_3);
+          ParseMethod.PATTERNS, BuiltinFunctionName.REPLACE);
 
   /**
    * Construct corresponding ParseExpression by {@link ParseMethod}.

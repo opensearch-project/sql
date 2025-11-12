@@ -83,7 +83,6 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNA
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PARSE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PATTERN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PATTERN_PARSER;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_3;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_5;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_PG_4;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_TRANSLATE3;
@@ -170,7 +169,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.RAND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RANGE_BUCKET;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REDUCE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEXP;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEX_MATCH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEXP_MATCH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REPLACE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REVERSE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REX_EXTRACT;
@@ -832,7 +831,7 @@ public class PPLFuncImpTable {
 
       // Register library operator
       registerOperator(REGEXP, SqlLibraryOperators.REGEXP);
-      registerOperator(REGEX_MATCH, SqlLibraryOperators.REGEXP_CONTAINS);
+      registerOperator(REGEXP_MATCH, SqlLibraryOperators.REGEXP_CONTAINS);
       registerOperator(CONCAT, SqlLibraryOperators.CONCAT_FUNCTION);
       registerOperator(CONCAT_WS, SqlLibraryOperators.CONCAT_WS);
       registerOperator(CONCAT_WS, SqlLibraryOperators.CONCAT_WS);
@@ -843,7 +842,6 @@ public class PPLFuncImpTable {
       registerOperator(MD5, SqlLibraryOperators.MD5);
       registerOperator(SHA1, SqlLibraryOperators.SHA1);
       registerOperator(CRC32, SqlLibraryOperators.CRC32);
-      registerOperator(INTERNAL_REGEXP_REPLACE_3, SqlLibraryOperators.REGEXP_REPLACE_3);
       registerOperator(INTERNAL_REGEXP_REPLACE_PG_4, SqlLibraryOperators.REGEXP_REPLACE_PG_4);
       registerOperator(INTERNAL_REGEXP_REPLACE_5, SqlLibraryOperators.REGEXP_REPLACE_5);
       registerOperator(INTERNAL_TRANSLATE3, SqlLibraryOperators.TRANSLATE3);
