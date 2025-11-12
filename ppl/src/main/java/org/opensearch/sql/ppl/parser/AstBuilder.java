@@ -111,10 +111,10 @@ import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
-import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
@@ -763,7 +763,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitTimechartCommand(OpenSearchPPLParser.TimechartCommandContext ctx) {
     UnresolvedExpression binExpression =
-        AstDSL.span(AstDSL.referImplicitTimestampField(), AstDSL.intLiteral(1), SpanUnit.m);
+        AstDSL.span(AstDSL.implicitTimestampField(), AstDSL.intLiteral(1), SpanUnit.m);
     Integer limit = 10;
     Boolean useOther = true;
     // Process timechart parameters
@@ -781,16 +781,26 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         }
       }
     }
+    UnresolvedExpression aggregateFunction = parseAggTerms(List.of(ctx.statsAggTerm())).get(0);
 
-    UnresolvedExpression aggregateFunction = internalVisitExpression(ctx.statsFunction());
     UnresolvedExpression byField =
         ctx.fieldExpression() != null ? internalVisitExpression(ctx.fieldExpression()) : null;
-
-    return new Timechart(null, aggregateFunction)
-        .span(binExpression)
-        .by(byField)
-        .limit(limit)
-        .useOther(useOther);
+    List<Argument> arguments =
+        List.of(
+            new Argument("limit", AstDSL.intLiteral(limit)),
+            new Argument("useother", AstDSL.booleanLiteral(useOther)));
+    binExpression = AstDSL.alias(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP, binExpression);
+    if (byField != null) {
+      byField =
+          AstDSL.alias(
+              StringUtils.unquoteIdentifier(getTextInQuery(ctx.fieldExpression())), byField);
+    }
+    return Chart.builder()
+        .aggregationFunction(aggregateFunction)
+        .rowSplit(binExpression)
+        .columnSplit(byField)
+        .arguments(arguments)
+        .build();
   }
 
   /** Eval command. */

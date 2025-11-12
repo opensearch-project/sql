@@ -69,7 +69,6 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SpanClauseContext
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsFunctionCallContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StringLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceContext;
-import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TimechartCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WcFieldExpressionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
@@ -588,9 +587,18 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitPerFunctionCall(PerFunctionCallContext ctx) {
-    ParseTree parent = ctx.getParent();
     String perFuncName = ctx.perFunction().funcName.getText();
-    if (!(parent instanceof TimechartCommandContext)) {
+    // Walk up the parent tree to find timechart command context
+    ParseTree current = ctx.getParent();
+    boolean foundTimechartContext = false;
+    while (current != null) {
+      if (current instanceof OpenSearchPPLParser.TimechartCommandContext) {
+        foundTimechartContext = true;
+        break;
+      }
+      current = current.getParent();
+    }
+    if (!foundTimechartContext) {
       throw new SyntaxCheckException(
           perFuncName + " function can only be used within timechart command");
     }
@@ -672,7 +680,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     if (ctx.fieldExpression() != null) {
       fieldExpression = visit(ctx.fieldExpression());
     } else {
-      fieldExpression = AstDSL.referImplicitTimestampField();
+      fieldExpression = AstDSL.implicitTimestampField();
     }
     Literal literal = (Literal) visit(ctx.value);
     return AstDSL.spanFromSpanLengthLiteral(fieldExpression, literal);
@@ -978,7 +986,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
       // Convert span=1h to span(@timestamp, 1h)
       Literal spanLiteral = (Literal) visit(ctx.spanLiteral());
       timechartParameter =
-          AstDSL.spanFromSpanLengthLiteral(AstDSL.referImplicitTimestampField(), spanLiteral);
+          AstDSL.spanFromSpanLengthLiteral(AstDSL.implicitTimestampField(), spanLiteral);
     } else if (ctx.LIMIT() != null) {
       Literal limit = (Literal) visit(ctx.integerLiteral());
       if ((Integer) limit.getValue() < 0) {

@@ -62,7 +62,7 @@ import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
 import org.opensearch.sql.ast.expression.SpanUnit;
-import org.opensearch.sql.ast.tree.Timechart;
+import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 
@@ -1394,16 +1394,19 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   public void testTimechartSpanParameter() {
     assertEqual(
         "source=t | timechart span=30m count()",
-        Timechart.builder()
+        Chart.builder()
             .child(relation("t"))
-            .binExpression(
-                span(
-                    field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP),
-                    intLiteral(30),
-                    SpanUnit.m))
-            .aggregateFunction(aggregate("count", allFields()))
-            .limit(10)
-            .useOther(true)
+            .rowSplit(
+                alias(
+                    "@timestamp",
+                    span(
+                        field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP),
+                        intLiteral(30),
+                        SpanUnit.m)))
+            .aggregationFunction(alias("count()", aggregate("count", allFields())))
+            .arguments(
+                exprList(
+                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
             .build());
   }
 
@@ -1411,14 +1414,19 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   public void testTimechartLimitParameter() {
     assertEqual(
         "source=t | timechart limit=100 count()",
-        Timechart.builder()
+        Chart.builder()
             .child(relation("t"))
-            .binExpression(
-                span(
-                    field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP), intLiteral(1), SpanUnit.m))
-            .aggregateFunction(aggregate("count", allFields()))
-            .limit(100)
-            .useOther(true)
+            .rowSplit(
+                alias(
+                    "@timestamp",
+                    span(
+                        field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP),
+                        intLiteral(1),
+                        SpanUnit.m)))
+            .aggregationFunction(alias("count()", aggregate("count", allFields())))
+            .arguments(
+                exprList(
+                    argument("limit", intLiteral(100)), argument("useother", booleanLiteral(true))))
             .build());
   }
 
@@ -1433,26 +1441,36 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   public void testTimechartUseOtherWithBooleanLiteral() {
     assertEqual(
         "source=t | timechart useother=true count()",
-        Timechart.builder()
+        Chart.builder()
             .child(relation("t"))
-            .binExpression(
-                span(
-                    field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP), intLiteral(1), SpanUnit.m))
-            .aggregateFunction(aggregate("count", allFields()))
-            .limit(10)
-            .useOther(true)
+            .rowSplit(
+                alias(
+                    "@timestamp",
+                    span(
+                        field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP),
+                        intLiteral(1),
+                        SpanUnit.m)))
+            .aggregationFunction(alias("count()", aggregate("count", allFields())))
+            .arguments(
+                exprList(
+                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
             .build());
 
     assertEqual(
         "source=t | timechart useother=false count()",
-        Timechart.builder()
+        Chart.builder()
             .child(relation("t"))
-            .binExpression(
-                span(
-                    field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP), intLiteral(1), SpanUnit.m))
-            .aggregateFunction(aggregate("count", allFields()))
-            .limit(10)
-            .useOther(false)
+            .rowSplit(
+                alias(
+                    "@timestamp",
+                    span(
+                        field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP),
+                        intLiteral(1),
+                        SpanUnit.m)))
+            .aggregationFunction(alias("count()", aggregate("count", allFields())))
+            .arguments(
+                exprList(
+                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(false))))
             .build());
   }
 
@@ -1460,50 +1478,70 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   public void testTimechartUseOtherWithIdentifier() {
     assertEqual(
         "source=t | timechart useother=t count()",
-        Timechart.builder()
+        Chart.builder()
             .child(relation("t"))
-            .binExpression(
-                span(
-                    field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP), intLiteral(1), SpanUnit.m))
-            .aggregateFunction(aggregate("count", allFields()))
-            .limit(10)
-            .useOther(true)
+            .rowSplit(
+                alias(
+                    "@timestamp",
+                    span(
+                        field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP),
+                        intLiteral(1),
+                        SpanUnit.m)))
+            .aggregationFunction(alias("count()", aggregate("count", allFields())))
+            .arguments(
+                exprList(
+                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
             .build());
 
     assertEqual(
         "source=t | timechart useother=f count()",
-        Timechart.builder()
+        Chart.builder()
             .child(relation("t"))
-            .binExpression(
-                span(
-                    field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP), intLiteral(1), SpanUnit.m))
-            .aggregateFunction(aggregate("count", allFields()))
-            .limit(10)
-            .useOther(false)
+            .rowSplit(
+                alias(
+                    "@timestamp",
+                    span(
+                        field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP),
+                        intLiteral(1),
+                        SpanUnit.m)))
+            .aggregationFunction(alias("count()", aggregate("count", allFields())))
+            .arguments(
+                exprList(
+                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(false))))
             .build());
 
     assertEqual(
         "source=t | timechart useother=TRUE count()",
-        Timechart.builder()
+        Chart.builder()
             .child(relation("t"))
-            .binExpression(
-                span(
-                    field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP), intLiteral(1), SpanUnit.m))
-            .aggregateFunction(aggregate("count", allFields()))
-            .limit(10)
-            .useOther(true)
+            .rowSplit(
+                alias(
+                    "@timestamp",
+                    span(
+                        field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP),
+                        intLiteral(1),
+                        SpanUnit.m)))
+            .aggregationFunction(alias("count()", aggregate("count", allFields())))
+            .arguments(
+                exprList(
+                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
             .build());
 
     assertEqual(
         "source=t | timechart useother=FALSE count()",
-        Timechart.builder()
+        Chart.builder()
             .child(relation("t"))
-            .binExpression(
-                span(
-                    field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP), intLiteral(1), SpanUnit.m))
-            .aggregateFunction(aggregate("count", allFields()))
-            .limit(10)
-            .useOther(false)
+            .rowSplit(
+                alias(
+                    "@timestamp",
+                    span(
+                        field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP),
+                        intLiteral(1),
+                        SpanUnit.m)))
+            .aggregationFunction(alias("count()", aggregate("count", allFields())))
+            .arguments(
+                exprList(
+                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(false))))
             .build());
   }
 
@@ -1567,42 +1605,55 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
     // Test span literal with integer value and hour unit
     assertEqual(
         "source=t | timechart span=1h count()",
-        Timechart.builder()
+        Chart.builder()
             .child(relation("t"))
-            .binExpression(
-                span(
-                    field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP), intLiteral(1), SpanUnit.H))
-            .aggregateFunction(aggregate("count", allFields()))
-            .limit(10)
-            .useOther(true)
+            .rowSplit(
+                alias(
+                    "@timestamp",
+                    span(
+                        field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP),
+                        intLiteral(1),
+                        SpanUnit.H)))
+            .aggregationFunction(alias("count()", aggregate("count", allFields())))
+            .arguments(
+                exprList(
+                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
             .build());
 
     // Test span literal with decimal value and minute unit
     assertEqual(
         "source=t | timechart span=2m count()",
-        Timechart.builder()
+        Chart.builder()
             .child(relation("t"))
-            .binExpression(
-                span(
-                    field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP), intLiteral(2), SpanUnit.m))
-            .aggregateFunction(aggregate("count", allFields()))
-            .limit(10)
-            .useOther(true)
+            .rowSplit(
+                alias(
+                    "@timestamp",
+                    span(
+                        field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP),
+                        intLiteral(2),
+                        SpanUnit.m)))
+            .aggregationFunction(alias("count()", aggregate("count", allFields())))
+            .arguments(
+                exprList(
+                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
             .build());
 
     // Test span literal without unit (should use NONE unit)
     assertEqual(
         "source=t | timechart span=10 count()",
-        Timechart.builder()
+        Chart.builder()
             .child(relation("t"))
-            .binExpression(
-                span(
-                    field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP),
-                    intLiteral(10),
-                    SpanUnit.NONE))
-            .aggregateFunction(aggregate("count", allFields()))
-            .limit(10)
-            .useOther(true)
+            .rowSplit(
+                alias(
+                    "@timestamp",
+                    span(
+                        field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP),
+                        intLiteral(10),
+                        SpanUnit.NONE)))
+            .aggregationFunction(alias("count()", aggregate("count", allFields())))
+            .arguments(
+                exprList(
+                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
             .build());
   }
 
