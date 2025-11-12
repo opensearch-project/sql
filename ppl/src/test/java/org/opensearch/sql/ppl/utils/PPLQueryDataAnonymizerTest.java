@@ -260,6 +260,34 @@ public class PPLQueryDataAnonymizerTest {
         anonymize("source=t | timechart count() by host"));
   }
 
+  @Test
+  public void testChartCommand() {
+    assertEquals(
+        "source=table | chart count(identifier) by identifier identifier",
+        anonymize("source=t | chart count(age) by gender country"));
+  }
+
+  @Test
+  public void testChartCommandWithParameters() {
+    assertEquals(
+        "source=table | chart limit=*** useother=*** avg(identifier) by identifier",
+        anonymize("source=t | chart limit=5 useother=false avg(balance) by state"));
+  }
+
+  @Test
+  public void testChartCommandOver() {
+    assertEquals(
+        "source=table | chart avg(identifier) by identifier",
+        anonymize("source=t | chart avg(balance) over gender"));
+  }
+
+  @Test
+  public void testChartCommandOverBy() {
+    assertEquals(
+        "source=table | chart sum(identifier) by identifier identifier",
+        anonymize("source=t | chart sum(amount) over gender by age"));
+  }
+
   // todo, sort order is ignored, it doesn't impact the log analysis.
   @Test
   public void testSortCommandWithOptions() {
@@ -723,6 +751,19 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=table | regex identifier=*** | fields + identifier",
         anonymize("source=t | regex email='.*@domain.com' | fields email"));
+  }
+
+  @Test
+  public void testAppendPipe() {
+    assertEquals(
+        "source=table | appendpipe [ | stats count()]",
+        anonymize("source=t | appendpipe [stats count()]"));
+    assertEquals(
+        "source=table | appendpipe [ | where identifier = ***]",
+        anonymize("source=t | appendpipe [where fieldname=='pattern']"));
+    assertEquals(
+        "source=table | appendpipe [ | sort identifier]",
+        anonymize("source=t | appendpipe [sort fieldname]"));
   }
 
   @Test

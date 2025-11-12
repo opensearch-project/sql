@@ -119,6 +119,8 @@ The query start with search command and then flowing a set of command delimited 
   - `reverse command <cmd/reverse.rst>`_
 
   - `table command <cmd/table.rst>`_
+
+  - `chart command <cmd/chart.rst>`_
   
   - `timechart command <cmd/timechart.rst>`_
 

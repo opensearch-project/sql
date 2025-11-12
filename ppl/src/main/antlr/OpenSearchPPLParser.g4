@@ -19,6 +19,10 @@ pplStatement
    | queryStatement
    ;
 
+subPipeline
+   : PIPE? commands (PIPE commands)*
+   ;
+
 queryStatement
    : (PIPE)? pplCommands (PIPE commands)*
    ;
@@ -77,8 +81,10 @@ commands
    | flattenCommand
    | reverseCommand
    | regexCommand
+   | chartCommand
    | timechartCommand
    | rexCommand
+   | appendPipeCommand
    | replaceCommand
    ;
 
@@ -119,6 +125,7 @@ commandName
    | APPEND
    | MULTISEARCH
    | REX
+   | APPENDPIPE
    | REPLACE
    ;
 
@@ -219,6 +226,10 @@ statsCommand
    : STATS statsArgs statsAggTerm (COMMA statsAggTerm)* (statsByClause)? (dedupSplitArg)?
    ;
 
+appendPipeCommand
+   : APPENDPIPE LT_SQR_PRTHS subPipeline RT_SQR_PRTHS
+   ;
+
 statsArgs
    : (partitionsArg | allnumArg | delimArg | bucketNullableArg)*
    ;
@@ -286,6 +297,28 @@ sortCommand
 reverseCommand
    : REVERSE
    ;
+
+chartCommand
+  : CHART chartOptions* statsAggTerm (OVER rowSplit)? (BY columnSplit)?
+  | CHART chartOptions* statsAggTerm BY rowSplit (COMMA)? columnSplit
+  ;
+
+chartOptions
+  : LIMIT EQUAL integerLiteral
+  | LIMIT EQUAL (TOP_K | BOTTOM_K)
+  | USEOTHER EQUAL booleanLiteral
+  | OTHERSTR EQUAL stringLiteral
+  | USENULL EQUAL booleanLiteral
+  | NULLSTR EQUAL stringLiteral
+  ;
+
+rowSplit
+  : fieldExpression binOption*
+  ;
+
+columnSplit
+  : fieldExpression binOption*
+  ;
 
 timechartCommand
    : TIMECHART timechartParameter* statsFunction (BY fieldExpression)?
@@ -1231,7 +1264,7 @@ conditionFunctionName
    | ISNULL
    | ISNOTNULL
    | CIDRMATCH
-   | REGEX_MATCH
+   | REGEXP_MATCH
    | JSON_VALID
    | ISPRESENT
    | ISEMPTY
@@ -1271,6 +1304,7 @@ textFunctionName
    | LOCATE
    | REPLACE
    | REVERSE
+   | REGEXP_REPLACE
    ;
 
 positionFunctionName

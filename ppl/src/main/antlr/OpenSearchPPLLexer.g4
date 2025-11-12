@@ -46,6 +46,7 @@ ML:                                 'ML';
 FILLNULL:                           'FILLNULL';
 FLATTEN:                            'FLATTEN';
 TRENDLINE:                          'TRENDLINE';
+CHART:                              'CHART';
 TIMECHART:                          'TIMECHART';
 APPENDCOL:                          'APPENDCOL';
 EXPAND:                             'EXPAND';
@@ -61,6 +62,7 @@ BUFFER_LIMIT:                       'BUFFER_LIMIT';
 LABEL:                              'LABEL';
 SHOW_NUMBERED_TOKEN:                'SHOW_NUMBERED_TOKEN';
 AGGREGATION:                        'AGGREGATION';
+APPENDPIPE:                         'APPENDPIPE';
 
 //Native JOIN KEYWORDS
 JOIN:                               'JOIN';
@@ -77,6 +79,7 @@ RIGHT_HINT:                         'HINT.RIGHT';
 // COMMAND ASSIST KEYWORDS
 AS:                                 'AS';
 BY:                                 'BY';
+OVER:                               'OVER';
 SOURCE:                             'SOURCE';
 INDEX:                              'INDEX';
 A:                                  'A';
@@ -93,6 +96,8 @@ COST:                               'COST';
 EXTENDED:                           'EXTENDED';
 OVERRIDE:                           'OVERRIDE';
 OVERWRITE:                          'OVERWRITE';
+TOP_K:                              'TOP'[0-9]+;
+BOTTOM_K:                           'BOTTOM'[0-9]+;
 
 // SORT FIELD KEYWORDS
 // TODO #3180: Fix broken sort functionality
@@ -138,6 +143,8 @@ COUNTFIELD:                         'COUNTFIELD';
 SHOWCOUNT:                          'SHOWCOUNT';
 LIMIT:                              'LIMIT';
 USEOTHER:                           'USEOTHER';
+OTHERSTR:                           'OTHERSTR';
+NULLSTR:                            'NULLSTR';
 INPUT:                              'INPUT';
 OUTPUT:                             'OUTPUT';
 PATH:                               'PATH';
@@ -159,7 +166,8 @@ XOR:                                'XOR';
 TRUE:                               'TRUE';
 FALSE:                              'FALSE';
 REGEXP:                             'REGEXP';
-REGEX_MATCH:                        'REGEX_MATCH';
+REGEXP_MATCH:                       'REGEXP_MATCH' | 'REGEX_MATCH';
+REGEXP_REPLACE:                     'REGEXP_REPLACE';
 
 // DATETIME, INTERVAL AND UNIT KEYWORDS
 CONVERT_TZ:                         'CONVERT_TZ';

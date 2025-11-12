@@ -83,7 +83,6 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNA
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PARSE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PATTERN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PATTERN_PARSER;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_3;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_5;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_PG_4;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_TRANSLATE3;
@@ -136,6 +135,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MD5;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MEDIAN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MICROSECOND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MIN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINSPAN_BUCKET;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE_OF_DAY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE_OF_HOUR;
@@ -166,9 +166,10 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.QUARTER
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.QUERY_STRING;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RADIANS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RAND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RANGE_BUCKET;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REDUCE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEXP;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEX_MATCH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEXP_MATCH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REPLACE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REVERSE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REX_EXTRACT;
@@ -189,6 +190,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIMPLE_
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SINH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SPAN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SPAN_BUCKET;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SQRT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_POP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_SAMP;
@@ -230,6 +232,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEK;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEKDAY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEKOFYEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEK_OF_YEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.WIDTH_BUCKET;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.XOR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEARWEEK;
@@ -707,6 +710,11 @@ public class PPLFuncImpTable {
           SUBTRACT,
           SqlStdOperatorTable.MINUS,
           PPLTypeChecker.wrapFamily((FamilyOperandTypeChecker) OperandTypes.NUMERIC_NUMERIC));
+      // Add DATETIME-DATETIME variant for timestamp binning support
+      registerOperator(
+          SUBTRACT,
+          SqlStdOperatorTable.MINUS,
+          PPLTypeChecker.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME));
       registerOperator(MULTIPLY, SqlStdOperatorTable.MULTIPLY);
       registerOperator(MULTIPLYFUNCTION, SqlStdOperatorTable.MULTIPLY);
       registerOperator(TRUNCATE, SqlStdOperatorTable.TRUNCATE);
@@ -823,7 +831,7 @@ public class PPLFuncImpTable {
 
       // Register library operator
       registerOperator(REGEXP, SqlLibraryOperators.REGEXP);
-      registerOperator(REGEX_MATCH, SqlLibraryOperators.REGEXP_CONTAINS);
+      registerOperator(REGEXP_MATCH, SqlLibraryOperators.REGEXP_CONTAINS);
       registerOperator(CONCAT, SqlLibraryOperators.CONCAT_FUNCTION);
       registerOperator(CONCAT_WS, SqlLibraryOperators.CONCAT_WS);
       registerOperator(CONCAT_WS, SqlLibraryOperators.CONCAT_WS);
@@ -834,7 +842,6 @@ public class PPLFuncImpTable {
       registerOperator(MD5, SqlLibraryOperators.MD5);
       registerOperator(SHA1, SqlLibraryOperators.SHA1);
       registerOperator(CRC32, SqlLibraryOperators.CRC32);
-      registerOperator(INTERNAL_REGEXP_REPLACE_3, SqlLibraryOperators.REGEXP_REPLACE_3);
       registerOperator(INTERNAL_REGEXP_REPLACE_PG_4, SqlLibraryOperators.REGEXP_REPLACE_PG_4);
       registerOperator(INTERNAL_REGEXP_REPLACE_5, SqlLibraryOperators.REGEXP_REPLACE_5);
       registerOperator(INTERNAL_TRANSLATE3, SqlLibraryOperators.TRANSLATE3);
@@ -849,6 +856,10 @@ public class PPLFuncImpTable {
       registerOperator(EXPM1, PPLBuiltinOperators.EXPM1);
       registerOperator(RINT, PPLBuiltinOperators.RINT);
       registerOperator(SPAN, PPLBuiltinOperators.SPAN);
+      registerOperator(SPAN_BUCKET, PPLBuiltinOperators.SPAN_BUCKET);
+      registerOperator(WIDTH_BUCKET, PPLBuiltinOperators.WIDTH_BUCKET);
+      registerOperator(MINSPAN_BUCKET, PPLBuiltinOperators.MINSPAN_BUCKET);
+      registerOperator(RANGE_BUCKET, PPLBuiltinOperators.RANGE_BUCKET);
       registerOperator(E, PPLBuiltinOperators.E);
       registerOperator(CONV, PPLBuiltinOperators.CONV);
       registerOperator(MOD, PPLBuiltinOperators.MOD);
