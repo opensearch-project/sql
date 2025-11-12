@@ -62,6 +62,7 @@ BUFFER_LIMIT:                       'BUFFER_LIMIT';
 LABEL:                              'LABEL';
 SHOW_NUMBERED_TOKEN:                'SHOW_NUMBERED_TOKEN';
 AGGREGATION:                        'AGGREGATION';
+APPENDPIPE:                         'APPENDPIPE';
 
 //Native JOIN KEYWORDS
 JOIN:                               'JOIN';

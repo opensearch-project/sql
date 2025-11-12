@@ -48,6 +48,7 @@ import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.CloseCursor;
@@ -138,6 +139,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitSearch(Search node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitAppendPipe(AppendPipe node, C context) {
     return visitChildren(node, context);
   }
 
