@@ -413,39 +413,40 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
             + " \"Quebec\",\"country\": \"USA\",\"year\": 2023,\"month\":"
             + " 4}\n");
     client().performRequest(insertRequest);
+    try {
+      JSONObject actual =
+          executeQuery(
+              String.format(
+                  "source=%s | streamstats window=2 global=false avg(age) as avg by country",
+                  TEST_INDEX_STATE_COUNTRY));
 
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | streamstats window=2 global=false avg(age) as avg by country",
-                TEST_INDEX_STATE_COUNTRY));
+      verifyDataRows(
+          actual,
+          rows("Jake", "USA", "California", 4, 2023, 70, 70),
+          rows("Hello", "USA", "New York", 4, 2023, 30, 50),
+          rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+          rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
+          rows("Jay", "USA", "Quebec", 4, 2023, 40, 35));
 
-    verifyDataRows(
-        actual,
-        rows("Jake", "USA", "California", 4, 2023, 70, 70),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 50),
-        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
-        rows("Jay", "USA", "Quebec", 4, 2023, 40, 35));
+      JSONObject actual2 =
+          executeQuery(
+              String.format(
+                  "source=%s | streamstats window=2 global=true avg(age) as avg by country",
+                  TEST_INDEX_STATE_COUNTRY));
 
-    JSONObject actual2 =
-        executeQuery(
-            String.format(
-                "source=%s | streamstats window=2 global=true avg(age) as avg by country",
-                TEST_INDEX_STATE_COUNTRY));
-
-    verifyDataRows(
-        actual2,
-        rows("Jake", "USA", "California", 4, 2023, 70, 70),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 50),
-        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
-        rows("Jay", "USA", "Quebec", 4, 2023, 40, 40));
-
-    Request deleteRequest =
-        new Request(
-            "DELETE", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY, docId));
-    client().performRequest(deleteRequest);
+      verifyDataRows(
+          actual2,
+          rows("Jake", "USA", "California", 4, 2023, 70, 70),
+          rows("Hello", "USA", "New York", 4, 2023, 30, 50),
+          rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+          rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
+          rows("Jay", "USA", "Quebec", 4, 2023, 40, 40));
+    } finally {
+      Request deleteRequest =
+          new Request(
+              "DELETE", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY, docId));
+      client().performRequest(deleteRequest);
+    }
   }
 
   @Test
@@ -460,44 +461,45 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
             + " \"Quebec\",\"country\": \"USA\",\"year\": 2023,\"month\":"
             + " 4}\n");
     client().performRequest(insertRequest);
+    try {
+      JSONObject actual =
+          executeQuery(
+              String.format(
+                  "source=%s | streamstats window=2 global=false avg(age) as avg by country",
+                  TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | streamstats window=2 global=false avg(age) as avg by country",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+      verifyDataRows(
+          actual,
+          rows("Jake", "USA", "California", 4, 2023, 70, 70),
+          rows("Hello", "USA", "New York", 4, 2023, 30, 50),
+          rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+          rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
+          rows(null, "Canada", null, 4, 2023, 10, 15),
+          rows("Kevin", null, null, 4, 2023, null, null),
+          rows("Jay", "USA", "Quebec", 4, 2023, 40, 35));
 
-    verifyDataRows(
-        actual,
-        rows("Jake", "USA", "California", 4, 2023, 70, 70),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 50),
-        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
-        rows(null, "Canada", null, 4, 2023, 10, 15),
-        rows("Kevin", null, null, 4, 2023, null, null),
-        rows("Jay", "USA", "Quebec", 4, 2023, 40, 35));
+      JSONObject actual2 =
+          executeQuery(
+              String.format(
+                  "source=%s | streamstats window=2 global=true avg(age) as avg by country",
+                  TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
-    JSONObject actual2 =
-        executeQuery(
-            String.format(
-                "source=%s | streamstats window=2 global=true avg(age) as avg by country",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
-
-    verifyDataRows(
-        actual2,
-        rows("Jake", "USA", "California", 4, 2023, 70, 70),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 50),
-        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
-        rows(null, "Canada", null, 4, 2023, 10, 15),
-        rows("Kevin", null, null, 4, 2023, null, null),
-        rows("Jay", "USA", "Quebec", 4, 2023, 40, 40));
-
-    Request deleteRequest =
-        new Request(
-            "DELETE",
-            String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY_WITH_NULL, docId));
-    client().performRequest(deleteRequest);
+      verifyDataRows(
+          actual2,
+          rows("Jake", "USA", "California", 4, 2023, 70, 70),
+          rows("Hello", "USA", "New York", 4, 2023, 30, 50),
+          rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+          rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
+          rows(null, "Canada", null, 4, 2023, 10, 15),
+          rows("Kevin", null, null, 4, 2023, null, null),
+          rows("Jay", "USA", "Quebec", 4, 2023, 40, 40));
+    } finally {
+      Request deleteRequest =
+          new Request(
+              "DELETE",
+              String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY_WITH_NULL, docId));
+      client().performRequest(deleteRequest);
+    }
   }
 
   @Test
@@ -511,39 +513,40 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
             + " \"Quebec\",\"country\": \"USA\",\"year\": 2023,\"month\":"
             + " 4}\n");
     client().performRequest(insertRequest);
+    try {
+      JSONObject actual =
+          executeQuery(
+              String.format(
+                  "source=%s | streamstats window=2 reset_before=age>29 avg(age) as avg by country",
+                  TEST_INDEX_STATE_COUNTRY));
 
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | streamstats window=2 reset_before=age>29 avg(age) as avg by country",
-                TEST_INDEX_STATE_COUNTRY));
+      verifyDataRows(
+          actual,
+          rows("Jake", "USA", "California", 4, 2023, 70, 70),
+          rows("Hello", "USA", "New York", 4, 2023, 30, 30),
+          rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+          rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
+          rows("Jay", "USA", "Quebec", 4, 2023, 28, 28));
 
-    verifyDataRows(
-        actual,
-        rows("Jake", "USA", "California", 4, 2023, 70, 70),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 30),
-        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
-        rows("Jay", "USA", "Quebec", 4, 2023, 28, 28));
+      JSONObject actual2 =
+          executeQuery(
+              String.format(
+                  "source=%s | streamstats window=2 reset_after=age>22 avg(age) as avg by country",
+                  TEST_INDEX_STATE_COUNTRY));
 
-    JSONObject actual2 =
-        executeQuery(
-            String.format(
-                "source=%s | streamstats window=2 reset_after=age>22 avg(age) as avg by country",
-                TEST_INDEX_STATE_COUNTRY));
-
-    verifyDataRows(
-        actual2,
-        rows("Jake", "USA", "California", 4, 2023, 70, 70),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 30),
-        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20),
-        rows("Jay", "USA", "Quebec", 4, 2023, 28, 28));
-
-    Request deleteRequest =
-        new Request(
-            "DELETE", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY, docId));
-    client().performRequest(deleteRequest);
+      verifyDataRows(
+          actual2,
+          rows("Jake", "USA", "California", 4, 2023, 70, 70),
+          rows("Hello", "USA", "New York", 4, 2023, 30, 30),
+          rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+          rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20),
+          rows("Jay", "USA", "Quebec", 4, 2023, 28, 28));
+    } finally {
+      Request deleteRequest =
+          new Request(
+              "DELETE", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY, docId));
+      client().performRequest(deleteRequest);
+    }
   }
 
   @Test
@@ -558,44 +561,45 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
             + " \"Quebec\",\"country\": \"USA\",\"year\": 2023,\"month\":"
             + " 4}\n");
     client().performRequest(insertRequest);
+    try {
+      JSONObject actual =
+          executeQuery(
+              String.format(
+                  "source=%s | streamstats window=2 reset_before=age>29 avg(age) as avg by country",
+                  TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | streamstats window=2 reset_before=age>29 avg(age) as avg by country",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+      verifyDataRows(
+          actual,
+          rows("Jake", "USA", "California", 4, 2023, 70, 70),
+          rows("Hello", "USA", "New York", 4, 2023, 30, 30),
+          rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+          rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
+          rows(null, "Canada", null, 4, 2023, 10, 15),
+          rows("Kevin", null, null, 4, 2023, null, null),
+          rows("Jay", "USA", "Quebec", 4, 2023, 28, 28));
 
-    verifyDataRows(
-        actual,
-        rows("Jake", "USA", "California", 4, 2023, 70, 70),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 30),
-        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
-        rows(null, "Canada", null, 4, 2023, 10, 15),
-        rows("Kevin", null, null, 4, 2023, null, null),
-        rows("Jay", "USA", "Quebec", 4, 2023, 28, 28));
+      JSONObject actual2 =
+          executeQuery(
+              String.format(
+                  "source=%s | streamstats window=2 reset_after=age>22 avg(age) as avg by country",
+                  TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
-    JSONObject actual2 =
-        executeQuery(
-            String.format(
-                "source=%s | streamstats window=2 reset_after=age>22 avg(age) as avg by country",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
-
-    verifyDataRows(
-        actual2,
-        rows("Jake", "USA", "California", 4, 2023, 70, 70),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 30),
-        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20),
-        rows(null, "Canada", null, 4, 2023, 10, 15),
-        rows("Kevin", null, null, 4, 2023, null, null),
-        rows("Jay", "USA", "Quebec", 4, 2023, 28, 28));
-
-    Request deleteRequest =
-        new Request(
-            "DELETE",
-            String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY_WITH_NULL, docId));
-    client().performRequest(deleteRequest);
+      verifyDataRows(
+          actual2,
+          rows("Jake", "USA", "California", 4, 2023, 70, 70),
+          rows("Hello", "USA", "New York", 4, 2023, 30, 30),
+          rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+          rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20),
+          rows(null, "Canada", null, 4, 2023, 10, 15),
+          rows("Kevin", null, null, 4, 2023, null, null),
+          rows("Jay", "USA", "Quebec", 4, 2023, 28, 28));
+    } finally {
+      Request deleteRequest =
+          new Request(
+              "DELETE",
+              String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY_WITH_NULL, docId));
+      client().performRequest(deleteRequest);
+    }
   }
 
   @Test
@@ -660,26 +664,27 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
             + " \"country\": \"USA\",\"year\": 2023,\"month\":"
             + " 4}\n");
     client().performRequest(insertRequest);
+    try {
+      JSONObject actual =
+          executeQuery(
+              String.format(
+                  "source=%s | streamstats avg(age) as avg_age by state, country | streamstats"
+                      + " avg(avg_age) as avg_state_age by country",
+                  TEST_INDEX_STATE_COUNTRY));
 
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | streamstats avg(age) as avg_age by state, country | streamstats"
-                    + " avg(avg_age) as avg_state_age by country",
-                TEST_INDEX_STATE_COUNTRY));
-
-    verifyDataRows(
-        actual,
-        rows("Jake", "USA", "California", 4, 2023, 70, 70, 70),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 30, 50),
-        rows("John", "Canada", "Ontario", 4, 2023, 25, 25, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20, 22.5),
-        rows("Jay", "USA", null, 4, 2023, 28, null, 50));
-
-    Request deleteRequest =
-        new Request(
-            "DELETE", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY, docId));
-    client().performRequest(deleteRequest);
+      verifyDataRows(
+          actual,
+          rows("Jake", "USA", "California", 4, 2023, 70, 70, 70),
+          rows("Hello", "USA", "New York", 4, 2023, 30, 30, 50),
+          rows("John", "Canada", "Ontario", 4, 2023, 25, 25, 25),
+          rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20, 22.5),
+          rows("Jay", "USA", null, 4, 2023, 28, null, 50));
+    } finally {
+      Request deleteRequest =
+          new Request(
+              "DELETE", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY, docId));
+      client().performRequest(deleteRequest);
+    }
   }
 
   @Test
@@ -777,6 +782,37 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         rows("Jake", "USA", "California", 4, 2023, 70, 70, 50, 50, 1),
         rows("Hello", "USA", "New York", 4, 2023, 30, 30, 10, 10, 2),
         rows("John", "Canada", "Ontario", 4, 2023, 25, 25, 5, 5, 1));
+  }
+
+  @Test
+  public void testMultipleStreamstatsWithEval2() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval new_state=lower(state), new_country=lower(country) | streamstats"
+                    + " avg(age) as avg_age by new_state, new_country",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchemaInOrder(
+        actual,
+        schema("name", "string"),
+        schema("country", "string"),
+        schema("state", "string"),
+        schema("month", "int"),
+        schema("year", "int"),
+        schema("age", "int"),
+        schema("new_state", "string"),
+        schema("new_country", "string"),
+        schema("avg_age", "double"));
+
+    verifyDataRows(
+        actual,
+        rows("Jake", "USA", "California", 4, 2023, 70, "california", "usa", 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, "new york", "usa", 30),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, "ontario", "canada", 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, "quebec", "canada", 20),
+        rows(null, "Canada", null, 4, 2023, 10, null, "canada", null),
+        rows("Kevin", null, null, 4, 2023, null, null, null, null));
   }
 
   @Test
