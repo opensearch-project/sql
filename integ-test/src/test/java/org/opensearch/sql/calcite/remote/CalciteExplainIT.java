@@ -895,6 +895,18 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testExplainAppendPipeCommand() throws IOException {
+    String expected = loadExpectedPlan("explain_appendpipe_command.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                Locale.ROOT,
+                "source=%s | appendpipe [ stats count(balance) as cnt by gender  ]",
+                TEST_INDEX_BANK)));
+  }
+
+  @Test
   public void testMvjoinExplain() throws IOException {
     String query =
         "source=opensearch-sql_test_index_account | eval result = mvjoin(array('a', 'b', 'c'), ',')"

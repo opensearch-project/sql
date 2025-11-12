@@ -55,6 +55,7 @@ import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.CountBin;
@@ -709,6 +710,19 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   private String visitExpression(UnresolvedExpression expression) {
     return expressionAnalyzer.analyze(expression, null);
+  }
+
+  @Override
+  public String visitAppendPipe(AppendPipe node, String context) {
+    Values emptyValue = new Values(null);
+    UnresolvedPlan childNode = node.getSubQuery();
+    while (childNode != null && !childNode.getChild().isEmpty()) {
+      childNode = (UnresolvedPlan) childNode.getChild().get(0);
+    }
+    childNode.attach(emptyValue);
+    String child = node.getChild().get(0).accept(this, context);
+    String subPipeline = anonymizeData(node.getSubQuery());
+    return StringUtils.format("%s | appendpipe [%s]", child, subPipeline);
   }
 
   @Override

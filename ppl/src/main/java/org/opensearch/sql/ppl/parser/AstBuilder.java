@@ -73,6 +73,7 @@ import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.CountBin;
 import org.opensearch.sql.ast.tree.Dedupe;
@@ -166,6 +167,16 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   @Override
+  public UnresolvedPlan visitSubPipeline(OpenSearchPPLParser.SubPipelineContext ctx) {
+    List<OpenSearchPPLParser.CommandsContext> cmds = ctx.commands();
+    if (cmds.isEmpty()) {
+      throw new IllegalArgumentException("appendpipe [] is empty");
+    }
+    UnresolvedPlan seed = visit(cmds.getFirst());
+    return cmds.stream().skip(1).map(this::visit).reduce(seed, (left, op) -> op.attach(left));
+  }
+
+  @Override
   public UnresolvedPlan visitSubSearch(OpenSearchPPLParser.SubSearchContext ctx) {
     UnresolvedPlan searchCommand = visit(ctx.searchCommand());
     // Exclude metadata fields for subquery
@@ -234,6 +245,12 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitWhereCommand(WhereCommandContext ctx) {
     return new Filter(internalVisitExpression(ctx.logicalExpression()));
+  }
+
+  @Override
+  public UnresolvedPlan visitAppendPipeCommand(OpenSearchPPLParser.AppendPipeCommandContext ctx) {
+    UnresolvedPlan plan = visit(ctx.subPipeline());
+    return new AppendPipe(plan);
   }
 
   @Override

@@ -60,6 +60,7 @@ import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.CloseCursor;
@@ -831,6 +832,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitAppendCol(AppendCol node, AnalysisContext context) {
     throw getOnlyForCalciteException("Appendcol");
+  }
+
+  @Override
+  public LogicalPlan visitAppendPipe(AppendPipe node, AnalysisContext context) {
+    throw getOnlyForCalciteException("AppendPipe");
   }
 
   @Override
