@@ -1405,9 +1405,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                         intLiteral(30),
                         SpanUnit.m)))
             .aggregationFunction(alias("count()", aggregate("count", allFields())))
-            .arguments(
-                exprList(
-                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
+            .arguments(exprList(argument("spanliteral", stringLiteral("30m"))))
             .build());
   }
 
@@ -1425,9 +1423,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                         intLiteral(1),
                         SpanUnit.m)))
             .aggregationFunction(alias("count()", aggregate("count", allFields())))
-            .arguments(
-                exprList(
-                    argument("limit", intLiteral(100)), argument("useother", booleanLiteral(true))))
+            .arguments(exprList(argument("limit", intLiteral(100))))
             .build());
   }
 
@@ -1452,9 +1448,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                         intLiteral(1),
                         SpanUnit.m)))
             .aggregationFunction(alias("count()", aggregate("count", allFields())))
-            .arguments(
-                exprList(
-                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
+            .arguments(exprList(argument("useother", booleanLiteral(true))))
             .build());
 
     assertEqual(
@@ -1469,9 +1463,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                         intLiteral(1),
                         SpanUnit.m)))
             .aggregationFunction(alias("count()", aggregate("count", allFields())))
-            .arguments(
-                exprList(
-                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(false))))
+            .arguments(exprList(argument("useother", booleanLiteral(false))))
             .build());
   }
 
@@ -1489,9 +1481,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                         intLiteral(1),
                         SpanUnit.m)))
             .aggregationFunction(alias("count()", aggregate("count", allFields())))
-            .arguments(
-                exprList(
-                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
+            .arguments(exprList(argument("useother", booleanLiteral(true))))
             .build());
 
     assertEqual(
@@ -1506,9 +1496,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                         intLiteral(1),
                         SpanUnit.m)))
             .aggregationFunction(alias("count()", aggregate("count", allFields())))
-            .arguments(
-                exprList(
-                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(false))))
+            .arguments(exprList(argument("useother", booleanLiteral(false))))
             .build());
 
     assertEqual(
@@ -1523,9 +1511,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                         intLiteral(1),
                         SpanUnit.m)))
             .aggregationFunction(alias("count()", aggregate("count", allFields())))
-            .arguments(
-                exprList(
-                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
+            .arguments(exprList(argument("useother", booleanLiteral(true))))
             .build());
 
     assertEqual(
@@ -1540,9 +1526,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                         intLiteral(1),
                         SpanUnit.m)))
             .aggregationFunction(alias("count()", aggregate("count", allFields())))
-            .arguments(
-                exprList(
-                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(false))))
+            .arguments(exprList(argument("useother", booleanLiteral(false))))
             .build());
   }
 
@@ -1616,9 +1600,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                         intLiteral(1),
                         SpanUnit.H)))
             .aggregationFunction(alias("count()", aggregate("count", allFields())))
-            .arguments(
-                exprList(
-                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
+            .arguments(exprList(argument("spanliteral", stringLiteral("1h"))))
             .build());
 
     // Test span literal with decimal value and minute unit
@@ -1634,9 +1616,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                         intLiteral(2),
                         SpanUnit.m)))
             .aggregationFunction(alias("count()", aggregate("count", allFields())))
-            .arguments(
-                exprList(
-                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
+            .arguments(exprList(argument("spanliteral", stringLiteral("2m"))))
             .build());
 
     // Test span literal without unit (should use NONE unit)
@@ -1652,9 +1632,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                         intLiteral(10),
                         SpanUnit.NONE)))
             .aggregationFunction(alias("count()", aggregate("count", allFields())))
-            .arguments(
-                exprList(
-                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
+            .arguments(exprList(argument("spanliteral", intLiteral(10))))
             .build());
   }
 
