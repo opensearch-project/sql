@@ -656,7 +656,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "account_null",
         getBankWithNullValuesIndexMapping(),
         "src/test/resources/bank_with_null_values.json"),
-    BANK_WITH_STRING_VALUES(
+    STRINGS(
         TestsConstants.TEST_INDEX_STRINGS,
         "strings",
         getStringIndexMapping(),
