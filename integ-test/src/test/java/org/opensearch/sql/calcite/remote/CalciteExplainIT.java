@@ -1187,6 +1187,24 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testExplainSortOnMeasureComplex() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_agg_sort_on_measure_complex1.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | stats bucket_nullable=false sum(balance),"
+                + " count() as c, dc(employer) by state | sort - c"));
+    expected = loadExpectedPlan("explain_agg_sort_on_measure_complex2.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | eval new_state = lower(state) | stats"
+                + " bucket_nullable=false sum(balance), count(), dc(employer) as d by gender,"
+                + " new_state | sort - d"));
+  }
+
+  @Test
   public void testExplainCompositeMultiBucketsAutoDateThenSortOnMeasureNotPushdown()
       throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
@@ -1238,7 +1256,7 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testExplainMultipleAggregatorsWithSortOnOneMeasureNotPushDown() throws IOException {
+  public void testExplainMultipleCollationsWithSortOnOneMeasureNotPushDown() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String expected =
         loadExpectedPlan("explain_multiple_agg_with_sort_on_one_measure_not_push1.yaml");
@@ -1246,13 +1264,24 @@ public class CalciteExplainIT extends ExplainIT {
         expected,
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() as c,"
-                + " sum(balance) as s by state | sort c"));
+                + " sum(balance) as s by state | sort c, state"));
     expected = loadExpectedPlan("explain_multiple_agg_with_sort_on_one_measure_not_push2.yaml");
     assertYamlEqualsIgnoreId(
         expected,
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() as c,"
                 + " sum(balance) as s by state | sort c, s"));
+  }
+
+  @Test
+  public void testExplainSortOnMeasureMultiBucketsNotMultiTermsNotPushDown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_agg_sort_on_measure_multi_buckets_not_pushed.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() as c,"
+                + " sum(balance) as s by state, span(age, 5) | sort c"));
   }
 
   @Test

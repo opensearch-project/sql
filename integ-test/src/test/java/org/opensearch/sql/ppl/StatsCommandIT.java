@@ -1176,6 +1176,57 @@ public class StatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testStatsSortOnMeasureComplex() throws IOException {
+    try {
+      setQueryBucketSize(5);
+      JSONObject response =
+          executeQuery(
+              String.format(
+                  "source=%s | stats bucket_nullable=false sum(balance), count() as c, dc(employer)"
+                      + " as d by state | sort - c | head 5",
+                  TEST_INDEX_ACCOUNT));
+      verifySchema(
+          response,
+          schema("sum(balance)", null, "bigint"),
+          schema("c", null, "bigint"),
+          schema("d", null, "bigint"),
+          schema("state", null, "string"));
+      System.out.println(response);
+      verifyDataRows(
+          response,
+          rows(782199, 30, 30, "TX"),
+          rows(732523, 28, 28, "MD"),
+          rows(657957, 27, 27, "ID"),
+          rows(541575, 25, 25, "ME"),
+          rows(643489, 25, 25, "AL"));
+      response =
+          executeQuery(
+              String.format(
+                  "source=%s | eval new_state = lower(state) | stats bucket_nullable=false"
+                      + " sum(balance), count() as c, dc(employer) as d by gender, new_state | sort"
+                      + " - d | head 5",
+                  TEST_INDEX_ACCOUNT));
+      verifySchema(
+          response,
+          schema("sum(balance)", null, "bigint"),
+          schema("c", null, "bigint"),
+          schema("d", null, "bigint"),
+          schema("gender", null, "string"),
+          schema("new_state", null, "string"));
+      System.out.println(response);
+      verifyDataRows(
+          response,
+          rows(484567, 18, 18, "M", "md"),
+          rows(376394, 17, 17, "M", "id"),
+          rows(505688, 17, 17, "F", "tx"),
+          rows(375409, 16, 16, "M", "me"),
+          rows(432776, 15, 15, "M", "ok"));
+    } finally {
+      resetQueryBucketSize();
+    }
+  }
+
+  @Test
   public void testStatsByFractionalSpan() throws IOException {
     JSONObject response1 =
         executeQuery(
