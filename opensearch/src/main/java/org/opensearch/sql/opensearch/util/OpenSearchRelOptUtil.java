@@ -14,6 +14,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import lombok.experimental.UtilityClass;
+import org.apache.calcite.adapter.enumerable.RexImpTable.NullAs;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -75,7 +78,7 @@ public class OpenSearchRelOptUtil {
       final Map<String, ExprType> fieldTypes,
       List<Integer> sources,
       List<Object> digests,
-      List<RexLiteral> literals) {
+      List<Object> literals) {
     final List<RelDataTypeField> inputFieldList = inputRowType.getFieldList();
 
     final int[] currentIndex = {0};
@@ -104,27 +107,41 @@ public class OpenSearchRelOptUtil {
           @Override
           public RexNode visitLiteral(RexLiteral literal) {
             /*
-             * 1. Skip replacing SARG as it is not supported to translate
-             * 2. Skip replacing SYMBOL as it affects codegen
-             * 3. Skip INTERVAL_TYPES as it has bug, TODO: remove this when fixed
+             * 1. Skip replacing SARG/DECIMAL as it is not supported to translate;
+             * 2. Skip replacing SYMBOL as it affects codegen, shouldn't be parameter;
+             * 3. Skip INTERVAL_TYPES as it has bug, TODO: remove this when fixed;
              */
             if (literal.getTypeName() == SqlTypeName.SARG
+                || literal.getType().getSqlTypeName() == SqlTypeName.DECIMAL
                 || literal.getTypeName() == SqlTypeName.SYMBOL
                 || SqlTypeName.INTERVAL_TYPES.contains(literal.getTypeName())) {
               return literal;
             }
+
+            Object literalValue = translateLiteral(literal);
+            if (literalValue == null) return literal;
             int newIndex = currentIndex[0]++;
             sources.add(Source.LITERAL.getValue());
-            if (literals.contains(literal)) {
-              digests.add(literals.indexOf(literal));
+            if (literals.contains(literalValue)) {
+              digests.add(literals.indexOf(literalValue));
             } else {
               digests.add(literals.size());
-              literals.add(literal);
+              literals.add(literalValue);
             }
             return new RexDynamicParam(literal.getType(), newIndex);
           }
         };
     return rexNode.accept(rexShuttle);
+  }
+
+  private static Object translateLiteral(RexLiteral literal) {
+    org.apache.calcite.linq4j.tree.Expression expression =
+        RexToLixTranslator.translateLiteral(
+            literal, literal.getType(), OpenSearchTypeFactory.TYPE_FACTORY, NullAs.NOT_POSSIBLE);
+    if (expression instanceof ConstantExpression constantExpression) {
+      return constantExpression.value;
+    }
+    return null;
   }
 
   /**

@@ -31,6 +31,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
+import static javax.swing.UIManager.put;
 import static org.opensearch.index.query.QueryBuilders.boolQuery;
 import static org.opensearch.index.query.QueryBuilders.existsQuery;
 import static org.opensearch.index.query.QueryBuilders.matchQuery;
@@ -55,6 +56,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -62,9 +64,6 @@ import java.util.Set;
 import java.util.function.Supplier;
 import lombok.Getter;
 import org.apache.calcite.DataContext.Variable;
-import org.apache.calcite.adapter.enumerable.RexImpTable.NullAs;
-import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
-import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
@@ -94,7 +93,6 @@ import org.opensearch.script.Script;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.type.ExprIPType;
 import org.opensearch.sql.calcite.type.ExprSqlType;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprIpValue;
@@ -1455,9 +1453,9 @@ public class PredicateAnalyzer {
     private RexNode analyzedNode;
     private final Supplier<String> codeGenerator;
     private String generatedCode;
-    private List<RexLiteral> literals;
-    private List<Integer> sources;
-    private List<Object> digests;
+    private final List<Object> literals;
+    private final List<Integer> sources;
+    private final List<Object> digests;
 
     public ScriptQueryExpression(
         RexNode rexNode,
@@ -1483,6 +1481,8 @@ public class PredicateAnalyzer {
                   serializer.serialize(rexNode, rowType, fieldTypes, sources, digests, literals));
     }
 
+    // For filter script, this method will be called after planning phase;
+    // For the agg-script, this will be called in planning phase to generate agg builder
     private String getOrCreateGeneratedCode() {
       if (generatedCode == null) {
         generatedCode = codeGenerator.get();
@@ -1506,25 +1506,14 @@ public class PredicateAnalyzer {
           COMPOUNDED_LANG_NAME,
           getOrCreateGeneratedCode(),
           Collections.emptyMap(),
-          Map.of(
-              Variable.UTC_TIMESTAMP.camelName,
-              currentTime,
-              SOURCES,
-              this.sources,
-              DIGESTS,
-              this.digests,
-              LITERALS,
-              this.literals.stream()
-                  .map(
-                      literal ->
-                          ((ConstantExpression)
-                                  RexToLixTranslator.translateLiteral(
-                                      literal,
-                                      literal.getType(),
-                                      OpenSearchTypeFactory.TYPE_FACTORY,
-                                      NullAs.NOT_POSSIBLE))
-                              .value)
-                  .toList()));
+          new LinkedHashMap<>() { // Use LinkedHashMap to make the plan stable
+            {
+              put(Variable.UTC_TIMESTAMP.camelName, currentTime);
+              put(SOURCES, sources);
+              put(DIGESTS, digests);
+              put(LITERALS, literals);
+            }
+          });
     }
 
     @Override

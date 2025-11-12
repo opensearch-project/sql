@@ -22,7 +22,6 @@ import lombok.Getter;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.externalize.RelJson;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlLibrary;
@@ -113,7 +112,7 @@ public class RelJsonSerializer {
       Map<String, ExprType> fieldTypes,
       List<Integer> sources,
       List<Object> digests,
-      List<RexLiteral> literals) {
+      List<Object> literals) {
     RexNode standardizedRexExpr =
         OpenSearchRelOptUtil.standardizeRexNodeExpression(
             rexNode, rowType, fieldTypes, sources, digests, literals);

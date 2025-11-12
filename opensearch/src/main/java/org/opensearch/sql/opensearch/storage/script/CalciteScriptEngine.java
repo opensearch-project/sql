@@ -35,6 +35,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.DataContext;
@@ -161,6 +163,7 @@ public class CalciteScriptEngine implements ScriptEngine {
     private final List<Source> sources;
     private final List<Object> digests;
     private final List<Object> literals;
+    private final Map<String, Integer> paramNameToIndex;
 
     public ScriptDataContext(
         Map<String, ScriptDocValues<?>> docProvider,
@@ -173,6 +176,10 @@ public class CalciteScriptEngine implements ScriptEngine {
           ((List<Integer>) params.get("SOURCES")).stream().map(Source::fromValue).toList();
       this.digests = (List<Object>) params.get("DIGESTS");
       this.literals = (List<Object>) params.get("LITERALS");
+      this.paramNameToIndex =
+          IntStream.range(0, sources.size())
+              .boxed()
+              .collect(Collectors.toMap(i -> "?" + i, i -> i));
     }
 
     @Override
@@ -195,15 +202,16 @@ public class CalciteScriptEngine implements ScriptEngine {
       // UTC_TIMESTAMP is a special variable used for some time related functions.
       if (Variable.UTC_TIMESTAMP.camelName.equals(name)) return this.utcTimestamp;
 
-      assert name.startsWith("?")
-          : "The the field name of RexDynamicParameter should begin with `?` but got " + name;
-
-      int index = Integer.parseInt(name.substring(1));
-      return switch (sources.get(index)) {
-        case DOC_VALUE -> getFromDocValue((String) digests.get(index));
-        case SOURCE -> getFromSource((String) digests.get(index));
-        case LITERAL -> getFromLiteral((Integer) digests.get(index));
-      };
+      try {
+        int index = paramNameToIndex.get(name);
+        return switch (sources.get(index)) {
+          case DOC_VALUE -> getFromDocValue((String) digests.get(index));
+          case SOURCE -> getFromSource((String) digests.get(index));
+          case LITERAL -> getFromLiteral((Integer) digests.get(index));
+        };
+      } catch (Exception e) {
+        throw new IllegalStateException("Failed to get value for parameter " + name);
+      }
     }
 
     public Object getFromDocValue(String name) {
