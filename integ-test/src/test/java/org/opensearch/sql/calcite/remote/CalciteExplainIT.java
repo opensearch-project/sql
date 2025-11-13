@@ -745,6 +745,7 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   // Only for Calcite
+  @Test
   public void testExplainOnEventstatsEarliestLatest() throws IOException {
     String expected = loadExpectedPlan("explain_eventstats_earliest_latest.json");
     assertJsonEqualsIgnoreId(
