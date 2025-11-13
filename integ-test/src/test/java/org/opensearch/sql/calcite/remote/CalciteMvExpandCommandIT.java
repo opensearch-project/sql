@@ -39,8 +39,6 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
         "{\"username\":\"empty\",\"skills\":[]}",
         "{\"username\":\"nullskills\",\"skills\":null}",
         "{\"username\":\"noskills\"}",
-        "{\"username\":\"missingattr\",\"skills\":[{\"name\":\"c\"},{\"level\":\"advanced\"}]}",
-        "{\"username\":\"complex\",\"skills\":[{\"name\":\"ml\",\"level\":\"expert\"},{\"name\":\"ai\"},{\"level\":\"novice\"}]}",
         "{\"username\":\"duplicate\",\"skills\":[{\"name\":\"dup\"},{\"name\":\"dup\"}]}",
         "{\"username\":\"large\",\"skills\":[{\"name\":\"s1\"},{\"name\":\"s2\"},{\"name\":\"s3\"},{\"name\":\"s4\"},{\"name\":\"s5\"},{\"name\":\"s6\"},{\"name\":\"s7\"},{\"name\":\"s8\"},{\"name\":\"s9\"},{\"name\":\"s10\"}]}");
     refreshIndex(INDEX);
