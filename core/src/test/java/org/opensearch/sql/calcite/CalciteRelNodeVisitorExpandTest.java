@@ -5,9 +5,7 @@
 
 package org.opensearch.sql.calcite;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -94,10 +92,7 @@ public class CalciteRelNodeVisitorExpandTest {
    */
   @Test
   public void expand_on_nonexistent_field_should_throw_user_friendly_error() throws Exception {
-    // leftRowType.getField("missing_field", false, false) -> null (not found)
     lenient().when(leftRowType.getField("missing_field", false, false)).thenReturn(null);
-
-    // Use a non-RexInputRef to hit resolve-by-name branch
     RexNode nonInputRexNode = mock(RexNode.class);
 
     Method m =
@@ -110,15 +105,14 @@ public class CalciteRelNodeVisitorExpandTest {
             CalcitePlanContext.class);
     m.setAccessible(true);
 
-    try {
-      m.invoke(visitor, nonInputRexNode, "missing_field", null, null, context);
-      fail("Expected SemanticCheckException");
-    } catch (InvocationTargetException ite) {
-      Throwable cause = ite.getCause();
-      assertTrue(cause instanceof SemanticCheckException);
-      assertEquals(
-          "Cannot expand field 'missing_field': field not found in input", cause.getMessage());
-    }
+    InvocationTargetException ite =
+        assertThrows(
+            InvocationTargetException.class,
+            () -> m.invoke(visitor, nonInputRexNode, "missing_field", null, null, context));
+    Throwable cause = ite.getCause();
+    assertTrue(cause instanceof SemanticCheckException);
+    assertEquals(
+        "Cannot expand field 'missing_field': field not found in input", cause.getMessage());
   }
 
   /**
@@ -146,15 +140,14 @@ public class CalciteRelNodeVisitorExpandTest {
             CalcitePlanContext.class);
     m.setAccessible(true);
 
-    try {
-      m.invoke(visitor, nonInputRexNode, "not_array", null, null, context);
-      fail("Expected SemanticCheckException");
-    } catch (InvocationTargetException ite) {
-      Throwable cause = ite.getCause();
-      assertTrue(cause instanceof SemanticCheckException);
-      assertEquals(
-          "Cannot expand field 'not_array': expected ARRAY type but found VARCHAR",
-          cause.getMessage());
-    }
+    InvocationTargetException ite =
+        assertThrows(
+            InvocationTargetException.class,
+            () -> m.invoke(visitor, nonInputRexNode, "not_array", null, null, context));
+    Throwable cause = ite.getCause();
+    assertTrue(cause instanceof SemanticCheckException);
+    assertEquals(
+        "Cannot expand field 'not_array': expected ARRAY type but found VARCHAR",
+        cause.getMessage());
   }
 }
