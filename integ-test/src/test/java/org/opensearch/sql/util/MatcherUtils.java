@@ -179,6 +179,12 @@ public class MatcherUtils {
     verifyInOrder(response.getJSONArray("datarows"), matchers);
   }
 
+  @SafeVarargs
+  @SuppressWarnings("unchecked")
+  public static void verifyDataRowsSome(JSONObject response, Matcher<JSONArray>... matchers) {
+    verifySome(response.getJSONArray("datarows"), matchers);
+  }
+
   public static void verifyNumOfRows(JSONObject response, int numOfRow) {
     assertEquals(numOfRow, response.getJSONArray("datarows").length());
   }

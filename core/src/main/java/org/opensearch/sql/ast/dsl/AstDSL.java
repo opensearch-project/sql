@@ -735,7 +735,7 @@ public class AstDSL {
   }
 
   /** Get a reference to the implicit timestamp field {@code @timestamp} */
-  public static Field referImplicitTimestampField() {
+  public static Field implicitTimestampField() {
     return AstDSL.field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP);
   }
 }
