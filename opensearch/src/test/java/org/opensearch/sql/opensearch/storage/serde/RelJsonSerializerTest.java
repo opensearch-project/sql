@@ -56,7 +56,7 @@ public class RelJsonSerializerTest {
             rexBuilder,
             BuiltinFunctionName.UPPER,
             rexBuilder.makeInputRef(rowType.getFieldList().get(0).getType(), 0));
-    RexNode standardizedNode =
+    RexNode expectedNode =
         PPLFuncImpTable.INSTANCE.resolve(
             rexBuilder,
             BuiltinFunctionName.UPPER,
@@ -68,7 +68,7 @@ public class RelJsonSerializerTest {
     String code = serializer.serialize(rexUpper, rowType, fieldTypes, sources, digests, literals);
     RexNode rexNode = serializer.deserialize(code);
 
-    assertEquals(standardizedNode, rexNode);
+    assertEquals(expectedNode, rexNode);
     assertEquals(List.of(0), sources);
     assertEquals(List.of("Referer"), digests);
     assertEquals(List.of(), literals);
@@ -103,7 +103,7 @@ public class RelJsonSerializerTest {
             rexBuilder.makeInputRef(rowTypeWithUDT.getFieldList().get(2).getType(), 2),
             rexBuilder.makeInputRef(rowTypeWithUDT.getFieldList().get(3).getType(), 3),
             rexBuilder.makeInputRef(rowTypeWithUDT.getFieldList().get(4).getType(), 4));
-    RexNode standardizedNode =
+    RexNode expectedNode =
         PPLFuncImpTable.INSTANCE.resolve(
             rexBuilder,
             BuiltinFunctionName.JSON_ARRAY,
@@ -119,7 +119,7 @@ public class RelJsonSerializerTest {
         serializer.serialize(
             rexNode, rowTypeWithUDT, fieldTypesWithUDT, sources, digests, literals);
     RexNode expr = serializer.deserialize(serialized);
-    assertEquals(standardizedNode, expr);
+    assertEquals(expectedNode, expr);
     assertEquals(List.of(0, 0, 0, 0, 0), sources);
     assertEquals(List.of("date", "time", "timestamp", "ip", "binary"), digests);
     assertEquals(List.of(), literals);
@@ -181,7 +181,7 @@ public class RelJsonSerializerTest {
             rexBuilder,
             BuiltinFunctionName.UPPER,
             rexBuilder.makeInputRef(rowType.getFieldList().get(0).getType(), 0));
-    RexNode standardizedNode =
+    RexNode expectedNode =
         PPLFuncImpTable.INSTANCE.resolve(
             rexBuilder,
             BuiltinFunctionName.UPPER,
@@ -193,7 +193,7 @@ public class RelJsonSerializerTest {
         serializer.serialize(
             originalRexUpper, originalRowType, originalFieldTypes, sources, digests, literals);
     RexNode rex = serializer.deserialize(code);
-    assertEquals(standardizedNode, rex);
+    assertEquals(expectedNode, rex);
   }
 
   @Test
@@ -217,7 +217,7 @@ public class RelJsonSerializerTest {
             rexBuilder.makeInputRef(rowTypeWithUDT.getFieldList().get(0).getType(), 0),
             rexBuilder.makeInputRef(rowTypeWithUDT.getFieldList().get(1).getType(), 1),
             rexBuilder.makeLiteral(1, TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER, true)));
-    RexNode standardizedNode =
+    RexNode expectedNode =
         PPLFuncImpTable.INSTANCE.resolve(
             rexBuilder,
             BuiltinFunctionName.JSON_ARRAY,
@@ -231,7 +231,7 @@ public class RelJsonSerializerTest {
         serializer.serialize(
             rexNode, rowTypeWithUDT, fieldTypesWithUDT, sources, digests, literals);
     RexNode expr = serializer.deserialize(serialized);
-    assertEquals(standardizedNode, expr);
+    assertEquals(expectedNode, expr);
     assertEquals(List.of(0, 1, 2), sources);
     assertEquals(List.of("date", "text", 0), digests);
     assertEquals(List.of(1), literals);
