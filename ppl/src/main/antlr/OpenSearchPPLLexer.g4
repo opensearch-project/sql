@@ -518,40 +518,35 @@ ALIGNTIME:                          'ALIGNTIME';
 // Must precede ID to avoid conflicts with identifier matching
 PERCENTILE_SHORTCUT:                PERC(INTEGER_LITERAL | DECIMAL_LITERAL) | 'P'(INTEGER_LITERAL | DECIMAL_LITERAL);
 
-SPANLENGTH: [0-9]+ (
-    'US' |'CS'|'DS'
-    |'MS'|'MILLISECOND'|'MILLISECONDS'
-    |'S'|'SEC'|'SECS'|'SECOND'|'SECONDS'
-    |'MIN'|'MINS'|'MINUTE'|'MINUTES'
-    |'H'|'HR'|'HRS'|'HOUR'|'HOURS'
-    |'H'|'HR'|'HRS'|'HOUR'|'HOURS'
-    |'D'|'DAY'|'DAYS'
-    |'W'|'WEEK'|'WEEKS'
-    |'M'|'MON'|'MONTH'|'MONTHS'
-    |'Q'|'QTR'|'QTRS'|'QUARTER'|'QUARTERS'
-    |'Y'|'YR'|'YRS'|'YEAR'|'YEARS'
-);
+fragment DAY_OR_DOUBLE:             'D';
+fragment COMMON_TIME_UNIT:           'S'|'SEC'|'SECOND'
+                                    |'M'|'MIN'|'MINUTE'
+                                    |'H'|'HR'|'HOUR'
+                                    |'DAY'|'W'|'WEEK'
+                                    |'MON'|'MONTH'
+                                    |'Q'|'QTR'|'QUARTER'
+                                    |'Y'|'YR'|'YEAR';
+fragment PLURAL_UNIT:               'MILLISECONDS'|'SECS'|'SECONDS'|'MINS'|'MINUTES'|'HRS'|'HOURS'
+                                    |'DAYS'|'WEEKS'|'MONTHS'|'QTRS'|'QUARTERS'|'YRS'|'YEARS';
+fragment SPANUNIT:                  COMMON_TIME_UNIT | PLURAL_UNIT
+                                    |'US'|'CS'|'DS'
+                                    |'MS'|'MILLISECOND';
+SPANLENGTH:                         DEC_DIGIT+ (SPANUNIT | DAY_OR_DOUBLE);
+DECIMAL_SPANLENGTH:                 (DEC_DIGIT+)? '.' DEC_DIGIT+  SPANUNIT;
 
 NUMERIC_ID : DEC_DIGIT+ ID_LITERAL;
 
 // LITERALS AND VALUES
 //STRING_LITERAL:                     DQUOTA_STRING | SQUOTA_STRING | BQUOTA_STRING;
 fragment WEEK_SNAP_UNIT:            'W' [0-7];
-fragment TIME_SNAP_UNIT:              'S' | 'SEC' | 'SECOND'
-                                    | 'M' | 'MIN' | 'MINUTE'
-                                    | 'H' | 'HR' | 'HOUR' | 'HOURS'
-                                    | 'D' | 'DAY'
-                                    | 'W' | 'WEEK' | WEEK_SNAP_UNIT
-                                    | 'MON' | 'MONTH'
-                                    | 'Q' | 'QTR' | 'QUARTER'
-                                    | 'Y' | 'YR' | 'YEAR';
+fragment TIME_SNAP_UNIT:            COMMON_TIME_UNIT | WEEK_SNAP_UNIT | DAY_OR_DOUBLE;
 TIME_SNAP:                          AT TIME_SNAP_UNIT;
 ID:                                 ID_LITERAL;
 CLUSTER:                            CLUSTER_PREFIX_LITERAL;
 INTEGER_LITERAL:                    DEC_DIGIT+;
 DECIMAL_LITERAL:                    (DEC_DIGIT+)? '.' DEC_DIGIT+;
 FLOAT_LITERAL:                      (DEC_DIGIT+)? '.' DEC_DIGIT+ 'F';
-DOUBLE_LITERAL:                     (DEC_DIGIT+)? '.' DEC_DIGIT+ 'D';
+DOUBLE_LITERAL:                     (DEC_DIGIT+)? '.' DEC_DIGIT+ DAY_OR_DOUBLE;
 
 fragment DATE_SUFFIX:               ([\-.][*0-9]+)+;
 fragment CLUSTER_PREFIX_LITERAL:    [*A-Z]+?[*A-Z_\-0-9]* COLON;
