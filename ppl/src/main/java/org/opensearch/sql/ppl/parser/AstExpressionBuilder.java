@@ -69,7 +69,6 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SpanClauseContext
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsFunctionCallContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StringLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceContext;
-import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TimechartCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WcFieldExpressionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
@@ -85,6 +84,8 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
       new ImmutableMap.Builder<String, String>()
           .put("isnull", IS_NULL.getName().getFunctionName())
           .put("isnotnull", IS_NOT_NULL.getName().getFunctionName())
+          .put("regex_match", REGEXP_MATCH.getName().getFunctionName()) // compatible with old one
+          .put("regexp_replace", REPLACE.getName().getFunctionName())
           .build();
 
   private final AstBuilder astBuilder;
@@ -586,9 +587,18 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitPerFunctionCall(PerFunctionCallContext ctx) {
-    ParseTree parent = ctx.getParent();
     String perFuncName = ctx.perFunction().funcName.getText();
-    if (!(parent instanceof TimechartCommandContext)) {
+    // Walk up the parent tree to find timechart command context
+    ParseTree current = ctx.getParent();
+    boolean foundTimechartContext = false;
+    while (current != null) {
+      if (current instanceof OpenSearchPPLParser.TimechartCommandContext) {
+        foundTimechartContext = true;
+        break;
+      }
+      current = current.getParent();
+    }
+    if (!foundTimechartContext) {
       throw new SyntaxCheckException(
           perFuncName + " function can only be used within timechart command");
     }
@@ -670,7 +680,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     if (ctx.fieldExpression() != null) {
       fieldExpression = visit(ctx.fieldExpression());
     } else {
-      fieldExpression = AstDSL.referImplicitTimestampField();
+      fieldExpression = AstDSL.implicitTimestampField();
     }
     Literal literal = (Literal) visit(ctx.value);
     return AstDSL.spanFromSpanLengthLiteral(fieldExpression, literal);
@@ -814,6 +824,15 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   public UnresolvedExpression visitSpanLiteral(OpenSearchPPLParser.SpanLiteralContext ctx) {
     if (ctx.INTEGER_LITERAL() != null) {
       return AstDSL.intLiteral(Integer.parseInt(ctx.INTEGER_LITERAL().getText()));
+    } else if (ctx.DECIMAL_LITERAL() != null) {
+      return AstDSL.decimalLiteral(new BigDecimal(ctx.DECIMAL_LITERAL().getText()));
+    } else if (ctx.DECIMAL_SPANLENGTH() != null || ctx.DOUBLE_LITERAL() != null) {
+      throw new IllegalArgumentException(
+          StringUtils.format(
+              "Span length [%s] is invalid: floating-point time intervals are not supported.",
+              ctx.DECIMAL_SPANLENGTH() != null
+                  ? ctx.DECIMAL_SPANLENGTH().getText()
+                  : ctx.DOUBLE_LITERAL().getText()));
     } else {
       return AstDSL.stringLiteral(ctx.getText());
     }
@@ -976,7 +995,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
       // Convert span=1h to span(@timestamp, 1h)
       Literal spanLiteral = (Literal) visit(ctx.spanLiteral());
       timechartParameter =
-          AstDSL.spanFromSpanLengthLiteral(AstDSL.referImplicitTimestampField(), spanLiteral);
+          AstDSL.spanFromSpanLengthLiteral(AstDSL.implicitTimestampField(), spanLiteral);
     } else if (ctx.LIMIT() != null) {
       Literal limit = (Literal) visit(ctx.integerLiteral());
       if ((Integer) limit.getValue() < 0) {

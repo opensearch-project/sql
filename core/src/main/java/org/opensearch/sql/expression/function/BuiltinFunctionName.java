@@ -59,14 +59,22 @@ public enum BuiltinFunctionName {
   TAN(FunctionName.of("tan")),
   SPAN(FunctionName.of("span")),
 
+  /** Binning Functions. */
+  SPAN_BUCKET(FunctionName.of("span_bucket")),
+  WIDTH_BUCKET(FunctionName.of("width_bucket")),
+  MINSPAN_BUCKET(FunctionName.of("minspan_bucket")),
+  RANGE_BUCKET(FunctionName.of("range_bucket")),
+
   /** Collection functions */
   ARRAY(FunctionName.of("array")),
   ARRAY_LENGTH(FunctionName.of("array_length")),
+  ARRAY_SLICE(FunctionName.of("array_slice"), true),
   MAP_APPEND(FunctionName.of("map_append"), true),
   MAP_CONCAT(FunctionName.of("map_concat"), true),
   MAP_REMOVE(FunctionName.of("map_remove"), true),
   MVAPPEND(FunctionName.of("mvappend")),
   MVJOIN(FunctionName.of("mvjoin")),
+  MVINDEX(FunctionName.of("mvindex")),
   FORALL(FunctionName.of("forall")),
   EXISTS(FunctionName.of("exists")),
   FILTER(FunctionName.of("filter")),
@@ -229,7 +237,7 @@ public enum BuiltinFunctionName {
   LTRIM(FunctionName.of("ltrim")),
   POSITION(FunctionName.of("position")),
   REGEXP(FunctionName.of("regexp")),
-  REGEX_MATCH(FunctionName.of("regex_match")),
+  REGEXP_MATCH(FunctionName.of("regexp_match")),
   REX_EXTRACT(FunctionName.of("REX_EXTRACT")),
   REX_EXTRACT_MULTI(FunctionName.of("REX_EXTRACT_MULTI")),
   REX_OFFSET(FunctionName.of("REX_OFFSET")),
@@ -330,7 +338,6 @@ public enum BuiltinFunctionName {
   INTERNAL_UNCOLLECT_PATTERNS(FunctionName.of("uncollect_patterns")),
   INTERNAL_GROK(FunctionName.of("grok"), true),
   INTERNAL_PARSE(FunctionName.of("parse"), true),
-  INTERNAL_REGEXP_REPLACE_3(FunctionName.of("regexp_replace_3"), true),
   INTERNAL_REGEXP_REPLACE_PG_4(FunctionName.of("regexp_replace_pg_4"), true),
   INTERNAL_REGEXP_REPLACE_5(FunctionName.of("regexp_replace_5"), true),
   INTERNAL_TRANSLATE3(FunctionName.of("translate3"), true);

@@ -19,6 +19,10 @@ pplStatement
    | queryStatement
    ;
 
+subPipeline
+   : PIPE? commands (PIPE commands)*
+   ;
+
 queryStatement
    : (PIPE)? pplCommands (PIPE commands)*
    ;
@@ -81,6 +85,7 @@ commands
    | chartCommand
    | timechartCommand
    | rexCommand
+   | appendPipeCommand
    | replaceCommand
    ;
 
@@ -121,6 +126,7 @@ commandName
    | APPEND
    | MULTISEARCH
    | REX
+   | APPENDPIPE
    | REPLACE
    ;
 
@@ -221,6 +227,10 @@ statsCommand
    : STATS statsArgs statsAggTerm (COMMA statsAggTerm)* (statsByClause)? (dedupSplitArg)?
    ;
 
+appendPipeCommand
+   : APPENDPIPE LT_SQR_PRTHS subPipeline RT_SQR_PRTHS
+   ;
+
 statsArgs
    : (partitionsArg | allnumArg | delimArg | bucketNullableArg)*
    ;
@@ -290,8 +300,8 @@ reverseCommand
    ;
 
 chartCommand
-  : CHART chartOptions* statsAggTerm (OVER rowSplit)? (BY columnSplit)?
-  | CHART chartOptions* statsAggTerm BY rowSplit (COMMA)? columnSplit
+  : CHART chartOptions* statsAggTerm (OVER rowSplit)? (BY columnSplit)? chartOptions*
+  | CHART chartOptions* statsAggTerm BY rowSplit (COMMA)? columnSplit chartOptions*
   ;
 
 chartOptions
@@ -312,7 +322,7 @@ columnSplit
   ;
 
 timechartCommand
-   : TIMECHART timechartParameter* statsFunction (BY fieldExpression)?
+   : TIMECHART timechartParameter* statsAggTerm (BY fieldExpression)? timechartParameter*
    ;
 
 timechartParameter
@@ -323,7 +333,10 @@ timechartParameter
 
 spanLiteral
    : SPANLENGTH
+   | DECIMAL_SPANLENGTH
+   | DOUBLE_LITERAL  // 1.5d can also represent decimal span length
    | INTEGER_LITERAL
+   | DECIMAL_LITERAL
    ;
 
 evalCommand
@@ -1086,6 +1099,7 @@ collectionFunctionName
     | ARRAY_LENGTH
     | MVAPPEND
     | MVJOIN
+    | MVINDEX
     | FORALL
     | EXISTS
     | FILTER
@@ -1259,7 +1273,7 @@ conditionFunctionName
    | ISNULL
    | ISNOTNULL
    | CIDRMATCH
-   | REGEX_MATCH
+   | REGEXP_MATCH
    | JSON_VALID
    | ISPRESENT
    | ISEMPTY
@@ -1299,6 +1313,7 @@ textFunctionName
    | LOCATE
    | REPLACE
    | REVERSE
+   | REGEXP_REPLACE
    ;
 
 positionFunctionName

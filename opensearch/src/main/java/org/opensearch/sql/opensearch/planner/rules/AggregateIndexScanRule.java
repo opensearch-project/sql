@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.immutables.value.Value;
 import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.expression.function.udf.binning.WidthBucketFunction;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
@@ -91,7 +92,7 @@ public class AggregateIndexScanRule extends RelRule<AggregateIndexScanRule.Confi
 
   /** Rule configuration. */
   @Value.Immutable
-  public interface Config extends RelRule.Config {
+  public interface Config extends OpenSearchRuleConfig {
     Config DEFAULT =
         ImmutableAggregateIndexScanRule.Config.builder()
             .build()

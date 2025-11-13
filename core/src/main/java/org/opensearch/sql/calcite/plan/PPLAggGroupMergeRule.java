@@ -105,7 +105,7 @@ public class PPLAggGroupMergeRule extends RelRule<PPLAggGroupMergeRule.Config> {
 
   /** Rule configuration. */
   @Value.Immutable
-  public interface Config extends RelRule.Config {
+  public interface Config extends OpenSearchRuleConfig {
     Config GROUP_MERGE =
         ImmutablePPLAggGroupMergeRule.Config.builder()
             .build()

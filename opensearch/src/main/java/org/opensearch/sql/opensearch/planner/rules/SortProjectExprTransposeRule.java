@@ -26,6 +26,7 @@ import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rex.RexNode;
 import org.apache.commons.lang3.tuple.Pair;
 import org.immutables.value.Value;
+import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
 
@@ -121,7 +122,7 @@ public class SortProjectExprTransposeRule extends RelRule<SortProjectExprTranspo
    * and physical conventions, aka LogicalSort with fetch vs EnumerableLimit.
    */
   @Value.Immutable
-  public interface Config extends RelRule.Config {
+  public interface Config extends OpenSearchRuleConfig {
     SortProjectExprTransposeRule.Config DEFAULT =
         ImmutableSortProjectExprTransposeRule.Config.builder()
             .build()

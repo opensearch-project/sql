@@ -18,6 +18,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlOperator;
 import org.immutables.value.Value;
+import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
 /**
@@ -100,7 +101,7 @@ public class RelevanceFunctionPushdownRule extends RelRule<RelevanceFunctionPush
 
   /** Rule configuration. */
   @Value.Immutable
-  public interface Config extends RelRule.Config {
+  public interface Config extends OpenSearchRuleConfig {
     /** Config that matches Filter on CalciteLogicalIndexScan. */
     Config DEFAULT =
         ImmutableRelevanceFunctionPushdownRule.Config.builder()

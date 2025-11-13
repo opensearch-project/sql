@@ -233,7 +233,7 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     // Set of functions that are only supported with Calcite engine
     Set<String> calciteOnlyFunctions =
         ImmutableSet.of(
-            BuiltinFunctionName.REGEX_MATCH.getName().getFunctionName(),
+            BuiltinFunctionName.REGEXP_MATCH.getName().getFunctionName(),
             BuiltinFunctionName.STRFTIME.getName().getFunctionName());
 
     return calciteOnlyFunctions.stream()

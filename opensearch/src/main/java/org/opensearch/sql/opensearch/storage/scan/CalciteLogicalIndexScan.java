@@ -294,7 +294,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     try {
       if (!pushDownContext.isAggregatePushed()) return null;
       List<AggregationBuilder> aggregationBuilders =
-          pushDownContext.getAggPushDownAction().getAggregationBuilder().getLeft();
+          pushDownContext.getAggPushDownAction().getBuilderAndParser().getLeft();
       if (aggregationBuilders.size() != 1) {
         return null;
       }
@@ -302,7 +302,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         return null;
       }
       List<String> collationNames = getCollationNames(sort.getCollation().getFieldCollations());
-      if (!isAllCollationNamesEqualAggregators(collationNames)) {
+      if (!isAnyCollationNameInAggregators(collationNames)) {
         return null;
       }
       CalciteLogicalIndexScan newScan = copyWithNewTraitSet(sort.getTraitSet());
@@ -366,7 +366,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       AggregateAnalyzer.AggregateBuilderHelper helper =
           new AggregateAnalyzer.AggregateBuilderHelper(
               getRowType(), fieldTypes, getCluster(), bucketNullable, bucketSize);
-      final Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder =
+      final Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> builderAndParser =
           AggregateAnalyzer.analyze(aggregate, project, outputFields, helper);
       Map<String, OpenSearchDataType> extendedTypeMapping =
           aggregate.getRowType().getFieldList().stream()
@@ -379,7 +379,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
                                   field.getType()))));
       AggPushDownAction action =
           new AggPushDownAction(
-              aggregationBuilder,
+              builderAndParser,
               extendedTypeMapping,
               outputFields.subList(0, aggregate.getGroupSet().cardinality()));
       newScan.pushDownContext.add(PushDownType.AGGREGATION, aggregate, action);

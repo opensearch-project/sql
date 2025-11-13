@@ -20,7 +20,7 @@ public class TextFunctionIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     loadIndex(Index.BANK);
-    loadIndex(Index.BANK_WITH_STRING_VALUES);
+    loadIndex(Index.STRINGS);
   }
 
   void verifyQuery(

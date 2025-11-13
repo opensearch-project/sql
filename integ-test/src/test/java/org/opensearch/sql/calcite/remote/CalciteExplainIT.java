@@ -32,7 +32,7 @@ public class CalciteExplainIT extends ExplainIT {
     super.init();
     enableCalcite();
     setQueryBucketSize(1000);
-    loadIndex(Index.BANK_WITH_STRING_VALUES);
+    loadIndex(Index.STRINGS);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
     loadIndex(Index.NESTED_SIMPLE);
     loadIndex(Index.TIME_TEST_DATA);
@@ -697,9 +697,9 @@ public class CalciteExplainIT extends ExplainIT {
   public void testExplainRegexMatchInWhereWithScriptPushdown() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String query =
-        String.format("source=%s | where regex_match(name, 'hello')", TEST_INDEX_STRINGS);
+        String.format("source=%s | where regexp_match(name, 'hello')", TEST_INDEX_STRINGS);
     var result = explainQueryToString(query);
-    String expected = loadFromFile("expectedOutput/calcite/explain_regex_match_in_where.json");
+    String expected = loadFromFile("expectedOutput/calcite/explain_regexp_match_in_where.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
 
@@ -708,10 +708,10 @@ public class CalciteExplainIT extends ExplainIT {
     enabledOnlyWhenPushdownIsEnabled();
     String query =
         String.format(
-            "source=%s |eval has_hello = regex_match(name, 'hello') | fields has_hello",
+            "source=%s |eval has_hello = regexp_match(name, 'hello') | fields has_hello",
             TEST_INDEX_STRINGS);
     var result = explainQueryToString(query);
-    String expected = loadFromFile("expectedOutput/calcite/explain_regex_match_in_eval.json");
+    String expected = loadFromFile("expectedOutput/calcite/explain_regexp_match_in_eval.json");
     assertJsonEqualsIgnoreId(expected, result);
   }
 
@@ -755,6 +755,7 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   // Only for Calcite
+  @Test
   public void testExplainOnEventstatsEarliestLatest() throws IOException {
     String expected = loadExpectedPlan("explain_eventstats_earliest_latest.json");
     assertJsonEqualsIgnoreId(
@@ -792,6 +793,7 @@ public class CalciteExplainIT extends ExplainIT {
                 TEST_INDEX_LOGS)));
   }
 
+  @Test
   public void testExplainOnStreamstatsEarliestLatest() throws IOException {
     String expected = loadExpectedPlan("explain_streamstats_earliest_latest.yaml");
     assertYamlEqualsIgnoreId(
@@ -901,6 +903,18 @@ public class CalciteExplainIT extends ExplainIT {
                 "source=%s | stats count(balance) as cnt by gender | append [ source=%s | stats"
                     + " count() as cnt ]",
                 TEST_INDEX_BANK,
+                TEST_INDEX_BANK)));
+  }
+
+  @Test
+  public void testExplainAppendPipeCommand() throws IOException {
+    String expected = loadExpectedPlan("explain_appendpipe_command.json");
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            String.format(
+                Locale.ROOT,
+                "source=%s | appendpipe [ stats count(balance) as cnt by gender  ]",
                 TEST_INDEX_BANK)));
   }
 
@@ -1197,6 +1211,24 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testExplainSortOnMeasureComplex() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_agg_sort_on_measure_complex1.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | stats bucket_nullable=false sum(balance),"
+                + " count() as c, dc(employer) by state | sort - c"));
+    expected = loadExpectedPlan("explain_agg_sort_on_measure_complex2.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | eval new_state = lower(state) | stats"
+                + " bucket_nullable=false sum(balance), count(), dc(employer) as d by gender,"
+                + " new_state | sort - d"));
+  }
+
+  @Test
   public void testExplainCompositeMultiBucketsAutoDateThenSortOnMeasureNotPushdown()
       throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
@@ -1248,7 +1280,7 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testExplainMultipleAggregatorsWithSortOnOneMeasureNotPushDown() throws IOException {
+  public void testExplainMultipleCollationsWithSortOnOneMeasureNotPushDown() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String expected =
         loadExpectedPlan("explain_multiple_agg_with_sort_on_one_measure_not_push1.yaml");
@@ -1256,13 +1288,24 @@ public class CalciteExplainIT extends ExplainIT {
         expected,
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() as c,"
-                + " sum(balance) as s by state | sort c"));
+                + " sum(balance) as s by state | sort c, state"));
     expected = loadExpectedPlan("explain_multiple_agg_with_sort_on_one_measure_not_push2.yaml");
     assertYamlEqualsIgnoreId(
         expected,
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() as c,"
                 + " sum(balance) as s by state | sort c, s"));
+  }
+
+  @Test
+  public void testExplainSortOnMeasureMultiBucketsNotMultiTermsNotPushDown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_agg_sort_on_measure_multi_buckets_not_pushed.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() as c,"
+                + " sum(balance) as s by state, span(age, 5) | sort c"));
   }
 
   @Test

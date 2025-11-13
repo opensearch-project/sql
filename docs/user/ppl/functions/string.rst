@@ -415,3 +415,29 @@ Example::
     |---------------------+---------------------|
     | HELLOWORLD          | HELLOWORLD          |
     +---------------------+---------------------+
+
+
+REGEXP_REPLACE
+-------------
+
+Description
+>>>>>>>>>>>
+
+Usage: regexp_replace(str, pattern, replacement) replace all substrings of the string value that match pattern with replacement and returns modified string value.
+
+Argument type: STRING, STRING, STRING
+
+Return type: STRING
+
+Synonyms: `REPLACE`_
+
+Example::
+
+    os> source=people | eval `DOMAIN` = REGEXP_REPLACE('https://opensearch.org/downloads/', '^https?://(?:www\.)?([^/]+)/.*$', '\1') | fields `DOMAIN`
+    fetched rows / total rows = 1/1
+    +----------------+
+    | DOMAIN         |
+    |----------------|
+    | opensearch.org |
+    +----------------+
+

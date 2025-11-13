@@ -60,6 +60,7 @@ import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.CloseCursor;
@@ -97,7 +98,6 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
-import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
@@ -782,11 +782,6 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   @Override
-  public LogicalPlan visitTimechart(Timechart node, AnalysisContext context) {
-    throw getOnlyForCalciteException("Timechart");
-  }
-
-  @Override
   public LogicalPlan visitWindow(Window node, AnalysisContext context) {
     throw getOnlyForCalciteException("Window");
   }
@@ -837,6 +832,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitAppendCol(AppendCol node, AnalysisContext context) {
     throw getOnlyForCalciteException("Appendcol");
+  }
+
+  @Override
+  public LogicalPlan visitAppendPipe(AppendPipe node, AnalysisContext context) {
+    throw getOnlyForCalciteException("AppendPipe");
   }
 
   @Override

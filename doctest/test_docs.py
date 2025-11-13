@@ -41,6 +41,8 @@ TEST_DATA = {
     'worker': 'worker.json',
     'work_information': 'work_information.json',
     'events': 'events.json',
+    'events_null': 'events_null.json',
+    'events_many_hosts': 'events_many_hosts.json',
     'otellogs': 'otellogs.json',
     'time_data': 'time_test_data.json',
     'time_data2': 'time_test_data2.json',

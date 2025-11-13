@@ -255,7 +255,7 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testTimechartCommand() {
     assertEquals(
-        "source=table | timechart span=span(identifier, *** m) limit=10 useother=true count() by"
+        "source=table | timechart limit=*** useother=*** count() by span(identifier, *** m)"
             + " identifier",
         anonymize("source=t | timechart count() by host"));
   }
@@ -754,6 +754,19 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testAppendPipe() {
+    assertEquals(
+        "source=table | appendpipe [ | stats count()]",
+        anonymize("source=t | appendpipe [stats count()]"));
+    assertEquals(
+        "source=table | appendpipe [ | where identifier = ***]",
+        anonymize("source=t | appendpipe [where fieldname=='pattern']"));
+    assertEquals(
+        "source=table | appendpipe [ | sort identifier]",
+        anonymize("source=t | appendpipe [sort fieldname]"));
+  }
+
+  @Test
   public void testRexCommand() {
     when(settings.getSettingValue(Key.PPL_REX_MAX_MATCH_LIMIT)).thenReturn(10);
 
@@ -794,6 +807,19 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=table | eval identifier=mvappend(identifier,***,***) | fields + identifier",
         anonymize("source=t | eval result=mvappend(a, 'b', 'c') | fields result"));
+  }
+
+  @Test
+  public void testMvindex() {
+    // Test mvindex with single element access
+    assertEquals(
+        "source=table | eval identifier=mvindex(array(***,***,***),***) | fields + identifier",
+        anonymize("source=t | eval result=mvindex(array('a', 'b', 'c'), 1) | fields result"));
+    // Test mvindex with range access
+    assertEquals(
+        "source=table | eval identifier=mvindex(array(***,***,***,***,***),***,***) | fields +"
+            + " identifier",
+        anonymize("source=t | eval result=mvindex(array(1, 2, 3, 4, 5), 1, 3) | fields result"));
   }
 
   @Test

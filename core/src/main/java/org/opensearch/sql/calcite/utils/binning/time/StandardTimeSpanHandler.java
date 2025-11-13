@@ -9,7 +9,9 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.binning.BinConstants;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 /** Handler for standard time units (microseconds through hours). */
 public class StandardTimeSpanHandler {
@@ -34,8 +36,11 @@ public class StandardTimeSpanHandler {
     // Add back alignment offset
     if (alignmentOffset != 0) {
       binValue =
-          context.relBuilder.call(
-              SqlStdOperatorTable.PLUS, binValue, context.relBuilder.literal(alignmentOffset));
+          PPLFuncImpTable.INSTANCE.resolve(
+              context.rexBuilder,
+              BuiltinFunctionName.ADD,
+              binValue,
+              context.relBuilder.literal(alignmentOffset));
     }
 
     // Convert back to timestamp
@@ -51,20 +56,25 @@ public class StandardTimeSpanHandler {
     // For sub-second units, work in milliseconds
     if (isSubSecondUnit(config)) {
       RexNode epochMillis =
-          context.relBuilder.call(
-              SqlStdOperatorTable.MULTIPLY, epochSeconds, context.relBuilder.literal(1000L));
+          PPLFuncImpTable.INSTANCE.resolve(
+              context.rexBuilder,
+              BuiltinFunctionName.MULTIPLY,
+              epochSeconds,
+              context.relBuilder.literal(1000L));
 
       if (config.getDivisionFactor() == 1) {
         return epochMillis;
       } else if (config.getDivisionFactor() > 1) {
-        return context.relBuilder.call(
-            SqlStdOperatorTable.DIVIDE,
+        return PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder,
+            BuiltinFunctionName.DIVIDE,
             epochMillis,
             context.relBuilder.literal(config.getDivisionFactor()));
       } else {
         // Microseconds
-        return context.relBuilder.call(
-            SqlStdOperatorTable.MULTIPLY,
+        return PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder,
+            BuiltinFunctionName.MULTIPLY,
             epochMillis,
             context.relBuilder.literal(BinConstants.MICROS_PER_MILLI));
       }
@@ -73,8 +83,9 @@ public class StandardTimeSpanHandler {
       if (config.getDivisionFactor() == 1) {
         return epochSeconds;
       } else {
-        return context.relBuilder.call(
-            SqlStdOperatorTable.DIVIDE,
+        return PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder,
+            BuiltinFunctionName.DIVIDE,
             epochSeconds,
             context.relBuilder.literal(config.getDivisionFactor()));
       }
@@ -90,22 +101,27 @@ public class StandardTimeSpanHandler {
         binMillis = binValue;
       } else if (config.getDivisionFactor() > 1) {
         binMillis =
-            context.relBuilder.call(
-                SqlStdOperatorTable.MULTIPLY,
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder,
+                BuiltinFunctionName.MULTIPLY,
                 binValue,
                 context.relBuilder.literal(config.getDivisionFactor()));
       } else {
         // Microseconds
         binMillis =
-            context.relBuilder.call(
-                SqlStdOperatorTable.DIVIDE,
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder,
+                BuiltinFunctionName.DIVIDE,
                 binValue,
                 context.relBuilder.literal(BinConstants.MICROS_PER_MILLI));
       }
 
       RexNode binSeconds =
-          context.relBuilder.call(
-              SqlStdOperatorTable.DIVIDE, binMillis, context.relBuilder.literal(1000L));
+          PPLFuncImpTable.INSTANCE.resolve(
+              context.rexBuilder,
+              BuiltinFunctionName.DIVIDE,
+              binMillis,
+              context.relBuilder.literal(1000L));
 
       return context.rexBuilder.makeCall(PPLBuiltinOperators.FROM_UNIXTIME, binSeconds);
     } else {
@@ -114,8 +130,9 @@ public class StandardTimeSpanHandler {
         binSeconds = binValue;
       } else {
         binSeconds =
-            context.relBuilder.call(
-                SqlStdOperatorTable.MULTIPLY,
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder,
+                BuiltinFunctionName.MULTIPLY,
                 binValue,
                 context.relBuilder.literal(config.getDivisionFactor()));
       }
@@ -129,17 +146,22 @@ public class StandardTimeSpanHandler {
     if (alignmentOffset == 0) {
       return epochValue;
     }
-    return context.relBuilder.call(
-        SqlStdOperatorTable.MINUS, epochValue, context.relBuilder.literal(alignmentOffset));
+    return PPLFuncImpTable.INSTANCE.resolve(
+        context.rexBuilder,
+        BuiltinFunctionName.SUBTRACT,
+        epochValue,
+        context.relBuilder.literal(alignmentOffset));
   }
 
   private RexNode performBinning(
       RexNode adjustedValue, int intervalValue, CalcitePlanContext context) {
     RexNode intervalLiteral = context.relBuilder.literal(intervalValue);
     RexNode divided =
-        context.relBuilder.call(SqlStdOperatorTable.DIVIDE, adjustedValue, intervalLiteral);
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder, BuiltinFunctionName.DIVIDE, adjustedValue, intervalLiteral);
     RexNode floored = context.relBuilder.call(SqlStdOperatorTable.FLOOR, divided);
-    return context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, floored, intervalLiteral);
+    return PPLFuncImpTable.INSTANCE.resolve(
+        context.rexBuilder, BuiltinFunctionName.MULTIPLY, floored, intervalLiteral);
   }
 
   private long convertAlignmentOffset(long offsetMillis, TimeUnitConfig config) {

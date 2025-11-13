@@ -9,7 +9,6 @@ import static org.apache.calcite.sql.SqlKind.LITERAL;
 
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.MinSpanBin;
@@ -18,7 +17,8 @@ import org.opensearch.sql.calcite.CalciteRexNodeVisitor;
 import org.opensearch.sql.calcite.utils.binning.BinFieldValidator;
 import org.opensearch.sql.calcite.utils.binning.BinHandler;
 import org.opensearch.sql.calcite.utils.binning.BinnableField;
-import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 /** Handler for minspan-based binning operations. */
 public class MinSpanBinHandler implements BinHandler {
@@ -51,7 +51,9 @@ public class MinSpanBinHandler implements BinHandler {
     // Calculate data range using window functions
     RexNode minValue = context.relBuilder.min(fieldExpr).over().toRex();
     RexNode maxValue = context.relBuilder.max(fieldExpr).over().toRex();
-    RexNode dataRange = context.relBuilder.call(SqlStdOperatorTable.MINUS, maxValue, minValue);
+    RexNode dataRange =
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder, BuiltinFunctionName.SUBTRACT, maxValue, minValue);
 
     // Convert start/end parameters
     RexNode startValue = convertParameter(minSpanBin.getStart(), context);
@@ -60,8 +62,13 @@ public class MinSpanBinHandler implements BinHandler {
     // MINSPAN_BUCKET(field_value, min_span, data_range, max_value)
     RexNode minSpanParam = context.relBuilder.literal(minspan);
 
-    return context.rexBuilder.makeCall(
-        PPLBuiltinOperators.MINSPAN_BUCKET, fieldExpr, minSpanParam, dataRange, maxValue);
+    return PPLFuncImpTable.INSTANCE.resolve(
+        context.rexBuilder,
+        BuiltinFunctionName.MINSPAN_BUCKET,
+        fieldExpr,
+        minSpanParam,
+        dataRange,
+        maxValue);
   }
 
   private RexNode convertParameter(

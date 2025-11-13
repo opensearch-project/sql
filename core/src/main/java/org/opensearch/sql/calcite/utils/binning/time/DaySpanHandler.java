@@ -9,7 +9,9 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.binning.BinConstants;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 /** Handler for day-based time spans. */
 public class DaySpanHandler {
@@ -38,6 +40,7 @@ public class DaySpanHandler {
     RexNode intervalLiteral = context.relBuilder.literal(interval);
     RexNode positionInCycle =
         context.relBuilder.call(SqlStdOperatorTable.MOD, value, intervalLiteral);
-    return context.relBuilder.call(SqlStdOperatorTable.MINUS, value, positionInCycle);
+    return PPLFuncImpTable.INSTANCE.resolve(
+        context.rexBuilder, BuiltinFunctionName.SUBTRACT, value, positionInCycle);
   }
 }
