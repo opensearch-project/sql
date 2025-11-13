@@ -1619,20 +1619,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   @Override
-  public RelNode visitMvExpand(MvExpand node, CalcitePlanContext context) {
-    visitChildren(node, context);
-    Field arrayField = node.getField();
-    RexInputRef arrayFieldRex = (RexInputRef) rexVisitor.analyze(arrayField, context);
-
-    // pass the per-document limit into the builder so it can be applied inside the UNNEST inner
-    // query
-    buildMvExpandRelNode(
-        arrayFieldRex, arrayField.getField().toString(), null, node.getLimit(), context);
-
-    return context.relBuilder.peek();
-  }
-
-  @Override
   public RelNode visitWindow(Window node, CalcitePlanContext context) {
     visitChildren(node, context);
 
@@ -2857,6 +2843,20 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   @Override
+  public RelNode visitMvExpand(MvExpand node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    Field arrayField = node.getField();
+    RexInputRef arrayFieldRex = (RexInputRef) rexVisitor.analyze(arrayField, context);
+
+    // pass the per-document limit into the builder so it can be applied inside the UNNEST inner
+    // query
+    buildMvExpandRelNode(
+        arrayFieldRex, arrayField.getField().toString(), null, node.getLimit(), context);
+
+    return context.relBuilder.peek();
+  }
+
+  @Override
   public RelNode visitValues(Values values, CalcitePlanContext context) {
     if (values.getValues() == null || values.getValues().isEmpty()) {
       context.relBuilder.values(context.relBuilder.getTypeFactory().builder().build());
@@ -3099,31 +3099,95 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     projectPlusOverriding(fattenedNodes, projectNames, context);
   }
 
-  // New generic helper: builds Uncollect + Correlate using a provided left node (so caller
-  // can ensure left rowType is fixed).
-  private void buildUnnestForLeft(
-      RelNode leftBuilt,
-      RelDataType leftRowType,
-      int arrayFieldIndex,
+  private void buildExpandRelNode(
+      RexNode arrayFieldRexNode,
       String arrayFieldName,
       String alias,
-      Holder<RexCorrelVariable> correlVariable,
-      RexNode correlArrayFieldAccess,
       Integer mvExpandLimit,
       CalcitePlanContext context) {
 
-    RelBuilder rb = context.relBuilder;
-    rb.push(LogicalValues.createOneRow(rb.getCluster()))
-        .project(List.of(correlArrayFieldAccess), List.of(arrayFieldName));
-    // apply per-document limit into the inner SELECT if provided
-    if (mvExpandLimit != null && mvExpandLimit > 0) {
-      rb.limit(0, mvExpandLimit);
+    // Convert incoming RexNode to RexInputRef when possible; otherwise resolve by field name.
+    RexInputRef arrayFieldRex;
+    if (arrayFieldRexNode instanceof RexInputRef) {
+      arrayFieldRex = (RexInputRef) arrayFieldRexNode;
+
+      // If caller gave an input ref, try to sanity-check that the referenced field in the
+      // current row type is actually an array. If not, surface a clear semantic error.
+      RelDataType currentRowTypeCheck = context.relBuilder.peek().getRowType();
+      int idx = arrayFieldRex.getIndex();
+      RelDataTypeField checkField = null;
+      if (idx >= 0 && idx < currentRowTypeCheck.getFieldList().size()) {
+        checkField = currentRowTypeCheck.getFieldList().get(idx);
+      }
+      // Allow both ArraySqlType and MapSqlType here to avoid failing
+      // early when mappings are represented as MAP at runtime.
+      if (checkField != null
+          && !(checkField.getType() instanceof ArraySqlType)
+          && !(checkField.getType() instanceof MapSqlType)) {
+        throw new SemanticCheckException(
+            String.format(
+                "Cannot expand field '%s': expected ARRAY type but found %s",
+                checkField.getName(), checkField.getType().getSqlTypeName()));
+      }
+    } else {
+      // Try resolve by name and provide user-friendly errors when resolution fails or the type
+      // is not an array (user-visible message).
+      RelDataType currentRowType = context.relBuilder.peek().getRowType();
+      RelDataTypeField fld = currentRowType.getField(arrayFieldName, false, false);
+      if (fld == null) {
+        throw new SemanticCheckException(
+            String.format("Cannot expand field '%s': field not found in input", arrayFieldName));
+      }
+      // Accept ArraySqlType or MapSqlType here
+      if (!(fld.getType() instanceof ArraySqlType) && !(fld.getType() instanceof MapSqlType)) {
+        throw new SemanticCheckException(
+            String.format(
+                "Cannot expand field '%s': expected ARRAY type but found %s",
+                arrayFieldName, fld.getType().getSqlTypeName()));
+      }
+      arrayFieldRex = context.rexBuilder.makeInputRef(currentRowType, fld.getIndex());
     }
-    RelNode rightNode = rb.uncollect(List.of(), false).build();
+
+    // Capture left node and its schema BEFORE calling build()
+    RelNode leftNode = context.relBuilder.peek();
+    RelDataType leftRowType = leftNode.getRowType();
+
+    // Resolve the array field index in left schema by name (robust); fallback to original index
+    RelDataTypeField leftField = leftRowType.getField(arrayFieldName, false, false);
+    int arrayFieldIndexInLeft =
+        (leftField != null) ? leftField.getIndex() : arrayFieldRex.getIndex();
+
+    // If left schema has the field but it's not an array, produce a helpful message.
+    // Accept MapSqlType as well to avoid premature failure when mapping is object-like.
+    if (leftField != null
+        && !(leftField.getType() instanceof ArraySqlType)
+        && !(leftField.getType() instanceof MapSqlType)) {
+      throw new SemanticCheckException(
+          String.format(
+              "Cannot expand field '%s': expected ARRAY type in input but found %s",
+              arrayFieldName, leftField.getType().getSqlTypeName()));
+    }
+
+    // Create correlation variable while left is still on the builder stack
+    Holder<RexCorrelVariable> correlVariable = Holder.empty();
+    context.relBuilder.variable(correlVariable::set);
+
+    // Create correlated field access while left is still on the builder stack
+    RexNode correlArrayFieldAccess =
+        context.relBuilder.field(
+            context.rexBuilder.makeCorrel(leftRowType, correlVariable.get().id),
+            arrayFieldIndexInLeft);
+
+    // Materialize leftBuilt
+    RelNode leftBuilt = context.relBuilder.build();
+
+    // Build the right (uncollect) using the small helper
+    RelNode rightNode =
+        buildRightUncollect(correlArrayFieldAccess, arrayFieldName, mvExpandLimit, context);
 
     // Compute required column ref against leftBuilt's row type (robust)
     RexNode requiredColumnRef =
-        context.rexBuilder.makeInputRef(leftBuilt.getRowType(), arrayFieldIndex);
+        context.rexBuilder.makeInputRef(leftBuilt.getRowType(), arrayFieldIndexInLeft);
 
     // Correlate leftBuilt and rightNode using the proper required column ref
     context
@@ -3152,61 +3216,32 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
   }
 
-  private void buildExpandRelNode(
-      RexNode arrayFieldRexNode,
+  /**
+   * Build the inner uncollect (UNNEST) right node given a correlated field access.
+   *
+   * <p>This helper intentionally keeps a very small surface: it accepts the correlated access
+   * (which must be created while the left is still on the builder stack) and the other local
+   * options, constructs the "one-row -> project(correlatedField) -> (limit?) -> uncollect" sequence
+   * and returns the built right RelNode.
+   *
+   * <p>Keeping the correlate + projectExcept logic in buildExpandRelNode simplifies reasoning about
+   * the required correlate-variable lifecycle (it must be created while left is on the builder
+   * stack).
+   */
+  private RelNode buildRightUncollect(
+      RexNode correlArrayFieldAccess,
       String arrayFieldName,
-      String alias,
       Integer mvExpandLimit,
       CalcitePlanContext context) {
 
-    // Convert incoming RexNode to RexInputRef when possible; otherwise resolve by field name.
-    RexInputRef arrayFieldRex;
-    if (arrayFieldRexNode instanceof RexInputRef) {
-      arrayFieldRex = (RexInputRef) arrayFieldRexNode;
-    } else {
-      RelDataType currentRowType = context.relBuilder.peek().getRowType();
-      RelDataTypeField fld = currentRowType.getField(arrayFieldName, false, false);
-      if (fld != null) {
-        arrayFieldRex = context.rexBuilder.makeInputRef(currentRowType, fld.getIndex());
-      } else {
-        throw new IllegalArgumentException(
-            "buildExpandRelNode: expected RexInputRef or resolvable field name: " + arrayFieldName);
-      }
+    RelBuilder rb = context.relBuilder;
+    rb.push(LogicalValues.createOneRow(rb.getCluster()))
+        .project(List.of(correlArrayFieldAccess), List.of(arrayFieldName));
+    // apply per-document limit into the inner SELECT if provided
+    if (mvExpandLimit != null && mvExpandLimit > 0) {
+      rb.limit(0, mvExpandLimit);
     }
-
-    // Capture left node and its schema BEFORE calling build()
-    RelNode leftNode = context.relBuilder.peek();
-    RelDataType leftRowType = leftNode.getRowType();
-
-    // Resolve the array field index in left schema by name (robust); fallback to original index
-    RelDataTypeField leftField = leftRowType.getField(arrayFieldName, false, false);
-    int arrayFieldIndexInLeft =
-        (leftField != null) ? leftField.getIndex() : arrayFieldRex.getIndex();
-
-    // Create correlation variable while left is still on the builder stack
-    Holder<RexCorrelVariable> correlVariable = Holder.empty();
-    context.relBuilder.variable(correlVariable::set);
-
-    // Create correlated field access while left is still on the builder stack
-    RexNode correlArrayFieldAccess =
-        context.relBuilder.field(
-            context.rexBuilder.makeCorrel(leftRowType, correlVariable.get().id),
-            arrayFieldIndexInLeft);
-
-    // Materialize leftBuilt
-    RelNode leftBuilt = context.relBuilder.build();
-
-    // Use unified helper to build right/uncollect + correlate + cleanup
-    buildUnnestForLeft(
-        leftBuilt,
-        leftRowType,
-        arrayFieldIndexInLeft,
-        arrayFieldName,
-        alias,
-        correlVariable,
-        correlArrayFieldAccess,
-        mvExpandLimit,
-        context);
+    return rb.uncollect(List.of(), false).build();
   }
 
   private void buildMvExpandRelNode(

@@ -156,24 +156,19 @@ Output (example)::
 
 Example 5: Large Arrays and Memory / resource limits
 ----------------------------------------------------
-If an array is very large it can trigger engine or cluster resource limits and the query can fail with an error. There is no mvexpand-specific configuration flag that controls resource usage; instead, limits are enforced by the engine and the cluster:
+If an array is very large it can trigger engine or cluster resource limits and the query can fail with an error. There is no mvexpand-specific configuration. Instead, limits that can cause a query to be terminated are enforced at the node / engine level and by SQL/PPL query controls.
 
-- OpenSearch node-level protections (circuit breakers and JVM/heap safeguards) and request-size protections.
-- SQL/PPL execution limits (for example, query timeouts, request-size limits, and engine memory budgets) that apply to the query execution layer.
-
-Behavior of circuit breakers and which operators they protect can vary by release and configuration (some breakers primarily protect memory-heavy operations such as fielddata, aggregations, and certain scan implementations). Because of these distinctions, mvexpand should not be relied on to bypass cluster-level protections — use the command-level ``limit`` to bound per-document expansion and avoid hitting cluster limits.
+- OpenSearch node protections (for example, heap / query memory limits such as plugins.query.memory_limit) can terminate queries that exceed configured memory budgets.
+- SQL/PPL execution limits (timeouts, request/response size limits, and engine memory budgets) also apply to queries that use mvexpand.
+- Note: in the current Calcite-based engine, circuit-breaking protections are applied primarily to the index scan operator; protections for other operators (including some operators used internally to implement mvexpand) are under research. Do not assume operator-level circuit breaking will fully protect mvexpand in all cases.
 
 To avoid failures when expanding large arrays:
-- Use the `limit` parameter to restrict the number of expanded values per document (for example: `mvexpand field limit=1000`).
-- Filter or narrow the input before expanding (use `where` and `fields` to reduce rows and columns).
-- Tune cluster and SQL/PPL execution settings (circuit breakers, request/response size, timeouts, memory limits) appropriate for your deployment. If desired, we can add links to the exact OpenSearch circuit-breaker and SQL/PPL configuration docs for the targeted release.
+- Use mvexpand's limit parameter to bound the number of expanded values per document (for example: mvexpand field limit=1000).
+- Reduce the input size before expanding (filter with where, project only needed fields).
+- Tune cluster and SQL/PPL execution settings (circuit breakers, request/response size, timeouts, memory limits) appropriate for your deployment.
 
-PPL query::
-
-    source=docs | mvexpand ids
-
-Output (example)::
-    Error: Memory/resource limit exceeded while expanding field 'ids'. Please reduce the array size or specify a limit.
+For node and SQL/PPL settings see:
+https://docs.opensearch.org/1.0/search-plugins/ppl/settings/
 
 Example 6: Multiple Fields (Limitation)
 ---------------------------------------
