@@ -1776,14 +1776,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return wrappedOverExprs;
   }
 
-  private RelNode buildStreamWindowJoinPlan(
-      CalcitePlanContext context,
-      RelNode leftWithHelpers,
-      StreamWindow node,
-      List<UnresolvedExpression> groupList,
-      String seqCol,
-      String segmentCol,
-      String[] helperColsToCleanup) {
+    private RelNode buildStreamWindowJoinPlan(
+        CalcitePlanContext context,
+        RelNode leftWithHelpers,
+        StreamWindow node,
+        List<UnresolvedExpression> groupList,
+        String seqCol,
+        String segmentCol,
+        String[] helperColsToCleanup) {
 
         final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
         context.relBuilder.push(leftWithHelpers);
