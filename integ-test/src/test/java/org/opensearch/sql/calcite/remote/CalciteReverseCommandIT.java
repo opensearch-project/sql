@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TIME_DATA;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -26,6 +27,7 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
     disallowCalciteFallback();
     loadIndex(Index.BANK);
     loadIndex(Index.TIME_TEST_DATA);
+    loadIndex(Index.STATE_COUNTRY);
   }
 
   @Test
@@ -223,5 +225,114 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
     verifySchema(result, schema("value", "int"), schema("category", "string"));
     // Should reverse the value sort, giving us the highest values
     verifyDataRowsInOrder(result, rows(9521, "B"), rows(9367, "A"), rows(9321, "A"));
+  }
+
+  @Test
+  public void testStreamstatsWithReverse() throws IOException {
+    // Test that reverse is ignored when used directly after streamstats
+    // streamstats maintains order via __stream_seq__, but this field is projected out
+    // and doesn't create a detectable collation, so reverse is ignored (no-op)
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | streamstats count() as cnt, avg(age) as avg | reverse",
+                TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("country", "string"),
+        schema("state", "string"),
+        schema("month", "int"),
+        schema("year", "int"),
+        schema("age", "int"),
+        schema("cnt", "bigint"),
+        schema("avg", "double"));
+    // Reverse is ignored, so data remains in original streamstats order
+    verifyDataRowsInOrder(
+        result,
+        rows("Jake", "USA", "California", 4, 2023, 70, 1, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 2, 50),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 3, 41.666666666666664),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 4, 36.25));
+  }
+
+  @Test
+  public void testStreamstatsWindowWithReverse() throws IOException {
+    // Test that reverse is ignored after streamstats with window
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | streamstats window=2 avg(age) as avg | reverse",
+                TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("country", "string"),
+        schema("state", "string"),
+        schema("month", "int"),
+        schema("year", "int"),
+        schema("age", "int"),
+        schema("avg", "double"));
+    // Reverse is ignored, data remains in original order
+    // Window=2 means average of current and previous row (sliding window of size 2)
+    verifyDataRowsInOrder(
+        result,
+        rows("Jake", "USA", "California", 4, 2023, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 50),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 27.5),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5));
+  }
+
+  @Test
+  public void testStreamstatsByWithReverse() throws IOException {
+    // Test that reverse is ignored after streamstats with partitioning (by clause)
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | streamstats count() as cnt, avg(age) as avg by country | reverse",
+                TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("country", "string"),
+        schema("state", "string"),
+        schema("month", "int"),
+        schema("year", "int"),
+        schema("age", "int"),
+        schema("cnt", "bigint"),
+        schema("avg", "double"));
+    // Reverse is ignored, data remains in original order
+    verifyDataRowsInOrder(
+        result,
+        rows("Jake", "USA", "California", 4, 2023, 70, 1, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 2, 50),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2, 22.5));
+  }
+
+  @Test
+  public void testStreamstatsWithSortThenReverse() throws IOException {
+    // Test that reverse works when there's an explicit sort after streamstats
+    // The explicit sort creates a collation that reverse can detect and reverse
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | streamstats count() as cnt | sort age | reverse | head 3",
+                TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("country", "string"),
+        schema("state", "string"),
+        schema("month", "int"),
+        schema("year", "int"),
+        schema("age", "int"),
+        schema("cnt", "bigint"));
+    // With explicit sort and reverse, data is in descending age order
+    verifyDataRowsInOrder(
+        result,
+        rows("Jake", "USA", "California", 4, 2023, 70, 1),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 2),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 3));
   }
 }
