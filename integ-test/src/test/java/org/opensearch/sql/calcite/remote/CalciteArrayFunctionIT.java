@@ -491,6 +491,62 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testMvzipBasic() throws IOException {
+    // Basic example from spec: eval nserver=mvzip(hosts,ports)
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval hosts = array('host1', 'host2'), ports = array(80, 443), nserver"
+                    + " = mvzip(hosts, ports) | head 1 | fields nserver",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("nserver", "array"));
+    verifyDataRows(actual, rows(List.of("host1,80", "host2,443")));
+  }
+
+  @Test
+  public void testMvzipWithCustomDelimiter() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr1 = array('a', 'b', 'c'), arr2 = array('x', 'y', 'z'), result"
+                    + " = mvzip(arr1, arr2, '|') | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of("a|x", "b|y", "c|z")));
+  }
+
+  @Test
+  public void testMvzipNested() throws IOException {
+    // Example from spec: mvzip(mvzip(field1,field2,"|"),field3,"|")
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval field1 = array('a', 'b'), field2 = array('c', 'd'), field3 ="
+                    + " array('e', 'f'), result = mvzip(mvzip(field1, field2, '|'), field3, '|') |"
+                    + " head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of("a|c|e", "b|d|f")));
+  }
+
+  @Test
+  public void testMvzipWithNull() throws IOException {
+    // When either input is null, result should be null
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = mvzip(nullif(1, 1), array('test')) | head 1 | fields"
+                    + " result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows((Object) null));
+  }
+
+  @Test
   public void testMvdedupWithDuplicates() throws IOException {
     JSONObject actual =
         executeQuery(
