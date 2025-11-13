@@ -20,12 +20,13 @@ import org.opensearch.sql.ast.expression.SearchExpression;
  */
 @Getter
 @ToString
-@EqualsAndHashCode(callSuper = false)
+@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @RequiredArgsConstructor
 public class Search extends UnresolvedPlan {
 
-  private final UnresolvedPlan child;
-  private final String queryString;
+  @EqualsAndHashCode.Include private final UnresolvedPlan child;
+  @EqualsAndHashCode.Include private final String queryString;
+
   private final SearchExpression originalExpression;
 
   @Override
