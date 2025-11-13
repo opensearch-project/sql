@@ -1217,4 +1217,21 @@ public class StatsCommandIT extends PPLIntegTestCase {
       resetQueryBucketSize();
     }
   }
+
+  @Test
+  public void testStatsByFractionalSpan() throws IOException {
+    JSONObject response1 =
+        executeQuery(
+            String.format(
+                "source=%s | stats count by span(balance, 4170.5)",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(response1, schema("count", "bigint"), schema("span(balance,4170.5)", "double"));
+    verifyDataRows(
+        response1,
+        rows(3, null),
+        rows(1, 4170.5),
+        rows(1, 29193.5),
+        rows(1, 37534.5),
+        rows(1, 45875.5));
+  }
 }
