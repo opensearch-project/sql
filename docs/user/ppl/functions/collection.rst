@@ -394,3 +394,77 @@ Example::
     | [alex,celestino,claudia] |
     +--------------------------+
 
+
+MVZIP
+-----
+
+Description
+>>>>>>>>>>>
+
+Usage: mvzip(mv_left, mv_right, [delim]) combines the values in two multivalue fields. The delimiter is used to specify a delimiting character to join the two values. This is similar to the Python zip command.
+
+The values are stitched together combining the first value of mv_left with the first value of mv_right, then the second with the second, and so on. The function stops at the length of the shorter field.
+
+The delimiter is optional. When specified, it must be enclosed in quotation marks. The default delimiter is a comma ( , ).
+
+Argument type: mv_left: ANY, mv_right: ANY, delim: STRING (optional)
+
+Return type: ARRAY
+
+Example::
+
+    os> source=people | eval hosts = array('host1', 'host2'), ports = array(80, 443), nserver = mvzip(hosts, ports) | fields nserver | head 1
+    fetched rows / total rows = 1/1
+    +----------------------+
+    | nserver              |
+    |----------------------|
+    | [host1,80,host2,443] |
+    +----------------------+
+
+    os> source=people | eval arr1 = array('a', 'b', 'c'), arr2 = array('x', 'y', 'z'), result = mvzip(arr1, arr2, '|') | fields result | head 1
+    fetched rows / total rows = 1/1
+    +---------------+
+    | result        |
+    |---------------|
+    | [a|x,b|y,c|z] |
+    +---------------+
+
+    os> source=people | eval result = mvzip(1, 2) | fields result | head 1
+    fetched rows / total rows = 1/1
+    +--------+
+    | result |
+    |--------|
+    | [1,2]  |
+    +--------+
+
+    os> source=people | eval arr1 = array(1, 2, 3), arr2 = array('a', 'b'), result = mvzip(arr1, arr2) | fields result | head 1
+    fetched rows / total rows = 1/1
+    +-----------+
+    | result    |
+    |-----------|
+    | [1,a,2,b] |
+    +-----------+
+
+    os> source=people | eval field1 = array('a', 'b'), field2 = array('c', 'd'), field3 = array('e', 'f'), result = mvzip(mvzip(field1, field2, '|'), field3, '|') | fields result | head 1
+    fetched rows / total rows = 1/1
+    +---------------+
+    | result        |
+    |---------------|
+    | [a|c|e,b|d|f] |
+    +---------------+
+
+    os> source=accounts | eval result = mvzip(firstname, lastname, ' ') | fields result | head 1
+    fetched rows / total rows = 1/1
+    +--------------+
+    | result       |
+    |--------------|
+    | [Amber Duke] |
+    +--------------+
+
+    os> source=people | eval result = mvzip(nullif(1, 1), array('test')) | fields result | head 1
+    fetched rows / total rows = 1/1
+    +--------+
+    | result |
+    |--------|
+    | null   |
+    +--------+
