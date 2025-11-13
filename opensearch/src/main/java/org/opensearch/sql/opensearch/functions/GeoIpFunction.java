@@ -91,6 +91,12 @@ public class GeoIpFunction extends ImplementorUDF {
     }
 
     public static Map<String, ?> fetchIpEnrichment(
+        String dataSource, Object ipAddress, NodeClient nodeClient) {
+      return fetchIpEnrichment(
+          dataSource, ipAddress.toString(), Collections.emptySet(), nodeClient);
+    }
+
+    public static Map<String, ?> fetchIpEnrichment(
         String dataSource,
         ExprIpValue ipAddress,
         String commaSeparatedOptions,
