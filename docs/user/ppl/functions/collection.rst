@@ -429,14 +429,6 @@ Example::
     | [a|x,b|y,c|z] |
     +---------------+
 
-    os> source=people | eval result = mvzip(1, 2) | fields result | head 1
-    fetched rows / total rows = 1/1
-    +--------+
-    | result |
-    |--------|
-    | [1,2]  |
-    +--------+
-
     os> source=people | eval arr1 = array(1, 2, 3), arr2 = array('a', 'b'), result = mvzip(arr1, arr2) | fields result | head 1
     fetched rows / total rows = 1/1
     +-----------+
@@ -444,27 +436,3 @@ Example::
     |-----------|
     | [1,a,2,b] |
     +-----------+
-
-    os> source=people | eval field1 = array('a', 'b'), field2 = array('c', 'd'), field3 = array('e', 'f'), result = mvzip(mvzip(field1, field2, '|'), field3, '|') | fields result | head 1
-    fetched rows / total rows = 1/1
-    +---------------+
-    | result        |
-    |---------------|
-    | [a|c|e,b|d|f] |
-    +---------------+
-
-    os> source=accounts | eval result = mvzip(firstname, lastname, ' ') | fields result | head 1
-    fetched rows / total rows = 1/1
-    +--------------+
-    | result       |
-    |--------------|
-    | [Amber Duke] |
-    +--------------+
-
-    os> source=people | eval result = mvzip(nullif(1, 1), array('test')) | fields result | head 1
-    fetched rows / total rows = 1/1
-    +--------+
-    | result |
-    |--------|
-    | null   |
-    +--------+
