@@ -106,7 +106,7 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
       if (startFrom >= osIndex.getMaxResultWindow()) {
         throw new PushDownUnSupportedException(
             String.format(
-                "Requested offset %d should be less than the max result window %d",
+                "[INTERNAL] Requested offset %d should be less than the max result window %d",
                 startFrom, osIndex.getMaxResultWindow()));
       }
       isLimitPushed = true;

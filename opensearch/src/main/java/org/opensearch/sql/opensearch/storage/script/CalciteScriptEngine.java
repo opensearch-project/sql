@@ -27,6 +27,10 @@
 
 package org.opensearch.sql.opensearch.storage.script;
 
+import static org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer.DIGESTS;
+import static org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer.LITERALS;
+import static org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer.SOURCES;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.time.chrono.ChronoZonedDateTime;
@@ -35,8 +39,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.DataContext;
@@ -117,7 +119,8 @@ public class CalciteScriptEngine implements ScriptEngine {
 
     RexToLixTranslator.InputGetter getter =
         (blockBuilder, i, type) -> {
-          throw new UnsupportedScriptException("There shouldn't be RexInputRef in the RexNode.");
+          throw new UnsupportedScriptException(
+              "[BUG]There shouldn't be RexInputRef in the RexNode.");
         };
     String code =
         CalciteScriptEngine.translate(
@@ -163,23 +166,20 @@ public class CalciteScriptEngine implements ScriptEngine {
     private final List<Source> sources;
     private final List<Object> digests;
     private final List<Object> literals;
-    private final Map<String, Integer> paramNameToIndex;
+    private final Map<String, Integer> parameterToIndex;
 
     public ScriptDataContext(
         Map<String, ScriptDocValues<?>> docProvider,
         SourceLookup sourceLookup,
-        Map<String, Object> params) {
+        Map<String, Object> params,
+        Map<String, Integer> parameterToIndex) {
       this.docProvider = docProvider;
       this.sourceLookup = sourceLookup;
       this.utcTimestamp = (long) params.get(Variable.UTC_TIMESTAMP.camelName);
-      this.sources =
-          ((List<Integer>) params.get("SOURCES")).stream().map(Source::fromValue).toList();
-      this.digests = (List<Object>) params.get("DIGESTS");
-      this.literals = (List<Object>) params.get("LITERALS");
-      this.paramNameToIndex =
-          IntStream.range(0, sources.size())
-              .boxed()
-              .collect(Collectors.toMap(i -> "?" + i, i -> i));
+      this.sources = ((List<Integer>) params.get(SOURCES)).stream().map(Source::fromValue).toList();
+      this.digests = (List<Object>) params.get(DIGESTS);
+      this.literals = (List<Object>) params.get(LITERALS);
+      this.parameterToIndex = parameterToIndex;
     }
 
     @Override
@@ -203,7 +203,7 @@ public class CalciteScriptEngine implements ScriptEngine {
       if (Variable.UTC_TIMESTAMP.camelName.equals(name)) return this.utcTimestamp;
 
       try {
-        int index = paramNameToIndex.get(name);
+        int index = parameterToIndex.get(name);
         return switch (sources.get(index)) {
           case DOC_VALUE -> getFromDocValue((String) digests.get(index));
           case SOURCE -> getFromSource((String) digests.get(index));
