@@ -1606,4 +1606,24 @@ public class AstBuilderTest {
                 exprList(argument("limit", intLiteral(3)), argument("top", booleanLiteral(false))))
             .build());
   }
+
+  @Test
+  public void testTimeSpanWithDecimalShouldThrow() {
+    Throwable t1 =
+        assertThrows(
+            IllegalArgumentException.class, () -> plan("source=t | timechart  span=1.5d count"));
+    assertTrue(
+        t1.getMessage()
+            .contains(
+                "Span length [1.5d] is invalid: floating-point time intervals are not supported."));
+
+    Throwable t2 =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> plan("source=t | stats count by span(@timestamp, 2.5y)"));
+    assertTrue(
+        t2.getMessage()
+            .contains(
+                "Span length [2.5y] is invalid: floating-point time intervals are not supported."));
+  }
 }

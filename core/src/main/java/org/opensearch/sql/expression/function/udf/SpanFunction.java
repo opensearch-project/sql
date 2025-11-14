@@ -20,7 +20,6 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -45,7 +44,17 @@ public class SpanFunction extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return ReturnTypes.ARG0;
+    // Return arg0 type if it has a unit (i.e. time related span)
+    return callBinding -> {
+      if (SqlTypeUtil.isString(callBinding.getOperandType(2))) {
+        return callBinding.getOperandType(0);
+      }
+      // Use the least restrictive type between the field type and the interval type if it's a
+      // numeric span. E.g. span(int_field, double_literal) -> double
+      return callBinding
+          .getTypeFactory()
+          .leastRestrictive(List.of(callBinding.getOperandType(0), callBinding.getOperandType(1)));
+    };
   }
 
   @Override
@@ -57,10 +66,9 @@ public class SpanFunction extends ImplementorUDF {
                 .or(
                     OperandTypes.family(
                         SqlTypeFamily.DATETIME, SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER))
-                // TODO: numeric span should support decimal as its interval
                 .or(
                     OperandTypes.family(
-                        SqlTypeFamily.NUMERIC, SqlTypeFamily.INTEGER, SqlTypeFamily.ANY)));
+                        SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC, SqlTypeFamily.ANY)));
   }
 
   public static class SpanImplementor implements NotNullImplementor {
@@ -73,8 +81,12 @@ public class SpanFunction extends ImplementorUDF {
       Expression interval = translatedOperands.get(1);
 
       RelDataType fieldType = call.getOperands().get(0).getType();
+      RelDataType intervalType = call.getOperands().get(1).getType();
       RelDataType unitType = call.getOperands().get(2).getType();
 
+      if (SqlTypeUtil.isDecimal(intervalType)) {
+        interval = Expressions.call(interval, "doubleValue");
+      }
       if (SqlTypeUtil.isNull(unitType)) {
         SqlTypeName sqlTypeName = call.getType().getSqlTypeName();
         Expression result;
