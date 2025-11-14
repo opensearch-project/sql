@@ -567,4 +567,127 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     // Should preserve first occurrence order: z, a, b, c
     verifyDataRows(actual, rows(List.of("z", "a", "b", "c")));
   }
+
+  @Test
+  public void testSplitWithSemicolonDelimiter() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval test = 'buttercup;rarity;tenderhoof;dash;mcintosh', result ="
+                    + " split(test, ';') | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of("buttercup", "rarity", "tenderhoof", "dash", "mcintosh")));
+  }
+
+  @Test
+  public void testSplitWithMultiCharDelimiter() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval test = '1a2b3c4def567890', result = split(test, 'def') | head 1 |"
+                    + " fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of("1a2b3c4", "567890")));
+  }
+
+  @Test
+  public void testSplitWithEmptyDelimiter() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval test = 'abcd', result = split(test, '') | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    // Empty delimiter splits into individual characters
+    verifyDataRows(actual, rows(List.of("a", "b", "c", "d")));
+  }
+
+  @Test
+  public void testSplitWithColonDelimiter() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval test = 'name::value', result = split(test, '::') | head 1 |"
+                    + " fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of("name", "value")));
+  }
+
+  @Test
+  public void testSplitWithCommaDelimiter() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval test = 'apple,banana,cherry', result = split(test, ',') | head 1"
+                    + " | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of("apple", "banana", "cherry")));
+  }
+
+  @Test
+  public void testSplitWithFieldReference() throws IOException {
+    // Test split on a real field using employer field which may contain space-separated words
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = split(employer, ' ') | head 1 | fields employer, result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("employer", "string"), schema("result", "array"));
+    // Verify that the result is an array
+    JSONArray dataRows = actual.getJSONArray("datarows");
+    assertTrue(dataRows.length() > 0);
+    JSONArray firstRow = dataRows.getJSONArray(0);
+    // The second element should be an array
+    assertTrue(firstRow.get(1) instanceof JSONArray);
+  }
+
+  @Test
+  public void testSplitWithEmptyString() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval test = '', result = split(test, ',') | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    // Empty string should return empty array
+    verifyDataRows(actual, rows(List.of()));
+  }
+
+  @Test
+  public void testSplitNoDelimiterFound() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval test = 'hello', result = split(test, ',') | head 1 | fields"
+                    + " result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    // If delimiter not found, should return array with original string
+    verifyDataRows(actual, rows(List.of("hello")));
+  }
+
+  @Test
+  public void testSplitMultipleOccurrences() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval test = 'a-b-c-d-e-f', result = split(test, '-') | head 1 | fields"
+                    + " result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of("a", "b", "c", "d", "e", "f")));
+  }
 }

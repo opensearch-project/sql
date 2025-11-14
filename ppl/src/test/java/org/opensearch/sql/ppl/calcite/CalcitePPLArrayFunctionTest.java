@@ -290,4 +290,58 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testSplitWithSemicolonDelimiter() {
+    String ppl =
+        "source=EMP | eval test = 'buttercup;rarity;tenderhoof', result = split(test, ';') | head"
+            + " 1 | fields result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "result=[buttercup, rarity, tenderhoof]\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testSplitWithMultiCharDelimiter() {
+    String ppl =
+        "source=EMP | eval test = '1a2b3c4def567890', result = split(test, 'def') | head 1 |"
+            + " fields result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "result=[1a2b3c4, 567890]\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testSplitWithEmptyDelimiter() {
+    String ppl =
+        "source=EMP | eval test = 'abcd', result = split(test, '') | head 1 | fields result";
+    RelNode root = getRelNode(ppl);
+
+    // With empty delimiter, should split into individual characters
+    String expectedResult = "result=[a, b, c, d]\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testSplitWithColonDelimiter() {
+    String ppl =
+        "source=EMP | eval test = 'name::value', result = split(test, '::') | head 1 | fields"
+            + " result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "result=[name, value]\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testSplitWithFieldReference() {
+    String ppl = "source=EMP | eval result = split(ENAME, 'A') | head 1 | fields result";
+    RelNode root = getRelNode(ppl);
+
+    // Just verify it parses and executes correctly
+    // Actual result depends on the ENAME field value
+    getRelNode(ppl); // Verify parsing succeeds
+  }
 }

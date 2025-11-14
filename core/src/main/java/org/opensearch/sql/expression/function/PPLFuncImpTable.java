@@ -194,6 +194,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SINH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SPAN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SPAN_BUCKET;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SPLIT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SQRT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_POP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_SAMP;
@@ -286,6 +287,7 @@ import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.CollectionUDF.MVIndexFunctionImp;
+import org.opensearch.sql.expression.function.CollectionUDF.SplitFunctionImp;
 
 public class PPLFuncImpTable {
   private static final Logger logger = LogManager.getLogger(PPLFuncImpTable.class);
@@ -975,6 +977,12 @@ public class PPLFuncImpTable {
               (builder, array, delimiter) ->
                   builder.makeCall(SqlLibraryOperators.ARRAY_JOIN, array, delimiter),
           PPLTypeChecker.family(SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER));
+
+      // Register SPLIT with custom logic for empty delimiter
+      register(
+          SPLIT,
+          new SplitFunctionImp(),
+          PPLTypeChecker.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER));
 
       // Register MVINDEX to use Calcite's ITEM/ARRAY_SLICE with index normalization
       register(
