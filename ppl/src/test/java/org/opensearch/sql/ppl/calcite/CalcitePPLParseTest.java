@@ -27,7 +27,7 @@ public class CalcitePPLParseTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `JOB`, `PARSE`(`DATE_FORMAT`(`HIREDATE`, '%Y-%m-%d'),"
+        "SELECT `JOB`, PARSE(DATE_FORMAT(`HIREDATE`, '%Y-%m-%d'),"
             + " '(?<year>\\d{4})-\\d{2}-\\d{2}', 'regex')['year'] `year`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -46,7 +46,7 @@ public class CalcitePPLParseTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `JOB`, `PARSE`(`DATE_FORMAT`(`HIREDATE`, '%Y-%m-%d'),"
+        "SELECT `JOB`, PARSE(DATE_FORMAT(`HIREDATE`, '%Y-%m-%d'),"
             + " '(?<MGR>\\d{4})-\\d{2}-\\d{2}', 'regex')['MGR'] `MGR`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
