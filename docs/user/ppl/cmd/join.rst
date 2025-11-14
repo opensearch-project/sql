@@ -39,6 +39,10 @@ Extended syntax since 3.3.0
 
 Configuration
 =============
+
+plugins.calcite.enabled
+-----------------------
+
 This command requires Calcite enabled. In 3.0.0, as an experimental the Calcite configuration is disabled by default.
 
 Enable Calcite::
@@ -62,6 +66,32 @@ Result set::
       },
       "transient": {}
     }
+
+
+plugins.ppl.join.subsearch_maxout
+---------------------------------
+
+The size configures the maximum of rows from subsearch to join against. The default value is: ``50000``. A value of ``0`` indicates that the restriction is unlimited.
+
+Change the join.subsearch_maxout to 5000::
+
+    sh$ curl -sS -H 'Content-Type: application/json' \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"persistent" : {"plugins.ppl.join.subsearch_maxout" : "5000"}}'
+    {
+      "acknowledged": true,
+      "persistent": {
+        "plugins": {
+          "ppl": {
+            "join": {
+              "subsearch_maxout": "5000"
+            }
+          }
+        }
+      },
+      "transient": {}
+    }
+
 
 Usage
 =====

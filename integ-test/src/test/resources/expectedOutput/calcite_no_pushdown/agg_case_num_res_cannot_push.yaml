@@ -1,0 +1,13 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(count()=[$1], age_range=[$0])
+        LogicalAggregate(group=[{0}], count()=[COUNT()])
+          LogicalProject(age_range=[CASE(<($10, 30), 30, 100)])
+            CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..1=[{inputs}], count()=[$t1], age_range=[$t0])
+        EnumerableAggregate(group=[{0}], count()=[COUNT()])
+          EnumerableCalc(expr#0..18=[{inputs}], expr#19=[30], expr#20=[<($t10, $t19)], expr#21=[100], expr#22=[CASE($t20, $t19, $t21)], age_range=[$t22])
+            CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])

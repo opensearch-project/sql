@@ -85,11 +85,7 @@ public class OpenSearchExprValueFactory {
    * @param typeMapping A data type mapping produced by aggregation.
    */
   public void extendTypeMapping(Map<String, OpenSearchDataType> typeMapping) {
-    for (var field : typeMapping.keySet()) {
-      // Prevent overwriting, because aggregation engine may be not aware
-      // of all niceties of all types.
-      this.typeMapping.putIfAbsent(field, typeMapping.get(field));
-    }
+    this.typeMapping.putAll(typeMapping);
   }
 
   @Getter @Setter private OpenSearchAggregationResponseParser parser;
@@ -194,7 +190,12 @@ public class OpenSearchExprValueFactory {
 
     // Field type may be not defined in mapping if users have disabled dynamic mapping.
     // Then try to parse content directly based on the value itself
-    if (fieldType.isEmpty()) {
+    // Besides, sub-fields of generated objects are also of type UNDEFINED. We parse the content
+    // directly on the value itself for this case as well.
+    // TODO: Remove the second condition once https://github.com/opensearch-project/sql/issues/3751
+    //  is resolved
+    if (fieldType.isEmpty()
+        || fieldType.get().equals(OpenSearchDataType.of(ExprCoreType.UNDEFINED))) {
       return parseContent(content);
     }
 

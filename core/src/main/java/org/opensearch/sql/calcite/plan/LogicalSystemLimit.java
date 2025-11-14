@@ -30,7 +30,11 @@ public class LogicalSystemLimit extends Sort {
      *
      * <p>This type is used to indicate that the limit is applied to the system level.
      */
-    QUERY_SIZE_LIMIT
+    QUERY_SIZE_LIMIT,
+    /** The max output from subsearch to join against. */
+    JOIN_SUBSEARCH_MAXOUT,
+    /** Max output to return from a subsearch. */
+    SUBSEARCH_MAXOUT,
   }
 
   @Getter private final SystemLimitType type;
@@ -61,16 +65,15 @@ public class LogicalSystemLimit extends Sort {
   }
 
   public static LogicalSystemLimit create(SystemLimitType type, RelNode input, RexNode fetch) {
-    return create(type, input, input.getTraitSet().getCollation(), null, fetch);
+    return create(type, input, null, fetch);
   }
 
   public static LogicalSystemLimit create(
-      SystemLimitType type,
-      RelNode input,
-      RelCollation collation,
-      @Nullable RexNode offset,
-      @Nullable RexNode fetch) {
+      SystemLimitType type, RelNode input, @Nullable RexNode offset, @Nullable RexNode fetch) {
     RelOptCluster cluster = input.getCluster();
+    List<RelCollation> collations = input.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE);
+    // When there exists multiple sets of equivalent collations, we randomly select one
+    RelCollation collation = collations == null ? null : collations.get(0);
     collation = RelCollationTraitDef.INSTANCE.canonize(collation);
     RelTraitSet traitSet = input.getTraitSet().replace(Convention.NONE).replace(collation);
     return new LogicalSystemLimit(type, cluster, traitSet, input, collation, offset, fetch);

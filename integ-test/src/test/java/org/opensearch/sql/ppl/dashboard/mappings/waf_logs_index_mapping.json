@@ -1,0 +1,104 @@
+{
+  "mappings": {
+    "properties": {
+      "@timestamp": {
+        "type": "date"
+      },
+      "start_time": {
+        "type": "date"
+      },
+      "timestamp": {
+        "type": "long"
+      },
+      "webaclId": {
+        "type": "keyword"
+      },
+      "action": {
+        "type": "keyword"
+      },
+      "formatVersion": {
+        "type": "integer"
+      },
+      "httpSourceName": {
+        "type": "keyword"
+      },
+      "httpRequest": {
+        "properties": {
+          "clientIp": {
+            "type": "keyword"
+          },
+          "country": {
+            "type": "keyword"
+          },
+          "uri": {
+            "type": "keyword"
+          },
+          "httpMethod": {
+            "type": "keyword"
+          }
+        }
+      },
+      "httpSourceId": {
+        "type": "keyword"
+      },
+      "terminatingRuleId": {
+        "type": "keyword"
+      },
+      "terminatingRuleType": {
+        "type": "keyword"
+      },
+      "ruleGroupList.ruleId": {
+        "type": "keyword"
+      },
+      "aws": {
+        "properties": {
+          "waf": {
+            "properties": {
+              "webaclId": {
+                "type": "keyword"
+              },
+              "action": {
+                "type": "keyword"
+              },
+              "httpRequest": {
+                "properties": {
+                  "clientIp": {
+                    "type": "keyword"
+                  },
+                  "country": {
+                    "type": "keyword"
+                  },
+                  "uri": {
+                    "type": "keyword"
+                  },
+                  "httpMethod": {
+                    "type": "keyword"
+                  }
+                }
+              },
+              "httpSourceId": {
+                "type": "keyword"
+              },
+              "terminatingRuleId": {
+                "type": "keyword"
+              },
+              "RuleType": {
+                "type": "keyword"
+              },
+              "ruleGroupList": {
+                "properties": {
+                  "ruleId": {
+                    "type": "keyword"
+                  }
+                }
+              },
+              "event_count": {
+                "type": "long"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

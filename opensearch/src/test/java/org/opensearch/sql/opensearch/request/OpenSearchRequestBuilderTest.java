@@ -9,6 +9,8 @@ import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 import static org.opensearch.index.query.QueryBuilders.*;
+import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
+import static org.opensearch.search.sort.SortOrder.ASC;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
@@ -329,6 +331,27 @@ class OpenSearchRequestBuilderTest {
     assertSearchSourceBuilder(expectedSourceBuilder, requestBuilder);
   }
 
+  @Test
+  void test_push_down_query_with_bool_filter_for_calcite() {
+    BoolQueryBuilder initialBoolQuery =
+        QueryBuilders.boolQuery().filter(QueryBuilders.termQuery("name", "John"));
+
+    SearchSourceBuilder sourceBuilder = requestBuilder.getSourceBuilder();
+    sourceBuilder.query(initialBoolQuery);
+
+    QueryBuilder newQuery = QueryBuilders.termQuery("intA", 1);
+    requestBuilder.pushDownFilterForCalcite(newQuery);
+    initialBoolQuery.filter(newQuery);
+    SearchSourceBuilder expectedSourceBuilder =
+        new SearchSourceBuilder()
+            .from(DEFAULT_OFFSET)
+            .size(MAX_RESULT_WINDOW)
+            .timeout(DEFAULT_QUERY_TIMEOUT)
+            .query(QueryBuilders.boolQuery().filter(initialBoolQuery).filter(newQuery));
+
+    assertSearchSourceBuilder(expectedSourceBuilder, requestBuilder);
+  }
+
   void assertSearchSourceBuilder(
       SearchSourceBuilder expected, OpenSearchRequestBuilder requestBuilder)
       throws UnsupportedOperationException {
@@ -404,6 +427,7 @@ class OpenSearchRequestBuilderTest {
             .from(DEFAULT_OFFSET)
             .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT)
+            .sort(DOC_FIELD_NAME, ASC)
             .sort(SortBuilders.shardDocSort())
             .pointInTimeBuilder(new PointInTimeBuilder("samplePITId"))
             .fetchSource(new String[] {"intA"}, new String[0]),
@@ -416,6 +440,7 @@ class OpenSearchRequestBuilderTest {
                 .from(DEFAULT_OFFSET)
                 .size(MAX_RESULT_WINDOW)
                 .timeout(DEFAULT_QUERY_TIMEOUT)
+                .sort(DOC_FIELD_NAME, ASC)
                 .sort(SortBuilders.shardDocSort())
                 .pointInTimeBuilder(new PointInTimeBuilder("samplePITId"))
                 .fetchSource("intA", null),
@@ -530,6 +555,7 @@ class OpenSearchRequestBuilderTest {
             .from(DEFAULT_OFFSET)
             .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT)
+            .sort(DOC_FIELD_NAME, ASC)
             .sort(SortBuilders.shardDocSort())
             .pointInTimeBuilder(new PointInTimeBuilder("samplePITId"))
             .fetchSource(new String[] {"intA"}, new String[0]),
@@ -542,6 +568,7 @@ class OpenSearchRequestBuilderTest {
                 .from(DEFAULT_OFFSET)
                 .size(MAX_RESULT_WINDOW)
                 .timeout(DEFAULT_QUERY_TIMEOUT)
+                .sort(DOC_FIELD_NAME, ASC)
                 .sort(SortBuilders.shardDocSort())
                 .pointInTimeBuilder(new PointInTimeBuilder("samplePITId"))
                 .fetchSource("intA", null),

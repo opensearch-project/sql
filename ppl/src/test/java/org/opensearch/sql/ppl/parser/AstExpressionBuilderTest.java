@@ -11,8 +11,10 @@ import static org.junit.Assert.assertThrows;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
+import static org.opensearch.sql.ast.dsl.AstDSL.allFields;
 import static org.opensearch.sql.ast.dsl.AstDSL.and;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
+import static org.opensearch.sql.ast.dsl.AstDSL.bin;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.caseWhen;
 import static org.opensearch.sql.ast.dsl.AstDSL.cast;
@@ -43,6 +45,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import static org.opensearch.sql.ast.dsl.AstDSL.search;
 import static org.opensearch.sql.ast.dsl.AstDSL.sort;
+import static org.opensearch.sql.ast.dsl.AstDSL.span;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.when;
@@ -59,6 +62,9 @@ import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
+import org.opensearch.sql.ast.expression.SpanUnit;
+import org.opensearch.sql.ast.tree.Chart;
+import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 
 public class AstExpressionBuilderTest extends AstBuilderTest {
@@ -1383,5 +1389,347 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
     assertEqual(
         "source=t earliest='2025-12-10 14:00:00'",
         search(relation("t"), "@timestamp:>=2025\\-12\\-10T14\\:00\\:00Z"));
+  }
+
+  @Test
+  public void testTimechartSpanParameter() {
+    assertEqual(
+        "source=t | timechart span=30m count()",
+        Chart.builder()
+            .child(relation("t"))
+            .rowSplit(
+                alias(
+                    "@timestamp",
+                    span(
+                        field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP),
+                        intLiteral(30),
+                        SpanUnit.m)))
+            .aggregationFunction(alias("count()", aggregate("count", allFields())))
+            .arguments(
+                exprList(
+                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
+            .build());
+  }
+
+  @Test
+  public void testTimechartLimitParameter() {
+    assertEqual(
+        "source=t | timechart limit=100 count()",
+        Chart.builder()
+            .child(relation("t"))
+            .rowSplit(
+                alias(
+                    "@timestamp",
+                    span(
+                        field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP),
+                        intLiteral(1),
+                        SpanUnit.m)))
+            .aggregationFunction(alias("count()", aggregate("count", allFields())))
+            .arguments(
+                exprList(
+                    argument("limit", intLiteral(100)), argument("useother", booleanLiteral(true))))
+            .build());
+  }
+
+  @Test
+  public void testTimechartNegativeLimitParameter() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> assertEqual("source=t | timechart limit=-1 count()", (Node) null));
+  }
+
+  @Test
+  public void testTimechartUseOtherWithBooleanLiteral() {
+    assertEqual(
+        "source=t | timechart useother=true count()",
+        Chart.builder()
+            .child(relation("t"))
+            .rowSplit(
+                alias(
+                    "@timestamp",
+                    span(
+                        field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP),
+                        intLiteral(1),
+                        SpanUnit.m)))
+            .aggregationFunction(alias("count()", aggregate("count", allFields())))
+            .arguments(
+                exprList(
+                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
+            .build());
+
+    assertEqual(
+        "source=t | timechart useother=false count()",
+        Chart.builder()
+            .child(relation("t"))
+            .rowSplit(
+                alias(
+                    "@timestamp",
+                    span(
+                        field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP),
+                        intLiteral(1),
+                        SpanUnit.m)))
+            .aggregationFunction(alias("count()", aggregate("count", allFields())))
+            .arguments(
+                exprList(
+                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(false))))
+            .build());
+  }
+
+  @Test
+  public void testTimechartUseOtherWithIdentifier() {
+    assertEqual(
+        "source=t | timechart useother=t count()",
+        Chart.builder()
+            .child(relation("t"))
+            .rowSplit(
+                alias(
+                    "@timestamp",
+                    span(
+                        field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP),
+                        intLiteral(1),
+                        SpanUnit.m)))
+            .aggregationFunction(alias("count()", aggregate("count", allFields())))
+            .arguments(
+                exprList(
+                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
+            .build());
+
+    assertEqual(
+        "source=t | timechart useother=f count()",
+        Chart.builder()
+            .child(relation("t"))
+            .rowSplit(
+                alias(
+                    "@timestamp",
+                    span(
+                        field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP),
+                        intLiteral(1),
+                        SpanUnit.m)))
+            .aggregationFunction(alias("count()", aggregate("count", allFields())))
+            .arguments(
+                exprList(
+                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(false))))
+            .build());
+
+    assertEqual(
+        "source=t | timechart useother=TRUE count()",
+        Chart.builder()
+            .child(relation("t"))
+            .rowSplit(
+                alias(
+                    "@timestamp",
+                    span(
+                        field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP),
+                        intLiteral(1),
+                        SpanUnit.m)))
+            .aggregationFunction(alias("count()", aggregate("count", allFields())))
+            .arguments(
+                exprList(
+                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
+            .build());
+
+    assertEqual(
+        "source=t | timechart useother=FALSE count()",
+        Chart.builder()
+            .child(relation("t"))
+            .rowSplit(
+                alias(
+                    "@timestamp",
+                    span(
+                        field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP),
+                        intLiteral(1),
+                        SpanUnit.m)))
+            .aggregationFunction(alias("count()", aggregate("count", allFields())))
+            .arguments(
+                exprList(
+                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(false))))
+            .build());
+  }
+
+  @Test
+  public void testTimechartInvalidUseOtherValue() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> assertEqual("source=t | timechart useother=invalid count()", (Node) null));
+  }
+
+  @Test
+  public void testTimechartInvalidParameter() {
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> assertEqual("source=t | timechart invalidparam=value count()", (Node) null));
+  }
+
+  @Test
+  public void testVisitSpanClause() {
+    // Test span clause with explicit field
+    assertEqual(
+        "source=t | stats count() by span(timestamp, 1h)",
+        agg(
+            relation("t"),
+            exprList(alias("count()", aggregate("count", AllFields.of()))),
+            emptyList(),
+            emptyList(),
+            alias("span(timestamp,1h)", span(field("timestamp"), intLiteral(1), SpanUnit.H)),
+            defaultStatsArgs()));
+
+    // Test span clause with different time unit
+    assertEqual(
+        "source=t | stats count() by span(timestamp, 5d)",
+        agg(
+            relation("t"),
+            exprList(alias("count()", aggregate("count", AllFields.of()))),
+            emptyList(),
+            emptyList(),
+            alias("span(timestamp,5d)", span(field("timestamp"), intLiteral(5), SpanUnit.D)),
+            defaultStatsArgs()));
+
+    // Test span clause with implicit @timestamp field
+    assertEqual(
+        "source=t | stats count() by span(1m)",
+        agg(
+            relation("t"),
+            exprList(alias("count()", aggregate("count", AllFields.of()))),
+            emptyList(),
+            emptyList(),
+            alias(
+                "span(1m)",
+                span(
+                    field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP),
+                    intLiteral(1),
+                    SpanUnit.m)),
+            defaultStatsArgs()));
+  }
+
+  @Test
+  public void testVisitSpanLiteral() {
+    // Test span literal with integer value and hour unit
+    assertEqual(
+        "source=t | timechart span=1h count()",
+        Chart.builder()
+            .child(relation("t"))
+            .rowSplit(
+                alias(
+                    "@timestamp",
+                    span(
+                        field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP),
+                        intLiteral(1),
+                        SpanUnit.H)))
+            .aggregationFunction(alias("count()", aggregate("count", allFields())))
+            .arguments(
+                exprList(
+                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
+            .build());
+
+    // Test span literal with decimal value and minute unit
+    assertEqual(
+        "source=t | timechart span=2m count()",
+        Chart.builder()
+            .child(relation("t"))
+            .rowSplit(
+                alias(
+                    "@timestamp",
+                    span(
+                        field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP),
+                        intLiteral(2),
+                        SpanUnit.m)))
+            .aggregationFunction(alias("count()", aggregate("count", allFields())))
+            .arguments(
+                exprList(
+                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
+            .build());
+
+    // Test span literal without unit (should use NONE unit)
+    assertEqual(
+        "source=t | timechart span=10 count()",
+        Chart.builder()
+            .child(relation("t"))
+            .rowSplit(
+                alias(
+                    "@timestamp",
+                    span(
+                        field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP),
+                        intLiteral(10),
+                        SpanUnit.NONE)))
+            .aggregationFunction(alias("count()", aggregate("count", allFields())))
+            .arguments(
+                exprList(
+                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
+            .build());
+
+    // Test span literal with decimal value
+    assertEqual(
+        "source=events_null | bin cpu_usage span=7.5 | stats count() by cpu_usage",
+        agg(
+            bin(
+                relation("events_null"),
+                field("cpu_usage"),
+                argument("span", decimalLiteral(new java.math.BigDecimal("7.5")))),
+            exprList(alias("count()", aggregate("count", allFields()))),
+            emptyList(),
+            exprList(alias("cpu_usage", field("cpu_usage"))),
+            defaultStatsArgs()));
+  }
+
+  @Test
+  public void testBinOptionWithSpan() {
+    assertEqual(
+        "source=t | bin age span=10",
+        bin(relation("t"), field("age"), argument("span", intLiteral(10))));
+  }
+
+  @Test
+  public void testBinOptionWithBins() {
+    assertEqual(
+        "source=t | bin age bins=5",
+        bin(relation("t"), field("age"), argument("bins", intLiteral(5))));
+  }
+
+  @Test
+  public void testBinOptionWithMinspan() {
+    assertEqual(
+        "source=t | bin age minspan=100",
+        bin(relation("t"), field("age"), argument("minspan", intLiteral(100))));
+  }
+
+  @Test
+  public void testBinOptionWithAligntimeEarliest() {
+    assertEqual(
+        "source=t | bin age span=10 aligntime=earliest",
+        bin(
+            relation("t"),
+            field("age"),
+            argument("span", intLiteral(10)),
+            argument("aligntime", stringLiteral("earliest"))));
+  }
+
+  @Test
+  public void testBinOptionWithAligntimeLiteralValue() {
+    assertEqual(
+        "source=t | bin age span=10 aligntime=1000",
+        bin(
+            relation("t"),
+            field("age"),
+            argument("span", intLiteral(10)),
+            argument("aligntime", intLiteral(1000))));
+  }
+
+  @Test
+  public void testBinOptionWithStartAndEnd() {
+    assertEqual(
+        "source=t | bin age bins=10 start=0 end=100",
+        bin(
+            relation("t"),
+            field("age"),
+            argument("bins", intLiteral(10)),
+            argument("start", intLiteral(0)),
+            argument("end", intLiteral(100))));
+  }
+
+  @Test
+  public void testBinOptionWithTimeSpan() {
+    assertEqual(
+        "source=t | bin timestamp span=1h",
+        bin(relation("t"), field("timestamp"), argument("span", stringLiteral("1h"))));
   }
 }

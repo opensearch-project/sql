@@ -33,11 +33,11 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.calcite.OpenSearchSchema;
+import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
-import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.NonFallbackCalciteException;
@@ -90,35 +90,42 @@ public class QueryService {
       UnresolvedPlan plan,
       QueryType queryType,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
-    try {
-      AccessController.doPrivileged(
-          (PrivilegedAction<Void>)
-              () -> {
-                CalcitePlanContext context =
-                    CalcitePlanContext.create(
-                        buildFrameworkConfig(), getQuerySizeLimit(), queryType);
-                RelNode relNode = analyze(plan, context);
-                RelNode optimized = optimize(relNode, context);
-                RelNode calcitePlan = convertToCalcitePlan(optimized);
-                executionEngine.execute(calcitePlan, context, listener);
-                return null;
-              });
-    } catch (Throwable t) {
-      if (isCalciteFallbackAllowed(t) && !(t instanceof NonFallbackCalciteException)) {
-        log.warn("Fallback to V2 query engine since got exception", t);
-        executeWithLegacy(plan, queryType, listener, Optional.of(t));
-      } else {
-        if (t instanceof Exception) {
-          listener.onFailure((Exception) t);
-        } else if (t instanceof VirtualMachineError) {
-          // throw and fast fail the VM errors such as OOM (same with v2).
-          throw t;
-        } else {
-          // Calcite may throw AssertError during query execution.
-          listener.onFailure(new CalciteUnsupportedException(t.getMessage(), t));
-        }
-      }
-    }
+    CalcitePlanContext.run(
+        () -> {
+          try {
+            AccessController.doPrivileged(
+                (PrivilegedAction<Void>)
+                    () -> {
+                      CalcitePlanContext context =
+                          CalcitePlanContext.create(
+                              buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
+                      RelNode relNode = analyze(plan, context);
+                      RelNode optimized = optimize(relNode, context);
+                      RelNode calcitePlan = convertToCalcitePlan(optimized);
+                      executionEngine.execute(calcitePlan, context, listener);
+                      return null;
+                    });
+          } catch (Throwable t) {
+            if (isCalciteFallbackAllowed(t) && !(t instanceof NonFallbackCalciteException)) {
+              log.warn("Fallback to V2 query engine since got exception", t);
+              executeWithLegacy(plan, queryType, listener, Optional.of(t));
+            } else {
+              if (t instanceof Exception) {
+                listener.onFailure((Exception) t);
+              } else if (t instanceof ExceptionInInitializerError
+                  && ((ExceptionInInitializerError) t).getException() instanceof Exception) {
+                listener.onFailure((Exception) ((ExceptionInInitializerError) t).getException());
+              } else if (t instanceof VirtualMachineError) {
+                // throw and fast fail the VM errors such as OOM (same with v2).
+                throw t;
+              } else {
+                // Calcite may throw AssertError during query execution.
+                listener.onFailure(new CalciteUnsupportedException(t.getMessage(), t));
+              }
+            }
+          }
+        },
+        settings);
   }
 
   public void explainWithCalcite(
@@ -126,32 +133,40 @@ public class QueryService {
       QueryType queryType,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
       Explain.ExplainFormat format) {
-    try {
-      AccessController.doPrivileged(
-          (PrivilegedAction<Void>)
-              () -> {
-                CalcitePlanContext context =
-                    CalcitePlanContext.create(
-                        buildFrameworkConfig(), getQuerySizeLimit(), queryType);
-                RelNode relNode = analyze(plan, context);
-                RelNode optimized = optimize(relNode, context);
-                RelNode calcitePlan = convertToCalcitePlan(optimized);
-                executionEngine.explain(calcitePlan, format, context, listener);
-                return null;
-              });
-    } catch (Throwable t) {
-      if (isCalciteFallbackAllowed(t)) {
-        log.warn("Fallback to V2 query engine since got exception", t);
-        explainWithLegacy(plan, queryType, listener, format, Optional.of(t));
-      } else {
-        if (t instanceof Error) {
-          // Calcite may throw AssertError during query execution.
-          listener.onFailure(new CalciteUnsupportedException(t.getMessage()));
-        } else {
-          listener.onFailure((Exception) t);
-        }
-      }
-    }
+    CalcitePlanContext.run(
+        () -> {
+          try {
+            AccessController.doPrivileged(
+                (PrivilegedAction<Void>)
+                    () -> {
+                      CalcitePlanContext context =
+                          CalcitePlanContext.create(
+                              buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
+                      context.run(
+                          () -> {
+                            RelNode relNode = analyze(plan, context);
+                            RelNode optimized = optimize(relNode, context);
+                            RelNode calcitePlan = convertToCalcitePlan(optimized);
+                            executionEngine.explain(calcitePlan, format, context, listener);
+                          },
+                          settings);
+                      return null;
+                    });
+          } catch (Throwable t) {
+            if (isCalciteFallbackAllowed(t)) {
+              log.warn("Fallback to V2 query engine since got exception", t);
+              explainWithLegacy(plan, queryType, listener, format, Optional.of(t));
+            } else {
+              if (t instanceof Error) {
+                // Calcite may throw AssertError during query execution.
+                listener.onFailure(new CalciteUnsupportedException(t.getMessage(), t));
+              } else {
+                listener.onFailure((Exception) t);
+              }
+            }
+          }
+        },
+        settings);
   }
 
   public void executeWithLegacy(
@@ -189,7 +204,8 @@ public class QueryService {
       Explain.ExplainFormat format,
       Optional<Throwable> calciteFailure) {
     try {
-      if (format != null && format != Explain.ExplainFormat.STANDARD) {
+      if (format != null
+          && (format != Explain.ExplainFormat.STANDARD && format != Explain.ExplainFormat.YAML)) {
         throw new UnsupportedOperationException(
             "Explain mode " + format.name() + " is not supported in v2 engine");
       }
@@ -230,7 +246,9 @@ public class QueryService {
                       ExecutionContext.querySizeLimit(
                           // For pagination, querySizeLimit shouldn't take effect.
                           // See {@link PaginationWindowIT::testQuerySizeLimitDoesNotEffectPageSize}
-                          plan instanceof LogicalPaginate ? null : getQuerySizeLimit()),
+                          plan instanceof LogicalPaginate
+                              ? null
+                              : SysLimit.fromSettings(settings).querySizeLimit()),
                       listener));
     } catch (Exception e) {
       listener.onFailure(e);
@@ -257,7 +275,9 @@ public class QueryService {
    */
   public RelNode optimize(RelNode plan, CalcitePlanContext context) {
     return LogicalSystemLimit.create(
-        SystemLimitType.QUERY_SIZE_LIMIT, plan, context.relBuilder.literal(context.querySizeLimit));
+        SystemLimitType.QUERY_SIZE_LIMIT,
+        plan,
+        context.relBuilder.literal(context.sysLimit.querySizeLimit()));
   }
 
   private boolean isCalciteFallbackAllowed(@Nullable Throwable t) {
@@ -284,10 +304,6 @@ public class QueryService {
     } else {
       return false;
     }
-  }
-
-  private Integer getQuerySizeLimit() {
-    return settings == null ? null : settings.getSettingValue(Key.QUERY_SIZE_LIMIT);
   }
 
   // TODO https://github.com/opensearch-project/sql/issues/3457

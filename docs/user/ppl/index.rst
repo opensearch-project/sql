@@ -88,6 +88,8 @@ The query start with search command and then flowing a set of command delimited 
 
   - `ml command <cmd/ml.rst>`_
 
+  - `multisearch command <cmd/multisearch.rst>`_
+
   - `parse command <cmd/parse.rst>`_
 
   - `patterns command <cmd/patterns.rst>`_
@@ -110,17 +112,23 @@ The query start with search command and then flowing a set of command delimited 
 
   - `stats command <cmd/stats.rst>`_
 
+  - `streamstats command <cmd/streamstats.rst>`_
+
   - `subquery (aka subsearch) command <cmd/subquery.rst>`_
 
   - `reverse command <cmd/reverse.rst>`_
 
   - `table command <cmd/table.rst>`_
+
+  - `chart command <cmd/chart.rst>`_
   
   - `timechart command <cmd/timechart.rst>`_
 
   - `top command <cmd/top.rst>`_
 
   - `trendline command <cmd/trendline.rst>`_
+
+  - `replace command <cmd/replace.rst>`_
 
   - `where command <cmd/where.rst>`_
 

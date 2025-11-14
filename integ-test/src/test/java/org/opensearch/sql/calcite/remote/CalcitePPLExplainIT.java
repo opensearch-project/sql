@@ -16,7 +16,6 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
 
   @Override
   public void init() throws Exception {
-    GlobalPushdownConfig.enabled = false;
     super.init();
     enableCalcite();
 
@@ -53,23 +52,6 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
         result.contains(
             "public org.apache.calcite.linq4j.Enumerable bind(final"
                 + " org.apache.calcite.DataContext root)"));
-  }
-
-  @Test
-  public void testExplainCommandExtendedWithoutCodegen() throws IOException {
-    var result =
-        executeWithReplace("explain extended source=test | where age = 20 | fields name, age");
-    if (!isPushdownDisabled()) {
-      assertFalse(
-          result.contains(
-              "public org.apache.calcite.linq4j.Enumerable bind(final"
-                  + " org.apache.calcite.DataContext root)"));
-    } else {
-      assertTrue(
-          result.contains(
-              "public org.apache.calcite.linq4j.Enumerable bind(final"
-                  + " org.apache.calcite.DataContext root)"));
-    }
   }
 
   @Test

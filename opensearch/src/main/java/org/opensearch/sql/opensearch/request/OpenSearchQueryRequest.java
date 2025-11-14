@@ -6,6 +6,8 @@
 package org.opensearch.sql.opensearch.request;
 
 import static org.opensearch.core.xcontent.DeprecationHandler.IGNORE_DEPRECATIONS;
+import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
+import static org.opensearch.search.sort.SortOrder.ASC;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -28,6 +30,7 @@ import org.opensearch.search.SearchHits;
 import org.opensearch.search.SearchModule;
 import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.sort.FieldSortBuilder;
 import org.opensearch.search.sort.ShardDocSortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
@@ -50,7 +53,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   private final IndexName indexName;
 
   /** Search request source builder. */
-  private SearchSourceBuilder sourceBuilder;
+  private final SearchSourceBuilder sourceBuilder;
 
   /** OpenSearchExprValueFactory. */
   @EqualsAndHashCode.Exclude @ToString.Exclude
@@ -202,14 +205,24 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       if (searchAfter != null) {
         this.sourceBuilder.searchAfter(searchAfter);
       }
-      // Add sort tiebreaker `_shard_doc` for PIT search.
-      // Actually, we can remove it since `_shard_doc` should be added implicitly in PIT.
-      // https://github.com/opensearch-project/OpenSearch/pull/18924#issuecomment-3342365950
-      if (this.sourceBuilder.sorts() == null
-          || this.sourceBuilder.sorts().stream().noneMatch(ShardDocSortBuilder.class::isInstance)) {
+      // Add sort tiebreaker for PIT search.
+      // We cannot remove it since `_shard_doc` is not added implicitly in PIT now.
+      // Ref https://github.com/opensearch-project/OpenSearch/pull/18924#issuecomment-3342365950
+      if (this.sourceBuilder.sorts() == null || this.sourceBuilder.sorts().isEmpty()) {
+        // If no sort field specified, sort by `_doc` + `_shard_doc`to get better performance
+        this.sourceBuilder.sort(DOC_FIELD_NAME, ASC);
         this.sourceBuilder.sort(SortBuilders.shardDocSort());
+      } else {
+        // If sort fields specified, sort by `fields` + `_doc` + `_shard_doc`.
+        if (this.sourceBuilder.sorts().stream()
+            .noneMatch(
+                b -> b instanceof FieldSortBuilder f && f.fieldName().equals(DOC_FIELD_NAME))) {
+          this.sourceBuilder.sort(DOC_FIELD_NAME, ASC);
+        }
+        if (this.sourceBuilder.sorts().stream().noneMatch(ShardDocSortBuilder.class::isInstance)) {
+          this.sourceBuilder.sort(SortBuilders.shardDocSort());
+        }
       }
-
       SearchRequest searchRequest =
           new SearchRequest().indices(indexName.getIndexNames()).source(this.sourceBuilder);
       this.searchResponse = searchAction.apply(searchRequest);

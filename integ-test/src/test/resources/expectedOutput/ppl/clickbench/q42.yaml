@@ -1,0 +1,38 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[PageViews, WindowClientWidth, WindowClientHeight]"
+  children:
+    - name: TakeOrderedOperator
+      description:
+        limit: 10
+        offset: 10000
+        sortList:
+          PageViews:
+            sortOrder: DESC
+            nullOrder: NULL_LAST
+      children:
+        - name: OpenSearchIndexScan
+          description:
+            request: "OpenSearchQueryRequest(indexName=hits, sourceBuilder={\"from\"\
+              :0,\"size\":0,\"timeout\":\"1m\",\"query\":{\"bool\":{\"filter\":[{\"\
+              bool\":{\"filter\":[{\"bool\":{\"filter\":[{\"bool\":{\"filter\":[{\"\
+              bool\":{\"filter\":[{\"term\":{\"CounterID\":{\"value\":62,\"boost\"\
+              :1.0}}},{\"range\":{\"EventDate\":{\"from\":\"2013-07-01 00:00:00\"\
+              ,\"to\":null,\"include_lower\":true,\"include_upper\":true,\"boost\"\
+              :1.0}}}],\"adjust_pure_negative\":true,\"boost\":1.0}},{\"range\":{\"\
+              EventDate\":{\"from\":null,\"to\":\"2013-07-31 00:00:00\",\"include_lower\"\
+              :true,\"include_upper\":true,\"boost\":1.0}}}],\"adjust_pure_negative\"\
+              :true,\"boost\":1.0}},{\"term\":{\"IsRefresh\":{\"value\":0,\"boost\"\
+              :1.0}}}],\"adjust_pure_negative\":true,\"boost\":1.0}},{\"term\":{\"\
+              DontCountHits\":{\"value\":0,\"boost\":1.0}}}],\"adjust_pure_negative\"\
+              :true,\"boost\":1.0}},{\"term\":{\"URLHash\":{\"value\":2868770270353813622,\"\
+              boost\":1.0}}}],\"adjust_pure_negative\":true,\"boost\":1.0}},\"aggregations\"\
+              :{\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\":[{\"\
+              WindowClientWidth\":{\"terms\":{\"field\":\"WindowClientWidth\",\"missing_bucket\"\
+              :false,\"order\":\"asc\"}}},{\"WindowClientHeight\":{\"terms\":{\"field\"\
+              :\"WindowClientHeight\",\"missing_bucket\":false,\"order\":\"asc\"}}}]},\"\
+              aggregations\":{\"PageViews\":{\"value_count\":{\"field\":\"_index\"\
+              }}}}}}, needClean=true, searchDone=false, pitId=*, cursorKeepAlive=null,\
+              \ searchAfter=null, searchResponse=null)"
+          children: []

@@ -1,0 +1,61 @@
+"Fix missing keywordsCanBeID":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      indices.create:
+        index: log-test
+        body:
+          mappings:
+            properties:
+              "as":
+                properties:
+                  "field":
+                    properties:
+                      "on":
+                        properties:
+                          "limit":
+                            properties:
+                              "datamodel":
+                                properties:
+                                  "overwrite":
+                                    properties:
+                                      "sed":
+                                        properties:
+                                          "label":
+                                            properties:
+                                              "aggregation":
+                                                properties:
+                                                  "brain":
+                                                    properties:
+                                                      "simple_pattern":
+                                                        properties:
+                                                          "max_match":
+                                                            properties:
+                                                              "offset_field":
+                                                                properties:
+                                                                  "to":
+                                                                    properties:
+                                                                      "millisecond":
+                                                                        type: integer
+
+  - do:
+      bulk:
+        index: log-test
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"as": {"field": {"on": {"limit": {"datamodel": {"overwrite": {"sed": {"label": {"aggregation": {"brain": {"simple_pattern": {"max_match": {"offset_field": {"to": {"millisecond": 1 } } } } } } } } } } } } } } }'
+
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=log-test | fields as.field.on.limit.datamodel.overwrite.sed.label.aggregation.brain.simple_pattern.max_match.offset_field.to.millisecond
+
+  - match: { total: 1 }
+  - length: { datarows: 1 }

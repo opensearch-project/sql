@@ -135,7 +135,7 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, `DIVIDE`(10 + (20 + 30), 3.0E0) `average`\n" + "FROM `scott`.`EMP`";
+        "SELECT `EMPNO`, DIVIDE(10 + (20 + 30), 3.0E0) `average`\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -149,7 +149,7 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, `DIVIDE`(`SAL` + `COMM`, 2.0E0) `avgSal`\n" + "FROM `scott`.`EMP`";
+        "SELECT `EMPNO`, DIVIDE(`SAL` + `COMM`, 2.0E0) `avgSal`\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -343,8 +343,7 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
             () -> {
               RelNode root = getRelNode(ppl);
             });
-    assertThat(
-        e.getMessage(), is("field [HIREDATE] not found; input fields are: [ENAME, col2, col3]"));
+    assertThat(e.getMessage(), is("Field [HIREDATE] not found."));
   }
 
   @Test
@@ -524,13 +523,13 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
-            + " COMM=[$6], DEPTNO=[$7], a=[MAX(5, 30, $7)])\n"
+            + " COMM=[$6], DEPTNO=[$7], a=[SCALAR_MAX(5, 30, $7)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, MAX(5, 30,"
-            + " `DEPTNO`) `a`\n"
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, SCALAR_MAX(5,"
+            + " 30, `DEPTNO`) `a`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -541,13 +540,13 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
-            + " COMM=[$6], DEPTNO=[$7], a=[MAX('banana':VARCHAR, 'Door':VARCHAR, $1)])\n"
+            + " COMM=[$6], DEPTNO=[$7], a=[SCALAR_MAX('banana':VARCHAR, 'Door':VARCHAR, $1)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, MAX('banana',"
-            + " 'Door', `ENAME`) `a`\n"
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
+            + " SCALAR_MAX('banana', 'Door', `ENAME`) `a`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -558,13 +557,14 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
-            + " COMM=[$6], DEPTNO=[$7], a=[MAX(5, 30, $7, 'banana':VARCHAR, 'Door':VARCHAR, $1)])\n"
+            + " COMM=[$6], DEPTNO=[$7], a=[SCALAR_MAX(5, 30, $7, 'banana':VARCHAR, 'Door':VARCHAR,"
+            + " $1)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, MAX(5, 30,"
-            + " `DEPTNO`, 'banana', 'Door', `ENAME`) `a`\n"
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, SCALAR_MAX(5,"
+            + " 30, `DEPTNO`, 'banana', 'Door', `ENAME`) `a`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -575,13 +575,13 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
-            + " COMM=[$6], DEPTNO=[$7], a=[MIN(5, 30, $7)])\n"
+            + " COMM=[$6], DEPTNO=[$7], a=[SCALAR_MIN(5, 30, $7)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, MIN(5, 30,"
-            + " `DEPTNO`) `a`\n"
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, SCALAR_MIN(5,"
+            + " 30, `DEPTNO`) `a`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -592,13 +592,13 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
-            + " COMM=[$6], DEPTNO=[$7], a=[MIN('banana':VARCHAR, 'Door':VARCHAR, $1)])\n"
+            + " COMM=[$6], DEPTNO=[$7], a=[SCALAR_MIN('banana':VARCHAR, 'Door':VARCHAR, $1)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, MIN('banana',"
-            + " 'Door', `ENAME`) `a`\n"
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
+            + " SCALAR_MIN('banana', 'Door', `ENAME`) `a`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -609,13 +609,14 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
-            + " COMM=[$6], DEPTNO=[$7], a=[MIN(5, 30, $7, 'banana':VARCHAR, 'Door':VARCHAR, $1)])\n"
+            + " COMM=[$6], DEPTNO=[$7], a=[SCALAR_MIN(5, 30, $7, 'banana':VARCHAR, 'Door':VARCHAR,"
+            + " $1)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, MIN(5, 30,"
-            + " `DEPTNO`, 'banana', 'Door', `ENAME`) `a`\n"
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, SCALAR_MIN(5,"
+            + " 30, `DEPTNO`, 'banana', 'Door', `ENAME`) `a`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }

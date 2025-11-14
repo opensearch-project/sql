@@ -5,6 +5,6 @@ GROUP BY SearchPhrase ORDER BY u DESC LIMIT 10;
 */
 source=hits
 | where SearchPhrase != ''
-| stats dc(UserID) as u by SearchPhrase
+| stats bucket_nullable=false dc(UserID) as u by SearchPhrase
 | sort - u
 | head 10

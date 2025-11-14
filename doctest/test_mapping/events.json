@@ -23,6 +23,9 @@
       },
       "status": {
         "type": "keyword"
+      },
+      "packets": {
+        "type": "integer"
       }
     }
   }
