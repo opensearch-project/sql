@@ -1308,6 +1308,7 @@ textFunctionName
    | LOCATE
    | REPLACE
    | REVERSE
+   | TONUMBER
    | REGEXP_REPLACE
    ;
 
@@ -1513,6 +1514,7 @@ searchableKeyWord
    | USING
    | VALUE
    | CAST
+   | TONUMBER
    | TOSTRING
    | GET_FORMAT
    | EXTRACT
