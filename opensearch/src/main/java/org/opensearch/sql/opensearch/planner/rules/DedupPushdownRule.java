@@ -13,12 +13,14 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.immutables.value.Value;
@@ -44,7 +46,8 @@ public class DedupPushdownRule extends RelRule<DedupPushdownRule.Config> {
     final CalciteLogicalIndexScan scan = call.rel(3);
     List<RexWindow> windows = PlanUtils.getRexWindowFromProject(projectWithWindow);
     if (windows.isEmpty() || windows.stream().anyMatch(w -> w.partitionKeys.size() > 1)) {
-      // TODO leverage inner_hits for multiple partition keys
+      // TODO https://github.com/opensearch-project/sql/issues/4789
+      // leverage inner_hits for multiple partition keys
       if (LOG.isDebugEnabled()) {
         LOG.debug("Cannot pushdown the dedup with multiple fields");
       }
@@ -72,12 +75,19 @@ public class DedupPushdownRule extends RelRule<DedupPushdownRule.Config> {
       }
       return false;
     }
-    String referenceName = filter.getRowType().getFieldNames().get(ref.getIndex());
-    if (!referenceName.equals(ROW_NUMBER_COLUMN_FOR_DEDUP)) {
+    RelDataTypeField field = filter.getRowType().getFieldList().get(ref.getIndex());
+    if (!field.getName().equals(ROW_NUMBER_COLUMN_FOR_DEDUP)) {
       if (LOG.isDebugEnabled()) {
         LOG.debug(
             "Cannot pushdown the dedup since the left operand is not {}",
             ROW_NUMBER_COLUMN_FOR_DEDUP);
+      }
+      return false;
+    }
+    if (field.getType().getSqlTypeName().getFamily() != SqlTypeFamily.NUMERIC
+        && field.getType().getSqlTypeName().getFamily() != SqlTypeFamily.CHARACTER) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Cannot pushdown the dedup since the field type is not keyword or number.");
       }
       return false;
     }
