@@ -92,30 +92,27 @@ public class SpanFunction extends ImplementorUDF {
               default -> throw new IllegalArgumentException(
                   String.format("Unsupported expr type: %s", exprSqlType.getExprType()));
             };
-        ScalarFunctionImpl function =
-            (ScalarFunctionImpl)
-                ScalarFunctionImpl.create(
-                    Types.lookupMethod(
-                        SpanFunction.class, methodName, String.class, int.class, String.class));
-        return function.getImplementor().implement(translator, call, RexImpTable.NullAs.NULL);
+        return implementEvalFunction(methodName, translator, call);
       } else if (SqlTypeUtil.isCharacter(fieldType)) {
-        // if first argument is string, consider it as timestamp
-        ScalarFunctionImpl function =
-            (ScalarFunctionImpl)
-                ScalarFunctionImpl.create(
-                    Types.lookupMethod(
-                        SpanFunction.class,
-                        "evalTimestamp",
-                        String.class,
-                        int.class,
-                        String.class));
-        return function.getImplementor().implement(translator, call, RexImpTable.NullAs.NULL);
+        // If first argument is string, consider it contains timestamp as string.
+        // (timestamp in dynamic fields will fall into this case)
+        return implementEvalFunction("evalTimestamp", translator, call);
       }
       throw new IllegalArgumentException(
           String.format(
               "Unsupported expr type: %s",
               OpenSearchTypeFactory.convertRelDataTypeToExprType(fieldType)));
     }
+  }
+
+  private static Expression implementEvalFunction(
+      String methodName, RexToLixTranslator translator, RexCall call) {
+    ScalarFunctionImpl function =
+        (ScalarFunctionImpl)
+            ScalarFunctionImpl.create(
+                Types.lookupMethod(
+                    SpanFunction.class, methodName, String.class, int.class, String.class));
+    return function.getImplementor().implement(translator, call, RexImpTable.NullAs.NULL);
   }
 
   @Strict
