@@ -202,11 +202,11 @@ Example::
 
     os> source=people | eval test = 'buttercup;rarity;tenderhoof;dash', result = split(test, ';') | fields result | head 1
     fetched rows / total rows = 1/1
-    +--------------------------------------+
-    | result                               |
-    |--------------------------------------|
-    | [buttercup,rarity,tenderhoof,dash]   |
-    +--------------------------------------+
+    +------------------------------------+
+    | result                             |
+    |------------------------------------|
+    | [buttercup,rarity,tenderhoof,dash] |
+    +------------------------------------+
 
     os> source=people | eval test = '1a2b3c4def567890', result = split(test, 'def') | fields result | head 1
     fetched rows / total rows = 1/1
