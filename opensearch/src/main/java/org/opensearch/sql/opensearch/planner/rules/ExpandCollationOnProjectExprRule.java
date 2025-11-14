@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.opensearch.planner.rules;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Predicate;
 import org.apache.calcite.adapter.enumerable.EnumerableProject;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -15,8 +18,10 @@ import org.apache.calcite.plan.volcano.AbstractConverter;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
+import org.apache.commons.lang3.tuple.Pair;
 import org.immutables.value.Value;
 import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
 import org.opensearch.sql.calcite.utils.PlanUtils;
@@ -52,13 +57,25 @@ public class ExpandCollationOnProjectExprRule
     final RelTraitSet toTraits = converter.getTraitSet();
     final RelCollation toCollation = toTraits.getTrait(RelCollationTraitDef.INSTANCE);
 
+    assert toCollation != null && toCollation.getFieldCollations() != null
+        : "Output field collations should not be null";
+
+    Map<Integer, Optional<Pair<Integer, Boolean>>> orderEquivInfoMap = new HashMap<>();
+    for (RelFieldCollation relFieldCollation : toCollation.getFieldCollations()) {
+      orderEquivInfoMap.put(
+          relFieldCollation.getFieldIndex(),
+          OpenSearchRelOptUtil.getOrderEquivalentInputInfo(
+              project.getProjects().get(relFieldCollation.getFieldIndex())));
+    }
+
     // Branch 1: Check if complex expressions are already sorted by scan and assign collation
-    if (handleComplexExpressionsSortedByScan(call, project, toTraits, toCollation)) {
+    if (handleComplexExpressionsSortedByScan(
+        call, project, toTraits, toCollation, orderEquivInfoMap)) {
       return;
     }
 
     // Branch 2: Handle simple expressions that can be transformed to field sorts
-    handleSimpleExpressionFieldSorts(call, project, toTraits, toCollation);
+    handleSimpleExpressionFieldSorts(call, project, toTraits, toCollation, orderEquivInfoMap);
   }
 
   /**
@@ -68,7 +85,11 @@ public class ExpandCollationOnProjectExprRule
    * @return true if handled, false if not applicable
    */
   private boolean handleComplexExpressionsSortedByScan(
-      RelOptRuleCall call, Project project, RelTraitSet toTraits, RelCollation toCollation) {
+      RelOptRuleCall call,
+      Project project,
+      RelTraitSet toTraits,
+      RelCollation toCollation,
+      Map<Integer, Optional<Pair<Integer, Boolean>>> orderEquivInfoMap) {
 
     // Check if toCollation is null or not a simple RelCollation with field collations
     if (toCollation == null || toCollation.getFieldCollations().isEmpty()) {
@@ -82,7 +103,8 @@ public class ExpandCollationOnProjectExprRule
     }
 
     // Check if the scan can provide the required sort collation
-    if (OpenSearchRelOptUtil.canScanProvideSortCollation(scan, project, toCollation)) {
+    if (OpenSearchRelOptUtil.canScanProvideSortCollation(
+        scan, project, toCollation, orderEquivInfoMap)) {
       // The scan has already provided the sorting for complex expressions
       // We can directly assign toTrait to new EnumerableProject
       Project newProject =
@@ -98,7 +120,11 @@ public class ExpandCollationOnProjectExprRule
    * getOrderEquivalentInputInfo.
    */
   private void handleSimpleExpressionFieldSorts(
-      RelOptRuleCall call, Project project, RelTraitSet toTraits, RelCollation toCollation) {
+      RelOptRuleCall call,
+      Project project,
+      RelTraitSet toTraits,
+      RelCollation toCollation,
+      Map<Integer, Optional<Pair<Integer, Boolean>>> orderEquivInfoMap) {
 
     RelTrait fromTrait = project.getInput().getTraitSet().getTrait(RelCollationTraitDef.INSTANCE);
 
@@ -115,10 +141,11 @@ public class ExpandCollationOnProjectExprRule
       }
 
       for (int i = 0; i < toCollation.getFieldCollations().size(); i++) {
+        RelFieldCollation toCollationFieldCollation = toCollation.getFieldCollations().get(i);
         if (!OpenSearchRelOptUtil.sourceCollationSatisfiesTargetCollation(
             fromCollation.getFieldCollations().get(i),
-            toCollation.getFieldCollations().get(i),
-            project)) {
+            toCollationFieldCollation,
+            orderEquivInfoMap.get(toCollationFieldCollation.getFieldIndex()))) {
           return;
         }
       }

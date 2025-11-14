@@ -6,9 +6,12 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import org.apache.calcite.plan.Convention;
@@ -21,6 +24,7 @@ import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelFieldCollation.Direction;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
@@ -31,15 +35,22 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationBuilder;
+import org.opensearch.search.sort.ScriptSortBuilder.ScriptSortType;
+import org.opensearch.search.sort.SortBuilder;
+import org.opensearch.search.sort.SortBuilders;
+import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -48,6 +59,7 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.planner.rules.EnumerableIndexScanRule;
 import org.opensearch.sql.opensearch.planner.rules.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder.PushDownUnSupportedException;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.QueryExpression;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
@@ -450,14 +462,45 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               getRowType(),
               pushDownContext.cloneWithoutSort());
 
+      List<Supplier<SortBuilder<?>>> sortBuilderSuppliers = new ArrayList<>();
+      for (SortExprDigest digest : sortExprDigests) {
+        SortOrder order =
+            Direction.DESCENDING.equals(digest.getDirection()) ? SortOrder.DESC : SortOrder.ASC;
+
+        if (digest.isSimpleFieldReference()) {
+          String missing =
+              switch (digest.getNullDirection()) {
+                case FIRST -> "_first";
+                case LAST -> "_last";
+                default -> null;
+              };
+          sortBuilderSuppliers.add(
+              () -> SortBuilders.fieldSort(digest.getFieldName()).order(order).missing(missing));
+          continue;
+        }
+        RexNode sortExpr = digest.getExpression();
+        assert sortExpr instanceof RexCall : "sort expression should be RexCall";
+        Map<String, Object> directionParams = new LinkedHashMap<>();
+        directionParams.put(PlanUtils.NULL_DIRECTION, digest.getNullDirection().name());
+        directionParams.put(PlanUtils.DIRECTION, digest.getDirection().name());
+        // Complex expression - use ScriptQueryExpression to generate script for sort
+        PredicateAnalyzer.ScriptQueryExpression scriptExpr =
+            new PredicateAnalyzer.ScriptQueryExpression(
+                digest.getExpression(),
+                rowType,
+                osIndex.getAllFieldTypes(),
+                getCluster(),
+                directionParams);
+        // Determine the correct ScriptSortType based on the expression's return type
+        ScriptSortType sortType = getScriptSortType(sortExpr.getType());
+
+        sortBuilderSuppliers.add(
+            () -> SortBuilders.scriptSort(scriptExpr.getScript(), sortType).order(order));
+      }
+
       // Create action to push down sort expressions to OpenSearch
       OSRequestBuilderAction action =
-          requestBuilder -> {
-            for (SortExprDigest info : sortExprDigests) {
-              requestBuilder.pushDownSortExpression(
-                  info, osIndex.getAllFieldTypes(), getRowType(), getCluster());
-            }
-          };
+          requestBuilder -> requestBuilder.pushDownSortSuppliers(sortBuilderSuppliers);
 
       newScan.pushDownContext.add(PushDownType.SORT_EXPR, sortExprDigests, action);
       return newScan;
@@ -467,5 +510,23 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       }
     }
     return null;
+  }
+
+  /**
+   * Determine the appropriate ScriptSortType based on the expression's return type.
+   *
+   * @param relDataType the return type of the expression
+   * @return the appropriate ScriptSortType
+   */
+  private ScriptSortType getScriptSortType(RelDataType relDataType) {
+    if (SqlTypeName.CHAR_TYPES.contains(relDataType.getSqlTypeName())) {
+      return ScriptSortType.STRING;
+    } else if (SqlTypeName.INT_TYPES.contains(relDataType.getSqlTypeName())
+        || SqlTypeName.APPROX_TYPES.contains(relDataType.getSqlTypeName())) {
+      return ScriptSortType.NUMBER;
+    } else {
+      throw new PushDownUnSupportedException(
+          "Unsupported type for sort expression pushdown: " + relDataType);
+    }
   }
 }

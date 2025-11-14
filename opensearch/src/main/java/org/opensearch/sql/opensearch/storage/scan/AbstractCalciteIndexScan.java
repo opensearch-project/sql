@@ -171,7 +171,9 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
         case SORT_EXPR -> {
           @SuppressWarnings("unchecked")
           List<SortExprDigest> sortKeys = (List<SortExprDigest>) operation.digest();
-          dCpu += NumberUtil.multiply(dRows, 1.1 * sortKeys.size());
+          long complexExprCount =
+              sortKeys.stream().filter(digest -> digest.getExpression() != null).count();
+          dCpu += NumberUtil.multiply(dRows, 1.1 * complexExprCount);
         }
           // Refer the org.apache.calcite.rel.metadata.RelMdRowCount.getRowCount(Aggregate rel,...)
         case COLLAPSE -> {

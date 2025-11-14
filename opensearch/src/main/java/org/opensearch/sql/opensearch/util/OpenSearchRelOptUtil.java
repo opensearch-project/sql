@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import lombok.experimental.UtilityClass;
@@ -149,24 +150,21 @@ public class OpenSearchRelOptUtil {
    *
    * @param sourceFieldCollation project input field collation
    * @param targetFieldCollation simple project expression output collation
-   * @param project project operator
+   * @param orderEquivInfo equivalent order information that contains optional input index and
+   *     reversed flag pair
    * @return if single project input collation satisfies project expression output collation
    */
   public boolean sourceCollationSatisfiesTargetCollation(
       RelFieldCollation sourceFieldCollation,
       RelFieldCollation targetFieldCollation,
-      Project project) {
-    Optional<Pair<Integer, Boolean>> equivalentCollationInputInfo =
-        OpenSearchRelOptUtil.getOrderEquivalentInputInfo(
-            project.getProjects().get(targetFieldCollation.getFieldIndex()));
-
-    if (equivalentCollationInputInfo.isEmpty()) {
+      Optional<Pair<Integer, Boolean>> orderEquivInfo) {
+    if (orderEquivInfo.isEmpty()) {
       return false;
     }
 
-    int equivalentSourceIndex = equivalentCollationInputInfo.get().getLeft();
+    int equivalentSourceIndex = orderEquivInfo.get().getLeft();
     Direction equivalentSourceDirection =
-        equivalentCollationInputInfo.get().getRight()
+        orderEquivInfo.get().getRight()
             ? targetFieldCollation.getDirection().reverse()
             : targetFieldCollation.getDirection();
     return equivalentSourceIndex == sourceFieldCollation.getFieldIndex()
@@ -319,10 +317,15 @@ public class OpenSearchRelOptUtil {
    * @param scan The scan RelNode to check
    * @param project The project node to match expressions against
    * @param toCollation The required collation to match
+   * @param orderEquivInfoMap Order equivalence info to determine if output expression collation can
+   *     be optimized to field collation
    * @return true if scan can provide the required collation, false otherwise
    */
   public static boolean canScanProvideSortCollation(
-      AbstractCalciteIndexScan scan, Project project, RelCollation toCollation) {
+      AbstractCalciteIndexScan scan,
+      Project project,
+      RelCollation toCollation,
+      Map<Integer, Optional<Pair<Integer, Boolean>>> orderEquivInfoMap) {
 
     // Check if the scan has sort expressions pushed down
     if (scan.getPushDownContext().stream()
@@ -366,7 +369,9 @@ public class OpenSearchRelOptUtil {
                 scanSortInfo.getDirection(),
                 scanSortInfo.getNullDirection());
         if (sourceCollationSatisfiesTargetCollation(
-            sourceCollation, requiredFieldCollation, project)) {
+            sourceCollation,
+            requiredFieldCollation,
+            orderEquivInfoMap.get(requiredFieldCollation.getFieldIndex()))) {
           continue;
         }
       }

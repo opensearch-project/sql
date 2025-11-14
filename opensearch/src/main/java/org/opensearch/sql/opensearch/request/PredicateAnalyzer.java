@@ -52,6 +52,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -222,7 +223,8 @@ public class PredicateAnalyzer {
         throw new ExpressionNotAnalyzableException("Can't convert " + expression, e);
       }
       try {
-        return new ScriptQueryExpression(expression, rowType, fieldTypes, cluster, Map.of());
+        return new ScriptQueryExpression(
+            expression, rowType, fieldTypes, cluster, Collections.emptyMap());
       } catch (Throwable e2) {
         throw new ExpressionNotAnalyzableException("Can't convert " + expression, e2);
       }
@@ -795,7 +797,7 @@ public class PredicateAnalyzer {
       } catch (PredicateAnalyzerException firstFailed) {
         try {
           QueryExpression qe =
-              new ScriptQueryExpression(node, rowType, fieldTypes, cluster, Map.of());
+              new ScriptQueryExpression(node, rowType, fieldTypes, cluster, Collections.emptyMap());
           if (!qe.isPartial()) {
             qe.updateAnalyzedNodes(node);
           }
@@ -1484,7 +1486,7 @@ public class PredicateAnalyzer {
         throw new UnsupportedScriptException(
             "ScriptQueryExpression requires a valid current time from hook, but it is not set");
       }
-      Map<String, Object> mergedParams = new HashMap<>(params);
+      Map<String, Object> mergedParams = new LinkedHashMap<>(params);
       mergedParams.put(Variable.UTC_TIMESTAMP.camelName, currentTime);
       return new Script(
           DEFAULT_SCRIPT_TYPE,

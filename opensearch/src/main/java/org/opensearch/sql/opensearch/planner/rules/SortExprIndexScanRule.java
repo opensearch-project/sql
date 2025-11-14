@@ -6,7 +6,9 @@
 package org.opensearch.sql.opensearch.planner.rules;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -54,14 +56,33 @@ public class SortExprIndexScanRule extends RelRule<SortExprIndexScanRule.Config>
       return;
     }
 
+    boolean allSimpleExprs = true;
+    Map<Integer, Optional<Pair<Integer, Boolean>>> orderEquivInfoMap = new HashMap<>();
+
+    for (RelFieldCollation relFieldCollation : sort.getCollation().getFieldCollations()) {
+      Optional<Pair<Integer, Boolean>> orderEquivInfo =
+          OpenSearchRelOptUtil.getOrderEquivalentInputInfo(
+              project.getProjects().get(relFieldCollation.getFieldIndex()));
+      orderEquivInfoMap.put(relFieldCollation.getFieldIndex(), orderEquivInfo);
+      if (allSimpleExprs && orderEquivInfo.isEmpty()) {
+        allSimpleExprs = false;
+      }
+    }
+
+    if (allSimpleExprs) {
+      return;
+    }
+
     boolean scanProvidesRequiredCollation =
-        OpenSearchRelOptUtil.canScanProvideSortCollation(scan, project, sort.collation);
+        OpenSearchRelOptUtil.canScanProvideSortCollation(
+            scan, project, sort.collation, orderEquivInfoMap);
     if (scan.isTopKPushed() && !scanProvidesRequiredCollation) {
       return;
     }
 
     // Extract sort expressions with collation information from the sort node
-    List<SortExprDigest> sortExprDigests = extractSortExpressionInfos(sort, project, scan);
+    List<SortExprDigest> sortExprDigests =
+        extractSortExpressionInfos(sort, project, scan, orderEquivInfoMap);
 
     // Check if any sort expressions can be pushed down
     if (sortExprDigests.isEmpty() || !canPushDownSortExpressionInfos(sortExprDigests)) {
@@ -70,21 +91,17 @@ public class SortExprIndexScanRule extends RelRule<SortExprIndexScanRule.Config>
 
     CalciteLogicalIndexScan newScan;
     // If the scan's sort info already satisfies new sort, just pushdown limit if there is
-    if (scan.isTopKPushed()
-        && scanProvidesRequiredCollation
-        && (sort.fetch != null || sort.offset != null)) {
-      Integer limitValue = LimitIndexScanRule.extractLimitValue(sort.fetch);
-      Integer offsetValue = LimitIndexScanRule.extractOffsetValue(sort.offset);
-      newScan = (CalciteLogicalIndexScan) scan.pushDownLimit(sort, limitValue, offsetValue);
+    if (scan.isTopKPushed() && scanProvidesRequiredCollation) {
+      newScan = scan.copy();
     } else {
       // Attempt to push down sort expressions
-
       newScan = scan.pushdownSortExpr(sortExprDigests);
-      if (newScan != null && (sort.fetch != null || sort.offset != null)) {
-        Integer limitValue = LimitIndexScanRule.extractLimitValue(sort.fetch);
-        Integer offsetValue = LimitIndexScanRule.extractOffsetValue(sort.offset);
-        newScan = (CalciteLogicalIndexScan) newScan.pushDownLimit(sort, limitValue, offsetValue);
-      }
+    }
+
+    Integer limitValue = LimitIndexScanRule.extractLimitValue(sort.fetch);
+    Integer offsetValue = LimitIndexScanRule.extractOffsetValue(sort.offset);
+    if (newScan != null && limitValue != null && offsetValue != null) {
+      newScan = (CalciteLogicalIndexScan) newScan.pushDownLimit(sort, limitValue, offsetValue);
     }
 
     if (newScan != null) {
@@ -101,10 +118,15 @@ public class SortExprIndexScanRule extends RelRule<SortExprIndexScanRule.Config>
    * @param sort The sort node
    * @param project The project node
    * @param scan The scan node to get stable field references
+   * @param orderEquivInfoMap Order equivalence info to determine if output expression collation can
+   *     be optimized to field collation
    * @return List of SortExprDigest with stable field references or complex expressions
    */
   private List<SortExprDigest> extractSortExpressionInfos(
-      Sort sort, Project project, CalciteLogicalIndexScan scan) {
+      Sort sort,
+      Project project,
+      CalciteLogicalIndexScan scan,
+      Map<Integer, Optional<Pair<Integer, Boolean>>> orderEquivInfoMap) {
     List<SortExprDigest> sortExprDigests = new ArrayList<>();
 
     List<RexNode> sortKeys = sort.getSortExps();
@@ -114,7 +136,7 @@ public class SortExprIndexScanRule extends RelRule<SortExprIndexScanRule.Config>
       RexNode sortKey = sortKeys.get(i);
       RelFieldCollation collation = collations.get(i);
 
-      SortExprDigest info = mapThroughProject(sortKey, project, scan, collation);
+      SortExprDigest info = mapThroughProject(sortKey, project, scan, collation, orderEquivInfoMap);
 
       if (info != null) {
         sortExprDigests.add(info);
@@ -132,10 +154,16 @@ public class SortExprIndexScanRule extends RelRule<SortExprIndexScanRule.Config>
    * @param project The project node
    * @param scan The scan node to get field names from
    * @param collation The collation information
+   * @param orderEquivInfoMap Order equivalence info to determine if output expression collation can
+   *     be optimized to field collation
    * @return SortExprDigest with stable field reference or complex expression
    */
   private SortExprDigest mapThroughProject(
-      RexNode sortKey, Project project, CalciteLogicalIndexScan scan, RelFieldCollation collation) {
+      RexNode sortKey,
+      Project project,
+      CalciteLogicalIndexScan scan,
+      RelFieldCollation collation,
+      Map<Integer, Optional<Pair<Integer, Boolean>>> orderEquivInfoMap) {
     assert sortKey instanceof RexInputRef : "sort key should be always RexInputRef";
 
     RexInputRef inputRef = (RexInputRef) sortKey;
@@ -147,7 +175,7 @@ public class SortExprIndexScanRule extends RelRule<SortExprIndexScanRule.Config>
     // or it can be optimized to sort by field,
     // store the field name for stability
     Optional<Pair<Integer, Boolean>> orderEquivalentInfo =
-        OpenSearchRelOptUtil.getOrderEquivalentInputInfo(projectExpression);
+        orderEquivInfoMap.get(collation.getFieldIndex());
     if (orderEquivalentInfo.isPresent()) {
       Direction equivalentDirection =
           orderEquivalentInfo.get().getRight()
@@ -222,12 +250,7 @@ public class SortExprIndexScanRule extends RelRule<SortExprIndexScanRule.Config>
                                         b2 ->
                                             b2.operand(CalciteLogicalIndexScan.class)
                                                 .predicate(
-                                                    Predicate.not(
-                                                            CalciteLogicalIndexScan
-                                                                ::isMetricsOrderPushed)
-                                                        .and(
-                                                            AbstractCalciteIndexScan
-                                                                ::noAggregatePushed))
+                                                    AbstractCalciteIndexScan::noAggregatePushed)
                                                 .noInputs())));
 
     @Override

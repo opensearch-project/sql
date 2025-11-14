@@ -22,12 +22,6 @@ import java.util.stream.Stream;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
-import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.rel.RelFieldCollation.Direction;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.lucene.search.join.ScoreMode;
 import org.opensearch.action.search.CreatePitRequest;
@@ -37,21 +31,15 @@ import org.opensearch.index.query.InnerHitBuilder;
 import org.opensearch.index.query.NestedQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
-import org.opensearch.script.Script;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.collapse.CollapseBuilder;
 import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
-import org.opensearch.search.sort.ScriptSortBuilder.ScriptSortType;
 import org.opensearch.search.sort.SortBuilder;
-import org.opensearch.search.sort.SortBuilders;
-import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.expression.Literal;
-import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
@@ -59,7 +47,6 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.agg.CountAsTotalHitsParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
-import org.opensearch.sql.opensearch.storage.scan.context.SortExprDigest;
 
 /** OpenSearch search request builder. */
 @EqualsAndHashCode
@@ -239,54 +226,14 @@ public class OpenSearchRequestBuilder {
   }
 
   /**
-   * Push down sort expression to DSL request. Uses ScriptQueryExpression infrastructure for script
-   * generation.
+   * Push down sort builder suppliers to DSL request.
    *
-   * @param sortExprDigest The sort expression info to push down
-   * @param fieldTypes Map of field names to their types for validation
-   * @param rowType The row type for script generation context
-   * @param cluster The RelOptCluster for script generation context
+   * @param sortBuilderSuppliers a mixed of field sort builder suppliers and script sort builder
+   *     suppliers
    */
-  public void pushDownSortExpression(
-      SortExprDigest sortExprDigest,
-      Map<String, ExprType> fieldTypes,
-      RelDataType rowType,
-      RelOptCluster cluster) {
-    SortOrder order =
-        Direction.DESCENDING.equals(sortExprDigest.getDirection()) ? SortOrder.DESC : SortOrder.ASC;
-
-    if (sortExprDigest.isSimpleFieldReference()) {
-      String missing =
-          switch (sortExprDigest.getNullDirection()) {
-            case FIRST -> "_first";
-            case LAST -> "_last";
-            default -> null;
-          };
-      sourceBuilder.sort(
-          SortBuilders.fieldSort(sortExprDigest.getFieldName()).order(order).missing(missing));
-      return;
-    }
-    RexNode sortExpr = sortExprDigest.getExpression();
-    assert sortExpr instanceof RexCall : "sort expression should be RexCall";
-    // Complex expression - use ScriptQueryExpression to generate script for sort
-    PredicateAnalyzer.ScriptQueryExpression scriptExpr =
-        new PredicateAnalyzer.ScriptQueryExpression(
-            sortExprDigest.getExpression(),
-            rowType,
-            fieldTypes,
-            cluster,
-            Map.of(
-                PlanUtils.NULL_DIRECTION,
-                sortExprDigest.getNullDirection().name(),
-                PlanUtils.DIRECTION,
-                sortExprDigest.getDirection().name()));
-
-    Script script = scriptExpr.getScript();
-    if (script != null) {
-      // Determine the correct ScriptSortType based on the expression's return type
-      ScriptSortType sortType = getScriptSortType(sortExpr.getType());
-
-      sourceBuilder.sort(SortBuilders.scriptSort(script, sortType).order(order));
+  public void pushDownSortSuppliers(List<Supplier<SortBuilder<?>>> sortBuilderSuppliers) {
+    for (Supplier<SortBuilder<?>> sortBuilderSupplier : sortBuilderSuppliers) {
+      sourceBuilder.sort(sortBuilderSupplier.get());
     }
   }
 
@@ -498,23 +445,5 @@ public class OpenSearchRequestBuilder {
    */
   private BoolQueryBuilder query() {
     return (BoolQueryBuilder) sourceBuilder.query();
-  }
-
-  /**
-   * Determine the appropriate ScriptSortType based on the expression's return type.
-   *
-   * @param relDataType the return type of the expression
-   * @return the appropriate ScriptSortType
-   */
-  private ScriptSortType getScriptSortType(RelDataType relDataType) {
-    if (SqlTypeName.CHAR_TYPES.contains(relDataType.getSqlTypeName())) {
-      return ScriptSortType.STRING;
-    } else if (SqlTypeName.INT_TYPES.contains(relDataType.getSqlTypeName())
-        || SqlTypeName.APPROX_TYPES.contains(relDataType.getSqlTypeName())) {
-      return ScriptSortType.NUMBER;
-    } else {
-      throw new PushDownUnSupportedException(
-          "Unsupported type for sort expression pushdown: " + relDataType);
-    }
   }
 }
