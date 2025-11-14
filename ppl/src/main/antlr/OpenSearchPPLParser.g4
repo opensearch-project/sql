@@ -1095,6 +1095,7 @@ collectionFunctionName
     | MVAPPEND
     | MVJOIN
     | MVINDEX
+    | MVZIP
     | FORALL
     | EXISTS
     | FILTER
