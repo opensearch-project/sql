@@ -745,6 +745,7 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   // Only for Calcite
+  @Test
   public void testExplainOnEventstatsEarliestLatest() throws IOException {
     String expected = loadExpectedPlan("explain_eventstats_earliest_latest.json");
     assertJsonEqualsIgnoreId(
@@ -782,6 +783,7 @@ public class CalciteExplainIT extends ExplainIT {
                 TEST_INDEX_LOGS)));
   }
 
+  @Test
   public void testExplainOnStreamstatsEarliestLatest() throws IOException {
     String expected = loadExpectedPlan("explain_streamstats_earliest_latest.yaml");
     assertYamlEqualsIgnoreId(
@@ -1298,10 +1300,10 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainEvalMax() throws IOException {
-    String expected = loadExpectedPlan("explain_eval_max.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_eval_max.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account | eval new = max(1, 2, 3, age, 'banana')"));
   }
 

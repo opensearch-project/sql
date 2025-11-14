@@ -447,9 +447,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         ""
-            + "SELECT AVG(`SAL`) `avg(SAL)`, `SPAN`(`EMPNO`, 500, NULL) `empno_span`, `DEPTNO`\n"
+            + "SELECT AVG(`SAL`) `avg(SAL)`, SPAN(`EMPNO`, 500, NULL) `empno_span`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
-            + "GROUP BY `DEPTNO`, `SPAN`(`EMPNO`, 500, NULL)\n"
+            + "GROUP BY `DEPTNO`, SPAN(`EMPNO`, 500, NULL)\n"
             + "ORDER BY `DEPTNO`, 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -470,10 +470,10 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT AVG(`SAL`) `avg(SAL)`, `SPAN`(`HIREDATE`, 1, 'y') `hiredate_span`, `DEPTNO`\n"
+        "SELECT AVG(`SAL`) `avg(SAL)`, SPAN(`HIREDATE`, 1, 'y') `hiredate_span`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `HIREDATE` IS NOT NULL\n"
-            + "GROUP BY `DEPTNO`, `SPAN`(`HIREDATE`, 1, 'y')\n"
+            + "GROUP BY `DEPTNO`, SPAN(`HIREDATE`, 1, 'y')\n"
             + "ORDER BY `DEPTNO`, 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -596,9 +596,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         ""
-            + "SELECT STDDEV_SAMP(`SAL`) `samp`, `SPAN`(`EMPNO`, 100, NULL) `empno_span`\n"
+            + "SELECT STDDEV_SAMP(`SAL`) `samp`, SPAN(`EMPNO`, 100, NULL) `empno_span`\n"
             + "FROM `scott`.`EMP`\n"
-            + "GROUP BY `SPAN`(`EMPNO`, 100, NULL)";
+            + "GROUP BY SPAN(`EMPNO`, 100, NULL)";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -982,10 +982,10 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT AVG(`SAL`) `avg`, `SPAN`(`HIREDATE`, 1, 'y') `hiredate_span`\n"
+        "SELECT AVG(`SAL`) `avg`, SPAN(`HIREDATE`, 1, 'y') `hiredate_span`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `HIREDATE` IS NOT NULL\n"
-            + "GROUP BY `SPAN`(`HIREDATE`, 1, 'y')\n"
+            + "GROUP BY SPAN(`HIREDATE`, 1, 'y')\n"
             + "ORDER BY 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }

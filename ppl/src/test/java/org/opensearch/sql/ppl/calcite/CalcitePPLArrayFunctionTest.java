@@ -33,7 +33,7 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT ARRAY_JOIN(`array`('a', 'b', 'c'), ',') `joined`\n"
+        "SELECT ARRAY_JOIN(ARRAY('a', 'b', 'c'), ',') `joined`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -59,7 +59,7 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT ARRAY_JOIN(`array`('apple', 'banana', 'cherry'), ' | ') `joined`\n"
+        "SELECT ARRAY_JOIN(ARRAY('apple', 'banana', 'cherry'), ' | ') `joined`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -82,7 +82,7 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT ARRAY_JOIN(`array`(), ',') `joined`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+        "SELECT ARRAY_JOIN(ARRAY(), ',') `joined`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -101,7 +101,115 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT ARRAY_JOIN(`array`(`ENAME`, `JOB`), '-') `joined`\n"
+        "SELECT ARRAY_JOIN(ARRAY(`ENAME`, `JOB`), '-') `joined`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMvindexSingleElementPositive() {
+    String ppl =
+        "source=EMP | eval arr = array('a', 'b', 'c'), result = mvindex(arr, 1) | head 1 |"
+            + " fields result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(result=[$9])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[array('a', 'b', 'c')],"
+            + " result=[ITEM(array('a', 'b', 'c'), +(1, 1))])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult = "result=b\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT `array`('a', 'b', 'c')[1 + 1] `result`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMvindexSingleElementNegative() {
+    String ppl =
+        "source=EMP | eval arr = array('a', 'b', 'c'), result = mvindex(arr, -1) | head 1 |"
+            + " fields result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(result=[$9])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[array('a', 'b', 'c')],"
+            + " result=[ITEM(array('a', 'b', 'c'), +(+(ARRAY_LENGTH(array('a', 'b', 'c')),"
+            + " -1), 1))])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult = "result=c\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT `array`('a', 'b', 'c')[ARRAY_LENGTH(`array`('a', 'b', 'c')) + -1 + 1]"
+            + " `result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMvindexRangePositive() {
+    String ppl =
+        "source=EMP | eval arr = array(1, 2, 3, 4, 5), result = mvindex(arr, 1, 3) | head 1 |"
+            + " fields result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(result=[$9])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[array(1, 2, 3, 4, 5)],"
+            + " result=[ARRAY_SLICE(array(1, 2, 3, 4, 5), 1, +(-(3, 1), 1))])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult = "result=[2, 3, 4]\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT ARRAY_SLICE(`array`(1, 2, 3, 4, 5), 1, 3 - 1 + 1) `result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMvindexRangeNegative() {
+    String ppl =
+        "source=EMP | eval arr = array(1, 2, 3, 4, 5), result = mvindex(arr, -3, -1) | head 1 |"
+            + " fields result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(result=[$9])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[array(1, 2, 3, 4, 5)],"
+            + " result=[ARRAY_SLICE(array(1, 2, 3, 4, 5), +(ARRAY_LENGTH(array(1, 2, 3, 4, 5)),"
+            + " -3), +(-(+(ARRAY_LENGTH(array(1, 2, 3, 4, 5)), -1),"
+            + " +(ARRAY_LENGTH(array(1, 2, 3, 4, 5)), -3)), 1))])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult = "result=[3, 4, 5]\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT ARRAY_SLICE(`array`(1, 2, 3, 4, 5), ARRAY_LENGTH(`array`(1, 2, 3, 4, 5)) + -3,"
+            + " ARRAY_LENGTH(`array`(1, 2, 3, 4, 5)) + -1 - (ARRAY_LENGTH(`array`(1, 2, 3, 4, 5))"
+            + " + -3) + 1) `result`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);

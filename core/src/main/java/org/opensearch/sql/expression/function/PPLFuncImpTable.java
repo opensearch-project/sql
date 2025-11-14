@@ -17,6 +17,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADDTIME
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.AND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY_LENGTH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY_SLICE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASCII;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ATAN;
@@ -149,6 +150,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPL
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLYFUNCTION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTI_MATCH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVAPPEND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVINDEX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVJOIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOTEQUAL;
@@ -282,6 +284,7 @@ import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.expression.function.CollectionUDF.MVIndexFunctionImp;
 
 public class PPLFuncImpTable {
   private static final Logger logger = LogManager.getLogger(PPLFuncImpTable.class);
@@ -847,8 +850,8 @@ public class PPLFuncImpTable {
       registerOperator(INTERNAL_TRANSLATE3, SqlLibraryOperators.TRANSLATE3);
 
       // Register eval functions for PPL max() and min() calls
-      registerOperator(MAX, PPLBuiltinOperators.MAX);
-      registerOperator(MIN, PPLBuiltinOperators.MIN);
+      registerOperator(MAX, PPLBuiltinOperators.SCALAR_MAX);
+      registerOperator(MIN, PPLBuiltinOperators.SCALAR_MIN);
 
       // Register PPL UDF operator
       registerOperator(COSH, PPLBuiltinOperators.COSH);
@@ -972,12 +975,25 @@ public class PPLFuncImpTable {
                   builder.makeCall(SqlLibraryOperators.ARRAY_JOIN, array, delimiter),
           PPLTypeChecker.family(SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER));
 
+      // Register MVINDEX to use Calcite's ITEM/ARRAY_SLICE with index normalization
+      register(
+          MVINDEX,
+          new MVIndexFunctionImp(),
+          PPLTypeChecker.wrapComposite(
+              (CompositeOperandTypeChecker)
+                  OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.INTEGER)
+                      .or(
+                          OperandTypes.family(
+                              SqlTypeFamily.ARRAY, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER)),
+              false));
+
       registerOperator(ARRAY, PPLBuiltinOperators.ARRAY);
       registerOperator(MVAPPEND, PPLBuiltinOperators.MVAPPEND);
       registerOperator(MAP_APPEND, PPLBuiltinOperators.MAP_APPEND);
       registerOperator(MAP_CONCAT, SqlLibraryOperators.MAP_CONCAT);
       registerOperator(MAP_REMOVE, PPLBuiltinOperators.MAP_REMOVE);
       registerOperator(ARRAY_LENGTH, SqlLibraryOperators.ARRAY_LENGTH);
+      registerOperator(ARRAY_SLICE, SqlLibraryOperators.ARRAY_SLICE);
       registerOperator(FORALL, PPLBuiltinOperators.FORALL);
       registerOperator(EXISTS, PPLBuiltinOperators.EXISTS);
       registerOperator(FILTER, PPLBuiltinOperators.FILTER);

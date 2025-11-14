@@ -299,8 +299,8 @@ reverseCommand
    ;
 
 chartCommand
-  : CHART chartOptions* statsAggTerm (OVER rowSplit)? (BY columnSplit)?
-  | CHART chartOptions* statsAggTerm BY rowSplit (COMMA)? columnSplit
+  : CHART chartOptions* statsAggTerm (OVER rowSplit)? (BY columnSplit)? chartOptions*
+  | CHART chartOptions* statsAggTerm BY rowSplit (COMMA)? columnSplit chartOptions*
   ;
 
 chartOptions
@@ -321,7 +321,7 @@ columnSplit
   ;
 
 timechartCommand
-   : TIMECHART timechartParameter* statsFunction (BY fieldExpression)?
+   : TIMECHART timechartParameter* statsAggTerm (BY fieldExpression)? timechartParameter*
    ;
 
 timechartParameter
@@ -332,7 +332,10 @@ timechartParameter
 
 spanLiteral
    : SPANLENGTH
+   | DECIMAL_SPANLENGTH
+   | DOUBLE_LITERAL  // 1.5d can also represent decimal span length
    | INTEGER_LITERAL
+   | DECIMAL_LITERAL
    ;
 
 evalCommand
@@ -1091,6 +1094,7 @@ collectionFunctionName
     | ARRAY_LENGTH
     | MVAPPEND
     | MVJOIN
+    | MVINDEX
     | FORALL
     | EXISTS
     | FILTER
