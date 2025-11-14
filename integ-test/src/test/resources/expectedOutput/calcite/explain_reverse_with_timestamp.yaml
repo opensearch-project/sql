@@ -1,0 +1,13 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(sort0=[$0], dir0=[DESC], fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(@timestamp=[$0], category=[$1], value=[$2], timestamp=[$3])
+        LogicalSort(sort0=[$0], dir0=[DESC], fetch=[5])
+          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_time_data]])
+  physical: |
+    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_time_data]], PushDownContext=[[PROJECT->[@timestamp, category, value, timestamp], SORT->[{
+      "@timestamp" : {
+        "order" : "desc",
+        "missing" : "_first"
+      }
+    }], LIMIT->5, LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":5,"timeout":"1m","_source":{"includes":["@timestamp","category","value","timestamp"],"excludes":[]},"sort":[{"@timestamp":{"order":"desc","missing":"_first"}}]}, requestedTotalSize=5, pageSize=null, startFrom=0)])
