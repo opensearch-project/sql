@@ -186,6 +186,60 @@ Example::
     | 120    |
     +--------+
 
+SPLIT
+-----
+
+Description
+>>>>>>>>>>>
+
+Usage: split(str, delimiter) splits the string values on the delimiter and returns the string values as a multivalue field (array). Use an empty string ("") to split the original string into one value per character. If the delimiter is not found, returns an array containing the original string. If the input string is empty, returns an empty array.
+
+Argument type: str: STRING, delimiter: STRING
+
+Return type: ARRAY of STRING
+
+Example::
+
+    os> source=people | eval test = 'buttercup;rarity;tenderhoof;dash', result = split(test, ';') | fields result | head 1
+    fetched rows / total rows = 1/1
+    +--------------------------------------+
+    | result                               |
+    |--------------------------------------|
+    | [buttercup,rarity,tenderhoof,dash]   |
+    +--------------------------------------+
+
+    os> source=people | eval test = '1a2b3c4def567890', result = split(test, 'def') | fields result | head 1
+    fetched rows / total rows = 1/1
+    +------------------+
+    | result           |
+    |------------------|
+    | [1a2b3c4,567890] |
+    +------------------+
+
+    os> source=people | eval test = 'abcd', result = split(test, '') | fields result | head 1
+    fetched rows / total rows = 1/1
+    +-----------+
+    | result    |
+    |-----------|
+    | [a,b,c,d] |
+    +-----------+
+
+    os> source=people | eval test = 'name::value', result = split(test, '::') | fields result | head 1
+    fetched rows / total rows = 1/1
+    +--------------+
+    | result       |
+    |--------------|
+    | [name,value] |
+    +--------------+
+
+    os> source=people | eval test = 'hello', result = split(test, ',') | fields result | head 1
+    fetched rows / total rows = 1/1
+    +---------+
+    | result  |
+    |---------|
+    | [hello] |
+    +---------+
+
 MVJOIN
 ------
 
