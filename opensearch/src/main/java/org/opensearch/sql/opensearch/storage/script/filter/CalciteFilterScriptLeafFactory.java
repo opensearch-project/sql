@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.opensearch.storage.script.filter;
 
-import static org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.Source.SOURCE;
+import static org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer.SOURCES;
 
 import java.util.List;
 import java.util.Map;
@@ -40,7 +40,7 @@ class CalciteFilterScriptLeafFactory implements FilterScript.LeafFactory {
     this.params = params;
     this.lookup = lookup;
     this.parametersToIndex =
-        IntStream.range(0, ((List<Integer>) params.get(SOURCE)).size())
+        IntStream.range(0, ((List<Integer>) params.get(SOURCES)).size())
             .boxed()
             .collect(Collectors.toMap(i -> "?" + i, i -> i));
   }
