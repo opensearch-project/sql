@@ -107,13 +107,14 @@ public class OpenSearchRelOptUtil {
           @Override
           public RexNode visitLiteral(RexLiteral literal) {
             /*
-             * 1. Skip replacing SARG/DECIMAL as it is not supported to translate;
-             * 2. Skip replacing SYMBOL as it affects codegen, shouldn't be parameter;
+             * 1. Skip replacing SARG/DECIMAL as it is not supported to translate literal;
+             * 2. Skip replacing SYMBOL/NULL as it may affect codegen, shouldn't be parameter;
              * 3. Skip INTERVAL_TYPES as it has bug, TODO: remove this when fixed;
              */
             if (literal.getTypeName() == SqlTypeName.SARG
                 || literal.getType().getSqlTypeName() == SqlTypeName.DECIMAL
                 || literal.getTypeName() == SqlTypeName.SYMBOL
+                || literal.getTypeName() == SqlTypeName.NULL
                 || SqlTypeName.INTERVAL_TYPES.contains(literal.getTypeName())) {
               return literal;
             }
