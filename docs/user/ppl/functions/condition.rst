@@ -14,9 +14,14 @@ ISNULL
 Description
 >>>>>>>>>>>
 
-Usage: isnull(field) return true if field is null.
+Usage: isnull(field) returns TRUE if field is NULL, FALSE otherwise.
 
-Argument type: all the supported data type.
+The `isnull()` function is commonly used:
+- In `eval` expressions to create conditional fields
+- With the `if()` function to provide default values
+- In `where` clauses to filter null records
+
+Argument type: all the supported data types.
 
 Return type: BOOLEAN
 
@@ -33,21 +38,63 @@ Example::
     | True   | null     | Dale      |
     +--------+----------+-----------+
 
+Using with if() to label records::
+
+    os> source=accounts | eval status = if(isnull(employer), 'unemployed', 'employed') | fields firstname, employer, status
+    fetched rows / total rows = 4/4
+    +-----------+----------+------------+
+    | firstname | employer | status     |
+    |-----------+----------+------------|
+    | Amber     | Pyrami   | employed   |
+    | Hattie    | Netagy   | employed   |
+    | Nanette   | Quility  | employed   |
+    | Dale      | null     | unemployed |
+    +-----------+----------+------------+
+
+Filtering with where clause::
+
+    os> source=accounts | where isnull(employer) | fields account_number, firstname, employer
+    fetched rows / total rows = 1/1
+    +----------------+-----------+----------+
+    | account_number | firstname | employer |
+    |----------------+-----------+----------|
+    | 18             | Dale      | null     |
+    +----------------+-----------+----------+
+
 ISNOTNULL
 ---------
 
 Description
 >>>>>>>>>>>
 
-Usage: isnotnull(field) return true if field is not null.
+Usage: isnotnull(field) returns TRUE if field is NOT NULL, FALSE otherwise.
 
-Argument type: all the supported data type.
+The `isnotnull()` function is commonly used:
+- In `eval` expressions to create boolean flags
+- In `where` clauses to filter out null values
+- With the `if()` function for conditional logic
+- To validate data presence
+
+Argument type: all the supported data types.
 
 Return type: BOOLEAN
 
 Synonyms: `ISPRESENT`_
 
 Example::
+
+    os> source=accounts | eval has_employer = isnotnull(employer) | fields firstname, employer, has_employer
+    fetched rows / total rows = 4/4
+    +-----------+----------+--------------+
+    | firstname | employer | has_employer |
+    |-----------+----------+--------------|
+    | Amber     | Pyrami   | True         |
+    | Hattie    | Netagy   | True         |
+    | Nanette   | Quility  | True         |
+    | Dale      | null     | False        |
+    +-----------+----------+--------------+
+
+Filtering with where clause::
 
     os> source=accounts | where not isnotnull(employer) | fields account_number, employer
     fetched rows / total rows = 1/1
@@ -56,6 +103,19 @@ Example::
     |----------------+----------|
     | 18             | null     |
     +----------------+----------+
+
+Using with if() for validation messages::
+
+    os> source=accounts | eval validation = if(isnotnull(employer), 'valid', 'missing employer') | fields firstname, employer, validation
+    fetched rows / total rows = 4/4
+    +-----------+----------+------------------+
+    | firstname | employer | validation       |
+    |-----------+----------+------------------|
+    | Amber     | Pyrami   | valid            |
+    | Hattie    | Netagy   | valid            |
+    | Nanette   | Quility  | valid            |
+    | Dale      | null     | missing employer |
+    +-----------+----------+------------------+
 
 EXISTS
 ------
@@ -141,32 +201,6 @@ Example::
     | Quility | Quility  | Nanette   |
     | null    | null     | Dale      |
     +---------+----------+-----------+
-
-
-ISNULL
-------
-
-Description
->>>>>>>>>>>
-
-Usage: isnull(field1, field2) return null if two parameters are same, otherwise return field1.
-
-Argument type: all the supported data type
-
-Return type: any
-
-Example::
-
-    os> source=accounts | eval result = isnull(employer) | fields result, employer, firstname
-    fetched rows / total rows = 4/4
-    +--------+----------+-----------+
-    | result | employer | firstname |
-    |--------+----------+-----------|
-    | False  | Pyrami   | Amber     |
-    | False  | Netagy   | Hattie    |
-    | False  | Quility  | Nanette   |
-    | True   | null     | Dale      |
-    +--------+----------+-----------+
 
 IF
 ------
@@ -537,7 +571,7 @@ Example::
     | 969 |
     +-----+
 
-REGEX_MATCH
+REGEXP_MATCH
 -----------
 
 Description
@@ -545,7 +579,7 @@ Description
 
 Version: 3.3.0
 
-Usage: regex_match(string, pattern) returns true if the regular expression pattern finds a match against any substring of the string value, otherwise returns false.
+Usage: regexp_match(string, pattern) returns true if the regular expression pattern finds a match against any substring of the string value, otherwise returns false.
 
 The function uses Java regular expression syntax for the pattern.
 
@@ -555,7 +589,7 @@ Return type: BOOLEAN
 
 Example::
 
-    #os> source=logs | where regex_match(message, 'ERROR|WARN|FATAL') | fields timestamp, message
+    #os> source=logs | where regexp_match(message, 'ERROR|WARN|FATAL') | fields timestamp, message
     fetched rows / total rows = 3/100
     +---------------------+------------------------------------------+
     | timestamp           | message                                  |
@@ -565,7 +599,7 @@ Example::
     | 2024-01-15 10:25:33 | FATAL: System crashed unexpectedly      |
     +---------------------+------------------------------------------+
 
-    #os> source=users | where regex_match(email, '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}') | fields name, email
+    #os> source=users | where regexp_match(email, '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}') | fields name, email
     fetched rows / total rows = 2/3
     +-------+----------------------+
     | name  | email                |
@@ -574,7 +608,7 @@ Example::
     | Alice | alice@company.org    |
     +-------+----------------------+
 
-    #os> source=network | where regex_match(ip_address, '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$') AND NOT regex_match(ip_address, '^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)') | fields ip_address, status
+    #os> source=network | where regexp_match(ip_address, '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$') AND NOT regexp_match(ip_address, '^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)') | fields ip_address, status
     fetched rows / total rows = 2/10
     +---------------+--------+
     | ip_address    | status |
@@ -583,7 +617,7 @@ Example::
     | 1.1.1.1       | active |
     +---------------+--------+
 
-    #os> source=products | eval category = if(regex_match(name, '(?i)(laptop|computer|desktop)'), 'Computing', if(regex_match(name, '(?i)(phone|tablet|mobile)'), 'Mobile', 'Other')) | fields name, category
+    #os> source=products | eval category = if(regexp_match(name, '(?i)(laptop|computer|desktop)'), 'Computing', if(regexp_match(name, '(?i)(phone|tablet|mobile)'), 'Mobile', 'Other')) | fields name, category
     fetched rows / total rows = 4/4
     +------------------------+----------+
     | name                   | category |

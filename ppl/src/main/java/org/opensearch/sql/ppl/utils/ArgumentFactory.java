@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
@@ -21,6 +22,7 @@ import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ChartCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DefaultSortFieldContext;
@@ -28,6 +30,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandCont
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PrefixSortFieldContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StreamstatsCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SuffixSortFieldContext;
 
 /** Util class to get all arguments as a list from the PPL command. */
@@ -87,6 +90,25 @@ public class ArgumentFactory {
     return settings == null
         || settings.getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED) == null
         || Boolean.TRUE.equals(settings.getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED));
+  }
+
+  /**
+   * Get list of {@link Argument}.
+   *
+   * @param ctx StreamstatsCommandContext instance
+   * @return the list of arguments fetched from the streamstats command
+   */
+  public static List<Argument> getArgumentList(StreamstatsCommandContext ctx) {
+    return Arrays.asList(
+        ctx.streamstatsArgs().currentArg() != null && !ctx.streamstatsArgs().currentArg().isEmpty()
+            ? new Argument("current", getArgumentValue(ctx.streamstatsArgs().currentArg(0).current))
+            : new Argument("current", new Literal(true, DataType.BOOLEAN)),
+        ctx.streamstatsArgs().windowArg() != null && !ctx.streamstatsArgs().windowArg().isEmpty()
+            ? new Argument("window", getArgumentValue(ctx.streamstatsArgs().windowArg(0).window))
+            : new Argument("window", new Literal(0, DataType.INTEGER)),
+        ctx.streamstatsArgs().globalArg() != null && !ctx.streamstatsArgs().globalArg().isEmpty()
+            ? new Argument("global", getArgumentValue(ctx.streamstatsArgs().globalArg(0).global))
+            : new Argument("global", new Literal(true, DataType.BOOLEAN)));
   }
 
   /**
@@ -177,6 +199,37 @@ public class ArgumentFactory {
     } else {
       return new Argument("type", new Literal(null, DataType.NULL));
     }
+  }
+
+  public static List<Argument> getArgumentList(ChartCommandContext ctx) {
+    List<Argument> arguments = new ArrayList<>();
+    for (var optionCtx : ctx.chartOptions()) {
+      if (optionCtx.LIMIT() != null) {
+        Literal limit;
+        if (optionCtx.integerLiteral() != null) {
+          limit = getArgumentValue(optionCtx.integerLiteral());
+        } else {
+          limit =
+              AstDSL.intLiteral(
+                  Integer.parseInt(
+                      (optionCtx.TOP_K() != null ? optionCtx.TOP_K() : optionCtx.BOTTOM_K())
+                          .getText()
+                          .replaceAll("[^0-9-]", "")));
+        }
+        arguments.add(new Argument("limit", limit));
+        // not specified | top presents -> true; bottom presents -> false
+        arguments.add(new Argument("top", AstDSL.booleanLiteral(optionCtx.BOTTOM_K() == null)));
+      } else if (optionCtx.USEOTHER() != null) {
+        arguments.add(new Argument("useother", getArgumentValue(optionCtx.booleanLiteral())));
+      } else if (optionCtx.OTHERSTR() != null) {
+        arguments.add(new Argument("otherstr", getArgumentValue(optionCtx.stringLiteral())));
+      } else if (optionCtx.USENULL() != null) {
+        arguments.add(new Argument("usenull", getArgumentValue(optionCtx.booleanLiteral())));
+      } else if (optionCtx.NULLSTR() != null) {
+        arguments.add(new Argument("nullstr", getArgumentValue(optionCtx.stringLiteral())));
+      }
+    }
+    return arguments;
   }
 
   /**

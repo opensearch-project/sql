@@ -55,7 +55,9 @@ import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
+import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.CountBin;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.DefaultBin;
@@ -85,9 +87,9 @@ import org.opensearch.sql.ast.tree.SPath;
 import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.SpanBin;
+import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
-import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
@@ -377,6 +379,14 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
         child, String.join(" ", visitExpressionList(node.getWindowFunctionList())).trim());
   }
 
+  @Override
+  public String visitStreamWindow(StreamWindow node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    return StringUtils.format(
+        "%s | streamstats %s",
+        child, String.join(" ", visitExpressionList(node.getWindowFunctionList())).trim());
+  }
+
   /** Build {@link LogicalRareTopN}. */
   @Override
   public String visitRareTopN(RareTopN node, String context) {
@@ -491,35 +501,56 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   }
 
   @Override
-  public String visitTimechart(Timechart node, String context) {
+  public String visitChart(Chart node, String context) {
     String child = node.getChild().get(0).accept(this, context);
-    StringBuilder timechartCommand = new StringBuilder();
-    timechartCommand.append(" | timechart");
+    StringBuilder chartCommand = new StringBuilder();
 
-    // Add span if present
-    if (node.getBinExpression() != null) {
-      timechartCommand.append(" span=").append(visitExpression(node.getBinExpression()));
+    // Check if this is a timechart by looking for timestamp span in rowSplit
+    boolean isTimechart = isTimechartNode(node);
+    chartCommand.append(isTimechart ? " | timechart" : " | chart");
+
+    for (Argument arg : node.getArguments()) {
+      String argName = arg.getArgName();
+      // Skip the auto-generated "top" parameter that's added when limit is specified
+      if ("top".equals(argName)) {
+        continue;
+      }
+      if ("limit".equals(argName) || "useother".equals(argName) || "usenull".equals(argName)) {
+        chartCommand.append(" ").append(argName).append("=").append(MASK_LITERAL);
+      } else if ("otherstr".equals(argName) || "nullstr".equals(argName)) {
+        chartCommand.append(" ").append(argName).append("=").append(MASK_LITERAL);
+      }
     }
 
-    // Add limit if present
-    if (node.getLimit() != null) {
-      timechartCommand.append(" limit=").append(node.getLimit());
+    chartCommand.append(" ").append(visitExpression(node.getAggregationFunction()));
+
+    if (node.getRowSplit() != null && node.getColumnSplit() != null) {
+      chartCommand
+          .append(" by ")
+          .append(visitExpression(node.getRowSplit()))
+          .append(" ")
+          .append(visitExpression(node.getColumnSplit()));
+    } else if (node.getRowSplit() != null) {
+      chartCommand.append(" by ").append(visitExpression(node.getRowSplit()));
+    } else if (node.getColumnSplit() != null) {
+      chartCommand.append(" by ").append(visitExpression(node.getColumnSplit()));
     }
 
-    // Add useother if present
-    if (node.getUseOther() != null) {
-      timechartCommand.append(" useother=").append(node.getUseOther());
+    return StringUtils.format("%s%s", child, chartCommand.toString());
+  }
+
+  private boolean isTimechartNode(Chart node) {
+    // A Chart node represents a timechart if it has a rowSplit that's an alias containing
+    // a span on the implicit timestamp field
+    if (node.getRowSplit() instanceof Alias) {
+      Alias alias = (Alias) node.getRowSplit();
+      if (alias.getDelegated() instanceof Span) {
+        Span span = (Span) alias.getDelegated();
+        return span.getField() instanceof Field
+            && "@timestamp".equals(((Field) span.getField()).getField().toString());
+      }
     }
-
-    // Add aggregation function
-    timechartCommand.append(" ").append(visitExpression(node.getAggregateFunction()));
-
-    // Add by clause if present
-    if (node.getByField() != null) {
-      timechartCommand.append(" by ").append(visitExpression(node.getByField()));
-    }
-
-    return StringUtils.format("%s%s", child, timechartCommand.toString());
+    return false;
   }
 
   public String visitRex(Rex node, String context) {
@@ -663,6 +694,19 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   private String visitExpression(UnresolvedExpression expression) {
     return expressionAnalyzer.analyze(expression, null);
+  }
+
+  @Override
+  public String visitAppendPipe(AppendPipe node, String context) {
+    Values emptyValue = new Values(null);
+    UnresolvedPlan childNode = node.getSubQuery();
+    while (childNode != null && !childNode.getChild().isEmpty()) {
+      childNode = (UnresolvedPlan) childNode.getChild().get(0);
+    }
+    childNode.attach(emptyValue);
+    String child = node.getChild().get(0).accept(this, context);
+    String subPipeline = anonymizeData(node.getSubQuery());
+    return StringUtils.format("%s | appendpipe [%s]", child, subPipeline);
   }
 
   @Override

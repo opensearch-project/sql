@@ -24,7 +24,10 @@ public class OpenSearchSparkSqlDialect extends SparkSqlDialect {
   private static final Map<String, String> CALCITE_TO_SPARK_MAPPING =
       ImmutableMap.of(
           "ARG_MIN", "MIN_BY",
-          "ARG_MAX", "MAX_BY");
+          "ARG_MAX", "MAX_BY",
+          "SAFE_CAST", "TRY_CAST");
+
+  private static final Map<String, String> CALL_SEPARATOR = ImmutableMap.of("SAFE_CAST", "AS");
 
   private OpenSearchSparkSqlDialect() {
     super(DEFAULT_CONTEXT);
@@ -37,21 +40,31 @@ public class OpenSearchSparkSqlDialect extends SparkSqlDialect {
     // Replace Calcite specific functions with their Spark SQL equivalents
     if (CALCITE_TO_SPARK_MAPPING.containsKey(operatorName)) {
       unparseFunction(
-          writer, call, CALCITE_TO_SPARK_MAPPING.get(operatorName), leftPrec, rightPrec);
+          writer,
+          call,
+          CALCITE_TO_SPARK_MAPPING.get(operatorName),
+          leftPrec,
+          rightPrec,
+          CALL_SEPARATOR.getOrDefault(operatorName, ","));
     } else {
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
 
   private void unparseFunction(
-      SqlWriter writer, SqlCall call, String functionName, int leftPrec, int rightPrec) {
-    writer.keyword(functionName);
+      SqlWriter writer,
+      SqlCall call,
+      String functionName,
+      int leftPrec,
+      int rightPrec,
+      String separator) {
+    writer.print(functionName);
     final SqlWriter.Frame frame = writer.startList("(", ")");
     for (int i = 0; i < call.operandCount(); i++) {
       if (i > 0) {
-        writer.sep(",");
+        writer.sep(separator);
       }
-      call.operand(i).unparse(writer, leftPrec, rightPrec);
+      call.operand(i).unparse(writer, 0, rightPrec);
     }
     writer.endList(frame);
   }

@@ -49,7 +49,6 @@ public class ApacheDataTypeTest {
                 + " HTTP/%{NUMBER:httpversion;float})?|%{DATA:rawrequest})\" %{NUMBER:response;int}"
                 + " (?:%{NUMBER:bytes;long}|-)");
 
-    System.out.println(line);
     Match gm = grok.match(line);
     Map<String, Object> map = gm.capture();
 

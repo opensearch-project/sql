@@ -13,7 +13,8 @@ import org.opensearch.sql.calcite.CalciteRexNodeVisitor;
 import org.opensearch.sql.calcite.utils.binning.BinFieldValidator;
 import org.opensearch.sql.calcite.utils.binning.BinHandler;
 import org.opensearch.sql.calcite.utils.binning.BinnableField;
-import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 /** Handler for range-based binning (start/end parameters only). */
 public class RangeBinHandler implements BinHandler {
@@ -43,8 +44,14 @@ public class RangeBinHandler implements BinHandler {
     RexNode endParam = convertParameter(rangeBin.getEnd(), context, visitor);
 
     // Use RANGE_BUCKET with data bounds and user parameters
-    return context.rexBuilder.makeCall(
-        PPLBuiltinOperators.RANGE_BUCKET, fieldExpr, dataMin, dataMax, startParam, endParam);
+    return PPLFuncImpTable.INSTANCE.resolve(
+        context.rexBuilder,
+        BuiltinFunctionName.RANGE_BUCKET,
+        fieldExpr,
+        dataMin,
+        dataMax,
+        startParam,
+        endParam);
   }
 
   private RexNode convertParameter(

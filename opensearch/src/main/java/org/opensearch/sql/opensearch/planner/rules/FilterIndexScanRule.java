@@ -12,6 +12,7 @@ import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.immutables.value.Value;
+import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
@@ -48,7 +49,7 @@ public class FilterIndexScanRule extends RelRule<FilterIndexScanRule.Config> {
 
   /** Rule configuration. */
   @Value.Immutable
-  public interface Config extends RelRule.Config {
+  public interface Config extends OpenSearchRuleConfig {
     /** Config that matches Filter on CalciteLogicalIndexScan. */
     Config DEFAULT =
         ImmutableFilterIndexScanRule.Config.builder()
