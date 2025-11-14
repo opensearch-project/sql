@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.ast.tree;
 
+import static org.opensearch.sql.common.utils.StringUtils.unquoteIdentifier;
+
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -48,8 +50,9 @@ public class SPath extends UnresolvedPlan {
 
   public Eval rewriteAsEval() {
     String outField = this.outField;
+    String unquotedPath = unquoteIdentifier(this.path);
     if (outField == null) {
-      outField = this.path;
+      outField = unquotedPath;
     }
 
     return AstDSL.eval(
@@ -57,6 +60,6 @@ public class SPath extends UnresolvedPlan {
         AstDSL.let(
             AstDSL.field(outField),
             AstDSL.function(
-                "json_extract", AstDSL.field(inField), AstDSL.stringLiteral(this.path))));
+                "json_extract", AstDSL.field(inField), AstDSL.stringLiteral(unquotedPath))));
   }
 }
