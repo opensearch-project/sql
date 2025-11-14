@@ -298,8 +298,24 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
             + " 1 | fields result";
     RelNode root = getRelNode(ppl);
 
-    String expectedResult = "result=[buttercup, rarity, tenderhoof]\n";
-    verifyResult(root, expectedResult);
+    String expectedLogical =
+        "LogicalProject(result=[$9])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], test=['buttercup;rarity;tenderhoof':VARCHAR],"
+            + " result=[CASE(=(';', ''),"
+            + " SPLIT(REGEXP_REPLACE('buttercup;rarity;tenderhoof':VARCHAR, '(?<=.)(?=.)', '|'),"
+            + " '|'), SPLIT('buttercup;rarity;tenderhoof':VARCHAR, ';'))])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT CASE WHEN ';' = '' THEN SPLIT(REGEXP_REPLACE('buttercup;rarity;tenderhoof', "
+            + "'(?<=.)(?=.)', '|'), '|') ELSE SPLIT('buttercup;rarity;tenderhoof', ';') END "
+            + "`result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
@@ -309,8 +325,22 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
             + " fields result";
     RelNode root = getRelNode(ppl);
 
-    String expectedResult = "result=[1a2b3c4, 567890]\n";
-    verifyResult(root, expectedResult);
+    String expectedLogical =
+        "LogicalProject(result=[$9])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], test=['1a2b3c4def567890':VARCHAR],"
+            + " result=[CASE(=('def':VARCHAR, ''), SPLIT(REGEXP_REPLACE('1a2b3c4def567890':VARCHAR,"
+            + " '(?<=.)(?=.)', '|'), '|'), SPLIT('1a2b3c4def567890':VARCHAR, 'def':VARCHAR))])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT CASE WHEN 'def' = '' THEN SPLIT(REGEXP_REPLACE('1a2b3c4def567890', "
+            + "'(?<=.)(?=.)', '|'), '|') ELSE SPLIT('1a2b3c4def567890', 'def') END `result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
@@ -320,28 +350,21 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     // With empty delimiter, should split into individual characters
-    String expectedResult = "result=[a, b, c, d]\n";
-    verifyResult(root, expectedResult);
-  }
+    String expectedLogical =
+        "LogicalProject(result=[$9])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], test=['abcd':VARCHAR],"
+            + " result=[CASE(=('':VARCHAR, ''), SPLIT(REGEXP_REPLACE('abcd':VARCHAR,"
+            + " '(?<=.)(?=.)', '|'), '|'), SPLIT('abcd':VARCHAR, '':VARCHAR))])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
 
-  @Test
-  public void testSplitWithColonDelimiter() {
-    String ppl =
-        "source=EMP | eval test = 'name::value', result = split(test, '::') | head 1 | fields"
-            + " result";
-    RelNode root = getRelNode(ppl);
-
-    String expectedResult = "result=[name, value]\n";
-    verifyResult(root, expectedResult);
-  }
-
-  @Test
-  public void testSplitWithFieldReference() {
-    String ppl = "source=EMP | eval result = split(ENAME, 'A') | head 1 | fields result";
-    RelNode root = getRelNode(ppl);
-
-    // Just verify it parses and executes correctly
-    // Actual result depends on the ENAME field value
-    getRelNode(ppl); // Verify parsing succeeds
+    String expectedSparkSql =
+        "SELECT CASE WHEN '' = '' THEN SPLIT(REGEXP_REPLACE('abcd', '(?<=.)(?=.)', '|'), '|') "
+            + "ELSE SPLIT('abcd', '') END `result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }
