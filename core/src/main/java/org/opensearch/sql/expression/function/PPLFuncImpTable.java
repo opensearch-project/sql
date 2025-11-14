@@ -856,8 +856,8 @@ public class PPLFuncImpTable {
       registerOperator(INTERNAL_TRANSLATE3, SqlLibraryOperators.TRANSLATE3);
 
       // Register eval functions for PPL max() and min() calls
-      registerOperator(MAX, PPLBuiltinOperators.MAX);
-      registerOperator(MIN, PPLBuiltinOperators.MIN);
+      registerOperator(MAX, PPLBuiltinOperators.SCALAR_MAX);
+      registerOperator(MIN, PPLBuiltinOperators.SCALAR_MIN);
 
       // Register PPL UDF operator
       registerOperator(COSH, PPLBuiltinOperators.COSH);

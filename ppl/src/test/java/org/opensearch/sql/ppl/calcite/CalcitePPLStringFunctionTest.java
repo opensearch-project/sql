@@ -125,7 +125,7 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `TOSTRING`(`SAL`, 'binary') `salary_binary`, `SAL`\nFROM `scott`.`EMP`";
+        "SELECT `ENAME`, TOSTRING(`SAL`, 'binary') `salary_binary`, `SAL`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -156,7 +156,7 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `TOSTRING`(`SAL`, 'hex') `salary_hex`, `SAL`\nFROM `scott`.`EMP`";
+        "SELECT `ENAME`, TOSTRING(`SAL`, 'hex') `salary_hex`, `SAL`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -175,7 +175,7 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `TOSTRING`('1600', 'hex') `salary_hex`\nFROM `scott`.`EMP`\nLIMIT 1";
+        "SELECT `ENAME`, TOSTRING('1600', 'hex') `salary_hex`\nFROM `scott`.`EMP`\nLIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -195,7 +195,7 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `TOSTRING`('160040222', 'commas') `salary_comma`\n"
+        "SELECT `ENAME`, TOSTRING('160040222', 'commas') `salary_comma`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -217,7 +217,7 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `TOSTRING`('160040222', 'binary') `salary_binary`\n"
+        "SELECT `ENAME`, TOSTRING('160040222', 'binary') `salary_binary`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -252,7 +252,7 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `TOSTRING`(`SAL`, 'commas') `salary_commas`, `SAL`\nFROM `scott`.`EMP`";
+        "SELECT `ENAME`, TOSTRING(`SAL`, 'commas') `salary_commas`, `SAL`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -273,7 +273,7 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `TOSTRING`(6500, 'duration') `duration_commas`\n"
+        "SELECT `ENAME`, TOSTRING(6500, 'duration') `duration_commas`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);

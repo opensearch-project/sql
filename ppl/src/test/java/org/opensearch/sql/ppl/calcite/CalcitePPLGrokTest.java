@@ -25,7 +25,7 @@ public class CalcitePPLGrokTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `GROK`(`ENAME`, '.+@%{HOSTNAME:host}', 'grok')['host'] `host`\n"
+        "SELECT `ENAME`, GROK(`ENAME`, '.+@%{HOSTNAME:host}', 'grok')['host'] `host`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -41,7 +41,7 @@ public class CalcitePPLGrokTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `GROK`(`ENAME`, '%{NUMBER} %{GREEDYDATA:ENAME}', 'grok')['ENAME'] `ENAME`\n"
+        "SELECT GROK(`ENAME`, '%{NUMBER} %{GREEDYDATA:ENAME}', 'grok')['ENAME'] `ENAME`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
