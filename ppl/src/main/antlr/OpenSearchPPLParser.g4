@@ -117,6 +117,7 @@ commandName
    | ML
    | FILLNULL
    | EXPAND
+   | MVEXPAND
    | FLATTEN
    | TRENDLINE
    | TIMECHART
