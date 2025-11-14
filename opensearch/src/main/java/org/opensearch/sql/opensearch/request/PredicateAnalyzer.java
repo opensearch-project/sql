@@ -31,6 +31,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
+import static javax.swing.UIManager.put;
 import static org.opensearch.index.query.QueryBuilders.boolQuery;
 import static org.opensearch.index.query.QueryBuilders.existsQuery;
 import static org.opensearch.index.query.QueryBuilders.matchQuery;
@@ -43,6 +44,9 @@ import static org.opensearch.script.Script.DEFAULT_SCRIPT_TYPE;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.MULTI_FIELDS_RELEVANCE_FUNCTION_SET;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.SINGLE_FIELD_RELEVANCE_FUNCTION_SET;
 import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.COMPOUNDED_LANG_NAME;
+import static org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer.DIGESTS;
+import static org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer.LITERALS;
+import static org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer.SOURCES;
 
 import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
@@ -52,6 +56,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -1446,8 +1451,11 @@ public class PredicateAnalyzer {
 
   public static class ScriptQueryExpression extends QueryExpression {
     private RexNode analyzedNode;
-    // use lambda to generate code lazily to avoid store generated code
     private final Supplier<String> codeGenerator;
+    private String generatedCode;
+    private final List<Integer> sources;
+    private final List<Object> digests;
+    private final List<Object> literals;
 
     public ScriptQueryExpression(
         RexNode rexNode,
@@ -1463,10 +1471,23 @@ public class PredicateAnalyzer {
       }
       accumulateScriptCount(1);
       RelJsonSerializer serializer = new RelJsonSerializer(cluster);
+      this.sources = new ArrayList<>();
+      this.digests = new ArrayList<>();
+      this.literals = new ArrayList<>();
       this.codeGenerator =
           () ->
               SerializationWrapper.wrapWithLangType(
-                  ScriptEngineType.CALCITE, serializer.serialize(rexNode, rowType, fieldTypes));
+                  ScriptEngineType.CALCITE,
+                  serializer.serialize(rexNode, rowType, fieldTypes, sources, digests, literals));
+    }
+
+    // For filter script, this method will be called after planning phase;
+    // For the agg-script, this will be called in planning phase to generate agg builder
+    private String getOrCreateGeneratedCode() {
+      if (generatedCode == null) {
+        generatedCode = codeGenerator.get();
+      }
+      return generatedCode;
     }
 
     @Override
@@ -1483,9 +1504,16 @@ public class PredicateAnalyzer {
       return new Script(
           DEFAULT_SCRIPT_TYPE,
           COMPOUNDED_LANG_NAME,
-          codeGenerator.get(),
+          getOrCreateGeneratedCode(),
           Collections.emptyMap(),
-          Map.of(Variable.UTC_TIMESTAMP.camelName, currentTime));
+          new LinkedHashMap<>() { // Use LinkedHashMap to make the plan stable
+            {
+              put(Variable.UTC_TIMESTAMP.camelName, currentTime);
+              put(SOURCES, sources);
+              put(DIGESTS, digests);
+              put(LITERALS, literals);
+            }
+          });
     }
 
     @Override

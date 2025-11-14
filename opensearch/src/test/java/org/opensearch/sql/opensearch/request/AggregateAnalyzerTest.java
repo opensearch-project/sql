@@ -488,10 +488,10 @@ class AggregateAnalyzerTest {
                     "filter_complex_count"))
         .expectDslTemplate(
             "[{\"filter_bool_count\":{\"filter\":{\"script\":{\"script\":{\"source\":\"{\\\"langType\\\":\\\"calcite\\\",\\\"script\\\":\\\"*\\\"}\","
-                + "\"lang\":\"opensearch_compounded_script\",\"params\":{\"utcTimestamp\":0}},\"boost\":1.0}},"
+                + "\"lang\":\"opensearch_compounded_script\",\"params\":{*}},\"boost\":1.0}},"
                 + "\"aggregations\":{\"filter_bool_count\":{\"value_count\":{\"field\":\"_index\"}}}}},"
                 + " {\"filter_complex_count\":{\"filter\":{\"script\":{\"script\":{\"source\":\"{\\\"langType\\\":\\\"calcite\\\",\\\"script\\\":\\\"*\\\"}\","
-                + "\"lang\":\"opensearch_compounded_script\",\"params\":{\"utcTimestamp\":0}},\"boost\":1.0}},"
+                + "\"lang\":\"opensearch_compounded_script\",\"params\":{*}},\"boost\":1.0}},"
                 + "\"aggregations\":{\"filter_complex_count\":{\"value_count\":{\"field\":\"_index\"}}}}}]")
         .expectResponseParser(
             new MetricParserHelper(

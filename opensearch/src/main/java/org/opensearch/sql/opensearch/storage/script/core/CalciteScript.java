@@ -40,9 +40,14 @@ public class CalciteScript {
    * @param sourceLookup source look up
    * @return expr value
    */
-  public Object[] execute(Map<String, ScriptDocValues<?>> docProvider, SourceLookup sourceLookup) {
+  public Object[] execute(
+      Map<String, ScriptDocValues<?>> docProvider,
+      SourceLookup sourceLookup,
+      Map<String, Integer> parametersToIndex) {
     return AccessController.doPrivileged(
         (PrivilegedAction<Object[]>)
-            () -> function.apply(new ScriptDataContext(docProvider, sourceLookup, params)));
+            () ->
+                function.apply(
+                    new ScriptDataContext(docProvider, sourceLookup, params, parametersToIndex)));
   }
 }

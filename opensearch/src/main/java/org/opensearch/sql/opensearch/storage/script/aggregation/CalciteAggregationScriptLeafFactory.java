@@ -5,7 +5,12 @@
 
 package org.opensearch.sql.opensearch.storage.script.aggregation;
 
+import static org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer.SOURCES;
+
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.rel.type.RelDataType;
@@ -25,6 +30,12 @@ class CalciteAggregationScriptLeafFactory implements AggregationScript.LeafFacto
   /** Document lookup that returns doc values. */
   private final SearchLookup lookup;
 
+  /**
+   * Stores the parameter names to the actual indices in SOURCES. Generate it in advance in factory
+   * to save the process for each document*
+   */
+  private final Map<String, Integer> parametersToIndex;
+
   public CalciteAggregationScriptLeafFactory(
       Function1<DataContext, Object[]> function,
       RelDataType type,
@@ -34,11 +45,15 @@ class CalciteAggregationScriptLeafFactory implements AggregationScript.LeafFacto
     this.type = type;
     this.params = params;
     this.lookup = lookup;
+    this.parametersToIndex =
+        IntStream.range(0, ((List<Integer>) params.get(SOURCES)).size())
+            .boxed()
+            .collect(Collectors.toMap(i -> "?" + i, i -> i));
   }
 
   @Override
   public AggregationScript newInstance(LeafReaderContext ctx) {
-    return new CalciteAggregationScript(function, type, lookup, ctx, params);
+    return new CalciteAggregationScript(function, type, lookup, ctx, params, parametersToIndex);
   }
 
   @Override
