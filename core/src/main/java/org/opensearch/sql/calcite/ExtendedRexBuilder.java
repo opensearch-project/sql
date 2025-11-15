@@ -163,4 +163,11 @@ public class ExtendedRexBuilder extends RexBuilder {
     }
     return super.makeCast(pos, type, exp, matchNullability, safe, format);
   }
+
+  /** Cast node to string */
+  public RexNode castToString(RexNode node) {
+    RelDataType stringType = getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+    RelDataType nullableStringType = getTypeFactory().createTypeWithNullability(stringType, true);
+    return makeCast(nullableStringType, node, true, true);
+  }
 }

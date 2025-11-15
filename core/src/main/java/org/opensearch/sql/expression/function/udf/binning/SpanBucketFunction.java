@@ -6,6 +6,7 @@
 package org.opensearch.sql.expression.function.udf.binning;
 
 import java.util.List;
+import java.util.Locale;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -85,7 +86,7 @@ public class SpanBucketFunction extends ImplementorUDF {
     /** Format range string with appropriate precision. */
     private static String formatRange(double binStart, double binEnd, double span) {
       if (isIntegerSpan(span) && isIntegerValue(binStart) && isIntegerValue(binEnd)) {
-        return String.format("%d-%d", (long) binStart, (long) binEnd);
+        return String.format(Locale.ROOT, "%d-%d", (long) binStart, (long) binEnd);
       } else {
         return formatFloatingPointRange(binStart, binEnd, span);
       }
@@ -104,8 +105,8 @@ public class SpanBucketFunction extends ImplementorUDF {
     /** Formats floating-point ranges with appropriate precision. */
     private static String formatFloatingPointRange(double binStart, double binEnd, double span) {
       int decimalPlaces = getAppropriateDecimalPlaces(span);
-      String format = String.format("%%.%df-%%.%df", decimalPlaces, decimalPlaces);
-      return String.format(format, binStart, binEnd);
+      String format = String.format(Locale.ROOT, "%%.%df-%%.%df", decimalPlaces, decimalPlaces);
+      return String.format(Locale.ROOT, format, binStart, binEnd);
     }
 
     /** Determines appropriate decimal places for formatting based on span size. */

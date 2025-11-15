@@ -193,7 +193,11 @@ public class MatcherUtils {
     List<T> objects = new ArrayList<>();
     array.iterator().forEachRemaining(o -> objects.add((T) o));
     assertEquals(matchers.length, objects.size());
-    assertThat(objects, containsInAnyOrder(matchers));
+    assertThat(getActualValue(array), objects, containsInAnyOrder(matchers));
+  }
+
+  private static String getActualValue(JSONArray array) {
+    return "### Actual: " + array.toString();
   }
 
   // TODO: this is temporary fix for fixing serverless tests to pass as it creates multiple shards

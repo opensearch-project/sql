@@ -182,7 +182,7 @@ public interface PlanUtils {
         return variance(context, field, partitions, rows, lowerBound, upperBound, false, false);
       case ROW_NUMBER:
         return withOver(
-            context.relBuilder.aggregateCall(SqlStdOperatorTable.ROW_NUMBER),
+            makeAggCall(context, functionName, false, null, List.of()),
             partitions,
             orderKeys,
             true,
@@ -190,7 +190,7 @@ public interface PlanUtils {
             upperBound);
       case NTH_VALUE:
         return withOver(
-            context.relBuilder.aggregateCall(SqlStdOperatorTable.NTH_VALUE, field, argList.get(0)),
+            makeAggCall(context, functionName, false, field, argList.subList(0, 1)),
             partitions,
             orderKeys,
             true,
@@ -215,7 +215,12 @@ public interface PlanUtils {
       RexWindowBound lowerBound,
       RexWindowBound upperBound) {
     return withOver(
-        ctx.relBuilder.sum(operation), partitions, List.of(), rows, lowerBound, upperBound);
+        makeAggCall(ctx, BuiltinFunctionName.SUM, false, operation, List.of()),
+        partitions,
+        List.of(),
+        rows,
+        lowerBound,
+        upperBound);
   }
 
   private static RexNode countOver(
