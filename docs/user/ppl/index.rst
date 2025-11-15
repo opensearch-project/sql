@@ -68,6 +68,8 @@ The query start with search command and then flowing a set of command delimited 
 
   - `expand command <cmd/expand.rst>`_
 
+  - `mvexpand command <cmd/mvexpand.rst>`_
+
   - `explain command <cmd/explain.rst>`_
 
   - `fields command <cmd/fields.rst>`_

@@ -52,7 +52,6 @@
     "user/ppl/cmd/syntax.rst",
     "user/ppl/cmd/chart.rst",
     "user/ppl/cmd/timechart.rst",
-    "user/ppl/cmd/search.rst",
     "user/ppl/functions/statistical.rst",
     "user/ppl/cmd/top.rst",
     "user/ppl/cmd/trendline.rst",
@@ -68,7 +67,8 @@
     "user/ppl/functions/string.rst",
     "user/ppl/functions/conversion.rst",
     "user/ppl/general/datatypes.rst",
-    "user/ppl/general/identifiers.rst"
+    "user/ppl/general/identifiers.rst",
+    "user/ppl/cmd/mvexpand.rst"
   ],
   "bash_settings": [
     "user/ppl/admin/settings.rst"
