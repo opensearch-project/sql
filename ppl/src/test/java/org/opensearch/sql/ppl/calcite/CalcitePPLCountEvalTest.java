@@ -65,7 +65,7 @@ public class CalcitePPLCountEvalTest extends CalcitePPLAbstractTest {
                 + "    LogicalTableScan(table=[[scott, EMP]])\n")
         .expectResult("high_ratio=0\n")
         .expectSparkSQL(
-            "SELECT COUNT(CASE WHEN `DIVIDE`(`SAL`, `COMM`) > 10 THEN 1 ELSE NULL END)"
+            "SELECT COUNT(CASE WHEN DIVIDE(`SAL`, `COMM`) > 10 THEN 1 ELSE NULL END)"
                 + " `high_ratio`\n"
                 + "FROM `scott`.`EMP`");
   }

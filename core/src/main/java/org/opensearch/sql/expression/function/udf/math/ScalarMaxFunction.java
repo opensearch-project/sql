@@ -24,9 +24,9 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
  * MAX(value1, value2, ...) returns the maximum value from the arguments. For mixed types, strings
  * have higher precedence than numbers.
  */
-public class MaxFunction extends ImplementorUDF {
+public class ScalarMaxFunction extends ImplementorUDF {
 
-  public MaxFunction() {
+  public ScalarMaxFunction() {
     super(new MaxImplementor(), NullPolicy.ALL);
   }
 

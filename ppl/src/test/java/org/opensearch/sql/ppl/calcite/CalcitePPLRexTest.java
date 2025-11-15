@@ -33,7 +33,7 @@ public class CalcitePPLRexTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `REX_EXTRACT`(`ENAME`, '(?<first>[A-Z]).*', 'first') `first`\n"
+        "SELECT `ENAME`, REX_EXTRACT(`ENAME`, '(?<first>[A-Z]).*', 'first') `first`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -50,8 +50,8 @@ public class CalcitePPLRexTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `REX_EXTRACT`(`ENAME`, '(?<first>[A-Z])(?<rest>.*)', 'first') `first`,"
-            + " `REX_EXTRACT`(`ENAME`, '(?<first>[A-Z])(?<rest>.*)', 'rest') `rest`\n"
+        "SELECT `ENAME`, REX_EXTRACT(`ENAME`, '(?<first>[A-Z])(?<rest>.*)', 'first') `first`,"
+            + " REX_EXTRACT(`ENAME`, '(?<first>[A-Z])(?<rest>.*)', 'rest') `rest`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -68,7 +68,7 @@ public class CalcitePPLRexTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `REX_EXTRACT_MULTI`(`ENAME`, '(?<letter>[A-Z])', 'letter', 3) `letter`\n"
+        "SELECT `ENAME`, REX_EXTRACT_MULTI(`ENAME`, '(?<letter>[A-Z])', 'letter', 3) `letter`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -86,8 +86,8 @@ public class CalcitePPLRexTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `JOB`, `REX_EXTRACT`(`ENAME`, '(?<firstinitial>^.)', 'firstinitial')"
-            + " `firstinitial`, `REX_EXTRACT`(`JOB`, '(?<jobtype>\\w+)', 'jobtype') `jobtype`\n"
+        "SELECT `ENAME`, `JOB`, REX_EXTRACT(`ENAME`, '(?<firstinitial>^.)', 'firstinitial')"
+            + " `firstinitial`, REX_EXTRACT(`JOB`, '(?<jobtype>\\w+)', 'jobtype') `jobtype`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -106,7 +106,7 @@ public class CalcitePPLRexTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `REX_EXTRACT`(`ENAME`, '(?<first>[A-Z]).*', 'first') `first`, `SAL`\n"
+        "SELECT `ENAME`, REX_EXTRACT(`ENAME`, '(?<first>[A-Z]).*', 'first') `first`, `SAL`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `SAL` > 1000";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -124,9 +124,9 @@ public class CalcitePPLRexTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT COUNT(*) `count()`, `REX_EXTRACT`(`JOB`, '(?<jobtype>\\w+)', 'jobtype') `jobtype`\n"
+        "SELECT COUNT(*) `count()`, REX_EXTRACT(`JOB`, '(?<jobtype>\\w+)', 'jobtype') `jobtype`\n"
             + "FROM `scott`.`EMP`\n"
-            + "GROUP BY `REX_EXTRACT`(`JOB`, '(?<jobtype>\\w+)', 'jobtype')";
+            + "GROUP BY REX_EXTRACT(`JOB`, '(?<jobtype>\\w+)', 'jobtype')";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -144,8 +144,8 @@ public class CalcitePPLRexTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `REX_EXTRACT`(`ENAME`, '(?<prefix>[A-Z]{2})(?<suffix>[A-Z]+)', 'prefix')"
-            + " `prefix`, `REX_EXTRACT`(`ENAME`, '(?<prefix>[A-Z]{2})(?<suffix>[A-Z]+)', 'suffix')"
+        "SELECT `ENAME`, REX_EXTRACT(`ENAME`, '(?<prefix>[A-Z]{2})(?<suffix>[A-Z]+)', 'prefix')"
+            + " `prefix`, REX_EXTRACT(`ENAME`, '(?<prefix>[A-Z]{2})(?<suffix>[A-Z]+)', 'suffix')"
             + " `suffix`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -165,7 +165,7 @@ public class CalcitePPLRexTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `REX_EXTRACT`(`ENAME`, '(?<firstletter>^.)', 'firstletter')"
+        "SELECT `ENAME`, REX_EXTRACT(`ENAME`, '(?<firstletter>^.)', 'firstletter')"
             + " `firstletter`\n"
             + "FROM `scott`.`EMP`\n"
             + "ORDER BY 2\n"
@@ -186,7 +186,7 @@ public class CalcitePPLRexTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `REX_EXTRACT_MULTI`(`ENAME`, '(?<letter>[A-Z])', 'letter', 10) `letter`\n"
+        "SELECT `ENAME`, REX_EXTRACT_MULTI(`ENAME`, '(?<letter>[A-Z])', 'letter', 10) `letter`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -211,7 +211,7 @@ public class CalcitePPLRexTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `REX_EXTRACT_MULTI`(`ENAME`, '(?<letter>[A-Z])', 'letter', 5) `letter`\n"
+        "SELECT `ENAME`, REX_EXTRACT_MULTI(`ENAME`, '(?<letter>[A-Z])', 'letter', 5) `letter`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -229,7 +229,7 @@ public class CalcitePPLRexTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `REX_EXTRACT_MULTI`(`ENAME`, '(?<letter>[A-Z])', 'letter', 10) `letter`\n"
+        "SELECT `ENAME`, REX_EXTRACT_MULTI(`ENAME`, '(?<letter>[A-Z])', 'letter', 10) `letter`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -261,8 +261,8 @@ public class CalcitePPLRexTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `REX_EXTRACT`(`ENAME`, '(?<first>[A-Z]).*', 'first') `first`,"
-            + " `REX_OFFSET`(`ENAME`, '(?<first>[A-Z]).*') `offsets`\n"
+        "SELECT `ENAME`, REX_EXTRACT(`ENAME`, '(?<first>[A-Z]).*', 'first') `first`,"
+            + " REX_OFFSET(`ENAME`, '(?<first>[A-Z]).*') `offsets`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -281,9 +281,9 @@ public class CalcitePPLRexTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `REX_EXTRACT`(`ENAME`, '(?<first>[A-Z])(?<rest>.*)', 'first') `first`,"
-            + " `REX_EXTRACT`(`ENAME`, '(?<first>[A-Z])(?<rest>.*)', 'rest') `rest`,"
-            + " `REX_OFFSET`(`ENAME`, '(?<first>[A-Z])(?<rest>.*)') `positions`\n"
+        "SELECT `ENAME`, REX_EXTRACT(`ENAME`, '(?<first>[A-Z])(?<rest>.*)', 'first') `first`,"
+            + " REX_EXTRACT(`ENAME`, '(?<first>[A-Z])(?<rest>.*)', 'rest') `rest`,"
+            + " REX_OFFSET(`ENAME`, '(?<first>[A-Z])(?<rest>.*)') `positions`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -301,8 +301,8 @@ public class CalcitePPLRexTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `REX_EXTRACT_MULTI`(`ENAME`, '(?<letter>[A-Z])', 'letter', 3) `letter`,"
-            + " `REX_OFFSET`(`ENAME`, '(?<letter>[A-Z])') `positions`\n"
+        "SELECT `ENAME`, REX_EXTRACT_MULTI(`ENAME`, '(?<letter>[A-Z])', 'letter', 3) `letter`,"
+            + " REX_OFFSET(`ENAME`, '(?<letter>[A-Z])') `positions`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }

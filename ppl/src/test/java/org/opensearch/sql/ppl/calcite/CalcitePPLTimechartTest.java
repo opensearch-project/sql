@@ -75,10 +75,10 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
 
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
-        "SELECT `SPAN`(`@timestamp`, 1, 'm') `@timestamp`, COUNT(*) `count()`\n"
+        "SELECT SPAN(`@timestamp`, 1, 'm') `@timestamp`, COUNT(*) `count()`\n"
             + "FROM `scott`.`events`\n"
             + "WHERE `@timestamp` IS NOT NULL\n"
-            + "GROUP BY `SPAN`(`@timestamp`, 1, 'm')\n"
+            + "GROUP BY SPAN(`@timestamp`, 1, 'm')\n"
             + "ORDER BY 1 NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -87,14 +87,14 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
   public void testTimechartPerSecond() {
     withPPLQuery("source=events | timechart per_second(cpu_usage)")
         .expectSparkSQL(
-            "SELECT `@timestamp`, `DIVIDE`(`per_second(cpu_usage)` * 1.0000E3,"
+            "SELECT `@timestamp`, DIVIDE(`per_second(cpu_usage)` * 1.0000E3,"
                 + " TIMESTAMPDIFF('MILLISECOND', `@timestamp`, TIMESTAMPADD('MINUTE', 1,"
                 + " `@timestamp`))) `per_second(cpu_usage)`\n"
-                + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'm') `@timestamp`, SUM(`cpu_usage`)"
+                + "FROM (SELECT SPAN(`@timestamp`, 1, 'm') `@timestamp`, SUM(`cpu_usage`)"
                 + " `per_second(cpu_usage)`\n"
                 + "FROM `scott`.`events`\n"
                 + "WHERE `@timestamp` IS NOT NULL AND `cpu_usage` IS NOT NULL\n"
-                + "GROUP BY `SPAN`(`@timestamp`, 1, 'm')\n"
+                + "GROUP BY SPAN(`@timestamp`, 1, 'm')\n"
                 + "ORDER BY 1 NULLS LAST) `t3`");
   }
 
@@ -102,14 +102,14 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
   public void testTimechartPerMinute() {
     withPPLQuery("source=events | timechart per_minute(cpu_usage)")
         .expectSparkSQL(
-            "SELECT `@timestamp`, `DIVIDE`(`per_minute(cpu_usage)` * 6.00000E4,"
+            "SELECT `@timestamp`, DIVIDE(`per_minute(cpu_usage)` * 6.00000E4,"
                 + " TIMESTAMPDIFF('MILLISECOND', `@timestamp`, TIMESTAMPADD('MINUTE', 1,"
                 + " `@timestamp`))) `per_minute(cpu_usage)`\n"
-                + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'm') `@timestamp`, SUM(`cpu_usage`)"
+                + "FROM (SELECT SPAN(`@timestamp`, 1, 'm') `@timestamp`, SUM(`cpu_usage`)"
                 + " `per_minute(cpu_usage)`\n"
                 + "FROM `scott`.`events`\n"
                 + "WHERE `@timestamp` IS NOT NULL AND `cpu_usage` IS NOT NULL\n"
-                + "GROUP BY `SPAN`(`@timestamp`, 1, 'm')\n"
+                + "GROUP BY SPAN(`@timestamp`, 1, 'm')\n"
                 + "ORDER BY 1 NULLS LAST) `t3`");
   }
 
@@ -117,14 +117,14 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
   public void testTimechartPerHour() {
     withPPLQuery("source=events | timechart per_hour(cpu_usage)")
         .expectSparkSQL(
-            "SELECT `@timestamp`, `DIVIDE`(`per_hour(cpu_usage)` * 3.6000000E6,"
+            "SELECT `@timestamp`, DIVIDE(`per_hour(cpu_usage)` * 3.6000000E6,"
                 + " TIMESTAMPDIFF('MILLISECOND', `@timestamp`, TIMESTAMPADD('MINUTE', 1,"
                 + " `@timestamp`))) `per_hour(cpu_usage)`\n"
-                + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'm') `@timestamp`, SUM(`cpu_usage`)"
+                + "FROM (SELECT SPAN(`@timestamp`, 1, 'm') `@timestamp`, SUM(`cpu_usage`)"
                 + " `per_hour(cpu_usage)`\n"
                 + "FROM `scott`.`events`\n"
                 + "WHERE `@timestamp` IS NOT NULL AND `cpu_usage` IS NOT NULL\n"
-                + "GROUP BY `SPAN`(`@timestamp`, 1, 'm')\n"
+                + "GROUP BY SPAN(`@timestamp`, 1, 'm')\n"
                 + "ORDER BY 1 NULLS LAST) `t3`");
   }
 
@@ -132,14 +132,14 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
   public void testTimechartPerDay() {
     withPPLQuery("source=events | timechart per_day(cpu_usage)")
         .expectSparkSQL(
-            "SELECT `@timestamp`, `DIVIDE`(`per_day(cpu_usage)` * 8.64E7,"
+            "SELECT `@timestamp`, DIVIDE(`per_day(cpu_usage)` * 8.64E7,"
                 + " TIMESTAMPDIFF('MILLISECOND', `@timestamp`, TIMESTAMPADD('MINUTE', 1,"
                 + " `@timestamp`))) `per_day(cpu_usage)`\n"
-                + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'm') `@timestamp`, SUM(`cpu_usage`)"
+                + "FROM (SELECT SPAN(`@timestamp`, 1, 'm') `@timestamp`, SUM(`cpu_usage`)"
                 + " `per_day(cpu_usage)`\n"
                 + "FROM `scott`.`events`\n"
                 + "WHERE `@timestamp` IS NOT NULL AND `cpu_usage` IS NOT NULL\n"
-                + "GROUP BY `SPAN`(`@timestamp`, 1, 'm')\n"
+                + "GROUP BY SPAN(`@timestamp`, 1, 'm')\n"
                 + "ORDER BY 1 NULLS LAST) `t3`");
   }
 
@@ -149,10 +149,10 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
 
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
-        "SELECT `SPAN`(`@timestamp`, 1, 'h') `@timestamp`, COUNT(*) `count()`\n"
+        "SELECT SPAN(`@timestamp`, 1, 'h') `@timestamp`, COUNT(*) `count()`\n"
             + "FROM `scott`.`events`\n"
             + "WHERE `@timestamp` IS NOT NULL\n"
-            + "GROUP BY `SPAN`(`@timestamp`, 1, 'h')\n"
+            + "GROUP BY SPAN(`@timestamp`, 1, 'h')\n"
             + "ORDER BY 1 NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -166,16 +166,16 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
         "SELECT `t2`.`@timestamp`, CASE WHEN `t2`.`host` IS NULL THEN 'NULL' WHEN"
             + " `t9`.`_row_number_chart_` <= 3 THEN `t2`.`host` ELSE 'OTHER' END `host`,"
             + " SUM(`t2`.`count()`) `count()`\n"
-            + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'm') `@timestamp`, `host`, COUNT(*) `count()`\n"
+            + "FROM (SELECT SPAN(`@timestamp`, 1, 'm') `@timestamp`, `host`, COUNT(*) `count()`\n"
             + "FROM `scott`.`events`\n"
             + "WHERE `@timestamp` IS NOT NULL\n"
-            + "GROUP BY `host`, `SPAN`(`@timestamp`, 1, 'm')) `t2`\n"
+            + "GROUP BY `host`, SPAN(`@timestamp`, 1, 'm')) `t2`\n"
             + "LEFT JOIN (SELECT `host`, SUM(`count()`) `__grand_total__`, ROW_NUMBER() OVER (ORDER"
             + " BY SUM(`count()`) DESC) `_row_number_chart_`\n"
             + "FROM (SELECT `host`, COUNT(*) `count()`\n"
             + "FROM `scott`.`events`\n"
             + "WHERE `@timestamp` IS NOT NULL\n"
-            + "GROUP BY `host`, `SPAN`(`@timestamp`, 1, 'm')) `t6`\n"
+            + "GROUP BY `host`, SPAN(`@timestamp`, 1, 'm')) `t6`\n"
             + "WHERE `host` IS NOT NULL\n"
             + "GROUP BY `host`) `t9` ON `t2`.`host` = `t9`.`host`\n"
             + "GROUP BY `t2`.`@timestamp`, CASE WHEN `t2`.`host` IS NULL THEN 'NULL' WHEN"
@@ -192,16 +192,16 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
         "SELECT `t2`.`@timestamp`, CASE WHEN `t2`.`host` IS NULL THEN 'NULL' WHEN"
             + " `t9`.`_row_number_chart_` <= 10 THEN `t2`.`host` ELSE 'OTHER' END `host`,"
             + " SUM(`t2`.`count()`) `count()`\n"
-            + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'h') `@timestamp`, `host`, COUNT(*) `count()`\n"
+            + "FROM (SELECT SPAN(`@timestamp`, 1, 'h') `@timestamp`, `host`, COUNT(*) `count()`\n"
             + "FROM `scott`.`events`\n"
             + "WHERE `@timestamp` IS NOT NULL\n"
-            + "GROUP BY `host`, `SPAN`(`@timestamp`, 1, 'h')) `t2`\n"
+            + "GROUP BY `host`, SPAN(`@timestamp`, 1, 'h')) `t2`\n"
             + "LEFT JOIN (SELECT `host`, SUM(`count()`) `__grand_total__`, ROW_NUMBER() OVER (ORDER"
             + " BY SUM(`count()`) DESC) `_row_number_chart_`\n"
             + "FROM (SELECT `host`, COUNT(*) `count()`\n"
             + "FROM `scott`.`events`\n"
             + "WHERE `@timestamp` IS NOT NULL\n"
-            + "GROUP BY `host`, `SPAN`(`@timestamp`, 1, 'h')) `t6`\n"
+            + "GROUP BY `host`, SPAN(`@timestamp`, 1, 'h')) `t6`\n"
             + "WHERE `host` IS NOT NULL\n"
             + "GROUP BY `host`) `t9` ON `t2`.`host` = `t9`.`host`\n"
             + "GROUP BY `t2`.`@timestamp`, CASE WHEN `t2`.`host` IS NULL THEN 'NULL' WHEN"
@@ -218,17 +218,17 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
         "SELECT `t2`.`@timestamp`, CASE WHEN `t2`.`region` IS NULL THEN 'NULL' WHEN"
             + " `t9`.`_row_number_chart_` <= 10 THEN `t2`.`region` ELSE 'OTHER' END `region`,"
             + " AVG(`t2`.`avg(cpu_usage)`) `avg(cpu_usage)`\n"
-            + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'm') `@timestamp`, `region`, AVG(`cpu_usage`)"
+            + "FROM (SELECT SPAN(`@timestamp`, 1, 'm') `@timestamp`, `region`, AVG(`cpu_usage`)"
             + " `avg(cpu_usage)`\n"
             + "FROM `scott`.`events`\n"
             + "WHERE `@timestamp` IS NOT NULL AND `cpu_usage` IS NOT NULL\n"
-            + "GROUP BY `region`, `SPAN`(`@timestamp`, 1, 'm')) `t2`\n"
+            + "GROUP BY `region`, SPAN(`@timestamp`, 1, 'm')) `t2`\n"
             + "LEFT JOIN (SELECT `region`, SUM(`avg(cpu_usage)`) `__grand_total__`, ROW_NUMBER()"
             + " OVER (ORDER BY SUM(`avg(cpu_usage)`) DESC) `_row_number_chart_`\n"
             + "FROM (SELECT `region`, AVG(`cpu_usage`) `avg(cpu_usage)`\n"
             + "FROM `scott`.`events`\n"
             + "WHERE `@timestamp` IS NOT NULL AND `cpu_usage` IS NOT NULL\n"
-            + "GROUP BY `region`, `SPAN`(`@timestamp`, 1, 'm')) `t6`\n"
+            + "GROUP BY `region`, SPAN(`@timestamp`, 1, 'm')) `t6`\n"
             + "WHERE `region` IS NOT NULL\n"
             + "GROUP BY `region`) `t9` ON `t2`.`region` = `t9`.`region`\n"
             + "GROUP BY `t2`.`@timestamp`, CASE WHEN `t2`.`region` IS NULL THEN 'NULL' WHEN"
@@ -255,17 +255,17 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
         "SELECT `t2`.`@timestamp`, CASE WHEN `t2`.`host` IS NULL THEN 'NULL' WHEN"
             + " `t9`.`_row_number_chart_` <= 3 THEN `t2`.`host` ELSE 'OTHER' END `host`,"
             + " AVG(`t2`.`avg(cpu_usage)`) `avg(cpu_usage)`\n"
-            + "FROM (SELECT `SPAN`(`@timestamp`, 1, 'h') `@timestamp`, `host`, AVG(`cpu_usage`)"
+            + "FROM (SELECT SPAN(`@timestamp`, 1, 'h') `@timestamp`, `host`, AVG(`cpu_usage`)"
             + " `avg(cpu_usage)`\n"
             + "FROM `scott`.`events`\n"
             + "WHERE `@timestamp` IS NOT NULL AND `cpu_usage` IS NOT NULL\n"
-            + "GROUP BY `host`, `SPAN`(`@timestamp`, 1, 'h')) `t2`\n"
+            + "GROUP BY `host`, SPAN(`@timestamp`, 1, 'h')) `t2`\n"
             + "LEFT JOIN (SELECT `host`, SUM(`avg(cpu_usage)`) `__grand_total__`, ROW_NUMBER() OVER"
             + " (ORDER BY SUM(`avg(cpu_usage)`) DESC) `_row_number_chart_`\n"
             + "FROM (SELECT `host`, AVG(`cpu_usage`) `avg(cpu_usage)`\n"
             + "FROM `scott`.`events`\n"
             + "WHERE `@timestamp` IS NOT NULL AND `cpu_usage` IS NOT NULL\n"
-            + "GROUP BY `host`, `SPAN`(`@timestamp`, 1, 'h')) `t6`\n"
+            + "GROUP BY `host`, SPAN(`@timestamp`, 1, 'h')) `t6`\n"
             + "WHERE `host` IS NOT NULL\n"
             + "GROUP BY `host`) `t9` ON `t2`.`host` = `t9`.`host`\n"
             + "WHERE `t9`.`_row_number_chart_` <= 3\n"

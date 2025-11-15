@@ -33,7 +33,7 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT ARRAY_JOIN(`array`('a', 'b', 'c'), ',') `joined`\n"
+        "SELECT ARRAY_JOIN(ARRAY('a', 'b', 'c'), ',') `joined`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -59,7 +59,7 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT ARRAY_JOIN(`array`('apple', 'banana', 'cherry'), ' | ') `joined`\n"
+        "SELECT ARRAY_JOIN(ARRAY('apple', 'banana', 'cherry'), ' | ') `joined`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -82,7 +82,7 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT ARRAY_JOIN(`array`(), ',') `joined`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+        "SELECT ARRAY_JOIN(ARRAY(), ',') `joined`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -101,7 +101,7 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT ARRAY_JOIN(`array`(`ENAME`, `JOB`), '-') `joined`\n"
+        "SELECT ARRAY_JOIN(ARRAY(`ENAME`, `JOB`), '-') `joined`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -127,7 +127,7 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `array`('a', 'b', 'c')[1 + 1] `result`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+        "SELECT ARRAY('a', 'b', 'c')[1 + 1] `result`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -152,7 +152,7 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `array`('a', 'b', 'c')[ARRAY_LENGTH(`array`('a', 'b', 'c')) + -1 + 1]"
+        "SELECT ARRAY('a', 'b', 'c')[ARRAY_LENGTH(ARRAY('a', 'b', 'c')) + -1 + 1]"
             + " `result`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 1";
@@ -179,7 +179,7 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT ARRAY_SLICE(`array`(1, 2, 3, 4, 5), 1, 3 - 1 + 1) `result`\n"
+        "SELECT ARRAY_SLICE(ARRAY(1, 2, 3, 4, 5), 1, 3 - 1 + 1) `result`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -207,8 +207,8 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT ARRAY_SLICE(`array`(1, 2, 3, 4, 5), ARRAY_LENGTH(`array`(1, 2, 3, 4, 5)) + -3,"
-            + " ARRAY_LENGTH(`array`(1, 2, 3, 4, 5)) + -1 - (ARRAY_LENGTH(`array`(1, 2, 3, 4, 5))"
+        "SELECT ARRAY_SLICE(ARRAY(1, 2, 3, 4, 5), ARRAY_LENGTH(ARRAY(1, 2, 3, 4, 5)) + -3,"
+            + " ARRAY_LENGTH(ARRAY(1, 2, 3, 4, 5)) + -1 - (ARRAY_LENGTH(ARRAY(1, 2, 3, 4, 5))"
             + " + -3) + 1) `result`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 1";
