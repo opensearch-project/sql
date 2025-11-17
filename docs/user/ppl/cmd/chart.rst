@@ -18,40 +18,35 @@ Syntax
 ======
 chart [limit=(top|bottom) <number>] [useother=<boolean>] [usenull=<boolean>] [nullstr=<string>] [otherstr=<string>] <aggregation_function> [ by <row_split> <column_split> ] | [over <row_split> ] [ by <column_split>]
 
-* limit: optional. Specifies the number of categories to display when using column split. Each unique value in the column split field represents a category.
-    * Syntax: ``limit=(top|bottom)<number>`` or ``limit=<number>`` (defaults to top)
-    * When ``limit=K`` is set, the top or bottom K categories from the column split field are retained; the remaining categories are grouped into an "OTHER" category if ``useother`` is not set to false.
-    * Set limit to 0 to show all categories without any limit.
-    * Use ``limit=topK`` or ``limit=bottomK`` to specify whether to retain the top or bottom K column categories. The ranking is based on the sum of aggregated values for each column category. For example, ``chart limit=top3 count() by region, product`` keeps the 3 products with the highest total counts across all regions. If not specified, top is used by default.
-    * Only applies when column split is present (by 2 fields or over...by... coexists).
-    * **Default:** top10
-* useother: optional. Controls whether to create an "OTHER" category for categories beyond the limit.
-    * When set to false, only the top/bottom N categories (based on limit) are shown without an "OTHER" category.
-    * When set to true, categories beyond the limit are grouped into an "OTHER" category.
-    * Only applies when using column split and when there are more categories than the limit.
-    * **Default:** true
-* usenull: optional. Controls whether to group events without a column split (i.e. whose column split is null) into a separate "NULL" category.
-    * ``usenull`` only applies to column split.
-    * Row split should always be non-null value. Documents with null values in row split will be ignored.
-    * When ``usenull=false``, events with a null column split are excluded from results.
-    * When ``usenull=true``, events with a null column split are grouped into a separate "NULL" category.
-    * **Default:** true
-* nullstr: optional. Specifies the category name for rows that do not contain the column split value.
-    * Only applies when ``usenull`` is set to true.
-    * **Default:** "NULL"
-* otherstr: optional. Specifies the category name for the "OTHER" category.
-    * Only applies when ``useother`` is set to true and there are values beyond the limit.
-    * **Default:** "OTHER"
+* limit: optional. Specifies the number of categories to display when using column split. Each unique value in the column split field represents a category. **Default:** top10
+    - Syntax: ``limit=(top|bottom)<number>`` or ``limit=<number>`` (defaults to top)
+    - When ``limit=K`` is set, the top or bottom K categories from the column split field are retained; the remaining categories are grouped into an "OTHER" category if ``useother`` is not set to false.
+    - Set limit to 0 to show all categories without any limit.
+    - Use ``limit=topK`` or ``limit=bottomK`` to specify whether to retain the top or bottom K column categories. The ranking is based on the sum of aggregated values for each column category. For example, ``chart limit=top3 count() by region, product`` keeps the 3 products with the highest total counts across all regions. If not specified, top is used by default.
+    - Only applies when column split is present (by 2 fields or over...by... coexists).
+* useother: optional. Controls whether to create an "OTHER" category for categories beyond the limit. **Default:** true
+    - When set to false, only the top/bottom N categories (based on limit) are shown without an "OTHER" category.
+    - When set to true, categories beyond the limit are grouped into an "OTHER" category.
+    - Only applies when using column split and when there are more categories than the limit.
+* usenull: optional. Controls whether to group events without a column split (i.e. whose column split is null) into a separate "NULL" category. **Default:** true
+    - ``usenull`` only applies to column split.
+    - Row split should always be non-null value. Documents with null values in row split will be ignored.
+    - When ``usenull=false``, events with a null column split are excluded from results.
+    - When ``usenull=true``, events with a null column split are grouped into a separate "NULL" category.
+* nullstr: optional. Specifies the category name for rows that do not contain the column split value. **Default:** "NULL"
+    - Only applies when ``usenull`` is set to true.
+* otherstr: optional. Specifies the category name for the "OTHER" category. **Default:** "OTHER"
+    - Only applies when ``useother`` is set to true and there are values beyond the limit.
 * aggregation_function: mandatory. The aggregation function to apply to the data.
-    * Currently, only a single aggregation function is supported.
-    * Available functions: aggregation functions supported by the stats command.
+    - Currently, only a single aggregation function is supported.
+    - Available functions: aggregation functions supported by the stats command.
 * by: optional. Groups the results by either one field (row split) or two fields (row split and column split)
-    * ``limit``, ``useother``, and ``usenull`` apply to the column split
-    * Results are returned as individual rows for each combination.
-    * If not specified, the aggregation is performed across all documents.
+    - ``limit``, ``useother``, and ``usenull`` apply to the column split
+    - Results are returned as individual rows for each combination.
+    - If not specified, the aggregation is performed across all documents.
 * over...by...: optional. Alternative syntax for grouping by multiple fields.
-    * ``over <row_split> by <column_split>`` groups the results by both fields.
-    * Using ``over`` alone on one field is equivalent to ``by <row-split>``
+    - ``over <row_split> by <column_split>`` groups the results by both fields.
+    - Using ``over`` alone on one field is equivalent to ``by <row-split>``
 
 Notes
 =====

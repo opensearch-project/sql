@@ -23,14 +23,14 @@ Description
 The ``stats`` and ``eventstats`` commands are both used for calculating statistics, but they have some key differences in how they operate and what they produce:
 
 * Output Format
-     * ``stats``: Produces a summary table with only the calculated statistics.
-     * ``eventstats``: Adds the calculated statistics as new fields to the existing events, preserving the original data.
+     - ``stats``: Produces a summary table with only the calculated statistics.
+     - ``eventstats``: Adds the calculated statistics as new fields to the existing events, preserving the original data.
 * Event Retention
-     * ``stats``: Reduces the result set to only the statistical summary, discarding individual events.
-     * ``eventstats``: Retains all original events and adds new fields with the calculated statistics.
+     - ``stats``: Reduces the result set to only the statistical summary, discarding individual events.
+     - ``eventstats``: Retains all original events and adds new fields with the calculated statistics.
 * Use Cases
-     * ``stats``: Best for creating summary reports or dashboards. Often used as a final command to summarize results.
-     * ``eventstats``: Useful when you need to enrich events with statistical context for further analysis or filtering. Can be used mid-search to add statistics that can be used in subsequent commands.
+     - ``stats``: Best for creating summary reports or dashboards. Often used as a final command to summarize results.
+     - ``eventstats``: Useful when you need to enrich events with statistical context for further analysis or filtering. Can be used mid-search to add statistics that can be used in subsequent commands.
 
 
 Syntax
@@ -40,16 +40,16 @@ eventstats <function>... [by-clause]
 * function: mandatory. An aggregation function or window function.
 * by-clause: optional. Groups results by specified fields or expressions. Syntax: by [span-expression,] [field,]... **Default:** aggregation over the entire result set.
 * span-expression: optional, at most one. Splits field into buckets by intervals. Syntax: span(field_expr, interval_expr). For example, ``span(age, 10)`` creates 10-year age buckets, ``span(timestamp, 1h)`` creates hourly buckets.
-    * Available time units
-        * millisecond (ms)
-        * second (s)
-        * minute (m, case sensitive)
-        * hour (h)
-        * day (d)
-        * week (w)
-        * month (M, case sensitive)
-        * quarter (q)
-        * year (y)
+    - Available time units
+        - millisecond (ms)
+        - second (s)
+        - minute (m, case sensitive)
+        - hour (h)
+        - day (d)
+        - week (w)
+        - month (M, case sensitive)
+        - quarter (q)
+        - year (y)
 
 Aggregation Functions
 =====================

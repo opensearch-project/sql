@@ -19,23 +19,23 @@ bin <field> [span=<interval>] [minspan=<interval>] [bins=<count>] [aligntime=(ea
 
 * field: mandatory. The field to bin. Accepts numeric or time-based fields.
 * span: optional. The interval size for each bin. Cannot be used with bins or minspan parameters.
-    * Supports numeric (e.g., ``1000``), logarithmic (e.g., ``log10``, ``2log10``), and time intervals
-    * Available time units
-        * microsecond (us)
-        * millisecond (ms)
-        * centisecond (cs)
-        * decisecond (ds)
-        * second (s, sec, secs, second, seconds)
-        * minute (m, min, mins, minute, minutes)
-        * hour (h, hr, hrs, hour, hours)
-        * day (d, day, days)
-        * month (mon, month, months)
+    - Supports numeric (e.g., ``1000``), logarithmic (e.g., ``log10``, ``2log10``), and time intervals
+    - Available time units
+        - microsecond (us)
+        - millisecond (ms)
+        - centisecond (cs)
+        - decisecond (ds)
+        - second (s, sec, secs, second, seconds)
+        - minute (m, min, mins, minute, minutes)
+        - hour (h, hr, hrs, hour, hours)
+        - day (d, day, days)
+        - month (mon, month, months)
 * minspan: optional. The minimum interval size for automatic span calculation. Cannot be used with span or bins parameters.
 * bins: optional. The maximum number of equal-width bins to create. Cannot be used with span or minspan parameters. The bins parameter must be between 2 and 50000 (inclusive).
 * aligntime: optional. Align the bin times for time-based fields. Valid only for time-based discretization. Options:
-    * earliest: Align bins to the earliest timestamp in the data
-    * latest: Align bins to the latest timestamp in the data  
-    * <time-specifier>: Align bins to a specific epoch time value or time modifier expression
+    - earliest: Align bins to the earliest timestamp in the data
+    - latest: Align bins to the latest timestamp in the data
+    - <time-specifier>: Align bins to a specific epoch time value or time modifier expression
 * start: optional. The starting value for binning range. **Default:** minimum field value.
 * end: optional. The ending value for binning range. **Default:** maximum field value.
 
