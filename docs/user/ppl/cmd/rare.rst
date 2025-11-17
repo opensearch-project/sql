@@ -26,8 +26,8 @@ rare [rare-options] <field-list> [by-clause]
 * countfield=<string>: optional. The name of the field that contains count. **Default:** ``'count'``.
 * usenull=<bool>: optional. whether to output the null value. **Default:** Determined by ``plugins.ppl.syntax.legacy.preferred``.
 
-    - When ``plugins.ppl.syntax.legacy.preferred=true``, ``usenull`` defaults to ``true``
-    - When ``plugins.ppl.syntax.legacy.preferred=false``, ``usenull`` defaults to ``false``
+  * When ``plugins.ppl.syntax.legacy.preferred=true``, ``usenull`` defaults to ``true``
+  * When ``plugins.ppl.syntax.legacy.preferred=false``, ``usenull`` defaults to ``false``
 
 Example 1: Find the least common values in a field
 ==================================================

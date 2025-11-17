@@ -35,11 +35,11 @@ patterns <field> [by byClause...] [method=simple_pattern | brain] [mode=label | 
 * new_field: optional. Alias of the output pattern field. **Default:** "patterns_field".
 * algorithm parameters: optional. Algorithm-specific tuning:
 
-  - ``simple_pattern``: Define regex via "pattern".
-  - ``brain``: Adjust sensitivity with variable_count_threshold and frequency_threshold_percentage.
+  * ``simple_pattern``: Define regex via "pattern".
+  * ``brain``: Adjust sensitivity with variable_count_threshold and frequency_threshold_percentage.
 
-    - ``variable_count_threshold``: optional integer. Words are split by space. Algorithm counts how many distinct words are at specific position in initial log groups. Adjusting this threshold can determine the sensitivity of constant words. **Default:** 5.
-    - ``frequency_threshold_percentage``: optional double. Brain's log pattern is selected based on longest word combination. This sets the lower bound of frequency to ignore low frequency words. **Default:** 0.3.
+    * ``variable_count_threshold``: optional integer. Words are split by space. Algorithm counts how many distinct words are at specific position in initial log groups. Adjusting this threshold can determine the sensitivity of constant words. **Default:** 5.
+    * ``frequency_threshold_percentage``: optional double. Brain's log pattern is selected based on longest word combination. This sets the lower bound of frequency to ignore low frequency words. **Default:** 0.3.
 
 Change the default pattern method
 =================================

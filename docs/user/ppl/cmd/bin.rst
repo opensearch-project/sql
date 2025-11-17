@@ -36,9 +36,11 @@ bin <field> [span=<interval>] [minspan=<interval>] [bins=<count>] [aligntime=(ea
 * minspan: optional. The minimum interval size for automatic span calculation. Cannot be used with span or bins parameters.
 * bins: optional. The maximum number of equal-width bins to create. Cannot be used with span or minspan parameters. The bins parameter must be between 2 and 50000 (inclusive).
 * aligntime: optional. Align the bin times for time-based fields. Valid only for time-based discretization. Options:
-    - earliest: Align bins to the earliest timestamp in the data
-    - latest: Align bins to the latest timestamp in the data
-    - <time-specifier>: Align bins to a specific epoch time value or time modifier expression
+
+  * earliest: Align bins to the earliest timestamp in the data
+  * latest: Align bins to the latest timestamp in the data
+  * <time-specifier>: Align bins to a specific epoch time value or time modifier expression
+
 * start: optional. The starting value for binning range. **Default:** minimum field value.
 * end: optional. The ending value for binning range. **Default:** maximum field value.
 

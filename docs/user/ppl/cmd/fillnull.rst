@@ -26,9 +26,10 @@ Syntax
 * field: mandatory when using ``using`` syntax. Individual field name to assign a specific replacement value.
 
 * **Syntax variations**
-    - ``with <replacement> in <field-list>`` - Apply same value to specified fields
-    - ``using <field>=<replacement>, ...`` - Apply different values to different fields
-    - ``value=<replacement> [<field-list>]`` - Alternative syntax with optional space-delimited field list
+
+  * ``with <replacement> in <field-list>`` - Apply same value to specified fields
+  * ``using <field>=<replacement>, ...`` - Apply different values to different fields
+  * ``value=<replacement> [<field-list>]`` - Alternative syntax with optional space-delimited field list
 
 Example 1: Replace null values with a specified value on one field
 ==================================================================
