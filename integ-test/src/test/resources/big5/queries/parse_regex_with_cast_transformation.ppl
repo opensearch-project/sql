@@ -1,0 +1,29 @@
+/*
+{
+  "name": "parse_field_with_cast_transformation",
+  "operation-type": "search",
+  "index": "{{index_name | default('custom-big5')}}",
+  "body": {
+    "query": {
+      "match_all": {}
+    },
+    "_source": {
+      "includes": ["aws.cloudwatch.log_stream", "@timestamp"],
+      "excludes": []
+    },
+    "sort": [
+      {
+        "@timestamp": {
+          "order": "desc",
+          "missing": "_last"
+        }
+      }
+    ]
+  }
+}
+*/
+source = custom-big5
+| parse `aws.cloudwatch.log_stream` "eni-(?<eniid>[0-9]+)"
+| eval eniid_num = cast(eniid as int)
+| fields `aws.cloudwatch.log_stream`, eniid, eniid_num, `@timestamp`
+| sort - `@timestamp`
