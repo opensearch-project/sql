@@ -13,7 +13,6 @@ Description
 ===========
 The ``eval`` command evaluates the expression and appends the result to the search result.
 
-
 Syntax
 ======
 eval <field>=<expression> ["," <field>=<expression> ]...

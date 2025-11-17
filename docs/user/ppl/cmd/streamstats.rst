@@ -24,22 +24,22 @@ Difference between ``stats``, ``eventstats`` and ``streamstats``
 
 All of these commands can be used to generate aggregations such as average, sum, and maximum, but they have some key differences in how they operate and what they produce:
 
-* Transformation Behavior:
- * ``stats``: Transforms all events into an aggregated result table, losing original event structure.
- * ``eventstats``: Adds aggregation results as new fields to the original events without removing the event structure.
- * ``streamstats``: Adds cumulative (running) aggregation results to each event as they stream through the pipeline.
-* Output Format:
- * ``stats``: Output contains only aggregated values. Original raw events are not preserved.
- * ``eventstats``: Original events remain, with extra fields containing summary statistics.
- * ``streamstats``: Original events remain, with extra fields containing running totals or cumulative statistics.
-* Aggregation Scope:
- * ``stats``: Based on all events in the search (or groups defined by BY clause).
- * ``eventstats``: Based on all relevant events, then the result is added back to each event in the group.
- * ``streamstats``: Calculations occur progressively as each event is processed; can be scoped by window.
-* Use Cases:
- * ``stats``: When only aggregated results are needed (e.g., counts, averages, sums).
- * ``eventstats``: When aggregated statistics are needed alongside original event data.
- * ``streamstats``: When a running total or cumulative statistic is needed across event streams.
+* Transformation Behavior
+     * ``stats``: Transforms all events into an aggregated result table, losing original event structure.
+     * ``eventstats``: Adds aggregation results as new fields to the original events without removing the event structure.
+     * ``streamstats``: Adds cumulative (running) aggregation results to each event as they stream through the pipeline.
+* Output Format
+     * ``stats``: Output contains only aggregated values. Original raw events are not preserved.
+     * ``eventstats``: Original events remain, with extra fields containing summary statistics.
+     * ``streamstats``: Original events remain, with extra fields containing running totals or cumulative statistics.
+* Aggregation Scope
+     * ``stats``: Based on all events in the search (or groups defined by BY clause).
+     * ``eventstats``: Based on all relevant events, then the result is added back to each event in the group.
+     * ``streamstats``: Calculations occur progressively as each event is processed; can be scoped by window.
+* Use Cases
+     * ``stats``: When only aggregated results are needed (e.g., counts, averages, sums).
+     * ``eventstats``: When aggregated statistics are needed alongside original event data.
+     * ``streamstats``: When a running total or cumulative statistic is needed across event streams.
 
 Syntax
 ======
@@ -53,16 +53,16 @@ streamstats [current=<bool>] [window=<int>] [global=<bool>] [reset_before="("<ev
 * reset_after: optional. After streamstats calculations for an event, reset_after resets all accumulated statistics when the eval-expression evaluates to true. This expression can reference fields returned by streamstats. If used with window, the window is also reset. Syntax: reset_after="("<eval-expression>")". **Default:** false.
 * by-clause: optional. The by clause could be the fields and expressions like scalar functions and aggregation functions. Besides, the span clause can be used to split specific field into buckets in the same interval, the stats then does the aggregation by these span buckets. Syntax: by [span-expression,] [field,]... **Default:** If no <by-clause> is specified, all events are processed as a single group and running statistics are computed across the entire event stream.
 * span-expression: optional, at most one. Splits field into buckets by intervals. Syntax: span(field_expr, interval_expr). For example, ``span(age, 10)`` creates 10-year age buckets, ``span(timestamp, 1h)`` creates hourly buckets.
-  * Available time units:
-    * millisecond (ms)
-    * second (s)
-    * minute (m, case sensitive)
-    * hour (h)
-    * day (d)
-    * week (w)
-    * month (M, case sensitive)
-    * quarter (q)
-    * year (y)
+    * Available time units
+        * millisecond (ms)
+        * second (s)
+        * minute (m, case sensitive)
+        * hour (h)
+        * day (d)
+        * week (w)
+        * month (M, case sensitive)
+        * quarter (q)
+        * year (y)
 
 Aggregation Functions
 =====================

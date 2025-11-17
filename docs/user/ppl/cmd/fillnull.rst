@@ -25,7 +25,7 @@ Syntax
 * field-list: optional. List of fields to apply the replacement to. Can be comma-delimited (with ``with`` or ``using`` syntax) or space-delimited (with ``value=`` syntax). **Default:** all fields.
 * field: mandatory when using ``using`` syntax. Individual field name to assign a specific replacement value.
 
-* **Syntax variations:**
+* **Syntax variations**
     * ``with <replacement> in <field-list>`` - Apply same value to specified fields
     * ``using <field>=<replacement>, ...`` - Apply different values to different fields
     * ``value=<replacement> [<field-list>]`` - Alternative syntax with optional space-delimited field list

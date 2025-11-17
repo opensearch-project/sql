@@ -21,7 +21,7 @@ rex [mode=<mode>] field=<field> <pattern> [max_match=<int>] [offset_field=<strin
 * pattern: mandatory string. The regular expression pattern with named capture groups used to extract new fields. Pattern must contain at least one named capture group using ``(?<name>pattern)`` syntax.
 * mode: optional. Either ``extract`` or ``sed``. **Default:** extract
     * **extract mode** (default): Creates new fields from regular expression named capture groups. This is the standard field extraction behavior.
-    * **sed mode**: Performs text substitution on the field using sed-style patterns:
+    * **sed mode**: Performs text substitution on the field using sed-style patterns
         * ``s/pattern/replacement/`` - Replace first occurrence
         * ``s/pattern/replacement/g`` - Replace all occurrences (global)
         * ``s/pattern/replacement/n`` - Replace only the nth occurrence (where n is a number)

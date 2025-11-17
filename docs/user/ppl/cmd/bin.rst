@@ -20,7 +20,7 @@ bin <field> [span=<interval>] [minspan=<interval>] [bins=<count>] [aligntime=(ea
 * field: mandatory. The field to bin. Accepts numeric or time-based fields.
 * span: optional. The interval size for each bin. Cannot be used with bins or minspan parameters.
     * Supports numeric (e.g., ``1000``), logarithmic (e.g., ``log10``, ``2log10``), and time intervals
-    * Available time units:
+    * Available time units
         * microsecond (us)
         * millisecond (ms)
         * centisecond (cs)

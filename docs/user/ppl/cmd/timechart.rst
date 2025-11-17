@@ -19,7 +19,7 @@ Syntax
 timechart [span=<time_interval>] [limit=<number>] [useother=<boolean>] <aggregation_function> [by <field>]
 
 * span: optional. Specifies the time interval for grouping data. **Default:** 1m (1 minute).
-    * Available time units:
+    * Available time units
         * millisecond (ms)
         * second (s)
         * minute (m, case sensitive)
