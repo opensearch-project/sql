@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.opensearch.storage.script.aggregation;
 
-import static org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer.SOURCES;
+import static org.opensearch.sql.opensearch.storage.serde.ScriptParameterHelper.SOURCES;
 
 import java.util.List;
 import java.util.Map;

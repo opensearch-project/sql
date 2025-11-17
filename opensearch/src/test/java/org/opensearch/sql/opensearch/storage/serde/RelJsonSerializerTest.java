@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.apache.calcite.plan.RelOptCluster;
@@ -62,16 +61,15 @@ public class RelJsonSerializerTest {
             BuiltinFunctionName.UPPER,
             rexBuilder.makeDynamicParam(rowType.getFieldList().get(0).getType(), 0));
 
-    final List<Integer> sources = new ArrayList<>();
-    final List<Object> literals = new ArrayList<>();
-    final List<Object> digests = new ArrayList<>();
-    String code = serializer.serialize(rexUpper, rowType, fieldTypes, sources, digests, literals);
+    final ScriptParameterHelper helper =
+        new ScriptParameterHelper(rowType.getFieldList(), fieldTypes);
+    String code = serializer.serialize(rexUpper, helper);
     RexNode rexNode = serializer.deserialize(code);
 
     assertEquals(expectedNode, rexNode);
-    assertEquals(List.of(0), sources);
-    assertEquals(List.of("Referer"), digests);
-    assertEquals(List.of(), literals);
+    assertEquals(List.of(0), helper.sources);
+    assertEquals(List.of("Referer"), helper.digests);
+    assertEquals(List.of(), helper.literals);
   }
 
   @Test
@@ -112,29 +110,24 @@ public class RelJsonSerializerTest {
             rexBuilder.makeDynamicParam(rowTypeWithUDT.getFieldList().get(2).getType(), 2),
             rexBuilder.makeDynamicParam(TYPE_FACTORY.createSqlType(SqlTypeName.OTHER, true), 3),
             rexBuilder.makeDynamicParam(rowTypeWithUDT.getFieldList().get(4).getType(), 4));
-    final List<Integer> sources = new ArrayList<>();
-    final List<Object> literals = new ArrayList<>();
-    final List<Object> digests = new ArrayList<>();
-    String serialized =
-        serializer.serialize(
-            rexNode, rowTypeWithUDT, fieldTypesWithUDT, sources, digests, literals);
+    final ScriptParameterHelper helper =
+        new ScriptParameterHelper(rowTypeWithUDT.getFieldList(), fieldTypesWithUDT);
+    String serialized = serializer.serialize(rexNode, helper);
     RexNode expr = serializer.deserialize(serialized);
     assertEquals(expectedNode, expr);
-    assertEquals(List.of(0, 0, 0, 0, 0), sources);
-    assertEquals(List.of("date", "time", "timestamp", "ip", "binary"), digests);
-    assertEquals(List.of(), literals);
+    assertEquals(List.of(0, 0, 0, 0, 0), helper.sources);
+    assertEquals(List.of("date", "time", "timestamp", "ip", "binary"), helper.digests);
+    assertEquals(List.of(), helper.literals);
   }
 
   @Test
   void testSerializeUnsupportedRexNode() {
     RexNode illegalRex = rexBuilder.makeRangeReference(rowType, 0, true);
-
-    final List<Integer> sources = new ArrayList<>();
-    final List<Object> literals = new ArrayList<>();
-    final List<Object> digests = new ArrayList<>();
     assertThrows(
         IllegalStateException.class,
-        () -> serializer.serialize(illegalRex, rowType, fieldTypes, sources, digests, literals));
+        () ->
+            serializer.serialize(
+                illegalRex, new ScriptParameterHelper(rowType.getFieldList(), fieldTypes)));
   }
 
   @Test
@@ -150,12 +143,9 @@ public class RelJsonSerializerTest {
             rexBuilder.makeInputRef(rowType.getFieldList().get(0).getType(), 0),
             rexBuilder.makeLiteral(
                 1, rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER)));
-
-    final List<Integer> sources = new ArrayList<>();
-    final List<Object> literals = new ArrayList<>();
-    final List<Object> digests = new ArrayList<>();
-    String code =
-        serializer.serialize(outOfScopeRex, rowType, fieldTypes, sources, digests, literals);
+    final ScriptParameterHelper helper =
+        new ScriptParameterHelper(rowType.getFieldList(), fieldTypes);
+    String code = serializer.serialize(outOfScopeRex, helper);
     assertThrows(IllegalStateException.class, () -> serializer.deserialize(code));
   }
 
@@ -186,12 +176,9 @@ public class RelJsonSerializerTest {
             rexBuilder,
             BuiltinFunctionName.UPPER,
             rexBuilder.makeDynamicParam(rowType.getFieldList().get(0).getType(), 0));
-    final List<Integer> sources = new ArrayList<>();
-    final List<Object> literals = new ArrayList<>();
-    final List<Object> digests = new ArrayList<>();
-    String code =
-        serializer.serialize(
-            originalRexUpper, originalRowType, originalFieldTypes, sources, digests, literals);
+    final ScriptParameterHelper helper =
+        new ScriptParameterHelper(originalRowType.getFieldList(), originalFieldTypes);
+    String code = serializer.serialize(originalRexUpper, helper);
     RexNode rex = serializer.deserialize(code);
     assertEquals(expectedNode, rex);
   }
@@ -224,16 +211,13 @@ public class RelJsonSerializerTest {
             rexBuilder.makeDynamicParam(rowTypeWithUDT.getFieldList().get(0).getType(), 0),
             rexBuilder.makeDynamicParam(rowTypeWithUDT.getFieldList().get(1).getType(), 1),
             rexBuilder.makeDynamicParam(TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER, false), 2));
-    final List<Integer> sources = new ArrayList<>();
-    final List<Object> literals = new ArrayList<>();
-    final List<Object> digests = new ArrayList<>();
-    String serialized =
-        serializer.serialize(
-            rexNode, rowTypeWithUDT, fieldTypesWithUDT, sources, digests, literals);
+    final ScriptParameterHelper helper =
+        new ScriptParameterHelper(rowTypeWithUDT.getFieldList(), fieldTypesWithUDT);
+    String serialized = serializer.serialize(rexNode, helper);
     RexNode expr = serializer.deserialize(serialized);
     assertEquals(expectedNode, expr);
-    assertEquals(List.of(0, 1, 2), sources);
-    assertEquals(List.of("date", "text", 0), digests);
-    assertEquals(List.of(1), literals);
+    assertEquals(List.of(0, 1, 2), helper.sources);
+    assertEquals(List.of("date", "text", 0), helper.digests);
+    assertEquals(List.of(1), helper.literals);
   }
 }

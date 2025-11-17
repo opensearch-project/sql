@@ -10,141 +10,25 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import lombok.experimental.UtilityClass;
-import org.apache.calcite.adapter.enumerable.RexImpTable.NullAs;
-import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
-import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rex.RexBiVisitorImpl;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexShuttle;
-import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.util.mapping.Mapping;
-import org.apache.calcite.util.mapping.Mappings;
 import org.apache.commons.lang3.tuple.Pair;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
-import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.data.type.ExprType;
-import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
-import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.Source;
 
 @UtilityClass
 public class OpenSearchRelOptUtil {
-  private static final RemapIndexBiVisitor remapIndexBiVisitor = new RemapIndexBiVisitor(true);
-
-  /**
-   * For pushed down RexNode, the input schema doesn't need to be the same with scan output schema
-   * because the input values are read from ScriptDocValues or source by field name. It doesn't
-   * matter what the actual index is. Current serialization will serialize map of field name and
-   * field ExprType, which could be a long serialized string. Use this method to narrow down input
-   * rowType and rewrite RexNode's input references. After that, we can leverage the fewer columns
-   * in the rowType to serialize least required field types.
-   *
-   * @param rexNode original RexNode to be pushed down
-   * @param inputRowType original input rowType of RexNode
-   * @return rewritten pair of RexNode and RelDataType
-   */
-  public static Pair<RexNode, RelDataType> getRemappedRexAndType(
-      final RexNode rexNode, final RelDataType inputRowType) {
-    final BitSet seenOldIndex = new BitSet();
-    final List<Integer> newMappings = new ArrayList<>();
-    rexNode.accept(remapIndexBiVisitor, Pair.of(seenOldIndex, newMappings));
-    final List<RelDataTypeField> inputFieldList = inputRowType.getFieldList();
-    final RelDataTypeFactory.Builder builder = OpenSearchTypeFactory.TYPE_FACTORY.builder();
-    for (Integer oldIdx : newMappings) {
-      builder.add(inputFieldList.get(oldIdx));
-    }
-    final Mapping mapping = Mappings.target(newMappings, inputRowType.getFieldCount());
-    final RexNode newMappedRex = RexUtil.apply(mapping, rexNode);
-    return Pair.of(newMappedRex, builder.build());
-  }
-
-  public static RexNode standardizeRexNodeExpression(
-      final RexNode rexNode,
-      final RelDataType inputRowType,
-      final Map<String, ExprType> fieldTypes,
-      List<Integer> sources,
-      List<Object> digests,
-      List<Object> literals) {
-    final List<RelDataTypeField> inputFieldList = inputRowType.getFieldList();
-
-    final int[] currentIndex = {0};
-    final RexShuttle rexShuttle =
-        new RexShuttle() {
-          @Override
-          public RexNode visitInputRef(RexInputRef inputRef) {
-            int index = inputRef.getIndex();
-            RelDataTypeField field = inputFieldList.get(index);
-            ExprType exprType = fieldTypes.get(field.getName());
-            String docFieldName =
-                exprType == ExprCoreType.STRUCT || exprType == ExprCoreType.ARRAY
-                    ? null
-                    : OpenSearchTextType.toKeywordSubField(field.getName(), exprType);
-            int newIndex = currentIndex[0]++;
-            if (docFieldName != null) {
-              digests.add(docFieldName);
-              sources.add(Source.DOC_VALUE.getValue());
-            } else {
-              digests.add(field.getName());
-              sources.add(Source.SOURCE.getValue());
-            }
-            return new RexDynamicParam(field.getType(), newIndex);
-          }
-
-          @Override
-          public RexNode visitLiteral(RexLiteral literal) {
-            /*
-             * 1. Skip replacing SARG/DECIMAL as it is not supported to translate literal;
-             * 2. Skip replacing SYMBOL/NULL as it may affect codegen, shouldn't be parameter;
-             * 3. Skip INTERVAL_TYPES as it has bug, TODO: remove this when fixed;
-             */
-            if (literal.getTypeName() == SqlTypeName.SARG
-                || literal.getType().getSqlTypeName() == SqlTypeName.DECIMAL
-                || literal.getTypeName() == SqlTypeName.SYMBOL
-                || literal.getTypeName() == SqlTypeName.NULL
-                || SqlTypeName.INTERVAL_TYPES.contains(literal.getTypeName())) {
-              return literal;
-            }
-
-            Object literalValue = translateLiteral(literal);
-            if (literalValue == null) return literal;
-            int newIndex = currentIndex[0]++;
-            sources.add(Source.LITERAL.getValue());
-            if (literals.contains(literalValue)) {
-              digests.add(literals.indexOf(literalValue));
-            } else {
-              digests.add(literals.size());
-              literals.add(literalValue);
-            }
-            return new RexDynamicParam(literal.getType(), newIndex);
-          }
-        };
-    return rexNode.accept(rexShuttle);
-  }
-
-  private static Object translateLiteral(RexLiteral literal) {
-    org.apache.calcite.linq4j.tree.Expression expression =
-        RexToLixTranslator.translateLiteral(
-            literal, literal.getType(), OpenSearchTypeFactory.TYPE_FACTORY, NullAs.NOT_POSSIBLE);
-    if (expression instanceof ConstantExpression constantExpression) {
-      return constantExpression.value;
-    }
-    return null;
-  }
-
   /**
    * Given an input Calcite RexNode, find the single input field with equivalent collation
    * information. The function returns the pair of input field index and a flag to indicate whether

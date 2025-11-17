@@ -31,7 +31,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
-import static javax.swing.UIManager.put;
 import static org.opensearch.index.query.QueryBuilders.boolQuery;
 import static org.opensearch.index.query.QueryBuilders.existsQuery;
 import static org.opensearch.index.query.QueryBuilders.matchQuery;
@@ -44,9 +43,6 @@ import static org.opensearch.script.Script.DEFAULT_SCRIPT_TYPE;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.MULTI_FIELDS_RELEVANCE_FUNCTION_SET;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.SINGLE_FIELD_RELEVANCE_FUNCTION_SET;
 import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.COMPOUNDED_LANG_NAME;
-import static org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer.DIGESTS;
-import static org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer.LITERALS;
-import static org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer.SOURCES;
 
 import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
@@ -56,14 +52,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import lombok.Getter;
-import org.apache.calcite.DataContext.Variable;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
@@ -73,7 +67,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexVisitorImpl;
-import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
@@ -112,6 +105,7 @@ import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.Mult
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.QueryStringQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.SimpleQueryStringQuery;
 import org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer;
+import org.opensearch.sql.opensearch.storage.serde.ScriptParameterHelper;
 import org.opensearch.sql.opensearch.storage.serde.SerializationWrapper;
 
 /**
@@ -1453,9 +1447,7 @@ public class PredicateAnalyzer {
     private RexNode analyzedNode;
     private final Supplier<String> codeGenerator;
     private String generatedCode;
-    private final List<Integer> sources;
-    private final List<Object> digests;
-    private final List<Object> literals;
+    private final ScriptParameterHelper parameterHelper;
 
     public ScriptQueryExpression(
         RexNode rexNode,
@@ -1471,18 +1463,16 @@ public class PredicateAnalyzer {
       }
       accumulateScriptCount(1);
       RelJsonSerializer serializer = new RelJsonSerializer(cluster);
-      this.sources = new ArrayList<>();
-      this.digests = new ArrayList<>();
-      this.literals = new ArrayList<>();
+      this.parameterHelper = new ScriptParameterHelper(rowType.getFieldList(), fieldTypes);
       this.codeGenerator =
           () ->
               SerializationWrapper.wrapWithLangType(
-                  ScriptEngineType.CALCITE,
-                  serializer.serialize(rexNode, rowType, fieldTypes, sources, digests, literals));
+                  ScriptEngineType.CALCITE, serializer.serialize(rexNode, parameterHelper));
     }
 
     // For filter script, this method will be called after planning phase;
-    // For the agg-script, this will be called in planning phase to generate agg builder
+    // For the agg-script, this will be called in planning phase to generate agg builder.
+    // TODO: make agg-script lazy as well
     private String getOrCreateGeneratedCode() {
       if (generatedCode == null) {
         generatedCode = codeGenerator.get();
@@ -1496,24 +1486,12 @@ public class PredicateAnalyzer {
     }
 
     public Script getScript() {
-      long currentTime = Hook.CURRENT_TIME.get(-1L);
-      if (currentTime < 0) {
-        throw new UnsupportedScriptException(
-            "ScriptQueryExpression requires a valid current time from hook, but it is not set");
-      }
       return new Script(
           DEFAULT_SCRIPT_TYPE,
           COMPOUNDED_LANG_NAME,
           getOrCreateGeneratedCode(),
           Collections.emptyMap(),
-          new LinkedHashMap<>() { // Use LinkedHashMap to make the plan stable
-            {
-              put(Variable.UTC_TIMESTAMP.camelName, currentTime);
-              put(SOURCES, sources);
-              put(DIGESTS, digests);
-              put(LITERALS, literals);
-            }
-          });
+          this.parameterHelper.getParameters());
     }
 
     @Override

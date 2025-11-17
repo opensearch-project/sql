@@ -15,12 +15,10 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Base64;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import lombok.Getter;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.externalize.RelJson;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlLibrary;
@@ -29,10 +27,8 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.util.JsonBuilder;
 import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.opensearch.executor.OpenSearchExecutionEngine.OperatorTable;
-import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
 
 /**
  * A serializer that (de-)serializes Calcite RexNode, RelDataType and OpenSearch field mapping.
@@ -46,13 +42,6 @@ import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
 public class RelJsonSerializer {
 
   private final RelOptCluster cluster;
-
-  public static final String EXPR = "expr";
-  public static final String FIELD_TYPES = "fieldTypes";
-  public static final String ROW_TYPE = "rowType";
-  public static final String SOURCES = "SOURCES";
-  public static final String DIGESTS = "DIGESTS";
-  public static final String LITERALS = "LITERALS";
   private static final ObjectMapper mapper = new ObjectMapper();
   private static final TypeReference<LinkedHashMap<String, Object>> TYPE_REF =
       new TypeReference<>() {};
@@ -91,30 +80,16 @@ public class RelJsonSerializer {
    * Serializes Calcite expressions and field types into a map object string.
    *
    * <p>This method:
-   * <li>Convert RexNode and RelDataType objects to JSON strings.
-   * <li>Combines these JSON strings with OpenSearch field mappings into a map
+   * <li>Standardize the original RexNode
+   * <li>Convert RexNode objects to JSON strings.
    * <li>Encodes the resulting map into a final object string
    *
    * @param rexNode pushed down RexNode
-   * @param rowType row type of RexNode input
-   * @param fieldTypes input field and ExprType mapping
-   * @param sources one of the script parameters, the sources to retrieve value for the parameters
-   * @param digests one of the script parameters, the digest of the parameters. It'll store the
-   *     field name for sources of DOC_VALUE and SOURCE while index for the source of LITERAL
-   * @param literals one of the script parameters, the literal value for the parameters with source
-   *     of LITERAL
    * @return serialized string of RexNode expression.
    */
-  public String serialize(
-      RexNode rexNode,
-      RelDataType rowType,
-      Map<String, ExprType> fieldTypes,
-      List<Integer> sources,
-      List<Object> digests,
-      List<Object> literals) {
+  public String serialize(RexNode rexNode, ScriptParameterHelper parameterHelper) {
     RexNode standardizedRexExpr =
-        OpenSearchRelOptUtil.standardizeRexNodeExpression(
-            rexNode, rowType, fieldTypes, sources, digests, literals);
+        RexStandardizer.standardizeRexNodeExpression(rexNode, parameterHelper);
     try {
       // Serialize RexNode and RelDataType by JSON
       JsonBuilder jsonBuilder = new JsonBuilder();

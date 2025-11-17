@@ -27,9 +27,9 @@
 
 package org.opensearch.sql.opensearch.storage.script;
 
-import static org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer.DIGESTS;
-import static org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer.LITERALS;
-import static org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer.SOURCES;
+import static org.opensearch.sql.opensearch.storage.serde.ScriptParameterHelper.DIGESTS;
+import static org.opensearch.sql.opensearch.storage.serde.ScriptParameterHelper.LITERALS;
+import static org.opensearch.sql.opensearch.storage.serde.ScriptParameterHelper.SOURCES;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
