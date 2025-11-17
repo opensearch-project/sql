@@ -14,8 +14,10 @@ import static org.apache.calcite.rex.RexWindowBounds.preceding;
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -23,8 +25,11 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -38,6 +43,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
@@ -56,13 +62,16 @@ public interface PlanUtils {
   /** this is only for dedup command, do not reuse it in other command */
   String ROW_NUMBER_COLUMN_FOR_DEDUP = "_row_number_dedup_";
 
-  String ROW_NUMBER_COLUMN_NAME = "_row_number_";
-  String ROW_NUMBER_COLUMN_NAME_MAIN = "_row_number_main_";
-  String ROW_NUMBER_COLUMN_NAME_SUBSEARCH = "_row_number_subsearch_";
+  String ROW_NUMBER_COLUMN_FOR_RARE_TOP = "_row_number_rare_top_";
+  String ROW_NUMBER_COLUMN_FOR_MAIN = "_row_number_main_";
+  String ROW_NUMBER_COLUMN_FOR_SUBSEARCH = "_row_number_subsearch_";
+  String ROW_NUMBER_COLUMN_FOR_STREAMSTATS = "__stream_seq__";
+  String ROW_NUMBER_COLUMN_FOR_CHART = "_row_number_chart_";
 
   static SpanUnit intervalUnitToSpanUnit(IntervalUnit unit) {
     return switch (unit) {
-      case MICROSECOND -> SpanUnit.MILLISECOND;
+      case MICROSECOND -> SpanUnit.MICROSECOND;
+      case MILLISECOND -> SpanUnit.MILLISECOND;
       case SECOND -> SpanUnit.SECOND;
       case MINUTE -> SpanUnit.MINUTE;
       case HOUR -> SpanUnit.HOUR;
@@ -78,9 +87,12 @@ public interface PlanUtils {
 
   static IntervalUnit spanUnitToIntervalUnit(SpanUnit unit) {
     switch (unit) {
+      case MICROSECOND:
+      case US:
+        return IntervalUnit.MICROSECOND;
       case MILLISECOND:
       case MS:
-        return IntervalUnit.MICROSECOND;
+        return IntervalUnit.MILLISECOND;
       case SECOND:
       case SECONDS:
       case SEC:
@@ -437,10 +449,18 @@ public interface PlanUtils {
     return rexNode;
   }
 
-  /** Check if contains RexOver */
+  /** Check if contains RexOver introduced by dedup */
   static boolean containsRowNumberDedup(LogicalProject project) {
     return project.getProjects().stream()
-        .anyMatch(p -> p instanceof RexOver && p.getKind() == SqlKind.ROW_NUMBER);
+            .anyMatch(p -> p instanceof RexOver && p.getKind() == SqlKind.ROW_NUMBER)
+        && project.getRowType().getFieldNames().contains(ROW_NUMBER_COLUMN_FOR_DEDUP);
+  }
+
+  /** Check if contains RexOver introduced by dedup top/rare */
+  static boolean containsRowNumberRareTop(LogicalProject project) {
+    return project.getProjects().stream()
+            .anyMatch(p -> p instanceof RexOver && p.getKind() == SqlKind.ROW_NUMBER)
+        && project.getRowType().getFieldNames().contains(ROW_NUMBER_COLUMN_FOR_RARE_TOP);
   }
 
   /** Get all RexWindow list from LogicalProject */
@@ -474,13 +494,51 @@ public interface PlanUtils {
     return selectedColumns;
   }
 
+  // `RelDecorrelator` may generate a Project with duplicated fields, e.g. Project($0,$0).
+  // There will be problem if pushing down the pattern like `Aggregate(AGG($0),{1})-Project($0,$0)`,
+  // as it will lead to field-name conflict.
+  // We should wait and rely on `AggregateProjectMergeRule` to mitigate it by having this constraint
+  // Nevertheless, that rule cannot handle all cases if there is RexCall in the Project,
+  // e.g. Project($0, $0, +($0,1)). We cannot push down the Aggregate for this corner case.
+  // TODO: Simplify the Project where there is RexCall by adding a new rule.
+  static boolean distinctProjectList(LogicalProject project) {
+    // Change to Set<Pair<RexNode, String>> to resolve
+    // https://github.com/opensearch-project/sql/issues/4347
+    Set<Pair<RexNode, String>> rexSet = new HashSet<>();
+    return project.getNamedProjects().stream().allMatch(rexSet::add);
+  }
+
+  static boolean containsRexOver(LogicalProject project) {
+    return project.getProjects().stream().anyMatch(RexOver::containsOver);
+  }
+
+  /**
+   * The LogicalSort is a LIMIT that should be pushed down when its fetch field is not null and its
+   * collation is empty. For example: <code>sort name | head 5</code> should not be pushed down
+   * because it has a field collation.
+   *
+   * @param sort The LogicalSort to check.
+   * @return True if the LogicalSort is a LIMIT, false otherwise.
+   */
+  static boolean isLogicalSortLimit(LogicalSort sort) {
+    return sort.fetch != null;
+  }
+
+  static boolean projectContainsExpr(Project project) {
+    return project.getProjects().stream().anyMatch(p -> p instanceof RexCall);
+  }
+
+  static boolean sortByFieldsOnly(Sort sort) {
+    return !sort.getCollation().getFieldCollations().isEmpty() && sort.fetch == null;
+  }
+
   /**
    * Get a string representation of the argument types expressed in ExprType for error messages.
    *
    * @param argTypes the list of argument types as {@link RelDataType}
    * @return a string in the format [type1,type2,...] representing the argument types
    */
-  public static String getActualSignature(List<RelDataType> argTypes) {
+  static String getActualSignature(List<RelDataType> argTypes) {
     return "["
         + argTypes.stream()
             .map(OpenSearchTypeFactory::convertRelDataTypeToExprType)

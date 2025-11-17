@@ -8,6 +8,7 @@ package org.opensearch.sql.expression.datetime;
 import static java.time.temporal.ChronoUnit.DAYS;
 import static java.time.temporal.ChronoUnit.HOURS;
 import static java.time.temporal.ChronoUnit.MICROS;
+import static java.time.temporal.ChronoUnit.MILLIS;
 import static java.time.temporal.ChronoUnit.MINUTES;
 import static java.time.temporal.ChronoUnit.MONTHS;
 import static java.time.temporal.ChronoUnit.SECONDS;
@@ -1896,6 +1897,9 @@ public class DateTimeFunctions {
       case "MICROSECOND":
         temporalUnit = MICROS;
         break;
+      case "MILLISECOND":
+        temporalUnit = MILLIS;
+        break;
       case "SECOND":
         temporalUnit = SECONDS;
         break;
@@ -1935,9 +1939,12 @@ public class DateTimeFunctions {
 
   private ExprValue getTimeDifference(String part, LocalDateTime startTime, LocalDateTime endTime) {
     long returnVal;
-    switch (part) {
+    switch (part.toUpperCase(Locale.ROOT)) {
       case "MICROSECOND":
         returnVal = MICROS.between(startTime, endTime);
+        break;
+      case "MILLISECOND":
+        returnVal = MILLIS.between(startTime, endTime);
         break;
       case "SECOND":
         returnVal = SECONDS.between(startTime, endTime);

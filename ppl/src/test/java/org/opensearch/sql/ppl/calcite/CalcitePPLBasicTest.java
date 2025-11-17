@@ -317,7 +317,7 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testSortWithDescReversal() {
-    String ppl = "source=EMP | sort + DEPTNO, - SAL desc";
+    String ppl = "source=EMP | sort DEPTNO desc, SAL";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(sort0=[$7], sort1=[$5], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])\n"
@@ -327,7 +327,7 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testSortWithDReversal() {
-    String ppl = "source=EMP | sort + DEPTNO, - SAL d";
+    String ppl = "source=EMP | sort DEPTNO d, SAL";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(sort0=[$7], sort1=[$5], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])\n"
@@ -493,11 +493,11 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `DIVIDE`(22, 7.0) `r1`, `DIVIDE`(22, 7.0E0) `r2`, `DIVIDE`(22.0, 7) `r3`,"
-            + " `DIVIDE`(2.20E1, 7) `r4`, 0.1 * 0.2 `r5`, 1E-1 * 2E-1 `r6`, 0.1 + 0.2 `r7`, 1E-1 +"
-            + " 2E-1 `r8`, 0.06 - 0.01 `r9`, 6E-2 - 1E-2 `r10`, `DIVIDE`(0.1, 0.3) * 0.3 `r11`,"
-            + " `DIVIDE`(1E-1, 3E-1) * 3E-1 `r12`, POWER(POWER(2.0, 5E-1), 2) `r13`,"
-            + " POWER(POWER(2.0E0, 5E-1), 2) `r14`, `DIVIDE`(7.0, 0) `r15`, `DIVIDE`(7, 0.0)"
+        "SELECT DIVIDE(22, 7.0) `r1`, DIVIDE(22, 7.0E0) `r2`, DIVIDE(22.0, 7) `r3`,"
+            + " DIVIDE(2.20E1, 7) `r4`, 0.1 * 0.2 `r5`, 1E-1 * 2E-1 `r6`, 0.1 + 0.2 `r7`, 1E-1 +"
+            + " 2E-1 `r8`, 0.06 - 0.01 `r9`, 6E-2 - 1E-2 `r10`, DIVIDE(0.1, 0.3) * 0.3 `r11`,"
+            + " DIVIDE(1E-1, 3E-1) * 3E-1 `r12`, POWER(POWER(2.0, 5E-1), 2) `r13`,"
+            + " POWER(POWER(2.0E0, 5E-1), 2) `r14`, DIVIDE(7.0, 0) `r15`, DIVIDE(7, 0.0)"
             + " `r16`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 1";

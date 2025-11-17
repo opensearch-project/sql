@@ -191,7 +191,7 @@ class OpenSearchRestClientTest {
         () -> assertEquals(OpenSearchTextType.of(MappingType.Text), parsedTypes.get("employer")),
         // `employer` is a `text` with `fields`
         () -> assertTrue(((OpenSearchTextType) parsedTypes.get("employer")).getFields().size() > 0),
-        () -> assertEquals("TEXT", mapping.get("employer_alias").legacyTypeName()),
+        () -> assertEquals("TEXT", parsedTypes.get("employer_alias").legacyTypeName()),
         () ->
             assertEquals(
                 new OpenSearchAliasType("employer", OpenSearchTextType.of(MappingType.Text)),

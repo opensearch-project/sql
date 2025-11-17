@@ -21,6 +21,11 @@ top [N] [top-options] <field-list> [by-clause]
 * top-options: optional. options for the top command. Supported syntax is [countfield=<string>] [showcount=<bool>].
     * showcount=<bool>: optional. whether to create a field in output that represent a count of the tuple of values. **Default:** true.
     * countfield=<string>: optional. the name of the field that contains count. **Default:** 'count'.
+    * usenull=<bool>: optional (since 3.4.0). whether to output the null value. **Default:** Determined by ``plugins.ppl.syntax.legacy.preferred``:
+
+        * When ``plugins.ppl.syntax.legacy.preferred=true``, ``usenull`` defaults to ``true``
+        * When ``plugins.ppl.syntax.legacy.preferred=false``, ``usenull`` defaults to ``false``
+
 * field-list: mandatory. comma-delimited list of field names.
 * by-clause: optional. one or more fields to group the results by.
 
@@ -78,8 +83,8 @@ This example finds the most common gender of all the accounts and includes the c
 
 PPL query::
 
-    PPL> source=accounts | top gender;
-    fetched row
+    os> source=accounts | top gender;
+    fetched rows / total rows = 2/2
     +--------+-------+
     | gender | count |
     |--------+-------|
@@ -95,14 +100,44 @@ This example specifies a custom name for the count field.
 
 PPL query::
 
-    PPL> source=accounts | top countfield='cnt' gender;
-    fetched row
+    os> source=accounts | top countfield='cnt' gender;
+    fetched rows / total rows = 2/2
     +--------+-----+
     | gender | cnt |
     |--------+-----|
     | M      | 3   |
     | F      | 1   |
     +--------+-----+
+
+
+Example 5: Specify the usenull field option
+===========================================
+
+PPL query::
+
+    os> source=accounts | top usenull=false email;
+    fetched rows / total rows = 3/3
+    +-----------------------+-------+
+    | email                 | count |
+    |-----------------------+-------|
+    | amberduke@pyrami.com  | 1     |
+    | daleadams@boink.com   | 1     |
+    | hattiebond@netagy.com | 1     |
+    +-----------------------+-------+
+
+PPL query::
+
+    os> source=accounts | top usenull=true email;
+    fetched rows / total rows = 4/4
+    +-----------------------+-------+
+    | email                 | count |
+    |-----------------------+-------|
+    | null                  | 1     |
+    | amberduke@pyrami.com  | 1     |
+    | daleadams@boink.com   | 1     |
+    | hattiebond@netagy.com | 1     |
+    +-----------------------+-------+
+
 
 Limitations
 ===========

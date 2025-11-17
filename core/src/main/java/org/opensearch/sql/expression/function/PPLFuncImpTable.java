@@ -17,6 +17,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADDTIME
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.AND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY_LENGTH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY_SLICE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASCII;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ATAN;
@@ -83,7 +84,6 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNA
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PARSE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PATTERN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PATTERN_PARSER;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_3;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_5;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_PG_4;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_TRANSLATE3;
@@ -136,6 +136,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MD5;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MEDIAN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MICROSECOND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MIN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINSPAN_BUCKET;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE_OF_DAY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE_OF_HOUR;
@@ -149,6 +150,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPL
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLYFUNCTION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTI_MATCH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVAPPEND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVINDEX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVJOIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOTEQUAL;
@@ -166,9 +168,10 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.QUARTER
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.QUERY_STRING;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RADIANS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RAND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RANGE_BUCKET;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REDUCE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEXP;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEX_MATCH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEXP_MATCH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REPLACE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REVERSE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REX_EXTRACT;
@@ -189,6 +192,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIMPLE_
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SINH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SPAN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SPAN_BUCKET;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SQRT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_POP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_SAMP;
@@ -211,6 +215,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTA
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMPDIFF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME_FORMAT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME_TO_SEC;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TOSTRING;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TO_DAYS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TO_SECONDS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TRANSFORM;
@@ -229,6 +234,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEK;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEKDAY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEKOFYEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEK_OF_YEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.WIDTH_BUCKET;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.XOR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEARWEEK;
@@ -259,6 +265,7 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction.Flag;
 import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
+import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SameOperandTypeChecker;
@@ -277,6 +284,7 @@ import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.expression.function.CollectionUDF.MVIndexFunctionImp;
 
 public class PPLFuncImpTable {
   private static final Logger logger = LogManager.getLogger(PPLFuncImpTable.class);
@@ -417,10 +425,13 @@ public class PPLFuncImpTable {
     aggExternalFunctionRegistry.put(functionName, Pair.of(signature, handler));
   }
 
-  public void validateAggFunctionSignature(
-      BuiltinFunctionName functionName, RexNode field, List<RexNode> argList) {
+  public List<RexNode> validateAggFunctionSignature(
+      BuiltinFunctionName functionName,
+      RexNode field,
+      List<RexNode> argList,
+      RexBuilder rexBuilder) {
     var implementation = getImplementation(functionName);
-    validateFunctionArgs(implementation, functionName, field, argList);
+    return validateFunctionArgs(implementation, functionName, field, argList, rexBuilder);
   }
 
   public RelBuilder.AggCall resolveAgg(
@@ -432,17 +443,21 @@ public class PPLFuncImpTable {
     var implementation = getImplementation(functionName);
 
     // Validation is done based on original argument types to generate error from user perspective.
-    validateFunctionArgs(implementation, functionName, field, argList);
+    List<RexNode> nodes =
+        validateFunctionArgs(implementation, functionName, field, argList, context.rexBuilder);
 
     var handler = implementation.getValue();
-    return handler.apply(distinct, field, argList, context);
+    return nodes != null
+        ? handler.apply(distinct, nodes.getFirst(), nodes.subList(1, nodes.size()), context)
+        : handler.apply(distinct, field, argList, context);
   }
 
-  static void validateFunctionArgs(
+  static List<RexNode> validateFunctionArgs(
       Pair<CalciteFuncSignature, AggHandler> implementation,
       BuiltinFunctionName functionName,
       RexNode field,
-      List<RexNode> argList) {
+      List<RexNode> argList,
+      RexBuilder rexBuilder) {
     CalciteFuncSignature signature = implementation.getKey();
 
     List<RelDataType> argTypes = new ArrayList<>();
@@ -455,19 +470,29 @@ public class PPLFuncImpTable {
     List<RelDataType> additionalArgTypes =
         argList.stream().map(PlanUtils::derefMapCall).map(RexNode::getType).toList();
     argTypes.addAll(additionalArgTypes);
+    List<RexNode> coercionNodes = null;
     if (!signature.match(functionName.getName(), argTypes)) {
-      String errorMessagePattern =
-          argTypes.size() <= 1
-              ? "Aggregation function %s expects field type {%s}, but got %s"
-              : "Aggregation function %s expects field type and additional arguments {%s}, but got"
-                  + " %s";
-      throw new ExpressionEvaluationException(
-          String.format(
-              errorMessagePattern,
-              functionName,
-              signature.typeChecker().getAllowedSignatures(),
-              PlanUtils.getActualSignature(argTypes)));
+      List<RexNode> fields = new ArrayList<>();
+      fields.add(field);
+      fields.addAll(argList);
+      if (CoercionUtils.hasString(fields)) {
+        coercionNodes = CoercionUtils.castArguments(rexBuilder, signature.typeChecker(), fields);
+      }
+      if (coercionNodes == null) {
+        String errorMessagePattern =
+            argTypes.size() <= 1
+                ? "Aggregation function %s expects field type {%s}, but got %s"
+                : "Aggregation function %s expects field type and additional arguments {%s}, but"
+                    + " got %s";
+        throw new ExpressionEvaluationException(
+            String.format(
+                errorMessagePattern,
+                functionName,
+                signature.typeChecker().getAllowedSignatures(),
+                PlanUtils.getActualSignature(argTypes)));
+      }
     }
+    return coercionNodes;
   }
 
   private Pair<CalciteFuncSignature, AggHandler> getImplementation(
@@ -680,8 +705,19 @@ public class PPLFuncImpTable {
 
       // Register ADDFUNCTION for numeric addition only
       registerOperator(ADDFUNCTION, SqlStdOperatorTable.PLUS);
-      registerOperator(SUBTRACT, SqlStdOperatorTable.MINUS);
-      registerOperator(SUBTRACTFUNCTION, SqlStdOperatorTable.MINUS);
+      registerOperator(
+          SUBTRACTFUNCTION,
+          SqlStdOperatorTable.MINUS,
+          PPLTypeChecker.wrapFamily((FamilyOperandTypeChecker) OperandTypes.NUMERIC_NUMERIC));
+      registerOperator(
+          SUBTRACT,
+          SqlStdOperatorTable.MINUS,
+          PPLTypeChecker.wrapFamily((FamilyOperandTypeChecker) OperandTypes.NUMERIC_NUMERIC));
+      // Add DATETIME-DATETIME variant for timestamp binning support
+      registerOperator(
+          SUBTRACT,
+          SqlStdOperatorTable.MINUS,
+          PPLTypeChecker.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME));
       registerOperator(MULTIPLY, SqlStdOperatorTable.MULTIPLY);
       registerOperator(MULTIPLYFUNCTION, SqlStdOperatorTable.MULTIPLY);
       registerOperator(TRUNCATE, SqlStdOperatorTable.TRUNCATE);
@@ -739,13 +775,37 @@ public class PPLFuncImpTable {
       registerOperator(ASIN, SqlStdOperatorTable.ASIN);
       registerOperator(ATAN, SqlStdOperatorTable.ATAN);
       registerOperator(ATAN2, SqlStdOperatorTable.ATAN2);
-      registerOperator(CEIL, SqlStdOperatorTable.CEIL);
-      registerOperator(CEILING, SqlStdOperatorTable.CEIL);
+      // TODO, workaround to support sequence CompositeOperandTypeChecker.
+      registerOperator(
+          CEIL,
+          SqlStdOperatorTable.CEIL,
+          PPLTypeChecker.wrapComposite(
+              (CompositeOperandTypeChecker)
+                  OperandTypes.NUMERIC_OR_INTERVAL.or(
+                      OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.ANY)),
+              false));
+      // TODO, workaround to support sequence CompositeOperandTypeChecker.
+      registerOperator(
+          CEILING,
+          SqlStdOperatorTable.CEIL,
+          PPLTypeChecker.wrapComposite(
+              (CompositeOperandTypeChecker)
+                  OperandTypes.NUMERIC_OR_INTERVAL.or(
+                      OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.ANY)),
+              false));
       registerOperator(COS, SqlStdOperatorTable.COS);
       registerOperator(COT, SqlStdOperatorTable.COT);
       registerOperator(DEGREES, SqlStdOperatorTable.DEGREES);
       registerOperator(EXP, SqlStdOperatorTable.EXP);
-      registerOperator(FLOOR, SqlStdOperatorTable.FLOOR);
+      // TODO, workaround to support sequence CompositeOperandTypeChecker.
+      registerOperator(
+          FLOOR,
+          SqlStdOperatorTable.FLOOR,
+          PPLTypeChecker.wrapComposite(
+              (CompositeOperandTypeChecker)
+                  OperandTypes.NUMERIC_OR_INTERVAL.or(
+                      OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.ANY)),
+              false));
       registerOperator(LN, SqlStdOperatorTable.LN);
       registerOperator(LOG10, SqlStdOperatorTable.LOG10);
       registerOperator(PI, SqlStdOperatorTable.PI);
@@ -753,7 +813,15 @@ public class PPLFuncImpTable {
       registerOperator(POWER, SqlStdOperatorTable.POWER);
       registerOperator(RADIANS, SqlStdOperatorTable.RADIANS);
       registerOperator(RAND, SqlStdOperatorTable.RAND);
-      registerOperator(ROUND, SqlStdOperatorTable.ROUND);
+      // TODO, workaround to support sequence CompositeOperandTypeChecker.
+      registerOperator(
+          ROUND,
+          SqlStdOperatorTable.ROUND,
+          PPLTypeChecker.wrapComposite(
+              (CompositeOperandTypeChecker)
+                  OperandTypes.NUMERIC.or(
+                      OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.INTEGER)),
+              false));
       registerOperator(SIGN, SqlStdOperatorTable.SIGN);
       registerOperator(SIGNUM, SqlStdOperatorTable.SIGN);
       registerOperator(SIN, SqlStdOperatorTable.SIN);
@@ -766,7 +834,7 @@ public class PPLFuncImpTable {
 
       // Register library operator
       registerOperator(REGEXP, SqlLibraryOperators.REGEXP);
-      registerOperator(REGEX_MATCH, SqlLibraryOperators.REGEXP_CONTAINS);
+      registerOperator(REGEXP_MATCH, SqlLibraryOperators.REGEXP_CONTAINS);
       registerOperator(CONCAT, SqlLibraryOperators.CONCAT_FUNCTION);
       registerOperator(CONCAT_WS, SqlLibraryOperators.CONCAT_WS);
       registerOperator(CONCAT_WS, SqlLibraryOperators.CONCAT_WS);
@@ -776,14 +844,14 @@ public class PPLFuncImpTable {
       registerOperator(LOG2, SqlLibraryOperators.LOG2);
       registerOperator(MD5, SqlLibraryOperators.MD5);
       registerOperator(SHA1, SqlLibraryOperators.SHA1);
-      registerOperator(INTERNAL_REGEXP_REPLACE_3, SqlLibraryOperators.REGEXP_REPLACE_3);
+      registerOperator(CRC32, SqlLibraryOperators.CRC32);
       registerOperator(INTERNAL_REGEXP_REPLACE_PG_4, SqlLibraryOperators.REGEXP_REPLACE_PG_4);
       registerOperator(INTERNAL_REGEXP_REPLACE_5, SqlLibraryOperators.REGEXP_REPLACE_5);
       registerOperator(INTERNAL_TRANSLATE3, SqlLibraryOperators.TRANSLATE3);
 
       // Register eval functions for PPL max() and min() calls
-      registerOperator(MAX, PPLBuiltinOperators.MAX);
-      registerOperator(MIN, PPLBuiltinOperators.MIN);
+      registerOperator(MAX, PPLBuiltinOperators.SCALAR_MAX);
+      registerOperator(MIN, PPLBuiltinOperators.SCALAR_MIN);
 
       // Register PPL UDF operator
       registerOperator(COSH, PPLBuiltinOperators.COSH);
@@ -791,12 +859,15 @@ public class PPLFuncImpTable {
       registerOperator(EXPM1, PPLBuiltinOperators.EXPM1);
       registerOperator(RINT, PPLBuiltinOperators.RINT);
       registerOperator(SPAN, PPLBuiltinOperators.SPAN);
+      registerOperator(SPAN_BUCKET, PPLBuiltinOperators.SPAN_BUCKET);
+      registerOperator(WIDTH_BUCKET, PPLBuiltinOperators.WIDTH_BUCKET);
+      registerOperator(MINSPAN_BUCKET, PPLBuiltinOperators.MINSPAN_BUCKET);
+      registerOperator(RANGE_BUCKET, PPLBuiltinOperators.RANGE_BUCKET);
       registerOperator(E, PPLBuiltinOperators.E);
       registerOperator(CONV, PPLBuiltinOperators.CONV);
       registerOperator(MOD, PPLBuiltinOperators.MOD);
       registerOperator(MODULUS, PPLBuiltinOperators.MOD);
       registerOperator(MODULUSFUNCTION, PPLBuiltinOperators.MOD);
-      registerOperator(CRC32, PPLBuiltinOperators.CRC32);
       registerDivideFunction(DIVIDE);
       registerDivideFunction(DIVIDEFUNCTION);
       registerOperator(SHA2, PPLBuiltinOperators.SHA2);
@@ -888,6 +959,13 @@ public class PPLFuncImpTable {
       registerOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK);
 
       registerOperator(INTERNAL_PATTERN_PARSER, PPLBuiltinOperators.PATTERN_PARSER);
+      registerOperator(TOSTRING, PPLBuiltinOperators.TOSTRING);
+      register(
+          TOSTRING,
+          (FunctionImp1)
+              (builder, source) ->
+                  builder.makeCast(TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, true), source),
+          PPLTypeChecker.family(SqlTypeFamily.ANY));
 
       // Register MVJOIN to use Calcite's ARRAY_JOIN
       register(
@@ -897,12 +975,25 @@ public class PPLFuncImpTable {
                   builder.makeCall(SqlLibraryOperators.ARRAY_JOIN, array, delimiter),
           PPLTypeChecker.family(SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER));
 
+      // Register MVINDEX to use Calcite's ITEM/ARRAY_SLICE with index normalization
+      register(
+          MVINDEX,
+          new MVIndexFunctionImp(),
+          PPLTypeChecker.wrapComposite(
+              (CompositeOperandTypeChecker)
+                  OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.INTEGER)
+                      .or(
+                          OperandTypes.family(
+                              SqlTypeFamily.ARRAY, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER)),
+              false));
+
       registerOperator(ARRAY, PPLBuiltinOperators.ARRAY);
       registerOperator(MVAPPEND, PPLBuiltinOperators.MVAPPEND);
       registerOperator(MAP_APPEND, PPLBuiltinOperators.MAP_APPEND);
       registerOperator(MAP_CONCAT, SqlLibraryOperators.MAP_CONCAT);
       registerOperator(MAP_REMOVE, PPLBuiltinOperators.MAP_REMOVE);
       registerOperator(ARRAY_LENGTH, SqlLibraryOperators.ARRAY_LENGTH);
+      registerOperator(ARRAY_SLICE, SqlLibraryOperators.ARRAY_SLICE);
       registerOperator(FORALL, PPLBuiltinOperators.FORALL);
       registerOperator(EXISTS, PPLBuiltinOperators.EXISTS);
       registerOperator(FILTER, PPLBuiltinOperators.FILTER);
@@ -967,19 +1058,15 @@ public class PPLFuncImpTable {
           XOR,
           SqlStdOperatorTable.NOT_EQUALS,
           PPLTypeChecker.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.BOOLEAN));
-      // SqlStdOperatorTable.CASE.getOperandTypeChecker is null. We manually create a
-      // type checker
-      // for it. The second and third operands are required to be of the same type. If
-      // not,
-      // it will throw an IllegalArgumentException with information Can't find
-      // leastRestrictive type
+      // SqlStdOperatorTable.CASE.getOperandTypeChecker is null. We manually create a type checker
+      // for it. The second and third operands are required to be of the same type. If not,  it will
+      // throw an IllegalArgumentException with information Can't find leastRestrictive type
       registerOperator(
           IF,
           SqlStdOperatorTable.CASE,
           PPLTypeChecker.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.ANY, SqlTypeFamily.ANY));
       // Re-define the type checker for is not null, is present, and is null since
-      // their original
-      // type checker ANY isn't compatible with struct types.
+      // their original type checker ANY isn't compatible with struct types.
       registerOperator(
           IS_NOT_NULL,
           SqlStdOperatorTable.IS_NOT_NULL,
@@ -1060,6 +1147,7 @@ public class PPLFuncImpTable {
                               SqlTypeFamily.INTEGER,
                               SqlTypeFamily.INTEGER)),
               false));
+
       register(
           LOG,
           (FunctionImp2)

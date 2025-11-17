@@ -58,6 +58,32 @@ Example::
     | json scalar string | "abc"                           | "abc"                           |
     +--------------------+---------------------------------+---------------------------------+
 
+JSON_VALID
+----------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.1.0
+
+Limitation: Only works when plugins.calcite.enabled=true
+
+Usage: `json_valid(value)` Evaluates whether a string uses valid JSON syntax. Returns TRUE if valid, FALSE if invalid. NULL input returns NULL.
+
+Argument type: STRING
+
+Return type: BOOLEAN
+
+Example::
+
+    os> source=people | eval is_valid_json = json_valid('[1,2,3,4]'), is_invalid_json = json_valid('{invalid}') | fields is_valid_json, is_invalid_json | head 1
+    fetched rows / total rows = 1/1
+    +---------------+-----------------+
+    | is_valid_json | is_invalid_json |
+    |---------------+-----------------|
+    | True          | False           |
+    +---------------+-----------------+
+
 JSON_OBJECT
 ----------
 

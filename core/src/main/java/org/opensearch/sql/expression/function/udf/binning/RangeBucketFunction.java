@@ -69,11 +69,11 @@ public class RangeBucketFunction extends ImplementorUDF {
       return Expressions.call(
           RangeBucketImplementor.class,
           "calculateRangeBucket",
-          Expressions.convert_(fieldValue, Number.class),
-          Expressions.convert_(dataMin, Number.class),
-          Expressions.convert_(dataMax, Number.class),
-          Expressions.convert_(startParam, Number.class),
-          Expressions.convert_(endParam, Number.class));
+          Expressions.convert_(Expressions.box(fieldValue), Number.class),
+          Expressions.convert_(Expressions.box(dataMin), Number.class),
+          Expressions.convert_(Expressions.box(dataMax), Number.class),
+          Expressions.convert_(Expressions.box(startParam), Number.class),
+          Expressions.convert_(Expressions.box(endParam), Number.class));
     }
 
     /** Range bucket calculation with expansion algorithm and magnitude-based width. */

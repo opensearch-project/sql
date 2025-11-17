@@ -388,3 +388,18 @@ PPL query::
     | 1   | 2025-01-01 | 2      |
     +-----+------------+--------+
 
+
+Example 18: Calculate the count by the implicit @timestamp field
+================================================================
+
+This example demonstrates that if you omit the field parameter in the span function, it will automatically use the implicit ``@timestamp`` field.
+
+PPL query::
+
+    PPL> source=big5 | stats count() by span(1month)
+    fetched rows / total rows = 1/1
+    +---------+---------------------+
+    | count() | span(1month)        |
+    |---------+---------------------|
+    | 1       | 2023-01-01 00:00:00 |
+    +---------+---------------------+

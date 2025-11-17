@@ -1,0 +1,19 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(SearchPhrase=[$63])
+        LogicalSort(sort0=[$17], sort1=[$63], dir0=[ASC-nulls-first], dir1=[ASC-nulls-first], fetch=[10])
+          LogicalFilter(condition=[<>($63, '')])
+            CalciteLogicalIndexScan(table=[[OpenSearch, hits]])
+  physical: |
+    CalciteEnumerableIndexScan(table=[[OpenSearch, hits]], PushDownContext=[[PROJECT->[EventTime, SearchPhrase], FILTER-><>($1, ''), SORT->[{
+      "EventTime" : {
+        "order" : "asc",
+        "missing" : "_first"
+      }
+    }, {
+      "SearchPhrase" : {
+        "order" : "asc",
+        "missing" : "_first"
+      }
+    }], LIMIT->10, PROJECT->[SearchPhrase], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10,"timeout":"1m","query":{"bool":{"must":[{"exists":{"field":"SearchPhrase","boost":1.0}}],"must_not":[{"term":{"SearchPhrase":{"value":"","boost":1.0}}}],"adjust_pure_negative":true,"boost":1.0}},"_source":{"includes":["SearchPhrase"],"excludes":[]},"sort":[{"EventTime":{"order":"asc","missing":"_first"}},{"SearchPhrase":{"order":"asc","missing":"_first"}}]}, requestedTotalSize=10, pageSize=null, startFrom=0)])

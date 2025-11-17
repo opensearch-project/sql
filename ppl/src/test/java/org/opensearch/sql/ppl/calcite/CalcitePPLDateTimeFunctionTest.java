@@ -23,7 +23,7 @@ public class CalcitePPLDateTimeFunctionTest extends CalcitePPLAbstractTest {
         "LogicalProject(added=[DATE(NOW())])\n" + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
-    String expectedSparkSql = "SELECT `DATE`(`NOW`()) `added`\nFROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT DATE(NOW()) `added`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 

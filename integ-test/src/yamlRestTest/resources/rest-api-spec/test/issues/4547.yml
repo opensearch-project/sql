@@ -1,0 +1,196 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  - do:
+      indices.create:
+        index: test_wide_schema
+        body:
+          - '
+          {
+            "mappings": {
+              "properties": {
+                "activity_name": {"type": "keyword"},
+                "start_time": {"type": "date"},
+                "end_time": {"type": "date"},
+                "field_001": {"type": "keyword"}, "field_002": {"type": "keyword"}, "field_003": {"type": "long"},
+                "field_004": {"type": "keyword"}, "field_005": {"type": "text"}, "field_006": {"type": "long"},
+                "field_007": {"type": "keyword"}, "field_008": {"type": "keyword"}, "field_009": {"type": "long"},
+                "field_010": {"type": "text"}, "field_011": {"type": "keyword"}, "field_012": {"type": "long"},
+                "field_013": {"type": "keyword"}, "field_014": {"type": "keyword"}, "field_015": {"type": "text"},
+                "field_016": {"type": "keyword"}, "field_017": {"type": "keyword"}, "field_018": {"type": "long"},
+                "field_019": {"type": "keyword"}, "field_020": {"type": "text"}, "field_021": {"type": "long"},
+                "field_022": {"type": "keyword"}, "field_023": {"type": "keyword"}, "field_024": {"type": "long"},
+                "field_025": {"type": "text"}, "field_026": {"type": "keyword"}, "field_027": {"type": "long"},
+                "field_028": {"type": "keyword"}, "field_029": {"type": "keyword"}, "field_030": {"type": "text"},
+                "field_031": {"type": "keyword"}, "field_032": {"type": "keyword"}, "field_033": {"type": "long"},
+                "field_034": {"type": "keyword"}, "field_035": {"type": "text"}, "field_036": {"type": "long"},
+                "field_037": {"type": "keyword"}, "field_038": {"type": "keyword"}, "field_039": {"type": "long"},
+                "field_040": {"type": "text"}, "field_041": {"type": "keyword"}, "field_042": {"type": "long"},
+                "field_043": {"type": "keyword"}, "field_044": {"type": "keyword"}, "field_045": {"type": "text"},
+                "field_046": {"type": "keyword"}, "field_047": {"type": "keyword"}, "field_048": {"type": "long"},
+                "field_049": {"type": "keyword"}, "field_050": {"type": "text"}, "field_051": {"type": "long"},
+                "field_052": {"type": "keyword"}, "field_053": {"type": "keyword"}, "field_054": {"type": "long"},
+                "field_055": {"type": "text"}, "field_056": {"type": "keyword"}, "field_057": {"type": "long"},
+                "field_058": {"type": "keyword"}, "field_059": {"type": "keyword"}, "field_060": {"type": "text"},
+                "field_061": {"type": "keyword"}, "field_062": {"type": "keyword"}, "field_063": {"type": "long"},
+                "field_064": {"type": "keyword"}, "field_065": {"type": "text"}, "field_066": {"type": "long"},
+                "field_067": {"type": "keyword"}, "field_068": {"type": "keyword"}, "field_069": {"type": "long"},
+                "field_070": {"type": "text"}, "field_071": {"type": "keyword"}, "field_072": {"type": "long"},
+                "field_073": {"type": "keyword"}, "field_074": {"type": "keyword"}, "field_075": {"type": "text"},
+                "field_076": {"type": "keyword"}, "field_077": {"type": "keyword"}, "field_078": {"type": "long"},
+                "field_079": {"type": "keyword"}, "field_080": {"type": "text"}, "field_081": {"type": "long"},
+                "field_082": {"type": "keyword"}, "field_083": {"type": "keyword"}, "field_084": {"type": "long"},
+                "field_085": {"type": "text"}, "field_086": {"type": "keyword"}, "field_087": {"type": "long"},
+                "field_088": {"type": "keyword"}, "field_089": {"type": "keyword"}, "field_090": {"type": "text"},
+                "field_091": {"type": "keyword"}, "field_092": {"type": "keyword"}, "field_093": {"type": "long"},
+                "field_094": {"type": "keyword"}, "field_095": {"type": "text"}, "field_096": {"type": "long"},
+                "field_097": {"type": "keyword"}, "field_098": {"type": "keyword"}, "field_099": {"type": "long"},
+                "field_100": {"type": "text"}, "field_101": {"type": "keyword"}, "field_102": {"type": "long"},
+                "field_103": {"type": "keyword"}, "field_104": {"type": "keyword"}, "field_105": {"type": "text"},
+                "field_106": {"type": "keyword"}, "field_107": {"type": "keyword"}, "field_108": {"type": "long"},
+                "field_109": {"type": "keyword"}, "field_110": {"type": "text"}, "field_111": {"type": "long"},
+                "field_112": {"type": "keyword"}, "field_113": {"type": "text"}, "field_114": {"type": "long"},
+                "field_115": {"type": "text"}, "field_116": {"type": "keyword"}, "field_117": {"type": "long"},
+                "field_118": {"type": "keyword"}, "field_119": {"type": "keyword"}, "field_120": {"type": "text"},
+                "field_121": {"type": "keyword"}, "field_122": {"type": "keyword"}, "field_123": {"type": "long"},
+                "field_124": {"type": "keyword"}, "field_125": {"type": "text"}, "field_126": {"type": "long"},
+                "field_127": {"type": "keyword"}, "field_128": {"type": "keyword"}, "field_129": {"type": "long"},
+                "field_130": {"type": "text"}, "field_131": {"type": "keyword"}, "field_132": {"type": "long"},
+                "field_133": {"type": "keyword"}, "field_134": {"type": "keyword"}, "field_135": {"type": "text"},
+                "field_136": {"type": "keyword"}, "field_137": {"type": "keyword"}, "field_138": {"type": "long"},
+                "field_139": {"type": "keyword"}, "field_140": {"type": "text"}, "field_141": {"type": "long"},
+                "field_142": {"type": "keyword"}, "field_143": {"type": "keyword"}, "field_144": {"type": "long"},
+                "field_145": {"type": "text"}, "field_146": {"type": "keyword"}, "field_147": {"type": "long"},
+                "field_148": {"type": "keyword"}, "field_149": {"type": "keyword"}, "field_150": {"type": "text"},
+                "field_151": {"type": "keyword"}, "field_152": {"type": "keyword"}, "field_153": {"type": "long"},
+                "field_154": {"type": "keyword"}, "field_155": {"type": "text"}, "field_156": {"type": "long"},
+                "field_157": {"type": "keyword"}, "field_158": {"type": "keyword"}, "field_159": {"type": "long"},
+                "field_160": {"type": "text"}, "field_161": {"type": "keyword"}, "field_162": {"type": "long"},
+                "field_163": {"type": "keyword"}, "field_164": {"type": "keyword"}, "field_165": {"type": "text"},
+                "field_166": {"type": "keyword"}, "field_167": {"type": "keyword"}, "field_168": {"type": "long"},
+                "field_169": {"type": "keyword"}, "field_170": {"type": "text"}, "field_171": {"type": "long"},
+                "field_172": {"type": "keyword"}, "field_173": {"type": "keyword"}, "field_174": {"type": "long"},
+                "field_175": {"type": "text"}, "field_176": {"type": "keyword"}, "field_177": {"type": "long"},
+                "field_178": {"type": "keyword"}, "field_179": {"type": "keyword"}, "field_180": {"type": "text"},
+                "field_181": {"type": "keyword"}, "field_182": {"type": "keyword"}, "field_183": {"type": "long"},
+                "field_184": {"type": "keyword"}, "field_185": {"type": "text"}, "field_186": {"type": "long"},
+                "field_187": {"type": "keyword"}, "field_188": {"type": "keyword"}, "field_189": {"type": "long"},
+                "field_190": {"type": "text"}, "field_191": {"type": "keyword"}, "field_192": {"type": "long"},
+                "field_193": {"type": "keyword"}, "field_194": {"type": "keyword"}, "field_195": {"type": "text"},
+                "field_196": {"type": "keyword"}, "field_197": {"type": "keyword"}, "field_198": {"type": "long"},
+                "field_199": {"type": "keyword"}, "field_200": {"type": "text"}, "field_201": {"type": "long"},
+                "field_202": {"type": "keyword"}, "field_203": {"type": "keyword"}, "field_204": {"type": "long"},
+                "field_205": {"type": "text"}, "field_206": {"type": "keyword"}, "field_207": {"type": "long"},
+                "field_208": {"type": "keyword"}, "field_209": {"type": "keyword"}, "field_210": {"type": "text"},
+                "field_211": {"type": "keyword"}, "field_212": {"type": "keyword"}, "field_213": {"type": "long"},
+                "field_214": {"type": "keyword"}, "field_215": {"type": "text"}, "field_216": {"type": "long"},
+                "field_217": {"type": "keyword"}, "field_218": {"type": "keyword"}, "field_219": {"type": "long"},
+                "field_220": {"type": "text"}, "field_221": {"type": "keyword"}, "field_222": {"type": "long"},
+                "field_223": {"type": "keyword"}, "field_224": {"type": "keyword"}, "field_225": {"type": "text"},
+                "field_226": {"type": "keyword"}, "field_227": {"type": "keyword"}, "field_228": {"type": "long"},
+                "field_229": {"type": "keyword"}, "field_230": {"type": "text"}, "field_231": {"type": "long"},
+                "field_232": {"type": "keyword"}, "field_233": {"type": "keyword"}, "field_234": {"type": "long"},
+                "field_235": {"type": "text"}, "field_236": {"type": "keyword"}, "field_237": {"type": "long"},
+                "field_238": {"type": "keyword"}, "field_239": {"type": "keyword"}, "field_240": {"type": "text"},
+                "field_241": {"type": "keyword"}, "field_242": {"type": "keyword"}, "field_243": {"type": "long"},
+                "field_244": {"type": "keyword"}, "field_245": {"type": "text"}, "field_246": {"type": "long"},
+                "field_247": {"type": "keyword"}, "field_248": {"type": "keyword"}, "field_249": {"type": "long"},
+                "field_250": {"type": "text"}, "field_251": {"type": "keyword"}, "field_252": {"type": "long"},
+                "field_253": {"type": "keyword"}, "field_254": {"type": "keyword"}, "field_255": {"type": "text"},
+                "field_256": {"type": "keyword"}, "field_257": {"type": "keyword"}, "field_258": {"type": "long"},
+                "field_259": {"type": "keyword"}, "field_260": {"type": "text"}, "field_261": {"type": "long"},
+                "field_262": {"type": "keyword"}, "field_263": {"type": "keyword"}, "field_264": {"type": "long"},
+                "field_265": {"type": "text"}, "field_266": {"type": "keyword"}, "field_267": {"type": "long"},
+                "field_268": {"type": "keyword"}, "field_269": {"type": "keyword"}, "field_270": {"type": "text"},
+                "field_271": {"type": "keyword"}, "field_272": {"type": "keyword"}, "field_273": {"type": "long"},
+                "field_274": {"type": "keyword"}, "field_275": {"type": "text"}, "field_276": {"type": "long"},
+                "field_277": {"type": "keyword"}, "field_278": {"type": "keyword"}, "field_279": {"type": "long"},
+                "field_280": {"type": "text"}, "field_281": {"type": "keyword"}, "field_282": {"type": "long"},
+                "field_283": {"type": "keyword"}, "field_284": {"type": "keyword"}, "field_285": {"type": "text"},
+                "field_286": {"type": "keyword"}, "field_287": {"type": "keyword"}, "field_288": {"type": "long"},
+                "field_289": {"type": "keyword"}, "field_290": {"type": "text"}, "field_291": {"type": "long"},
+                "field_292": {"type": "keyword"}, "field_293": {"type": "keyword"}, "field_294": {"type": "long"},
+                "field_295": {"type": "text"}, "field_296": {"type": "keyword"}, "field_297": {"type": "long"},
+                "field_298": {"type": "keyword"}, "field_299": {"type": "keyword"}, "field_300": {"type": "text"},
+                "nested_001": {"type": "object", "properties": {"sub_001": {"type": "keyword"}, "sub_002": {"type": "keyword"}, "sub_003": {"type": "long"}, "sub_004": {"type": "text"}}},
+                "nested_002": {"type": "object", "properties": {"sub_001": {"type": "keyword"}, "sub_002": {"type": "keyword"}, "sub_003": {"type": "long"}, "sub_004": {"type": "text"}}},
+                "nested_003": {"type": "object", "properties": {"sub_001": {"type": "keyword"}, "sub_002": {"type": "keyword"}, "sub_003": {"type": "long"}, "sub_004": {"type": "text"}}},
+                "nested_004": {"type": "object", "properties": {"sub_001": {"type": "keyword"}, "sub_002": {"type": "keyword"}, "sub_003": {"type": "long"}, "sub_004": {"type": "text"}}},
+                "nested_005": {"type": "object", "properties": {"sub_001": {"type": "keyword"}, "sub_002": {"type": "keyword"}, "sub_003": {"type": "long"}, "sub_004": {"type": "text"}}},
+                "nested_006": {"type": "object", "properties": {"sub_001": {"type": "keyword"}, "sub_002": {"type": "keyword"}, "sub_003": {"type": "long"}, "sub_004": {"type": "text"}}},
+                "nested_007": {"type": "object", "properties": {"sub_001": {"type": "keyword"}, "sub_002": {"type": "keyword"}, "sub_003": {"type": "long"}, "sub_004": {"type": "text"}}},
+                "nested_008": {"type": "object", "properties": {"sub_001": {"type": "keyword"}, "sub_002": {"type": "keyword"}, "sub_003": {"type": "long"}, "sub_004": {"type": "text"}}},
+                "nested_009": {"type": "object", "properties": {"sub_001": {"type": "keyword"}, "sub_002": {"type": "keyword"}, "sub_003": {"type": "long"}, "sub_004": {"type": "text"}}},
+                "nested_010": {"type": "object", "properties": {"sub_001": {"type": "keyword"}, "sub_002": {"type": "keyword"}, "sub_003": {"type": "long"}, "sub_004": {"type": "text"}}}
+              }
+            }
+          }'
+
+  - do:
+      bulk:
+        index: test_wide_schema
+        refresh: true
+        body:
+          - '{"index":{}}'
+          - '{"activity_name":"login","start_time":"2025-01-14T10:00:00Z","end_time":"2025-01-14T10:05:30Z"}'
+          - '{"index":{}}'
+          - '{"activity_name":"logout","start_time":"2025-01-14T10:10:00Z","end_time":"2025-01-14T10:10:15Z"}'
+          - '{"index":{}}'
+          - '{"activity_name":"file_access","start_time":"2025-01-14T10:15:00Z","end_time":"2025-01-14T10:20:45Z"}'
+          - '{"index":{}}'
+          - '{"activity_name":"api_call","start_time":"2025-01-14T10:25:00Z","end_time":"2025-01-14T10:25:02Z"}'
+          - '{"index":{}}'
+          - '{"activity_name":"login","start_time":"2025-01-14T11:00:00Z","end_time":"2025-01-14T11:03:20Z"}'
+          - '{"index":{}}'
+          - '{"activity_name":"logout","start_time":"2025-01-14T11:05:00Z","end_time":"2025-01-14T11:05:10Z"}'
+          - '{"index":{}}'
+          - '{"activity_name":"file_access","start_time":"2025-01-14T11:10:00Z","end_time":"2025-01-14T11:18:30Z"}'
+          - '{"index":{}}'
+          - '{"activity_name":"api_call","start_time":"2025-01-14T11:20:00Z","end_time":"2025-01-14T11:20:01Z"}'
+          - '{"index":{}}'
+          - '{"activity_name":"login","start_time":"2025-01-14T12:00:00Z","end_time":"2025-01-14T12:04:15Z"}'
+          - '{"index":{}}'
+          - '{"activity_name":"logout","start_time":"2025-01-14T12:10:00Z","end_time":"2025-01-14T12:10:12Z"}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"Query with few required fields on wide schema index should succeed":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_wide_schema | eval start_ts = TIMESTAMP(start_time), end_ts = TIMESTAMP(end_time), duration = TIMESTAMPDIFF(SECOND, start_ts, end_ts) | where duration > 0 | stats count() as cnt by activity_name | sort - cnt | head 5
+  - match: { total: 4 }
+
+---
+"Bin command spans over wide schema should succeed":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_wide_schema | bin start_time span=10minute | stats count() as cnt by start_time
+  - match: { total: 8 }

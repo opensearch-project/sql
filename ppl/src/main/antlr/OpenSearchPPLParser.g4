@@ -19,6 +19,10 @@ pplStatement
    | queryStatement
    ;
 
+subPipeline
+   : PIPE? commands (PIPE commands)*
+   ;
+
 queryStatement
    : (PIPE)? pplCommands (PIPE commands)*
    ;
@@ -54,13 +58,13 @@ commands
    | renameCommand
    | statsCommand
    | eventstatsCommand
+   | streamstatsCommand
    | dedupCommand
    | sortCommand
    | evalCommand
    | headCommand
    | binCommand
-   | topCommand
-   | rareCommand
+   | rareTopCommand
    | grokCommand
    | parseCommand
    | spathCommand
@@ -77,8 +81,10 @@ commands
    | flattenCommand
    | reverseCommand
    | regexCommand
+   | chartCommand
    | timechartCommand
    | rexCommand
+   | appendPipeCommand
    | replaceCommand
    ;
 
@@ -93,6 +99,7 @@ commandName
    | RENAME
    | STATS
    | EVENTSTATS
+   | STREAMSTATS
    | DEDUP
    | SORT
    | EVAL
@@ -118,6 +125,7 @@ commandName
    | APPEND
    | MULTISEARCH
    | REX
+   | APPENDPIPE
    | REPLACE
    ;
 
@@ -218,6 +226,10 @@ statsCommand
    : STATS statsArgs statsAggTerm (COMMA statsAggTerm)* (statsByClause)? (dedupSplitArg)?
    ;
 
+appendPipeCommand
+   : APPENDPIPE LT_SQR_PRTHS subPipeline RT_SQR_PRTHS
+   ;
+
 statsArgs
    : (partitionsArg | allnumArg | delimArg | bucketNullableArg)*
    ;
@@ -246,35 +258,84 @@ eventstatsCommand
    : EVENTSTATS eventstatsAggTerm (COMMA eventstatsAggTerm)* (statsByClause)?
    ;
 
+streamstatsCommand
+   : STREAMSTATS streamstatsArgs streamstatsAggTerm (COMMA streamstatsAggTerm)* (statsByClause)?
+   ;
+
+streamstatsArgs
+   : (currentArg | windowArg | globalArg | resetBeforeArg | resetAfterArg)*
+   ;
+
+currentArg
+   : CURRENT EQUAL current = booleanLiteral
+   ;
+
+windowArg
+   : WINDOW EQUAL window = integerLiteral
+   ;
+
+globalArg
+   : GLOBAL EQUAL global = booleanLiteral
+   ;
+
+resetBeforeArg
+   : RESET_BEFORE EQUAL logicalExpression
+   ;
+
+resetAfterArg
+   : RESET_AFTER EQUAL logicalExpression
+   ;
+
 dedupCommand
    : DEDUP (number = integerLiteral)? fieldList (KEEPEMPTY EQUAL keepempty = booleanLiteral)? (CONSECUTIVE EQUAL consecutive = booleanLiteral)?
    ;
 
 sortCommand
-   : SORT (count = integerLiteral)? sortbyClause (ASC | A | DESC | D)?
+   : SORT (count = integerLiteral)? sortbyClause
    ;
 
 reverseCommand
    : REVERSE
    ;
 
+chartCommand
+  : CHART chartOptions* statsAggTerm (OVER rowSplit)? (BY columnSplit)? chartOptions*
+  | CHART chartOptions* statsAggTerm BY rowSplit (COMMA)? columnSplit chartOptions*
+  ;
+
+chartOptions
+  : LIMIT EQUAL integerLiteral
+  | LIMIT EQUAL (TOP_K | BOTTOM_K)
+  | USEOTHER EQUAL booleanLiteral
+  | OTHERSTR EQUAL stringLiteral
+  | USENULL EQUAL booleanLiteral
+  | NULLSTR EQUAL stringLiteral
+  ;
+
+rowSplit
+  : fieldExpression binOption*
+  ;
+
+columnSplit
+  : fieldExpression binOption*
+  ;
+
 timechartCommand
-   : TIMECHART timechartParameter* statsFunction (BY fieldExpression)?
+   : TIMECHART timechartParameter* statsAggTerm (BY fieldExpression)? timechartParameter*
    ;
 
 timechartParameter
-   : (spanClause | SPAN EQUAL spanLiteral)
-   | timechartArg
-   ;
-
-timechartArg
    : LIMIT EQUAL integerLiteral
+   | SPAN EQUAL spanLiteral
    | USEOTHER EQUAL (booleanLiteral | ident)
    ;
 
 spanLiteral
    : SPANLENGTH
+   | DECIMAL_SPANLENGTH
+   | DOUBLE_LITERAL  // 1.5d can also represent decimal span length
    | INTEGER_LITERAL
+   | DECIMAL_LITERAL
    ;
 
 evalCommand
@@ -313,12 +374,14 @@ logSpanValue
    : LOG_WITH_BASE                                                   # logWithBaseSpan
    ;
 
-topCommand
-   : TOP (number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? fieldList (byClause)?
+rareTopCommand
+   : (TOP | RARE) (number = integerLiteral)? rareTopOption* fieldList (byClause)?
    ;
 
-rareCommand
-   : RARE (number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? fieldList (byClause)?
+rareTopOption
+   : COUNTFIELD EQUAL countField = stringLiteral
+   | SHOWCOUNT EQUAL showCount = booleanLiteral
+   | USENULL EQUAL useNull = booleanLiteral
    ;
 
 grokCommand
@@ -535,19 +598,11 @@ tableSourceClause
    ;
 
 dynamicSourceClause
-   : LT_SQR_PRTHS sourceReferences (COMMA sourceFilterArgs)? RT_SQR_PRTHS
-   ;
-
-sourceReferences
-   : sourceReference (COMMA sourceReference)*
+   : LT_SQR_PRTHS (sourceReference | sourceFilterArg) (COMMA (sourceReference | sourceFilterArg))* RT_SQR_PRTHS
    ;
 
 sourceReference
    : (CLUSTER)? wcQualifiedName
-   ;
-
-sourceFilterArgs
-   : sourceFilterArg (COMMA sourceFilterArg)*
    ;
 
 sourceFilterArg
@@ -625,7 +680,7 @@ bySpanClause
    ;
 
 spanClause
-   : SPAN LT_PRTHS fieldExpression COMMA value = spanLiteral RT_PRTHS
+   : SPAN LT_PRTHS (fieldExpression COMMA)? value = spanLiteral RT_PRTHS
    ;
 
 sortbyClause
@@ -637,6 +692,10 @@ evalClause
    ;
 
 eventstatsAggTerm
+   : windowFunction (AS alias = wcFieldExpression)?
+   ;
+
+streamstatsAggTerm
    : windowFunction (AS alias = wcFieldExpression)?
    ;
 
@@ -715,7 +774,7 @@ percentileApproxFunction
    ;
 
 perFunction
-   : funcName=PER_SECOND LT_PRTHS functionArg RT_PRTHS
+   : funcName=(PER_SECOND | PER_MINUTE | PER_HOUR | PER_DAY) LT_PRTHS functionArg RT_PRTHS
    ;
 
 numericLiteral
@@ -823,7 +882,10 @@ fieldList
    ;
 
 sortField
-   : (PLUS | MINUS)? sortFieldExpression
+   : (PLUS | MINUS) sortFieldExpression (ASC | A | DESC | D)  # invalidMixedSortField
+   | (PLUS | MINUS) sortFieldExpression                  # prefixSortField
+   | sortFieldExpression (ASC | A | DESC | D)            # suffixSortField
+   | sortFieldExpression                                 # defaultSortField
    ;
 
 sortFieldExpression
@@ -857,10 +919,12 @@ evalFunctionCall
    : evalFunctionName LT_PRTHS functionArgs RT_PRTHS
    ;
 
+
 // cast function
 dataTypeFunctionCall
    : CAST LT_PRTHS logicalExpression AS convertedDataType RT_PRTHS
    ;
+
 
 convertedDataType
    : typeName = DATE
@@ -1030,6 +1094,7 @@ collectionFunctionName
     | ARRAY_LENGTH
     | MVAPPEND
     | MVJOIN
+    | MVINDEX
     | FORALL
     | EXISTS
     | FILTER
@@ -1158,6 +1223,7 @@ extractFunctionCall
 
 simpleDateTimePart
    : MICROSECOND
+   | MILLISECOND
    | SECOND
    | MINUTE
    | HOUR
@@ -1202,7 +1268,7 @@ conditionFunctionName
    | ISNULL
    | ISNOTNULL
    | CIDRMATCH
-   | REGEX_MATCH
+   | REGEXP_MATCH
    | JSON_VALID
    | ISPRESENT
    | ISEMPTY
@@ -1226,6 +1292,7 @@ systemFunctionName
 textFunctionName
    : SUBSTR
    | SUBSTRING
+   | TOSTRING
    | TRIM
    | LTRIM
    | RTRIM
@@ -1241,6 +1308,7 @@ textFunctionName
    | LOCATE
    | REPLACE
    | REVERSE
+   | REGEXP_REPLACE
    ;
 
 positionFunctionName
@@ -1336,6 +1404,7 @@ timestampLiteral
 
 intervalUnit
    : MICROSECOND
+   | MILLISECOND
    | SECOND
    | MINUTE
    | HOUR
@@ -1444,6 +1513,7 @@ searchableKeyWord
    | USING
    | VALUE
    | CAST
+   | TOSTRING
    | GET_FORMAT
    | EXTRACT
    | INTERVAL
@@ -1462,7 +1532,13 @@ searchableKeyWord
    | PARTITIONS
    | ALLNUM
    | DELIM
+   | CURRENT
+   | WINDOW
+   | GLOBAL
+   | RESET_BEFORE
+   | RESET_AFTER
    | BUCKET_NULLABLE
+   | USENULL
    | CENTROIDS
    | ITERATIONS
    | DISTANCE_TYPE

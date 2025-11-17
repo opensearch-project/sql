@@ -67,6 +67,7 @@ import org.opensearch.sql.expression.function.udf.RexExtractFunction;
 import org.opensearch.sql.expression.function.udf.RexExtractMultiFunction;
 import org.opensearch.sql.expression.function.udf.RexOffsetFunction;
 import org.opensearch.sql.expression.function.udf.SpanFunction;
+import org.opensearch.sql.expression.function.udf.ToStringFunction;
 import org.opensearch.sql.expression.function.udf.condition.EarliestFunction;
 import org.opensearch.sql.expression.function.udf.condition.EnhancedCoalesceFunction;
 import org.opensearch.sql.expression.function.udf.condition.LatestFunction;
@@ -94,14 +95,13 @@ import org.opensearch.sql.expression.function.udf.datetime.YearweekFunction;
 import org.opensearch.sql.expression.function.udf.ip.CidrMatchFunction;
 import org.opensearch.sql.expression.function.udf.ip.CompareIpFunction;
 import org.opensearch.sql.expression.function.udf.ip.IPFunction;
-import org.opensearch.sql.expression.function.udf.math.CRC32Function;
 import org.opensearch.sql.expression.function.udf.math.ConvFunction;
 import org.opensearch.sql.expression.function.udf.math.DivideFunction;
 import org.opensearch.sql.expression.function.udf.math.EulerFunction;
-import org.opensearch.sql.expression.function.udf.math.MaxFunction;
-import org.opensearch.sql.expression.function.udf.math.MinFunction;
 import org.opensearch.sql.expression.function.udf.math.ModFunction;
 import org.opensearch.sql.expression.function.udf.math.NumberToStringFunction;
+import org.opensearch.sql.expression.function.udf.math.ScalarMaxFunction;
+import org.opensearch.sql.expression.function.udf.math.ScalarMinFunction;
 
 /** Defines functions and operators that are implemented only by PPL */
 public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
@@ -128,12 +128,11 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator E = new EulerFunction().toUDF("E");
   public static final SqlOperator CONV = new ConvFunction().toUDF("CONVERT");
   public static final SqlOperator MOD = new ModFunction().toUDF("MOD");
-  public static final SqlOperator CRC32 = new CRC32Function().toUDF("CRC32");
   public static final SqlOperator DIVIDE = new DivideFunction().toUDF("DIVIDE");
   public static final SqlOperator SHA2 = CryptographicFunction.sha2().toUDF("SHA2");
   public static final SqlOperator CIDRMATCH = new CidrMatchFunction().toUDF("CIDRMATCH");
-  public static final SqlOperator MAX = new MaxFunction().toUDF("MAX");
-  public static final SqlOperator MIN = new MinFunction().toUDF("MIN");
+  public static final SqlOperator SCALAR_MAX = new ScalarMaxFunction().toUDF("SCALAR_MAX");
+  public static final SqlOperator SCALAR_MIN = new ScalarMinFunction().toUDF("SCALAR_MIN");
 
   public static final SqlOperator COSH =
       adaptMathFunctionToUDF(
@@ -413,6 +412,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("multi_match", false);
   public static final SqlOperator NUMBER_TO_STRING =
       new NumberToStringFunction().toUDF("NUMBER_TO_STRING");
+  public static final SqlOperator TOSTRING = new ToStringFunction().toUDF("TOSTRING");
   public static final SqlOperator WIDTH_BUCKET =
       new org.opensearch.sql.expression.function.udf.binning.WidthBucketFunction()
           .toUDF("WIDTH_BUCKET");

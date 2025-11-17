@@ -24,7 +24,10 @@ rare [rare-options] <field-list> [by-clause]
 * rare-options: optional. Options for the rare command. Supported syntax is [countfield=<string>] [showcount=<bool>].
 * showcount=<bool>: optional. Whether to create a field in output that represent a count of the tuple of values. **Default:** ``true``.
 * countfield=<string>: optional. The name of the field that contains count. **Default:** ``'count'``.
+* usenull=<bool>: optional (since 3.4.0). whether to output the null value. **Default:** Determined by ``plugins.ppl.syntax.legacy.preferred``:
 
+    * When ``plugins.ppl.syntax.legacy.preferred=true``, ``usenull`` defaults to ``true``
+    * When ``plugins.ppl.syntax.legacy.preferred=false``, ``usenull`` defaults to ``false``
 
 Example 1: Find the least common values in a field
 ==================================================
@@ -68,8 +71,8 @@ This example shows how to find the least common gender of all the accounts.
 
 PPL query::
 
-    PPL> source=accounts | rare gender;
-    fetched row
+    os> source=accounts | rare gender;
+    fetched rows / total rows = 2/2
     +--------+-------+
     | gender | count |
     |--------+-------|
@@ -85,14 +88,44 @@ This example shows how to specify the count field.
 
 PPL query::
 
-    PPL> source=accounts | rare countfield='cnt' gender;
-    fetched row
+    os> source=accounts | rare countfield='cnt' gender;
+    fetched rows / total rows = 2/2
     +--------+-----+
     | gender | cnt |
     |--------+-----|
     | F      | 1   |
     | M      | 3   |
     +--------+-----+
+
+
+Example 5: Specify the usenull field option
+===========================================
+
+PPL query::
+
+    os> source=accounts | rare usenull=false email;
+    fetched rows / total rows = 3/3
+    +-----------------------+-------+
+    | email                 | count |
+    |-----------------------+-------|
+    | amberduke@pyrami.com  | 1     |
+    | daleadams@boink.com   | 1     |
+    | hattiebond@netagy.com | 1     |
+    +-----------------------+-------+
+
+PPL query::
+
+    os> source=accounts | rare usenull=true email;
+    fetched rows / total rows = 4/4
+    +-----------------------+-------+
+    | email                 | count |
+    |-----------------------+-------|
+    | null                  | 1     |
+    | amberduke@pyrami.com  | 1     |
+    | daleadams@boink.com   | 1     |
+    | hattiebond@netagy.com | 1     |
+    +-----------------------+-------+
+
 
 Limitations
 ===========

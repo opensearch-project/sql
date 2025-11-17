@@ -1,0 +1,12 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[dc(UserID)]"
+  children:
+    - name: OpenSearchIndexScan
+      description:
+        request: "OpenSearchQueryRequest(indexName=hits, sourceBuilder={\"from\":0,\"\
+          size\":0,\"timeout\":\"1m\",\"aggregations\":{\"dc(UserID)\":{\"cardinality\"\
+          :{\"field\":\"UserID\"}}}}, needClean=true, searchDone=false, pitId=*,\
+          \ cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
+      children: []

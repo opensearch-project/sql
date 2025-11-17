@@ -174,6 +174,34 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testStreamstatsCommandWithByClause() {
+    assertEquals(
+        "source=table | streamstats count(identifier) by identifier",
+        anonymize("source=t | streamstats count(a) by b"));
+  }
+
+  @Test
+  public void testStreamstatsCommandWithWindowAndCurrent() {
+    assertEquals(
+        "source=table | streamstats max(identifier)",
+        anonymize("source=t | streamstats current=false window=2 max(a)"));
+  }
+
+  @Test
+  public void testStreamstatsCommandWithNestedFunctions() {
+    assertEquals(
+        "source=table | streamstats sum(+(identifier,identifier))",
+        anonymize("source=t | streamstats sum(a+b)"));
+  }
+
+  @Test
+  public void testStreamstatsCommandWithSpanFunction() {
+    assertEquals(
+        "source=table | streamstats count(identifier) by span(identifier, *** d),identifier",
+        anonymize("source=t | streamstats count(a) by span(b, 1d), c"));
+  }
+
+  @Test
   public void testBinCommandBasic() {
     assertEquals("source=table | bin identifier span=***", anonymize("source=t | bin f span=10"));
   }
@@ -227,9 +255,37 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testTimechartCommand() {
     assertEquals(
-        "source=table | timechart span=span(identifier, *** m) limit=10 useother=true count() by"
+        "source=table | timechart limit=*** useother=*** count() by span(identifier, *** m)"
             + " identifier",
         anonymize("source=t | timechart count() by host"));
+  }
+
+  @Test
+  public void testChartCommand() {
+    assertEquals(
+        "source=table | chart count(identifier) by identifier identifier",
+        anonymize("source=t | chart count(age) by gender country"));
+  }
+
+  @Test
+  public void testChartCommandWithParameters() {
+    assertEquals(
+        "source=table | chart limit=*** useother=*** avg(identifier) by identifier",
+        anonymize("source=t | chart limit=5 useother=false avg(balance) by state"));
+  }
+
+  @Test
+  public void testChartCommandOver() {
+    assertEquals(
+        "source=table | chart avg(identifier) by identifier",
+        anonymize("source=t | chart avg(balance) over gender"));
+  }
+
+  @Test
+  public void testChartCommandOverBy() {
+    assertEquals(
+        "source=table | chart sum(identifier) by identifier identifier",
+        anonymize("source=t | chart sum(amount) over gender by age"));
   }
 
   // todo, sort order is ignored, it doesn't impact the log analysis.
@@ -311,7 +367,8 @@ public class PPLQueryDataAnonymizerTest {
   public void testRareCommandWithGroupByWithCalcite() {
     when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
     assertEquals(
-        "source=table | rare 10 countield='count' showcount=true identifier by identifier",
+        "source=table | rare 10 countield='count' showcount=true usenull=true identifier by"
+            + " identifier",
         anonymize("source=t | rare a by b"));
   }
 
@@ -319,7 +376,8 @@ public class PPLQueryDataAnonymizerTest {
   public void testTopCommandWithNAndGroupByWithCalcite() {
     when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
     assertEquals(
-        "source=table | top 1 countield='count' showcount=true identifier by identifier",
+        "source=table | top 1 countield='count' showcount=true usenull=true identifier by"
+            + " identifier",
         anonymize("source=t | top 1 a by b"));
   }
 
@@ -696,6 +754,19 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testAppendPipe() {
+    assertEquals(
+        "source=table | appendpipe [ | stats count()]",
+        anonymize("source=t | appendpipe [stats count()]"));
+    assertEquals(
+        "source=table | appendpipe [ | where identifier = ***]",
+        anonymize("source=t | appendpipe [where fieldname=='pattern']"));
+    assertEquals(
+        "source=table | appendpipe [ | sort identifier]",
+        anonymize("source=t | appendpipe [sort fieldname]"));
+  }
+
+  @Test
   public void testRexCommand() {
     when(settings.getSettingValue(Key.PPL_REX_MAX_MATCH_LIMIT)).thenReturn(10);
 
@@ -736,6 +807,19 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=table | eval identifier=mvappend(identifier,***,***) | fields + identifier",
         anonymize("source=t | eval result=mvappend(a, 'b', 'c') | fields result"));
+  }
+
+  @Test
+  public void testMvindex() {
+    // Test mvindex with single element access
+    assertEquals(
+        "source=table | eval identifier=mvindex(array(***,***,***),***) | fields + identifier",
+        anonymize("source=t | eval result=mvindex(array('a', 'b', 'c'), 1) | fields result"));
+    // Test mvindex with range access
+    assertEquals(
+        "source=table | eval identifier=mvindex(array(***,***,***,***,***),***,***) | fields +"
+            + " identifier",
+        anonymize("source=t | eval result=mvindex(array(1, 2, 3, 4, 5), 1, 3) | fields result"));
   }
 
   @Test
