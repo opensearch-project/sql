@@ -7,7 +7,8 @@ package org.opensearch.sql.calcite.utils.binning.handlers;
 
 import org.apache.calcite.rex.RexNode;
 import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 /** Helper for creating numeric span expressions. */
 public class NumericSpanHelper {
@@ -32,6 +33,7 @@ public class NumericSpanHelper {
       RexNode fieldExpr, RexNode spanValue, CalcitePlanContext context) {
 
     // SPAN_BUCKET(field_value, span_value)
-    return context.rexBuilder.makeCall(PPLBuiltinOperators.SPAN_BUCKET, fieldExpr, spanValue);
+    return PPLFuncImpTable.INSTANCE.resolve(
+        context.rexBuilder, BuiltinFunctionName.SPAN_BUCKET, fieldExpr, spanValue);
   }
 }

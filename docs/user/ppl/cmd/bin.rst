@@ -16,13 +16,13 @@ bin
 
 Description
 ============
-| The ``bin`` command groups numeric values into buckets of equal intervals, making it useful for creating histograms and analyzing data distribution. It takes a numeric field and generates a new field with values that represent the lower bound of each bucket.
+| The ``bin`` command groups numeric values into buckets of equal intervals, making it useful for creating histograms and analyzing data distribution. It takes a numeric or time-based field and generates a new field with values that represent the lower bound of each bucket.
 
 Syntax
 ============
 bin <field> [span=<interval>] [minspan=<interval>] [bins=<count>] [aligntime=(earliest | latest | <time-specifier>)] [start=<value>] [end=<value>]
 
-* field: mandatory. The numeric field to bin.
+* field: mandatory. The field to bin. Accepts numeric or time-based fields.
 * span: optional. The interval size for each bin. Cannot be used with bins or minspan parameters.
 * minspan: optional. The minimum interval size for automatic span calculation. Cannot be used with span or bins parameters.
 * bins: optional. The maximum number of equal-width bins to create. Cannot be used with span or minspan parameters.
@@ -529,4 +529,19 @@ PPL query::
     | 36.0-37.0 | 6              |
     | 28.0-29.0 | 13             |
     +-----------+----------------+
+
+
+Example 20: Binning with string fields
+==============================================
+
+PPL query::
+
+    os> source=accounts | eval age_str = CAST(age AS STRING) | bin age_str bins=3 | stats count() by age_str | sort age_str;
+    fetched rows / total rows = 2/2
+    +---------+---------+
+    | count() | age_str |
+    |---------+---------|
+    | 1       | 20-30   |
+    | 3       | 30-40   |
+    +---------+---------+
 

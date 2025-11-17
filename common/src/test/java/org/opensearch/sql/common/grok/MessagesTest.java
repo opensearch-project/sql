@@ -29,7 +29,6 @@ public class MessagesTest {
         new BufferedReader(
             new FileReader(Resources.getResource(ResourceManager.MESSAGES).getFile()));
     String line;
-    System.out.println("Starting test with linux messages log -- may take a while");
     while ((line = br.readLine()) != null) {
       Match gm = grok.match(line);
       Map<String, Object> map = gm.capture();

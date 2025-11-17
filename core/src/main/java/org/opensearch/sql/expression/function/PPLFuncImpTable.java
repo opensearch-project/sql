@@ -17,6 +17,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADDTIME
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.AND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY_LENGTH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY_SLICE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASCII;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ATAN;
@@ -83,7 +84,6 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNA
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PARSE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PATTERN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PATTERN_PARSER;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_3;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_5;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_PG_4;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_TRANSLATE3;
@@ -136,6 +136,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MD5;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MEDIAN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MICROSECOND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MIN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINSPAN_BUCKET;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE_OF_DAY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINUTE_OF_HOUR;
@@ -149,6 +150,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPL
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLYFUNCTION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTI_MATCH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVAPPEND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVINDEX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVJOIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOTEQUAL;
@@ -166,9 +168,10 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.QUARTER
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.QUERY_STRING;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RADIANS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RAND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RANGE_BUCKET;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REDUCE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEXP;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEX_MATCH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEXP_MATCH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REPLACE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REVERSE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REX_EXTRACT;
@@ -189,6 +192,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIMPLE_
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SINH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SPAN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SPAN_BUCKET;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SQRT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_POP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_SAMP;
@@ -211,6 +215,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTA
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMPDIFF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME_FORMAT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME_TO_SEC;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TOSTRING;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TO_DAYS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TO_SECONDS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TRANSFORM;
@@ -229,6 +234,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEK;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEKDAY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEKOFYEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEK_OF_YEAR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.WIDTH_BUCKET;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.XOR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEARWEEK;
@@ -278,6 +284,7 @@ import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.expression.function.CollectionUDF.MVIndexFunctionImp;
 
 public class PPLFuncImpTable {
   private static final Logger logger = LogManager.getLogger(PPLFuncImpTable.class);
@@ -706,6 +713,11 @@ public class PPLFuncImpTable {
           SUBTRACT,
           SqlStdOperatorTable.MINUS,
           PPLTypeChecker.wrapFamily((FamilyOperandTypeChecker) OperandTypes.NUMERIC_NUMERIC));
+      // Add DATETIME-DATETIME variant for timestamp binning support
+      registerOperator(
+          SUBTRACT,
+          SqlStdOperatorTable.MINUS,
+          PPLTypeChecker.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME));
       registerOperator(MULTIPLY, SqlStdOperatorTable.MULTIPLY);
       registerOperator(MULTIPLYFUNCTION, SqlStdOperatorTable.MULTIPLY);
       registerOperator(TRUNCATE, SqlStdOperatorTable.TRUNCATE);
@@ -822,7 +834,7 @@ public class PPLFuncImpTable {
 
       // Register library operator
       registerOperator(REGEXP, SqlLibraryOperators.REGEXP);
-      registerOperator(REGEX_MATCH, SqlLibraryOperators.REGEXP_CONTAINS);
+      registerOperator(REGEXP_MATCH, SqlLibraryOperators.REGEXP_CONTAINS);
       registerOperator(CONCAT, SqlLibraryOperators.CONCAT_FUNCTION);
       registerOperator(CONCAT_WS, SqlLibraryOperators.CONCAT_WS);
       registerOperator(CONCAT_WS, SqlLibraryOperators.CONCAT_WS);
@@ -833,14 +845,13 @@ public class PPLFuncImpTable {
       registerOperator(MD5, SqlLibraryOperators.MD5);
       registerOperator(SHA1, SqlLibraryOperators.SHA1);
       registerOperator(CRC32, SqlLibraryOperators.CRC32);
-      registerOperator(INTERNAL_REGEXP_REPLACE_3, SqlLibraryOperators.REGEXP_REPLACE_3);
       registerOperator(INTERNAL_REGEXP_REPLACE_PG_4, SqlLibraryOperators.REGEXP_REPLACE_PG_4);
       registerOperator(INTERNAL_REGEXP_REPLACE_5, SqlLibraryOperators.REGEXP_REPLACE_5);
       registerOperator(INTERNAL_TRANSLATE3, SqlLibraryOperators.TRANSLATE3);
 
       // Register eval functions for PPL max() and min() calls
-      registerOperator(MAX, PPLBuiltinOperators.MAX);
-      registerOperator(MIN, PPLBuiltinOperators.MIN);
+      registerOperator(MAX, PPLBuiltinOperators.SCALAR_MAX);
+      registerOperator(MIN, PPLBuiltinOperators.SCALAR_MIN);
 
       // Register PPL UDF operator
       registerOperator(COSH, PPLBuiltinOperators.COSH);
@@ -848,6 +859,10 @@ public class PPLFuncImpTable {
       registerOperator(EXPM1, PPLBuiltinOperators.EXPM1);
       registerOperator(RINT, PPLBuiltinOperators.RINT);
       registerOperator(SPAN, PPLBuiltinOperators.SPAN);
+      registerOperator(SPAN_BUCKET, PPLBuiltinOperators.SPAN_BUCKET);
+      registerOperator(WIDTH_BUCKET, PPLBuiltinOperators.WIDTH_BUCKET);
+      registerOperator(MINSPAN_BUCKET, PPLBuiltinOperators.MINSPAN_BUCKET);
+      registerOperator(RANGE_BUCKET, PPLBuiltinOperators.RANGE_BUCKET);
       registerOperator(E, PPLBuiltinOperators.E);
       registerOperator(CONV, PPLBuiltinOperators.CONV);
       registerOperator(MOD, PPLBuiltinOperators.MOD);
@@ -944,6 +959,13 @@ public class PPLFuncImpTable {
       registerOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK);
 
       registerOperator(INTERNAL_PATTERN_PARSER, PPLBuiltinOperators.PATTERN_PARSER);
+      registerOperator(TOSTRING, PPLBuiltinOperators.TOSTRING);
+      register(
+          TOSTRING,
+          (FunctionImp1)
+              (builder, source) ->
+                  builder.makeCast(TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, true), source),
+          PPLTypeChecker.family(SqlTypeFamily.ANY));
 
       // Register MVJOIN to use Calcite's ARRAY_JOIN
       register(
@@ -953,12 +975,25 @@ public class PPLFuncImpTable {
                   builder.makeCall(SqlLibraryOperators.ARRAY_JOIN, array, delimiter),
           PPLTypeChecker.family(SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER));
 
+      // Register MVINDEX to use Calcite's ITEM/ARRAY_SLICE with index normalization
+      register(
+          MVINDEX,
+          new MVIndexFunctionImp(),
+          PPLTypeChecker.wrapComposite(
+              (CompositeOperandTypeChecker)
+                  OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.INTEGER)
+                      .or(
+                          OperandTypes.family(
+                              SqlTypeFamily.ARRAY, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER)),
+              false));
+
       registerOperator(ARRAY, PPLBuiltinOperators.ARRAY);
       registerOperator(MVAPPEND, PPLBuiltinOperators.MVAPPEND);
       registerOperator(MAP_APPEND, PPLBuiltinOperators.MAP_APPEND);
       registerOperator(MAP_CONCAT, SqlLibraryOperators.MAP_CONCAT);
       registerOperator(MAP_REMOVE, PPLBuiltinOperators.MAP_REMOVE);
       registerOperator(ARRAY_LENGTH, SqlLibraryOperators.ARRAY_LENGTH);
+      registerOperator(ARRAY_SLICE, SqlLibraryOperators.ARRAY_SLICE);
       registerOperator(FORALL, PPLBuiltinOperators.FORALL);
       registerOperator(EXISTS, PPLBuiltinOperators.EXISTS);
       registerOperator(FILTER, PPLBuiltinOperators.FILTER);
@@ -1112,6 +1147,7 @@ public class PPLFuncImpTable {
                               SqlTypeFamily.INTEGER,
                               SqlTypeFamily.INTEGER)),
               false));
+
       register(
           LOG,
           (FunctionImp2)

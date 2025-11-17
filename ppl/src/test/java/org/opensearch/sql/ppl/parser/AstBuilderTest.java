@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
+import static org.opensearch.sql.ast.dsl.AstDSL.appendPipe;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
@@ -67,6 +68,7 @@ import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.dsl.AstDSL;
+import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
@@ -74,11 +76,11 @@ import org.opensearch.sql.ast.expression.PatternMethod;
 import org.opensearch.sql.ast.expression.PatternMode;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
+import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Search;
-import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings;
@@ -1003,6 +1005,20 @@ public class AstBuilderTest {
         fillNull(relation("t"), intLiteral(0), true, field("a"), field("b"), field("c")));
   }
 
+  @Test
+  public void testAppendPipe() {
+    assertEqual(
+        "source=t | appendpipe [ stats COUNT() ]",
+        appendPipe(
+            relation("t"),
+            agg(
+                null,
+                exprList(alias("COUNT()", aggregate("count", AstDSL.allFields()))),
+                emptyList(),
+                emptyList(),
+                defaultStatsArgs())));
+  }
+
   public void testTrendline() {
     assertEqual(
         "source=t | trendline sma(5, test_field) as test_field_alias sma(1, test_field_2) as"
@@ -1229,10 +1245,17 @@ public class AstBuilderTest {
     assertEqual(
         "source=t | timechart per_second(a)",
         eval(
-            new Timechart(relation("t"), alias("per_second(a)", aggregate("sum", field("a"))))
-                .span(span(field("@timestamp"), intLiteral(1), SpanUnit.of("m")))
-                .limit(10)
-                .useOther(true),
+            Chart.builder()
+                .child(relation("t"))
+                .rowSplit(
+                    alias("@timestamp", span(field("@timestamp"), intLiteral(1), SpanUnit.of("m"))))
+                .columnSplit(null)
+                .aggregationFunction(alias("per_second(a)", aggregate("sum", field("a"))))
+                .arguments(
+                    exprList(
+                        argument("limit", intLiteral(10)),
+                        argument("useother", booleanLiteral(true))))
+                .build(),
             let(
                 field("per_second(a)"),
                 function(
@@ -1254,10 +1277,17 @@ public class AstBuilderTest {
     assertEqual(
         "source=t | timechart per_minute(a)",
         eval(
-            new Timechart(relation("t"), alias("per_minute(a)", aggregate("sum", field("a"))))
-                .span(span(field("@timestamp"), intLiteral(1), SpanUnit.of("m")))
-                .limit(10)
-                .useOther(true),
+            Chart.builder()
+                .child(relation("t"))
+                .rowSplit(
+                    alias("@timestamp", span(field("@timestamp"), intLiteral(1), SpanUnit.of("m"))))
+                .columnSplit(null)
+                .aggregationFunction(alias("per_minute(a)", aggregate("sum", field("a"))))
+                .arguments(
+                    exprList(
+                        argument("limit", intLiteral(10)),
+                        argument("useother", booleanLiteral(true))))
+                .build(),
             let(
                 field("per_minute(a)"),
                 function(
@@ -1279,10 +1309,17 @@ public class AstBuilderTest {
     assertEqual(
         "source=t | timechart per_hour(a)",
         eval(
-            new Timechart(relation("t"), alias("per_hour(a)", aggregate("sum", field("a"))))
-                .span(span(field("@timestamp"), intLiteral(1), SpanUnit.of("m")))
-                .limit(10)
-                .useOther(true),
+            Chart.builder()
+                .child(relation("t"))
+                .rowSplit(
+                    alias("@timestamp", span(field("@timestamp"), intLiteral(1), SpanUnit.of("m"))))
+                .columnSplit(null)
+                .aggregationFunction(alias("per_hour(a)", aggregate("sum", field("a"))))
+                .arguments(
+                    exprList(
+                        argument("limit", intLiteral(10)),
+                        argument("useother", booleanLiteral(true))))
+                .build(),
             let(
                 field("per_hour(a)"),
                 function(
@@ -1304,10 +1341,17 @@ public class AstBuilderTest {
     assertEqual(
         "source=t | timechart per_day(a)",
         eval(
-            new Timechart(relation("t"), alias("per_day(a)", aggregate("sum", field("a"))))
-                .span(span(field("@timestamp"), intLiteral(1), SpanUnit.of("m")))
-                .limit(10)
-                .useOther(true),
+            Chart.builder()
+                .child(relation("t"))
+                .rowSplit(
+                    alias("@timestamp", span(field("@timestamp"), intLiteral(1), SpanUnit.of("m"))))
+                .columnSplit(null)
+                .aggregationFunction(alias("per_day(a)", aggregate("sum", field("a"))))
+                .arguments(
+                    exprList(
+                        argument("limit", intLiteral(10)),
+                        argument("useother", booleanLiteral(true))))
+                .build(),
             let(
                 field("per_day(a)"),
                 function(
@@ -1497,5 +1541,99 @@ public class AstBuilderTest {
   public void testReplaceCommandWithMultiplePairs() {
     // Test multiple pattern/replacement pairs
     plan("source=t | replace 'a' WITH 'A', 'b' WITH 'B' IN field");
+  }
+
+  @Test
+  public void testChartCommandBasic() {
+    assertEqual(
+        "source=t | chart count() by age",
+        Chart.builder()
+            .child(relation("t"))
+            .columnSplit(alias("age", field("age")))
+            .aggregationFunction(alias("count()", aggregate("count", AllFields.of())))
+            .arguments(emptyList())
+            .build());
+  }
+
+  @Test
+  public void testChartCommandWithRowSplit() {
+    assertEqual(
+        "source=t | chart count() over status by age",
+        Chart.builder()
+            .child(relation("t"))
+            .rowSplit(alias("status", field("status")))
+            .columnSplit(alias("age", field("age")))
+            .aggregationFunction(alias("count()", aggregate("count", AllFields.of())))
+            .arguments(emptyList())
+            .build());
+  }
+
+  @Test
+  public void testChartCommandWithOptions() {
+    assertEqual(
+        "source=t | chart limit=10 useother=true count() by status",
+        Chart.builder()
+            .child(relation("t"))
+            .columnSplit(alias("status", field("status")))
+            .aggregationFunction(alias("count()", aggregate("count", AllFields.of())))
+            .arguments(
+                exprList(
+                    argument("limit", intLiteral(10)),
+                    argument("top", booleanLiteral(true)),
+                    argument("useother", booleanLiteral(true))))
+            .build());
+  }
+
+  @Test
+  public void testChartCommandWithAllOptions() {
+    assertEqual(
+        "source=t | chart limit=top5 useother=false otherstr='OTHER' usenull=true nullstr='NULL'"
+            + " avg(balance) by gender",
+        Chart.builder()
+            .child(relation("t"))
+            .columnSplit(alias("gender", field("gender")))
+            .aggregationFunction(alias("avg(balance)", aggregate("avg", field("balance"))))
+            .arguments(
+                exprList(
+                    argument("limit", intLiteral(5)),
+                    argument("top", booleanLiteral(true)),
+                    argument("useother", booleanLiteral(false)),
+                    argument("otherstr", stringLiteral("OTHER")),
+                    argument("usenull", booleanLiteral(true)),
+                    argument("nullstr", stringLiteral("NULL"))))
+            .build());
+  }
+
+  @Test
+  public void testChartCommandWithBottomLimit() {
+    assertEqual(
+        "source=t | chart limit=bottom3 count() by category",
+        Chart.builder()
+            .child(relation("t"))
+            .columnSplit(alias("category", field("category")))
+            .aggregationFunction(alias("count()", aggregate("count", AllFields.of())))
+            .arguments(
+                exprList(argument("limit", intLiteral(3)), argument("top", booleanLiteral(false))))
+            .build());
+  }
+
+  @Test
+  public void testTimeSpanWithDecimalShouldThrow() {
+    Throwable t1 =
+        assertThrows(
+            IllegalArgumentException.class, () -> plan("source=t | timechart  span=1.5d count"));
+    assertTrue(
+        t1.getMessage()
+            .contains(
+                "Span length [1.5d] is invalid: floating-point time intervals are not supported."));
+
+    Throwable t2 =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> plan("source=t | stats count by span(@timestamp, 2.5y)"));
+    assertTrue(
+        t2.getMessage()
+            .contains(
+                "Span length [2.5y] is invalid: floating-point time intervals are not supported."));
   }
 }

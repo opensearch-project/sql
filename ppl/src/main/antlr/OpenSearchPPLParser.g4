@@ -19,6 +19,10 @@ pplStatement
    | queryStatement
    ;
 
+subPipeline
+   : PIPE? commands (PIPE commands)*
+   ;
+
 queryStatement
    : (PIPE)? pplCommands (PIPE commands)*
    ;
@@ -54,6 +58,7 @@ commands
    | renameCommand
    | statsCommand
    | eventstatsCommand
+   | streamstatsCommand
    | dedupCommand
    | sortCommand
    | evalCommand
@@ -76,8 +81,10 @@ commands
    | flattenCommand
    | reverseCommand
    | regexCommand
+   | chartCommand
    | timechartCommand
    | rexCommand
+   | appendPipeCommand
    | replaceCommand
    ;
 
@@ -92,6 +99,7 @@ commandName
    | RENAME
    | STATS
    | EVENTSTATS
+   | STREAMSTATS
    | DEDUP
    | SORT
    | EVAL
@@ -117,6 +125,7 @@ commandName
    | APPEND
    | MULTISEARCH
    | REX
+   | APPENDPIPE
    | REPLACE
    ;
 
@@ -217,6 +226,10 @@ statsCommand
    : STATS statsArgs statsAggTerm (COMMA statsAggTerm)* (statsByClause)? (dedupSplitArg)?
    ;
 
+appendPipeCommand
+   : APPENDPIPE LT_SQR_PRTHS subPipeline RT_SQR_PRTHS
+   ;
+
 statsArgs
    : (partitionsArg | allnumArg | delimArg | bucketNullableArg)*
    ;
@@ -245,6 +258,34 @@ eventstatsCommand
    : EVENTSTATS eventstatsAggTerm (COMMA eventstatsAggTerm)* (statsByClause)?
    ;
 
+streamstatsCommand
+   : STREAMSTATS streamstatsArgs streamstatsAggTerm (COMMA streamstatsAggTerm)* (statsByClause)?
+   ;
+
+streamstatsArgs
+   : (currentArg | windowArg | globalArg | resetBeforeArg | resetAfterArg)*
+   ;
+
+currentArg
+   : CURRENT EQUAL current = booleanLiteral
+   ;
+
+windowArg
+   : WINDOW EQUAL window = integerLiteral
+   ;
+
+globalArg
+   : GLOBAL EQUAL global = booleanLiteral
+   ;
+
+resetBeforeArg
+   : RESET_BEFORE EQUAL logicalExpression
+   ;
+
+resetAfterArg
+   : RESET_AFTER EQUAL logicalExpression
+   ;
+
 dedupCommand
    : DEDUP (number = integerLiteral)? fieldList (KEEPEMPTY EQUAL keepempty = booleanLiteral)? (CONSECUTIVE EQUAL consecutive = booleanLiteral)?
    ;
@@ -257,8 +298,30 @@ reverseCommand
    : REVERSE
    ;
 
+chartCommand
+  : CHART chartOptions* statsAggTerm (OVER rowSplit)? (BY columnSplit)? chartOptions*
+  | CHART chartOptions* statsAggTerm BY rowSplit (COMMA)? columnSplit chartOptions*
+  ;
+
+chartOptions
+  : LIMIT EQUAL integerLiteral
+  | LIMIT EQUAL (TOP_K | BOTTOM_K)
+  | USEOTHER EQUAL booleanLiteral
+  | OTHERSTR EQUAL stringLiteral
+  | USENULL EQUAL booleanLiteral
+  | NULLSTR EQUAL stringLiteral
+  ;
+
+rowSplit
+  : fieldExpression binOption*
+  ;
+
+columnSplit
+  : fieldExpression binOption*
+  ;
+
 timechartCommand
-   : TIMECHART timechartParameter* statsFunction (BY fieldExpression)?
+   : TIMECHART timechartParameter* statsAggTerm (BY fieldExpression)? timechartParameter*
    ;
 
 timechartParameter
@@ -269,7 +332,10 @@ timechartParameter
 
 spanLiteral
    : SPANLENGTH
+   | DECIMAL_SPANLENGTH
+   | DOUBLE_LITERAL  // 1.5d can also represent decimal span length
    | INTEGER_LITERAL
+   | DECIMAL_LITERAL
    ;
 
 evalCommand
@@ -629,6 +695,10 @@ eventstatsAggTerm
    : windowFunction (AS alias = wcFieldExpression)?
    ;
 
+streamstatsAggTerm
+   : windowFunction (AS alias = wcFieldExpression)?
+   ;
+
 windowFunction
    : windowFunctionName LT_PRTHS functionArgs RT_PRTHS
    ;
@@ -849,10 +919,12 @@ evalFunctionCall
    : evalFunctionName LT_PRTHS functionArgs RT_PRTHS
    ;
 
+
 // cast function
 dataTypeFunctionCall
    : CAST LT_PRTHS logicalExpression AS convertedDataType RT_PRTHS
    ;
+
 
 convertedDataType
    : typeName = DATE
@@ -1022,6 +1094,7 @@ collectionFunctionName
     | ARRAY_LENGTH
     | MVAPPEND
     | MVJOIN
+    | MVINDEX
     | FORALL
     | EXISTS
     | FILTER
@@ -1195,7 +1268,7 @@ conditionFunctionName
    | ISNULL
    | ISNOTNULL
    | CIDRMATCH
-   | REGEX_MATCH
+   | REGEXP_MATCH
    | JSON_VALID
    | ISPRESENT
    | ISEMPTY
@@ -1219,6 +1292,7 @@ systemFunctionName
 textFunctionName
    : SUBSTR
    | SUBSTRING
+   | TOSTRING
    | TRIM
    | LTRIM
    | RTRIM
@@ -1234,6 +1308,7 @@ textFunctionName
    | LOCATE
    | REPLACE
    | REVERSE
+   | REGEXP_REPLACE
    ;
 
 positionFunctionName
@@ -1438,6 +1513,7 @@ searchableKeyWord
    | USING
    | VALUE
    | CAST
+   | TOSTRING
    | GET_FORMAT
    | EXTRACT
    | INTERVAL
@@ -1456,6 +1532,11 @@ searchableKeyWord
    | PARTITIONS
    | ALLNUM
    | DELIM
+   | CURRENT
+   | WINDOW
+   | GLOBAL
+   | RESET_BEFORE
+   | RESET_AFTER
    | BUCKET_NULLABLE
    | USENULL
    | CENTROIDS

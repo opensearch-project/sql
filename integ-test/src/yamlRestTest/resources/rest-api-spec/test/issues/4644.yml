@@ -1,0 +1,88 @@
+setup:
+  - do:
+      indices.create:
+        index: timechart-eval-bug
+        body:
+          mappings:
+            properties:
+              "@timestamp":
+                type: date
+              "user":
+                type: keyword
+  - do:
+      bulk:
+        index: timechart-eval-bug
+        refresh: true
+        body:
+          - '{"index":{}}'
+          - '{"@timestamp":"2024-05-01T00:15:00Z","user":"alice"}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2024-05-01T00:30:00Z","user":"bob"}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2024-05-02T00:45:00Z","user":"alice"}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2024-05-03T00:20:00Z","user":"bob"}'
+
+---
+"timechart with eval on @timestamp field":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=timechart-eval-bug | where HOUR(@timestamp) = 0 | timechart span=1d COUNT() by user | eval copyTimestamp = @timestamp
+
+  - match: { total: 4 }
+  - match: { "schema": [ { "name": "@timestamp", "type": "timestamp" }, { "name": "user", "type": "string" }, { "name": "COUNT()", "type": "bigint" }, { "name": "copyTimestamp", "type": "timestamp" }] }
+  - match: {"datarows": [["2024-05-01 00:00:00", "alice", 1, "2024-05-01 00:00:00"], ["2024-05-01 00:00:00", "bob", 1, "2024-05-01 00:00:00"], ["2024-05-02 00:00:00", "alice", 1, "2024-05-02 00:00:00"], ["2024-05-03 00:00:00", "bob", 1, "2024-05-03 00:00:00"]]}
+
+---
+"timechart with eval on by field":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=timechart-eval-bug | where HOUR(@timestamp) = 0 | timechart span=1d COUNT() by user | eval copyUser = user
+
+  - match: { total: 4 }
+  - match: { "schema": [ { "name": "@timestamp", "type": "timestamp" }, { "name": "user", "type": "string" }, { "name": "COUNT()", "type": "bigint" }, { "name": "copyUser", "type": "string" }] }
+  - match: {"datarows": [["2024-05-01 00:00:00", "alice", 1, "alice"], ["2024-05-01 00:00:00", "bob", 1, "bob"], ["2024-05-02 00:00:00", "alice", 1, "alice"], ["2024-05-03 00:00:00", "bob", 1, "bob"]]}
+
+---
+"timechart with eval on aggregated field":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=timechart-eval-bug | where HOUR(@timestamp) = 0 | timechart span=1d COUNT() by user | eval doubleCount = `COUNT()` * 2
+
+  - match: { total: 4 }
+  - match: { "schema": [ { "name": "@timestamp", "type": "timestamp" }, { "name": "user", "type": "string" }, { "name": "COUNT()", "type": "bigint" }, { "name": "doubleCount", "type": "bigint" }] }
+  - match: {"datarows": [["2024-05-01 00:00:00", "alice", 1, 2], ["2024-05-01 00:00:00", "bob", 1, 2], ["2024-05-02 00:00:00", "alice", 1, 2], ["2024-05-03 00:00:00", "bob", 1, 2]]}
+
+---
+"timechart with DATE_FORMAT on @timestamp":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=timechart-eval-bug | where HOUR(@timestamp) = 0 | timechart span=1d COUNT() by user | eval formatted_date = DATE_FORMAT(@timestamp, 'yyyy-MM-dd')
+
+  - match: { total: 4 }
+  - match: { "schema": [ { "name": "@timestamp", "type": "timestamp" }, { "name": "user", "type": "string" }, { "name": "COUNT()", "type": "bigint" }, { "name": "formatted_date", "type": "string" }] }
+  - match: {"datarows": [["2024-05-01 00:00:00", "alice", 1, "2024-05-01"], ["2024-05-01 00:00:00", "bob", 1, "2024-05-01"], ["2024-05-02 00:00:00", "alice", 1, "2024-05-02"], ["2024-05-03 00:00:00", "bob", 1, "2024-05-03"]]}
