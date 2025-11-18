@@ -152,7 +152,8 @@ public class AggregateAnalyzer {
                 .getReferenceForTermQuery());
       } else if (node instanceof RexCall || node instanceof RexLiteral) {
         return scriptBuilder.apply(
-            (new PredicateAnalyzer.ScriptQueryExpression(node, rowType, fieldTypes, cluster))
+            (new PredicateAnalyzer.ScriptQueryExpression(
+                    node, rowType, fieldTypes, cluster, Collections.emptyMap()))
                 .getScript());
       }
       throw new IllegalStateException(

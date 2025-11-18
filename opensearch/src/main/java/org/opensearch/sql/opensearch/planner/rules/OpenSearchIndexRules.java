@@ -35,6 +35,8 @@ public class OpenSearchIndexRules {
       SortAggregateMeasureRule.Config.DEFAULT.toRule();
   private static final RareTopPushdownRule RARE_TOP_PUSH_DOWN =
       RareTopPushdownRule.Config.DEFAULT.toRule();
+  private static final SortExprIndexScanRule SORT_EXPR_INDEX_SCAN =
+      SortExprIndexScanRule.Config.DEFAULT.toRule();
 
   // Rule that always pushes down relevance functions regardless of pushdown settings
   public static final RelevanceFunctionPushdownRule RELEVANCE_FUNCTION_PUSHDOWN =
@@ -54,7 +56,8 @@ public class OpenSearchIndexRules {
           SORT_PROJECT_EXPR_TRANSPOSE,
           SORT_AGGREGATION_METRICS_RULE,
           RARE_TOP_PUSH_DOWN,
-          EXPAND_COLLATION_ON_PROJECT_EXPR);
+          EXPAND_COLLATION_ON_PROJECT_EXPR,
+          SORT_EXPR_INDEX_SCAN);
 
   // prevent instantiation
   private OpenSearchIndexRules() {}
