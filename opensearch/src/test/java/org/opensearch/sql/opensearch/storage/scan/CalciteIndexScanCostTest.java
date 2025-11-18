@@ -200,7 +200,8 @@ public class CalciteIndexScanCostTest {
     CalciteLogicalIndexScan scan = new CalciteLogicalIndexScan(cluster, table, osIndex);
     scan.getPushDownContext()
         .add(
-            new PushDownOperation(PushDownType.COLLAPSE, null, (OSRequestBuilderAction) req -> {}));
+            new PushDownOperation(
+                PushDownType.AGG_TOP_HITS, null, (OSRequestBuilderAction) req -> {}));
     assertEquals(9900, Objects.requireNonNull(scan.computeSelfCost(planner, mq)).getRows());
   }
 

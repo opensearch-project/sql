@@ -486,39 +486,32 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testDedupPushdown() throws IOException {
-    String expected = loadExpectedPlan("explain_dedup_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_dedup_push.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account | fields account_number, gender, age"
                 + " | dedup 1 gender"));
   }
 
   @Test
-  public void testDedupKeepEmptyTruePushdown() throws IOException {
-    String expected = loadExpectedPlan("explain_dedup_keepempty_true_push.json");
-    assertJsonEqualsIgnoreId(
+  public void testDedupKeepEmptyTrueNotPushed() throws IOException {
+    String expected = loadExpectedPlan("explain_dedup_keepempty_true_not_pushed.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account | fields account_number, gender, age"
                 + " | dedup gender KEEPEMPTY=true"));
   }
 
   @Test
   public void testDedupKeepEmptyFalsePushdown() throws IOException {
-    String expected = loadExpectedPlan("explain_dedup_keepempty_false_push.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_dedup_keepempty_false_push.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account | fields account_number, gender, age"
                 + " | dedup gender KEEPEMPTY=false"));
-  }
-
-  @Test
-  public void testDedupUnsupportedTypeNotPushdown() throws IOException {
-    String expected = loadExpectedPlan("explain_dedup_unsupported_type_no_push.yaml");
-    assertYamlEqualsIgnoreId(
-        expected, explainQueryYaml(String.format("source=%s | dedup male", TEST_INDEX_BANK)));
   }
 
   @Test

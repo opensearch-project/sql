@@ -28,6 +28,7 @@
 package org.opensearch.sql.opensearch.request;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.calcite.sql.SqlKind.LITERAL_AGG;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
@@ -76,6 +77,7 @@ import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
@@ -164,6 +166,14 @@ public class AggregateAnalyzer {
       }
       throw new IllegalStateException(
           String.format("Cannot infer field name from RexNode %s", node));
+    }
+
+    PredicateAnalyzer.ScriptQueryExpression inferScript(RexNode node) {
+      if (node instanceof RexCall || node instanceof RexLiteral) {
+        new PredicateAnalyzer.ScriptQueryExpression(node, rowType, fieldTypes, cluster);
+      }
+      throw new IllegalStateException(
+          String.format("Metric aggregation doesn't support RexNode %s", node));
     }
 
     <T> T inferValue(RexNode node, Class<T> clazz) {
@@ -328,7 +338,7 @@ public class AggregateAnalyzer {
 
     for (int i = 0; i < aggCalls.size(); i++) {
       AggregateCall aggCall = aggCalls.get(i);
-      List<RexNode> args = convertAggArgThroughProject(aggCall, project);
+      List<RexNode> args = convertAggArgThroughProject(aggCall, project, helper);
       String aggFieldName = aggFieldNames.get(i);
 
       Pair<AggregationBuilder, MetricParser> builderAndParser =
@@ -340,10 +350,13 @@ public class AggregateAnalyzer {
     return Pair.of(metricBuilder, metricParserList);
   }
 
-  private static List<RexNode> convertAggArgThroughProject(AggregateCall aggCall, Project project) {
+  private static List<RexNode> convertAggArgThroughProject(
+      AggregateCall aggCall, Project project, AggregateAnalyzer.AggregateBuilderHelper helper) {
     return project == null
         ? List.of()
-        : aggCall.getArgList().stream().map(project.getProjects()::get).toList();
+        : PlanUtils.isTopHitsAgg(aggCall)
+            ? project.getProjects().stream().filter(rex -> !rex.isA(SqlKind.ROW_NUMBER)).toList()
+            : aggCall.getArgList().stream().map(project.getProjects()::get).toList();
   }
 
   private static Pair<AggregationBuilder, MetricParser> createAggregationBuilderAndParser(
@@ -512,6 +525,32 @@ public class AggregateAnalyzer {
           default -> throw new AggregateAnalyzer.AggregateAnalyzerException(
               String.format("Unsupported push-down aggregator %s", aggCall.getAggregation()));
         };
+      }
+      case LITERAL_AGG -> {
+        if (PlanUtils.isTopHitsAgg(aggCall)) {
+          TopHitsAggregationBuilder topHitsAggregationBuilder =
+              AggregationBuilders.topHits(aggFieldName).size(1).from(0);
+          args.stream()
+              .forEach(
+                  rex -> {
+                    if (rex instanceof RexInputRef) {
+                      topHitsAggregationBuilder.fetchField(
+                          helper.inferNamedField(rex).getReference());
+                    } else if (rex instanceof RexCall || rex instanceof RexLiteral) {
+                      topHitsAggregationBuilder.scriptField(
+                          helper.inferNamedField(rex).getReference(),
+                          helper.inferScript(rex).getScript());
+                    } else {
+                      throw new AggregateAnalyzer.AggregateAnalyzerException(
+                          String.format(
+                              "Unsupported push-down aggregator %s due to rex type is %s",
+                              aggCall.getAggregation(), rex.getKind()));
+                    }
+                  });
+          yield Pair.of(topHitsAggregationBuilder, new TopHitsParser(aggFieldName, false, true));
+        }
+        throw new AggregateAnalyzer.AggregateAnalyzerException(
+            String.format("Unsupported push-down aggregator %s", aggCall.getAggregation()));
       }
       default -> throw new AggregateAnalyzer.AggregateAnalyzerException(
           String.format("unsupported aggregator %s", aggCall.getAggregation()));

@@ -1706,4 +1706,20 @@ public class CalciteExplainIT extends ExplainIT {
                     + " info.dummy_sub_field",
                 TEST_INDEX_WEBLOGS)));
   }
+
+  @Test
+  public void testComplexDedup() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_dedup_complex1.yaml");
+    assertYamlEqualsIgnoreId(
+        expected, explainQueryYaml("source=opensearch-sql_test_index_account | dedup 1 gender"));
+  }
+
+  @Test
+  public void testDedupTextTypeNotPushdown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_dedup_text_type_no_push.yaml");
+    assertYamlEqualsIgnoreId(
+        expected, explainQueryYaml(String.format("source=%s | dedup email", TEST_INDEX_BANK)));
+  }
 }

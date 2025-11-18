@@ -38,6 +38,7 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.lang3.function.TriFunction;
 import org.opensearch.OpenSearchParseException;
 import org.opensearch.common.time.DateFormatter;
 import org.opensearch.common.time.DateFormatters;
@@ -134,6 +135,52 @@ public class OpenSearchExprValueFactory {
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Binary),
               (c, dt) -> new OpenSearchExprBinaryValue(c.stringValue()))
           .build();
+
+  private static final Map<ExprType, TriFunction<Content, ExprType, Boolean, ExprValue>>
+      typeActionMap2 =
+          new ImmutableMap.Builder<ExprType, TriFunction<Content, ExprType, Boolean, ExprValue>>()
+              .put(
+                  OpenSearchDataType.of(OpenSearchDataType.MappingType.Integer),
+                  (c, dt, a) -> new ExprIntegerValue(c.intValue()))
+              .put(
+                  OpenSearchDataType.of(OpenSearchDataType.MappingType.Long),
+                  (c, dt, a) -> new ExprLongValue(c.longValue()))
+              .put(
+                  OpenSearchDataType.of(OpenSearchDataType.MappingType.Short),
+                  (c, dt, a) -> new ExprShortValue(c.shortValue()))
+              .put(
+                  OpenSearchDataType.of(OpenSearchDataType.MappingType.Byte),
+                  (c, dt, a) -> new ExprByteValue(c.byteValue()))
+              .put(
+                  OpenSearchDataType.of(OpenSearchDataType.MappingType.Float),
+                  (c, dt, a) -> new ExprFloatValue(c.floatValue()))
+              .put(
+                  OpenSearchDataType.of(OpenSearchDataType.MappingType.Double),
+                  (c, dt, a) -> new ExprDoubleValue(c.doubleValue()))
+              .put(
+                  OpenSearchTextType.of(),
+                  (c, dt, a) -> new OpenSearchExprTextValue(c.stringValue()))
+              .put(
+                  OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword),
+                  (c, dt, a) -> new ExprStringValue(c.stringValue()))
+              .put(
+                  OpenSearchDataType.of(OpenSearchDataType.MappingType.Boolean),
+                  (c, dt, a) -> ExprBooleanValue.of(c.booleanValue()))
+              // Handles the creation of DATE, TIME & DATETIME
+              .put(
+                  OpenSearchDateType.of(TIME), OpenSearchExprValueFactory::createOpenSearchDateType)
+              .put(
+                  OpenSearchDateType.of(DATE), OpenSearchExprValueFactory::createOpenSearchDateType)
+              .put(
+                  OpenSearchDateType.of(TIMESTAMP),
+                  OpenSearchExprValueFactory::createOpenSearchDateType)
+              .put(
+                  OpenSearchDateType.of(OpenSearchDataType.MappingType.Ip),
+                  (c, dt, a) -> new ExprIpValue(c.stringValue()))
+              .put(
+                  OpenSearchDataType.of(OpenSearchDataType.MappingType.Binary),
+                  (c, dt, a) -> new OpenSearchExprBinaryValue(c.stringValue()))
+              .build();
 
   /** Constructor of OpenSearchExprValueFactory. */
   public OpenSearchExprValueFactory(
@@ -309,6 +356,11 @@ public class OpenSearchExprValueFactory {
   }
 
   private static ExprValue createOpenSearchDateType(Content value, ExprType type) {
+    return createOpenSearchDateType(value, type, false);
+  }
+
+  private static ExprValue createOpenSearchDateType(
+      Content value, ExprType type, Boolean supportArrays) {
     OpenSearchDateType dt = (OpenSearchDateType) type;
     ExprCoreType returnFormat = dt.getExprCoreType();
     if (value.isNumber()) { // isNumber

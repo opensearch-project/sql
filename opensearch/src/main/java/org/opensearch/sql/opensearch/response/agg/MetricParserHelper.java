@@ -56,7 +56,6 @@ public class MetricParserHelper {
                 "couldn't parse field %s in aggregation response", aggregation.getName()));
       }
     }
-    //    countAggNameList.forEach(name -> resultMap.put(name, bucket.getDocCount()));
     return resultMap;
   }
 }

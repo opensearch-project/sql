@@ -50,9 +50,6 @@ import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.hint.HintStrategyTable;
-import org.apache.calcite.rel.hint.RelHint;
-import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
@@ -1055,7 +1052,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<String> intendedGroupKeyAliases = getGroupKeyNamesAfterAggregation(reResolved.getLeft());
     context.relBuilder.aggregate(
         context.relBuilder.groupKey(reResolved.getLeft()), reResolved.getRight());
-    if (hintBucketNonNull) addIgnoreNullBucketHintToAggregate(context);
+    if (hintBucketNonNull) PlanUtils.addIgnoreNullBucketHintToAggregate(context.relBuilder);
     // During aggregation, Calcite projects both input dependencies and output group-by fields.
     // When names conflict, Calcite adds numeric suffixes (e.g., "value0").
     // Apply explicit renaming to restore the intended aliases.
@@ -1548,15 +1545,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       CalcitePlanContext context, List<RexNode> dedupeFields, Integer allowedDuplication) {
     /*
      * | dedup 2 a, b keepempty=true
-     * DropColumns('_row_number_dedup_)
-     * +- Filter ('_row_number_dedup_ <= n OR isnull('a) OR isnull('b))
-     *    +- Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST, specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_dedup_], ['a, 'b], ['a ASC NULLS FIRST, 'b ASC NULLS FIRST]
+     * LogicalProject(...)
+     * +- LogicalFilter(condition=[OR(IS NULL(a), IS NULL(b), <=(_row_number_dedup_, 1))])
+     *    +- LogicalProject(..., _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY a, b ORDER BY a, b)])
      *        +- ...
      */
-    // Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST,
-    // specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_dedup_], ['a, 'b], ['a
-    // ASC
-    // NULLS FIRST, 'b ASC NULLS FIRST]
     RexNode rowNumber =
         context
             .relBuilder
@@ -1585,11 +1578,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       boolean fromJoinMaxOption) {
     /*
      * | dedup 2 a, b keepempty=false
-     * DropColumns('_row_number_dedup_)
-     * +- Filter ('_row_number_dedup_ <= n)
-     *    +- Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST, specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_dedup_], ['a, 'b], ['a ASC NULLS FIRST, 'b ASC NULLS FIRST]
-     *       +- Filter (isnotnull('a) AND isnotnull('b))
-     *          +- ...
+     * LogicalProject(...)
+     * +- LogicalFilter(condition=[<=(_row_number_dedup_, n)]))
+     *    +- LogicalProject(..., _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY a, b ORDER BY a, b)])
+     *        +- LogicalFilter(condition=[AND(IS NOT NULL(a), IS NOT NULL(b))])
+     *           +- ...
      */
     // Filter (isnotnull('a) AND isnotnull('b))
     String rowNumberAlias =
@@ -2323,25 +2316,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           context.relBuilder.field(countFieldName));
     }
     return context.relBuilder.peek();
-  }
-
-  private static void addIgnoreNullBucketHintToAggregate(CalcitePlanContext context) {
-    final RelHint statHits =
-        RelHint.builder("stats_args").hintOption(Argument.BUCKET_NULLABLE, "false").build();
-    assert context.relBuilder.peek() instanceof LogicalAggregate
-        : "Stats hits should be added to LogicalAggregate";
-    context.relBuilder.hints(statHits);
-    context
-        .relBuilder
-        .getCluster()
-        .setHintStrategies(
-            HintStrategyTable.builder()
-                .hintStrategy(
-                    "stats_args",
-                    (hint, rel) -> {
-                      return rel instanceof LogicalAggregate;
-                    })
-                .build());
   }
 
   @Override
