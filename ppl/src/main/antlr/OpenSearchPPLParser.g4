@@ -343,7 +343,7 @@ evalCommand
    ;
 
 headCommand
-   : HEAD (number = integerLiteral)? (FROM from = integerLiteral)?
+   : HEAD ((LIMIT EQUAL)? number = integerLiteral)? (FROM from = integerLiteral)?
    ;
 
 binCommand
@@ -375,7 +375,7 @@ logSpanValue
    ;
 
 rareTopCommand
-   : (TOP | RARE) (number = integerLiteral)? rareTopOption* fieldList (byClause)?
+   : (TOP | RARE) ((LIMIT EQUAL)? number = integerLiteral)? rareTopOption* fieldList (byClause)?
    ;
 
 rareTopOption
@@ -1506,6 +1506,7 @@ searchableKeyWord
    | FREQUENCY_THRESHOLD_PERCENTAGE
    | MAX_SAMPLE_COUNT
    | BUFFER_LIMIT
+   | LIMIT
    | SHOW_NUMBERED_TOKEN
    | WITH
    | REGEX
