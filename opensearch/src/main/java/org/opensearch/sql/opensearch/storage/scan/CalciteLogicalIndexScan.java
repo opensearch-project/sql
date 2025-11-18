@@ -468,14 +468,20 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
             Direction.DESCENDING.equals(digest.getDirection()) ? SortOrder.DESC : SortOrder.ASC;
 
         if (digest.isSimpleFieldReference()) {
-          String missing =
-              switch (digest.getNullDirection()) {
-                case FIRST -> "_first";
-                case LAST -> "_last";
-                default -> null;
-              };
+          String missing = null;
+          switch (digest.getNullDirection()) {
+            case FIRST:
+              missing = "_first";
+              break;
+            case LAST:
+              missing = "_last";
+              break;
+            default:
+              break;
+          }
+          final String finalMissing = missing;
           sortBuilderSuppliers.add(
-              () -> SortBuilders.fieldSort(digest.getFieldName()).order(order).missing(missing));
+              () -> SortBuilders.fieldSort(digest.getFieldName()).order(order).missing(finalMissing));
           continue;
         }
         RexNode sortExpr = digest.getExpression();
