@@ -1,0 +1,140 @@
+{
+  "mappings": {
+    "properties": {
+      "eventVersion": {
+        "type": "keyword"
+      },
+      "userIdentity": {
+        "properties": {
+          "type": {
+            "type": "keyword"
+          },
+          "principalId": {
+            "type": "keyword"
+          },
+          "arn": {
+            "type": "keyword"
+          },
+          "accountId": {
+            "type": "keyword"
+          },
+          "userName": {
+            "type": "keyword"
+          },
+          "sessionContext": {
+            "properties": {
+              "sessionIssuer": {
+                "properties": {
+                  "type": {
+                    "type": "keyword"
+                  },
+                  "principalId": {
+                    "type": "keyword"
+                  },
+                  "arn": {
+                    "type": "keyword"
+                  },
+                  "accountId": {
+                    "type": "keyword"
+                  },
+                  "userName": {
+                    "type": "keyword"
+                  }
+                }
+              },
+              "webIdFederationData": {
+                "type": "object"
+              },
+              "attributes": {
+                "properties": {
+                  "mfaAuthenticated": {
+                    "type": "keyword"
+                  },
+                  "creationDate": {
+                    "type": "date"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "eventTime": {
+        "type": "date"
+      },
+      "start_time": {
+        "type": "date"
+      },
+      "eventSource": {
+        "type": "keyword"
+      },
+      "eventName": {
+        "type": "keyword"
+      },
+      "awsRegion": {
+        "type": "keyword"
+      },
+      "sourceIPAddress": {
+        "type": "keyword"
+      },
+      "userAgent": {
+        "type": "keyword"
+      },
+      "requestParameters": {
+        "properties": {
+          "roleArn": {
+            "type": "keyword"
+          },
+          "roleSessionName": {
+            "type": "keyword"
+          },
+          "keyId": {
+            "type": "keyword"
+          },
+          "encryptionContext": {
+            "type": "object"
+          },
+          "bucketName": {
+            "type": "keyword"
+          },
+          "Host": {
+            "type": "keyword"
+          },
+          "x-amz-expected-bucket-owner": {
+            "type": "keyword"
+          },
+          "logGroupName": {
+            "type": "keyword"
+          }
+        }
+      },
+      "responseElements": {
+        "type": "object"
+      },
+      "requestID": {
+        "type": "keyword"
+      },
+      "eventID": {
+        "type": "keyword"
+      },
+      "readOnly": {
+        "type": "boolean"
+      },
+      "eventType": {
+        "type": "keyword"
+      },
+      "managementEvent": {
+        "type": "boolean"
+      },
+      "recipientAccountId": {
+        "type": "keyword"
+      },
+      "eventCategory": {
+        "type": "keyword"
+      },
+      "errorCode": {
+        "type": "keyword"
+      }
+    }
+  }
+}

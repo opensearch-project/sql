@@ -1,0 +1,14 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[count()]"
+  children:
+    - name: OpenSearchIndexScan
+      description:
+        request: "OpenSearchQueryRequest(indexName=hits, sourceBuilder={\"from\":0,\"\
+          size\":0,\"timeout\":\"1m\",\"query\":{\"wildcard\":{\"URL\":{\"wildcard\"\
+          :\"*google*\",\"case_insensitive\":true,\"boost\":1.0}}},\"aggregations\"\
+          :{\"count()\":{\"value_count\":{\"field\":\"_index\"}}}}, needClean=true,\
+          \ searchDone=false, pitId=*, cursorKeepAlive=null, searchAfter=null,\
+          \ searchResponse=null)"
+      children: []

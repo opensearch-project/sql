@@ -62,9 +62,14 @@ public interface PlanUtils {
   /** this is only for dedup command, do not reuse it in other command */
   String ROW_NUMBER_COLUMN_FOR_DEDUP = "_row_number_dedup_";
 
-  String ROW_NUMBER_COLUMN_NAME_TOP_RARE = "_row_number_top_rare_";
-  String ROW_NUMBER_COLUMN_NAME_MAIN = "_row_number_main_";
-  String ROW_NUMBER_COLUMN_NAME_SUBSEARCH = "_row_number_subsearch_";
+  String ROW_NUMBER_COLUMN_FOR_RARE_TOP = "_row_number_rare_top_";
+  String ROW_NUMBER_COLUMN_FOR_MAIN = "_row_number_main_";
+  String ROW_NUMBER_COLUMN_FOR_SUBSEARCH = "_row_number_subsearch_";
+  String ROW_NUMBER_COLUMN_FOR_STREAMSTATS = "__stream_seq__";
+  String ROW_NUMBER_COLUMN_FOR_CHART = "_row_number_chart_";
+
+  String DIRECTION = "DIRECTION";
+  String NULL_DIRECTION = "NULL_DIRECTION";
 
   static SpanUnit intervalUnitToSpanUnit(IntervalUnit unit) {
     return switch (unit) {
@@ -447,10 +452,18 @@ public interface PlanUtils {
     return rexNode;
   }
 
-  /** Check if contains RexOver */
+  /** Check if contains RexOver introduced by dedup */
   static boolean containsRowNumberDedup(LogicalProject project) {
     return project.getProjects().stream()
-        .anyMatch(p -> p instanceof RexOver && p.getKind() == SqlKind.ROW_NUMBER);
+            .anyMatch(p -> p instanceof RexOver && p.getKind() == SqlKind.ROW_NUMBER)
+        && project.getRowType().getFieldNames().contains(ROW_NUMBER_COLUMN_FOR_DEDUP);
+  }
+
+  /** Check if contains RexOver introduced by dedup top/rare */
+  static boolean containsRowNumberRareTop(LogicalProject project) {
+    return project.getProjects().stream()
+            .anyMatch(p -> p instanceof RexOver && p.getKind() == SqlKind.ROW_NUMBER)
+        && project.getRowType().getFieldNames().contains(ROW_NUMBER_COLUMN_FOR_RARE_TOP);
   }
 
   /** Get all RexWindow list from LogicalProject */
@@ -520,6 +533,23 @@ public interface PlanUtils {
 
   static boolean sortByFieldsOnly(Sort sort) {
     return !sort.getCollation().getFieldCollations().isEmpty() && sort.fetch == null;
+  }
+
+  /**
+   * Check if the sort collation points to non field project expression.
+   *
+   * @param sort the sort operator adding sort order over project
+   * @param project project operation that may contain non field expressions
+   * @return flag to indicate whether non field project expression will be sorted
+   */
+  static boolean sortReferencesExpr(Sort sort, Project project) {
+    if (sort.getCollation().getFieldCollations().isEmpty()) {
+      return false;
+    }
+    return sort.getCollation().getFieldCollations().stream()
+        .anyMatch(
+            relFieldCollation ->
+                project.getProjects().get(relFieldCollation.getFieldIndex()) instanceof RexCall);
   }
 
   /**

@@ -301,3 +301,58 @@ Example::
     |--------------|
     | [1,text,2.5] |
     +--------------+
+
+MVINDEX
+-------
+
+Description
+>>>>>>>>>>>
+
+Usage: mvindex(array, start, [end]) returns a subset of the multivalue array using the start and optional end index values. Indexes are 0-based (first element is at index 0). Supports negative indexing where -1 refers to the last element. When only start is provided, returns a single element. When both start and end are provided, returns an array of elements from start to end (inclusive).
+
+Argument type: array: ARRAY, start: INTEGER, end: INTEGER (optional)
+
+Return type: ANY (single element) or ARRAY (range)
+
+Example::
+
+    os> source=people | eval array = array('a', 'b', 'c', 'd', 'e'), result = mvindex(array, 1) | fields result | head 1
+    fetched rows / total rows = 1/1
+    +--------+
+    | result |
+    |--------|
+    | b      |
+    +--------+
+
+    os> source=people | eval array = array('a', 'b', 'c', 'd', 'e'), result = mvindex(array, -1) | fields result | head 1
+    fetched rows / total rows = 1/1
+    +--------+
+    | result |
+    |--------|
+    | e      |
+    +--------+
+
+    os> source=people | eval array = array(1, 2, 3, 4, 5), result = mvindex(array, 1, 3) | fields result | head 1
+    fetched rows / total rows = 1/1
+    +---------+
+    | result  |
+    |---------|
+    | [2,3,4] |
+    +---------+
+
+    os> source=people | eval array = array(1, 2, 3, 4, 5), result = mvindex(array, -3, -1) | fields result | head 1
+    fetched rows / total rows = 1/1
+    +---------+
+    | result  |
+    |---------|
+    | [3,4,5] |
+    +---------+
+
+    os> source=people | eval array = array('alex', 'celestino', 'claudia', 'david'), result = mvindex(array, 0, 2) | fields result | head 1
+    fetched rows / total rows = 1/1
+    +--------------------------+
+    | result                   |
+    |--------------------------|
+    | [alex,celestino,claudia] |
+    +--------------------------+
+

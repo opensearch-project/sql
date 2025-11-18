@@ -66,7 +66,7 @@ public class WidthBucketFunction extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return PPLOperandTypes.NUMERIC_NUMERIC_NUMERIC_NUMERIC;
+    return PPLOperandTypes.WIDTH_BUCKET_OPERAND;
   }
 
   public static class WidthBucketImplementor implements NotNullImplementor {
@@ -82,10 +82,10 @@ public class WidthBucketFunction extends ImplementorUDF {
       return Expressions.call(
           WidthBucketImplementor.class,
           "calculateWidthBucket",
-          Expressions.convert_(fieldValue, Number.class),
-          Expressions.convert_(numBins, Number.class),
-          Expressions.convert_(dataRange, Number.class),
-          Expressions.convert_(maxValue, Number.class));
+          Expressions.convert_(Expressions.box(fieldValue), Number.class),
+          Expressions.convert_(Expressions.box(numBins), Number.class),
+          Expressions.convert_(Expressions.box(dataRange), Number.class),
+          Expressions.convert_(Expressions.box(maxValue), Number.class));
     }
 
     /** Width bucket calculation using nice number algorithm. */

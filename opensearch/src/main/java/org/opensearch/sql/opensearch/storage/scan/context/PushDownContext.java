@@ -28,9 +28,11 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
 
   private boolean isLimitPushed = false;
   private boolean isProjectPushed = false;
-  private boolean isMetricOrderPushed = false;
+  private boolean isMeasureOrderPushed = false;
   private boolean isSortPushed = false;
+  private boolean isSortExprPushed = false;
   private boolean isTopKPushed = false;
+  private boolean isRareTopPushed = false;
 
   public PushDownContext(OpenSearchIndex osIndex) {
     this.osIndex = osIndex;
@@ -52,7 +54,7 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
   public PushDownContext cloneWithoutSort() {
     PushDownContext newContext = new PushDownContext(osIndex);
     for (PushDownOperation action : this) {
-      if (action.type() != PushDownType.SORT) {
+      if (action.type() != PushDownType.SORT && action.type() != PushDownType.SORT_EXPR) {
         newContext.add(action);
       }
     }
@@ -93,13 +95,14 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
 
   @Override
   public boolean add(PushDownOperation operation) {
+    operation.action().transform(this, operation);
     if (operation.type() == PushDownType.AGGREGATION) {
       isAggregatePushed = true;
       this.aggPushDownAction = (AggPushDownAction) operation.action();
     }
     if (operation.type() == PushDownType.LIMIT) {
       isLimitPushed = true;
-      if (isSortPushed || isMetricOrderPushed) {
+      if (isSortPushed || isMeasureOrderPushed || isSortExprPushed) {
         isTopKPushed = true;
       }
     }
@@ -109,10 +112,15 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
     if (operation.type() == PushDownType.SORT) {
       isSortPushed = true;
     }
-    if (operation.type() == PushDownType.SORT_AGG_METRICS) {
-      isMetricOrderPushed = true;
+    if (operation.type() == PushDownType.SORT_EXPR) {
+      isSortExprPushed = true;
     }
-    operation.action().transform(this, operation);
+    if (operation.type() == PushDownType.SORT_AGG_METRICS) {
+      isMeasureOrderPushed = true;
+    }
+    if (operation.type() == PushDownType.RARE_TOP) {
+      isRareTopPushed = true;
+    }
     return true;
   }
 
@@ -122,6 +130,20 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
 
   public boolean containsDigest(Object digest) {
     return this.stream().anyMatch(action -> action.digest().equals(digest));
+  }
+
+  /**
+   * Get the digest of the first operation of a specific type.
+   *
+   * @param type The PushDownType to get the digest for
+   * @return The digest object, or null if no operation of the specified type exists
+   */
+  public Object getDigestByType(PushDownType type) {
+    return this.stream()
+        .filter(operation -> operation.type() == type)
+        .map(PushDownOperation::digest)
+        .findFirst()
+        .orElse(null);
   }
 
   public OpenSearchRequestBuilder createRequestBuilder() {

@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -1065,5 +1067,13 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         rows(true, "javascript", "opentelemetry", 9, 1, "12-14"),
         rows(false, "go", "opentelemetry", 16, 1, "12-14"),
         rows(true, "rust", "opentelemetry", 12, 1, "14-16"));
+  }
+
+  @Test
+  public void testBinWithDecimalSpan() throws IOException {
+    JSONObject result =
+        executeQuery("source=events_null | bin cpu_usage span=7.5 | stats count() by cpu_usage");
+    verifySchema(result, schema("count()", "bigint"), schema("cpu_usage", "string"));
+    verifyDataRows(result, rows(3, "37.5-45.0"), rows(2, "45.0-52.5"), rows(1, "52.5-60.0"));
   }
 }

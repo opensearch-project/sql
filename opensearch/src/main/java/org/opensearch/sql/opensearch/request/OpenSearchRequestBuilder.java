@@ -180,20 +180,36 @@ public class OpenSearchRequestBuilder {
   }
 
   /**
+   * Push down query to DSL request specific for Calcite. It won't update the current query builder
+   * due to Calcite's special planning mechanism.
+   *
+   * @param query query request
+   */
+  public void pushDownFilterForCalcite(QueryBuilder query) {
+    QueryBuilder current = sourceBuilder.query();
+
+    if (current == null) {
+      sourceBuilder.query(query);
+    } else {
+      sourceBuilder.query(QueryBuilders.boolQuery().filter(current).filter(query));
+    }
+  }
+
+  /**
    * Push down aggregation to DSL request.
    *
-   * @param aggregationBuilder pair of aggregation query and aggregation parser.
+   * @param builderAndParser pair of aggregation query and aggregation parser.
    */
   public void pushDownAggregation(
-      Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder) {
-    aggregationBuilder.getLeft().forEach(sourceBuilder::aggregation);
+      Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> builderAndParser) {
+    builderAndParser.getLeft().forEach(sourceBuilder::aggregation);
     sourceBuilder.size(0);
-    exprValueFactory.setParser(aggregationBuilder.getRight());
+    exprValueFactory.setParser(builderAndParser.getRight());
     // no need to sort docs for aggregation
     if (sourceBuilder.sorts() != null) {
       sourceBuilder.sorts().clear();
     }
-    if (aggregationBuilder.getRight() instanceof CountAsTotalHitsParser) {
+    if (builderAndParser.getRight() instanceof CountAsTotalHitsParser) {
       sourceBuilder.trackTotalHits(true);
     }
   }
@@ -209,7 +225,18 @@ public class OpenSearchRequestBuilder {
     }
   }
 
-  /** Pushdown size (limit) and from (offset) to DSL request. */
+  /**
+   * Push down sort builder suppliers to DSL request.
+   *
+   * @param sortBuilderSuppliers a mixed of field sort builder suppliers and script sort builder
+   *     suppliers
+   */
+  public void pushDownSortSuppliers(List<Supplier<SortBuilder<?>>> sortBuilderSuppliers) {
+    for (Supplier<SortBuilder<?>> sortBuilderSupplier : sortBuilderSuppliers) {
+      sourceBuilder.sort(sortBuilderSupplier.get());
+    }
+  }
+
   public void pushDownLimit(Integer limit, Integer offset) {
     // If there are multiple limit, we take the minimum among them
     // E.g. for `source=t | head 10 | head 5`, we take 5

@@ -178,7 +178,13 @@ public class UserDefinedFunctionUtils {
         types.stream().map(OpenSearchTypeFactory::convertRelDataTypeToExprType).toList();
     List<Expression> exprValues = new ArrayList<>();
     for (int i = 0; i < operands.size(); i++) {
-      Expression operand = Expressions.convert_(operands.get(i), Object.class);
+      // TODO a workaround of Apache Calcite bug in 1.41.0:
+      // If you call Expressions.convert_(expr, Number.class) or
+      // Expressions.convert_(expr, Object.class),
+      // you must change to Expressions.convert_(Expressions.box(expr), Number.class/Object.class).
+      // Because the codegen in Janino.UnitCompiler, "(Object) -1" will be mistakenly treated to
+      // "Object subtracting one" instead of "type casting on native one".
+      Expression operand = Expressions.convert_(Expressions.box(operands.get(i)), Object.class);
       exprValues.add(
           i,
           Expressions.call(

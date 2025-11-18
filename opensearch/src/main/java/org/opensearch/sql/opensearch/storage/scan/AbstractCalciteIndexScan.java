@@ -55,6 +55,8 @@ import org.opensearch.sql.opensearch.storage.scan.context.OSRequestBuilderAction
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownOperation;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownType;
+import org.opensearch.sql.opensearch.storage.scan.context.RareTopDigest;
+import org.opensearch.sql.opensearch.storage.scan.context.SortExprDigest;
 
 /** An abstract relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
@@ -114,7 +116,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
             (rowCount, operation) ->
                 switch (operation.type()) {
                   case AGGREGATION -> mq.getRowCount((RelNode) operation.digest());
-                  case PROJECT, SORT -> rowCount;
+                  case PROJECT, SORT, SORT_EXPR -> rowCount;
                   case SORT_AGG_METRICS -> NumberUtil.min(
                       rowCount, osIndex.getBucketSize().doubleValue());
                     // Refer the org.apache.calcite.rel.metadata.RelMdRowCount
@@ -123,6 +125,15 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                       rowCount,
                       RelMdUtil.guessSelectivity(((FilterDigest) operation.digest()).condition()));
                   case LIMIT -> Math.min(rowCount, ((LimitDigest) operation.digest()).limit());
+                  case RARE_TOP -> {
+                    /** similar to {@link Aggregate#estimateRowCount(RelMetadataQuery)} */
+                    final RareTopDigest digest = (RareTopDigest) operation.digest();
+                    int factor = digest.number();
+                    final int groupCount = digest.byList().size();
+                    yield groupCount == 0
+                        ? factor
+                        : factor * rowCount * (1.0 - Math.pow(.5, groupCount));
+                  }
                 },
             (a, b) -> null);
   }
@@ -157,6 +168,13 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
           dRows = dRows * .9 / 10; // *.9 because always bucket IS_NOT_NULL
           dCpu += dRows;
         }
+        case SORT_EXPR -> {
+          @SuppressWarnings("unchecked")
+          List<SortExprDigest> sortKeys = (List<SortExprDigest>) operation.digest();
+          long complexExprCount =
+              sortKeys.stream().filter(digest -> digest.getExpression() != null).count();
+          dCpu += NumberUtil.multiply(dRows, 1.1 * complexExprCount);
+        }
           // Refer the org.apache.calcite.rel.metadata.RelMdRowCount.getRowCount(Aggregate rel,...)
         case COLLAPSE -> {
           dRows = dRows / 10;
@@ -178,8 +196,15 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
           // Because we'd like to push down LIMIT even when the fetch in LIMIT is greater than
           // dRows.
         case LIMIT -> dRows = Math.min(dRows, ((LimitDigest) operation.digest()).limit()) - 1;
+        case RARE_TOP -> {
+          /** similar to {@link Aggregate#computeSelfCost(RelOptPlanner, RelMetadataQuery)} */
+          final RareTopDigest digest = (RareTopDigest) operation.digest();
+          int factor = digest.number();
+          final int groupCount = digest.byList().size();
+          dRows = groupCount == 0 ? factor : factor * dRows * (1.0 - Math.pow(.5, groupCount));
+          dCpu += dRows * 1.125f;
+        }
       }
-      ;
     }
     // Add the external cost to introduce the effect from FILTER, LIMIT and PROJECT.
     dCpu += dRows * getRowType().getFieldList().size();
@@ -390,7 +415,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
   }
 
   public boolean isMetricsOrderPushed() {
-    return this.getPushDownContext().isMetricOrderPushed();
+    return this.getPushDownContext().isMeasureOrderPushed();
   }
 
   public boolean isTopKPushed() {

@@ -10,8 +10,11 @@ import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.RangeBin;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRexNodeVisitor;
+import org.opensearch.sql.calcite.utils.binning.BinFieldValidator;
 import org.opensearch.sql.calcite.utils.binning.BinHandler;
-import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+import org.opensearch.sql.calcite.utils.binning.BinnableField;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 /** Handler for range-based binning (start/end parameters only). */
 public class RangeBinHandler implements BinHandler {
@@ -22,6 +25,16 @@ public class RangeBinHandler implements BinHandler {
 
     RangeBin rangeBin = (RangeBin) node;
 
+    // Create validated binnable field (validates that field is numeric or time-based)
+    String fieldName = BinFieldValidator.extractFieldName(node);
+    BinnableField field = new BinnableField(fieldExpr, fieldExpr.getType(), fieldName);
+
+    // Range binning requires numeric fields
+    if (!field.requiresNumericBinning()) {
+      throw new IllegalArgumentException(
+          "Range binning (start/end) is only supported for numeric fields, not time-based fields");
+    }
+
     // Simple MIN/MAX calculation - cleaner than complex CASE expressions
     RexNode dataMin = context.relBuilder.min(fieldExpr).over().toRex();
     RexNode dataMax = context.relBuilder.max(fieldExpr).over().toRex();
@@ -31,8 +44,14 @@ public class RangeBinHandler implements BinHandler {
     RexNode endParam = convertParameter(rangeBin.getEnd(), context, visitor);
 
     // Use RANGE_BUCKET with data bounds and user parameters
-    return context.rexBuilder.makeCall(
-        PPLBuiltinOperators.RANGE_BUCKET, fieldExpr, dataMin, dataMax, startParam, endParam);
+    return PPLFuncImpTable.INSTANCE.resolve(
+        context.rexBuilder,
+        BuiltinFunctionName.RANGE_BUCKET,
+        fieldExpr,
+        dataMin,
+        dataMax,
+        startParam,
+        endParam);
   }
 
   private RexNode convertParameter(

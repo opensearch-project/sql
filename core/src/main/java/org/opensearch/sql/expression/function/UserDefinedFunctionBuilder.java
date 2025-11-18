@@ -59,6 +59,13 @@ public interface UserDefinedFunctionBuilder {
       public boolean isDeterministic() {
         return isDeterministic;
       }
+
+      @Override
+      public SqlIdentifier getSqlIdentifier() {
+        // to avoid convert to sql dialog as identifier, use keyword instead
+        // check the code SqlUtil.unparseFunctionSyntax()
+        return null;
+      }
     };
   }
 }
