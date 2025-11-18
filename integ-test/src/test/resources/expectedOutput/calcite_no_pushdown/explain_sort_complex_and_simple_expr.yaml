@@ -1,0 +1,12 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(sort0=[$13], sort1=[$14], dir0=[ASC-nulls-first], dir1=[ASC-nulls-first], fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12], age2=[$19], balance2=[$20])
+        LogicalSort(sort0=[$19], sort1=[$20], dir0=[ASC-nulls-first], dir1=[ASC-nulls-first])
+          LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12], _id=[$13], _index=[$14], _score=[$15], _maxscore=[$16], _sort=[$17], _routing=[$18], age2=[+($10, $7)], balance2=[+($7, 1)])
+            CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableSort(sort0=[$13], sort1=[$14], dir0=[ASC-nulls-first], dir1=[ASC-nulls-first])
+        EnumerableCalc(expr#0..18=[{inputs}], expr#19=[+($t10, $t7)], expr#20=[1], expr#21=[+($t7, $t20)], proj#0..12=[{exprs}], age2=[$t19], balance2=[$t21])
+          CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])

@@ -52,6 +52,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -221,7 +222,8 @@ public class PredicateAnalyzer {
         throw new ExpressionNotAnalyzableException("Can't convert " + expression, e);
       }
       try {
-        return new ScriptQueryExpression(expression, rowType, fieldTypes, cluster);
+        return new ScriptQueryExpression(
+            expression, rowType, fieldTypes, cluster, Collections.emptyMap());
       } catch (Throwable e2) {
         throw new ExpressionNotAnalyzableException("Can't convert " + expression, e2);
       }
@@ -793,7 +795,8 @@ public class PredicateAnalyzer {
         return qe;
       } catch (PredicateAnalyzerException firstFailed) {
         try {
-          QueryExpression qe = new ScriptQueryExpression(node, rowType, fieldTypes, cluster);
+          QueryExpression qe =
+              new ScriptQueryExpression(node, rowType, fieldTypes, cluster, Collections.emptyMap());
           if (!qe.isPartial()) {
             qe.updateAnalyzedNodes(node);
           }
@@ -1448,12 +1451,14 @@ public class PredicateAnalyzer {
     private final Supplier<String> codeGenerator;
     private String generatedCode;
     private final ScriptParameterHelper parameterHelper;
+    private final Map<String, Object> params;
 
     public ScriptQueryExpression(
         RexNode rexNode,
         RelDataType rowType,
         Map<String, ExprType> fieldTypes,
-        RelOptCluster cluster) {
+        RelOptCluster cluster,
+        Map<String, Object> params) {
       // We prevent is_null(nested_field) from being pushed down because pushed-down scripts can not
       // access nested fields for the time being
       if (rexNode instanceof RexCall
@@ -1478,6 +1483,7 @@ public class PredicateAnalyzer {
         generatedCode = codeGenerator.get();
       }
       return generatedCode;
+      this.params = params;
     }
 
     @Override

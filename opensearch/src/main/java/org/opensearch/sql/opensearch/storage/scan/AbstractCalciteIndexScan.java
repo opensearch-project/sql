@@ -57,6 +57,7 @@ import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownOperation;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownType;
 import org.opensearch.sql.opensearch.storage.scan.context.RareTopDigest;
+import org.opensearch.sql.opensearch.storage.scan.context.SortExprDigest;
 
 /** An abstract relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
@@ -120,7 +121,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
             (rowCount, operation) ->
                 switch (operation.type()) {
                   case AGGREGATION -> mq.getRowCount((RelNode) operation.digest());
-                  case PROJECT, SORT -> rowCount;
+                  case PROJECT, SORT, SORT_EXPR -> rowCount;
                   case SORT_AGG_METRICS -> NumberUtil.min(
                       rowCount, osIndex.getBucketSize().doubleValue());
                     // Refer the org.apache.calcite.rel.metadata.RelMdRowCount
@@ -171,6 +172,13 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
         case SORT_AGG_METRICS -> {
           dRows = dRows * .9 / 10; // *.9 because always bucket IS_NOT_NULL
           dCpu += dRows;
+        }
+        case SORT_EXPR -> {
+          @SuppressWarnings("unchecked")
+          List<SortExprDigest> sortKeys = (List<SortExprDigest>) operation.digest();
+          long complexExprCount =
+              sortKeys.stream().filter(digest -> digest.getExpression() != null).count();
+          dCpu += NumberUtil.multiply(dRows, 1.1 * complexExprCount);
         }
           // Refer the org.apache.calcite.rel.metadata.RelMdRowCount.getRowCount(Aggregate rel,...)
         case COLLAPSE -> {

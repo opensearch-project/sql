@@ -72,12 +72,16 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.index.fielddata.ScriptDocValues;
 import org.opensearch.script.AggregationScript;
 import org.opensearch.script.FilterScript;
+import org.opensearch.script.NumberSortScript;
 import org.opensearch.script.ScriptContext;
 import org.opensearch.script.ScriptEngine;
+import org.opensearch.script.StringSortScript;
 import org.opensearch.search.lookup.SourceLookup;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.opensearch.storage.script.aggregation.CalciteAggregationScriptFactory;
 import org.opensearch.sql.opensearch.storage.script.filter.CalciteFilterScriptFactory;
+import org.opensearch.sql.opensearch.storage.script.sort.CalciteNumberSortScriptFactory;
+import org.opensearch.sql.opensearch.storage.script.sort.CalciteStringSortScriptFactory;
 import org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer;
 
 /**
@@ -105,6 +109,8 @@ public class CalciteScriptEngine implements ScriptEngine {
                   BiFunction<Function1<DataContext, Object[]>, RelDataType, Object>>()
               .put(FilterScript.CONTEXT, CalciteFilterScriptFactory::new)
               .put(AggregationScript.CONTEXT, CalciteAggregationScriptFactory::new)
+              .put(NumberSortScript.CONTEXT, CalciteNumberSortScriptFactory::new)
+              .put(StringSortScript.CONTEXT, CalciteStringSortScriptFactory::new)
               .build();
 
   @Override
