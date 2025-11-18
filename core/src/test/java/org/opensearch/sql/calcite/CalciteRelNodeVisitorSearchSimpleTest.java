@@ -36,7 +36,7 @@ public class CalciteRelNodeVisitorSearchSimpleTest {
     // Arrange
     String queryString = "field:value";
     Relation relation = new Relation(AstDSL.qualifiedName("test_index"));
-    Search searchNode = new Search(relation, queryString, null);
+    Search searchNode = new Search(relation, queryString);
 
     // Act & Assert - should throw NPE without proper context
     assertThrows(

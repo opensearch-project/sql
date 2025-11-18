@@ -65,7 +65,7 @@ public class AnalyzerSearchTest {
     // Arrange
     String queryString = "field1:value1";
     Relation relation = new Relation(AstDSL.qualifiedName("test_index"));
-    Search searchNode = new Search(relation, queryString, null);
+    Search searchNode = new Search(relation, queryString);
 
     LogicalRelation logicalRelation = new LogicalRelation("test_index", mockTable);
     FunctionExpression queryStringExpr = mock(FunctionExpression.class);
@@ -103,7 +103,7 @@ public class AnalyzerSearchTest {
     // Arrange
     String queryString = "(field1:value1 OR field2:value2) AND NOT field3:value3";
     Relation relation = new Relation(AstDSL.qualifiedName("test_index"));
-    Search searchNode = new Search(relation, queryString, null);
+    Search searchNode = new Search(relation, queryString);
 
     FunctionExpression queryStringExpr = mock(FunctionExpression.class);
     when(queryStringExpr.type()).thenReturn(ExprCoreType.BOOLEAN);
@@ -134,7 +134,7 @@ public class AnalyzerSearchTest {
     // Arrange
     String queryString = "test:query";
     UnresolvedPlan mockChild = mock(UnresolvedPlan.class);
-    Search searchNode = new Search(mockChild, queryString, null);
+    Search searchNode = new Search(mockChild, queryString);
 
     LogicalPlan mockLogicalPlan = mock(LogicalPlan.class);
     FunctionExpression queryStringExpr = mock(FunctionExpression.class);
@@ -158,7 +158,7 @@ public class AnalyzerSearchTest {
     // Arrange
     String queryString = "";
     Relation relation = new Relation(AstDSL.qualifiedName("test_index"));
-    Search searchNode = new Search(relation, queryString, null);
+    Search searchNode = new Search(relation, queryString);
 
     FunctionExpression queryStringExpr = mock(FunctionExpression.class);
 
@@ -193,7 +193,7 @@ public class AnalyzerSearchTest {
     // Arrange
     String queryString = "field:\"exact phrase\" AND field2:wildcard*";
     Relation relation = new Relation(AstDSL.qualifiedName("test_index"));
-    Search searchNode = new Search(relation, queryString, null);
+    Search searchNode = new Search(relation, queryString);
 
     FunctionExpression queryStringExpr = mock(FunctionExpression.class);
 
