@@ -70,7 +70,7 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
         exprType == ExprCoreType.STRUCT || exprType == ExprCoreType.ARRAY
             ? null
             : OpenSearchTextType.toKeywordSubField(field.getName(), exprType);
-    int newIndex = helper.currentIndex[0]++;
+    int newIndex = helper.sources.size();
     if (docFieldName != null) {
       helper.digests.add(docFieldName);
       helper.sources.add(Source.DOC_VALUE.getValue());
@@ -98,14 +98,9 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
 
     Object literalValue = translateLiteral(literal);
     if (literalValue == null) return literal;
-    int newIndex = helper.currentIndex[0]++;
+    int newIndex = helper.sources.size();
     helper.sources.add(Source.LITERAL.getValue());
-    if (helper.literals.contains(literalValue)) {
-      helper.digests.add(helper.literals.indexOf(literalValue));
-    } else {
-      helper.digests.add(helper.literals.size());
-      helper.literals.add(literalValue);
-    }
+    helper.digests.add(literalValue);
     return new RexDynamicParam(literal.getType(), newIndex);
   }
 

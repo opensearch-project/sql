@@ -28,7 +28,6 @@
 package org.opensearch.sql.opensearch.storage.script;
 
 import static org.opensearch.sql.opensearch.storage.serde.ScriptParameterHelper.DIGESTS;
-import static org.opensearch.sql.opensearch.storage.serde.ScriptParameterHelper.LITERALS;
 import static org.opensearch.sql.opensearch.storage.serde.ScriptParameterHelper.SOURCES;
 
 import com.google.common.collect.ImmutableList;
@@ -171,7 +170,6 @@ public class CalciteScriptEngine implements ScriptEngine {
     private final long utcTimestamp;
     private final List<Source> sources;
     private final List<Object> digests;
-    private final List<Object> literals;
     private final Map<String, Integer> parameterToIndex;
 
     public ScriptDataContext(
@@ -184,7 +182,6 @@ public class CalciteScriptEngine implements ScriptEngine {
       this.utcTimestamp = (long) params.get(Variable.UTC_TIMESTAMP.camelName);
       this.sources = ((List<Integer>) params.get(SOURCES)).stream().map(Source::fromValue).toList();
       this.digests = (List<Object>) params.get(DIGESTS);
-      this.literals = (List<Object>) params.get(LITERALS);
       this.parameterToIndex = parameterToIndex;
     }
 
@@ -213,7 +210,7 @@ public class CalciteScriptEngine implements ScriptEngine {
         return switch (sources.get(index)) {
           case DOC_VALUE -> getFromDocValue((String) digests.get(index));
           case SOURCE -> getFromSource((String) digests.get(index));
-          case LITERAL -> getFromLiteral((Integer) digests.get(index));
+          case LITERAL -> digests.get(index);
         };
       } catch (Exception e) {
         throw new IllegalStateException("Failed to get value for parameter " + name);
@@ -238,10 +235,6 @@ public class CalciteScriptEngine implements ScriptEngine {
 
     public Object getFromSource(String name) {
       return this.sourceLookup.get(name);
-    }
-
-    public Object getFromLiteral(Integer index) {
-      return literals.get(index);
     }
   }
 

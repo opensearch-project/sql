@@ -69,7 +69,6 @@ public class RelJsonSerializerTest {
     assertEquals(expectedNode, rexNode);
     assertEquals(List.of(0), helper.sources);
     assertEquals(List.of("Referer"), helper.digests);
-    assertEquals(List.of(), helper.literals);
   }
 
   @Test
@@ -117,7 +116,6 @@ public class RelJsonSerializerTest {
     assertEquals(expectedNode, expr);
     assertEquals(List.of(0, 0, 0, 0, 0), helper.sources);
     assertEquals(List.of("date", "time", "timestamp", "ip", "binary"), helper.digests);
-    assertEquals(List.of(), helper.literals);
   }
 
   @Test
@@ -217,7 +215,6 @@ public class RelJsonSerializerTest {
     RexNode expr = serializer.deserialize(serialized);
     assertEquals(expectedNode, expr);
     assertEquals(List.of(0, 1, 2), helper.sources);
-    assertEquals(List.of("date", "text", 0), helper.digests);
-    assertEquals(List.of(1), helper.literals);
+    assertEquals(List.of("date", "text", 1), helper.digests);
   }
 }

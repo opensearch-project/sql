@@ -52,7 +52,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -1451,7 +1450,6 @@ public class PredicateAnalyzer {
     private final Supplier<String> codeGenerator;
     private String generatedCode;
     private final ScriptParameterHelper parameterHelper;
-    private final Map<String, Object> params;
 
     public ScriptQueryExpression(
         RexNode rexNode,
@@ -1468,7 +1466,7 @@ public class PredicateAnalyzer {
       }
       accumulateScriptCount(1);
       RelJsonSerializer serializer = new RelJsonSerializer(cluster);
-      this.parameterHelper = new ScriptParameterHelper(rowType.getFieldList(), fieldTypes);
+      this.parameterHelper = new ScriptParameterHelper(rowType.getFieldList(), fieldTypes, params);
       this.codeGenerator =
           () ->
               SerializationWrapper.wrapWithLangType(
@@ -1483,7 +1481,6 @@ public class PredicateAnalyzer {
         generatedCode = codeGenerator.get();
       }
       return generatedCode;
-      this.params = params;
     }
 
     @Override
