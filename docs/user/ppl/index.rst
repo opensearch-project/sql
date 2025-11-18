@@ -68,8 +68,10 @@ The query start with search command and then flowing a set of command delimited 
   `table command <cmd/table.rst>`_                                3.3                 experimental (since 3.3)  Keep or remove fields from the search result using enhanced syntax options.
   `stats command <cmd/stats.rst>`_                                1.0                 stable (since 1.0)        Calculate aggregation from search results.
   `eventstats command <cmd/eventstats.rst>`_                      3.1                 experimental (since 3.1)  Calculate aggregation statistics and add them as new fields to each event.
+  `streamstats command <cmd/streamstats.rst>`_                    3.4                 experimental (since 3.4)  Calculate cumulative or rolling statistics as events are processed in order.
   `bin command <cmd/bin.rst>`_                                    3.3                 experimental (since 3.3)  Group numeric values into buckets of equal intervals.
   `timechart command <cmd/timechart.rst>`_                        3.3                 experimental (since 3.3)  Create time-based charts and visualizations.
+  `chart command <cmd/chart.rst>`_                                3.4                 experimental (since 3.4)  Apply statistical aggregations to search results and group the data for visualizations.
   `trendline command <cmd/trendline.rst>`_                        3.0                 experimental (since 3.0)  Calculate moving averages of fields.
   `sort command <cmd/sort.rst>`_                                  1.0                 stable (since 1.0)        Sort all the search results by the specified fields.
   `reverse command <cmd/reverse.rst>`_                            3.2                 experimental (since 3.2)  Reverse the display order of search results.

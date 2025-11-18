@@ -64,7 +64,7 @@ The stats command supports the following aggregation functions:
 * LIST: Collect all values into array
 * VALUES: Collect unique values into sorted array
 
-For detailed documentation of each function, see `Aggregation Functions <../functions/aggregation.rst>`_.
+For detailed documentation of each function, see `Aggregation Functions <../functions/aggregations.rst>`_.
 
 Example 1: Calculate the count of events
 ========================================

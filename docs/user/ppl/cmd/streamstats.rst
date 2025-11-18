@@ -26,27 +26,27 @@ All of these commands can be used to generate aggregations such as average, sum,
 
 * Transformation Behavior
 
-   * ``stats``: Transforms all events into an aggregated result table, losing original event structure.
-   * ``eventstats``: Adds aggregation results as new fields to the original events without removing the event structure.
-   * ``streamstats``: Adds cumulative (running) aggregation results to each event as they stream through the pipeline.
+  * ``stats``: Transforms all events into an aggregated result table, losing original event structure.
+  * ``eventstats``: Adds aggregation results as new fields to the original events without removing the event structure.
+  * ``streamstats``: Adds cumulative (running) aggregation results to each event as they stream through the pipeline.
 
 * Output Format
 
-   * ``stats``: Output contains only aggregated values. Original raw events are not preserved.
-   * ``eventstats``: Original events remain, with extra fields containing summary statistics.
-   * ``streamstats``: Original events remain, with extra fields containing running totals or cumulative statistics.
+  * ``stats``: Output contains only aggregated values. Original raw events are not preserved.
+  * ``eventstats``: Original events remain, with extra fields containing summary statistics.
+  * ``streamstats``: Original events remain, with extra fields containing running totals or cumulative statistics.
 
 * Aggregation Scope
 
-   * ``stats``: Based on all events in the search (or groups defined by BY clause).
-   * ``eventstats``: Based on all relevant events, then the result is added back to each event in the group.
-   * ``streamstats``: Calculations occur progressively as each event is processed; can be scoped by window.
+  * ``stats``: Based on all events in the search (or groups defined by BY clause).
+  * ``eventstats``: Based on all relevant events, then the result is added back to each event in the group.
+  * ``streamstats``: Calculations occur progressively as each event is processed; can be scoped by window.
 
 * Use Cases
 
-   * ``stats``: When only aggregated results are needed (e.g., counts, averages, sums).
-   * ``eventstats``: When aggregated statistics are needed alongside original event data.
-   * ``streamstats``: When a running total or cumulative statistic is needed across event streams.
+  * ``stats``: When only aggregated results are needed (e.g., counts, averages, sums).
+  * ``eventstats``: When aggregated statistics are needed alongside original event data.
+  * ``streamstats``: When a running total or cumulative statistic is needed across event streams.
 
 Syntax
 ======
@@ -91,7 +91,7 @@ The streamstats command supports the following aggregation functions:
 * EARLIEST: Earliest value by timestamp
 * LATEST: Latest value by timestamp
 
-For detailed documentation of each function, see `Aggregation Functions <../functions/aggregation.rst>`_.
+For detailed documentation of each function, see `Aggregation Functions <../functions/aggregations.rst>`_.
 
 Usage
 =====

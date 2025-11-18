@@ -24,18 +24,18 @@ The ``stats`` and ``eventstats`` commands are both used for calculating statisti
 
 * Output Format
 
-   * ``stats``: Produces a summary table with only the calculated statistics.
-   * ``eventstats``: Adds the calculated statistics as new fields to the existing events, preserving the original data.
+  * ``stats``: Produces a summary table with only the calculated statistics.
+  * ``eventstats``: Adds the calculated statistics as new fields to the existing events, preserving the original data.
 
 * Event Retention
 
-   * ``stats``: Reduces the result set to only the statistical summary, discarding individual events.
-   * ``eventstats``: Retains all original events and adds new fields with the calculated statistics.
+  * ``stats``: Reduces the result set to only the statistical summary, discarding individual events.
+  * ``eventstats``: Retains all original events and adds new fields with the calculated statistics.
 
 * Use Cases
 
-   * ``stats``: Best for creating summary reports or dashboards. Often used as a final command to summarize results.
-   * ``eventstats``: Useful when you need to enrich events with statistical context for further analysis or filtering. Can be used mid-search to add statistics that can be used in subsequent commands.
+  * ``stats``: Best for creating summary reports or dashboards. Often used as a final command to summarize results.
+  * ``eventstats``: Useful when you need to enrich events with statistical context for further analysis or filtering. Can be used mid-search to add statistics that can be used in subsequent commands.
 
 
 Syntax
@@ -46,7 +46,7 @@ eventstats <function>... [by-clause]
 * by-clause: optional. Groups results by specified fields or expressions. Syntax: by [span-expression,] [field,]... **Default:** aggregation over the entire result set.
 * span-expression: optional, at most one. Splits field into buckets by intervals. Syntax: span(field_expr, interval_expr). For example, ``span(age, 10)`` creates 10-year age buckets, ``span(timestamp, 1h)`` creates hourly buckets.
 
-  * Available time units
+  * Available time units:
 
     * millisecond (ms)
     * second (s)
@@ -76,7 +76,7 @@ The eventstats command supports the following aggregation functions:
 * EARLIEST: Earliest value by timestamp
 * LATEST: Latest value by timestamp
 
-For detailed documentation of each function, see `Aggregation Functions <../functions/aggregation.rst>`_.
+For detailed documentation of each function, see `Aggregation Functions <../functions/aggregations.rst>`_.
 
 Usage
 =====
