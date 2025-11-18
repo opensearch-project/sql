@@ -81,9 +81,8 @@ import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings.Key;
-import org.opensearch.sql.ppl.AstPlanningTestBase;
 import org.opensearch.sql.exception.SemanticCheckException;
-import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
+import org.opensearch.sql.ppl.AstPlanningTestBase;
 import org.opensearch.sql.utils.SystemIndexUtils;
 
 public class AstBuilderTest extends AstPlanningTestBase {
