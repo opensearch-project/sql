@@ -148,12 +148,24 @@ public class CalcitePPLParseIT extends PPLIntegTestCase {
                 TEST_INDEX_WEBLOGS));
 
     verifySchema(result, schema("message", "string"), schema("httpstatus", "string"));
-    verifyDataRows(result,
-        rows("177.95.8.74 - upton5450 [28/Sep/2022:10:15:57 -0700] \"HEAD /e-business/mindshare HTTP/1.0\" 404 19927", "404"),
-        rows("127.45.152.6 - pouros8756 [28/Sep/2022:10:15:57 -0700] \"GET /architectures/convergence/niches/mindshare HTTP/1.0\" 100 28722", "100"),
+    verifyDataRows(
+        result,
+        rows(
+            "177.95.8.74 - upton5450 [28/Sep/2022:10:15:57 -0700] \"HEAD /e-business/mindshare"
+                + " HTTP/1.0\" 404 19927",
+            "404"),
+        rows(
+            "127.45.152.6 - pouros8756 [28/Sep/2022:10:15:57 -0700] \"GET"
+                + " /architectures/convergence/niches/mindshare HTTP/1.0\" 100 28722",
+            "100"),
         rows(null, ""),
-        rows("118.223.210.105 - - [28/Sep/2022:10:15:57 -0700] \"PATCH /strategize/out-of-the-box HTTP/1.0\" 401 27439", "401"),
-        rows("210.204.15.104 - - [28/Sep/2022:10:15:57 -0700] \"POST /users HTTP/1.1\" 301 9481", ""),
+        rows(
+            "118.223.210.105 - - [28/Sep/2022:10:15:57 -0700] \"PATCH /strategize/out-of-the-box"
+                + " HTTP/1.0\" 401 27439",
+            "401"),
+        rows(
+            "210.204.15.104 - - [28/Sep/2022:10:15:57 -0700] \"POST /users HTTP/1.1\" 301 9481",
+            ""),
         rows(null, ""));
   }
 }
