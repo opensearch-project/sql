@@ -225,7 +225,18 @@ public class OpenSearchRequestBuilder {
     }
   }
 
-  /** Pushdown size (limit) and from (offset) to DSL request. */
+  /**
+   * Push down sort builder suppliers to DSL request.
+   *
+   * @param sortBuilderSuppliers a mixed of field sort builder suppliers and script sort builder
+   *     suppliers
+   */
+  public void pushDownSortSuppliers(List<Supplier<SortBuilder<?>>> sortBuilderSuppliers) {
+    for (Supplier<SortBuilder<?>> sortBuilderSupplier : sortBuilderSuppliers) {
+      sourceBuilder.sort(sortBuilderSupplier.get());
+    }
+  }
+
   public void pushDownLimit(Integer limit, Integer offset) {
     // If there are multiple limit, we take the minimum among them
     // E.g. for `source=t | head 10 | head 5`, we take 5
