@@ -189,6 +189,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
           long complexExprCount =
               sortKeys.stream().filter(digest -> digest.getExpression() != null).count();
           dCpu += NumberUtil.multiply(dRows, 1.1 * complexExprCount);
+          break;
         // Refer the org.apache.calcite.rel.metadata.RelMdRowCount.getRowCount(Aggregate rel,...)
         case COLLAPSE:
           dRows = dRows / 10;

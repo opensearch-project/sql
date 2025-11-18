@@ -26,6 +26,7 @@ public class CalciteStringSortScript extends StringSortScript {
   private final CalciteScript calciteScript;
 
   private final SourceLookup sourceLookup;
+  private final LeafReaderContext context;
   private final Direction direction;
   private final NullDirection nullDirection;
 
@@ -41,6 +42,7 @@ public class CalciteStringSortScript extends StringSortScript {
     this.calciteScript = new CalciteScript(function, params);
     // TODO: we'd better get source from the leafLookup of super once it's available
     this.sourceLookup = lookup.getLeafSearchLookup(context).source();
+    this.context = context;
     this.direction =
         params.containsKey(PlanUtils.DIRECTION)
             ? Direction.valueOf((String) params.get(PlanUtils.DIRECTION))
@@ -49,6 +51,12 @@ public class CalciteStringSortScript extends StringSortScript {
         params.containsKey(PlanUtils.NULL_DIRECTION)
             ? NullDirection.valueOf((String) params.get(PlanUtils.NULL_DIRECTION))
             : NullDirection.FIRST;
+  }
+
+  @Override
+  public void setDocument(int docid) {
+    super.setDocument(docid);
+    this.sourceLookup.setSegmentAndDocument(context, docid);
   }
 
   @Override
