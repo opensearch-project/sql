@@ -29,7 +29,7 @@ public class SearchTest {
   public void setUp() {
     mockChild = mock(UnresolvedPlan.class);
     testQueryString = "field1:value1 AND field2:value2";
-    search = new Search(mockChild, testQueryString, null);
+    search = new Search(mockChild, testQueryString);
   }
 
   @Test
@@ -69,7 +69,7 @@ public class SearchTest {
   public void testEquals() {
     UnresolvedPlan sameChild = mockChild;
     String sameQueryString = testQueryString;
-    Search sameSearch = new Search(sameChild, sameQueryString, null);
+    Search sameSearch = new Search(sameChild, sameQueryString);
 
     assertEquals(search, sameSearch);
     assertEquals(search, search);
@@ -78,14 +78,14 @@ public class SearchTest {
   @Test
   public void testNotEqualsWithDifferentChild() {
     UnresolvedPlan differentChild = mock(UnresolvedPlan.class);
-    Search differentSearch = new Search(differentChild, testQueryString, null);
+    Search differentSearch = new Search(differentChild, testQueryString);
 
     assertNotEquals(search, differentSearch);
   }
 
   @Test
   public void testNotEqualsWithDifferentQueryString() {
-    Search differentSearch = new Search(mockChild, "different:query", null);
+    Search differentSearch = new Search(mockChild, "different:query");
 
     assertNotEquals(search, differentSearch);
   }
@@ -102,14 +102,14 @@ public class SearchTest {
 
   @Test
   public void testHashCode() {
-    Search sameSearch = new Search(mockChild, testQueryString, null);
+    Search sameSearch = new Search(mockChild, testQueryString);
     assertEquals(search.hashCode(), sameSearch.hashCode());
   }
 
   @Test
   public void testHashCodeWithDifferentValues() {
     UnresolvedPlan differentChild = mock(UnresolvedPlan.class);
-    Search differentSearch = new Search(differentChild, "different:query", null);
+    Search differentSearch = new Search(differentChild, "different:query");
     assertNotEquals(search.hashCode(), differentSearch.hashCode());
   }
 
@@ -123,7 +123,7 @@ public class SearchTest {
 
   @Test
   public void testWithEmptyQueryString() {
-    Search emptySearch = new Search(mockChild, "", null);
+    Search emptySearch = new Search(mockChild, "");
     assertEquals("", emptySearch.getQueryString());
     assertEquals(mockChild, emptySearch.getChild().get(0));
   }
@@ -131,14 +131,14 @@ public class SearchTest {
   @Test
   public void testWithComplexQueryString() {
     String complexQuery = "(field1:value1 OR field2:value2) AND NOT field3:value3";
-    Search complexSearch = new Search(mockChild, complexQuery, null);
+    Search complexSearch = new Search(mockChild, complexQuery);
     assertEquals(complexQuery, complexSearch.getQueryString());
   }
 
   @Test
   public void testWithSpecialCharactersInQueryString() {
     String specialCharsQuery = "field:\"value with spaces\" AND field2:value*";
-    Search specialSearch = new Search(mockChild, specialCharsQuery, null);
+    Search specialSearch = new Search(mockChild, specialCharsQuery);
     assertEquals(specialCharsQuery, specialSearch.getQueryString());
   }
 }

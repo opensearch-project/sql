@@ -7,6 +7,7 @@ package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import javax.annotation.Nullable;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,12 @@ public class Search extends UnresolvedPlan {
   @EqualsAndHashCode.Include private final UnresolvedPlan child;
   @EqualsAndHashCode.Include private final String queryString;
 
-  private final SearchExpression originalExpression;
+  // Currently it's only for anonymizer
+  private final @Nullable SearchExpression originalExpression;
+
+  public Search(UnresolvedPlan child, String queryString) {
+    this(child, queryString, null);
+  }
 
   @Override
   public List<UnresolvedPlan> getChild() {

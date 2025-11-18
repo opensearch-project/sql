@@ -884,6 +884,33 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testSearchWithIn() {
+    assertEquals("source=table identifier IN ***", anonymize("search source=t balance in (2000)"));
+  }
+
+  @Test
+  public void testSearchWithNot() {
+    assertEquals(
+        "source=table NOT(identifier = ***)", anonymize("search NOT balance=2000 source=t"));
+  }
+
+  @Test
+  public void testSearchWithGroup() {
+    assertEquals(
+        "source=table ((identifier = *** OR identifier = ***) AND identifier > ***)",
+        anonymize(
+            "search (severityText=\"ERROR\" OR severityText=\"WARN\") AND severityNumber>10"
+                + " source=t"));
+  }
+
+  @Test
+  public void testSearchWithOr() {
+    assertEquals(
+        "source=table (identifier >= *** OR identifier <= ***)",
+        anonymize("search source=t earliest='2012-12-10 15:00:00' or latest=now"));
+  }
+
+  @Test
   public void testSpath() {
     assertEquals(
         "source=table | spath input=identifier output=identifier path=identifier | fields +"

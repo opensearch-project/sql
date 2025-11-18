@@ -28,6 +28,9 @@ public class SearchGroup extends SearchExpression {
 
   @Override
   public String toAnonymizedString() {
+    if (expression instanceof SearchGroup) {
+      return expression.toAnonymizedString();
+    }
     return "(" + expression.toAnonymizedString() + ")";
   }
 

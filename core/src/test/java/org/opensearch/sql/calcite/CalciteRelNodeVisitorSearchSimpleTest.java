@@ -53,7 +53,7 @@ public class CalciteRelNodeVisitorSearchSimpleTest {
     Relation relation = new Relation(AstDSL.qualifiedName("test_index"));
 
     // Act
-    Search searchNode = new Search(relation, queryString, null);
+    Search searchNode = new Search(relation, queryString);
 
     // Assert
     assertNotNull(searchNode);
@@ -70,7 +70,7 @@ public class CalciteRelNodeVisitorSearchSimpleTest {
     Relation relation = new Relation(AstDSL.qualifiedName("test_index"));
 
     // Act
-    Search searchNode = new Search(relation, queryString, null);
+    Search searchNode = new Search(relation, queryString);
 
     // Assert
     assertEquals("", searchNode.getQueryString());
@@ -84,7 +84,7 @@ public class CalciteRelNodeVisitorSearchSimpleTest {
     Relation relation = new Relation(AstDSL.qualifiedName("test_index"));
 
     // Act
-    Search searchNode = new Search(relation, queryString, null);
+    Search searchNode = new Search(relation, queryString);
 
     // Assert
     assertEquals(queryString, searchNode.getQueryString());
@@ -97,7 +97,7 @@ public class CalciteRelNodeVisitorSearchSimpleTest {
     Relation relation = new Relation(AstDSL.qualifiedName("test_index"));
 
     // Act
-    Search searchNode = new Search(relation, queryString, null);
+    Search searchNode = new Search(relation, queryString);
 
     // Assert
     assertEquals(queryString, searchNode.getQueryString());

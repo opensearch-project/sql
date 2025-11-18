@@ -80,8 +80,6 @@ import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
-import org.opensearch.sql.ast.tree.Search;
-import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
@@ -115,7 +113,7 @@ public class AstBuilderTest {
 
   @Test
   public void testSearchCommand() {
-    assertSearchEqual("search source=t a=1", search(relation("t"), "a:1"));
+    assertEqual("search source=t a=1", search(relation("t"), "a:1"));
   }
 
   @Test
@@ -176,7 +174,7 @@ public class AstBuilderTest {
 
   @Test
   public void testSearchCommandString() {
-    assertSearchEqual("search source=t a=\"a\"", search(relation("t"), "a:a"));
+    assertEqual("search source=t a=\"a\"", search(relation("t"), "a:a"));
   }
 
   @Test
@@ -187,7 +185,7 @@ public class AstBuilderTest {
 
   @Test
   public void testSearchCommandWithFilterBeforeSource() {
-    assertSearchEqual("search a=1 source=t", search(relation("t"), "a:1"));
+    assertEqual("search a=1 source=t", search(relation("t"), "a:1"));
   }
 
   @Test
@@ -1391,14 +1389,6 @@ public class AstBuilderTest {
   protected void assertEqual(String query, Node expectedPlan) {
     Node actualPlan = plan(query);
     assertEquals(expectedPlan, actualPlan);
-  }
-
-  protected void assertSearchEqual(String query, UnresolvedPlan expectedPlan) {
-    Node actualPlan = plan(query);
-    assertTrue(actualPlan instanceof Search);
-    assertTrue(expectedPlan instanceof Search);
-    assertEquals(expectedPlan.getChild(), actualPlan.getChild());
-    assertEquals(((Search) expectedPlan).getQueryString(), ((Search) actualPlan).getQueryString());
   }
 
   protected void assertEqual(String query, String expected) {
