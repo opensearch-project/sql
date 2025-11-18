@@ -37,6 +37,7 @@ TEST_DATA = {
     'weblogs': 'weblogs.json',
     'json_test': 'json_test.json',
     'state_country': 'state_country.json',
+    'structured': 'structured.json',
     'occupation': 'occupation.json',
     'worker': 'worker.json',
     'work_information': 'work_information.json',

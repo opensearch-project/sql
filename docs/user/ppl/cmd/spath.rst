@@ -37,10 +37,10 @@ The simplest spath is to extract a single field. This extracts `n` from the `doc
 
 PPL query::
 
-    PPL> source=test_spath | spath input=doc n;
+    os> source=structured | spath input=doc_n n | fields doc_n n;
     fetched rows / total rows = 3/3
     +----------+---+
-    | doc      | n |
+    | doc_n    | n |
     |----------+---|
     | {"n": 1} | 1 |
     | {"n": 2} | 2 |
@@ -54,10 +54,10 @@ These queries demonstrate more JSON path uses, like traversing nested fields and
 
 PPL query::
 
-    PPL> source=test_spath | spath input=doc output=first_element list{0} | spath input=doc output=all_elements list{} | spath input=doc output=nested nest_out.nest_in;
+    os> source=structured | spath input=doc_list output=first_element list{0} | spath input=doc_list output=all_elements list{} | spath input=doc_list output=nested nest_out.nest_in | fields doc_list first_element all_elements nested;
     fetched rows / total rows = 3/3
     +------------------------------------------------------+---------------+--------------+--------+
-    | doc                                                  | first_element | all_elements | nested |
+    | doc_list                                             | first_element | all_elements | nested |
     |------------------------------------------------------+---------------+--------------+--------|
     | {"list": [1, 2, 3, 4], "nest_out": {"nest_in": "a"}} | 1             | [1,2,3,4]    | a      |
     | {"list": [], "nest_out": {"nest_in": "a"}}           | null          | []           | a      |
@@ -71,10 +71,27 @@ The example shows extracting an inner field and doing statistics on it, using th
 
 PPL query::
 
-    PPL> source=test_spath | spath input=doc n | eval n=cast(n as int) | stats sum(n);
+    os> source=structured | spath input=doc_n n | eval n=cast(n as int) | stats sum(n) | fields `sum(n)`;
     fetched rows / total rows = 1/1
     +--------+
     | sum(n) |
     |--------|
     | 6      |
     +--------+
+
+Example 4: Escaped paths
+============================
+
+`spath` can escape paths with strings to accept any path that `json_extract` does. This includes escaping complex field names as array components.
+
+PPL query::
+
+    os> source=structured | spath output=a input=doc_escape "['a fancy field name']" | spath output=b input=doc_escape "['a.b.c']" | fields a b;
+    fetched rows / total rows = 3/3
+    +-------+---+
+    | a     | b |
+    |-------+---|
+    | true  | 0 |
+    | true  | 1 |
+    | false | 2 |
+    +-------+---+

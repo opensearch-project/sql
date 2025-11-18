@@ -68,8 +68,16 @@ public class SPathRewriteTest {
   @Test
   public void testSpathEscapedParse() {
     SPath sp =
-        (SPath) plan("source = t | spath input=f output=o path=`attributes.['cluster.name']`");
+        (SPath) plan("source = t | spath input=f output=o path=\"attributes.['cluster.name']\"");
     Eval ev = (Eval) plan("source = t | eval o=json_extract(f, \"attributes.['cluster.name']\")");
+
+    assertEquals(ev, sp.rewriteAsEval());
+  }
+
+  @Test
+  public void testSpathEscapedSpaces() {
+    SPath sp = (SPath) plan("source = t | spath input=f output=o path=\"['abc def ghi']\"");
+    Eval ev = (Eval) plan("source = t | eval o=json_extract(f, \"['abc def ghi']\")");
 
     assertEquals(ev, sp.rewriteAsEval());
   }

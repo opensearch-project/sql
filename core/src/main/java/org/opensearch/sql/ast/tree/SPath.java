@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.ast.tree;
 
-import static org.opensearch.sql.common.utils.StringUtils.unquoteIdentifier;
+import static org.opensearch.sql.common.utils.StringUtils.unquoteText;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -50,7 +50,7 @@ public class SPath extends UnresolvedPlan {
 
   public Eval rewriteAsEval() {
     String outField = this.outField;
-    String unquotedPath = unquoteIdentifier(this.path);
+    String unquotedPath = unquoteText(this.path);
     if (outField == null) {
       outField = unquotedPath;
     }
