@@ -37,7 +37,7 @@ Example 1: Show All Indices Information
 SQL query::
 
     os> SHOW TABLES LIKE '%'
-    fetched rows / total rows = 22/22
+    fetched rows / total rows = 23/23
     +----------------+-------------+-------------------+------------+---------+----------+------------+-----------+---------------------------+----------------+
     | TABLE_CAT      | TABLE_SCHEM | TABLE_NAME        | TABLE_TYPE | REMARKS | TYPE_CAT | TYPE_SCHEM | TYPE_NAME | SELF_REFERENCING_COL_NAME | REF_GENERATION |
     |----------------+-------------+-------------------+------------+---------+----------+------------+-----------+---------------------------+----------------|
@@ -56,6 +56,7 @@ SQL query::
     | docTestCluster | null        | otellogs          | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | people            | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | state_country     | BASE TABLE | null    | null     | null       | null      | null                      | null           |
+    | docTestCluster | null        | structured        | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | time_data         | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | time_data2        | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | time_test         | BASE TABLE | null    | null     | null       | null      | null                      | null           |
