@@ -120,7 +120,7 @@ Using with if() for validation messages::
 EXISTS
 ------
 
-`Because OpenSearch doesn't differentiate null and missing <https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-exists-query.html>`_. so we can't provide function like ismissing/isnotmissing to test field exist or not. But you can still use isnull/isnotnull for such purpose.
+`Since OpenSearch doesn't differentiate null and missing <https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-exists-query.html>`_, we can't provide functions like ismissing/isnotmissing to test if a field exists or not. But you can still use isnull/isnotnull for such purpose.
 
 Example, the account 13 doesn't have email field::
 
@@ -138,9 +138,9 @@ IFNULL
 Description
 >>>>>>>>>>>
 
-Usage: ifnull(field1, field2) return field2 if field1 is null.
+Usage: ifnull(field1, field2) returns field2 if field1 is null.
 
-Argument type: all the supported data type, (NOTE : if two parameters has different type, you will fail semantic check.)
+Argument type: all the supported data types (NOTE : if two parameters have different types, you will fail semantic check).
 
 Return type: any
 
@@ -183,9 +183,9 @@ NULLIF
 Description
 >>>>>>>>>>>
 
-Usage: nullif(field1, field2) return null if two parameters are same, otherwise return field1.
+Usage: nullif(field1, field2) returns null if two parameters are same, otherwise returns field1.
 
-Argument type: all the supported data type, (NOTE : if two parameters has different type, if two parameters has different type, you will fail semantic check)
+Argument type: all the supported data types (NOTE : if two parameters have different types, you will fail semantic check).
 
 Return type: any
 
@@ -208,9 +208,9 @@ IF
 Description
 >>>>>>>>>>>
 
-Usage: if(condition, expr1, expr2) return expr1 if condition is true, otherwise return expr2.
+Usage: if(condition, expr1, expr2) returns expr1 if condition is true, otherwise returns expr2.
 
-Argument type: all the supported data type, (NOTE : if expr1 and expr2 are different type,  you will fail semantic check
+Argument type: all the supported data types (NOTE : if expr1 and expr2 are different types, you will fail semantic check).
 
 Return type: any
 
@@ -255,9 +255,9 @@ CASE
 Description
 >>>>>>>>>>>
 
-Usage: case(condition1, expr1, condition2, expr2, ... conditionN, exprN else default) return expr1 if condition1 is true, or return expr2 if condition2 is true, ... if no condition is true, then return the value of ELSE clause. If the ELSE clause is not defined, it returns NULL.
+Usage: case(condition1, expr1, condition2, expr2, ... conditionN, exprN else default) returns expr1 if condition1 is true, or returns expr2 if condition2 is true, ... if no condition is true, then returns the value of ELSE clause. If the ELSE clause is not defined, returns NULL.
 
-Argument type: all the supported data type, (NOTE : there is no comma before "else")
+Argument type: all the supported data types (NOTE : there is no comma before "else").
 
 Return type: any
 
@@ -308,11 +308,9 @@ COALESCE
 Description
 >>>>>>>>>>>
 
-Version: 3.1.0
+Usage: coalesce(field1, field2, ...) returns the first non-null, non-missing value in the argument list.
 
-Usage: coalesce(field1, field2, ...) return the first non-null, non-missing value in the argument list.
-
-Argument type: all the supported data type. Supports mixed data types with automatic type coercion.
+Argument type: all the supported data types. Supports mixed data types with automatic type coercion.
 
 Return type: determined by the least restrictive common type among all arguments, with fallback to string if no common type can be determined
 
@@ -406,11 +404,9 @@ ISPRESENT
 Description
 >>>>>>>>>>>
 
-Version: 3.1.0
+Usage: ispresent(field) returns true if the field exists.
 
-Usage: ispresent(field) return true if the field exists.
-
-Argument type: all the supported data type.
+Argument type: all the supported data types.
 
 Return type: BOOLEAN
 
@@ -434,11 +430,9 @@ ISBLANK
 Description
 >>>>>>>>>>>
 
-Version: 3.1.0
-
 Usage: isblank(field) returns true if the field is null, an empty string, or contains only white space.
 
-Argument type: all the supported data type.
+Argument type: all the supported data types.
 
 Return type: BOOLEAN
 
@@ -462,11 +456,9 @@ ISEMPTY
 Description
 >>>>>>>>>>>
 
-Version: 3.1.0
-
 Usage: isempty(field) returns true if the field is null or is an empty string.
 
-Argument type: all the supported data type.
+Argument type: all the supported data types.
 
 Return type: BOOLEAN
 
@@ -489,9 +481,7 @@ EARLIEST
 Description
 >>>>>>>>>>>
 
-Version: 3.1.0
-
-Usage: earliest(relative_string, field) returns true if the value of field is after the timestamp derived from relative_string relative to the current time. Otherwise, return false.
+Usage: earliest(relative_string, field) returns true if the value of field is after the timestamp derived from relative_string relative to the current time. Otherwise, returns false.
 
 relative_string: 
 The relative string can be one of the following formats:
@@ -545,9 +535,7 @@ LATEST
 Description
 >>>>>>>>>>>
 
-Version: 3.1.0
-
-Usage: latest(relative_string, field) returns true if the value of field is before the timestamp derived from relative_string relative to the current time. Otherwise, return false.
+Usage: latest(relative_string, field) returns true if the value of field is before the timestamp derived from relative_string relative to the current time. Otherwise, returns false.
 
 Argument type: relative_string:STRING, field: TIMESTAMP
 
@@ -571,15 +559,13 @@ Example::
     | 969 |
     +-----+
 
-REGEX_MATCH
+REGEXP_MATCH
 -----------
 
 Description
 >>>>>>>>>>>
 
-Version: 3.3.0
-
-Usage: regex_match(string, pattern) returns true if the regular expression pattern finds a match against any substring of the string value, otherwise returns false.
+Usage: regexp_match(string, pattern) returns true if the regular expression pattern finds a match against any substring of the string value, otherwise returns false.
 
 The function uses Java regular expression syntax for the pattern.
 
@@ -589,7 +575,7 @@ Return type: BOOLEAN
 
 Example::
 
-    #os> source=logs | where regex_match(message, 'ERROR|WARN|FATAL') | fields timestamp, message
+    #os> source=logs | where regexp_match(message, 'ERROR|WARN|FATAL') | fields timestamp, message
     fetched rows / total rows = 3/100
     +---------------------+------------------------------------------+
     | timestamp           | message                                  |
@@ -599,7 +585,7 @@ Example::
     | 2024-01-15 10:25:33 | FATAL: System crashed unexpectedly      |
     +---------------------+------------------------------------------+
 
-    #os> source=users | where regex_match(email, '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}') | fields name, email
+    #os> source=users | where regexp_match(email, '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}') | fields name, email
     fetched rows / total rows = 2/3
     +-------+----------------------+
     | name  | email                |
@@ -608,7 +594,7 @@ Example::
     | Alice | alice@company.org    |
     +-------+----------------------+
 
-    #os> source=network | where regex_match(ip_address, '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$') AND NOT regex_match(ip_address, '^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)') | fields ip_address, status
+    #os> source=network | where regexp_match(ip_address, '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$') AND NOT regexp_match(ip_address, '^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)') | fields ip_address, status
     fetched rows / total rows = 2/10
     +---------------+--------+
     | ip_address    | status |
@@ -617,7 +603,7 @@ Example::
     | 1.1.1.1       | active |
     +---------------+--------+
 
-    #os> source=products | eval category = if(regex_match(name, '(?i)(laptop|computer|desktop)'), 'Computing', if(regex_match(name, '(?i)(phone|tablet|mobile)'), 'Mobile', 'Other')) | fields name, category
+    #os> source=products | eval category = if(regexp_match(name, '(?i)(laptop|computer|desktop)'), 'Computing', if(regexp_match(name, '(?i)(phone|tablet|mobile)'), 'Mobile', 'Other')) | fields name, category
     fetched rows / total rows = 4/4
     +------------------------+----------+
     | name                   | category |

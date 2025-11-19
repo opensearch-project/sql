@@ -58,7 +58,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import lombok.Getter;
-import org.apache.calcite.DataContext.Variable;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
@@ -68,7 +67,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexVisitorImpl;
-import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
@@ -107,6 +105,7 @@ import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.Mult
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.QueryStringQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.SimpleQueryStringQuery;
 import org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer;
+import org.opensearch.sql.opensearch.storage.serde.ScriptParameterHelper;
 import org.opensearch.sql.opensearch.storage.serde.SerializationWrapper;
 
 /**
@@ -222,7 +221,8 @@ public class PredicateAnalyzer {
         throw new ExpressionNotAnalyzableException("Can't convert " + expression, e);
       }
       try {
-        return new ScriptQueryExpression(expression, rowType, fieldTypes, cluster);
+        return new ScriptQueryExpression(
+            expression, rowType, fieldTypes, cluster, Collections.emptyMap());
       } catch (Throwable e2) {
         throw new ExpressionNotAnalyzableException("Can't convert " + expression, e2);
       }
@@ -794,7 +794,8 @@ public class PredicateAnalyzer {
         return qe;
       } catch (PredicateAnalyzerException firstFailed) {
         try {
-          QueryExpression qe = new ScriptQueryExpression(node, rowType, fieldTypes, cluster);
+          QueryExpression qe =
+              new ScriptQueryExpression(node, rowType, fieldTypes, cluster, Collections.emptyMap());
           if (!qe.isPartial()) {
             qe.updateAnalyzedNodes(node);
           }
@@ -1446,14 +1447,16 @@ public class PredicateAnalyzer {
 
   public static class ScriptQueryExpression extends QueryExpression {
     private RexNode analyzedNode;
-    // use lambda to generate code lazily to avoid store generated code
     private final Supplier<String> codeGenerator;
+    private String generatedCode;
+    private final ScriptParameterHelper parameterHelper;
 
     public ScriptQueryExpression(
         RexNode rexNode,
         RelDataType rowType,
         Map<String, ExprType> fieldTypes,
-        RelOptCluster cluster) {
+        RelOptCluster cluster,
+        Map<String, Object> params) {
       // We prevent is_null(nested_field) from being pushed down because pushed-down scripts can not
       // access nested fields for the time being
       if (rexNode instanceof RexCall
@@ -1463,10 +1466,21 @@ public class PredicateAnalyzer {
       }
       accumulateScriptCount(1);
       RelJsonSerializer serializer = new RelJsonSerializer(cluster);
+      this.parameterHelper = new ScriptParameterHelper(rowType.getFieldList(), fieldTypes, params);
       this.codeGenerator =
           () ->
               SerializationWrapper.wrapWithLangType(
-                  ScriptEngineType.CALCITE, serializer.serialize(rexNode, rowType, fieldTypes));
+                  ScriptEngineType.CALCITE, serializer.serialize(rexNode, parameterHelper));
+    }
+
+    // For filter script, this method will be called after planning phase;
+    // For the agg-script, this will be called in planning phase to generate agg builder.
+    // TODO: make agg-script lazy as well
+    private String getOrCreateGeneratedCode() {
+      if (generatedCode == null) {
+        generatedCode = codeGenerator.get();
+      }
+      return generatedCode;
     }
 
     @Override
@@ -1475,17 +1489,12 @@ public class PredicateAnalyzer {
     }
 
     public Script getScript() {
-      long currentTime = Hook.CURRENT_TIME.get(-1L);
-      if (currentTime < 0) {
-        throw new UnsupportedScriptException(
-            "ScriptQueryExpression requires a valid current time from hook, but it is not set");
-      }
       return new Script(
           DEFAULT_SCRIPT_TYPE,
           COMPOUNDED_LANG_NAME,
-          codeGenerator.get(),
+          getOrCreateGeneratedCode(),
           Collections.emptyMap(),
-          Map.of(Variable.UTC_TIMESTAMP.camelName, currentTime));
+          this.parameterHelper.getParameters());
     }
 
     @Override

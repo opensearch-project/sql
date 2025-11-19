@@ -31,7 +31,7 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `COMM`, `DEPTNO`, `SPAN_BUCKET`(`SAL`,"
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `COMM`, `DEPTNO`, SPAN_BUCKET(`SAL`,"
             + " 1000) `SAL`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -52,7 +52,7 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
             + "  LogicalTableScan(table=[[scott, EMP]])\n");
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `COMM`, `DEPTNO`, `WIDTH_BUCKET`(`SAL`,"
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `COMM`, `DEPTNO`, WIDTH_BUCKET(`SAL`,"
             + " 10, (MAX(`SAL`) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)) -"
             + " (MIN(`SAL`) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)),"
             + " MAX(`SAL`) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING))"
@@ -78,7 +78,7 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `COMM`, `DEPTNO`,"
-            + " `MINSPAN_BUCKET`(`SAL`, 1.000E2, (MAX(`SAL`) OVER (RANGE BETWEEN UNBOUNDED"
+            + " MINSPAN_BUCKET(`SAL`, 1.000E2, (MAX(`SAL`) OVER (RANGE BETWEEN UNBOUNDED"
             + " PRECEDING AND UNBOUNDED FOLLOWING)) - (MIN(`SAL`) OVER (RANGE BETWEEN UNBOUNDED"
             + " PRECEDING AND UNBOUNDED FOLLOWING)), MAX(`SAL`) OVER (RANGE BETWEEN UNBOUNDED"
             + " PRECEDING AND UNBOUNDED FOLLOWING)) `SAL`\n"
@@ -101,7 +101,7 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
             + "  LogicalTableScan(table=[[scott, EMP]])\n");
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `COMM`, `DEPTNO`, `RANGE_BUCKET`(`SAL`,"
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `COMM`, `DEPTNO`, RANGE_BUCKET(`SAL`,"
             + " MIN(`SAL`) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING),"
             + " MAX(`SAL`) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING), 1000,"
             + " 5000) `SAL`\n"
@@ -124,7 +124,7 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
             + "  LogicalTableScan(table=[[scott, products_temporal]])\n");
 
     String expectedSparkSql =
-        "SELECT `ID`, `SUPPLIER`, `SYS_END`, `WIDTH_BUCKET`(`SYS_START`, 10, (MAX(`SYS_START`) OVER"
+        "SELECT `ID`, `SUPPLIER`, `SYS_END`, WIDTH_BUCKET(`SYS_START`, 10, (MAX(`SYS_START`) OVER"
             + " (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)) - (MIN(`SYS_START`)"
             + " OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)), MAX(`SYS_START`)"
             + " OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)) `SYS_START`\n"
@@ -148,7 +148,7 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
     verifyPPLToSparkSQL(
         root,
         "SELECT `ID`, `SUPPLIER`, `SYS_END`,"
-            + " `FROM_UNIXTIME`(FLOOR(`DIVIDE`(`DIVIDE`(`UNIX_TIMESTAMP`(`SYS_START`), 3600), 1)) *"
+            + " FROM_UNIXTIME(FLOOR(DIVIDE(DIVIDE(UNIX_TIMESTAMP(`SYS_START`), 3600), 1)) *"
             + " 3600) `SYS_START`\n"
             + "FROM `scott`.`products_temporal`");
   }
@@ -170,7 +170,7 @@ public class CalcitePPLBinTest extends CalcitePPLAbstractTest {
     verifyPPLToSparkSQL(
         root,
         "SELECT `ID`, `SUPPLIER`, `SYS_END`,"
-            + " `FROM_UNIXTIME`(FLOOR(`DIVIDE`(`DIVIDE`(`UNIX_TIMESTAMP`(`SYS_START`), 3600), 1)) *"
+            + " FROM_UNIXTIME(FLOOR(DIVIDE(DIVIDE(UNIX_TIMESTAMP(`SYS_START`), 3600), 1)) *"
             + " 3600) `SYS_START`\n"
             + "FROM `scott`.`products_temporal`");
   }

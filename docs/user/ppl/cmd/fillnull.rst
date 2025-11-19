@@ -1,6 +1,6 @@
-=============
+========
 fillnull
-=============
+========
 
 .. rubric:: Table of contents
 
@@ -10,39 +10,31 @@ fillnull
 
 
 Description
-============
-Using ``fillnull`` command to fill null with provided value in one or more fields in the search result.
+===========
+| The ``fillnull`` command fills null values with the provided value in one or more fields in the search result.
 
 
 Syntax
-============
+======
 
-fillnull with <replacement> [in <field-list>]
+| fillnull with <replacement> [in <field-list>]
+| fillnull using <field> = <replacement> [, <field> = <replacement>]
+| fillnull value=<replacement> [<field-list>]
 
-fillnull using <field> = <replacement> [, <field> = <replacement>]
+* replacement: mandatory. The value used to replace null values.
+* field-list: optional. List of fields to apply the replacement to. Can be comma-delimited (with ``with`` or ``using`` syntax) or space-delimited (with ``value=`` syntax). **Default:** all fields.
+* field: mandatory when using ``using`` syntax. Individual field name to assign a specific replacement value.
 
-fillnull value=<replacement> [<field-list>]
+* **Syntax variations**
 
-
-Parameters
-============
-
-* replacement: Mandatory. The value used to replace `null`s.
-
-* field-list: Optional. Comma-delimited (when using ``with`` or ``using``) or space-delimited (when using ``value=``) list of fields. The `null` values in the field will be replaced with the values from the replacement. **Default:** If no field specified, the replacement is applied to all fields.
-
-**Syntax Variations:**
-
-* ``with <replacement> in <field-list>`` - Apply same value to specified fields
-* ``using <field>=<replacement>, ...`` - Apply different values to different fields
-* ``value=<replacement> [<field-list>]`` - Alternative syntax with optional space-delimited field list
-
-
-Examples
-============
+  * ``with <replacement> in <field-list>`` - Apply same value to specified fields
+  * ``using <field>=<replacement>, ...`` - Apply different values to different fields
+  * ``value=<replacement> [<field-list>]`` - Alternative syntax with optional space-delimited field list
 
 Example 1: Replace null values with a specified value on one field
--------------------------------------------------------------------
+==================================================================
+
+This example shows replacing null values in the email field with '<not found>'.
 
 PPL query::
 
@@ -58,7 +50,9 @@ PPL query::
     +-----------------------+----------+
 
 Example 2: Replace null values with a specified value on multiple fields
--------------------------------------------------------------------------
+========================================================================
+
+This example shows replacing null values in both email and employer fields with the same replacement value '<not found>'.
 
 PPL query::
 
@@ -74,7 +68,9 @@ PPL query::
     +-----------------------+-------------+
 
 Example 3: Replace null values with a specified value on all fields
---------------------------------------------------------------------
+===================================================================
+
+This example shows replacing null values in all fields when no field list is specified.
 
 PPL query::
 
@@ -90,7 +86,9 @@ PPL query::
     +-----------------------+-------------+
 
 Example 4: Replace null values with multiple specified values on multiple fields
----------------------------------------------------------------------------------
+================================================================================
+
+This example shows using different replacement values for different fields using the 'using' syntax.
 
 PPL query::
 
@@ -107,7 +105,9 @@ PPL query::
 
 
 Example 5: Replace null with specified value on specific fields (value= syntax)
---------------------------------------------------------------------------------
+===============================================================================
+
+This example shows using the alternative 'value=' syntax to replace null values in specific fields.
 
 PPL query::
 
@@ -123,7 +123,7 @@ PPL query::
     +-----------------------+-------------+
 
 Example 6: Replace null with specified value on all fields (value= syntax)
----------------------------------------------------------------------------
+==========================================================================
 
 When no field list is specified, the replacement applies to all fields in the result.
 
@@ -141,7 +141,7 @@ PPL query::
     +-----------------------+-------------+
 
 Limitations
-============
+===========
 * The ``fillnull`` command is not rewritten to OpenSearch DSL, it is only executed on the coordination node.
 * When applying the same value to all fields without specifying field names, all fields must be the same type. For mixed types, use separate fillnull commands or explicitly specify fields.
 * The replacement value type must match ALL field types in the field list. When applying the same value to multiple fields, all fields must be the same type (all strings or all numeric).

@@ -255,7 +255,7 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testTimechartCommand() {
     assertEquals(
-        "source=table | timechart span=span(identifier, *** m) limit=10 useother=true count() by"
+        "source=table | timechart limit=*** useother=*** count() by span(identifier, *** m)"
             + " identifier",
         anonymize("source=t | timechart count() by host"));
   }
@@ -807,6 +807,19 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=table | eval identifier=mvappend(identifier,***,***) | fields + identifier",
         anonymize("source=t | eval result=mvappend(a, 'b', 'c') | fields result"));
+  }
+
+  @Test
+  public void testMvindex() {
+    // Test mvindex with single element access
+    assertEquals(
+        "source=table | eval identifier=mvindex(array(***,***,***),***) | fields + identifier",
+        anonymize("source=t | eval result=mvindex(array('a', 'b', 'c'), 1) | fields result"));
+    // Test mvindex with range access
+    assertEquals(
+        "source=table | eval identifier=mvindex(array(***,***,***,***,***),***,***) | fields +"
+            + " identifier",
+        anonymize("source=t | eval result=mvindex(array(1, 2, 3, 4, 5), 1, 3) | fields result"));
   }
 
   @Test

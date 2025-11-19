@@ -83,6 +83,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
+import org.opensearch.sql.opensearch.request.PredicateAnalyzer.ScriptQueryExpression;
 import org.opensearch.sql.opensearch.response.agg.ArgMaxMinParser;
 import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.CountAsTotalHitsParser;
@@ -148,13 +149,9 @@ public class AggregateAnalyzer {
     <T> T build(RexNode node, Function<String, T> fieldBuilder, Function<Script, T> scriptBuilder) {
       if (node == null) return fieldBuilder.apply(METADATA_FIELD);
       else if (node instanceof RexInputRef ref) {
-        return fieldBuilder.apply(
-            new NamedFieldExpression(ref.getIndex(), rowType.getFieldNames(), fieldTypes)
-                .getReferenceForTermQuery());
+        return fieldBuilder.apply(inferNamedField(node).getReferenceForTermQuery());
       } else if (node instanceof RexCall || node instanceof RexLiteral) {
-        return scriptBuilder.apply(
-            (new PredicateAnalyzer.ScriptQueryExpression(node, rowType, fieldTypes, cluster))
-                .getScript());
+        return scriptBuilder.apply(inferScript(node).getScript());
       }
       throw new IllegalStateException(
           String.format("Metric aggregation doesn't support RexNode %s", node));
@@ -168,9 +165,10 @@ public class AggregateAnalyzer {
           String.format("Cannot infer field name from RexNode %s", node));
     }
 
-    PredicateAnalyzer.ScriptQueryExpression inferScript(RexNode node) {
+    ScriptQueryExpression inferScript(RexNode node) {
       if (node instanceof RexCall || node instanceof RexLiteral) {
-        new PredicateAnalyzer.ScriptQueryExpression(node, rowType, fieldTypes, cluster);
+        return new ScriptQueryExpression(
+            node, rowType, fieldTypes, cluster, Collections.emptyMap());
       }
       throw new IllegalStateException(
           String.format("Metric aggregation doesn't support RexNode %s", node));

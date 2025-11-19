@@ -535,6 +535,23 @@ public interface PlanUtils {
   }
 
   /**
+   * Check if the sort collation points to non field project expression.
+   *
+   * @param sort the sort operator adding sort order over project
+   * @param project project operation that may contain non field expressions
+   * @return flag to indicate whether non field project expression will be sorted
+   */
+  static boolean sortReferencesExpr(Sort sort, Project project) {
+    if (sort.getCollation().getFieldCollations().isEmpty()) {
+      return false;
+    }
+    return sort.getCollation().getFieldCollations().stream()
+        .anyMatch(
+            relFieldCollation ->
+                project.getProjects().get(relFieldCollation.getFieldIndex()) instanceof RexCall);
+  }
+
+  /**
    * Get a string representation of the argument types expressed in ExprType for error messages.
    *
    * @param argTypes the list of argument types as {@link RelDataType}
