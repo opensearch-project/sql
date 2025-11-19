@@ -396,24 +396,39 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     }
   }
 
-  protected void createDocumentWithIdAndJsonField(
-      String index, int id, String fieldName, String jsonContent) throws IOException {
-    createDocumentWithIdAndJsonField(index, id, fieldName, jsonContent, Map.of());
+  protected void createDocumentsWithJsonField(
+      String index, String fieldName, String... jsonContents) throws IOException {
+    createDocumentsWithIdAndJsonField(index, fieldName, Map.of(), jsonContents);
   }
 
-  protected void createDocumentWithIdAndJsonField(
-      String index,
-      int id,
-      String fieldName,
-      String jsonContent,
-      Map<String, String> additionalFields)
+  protected void createDocumentsWithIdAndJsonField(
+      String index, String fieldName, Map<String, String> additionalFields, String... jsonContent)
       throws IOException {
-    Request request = new Request("PUT", fmt("/%s/_doc/%d?refresh=true", index, id));
-    request.setJsonEntity(
-        fmt(
-            "{\"id\": %d, \"%s\": \"%s\" %s}",
-            id, fieldName, escapeForJson(jsonContent), formatAdditionalFields(additionalFields)));
+    StringBuilder bulkRequest = new StringBuilder();
+    for (int i = 0; i < jsonContent.length; i++) {
+      String request =
+          fmt(
+              "{\"id\": %d, \"%s\": \"%s\" %s}",
+              i + 1,
+              fieldName,
+              escapeForJson(jsonContent[i]),
+              formatAdditionalFields(additionalFields));
+      addBulkIndexRequest(bulkRequest, i + 1, request);
+    }
+    Request request = new Request("POST", "/" + index + "/_bulk?refresh=true");
+    request.setJsonEntity(bulkRequest.toString());
     client().performRequest(request);
+  }
+
+  private static void addBulkIndexRequest(StringBuilder sb, int id, String record) {
+    sb.append(indexRequest(id));
+    sb.append("\n");
+    sb.append(record);
+    sb.append("\n");
+  }
+
+  private static String indexRequest(int id) {
+    return fmt("{\"index\":{\"_id\":\"%d\"}}", id);
   }
 
   private static String fmt(String str, Object... params) {

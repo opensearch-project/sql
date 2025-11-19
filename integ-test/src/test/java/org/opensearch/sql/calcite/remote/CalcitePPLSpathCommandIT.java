@@ -11,7 +11,6 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
-import java.util.Map;
 import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
@@ -34,7 +33,7 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
   }
 
   private void createDynamicFieldsTestData() throws IOException {
-    createDocumentWithIdAndJsonField(
+    createDocumentsWithJsonField(
         TEST_INDEX_DYNAMIC_FIELDS,
         "json_data",
         "{\"name\": \"John\", \"age\": 30, \"city\": \"New York\"}",
@@ -43,7 +42,7 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
   }
 
   private void createComplexJsonTestData() throws IOException {
-    createDocumentWithIdAndJsonField(
+    createDocumentsWithJsonField(
         TEST_INDEX_COMPLEX_JSON,
         "data",
         "{\"user\": {\"name\": \"Alice\", \"profile\": {\"age\": 28, \"location\": \"Seattle\"}},"
@@ -53,13 +52,6 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
         "{\"user\": {\"name\": \"John\", \"profile\": {\"age\": 40, \"location\": \"Kirkland\"}},"
             + " \"nested\": [{\"a\": \"v1\", \"arr\": [1, 2, 3]}, {\"a\": \"v2\", \"arr\": [4,"
             + " 5]}]}");
-  }
-
-  protected void createDocumentWithIdAndJsonField(
-      String index, String fieldName, String... jsonContents) throws IOException {
-    for (int i = 0; i < jsonContents.length; i++) {
-      createDocumentWithIdAndJsonField(index, i + 1, fieldName, jsonContents[i], Map.of());
-    }
   }
 
   @Test
@@ -151,23 +143,14 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testSpath() throws IOException {
-    JSONObject result =
-        executeQuery(
-            source(TEST_INDEX_DYNAMIC_FIELDS, "spath input=json_data | fields id, name | head 1"));
-
-    verifySchema(result, schema("id", "bigint"), schema("name", "string"));
-
-    verifyDataRows(result, rows(1, "John"));
-  }
-
-  @Test
-  public void testSpathSpath() throws IOException {
+  public void testSpathAndSpath() throws IOException {
     JSONObject result =
         executeQuery(
             source(
                 TEST_INDEX_DYNAMIC_FIELDS,
                 "spath input=json_data | spath input=json_data | fields id, name | head 1"));
+
+    System.out.println(result.toString(2)); // TODO: To be deleted
 
     verifySchema(result, schema("id", "bigint"), schema("name", "array"));
 
@@ -180,8 +163,8 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
         executeQuery(
             source(
                 TEST_INDEX_DYNAMIC_FIELDS,
-                "fields id, json_data | spath input=json_data | spath input=json_data | fields id,"
-                    + " name | head 1"));
+                "fields id, json_data | spath input=json_data | spath input=json_data"
+                    + "| fields id, name | head 1"));
 
     verifySchema(result, schema("id", "bigint"), schema("name", "array"));
 
@@ -189,13 +172,13 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testSpathStats() throws IOException {
+  public void testSpathAndStats() throws IOException {
     JSONObject result =
         executeQuery(
             source(
                 TEST_INDEX_DYNAMIC_FIELDS,
-                "spath input=json_data | eval name = cast(name as string) | stats count() as"
-                    + " name_count by name | fields name_count, name"));
+                "spath input=json_data | stats count() as name_count by name"
+                    + " | fields name_count, name"));
 
     verifySchema(result, schema("name_count", "bigint"), schema("name", "string"));
     verifyDataRows(result, rows(1L, null), rows(1L, "Jane"), rows(1L, "John"));
