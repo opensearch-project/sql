@@ -259,7 +259,7 @@ dedupSplitArg
    ;
 
 eventstatsCommand
-   : EVENTSTATS eventstatsAggTerm (COMMA eventstatsAggTerm)* (statsByClause)?
+   : EVENTSTATS (bucketNullableArg)? eventstatsAggTerm (COMMA eventstatsAggTerm)* (statsByClause)?
    ;
 
 streamstatsCommand

@@ -21,6 +21,8 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 public class Window extends UnresolvedPlan {
 
   private final List<UnresolvedExpression> windowFunctionList;
+  private final List<UnresolvedExpression> groupList;
+  private final boolean bucketNullable;
   @ToString.Exclude private UnresolvedPlan child;
 
   @Override

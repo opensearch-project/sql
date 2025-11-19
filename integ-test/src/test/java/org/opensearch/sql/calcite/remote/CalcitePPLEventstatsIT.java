@@ -169,6 +169,42 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testEventstatsByWithNullBucket() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eventstats bucket_nullable=false count() as cnt, avg(age) as avg,"
+                    + " min(age) as min, max(age) as max by country | fields name, country,"
+                    + " state, month, year, age, cnt, avg, min, max",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifyDataRows(
+        actual,
+        rows("Kevin", null, null, 4, 2023, null, null, null, null, null),
+        rows(null, "Canada", null, 4, 2023, 10, 3, 18.333333333333332, 10, 25),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 3, 18.333333333333332, 10, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 3, 18.333333333333332, 10, 25),
+        rows("Jake", "USA", "California", 4, 2023, 70, 2, 50, 30, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 2, 50, 30, 70));
+
+    actual =
+        executeQuery(
+            String.format(
+                "source=%s | eventstats bucket_nullable=false count() as cnt, avg(age) as avg,"
+                    + " min(age) as min, max(age) as max by state | fields name, country,"
+                    + " state, month, year, age, cnt, avg, min, max",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+    verifyDataRows(
+        actual,
+        rows(null, "Canada", null, 4, 2023, 10, null, null, null, null),
+        rows("Kevin", null, null, 4, 2023, null, null, null, null, null),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 1, 20, 20, 20),
+        rows("Jake", "USA", "California", 4, 2023, 70, 1, 70, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 1, 30, 30, 30));
+  }
+
+  @Test
   public void testEventstatsBySpan() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -331,6 +367,26 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
         rows(null, "Canada", null, 4, 2023, 10, 10, 18.333333333333332),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20.0, 18.333333333333332),
         rows("John", "Canada", "Ontario", 4, 2023, 25, 25.0, 18.333333333333332),
+        rows("Jake", "USA", "California", 4, 2023, 70, 70.0, 50.0),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 30.0, 50.0));
+  }
+
+  @Test
+  public void testMultipleEventstatsWithNullBucket() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eventstats bucket_nullable=false avg(age) as avg_age by state, country"
+                    + " | eventstats bucket_nullable=false avg(avg_age) as avg_state_age by"
+                    + " country | fields name, country, state, month, year, age, avg_age, avg_state_age",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifyDataRows(
+        actual,
+        rows("Kevin", null, null, 4, 2023, null, null, null),
+        rows(null, "Canada", null, 4, 2023, 10, null, 22.5),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20.0, 22.5),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 25.0, 22.5),
         rows("Jake", "USA", "California", 4, 2023, 70, 70.0, 50.0),
         rows("Hello", "USA", "New York", 4, 2023, 30, 30.0, 50.0));
   }
