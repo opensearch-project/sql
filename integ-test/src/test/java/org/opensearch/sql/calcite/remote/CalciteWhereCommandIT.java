@@ -11,6 +11,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -81,6 +82,8 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
 
   @Test
   public void testFilterOnMultipleCascadedNestedFields() throws IOException {
+    // SQL's static type system does not allow returning list[int] in place of int
+    enabledOnlyWhenPushdownIsEnabled();
     JSONObject result =
         executeQuery(
             String.format(
@@ -118,5 +121,23 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
                             2,
                             "comment",
                             "Too slow in places"))))));
+  }
+
+  @Test
+  public void testScriptFilterOnDifferentNestedHierarchyShouldThrow() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    Throwable t =
+        assertThrows(
+            Exception.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | where author.books.reviews.rating + length(author.books.title)"
+                            + " > 10",
+                        TEST_INDEX_CASCADED_NESTED)));
+    verifyErrorMessageContains(
+        t,
+        "Accessing multiple nested fields under different hierarchies in script is not supported:"
+            + " [author.books.reviews, author.books]");
   }
 }
