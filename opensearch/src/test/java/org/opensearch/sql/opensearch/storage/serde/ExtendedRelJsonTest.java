@@ -302,13 +302,13 @@ public class ExtendedRelJsonTest {
             "nullable",
             false,
             "key",
-            Map.of("udt", "EXPR_IP", "type", "VARCHAR", "nullable", false, "precision", -1),
+            Map.of("udt", "EXPR_IP", "type", "OTHER", "nullable", false, "precision", -1),
             "value",
             Map.of("udt", "EXPR_TIMESTAMP", "type", "VARCHAR", "nullable", false, "precision", -1));
 
     RelDataType expectedComplexMap =
         typeFactory.createMapType(
-            typeFactory.createUDT(OpenSearchTypeFactory.ExprUDT.EXPR_IP),
+            typeFactory.createSqlType(SqlTypeName.OTHER, false),
             typeFactory.createUDT(OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP),
             false);
 
@@ -316,8 +316,7 @@ public class ExtendedRelJsonTest {
     assertEquals(expectedComplexMap, deserializedType);
 
     assertEquals(
-        typeFactory.createUDT(OpenSearchTypeFactory.ExprUDT.EXPR_IP),
-        deserializedType.getKeyType());
+        typeFactory.createSqlType(SqlTypeName.OTHER, false), deserializedType.getKeyType());
     assertEquals(
         typeFactory.createUDT(OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP),
         deserializedType.getValueType());

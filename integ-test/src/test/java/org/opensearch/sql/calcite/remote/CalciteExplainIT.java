@@ -688,9 +688,9 @@ public class CalciteExplainIT extends ExplainIT {
     enabledOnlyWhenPushdownIsEnabled();
     String query =
         String.format("source=%s | where regexp_match(name, 'hello')", TEST_INDEX_STRINGS);
-    var result = explainQueryToString(query);
-    String expected = loadFromFile("expectedOutput/calcite/explain_regexp_match_in_where.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    var result = explainQueryYaml(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_regexp_match_in_where.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   @Test
@@ -1417,9 +1417,9 @@ public class CalciteExplainIT extends ExplainIT {
   // Script generation is not stable in v2
   @Test
   public void testExplainPushDownScriptsContainingUDT() throws IOException {
-    assertJsonEqualsIgnoreId(
-        loadExpectedPlan("explain_filter_script_ip_push.json"),
-        explainQueryToString(
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("explain_filter_script_ip_push.yaml"),
+        explainQueryYaml(
             String.format(
                 "source=%s | where cidrmatch(host, '0.0.0.0/24') | fields host",
                 TEST_INDEX_WEBLOGS)));
