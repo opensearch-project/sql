@@ -57,6 +57,7 @@ dependencies {
     testImplementation group: 'org.mockito', name: 'mockito-core', version: "${mockito_version}"
     testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: "${mockito_version}"
     testImplementation(testFixtures(project(":core")))
+    testRuntimeOnly('org.junit.platform:junit-platform-launcher')
 }
 
 spotless {
