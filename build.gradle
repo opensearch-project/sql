@@ -133,6 +133,11 @@ allprojects {
             targetCompatibility = JavaVersion.VERSION_21
         }
     }
+
+    tasks.withType(Test) {
+        jvmArgs '-Dnet.bytebuddy.experimental=true'
+    }
+
     configurations.all {
         resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.9.10"
         resolutionStrategy.force "net.minidev:json-smart:${versions.json_smart}"
