@@ -1416,4 +1416,11 @@ public class CalciteExplainIT extends ExplainIT {
                 + "| sort age "
                 + "| fields age"));
   }
+
+  @Test
+  public void testSpathWithoutOutputExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_spath_without_output.yaml");
+    assertYamlEqualsIgnoreId(
+        expected, explainQueryYaml(source(TEST_INDEX_LOGS, "spath input=message | fields test")));
+  }
 }

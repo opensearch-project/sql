@@ -125,7 +125,7 @@ public class RelFieldBuilder {
         relBuilder.field(inputCount, inputOrdinal, DYNAMIC_FIELDS_MAP), fieldName);
   }
 
-  private RexNode createItemAccess(RexNode field, String itemName) {
+  public RexNode createItemAccess(RexNode field, String itemName) {
     return PPLFuncImpTable.INSTANCE.resolve(
         rexBuilder, BuiltinFunctionName.INTERNAL_ITEM, field, rexBuilder.makeLiteral(itemName));
   }

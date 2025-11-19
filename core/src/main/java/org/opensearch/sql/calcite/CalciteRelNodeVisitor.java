@@ -688,7 +688,50 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitSpath(SPath node, CalcitePlanContext context) {
-    return visitEval(node.rewriteAsEval(), context);
+    if (node.getPath() != null) {
+      return visitEval(node.rewriteAsEval(), context);
+    } else {
+      return spathWithoutPath(node, context);
+    }
+  }
+
+  private RelNode spathWithoutPath(SPath node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    // 1. Extract all fields from JSON in `inField` and merge with existing dynamic fields.
+    //  _MAP = MAP_APPEND(_MAP, JSON_EXTRACT_ALL(inField))
+    RexNode inField = QualifiedNameResolver.resolveFieldOrThrow(1, 0, node.getInField(), context);
+    RexNode map = context.rexBuilder.makeCall(BuiltinFunctionName.JSON_EXTRACT_ALL, inField);
+    if (context.fieldBuilder.isDynamicFieldsExist()) {
+      map =
+          context.rexBuilder.makeCall(
+              BuiltinFunctionName.MAP_APPEND, context.fieldBuilder.getDynamicFieldsMap(), map);
+    }
+
+    // 2. Merge dynamic fields with static fields.
+    //   static_field1 = APPEND(static_field1, _MAP[static_field1]), static_attr2 = ...
+    List<String> staticFieldNames = context.fieldBuilder.getStaticFieldNames();
+    List<RexNode> fields = new ArrayList<>();
+    for (String fieldName : staticFieldNames) {
+      RexNode field = context.fieldBuilder.staticField(fieldName);
+      RexNode appended =
+          context.rexBuilder.makeCall(
+              BuiltinFunctionName.INTERNAL_APPEND,
+              field,
+              context.rexBuilder.createItemAccess(map, fieldName));
+      fields.add(context.relBuilder.alias(appended, fieldName));
+    }
+
+    // 3. Dedupe dynamic fields with static fields.
+    //   _MAP = MAP_REMOVE(_MAP, [static_attr1, static_attr2, ...])
+    RexNode fieldNameArray = context.rexBuilder.createStringArrayLiteral(staticFieldNames);
+    RexNode dedupedMap =
+        context.rexBuilder.makeCall(BuiltinFunctionName.MAP_REMOVE, map, fieldNameArray);
+    fields.add(context.relBuilder.alias(dedupedMap, DynamicFieldsConstants.DYNAMIC_FIELDS_MAP));
+
+    context.relBuilder.project(fields);
+
+    return context.relBuilder.peek();
   }
 
   // might need to remove fields in _MAP

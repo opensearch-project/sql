@@ -42,10 +42,10 @@ public class MapAppendFunctionIT extends CalcitePPLRelNodeIntegTestCase {
         resultSet -> {
           Map<String, Object> result = getResultMapField(resultSet);
           assertEquals(4, result.size());
-          assertMapListValue(result, "key1", "value1");
-          assertMapListValue(result, "key2", "value2");
-          assertMapListValue(result, "key3", "value3");
-          assertMapListValue(result, "key4", "value4");
+          assertMapValue(result, "key1", "value1");
+          assertMapValue(result, "key2", "value2");
+          assertMapValue(result, "key3", "value3");
+          assertMapValue(result, "key4", "value4");
         });
   }
 
@@ -69,9 +69,9 @@ public class MapAppendFunctionIT extends CalcitePPLRelNodeIntegTestCase {
         resultSet -> {
           Map<String, Object> result = getResultMapField(resultSet);
           assertEquals(3, result.size());
-          assertMapListValue(result, "key1", "value1");
+          assertMapValue(result, "key1", "value1");
           assertMapListValue(result, "key2", "value2", "value3");
-          assertMapListValue(result, "key3", "value4");
+          assertMapValue(result, "key3", "value4");
         });
   }
 
@@ -101,7 +101,7 @@ public class MapAppendFunctionIT extends CalcitePPLRelNodeIntegTestCase {
         resultSet -> {
           Map<String, Object> result = getResultMapField(resultSet);
           assertEquals(1, result.size());
-          assertMapListValue(result, "key1", "value1");
+          assertMapValue(result, "key1", "value1");
         });
   }
 
@@ -154,5 +154,11 @@ public class MapAppendFunctionIT extends CalcitePPLRelNodeIntegTestCase {
     for (int i = 0; i < expectedValues.length; i++) {
       assertEquals(expectedValues[i], list.get(i));
     }
+  }
+
+  private void assertMapValue(Map<String, Object> map, String key, Object expectedValue) {
+    map.containsKey(key);
+    Object value = map.get(key);
+    assertEquals(expectedValue, value);
   }
 }

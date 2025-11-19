@@ -14,7 +14,9 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
@@ -50,7 +52,8 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   }
 
   protected JSONObject executeQuery(String query) throws IOException {
-    return jsonify(executeQueryToString(query));
+    JSONObject result = jsonify(executeQueryToString(query));
+    return result;
   }
 
   protected String executeQueryToString(String query) throws IOException {
@@ -391,5 +394,60 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+  }
+
+  protected void createDocumentWithIdAndJsonField(
+      String index, int id, String fieldName, String jsonContent) throws IOException {
+    createDocumentWithIdAndJsonField(index, id, fieldName, jsonContent, Map.of());
+  }
+
+  protected void createDocumentWithIdAndJsonField(
+      String index,
+      int id,
+      String fieldName,
+      String jsonContent,
+      Map<String, String> additionalFields)
+      throws IOException {
+    Request request = new Request("PUT", fmt("/%s/_doc/%d?refresh=true", index, id));
+    request.setJsonEntity(
+        fmt(
+            "{\"id\": %d, \"%s\": \"%s\" %s}",
+            id, fieldName, escapeForJson(jsonContent), formatAdditionalFields(additionalFields)));
+    client().performRequest(request);
+  }
+
+  private static String fmt(String str, Object... params) {
+    return String.format(Locale.US, str, params);
+  }
+
+  private String formatAdditionalFields(Map<String, String> additionalFields) {
+    StringBuilder sb = new StringBuilder();
+    for (Map.Entry<String, String> entry : additionalFields.entrySet()) {
+      sb.append(fmt(", \"%s\": \"%s\"", entry.getKey(), escapeForJson(entry.getValue())));
+    }
+    return sb.toString();
+  }
+
+  protected String escapeForJson(String jsonContent) {
+    return jsonContent.replace("\"", "\\\"");
+  }
+
+  protected List<Object> arr(Object... items) {
+    return List.of(items);
+  }
+
+  protected void assertExplainYaml(String query, String expectedYaml) throws IOException {
+    String actualYaml = explainQueryYaml(query);
+    assertTrue(getDiffMessage(expectedYaml, actualYaml), expectedYaml.equals(actualYaml));
+  }
+
+  private String getDiffMessage(String expectedYaml, String actualYaml) {
+    return "Explain did not match:\n"
+        + String.format(
+            "# Expected: %s# Actual: %s", blockQuote(expectedYaml), blockQuote(actualYaml));
+  }
+
+  private String blockQuote(String str) {
+    return "```\n" + str + "```\n";
   }
 }

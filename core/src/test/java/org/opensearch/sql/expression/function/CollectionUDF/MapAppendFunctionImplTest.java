@@ -22,10 +22,10 @@ class MapAppendFunctionImplTest {
     Map<String, Object> result = MapAppendFunctionImpl.mapAppendImpl(map1, map2);
 
     assertEquals(4, result.size());
-    assertMapListValues(result, "a", "value1");
-    assertMapListValues(result, "b", "value2");
-    assertMapListValues(result, "c", "value3");
-    assertMapListValues(result, "d", "value4");
+    assertMapValue(result, "a", "value1");
+    assertMapValue(result, "b", "value2");
+    assertMapValue(result, "c", "value3");
+    assertMapValue(result, "d", "value4");
   }
 
   @Test
@@ -36,9 +36,9 @@ class MapAppendFunctionImplTest {
     Map<String, Object> result = MapAppendFunctionImpl.mapAppendImpl(map1, map2);
 
     assertEquals(3, result.size());
-    assertMapListValues(result, "a", "value1");
+    assertMapValue(result, "a", "value1");
     assertMapListValues(result, "b", "value2", "value3");
-    assertMapListValues(result, "c", "value4");
+    assertMapValue(result, "c", "value4");
   }
 
   @Test
@@ -50,7 +50,7 @@ class MapAppendFunctionImplTest {
 
     assertEquals(3, result.size());
     assertMapListValues(result, "a", "item1", "item2", "item3");
-    assertMapListValues(result, "b", "single");
+    assertMapValue(result, "b", "single");
     assertMapListValues(result, "c", "item4", "item5");
   }
 
@@ -65,10 +65,10 @@ class MapAppendFunctionImplTest {
     Map<String, Object> result = MapAppendFunctionImpl.mapAppendImpl(map1, map2);
 
     assertEquals(4, result.size());
-    assertMapListValues(result, "a", "value1");
-    assertMapListValues(result, "b", "value2");
-    assertMapListValues(result, "c", "value3");
-    assertMapListValues(result, "d", "value4");
+    assertMapValue(result, "a", "value1");
+    assertMapValue(result, "b", "value2");
+    assertMapValue(result, "c", "value3");
+    assertMapValue(result, "d", "value4");
   }
 
   @Test
@@ -78,8 +78,8 @@ class MapAppendFunctionImplTest {
     Map<String, Object> result = MapAppendFunctionImpl.mapAppendImpl(map1);
 
     assertEquals(2, result.size());
-    assertMapListValues(result, "a", "value1");
-    assertMapListValues(result, "b", "value2");
+    assertMapValue(result, "a", "value1");
+    assertMapValue(result, "b", "value2");
   }
 
   private Map<String, Object> getMap1() {
@@ -104,5 +104,10 @@ class MapAppendFunctionImplTest {
     for (int i = 0; i < expectedValues.length; i++) {
       assertEquals(expectedValues[i], result.get(i));
     }
+  }
+
+  private void assertMapValue(Map<String, Object> map, String key, Object expectedValue) {
+    Object val = map.get(key);
+    assertEquals(expectedValue, val);
   }
 }

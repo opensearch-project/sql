@@ -8,14 +8,14 @@ package org.opensearch.sql.expression.function.CollectionUDF;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Core logic for `mvappend` command to collect elements from list of args */
-public class MVAppendCore {
+/** Core logic for internal `append` function to collect elements from list of args. */
+public class AppendCore {
 
   /**
    * Collect non-null elements from `args`. If an item is a list, it will collect non-null elements
-   * of the list. See {@ref MVAppendFunctionImplTest} for detailed behavior.
+   * of the list. See {@ref AppendFunctionImplTest} for detailed behavior.
    */
-  public static List<Object> collectElements(Object... args) {
+  public static Object collectElements(Object... args) {
     List<Object> elements = new ArrayList<>();
 
     for (Object arg : args) {
@@ -28,7 +28,14 @@ public class MVAppendCore {
       }
     }
 
-    return elements.isEmpty() ? null : elements;
+    if (elements.isEmpty()) {
+      return null;
+    } else if (elements.size() == 1) {
+      // return the element in case of single element
+      return elements.get(0);
+    } else {
+      return elements;
+    }
   }
 
   private static void addListElements(List<?> list, List<Object> elements) {

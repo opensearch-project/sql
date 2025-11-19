@@ -25,7 +25,9 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 public class ExtendedRexBuilder extends RexBuilder {
 
@@ -169,5 +171,26 @@ public class ExtendedRexBuilder extends RexBuilder {
     RelDataType stringType = getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
     RelDataType nullableStringType = getTypeFactory().createTypeWithNullability(stringType, true);
     return makeCast(nullableStringType, node, true, true);
+  }
+
+  public RexNode createItemAccess(RexNode field, String itemName) {
+    return PPLFuncImpTable.INSTANCE.resolve(
+        this, BuiltinFunctionName.INTERNAL_ITEM, field, makeLiteral(itemName));
+  }
+
+  public RexNode makeCall(BuiltinFunctionName fn, RexNode... nodes) {
+    return PPLFuncImpTable.INSTANCE.resolve(this, fn, nodes);
+  }
+
+  public RexNode createStringArrayLiteral(List<String> values) {
+    RelDataType stringType = getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+    RelDataType arrayType = getTypeFactory().createArrayType(stringType, -1);
+
+    List<RexNode> elements = new java.util.ArrayList<>();
+    for (String value : values) {
+      elements.add(makeLiteral(value));
+    }
+
+    return makeCall(arrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, elements);
   }
 }
