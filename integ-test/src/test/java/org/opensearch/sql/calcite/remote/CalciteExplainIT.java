@@ -9,6 +9,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ALIAS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CASCADED_NESTED;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DEEP_NESTED;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
@@ -51,6 +52,7 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.WEBLOG);
     loadIndex(Index.DATA_TYPE_ALIAS);
     loadIndex(Index.DEEP_NESTED);
+    loadIndex(Index.CASCADED_NESTED);
   }
 
   @Override
@@ -2374,9 +2376,9 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testFilterOnNestedFields() throws IOException {
+  public void testFilterOnComputedNestedFields() throws IOException {
     assertYamlEqualsIgnoreId(
-        loadExpectedPlan("filter_nested.yaml"),
+        loadExpectedPlan("filter_computed_nested.yaml"),
         explainQueryYaml(
             StringUtils.format(
                 "source=%s | eval proj_name_len=length(projects.name) | fields projects.name,"
@@ -2388,10 +2390,41 @@ public class CalciteExplainIT extends ExplainIT {
   public void testFilterOnNestedAndRootFields() throws IOException {
     assertYamlEqualsIgnoreId(
         loadExpectedPlan("filter_root_and_nested.yaml"),
-        // city.name is not in a nested object
+        // city is not in a nested object
         explainQueryYaml(
             StringUtils.format(
                 "source=%s | where city.name = 'Seattle' and length(projects.name) > 29",
                 TEST_INDEX_DEEP_NESTED)));
+  }
+
+  @Test
+  public void testFilterOnNestedFields() throws IOException {
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("filter_nested_term.yaml"),
+        // address is a nested object
+        explainQueryYaml(
+            StringUtils.format(
+                "source=%s | where address.city = 'New york city'", TEST_INDEX_NESTED_SIMPLE)));
+
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("filter_nested_terms.yaml"),
+        explainQueryYaml(
+            StringUtils.format(
+                "source=%s | where address.city in ('Miami', 'san diego')",
+                TEST_INDEX_NESTED_SIMPLE)));
+  }
+
+  @Test
+  public void testFilterOnMultipleCascadedNestedFields() throws IOException {
+    // 1. Access two different hierarchies of nested fields, one at author.books.reviews, another at
+    // author.books
+    // 2. One is pushed as nested range query, another is pushed as nested filter query.
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("filter_multiple_nested_cascaded_range.yaml"),
+        explainQueryYaml(
+            StringUtils.format(
+                "source=%s | where author.books.reviews.rating >=4 and author.books.reviews.rating"
+                    + " < 6 and author.books.title = 'The Shining'",
+                TEST_INDEX_CASCADED_NESTED)));
   }
 }

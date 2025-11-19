@@ -1,0 +1,10 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(name=[$0], address=[$1], id=[$6], age=[$7])
+        LogicalFilter(condition=[SEARCH($2, Sarg['Miami':VARCHAR, 'san diego':VARCHAR]:VARCHAR)])
+          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_nested_simple]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..13=[{inputs}], expr#14=[Sarg['Miami':VARCHAR, 'san diego':VARCHAR]:VARCHAR], expr#15=[SEARCH($t2, $t14)], proj#0..1=[{exprs}], id=[$t6], age=[$t7], $condition=[$t15])
+        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_nested_simple]])

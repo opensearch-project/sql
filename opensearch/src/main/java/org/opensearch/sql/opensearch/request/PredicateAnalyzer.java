@@ -45,6 +45,7 @@ import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.MULTI_FI
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.SINGLE_FIELD_RELEVANCE_FUNCTION_SET;
 import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.COMPOUNDED_LANG_NAME;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
 import java.math.BigDecimal;
@@ -57,9 +58,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
+import java.util.stream.Collectors;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
@@ -1207,7 +1211,7 @@ public class PredicateAnalyzer {
       if (builder == null) {
         throw new IllegalStateException("Builder was not initialized");
       }
-      if (rel != null && rel.nestedPath != null) {
+      if (rel != null && !Strings.isNullOrEmpty(rel.nestedPath)) {
         return nestedQuery(rel.nestedPath, builder, ScoreMode.None);
       }
       return builder;
@@ -1512,9 +1516,22 @@ public class PredicateAnalyzer {
     @Override
     public QueryBuilder builder() {
       ScriptQueryBuilder scriptQuery = QueryBuilders.scriptQuery(getScript());
-      String nestedPath = findNestedPath(fieldTypes);
-      if (nestedPath != null) {
-        return QueryBuilders.nestedQuery(nestedPath, scriptQuery, ScoreMode.None);
+      List<String> nestedPaths =
+          referredFields.stream()
+              .map(p -> resolveNestedPath(p, fieldTypes))
+              .filter(Predicate.not(Strings::isNullOrEmpty))
+              .distinct()
+              .collect(Collectors.toUnmodifiableList());
+      if (nestedPaths.size() > 1) {
+        throw new UnsupportedOperationException(
+            String.format(
+                Locale.ROOT,
+                "Accessing multiple nested fields under different hierarchies is not supported:"
+                    + " %s",
+                nestedPaths));
+      }
+      if (!nestedPaths.isEmpty()) {
+        return nestedQuery(nestedPaths.get(0), scriptQuery, ScoreMode.None);
       }
       return scriptQuery;
     }
@@ -1541,45 +1558,6 @@ public class PredicateAnalyzer {
     @Override
     public List<RexNode> getUnAnalyzableNodes() {
       return List.of();
-    }
-
-    /**
-     * Find the nested path for fields referenced in the expression. If multiple nested paths exist,
-     * returns the top one.
-     *
-     * @param fieldTypes Map of field names to their types
-     * @return The nested path, or null if no nested fields are found
-     */
-    private String findNestedPath(Map<String, ExprType> fieldTypes) {
-      if (fieldTypes == null || fieldTypes.isEmpty()) {
-        return null;
-      }
-
-      for (String fieldName : referredFields) {
-        // Check if the field is part of a nested structure
-        // For a field like "items.name", we need to check if "items" is nested
-        if (fieldName.contains(".")) {
-          String[] parts = fieldName.split("\\.");
-          StringBuilder pathBuilder = new StringBuilder();
-
-          // Build up the path progressively and check if any parent is nested
-          for (int i = 0; i < parts.length - 1; i++) {
-            if (i > 0) {
-              pathBuilder.append(".");
-            }
-            pathBuilder.append(parts[i]);
-            String currentPath = pathBuilder.toString();
-
-            // Check if this path exists in fieldTypes and is nested
-            ExprType pathType = fieldTypes.get(currentPath);
-            // OpenSearchDataType.Nested is mapped to ExprCoreType.ARRAY
-            if (pathType == ExprCoreType.ARRAY) {
-              return currentPath;
-            }
-          }
-        }
-      }
-      return null;
     }
   }
 
@@ -1631,23 +1609,22 @@ public class PredicateAnalyzer {
   }
 
   /** Used for bind variables. */
+  @RequiredArgsConstructor
   public static final class NamedFieldExpression implements TerminalExpression {
 
     private final String name;
     private final ExprType type;
-    private final String nestedPath;
+    @Getter private final String nestedPath;
 
     public NamedFieldExpression(
         int refIndex, List<String> schema, Map<String, ExprType> filedTypes) {
       this.name = refIndex >= schema.size() ? null : schema.get(refIndex);
       this.type = filedTypes.get(name);
-      this.nestedPath = Utils.resolveNestedPath(this.name, filedTypes);
+      this.nestedPath = resolveNestedPath(name, filedTypes);
     }
 
     private NamedFieldExpression() {
-      this.name = null;
-      this.type = null;
-      this.nestedPath = null;
+      this(null, null, "");
     }
 
     private NamedFieldExpression(
@@ -1655,17 +1632,11 @@ public class PredicateAnalyzer {
       this.name =
           (ref == null || ref.getIndex() >= schema.size()) ? null : schema.get(ref.getIndex());
       this.type = filedTypes.get(name);
-      this.nestedPath = Utils.resolveNestedPath(this.name, filedTypes);
+      this.nestedPath = resolveNestedPath(name, filedTypes);
     }
 
     private NamedFieldExpression(RexLiteral literal) {
-      this.name = literal == null ? null : RexLiteral.stringValue(literal);
-      this.type = null;
-      this.nestedPath = null;
-    }
-
-    public @Nullable String getNestedPath() {
-      return nestedPath;
+      this(literal == null ? null : RexLiteral.stringValue(literal), null, "");
     }
 
     public String getRootName() {
@@ -1871,5 +1842,35 @@ public class PredicateAnalyzer {
               "OpenSearch DSL does not handle %s on nested fields correctly",
               call.getKind()));
     }
+  }
+
+  /**
+   * Find the nested path for fields referenced in the expression. If multiple nested paths exist,
+   * returns the deepest one.
+   *
+   * @param name Field name to resolve
+   * @param fieldTypes Map of field names to their types. It HAS TO contain parent-level mappings
+   * @return The nested path, or empty string if no nested fields are found
+   */
+  private static String resolveNestedPath(String name, Map<String, ExprType> fieldTypes) {
+    if (fieldTypes == null || fieldTypes.isEmpty()) {
+      return "";
+    }
+    // Check if the field is part of a nested structure
+    // For a field like "a.b.c.d", we check "a.b.c" first, then "a.b", then "a"
+    if (name.contains(".")) {
+      String[] parts = name.split("\\.");
+      // Start from the deepest parent path and work backwards
+      // For "a.b.c.d", check "a.b.c" first, then "a.b", then "a"
+      for (int depth = parts.length - 1; depth > 0; depth--) {
+        String currentPath = String.join(".", java.util.Arrays.copyOfRange(parts, 0, depth));
+        ExprType pathType = fieldTypes.get(currentPath);
+        // OpenSearchDataType.Nested is mapped to ExprCoreType.ARRAY
+        if (pathType == ExprCoreType.ARRAY) {
+          return currentPath;
+        }
+      }
+    }
+    return "";
   }
 }

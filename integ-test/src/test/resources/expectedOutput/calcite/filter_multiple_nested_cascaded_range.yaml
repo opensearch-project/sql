@@ -1,0 +1,8 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(author=[$0])
+        LogicalFilter(condition=[AND(SEARCH($4, Sarg[[4..6)]), =($6, 'The Shining'))])
+          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_cascaded_nested]])
+  physical: |
+    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_cascaded_nested]], PushDownContext=[[PROJECT->[author, author.books.reviews.rating, author.books.title], FILTER->AND(SEARCH($1, Sarg[[4..6)]), =($2, 'The Shining')), PROJECT->[author], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10000,"timeout":"1m","query":{"bool":{"must":[{"range":{"author.books.reviews.rating":{"from":4.0,"to":6.0,"include_lower":true,"include_upper":false,"boost":1.0}}},{"term":{"author.books.title.keyword":{"value":"The Shining","boost":1.0}}}],"adjust_pure_negative":true,"boost":1.0}},"_source":{"includes":["author"],"excludes":[]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])

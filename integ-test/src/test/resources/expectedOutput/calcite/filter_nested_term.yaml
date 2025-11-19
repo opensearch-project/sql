@@ -1,0 +1,8 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(name=[$0], address=[$1], id=[$6], age=[$7])
+        LogicalFilter(condition=[=($2, 'New york city')])
+          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_nested_simple]])
+  physical: |
+    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_nested_simple]], PushDownContext=[[PROJECT->[name, address, address.city, id, age], FILTER->=($2, 'New york city'), PROJECT->[name, address, id, age], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10000,"timeout":"1m","query":{"nested":{"query":{"term":{"address.city.keyword":{"value":"New york city","boost":1.0}}},"path":"address","ignore_unmapped":false,"score_mode":"none","boost":1.0}},"_source":{"includes":["name","address","id","age"],"excludes":[]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])
