@@ -1856,10 +1856,9 @@ public class PredicateAnalyzer {
     if (fieldTypes == null || fieldTypes.isEmpty()) {
       return "";
     }
-    // Check if the field is part of a nested structure
-    // For a field like "a.b.c.d", we check "a.b.c" first, then "a.b", then "a"
     if (name.contains(".")) {
       String[] parts = name.split("\\.");
+      // Check if the field is part of a nested structure
       // Start from the deepest parent path and work backwards
       // For "a.b.c.d", check "a.b.c" first, then "a.b", then "a"
       for (int depth = parts.length - 1; depth > 0; depth--) {
