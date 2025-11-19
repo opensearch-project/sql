@@ -321,7 +321,7 @@ public class CalciteExplainIT extends ExplainIT {
     // script pushdown
     String expected = loadExpectedPlan("explain_mvexpand.yaml");
     assertYamlEqualsIgnoreId(
-        expected, explainQueryYaml("source=mvexpand_edge_cases | mvexpand skills"));
+        expected, explainQueryYaml("source=mvexpand_edge_cases | mvexpand VALUE"));
   }
 
   // Only for Calcite

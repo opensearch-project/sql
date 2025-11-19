@@ -1054,6 +1054,14 @@ public class PPLFuncImpTable {
                   OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.INTEGER)
                       .or(OperandTypes.family(SqlTypeFamily.MAP, SqlTypeFamily.ANY)),
               false));
+      // Allow using INTERNAL_ITEM when the element type is unknown/undefined at planning time.
+      // Some datasets (or Calcite's type inference) may give the element an UNDEFINED type.
+      // Accept a "ignore" first-argument family so INTERNAL_ITEM(elem, 'key') can still be planned
+      // and resolved at runtime (fallback semantics handled at execution side). - Used in MVEXPAND
+      registerOperator(
+          INTERNAL_ITEM,
+          SqlStdOperatorTable.ITEM,
+          PPLTypeChecker.family(SqlTypeFamily.IGNORE, SqlTypeFamily.CHARACTER));
       registerOperator(
           XOR,
           SqlStdOperatorTable.NOT_EQUALS,

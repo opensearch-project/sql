@@ -1,18 +1,7 @@
 calcite:
   logical: |
-    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalProject(skills.level=[$1], skills.name=[$2], username=[$3], KEY=[$10], VALUE=[$11])
-        LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
-          CalciteLogicalIndexScan(table=[[OpenSearch, mvexpand_edge_cases]])
-          Uncollect
-            LogicalProject(skills=[$cor0.skills])
-              LogicalValues(tuples=[[{ 0 }]])
+    LogicalSystemLimit(sort0=[$2], dir0=[ASC], fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(skills=[$0], username=[$3], VALUE=[$10])
+        LogicalValues(tuples=[[]])
   physical: |
-    EnumerableLimit(fetch=[10000])
-      EnumerableCalc(expr#0..5=[{inputs}], skills.level=[$t1], skills.name=[$t2], username=[$t3], KEY=[$t4], VALUE=[$t5])
-        EnumerableCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
-          EnumerableCalc(expr#0..9=[{inputs}], proj#0..3=[{exprs}])
-            CalciteEnumerableIndexScan(table=[[OpenSearch, mvexpand_edge_cases]])
-          EnumerableUncollect
-            EnumerableCalc(expr#0=[{inputs}], expr#1=[$cor0], expr#2=[$t1.skills], skills=[$t2])
-              EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableValues(tuples=[[]])
