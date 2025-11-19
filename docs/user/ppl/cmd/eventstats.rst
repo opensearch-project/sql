@@ -40,9 +40,14 @@ The ``stats`` and ``eventstats`` commands are both used for calculating statisti
 
 Syntax
 ======
-eventstats <function>... [by-clause]
+eventstats [bucket_nullable=bool] <function>... [by-clause]
 
 * function: mandatory. An aggregation function or window function.
+* bucket_nullable: optional. Controls whether the eventstats command consider null buckets as a valid group in group-by aggregations. When set to ``false``, it will not treat null group-by values as a distinct group during aggregation. **Default:** Determined by ``plugins.ppl.syntax.legacy.preferred``.
+
+ * When ``plugins.ppl.syntax.legacy.preferred=true``, ``bucket_nullable`` defaults to ``true``
+ * When ``plugins.ppl.syntax.legacy.preferred=false``, ``bucket_nullable`` defaults to ``false``
+
 * by-clause: optional. Groups results by specified fields or expressions. Syntax: by [span-expression,] [field,]... **Default:** aggregation over the entire result set.
 * span-expression: optional, at most one. Splits field into buckets by intervals. Syntax: span(field_expr, interval_expr). For example, ``span(age, 10)`` creates 10-year age buckets, ``span(timestamp, 1h)`` creates hourly buckets.
 
@@ -126,3 +131,32 @@ PPL query::
     | 13             | F      | 28  | 1   |
     | 18             | M      | 33  | 2   |
     +----------------+--------+-----+-----+
+
+Example 3: Null buckets handling
+================================
+
+PPL query::
+
+    os> source=accounts | eventstats bucket_nullable=false count() as cnt by employer | fields account_number, firstname, employer, cnt | sort account_number;
+    fetched rows / total rows = 4/4
+    +----------------+-----------+----------+------+
+    | account_number | firstname | employer | cnt  |
+    |----------------+-----------+----------+------|
+    | 1              | Amber     | Pyrami   | 1    |
+    | 6              | Hattie    | Netagy   | 1    |
+    | 13             | Nanette   | Quility  | 1    |
+    | 18             | Dale      | null     | null |
+    +----------------+-----------+----------+------+
+
+PPL query::
+
+    os> source=accounts | eventstats bucket_nullable=true count() as cnt by employer | fields account_number, firstname, employer, cnt | sort account_number;
+    fetched rows / total rows = 4/4
+    +----------------+-----------+----------+-----+
+    | account_number | firstname | employer | cnt |
+    |----------------+-----------+----------+-----|
+    | 1              | Amber     | Pyrami   | 1   |
+    | 6              | Hattie    | Netagy   | 1   |
+    | 13             | Nanette   | Quility  | 1   |
+    | 18             | Dale      | null     | 1   |
+    +----------------+-----------+----------+-----+
