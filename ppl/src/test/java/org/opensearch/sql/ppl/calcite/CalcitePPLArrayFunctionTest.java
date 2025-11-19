@@ -304,14 +304,14 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], test=['buttercup;rarity;tenderhoof':VARCHAR],"
             + " result=[CASE(=(';', ''),"
-            + " SPLIT(REGEXP_REPLACE('buttercup;rarity;tenderhoof':VARCHAR, '(?<=.)(?=.)', '|'),"
-            + " '|'), SPLIT('buttercup;rarity;tenderhoof':VARCHAR, ';'))])\n"
+            + " REGEXP_EXTRACT_ALL('buttercup;rarity;tenderhoof':VARCHAR, '.'),"
+            + " SPLIT('buttercup;rarity;tenderhoof':VARCHAR, ';'))])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT CASE WHEN ';' = '' THEN SPLIT(REGEXP_REPLACE('buttercup;rarity;tenderhoof', "
-            + "'(?<=.)(?=.)', '|'), '|') ELSE SPLIT('buttercup;rarity;tenderhoof', ';') END "
+        "SELECT CASE WHEN ';' = '' THEN REGEXP_EXTRACT_ALL('buttercup;rarity;tenderhoof', "
+            + "'.') ELSE SPLIT('buttercup;rarity;tenderhoof', ';') END "
             + "`result`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 1";
@@ -330,14 +330,14 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
             + "  LogicalSort(fetch=[1])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], test=['1a2b3c4def567890':VARCHAR],"
-            + " result=[CASE(=('def':VARCHAR, ''), SPLIT(REGEXP_REPLACE('1a2b3c4def567890':VARCHAR,"
-            + " '(?<=.)(?=.)', '|'), '|'), SPLIT('1a2b3c4def567890':VARCHAR, 'def':VARCHAR))])\n"
+            + " result=[CASE(=('def':VARCHAR, ''), REGEXP_EXTRACT_ALL('1a2b3c4def567890':VARCHAR,"
+            + " '.'), SPLIT('1a2b3c4def567890':VARCHAR, 'def':VARCHAR))])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT CASE WHEN 'def' = '' THEN SPLIT(REGEXP_REPLACE('1a2b3c4def567890', "
-            + "'(?<=.)(?=.)', '|'), '|') ELSE SPLIT('1a2b3c4def567890', 'def') END `result`\n"
+        "SELECT CASE WHEN 'def' = '' THEN REGEXP_EXTRACT_ALL('1a2b3c4def567890', "
+            + "'.') ELSE SPLIT('1a2b3c4def567890', 'def') END `result`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -355,13 +355,13 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
             + "  LogicalSort(fetch=[1])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], test=['abcd':VARCHAR],"
-            + " result=[CASE(=('':VARCHAR, ''), SPLIT(REGEXP_REPLACE('abcd':VARCHAR,"
-            + " '(?<=.)(?=.)', '|'), '|'), SPLIT('abcd':VARCHAR, '':VARCHAR))])\n"
+            + " result=[CASE(=('':VARCHAR, ''), REGEXP_EXTRACT_ALL('abcd':VARCHAR,"
+            + " '.'), SPLIT('abcd':VARCHAR, '':VARCHAR))])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT CASE WHEN '' = '' THEN SPLIT(REGEXP_REPLACE('abcd', '(?<=.)(?=.)', '|'), '|') "
+        "SELECT CASE WHEN '' = '' THEN REGEXP_EXTRACT_ALL('abcd', '.') "
             + "ELSE SPLIT('abcd', '') END `result`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 1";

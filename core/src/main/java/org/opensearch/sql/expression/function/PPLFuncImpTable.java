@@ -287,7 +287,6 @@ import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.CollectionUDF.MVIndexFunctionImp;
-import org.opensearch.sql.expression.function.CollectionUDF.SplitFunctionImp;
 
 public class PPLFuncImpTable {
   private static final Logger logger = LogManager.getLogger(PPLFuncImpTable.class);
@@ -979,9 +978,31 @@ public class PPLFuncImpTable {
           PPLTypeChecker.family(SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER));
 
       // Register SPLIT with custom logic for empty delimiter
+      // Case 1: Delimiter is not empty string, use SPLIT
+      // Case 2: Delimiter is empty string, use REGEXP_EXTRACT_ALL with '.' pattern
       register(
           SPLIT,
-          new SplitFunctionImp(),
+          (FunctionImp2)
+              (builder, str, delimiter) -> {
+                // Create condition: delimiter = ''
+                RexNode emptyString = builder.makeLiteral("");
+                RexNode isEmptyDelimiter =
+                    builder.makeCall(SqlStdOperatorTable.EQUALS, delimiter, emptyString);
+
+                // For empty delimiter: split into characters using REGEXP_EXTRACT_ALL with '.'
+                // pattern This matches each individual character
+                RexNode dotPattern = builder.makeLiteral(".");
+                RexNode splitChars =
+                    builder.makeCall(SqlLibraryOperators.REGEXP_EXTRACT_ALL, str, dotPattern);
+
+                // For non-empty delimiter: use standard SPLIT
+                RexNode normalSplit = builder.makeCall(SqlLibraryOperators.SPLIT, str, delimiter);
+
+                // Use CASE to choose between the two approaches
+                // CASE WHEN isEmptyDelimiter THEN splitChars ELSE normalSplit END
+                return builder.makeCall(
+                    SqlStdOperatorTable.CASE, isEmptyDelimiter, splitChars, normalSplit);
+              },
           PPLTypeChecker.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER));
 
       // Register MVINDEX to use Calcite's ITEM/ARRAY_SLICE with index normalization
