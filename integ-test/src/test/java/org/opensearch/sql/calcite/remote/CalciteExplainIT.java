@@ -2376,11 +2376,22 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testFilterOnNestedFields() throws IOException {
     assertYamlEqualsIgnoreId(
-        loadExpectedPlan("filter_on_nested.yaml"),
+        loadExpectedPlan("filter_nested.yaml"),
         explainQueryYaml(
             StringUtils.format(
                 "source=%s | eval proj_name_len=length(projects.name) | fields projects.name,"
                     + " proj_name_len | where proj_name_len > 29",
+                TEST_INDEX_DEEP_NESTED)));
+  }
+
+  @Test
+  public void testFilterOnNestedAndRootFields() throws IOException {
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("filter_root_and_nested.yaml"),
+        // city.name is not in a nested object
+        explainQueryYaml(
+            StringUtils.format(
+                "source=%s | where city.name = 'Seattle' and length(projects.name) > 29",
                 TEST_INDEX_DEEP_NESTED)));
   }
 }
