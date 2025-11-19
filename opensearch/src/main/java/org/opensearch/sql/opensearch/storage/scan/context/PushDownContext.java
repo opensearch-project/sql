@@ -13,29 +13,32 @@ import java.util.Iterator;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder.PushDownUnSupportedException;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
 /** Push down context is used to store all the push down operations that are applied to the query */
 @Getter
 public class PushDownContext extends AbstractCollection<PushDownOperation> {
   private final OpenSearchIndex osIndex;
-  private final OpenSearchRequestBuilder requestBuilder;
   private ArrayDeque<PushDownOperation> operationsForRequestBuilder;
 
   private boolean isAggregatePushed = false;
   private AggPushDownAction aggPushDownAction;
   private ArrayDeque<PushDownOperation> operationsForAgg;
 
+  // Records the start pos of the query, which is updated by new added limit operations.
+  private int startFrom = 0;
+
   private boolean isLimitPushed = false;
   private boolean isProjectPushed = false;
   private boolean isMeasureOrderPushed = false;
   private boolean isSortPushed = false;
+  private boolean isSortExprPushed = false;
   private boolean isTopKPushed = false;
   private boolean isRareTopPushed = false;
 
   public PushDownContext(OpenSearchIndex osIndex) {
     this.osIndex = osIndex;
-    this.requestBuilder = osIndex.createRequestBuilder();
   }
 
   @Override
@@ -53,7 +56,7 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
   public PushDownContext cloneWithoutSort() {
     PushDownContext newContext = new PushDownContext(osIndex);
     for (PushDownOperation action : this) {
-      if (action.type() != PushDownType.SORT) {
+      if (action.type() != PushDownType.SORT && action.type() != PushDownType.SORT_EXPR) {
         newContext.add(action);
       }
     }
@@ -94,14 +97,21 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
 
   @Override
   public boolean add(PushDownOperation operation) {
-    operation.action().transform(this, operation);
+    operation.action().pushOperation(this, operation);
     if (operation.type() == PushDownType.AGGREGATION) {
       isAggregatePushed = true;
       this.aggPushDownAction = (AggPushDownAction) operation.action();
     }
     if (operation.type() == PushDownType.LIMIT) {
+      startFrom += ((LimitDigest) operation.digest()).offset();
+      if (startFrom >= osIndex.getMaxResultWindow()) {
+        throw new PushDownUnSupportedException(
+            String.format(
+                "[INTERNAL] Requested offset %d should be less than the max result window %d",
+                startFrom, osIndex.getMaxResultWindow()));
+      }
       isLimitPushed = true;
-      if (isSortPushed || isMeasureOrderPushed) {
+      if (isSortPushed || isMeasureOrderPushed || isSortExprPushed) {
         isTopKPushed = true;
       }
     }
@@ -110,6 +120,9 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
     }
     if (operation.type() == PushDownType.SORT) {
       isSortPushed = true;
+    }
+    if (operation.type() == PushDownType.SORT_EXPR) {
+      isSortExprPushed = true;
     }
     if (operation.type() == PushDownType.SORT_AGG_METRICS) {
       isMeasureOrderPushed = true;
@@ -126,6 +139,20 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
 
   public boolean containsDigest(Object digest) {
     return this.stream().anyMatch(action -> action.digest().equals(digest));
+  }
+
+  /**
+   * Get the digest of the first operation of a specific type.
+   *
+   * @param type The PushDownType to get the digest for
+   * @return The digest object, or null if no operation of the specified type exists
+   */
+  public Object getDigestByType(PushDownType type) {
+    return this.stream()
+        .filter(operation -> operation.type() == type)
+        .map(PushDownOperation::digest)
+        .findFirst()
+        .orElse(null);
   }
 
   public OpenSearchRequestBuilder createRequestBuilder() {
