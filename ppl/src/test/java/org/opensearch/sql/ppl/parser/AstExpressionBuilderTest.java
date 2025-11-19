@@ -1634,6 +1634,19 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             .aggregationFunction(alias("count()", aggregate("count", allFields())))
             .arguments(exprList(argument("spanliteral", intLiteral(10))))
             .build());
+
+    // Test span literal with decimal value
+    assertEqual(
+        "source=events_null | bin cpu_usage span=7.5 | stats count() by cpu_usage",
+        agg(
+            bin(
+                relation("events_null"),
+                field("cpu_usage"),
+                argument("span", decimalLiteral(new java.math.BigDecimal("7.5")))),
+            exprList(alias("count()", aggregate("count", allFields()))),
+            emptyList(),
+            exprList(alias("cpu_usage", field("cpu_usage"))),
+            defaultStatsArgs()));
   }
 
   @Test

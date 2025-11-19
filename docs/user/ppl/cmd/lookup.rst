@@ -1,6 +1,6 @@
-=============
+======
 lookup
-=============
+======
 
 .. rubric:: Table of contents
 
@@ -10,54 +10,19 @@ lookup
 
 
 Description
-============
-| (Experimental)
-| (From 3.0.0)
-| Lookup command enriches your search data by adding or replacing data from a lookup index (dimension table).
-You can extend fields of an index with values from a dimension table, append or replace values when lookup condition is matched.
-As an alternative of join command, lookup command is more suitable for enriching the source data with a static dataset.
-
-Version
-=======
-3.0.0
+===========
+| The ``lookup`` command enriches your search data by adding or replacing data from a lookup index (dimension table). You can extend fields of an index with values from a dimension table, append or replace values when lookup condition is matched. As an alternative of join command, lookup command is more suitable for enriching the source data with a static dataset.
 
 Syntax
 ======
-LOOKUP <lookupIndex> (<lookupMappingField> [AS <sourceMappingField>])... [(REPLACE | APPEND) (<inputField> [AS <outputField>])...]
+lookup <lookupIndex> (<lookupMappingField> [as <sourceMappingField>])... [(replace | append) (<inputField> [as <outputField>])...]
 
 * lookupIndex: mandatory. The name of lookup index (dimension table).
-* lookupMappingField: mandatory. A mapping key in \<lookupIndex\>, analogy to a join key from right table. You can specify multiple \<lookupMappingField\> with comma-delimited.
-* sourceMappingField: optional. A mapping key from source (left side), analogy to a join key from left side. If you don't specify any \<sourceMappingField\>, its default value is \<lookupMappingField\>.
-* inputField: optional. A field in \<lookupIndex\> where matched values are applied to result output. You can specify multiple \<inputField\> with comma-delimited. If you don't specify any \<inputField\>, all fields expect \<lookupMappingField\> from \<lookupIndex\> where matched values are applied to result output.
-* outputField: optional. A field of output. You can specify zero or multiple \<outputField\>. If you specify \<outputField\> with an existing field name in source query, its values will be replaced or appended by matched values from \<inputField\>. If the field specified in \<outputField\> is a new field, in REPLACE strategy, an extended new field will be applied to the results, but fail in APPEND strategy.
-* REPLACE | APPEND: optional. The output strategies. Default is REPLACE. If you specify REPLACE, matched values in \<lookupIndex\> field overwrite the values in result. If you specify APPEND, matched values in \<lookupIndex\> field only append to the missing values in result.
-
-Configuration
-=============
-This command requires Calcite enabled. In 3.0.0-beta, as an experimental the Calcite configuration is disabled by default.
-
-Enable Calcite::
-
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
-	  "transient" : {
-	    "plugins.calcite.enabled" : true
-	  }
-	}'
-
-Result set::
-
-    {
-      "acknowledged": true,
-      "persistent": {
-        "plugins": {
-          "calcite": {
-            "enabled": "true"
-          }
-        }
-      },
-      "transient": {}
-    }
-
+* lookupMappingField: mandatory. A mapping key in ``lookupIndex``, analogy to a join key from right table. You can specify multiple ``lookupMappingField`` with comma-delimited.
+* sourceMappingField: optional. A mapping key from source (left side), analogy to a join key from left side. If not specified, defaults to ``lookupMappingField``.
+* inputField: optional. A field in ``lookupIndex`` where matched values are applied to result output. You can specify multiple ``inputField`` with comma-delimited. If not specified, all fields except ``lookupMappingField`` from ``lookupIndex`` are applied to result output.
+* outputField: optional. A field of output. You can specify zero or multiple ``outputField``. If ``outputField`` has an existing field name in source query, its values will be replaced or appended by matched values from ``inputField``. If the field specified in ``outputField`` is a new field, in replace strategy, an extended new field will be applied to the results, but fail in append strategy.
+* replace | append: optional. The output strategies. If replace, matched values in ``lookupIndex`` field overwrite the values in result. If append, matched values in ``lookupIndex`` field only append to the missing values in result. **Default:** replace.
 
 Usage
 =====
@@ -73,8 +38,10 @@ Lookup::
     source = table1 | lookup table2 id as cid, name append dept as department, city as location
 
 
-Example 1: replace
-==================
+Example 1: Replace strategy
+===========================
+
+This example shows using the lookup command with the REPLACE strategy to overwrite existing values.
 
 PPL query::
 
@@ -169,8 +136,10 @@ Result set::
       "size": 6
     }
 
-Example 2: append
-=================
+Example 2: Append strategy
+==========================
+
+This example shows using the lookup command with the APPEND strategy to fill missing values only.
 
 PPL query::
 
@@ -183,8 +152,10 @@ PPL query::
 	}'
 
 
-Example 3: no inputField
-========================
+Example 3: No inputField specified
+==================================
+
+This example shows using the lookup command without specifying inputField, which applies all fields from the lookup index.
 
 PPL query::
 
@@ -279,8 +250,10 @@ Result set::
       "size": 6
     }
 
-Example 4: outputField as a new field
+Example 4: OutputField as a new field
 =====================================
+
+This example shows using the lookup command with outputField as a new field name.
 
 PPL query::
 

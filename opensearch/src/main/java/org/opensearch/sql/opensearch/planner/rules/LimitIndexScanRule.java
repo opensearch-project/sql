@@ -50,7 +50,7 @@ public class LimitIndexScanRule extends RelRule<LimitIndexScanRule.Config> {
     }
   }
 
-  private static Integer extractLimitValue(RexNode fetch) {
+  public static Integer extractLimitValue(RexNode fetch) {
     // fetch is always a integer literal (specified in our PPL/SQL syntax)
     if (fetch instanceof RexLiteral) {
       return ((RexLiteral) fetch).getValueAs(Integer.class);
@@ -71,7 +71,7 @@ public class LimitIndexScanRule extends RelRule<LimitIndexScanRule.Config> {
    * @param offset The <code>RexNode</code> representing the offset.
    * @return The extracted offset value, or <code>null</code> if it cannot be determined.
    */
-  private static Integer extractOffsetValue(RexNode offset) {
+  public static Integer extractOffsetValue(RexNode offset) {
     if (Objects.isNull(offset)) {
       return 0;
     }

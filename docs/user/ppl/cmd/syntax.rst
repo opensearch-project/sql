@@ -1,6 +1,6 @@
-=============
+======
 Syntax
-=============
+======
 
 .. rubric:: Table of contents
 

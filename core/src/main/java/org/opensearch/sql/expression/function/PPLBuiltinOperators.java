@@ -98,10 +98,10 @@ import org.opensearch.sql.expression.function.udf.ip.IPFunction;
 import org.opensearch.sql.expression.function.udf.math.ConvFunction;
 import org.opensearch.sql.expression.function.udf.math.DivideFunction;
 import org.opensearch.sql.expression.function.udf.math.EulerFunction;
-import org.opensearch.sql.expression.function.udf.math.MaxFunction;
-import org.opensearch.sql.expression.function.udf.math.MinFunction;
 import org.opensearch.sql.expression.function.udf.math.ModFunction;
 import org.opensearch.sql.expression.function.udf.math.NumberToStringFunction;
+import org.opensearch.sql.expression.function.udf.math.ScalarMaxFunction;
+import org.opensearch.sql.expression.function.udf.math.ScalarMinFunction;
 
 /** Defines functions and operators that are implemented only by PPL */
 public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
@@ -131,8 +131,8 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator DIVIDE = new DivideFunction().toUDF("DIVIDE");
   public static final SqlOperator SHA2 = CryptographicFunction.sha2().toUDF("SHA2");
   public static final SqlOperator CIDRMATCH = new CidrMatchFunction().toUDF("CIDRMATCH");
-  public static final SqlOperator MAX = new MaxFunction().toUDF("MAX");
-  public static final SqlOperator MIN = new MinFunction().toUDF("MIN");
+  public static final SqlOperator SCALAR_MAX = new ScalarMaxFunction().toUDF("SCALAR_MAX");
+  public static final SqlOperator SCALAR_MIN = new ScalarMinFunction().toUDF("SCALAR_MIN");
 
   public static final SqlOperator COSH =
       adaptMathFunctionToUDF(

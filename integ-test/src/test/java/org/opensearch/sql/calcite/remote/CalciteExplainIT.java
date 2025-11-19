@@ -688,9 +688,9 @@ public class CalciteExplainIT extends ExplainIT {
     enabledOnlyWhenPushdownIsEnabled();
     String query =
         String.format("source=%s | where regexp_match(name, 'hello')", TEST_INDEX_STRINGS);
-    var result = explainQueryToString(query);
-    String expected = loadFromFile("expectedOutput/calcite/explain_regexp_match_in_where.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    var result = explainQueryYaml(query);
+    String expected = loadFromFile("expectedOutput/calcite/explain_regexp_match_in_where.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   @Test
@@ -745,6 +745,7 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   // Only for Calcite
+  @Test
   public void testExplainOnEventstatsEarliestLatest() throws IOException {
     String expected = loadExpectedPlan("explain_eventstats_earliest_latest.json");
     assertJsonEqualsIgnoreId(
@@ -782,6 +783,7 @@ public class CalciteExplainIT extends ExplainIT {
                 TEST_INDEX_LOGS)));
   }
 
+  @Test
   public void testExplainOnStreamstatsEarliestLatest() throws IOException {
     String expected = loadExpectedPlan("explain_streamstats_earliest_latest.yaml");
     assertYamlEqualsIgnoreId(
@@ -868,6 +870,80 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryToString(query);
     String expected = loadExpectedPlan("explain_simple_sort_expr_single_expr_output_push.json");
     assertJsonEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testComplexSortExpressionPushDownExplain() throws Exception {
+    String query =
+        "source=opensearch-sql_test_index_bank| eval age2 = age + balance | sort age2 | fields age,"
+            + " age2";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_complex_sort_expr_push.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testComplexSortExpressionPushDownWithOnlyExprProjected() throws Exception {
+    String query =
+        "source=opensearch-sql_test_index_bank| eval age2 = age + balance | sort age2 | fields"
+            + " age2";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_complex_sort_expr_single_expr_output_push.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testComplexSortExpressionPushDownWithoutExprProjected() throws Exception {
+    String query =
+        "source=opensearch-sql_test_index_bank| eval age2 = age + balance | sort age2 | fields age";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_complex_sort_expr_no_expr_output_push.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testComplexSortExpressionProjectThenSort() throws Exception {
+    String query =
+        "source=opensearch-sql_test_index_bank| eval age2 = age + balance | fields age, age2 | sort"
+            + " age2";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_complex_sort_expr_project_then_sort.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  /*
+   * TODO: A potential optimization is to leverage RexSimplify to simplify -(+($10, $7), $10) to $7
+   * Above simplification can only work when $10 is nonnull and there is no precision loss of
+   * expression calculation
+   */
+  @Test
+  public void testSortNestedComplexExpression() throws Exception {
+    String query =
+        "source=opensearch-sql_test_index_bank| eval age2 = age + balance, age3 = age2 - age | sort"
+            + " age3";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_complex_sort_nested_expr.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testSortComplexExpressionThenSortField() throws Exception {
+    String query =
+        "source=opensearch-sql_test_index_bank| eval age2 = age + balance | sort age2, age | eval"
+            + " balance2 = abs(balance) | sort age";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_complex_sort_then_field_sort.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testSortComplexExprMixedWithSimpleExpr() throws Exception {
+    String query =
+        "source=opensearch-sql_test_index_bank| eval age2 = age + balance, balance2 = balance + 1 |"
+            + " sort age2, balance2 ";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_sort_complex_and_simple_expr.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   @Test
@@ -1298,19 +1374,19 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainEvalMax() throws IOException {
-    String expected = loadExpectedPlan("explain_eval_max.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_eval_max.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account | eval new = max(1, 2, 3, age, 'banana')"));
   }
 
   @Test
   public void testExplainEvalMin() throws IOException {
-    String expected = loadExpectedPlan("explain_eval_min.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_eval_min.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account | eval new = min(1, 2, 3, age, 'banana')"));
   }
 
@@ -1341,9 +1417,9 @@ public class CalciteExplainIT extends ExplainIT {
   // Script generation is not stable in v2
   @Test
   public void testExplainPushDownScriptsContainingUDT() throws IOException {
-    assertJsonEqualsIgnoreId(
-        loadExpectedPlan("explain_filter_script_ip_push.json"),
-        explainQueryToString(
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("explain_filter_script_ip_push.yaml"),
+        explainQueryYaml(
             String.format(
                 "source=%s | where cidrmatch(host, '0.0.0.0/24') | fields host",
                 TEST_INDEX_WEBLOGS)));

@@ -333,7 +333,10 @@ timechartParameter
 
 spanLiteral
    : SPANLENGTH
+   | DECIMAL_SPANLENGTH
+   | DOUBLE_LITERAL  // 1.5d can also represent decimal span length
    | INTEGER_LITERAL
+   | DECIMAL_LITERAL
    ;
 
 evalCommand
@@ -402,6 +405,7 @@ spathParameter
 
 indexablePath
    : pathElement (DOT pathElement)*
+   | stringLiteral
    ;
 
 pathElement
@@ -1092,6 +1096,7 @@ collectionFunctionName
     | ARRAY_LENGTH
     | MVAPPEND
     | MVJOIN
+    | MVINDEX
     | FORALL
     | EXISTS
     | FILTER

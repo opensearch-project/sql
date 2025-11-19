@@ -7,7 +7,9 @@ package org.opensearch.sql.opensearch.storage.serde;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
+import java.util.List;
 import java.util.Map;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
@@ -28,12 +30,13 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 public class RelJsonSerializerTest {
 
-  private final RexBuilder rexBuilder = new RexBuilder(OpenSearchTypeFactory.TYPE_FACTORY);
+  private final RexBuilder rexBuilder = new RexBuilder(TYPE_FACTORY);
   private final RelOptCluster cluster = RelOptCluster.create(new VolcanoPlanner(), rexBuilder);
   private final RelJsonSerializer serializer = new RelJsonSerializer(cluster);
   private final RelDataType rowType =
@@ -52,13 +55,20 @@ public class RelJsonSerializerTest {
             rexBuilder,
             BuiltinFunctionName.UPPER,
             rexBuilder.makeInputRef(rowType.getFieldList().get(0).getType(), 0));
+    RexNode expectedNode =
+        PPLFuncImpTable.INSTANCE.resolve(
+            rexBuilder,
+            BuiltinFunctionName.UPPER,
+            rexBuilder.makeDynamicParam(rowType.getFieldList().get(0).getType(), 0));
 
-    String code = serializer.serialize(rexUpper, rowType, fieldTypes);
-    Map<String, Object> objects = serializer.deserialize(code);
+    final ScriptParameterHelper helper =
+        new ScriptParameterHelper(rowType.getFieldList(), fieldTypes);
+    String code = serializer.serialize(rexUpper, helper);
+    RexNode rexNode = serializer.deserialize(code);
 
-    assertEquals(rexUpper, objects.get(RelJsonSerializer.EXPR));
-    assertEquals(rowType, objects.get(RelJsonSerializer.ROW_TYPE));
-    assertEquals(fieldTypes, objects.get(RelJsonSerializer.FIELD_TYPES));
+    assertEquals(expectedNode, rexNode);
+    assertEquals(List.of(0), helper.sources);
+    assertEquals(List.of("Referer"), helper.digests);
   }
 
   @Test
@@ -72,10 +82,7 @@ public class RelJsonSerializerTest {
             .add("time", UserDefinedFunctionUtils.NULLABLE_TIME_UDT)
             .add("timestamp", UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT)
             .add("ip", UserDefinedFunctionUtils.NULLABLE_IP_UDT)
-            .add(
-                "binary",
-                OpenSearchTypeFactory.TYPE_FACTORY.createUDT(
-                    OpenSearchTypeFactory.ExprUDT.EXPR_BINARY))
+            .add("binary", TYPE_FACTORY.createUDT(OpenSearchTypeFactory.ExprUDT.EXPR_BINARY))
             .build();
     Map<String, ExprType> fieldTypesWithUDT =
         Map.ofEntries(
@@ -93,19 +100,32 @@ public class RelJsonSerializerTest {
             rexBuilder.makeInputRef(rowTypeWithUDT.getFieldList().get(2).getType(), 2),
             rexBuilder.makeInputRef(rowTypeWithUDT.getFieldList().get(3).getType(), 3),
             rexBuilder.makeInputRef(rowTypeWithUDT.getFieldList().get(4).getType(), 4));
-    String serialized = serializer.serialize(rexNode, rowTypeWithUDT, fieldTypesWithUDT);
-    Map<String, Object> objects = serializer.deserialize(serialized);
-    assertEquals(rexNode, objects.get(RelJsonSerializer.EXPR));
-    assertEquals(rowTypeWithUDT.toString(), objects.get(RelJsonSerializer.ROW_TYPE).toString());
-    assertEquals(fieldTypesWithUDT, objects.get(RelJsonSerializer.FIELD_TYPES));
+    RexNode expectedNode =
+        PPLFuncImpTable.INSTANCE.resolve(
+            rexBuilder,
+            BuiltinFunctionName.JSON_ARRAY,
+            rexBuilder.makeDynamicParam(rowTypeWithUDT.getFieldList().get(0).getType(), 0),
+            rexBuilder.makeDynamicParam(rowTypeWithUDT.getFieldList().get(1).getType(), 1),
+            rexBuilder.makeDynamicParam(rowTypeWithUDT.getFieldList().get(2).getType(), 2),
+            rexBuilder.makeDynamicParam(TYPE_FACTORY.createSqlType(SqlTypeName.OTHER, true), 3),
+            rexBuilder.makeDynamicParam(rowTypeWithUDT.getFieldList().get(4).getType(), 4));
+    final ScriptParameterHelper helper =
+        new ScriptParameterHelper(rowTypeWithUDT.getFieldList(), fieldTypesWithUDT);
+    String serialized = serializer.serialize(rexNode, helper);
+    RexNode expr = serializer.deserialize(serialized);
+    assertEquals(expectedNode, expr);
+    assertEquals(List.of(0, 0, 0, 0, 0), helper.sources);
+    assertEquals(List.of("date", "time", "timestamp", "ip", "binary"), helper.digests);
   }
 
   @Test
   void testSerializeUnsupportedRexNode() {
     RexNode illegalRex = rexBuilder.makeRangeReference(rowType, 0, true);
-
     assertThrows(
-        IllegalStateException.class, () -> serializer.serialize(illegalRex, rowType, fieldTypes));
+        IllegalStateException.class,
+        () ->
+            serializer.serialize(
+                illegalRex, new ScriptParameterHelper(rowType.getFieldList(), fieldTypes)));
   }
 
   @Test
@@ -121,8 +141,9 @@ public class RelJsonSerializerTest {
             rexBuilder.makeInputRef(rowType.getFieldList().get(0).getType(), 0),
             rexBuilder.makeLiteral(
                 1, rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER)));
-
-    String code = serializer.serialize(outOfScopeRex, rowType, fieldTypes);
+    final ScriptParameterHelper helper =
+        new ScriptParameterHelper(rowType.getFieldList(), fieldTypes);
+    String code = serializer.serialize(outOfScopeRex, helper);
     assertThrows(IllegalStateException.class, () -> serializer.deserialize(code));
   }
 
@@ -148,12 +169,52 @@ public class RelJsonSerializerTest {
             rexBuilder,
             BuiltinFunctionName.UPPER,
             rexBuilder.makeInputRef(rowType.getFieldList().get(0).getType(), 0));
+    RexNode expectedNode =
+        PPLFuncImpTable.INSTANCE.resolve(
+            rexBuilder,
+            BuiltinFunctionName.UPPER,
+            rexBuilder.makeDynamicParam(rowType.getFieldList().get(0).getType(), 0));
+    final ScriptParameterHelper helper =
+        new ScriptParameterHelper(originalRowType.getFieldList(), originalFieldTypes);
+    String code = serializer.serialize(originalRexUpper, helper);
+    RexNode rex = serializer.deserialize(code);
+    assertEquals(expectedNode, rex);
+  }
 
-    String code = serializer.serialize(originalRexUpper, originalRowType, originalFieldTypes);
-    Map<String, Object> objects = serializer.deserialize(code);
-
-    assertEquals(remappedRexUpper, objects.get(RelJsonSerializer.EXPR));
-    assertEquals(rowType, objects.get(RelJsonSerializer.ROW_TYPE));
-    assertEquals(fieldTypes, objects.get(RelJsonSerializer.FIELD_TYPES));
+  @Test
+  void testSerializeAndDeserializeLiteral() {
+    RelDataType rowTypeWithUDT =
+        rexBuilder
+            .getTypeFactory()
+            .builder()
+            .kind(StructKind.FULLY_QUALIFIED)
+            .add("date", UserDefinedFunctionUtils.NULLABLE_DATE_UDT)
+            .add("text", TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, true))
+            .build();
+    Map<String, ExprType> fieldTypesWithUDT =
+        Map.ofEntries(
+            Map.entry("date", OpenSearchDateType.of(ExprCoreType.DATE)),
+            Map.entry("text", OpenSearchDataType.of(MappingType.Text)));
+    RexNode rexNode =
+        PPLFuncImpTable.INSTANCE.resolve(
+            rexBuilder,
+            BuiltinFunctionName.JSON_ARRAY,
+            rexBuilder.makeInputRef(rowTypeWithUDT.getFieldList().get(0).getType(), 0),
+            rexBuilder.makeInputRef(rowTypeWithUDT.getFieldList().get(1).getType(), 1),
+            rexBuilder.makeLiteral(1, TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER, true)));
+    RexNode expectedNode =
+        PPLFuncImpTable.INSTANCE.resolve(
+            rexBuilder,
+            BuiltinFunctionName.JSON_ARRAY,
+            rexBuilder.makeDynamicParam(rowTypeWithUDT.getFieldList().get(0).getType(), 0),
+            rexBuilder.makeDynamicParam(rowTypeWithUDT.getFieldList().get(1).getType(), 1),
+            rexBuilder.makeDynamicParam(TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER, false), 2));
+    final ScriptParameterHelper helper =
+        new ScriptParameterHelper(rowTypeWithUDT.getFieldList(), fieldTypesWithUDT);
+    String serialized = serializer.serialize(rexNode, helper);
+    RexNode expr = serializer.deserialize(serialized);
+    assertEquals(expectedNode, expr);
+    assertEquals(List.of(0, 1, 2), helper.sources);
+    assertEquals(List.of("date", "text", 1), helper.digests);
   }
 }

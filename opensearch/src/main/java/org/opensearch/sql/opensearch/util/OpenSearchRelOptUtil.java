@@ -10,9 +10,14 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import lombok.experimental.UtilityClass;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelFieldCollation.Direction;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -22,46 +27,16 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.util.mapping.Mapping;
-import org.apache.calcite.util.mapping.Mappings;
 import org.apache.commons.lang3.tuple.Pair;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
+import org.opensearch.sql.opensearch.storage.scan.context.PushDownType;
+import org.opensearch.sql.opensearch.storage.scan.context.SortExprDigest;
 
 @UtilityClass
 public class OpenSearchRelOptUtil {
-  private static final RemapIndexBiVisitor remapIndexBiVisitor = new RemapIndexBiVisitor(true);
-
-  /**
-   * For pushed down RexNode, the input schema doesn't need to be the same with scan output schema
-   * because the input values are read from ScriptDocValues or source by field name. It doesn't
-   * matter what the actual index is. Current serialization will serialize map of field name and
-   * field ExprType, which could be a long serialized string. Use this method to narrow down input
-   * rowType and rewrite RexNode's input references. After that, we can leverage the fewer columns
-   * in the rowType to serialize least required field types.
-   *
-   * @param rexNode original RexNode to be pushed down
-   * @param inputRowType original input rowType of RexNode
-   * @return rewritten pair of RexNode and RelDataType
-   */
-  public static Pair<RexNode, RelDataType> getRemappedRexAndType(
-      final RexNode rexNode, final RelDataType inputRowType) {
-    final BitSet seenOldIndex = new BitSet();
-    final List<Integer> newMappings = new ArrayList<>();
-    rexNode.accept(remapIndexBiVisitor, Pair.of(seenOldIndex, newMappings));
-    final List<RelDataTypeField> inputFieldList = inputRowType.getFieldList();
-    final RelDataTypeFactory.Builder builder = OpenSearchTypeFactory.TYPE_FACTORY.builder();
-    for (Integer oldIdx : newMappings) {
-      builder.add(inputFieldList.get(oldIdx));
-    }
-    final Mapping mapping = Mappings.target(newMappings, inputRowType.getFieldCount());
-    final RexNode newMappedRex = RexUtil.apply(mapping, rexNode);
-    return Pair.of(newMappedRex, builder.build());
-  }
-
   /**
    * Given an input Calcite RexNode, find the single input field with equivalent collation
    * information. The function returns the pair of input field index and a flag to indicate whether
@@ -134,6 +109,33 @@ public class OpenSearchRelOptUtil {
       default:
         return Optional.empty();
     }
+  }
+
+  /**
+   * Suppose single project input is already sorted, this method evaluates whether the input field
+   * sort collation satisfies the simple project expression's output collation.
+   *
+   * @param sourceFieldCollation project input field collation
+   * @param targetFieldCollation simple project expression output collation
+   * @param orderEquivInfo equivalent order information that contains optional input index and
+   *     reversed flag pair
+   * @return if single project input collation satisfies project expression output collation
+   */
+  public boolean sourceCollationSatisfiesTargetCollation(
+      RelFieldCollation sourceFieldCollation,
+      RelFieldCollation targetFieldCollation,
+      Optional<Pair<Integer, Boolean>> orderEquivInfo) {
+    if (orderEquivInfo.isEmpty()) {
+      return false;
+    }
+
+    int equivalentSourceIndex = orderEquivInfo.get().getLeft();
+    Direction equivalentSourceDirection =
+        orderEquivInfo.get().getRight()
+            ? targetFieldCollation.getDirection().reverse()
+            : targetFieldCollation.getDirection();
+    return equivalentSourceIndex == sourceFieldCollation.getFieldIndex()
+        && equivalentSourceDirection == sourceFieldCollation.getDirection();
   }
 
   private static boolean isOrderPreservingCast(RelDataType src, RelDataType dst) {
@@ -273,5 +275,78 @@ public class OpenSearchRelOptUtil {
       }
       suffix++;
     }
+  }
+
+  /**
+   * Check if the scan can provide the required sort collation by matching toCollation's mapped
+   * project RexNodes with sort expressions from PushDownContext.
+   *
+   * @param scan The scan RelNode to check
+   * @param project The project node to match expressions against
+   * @param toCollation The required collation to match
+   * @param orderEquivInfoMap Order equivalence info to determine if output expression collation can
+   *     be optimized to field collation
+   * @return true if scan can provide the required collation, false otherwise
+   */
+  public static boolean canScanProvideSortCollation(
+      AbstractCalciteIndexScan scan,
+      Project project,
+      RelCollation toCollation,
+      Map<Integer, Optional<Pair<Integer, Boolean>>> orderEquivInfoMap) {
+
+    // Check if the scan has sort expressions pushed down
+    if (scan.getPushDownContext().stream()
+        .noneMatch(operation -> operation.type() == PushDownType.SORT_EXPR)) {
+      return false;
+    }
+
+    // Get the sort expression infos from the pushdown context
+    @SuppressWarnings("unchecked")
+    List<SortExprDigest> sortExprDigests =
+        (List<SortExprDigest>) scan.getPushDownContext().getDigestByType(PushDownType.SORT_EXPR);
+    if (sortExprDigests.isEmpty()
+        || sortExprDigests.size() < toCollation.getFieldCollations().size()) {
+      return false;
+    }
+
+    for (int i = 0; i < toCollation.getFieldCollations().size(); i++) {
+      RelFieldCollation requiredFieldCollation = toCollation.getFieldCollations().get(i);
+      RexNode projectExpr = project.getProjects().get(requiredFieldCollation.getFieldIndex());
+      SortExprDigest scanSortInfo = sortExprDigests.get(i);
+      // Get the effective expression for comparison
+      RexNode scanSortExpression = scanSortInfo.getEffectiveExpression(scan);
+
+      // Check if the required project output matches the scan sort expression
+      if (scanSortExpression != null && scanSortExpression.equals(projectExpr)) {
+        // Check if the collation direction and null handling match
+        if (requiredFieldCollation.getDirection() == scanSortInfo.getDirection()
+            && requiredFieldCollation.nullDirection == scanSortInfo.getNullDirection()) {
+          // Direction or null handling mismatch
+          continue;
+        }
+        return false;
+      }
+
+      // Check if sorting simple RexCall is equivalent to field sort
+      if (scanSortExpression instanceof RexInputRef && projectExpr instanceof RexCall) {
+        RexInputRef scanInputRef = (RexInputRef) scanSortExpression;
+        RelFieldCollation sourceCollation =
+            new RelFieldCollation(
+                scanInputRef.getIndex(),
+                scanSortInfo.getDirection(),
+                scanSortInfo.getNullDirection());
+        if (sourceCollationSatisfiesTargetCollation(
+            sourceCollation,
+            requiredFieldCollation,
+            orderEquivInfoMap.get(requiredFieldCollation.getFieldIndex()))) {
+          continue;
+        }
+      }
+
+      return false;
+    }
+
+    // All required collations are matched
+    return true;
   }
 }
