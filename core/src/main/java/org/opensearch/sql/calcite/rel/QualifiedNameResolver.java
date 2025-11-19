@@ -38,16 +38,27 @@ public class QualifiedNameResolver {
     if (inputFieldNames.contains(fieldName)) {
       return Optional.of(context.fieldBuilder.staticField(inputCount, inputOrdinal, fieldName));
     } else if (context.fieldBuilder.isDynamicFieldsExist()) {
-      return Optional.of(context.fieldBuilder.dynamicField(fieldName));
+      return Optional.of(context.fieldBuilder.dynamicField(inputCount, inputOrdinal, fieldName));
     }
     return Optional.empty();
   }
 
+  /** Resolve field in the top of the stack */
+  public static Optional<RexNode> resolveField(String fieldName, CalcitePlanContext context) {
+    return resolveField(1, 0, fieldName, context);
+  }
+
+  /** Resolve field in the specified input. Throw exception if not found. */
   public static RexNode resolveFieldOrThrow(
       int inputCount, int inputOrdinal, String fieldName, CalcitePlanContext context) {
     return resolveField(inputCount, inputOrdinal, fieldName, context)
         .orElseThrow(
             () -> new IllegalArgumentException(String.format("Field [%s] not found.", fieldName)));
+  }
+
+  /** Resolve field in the top of the stack. Throw exception if not found. */
+  public static RexNode resolveFieldOrThrow(String fieldName, CalcitePlanContext context) {
+    return resolveFieldOrThrow(1, 0, fieldName, context);
   }
 
   /**
@@ -78,6 +89,8 @@ public class QualifiedNameResolver {
 
     return resolveFieldWithAlias(nameNode, context, 2)
         .or(() -> resolveFieldWithoutAlias(nameNode, context, 2))
+        .or(() -> resolveDynamicFieldsWithAlias(nameNode, context, 2))
+        .or(() -> resolveDynamicFields(nameNode, context, 2))
         .orElseThrow(() -> getNotFoundException(nameNode));
   }
 
@@ -136,6 +149,28 @@ public class QualifiedNameResolver {
         }
       }
     }
+    return Optional.empty();
+  }
+
+  private static Optional<RexNode> resolveDynamicFieldsWithAlias(
+      QualifiedName nameNode, CalcitePlanContext context, int inputCount) {
+    List<String> parts = nameNode.getParts();
+    log.debug(
+        "resolveDynamicFieldsWithAlias() called with nameNode={}, parts={}, inputCount={}",
+        nameNode,
+        parts,
+        inputCount);
+
+    if (parts.size() >= 2) {
+      // Consider first part as table alias
+      String alias = parts.get(0);
+
+      String fieldName = String.join(".", parts.subList(1, parts.size()));
+      Optional<RexNode> dynamicField =
+          tryToResolveField(alias, DYNAMIC_FIELDS_MAP, context, inputCount);
+      return dynamicField.map(field -> createItemAccess(field, fieldName, context));
+    }
+
     return Optional.empty();
   }
 

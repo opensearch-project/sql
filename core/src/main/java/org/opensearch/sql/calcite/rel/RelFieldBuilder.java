@@ -8,14 +8,20 @@ package org.opensearch.sql.calcite.rel;
 import static org.opensearch.sql.calcite.plan.DynamicFieldsConstants.DYNAMIC_FIELDS_MAP;
 
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import lombok.Value;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
+import org.opensearch.sql.calcite.ExtendedRexBuilder;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
@@ -28,7 +34,7 @@ import org.opensearch.sql.expression.function.PPLFuncImpTable;
 @RequiredArgsConstructor
 public class RelFieldBuilder {
   private final RelBuilder relBuilder;
-  private final RexBuilder rexBuilder;
+  private final ExtendedRexBuilder rexBuilder;
 
   public List<String> getStaticFieldNames() {
     return getStaticFieldNames(0);
@@ -36,7 +42,7 @@ public class RelFieldBuilder {
 
   public List<String> getStaticFieldNames(int n) {
     return getAllFieldNames(n).stream()
-        .filter(name -> !DYNAMIC_FIELDS_MAP.equals(name))
+        .filter(RelFieldBuilder::isStaticField)
         .collect(Collectors.toList());
   }
 
@@ -56,6 +62,10 @@ public class RelFieldBuilder {
     return relBuilder.peek(n).getRowType().getFieldNames();
   }
 
+  public List<RexNode> allFields() {
+    return relBuilder.fields();
+  }
+
   public RexInputRef staticField(String fieldName) {
     return relBuilder.field(fieldName);
   }
@@ -73,8 +83,10 @@ public class RelFieldBuilder {
   }
 
   public List<RexNode> staticFields() {
-    return relBuilder.fields().stream()
-        .filter(node -> !DYNAMIC_FIELDS_MAP.equals(node))
+    List<String> originalFields = relBuilder.peek().getRowType().getFieldNames();
+    return IntStream.range(0, originalFields.size())
+        .filter(i -> isStaticField(originalFields.get(i)))
+        .mapToObj(i -> relBuilder.field(i))
         .collect(Collectors.toList());
   }
 
@@ -90,6 +102,10 @@ public class RelFieldBuilder {
 
   public ImmutableList<RexNode> staticFields(List<? extends Number> ordinals) {
     return relBuilder.fields(ordinals);
+  }
+
+  public boolean isAnyType(RexNode node) {
+    return node.getType().getSqlTypeName().equals(SqlTypeName.ANY);
   }
 
   public boolean isDynamicFieldsExist() {
@@ -128,5 +144,114 @@ public class RelFieldBuilder {
   private RexNode createItemAccess(RexNode field, String itemName) {
     return PPLFuncImpTable.INSTANCE.resolve(
         rexBuilder, BuiltinFunctionName.INTERNAL_ITEM, field, rexBuilder.makeLiteral(itemName));
+  }
+
+  private static boolean isStaticField(String fieldName) {
+    // use startsWith as `_MAP` can be renamed to `_MAP0`, etc. by RelBuilder
+    return !fieldName.startsWith(DYNAMIC_FIELDS_MAP);
+  }
+
+  @Value
+  @AllArgsConstructor
+  private static class JoinedField {
+    boolean isInLeft;
+    boolean isInRight;
+    boolean isDynamicFieldMap;
+    String fieldName;
+    RexInputRef fieldNode;
+  }
+
+  /**
+   * Reorganize dynamic fields map (_MAP) after join. It will concat dynamic fields map from both
+   * side, and also override static field by the value from dynamic fields as needed. This should be
+   * called after join, but with fields information before join as parameters
+   */
+  public void reorganizeDynamicFields(List<String> leftAllFields, List<String> rightAllFields) {
+    boolean leftHasDynamicFields = leftAllFields.contains(DYNAMIC_FIELDS_MAP);
+    boolean rightHasDynamicFields = rightAllFields.contains(DYNAMIC_FIELDS_MAP);
+
+    List<JoinedField> fields = collectStaticFieldsInfo(leftAllFields, rightAllFields);
+    Optional<JoinedField> leftMap =
+        leftHasDynamicFields ? Optional.of(getLeftDynamicFieldMapInfo()) : Optional.empty();
+    Optional<JoinedField> rightMap =
+        rightHasDynamicFields ? Optional.of(getRightDynamicFieldMapInfo()) : Optional.empty();
+
+    List<RexNode> projected = new ArrayList<>();
+    List<String> names = new ArrayList<>();
+    for (JoinedField field : fields) {
+      if (field.isInLeft && !field.isInRight && rightHasDynamicFields) {
+        // need to prioritize value from right dynamic map if only left side has static field with
+        // the name
+        RexNode valueFromRightMap = createItemAccess(rightMap.get().fieldNode, field.fieldName);
+        RexNode merged = rexBuilder.coalesce(valueFromRightMap, field.fieldNode);
+        projected.add(merged);
+        names.add(field.fieldName);
+      } else {
+        projected.add(field.fieldNode);
+        names.add(field.fieldName);
+      }
+    }
+    if (leftHasDynamicFields && rightHasDynamicFields) {
+      // need to concat map from both side
+      projected.add(mapConcatCall(leftMap.get().fieldNode, rightMap.get().fieldNode));
+    } else if (leftHasDynamicFields) {
+      projected.add(leftMap.get().fieldNode);
+    } else if (rightHasDynamicFields) {
+      projected.add(rightMap.get().fieldNode);
+    }
+    names.add(DYNAMIC_FIELDS_MAP);
+
+    relBuilder.projectNamed(projected, names, true);
+  }
+
+  private JoinedField getLeftDynamicFieldMapInfo() {
+    List<String> allFields = getAllFieldNames();
+    for (int i = 0; i < allFields.size(); i++) {
+      String fieldName = allFields.get(i);
+      if (fieldName.startsWith(DYNAMIC_FIELDS_MAP)) {
+        return new JoinedField(true, false, true, fieldName, relBuilder.field(i));
+      }
+    }
+    throw new IllegalStateException("Dynamic field not found for right input.");
+  }
+
+  private JoinedField getRightDynamicFieldMapInfo() {
+    List<String> allFields = getAllFieldNames();
+    for (int i = allFields.size() - 1; 0 <= i; i++) {
+      String fieldName = allFields.get(i);
+      if (fieldName.startsWith(DYNAMIC_FIELDS_MAP)) {
+        return new JoinedField(false, true, true, fieldName, relBuilder.field(i));
+      }
+    }
+    throw new IllegalStateException("Dynamic field not found for right input.");
+  }
+
+  private List<JoinedField> collectStaticFieldsInfo(
+      List<String> leftAllFields, List<String> rightAllFields) {
+    List<JoinedField> fields = new ArrayList<>();
+    List<String> allFields = getAllFieldNames();
+    // iterate by index to avoid referring field by name (it causes issue when field name is
+    // overlapping)
+    for (int i = 0; i < allFields.size(); i++) {
+      String fieldName = allFields.get(i);
+      if (!fieldName.startsWith(DYNAMIC_FIELDS_MAP)) {
+        boolean isInLeft = leftAllFields.contains(fieldName);
+        boolean isInRight =
+            rightAllFields.contains(fieldName)
+                || (isInLeft && rightAllFields.contains(excludeLastZero(fieldName)));
+        fields.add(new JoinedField(isInLeft, isInRight, false, fieldName, relBuilder.field(i)));
+      }
+    }
+    return fields;
+  }
+
+  /** exclude zero to consider the rename (adding `0` at the end) due to duplicate name */
+  private String excludeLastZero(String fieldName) {
+    return fieldName.endsWith("0") ? fieldName.substring(0, fieldName.length() - 1) : fieldName;
+  }
+
+  private RexNode mapConcatCall(RexInputRef left, RexInputRef right) {
+    return PPLFuncImpTable.INSTANCE.resolve(
+        rexBuilder, BuiltinFunctionName.MAP_CONCAT, left, right);
   }
 }

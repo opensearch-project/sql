@@ -21,7 +21,6 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
-import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -34,6 +33,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.Mappings;
 import org.apache.commons.lang3.tuple.Pair;
 import org.immutables.value.Value;
+import org.opensearch.sql.calcite.ExtendedRexBuilder;
 import org.opensearch.sql.calcite.rel.RelBuilderWrapper;
 import org.opensearch.sql.calcite.rel.RelFieldBuilder;
 
@@ -78,7 +78,8 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
 
     final RelBuilder rawRelBuilder = call.builder();
     final RelBuilderWrapper relBuilder = new RelBuilderWrapper(rawRelBuilder);
-    final RexBuilder rexBuilder = aggregate.getCluster().getRexBuilder();
+    final ExtendedRexBuilder rexBuilder =
+        (ExtendedRexBuilder) aggregate.getCluster().getRexBuilder();
     final RelFieldBuilder fieldBuilder = new RelFieldBuilder(rawRelBuilder, rexBuilder);
     relBuilder.push(project.getInput());
 
