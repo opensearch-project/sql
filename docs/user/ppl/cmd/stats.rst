@@ -21,8 +21,10 @@ stats [bucket_nullable=bool] <aggregation>... [by-clause]
 
 * aggregation: mandatory. An aggregation function.
 * bucket_nullable: optional. Controls whether the stats command includes null buckets in group-by aggregations. When set to ``false``, the aggregation ignores records where the group-by field is null, resulting in faster performance by excluding null bucket. **Default:** Determined by ``plugins.ppl.syntax.legacy.preferred``.
-    * When ``plugins.ppl.syntax.legacy.preferred=true``, ``bucket_nullable`` defaults to ``true``
-    * When ``plugins.ppl.syntax.legacy.preferred=false``, ``bucket_nullable`` defaults to ``false``
+
+  * When ``plugins.ppl.syntax.legacy.preferred=true``, ``bucket_nullable`` defaults to ``true``
+  * When ``plugins.ppl.syntax.legacy.preferred=false``, ``bucket_nullable`` defaults to ``false``
+
 * by-clause: optional. Groups results by specified fields or expressions. Syntax: by [span-expression,] [field,]... **Default:** If no by-clause is specified, the stats command returns only one row, which is the aggregation over the entire result set.
 * span-expression: optional, at most one. Splits field into buckets by intervals. Syntax: span(field_expr, interval_expr). The unit of the interval expression is the natural unit by default. If the field is a date/time type field, the aggregation results always ignore null bucket. For example, ``span(age, 10)`` creates 10-year age buckets, ``span(timestamp, 1h)`` creates hourly buckets.
 
