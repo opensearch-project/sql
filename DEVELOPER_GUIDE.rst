@@ -313,6 +313,7 @@ For test cases, you can use the cases in the following checklist in case you mis
 - *Explain*
 
   - DSL for simple query
+  - Script for complex expressions, see details in `intro-scripts <./docs/dev/intro-scripts.md>`_.
   - Execution plan for complex query like JOIN
   
 - *Response format*
