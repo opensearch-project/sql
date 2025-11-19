@@ -504,13 +504,15 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   /** Streamstats command. */
   public UnresolvedPlan visitStreamstatsCommand(OpenSearchPPLParser.StreamstatsCommandContext ctx) {
     // 1. Parse arguments from the streamstats command
-    List<Argument> argExprList = ArgumentFactory.getArgumentList(ctx);
+    List<Argument> argExprList = ArgumentFactory.getArgumentList(ctx, settings);
     ArgumentMap arguments = ArgumentMap.of(argExprList);
 
-    // current, window and global from ArgumentFactory
+    // current, window, global and bucket_nullable from ArgumentFactory
     boolean current = (Boolean) arguments.get("current").getValue();
     int window = (Integer) arguments.get("window").getValue();
     boolean global = (Boolean) arguments.get("global").getValue();
+    boolean bucketNullable =
+        (Boolean) arguments.getOrDefault(Argument.BUCKET_NULLABLE, Literal.TRUE).getValue();
 
     if (window < 0) {
       throw new IllegalArgumentException("Window size must be >= 0, but got: " + window);
@@ -561,6 +563,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         current,
         window,
         global,
+        bucketNullable,
         resetBeforeExpr,
         resetAfterExpr);
   }
