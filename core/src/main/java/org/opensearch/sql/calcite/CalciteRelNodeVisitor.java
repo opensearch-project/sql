@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.calcite.plan.RelOptTable;
@@ -1897,10 +1898,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     // 1. group the group-by list + field list and add a count() aggregation
-    List<UnresolvedExpression> groupExprList = new ArrayList<>(node.getGroupExprList());
-    List<UnresolvedExpression> fieldList =
-        node.getFields().stream().map(f -> (UnresolvedExpression) f).toList();
-    groupExprList.addAll(fieldList);
+    List<UnresolvedExpression> groupExprList = new ArrayList<>();
+    node.getGroupExprList().forEach(exp -> groupExprList.add(exp));
+    node.getFields().forEach(field -> groupExprList.add(field));
+    groupExprList.forEach(expr -> projectDynamicField(expr, context));
     List<UnresolvedExpression> aggExprList =
         List.of(AstDSL.alias(countFieldName, AstDSL.aggregate("count", null)));
     aggregateWithTrimming(groupExprList, aggExprList, context);
@@ -2048,6 +2049,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       org.opensearch.sql.ast.tree.Timechart node, CalcitePlanContext context) {
     visitChildren(node, context);
 
+    projectDynamicFieldAsString(node.getBinExpression(), context);
+    projectDynamicFieldAsString(node.getByField(), context);
+
     // Extract parameters
     UnresolvedExpression spanExpr = node.getBinExpression();
 
@@ -2111,9 +2115,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       List<RexNode> outputFields = context.fieldBuilder.staticFields();
       List<RexNode> reordered = new ArrayList<>();
       reordered.add(context.fieldBuilder.staticField("@timestamp")); // timestamp first
-      reordered.add(
-          context.fieldBuilder.staticField(
-              byFieldName)); // byField second. TODO: allow dynamic fields
+      reordered.add(context.fieldBuilder.staticField(byFieldName)); // byField second.
       reordered.add(outputFields.get(outputFields.size() - 1)); // value function last
       context.relBuilder.project(reordered);
 
@@ -2142,6 +2144,43 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     } catch (Exception e) {
       throw new RuntimeException("Error in visitTimechart: " + e.getMessage(), e);
+    }
+  }
+
+  /**
+   * Project dynamic field to static field and cast to string to make it easier to handle. It does
+   * nothing if exp does not refer dynamic field.
+   */
+  private void projectDynamicFieldAsString(UnresolvedExpression exp, CalcitePlanContext context) {
+    projectDynamicField(exp, context, node -> context.rexBuilder.castToString(node));
+  }
+
+  /**
+   * Project dynamic field to static field to make it easier to handle. It does nothing if exp does
+   * not refer dynamic field.
+   */
+  private void projectDynamicField(UnresolvedExpression exp, CalcitePlanContext context) {
+    UnaryOperator<RexNode> noWrap = node -> node;
+    projectDynamicField(exp, context, noWrap);
+  }
+
+  private void projectDynamicField(
+      UnresolvedExpression exp, CalcitePlanContext context, UnaryOperator<RexNode> nodeWrapper) {
+    if (exp != null) {
+      exp.accept(
+          new AbstractNodeVisitor<Void, CalcitePlanContext>() {
+            @Override
+            public Void visitField(Field field, CalcitePlanContext context) {
+              RexNode node = rexVisitor.analyze(field, context);
+              if (node.isA(SqlKind.ITEM)) {
+                RexNode alias =
+                    context.relBuilder.alias(nodeWrapper.apply(node), field.getField().toString());
+                context.relBuilder.projectPlus(alias);
+              }
+              return null;
+            }
+          },
+          context);
     }
   }
 
@@ -2349,6 +2388,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         .ifPresent(
             sortField -> {
               SortOption sortOption = analyzeSortOption(sortField.getFieldArgs());
+              projectDynamicFieldAsString(sortField, context);
               RexNode field = rexVisitor.analyze(sortField, context);
               if (sortOption == DEFAULT_DESC) {
                 context.relBuilder.sort(context.relBuilder.desc(field));
@@ -2362,7 +2402,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     node.getComputations()
         .forEach(
             trendlineComputation -> {
+              projectDynamicField(trendlineComputation.getDataField(), context);
               RexNode field = rexVisitor.analyze(trendlineComputation.getDataField(), context);
+
               context.relBuilder.filter(context.relBuilder.isNotNull(field));
 
               WindowFrame windowFrame =
