@@ -92,3 +92,19 @@ setup:
   - match: { total: 2 }
   - match: {"schema": [{"name": "id", "type": "string"}, {"name": "name", "type": "string"}, {"name": "NameLen", "type": "int"}]}
   - match: {"datarows": [["order2", "banana", 6], ["order3", "orange", 6]]}
+
+---
+"filter on both nested and root level fields ":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_nested_eval_filter | eval NameLen=LENGTH(items.name) | where NameLen> 5 and id = 'order2' | fields id, items.name, NameLen
+
+  - match: { total: 1 }
+  - match: {"schema": [{"name": "id", "type": "string"}, {"name": "items.name", "type": "string"}, {"name": "NameLen", "type": "int"}]}
+  - match: {"datarows": [["order2", "banana", 6]]}
