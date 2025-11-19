@@ -14,8 +14,8 @@ import org.apache.calcite.linq4j.function.Strict;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
@@ -38,7 +38,65 @@ public class ToNumberFunction extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return ReturnTypes.DOUBLE_FORCE_NULLABLE;
+    return (opBinding) -> {
+      // Try to determine if the result will be Long or Double based on the input
+      int base = 10;
+      if (opBinding.getOperandCount() > 1) {
+
+        base = opBinding.getOperandLiteralValue(1, Integer.class);
+      }
+
+      if (opBinding.getOperandCount() > 0 && opBinding.isOperandLiteral(0, false)) {
+        String literal = opBinding.getOperandLiteralValue(0, String.class);
+        if (literal != null) {
+          try {
+            // Check if it's a decimal number
+            if (base != 10) {
+              return opBinding
+                  .getTypeFactory()
+                  .createTypeWithNullability(
+                      opBinding.getTypeFactory().createSqlType(SqlTypeName.BIGINT), true);
+            }
+            if (literal.contains(".")) {
+              return opBinding
+                  .getTypeFactory()
+                  .createTypeWithNullability(
+                      opBinding
+                          .getTypeFactory()
+                          .createSqlType(org.apache.calcite.sql.type.SqlTypeName.DOUBLE),
+                      true);
+            } else {
+              // Check if it's an integer that fits in Long
+              Long.parseLong(literal);
+              return opBinding
+                  .getTypeFactory()
+                  .createTypeWithNullability(
+                      opBinding
+                          .getTypeFactory()
+                          .createSqlType(org.apache.calcite.sql.type.SqlTypeName.BIGINT),
+                      true);
+            }
+          } catch (NumberFormatException e) {
+            // If parsing fails, default to Double (matches the runtime behavior)
+            return opBinding
+                .getTypeFactory()
+                .createTypeWithNullability(
+                    opBinding
+                        .getTypeFactory()
+                        .createSqlType(org.apache.calcite.sql.type.SqlTypeName.DOUBLE),
+                    true);
+          }
+        }
+      }
+      // Default to Double when we can't determine the type at compile time
+      return opBinding
+          .getTypeFactory()
+          .createTypeWithNullability(
+              opBinding
+                  .getTypeFactory()
+                  .createSqlType(org.apache.calcite.sql.type.SqlTypeName.DOUBLE),
+              true);
+    };
   }
 
   @Override
@@ -52,7 +110,6 @@ public class ToNumberFunction extends ImplementorUDF {
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
       Expression fieldValue = translatedOperands.get(0);
-      int base = 10;
       if (translatedOperands.size() > 1) {
         Expression baseExpr = translatedOperands.get(1);
         return Expressions.call(ToNumberFunction.class, "toNumber", fieldValue, baseExpr);
@@ -85,7 +142,7 @@ public class ToNumberFunction extends ImplementorUDF {
         result = bigInteger.longValue();
       }
     } catch (Exception e) {
-
+      // Return null when parsing fails, matches function behavior
     }
     return result;
   }

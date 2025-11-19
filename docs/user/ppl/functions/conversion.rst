@@ -127,7 +127,7 @@ Description
 
 The following usage options are available, depending on the parameter types and the number of parameters.
 
-Usage: tonumber(string, [base]) converts the value in first argument to provided base type string in second argument. If second argument is not provided, then it converts to base 10 number representation.
+Usage: tonumber(string, [base]) converts the value in first argument. The second argument describe the base of first argument. If second argument is not provided, then it converts to base 10 number representation.
 
 Return type: Number
 
@@ -145,7 +145,7 @@ Following example converts a string in binary to the number representation::
     +-----------+
     | int_value |
     |-----------|
-    | 21.0      |
+    | 21        |
     +-----------+
 
 
@@ -156,7 +156,7 @@ Following example converts a string in hex to the number representation::
     +-----------+
     | int_value |
     |-----------|
-    | 64052.0   |
+    | 64052     |
     +-----------+
 
 Following example converts a string in decimal  to the number representation::
@@ -166,9 +166,18 @@ Following example converts a string in decimal  to the number representation::
     +-----------+
     | int_value |
     |-----------|
-    | 4598.0    |
+    | 4598      |
     +-----------+
 
+Following example converts a string in decimal with fraction  to the number representation::
+
+    os> source=people | eval double_value = tonumber('4598.678') | fields double_value | head 1
+    fetched rows / total rows = 1/1
+    +--------------+
+    | double_value |
+    |--------------|
+    | 4598.678     |
+    +--------------+
 
 TOSTRING
 -----------
