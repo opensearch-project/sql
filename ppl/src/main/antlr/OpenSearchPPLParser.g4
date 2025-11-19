@@ -408,6 +408,7 @@ spathParameter
 
 indexablePath
    : pathElement (DOT pathElement)*
+   | stringLiteral
    ;
 
 pathElement

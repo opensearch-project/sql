@@ -1,0 +1,20 @@
+{
+  "mappings": {
+    "properties": {
+      "doc_n": {
+        "type": "text"
+      },
+      "doc_list": {
+        "type": "text"
+      },
+      "doc_escape": {
+        "type": "text"
+      },
+      "obj_field": {
+        "properties": {
+          "field": { "type": "text" }
+        }
+      }
+    }
+  }
+}
