@@ -47,12 +47,12 @@ public class CalcitePPLSpathTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testSpathWithoutOutput() {
+  public void testSpathWithoutPath() {
     String ppl = "source=EMP | fields ENAME | spath input=ENAME";
     RelNode root = getRelNode(ppl);
 
     String expectedSparkSql =
-        "SELECT `append`(`ENAME`, `JSON_EXTRACT_ALL`(`ENAME`)['ENAME']) `ENAME`,"
+        "SELECT `APPEND`(`ENAME`, `JSON_EXTRACT_ALL`(`ENAME`)['ENAME']) `ENAME`,"
             + " `MAP_REMOVE`(`JSON_EXTRACT_ALL`(`ENAME`), ARRAY ('ENAME')) `_MAP`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
