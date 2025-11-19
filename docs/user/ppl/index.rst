@@ -77,16 +77,16 @@ The query start with search command and then flowing a set of command delimited 
   - `grok command <cmd/grok.rst>`_
 
   - `head command <cmd/head.rst>`_
-  
+
   - `join command  <cmd/join.rst>`_
 
   - `kmeans command <cmd/kmeans.rst>`_
 
   - `lookup command <cmd/lookup.rst>`_
 
-  - `metadata commands <cmd/information_schema.rst>`_
-
   - `ml command <cmd/ml.rst>`_
+
+  - `multisearch command <cmd/multisearch.rst>`_
 
   - `parse command <cmd/parse.rst>`_
 
@@ -106,19 +106,27 @@ The query start with search command and then flowing a set of command delimited 
 
   - `sort command <cmd/sort.rst>`_
 
+  - `spath command <cmd/spath.rst>`_
+
   - `stats command <cmd/stats.rst>`_
+
+  - `streamstats command <cmd/streamstats.rst>`_
 
   - `subquery (aka subsearch) command <cmd/subquery.rst>`_
 
   - `reverse command <cmd/reverse.rst>`_
 
   - `table command <cmd/table.rst>`_
-  
+
+  - `chart command <cmd/chart.rst>`_
+
   - `timechart command <cmd/timechart.rst>`_
 
   - `top command <cmd/top.rst>`_
 
   - `trendline command <cmd/trendline.rst>`_
+
+  - `replace command <cmd/replace.rst>`_
 
   - `where command <cmd/where.rst>`_
 

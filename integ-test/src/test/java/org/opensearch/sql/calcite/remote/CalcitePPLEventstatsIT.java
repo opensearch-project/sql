@@ -11,7 +11,6 @@ import static org.opensearch.sql.util.MatcherUtils.*;
 import java.io.IOException;
 import java.util.List;
 import org.json.JSONObject;
-import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
@@ -21,13 +20,14 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
     super.init();
     enableCalcite();
 
+    loadIndex(Index.BANK);
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
-    loadIndex(Index.BANK_TWO);
+    loadIndex(Index.LOGS);
   }
 
   @Test
-  public void testEventstat() throws IOException {
+  public void testEventstats() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -57,7 +57,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatWithNull() throws IOException {
+  public void testEventstatsWithNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -89,7 +89,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatBy() throws IOException {
+  public void testEventstatsBy() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -120,7 +120,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatByWithNull() throws IOException {
+  public void testEventstatsByWithNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -169,7 +169,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatBySpan() throws IOException {
+  public void testEventstatsBySpan() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -187,7 +187,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatBySpanWithNull() throws IOException {
+  public void testEventstatsBySpanWithNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -207,7 +207,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatByMultiplePartitions1() throws IOException {
+  public void testEventstatsByMultiplePartitions1() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -225,7 +225,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatByMultiplePartitions2() throws IOException {
+  public void testEventstatsByMultiplePartitions2() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -243,7 +243,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatByMultiplePartitionsWithNull1() throws IOException {
+  public void testEventstatsByMultiplePartitionsWithNull1() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -263,7 +263,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatByMultiplePartitionsWithNull2() throws IOException {
+  public void testEventstatsByMultiplePartitionsWithNull2() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -298,7 +298,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testMultipleEventstat() throws IOException {
+  public void testMultipleEventstats() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -316,7 +316,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testMultipleEventstatWithNull() throws IOException {
+  public void testMultipleEventstatsWithNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -336,7 +336,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testMultipleEventstatWithEval() throws IOException {
+  public void testMultipleEventstatsWithEval() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -356,7 +356,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatEmptyRows() throws IOException {
+  public void testEventstatsEmptyRows() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -376,7 +376,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatVariance() throws IOException {
+  public void testEventstatsVariance() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -447,7 +447,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatVarianceWithNull() throws IOException {
+  public void testEventstatsVarianceWithNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -511,7 +511,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatVarianceBy() throws IOException {
+  public void testEventstatsVarianceBy() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -529,7 +529,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatVarianceBySpan() throws IOException {
+  public void testEventstatsVarianceBySpan() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -544,7 +544,7 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testEventstatVarianceWithNullBy() throws IOException {
+  public void testEventstatsVarianceWithNullBy() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -698,48 +698,63 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
         rows("Hello", "USA", "New York", 4, 2023, 30, 4));
   }
 
-  @Ignore
   @Test
   public void testEventstatEarliestAndLatest() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eventstats earliest(birthdate), latest(birthdate) | head 1",
-                TEST_INDEX_BANK_TWO));
+                "source=%s | eventstats earliest(message), latest(message) by server",
+                TEST_INDEX_LOGS));
     verifySchema(
         actual,
-        schema("account_number", "bigint"),
-        schema("firstname", "string"),
-        schema("address", "string"),
-        schema("birthdate", "timestamp"),
-        schema("gender", "string"),
-        schema("city", "string"),
-        schema("lastname", "string"),
-        schema("balance", "bigint"),
-        schema("employer", "string"),
-        schema("state", "string"),
-        schema("age", "int"),
-        schema("email", "string"),
-        schema("male", "boolean"),
-        schema("earliest(birthdate)", "timestamp"),
-        schema("latest(birthdate)", "timestamp"));
+        schema("created_at", "timestamp"),
+        schema("server", "string"),
+        schema("@timestamp", "timestamp"),
+        schema("message", "string"),
+        schema("level", "string"),
+        schema("earliest(message)", "string"),
+        schema("latest(message)", "string"));
     verifyDataRows(
         actual,
         rows(
-            1,
-            "Amber JOHnny",
-            "880 Holmes Lane",
-            "2017-10-23 00:00:00",
-            "M",
-            "Brogan",
-            "Duke Willmington",
-            39225,
-            "Pyrami",
-            "IL",
-            32,
-            "amberduke@pyrami.com",
-            true,
-            "1970-01-18 20:22:32",
-            "2018-08-19 00:00:00"));
+            "2023-01-05 00:00:00",
+            "server1",
+            "2023-01-01 00:00:00",
+            "Database connection failed",
+            "ERROR",
+            "Database connection failed",
+            "High memory usage"),
+        rows(
+            "2023-01-04 00:00:00",
+            "server2",
+            "2023-01-02 00:00:00",
+            "Service started",
+            "INFO",
+            "Service started",
+            "Backup completed"),
+        rows(
+            "2023-01-03 00:00:00",
+            "server1",
+            "2023-01-03 00:00:00",
+            "High memory usage",
+            "WARN",
+            "Database connection failed",
+            "High memory usage"),
+        rows(
+            "2023-01-02 00:00:00",
+            "server3",
+            "2023-01-04 00:00:00",
+            "Disk space low",
+            "ERROR",
+            "Disk space low",
+            "Disk space low"),
+        rows(
+            "2023-01-01 00:00:00",
+            "server2",
+            "2023-01-05 00:00:00",
+            "Backup completed",
+            "INFO",
+            "Service started",
+            "Backup completed"));
   }
 }

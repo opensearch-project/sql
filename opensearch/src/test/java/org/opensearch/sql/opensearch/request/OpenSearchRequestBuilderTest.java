@@ -45,7 +45,6 @@ import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.opensearch.search.sort.FieldSortBuilder;
 import org.opensearch.search.sort.ScoreSortBuilder;
 import org.opensearch.search.sort.SortBuilders;
-import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.common.setting.Settings;
@@ -238,8 +237,7 @@ class OpenSearchRequestBuilderTest {
                   .from(DEFAULT_OFFSET)
                   .size(MAX_RESULT_WINDOW)
                   .timeout(DEFAULT_QUERY_TIMEOUT)
-                  .query(query)
-                  .sort(DOC_FIELD_NAME, ASC),
+                  .query(query),
               searchRequest.source());
           return mock();
         };
@@ -310,7 +308,6 @@ class OpenSearchRequestBuilderTest {
   void test_push_down_query_not_null() {
     SearchSourceBuilder sourceBuilder = requestBuilder.getSourceBuilder();
     sourceBuilder.query(QueryBuilders.termQuery("name", "John"));
-    sourceBuilder.sort(DOC_FIELD_NAME, SortOrder.ASC);
 
     QueryBuilder query = QueryBuilders.termQuery("intA", 1);
     requestBuilder.pushDownFilter(query);
@@ -323,8 +320,7 @@ class OpenSearchRequestBuilderTest {
             .from(DEFAULT_OFFSET)
             .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT)
-            .query(expectedQuery)
-            .sort(DOC_FIELD_NAME, SortOrder.ASC);
+            .query(expectedQuery);
 
     assertSearchSourceBuilder(expectedSourceBuilder, requestBuilder);
   }
@@ -345,8 +341,28 @@ class OpenSearchRequestBuilderTest {
             .from(DEFAULT_OFFSET)
             .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT)
-            .query(initialBoolQuery)
-            .sort(DOC_FIELD_NAME, SortOrder.ASC);
+            .query(initialBoolQuery);
+
+    assertSearchSourceBuilder(expectedSourceBuilder, requestBuilder);
+  }
+
+  @Test
+  void test_push_down_query_with_bool_filter_for_calcite() {
+    BoolQueryBuilder initialBoolQuery =
+        QueryBuilders.boolQuery().filter(QueryBuilders.termQuery("name", "John"));
+
+    SearchSourceBuilder sourceBuilder = requestBuilder.getSourceBuilder();
+    sourceBuilder.query(initialBoolQuery);
+
+    QueryBuilder newQuery = QueryBuilders.termQuery("intA", 1);
+    requestBuilder.pushDownFilterForCalcite(newQuery);
+    initialBoolQuery.filter(newQuery);
+    SearchSourceBuilder expectedSourceBuilder =
+        new SearchSourceBuilder()
+            .from(DEFAULT_OFFSET)
+            .size(MAX_RESULT_WINDOW)
+            .timeout(DEFAULT_QUERY_TIMEOUT)
+            .query(QueryBuilders.boolQuery().filter(initialBoolQuery).filter(newQuery));
 
     assertSearchSourceBuilder(expectedSourceBuilder, requestBuilder);
   }

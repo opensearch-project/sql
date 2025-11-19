@@ -1,0 +1,31 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[count(), UserID, m, SearchPhrase]"
+  children:
+    - name: TakeOrderedOperator
+      description:
+        limit: 10
+        offset: 0
+        sortList:
+          count():
+            sortOrder: DESC
+            nullOrder: NULL_LAST
+      children:
+        - name: AggregationOperator
+          description:
+            aggregators: "[count()]"
+            groupBy: "[UserID, m, SearchPhrase]"
+          children:
+            - name: OpenSearchEvalOperator
+              description:
+                expressions:
+                  m: "extract(\"minute\", EventTime)"
+              children:
+                - name: OpenSearchIndexScan
+                  description:
+                    request: "OpenSearchQueryRequest(indexName=hits, sourceBuilder={\"\
+                      from\":0,\"size\":10000,\"timeout\":\"1m\"}, needClean=true,\
+                      \ searchDone=false, pitId=*,\
+                      \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
+                  children: []

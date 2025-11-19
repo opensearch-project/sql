@@ -21,10 +21,14 @@ import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
+import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 public class RelJsonSerializerTest {
@@ -58,6 +62,45 @@ public class RelJsonSerializerTest {
   }
 
   @Test
+  void testSerializeAndDeserializeUDT() {
+    RelDataType rowTypeWithUDT =
+        rexBuilder
+            .getTypeFactory()
+            .builder()
+            .kind(StructKind.FULLY_QUALIFIED)
+            .add("date", UserDefinedFunctionUtils.NULLABLE_DATE_UDT)
+            .add("time", UserDefinedFunctionUtils.NULLABLE_TIME_UDT)
+            .add("timestamp", UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT)
+            .add("ip", UserDefinedFunctionUtils.NULLABLE_IP_UDT)
+            .add(
+                "binary",
+                OpenSearchTypeFactory.TYPE_FACTORY.createUDT(
+                    OpenSearchTypeFactory.ExprUDT.EXPR_BINARY))
+            .build();
+    Map<String, ExprType> fieldTypesWithUDT =
+        Map.ofEntries(
+            Map.entry("date", OpenSearchDateType.of(ExprCoreType.DATE)),
+            Map.entry("time", OpenSearchDateType.of(ExprCoreType.TIME)),
+            Map.entry("timestamp", OpenSearchDateType.of(ExprCoreType.TIMESTAMP)),
+            Map.entry("ip", OpenSearchDataType.of(ExprCoreType.IP)),
+            Map.entry("binary", OpenSearchBinaryType.of()));
+    RexNode rexNode =
+        PPLFuncImpTable.INSTANCE.resolve(
+            rexBuilder,
+            BuiltinFunctionName.JSON_ARRAY,
+            rexBuilder.makeInputRef(rowTypeWithUDT.getFieldList().get(0).getType(), 0),
+            rexBuilder.makeInputRef(rowTypeWithUDT.getFieldList().get(1).getType(), 1),
+            rexBuilder.makeInputRef(rowTypeWithUDT.getFieldList().get(2).getType(), 2),
+            rexBuilder.makeInputRef(rowTypeWithUDT.getFieldList().get(3).getType(), 3),
+            rexBuilder.makeInputRef(rowTypeWithUDT.getFieldList().get(4).getType(), 4));
+    String serialized = serializer.serialize(rexNode, rowTypeWithUDT, fieldTypesWithUDT);
+    Map<String, Object> objects = serializer.deserialize(serialized);
+    assertEquals(rexNode, objects.get(RelJsonSerializer.EXPR));
+    assertEquals(rowTypeWithUDT.toString(), objects.get(RelJsonSerializer.ROW_TYPE).toString());
+    assertEquals(fieldTypesWithUDT, objects.get(RelJsonSerializer.FIELD_TYPES));
+  }
+
+  @Test
   void testSerializeUnsupportedRexNode() {
     RexNode illegalRex = rexBuilder.makeRangeReference(rowType, 0, true);
 
@@ -81,5 +124,36 @@ public class RelJsonSerializerTest {
 
     String code = serializer.serialize(outOfScopeRex, rowType, fieldTypes);
     assertThrows(IllegalStateException.class, () -> serializer.deserialize(code));
+  }
+
+  @Test
+  void testSerializeIndexRemappedRexNode() {
+    RelDataType originalRowType =
+        rexBuilder
+            .getTypeFactory()
+            .builder()
+            .kind(StructKind.FULLY_QUALIFIED)
+            .add("Firstname", rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR))
+            .add("Referer", rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR))
+            .build();
+    Map<String, ExprType> originalFieldTypes =
+        Map.of("Referer", ExprCoreType.STRING, "Firstname", ExprCoreType.STRING);
+    RexNode originalRexUpper =
+        PPLFuncImpTable.INSTANCE.resolve(
+            rexBuilder,
+            BuiltinFunctionName.UPPER,
+            rexBuilder.makeInputRef(originalRowType.getFieldList().get(1).getType(), 1));
+    RexNode remappedRexUpper =
+        PPLFuncImpTable.INSTANCE.resolve(
+            rexBuilder,
+            BuiltinFunctionName.UPPER,
+            rexBuilder.makeInputRef(rowType.getFieldList().get(0).getType(), 0));
+
+    String code = serializer.serialize(originalRexUpper, originalRowType, originalFieldTypes);
+    Map<String, Object> objects = serializer.deserialize(code);
+
+    assertEquals(remappedRexUpper, objects.get(RelJsonSerializer.EXPR));
+    assertEquals(rowType, objects.get(RelJsonSerializer.ROW_TYPE));
+    assertEquals(fieldTypes, objects.get(RelJsonSerializer.FIELD_TYPES));
   }
 }

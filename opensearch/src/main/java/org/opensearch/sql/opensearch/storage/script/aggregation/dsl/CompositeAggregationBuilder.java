@@ -37,20 +37,23 @@ public class CompositeAggregationBuilder {
 
   /** Build the list of CompositeValuesSourceBuilder. */
   public List<CompositeValuesSourceBuilder<?>> build(
-      List<Triple<NamedExpression, SortOrder, MissingOrder>> groupList) {
+      List<Triple<NamedExpression, SortOrder, MissingOrder>> groupList, boolean bucketNullable) {
     ImmutableList.Builder<CompositeValuesSourceBuilder<?>> resultBuilder =
         new ImmutableList.Builder<>();
     for (Triple<NamedExpression, SortOrder, MissingOrder> groupPair : groupList) {
       resultBuilder.add(
           buildCompositeValuesSourceBuilder(
-              groupPair.getLeft(), groupPair.getMiddle(), groupPair.getRight()));
+              groupPair.getLeft(), groupPair.getMiddle(), groupPair.getRight(), bucketNullable));
     }
     return resultBuilder.build();
   }
 
   // todo, Expression should implement buildCompositeValuesSourceBuilder() interface.
   private CompositeValuesSourceBuilder<?> buildCompositeValuesSourceBuilder(
-      NamedExpression expr, SortOrder sortOrder, MissingOrder missingOrder) {
+      NamedExpression expr,
+      SortOrder sortOrder,
+      MissingOrder missingOrder,
+      boolean bucketNullable) {
     if (expr.getDelegated() instanceof SpanExpression) {
       SpanExpression spanExpr = (SpanExpression) expr.getDelegated();
       return buildHistogram(
@@ -58,13 +61,14 @@ public class CompositeAggregationBuilder {
           spanExpr.getField().toString(),
           spanExpr.getValue().valueOf().doubleValue(),
           spanExpr.getUnit(),
-          missingOrder);
+          missingOrder,
+          bucketNullable);
     } else {
       CompositeValuesSourceBuilder<?> sourceBuilder =
-          new TermsValuesSourceBuilder(expr.getName())
-              .missingBucket(true)
-              .missingOrder(missingOrder)
-              .order(sortOrder);
+          new TermsValuesSourceBuilder(expr.getName()).order(sortOrder);
+      if (bucketNullable) {
+        sourceBuilder.missingBucket(true).missingOrder(missingOrder);
+      }
       // Time types values are converted to LONG in ExpressionAggregationScript::execute
       if ((expr.getDelegated().type() instanceof OpenSearchDateType
               && List.of(TIMESTAMP, TIME, DATE)
@@ -77,23 +81,29 @@ public class CompositeAggregationBuilder {
   }
 
   public static CompositeValuesSourceBuilder<?> buildHistogram(
-      String name, String field, Double value, SpanUnit unit, MissingOrder missingOrder) {
+      String name,
+      String field,
+      Double value,
+      SpanUnit unit,
+      MissingOrder missingOrder,
+      boolean bucketNullable) {
     switch (unit) {
       case NONE:
-        return new HistogramValuesSourceBuilder(name)
-            .field(field)
-            .interval(value)
-            .missingBucket(true)
-            .missingOrder(missingOrder);
+        HistogramValuesSourceBuilder histogramBuilder =
+            new HistogramValuesSourceBuilder(name).field(field).interval(value);
+        if (bucketNullable) {
+          histogramBuilder.missingBucket(true).missingOrder(missingOrder);
+        }
+        return histogramBuilder;
       case UNKNOWN:
         throw new IllegalStateException("Invalid span unit");
       default:
-        return buildDateHistogram(name, field, value.intValue(), unit, missingOrder);
+        return buildDateHistogram(name, field, value.intValue(), unit);
     }
   }
 
   public static CompositeValuesSourceBuilder<?> buildDateHistogram(
-      String name, String field, Integer value, SpanUnit unit, MissingOrder missingOrder) {
+      String name, String field, Integer value, SpanUnit unit) {
     String spanValue = value + unit.getName();
     switch (unit) {
       case MILLISECOND:
@@ -108,14 +118,10 @@ public class CompositeAggregationBuilder {
       case D:
         return new DateHistogramValuesSourceBuilder(name)
             .field(field)
-            .missingBucket(true)
-            .missingOrder(missingOrder)
             .fixedInterval(new DateHistogramInterval(spanValue));
       default:
         return new DateHistogramValuesSourceBuilder(name)
             .field(field)
-            .missingBucket(true)
-            .missingOrder(missingOrder)
             .calendarInterval(new DateHistogramInterval(spanValue));
     }
   }

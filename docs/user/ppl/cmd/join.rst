@@ -39,6 +39,10 @@ Extended syntax since 3.3.0
 
 Configuration
 =============
+
+plugins.calcite.enabled
+-----------------------
+
 This command requires Calcite enabled. In 3.0.0, as an experimental the Calcite configuration is disabled by default.
 
 Enable Calcite::
@@ -62,6 +66,32 @@ Result set::
       },
       "transient": {}
     }
+
+
+plugins.ppl.join.subsearch_maxout
+---------------------------------
+
+The size configures the maximum of rows from subsearch to join against. The default value is: ``50000``. A value of ``0`` indicates that the restriction is unlimited.
+
+Change the join.subsearch_maxout to 5000::
+
+    sh$ curl -sS -H 'Content-Type: application/json' \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"persistent" : {"plugins.ppl.join.subsearch_maxout" : "5000"}}'
+    {
+      "acknowledged": true,
+      "persistent": {
+        "plugins": {
+          "ppl": {
+            "join": {
+              "subsearch_maxout": "5000"
+            }
+          }
+        }
+      },
+      "transient": {}
+    }
+
 
 Usage
 =====
@@ -99,7 +129,7 @@ Example 1: Two indices join
 
 PPL query::
 
-    PPL> source = state_country | inner join left=a right=b ON a.name = b.name occupation | stats avg(salary) by span(age, 10) as age_span, b.country;
+    os> source = state_country | inner join left=a right=b ON a.name = b.name occupation | stats avg(salary) by span(age, 10) as age_span, b.country;
     fetched rows / total rows = 5/5
     +-------------+----------+-----------+
     | avg(salary) | age_span | b.country |
@@ -116,17 +146,8 @@ Example 2: Join with subsearch
 
 PPL query::
 
-    PPL> source = state_country as a
-         | where country = 'USA' OR country = 'England'
-         | left join ON a.name = b.name [
-             source = occupation
-             | where salary > 0
-             | fields name, country, salary
-             | sort salary
-             | head 3
-           ] as b
-         | stats avg(salary) by span(age, 10) as age_span, b.country;
-    fetched rows / total rows = 5/5
+    PPL> source = state_country as a | where country = 'USA' OR country = 'England' | left join ON a.name = b.name [ source = occupation | where salary > 0 | fields name, country, salary | sort salary | head 3 ] as b | stats avg(salary) by span(age, 10) as age_span, b.country;
+    fetched rows / total rows = 3/3
     +-------------+----------+-----------+
     | avg(salary) | age_span | b.country |
     |-------------+----------+-----------|
@@ -140,32 +161,23 @@ Example 3: Join with field list
 
 PPL query::
 
-    PPL> source = state_country
-         | where country = 'USA' OR country = 'England'
-         | join type=left overwrite=true name [
-             source = occupation
-             | where salary > 0
-             | fields name, country, salary
-             | sort salary
-             | head 3
-           ]
-         | stats avg(salary) by span(age, 10) as age_span, country;
-    fetched rows / total rows = 5/5
-    +-------------+----------+-----------+
-    | avg(salary) | age_span | country   |
-    |-------------+----------+-----------|
-    | null        | 40       | null      |
-    | 70000.0     | 30       | USA       |
-    | 100000.0    | 70       | England   |
-    +-------------+----------+-----------+
+    PPL> source = state_country | where country = 'USA' OR country = 'England' | join type=left overwrite=true name [ source = occupation | where salary > 0 | fields name, country, salary | sort salary | head 3 ] | stats avg(salary) by span(age, 10) as age_span, country;
+    fetched rows / total rows = 3/3
+    +-------------+----------+---------+
+    | avg(salary) | age_span | country |
+    |-------------+----------+---------|
+    | null        | 40       | null    |
+    | 70000.0     | 30       | USA     |
+    | 100000.0    | 70       | England |
+    +-------------+----------+---------+
 
 Example 4: Join with options
 ============================
 
 PPL query::
 
-    PPL> source = state_country | join type=inner overwrite=false max=1 name occupation | stats avg(salary) by span(age, 10) as age_span, country;
-    fetched rows / total rows = 5/5
+    os> source = state_country | join type=inner overwrite=false max=1 name occupation | stats avg(salary) by span(age, 10) as age_span, country;
+    fetched rows / total rows = 4/4
     +-------------+----------+---------+
     | avg(salary) | age_span | country |
     |-------------+----------+---------|
@@ -175,8 +187,8 @@ PPL query::
     | 70000.0     | 30       | USA     |
     +-------------+----------+---------+
 
-Limitation
-==========
+Limitations
+===========
 For basic syntax in 3.0.0, if fields in the left outputs and right outputs have the same name. Typically, in the join criteria
 ``ON t1.id = t2.id``, the names ``id`` in output are ambiguous. To avoid ambiguous, the ambiguous
 fields in output rename to ``<alias>.id``, or else ``<tableName>.id`` if no alias existing.

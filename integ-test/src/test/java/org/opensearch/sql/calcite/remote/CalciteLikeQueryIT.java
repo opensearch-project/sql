@@ -6,7 +6,6 @@
 package org.opensearch.sql.calcite.remote;
 
 import java.io.IOException;
-import org.junit.Assume;
 import org.junit.Test;
 import org.opensearch.sql.ppl.LikeQueryIT;
 

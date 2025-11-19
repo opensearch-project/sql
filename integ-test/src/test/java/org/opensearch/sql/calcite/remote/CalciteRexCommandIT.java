@@ -51,6 +51,70 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testRexErrorInvalidGroupNameUnderscore() throws IOException {
+    try {
+      executeQuery(
+          String.format(
+              "source=%s | rex field=email \\\"(?<user_name>[^@]+)@(?<domain>.+)\\\" | fields"
+                  + " email",
+              TEST_INDEX_ACCOUNT));
+      fail("Should have thrown an exception for underscore in named capture group");
+    } catch (Exception e) {
+      assertTrue(e.getMessage().contains("Invalid capture group name 'user_name'"));
+      assertTrue(
+          e.getMessage().contains("must start with a letter and contain only letters and digits"));
+    }
+  }
+
+  @Test
+  public void testRexErrorInvalidGroupNameHyphen() throws IOException {
+    try {
+      executeQuery(
+          String.format(
+              "source=%s | rex field=email \\\"(?<user-name>[^@]+)@(?<domain>.+)\\\" | fields"
+                  + " email",
+              TEST_INDEX_ACCOUNT));
+      fail("Should have thrown an exception for hyphen in named capture group");
+    } catch (Exception e) {
+      assertTrue(e.getMessage().contains("Invalid capture group name 'user-name'"));
+      assertTrue(
+          e.getMessage().contains("must start with a letter and contain only letters and digits"));
+    }
+  }
+
+  @Test
+  public void testRexErrorInvalidGroupNameStartingWithDigit() throws IOException {
+    try {
+      executeQuery(
+          String.format(
+              "source=%s | rex field=email \\\"(?<1user>[^@]+)@(?<domain>.+)\\\" | fields"
+                  + " email",
+              TEST_INDEX_ACCOUNT));
+      fail("Should have thrown an exception for group name starting with digit");
+    } catch (Exception e) {
+      assertTrue(e.getMessage().contains("Invalid capture group name '1user'"));
+      assertTrue(
+          e.getMessage().contains("must start with a letter and contain only letters and digits"));
+    }
+  }
+
+  @Test
+  public void testRexErrorInvalidGroupNameSpecialCharacter() throws IOException {
+    try {
+      executeQuery(
+          String.format(
+              "source=%s | rex field=email \\\"(?<user@name>[^@]+)@(?<domain>.+)\\\" | fields"
+                  + " email",
+              TEST_INDEX_ACCOUNT));
+      fail("Should have thrown an exception for special character in named capture group");
+    } catch (Exception e) {
+      assertTrue(e.getMessage().contains("Invalid capture group name 'user@name'"));
+      assertTrue(
+          e.getMessage().contains("must start with a letter and contain only letters and digits"));
+    }
+  }
+
+  @Test
   public void testRexWithFiltering() throws IOException {
     JSONObject result =
         executeQuery(
@@ -240,6 +304,55 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
     } finally {
       updateClusterSettings(
           new ClusterSetting(PERSISTENT, Settings.Key.PPL_REX_MAX_MATCH_LIMIT.getKeyValue(), null));
+    }
+  }
+
+  @Test
+  public void testRexNestedCaptureGroupsBugFix() throws IOException {
+    JSONObject resultWithNested =
+        executeQuery(
+            String.format(
+                "source=%s | rex field=email"
+                    + " \\\"(?<user>[^@]+)@(?<domain>(pyrami|gmail|yahoo))\\\\\\\\.(?<tld>(com|org|net))\\\""
+                    + " | fields user, domain, tld | head 1",
+                TEST_INDEX_ACCOUNT));
+
+    assertEquals(1, resultWithNested.getJSONArray("datarows").length());
+    assertEquals(
+        "amberduke",
+        resultWithNested
+            .getJSONArray("datarows")
+            .getJSONArray(0)
+            .get(0)); // user should be "amberduke"
+    assertEquals(
+        "pyrami",
+        resultWithNested
+            .getJSONArray("datarows")
+            .getJSONArray(0)
+            .get(1)); // domain should be "pyrami", NOT "amberduke"
+    assertEquals(
+        "com",
+        resultWithNested
+            .getJSONArray("datarows")
+            .getJSONArray(0)
+            .get(2)); // tld should be "com", NOT "pyrami"
+
+    // More complex nested alternation
+    JSONObject complexNested =
+        executeQuery(
+            String.format(
+                "source=%s | rex field=firstname"
+                    + " \\\"(?<initial>(A|B|C|D|E))[a-z]*(?<suffix>(ley|nne|ber|ton|son))\\\" |"
+                    + " fields initial, suffix | head 1",
+                TEST_INDEX_ACCOUNT));
+
+    if (!complexNested.getJSONArray("datarows").isEmpty()) {
+      String initial = complexNested.getJSONArray("datarows").getJSONArray(0).getString(0);
+      String suffix = complexNested.getJSONArray("datarows").getJSONArray(0).getString(1);
+
+      assertTrue("Initial should be a single letter A-E", initial.matches("[A-E]"));
+      assertTrue(
+          "Suffix should match alternation pattern", suffix.matches("(ley|nne|ber|ton|son)"));
     }
   }
 }

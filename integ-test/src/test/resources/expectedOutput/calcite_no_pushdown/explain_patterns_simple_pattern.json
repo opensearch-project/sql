@@ -1,6 +1,0 @@
-{
-  "calcite": {
-    "logical": "LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])\n  LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], patterns_field=[SAFE_CAST(ITEM(PATTERN_PARSER(REGEXP_REPLACE($9, '[a-zA-Z0-9]+':VARCHAR, '<*>'), $9), 'pattern'))], tokens=[SAFE_CAST(ITEM(PATTERN_PARSER(REGEXP_REPLACE($9, '[a-zA-Z0-9]+':VARCHAR, '<*>'), $9), 'tokens'))])\n    CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
-    "physical": "EnumerableLimit(fetch=[10000])\n  EnumerableCalc(expr#0..16=[{inputs}], expr#17=['[a-zA-Z0-9]+':VARCHAR], expr#18=['<*>'], expr#19=[REGEXP_REPLACE($t9, $t17, $t18)], expr#20=[PATTERN_PARSER($t19, $t9)], expr#21=['pattern'], expr#22=[ITEM($t20, $t21)], expr#23=[SAFE_CAST($t22)], expr#24=['tokens'], expr#25=[ITEM($t20, $t24)], expr#26=[SAFE_CAST($t25)], proj#0..10=[{exprs}], patterns_field=[$t23], tokens=[$t26])\n    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n"
-  }
-}

@@ -254,6 +254,8 @@ For faster local iterations, skip integration tests. ``./gradlew build -x integT
 
 For integration test, you can use ``-Dtests.class`` “UT full path” to run a task individually. For example ``./gradlew :integ-test:integTest -Dtests.class="*QueryIT"``.
 
+If Prometheus isn't available in your environment, you can skip downloading and starting it by adding ``-DignorePrometheus`` (or setting it to any value other than ``false``) to the command. For example ``./gradlew :integ-test:integTest -DignorePrometheus`` bypasses Prometheus setup and excludes Prometheus-specific integration tests, and ``./gradlew :doctest:doctest -DignorePrometheus`` skips the Prometheus-dependent doctest cases.
+
 To run the task above for specific module, you can do ``./gradlew :<module_name>:task``. For example, only build core module by ``./gradlew :core:build``.
 
 Troubleshooting

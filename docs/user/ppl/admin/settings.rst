@@ -73,22 +73,6 @@ PPL query::
       "status": 400
     }
 
-Example 3
----------
-
-You can reset the setting to default value like this.
-
-PPL query::
-
-    sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X PUT localhost:9200/_plugins/_query/settings \
-    ... -d '{"transient" : {"plugins.ppl.enabled" : null}}'
-    {
-      "acknowledged": true,
-      "persistent": {},
-      "transient": {}
-    }
-
 plugins.query.memory_limit
 ==========================
 
@@ -147,18 +131,44 @@ Change the size_limit to 1000::
       "transient": {}
     }
 
-Rollback to default value::
+Note: the legacy settings of ``opendistro.query.size_limit`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
 
-    sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X PUT localhost:9200/_plugins/_query/settings \
-    ... -d '{"persistent" : {"plugins.query.size_limit" : null}}'
+plugins.query.buckets
+=====================
+
+Version
+-------
+3.4.0
+
+Description
+-----------
+
+This configuration indicates how many aggregation buckets will return in a single response. The default value equals to ``plugins.query.size_limit``.
+You can change the value to any value not greater than the maximum number of aggregation buckets allowed in a single response (`search.max_buckets`), here is an example::
+
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	  "transient" : {
+	    "plugins.query.buckets" : 1000
+	  }
+	}'
+
+Result set::
+
     {
-      "acknowledged": true,
-      "persistent": {},
-      "transient": {}
+      "acknowledged" : true,
+      "persistent" : { },
+      "transient" : {
+        "plugins" : {
+          "query" : {
+            "buckets" : "1000"
+          }
+        }
+      }
     }
 
-Note: the legacy settings of ``opendistro.query.size_limit`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
+Limitations
+-----------
+The number of aggregation buckets is fixed to ``1000`` in v2. ``plugins.query.buckets`` can only effect the number of aggregation buckets when calcite enabled.
 
 plugins.calcite.all_join_types.allowed
 ======================================
@@ -200,8 +210,10 @@ This configuration is introduced since 3.3.0 which is used to switch some behavi
 The behaviours it controlled includes:
 
 - The default value of argument ``bucket_nullable`` in ``stats`` command. Check `stats command <../cmd/stats.rst>`_ for details.
+- The return value of ``divide`` and ``/`` operator. Check `expressions <../functions/expressions.rst>`_ for details.
+- The default value of argument ``usenull`` in ``top`` and ``rare`` commands. Check `top command <../cmd/top.rst>`_  and `rare command <../cmd/rare.rst>`_ for details.
 
-Example
+Example 1
 -------
 
 You can update the setting with a new value like this.
@@ -225,4 +237,155 @@ PPL query::
           }
         }
       }
+    }
+
+Example 2
+---------
+
+Reset to default (true) by setting to null:
+
+PPL query::
+
+    sh$ curl -sS -H 'Content-Type: application/json' \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"transient" : {"plugins.ppl.syntax.legacy.preferred" : null}}'
+    {
+      "acknowledged": true,
+      "persistent": {},
+      "transient": {}
+    }
+
+plugins.ppl.values.max.limit
+============================
+
+Description
+-----------
+
+This setting controls the maximum number of unique values that the ``VALUES`` aggregation function can return. When set to 0 (the default), there is no limit on the number of unique values returned. When set to a positive integer, the function will return at most that many unique values.
+
+1. The default value is 0 (unlimited).
+2. This setting is node scope.
+3. This setting can be updated dynamically.
+
+The ``VALUES`` function collects all unique values from a field and returns them in lexicographical order. This setting helps manage memory usage by limiting the number of values collected.
+
+Example 1
+---------
+
+Set the limit to 1000 unique values:
+
+PPL query::
+
+    sh$ curl -sS -H 'Content-Type: application/json' \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"transient" : {"plugins.ppl.values.max.limit" : "1000"}}'
+    {
+      "acknowledged": true,
+      "persistent": {},
+      "transient": {
+        "plugins": {
+          "ppl": {
+            "values": {
+              "max": {
+                "limit": "1000"
+              }
+            }
+          }
+        }
+      }
+    }
+
+Example 2
+---------
+
+Set to 0 explicitly for unlimited values:
+
+PPL query::
+
+    sh$ curl -sS -H 'Content-Type: application/json' \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"transient" : {"plugins.ppl.values.max.limit" : "0"}}'
+    {
+      "acknowledged": true,
+      "persistent": {},
+      "transient": {
+        "plugins": {
+          "ppl": {
+            "values": {
+              "max": {
+                "limit": "0"
+              }
+            }
+          }
+        }
+      }
+    }
+
+
+plugins.ppl.subsearch.maxout
+============================
+
+Description
+-----------
+
+The size configures the maximum of rows to return from subsearch. The default value is: ``10000``. A value of ``0`` indicates that the restriction is unlimited.
+
+Version
+-------
+3.4.0
+
+Example
+-------
+
+Change the subsearch.maxout to unlimited::
+
+    sh$ curl -sS -H 'Content-Type: application/json' \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"persistent" : {"plugins.ppl.subsearch.maxout" : "0"}}'
+    {
+      "acknowledged": true,
+      "persistent": {
+        "plugins": {
+          "ppl": {
+            "subsearch": {
+              "maxout": "0"
+            }
+          }
+        }
+      },
+      "transient": {}
+    }
+
+plugins.ppl.join.subsearch_maxout
+=================================
+
+Description
+-----------
+
+The size configures the maximum of rows from subsearch to join against. This configuration impacts ``join`` command. The default value is: ``50000``. A value of ``0`` indicates that the restriction is unlimited.
+
+Version
+-------
+3.4.0
+
+Example
+-------
+
+Change the join.subsearch_maxout to 5000::
+
+    sh$ curl -sS -H 'Content-Type: application/json' \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"persistent" : {"plugins.ppl.join.subsearch_maxout" : "5000"}}'
+    {
+      "acknowledged": true,
+      "persistent": {
+        "plugins": {
+          "ppl": {
+            "join": {
+              "subsearch_maxout": "5000"
+            }
+          }
+        }
+      },
+      "transient": {}
     }

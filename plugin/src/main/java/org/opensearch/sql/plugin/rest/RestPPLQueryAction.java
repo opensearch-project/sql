@@ -104,7 +104,7 @@ public class RestPPLQueryAction extends BaseRestHandler {
             new ActionListener<>() {
               @Override
               public void onResponse(TransportPPLQueryResponse response) {
-                sendResponse(channel, OK, response.getResult());
+                sendResponse(channel, OK, response.getContentType(), response.getResult());
               }
 
               @Override
@@ -140,8 +140,9 @@ public class RestPPLQueryAction extends BaseRestHandler {
             });
   }
 
-  private void sendResponse(RestChannel channel, RestStatus status, String content) {
-    channel.sendResponse(new BytesRestResponse(status, "application/json; charset=UTF-8", content));
+  private void sendResponse(
+      RestChannel channel, RestStatus status, String contentType, String content) {
+    channel.sendResponse(new BytesRestResponse(status, contentType, content));
   }
 
   private void reportError(final RestChannel channel, final Exception e, final RestStatus status) {

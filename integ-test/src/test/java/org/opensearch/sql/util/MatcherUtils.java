@@ -179,6 +179,12 @@ public class MatcherUtils {
     verifyInOrder(response.getJSONArray("datarows"), matchers);
   }
 
+  @SafeVarargs
+  @SuppressWarnings("unchecked")
+  public static void verifyDataRowsSome(JSONObject response, Matcher<JSONArray>... matchers) {
+    verifySome(response.getJSONArray("datarows"), matchers);
+  }
+
   public static void verifyNumOfRows(JSONObject response, int numOfRow) {
     assertEquals(numOfRow, response.getJSONArray("datarows").length());
   }
@@ -380,7 +386,7 @@ public class MatcherUtils {
   }
 
   private static String cleanUpId(String s) {
-    return eliminateTimeStamp(eliminatePid(eliminateRelId(s)));
+    return eliminateTimeStamp(eliminatePid(eliminateFieldIndices(eliminateRelId(s))));
   }
 
   private static String eliminateTimeStamp(String s) {
@@ -391,12 +397,17 @@ public class MatcherUtils {
     return s.replaceAll("rel#\\d+", "rel#").replaceAll("RelSubset#\\d+", "RelSubset#");
   }
 
+  private static String eliminateFieldIndices(String s) {
+    // Replace field indices like $7, $156, $t7, $t156 with placeholders
+    return s.replaceAll("\\$t?\\d+", "\\$FIELD_INDEX");
+  }
+
   private static String eliminatePid(String s) {
     return s.replaceAll("pitId=[^,]+,", "pitId=*,");
   }
 
-  public static void assertYamlEqualsJsonIgnoreId(String expectedYaml, String actualJson) {
-    String cleanedYaml = cleanUpYaml(jsonToYaml(actualJson));
+  public static void assertYamlEqualsIgnoreId(String expectedYaml, String actualYaml) {
+    String cleanedYaml = cleanUpYaml(actualYaml);
     assertYamlEquals(expectedYaml, cleanedYaml);
   }
 

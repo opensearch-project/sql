@@ -36,6 +36,7 @@ import org.opensearch.sql.calcite.udf.udaf.LogPatternAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.NullableSqlAvgAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.PercentileApproxFunction;
 import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
+import org.opensearch.sql.calcite.udf.udaf.ValuesAggFunction;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -45,23 +46,28 @@ import org.opensearch.sql.expression.function.CollectionUDF.ArrayFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.ExistsFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.FilterFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.ForallFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.MVAppendFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.MapAppendFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.MapRemoveFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.ReduceFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.TransformFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonAppendFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonArrayLengthFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonDeleteFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonExtendFunctionImpl;
+import org.opensearch.sql.expression.function.jsonUDF.JsonExtractAllFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonExtractFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonKeysFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonSetFunctionImpl;
 import org.opensearch.sql.expression.function.udf.CryptographicFunction;
-import org.opensearch.sql.expression.function.udf.GrokFunction;
+import org.opensearch.sql.expression.function.udf.ParseFunction;
 import org.opensearch.sql.expression.function.udf.RelevanceQueryFunction;
 import org.opensearch.sql.expression.function.udf.RexExtractFunction;
 import org.opensearch.sql.expression.function.udf.RexExtractMultiFunction;
 import org.opensearch.sql.expression.function.udf.RexOffsetFunction;
 import org.opensearch.sql.expression.function.udf.SpanFunction;
+import org.opensearch.sql.expression.function.udf.ToStringFunction;
 import org.opensearch.sql.expression.function.udf.condition.EarliestFunction;
 import org.opensearch.sql.expression.function.udf.condition.EnhancedCoalesceFunction;
 import org.opensearch.sql.expression.function.udf.condition.LatestFunction;
@@ -76,6 +82,7 @@ import org.opensearch.sql.expression.function.udf.datetime.FromUnixTimeFunction;
 import org.opensearch.sql.expression.function.udf.datetime.LastDayFunction;
 import org.opensearch.sql.expression.function.udf.datetime.PeriodNameFunction;
 import org.opensearch.sql.expression.function.udf.datetime.SecToTimeFunction;
+import org.opensearch.sql.expression.function.udf.datetime.StrftimeFunction;
 import org.opensearch.sql.expression.function.udf.datetime.SysdateFunction;
 import org.opensearch.sql.expression.function.udf.datetime.TimestampAddFunction;
 import org.opensearch.sql.expression.function.udf.datetime.TimestampDiffFunction;
@@ -88,12 +95,13 @@ import org.opensearch.sql.expression.function.udf.datetime.YearweekFunction;
 import org.opensearch.sql.expression.function.udf.ip.CidrMatchFunction;
 import org.opensearch.sql.expression.function.udf.ip.CompareIpFunction;
 import org.opensearch.sql.expression.function.udf.ip.IPFunction;
-import org.opensearch.sql.expression.function.udf.math.CRC32Function;
 import org.opensearch.sql.expression.function.udf.math.ConvFunction;
 import org.opensearch.sql.expression.function.udf.math.DivideFunction;
 import org.opensearch.sql.expression.function.udf.math.EulerFunction;
 import org.opensearch.sql.expression.function.udf.math.ModFunction;
 import org.opensearch.sql.expression.function.udf.math.NumberToStringFunction;
+import org.opensearch.sql.expression.function.udf.math.ScalarMaxFunction;
+import org.opensearch.sql.expression.function.udf.math.ScalarMinFunction;
 
 /** Defines functions and operators that are implemented only by PPL */
 public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
@@ -107,6 +115,8 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       new JsonArrayLengthFunctionImpl().toUDF("JSON_ARRAY_LENGTH");
   public static final SqlOperator JSON_EXTRACT =
       new JsonExtractFunctionImpl().toUDF("JSON_EXTRACT");
+  public static final SqlOperator JSON_EXTRACT_ALL =
+      new JsonExtractAllFunctionImpl().toUDF("JSON_EXTRACT_ALL");
   public static final SqlOperator JSON_KEYS = new JsonKeysFunctionImpl().toUDF("JSON_KEYS");
   public static final SqlOperator JSON_SET = new JsonSetFunctionImpl().toUDF("JSON_SET");
   public static final SqlOperator JSON_DELETE = new JsonDeleteFunctionImpl().toUDF("JSON_DELETE");
@@ -118,10 +128,11 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator E = new EulerFunction().toUDF("E");
   public static final SqlOperator CONV = new ConvFunction().toUDF("CONVERT");
   public static final SqlOperator MOD = new ModFunction().toUDF("MOD");
-  public static final SqlOperator CRC32 = new CRC32Function().toUDF("CRC32");
   public static final SqlOperator DIVIDE = new DivideFunction().toUDF("DIVIDE");
   public static final SqlOperator SHA2 = CryptographicFunction.sha2().toUDF("SHA2");
   public static final SqlOperator CIDRMATCH = new CidrMatchFunction().toUDF("CIDRMATCH");
+  public static final SqlOperator SCALAR_MAX = new ScalarMaxFunction().toUDF("SCALAR_MAX");
+  public static final SqlOperator SCALAR_MIN = new ScalarMinFunction().toUDF("SCALAR_MIN");
 
   public static final SqlOperator COSH =
       adaptMathFunctionToUDF(
@@ -170,6 +181,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator WEEKDAY = new WeekdayFunction().toUDF("WEEKDAY");
   public static final SqlOperator UNIX_TIMESTAMP =
       new UnixTimestampFunction().toUDF("UNIX_TIMESTAMP");
+  public static final SqlOperator STRFTIME = new StrftimeFunction().toUDF("STRFTIME");
   public static final SqlOperator TO_SECONDS = new ToSecondsFunction().toUDF("TO_SECONDS");
   public static final SqlOperator ADDTIME =
       adaptExprMethodWithPropertiesToUDF(
@@ -366,13 +378,19 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               PPLOperandTypes.NONE)
           .toUDF("UTC_TIMESTAMP");
   public static final SqlOperator WEEK = new WeekFunction().toUDF("WEEK");
-  public static final SqlOperator GROK = new GrokFunction().toUDF("GROK");
+  public static final SqlOperator GROK = new ParseFunction().toUDF("GROK");
+  // TODO: Figure out if there is other option to perform multiple group match in Calcite
+  // For now, keep V2's regexExpression logic to avoid breaking change
+  public static final SqlOperator PARSE = new ParseFunction().toUDF("PARSE");
   public static final SqlOperator PATTERN_PARSER =
       new PatternParserFunctionImpl().toUDF("PATTERN_PARSER");
 
   public static final SqlOperator FORALL = new ForallFunctionImpl().toUDF("forall");
   public static final SqlOperator EXISTS = new ExistsFunctionImpl().toUDF("exists");
   public static final SqlOperator ARRAY = new ArrayFunctionImpl().toUDF("array");
+  public static final SqlOperator MAP_APPEND = new MapAppendFunctionImpl().toUDF("map_append");
+  public static final SqlOperator MAP_REMOVE = new MapRemoveFunctionImpl().toUDF("MAP_REMOVE");
+  public static final SqlOperator MVAPPEND = new MVAppendFunctionImpl().toUDF("mvappend");
   public static final SqlOperator FILTER = new FilterFunctionImpl().toUDF("filter");
   public static final SqlOperator TRANSFORM = new TransformFunctionImpl().toUDF("transform");
   public static final SqlOperator REDUCE = new ReduceFunctionImpl().toUDF("reduce");
@@ -394,6 +412,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("multi_match", false);
   public static final SqlOperator NUMBER_TO_STRING =
       new NumberToStringFunction().toUDF("NUMBER_TO_STRING");
+  public static final SqlOperator TOSTRING = new ToStringFunction().toUDF("TOSTRING");
   public static final SqlOperator WIDTH_BUCKET =
       new org.opensearch.sql.expression.function.udf.binning.WidthBucketFunction()
           .toUDF("WIDTH_BUCKET");
@@ -451,6 +470,12 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlAggFunction LIST =
       createUserDefinedAggFunction(
           ListAggFunction.class, "LIST", PPLReturnTypes.STRING_ARRAY, PPLOperandTypes.ANY_SCALAR);
+  public static final SqlAggFunction VALUES =
+      createUserDefinedAggFunction(
+          ValuesAggFunction.class,
+          "VALUES",
+          PPLReturnTypes.STRING_ARRAY,
+          PPLOperandTypes.ANY_SCALAR_OPTIONAL_INTEGER);
 
   /**
    * Returns the PPL specific operator table, creating it if necessary.

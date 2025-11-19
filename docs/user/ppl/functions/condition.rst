@@ -14,9 +14,14 @@ ISNULL
 Description
 >>>>>>>>>>>
 
-Usage: isnull(field) return true if field is null.
+Usage: isnull(field) returns TRUE if field is NULL, FALSE otherwise.
 
-Argument type: all the supported data type.
+The `isnull()` function is commonly used:
+- In `eval` expressions to create conditional fields
+- With the `if()` function to provide default values
+- In `where` clauses to filter null records
+
+Argument type: all the supported data types.
 
 Return type: BOOLEAN
 
@@ -33,21 +38,63 @@ Example::
     | True   | null     | Dale      |
     +--------+----------+-----------+
 
+Using with if() to label records::
+
+    os> source=accounts | eval status = if(isnull(employer), 'unemployed', 'employed') | fields firstname, employer, status
+    fetched rows / total rows = 4/4
+    +-----------+----------+------------+
+    | firstname | employer | status     |
+    |-----------+----------+------------|
+    | Amber     | Pyrami   | employed   |
+    | Hattie    | Netagy   | employed   |
+    | Nanette   | Quility  | employed   |
+    | Dale      | null     | unemployed |
+    +-----------+----------+------------+
+
+Filtering with where clause::
+
+    os> source=accounts | where isnull(employer) | fields account_number, firstname, employer
+    fetched rows / total rows = 1/1
+    +----------------+-----------+----------+
+    | account_number | firstname | employer |
+    |----------------+-----------+----------|
+    | 18             | Dale      | null     |
+    +----------------+-----------+----------+
+
 ISNOTNULL
 ---------
 
 Description
 >>>>>>>>>>>
 
-Usage: isnotnull(field) return true if field is not null.
+Usage: isnotnull(field) returns TRUE if field is NOT NULL, FALSE otherwise.
 
-Argument type: all the supported data type.
+The `isnotnull()` function is commonly used:
+- In `eval` expressions to create boolean flags
+- In `where` clauses to filter out null values
+- With the `if()` function for conditional logic
+- To validate data presence
+
+Argument type: all the supported data types.
 
 Return type: BOOLEAN
 
 Synonyms: `ISPRESENT`_
 
 Example::
+
+    os> source=accounts | eval has_employer = isnotnull(employer) | fields firstname, employer, has_employer
+    fetched rows / total rows = 4/4
+    +-----------+----------+--------------+
+    | firstname | employer | has_employer |
+    |-----------+----------+--------------|
+    | Amber     | Pyrami   | True         |
+    | Hattie    | Netagy   | True         |
+    | Nanette   | Quility  | True         |
+    | Dale      | null     | False        |
+    +-----------+----------+--------------+
+
+Filtering with where clause::
 
     os> source=accounts | where not isnotnull(employer) | fields account_number, employer
     fetched rows / total rows = 1/1
@@ -56,6 +103,19 @@ Example::
     |----------------+----------|
     | 18             | null     |
     +----------------+----------+
+
+Using with if() for validation messages::
+
+    os> source=accounts | eval validation = if(isnotnull(employer), 'valid', 'missing employer') | fields firstname, employer, validation
+    fetched rows / total rows = 4/4
+    +-----------+----------+------------------+
+    | firstname | employer | validation       |
+    |-----------+----------+------------------|
+    | Amber     | Pyrami   | valid            |
+    | Hattie    | Netagy   | valid            |
+    | Nanette   | Quility  | valid            |
+    | Dale      | null     | missing employer |
+    +-----------+----------+------------------+
 
 EXISTS
 ------
@@ -122,32 +182,6 @@ Example::
     | null    | null     | Dale      |
     +---------+----------+-----------+
 
-
-ISNULL
-------
-
-Description
->>>>>>>>>>>
-
-Usage: isnull(field1, field2) return null if two parameters are same, otherwise return field1.
-
-Argument type: all the supported data type
-
-Return type: any
-
-Example::
-
-    os> source=accounts | eval result = isnull(employer) | fields result, employer, firstname
-    fetched rows / total rows = 4/4
-    +--------+----------+-----------+
-    | result | employer | firstname |
-    |--------+----------+-----------|
-    | False  | Pyrami   | Amber     |
-    | False  | Netagy   | Hattie    |
-    | False  | Quility  | Nanette   |
-    | True   | null     | Dale      |
-    +--------+----------+-----------+
-
 IF
 ------
 
@@ -206,6 +240,14 @@ Usage: case(condition1, expr1, condition2, expr2, ... conditionN, exprN else def
 Argument type: all the supported data type, (NOTE : there is no comma before "else")
 
 Return type: any
+
+Limitations
+>>>>>>>>>>>
+
+When each condition is a field comparison with a numeric literal and each result expression is a string literal, the query will be optimized as `range aggregations <https://docs.opensearch.org/latest/aggregations/bucket/range>`_ if pushdown optimization is enabled. However, this optimization has the following limitations:
+
+- Null values will not be grouped into any bucket of a range aggregation and will be ignored
+- The default ELSE clause will use the string literal ``"null"`` instead of actual NULL values
 
 Example::
 
@@ -423,7 +465,7 @@ The relative string can be one of the following formats:
 1. `"now"` or `"now()"`:  
    Uses the current system time.
 
-2. Absolute format (`MM/dd/yyyy:HH:mm:ss`):  
+2. Absolute format (`MM/dd/yyyy:HH:mm:ss` or `yyyy-MM-dd HH:mm:ss`):
    Converts the string to a timestamp and compares it with the data.
 
 3. Relative format: `(+|-)<time_integer><time_unit>[+<...>]@<snap_unit>`  
@@ -460,7 +502,7 @@ Example::
     +-----+
     | cnt |
     |-----|
-    | 971 |
+    | 972 |
     +-----+
 
 LATEST
@@ -492,10 +534,10 @@ Example::
     +-----+
     | cnt |
     |-----|
-    | 968 |
+    | 969 |
     +-----+
 
-REGEX_MATCH
+REGEXP_MATCH
 -----------
 
 Description
@@ -503,7 +545,7 @@ Description
 
 Version: 3.3.0
 
-Usage: regex_match(string, pattern) returns true if the regular expression pattern finds a match against any substring of the string value, otherwise returns false.
+Usage: regexp_match(string, pattern) returns true if the regular expression pattern finds a match against any substring of the string value, otherwise returns false.
 
 The function uses Java regular expression syntax for the pattern.
 
@@ -513,7 +555,7 @@ Return type: BOOLEAN
 
 Example::
 
-    #os> source=logs | where regex_match(message, 'ERROR|WARN|FATAL') | fields timestamp, message
+    #os> source=logs | where regexp_match(message, 'ERROR|WARN|FATAL') | fields timestamp, message
     fetched rows / total rows = 3/100
     +---------------------+------------------------------------------+
     | timestamp           | message                                  |
@@ -523,7 +565,7 @@ Example::
     | 2024-01-15 10:25:33 | FATAL: System crashed unexpectedly      |
     +---------------------+------------------------------------------+
 
-    #os> source=users | where regex_match(email, '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}') | fields name, email
+    #os> source=users | where regexp_match(email, '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}') | fields name, email
     fetched rows / total rows = 2/3
     +-------+----------------------+
     | name  | email                |
@@ -532,7 +574,7 @@ Example::
     | Alice | alice@company.org    |
     +-------+----------------------+
 
-    #os> source=network | where regex_match(ip_address, '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$') AND NOT regex_match(ip_address, '^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)') | fields ip_address, status
+    #os> source=network | where regexp_match(ip_address, '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$') AND NOT regexp_match(ip_address, '^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)') | fields ip_address, status
     fetched rows / total rows = 2/10
     +---------------+--------+
     | ip_address    | status |
@@ -541,7 +583,7 @@ Example::
     | 1.1.1.1       | active |
     +---------------+--------+
 
-    #os> source=products | eval category = if(regex_match(name, '(?i)(laptop|computer|desktop)'), 'Computing', if(regex_match(name, '(?i)(phone|tablet|mobile)'), 'Mobile', 'Other')) | fields name, category
+    #os> source=products | eval category = if(regexp_match(name, '(?i)(laptop|computer|desktop)'), 'Computing', if(regexp_match(name, '(?i)(phone|tablet|mobile)'), 'Mobile', 'Other')) | fields name, category
     fetched rows / total rows = 4/4
     +------------------------+----------+
     | name                   | category |

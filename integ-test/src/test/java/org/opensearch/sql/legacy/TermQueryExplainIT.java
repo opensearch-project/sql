@@ -119,7 +119,6 @@ public class TermQueryExplainIT extends SQLIntegTestCase {
         explainQuery(
             "SELECT dog_name FROM opensearch-sql_test_index_dog, opensearch-sql_test_index_dog2"
                 + " WHERE dog_name = 'dog'");
-    System.out.println(result);
     assertThat(result, containsString("dog_name"));
     assertThat(result, containsString("_source"));
   }

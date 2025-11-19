@@ -28,7 +28,7 @@ public class CalcitePPLCastFunctionTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     // TODO there is no SAFE_CAST() in Spark, the Spark CAST is always safe (return null).
-    String expectedSparkSql = "SELECT SAFE_CAST(`MGR` AS STRING) `a`\nFROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT TRY_CAST(`MGR` AS STRING) `a`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -40,7 +40,7 @@ public class CalcitePPLCastFunctionTest extends CalcitePPLAbstractTest {
         "" + "LogicalProject(a=[SAFE_CAST($3)])\n" + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
-    String expectedSparkSql = "SELECT SAFE_CAST(`MGR` AS STRING) `a`\nFROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT TRY_CAST(`MGR` AS STRING) `a`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -56,7 +56,7 @@ public class CalcitePPLCastFunctionTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
-            + " SAFE_CAST(`MGR` AS STRING) `age`\n"
+            + " TRY_CAST(`MGR` AS STRING) `age`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
@@ -83,7 +83,7 @@ public class CalcitePPLCastFunctionTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "" + "SELECT SAFE_CAST(SAFE_CAST(`MGR` AS STRING) AS INTEGER) `a`\n" + "FROM `scott`.`EMP`";
+        "" + "SELECT TRY_CAST(TRY_CAST(`MGR` AS STRING) AS INTEGER) `a`\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -117,7 +117,7 @@ public class CalcitePPLCastFunctionTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         ""
-            + "SELECT SAFE_CAST(CONCAT(SAFE_CAST(`MGR` AS STRING), '0') AS INTEGER) `a`\n"
+            + "SELECT TRY_CAST(CONCAT(TRY_CAST(`MGR` AS STRING), '0') AS INTEGER) `a`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }

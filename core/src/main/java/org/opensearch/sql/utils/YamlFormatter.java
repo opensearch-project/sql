@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.utils;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -22,12 +23,16 @@ public class YamlFormatter {
   static {
     YAMLFactory yamlFactory = new YAMLFactory();
     yamlFactory.disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER);
+    yamlFactory.enable(YAMLGenerator.Feature.USE_PLATFORM_LINE_BREAKS);
+    yamlFactory.enable(YAMLGenerator.Feature.LITERAL_BLOCK_STYLE);
     yamlFactory.enable(YAMLGenerator.Feature.MINIMIZE_QUOTES); // Enable smart quoting
     yamlFactory.enable(
         YAMLGenerator.Feature.ALWAYS_QUOTE_NUMBERS_AS_STRINGS); // Quote numeric strings
     yamlFactory.enable(YAMLGenerator.Feature.INDENT_ARRAYS_WITH_INDICATOR);
     YAML_MAPPER = new ObjectMapper(yamlFactory);
-    YAML_MAPPER.enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
+
+    YAML_MAPPER.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    YAML_MAPPER.configure(SerializationFeature.WRITE_NULL_MAP_VALUES, false);
   }
 
   /**

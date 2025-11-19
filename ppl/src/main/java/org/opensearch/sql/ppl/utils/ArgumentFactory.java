@@ -9,23 +9,29 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.Join;
+import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ChartCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DefaultSortFieldContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
-import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PrefixSortFieldContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
-import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StreamstatsCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SuffixSortFieldContext;
 
 /** Util class to get all arguments as a list from the PPL command. */
 public class ArgumentFactory {
@@ -89,6 +95,25 @@ public class ArgumentFactory {
   /**
    * Get list of {@link Argument}.
    *
+   * @param ctx StreamstatsCommandContext instance
+   * @return the list of arguments fetched from the streamstats command
+   */
+  public static List<Argument> getArgumentList(StreamstatsCommandContext ctx) {
+    return Arrays.asList(
+        ctx.streamstatsArgs().currentArg() != null && !ctx.streamstatsArgs().currentArg().isEmpty()
+            ? new Argument("current", getArgumentValue(ctx.streamstatsArgs().currentArg(0).current))
+            : new Argument("current", new Literal(true, DataType.BOOLEAN)),
+        ctx.streamstatsArgs().windowArg() != null && !ctx.streamstatsArgs().windowArg().isEmpty()
+            ? new Argument("window", getArgumentValue(ctx.streamstatsArgs().windowArg(0).window))
+            : new Argument("window", new Literal(0, DataType.INTEGER)),
+        ctx.streamstatsArgs().globalArg() != null && !ctx.streamstatsArgs().globalArg().isEmpty()
+            ? new Argument("global", getArgumentValue(ctx.streamstatsArgs().globalArg(0).global))
+            : new Argument("global", new Literal(true, DataType.BOOLEAN)));
+  }
+
+  /**
+   * Get list of {@link Argument}.
+   *
    * @param ctx DedupCommandContext instance
    * @return the list of arguments fetched from the dedup command
    */
@@ -112,57 +137,132 @@ public class ArgumentFactory {
    * @return the list of arguments fetched from the sort field in sort command
    */
   public static List<Argument> getArgumentList(SortFieldContext ctx) {
+    if (ctx instanceof PrefixSortFieldContext) {
+      return getArgumentList((PrefixSortFieldContext) ctx);
+    } else if (ctx instanceof SuffixSortFieldContext) {
+      return getArgumentList((SuffixSortFieldContext) ctx);
+    } else {
+      return getArgumentList((DefaultSortFieldContext) ctx);
+    }
+  }
+
+  /**
+   * Get list of {@link Argument} for prefix sort field (+/- syntax).
+   *
+   * @param ctx PrefixSortFieldContext instance
+   * @return the list of arguments fetched from the prefix sort field
+   */
+  public static List<Argument> getArgumentList(PrefixSortFieldContext ctx) {
     return Arrays.asList(
         ctx.MINUS() != null
             ? new Argument("asc", new Literal(false, DataType.BOOLEAN))
             : new Argument("asc", new Literal(true, DataType.BOOLEAN)),
-        ctx.sortFieldExpression().AUTO() != null
-            ? new Argument("type", new Literal("auto", DataType.STRING))
-            : ctx.sortFieldExpression().IP() != null
-                ? new Argument("type", new Literal("ip", DataType.STRING))
-                : ctx.sortFieldExpression().NUM() != null
-                    ? new Argument("type", new Literal("num", DataType.STRING))
-                    : ctx.sortFieldExpression().STR() != null
-                        ? new Argument("type", new Literal("str", DataType.STRING))
-                        : new Argument("type", new Literal(null, DataType.NULL)));
+        getTypeArgument(ctx.sortFieldExpression()));
   }
 
   /**
-   * Get list of {@link Argument}.
+   * Get list of {@link Argument} for suffix sort field (asc/desc syntax).
    *
-   * @param ctx TopCommandContext instance
-   * @return the list of arguments fetched from the top command
+   * @param ctx SuffixSortFieldContext instance
+   * @return the list of arguments fetched from the suffix sort field
    */
-  public static List<Argument> getArgumentList(TopCommandContext ctx) {
+  public static List<Argument> getArgumentList(SuffixSortFieldContext ctx) {
     return Arrays.asList(
-        ctx.number != null
-            ? new Argument("noOfResults", getArgumentValue(ctx.number))
-            : new Argument("noOfResults", new Literal(10, DataType.INTEGER)),
-        ctx.countfield != null
-            ? new Argument("countField", getArgumentValue(ctx.countfield))
-            : new Argument("countField", new Literal("count", DataType.STRING)),
-        ctx.showcount != null
-            ? new Argument("showCount", getArgumentValue(ctx.showcount))
-            : new Argument("showCount", new Literal(true, DataType.BOOLEAN)));
+        (ctx.DESC() != null || ctx.D() != null)
+            ? new Argument("asc", new Literal(false, DataType.BOOLEAN))
+            : new Argument("asc", new Literal(true, DataType.BOOLEAN)),
+        getTypeArgument(ctx.sortFieldExpression()));
+  }
+
+  /**
+   * Get list of {@link Argument} for default sort field (no direction specified).
+   *
+   * @param ctx DefaultSortFieldContext instance
+   * @return the list of arguments fetched from the default sort field
+   */
+  public static List<Argument> getArgumentList(DefaultSortFieldContext ctx) {
+    return Arrays.asList(
+        new Argument("asc", new Literal(true, DataType.BOOLEAN)),
+        getTypeArgument(ctx.sortFieldExpression()));
+  }
+
+  /** Helper method to get type argument from sortFieldExpression. */
+  private static Argument getTypeArgument(OpenSearchPPLParser.SortFieldExpressionContext ctx) {
+    if (ctx.AUTO() != null) {
+      return new Argument("type", new Literal("auto", DataType.STRING));
+    } else if (ctx.IP() != null) {
+      return new Argument("type", new Literal("ip", DataType.STRING));
+    } else if (ctx.NUM() != null) {
+      return new Argument("type", new Literal("num", DataType.STRING));
+    } else if (ctx.STR() != null) {
+      return new Argument("type", new Literal("str", DataType.STRING));
+    } else {
+      return new Argument("type", new Literal(null, DataType.NULL));
+    }
+  }
+
+  public static List<Argument> getArgumentList(ChartCommandContext ctx) {
+    List<Argument> arguments = new ArrayList<>();
+    for (var optionCtx : ctx.chartOptions()) {
+      if (optionCtx.LIMIT() != null) {
+        Literal limit;
+        if (optionCtx.integerLiteral() != null) {
+          limit = getArgumentValue(optionCtx.integerLiteral());
+        } else {
+          limit =
+              AstDSL.intLiteral(
+                  Integer.parseInt(
+                      (optionCtx.TOP_K() != null ? optionCtx.TOP_K() : optionCtx.BOTTOM_K())
+                          .getText()
+                          .replaceAll("[^0-9-]", "")));
+        }
+        arguments.add(new Argument("limit", limit));
+        // not specified | top presents -> true; bottom presents -> false
+        arguments.add(new Argument("top", AstDSL.booleanLiteral(optionCtx.BOTTOM_K() == null)));
+      } else if (optionCtx.USEOTHER() != null) {
+        arguments.add(new Argument("useother", getArgumentValue(optionCtx.booleanLiteral())));
+      } else if (optionCtx.OTHERSTR() != null) {
+        arguments.add(new Argument("otherstr", getArgumentValue(optionCtx.stringLiteral())));
+      } else if (optionCtx.USENULL() != null) {
+        arguments.add(new Argument("usenull", getArgumentValue(optionCtx.booleanLiteral())));
+      } else if (optionCtx.NULLSTR() != null) {
+        arguments.add(new Argument("nullstr", getArgumentValue(optionCtx.stringLiteral())));
+      }
+    }
+    return arguments;
   }
 
   /**
    * Get list of {@link Argument}.
    *
    * @param ctx RareCommandContext instance
+   * @param settings Settings instance
    * @return the list of argument with default number of results for the rare command
    */
-  public static List<Argument> getArgumentList(RareCommandContext ctx) {
-    return Arrays.asList(
-        ctx.number != null
-            ? new Argument("noOfResults", getArgumentValue(ctx.number))
-            : new Argument("noOfResults", new Literal(10, DataType.INTEGER)),
-        ctx.countfield != null
-            ? new Argument("countField", getArgumentValue(ctx.countfield))
-            : new Argument("countField", new Literal("count", DataType.STRING)),
-        ctx.showcount != null
-            ? new Argument("showCount", getArgumentValue(ctx.showcount))
-            : new Argument("showCount", new Literal(true, DataType.BOOLEAN)));
+  public static List<Argument> getArgumentList(
+      OpenSearchPPLParser.RareTopCommandContext ctx, Settings settings) {
+    List<Argument> list = new ArrayList<>();
+    Optional<OpenSearchPPLParser.RareTopOptionContext> opt =
+        ctx.rareTopOption().stream().filter(op -> op.countField != null).findFirst();
+    list.add(
+        new Argument(
+            RareTopN.Option.countField.name(),
+            opt.isPresent()
+                ? getArgumentValue(opt.get().countField)
+                : new Literal("count", DataType.STRING)));
+    opt = ctx.rareTopOption().stream().filter(op -> op.showCount != null).findFirst();
+    list.add(
+        new Argument(
+            RareTopN.Option.showCount.name(),
+            opt.isPresent() ? getArgumentValue(opt.get().showCount) : Literal.TRUE));
+    opt = ctx.rareTopOption().stream().filter(op -> op.useNull != null).findFirst();
+    list.add(
+        new Argument(
+            RareTopN.Option.useNull.name(),
+            opt.isPresent()
+                ? getArgumentValue(opt.get().useNull)
+                : legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE));
+    return list;
   }
 
   /**

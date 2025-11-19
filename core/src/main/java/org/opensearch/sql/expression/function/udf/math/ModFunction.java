@@ -64,14 +64,14 @@ public class ModFunction extends ImplementorUDF {
         return Expressions.call(
             ModImplementor.class,
             "integralMod",
-            Expressions.convert_(dividend, Number.class),
-            Expressions.convert_(divisor, Number.class));
+            Expressions.convert_(Expressions.box(dividend), Number.class),
+            Expressions.convert_(Expressions.box(divisor), Number.class));
       } else {
         return Expressions.call(
             ModImplementor.class,
             "floatingMod",
-            Expressions.convert_(dividend, Number.class),
-            Expressions.convert_(divisor, Number.class));
+            Expressions.convert_(Expressions.box(dividend), Number.class),
+            Expressions.convert_(Expressions.box(divisor), Number.class));
       }
     }
 
@@ -94,6 +94,9 @@ public class ModFunction extends ImplementorUDF {
       BigDecimal b0 = new BigDecimal(dividend.toString());
       BigDecimal b1 = new BigDecimal(divisor.toString());
       BigDecimal result = b0.remainder(b1);
+      if (dividend instanceof BigDecimal || divisor instanceof BigDecimal) {
+        return result;
+      }
       return MathUtils.coerceToWidestFloatingType(dividend, divisor, result.doubleValue());
     }
   }

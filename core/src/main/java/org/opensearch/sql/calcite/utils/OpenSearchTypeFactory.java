@@ -186,11 +186,10 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
           return TYPE_FACTORY.createArrayType(
               TYPE_FACTORY.createSqlType(SqlTypeName.ANY, nullable), -1);
         case STRUCT:
-          // TODO: should use RelRecordType instead of MapSqlType here
-          // https://github.com/opensearch-project/sql/issues/3459
           final RelDataType relKey = TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR);
+          // TODO: should we provide more precise type here?
           return TYPE_FACTORY.createMapType(
-              relKey, TYPE_FACTORY.createSqlType(SqlTypeName.BINARY), nullable);
+              relKey, TYPE_FACTORY.createSqlType(SqlTypeName.ANY), nullable);
         case UNKNOWN:
         default:
           throw new IllegalArgumentException(
@@ -355,5 +354,74 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
    */
   public static boolean isUserDefinedType(RelDataType type) {
     return type instanceof AbstractExprRelDataType<?>;
+  }
+
+  /**
+   * Checks if the RelDataType represents a numeric type. Supports standard SQL numeric types
+   * (INTEGER, BIGINT, SMALLINT, TINYINT, FLOAT, DOUBLE, DECIMAL, REAL), OpenSearch UDT numeric
+   * types, and string types (VARCHAR, CHAR).
+   *
+   * @param fieldType the RelDataType to check
+   * @return true if the type is numeric or string, false otherwise
+   */
+  public static boolean isNumericType(RelDataType fieldType) {
+    // Check standard SQL numeric types
+    SqlTypeName sqlType = fieldType.getSqlTypeName();
+    if (sqlType == SqlTypeName.INTEGER
+        || sqlType == SqlTypeName.BIGINT
+        || sqlType == SqlTypeName.SMALLINT
+        || sqlType == SqlTypeName.TINYINT
+        || sqlType == SqlTypeName.FLOAT
+        || sqlType == SqlTypeName.DOUBLE
+        || sqlType == SqlTypeName.DECIMAL
+        || sqlType == SqlTypeName.REAL) {
+      return true;
+    }
+
+    // Check string types (VARCHAR, CHAR)
+    if (sqlType == SqlTypeName.VARCHAR || sqlType == SqlTypeName.CHAR) {
+      return true;
+    }
+
+    // Check for OpenSearch UDT numeric types
+    if (isUserDefinedType(fieldType)) {
+      AbstractExprRelDataType<?> exprType = (AbstractExprRelDataType<?>) fieldType;
+      ExprType udtType = exprType.getExprType();
+      return ExprCoreType.numberTypes().contains(udtType);
+    }
+
+    return false;
+  }
+
+  /**
+   * Checks if the RelDataType represents a time-based field (timestamp, date, or time). Supports
+   * both standard SQL time types (including TIMESTAMP, TIMESTAMP_WITH_LOCAL_TIME_ZONE, DATE, TIME,
+   * and their timezone variants) and OpenSearch UDT time types.
+   *
+   * @param fieldType the RelDataType to check
+   * @return true if the type is time-based, false otherwise
+   */
+  public static boolean isTimeBasedType(RelDataType fieldType) {
+    // Check standard SQL time types
+    SqlTypeName sqlType = fieldType.getSqlTypeName();
+    if (sqlType == SqlTypeName.TIMESTAMP
+        || sqlType == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
+        || sqlType == SqlTypeName.DATE
+        || sqlType == SqlTypeName.TIME
+        || sqlType == SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE) {
+      return true;
+    }
+
+    // Check for OpenSearch UDT types (EXPR_TIMESTAMP mapped to VARCHAR)
+    if (isUserDefinedType(fieldType)) {
+      AbstractExprRelDataType<?> exprType = (AbstractExprRelDataType<?>) fieldType;
+      ExprType udtType = exprType.getExprType();
+      return udtType == ExprCoreType.TIMESTAMP
+          || udtType == ExprCoreType.DATE
+          || udtType == ExprCoreType.TIME;
+    }
+
+    // Fallback check if type string contains EXPR_TIMESTAMP
+    return fieldType.toString().contains("EXPR_TIMESTAMP");
   }
 }

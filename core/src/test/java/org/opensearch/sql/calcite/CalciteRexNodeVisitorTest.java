@@ -29,6 +29,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.ast.expression.LambdaFunction;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
+import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.executor.QueryType;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,6 +45,7 @@ public class CalciteRexNodeVisitorTest {
   @Mock RelDataType accType;
   @Mock QualifiedName functionArg1;
   @Mock QualifiedName functionArg2;
+  @Mock DataSourceService dataSourceService;
 
   static CalciteRexNodeVisitor visitor;
   static CalciteRelNodeVisitor relNodeVisitor;
@@ -57,7 +59,7 @@ public class CalciteRexNodeVisitorTest {
 
   @BeforeEach
   public void setUpContext() {
-    relNodeVisitor = new CalciteRelNodeVisitor();
+    relNodeVisitor = new CalciteRelNodeVisitor(dataSourceService);
     visitor = new CalciteRexNodeVisitor(relNodeVisitor);
     when(relBuilder.getRexBuilder()).thenReturn(rexBuilder);
     when(rexBuilder.getTypeFactory()).thenReturn(TYPE_FACTORY);
@@ -66,7 +68,7 @@ public class CalciteRexNodeVisitorTest {
 
     mockedStatic.when(() -> CalciteToolsHelper.create(any(), any(), any())).thenReturn(relBuilder);
 
-    context = CalcitePlanContext.create(frameworkConfig, 100, QueryType.PPL);
+    context = CalcitePlanContext.create(frameworkConfig, SysLimit.DEFAULT, QueryType.PPL);
   }
 
   @AfterEach

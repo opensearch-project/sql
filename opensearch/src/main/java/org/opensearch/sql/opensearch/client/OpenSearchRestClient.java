@@ -30,6 +30,7 @@ import org.opensearch.client.indices.GetMappingsResponse;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
@@ -71,6 +72,9 @@ public class OpenSearchRestClient implements OpenSearchClient {
     GetMappingsRequest request = new GetMappingsRequest().indices(indexExpression);
     try {
       GetMappingsResponse response = client.indices().getMapping(request, RequestOptions.DEFAULT);
+      if (response.mappings().isEmpty()) {
+        throw new IndexNotFoundException(indexExpression[0]);
+      }
       return response.mappings().entrySet().stream()
           .collect(Collectors.toMap(Map.Entry::getKey, e -> new IndexMapping(e.getValue())));
     } catch (IOException e) {
@@ -177,6 +181,29 @@ public class OpenSearchRestClient implements OpenSearchClient {
       return builder.build();
     } catch (IOException e) {
       throw new IllegalStateException("Failed to get cluster meta info", e);
+    }
+  }
+
+  @Override
+  public void forceCleanup(OpenSearchRequest request) {
+    if (request instanceof OpenSearchScrollRequest) {
+      request.forceClean(
+          scrollId -> {
+            try {
+              ClearScrollRequest clearRequest = new ClearScrollRequest();
+              clearRequest.addScrollId(scrollId);
+              client.clearScroll(clearRequest, RequestOptions.DEFAULT);
+            } catch (IOException e) {
+              throw new IllegalStateException(
+                  "Failed to clean up resources for search request " + request, e);
+            }
+          });
+    } else {
+      request.forceClean(
+          pitId -> {
+            DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
+            deletePit(deletePitRequest);
+          });
     }
   }
 

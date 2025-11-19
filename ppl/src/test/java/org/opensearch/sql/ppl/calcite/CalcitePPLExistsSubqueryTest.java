@@ -5,9 +5,12 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.mockito.Mockito.doReturn;
+
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Test;
+import org.opensearch.sql.common.setting.Settings;
 
 public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
   public CalcitePPLExistsSubqueryTest() {
@@ -209,7 +212,7 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testExistsSubqueryInFilter() {
     String ppl =
-        "source=EMP exists [\n"
+        "source=EMP | where exists [\n"
             + "    source=SALGRADE\n"
             + "    | where SAL = HISAL\n"
             + "  ]\n"
@@ -240,7 +243,7 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
   @Test
   public void testNotExistsSubqueryInFilter() {
     String ppl =
-        "source=EMP not exists [\n"
+        "source=EMP | where not exists [\n"
             + "    source=SALGRADE\n"
             + "    | where SAL = HISAL\n"
             + "  ]\n"
@@ -474,5 +477,269 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`DEPT`\n"
             + "WHERE `t`.`DEPTNO` = `DEPTNO`)";
     verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testSubsearchMaxOut1() {
+    doReturn(1).when(settings).getSettingValue(Settings.Key.PPL_SUBSEARCH_MAXOUT);
+    String ppl =
+        "source=EMP\n"
+            + "| where exists [\n"
+            + "    source=SALGRADE\n"
+            + "    | where EMP.SAL = HISAL\n"
+            + "  ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        ""
+            + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
+            + "    LogicalFilter(condition=[EXISTS({\n"
+            + "LogicalFilter(condition=[=($cor0.SAL, $2)])\n"
+            + "  LogicalSystemLimit(sort0=[$0], dir0=[ASC], fetch=[1], type=[SUBSEARCH_MAXOUT])\n"
+            + "    LogicalTableScan(table=[[scott, SALGRADE]])\n"
+            + "})], variablesSet=[[$cor0]])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE EXISTS (SELECT *\n"
+            + "FROM (SELECT `GRADE`, `LOSAL`, `HISAL`\n"
+            + "FROM `scott`.`SALGRADE`\n"
+            + "ORDER BY `GRADE` NULLS LAST\n"
+            + "LIMIT 1) `t`\n"
+            + "WHERE `EMP`.`SAL` = `HISAL`)\n"
+            + "ORDER BY `EMPNO` DESC";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testSubsearchMaxOut2() {
+    doReturn(1).when(settings).getSettingValue(Settings.Key.PPL_SUBSEARCH_MAXOUT);
+    String ppl =
+        "source=EMP\n"
+            + "| where exists [\n"
+            + "    source=SALGRADE\n"
+            + "    | where EMP.SAL = HISAL and LOSAL > 1000.0\n"
+            + "  ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        ""
+            + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
+            + "    LogicalFilter(condition=[EXISTS({\n"
+            + "LogicalFilter(condition=[=($cor0.SAL, $2)])\n"
+            + "  LogicalSystemLimit(sort0=[$0], dir0=[ASC], fetch=[1], type=[SUBSEARCH_MAXOUT])\n"
+            + "    LogicalFilter(condition=[>($1, 1000.0:DECIMAL(5, 1))])\n"
+            + "      LogicalTableScan(table=[[scott, SALGRADE]])\n"
+            + "})], variablesSet=[[$cor0]])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE EXISTS (SELECT *\n"
+            + "FROM (SELECT `GRADE`, `LOSAL`, `HISAL`\n"
+            + "FROM `scott`.`SALGRADE`\n"
+            + "WHERE `LOSAL` > 1000.0\n"
+            + "ORDER BY `GRADE` NULLS LAST\n"
+            + "LIMIT 1) `t0`\n"
+            + "WHERE `EMP`.`SAL` = `HISAL`)\n"
+            + "ORDER BY `EMPNO` DESC";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testSubsearchMaxOut3() {
+    doReturn(1).when(settings).getSettingValue(Settings.Key.PPL_SUBSEARCH_MAXOUT);
+    String ppl =
+        "source=EMP\n"
+            + "| where exists [\n"
+            + "    source=SALGRADE\n"
+            + "    | where EMP.SAL = HISAL\n"
+            + "    | eval LOSAL1 = LOSAL\n"
+            + "    | where LOSAL > 1000.0\n"
+            + "    | sort - HISAL\n"
+            + "  ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
+            + "    LogicalFilter(condition=[EXISTS({\n"
+            + "LogicalSort(sort0=[$2], dir0=[DESC-nulls-last])\n"
+            + "  LogicalFilter(condition=[>($1, 1000.0:DECIMAL(5, 1))])\n"
+            + "    LogicalProject(GRADE=[$0], LOSAL=[$1], HISAL=[$2], LOSAL1=[$1])\n"
+            + "      LogicalFilter(condition=[=($cor0.SAL, $2)])\n"
+            + "        LogicalSystemLimit(sort0=[$0], dir0=[ASC], fetch=[1],"
+            + " type=[SUBSEARCH_MAXOUT])\n"
+            + "          LogicalTableScan(table=[[scott, SALGRADE]])\n"
+            + "})], variablesSet=[[$cor0]])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE EXISTS (SELECT `GRADE`, `LOSAL`, `HISAL`, `LOSAL1`\n"
+            + "FROM (SELECT `GRADE`, `LOSAL`, `HISAL`, `LOSAL` `LOSAL1`\n"
+            + "FROM (SELECT `GRADE`, `LOSAL`, `HISAL`\n"
+            + "FROM `scott`.`SALGRADE`\n"
+            + "ORDER BY `GRADE` NULLS LAST\n"
+            + "LIMIT 1) `t`\n"
+            + "WHERE `EMP`.`SAL` = `HISAL`) `t1`\n"
+            + "WHERE `LOSAL` > 1000.0\n"
+            + "ORDER BY `HISAL` DESC)\n"
+            + "ORDER BY `EMPNO` DESC";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testSubsearchMaxOutUncorrelated1() {
+    doReturn(1).when(settings).getSettingValue(Settings.Key.PPL_SUBSEARCH_MAXOUT);
+    String ppl =
+        "source=EMP\n"
+            + "| where exists [\n"
+            + "    source=SALGRADE\n"
+            + "    | eval LOSAL1 = LOSAL\n"
+            + "    | where LOSAL > 1000.0\n"
+            + "    | sort - HISAL\n"
+            + "  ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
+            + "    LogicalFilter(condition=[EXISTS({\n"
+            + "LogicalSystemLimit(sort0=[$2], dir0=[DESC-nulls-last], fetch=[1],"
+            + " type=[SUBSEARCH_MAXOUT])\n"
+            + "  LogicalSort(sort0=[$2], dir0=[DESC-nulls-last])\n"
+            + "    LogicalFilter(condition=[>($1, 1000.0:DECIMAL(5, 1))])\n"
+            + "      LogicalProject(GRADE=[$0], LOSAL=[$1], HISAL=[$2], LOSAL1=[$1])\n"
+            + "        LogicalTableScan(table=[[scott, SALGRADE]])\n"
+            + "})], variablesSet=[[$cor0]])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE EXISTS (SELECT `GRADE`, `LOSAL`, `HISAL`, `LOSAL1`\n"
+            + "FROM (SELECT `GRADE`, `LOSAL`, `HISAL`, `LOSAL1`\n"
+            + "FROM (SELECT `GRADE`, `LOSAL`, `HISAL`, `LOSAL` `LOSAL1`\n"
+            + "FROM `scott`.`SALGRADE`) `t`\n"
+            + "WHERE `LOSAL` > 1000.0\n"
+            + "ORDER BY `HISAL` DESC) `t1`\n"
+            + "ORDER BY `HISAL` DESC\n"
+            + "LIMIT 1)\n"
+            + "ORDER BY `EMPNO` DESC";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testSubsearchMaxOutUncorrelated2() {
+    doReturn(1).when(settings).getSettingValue(Settings.Key.PPL_SUBSEARCH_MAXOUT);
+    String ppl =
+        "source=EMP\n"
+            + "| where exists [\n"
+            + "    source=SALGRADE\n"
+            + "    | join type=left LOSAL SALGRADE\n"
+            + "    | eval LOSAL1 = LOSAL\n"
+            + "    | where LOSAL > 1000.0\n"
+            + "    | sort - HISAL\n"
+            + "  ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
+            + "    LogicalFilter(condition=[EXISTS({\n"
+            + "LogicalSystemLimit(sort0=[$2], dir0=[DESC-nulls-last], fetch=[1],"
+            + " type=[SUBSEARCH_MAXOUT])\n"
+            + "  LogicalSort(sort0=[$2], dir0=[DESC-nulls-last])\n"
+            + "    LogicalFilter(condition=[>($1, 1000.0:DECIMAL(5, 1))])\n"
+            + "      LogicalProject(GRADE=[$3], LOSAL=[$4], HISAL=[$5], LOSAL1=[$4])\n"
+            + "        LogicalJoin(condition=[=($1, $4)], joinType=[left])\n"
+            + "          LogicalTableScan(table=[[scott, SALGRADE]])\n"
+            + "          LogicalTableScan(table=[[scott, SALGRADE]])\n"
+            + "})], variablesSet=[[$cor0]])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE EXISTS (SELECT `GRADE`, `LOSAL`, `HISAL`, `LOSAL1`\n"
+            + "FROM (SELECT `GRADE`, `LOSAL`, `HISAL`, `LOSAL1`\n"
+            + "FROM (SELECT `SALGRADE0`.`GRADE`, `SALGRADE0`.`LOSAL`, `SALGRADE0`.`HISAL`,"
+            + " `SALGRADE0`.`LOSAL` `LOSAL1`\n"
+            + "FROM `scott`.`SALGRADE`\n"
+            + "LEFT JOIN `scott`.`SALGRADE` `SALGRADE0` ON `SALGRADE`.`LOSAL` ="
+            + " `SALGRADE0`.`LOSAL`) `t`\n"
+            + "WHERE `t`.`LOSAL` > 1000.0\n"
+            + "ORDER BY `HISAL` DESC) `t1`\n"
+            + "ORDER BY `HISAL` DESC\n"
+            + "LIMIT 1)\n"
+            + "ORDER BY `EMPNO` DESC";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testSubsearchMaxOutZeroMeansUnlimited() {
+    doReturn(0).when(settings).getSettingValue(Settings.Key.PPL_SUBSEARCH_MAXOUT);
+    String ppl =
+        "source=EMP\n"
+            + "| where exists [\n"
+            + "    source=SALGRADE\n"
+            + "    | where EMP.SAL = HISAL and LOSAL > 1000.0\n"
+            + "  ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        ""
+            + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
+            + "    LogicalFilter(condition=[EXISTS({\n"
+            + "LogicalFilter(condition=[AND(=($cor0.SAL, $2), >($1, 1000.0:DECIMAL(5, 1)))])\n"
+            + "  LogicalTableScan(table=[[scott, SALGRADE]])\n"
+            + "})], variablesSet=[[$cor0]])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE EXISTS (SELECT *\n"
+            + "FROM `scott`.`SALGRADE`\n"
+            + "WHERE `EMP`.`SAL` = `HISAL` AND `LOSAL` > 1000.0)\n"
+            + "ORDER BY `EMPNO` DESC";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testSubsearchMaxOutNegativeMeansUnlimited() {
+    doReturn(-1).when(settings).getSettingValue(Settings.Key.PPL_SUBSEARCH_MAXOUT);
+    String ppl =
+        "source=EMP\n"
+            + "| where exists [\n"
+            + "    source=SALGRADE\n"
+            + "    | where EMP.SAL = HISAL and LOSAL > 1000.0\n"
+            + "  ]\n"
+            + "| sort - EMPNO | fields EMPNO, ENAME\n";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        ""
+            + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])\n"
+            + "    LogicalFilter(condition=[EXISTS({\n"
+            + "LogicalFilter(condition=[AND(=($cor0.SAL, $2), >($1, 1000.0:DECIMAL(5, 1)))])\n"
+            + "  LogicalTableScan(table=[[scott, SALGRADE]])\n"
+            + "})], variablesSet=[[$cor0]])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
   }
 }

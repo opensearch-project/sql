@@ -34,6 +34,8 @@ The following table dataSources the aggregation functions and also indicates how
 +----------+-------------+-------------+
 | LIST     | Ignore      | Ignore      |
 +----------+-------------+-------------+
+| VALUES   | Ignore      | Ignore      |
++----------+-------------+-------------+
 
 
 Syntax
@@ -56,9 +58,8 @@ stats [bucket_nullable=bool] <aggregation>... [by-clause]
 
 * span-expression: optional, at most one.
 
- * Syntax: span(field_expr, interval_expr)
- * Description: The unit of the interval expression is the natural unit by default. If the field is a date and time type field, and the interval is in date/time units, you will need to specify the unit in the interval expression. For example, to split the field ``age`` into buckets by 10 years, it looks like ``span(age, 10)``. And here is another example of time span, the span to split a ``timestamp`` field into hourly intervals, it looks like ``span(timestamp, 1h)``.
-
+ * Syntax: span([field_expr,] interval_expr)
+ * Description: The unit of the interval expression is the natural unit by default. If ``field_expr`` is omitted, span will use the implicit ``@timestamp`` field. An error will be thrown if this field doesn't exist. **If the field is a date/time type field, the aggregation results always ignore null bucket**. And the interval is in date/time units, you will need to specify the unit in the interval expression. For example, to split the field ``age`` into buckets by 10 years, it looks like ``span(age, 10)``. And here is another example of time span, the span to split a ``timestamp`` field into hourly intervals, it looks like ``span(timestamp, 1h)``.
 * Available time unit:
 
 +----------------------------+
@@ -182,6 +183,10 @@ Description
 
 Usage: MAX(expr). Returns the maximum value of expr.
 
+For non-numeric fields, values are sorted lexicographically.
+
+Note: Non-numeric field support requires Calcite to be enabled (see `Configuration`_ section above). Available since version 3.3.0.
+
 Example::
 
     os> source=accounts | stats max(age);
@@ -192,6 +197,16 @@ Example::
     | 36       |
     +----------+
 
+Example with text field::
+
+    os> source=accounts | stats max(firstname);
+    fetched rows / total rows = 1/1
+    +----------------+
+    | max(firstname) |
+    |----------------|
+    | Nanette        |
+    +----------------+
+
 MIN
 ---
 
@@ -199,6 +214,10 @@ Description
 >>>>>>>>>>>
 
 Usage: MIN(expr). Returns the minimum value of expr.
+
+For non-numeric fields, values are sorted lexicographically.
+
+Note: Non-numeric field support requires Calcite to be enabled (see `Configuration`_ section above). Available since version 3.3.0.
 
 Example::
 
@@ -209,6 +228,16 @@ Example::
     |----------|
     | 28       |
     +----------+
+
+Example with text field::
+
+    os> source=accounts | stats min(firstname);
+    fetched rows / total rows = 1/1
+    +----------------+
+    | min(firstname) |
+    |----------------|
+    | Amber          |
+    +----------------+
 
 VAR_SAMP
 --------
@@ -549,7 +578,7 @@ Description
 
 Version: 3.3.0 (Calcite engine only)
 
-Usage: LIST(expr). Collects all values from the specified expression into an array. Values are converted to strings, nulls are filtered, and duplicates are preserved. 
+Usage: LIST(expr). Collects all values from the specified expression into an array. Values are converted to strings, nulls are filtered, and duplicates are preserved.
 The function returns up to 100 values with no guaranteed ordering.
 
 * expr: The field expression to collect values from.
@@ -574,6 +603,54 @@ Example with result field rename::
     |-------------------------------------|
     | ["Amber","Hattie","Nanette","Dale"] |
     +-------------------------------------+
+
+VALUES
+------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.3.0 (Calcite engine only)
+
+Usage: VALUES(expr). Collects all unique values from the specified expression into a sorted array. Values are converted to strings, nulls are filtered, and duplicates are removed.
+
+The maximum number of unique values returned is controlled by the ``plugins.ppl.values.max.limit`` setting:
+
+* Default value is 0, which means unlimited values are returned
+* Can be configured to any positive integer to limit the number of unique values
+* See the `PPL Settings <../admin/settings.rst#plugins-ppl-values-max-limit>`_ documentation for more details
+
+Example with string fields::
+
+    PPL> source=accounts | stats values(firstname);
+    fetched rows / total rows = 1/1
+    +-------------------------------------+
+    | values(firstname)                   |
+    |-------------------------------------|
+    | ["Amber","Dale","Hattie","Nanette"] |
+    +-------------------------------------+
+
+Example with numeric fields (sorted as strings)::
+
+    PPL> source=accounts | stats values(age);
+    fetched rows / total rows = 1/1
+    +---------------------------+
+    | values(age)               |
+    |---------------------------|
+    | ["28","32","33","36","39"] |
+    +---------------------------+
+
+Example with result field rename::
+
+    PPL> source=accounts | stats values(firstname) as unique_names;
+    fetched rows / total rows = 1/1
+    +-------------------------------------+
+    | unique_names                        |
+    |-------------------------------------|
+    | ["Amber","Dale","Hattie","Nanette"] |
+    +-------------------------------------+
+
+
 Example 1: Calculate the count of events
 ========================================
 
@@ -830,3 +907,87 @@ PPL query::
     | 1   | hattiebond@netagy.com |
     +-----+-----------------------+
 
+Example 16: Collect unique values in a field using VALUES
+==========================================================
+
+The example shows how to collect all unique firstname values, sorted lexicographically with duplicates removed.
+
+PPL query::
+
+    PPL> source=accounts | stats values(firstname);
+    fetched rows / total rows = 1/1
+    +-------------------------------------+
+    | values(firstname)                   |
+    |-------------------------------------|
+    | ["Amber","Dale","Hattie","Nanette"] |
+    +-------------------------------------+
+
+
+Example 17: Span on date/time field always ignore null bucket
+=============================================================
+
+Index example data:
+
++-------+--------+------------+
+| Name  | DEPTNO | birthday   |
++=======+========+============+
+| Alice | 1      | 2024-04-21 |
++-------+--------+------------+
+| Bob   | 2      | 2025-08-21 |
++-------+--------+------------+
+| Jeff  | null   | 2025-04-22 |
++-------+--------+------------+
+| Adam  | 2      | null       |
++-------+--------+------------+
+
+PPL query::
+
+    PPL> source=example | stats count() as cnt by span(birthday, 1y) as year;
+    fetched rows / total rows = 3/3
+    +-----+------------+
+    | cnt | year       |
+    |-----+------------|
+    | 1   | 2024-01-01 |
+    | 2   | 2025-01-01 |
+    +-----+------------+
+
+
+PPL query::
+
+    PPL> source=example | stats count() as cnt by span(birthday, 1y) as year, DEPTNO;
+    fetched rows / total rows = 3/3
+    +-----+------------+--------+
+    | cnt | year       | DEPTNO |
+    |-----+------------+--------|
+    | 1   | 2024-01-01 | 1      |
+    | 1   | 2025-01-01 | 2      |
+    | 1   | 2025-01-01 | null   |
+    +-----+------------+--------+
+
+
+PPL query::
+
+    PPL> source=example | stats bucket_nullable=false count() as cnt by span(birthday, 1y) as year, DEPTNO;
+    fetched rows / total rows = 3/3
+    +-----+------------+--------+
+    | cnt | year       | DEPTNO |
+    |-----+------------+--------|
+    | 1   | 2024-01-01 | 1      |
+    | 1   | 2025-01-01 | 2      |
+    +-----+------------+--------+
+
+
+Example 18: Calculate the count by the implicit @timestamp field
+================================================================
+
+This example demonstrates that if you omit the field parameter in the span function, it will automatically use the implicit ``@timestamp`` field.
+
+PPL query::
+
+    PPL> source=big5 | stats count() by span(1month)
+    fetched rows / total rows = 1/1
+    +---------+---------------------+
+    | count() | span(1month)        |
+    |---------+---------------------|
+    | 1       | 2023-01-01 00:00:00 |
+    +---------+---------------------+

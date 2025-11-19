@@ -59,9 +59,22 @@ public enum BuiltinFunctionName {
   TAN(FunctionName.of("tan")),
   SPAN(FunctionName.of("span")),
 
+  /** Binning Functions. */
+  SPAN_BUCKET(FunctionName.of("span_bucket")),
+  WIDTH_BUCKET(FunctionName.of("width_bucket")),
+  MINSPAN_BUCKET(FunctionName.of("minspan_bucket")),
+  RANGE_BUCKET(FunctionName.of("range_bucket")),
+
   /** Collection functions */
   ARRAY(FunctionName.of("array")),
   ARRAY_LENGTH(FunctionName.of("array_length")),
+  ARRAY_SLICE(FunctionName.of("array_slice"), true),
+  MAP_APPEND(FunctionName.of("map_append"), true),
+  MAP_CONCAT(FunctionName.of("map_concat"), true),
+  MAP_REMOVE(FunctionName.of("map_remove"), true),
+  MVAPPEND(FunctionName.of("mvappend")),
+  MVJOIN(FunctionName.of("mvjoin")),
+  MVINDEX(FunctionName.of("mvindex")),
   FORALL(FunctionName.of("forall")),
   EXISTS(FunctionName.of("exists")),
   FILTER(FunctionName.of("filter")),
@@ -124,6 +137,7 @@ public enum BuiltinFunctionName {
   UTC_TIME(FunctionName.of("utc_time")),
   UTC_TIMESTAMP(FunctionName.of("utc_timestamp")),
   UNIX_TIMESTAMP(FunctionName.of("unix_timestamp")),
+  STRFTIME(FunctionName.of("strftime")),
   WEEK(FunctionName.of("week")),
   WEEKDAY(FunctionName.of("weekday")),
   WEEKOFYEAR(FunctionName.of("weekofyear")),
@@ -205,6 +219,7 @@ public enum BuiltinFunctionName {
 
   // Multivalue aggregation function
   LIST(FunctionName.of("list")),
+  VALUES(FunctionName.of("values")),
   // Not always an aggregation query
   NESTED(FunctionName.of("nested")),
   // Document order aggregation functions
@@ -222,7 +237,7 @@ public enum BuiltinFunctionName {
   LTRIM(FunctionName.of("ltrim")),
   POSITION(FunctionName.of("position")),
   REGEXP(FunctionName.of("regexp")),
-  REGEX_MATCH(FunctionName.of("regex_match")),
+  REGEXP_MATCH(FunctionName.of("regexp_match")),
   REX_EXTRACT(FunctionName.of("REX_EXTRACT")),
   REX_EXTRACT_MULTI(FunctionName.of("REX_EXTRACT_MULTI")),
   REX_OFFSET(FunctionName.of("REX_OFFSET")),
@@ -243,6 +258,7 @@ public enum BuiltinFunctionName {
   JSON_ARRAY(FunctionName.of("json_array")),
   JSON_ARRAY_LENGTH(FunctionName.of("json_array_length")),
   JSON_EXTRACT(FunctionName.of("json_extract")),
+  JSON_EXTRACT_ALL(FunctionName.of("json_extract_all"), true),
   JSON_KEYS(FunctionName.of("json_keys")),
   JSON_SET(FunctionName.of("json_set")),
   JSON_DELETE(FunctionName.of("json_delete")),
@@ -320,9 +336,8 @@ public enum BuiltinFunctionName {
   INTERNAL_PATTERN_PARSER(FunctionName.of("pattern_parser")),
   INTERNAL_PATTERN(FunctionName.of("pattern")),
   INTERNAL_UNCOLLECT_PATTERNS(FunctionName.of("uncollect_patterns")),
-  INTERNAL_REGEXP_EXTRACT(FunctionName.of("regexp_extract"), true),
   INTERNAL_GROK(FunctionName.of("grok"), true),
-  INTERNAL_REGEXP_REPLACE_3(FunctionName.of("regexp_replace_3"), true),
+  INTERNAL_PARSE(FunctionName.of("parse"), true),
   INTERNAL_REGEXP_REPLACE_PG_4(FunctionName.of("regexp_replace_pg_4"), true),
   INTERNAL_REGEXP_REPLACE_5(FunctionName.of("regexp_replace_5"), true),
   INTERNAL_TRANSLATE3(FunctionName.of("translate3"), true);
@@ -362,6 +377,7 @@ public enum BuiltinFunctionName {
           .put("latest", BuiltinFunctionName.LATEST)
           .put("distinct_count_approx", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
           .put("list", BuiltinFunctionName.LIST)
+          .put("values", BuiltinFunctionName.VALUES)
           .put("pattern", BuiltinFunctionName.INTERNAL_PATTERN)
           .put("first", BuiltinFunctionName.FIRST)
           .put("last", BuiltinFunctionName.LAST)
@@ -381,8 +397,8 @@ public enum BuiltinFunctionName {
           .put("stddev", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_pop", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_samp", BuiltinFunctionName.STDDEV_SAMP)
-          // .put("earliest", BuiltinFunctionName.EARLIEST)
-          // .put("latest", BuiltinFunctionName.LATEST)
+          .put("earliest", BuiltinFunctionName.EARLIEST)
+          .put("latest", BuiltinFunctionName.LATEST)
           .put("distinct_count_approx", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
           .put("dc", BuiltinFunctionName.DISTINCT_COUNT_APPROX)
           .put("distinct_count", BuiltinFunctionName.DISTINCT_COUNT_APPROX)

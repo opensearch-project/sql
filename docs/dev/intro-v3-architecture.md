@@ -98,7 +98,7 @@ In Linkedin, they created a internal Calcite repo to convert Pig Latin scripts i
 - Have an optimizer rule to optimize Pig group/cogroup into Aggregate operators
 - Implement other RelNode in Rel2Sql so that Pig Latin can be translated into SQL
 
-This [work](https://issues.apache.org/jira/browse/CALCITE-3122) had contributed to Apache Calcite and named [Piglet](https://calcite.apache.org/javadocAggregate/org/apache/calcite/piglet/package-summary.html). It allows users to write queries in Pig Latin, and execute them using any applicable Calcite adapter.
+This work had contributed to Apache Calcite \(CALCITE-3122\) and named [Piglet](https://calcite.apache.org/javadocAggregate/org/apache/calcite/piglet/package-summary.html). It allows users to write queries in Pig Latin, and execute them using any applicable Calcite adapter.
 
 Pig Latin leverage `RelBuilder` to implement as a third-part front-end language (dialect).
 

@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
@@ -28,6 +30,7 @@ public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
     enableCalcite();
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK);
+    loadIndex(Index.WEBLOG);
   }
 
   @Test
@@ -213,27 +216,59 @@ public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testAppendWithConflictTypeColumn() throws IOException {
+  public void testAppendWithConflictTypeColumn() {
+    Exception exception =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        Locale.ROOT,
+                        "source=%s | stats sum(age) as sum by gender | append [ source=%s | stats"
+                            + " sum(age) as sum by state | sort sum | eval sum = cast(sum as"
+                            + " double) ] | head 5",
+                        TEST_INDEX_ACCOUNT,
+                        TEST_INDEX_ACCOUNT)));
+
+    assertTrue(
+        "Error message should indicate type conflict",
+        exception
+            .getMessage()
+            .contains("Unable to process column 'sum' due to incompatible types:"));
+  }
+
+  @Test
+  public void testAppendSchemaMergeWithTimestampUDT() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
                 Locale.ROOT,
-                "source=%s | stats sum(age) as sum by gender | append [ source=%s | stats sum(age)"
-                    + " as sum by state | sort sum | eval sum = cast(sum as double) ] | head 5",
+                "source=%s | fields account_number, firstname | append [ source=%s | fields"
+                    + " account_number, age, birthdate ] | where isnotnull(birthdate) and"
+                    + " account_number > 30",
                 TEST_INDEX_ACCOUNT,
-                TEST_INDEX_ACCOUNT));
+                TEST_INDEX_BANK));
     verifySchemaInOrder(
         actual,
-        schema("sum", "bigint"),
-        schema("gender", "string"),
-        schema("state", "string"),
-        schema("sum0", "double"));
-    verifyDataRows(
-        actual,
-        rows(14947, "F", null, null),
-        rows(15224, "M", null, null),
-        rows(null, null, "NV", 369d),
-        rows(null, null, "NM", 412d),
-        rows(null, null, "AZ", 414d));
+        schema("account_number", "bigint"),
+        schema("firstname", "string"),
+        schema("age", "int"),
+        schema("birthdate", "string"));
+    verifyDataRows(actual, rows(32, null, 34, "2018-08-11 00:00:00"));
+  }
+
+  @Test
+  public void testAppendSchemaMergeWithIpUDT() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                Locale.ROOT,
+                "source=%s | fields account_number, age | append [ source=%s | fields host ] |"
+                    + " where cidrmatch(host, '0.0.0.0/24')",
+                TEST_INDEX_ACCOUNT,
+                TEST_INDEX_WEBLOGS));
+    verifySchemaInOrder(
+        actual, schema("account_number", "bigint"), schema("age", "bigint"), schema("host", "ip"));
+    verifyDataRows(actual, rows(null, null, "0.0.0.2"));
   }
 }

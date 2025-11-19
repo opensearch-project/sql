@@ -978,8 +978,8 @@ class OpenSearchExprValueFactoryTest {
 
   @Test
   // aggregation adds info about new columns to the factory,
-  // it is accepted without overwriting existing data.
-  public void factoryMappingsAreExtendableWithoutOverWrite()
+  // it will overwrite existing type to fix https://github.com/opensearch-project/sql/issues/4115
+  public void factoryMappingsAreExtendableWithOverWrite()
       throws NoSuchFieldException, IllegalAccessException {
     var factory =
         new OpenSearchExprValueFactory(Map.of("value", OpenSearchDataType.of(INTEGER)), true);
@@ -996,7 +996,7 @@ class OpenSearchExprValueFactoryTest {
         () -> assertEquals(2, mapping.size()),
         () -> assertTrue(mapping.containsKey("value")),
         () -> assertTrue(mapping.containsKey("agg")),
-        () -> assertEquals(OpenSearchDataType.of(INTEGER), mapping.get("value")),
+        () -> assertEquals(OpenSearchDataType.of(DOUBLE), mapping.get("value")),
         () -> assertEquals(OpenSearchDataType.of(DATE), mapping.get("agg")));
   }
 

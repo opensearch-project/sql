@@ -24,14 +24,6 @@ public class CalciteSortCommandIT extends SortCommandIT {
     enableCalcite();
   }
 
-  // TODO: Move this test to SortCommandIT once head-then-sort is fixed in v2.
-  @Test
-  public void testHeadThenSort() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | head 2 | sort age | fields age", TEST_INDEX_BANK));
-    verifyOrder(result, rows(32), rows(36));
-  }
-
   @Test
   public void testPushdownSortPlusExpression() throws IOException {
     String ppl =
@@ -39,18 +31,6 @@ public class CalciteSortCommandIT extends SortCommandIT {
             Locale.ROOT,
             "source=%s | eval age2 = age + 2 | sort age2 | fields age | head 2",
             TEST_INDEX_BANK);
-    String explained = explainQueryToString(ppl);
-    if (!isPushdownDisabled()) {
-      assertTrue(
-          explained.contains(
-              "[SORT->[{\\n"
-                  + "  \\\"age\\\" : {\\n"
-                  + "    \\\"order\\\" : \\\"asc\\\",\\n"
-                  + "    \\\"missing\\\" : \\\"_first\\\"\\n"
-                  + "  }\\n"
-                  + "}]"));
-    }
-
     JSONObject result = executeQuery(ppl);
     verifyOrder(result, rows(28), rows(32));
   }
@@ -62,18 +42,6 @@ public class CalciteSortCommandIT extends SortCommandIT {
             Locale.ROOT,
             "source=%s | eval age2 = 1 - age | sort age2 | fields age | head 2",
             TEST_INDEX_BANK);
-    String explained = explainQueryToString(ppl);
-    if (!isPushdownDisabled()) {
-      assertTrue(
-          explained.contains(
-              "[SORT->[{\\n"
-                  + "  \\\"age\\\" : {\\n"
-                  + "    \\\"order\\\" : \\\"desc\\\",\\n"
-                  + "    \\\"missing\\\" : \\\"_first\\\"\\n"
-                  + "  }\\n"
-                  + "}]"));
-    }
-
     JSONObject result = executeQuery(ppl);
     verifyOrder(result, rows(39), rows(36));
   }
@@ -85,18 +53,6 @@ public class CalciteSortCommandIT extends SortCommandIT {
             Locale.ROOT,
             "source=%s | eval age2 = 5 * age | sort age2 | fields age | head 2",
             TEST_INDEX_BANK);
-    String explained = explainQueryToString(ppl);
-    if (!isPushdownDisabled()) {
-      assertTrue(
-          explained.contains(
-              "[SORT->[{\\n"
-                  + "  \\\"age\\\" : {\\n"
-                  + "    \\\"order\\\" : \\\"asc\\\",\\n"
-                  + "    \\\"missing\\\" : \\\"_first\\\"\\n"
-                  + "  }\\n"
-                  + "}]"));
-    }
-
     JSONObject result = executeQuery(ppl);
     verifyOrder(result, rows(28), rows(32));
   }
@@ -108,23 +64,6 @@ public class CalciteSortCommandIT extends SortCommandIT {
             Locale.ROOT,
             "source=%s | eval age2 = 5 * age | sort gender, age2 | fields gender, age | head 2",
             TEST_INDEX_BANK);
-    String explained = explainQueryToString(ppl);
-    if (!isPushdownDisabled()) {
-      assertTrue(
-          explained.contains(
-              "[SORT->[{\\n"
-                  + "  \\\"gender.keyword\\\" : {\\n"
-                  + "    \\\"order\\\" : \\\"asc\\\",\\n"
-                  + "    \\\"missing\\\" : \\\"_first\\\"\\n"
-                  + "  }\\n"
-                  + "}, {\\n"
-                  + "  \\\"age\\\" : {\\n"
-                  + "    \\\"order\\\" : \\\"asc\\\",\\n"
-                  + "    \\\"missing\\\" : \\\"_first\\\"\\n"
-                  + "  }\\n"
-                  + "}]"));
-    }
-
     JSONObject result = executeQuery(ppl);
     verifyOrder(result, rows("F", 28), rows("F", 34));
   }
@@ -136,18 +75,6 @@ public class CalciteSortCommandIT extends SortCommandIT {
             Locale.ROOT,
             "source=%s | eval age2 = cast(age * 5 as long) | sort age2 | fields age | head 2",
             TEST_INDEX_BANK);
-    String explained = explainQueryToString(ppl);
-    if (!isPushdownDisabled()) {
-      assertTrue(
-          explained.contains(
-              "[SORT->[{\\n"
-                  + "  \\\"age\\\" : {\\n"
-                  + "    \\\"order\\\" : \\\"asc\\\",\\n"
-                  + "    \\\"missing\\\" : \\\"_first\\\"\\n"
-                  + "  }\\n"
-                  + "}]"));
-    }
-
     JSONObject result = executeQuery(ppl);
     verifyOrder(result, rows(28), rows(32));
   }

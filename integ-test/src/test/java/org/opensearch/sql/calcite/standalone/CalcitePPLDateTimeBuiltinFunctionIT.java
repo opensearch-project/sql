@@ -709,6 +709,27 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
+  public void testComparisonWithIso8601DateLiteral() {
+    Object[][] tests = {
+      {"date_optional_time = '1984-04-12T09:07:42.000Z'", 2},
+      {"date_time = '1984-04-12T07:07:42-02:00'", 2},
+      {"date = '1984-04-12'", 2},
+      {"date = '1984-04-12T09:07:42.000Z'", 2},
+      {"basic_t_time = '1984-04-12T09:07:42.000Z'", 2},
+      {"basic_t_time = '10:07:42.000+01:00'", 2}
+    };
+    for (Object[] pair : tests) {
+      String query = (String) pair[0];
+      int result = (int) pair[1];
+      JSONObject actual =
+          executeQuery(
+              String.format(
+                  "source=%s | where %s | stats COUNT() AS cnt", TEST_INDEX_DATE_FORMATS, query));
+      verifyDataRows(actual, rows(result));
+    }
+  }
+
+  @Test
   public void testAddSubTime() throws IOException {
     JSONObject actual =
         executeQuery(

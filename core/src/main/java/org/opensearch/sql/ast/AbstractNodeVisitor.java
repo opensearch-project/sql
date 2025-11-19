@@ -48,7 +48,9 @@ import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
+import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
@@ -63,6 +65,7 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
@@ -72,12 +75,16 @@ import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
+import org.opensearch.sql.ast.tree.Replace;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
+import org.opensearch.sql.ast.tree.SPath;
+import org.opensearch.sql.ast.tree.Search;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.SPath;
+import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
-import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
@@ -127,6 +134,14 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitTableFunction(TableFunction node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitSearch(Search node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitAppendPipe(AppendPipe node, C context) {
     return visitChildren(node, context);
   }
 
@@ -238,11 +253,19 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(node, context);
   }
 
+  public T visitReplace(Replace node, C context) {
+    return visitChildren(node, context);
+  }
+
   public T visitEval(Eval node, C context) {
     return visitChildren(node, context);
   }
 
   public T visitParse(Parse node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitSpath(SPath node, C context) {
     return visitChildren(node, context);
   }
 
@@ -258,7 +281,7 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(node, context);
   }
 
-  public T visitTimechart(Timechart node, C context) {
+  public T visitChart(Chart node, C context) {
     return visitChildren(node, context);
   }
 
@@ -394,6 +417,10 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(window, context);
   }
 
+  public T visitStreamWindow(StreamWindow node, C context) {
+    return visitChildren(node, context);
+  }
+
   public T visitJoin(Join node, C context) {
     return visitChildren(node, context);
   }
@@ -419,6 +446,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitAppend(Append node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitMultisearch(Multisearch node, C context) {
     return visitChildren(node, context);
   }
 }
