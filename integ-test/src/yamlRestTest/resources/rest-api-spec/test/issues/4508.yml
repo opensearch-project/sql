@@ -1,0 +1,94 @@
+setup:
+  - do:
+      indices.create:
+        index: test_nested_eval_filter
+        body:
+          mappings:
+            properties:
+              "id":
+                type: keyword
+              "items":
+                type: nested
+                properties:
+                  "name":
+                    type: keyword
+  - do:
+      bulk:
+        index: test_nested_eval_filter
+        refresh: true
+        body:
+          - '{"index": {"_id": "1"}}'
+          - '{"id": "order1", "items": [{"name": "apple"}]}'
+          - '{"index": {"_id": "2"}}'
+          - '{"id": "order2", "items": [{"name": "banana"}]}'
+          - '{"index": {"_id": "3"}}'
+          - '{"id": "order3", "items": [{"name": "orange"}]}'
+
+---
+"eval on nested field without filter":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_nested_eval_filter | eval NameLen=LENGTH(items.name) | fields id, items.name, NameLen
+
+  - match: { total: 3 }
+  - match: {"schema": [{"name": "id", "type": "string"}, {"name": "items.name", "type": "string"}, {"name": "NameLen", "type": "int"}]}
+  - match: {"datarows": [["order1", "apple", 5], ["order2", "banana", 6], ["order3", "orange", 6]]}
+
+---
+"eval on nested field with filter on computed field":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_nested_eval_filter | eval NameLen=LENGTH(items.name) | fields id, items.name, NameLen | where NameLen > 5
+
+  - match: { total: 2 }
+  - match: {"schema": [{"name": "id", "type": "string"}, {"name": "items.name", "type": "string"}, {"name": "NameLen", "type": "int"}]}
+  - match: {"datarows": [["order2", "banana", 6], ["order3", "orange", 6]]}
+
+---
+"comparison with regular field - eval and filter works correctly":
+  - skip:
+      features:
+        - headers
+  - do:
+      indices.create:
+        index: test_regular_eval_filter
+        body:
+          mappings:
+            properties:
+              "id":
+                type: keyword
+              "name":
+                type: keyword
+  - do:
+      bulk:
+        index: test_regular_eval_filter
+        refresh: true
+        body:
+          - '{"index": {"_id": "1"}}'
+          - '{"id": "order1", "name": "apple"}'
+          - '{"index": {"_id": "2"}}'
+          - '{"id": "order2", "name": "banana"}'
+          - '{"index": {"_id": "3"}}'
+          - '{"id": "order3", "name": "orange"}'
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_regular_eval_filter | eval NameLen=LENGTH(name) | fields id, name, NameLen | where NameLen > 5
+
+  - match: { total: 2 }
+  - match: {"schema": [{"name": "id", "type": "string"}, {"name": "name", "type": "string"}, {"name": "NameLen", "type": "int"}]}
+  - match: {"datarows": [["order2", "banana", 6], ["order3", "orange", 6]]}

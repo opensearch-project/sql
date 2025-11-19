@@ -9,6 +9,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ALIAS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DEEP_NESTED;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OTEL_LOGS;
@@ -27,6 +28,8 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.common.setting.Settings.Key;
+import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.ExplainIT;
 import org.opensearch.sql.protocol.response.format.Format;
 
@@ -47,6 +50,7 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.WORK_INFORMATION);
     loadIndex(Index.WEBLOG);
     loadIndex(Index.DATA_TYPE_ALIAS);
+    loadIndex(Index.DEEP_NESTED);
   }
 
   @Override
@@ -2367,5 +2371,16 @@ public class CalciteExplainIT extends ExplainIT {
           loadExpectedPlan(String.format("explain_output_%s.json", formatName)),
           explainQueryToStringBWC(query, format));
     }
+  }
+
+  @Test
+  public void testFilterOnNestedFields() throws IOException {
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("filter_on_nested.yaml"),
+        explainQueryYaml(
+            StringUtils.format(
+                "source=%s | eval proj_name_len=length(projects.name) | fields projects.name,"
+                    + " proj_name_len | where proj_name_len > 29",
+                TEST_INDEX_DEEP_NESTED)));
   }
 }

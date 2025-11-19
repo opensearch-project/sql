@@ -84,6 +84,7 @@ import org.apache.lucene.search.join.ScoreMode;
 import org.opensearch.index.mapper.DateFieldMapper;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.index.query.ScriptQueryBuilder;
 import org.opensearch.script.Script;
@@ -91,6 +92,7 @@ import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.type.ExprIPType;
 import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
@@ -1464,6 +1466,8 @@ public class PredicateAnalyzer {
     private final Supplier<String> codeGenerator;
     private String generatedCode;
     private final ScriptParameterHelper parameterHelper;
+    private final Map<String, ExprType> fieldTypes;
+    private final List<String> referredFields;
 
     public ScriptQueryExpression(
         RexNode rexNode,
@@ -1487,6 +1491,12 @@ public class PredicateAnalyzer {
           () ->
               SerializationWrapper.wrapWithLangType(
                   ScriptEngineType.CALCITE, serializer.serialize(rexNode, parameterHelper));
+      this.referredFields =
+          PlanUtils.getInputRefs(rexNode).stream()
+              .map(RexInputRef::getIndex)
+              .map(rowType.getFieldNames()::get)
+              .toList();
+      this.fieldTypes = fieldTypes;
     }
 
     // For filter script, this method will be called after planning phase;
@@ -1501,7 +1511,12 @@ public class PredicateAnalyzer {
 
     @Override
     public QueryBuilder builder() {
-      return new ScriptQueryBuilder(getScript());
+      ScriptQueryBuilder scriptQuery = QueryBuilders.scriptQuery(getScript());
+      String nestedPath = findNestedPath(fieldTypes);
+      if (nestedPath != null) {
+        return QueryBuilders.nestedQuery(nestedPath, scriptQuery, ScoreMode.None);
+      }
+      return scriptQuery;
     }
 
     public Script getScript() {
@@ -1526,6 +1541,45 @@ public class PredicateAnalyzer {
     @Override
     public List<RexNode> getUnAnalyzableNodes() {
       return List.of();
+    }
+
+    /**
+     * Find the nested path for fields referenced in the expression. If multiple nested paths exist,
+     * returns the top one.
+     *
+     * @param fieldTypes Map of field names to their types
+     * @return The nested path, or null if no nested fields are found
+     */
+    private String findNestedPath(Map<String, ExprType> fieldTypes) {
+      if (fieldTypes == null || fieldTypes.isEmpty()) {
+        return null;
+      }
+
+      for (String fieldName : referredFields) {
+        // Check if the field is part of a nested structure
+        // For a field like "items.name", we need to check if "items" is nested
+        if (fieldName.contains(".")) {
+          String[] parts = fieldName.split("\\.");
+          StringBuilder pathBuilder = new StringBuilder();
+
+          // Build up the path progressively and check if any parent is nested
+          for (int i = 0; i < parts.length - 1; i++) {
+            if (i > 0) {
+              pathBuilder.append(".");
+            }
+            pathBuilder.append(parts[i]);
+            String currentPath = pathBuilder.toString();
+
+            // Check if this path exists in fieldTypes and is nested
+            ExprType pathType = fieldTypes.get(currentPath);
+            // OpenSearchDataType.Nested is mapped to ExprCoreType.ARRAY
+            if (pathType == ExprCoreType.ARRAY) {
+              return currentPath;
+            }
+          }
+        }
+      }
+      return null;
     }
   }
 
