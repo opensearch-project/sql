@@ -11,30 +11,29 @@ top
 
 Description
 ===========
-| Using ``top`` command to find the most common tuple of values of all fields in the field list.
-
+| The ``top`` command finds the most common tuple of values of all fields in the field list.
 
 Syntax
 ======
-top [N] <field-list> [by-clause]
+top [N] [top-options] <field-list> [by-clause]
 
-top [N] [top-options] <field-list> [by-clause] ``(available from 3.1.0+)``
+* N: optional. number of results to return. **Default**: 10
+* top-options: optional. options for the top command. Supported syntax is [countfield=<string>] [showcount=<bool>].
 
-* N: number of results to return. **Default**: 10
+  * showcount=<bool>: optional. whether to create a field in output that represent a count of the tuple of values. **Default:** true.
+  * countfield=<string>: optional. the name of the field that contains count. **Default:** 'count'.
+  * usenull=<bool>: optional (since 3.4.0). whether to output the null value. **Default:** Determined by ``plugins.ppl.syntax.legacy.preferred``.
+
+    * When ``plugins.ppl.syntax.legacy.preferred=true``, ``usenull`` defaults to ``true``
+    * When ``plugins.ppl.syntax.legacy.preferred=false``, ``usenull`` defaults to ``false``
+
 * field-list: mandatory. comma-delimited list of field names.
 * by-clause: optional. one or more fields to group the results by.
-* top-options: optional. options for the top command. Supported syntax is [countfield=<string>] [showcount=<bool>].
-* showcount=<bool>: optional. whether to create a field in output that represent a count of the tuple of values. Default value is ``true``.
-* countfield=<string>: optional. the name of the field that contains count. Default value is ``'count'``.
-* usenull=<bool>: optional (since 3.4.0). whether to output the null value. The default value of ``usenull`` is determined by ``plugins.ppl.syntax.legacy.preferred``:
-
- * When ``plugins.ppl.syntax.legacy.preferred=true``, ``usenull`` defaults to ``true``
- * When ``plugins.ppl.syntax.legacy.preferred=false``, ``usenull`` defaults to ``false``
 
 Example 1: Find the most common values in a field
 =================================================
 
-The example finds most common gender of all the accounts.
+This example finds the most common gender of all the accounts.
 
 PPL query::
 
@@ -47,10 +46,10 @@ PPL query::
     | F      |
     +--------+
 
-Example 2: Find the most common values in a field
-=================================================
+Example 2: Limit results to top N values
+========================================
 
-The example finds most common gender of all the accounts.
+This example finds the most common gender and limits results to 1 value.
 
 PPL query::
 
@@ -62,10 +61,10 @@ PPL query::
     | M      |
     +--------+
 
-Example 2: Find the most common values organized by gender
-==========================================================
+Example 3: Find the most common values grouped by field
+=======================================================
 
-The example finds most common age of all the accounts group by gender.
+This example finds the most common age of all the accounts grouped by gender.
 
 PPL query::
 
@@ -78,8 +77,10 @@ PPL query::
     | M      | 32  |
     +--------+-----+
 
-Example 3: Top command with Calcite enabled
-===========================================
+Example 4: Top command with count field
+=======================================
+
+This example finds the most common gender of all the accounts and includes the count.
 
 PPL query::
 
@@ -93,8 +94,10 @@ PPL query::
     +--------+-------+
 
 
-Example 4: Specify the count field option
+Example 5: Specify the count field option
 =========================================
+
+This example specifies a custom name for the count field.
 
 PPL query::
 

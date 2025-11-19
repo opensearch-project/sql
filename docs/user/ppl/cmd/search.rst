@@ -1,6 +1,6 @@
-=============
+======
 search
-=============
+======
 
 .. rubric:: Table of contents
 
@@ -10,12 +10,12 @@ search
 
 
 Description
-============
-| Using ``search`` command to retrieve document from the index. ``search`` command could be only used as the first command in the PPL query.
+===========
+| The ``search`` command retrieves document from the index. The ``search`` command can only be used as the first command in the PPL query.
 
 
 Syntax
-============
+======
 search source=[<remote-cluster>:]<index> [search-expression]
 
 * search: search keyword, which could be ignored.
@@ -88,7 +88,7 @@ You can check or modify the default field setting::
     }
 
 Field Types and Search Behavior
-================================
+===============================
 
 **Text Fields**: Full-text search, phrase search
 
@@ -135,11 +135,8 @@ Cross-Cluster Search
 ====================
 Cross-cluster search lets any node in a cluster execute search requests against other clusters. Refer to `Cross-Cluster Search <admin/cross_cluster_search.rst>`_ for configuration.
 
-Examples
-========
-
 Example 1: Text Search
------------------------------------
+======================
 
 **Basic Text Search** (unquoted single term)::
 
@@ -194,7 +191,7 @@ Note: ``search user email`` is equivalent to ``search user AND email``. Multiple
     +----------------------------------------------------------------------------------------------------------+
 
 Example 2: Boolean Logic and Operator Precedence
--------------------------------------------------
+=================================================
 
 **Boolean Operators**::
 
@@ -230,7 +227,7 @@ Example 2: Boolean Logic and Operator Precedence
 The above evaluates as ``(severityText="ERROR" OR severityText="WARN") AND severityNumber>15``
 
 Example 3: NOT vs != Semantics
--------------------------------
+==============================
 
 **!= operator** (field must exist and not equal the value)::
 
@@ -260,7 +257,7 @@ Example 3: NOT vs != Semantics
 Dale Adams (account 18) has ``employer=null``. He appears in ``NOT employer="Quility"`` but not in ``employer!="Quility"``.
 
 Example 4: Wildcards
---------------------
+====================
 
 **Wildcard Patterns**::
 
@@ -302,7 +299,7 @@ Example 4: Wildcards
 
 
 Example 5: Range Queries
--------------------------
+========================
 
 Use comparison operators (>, <, >=, <=) to filter numeric and date fields within specific ranges. Range queries are particularly useful for filtering by age, price, timestamps, or any numeric metrics.
 
@@ -327,7 +324,7 @@ Use comparison operators (>, <, >=, <=) to filter numeric and date fields within
     +---------------------------------------------------------+
 
 Example 6: Field Search with Wildcards
----------------------------------------
+======================================
 
 When searching in text or keyword fields, wildcards enable partial matching. This is particularly useful for finding records where you only know part of the value. Note that wildcards work best with keyword fields, while text fields may produce unexpected results due to tokenization.
 
@@ -359,7 +356,7 @@ When searching in text or keyword fields, wildcards enable partial matching. Thi
 * **Case sensitivity**: Keyword field wildcards are case-sensitive unless normalized during indexing
 
 Example 7: IN Operator and Field Comparisons
----------------------------------------------
+============================================
 
 The IN operator efficiently checks if a field matches any value from a list. This is cleaner and more performant than chaining multiple OR conditions for the same field.
 
@@ -394,7 +391,7 @@ The IN operator efficiently checks if a field matches any value from a list. Thi
     +---------------------------------------------------------+
 
 Example 8: Complex Expressions
--------------------------------
+==============================
 
 Combine multiple conditions using boolean operators and parentheses to create sophisticated search queries.
 
@@ -419,7 +416,7 @@ Combine multiple conditions using boolean operators and parentheses to create so
     +---------------------------------------------------------+
 
 Example 9: Time Modifiers
---------------------------
+=========================
 
 Time modifiers filter search results by time range using the implicit ``@timestamp`` field. They support various time formats for precise temporal filtering.
 
@@ -476,7 +473,7 @@ Time modifiers filter search results by time range using the implicit ``@timesta
     +-------------------------------+--------------+
 
 Example 10: Special Characters and Escaping
--------------------------------------------
+===========================================
 
 Understand when and how to escape special characters in your search queries. There are two categories of characters that need escaping:
 
@@ -541,7 +538,7 @@ Note: Each backslash in the search value needs to be escaped with another backsl
     +--------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 Example 11: Fetch All Data
-----------------------------
+==========================
 
 Retrieve all documents from an index by specifying only the source without any search conditions. This is useful for exploring small datasets or verifying data ingestion.
 
