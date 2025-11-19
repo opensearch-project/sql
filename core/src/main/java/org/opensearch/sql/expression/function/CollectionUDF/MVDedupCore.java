@@ -15,10 +15,10 @@ public class MVDedupCore {
 
   /**
    * Remove duplicate elements from the input array while preserving order. Null input returns null.
-   * Empty array returns empty array. See {@ref MVDedupFunctionImplTest} for detailed behavior.
+   * Empty array returns empty array. Null elements within the array are filtered out.
    *
    * @param array input array (can be null)
-   * @return array with duplicates removed, or null if input is null
+   * @return array with duplicates removed and null elements filtered out, or null if input is null
    */
   public static List<Object> removeDuplicates(Object array) {
     if (array == null) {
