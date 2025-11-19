@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DEEP_NESTED;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OTEL_LOGS;
@@ -24,6 +25,7 @@ import java.util.Locale;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.ExplainIT;
 
 public class CalciteExplainIT extends ExplainIT {
@@ -42,6 +44,7 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.WORKER);
     loadIndex(Index.WORK_INFORMATION);
     loadIndex(Index.WEBLOG);
+    loadIndex(Index.DEEP_NESTED);
   }
 
   @Override
@@ -1777,5 +1780,16 @@ public class CalciteExplainIT extends ExplainIT {
                 "source=%s | eval info = geoip('dummy-datasource', host) | fields host, info,"
                     + " info.dummy_sub_field",
                 TEST_INDEX_WEBLOGS)));
+  }
+
+  @Test
+  public void testFilterOnNestedFields() throws IOException {
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("filter_on_nested.yaml"),
+        explainQueryYaml(
+            StringUtils.format(
+                "source=%s | eval proj_name_len=length(projects.name) | fields projects.name,"
+                    + " proj_name_len | where proj_name_len > 29",
+                TEST_INDEX_DEEP_NESTED)));
   }
 }
