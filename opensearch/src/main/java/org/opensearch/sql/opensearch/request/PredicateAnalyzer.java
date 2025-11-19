@@ -1523,11 +1523,11 @@ public class PredicateAnalyzer {
               .distinct()
               .collect(Collectors.toUnmodifiableList());
       if (nestedPaths.size() > 1) {
-        throw new UnsupportedOperationException(
+        throw new UnsupportedScriptException(
             String.format(
                 Locale.ROOT,
-                "Accessing multiple nested fields under different hierarchies is not supported:"
-                    + " %s",
+                "Accessing multiple nested fields under different hierarchies in script is not"
+                    + " supported: %s",
                 nestedPaths));
       }
       if (!nestedPaths.isEmpty()) {
