@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.opensearch.storage.scan;
 
+import static org.opensearch.sql.opensearch.storage.serde.ScriptParameterHelper.MISSING_MAX;
+
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -50,7 +52,6 @@ import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
-import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -480,9 +481,12 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         }
         RexNode sortExpr = digest.getExpression();
         assert sortExpr instanceof RexCall : "sort expression should be RexCall";
-        Map<String, Object> directionParams = new LinkedHashMap<>();
-        directionParams.put(PlanUtils.NULL_DIRECTION, digest.getNullDirection().name());
-        directionParams.put(PlanUtils.DIRECTION, digest.getDirection().name());
+        Map<String, Object> missingValueParams =
+            new LinkedHashMap<>() {
+              {
+                put(MISSING_MAX, digest.isMissingMax());
+              }
+            };
         // Complex expression - use ScriptQueryExpression to generate script for sort
         PredicateAnalyzer.ScriptQueryExpression scriptExpr =
             new PredicateAnalyzer.ScriptQueryExpression(
@@ -490,7 +494,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
                 rowType,
                 osIndex.getAllFieldTypes(),
                 getCluster(),
-                directionParams);
+                missingValueParams);
         // Determine the correct ScriptSortType based on the expression's return type
         ScriptSortType sortType = getScriptSortType(sortExpr.getType());
 

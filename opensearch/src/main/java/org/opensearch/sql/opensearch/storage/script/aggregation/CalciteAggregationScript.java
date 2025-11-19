@@ -37,21 +37,26 @@ class CalciteAggregationScript extends AggregationScript {
 
   private final RelDataType type;
 
+  private final Map<String, Integer> parametersToIndex;
+
   public CalciteAggregationScript(
       Function1<DataContext, Object[]> function,
       RelDataType type,
       SearchLookup lookup,
       LeafReaderContext context,
-      Map<String, Object> params) {
+      Map<String, Object> params,
+      Map<String, Integer> parametersToIndex) {
     super(params, lookup, context);
     this.calciteScript = new CalciteScript(function, params);
     this.sourceLookup = lookup.getLeafSearchLookup(context).source();
     this.type = type;
+    this.parametersToIndex = parametersToIndex;
   }
 
   @Override
   public Object execute() {
-    Object value = calciteScript.execute(this.getDoc(), this.sourceLookup)[0];
+    Object value =
+        calciteScript.execute(this.getDoc(), this.sourceLookup, this.parametersToIndex)[0];
     ExprType exprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(type);
     // See logic in {@link ExpressionAggregationScript::execute}
     return switch ((ExprCoreType) exprType) {

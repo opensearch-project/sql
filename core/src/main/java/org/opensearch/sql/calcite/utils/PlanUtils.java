@@ -68,9 +68,6 @@ public interface PlanUtils {
   String ROW_NUMBER_COLUMN_FOR_STREAMSTATS = "__stream_seq__";
   String ROW_NUMBER_COLUMN_FOR_CHART = "_row_number_chart_";
 
-  String DIRECTION = "DIRECTION";
-  String NULL_DIRECTION = "NULL_DIRECTION";
-
   static SpanUnit intervalUnitToSpanUnit(IntervalUnit unit) {
     return switch (unit) {
       case MICROSECOND -> SpanUnit.MICROSECOND;
