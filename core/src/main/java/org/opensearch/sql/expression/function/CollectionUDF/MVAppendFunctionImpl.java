@@ -7,7 +7,6 @@ package org.opensearch.sql.expression.function.CollectionUDF;
 
 import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
 
-import java.util.ArrayList;
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -106,26 +105,7 @@ public class MVAppendFunctionImpl extends ImplementorUDF {
    * of the list. See {@ref MVAppendFunctionImplTest} for detailed behavior.
    */
   public static List<Object> collectElements(Object... args) {
-    List<Object> elements = new ArrayList<>();
-
-    for (Object arg : args) {
-      if (arg == null) {
-        continue;
-      } else if (arg instanceof List) {
-        addListElements((List<?>) arg, elements);
-      } else {
-        elements.add(arg);
-      }
-    }
-
-    return elements.size() == 0 ? null : elements;
-  }
-
-  private static void addListElements(List<?> list, List<Object> elements) {
-    for (Object item : list) {
-      if (item != null) {
-        elements.add(item);
-      }
-    }
+    List<Object> elements = AppendCore.collectElementsToList(args);
+    return elements.isEmpty() ? null : elements;
   }
 }

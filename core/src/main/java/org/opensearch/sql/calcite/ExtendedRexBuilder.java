@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite;
 
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -186,7 +187,7 @@ public class ExtendedRexBuilder extends RexBuilder {
     RelDataType stringType = getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
     RelDataType arrayType = getTypeFactory().createArrayType(stringType, -1);
 
-    List<RexNode> elements = new java.util.ArrayList<>();
+    List<RexNode> elements = new ArrayList<>();
     for (String value : values) {
       elements.add(makeLiteral(value));
     }
