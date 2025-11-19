@@ -54,7 +54,7 @@ public class CalciteDynamicFieldsJoinIT extends CalcitePPLPermissiveIntegTestCas
             + "    LogicalSystemLimit(fetch=[200], type=[QUERY_SIZE_LIMIT])\n"
             + "      LogicalProject(a1=[COALESCE(ITEM($5, 'a1'), $0)], a2=[$3], a3=[$4],"
             + " a4=[ITEM(MAP_CONCAT($2, $5), 'a4')], a5=[ITEM(MAP_CONCAT($2, $5), 'a5')])\n"
-            + "        LogicalJoin(condition=[=($1, $3)], joinType=[inner])\n"
+            + "        LogicalJoin(condition=[=($3, $1)], joinType=[inner])\n"
             + "          LogicalProject(a1=[$0], a2=[$1], _MAP=[$8])\n"
             + "            CalciteLogicalIndexScan(table=[[OpenSearch, test_dynamic_left]])\n"
             + "          LogicalSystemLimit(fetch=[50000], type=[JOIN_SUBSEARCH_MAXOUT])\n"
@@ -92,9 +92,8 @@ public class CalciteDynamicFieldsJoinIT extends CalcitePPLPermissiveIntegTestCas
             "join left = l right = r on l.a3 = r.a3 "
                 + TEST_DYNAMIC_RIGHT
                 + " | fields a1, a2, a3, a4, a5");
-    Throwable th = assertThrows(IllegalArgumentException.class, () -> executeQuery(query));
-    assertEquals(
-        "Join condition needs to use specific type. Please cast explicitly.", th.getMessage());
+    JSONObject result = executeQuery(query);
+    verifyJoinResult(result);
   }
 
   @Test
@@ -105,18 +104,16 @@ public class CalciteDynamicFieldsJoinIT extends CalcitePPLPermissiveIntegTestCas
             "join left = l right = r on r.a3 = l.a3 "
                 + TEST_DYNAMIC_RIGHT
                 + " | fields a1, a2, a3, a4, a5");
-    Throwable th = assertThrows(IllegalArgumentException.class, () -> executeQuery(query));
-    assertEquals(
-        "Join condition needs to use specific type. Please cast explicitly.", th.getMessage());
+    JSONObject result = executeQuery(query);
+    verifyJoinResult(result);
   }
 
   @Test
   public void testJoinDynamicWithStaticWithoutCast3() throws IOException {
     String query =
         source(TEST_DYNAMIC_LEFT, "join a3 " + TEST_DYNAMIC_RIGHT + " | fields a1, a2, a3, a4, a5");
-    Throwable th = assertThrows(IllegalArgumentException.class, () -> executeQuery(query));
-    assertEquals(
-        "Source key `a3` needs to be specific type. Please cast explicitly.", th.getMessage());
+    JSONObject result = executeQuery(query);
+    verifyJoinResult(result);
   }
 
   @Test
@@ -175,7 +172,8 @@ public class CalciteDynamicFieldsJoinIT extends CalcitePPLPermissiveIntegTestCas
             + "    LogicalSystemLimit(fetch=[200], type=[QUERY_SIZE_LIMIT])\n"
             + "      LogicalProject(a1=[COALESCE(ITEM($5, 'a1'), $0)], a2=[$3], a3=[$4],"
             + " a4=[ITEM(MAP_CONCAT($2, $5), 'a4')], a5=[ITEM(MAP_CONCAT($2, $5), 'a5')])\n"
-            + "        LogicalJoin(condition=[=($0, ITEM($5, 'a1'))], joinType=[inner])\n"
+            + "        LogicalJoin(condition=[=(SAFE_CAST(ITEM($5, 'a1')), $0)],"
+            + " joinType=[inner])\n"
             + "          LogicalProject(a1=[$0], a2=[$1], _MAP=[$8])\n"
             + "            CalciteLogicalIndexScan(table=[[OpenSearch, test_dynamic_left]])\n"
             + "          LogicalSystemLimit(fetch=[50000], type=[JOIN_SUBSEARCH_MAXOUT])\n"
@@ -193,7 +191,7 @@ public class CalciteDynamicFieldsJoinIT extends CalcitePPLPermissiveIntegTestCas
             + "              CalciteEnumerableIndexScan(table=[[OpenSearch, test_dynamic_left]])\n"
             + "          EnumerableSort(sort0=[$3], dir0=[ASC])\n"
             + "            EnumerableCalc(expr#0..8=[{inputs}], expr#9=['a1'], expr#10=[ITEM($t8,"
-            + " $t9)], proj#0..1=[{exprs}], _MAP=[$t8], $f3=[$t10])\n"
+            + " $t9)], expr#11=[SAFE_CAST($t10)], proj#0..1=[{exprs}], _MAP=[$t8], $f3=[$t11])\n"
             + "              EnumerableLimit(fetch=[50000])\n"
             + "                CalciteEnumerableIndexScan(table=[[OpenSearch,"
             + " test_dynamic_right]])\n");
@@ -210,9 +208,8 @@ public class CalciteDynamicFieldsJoinIT extends CalcitePPLPermissiveIntegTestCas
             "join left = l right = r on l.a4 = r.a4 "
                 + TEST_DYNAMIC_RIGHT
                 + " | fields a1, a2, a3, a4, a5");
-    Throwable th = assertThrows(IllegalArgumentException.class, () -> executeQuery(query));
-    assertEquals(
-        "Join condition needs to use specific type. Please cast explicitly.", th.getMessage());
+    JSONObject result = executeQuery(query);
+    verifyJoinResult(result);
   }
 
   @Test
@@ -223,18 +220,16 @@ public class CalciteDynamicFieldsJoinIT extends CalcitePPLPermissiveIntegTestCas
             "join left = l right = r on r.a4 = l.a4 "
                 + TEST_DYNAMIC_RIGHT
                 + " | fields a1, a2, a3, a4, a5");
-    Throwable th = assertThrows(IllegalArgumentException.class, () -> executeQuery(query));
-    assertEquals(
-        "Join condition needs to use specific type. Please cast explicitly.", th.getMessage());
+    JSONObject result = executeQuery(query);
+    verifyJoinResult(result);
   }
 
   @Test
   public void testJoinDynamicWithDynamicWithoutCast3() throws IOException {
     String query =
         source(TEST_DYNAMIC_LEFT, "join a4 " + TEST_DYNAMIC_RIGHT + " | fields a1, a2, a3, a4, a5");
-    Throwable th = assertThrows(IllegalArgumentException.class, () -> executeQuery(query));
-    assertEquals(
-        "Source key `a4` needs to be specific type. Please cast explicitly.", th.getMessage());
+    JSONObject result = executeQuery(query);
+    verifyJoinResult(result);
   }
 
   @Test
@@ -295,7 +290,8 @@ public class CalciteDynamicFieldsJoinIT extends CalcitePPLPermissiveIntegTestCas
             + "    LogicalSystemLimit(fetch=[200], type=[QUERY_SIZE_LIMIT])\n"
             + "      LogicalProject(a1=[COALESCE(ITEM($17, 'a1'), $0)], a2=[$9], a3=[$10],"
             + " a4=[ITEM(MAP_CONCAT($8, $17), 'a4')], a5=[ITEM(MAP_CONCAT($8, $17), 'a5')])\n"
-            + "        LogicalJoin(condition=[=($0, ITEM($17, 'a1'))], joinType=[left])\n"
+            + "        LogicalJoin(condition=[=($0, SAFE_CAST(ITEM($17, 'a1')))],"
+            + " joinType=[left])\n"
             + "          CalciteLogicalIndexScan(table=[[OpenSearch, test_dynamic_left]])\n"
             + "          CalciteLogicalIndexScan(table=[[OpenSearch, test_dynamic_right]])\n"
             + "  physical: |\n"
@@ -309,7 +305,7 @@ public class CalciteDynamicFieldsJoinIT extends CalcitePPLPermissiveIntegTestCas
             + "            EnumerableLimit(fetch=[200])\n"
             + "              CalciteEnumerableIndexScan(table=[[OpenSearch, test_dynamic_left]])\n"
             + "          EnumerableCalc(expr#0..8=[{inputs}], expr#9=['a1'], expr#10=[ITEM($t8,"
-            + " $t9)], proj#0..1=[{exprs}], _MAP=[$t8], $f3=[$t10])\n"
+            + " $t9)], expr#11=[SAFE_CAST($t10)], proj#0..1=[{exprs}], _MAP=[$t8], $f3=[$t11])\n"
             + "            CalciteEnumerableIndexScan(table=[[OpenSearch, test_dynamic_right]])\n");
 
     JSONObject result = executeQuery(query);
@@ -321,30 +317,6 @@ public class CalciteDynamicFieldsJoinIT extends CalcitePPLPermissiveIntegTestCas
     String query =
         source(
             TEST_DYNAMIC_LEFT, "lookup " + TEST_DYNAMIC_RIGHT + " a2 | fields a1, a2, a3, a4, a5");
-
-    assertExplainYaml(
-        query,
-        "calcite:\n"
-            + "  logical: |\n"
-            + "    LogicalSystemLimit(fetch=[200], type=[QUERY_SIZE_LIMIT])\n"
-            + "      LogicalProject(a1=[COALESCE(ITEM($17, 'a1'), $0)], a2=[$1], a3=[$10],"
-            + " a4=[ITEM(MAP_CONCAT($8, $17), 'a4')], a5=[ITEM(MAP_CONCAT($8, $17), 'a5')])\n"
-            + "        LogicalJoin(condition=[=($1, $9)], joinType=[left])\n"
-            + "          CalciteLogicalIndexScan(table=[[OpenSearch, test_dynamic_left]])\n"
-            + "          CalciteLogicalIndexScan(table=[[OpenSearch, test_dynamic_right]])\n"
-            + "  physical: |\n"
-            + "    EnumerableCalc(expr#0..5=[{inputs}], expr#6=['a1'], expr#7=[ITEM($t5, $t6)],"
-            + " expr#8=[COALESCE($t7, $t0)], expr#9=[MAP_CONCAT($t2, $t5)], expr#10=['a4'],"
-            + " expr#11=[ITEM($t9, $t10)], expr#12=['a5'], expr#13=[ITEM($t9, $t12)], a1=[$t8],"
-            + " a2=[$t1], a3=[$t4], a4=[$t11], a5=[$t13])\n"
-            + "      EnumerableLimit(fetch=[200])\n"
-            + "        EnumerableHashJoin(condition=[=($1, $3)], joinType=[left])\n"
-            + "          EnumerableCalc(expr#0..8=[{inputs}], proj#0..1=[{exprs}], _MAP=[$t8])\n"
-            + "            EnumerableLimit(fetch=[200])\n"
-            + "              CalciteEnumerableIndexScan(table=[[OpenSearch, test_dynamic_left]])\n"
-            + "          EnumerableCalc(expr#0..8=[{inputs}], proj#0..1=[{exprs}], _MAP=[$t8])\n"
-            + "            CalciteEnumerableIndexScan(table=[[OpenSearch, test_dynamic_right]])\n");
-
     JSONObject result = executeQuery(query);
     verifyJoinResult(result);
   }
@@ -354,22 +326,6 @@ public class CalciteDynamicFieldsJoinIT extends CalcitePPLPermissiveIntegTestCas
     String query =
         source(
             TEST_DYNAMIC_LEFT, "lookup " + TEST_DYNAMIC_RIGHT + " a3 | fields a1, a2, a3, a4, a5");
-
-    Throwable th = assertThrows(IllegalArgumentException.class, () -> executeQuery(query));
-    assertEquals(
-        "Source key `a3` needs to be specific type. Please cast explicitly.", th.getMessage());
-  }
-
-  @Test
-  public void testLookupDynamicWithStaticWithCast() throws IOException {
-    String query =
-        source(
-            TEST_DYNAMIC_LEFT,
-            "eval a3=cast(a3 as string)"
-                + "| lookup "
-                + TEST_DYNAMIC_RIGHT
-                + " a3 | fields a1, a2, a3, a4, a5");
-
     JSONObject result = executeQuery(query);
     verifyJoinResult(result);
   }
@@ -379,21 +335,6 @@ public class CalciteDynamicFieldsJoinIT extends CalcitePPLPermissiveIntegTestCas
     String query =
         source(
             TEST_DYNAMIC_LEFT, "lookup " + TEST_DYNAMIC_RIGHT + " a4 | fields a1, a2, a3, a4, a5");
-    Throwable th = assertThrows(IllegalArgumentException.class, () -> executeQuery(query));
-    assertEquals(
-        "Source key `a4` needs to be specific type. Please cast explicitly.", th.getMessage());
-  }
-
-  @Test
-  public void testLookupDynamicWithDynamicWithCast() throws IOException {
-    String query =
-        source(
-            TEST_DYNAMIC_LEFT,
-            "eval a4=cast(a4 as int)"
-                + "|lookup "
-                + TEST_DYNAMIC_RIGHT
-                + " a4 | fields a1, a2, a3, a4, a5");
-
     JSONObject result = executeQuery(query);
     verifyJoinResult(result);
   }

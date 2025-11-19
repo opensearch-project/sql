@@ -1297,7 +1297,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         node.getJoinCondition()
             .map(c -> rexVisitor.analyzeJoinCondition(c, context))
             .orElse(context.relBuilder.literal(true));
-    JoinAndLookupUtils.verifyJoinConditionNotUseAnyType(joinCondition, context);
+    joinCondition = context.rexBuilder.castAnyToAlignTypes(joinCondition, context);
     if (node.getJoinType() == SEMI || node.getJoinType() == ANTI) {
       // semi and anti join only return left table outputs
       context.relBuilder.join(
@@ -1377,14 +1377,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   private static RexNode buildJoinConditionByFieldName(
       CalcitePlanContext context, String fieldName) {
-    RexNode lookupKey = JoinAndLookupUtils.analyzeFieldsInRight(fieldName, context);
     RexNode sourceKey = JoinAndLookupUtils.analyzeFieldsInLeft(fieldName, context);
-    if (context.fieldBuilder.isAnyType(sourceKey)) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Source key `%s` needs to be specific type. Please cast explicitly.", fieldName));
-    }
-    return context.rexBuilder.equals(sourceKey, lookupKey);
+    RexNode lookupKey = JoinAndLookupUtils.analyzeFieldsInRight(fieldName, context);
+    return context.rexBuilder.equalsWithCastAsNeeded(sourceKey, lookupKey);
   }
 
   @Override

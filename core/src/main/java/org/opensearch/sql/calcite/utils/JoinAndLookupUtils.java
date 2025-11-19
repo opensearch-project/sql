@@ -11,10 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexVisitorImpl;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.Pair;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
@@ -78,25 +75,6 @@ public interface JoinAndLookupUtils {
     }
   }
 
-  /** Utility to verify join condition does not use ANY typed field to avoid */
-  static void verifyJoinConditionNotUseAnyType(RexNode rexNode, CalcitePlanContext context) {
-    rexNode.accept(
-        new RexVisitorImpl<Void>(true) {
-          @Override
-          public Void visitCall(RexCall call) {
-            if (call.getKind() == SqlKind.EQUALS) {
-              RexNode left = call.operands.get(0);
-              RexNode right = call.operands.get(1);
-              if (context.fieldBuilder.isAnyType(left) || context.fieldBuilder.isAnyType(right)) {
-                throw new IllegalArgumentException(
-                    "Join condition needs to use specific type. Please cast explicitly.");
-              }
-            }
-            return super.visitCall(call);
-          }
-        });
-  }
-
   static void addJoinForLookUp(Lookup node, CalcitePlanContext context) {
     RexNode joinCondition =
         node.getMappingAliasMap().entrySet().stream()
@@ -104,13 +82,7 @@ public interface JoinAndLookupUtils {
                 entry -> {
                   RexNode lookupKey = analyzeFieldsInRight(entry.getKey(), context);
                   RexNode sourceKey = analyzeFieldsInLeft(entry.getValue(), context);
-                  if (context.fieldBuilder.isAnyType(sourceKey)) {
-                    throw new IllegalArgumentException(
-                        String.format(
-                            "Source key `%s` needs to be specific type. Please cast explicitly.",
-                            entry.getValue()));
-                  }
-                  return context.rexBuilder.equals(sourceKey, lookupKey);
+                  return context.rexBuilder.equalsWithCastAsNeeded(sourceKey, lookupKey);
                 })
             .reduce(context.rexBuilder::and)
             .orElse(context.relBuilder.literal(true));
