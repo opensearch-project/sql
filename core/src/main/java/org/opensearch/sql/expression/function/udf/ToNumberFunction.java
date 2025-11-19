@@ -41,50 +41,24 @@ public class ToNumberFunction extends ImplementorUDF {
     return (opBinding) -> {
       // Try to determine if the result will be Long or Double based on the input
       int base = 10;
-      if (opBinding.getOperandCount() > 1) {
-
-        base = opBinding.getOperandLiteralValue(1, Integer.class);
+      try {
+        base =
+            opBinding.getOperandCount() > 1
+                ? opBinding.getOperandLiteralValue(1, Integer.class)
+                : 10;
+      } catch (NumberFormatException e) {
+        // If parsing fails, default to  base 10
       }
-
       if (opBinding.getOperandCount() > 0 && opBinding.isOperandLiteral(0, false)) {
         String literal = opBinding.getOperandLiteralValue(0, String.class);
         if (literal != null) {
-          try {
-            // Check if it's a decimal number
-            if (base != 10) {
-              return opBinding
-                  .getTypeFactory()
-                  .createTypeWithNullability(
-                      opBinding.getTypeFactory().createSqlType(SqlTypeName.BIGINT), true);
-            }
-            if (literal.contains(".")) {
-              return opBinding
-                  .getTypeFactory()
-                  .createTypeWithNullability(
-                      opBinding
-                          .getTypeFactory()
-                          .createSqlType(org.apache.calcite.sql.type.SqlTypeName.DOUBLE),
-                      true);
-            } else {
-              // Check if it's an integer that fits in Long
-              Long.parseLong(literal);
-              return opBinding
-                  .getTypeFactory()
-                  .createTypeWithNullability(
-                      opBinding
-                          .getTypeFactory()
-                          .createSqlType(org.apache.calcite.sql.type.SqlTypeName.BIGINT),
-                      true);
-            }
-          } catch (NumberFormatException e) {
-            // If parsing fails, default to Double (matches the runtime behavior)
+
+          // Check if it's a decimal number
+          if (base != 10 || !(literal.contains("."))) {
             return opBinding
                 .getTypeFactory()
                 .createTypeWithNullability(
-                    opBinding
-                        .getTypeFactory()
-                        .createSqlType(org.apache.calcite.sql.type.SqlTypeName.DOUBLE),
-                    true);
+                    opBinding.getTypeFactory().createSqlType(SqlTypeName.BIGINT), true);
           }
         }
       }

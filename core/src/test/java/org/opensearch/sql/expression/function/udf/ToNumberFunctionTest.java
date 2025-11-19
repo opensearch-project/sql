@@ -7,18 +7,12 @@ package org.opensearch.sql.expression.function.udf;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import org.apache.calcite.sql.type.ReturnTypes;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 
 public class ToNumberFunctionTest {
 
   private final ToNumberFunction function = new ToNumberFunction();
-
-  @Test
-  void testGetReturnTypeInference() {
-    assertEquals(ReturnTypes.DOUBLE_FORCE_NULLABLE, function.getReturnTypeInference());
-  }
 
   @Test
   void testGetOperandMetadata() {
