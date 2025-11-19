@@ -220,10 +220,10 @@ public class CalciteScriptEngine implements ScriptEngine {
       return switch (exprType) {
         case INTEGER, SHORT, BYTE -> EnumUtils.convert(docValueExpr, Long.class);
         case FLOAT -> EnumUtils.convert(docValueExpr, Double.class);
-          // IP is scanned in as a string but used as ExprIpValue later. We call the constructor
-          // beforehand.
-        case IP -> Expressions.new_(
-            ExprIpValue.class, EnumUtils.convert(docValueExpr, String.class));
+        // IP is scanned in as a string but used as ExprIpValue later. We call the constructor
+        // beforehand.
+        case IP ->
+            Expressions.new_(ExprIpValue.class, EnumUtils.convert(docValueExpr, String.class));
         default -> docValueExpr;
       };
     }

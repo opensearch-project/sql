@@ -63,18 +63,18 @@ public class EnhancedCoalesceFunction extends ImplementorUDF {
     return switch (typeName) {
       case "INTEGER" -> tryConvert(() -> ExprValueUtils.integerValue(value.integerValue()), value);
       case "BIGINT" -> tryConvert(() -> ExprValueUtils.longValue(value.longValue()), value);
-      case "SMALLINT", "TINYINT" -> tryConvert(
-          () -> ExprValueUtils.integerValue(value.integerValue()), value);
+      case "SMALLINT", "TINYINT" ->
+          tryConvert(() -> ExprValueUtils.integerValue(value.integerValue()), value);
       case "DOUBLE" -> tryConvert(() -> ExprValueUtils.doubleValue(value.doubleValue()), value);
-      case "FLOAT", "REAL" -> tryConvert(
-          () -> ExprValueUtils.floatValue(value.floatValue()), value);
+      case "FLOAT", "REAL" ->
+          tryConvert(() -> ExprValueUtils.floatValue(value.floatValue()), value);
       case "BOOLEAN" -> tryConvert(() -> ExprValueUtils.booleanValue(value.booleanValue()), value);
-      case "VARCHAR", "CHAR" -> tryConvert(
-          () -> ExprValueUtils.stringValue(String.valueOf(value.value())), value);
+      case "VARCHAR", "CHAR" ->
+          tryConvert(() -> ExprValueUtils.stringValue(String.valueOf(value.value())), value);
       case "DATE" -> tryConvert(() -> ExprValueUtils.dateValue(value.dateValue()), value);
       case "TIME" -> tryConvert(() -> ExprValueUtils.timeValue(value.timeValue()), value);
-      case "TIMESTAMP" -> tryConvert(
-          () -> ExprValueUtils.timestampValue(value.timestampValue()), value);
+      case "TIMESTAMP" ->
+          tryConvert(() -> ExprValueUtils.timestampValue(value.timestampValue()), value);
       case "DECIMAL" -> tryConvert(() -> ExprValueUtils.doubleValue(value.doubleValue()), value);
       default -> value;
     };
