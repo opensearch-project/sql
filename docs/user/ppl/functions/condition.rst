@@ -565,7 +565,7 @@ REGEXP_MATCH
 Description
 >>>>>>>>>>>
 
-Usage: regex_match(string, pattern) returns true if the regular expression pattern finds a match against any substring of the string value, otherwise returns false.
+Usage: regexp_match(string, pattern) returns true if the regular expression pattern finds a match against any substring of the string value, otherwise returns false.
 
 The function uses Java regular expression syntax for the pattern.
 
