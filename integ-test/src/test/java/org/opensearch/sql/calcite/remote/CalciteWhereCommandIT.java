@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import org.junit.Test;
 import org.opensearch.sql.ppl.WhereCommandIT;
 
 public class CalciteWhereCommandIT extends WhereCommandIT {
@@ -12,6 +13,8 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
+    loadIndex(Index.NESTED_SIMPLE);
+    loadIndex(Index.CASCADED_NESTED);
   }
 
   @Override
@@ -19,4 +22,7 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
     return "In expression types are incompatible: fields type LONG, values type [INTEGER, INTEGER,"
         + " STRING]";
   }
+
+  @Test
+  public void testWhereOnNestedField() {}
 }
