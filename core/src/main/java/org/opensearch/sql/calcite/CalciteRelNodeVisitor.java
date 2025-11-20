@@ -1984,14 +1984,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                   String groupName = extractGroupFieldName(expr);
                   RexNode rightGroup = context.relBuilder.field(groupName);
                   RexNode outerGroup = context.relBuilder.field(correl, groupName);
+                  RexNode equalCondition = context.relBuilder.equals(rightGroup, outerGroup);
+                  // handle bucket-nullable case
                   if (!node.isBucketNullable()) {
-                    return context.relBuilder.equals(rightGroup, outerGroup);
+                    return equalCondition;
                   } else {
-                    return context.relBuilder.or(
-                        context.relBuilder.equals(rightGroup, outerGroup),
+                    RexNode bothNull =
                         context.relBuilder.and(
                             context.relBuilder.isNull(rightGroup),
-                            context.relBuilder.isNull(outerGroup)));
+                            context.relBuilder.isNull(outerGroup));
+                    return context.relBuilder.or(equalCondition, bothNull);
                   }
                 })
             .toList();
