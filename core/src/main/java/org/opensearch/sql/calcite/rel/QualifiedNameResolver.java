@@ -109,43 +109,24 @@ public class QualifiedNameResolver {
         .orElseThrow(() -> getNotFoundException(nameNode));
   }
 
-  private static String joinParts(List<String> parts, int start, int length) {
-    StringBuilder sb = new StringBuilder();
-    for (int i = 0; i < length; i++) {
-      if (start < i) {
-        sb.append(".");
-      }
-      sb.append(parts.get(start + i));
-    }
-    return sb.toString();
-  }
-
-  private static String joinParts(List<String> parts, int start) {
-    return joinParts(parts, start, parts.size() - start);
-  }
-
   private static Optional<RexNode> resolveFieldWithAlias(
       QualifiedName nameNode, CalcitePlanContext context, int inputCount) {
-    List<String> parts = nameNode.getParts();
     log.debug(
-        "resolveFieldWithAlias() called with nameNode={}, parts={}, inputCount={}",
-        nameNode,
-        parts,
-        inputCount);
+        "resolveFieldWithAlias() called with nameNode={}, inputCount={}", nameNode, inputCount);
 
-    if (parts.size() >= 2) {
+    if (nameNode.getPartsCount() >= 2) {
       // Consider first part as table alias
-      String alias = parts.get(0);
+      String alias = nameNode.getPart(0);
       log.debug("resolveFieldWithAlias() trying alias={}", alias);
 
       // Try to resolve the longest match first
-      for (int length = parts.size() - 1; 1 <= length; length--) {
-        String field = joinParts(parts, 1, length);
+      for (int length = nameNode.getPartsCount() - 1; 1 <= length; length--) {
+        String field = nameNode.sub(1, 1 + length);
         log.debug("resolveFieldWithAlias() trying field={} with length={}", field, length);
 
         Optional<RexNode> fieldNode = tryToResolveField(alias, field, context, inputCount);
         if (fieldNode.isPresent()) {
-          return Optional.of(resolveFieldAccess(context, parts, 1, length, fieldNode.get()));
+          return Optional.of(resolveFieldAccess(context, nameNode, 1, length, fieldNode.get()));
         }
       }
     }
@@ -154,18 +135,16 @@ public class QualifiedNameResolver {
 
   private static Optional<RexNode> resolveDynamicFieldsWithAlias(
       QualifiedName nameNode, CalcitePlanContext context, int inputCount) {
-    List<String> parts = nameNode.getParts();
     log.debug(
-        "resolveDynamicFieldsWithAlias() called with nameNode={}, parts={}, inputCount={}",
+        "resolveDynamicFieldsWithAlias() called with nameNode={}, inputCount={}",
         nameNode,
-        parts,
         inputCount);
 
-    if (parts.size() >= 2) {
+    if (nameNode.getPartsCount() >= 2) {
       // Consider first part as table alias
-      String alias = parts.get(0);
+      String alias = nameNode.getPart(0);
 
-      String fieldName = String.join(".", parts.subList(1, parts.size()));
+      String fieldName = nameNode.sub(1);
       Optional<RexNode> dynamicField =
           tryToResolveField(alias, DYNAMIC_FIELDS_MAP, context, inputCount);
       return dynamicField.map(field -> createItemAccess(field, fieldName, context));
@@ -176,18 +155,14 @@ public class QualifiedNameResolver {
 
   private static Optional<RexNode> resolveDynamicFields(
       QualifiedName nameNode, CalcitePlanContext context, int inputCount) {
-    List<String> parts = nameNode.getParts();
     log.debug(
-        "resolveDynamicFields() called with nameNode={}, parts={}, inputCount={}",
-        nameNode,
-        parts,
-        inputCount);
+        "resolveDynamicFields() called with nameNode={}, inputCount={}", nameNode, inputCount);
 
     List<Set<String>> inputFieldNames = collectInputFieldNames(context, inputCount);
 
     for (int i = 0; i < inputCount; i++) {
       if (inputFieldNames.get(i).contains(DYNAMIC_FIELDS_MAP)) {
-        String fieldName = String.join(".", parts);
+        String fieldName = nameNode.toString();
         RexNode dynamicField = context.relBuilder.field_(inputCount, i, DYNAMIC_FIELDS_MAP);
         RexNode itemAccess = createItemAccess(dynamicField, fieldName, context);
         return Optional.of(itemAccess);
@@ -218,16 +193,15 @@ public class QualifiedNameResolver {
 
     List<Set<String>> inputFieldNames = collectInputFieldNames(context, inputCount);
 
-    List<String> parts = nameNode.getParts();
-    for (int length = parts.size(); 1 <= length; length--) {
-      String fieldName = joinParts(parts, 0, length);
+    for (int length = nameNode.getPartsCount(); 1 <= length; length--) {
+      String fieldName = nameNode.sub(0, length);
       log.debug("resolveFieldWithoutAlias() trying fieldName={} with length={}", fieldName, length);
 
       int foundInput = findInputContainingFieldName(inputCount, inputFieldNames, fieldName);
       log.debug("resolveFieldWithoutAlias() foundInput={}", foundInput);
       if (foundInput != -1) {
         RexNode fieldNode = context.relBuilder.field_(inputCount, foundInput, fieldName);
-        return Optional.of(resolveFieldAccess(context, parts, 0, length, fieldNode));
+        return Optional.of(resolveFieldAccess(context, nameNode, 0, length, fieldNode));
       }
     }
     return Optional.empty();
@@ -268,10 +242,9 @@ public class QualifiedNameResolver {
       QualifiedName nameNode, CalcitePlanContext context) {
     log.debug("resolveRenamedField() called with nameNode={}", nameNode);
 
-    List<String> parts = nameNode.getParts();
-    if (parts.size() >= 2) {
+    if (nameNode.getPartsCount() >= 2) {
       List<String> candidates = findCandidatesByRenamedFieldName(nameNode, context);
-      String alias = parts.get(0);
+      String alias = nameNode.getPart(0);
       for (String candidate : candidates) {
         try {
           return Optional.of(context.relBuilder.field_(alias, candidate));
@@ -289,20 +262,19 @@ public class QualifiedNameResolver {
    */
   private static List<String> findCandidatesByRenamedFieldName(
       QualifiedName renamedFieldName, CalcitePlanContext context) {
-    String originalFieldName = joinParts(renamedFieldName.getParts(), 1);
+    String originalFieldName = renamedFieldName.sub(1);
     return context.relBuilder.peek().getRowType().getFieldNames().stream()
         .filter(col -> getNameBeforeRename(col).equals(originalFieldName))
         .toList();
   }
 
   private static String getNameBeforeRename(String fieldName) {
-    return fieldName.substring(fieldName.indexOf(".") + 1);
+    return fieldName.substring(fieldName.indexOf(QualifiedName.DELIMITER) + 1);
   }
 
   private static Optional<RexNode> resolveCorrelationField(
       QualifiedName nameNode, CalcitePlanContext context) {
     log.debug("resolveCorrelationField() called with nameNode={}", nameNode);
-    List<String> parts = nameNode.getParts();
     return context
         .peekCorrelVar()
         .map(
@@ -311,12 +283,12 @@ public class QualifiedNameResolver {
               // Try full match, then consider first part as table alias
               for (int start = 0; start <= 1; start++) {
                 // Try to resolve the longest match first
-                for (int length = parts.size() - start; 1 <= length; length--) {
-                  String fieldName = joinParts(parts, start, length);
+                for (int length = nameNode.getPartsCount() - start; 1 <= length; length--) {
+                  String fieldName = nameNode.sub(start, start + length);
                   log.debug("resolveCorrelationField() trying fieldName={}", fieldName);
                   if (fieldNameList.contains(fieldName)) {
                     RexNode field = context.relBuilder.field_(correlation, fieldName);
-                    return resolveFieldAccess(context, parts, start, length, field);
+                    return resolveFieldAccess(context, nameNode, start, length, field);
                   }
                 }
               }
@@ -325,11 +297,11 @@ public class QualifiedNameResolver {
   }
 
   private static RexNode resolveFieldAccess(
-      CalcitePlanContext context, List<String> parts, int start, int length, RexNode field) {
-    if (length == parts.size() - start) {
+      CalcitePlanContext context, QualifiedName name, int start, int length, RexNode field) {
+    if (length == name.getPartsCount() - start) {
       return field;
     } else {
-      String itemName = joinParts(parts, length + start, parts.size() - 1 - length);
+      String itemName = name.sub(length + start);
       return createItemAccess(field, itemName, context);
     }
   }

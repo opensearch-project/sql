@@ -197,7 +197,10 @@ public class ExtendedRexBuilder extends RexBuilder {
     return makeCast(target.getType(), node, true, true);
   }
 
-  /** Utility to cast ANY to specific types to avoid compare issue */
+  /**
+   * Utility to cast ANY to specific types to avoid compare issue in Calcite:
+   * https://issues.apache.org/jira/browse/CALCITE-7206
+   */
   RexNode castAnyToAlignTypes(RexNode rexNode, CalcitePlanContext context) {
     return rexNode.accept(
         new RexConverter() {
