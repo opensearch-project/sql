@@ -990,7 +990,7 @@ public class PPLFuncImpTable {
 
       registerOperator(ARRAY, PPLBuiltinOperators.ARRAY);
       registerOperator(MVAPPEND, PPLBuiltinOperators.MVAPPEND);
-      registerOperator(MVDEDUP, PPLBuiltinOperators.MVDEDUP);
+      registerOperator(MVDEDUP, SqlLibraryOperators.ARRAY_DISTINCT);
       registerOperator(MAP_APPEND, PPLBuiltinOperators.MAP_APPEND);
       registerOperator(MAP_CONCAT, SqlLibraryOperators.MAP_CONCAT);
       registerOperator(MAP_REMOVE, PPLBuiltinOperators.MAP_REMOVE);

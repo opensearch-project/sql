@@ -227,7 +227,7 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
             + "  LogicalSort(fetch=[1])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[array(1, 2, 2, 3, 1, 4)],"
-            + " result=[mvdedup(array(1, 2, 2, 3, 1, 4))])\n"
+            + " result=[ARRAY_DISTINCT(array(1, 2, 2, 3, 1, 4))])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -235,7 +235,9 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT MVDEDUP(ARRAY(1, 2, 2, 3, 1, 4)) `result`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+        "SELECT ARRAY_DISTINCT(ARRAY(1, 2, 2, 3, 1, 4)) `result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -251,7 +253,7 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
             + "  LogicalSort(fetch=[1])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[array(1, 2, 3, 4)],"
-            + " result=[mvdedup(array(1, 2, 3, 4))])\n"
+            + " result=[ARRAY_DISTINCT(array(1, 2, 3, 4))])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -259,7 +261,7 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT MVDEDUP(ARRAY(1, 2, 3, 4)) `result`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+        "SELECT ARRAY_DISTINCT(ARRAY(1, 2, 3, 4)) `result`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -275,7 +277,7 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
             + "  LogicalSort(fetch=[1])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[array('z', 'a', 'z', 'b', 'a', 'c')],"
-            + " result=[mvdedup(array('z', 'a', 'z', 'b', 'a', 'c'))])\n"
+            + " result=[ARRAY_DISTINCT(array('z', 'a', 'z', 'b', 'a', 'c'))])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -283,7 +285,7 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT MVDEDUP(ARRAY('z', 'a', 'z', 'b', 'a', 'c')) `result`\n"
+        "SELECT ARRAY_DISTINCT(ARRAY('z', 'a', 'z', 'b', 'a', 'c')) `result`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
