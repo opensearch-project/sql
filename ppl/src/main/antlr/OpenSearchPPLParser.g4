@@ -1096,6 +1096,7 @@ collectionFunctionName
     | MVAPPEND
     | MVJOIN
     | MVINDEX
+    | MVFIND
     | MVDEDUP
     | FORALL
     | EXISTS
