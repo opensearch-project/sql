@@ -224,6 +224,12 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
 
     String expectedResult = "result=1\n";
     verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT MVFIND(ARRAY('apple', 'banana', 'apricot'), 'ban.*') `result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
@@ -235,6 +241,12 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
 
     String expectedResult = "result=null\n";
     verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT MVFIND(ARRAY('cat', 'dog', 'bird'), 'fish') `result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
@@ -246,6 +258,12 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
 
     String expectedResult = "result=0\n";
     verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT MVFIND(ARRAY('error123', 'info', 'error456'), 'err.*') `result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
@@ -257,6 +275,12 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
 
     String expectedResult = "result=0\n";
     verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT MVFIND(ARRAY('test1', 'test2', 'test3'), 'test.*') `result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
@@ -268,6 +292,12 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
 
     String expectedResult = "result=1\n";
     verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT MVFIND(ARRAY('abc123', 'def456', 'ghi789'), 'def\\d+') `result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
