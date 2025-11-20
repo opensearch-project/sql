@@ -162,7 +162,10 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
       operator = EQUAL.getName().getFunctionName();
     } else if (LIKE.getName().getFunctionName().equalsIgnoreCase(operator)) {
       operator = LIKE.getName().getFunctionName();
+    } else if (ILIKE.getName().getFunctionName().equalsIgnoreCase(operator)) {
+      operator = ILIKE.getName().getFunctionName();
     }
+
     return new Compare(operator, visit(ctx.left), visit(ctx.right));
   }
 

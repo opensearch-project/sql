@@ -192,6 +192,7 @@ public enum BuiltinFunctionName {
   GREATER(FunctionName.of(">")),
   GTE(FunctionName.of(">=")),
   LIKE(FunctionName.of("like")),
+  ILIKE(FunctionName.of("ilike")),
   NOT_LIKE(FunctionName.of("not like")),
 
   /** Aggregation Function. */
