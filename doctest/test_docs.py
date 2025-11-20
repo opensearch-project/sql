@@ -47,7 +47,8 @@ TEST_DATA = {
     'otellogs': 'otellogs.json',
     'time_data': 'time_test_data.json',
     'time_data2': 'time_test_data2.json',
-    'time_test': 'time_test.json'
+    'time_test': 'time_test.json',
+    'mvexpand_logs': 'mvexpand_logs.json',
 }
 
 DEBUG_MODE = os.environ.get('DOCTEST_DEBUG', 'false').lower() == 'true'
