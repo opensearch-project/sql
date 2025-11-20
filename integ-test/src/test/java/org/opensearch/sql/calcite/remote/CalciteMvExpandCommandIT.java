@@ -6,7 +6,10 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.util.MatcherUtils.rows;
+import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
+import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import org.json.JSONObject;
@@ -19,12 +22,10 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
 /**
  * Integration tests for mvexpand behavior via Calcite translation.
  *
- * <p>- Uses a canonical shared fixture (created in init()) for the common cases. - Creates small,
- * isolated temp indices per-test for mapping-specific edge cases so tests are deterministic and do
- * not interfere with the shared fixture.
- *
- * <p>NOTE: documents in the canonical fixture are limited to the records exercised by tests to
- * avoid unused-record churn and reviewer comments about unused data.
+ * <p>This test follows the layout and style of CalciteExpandCommandIT but targets the mvexpand
+ * command semantics and edge cases. The canonical fixture created in init() contains documents used
+ * by the tests. Per-test temporary indices are created for mapping-specific edge cases to keep
+ * tests deterministic and isolated.
  */
 public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
 
@@ -36,6 +37,7 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
     enableCalcite();
     deleteIndexIfExists(INDEX);
 
+    // Use nested mapping so that element sub-fields can be flattened into separate columns.
     final String nestedMapping =
         "{ \"mappings\": { \"properties\": { "
             + "\"username\": { \"type\": \"keyword\" },"
@@ -44,29 +46,49 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
 
     createIndex(INDEX, nestedMapping);
 
-    // Canonical fixture documents: only include records actually asserted by tests to avoid
-    // reviewer complaints about unused records.
+    // Canonical fixture documents: include records asserted by tests.
     bulkInsert(
         INDEX,
+        // happy: multiple elements with only 'name'
         "{\"username\":\"happy\",\"skills\":[{\"name\":\"python\"},{\"name\":\"java\"},{\"name\":\"sql\"}]}",
+        // single: single-element array
         "{\"username\":\"single\",\"skills\":[{\"name\":\"go\"}]}",
+        // empty: empty array
         "{\"username\":\"empty\",\"skills\":[]}",
+        // nullskills: null value
         "{\"username\":\"nullskills\",\"skills\":null}",
+        // noskills: no skills field at all
         "{\"username\":\"noskills\"}",
+        // partial: some elements missing 'name' or explicitly null
         "{\"username\":\"partial\",\"skills\":[{\"name\":\"kotlin\"},{\"level\":\"intern\"},{\"name\":null}]}",
+        // mixed_shapes: elements with additional nested maps
         "{\"username\":\"mixed_shapes\",\"skills\":[{\"name\":\"elixir\",\"meta\":{\"years\":3}},{\"name\":\"haskell\"}]}",
-        "{\"username\":\"duplicate\",\"skills\":[{\"name\":\"dup\"},{\"name\":\"dup\"}]}");
+        // duplicate: duplicated elements preserved
+        "{\"username\":\"duplicate\",\"skills\":[{\"name\":\"dup\"},{\"name\":\"dup\"}]}",
+        // complex: elements where some have both fields, some missing, used to assert flattening
+        "{\"username\":\"complex\",\"skills\":[{\"name\":\"ml\",\"level\":\"expert\"},{\"name\":\"ai\"},{\"level\":\"novice\"}]}",
+        // large: many elements to exercise multiple rows generation
+        "{\"username\":\"large\",\"skills\":["
+            + "{\"name\":\"s1\"},{\"name\":\"s2\"},{\"name\":\"s3\"},{\"name\":\"s4\"},{\"name\":\"s5\"},"
+            + "{\"name\":\"s6\"},{\"name\":\"s7\"},{\"name\":\"s8\"},{\"name\":\"s9\"},{\"name\":\"s10\"}"
+            + "]}",
+        // hetero_types: same sub-field 'level' as number and string to check type inference edge
+        // case
+        "{\"username\":\"hetero_types\",\"skills\":[{\"level\":\"senior\"},{\"level\":3}]}");
+
+    // Make indexed documents available for search
     refreshIndex(INDEX);
   }
 
   @AfterEach
   public void cleanupAfterEach() throws Exception {
-    // Best-effort cleanup for any test-local indices created during tests.
+    // best-effort cleanup for test-local indices
     try {
       deleteIndexIfExists(INDEX + "_not_array");
       deleteIndexIfExists(INDEX + "_missing_field");
+      deleteIndexIfExists(INDEX + "_limit_test");
     } catch (Exception ignored) {
-      // ignore: cleanup best-effort only
+      // ignore
     }
   }
 
@@ -123,7 +145,6 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
     verifyDataRows(result, rows("duplicate", "dup"), rows("duplicate", "dup"));
   }
 
-  /** Verify expansion for 'happy' record (multiple elements). Sort to make assertions stable. */
   @Test
   public void testMvexpandHappyMultipleElements() throws Exception {
     String query =
@@ -132,23 +153,18 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
                 + " sort skills.name",
             INDEX);
     JSONObject result = executeQuery(query);
-    // inside testMvexpandHappyMultipleElements(), after JSONObject result = executeQuery(query);
-    System.out.println("DEBUG testMvexpandHappyMultipleElements result: " + result.toString());
     verifyDataRows(result, rows("happy", "java"), rows("happy", "python"), rows("happy", "sql"));
   }
 
   @Test
   public void testMvexpandPartialElementMissingName() throws Exception {
-    // One of the elements does not have the 'name' key and one has explicit null.
-    // The expansion should still emit rows for every element; elements missing 'name' => null
-    // value.
     String query =
         String.format(
             "source=%s | mvexpand skills | where username='partial' | fields username, skills.name"
                 + " | sort skills.name",
             INDEX);
     JSONObject result = executeQuery(query);
-    // We expect three rows: one with 'kotlin' and two rows where skills.name is null.
+    // Expect three rows: kotlin, null, null (two elements missing name or name==null)
     verifyDataRows(
         result,
         rows("partial", "kotlin"),
@@ -158,21 +174,40 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testMvexpandMixedShapesKeepsAllElements() throws Exception {
-    // Elements with different internal shapes (additional nested maps) should still be expanded.
     String query =
         String.format(
             "source=%s | mvexpand skills | where username='mixed_shapes' | fields username,"
                 + " skills.name | sort skills.name",
             INDEX);
     JSONObject result = executeQuery(query);
-    // We expect both elements present after expansion.
     verifyDataRows(result, rows("mixed_shapes", "elixir"), rows("mixed_shapes", "haskell"));
   }
 
-  /**
-   * When the field mapping is explicitly a scalar (keyword), the planner/runtime rejects mvexpand
-   * with a SemanticCheckException. This test asserts the observable server-side behavior.
-   */
+  @Test
+  public void testMvexpandFlattenedSchemaPresence() throws Exception {
+    // Verify that when sub-fields exist they are exposed as flattened columns.
+    String query =
+        String.format(
+            "source=%s | mvexpand skills | where username='complex' | fields username,"
+                + " skills.level, skills.name",
+            INDEX);
+    JSONObject result = executeQuery(query);
+
+    // Schema should contain flattened columns for skills.level and skills.name
+    verifySchema(
+        result,
+        schema("username", "string"),
+        schema("skills.level", "string"),
+        schema("skills.name", "string"));
+
+    // Verify rows (order not important here)
+    verifyDataRows(
+        result,
+        rows("complex", "expert", "ml"),
+        rows("complex", (String) null, "ai"),
+        rows("complex", "novice", (String) null));
+  }
+
   @Test
   public void testMvexpandOnNonArrayFieldMapping() throws Exception {
     final String idx =
@@ -203,9 +238,6 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
     }
   }
 
-  /**
-   * When the field is missing entirely from the document mapping, mvexpand should not emit rows.
-   */
   @Test
   public void testMvexpandMissingFieldReturnsEmpty() throws Exception {
     final String idx =
@@ -227,6 +259,83 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
     } finally {
       deleteIndexIfExists(idx);
     }
+  }
+
+  @Test
+  public void testMvexpandLimitParameter() throws Exception {
+    // Create a small index to test limit parameter semantics deterministically
+    final String idx = INDEX + "_limit_test";
+    deleteIndexIfExists(idx);
+    createIndex(
+        idx,
+        "{ \"mappings\": { \"properties\": { \"username\": { \"type\": \"keyword\" },"
+            + "\"skills\": { \"type\": \"nested\" } } } }");
+
+    try {
+      // single document with many elements
+      bulkInsert(
+          idx,
+          "{\"username\":\"limituser\",\"skills\":["
+              + "{\"name\":\"a\"},{\"name\":\"b\"},{\"name\":\"c\"},{\"name\":\"d\"},{\"name\":\"e\"}"
+              + "]}");
+      refreshIndex(idx);
+
+      // mvexpand with limit=3 should produce only 3 rows for that document
+      String query =
+          String.format(
+              "source=%s | mvexpand skills limit=3 | where username='limituser' | fields username,"
+                  + " skills.name",
+              idx);
+      JSONObject result = executeQuery(query);
+      verifyNumOfRows(result, 3);
+      verifyDataRows(
+          result, rows("limituser", "a"), rows("limituser", "b"), rows("limituser", "c"));
+    } finally {
+      deleteIndexIfExists(idx);
+    }
+  }
+
+  @Test
+  public void testMvexpandTypeInferenceForHeterogeneousSubfields() throws Exception {
+    // Some elements have 'level' as string and some as number. The system should still expand rows,
+    // but the reported schema type may be "undefined" or a common supertype.
+    String query =
+        String.format(
+            "source=%s | mvexpand skills | where username='hetero_types' | fields username,"
+                + " skills.level",
+            INDEX);
+    JSONObject result = executeQuery(query);
+
+    // Should produce two rows (one with "senior", one with 3)
+    verifyDataRows(result, rows("hetero_types", "senior"), rows("hetero_types", "3"));
+  }
+
+  @Test
+  public void testMvexpandLargeArrayElements() throws Exception {
+    // Verify that a document with 10 elements expands into 10 rows and that all element names are
+    // present.
+    String query =
+        String.format(
+            "source=%s | mvexpand skills | where username='large' | fields username, skills.name |"
+                + " sort skills.name",
+            INDEX);
+    JSONObject result = executeQuery(query);
+
+    // Expect 10 rows (s1..s10)
+    verifyNumOfRows(result, 10);
+
+    verifyDataRows(
+        result,
+        rows("large", "s1"),
+        rows("large", "s2"),
+        rows("large", "s3"),
+        rows("large", "s4"),
+        rows("large", "s5"),
+        rows("large", "s6"),
+        rows("large", "s7"),
+        rows("large", "s8"),
+        rows("large", "s9"),
+        rows("large", "s10"));
   }
 
   /**

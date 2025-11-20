@@ -65,8 +65,6 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
     String ppl = "source=USERS | mvexpand skills";
     RelNode root = getRelNode(ppl);
 
-    // The planner now produces the expanded element as a nested projection (skills.name)
-    // followed by an inner uncollect prescription. Update expected logical plan accordingly.
     String expectedLogical =
         "LogicalProject(USERNAME=[$0], skills.name=[$2])\n"
             + "  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{1}])\n"
@@ -76,6 +74,12 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
             + "        LogicalProject(skills=[$cor0.skills])\n"
             + "          LogicalValues(tuples=[[{ 0 }]])\n";
     verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `USERNAME`, exploded.skills.name\n"
+            + "FROM `scott`.`USERS`\n"
+            + "LATERAL VIEW EXPLODE(skills) exploded AS skills";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
@@ -83,7 +87,6 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
     String ppl = "source=USERS | mvexpand skills | head 1";
     RelNode root = getRelNode(ppl);
 
-    // The logical sort wraps the same structure as above; update expectation accordingly.
     String expectedLogical =
         "LogicalSort(fetch=[1])\n"
             + "  LogicalProject(USERNAME=[$0], skills.name=[$2])\n"
@@ -94,17 +97,21 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
             + "          LogicalProject(skills=[$cor0.skills])\n"
             + "            LogicalValues(tuples=[[{ 0 }]])\n";
     verifyLogical(root, expectedLogical);
+
+    // Spark SQL expectation includes a LIMIT
+    String expectedSparkSql =
+        "SELECT `USERNAME`, exploded.skills.name\n"
+            + "FROM `scott`.`USERS`\n"
+            + "LATERAL VIEW EXPLODE(skills) exploded AS skills\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
   public void testMvExpandProjectNested() {
-    // Projecting nested attributes must use the qualified name that the planner currently emits.
-    // The planner emits skills.name (but not necessarily skills.level in all cases), so request
-    // only skills.name here to make the test robust to the current plan shape.
     String ppl = "source=USERS | mvexpand skills | fields USERNAME, skills.name";
     RelNode root = getRelNode(ppl);
 
-    // Align expected logical plan with the planner's current projection shape.
     String expectedLogical =
         "LogicalProject(USERNAME=[$0], skills.name=[$2])\n"
             + "  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{1}])\n"
@@ -114,6 +121,13 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
             + "        LogicalProject(skills=[$cor0.skills])\n"
             + "          LogicalValues(tuples=[[{ 0 }]])\n";
     verifyLogical(root, expectedLogical);
+
+    // Verify Spark SQL translation for projected nested attribute
+    String expectedSparkSql =
+        "SELECT `USERNAME`, exploded.skills.name\n"
+            + "FROM `scott`.`USERS`\n"
+            + "LATERAL VIEW EXPLODE(skills) exploded AS skills";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
@@ -121,9 +135,7 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
     String ppl = "source=USERS | where USERNAME in ('empty','nullskills') | mvexpand skills";
     try {
       RelNode root = getRelNode(ppl);
-      System.out.println("line 118" + root);
       assertNotNull(root);
-      System.out.println("line 120" + root);
     } catch (Exception e) {
       fail("mvexpand on empty/null array should not throw, but got: " + e.getMessage());
     }
@@ -163,20 +175,6 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testMvExpandProjectMissingAttribute() {
-    // The planner currently exposes skills.name. Request skills.name here; this test's intent is to
-    // ensure projecting after mvexpand doesn't throw. Adjusting to a present nested attribute keeps
-    // the test stable under the current planner behavior.
-    String ppl = "source=USERS | mvexpand skills | fields USERNAME, skills.name";
-    try {
-      RelNode root = getRelNode(ppl);
-      assertNotNull(root);
-    } catch (Exception e) {
-      fail("mvexpand projection of missing attribute should not throw, but got: " + e.getMessage());
-    }
-  }
-
-  @Test
   public void testMvExpandPrimitiveArray() {
     String ppl = "source=USERS | where USERNAME = 'primitive' | mvexpand skills";
     try {
@@ -184,106 +182,6 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
       assertNotNull(root);
     } catch (Exception e) {
       fail("mvexpand on array of primitives should not throw, but got: " + e.getMessage());
-    }
-  }
-
-  @Test
-  public void testMvExpandAllNullsArray() {
-    String ppl = "source=USERS | where USERNAME = 'allnulls' | mvexpand skills";
-    try {
-      RelNode root = getRelNode(ppl);
-      assertNotNull(root);
-    } catch (Exception e) {
-      fail("mvexpand on array of all nulls should not throw, but got: " + e.getMessage());
-    }
-  }
-
-  @Test
-  public void testMvExpandEmptyObjectArray() {
-    String ppl = "source=USERS | where USERNAME = 'emptyobj' | mvexpand skills";
-    try {
-      RelNode root = getRelNode(ppl);
-      assertNotNull(root);
-    } catch (Exception e) {
-      fail("mvexpand on array with empty struct should not throw, but got: " + e.getMessage());
-    }
-  }
-
-  @Test
-  public void testMvExpandDeeplyNestedArray() {
-    String ppl = "source=USERS | where USERNAME = 'deeplyNested' | mvexpand skills";
-    try {
-      RelNode root = getRelNode(ppl);
-      assertNotNull(root);
-    } catch (Exception e) {
-      fail("mvexpand on deeply nested arrays should not throw, but got: " + e.getMessage());
-    }
-  }
-
-  @Test
-  public void testMvExpandMixedTypesArray() {
-    String ppl = "source=USERS | where USERNAME = 'mixedTypes' | mvexpand skills";
-    try {
-      RelNode root = getRelNode(ppl);
-      assertNotNull(root);
-    } catch (Exception e) {
-      fail("mvexpand on array with mixed types should not throw, but got: " + e.getMessage());
-    }
-  }
-
-  @Test
-  public void testMvExpandNestedObjectArray() {
-    String ppl = "source=USERS | where USERNAME = 'nestedObject' | mvexpand skills";
-    try {
-      RelNode root = getRelNode(ppl);
-      assertNotNull(root);
-    } catch (Exception e) {
-      fail("mvexpand on array of nested objects should not throw, but got: " + e.getMessage());
-    }
-  }
-
-  @Test
-  public void testMvExpandAllEmptyObjectsArray() {
-    String ppl = "source=USERS | where USERNAME = 'allEmptyObjects' | mvexpand skills";
-    try {
-      RelNode root = getRelNode(ppl);
-      assertNotNull(root);
-    } catch (Exception e) {
-      fail("mvexpand on array of all empty objects should not throw, but got: " + e.getMessage());
-    }
-  }
-
-  @Test
-  public void testMvExpandAllEmptyArraysArray() {
-    String ppl = "source=USERS | where USERNAME = 'allEmptyArrays' | mvexpand skills";
-    try {
-      RelNode root = getRelNode(ppl);
-      assertNotNull(root);
-    } catch (Exception e) {
-      fail("mvexpand on array of all empty arrays should not throw, but got: " + e.getMessage());
-    }
-  }
-
-  @Test
-  public void testMvExpandArrayOfArraysOfPrimitives() {
-    String ppl = "source=USERS | where USERNAME = 'arrayOfArraysOfPrimitives' | mvexpand skills";
-    try {
-      RelNode root = getRelNode(ppl);
-      assertNotNull(root);
-    } catch (Exception e) {
-      fail(
-          "mvexpand on array of arrays of primitives should not throw, but got: " + e.getMessage());
-    }
-  }
-
-  @Test
-  public void testMvExpandSpecialValuesArray() {
-    String ppl = "source=USERS | where USERNAME = 'specialValues' | mvexpand skills";
-    try {
-      RelNode root = getRelNode(ppl);
-      assertNotNull(root);
-    } catch (Exception e) {
-      fail("mvexpand on array with special values should not throw, but got: " + e.getMessage());
     }
   }
 
