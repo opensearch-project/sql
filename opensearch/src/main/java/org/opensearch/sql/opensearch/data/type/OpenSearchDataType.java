@@ -144,7 +144,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
         instances.getOrDefault(mappingType.toString(), new OpenSearchDataType(mappingType));
     switch (mappingType) {
       case Object:
-        // TODO: use Object type once it has been added
+      // TODO: use Object type once it has been added
       case Nested:
         if (innerMap.isEmpty()) {
           return res;

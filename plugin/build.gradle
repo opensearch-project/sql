@@ -149,7 +149,7 @@ spotless {
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
-        googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
+        googleJavaFormat('1.32.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
     }
 }
 
@@ -284,7 +284,7 @@ afterEvaluate {
         version = "${project.version}" - "-SNAPSHOT"
 
         into '/usr/share/opensearch/plugins'
-        from(zipTree(bundlePlugin.archivePath)) {
+        from(zipTree(bundlePlugin.archiveFile)) {
             into opensearchplugin.name
         }
 

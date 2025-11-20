@@ -240,7 +240,8 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
           INTERVAL_HOUR_SECOND,
           INTERVAL_MINUTE,
           INTERVAL_MINUTE_SECOND,
-          INTERVAL_SECOND -> INTERVAL;
+          INTERVAL_SECOND ->
+          INTERVAL;
       case ARRAY -> ARRAY;
       case MAP -> STRUCT;
       case GEOMETRY -> GEO_POINT;
