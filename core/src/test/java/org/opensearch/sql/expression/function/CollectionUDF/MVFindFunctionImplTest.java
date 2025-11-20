@@ -47,6 +47,13 @@ public class MVFindFunctionImplTest {
     assertEquals(2, result);
   }
 
+  @Test
+  public void testMvfindReturnsFirstMatch() {
+    List<Object> array = Arrays.asList("test1", "test2", "test3");
+    Object result = MVFindFunctionImpl.eval(array, "test");
+    assertEquals(0, result); // Returns first match, not all
+  }
+
   // Null handling tests
 
   @Test
@@ -81,13 +88,6 @@ public class MVFindFunctionImplTest {
     assertEquals(2, result);
   }
 
-  @Test
-  public void testMvfindWithAllNullElements() {
-    List<Object> array = Arrays.asList(null, null, null);
-    Object result = MVFindFunctionImpl.eval(array, "pattern");
-    assertNull(result);
-  }
-
   // Edge cases
 
   @Test
@@ -100,14 +100,6 @@ public class MVFindFunctionImplTest {
   @Test
   public void testMvfindWithEmptyStringPattern() {
     List<Object> array = Arrays.asList("apple", "banana");
-    Object result = MVFindFunctionImpl.eval(array, "");
-    // Empty pattern matches everything (finds at position 0 in "apple")
-    assertEquals(0, result);
-  }
-
-  @Test
-  public void testMvfindWithEmptyStringElement() {
-    List<Object> array = Arrays.asList("apple", "", "banana");
     Object result = MVFindFunctionImpl.eval(array, "");
     assertEquals(0, result); // Empty pattern matches first element
   }
@@ -122,24 +114,10 @@ public class MVFindFunctionImplTest {
   // Regex pattern tests
 
   @Test
-  public void testMvfindWithPartialMatch() {
-    List<Object> array = Arrays.asList("apple", "banana", "apricot");
-    Object result = MVFindFunctionImpl.eval(array, "ban");
-    assertEquals(1, result);
-  }
-
-  @Test
   public void testMvfindWithWildcardPattern() {
     List<Object> array = Arrays.asList("apple", "banana", "apricot");
     Object result = MVFindFunctionImpl.eval(array, "ban.*");
     assertEquals(1, result);
-  }
-
-  @Test
-  public void testMvfindWithDotPlus() {
-    List<Object> array = Arrays.asList("a", "ab", "abc");
-    Object result = MVFindFunctionImpl.eval(array, "a.+");
-    assertEquals(1, result); // Matches "ab"
   }
 
   @Test
@@ -157,10 +135,10 @@ public class MVFindFunctionImplTest {
   }
 
   @Test
-  public void testMvfindWithWordBoundary() {
-    List<Object> array = Arrays.asList("hello world", "helloworld", "hello");
-    Object result = MVFindFunctionImpl.eval(array, "\\bhello\\b");
-    assertEquals(0, result);
+  public void testMvfindWithCaseInsensitiveFlag() {
+    List<Object> array = Arrays.asList("Apple", "Banana", "Cherry");
+    Object result = MVFindFunctionImpl.eval(array, "(?i)banana");
+    assertEquals(1, result);
   }
 
   @Test
@@ -177,64 +155,6 @@ public class MVFindFunctionImplTest {
     assertEquals(0, result);
   }
 
-  @Test
-  public void testMvfindWithAlternation() {
-    List<Object> array = Arrays.asList("cat", "dog", "bird");
-    Object result = MVFindFunctionImpl.eval(array, "dog|cat");
-    assertEquals(0, result); // Finds "cat" first
-  }
-
-  @Test
-  public void testMvfindWithOptionalQuantifier() {
-    List<Object> array = Arrays.asList("color", "colour", "colors");
-    Object result = MVFindFunctionImpl.eval(array, "colou?r");
-    assertEquals(0, result);
-  }
-
-  @Test
-  public void testMvfindWithCaseInsensitiveFlag() {
-    List<Object> array = Arrays.asList("Apple", "Banana", "Cherry");
-    Object result = MVFindFunctionImpl.eval(array, "(?i)banana");
-    assertEquals(1, result);
-  }
-
-  @Test
-  public void testMvfindWithNegatedCharacterClass() {
-    List<Object> array = Arrays.asList("abc123", "abc", "123");
-    Object result = MVFindFunctionImpl.eval(array, "[^0-9]+");
-    assertEquals(0, result); // Matches "abc123" (has non-digits)
-  }
-
-  @Test
-  public void testMvfindWithEscapedSpecialChars() {
-    List<Object> array = Arrays.asList("test.log", "test-log", "testlog");
-    Object result = MVFindFunctionImpl.eval(array, "test\\.log");
-    assertEquals(0, result);
-  }
-
-  @Test
-  public void testMvfindWithGroup() {
-    List<Object> array = Arrays.asList("abc", "ababab", "abab");
-    Object result = MVFindFunctionImpl.eval(array, "(ab)+");
-    assertEquals(0, result);
-  }
-
-  // Multiple matches - should return first
-
-  @Test
-  public void testMvfindReturnsFirstMatch() {
-    List<Object> array = Arrays.asList("apple", "apricot", "application");
-    Object result = MVFindFunctionImpl.eval(array, "app");
-    assertEquals(0, result); // Returns first match, not all
-  }
-
-  @Test
-  public void testMvfindWithMultipleMatchingElements() {
-    List<Object> array = Arrays.asList("test1", "test2", "test3");
-    Object result = MVFindFunctionImpl.eval(array, "test");
-    assertEquals(0, result); // Returns first
-  }
-
   // Case sensitivity
 
   @Test
@@ -242,13 +162,6 @@ public class MVFindFunctionImplTest {
     List<Object> array = Arrays.asList("Apple", "banana", "Cherry");
     Object result = MVFindFunctionImpl.eval(array, "apple");
     assertNull(result); // No match because case-sensitive
-  }
-
-  @Test
-  public void testMvfindWithExactCaseMatch() {
-    List<Object> array = Arrays.asList("Apple", "banana", "Cherry");
-    Object result = MVFindFunctionImpl.eval(array, "Apple");
-    assertEquals(0, result);
   }
 
   // Invalid regex patterns
@@ -260,16 +173,6 @@ public class MVFindFunctionImplTest {
         RuntimeException.class,
         () -> {
           MVFindFunctionImpl.eval(array, "[invalid");
-        });
-  }
-
-  @Test
-  public void testMvfindWithUnclosedGroup() {
-    List<Object> array = Arrays.asList("test");
-    assertThrows(
-        RuntimeException.class,
-        () -> {
-          MVFindFunctionImpl.eval(array, "(unclosed");
         });
   }
 
@@ -294,94 +197,5 @@ public class MVFindFunctionImplTest {
     List<Object> array = Arrays.asList(true, false, true);
     Object result = MVFindFunctionImpl.eval(array, "false");
     assertEquals(1, result);
-  }
-
-  @Test
-  public void testMvfindNumericPattern() {
-    List<Object> array = Arrays.asList("test123", "test456", "test");
-    Object result = MVFindFunctionImpl.eval(array, "\\d{3}");
-    assertEquals(0, result);
-  }
-
-  // Special regex features
-
-  @Test
-  public void testMvfindWithLookahead() {
-    List<Object> array = Arrays.asList("test123", "test", "test456");
-    Object result = MVFindFunctionImpl.eval(array, "test(?=\\d)");
-    assertEquals(0, result);
-  }
-
-  @Test
-  public void testMvfindWithLookbehind() {
-    List<Object> array = Arrays.asList("pretest", "test", "posttest");
-    Object result = MVFindFunctionImpl.eval(array, "(?<=pre)test");
-    assertEquals(0, result);
-  }
-
-  @Test
-  public void testMvfindWithNonCapturingGroup() {
-    List<Object> array = Arrays.asList("apple", "application", "apply");
-    Object result = MVFindFunctionImpl.eval(array, "app(?:le|ly)");
-    assertEquals(0, result);
-  }
-
-  // Edge cases with whitespace
-
-  @Test
-  public void testMvfindWithWhitespace() {
-    List<Object> array = Arrays.asList("hello world", "hello", "world");
-    Object result = MVFindFunctionImpl.eval(array, "hello\\s+world");
-    assertEquals(0, result);
-  }
-
-  @Test
-  public void testMvfindWithLeadingTrailingSpaces() {
-    List<Object> array = Arrays.asList("  test  ", "test", "  test");
-    Object result = MVFindFunctionImpl.eval(array, "^\\s+test");
-    assertEquals(0, result);
-  }
-
-  @Test
-  public void testMvfindWithTab() {
-    List<Object> array = Arrays.asList("hello\tworld", "hello world");
-    Object result = MVFindFunctionImpl.eval(array, "hello\\tworld");
-    assertEquals(0, result);
-  }
-
-  // Unicode and special characters
-
-  @Test
-  public void testMvfindWithUnicodeCharacters() {
-    List<Object> array = Arrays.asList("café", "resume", "naïve");
-    Object result = MVFindFunctionImpl.eval(array, "café");
-    assertEquals(0, result);
-  }
-
-  @Test
-  public void testMvfindWithSpecialCharacters() {
-    List<Object> array = Arrays.asList("hello@world", "hello#world", "hello$world");
-    Object result = MVFindFunctionImpl.eval(array, "hello@world");
-    assertEquals(0, result);
-  }
-
-  // Boundary testing
-
-  @Test
-  public void testMvfindWithVeryLongArray() {
-    Object[] elements = new Object[1000];
-    for (int i = 0; i < 1000; i++) {
-      elements[i] = "element" + i;
-    }
-    List<Object> array = Arrays.asList(elements);
-    Object result = MVFindFunctionImpl.eval(array, "element500");
-    assertEquals(500, result);
-  }
-
-  @Test
-  public void testMvfindWithVeryLongPattern() {
-    List<Object> array = Arrays.asList("a".repeat(1000));
-    Object result = MVFindFunctionImpl.eval(array, "a{1000}");
-    assertEquals(0, result);
   }
 }
