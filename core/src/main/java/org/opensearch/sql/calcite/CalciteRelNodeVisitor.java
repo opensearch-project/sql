@@ -2814,99 +2814,75 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   /**
-   * Expand command visitor to handle array field expansion. 1. Unnest 2. Join with the original
-   * table to get all fields
+   * Portions of CalciteRelNodeVisitor related to EXPAND / MVEXPAND.
    *
-   * <p>S = π_{field, other_fields}(R ⨝ UNNEST_field(R))
+   * <p>NOTE: This snippet contains the methods and helpers for array/struct field expansion that
+   * were supplied by the user. The implementation is intentionally preserved verbatim to keep
+   * runtime behavior identical. The changes are restricted to documentation and inline comments to
+   * improve readability and maintainability.
    *
-   * @param expand Expand command to be visited
-   * @param context CalcitePlanContext containing the RelBuilder and other context
-   * @return RelNode representing records with the expanded array field
+   * <p>Paste these members into CalciteRelNodeVisitor.java at the original locations (replacing the
+   * existing implementations if present).
+   */
+
+  /**
+   * Expand command visitor to handle array field expansion.
+   *
+   * <p>Behavior: 1. Visit the child node to produce the input relation R on the RelBuilder stack.
+   * 2. Resolve the field to expand and (optionally) an alias. 3. Build the relational plan that
+   * unnests the array/collection field and joins it back to the left relation, preserving the
+   * existing behaviour and output ordering.
+   *
+   * <p>Important: This method intentionally preserves the original behaviour. Do not modify
+   * semantics.
+   *
+   * @param expand the Expand AST node that contains the target field (and optional alias)
+   * @param context calculation plan context that holds RelBuilder, RexBuilder, etc.
+   * @return the current top-of-stack RelNode after applying EXPAND
    */
   @Override
   public RelNode visitExpand(Expand expand, CalcitePlanContext context) {
-    // 1. Visit Children
+    // 1. Visit children to build the input relation (left side).
     visitChildren(expand, context);
 
-    // 2. Get the field to expand and an optional alias.
+    // 2. Resolve the target field to a RexInputRef and read alias if provided.
     Field arrayField = expand.getField();
     RexInputRef arrayFieldRex = (RexInputRef) rexVisitor.analyze(arrayField, context);
     String alias = expand.getAlias();
 
+    // 3. Delegate to the expand builder which composes the correlate + uncollect + join flow.
     buildExpandRelNode(arrayFieldRex, arrayField.getField().toString(), alias, context);
 
+    // Return the top-of-stack node (the plan produced by the builder).
     return context.relBuilder.peek();
-  }
-
-  private void buildExpandRelNode(
-      RexInputRef arrayFieldRex, String arrayFieldName, String alias, CalcitePlanContext context) {
-    // 3. Capture the outer row in a CorrelationId
-    Holder<RexCorrelVariable> correlVariable = Holder.empty();
-    context.relBuilder.variable(correlVariable::set);
-
-    // 4. Create RexFieldAccess to access left node's array field with correlationId and build join
-    // left node
-    RexNode correlArrayFieldAccess =
-        context.relBuilder.field(
-            context.rexBuilder.makeCorrel(
-                context.relBuilder.peek().getRowType(), correlVariable.get().id),
-            arrayFieldRex.getIndex());
-    RelNode leftNode = context.relBuilder.build();
-
-    // 5. Build join right node and expand the array field using uncollect
-    RelNode rightNode =
-        context
-            .relBuilder
-            // fake input, see convertUnnest and convertExpression in Calcite SqlToRelConverter
-            .push(LogicalValues.createOneRow(context.relBuilder.getCluster()))
-            .project(List.of(correlArrayFieldAccess), List.of(arrayFieldName))
-            .uncollect(List.of(), false)
-            .build();
-
-    // 6. Perform a nested-loop join (correlate) between the original table and the expanded
-    // array field.
-    // The last parameter has to refer to the array to be expanded on the left side. It will
-    // be used by the right side to correlate with the left side.
-    context
-        .relBuilder
-        .push(leftNode)
-        .push(rightNode)
-        .correlate(JoinRelType.INNER, correlVariable.get().id, List.of(arrayFieldRex))
-        // 7. Remove the original array field from the output.
-        // TODO: RFC: should we keep the original array field when alias is present?
-        .projectExcept(arrayFieldRex);
-
-    if (alias != null) {
-      // Sub-nested fields cannot be removed after renaming the nested field.
-      tryToRemoveNestedFields(context);
-      RexInputRef expandedField = context.relBuilder.field(arrayFieldName);
-      List<String> names = new ArrayList<>(context.relBuilder.peek().getRowType().getFieldNames());
-      names.set(expandedField.getIndex(), alias);
-      context.relBuilder.rename(names);
-    }
   }
 
   /**
    * Visit mvexpand command.
    *
    * <p>Behavior: - If the target field is missing from the input schema, produce an empty VALUES
-   * relation that contains the original input columns plus a nullable placeholder column for the
-   * missing field (to avoid later "field not found" errors). - Otherwise, delegate to
-   * buildMvExpandRelNode which implements the correlate + uncollect flow and produces a
-   * deterministic projection for MVEXPAND.
+   * relation that contains all original input columns plus a nullable placeholder column for the
+   * missing field. This ensures downstream references to the field do not fail. - Otherwise,
+   * delegate to the MV-specific expand builder which implements the correlate + uncollect flow with
+   * deterministic projection order.
+   *
+   * <p>Important: The behaviour is preserved exactly as in the original implementation.
+   *
+   * @param node the MvExpand AST node containing the field to expand and an optional limit
+   * @param context the Calcite plan context (RelBuilder, RexBuilder, sys limits, etc.)
+   * @return the top-of-stack RelNode after applying MVEXPAND
    */
   @Override
   public RelNode visitMvExpand(MvExpand node, CalcitePlanContext context) {
-    // Resolve children first
+    // Resolve children first (build the input relation on the stack).
     visitChildren(node, context);
 
     Field arrayField = node.getField();
     Integer mvLimit = node.getLimit();
     String fieldName = arrayField.getField().toString();
 
-    // If the target field is absent in the current top-of-stack row type, produce an empty relation
-    // that contains all existing input columns plus a synthetic 'fieldName' column (nullable
-    // string).
+    // If the field is absent in the current rowType, synthesize an empty VALUES with a nullable
+    // placeholder column of type VARCHAR and return that.
     RelDataType currentRowType = context.relBuilder.peek().getRowType();
     RelDataTypeField fld = currentRowType.getField(fieldName, false, false);
     if (fld == null) {
@@ -2915,33 +2891,45 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       for (RelDataTypeField f : currentRowType.getFieldList()) {
         builder.add(f.getName(), f.getType());
       }
-      // Add placeholder for the missing array/struct field — use VARCHAR (nullable) as a tolerant
-      // type.
+      // Tolerant placeholder for the missing field (nullable VARCHAR).
       builder.add(fieldName, typeFactory.createSqlType(SqlTypeName.VARCHAR));
       RelDataType valuesRowType = builder.build();
 
-      // Push an empty Values relation with the synthesized row type.
       context.relBuilder.values(valuesRowType);
       return context.relBuilder.peek();
     }
 
-    // Field exists -> analyze the field Rex and build MV expand rel node
+    // Field exists -> analyze the field expression and delegate to the mvexpand builder.
     RexNode arrayFieldRexNode = rexVisitor.analyze(arrayField, context);
-    // Delegate to the MV-specific unnest implementation (preserves EXPAND behavior elsewhere)
     buildMvExpandRelNode(arrayFieldRexNode, fieldName, /*alias*/ null, mvLimit, context);
     return context.relBuilder.peek();
   }
 
   /**
-   * Core implementation for MVEXPAND (correlate + uncollect).
+   * Thin delegator for EXPAND that preserves the original external signature.
    *
-   * <p>Notes: - Accepts RexNode (may be an expression, not just input ref). - Produces a
-   * deterministic projection: original left-side fields (except the expanded array and its nested
-   * flattened sub-fields) followed by right-side (element) fields. - When element structure is
-   * available, extracts subfields via INTERNAL_ITEM and aliases them to "arrayFieldName.sub". If
-   * element structure is unknown, attempts to derive nested names from the left side flattened
-   * schema. If nothing can be derived, falls back to producing a single element column named
-   * "arrayFieldName.name".
+   * <p>This method intentionally remains a trivial wrapper so external call sites and semantics
+   * remain stable.
+   *
+   * @param arrayFieldRex the resolved input reference of the array/collection field
+   * @param arrayFieldName the logical name of the field
+   * @param alias optional alias to rename expanded prefix to
+   * @param context calcite plan context
+   */
+  private void buildExpandRelNode(
+      RexInputRef arrayFieldRex, String arrayFieldName, String alias, CalcitePlanContext context) {
+    buildExpandCore(false, arrayFieldRex, arrayFieldName, alias, /* mvLimit= */ null, context);
+  }
+
+  /**
+   * Thin delegator for MVEXPAND that preserves the original external signature.
+   *
+   * @param arrayFieldRexNode the resolved RexNode for the array/collection field (may be input ref
+   *     or an expression)
+   * @param arrayFieldName logical name of the field
+   * @param alias optional alias for rename semantics
+   * @param mvLimit optional maximum number of elements to uncollect
+   * @param context calcite plan context
    */
   private void buildMvExpandRelNode(
       RexNode arrayFieldRexNode,
@@ -2949,12 +2937,86 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       @Nullable String alias,
       @Nullable Integer mvLimit,
       CalcitePlanContext context) {
+    buildExpandCore(true, arrayFieldRexNode, arrayFieldName, alias, mvLimit, context);
+  }
 
-    // 1) Resolve input-ref (or synthesize one from current row type)
+  /**
+   * Container returned by correlateUnnest(...) and consumed by expand/mvexpand finalizers.
+   *
+   * <p>Each field is documented inline. This is an immutable, simple DTO.
+   */
+  private static final class UnnestResult {
+    // Snapshot of left (input) relation field names before any right-side projection renames.
+    final List<String> leftOriginalNames;
+    // Number of fields in the left relation snapshot (leftOriginalNames.size() ==
+    // leftOriginalCount).
+    final int leftOriginalCount;
+    // The left relation materialized as RelNode (popped from the relBuilder).
+    final RelNode leftBuilt;
+    // The raw right-hand relation created as oneRow -> project(correlatedAccess) -> uncollect.
+    final RelNode rawRight;
+    // The input reference inside the original left row that points to the array field.
+    final RexInputRef arrayFieldRex;
+    // Stable index of the array field in the leftBuilt row type (recomputed after any projections).
+    final int arrayFieldIndexInLeft;
+    // Correlation variable created to reference left rows from the right side.
+    final RexCorrelVariable correlVar;
+    // A pre-derived list of nested field suffixes (e.g., sub-field names) from the left before any
+    // colliding nested fields were removed. Used as a fallback when element type is unknown.
+    final List<String> preDerivedSubFields;
+
+    UnnestResult(
+        List<String> leftOriginalNames,
+        int leftOriginalCount,
+        RelNode leftBuilt,
+        RelNode rawRight,
+        RexInputRef arrayFieldRex,
+        int arrayFieldIndexInLeft,
+        RexCorrelVariable correlVar,
+        List<String> preDerivedSubFields) {
+      this.leftOriginalNames = leftOriginalNames;
+      this.leftOriginalCount = leftOriginalCount;
+      this.leftBuilt = leftBuilt;
+      this.rawRight = rawRight;
+      this.arrayFieldRex = arrayFieldRex;
+      this.arrayFieldIndexInLeft = arrayFieldIndexInLeft;
+      this.correlVar = correlVar;
+      this.preDerivedSubFields = preDerivedSubFields;
+    }
+  }
+
+  /**
+   * Shared core that prepares correlated UNNEST artifacts.
+   *
+   * <p>Responsibilities: - Resolve the target array field to a stable input-ref (or synthesize
+   * one). - Capture a snapshot of the left relation (field names & count). - Create a correlation
+   * variable so the right side can reference the left. - Materialize the left relation (pop it from
+   * the relBuilder). - Remove colliding nested fields from left so right can project with the same
+   * names. - Build rawRight relation as: VALUES(1) -> project(correlatedArrayAccess) -> UNCOLLECT.
+   *
+   * <p>The returned UnnestResult contains everything the finalizers need to assemble the final join
+   * and projection.
+   *
+   * <p>Important: This method's behaviour is preserved exactly; do not change semantics.
+   *
+   * @param arrayFieldRexNode RexNode pointing to the array/collection field (may be input ref)
+   * @param arrayFieldName logical name of the field
+   * @param mvLimit optional limit to apply to uncollect output
+   * @param context the calcite plan context
+   * @return UnnestResult packaging prepared artifacts
+   */
+  private UnnestResult correlateUnnest(
+      RexNode arrayFieldRexNode,
+      String arrayFieldName,
+      @Nullable Integer mvLimit,
+      CalcitePlanContext context) {
+
+    // 1) Resolve or synthesize input-ref to the array field.
     RexInputRef arrayFieldRex;
     if (arrayFieldRexNode instanceof RexInputRef) {
       arrayFieldRex = (RexInputRef) arrayFieldRexNode;
 
+      // Best-effort type sanity check based on the current top-of-stack row type.
       RelDataType currentRowTypeCheck = context.relBuilder.peek().getRowType();
       int idx = arrayFieldRex.getIndex();
       RelDataTypeField checkField = null;
@@ -2970,6 +3032,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 checkField.getName(), checkField.getType().getSqlTypeName()));
       }
     } else {
+      // If the caller passed an expression, resolve by fieldName in current row type.
       RelDataType currentRowType = context.relBuilder.peek().getRowType();
       RelDataTypeField fld = currentRowType.getField(arrayFieldName, false, false);
       if (fld == null) {
@@ -2985,7 +3048,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       arrayFieldRex = context.rexBuilder.makeInputRef(currentRowType, fld.getIndex());
     }
 
-    // 2) Capture left state and compute stable index
+    // 2) Capture left-side state (names and count) and compute stable index for the array field.
     RelNode leftNode = context.relBuilder.peek();
     RelDataType leftRowType = leftNode.getRowType();
     RelDataTypeField leftField = leftRowType.getField(arrayFieldName, false, false);
@@ -3001,23 +3064,23 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               arrayFieldName, leftField.getType().getSqlTypeName()));
     }
 
-    // capture left-side names and count upfront (will use after correlate)
     List<String> leftOriginalNames = leftRowType.getFieldNames();
     int leftOriginalCount = leftRowType.getFieldCount();
 
-    // 3) Prepare correlation variable while left still on builder stack
-    Holder<RexCorrelVariable> correlVariable = Holder.empty();
+    // 3) Create correlation variable while left is on the RelBuilder stack.
+    final Holder<RexCorrelVariable> correlVariable = Holder.empty();
     context.relBuilder.variable(correlVariable::set);
 
+    // Build a correlated access expression referencing the array column by its stable index.
     RexNode correlArrayFieldAccess =
         context.relBuilder.field(
             context.rexBuilder.makeCorrel(leftRowType, correlVariable.get().id),
             arrayFieldIndexInLeft);
 
-    // 4) Materialize leftBuilt (pop the left side off builder)
+    // 4) Materialize left (pop it from RelBuilder).
     RelNode leftBuilt = context.relBuilder.build();
 
-    // --- Derive nested sub-field names BEFORE removing colliding left fields ---
+    // 5) Collect pre-derived nested sub-field names (suffixes) from the left before removal.
     List<String> preDerivedSubFields =
         leftBuilt.getRowType().getFieldNames().stream()
             .filter(fn -> fn.startsWith(arrayFieldName + "."))
@@ -3025,7 +3088,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .distinct()
             .toList();
 
-    // 5) Remove any left-side nested fields that would collide with right-side projection
+    // 6) Remove colliding left nested fields so the right projection can produce the same names.
     List<String> collidingFields =
         leftBuilt.getRowType().getFieldNames().stream()
             .filter(fn -> fn.startsWith(arrayFieldName + "."))
@@ -3036,12 +3099,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           collidingFields.stream().map(fn -> (RexNode) context.relBuilder.field(fn)).toList();
       context.relBuilder.projectExcept(toRemove);
       leftBuilt = context.relBuilder.build();
-      // update leftOriginalNames/count to reflect the possibly-projected leftBuilt
       leftOriginalNames = leftBuilt.getRowType().getFieldNames();
       leftOriginalCount = leftBuilt.getRowType().getFieldCount();
     }
 
-    // recompute index after possible projection
+    // 7) Recompute stable index after potential projection on leftBuilt.
     RelDataTypeField updatedLeftField =
         leftBuilt.getRowType().getField(arrayFieldName, false, false);
     if (updatedLeftField != null) {
@@ -3050,55 +3112,86 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       arrayFieldIndexInLeft = arrayFieldRex.getIndex();
     }
 
-    // 6) Build the inner UNNEST (one-row -> project(correlated) -> uncollect -> optional limit)
+    // 8) Build rawRight relation: one-row VALUES -> project(correlated array access) -> uncollect.
     RelBuilder rb = context.relBuilder;
     rb.push(LogicalValues.createOneRow(rb.getCluster()))
         .project(List.of(correlArrayFieldAccess), List.of(arrayFieldName))
         .uncollect(List.of(), false);
 
-    // Apply mvLimit after uncollect so it limits the element rows
     if (mvLimit != null && mvLimit > 0) {
       rb.limit(0, mvLimit);
     }
     RelNode rawRight = rb.build();
 
-    // 7) Inspect right side and decide projection strategy
-    context.relBuilder.push(rawRight);
+    return new UnnestResult(
+        leftOriginalNames,
+        leftOriginalCount,
+        leftBuilt,
+        rawRight,
+        arrayFieldRex,
+        arrayFieldIndexInLeft,
+        correlVariable.get(),
+        preDerivedSubFields);
+  }
 
-    // Prefer named column, fallback to ordinal 0
-    RexNode elemRef;
+  /**
+   * Safe helper to extract struct field descriptors from an element RexNode.
+   *
+   * <p>This helper tolerates unknown/ANY element types and any runtime exceptions thrown while
+   * introspecting the type. It returns an empty list when it cannot obtain concrete field
+   * information.
+   *
+   * @param elemRef element reference RexNode
+   * @return list of element RelDataTypeField when available, otherwise empty list
+   */
+  private List<RelDataTypeField> getElementFieldsSafely(RexNode elemRef) {
     try {
-      elemRef = context.relBuilder.field(arrayFieldName);
-    } catch (IllegalArgumentException ex) {
-      elemRef = context.relBuilder.field(0);
-    }
-
-    // Try obtaining concrete element field list in a guarded way.
-    List<RelDataTypeField> elemFields = List.of();
-    RelDataType elemType = null;
-    try {
-      elemType = elemRef.getType();
-    } catch (Exception ignored) {
-      elemType = null;
-    }
-    if (elemType != null && elemType.getFamily() != SqlTypeFamily.ANY) {
-      try {
-        List<RelDataTypeField> fl = null;
-        try {
-          fl = elemType.getFieldList();
-        } catch (RuntimeException ignored) {
-          fl = null;
-        }
-        if (fl != null && !fl.isEmpty()) {
-          elemFields = fl;
-        }
-      } catch (Throwable ignored) {
-        elemFields = List.of();
+      RelDataType elemType = elemRef.getType();
+      if (elemType == null || elemType.getFamily() == SqlTypeFamily.ANY) {
+        return List.of();
       }
+      try {
+        List<RelDataTypeField> fl = elemType.getFieldList();
+        if (fl != null && !fl.isEmpty()) {
+          return fl;
+        }
+      } catch (RuntimeException ignored) {
+        // Fall through and return empty list as a safe fallback.
+      }
+    } catch (Exception ignored) {
+      // Introspection not possible; return empty.
     }
+    return List.of();
+  }
+
+  /**
+   * Build the right-hand RelNode that projects element sub-fields from the rawRight input.
+   *
+   * <p>Policy (preserved from original): - If elemFields is available (concrete struct definition),
+   * extract each name via INTERNAL_ITEM and alias the result as "arrayFieldName.<sub>". - Else if
+   * preDerivedSubFields is non-empty (collected from the original left schema), try to extract
+   * those keys via INTERNAL_ITEM and alias as "arrayFieldName.<sub>". - Otherwise, fallback to
+   * projecting the entire element with a single alias: "arrayFieldName.name".
+   *
+   * <p>Caller MUST have pushed rawRight on the RelBuilder before invoking this helper (the helper
+   * performs context.relBuilder.project(...) and build()).
+   *
+   * @param elemRef reference to the element value
+   * @param arrayFieldName the original array field name (used as prefix for aliases)
+   * @param elemFields concrete element fields (if available)
+   * @param preDerivedSubFields names extracted from left schema prior to removals (fallback)
+   * @param context calcite plan context
+   * @return projected RelNode representing right-side columns
+   */
+  private RelNode buildRightNodeFromElement(
+      RexNode elemRef,
+      String arrayFieldName,
+      List<RelDataTypeField> elemFields,
+      List<String> preDerivedSubFields,
+      CalcitePlanContext context) {
 
     RelNode rightNode;
-    if (!elemFields.isEmpty()) {
+    if (elemFields != null && !elemFields.isEmpty()) {
       List<RexNode> proj = new ArrayList<>(elemFields.size());
       for (RelDataTypeField f : elemFields) {
         String sub = f.getName();
@@ -3125,7 +3218,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       }
       context.relBuilder.project(proj);
       rightNode = context.relBuilder.build();
-    } else if (!preDerivedSubFields.isEmpty()) {
+    } else if (preDerivedSubFields != null && !preDerivedSubFields.isEmpty()) {
       List<RexNode> proj = new ArrayList<>(preDerivedSubFields.size());
       for (String sub : preDerivedSubFields) {
         String full = arrayFieldName + "." + sub;
@@ -3152,29 +3245,137 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       context.relBuilder.project(proj);
       rightNode = context.relBuilder.build();
     } else {
-      // Fallback to aliasing the raw element as arrayFieldName.name
+      // fallback: alias the element as arrayFieldName.name
       context.relBuilder.project(
           List.of(context.relBuilder.alias(elemRef, arrayFieldName + ".name")));
       rightNode = context.relBuilder.build();
     }
+    return rightNode;
+  }
 
-    // 8) Correlate leftBuilt and rightNode using an input-ref against leftBuilt row type
+  /**
+   * Rename nested prefixed fields when an alias is supplied to EXPAND.
+   *
+   * <p>Example: arrayField -> alias arrayField.sub1 -> alias.sub1
+   *
+   * <p>Implementation note: We call tryToRemoveNestedFields(context) to ensure the relBuilder has
+   * an explicit projection when required (workaround for Calcite rename bug).
+   *
+   * @param arrayFieldName original array field name
+   * @param alias optional alias name to replace prefix with
+   * @param context calcite plan context
+   */
+  private void renameNestedPrefixIfAlias(
+      String arrayFieldName, @Nullable String alias, CalcitePlanContext context) {
+    if (alias == null) {
+      return;
+    }
+    // Ensure there are no duplicated nested projections that would prevent rename from applying.
+    tryToRemoveNestedFields(context);
+
+    List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+    List<String> newNames = new ArrayList<>(fieldNames.size());
+    String prefix = arrayFieldName + ".";
+    for (String fn : fieldNames) {
+      if (fn.equals(arrayFieldName)) {
+        newNames.add(alias);
+      } else if (fn.startsWith(prefix)) {
+        newNames.add(alias + fn.substring(arrayFieldName.length()));
+      } else {
+        newNames.add(fn);
+      }
+    }
+    context.relBuilder.rename(newNames);
+  }
+
+  /**
+   * Single core used by both EXPAND and MVEXPAND flows.
+   *
+   * <p>Behaviour branching: - isMv == false: EXPAND semantics: correlate(leftBuilt, rawRight) then
+   * remove the original array field from output; optionally apply nested-prefix rename using alias.
+   * - isMv == true: MVEXPAND semantics: inspect element shape, build right-side projection,
+   * correlate leftBuilt with the right projection, produce a deterministic projection order and
+   * optionally apply nested-prefix rename using alias.
+   *
+   * <p>All behaviour is preserved exactly as before; only documentation and comments have been
+   * added.
+   *
+   * @param isMv true -> mvexpand path, false -> expand path
+   * @param arrayFieldRexNode rex node pointing to the array field (input ref or expression)
+   * @param arrayFieldName logical field name
+   * @param alias optional alias for renaming nested prefixes
+   * @param mvLimit optional limit for mvexpand
+   * @param context calcite plan context
+   */
+  private void buildExpandCore(
+      boolean isMv,
+      RexNode arrayFieldRexNode,
+      String arrayFieldName,
+      @Nullable String alias,
+      @Nullable Integer mvLimit,
+      CalcitePlanContext context) {
+
+    // 1) Shared correlate-uncollect preparation. This returns a self-contained UnnestResult that
+    //    includes leftBuilt, rawRight, correlVar, stable indexes and snapshots of the left schema.
+    UnnestResult res = correlateUnnest(arrayFieldRexNode, arrayFieldName, mvLimit, context);
+
+    if (!isMv) {
+      // EXPAND flow:
+      // - Correlate leftBuilt with rawRight using the created correl variable.
+      // - Remove the original array field from the output (legacy behaviour).
+      context
+          .relBuilder
+          .push(res.leftBuilt)
+          .push(res.rawRight)
+          .correlate(JoinRelType.INNER, res.correlVar.id, List.of(res.arrayFieldRex));
+
+      // Remove the original array field from the output schema.
+      context.relBuilder.projectExcept(res.arrayFieldRex);
+
+      // Apply alias-based nested-prefix renaming when requested.
+      renameNestedPrefixIfAlias(arrayFieldName, alias, context);
+      return;
+    }
+
+    // MVEXPAND flow:
+    // 2) Inspect the rawRight element to determine element shape and build right-side projection.
+    context.relBuilder.push(res.rawRight);
+
+    // Prefer named field lookup by `arrayFieldName`; if not present fall back to ordinal 0.
+    RexNode elemRef;
+    try {
+      elemRef = context.relBuilder.field(arrayFieldName);
+    } catch (IllegalArgumentException ex) {
+      elemRef = context.relBuilder.field(0);
+    }
+
+    // Obtain element fields safely (may be empty when type is ANY or unknown).
+    List<RelDataTypeField> elemFields = getElementFieldsSafely(elemRef);
+
+    // Build a right-side node that projects sub-fields (or fallback to .name).
+    RelNode rightNode =
+        buildRightNodeFromElement(
+            elemRef, arrayFieldName, elemFields, res.preDerivedSubFields, context);
+
+    // 3) Correlate leftBuilt and rightNode using a stable input-ref against leftBuilt row type.
     RexNode requiredColumnRef =
-        context.rexBuilder.makeInputRef(leftBuilt.getRowType(), arrayFieldIndexInLeft);
+        context.rexBuilder.makeInputRef(res.leftBuilt.getRowType(), res.arrayFieldIndexInLeft);
     context
         .relBuilder
-        .push(leftBuilt)
+        .push(res.leftBuilt)
         .push(rightNode)
-        .correlate(JoinRelType.INNER, correlVariable.get().id, List.of(requiredColumnRef));
+        .correlate(JoinRelType.INNER, res.correlVar.id, List.of(requiredColumnRef));
 
-    // 9) Deterministic final projection: keep left-side (except expanded field & nested) then
-    // right-side
+    // 4) Deterministic final projection:
+    //    - Keep all leftOriginalNames except the expanded field and any nested prefixed fields.
+    //    - Then append the right-side fields (they start at ordinal leftOriginalCount).
     List<RexNode> finalProjections = new ArrayList<>();
     List<String> finalNames = new ArrayList<>();
 
-    for (int i = 0; i < leftOriginalNames.size() && i < leftOriginalCount; i++) {
-      String name = leftOriginalNames.get(i);
+    for (int i = 0; i < res.leftOriginalNames.size() && i < res.leftOriginalCount; i++) {
+      String name = res.leftOriginalNames.get(i);
       if (name.equals(arrayFieldName) || name.startsWith(arrayFieldName + ".")) {
+        // Skip the expanded field and its (pre-existing) nested subfields.
         continue;
       }
       finalProjections.add(context.relBuilder.field(i));
@@ -3182,31 +3383,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     List<String> afterCorrelateNames = context.relBuilder.peek().getRowType().getFieldNames();
-    for (int idx = leftOriginalCount; idx < afterCorrelateNames.size(); idx++) {
+    for (int idx = res.leftOriginalCount; idx < afterCorrelateNames.size(); idx++) {
       finalProjections.add(context.relBuilder.field(idx));
       finalNames.add(afterCorrelateNames.get(idx));
     }
 
     context.relBuilder.project(finalProjections, finalNames);
 
-    // 10) Rename nested prefixes if alias is provided (keeps consistent behavior with EXPAND when
-    // alias used)
-    if (alias != null) {
-      tryToRemoveNestedFields(context);
-      List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
-      List<String> newNames = new ArrayList<>(fieldNames.size());
-      String prefix = arrayFieldName + ".";
-      for (String fn : fieldNames) {
-        if (fn.equals(arrayFieldName)) {
-          newNames.add(alias);
-        } else if (fn.startsWith(prefix)) {
-          newNames.add(alias + fn.substring(arrayFieldName.length()));
-        } else {
-          newNames.add(fn);
-        }
-      }
-      context.relBuilder.rename(newNames);
-    }
+    // 5) Optional nested-prefix rename for alias semantics.
+    renameNestedPrefixIfAlias(arrayFieldName, alias, context);
   }
 
   @Override

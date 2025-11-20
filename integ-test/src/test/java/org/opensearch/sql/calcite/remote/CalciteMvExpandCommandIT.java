@@ -87,6 +87,7 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
       deleteIndexIfExists(INDEX + "_not_array");
       deleteIndexIfExists(INDEX + "_missing_field");
       deleteIndexIfExists(INDEX + "_limit_test");
+      deleteIndexIfExists(INDEX + "_int_field");
     } catch (Exception ignored) {
       // ignore
     }
@@ -336,6 +337,39 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
         rows("large", "s8"),
         rows("large", "s9"),
         rows("large", "s10"));
+  }
+
+  @Test
+  public void testMvexpandOnIntegerFieldMappingThrowsSemantic() throws Exception {
+    // Verify mvexpand raises a semantic error when the target field is mapped as a non-array
+    // numeric type (e.g. integer). This exercises the code branch that checks the resolved
+    // RexInputRef against the current row type and throws SemanticCheckException.
+    final String idx =
+        createTempIndexWithMapping(
+            INDEX + "_int_field",
+            "{ \"mappings\": { \"properties\": { "
+                + "\"username\": { \"type\": \"keyword\" },"
+                + "\"skills\": { \"type\": \"integer\" }"
+                + "} } }");
+    try {
+      bulkInsert(idx, "{\"username\":\"u_int\",\"skills\":5}");
+      refreshIndex(idx);
+
+      String query =
+          String.format(
+              "source=%s | mvexpand skills | where username='u_int' | fields username, skills",
+              idx);
+
+      ResponseException ex =
+          org.junit.jupiter.api.Assertions.assertThrows(
+              ResponseException.class, () -> executeQuery(query));
+      String msg = ex.getMessage();
+      org.junit.jupiter.api.Assertions.assertTrue(
+          msg.contains("Cannot expand field 'skills': expected ARRAY type but found INTEGER"),
+          "Expected SemanticCheckException about non-array integer field, got: " + msg);
+    } finally {
+      deleteIndexIfExists(idx);
+    }
   }
 
   /**
