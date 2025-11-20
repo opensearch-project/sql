@@ -3139,7 +3139,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
    *
    * <p>This helper tolerates unknown/ANY element types and any runtime exceptions thrown while
    * introspecting the type. It returns an empty list when it cannot obtain concrete field
-   * information.
+   * information. It also avoids calling getFieldList() on scalar types (e.g. VARCHAR) which for
+   * some RelDataType implementations can assert/fail.
    *
    * @param elemRef element reference RexNode
    * @return list of element RelDataTypeField when available, otherwise empty list
@@ -3147,21 +3148,63 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   private List<RelDataTypeField> getElementFieldsSafely(RexNode elemRef) {
     try {
       RelDataType elemType = elemRef.getType();
-      if (elemType == null || elemType.getFamily() == SqlTypeFamily.ANY) {
+      if (elemType == null) {
         return List.of();
       }
+
+      // If the declared family is ANY, treat as unknown and return empty.
+      try {
+        if (elemType.getFamily() == SqlTypeFamily.ANY) {
+          return List.of();
+        }
+      } catch (Exception ignored) {
+        // Some exotic types may throw here — fall back to safe empty result.
+        return List.of();
+      }
+
+      // Defensive checks: avoid calling getFieldList() on scalar types (VARCHAR, INTEGER, etc.)
+      // which may cause assertions in some RelDataType implementations.
+      try {
+        SqlTypeName sqlTypeName = elemType.getSqlTypeName();
+        if (sqlTypeName != null) {
+          // If element type is not ROW (struct-like) then it has no named sub-fields.
+          // For MAP/ARRAY shape we rely on concrete MapSqlType/ArraySqlType handling below.
+          if (sqlTypeName != SqlTypeName.ROW) {
+            // If type object itself is a MapSqlType (map value is struct) allow further inspection.
+            if (!(elemType instanceof MapSqlType) && !(elemType instanceof ArraySqlType)) {
+              return List.of();
+            }
+          }
+        }
+      } catch (Exception ignored) {
+        // If we can't safely determine SQL type name, fall through and use guarded getFieldList.
+      }
+
+      // If field count is explicitly zero, return empty early.
+      try {
+        if (elemType.getFieldCount() == 0) {
+          return List.of();
+        }
+      } catch (Exception ignored) {
+        // getFieldCount may throw for some implementations; fall through to guarded getFieldList.
+      }
+
+      // Finally, attempt to retrieve the field list but guard against runtime exceptions.
       try {
         List<RelDataTypeField> fl = elemType.getFieldList();
-        if (fl != null && !fl.isEmpty()) {
-          return fl;
+        if (fl == null || fl.isEmpty()) {
+          return List.of();
         }
+        return fl;
       } catch (RuntimeException ignored) {
-        // Fall through and return empty list as a safe fallback.
+        // Some RelDataType implementations assert/throw from getFieldList() for scalar types.
+        // Return empty as the safe fallback.
+        return List.of();
       }
     } catch (Exception ignored) {
-      // Introspection not possible; return empty.
+      // Any unexpected failure: be defensive and return empty list.
+      return List.of();
     }
-    return List.of();
   }
 
   /**
