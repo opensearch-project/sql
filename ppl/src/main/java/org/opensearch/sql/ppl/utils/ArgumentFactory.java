@@ -26,6 +26,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ChartCommandConte
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DefaultSortFieldContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EventstatsCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PrefixSortFieldContext;
@@ -114,6 +115,22 @@ public class ArgumentFactory {
             ? new Argument(
                 Argument.BUCKET_NULLABLE,
                 getArgumentValue(ctx.streamstatsArgs().bucketNullableArg(0).bucket_nullable))
+            : new Argument(
+                Argument.BUCKET_NULLABLE,
+                legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE));
+  }
+
+  /**
+   * Get list of {@link Argument}.
+   *
+   * @param ctx EventstatsCommandContext instance
+   * @return the list of arguments fetched from the eventstats command
+   */
+  public static List<Argument> getArgumentList(EventstatsCommandContext ctx, Settings settings) {
+    return Collections.singletonList(
+        ctx.bucketNullableArg() != null && !ctx.bucketNullableArg().isEmpty()
+            ? new Argument(
+                Argument.BUCKET_NULLABLE, getArgumentValue(ctx.bucketNullableArg().bucket_nullable))
             : new Argument(
                 Argument.BUCKET_NULLABLE,
                 legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE));
