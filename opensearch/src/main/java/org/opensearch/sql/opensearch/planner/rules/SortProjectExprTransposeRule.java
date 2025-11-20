@@ -21,8 +21,6 @@ import org.apache.calcite.rel.RelFieldCollation.Direction;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
-import org.apache.calcite.rel.logical.LogicalProject;
-import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rex.RexNode;
 import org.apache.commons.lang3.tuple.Pair;
 import org.immutables.value.Value;
@@ -47,6 +45,10 @@ public class SortProjectExprTransposeRule extends RelRule<SortProjectExprTranspo
   public void onMatch(RelOptRuleCall call) {
     final Sort sort = call.rel(0);
     final Project project = call.rel(1);
+
+    if (sort.getConvention() != project.getConvention()) {
+      return;
+    }
 
     List<RelFieldCollation> pushable = new ArrayList<>();
     boolean allPushable = true;
@@ -128,12 +130,12 @@ public class SortProjectExprTransposeRule extends RelRule<SortProjectExprTranspo
             .build()
             .withOperandSupplier(
                 b0 ->
-                    b0.operand(LogicalSort.class)
+                    b0.operand(Sort.class)
                         .oneInput(
                             b1 ->
-                                b1.operand(LogicalProject.class)
+                                b1.operand(Project.class)
                                     .predicate(
-                                        Predicate.not(LogicalProject::containsOver)
+                                        Predicate.not(Project::containsOver)
                                             .and(PlanUtils::projectContainsExpr))
                                     .anyInputs()));
 
