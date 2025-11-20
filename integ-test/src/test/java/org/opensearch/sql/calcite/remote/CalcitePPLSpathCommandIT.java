@@ -185,6 +185,18 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testSpathAndEventStats() throws IOException {
+    JSONObject result =
+        executeQuery(
+            source(
+                TEST_INDEX_DYNAMIC_FIELDS,
+                "spath input=json_data | eventstats avg(age) as avg | fields id, name, avg"));
+
+    verifySchema(result, schema("id", "bigint"), schema("name", "string"), schema("avg", "double"));
+    verifyDataRows(result, rows(1, "John", 27.5), rows(2, "Jane", 27.5), rows(3, null, 27.5));
+  }
+
+  @Test
   public void testSpathDynamicFieldsExplain() throws IOException {
     executeQuery(
         source(TEST_INDEX_DYNAMIC_FIELDS, "spath input=json_data | fields id, name, age, city"));
