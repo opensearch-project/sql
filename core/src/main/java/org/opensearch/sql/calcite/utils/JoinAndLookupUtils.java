@@ -66,7 +66,9 @@ public interface JoinAndLookupUtils {
       if (lookupMappingFields.size() != context.fieldBuilder.staticFields().size()) {
         List<RexNode> projectList =
             lookupMappingFields.stream()
-                .map(fieldName -> (RexNode) context.fieldBuilder.staticField(fieldName))
+                .map(
+                    fieldName ->
+                        (RexNode) QualifiedNameResolver.resolveFieldOrThrow(fieldName, context))
                 .toList();
         context.relBuilder.project(projectList);
       }
@@ -78,18 +80,22 @@ public interface JoinAndLookupUtils {
         node.getMappingAliasMap().entrySet().stream()
             .map(
                 entry -> {
-                  RexNode lookupKey = analyzeFieldsForLookUp(entry.getKey(), false, context);
-                  RexNode sourceKey = analyzeFieldsForLookUp(entry.getValue(), true, context);
-                  return context.rexBuilder.equals(sourceKey, lookupKey);
+                  RexNode lookupKey = analyzeFieldsInRight(entry.getKey(), context);
+                  RexNode sourceKey = analyzeFieldsInLeft(entry.getValue(), context);
+                  return context.rexBuilder.equalsWithCastAsNeeded(sourceKey, lookupKey);
                 })
             .reduce(context.rexBuilder::and)
             .orElse(context.relBuilder.literal(true));
     context.relBuilder.join(JoinRelType.LEFT, joinCondition);
   }
 
-  static RexNode analyzeFieldsForLookUp(
-      String fieldName, boolean isSourceTable, CalcitePlanContext context) {
-    return QualifiedNameResolver.resolveField(2, isSourceTable ? 0 : 1, fieldName, context)
+  static RexNode analyzeFieldsInLeft(String fieldName, CalcitePlanContext context) {
+    return QualifiedNameResolver.resolveField(2, 0, fieldName, context)
+        .orElseThrow(() -> new IllegalArgumentException("field not found: " + fieldName));
+  }
+
+  static RexNode analyzeFieldsInRight(String fieldName, CalcitePlanContext context) {
+    return QualifiedNameResolver.resolveField(2, 1, fieldName, context)
         .orElseThrow(() -> new IllegalArgumentException("field not found: " + fieldName));
   }
 
@@ -97,7 +103,7 @@ public interface JoinAndLookupUtils {
       List<String> expectedProvidedFieldNames,
       int sourceFieldsCountLeft,
       CalcitePlanContext context) {
-    List<String> oldFields = context.relBuilder.peek().getRowType().getFieldNames();
+    List<String> oldFields = context.fieldBuilder.getStaticFieldNames();
     assert sourceFieldsCountLeft + expectedProvidedFieldNames.size() == oldFields.size()
         : "The source fields count left plus new provided fields count must equal to the output"
             + " fields count of current plan(i.e project-join).";

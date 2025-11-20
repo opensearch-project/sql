@@ -128,7 +128,9 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
         .put(Key.PATTERN_MODE, "LABEL")
         .put(Key.PATTERN_MAX_SAMPLE_COUNT, 10)
         .put(Key.PATTERN_BUFFER_LIMIT, 100000)
-        .put(Key.PPL_REX_MAX_MATCH_LIMIT, 10);
+        .put(Key.PPL_REX_MAX_MATCH_LIMIT, 10)
+        .put(Key.PPL_JOIN_SUBSEARCH_MAXOUT, 50000)
+        .put(Key.PPL_SUBSEARCH_MAXOUT, 10);
   }
 
   protected Settings defaultSettings(Map<Key, Object> settings) {

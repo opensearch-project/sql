@@ -50,7 +50,7 @@ public class PPLAggregateConvertRuleTest {
   @Mock RelOptPlanner planner;
   RelDataType type = TYPE_FACTORY.createSqlType(SqlTypeName.BIGINT);
   RelDataType rowType = TYPE_FACTORY.createStructType(List.of(type, type), List.of("a", "b"));
-  RexBuilder rexBuilder = new RexBuilder(TYPE_FACTORY);
+  RexBuilder rexBuilder = new ExtendedRexBuilder(new RexBuilder(TYPE_FACTORY));
   RelBuilder relBuilder;
 
   @BeforeEach

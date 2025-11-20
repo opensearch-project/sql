@@ -322,63 +322,6 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
   }
 
   @Test
-  @Ignore("pending join adaptation")
-  public void testExpand() throws IOException {
-    String query = source(TEST_INDEX_DYNAMIC, "expand arr as expanded | where isnotnull(expanded)");
-
-    JSONObject result = executeQuery(query);
-
-    verifySchema(result, schema("department", "string"), schema("count", "bigint"));
-    verifyDataRows(result, rows("Engineering", 2));
-  }
-
-  @Test
-  @Ignore("pending join adaptation")
-  public void testJoinWithStaticField() throws IOException {
-    String query =
-        source(
-            TEST_INDEX_DYNAMIC,
-            "join left=l right=r on l.account_number = r.account_number | fields l.firstname,"
-                + " r.department | head 1");
-
-    JSONObject result = executeQuery(query);
-
-    verifySchema(result, schema("l.firstname", "string"), schema("r.department", "string"));
-    verifyDataRows(result, rows("John", "Engineering"));
-  }
-
-  @Test
-  @Ignore("pending join adaptation")
-  public void testJoinWithDynamicField() throws IOException {
-    String query =
-        source(
-            TEST_INDEX_DYNAMIC,
-            "join left=l right=r on l.department = r.department | fields l.firstname, r.department"
-                + " | head 1");
-
-    JSONObject result = executeQuery(query);
-
-    verifySchema(result, schema("l.firstname", "string"), schema("r.department", "string"));
-    verifyDataRows(result, rows("John", "Engineering"));
-  }
-
-  @Test
-  @Ignore("pending join adaptation")
-  public void testLookupWithStaticField() throws IOException {
-    String query =
-        source(
-            TEST_INDEX_DYNAMIC,
-            "lookup "
-                + TEST_INDEX_DYNAMIC
-                + " account_number as acc_num | fields firstname, department");
-
-    JSONObject result = executeQuery(query);
-
-    verifySchema(result, schema("firstname", "string"), schema("department", "string"));
-    verifyDataRows(result, rows("John", "Engineering"));
-  }
-
-  @Test
   @Ignore("pending subquery adaptation")
   public void testMultisearch() throws IOException {
     String query =
