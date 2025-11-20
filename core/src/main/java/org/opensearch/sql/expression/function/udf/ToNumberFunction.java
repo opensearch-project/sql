@@ -62,7 +62,8 @@ public class ToNumberFunction extends ImplementorUDF {
           }
         }
       }
-      // Default to Double when we can't determine the type at compile time or bigint type is confirmed
+      // Default to Double when we can't determine the type at compile time or bigint type is
+      // confirmed
       return opBinding
           .getTypeFactory()
           .createTypeWithNullability(
