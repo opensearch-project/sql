@@ -14,9 +14,9 @@ public class QueryStringUtils {
 
   public static final String MASK_COLUMN = "identifier";
 
-  public static final String MASK_TIMESTAMP_COLUMN = "timestamp_identifier";
+  public static final String MASK_TIMESTAMP_COLUMN = "time_identifier";
 
-  public static final String MASK_METADATA_COLUMN = "metadata_identifier";
+  public static final String MASK_METADATA_COLUMN = "meta_identifier";
 
   public static String maskField(String fieldName) {
     if (fieldName.equals(INTERNAL_TIMESTAMP)) {
