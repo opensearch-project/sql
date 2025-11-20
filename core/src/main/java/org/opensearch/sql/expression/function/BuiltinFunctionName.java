@@ -75,6 +75,7 @@ public enum BuiltinFunctionName {
   MVAPPEND(FunctionName.of("mvappend")),
   MVJOIN(FunctionName.of("mvjoin")),
   MVINDEX(FunctionName.of("mvindex")),
+  MVFIND(FunctionName.of("mvfind")),
   MVZIP(FunctionName.of("mvzip")),
   SPLIT(FunctionName.of("split")),
   MVDEDUP(FunctionName.of("mvdedup")),
