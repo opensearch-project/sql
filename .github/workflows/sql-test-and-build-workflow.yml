@@ -52,9 +52,9 @@ jobs:
         run: |
           chown -R 1000:1000 `pwd`
           if [ "${{ matrix.test-type }}" = "unit" ]; then
-            su `id -un 1000` -c "./gradlew --continue build -x integTest -x doctest"
+            su `id -un 1000` -c "./gradlew --continue build -x integTest -x yamlRestTest -x doctest"
           elif [ "${{ matrix.test-type }}" = "integration" ]; then
-            su `id -un 1000` -c "./gradlew --continue integTest"
+            su `id -un 1000` -c "./gradlew --continue integTest yamlRestTest"
           else
             su `id -un 1000` -c "./gradlew --continue doctest"
           fi
@@ -130,9 +130,9 @@ jobs:
       - name: Build and Test
         run: |
           if [ "${{ matrix.test-type }}" = "unit" ]; then
-            ./gradlew --continue build -x integTest -x doctest ${{ matrix.entry.os_build_args }}
+            ./gradlew --continue build -x integTest -x yamlRestTest -x doctest ${{ matrix.entry.os_build_args }}
           elif [ "${{ matrix.test-type }}" = "integration" ]; then
-            ./gradlew --continue integTest ${{ matrix.entry.os_build_args }}
+            ./gradlew --continue integTest yamlRestTest ${{ matrix.entry.os_build_args }}
           else
             ./gradlew --continue doctest ${{ matrix.entry.os_build_args }}
           fi
