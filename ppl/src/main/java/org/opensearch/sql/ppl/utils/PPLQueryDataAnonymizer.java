@@ -7,6 +7,9 @@ package org.opensearch.sql.ppl.utils;
 
 import static org.opensearch.sql.calcite.utils.PlanUtils.getRelation;
 import static org.opensearch.sql.calcite.utils.PlanUtils.transformPlanToAttachChild;
+import static org.opensearch.sql.utils.QueryStringUtils.MASK_COLUMN;
+import static org.opensearch.sql.utils.QueryStringUtils.MASK_LITERAL;
+import static org.opensearch.sql.utils.QueryStringUtils.maskField;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -107,10 +110,6 @@ import org.opensearch.sql.planner.logical.LogicalSort;
 
 /** Utility class to mask sensitive information in incoming PPL queries. */
 public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> {
-
-  public static final String MASK_LITERAL = "***";
-
-  public static final String MASK_COLUMN = "identifier";
 
   public static final String MASK_TABLE = "table";
 
@@ -916,7 +915,8 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
     @Override
     public String visitField(Field node, String context) {
-      return MASK_COLUMN;
+      String fieldName = node.getField().toString();
+      return maskField(fieldName);
     }
 
     @Override

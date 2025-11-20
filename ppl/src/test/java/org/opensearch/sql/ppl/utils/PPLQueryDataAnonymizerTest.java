@@ -255,8 +255,8 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testTimechartCommand() {
     assertEquals(
-        "source=table | timechart limit=*** useother=*** count() by span(identifier, *** m)"
-            + " identifier",
+        "source=table | timechart limit=*** useother=*** count() by span(timestamp_identifier, ***"
+            + " m) identifier",
         anonymize("source=t | timechart count() by host"));
   }
 
@@ -386,6 +386,13 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=table | where identifier = *** and identifier = ***",
         anonymize("source=t | where a=1 and b=2"));
+  }
+
+  @Test
+  public void testAndExpressionWithMetaData() {
+    assertEquals(
+        "source=table | where metadata_identifier = *** and identifier = ***",
+        anonymize("source=t | where _id=1 and b=2"));
   }
 
   @Test
@@ -879,7 +886,7 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testSearchWithAbsoluteTimeRange() {
     assertEquals(
-        "source=table (identifier >= ***) AND (identifier <= ***)",
+        "source=table (timestamp_identifier >= ***) AND (timestamp_identifier <= ***)",
         anonymize("search source=t earliest='2012-12-10 15:00:00' latest=now"));
   }
 
@@ -906,7 +913,7 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testSearchWithOr() {
     assertEquals(
-        "source=table (identifier >= *** OR identifier <= ***)",
+        "source=table (timestamp_identifier >= *** OR timestamp_identifier <= ***)",
         anonymize("search source=t earliest='2012-12-10 15:00:00' or latest=now"));
   }
 
