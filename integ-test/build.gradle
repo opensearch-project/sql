@@ -45,7 +45,7 @@ apply plugin: 'java'
 apply plugin: 'io.freefair.lombok'
 apply plugin: 'com.wiredforcode.spawn'
 
-String baseVersion = "2.19.0"
+String baseVersion = "2.19.4"
 String bwcFilePath = "src/test/resources/bwc/"
 String calciteCodegen = "$projectDir/src/test/java/codegen/"
 String ignorePrometheusProp = System.getProperty("ignorePrometheus")
