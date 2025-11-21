@@ -45,7 +45,7 @@ public class LikeQuery extends LuceneQuery {
    */
   @Override
   public boolean canSupport(FunctionExpression func) {
-    if (func.getArguments().size() == 2
+    if ((func.getArguments().size() == 2 || func.getArguments().size() == 3)
         && (func.getArguments().get(0) instanceof ReferenceExpression)
         && (func.getArguments().get(1) instanceof LiteralExpression
             || literalExpressionWrappedByCast(func))) {

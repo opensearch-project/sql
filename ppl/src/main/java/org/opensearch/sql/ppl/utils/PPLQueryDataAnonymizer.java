@@ -400,7 +400,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String fields = visitFieldList(node.getFields());
     String group = visitExpressionList(node.getGroupExprList());
     String options =
-        isCalciteEnabled()
+        UnresolvedPlanHelper.isCalciteEnabled(settings)
             ? StringUtils.format(
                 "countield='%s' showcount=%s usenull=%s ", countField, showCount, useNull)
             : "";
@@ -801,18 +801,6 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     return Strings.isNullOrEmpty(groupBy) ? "" : StringUtils.format("by %s", groupBy);
   }
 
-  private boolean isCalciteEnabled() {
-    return settings == null
-        || settings.getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED) == null
-        || Boolean.TRUE.equals(settings.getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED));
-  }
-
-  private boolean legacyPreferred() {
-    return settings == null
-        || settings.getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED) == null
-        || Boolean.TRUE.equals(settings.getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED));
-  }
-
   /** Expression Anonymizer. */
   private static class AnonymizerExpressionAnalyzer extends AbstractNodeVisitor<String, String> {
     private final PPLQueryDataAnonymizer queryAnonymizer;
@@ -883,10 +871,15 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
           node.getFuncArgs().stream()
               .map(unresolvedExpression -> analyze(unresolvedExpression, context))
               .collect(Collectors.joining(","));
-      if (queryAnonymizer.isCalciteEnabled()
+      if (UnresolvedPlanHelper.isCalciteEnabled(queryAnonymizer.settings)
           && node.getFuncName().equalsIgnoreCase("LIKE")
           && node.getFuncArgs().size() == 2) {
-        arguments = arguments + "," + (queryAnonymizer.legacyPreferred() ? "false" : "true");
+        arguments =
+            arguments
+                + ","
+                + (UnresolvedPlanHelper.legacyPreferred(queryAnonymizer.settings)
+                    ? "false"
+                    : "true");
       }
       return StringUtils.format("%s(%s)", node.getFuncName(), arguments);
     }

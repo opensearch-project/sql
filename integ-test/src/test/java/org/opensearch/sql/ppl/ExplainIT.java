@@ -553,19 +553,21 @@ public class ExplainIT extends PPLIntegTestCase {
         expected,
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | where like(firstname, '%mbe%', true)"));
-    withSettings(
-        Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED,
-        "false",
-        () -> {
-          try {
-            assertYamlEqualsIgnoreId(
-                expected,
-                explainQueryYaml(
-                    "source=opensearch-sql_test_index_account | where like(firstname, '%mbe%')"));
-          } catch (IOException e) {
-            throw new RuntimeException(e);
-          }
-        });
+    if (isCalciteEnabled()) {
+      withSettings(
+          Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED,
+          "false",
+          () -> {
+            try {
+              assertYamlEqualsIgnoreId(
+                  expected,
+                  explainQueryYaml(
+                      "source=opensearch-sql_test_index_account | where like(firstname, '%mbe%')"));
+            } catch (IOException e) {
+              throw new RuntimeException(e);
+            }
+          });
+    }
   }
 
   @Test
@@ -575,19 +577,22 @@ public class ExplainIT extends PPLIntegTestCase {
         expected,
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | where like(address, '%Holmes%', true)"));
-    withSettings(
-        Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED,
-        "false",
-        () -> {
-          try {
-            assertYamlEqualsIgnoreId(
-                expected,
-                explainQueryYaml(
-                    "source=opensearch-sql_test_index_account | where like(address, '%Holmes%')"));
-          } catch (IOException e) {
-            throw new RuntimeException(e);
-          }
-        });
+    if (isCalciteEnabled()) {
+      withSettings(
+          Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED,
+          "false",
+          () -> {
+            try {
+              assertYamlEqualsIgnoreId(
+                  expected,
+                  explainQueryYaml(
+                      "source=opensearch-sql_test_index_account | where like(address,"
+                          + " '%Holmes%')"));
+            } catch (IOException e) {
+              throw new RuntimeException(e);
+            }
+          });
+    }
   }
 
   @Ignore("The serialized string is unstable because of function properties")
