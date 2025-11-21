@@ -408,6 +408,7 @@ STRFTIME:                           'STRFTIME';
 // TEXT FUNCTIONS
 SUBSTR:                             'SUBSTR';
 SUBSTRING:                          'SUBSTRING';
+TONUMBER:                           'TONUMBER';
 TOSTRING:                           'TOSTRING';
 LTRIM:                              'LTRIM';
 RTRIM:                              'RTRIM';
