@@ -145,6 +145,7 @@ LIMIT:                              'LIMIT';
 USEOTHER:                           'USEOTHER';
 OTHERSTR:                           'OTHERSTR';
 NULLSTR:                            'NULLSTR';
+TIMEFIELD:                          'TIMEFIELD';
 INPUT:                              'INPUT';
 OUTPUT:                             'OUTPUT';
 PATH:                               'PATH';

@@ -328,6 +328,7 @@ timechartParameter
    : LIMIT EQUAL integerLiteral
    | SPAN EQUAL spanLiteral
    | USEOTHER EQUAL (booleanLiteral | ident)
+   | TIMEFIELD EQUAL (ident | stringLiteral)
    ;
 
 spanLiteral
@@ -1567,6 +1568,7 @@ searchableKeyWord
    | SED
    | MAX_MATCH
    | OFFSET_FIELD
+   | TIMEFIELD
    | patternMethod
    | patternMode
    // AGGREGATIONS AND WINDOW
