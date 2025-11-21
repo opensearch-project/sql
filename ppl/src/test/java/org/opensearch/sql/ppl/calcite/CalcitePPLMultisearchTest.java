@@ -183,26 +183,29 @@ public class CalcitePPLMultisearchTest extends CalcitePPLAbstractTest {
             + "  LogicalAggregate(group=[{0}], count=[COUNT()])\n"
             + "    LogicalProject(type=[$8])\n"
             + "      LogicalUnion(all=[true])\n"
-            + "        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + "        LogicalFilter(condition=[=($7, 10)])\n"
+            + "          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], type=['accounting':VARCHAR])\n"
-            + "          LogicalFilter(condition=[=($7, 10)])\n"
             + "            LogicalTableScan(table=[[scott, EMP]])\n"
-            + "        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + "        LogicalFilter(condition=[=($7, 20)])\n"
+            + "          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], type=['research':VARCHAR])\n"
-            + "          LogicalFilter(condition=[=($7, 20)])\n"
             + "            LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
+    // SparkSQL reflects Filter above Project due to flush logic
     String expectedSparkSql =
         "SELECT COUNT(*) `count`, `type`\n"
+            + "FROM (SELECT *\n"
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
             + " 'accounting' `type`\n"
-            + "FROM `scott`.`EMP`\n"
+            + "FROM `scott`.`EMP`) `t`\n"
             + "WHERE `DEPTNO` = 10\n"
             + "UNION ALL\n"
-            + "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
+            + "SELECT *\n"
+            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
             + " 'research' `type`\n"
-            + "FROM `scott`.`EMP`\n"
+            + "FROM `scott`.`EMP`) `t1`\n"
             + "WHERE `DEPTNO` = 20) `t3`\n"
             + "GROUP BY `type`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
