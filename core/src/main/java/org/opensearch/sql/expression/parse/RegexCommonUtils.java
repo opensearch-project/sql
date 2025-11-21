@@ -130,7 +130,7 @@ public class RegexCommonUtils {
 
     Matcher matcher = pattern.matcher(text);
 
-    if (matcher.matches()) {
+    if (matcher.find()) {
       try {
         return matcher.group(groupName);
       } catch (IllegalArgumentException e) {
