@@ -24,6 +24,8 @@
   "ppl_cli_calcite": [
     "user/ppl/cmd/ad.rst",
     "user/ppl/cmd/append.rst",
+    "user/ppl/cmd/addtotals.rst",
+    "user/ppl/cmd/addcoltotals.rst",
     "user/ppl/cmd/bin.rst",
     "user/ppl/cmd/dedup.rst",
     "user/ppl/cmd/describe.rst",
