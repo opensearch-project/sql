@@ -1,0 +1,9 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(test=[ITEM(MAP_REMOVE(JSON_EXTRACT_ALL($3), ARRAY('created_at', 'server', '@timestamp', 'message', 'level', '_id', '_index', '_score', '_maxscore', '_sort', '_routing')), 'test')])
+        CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_logs]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..10=[{inputs}], expr#11=[JSON_EXTRACT_ALL($t3)], expr#12=['created_at'], expr#13=['server'], expr#14=['@timestamp'], expr#15=['message'], expr#16=['level'], expr#17=['_id'], expr#18=['_index'], expr#19=['_score'], expr#20=['_maxscore'], expr#21=['_sort'], expr#22=['_routing'], expr#23=[ARRAY($t12, $t13, $t14, $t15, $t16, $t17, $t18, $t19, $t20, $t21, $t22)], expr#24=[MAP_REMOVE($t11, $t23)], expr#25=['test'], expr#26=[ITEM($t24, $t25)], test=[$t26])
+        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_logs]])

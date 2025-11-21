@@ -1,0 +1,8 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(test=[ITEM(MAP_REMOVE(JSON_EXTRACT_ALL($3), ARRAY('created_at', 'server', '@timestamp', 'message', 'level', '_id', '_index', '_score', '_maxscore', '_sort', '_routing')), 'test')])
+        CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_logs]])
+  physical: |
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[JSON_EXTRACT_ALL($t0)], expr#2=['created_at'], expr#3=['server'], expr#4=['@timestamp'], expr#5=['message'], expr#6=['level'], expr#7=['_id'], expr#8=['_index'], expr#9=['_score'], expr#10=['_maxscore'], expr#11=['_sort'], expr#12=['_routing'], expr#13=[ARRAY($t2, $t3, $t4, $t5, $t6, $t7, $t8, $t9, $t10, $t11, $t12)], expr#14=[MAP_REMOVE($t1, $t13)], expr#15=['test'], expr#16=[ITEM($t14, $t15)], $f0=[$t16])
+      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_logs]], PushDownContext=[[PROJECT->[message], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10000,"timeout":"1m","_source":{"includes":["message"],"excludes":[]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])

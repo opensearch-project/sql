@@ -17,6 +17,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+import static org.opensearch.sql.data.type.ExprCoreType.UNDEFINED;
 import static org.opensearch.sql.utils.DateTimeFormatters.STRICT_HOUR_MINUTE_SECOND_FORMATTER;
 import static org.opensearch.sql.utils.DateTimeFormatters.STRICT_YEAR_MONTH_DAY_FORMATTER;
 
@@ -133,6 +134,7 @@ public class OpenSearchExprValueFactory {
           .put(
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Binary),
               (c, dt) -> new OpenSearchExprBinaryValue(c.stringValue()))
+          .put(OpenSearchDataType.of(UNDEFINED), (c, dt) -> parseContent(c))
           .build();
 
   /** Constructor of OpenSearchExprValueFactory. */
@@ -213,7 +215,7 @@ public class OpenSearchExprValueFactory {
     }
   }
 
-  private ExprValue parseContent(Content content) {
+  private static ExprValue parseContent(Content content) {
     if (content.isNumber()) {
       if (content.isInt()) {
         return new ExprIntegerValue(content.intValue());

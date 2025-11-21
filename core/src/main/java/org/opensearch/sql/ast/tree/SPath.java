@@ -28,7 +28,7 @@ public class SPath extends UnresolvedPlan {
 
   @Nullable private final String outField;
 
-  private final String path;
+  @Nullable private final String path;
 
   @Override
   public UnresolvedPlan attach(UnresolvedPlan child) {

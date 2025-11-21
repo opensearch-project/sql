@@ -58,6 +58,7 @@ import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
@@ -122,6 +123,7 @@ class OpenSearchExprValueFactoryTest {
           .put(fieldIp, OpenSearchDataType.of(OpenSearchDataType.MappingType.Ip))
           .put("geoV", OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint))
           .put("binaryV", OpenSearchDataType.of(OpenSearchDataType.MappingType.Binary))
+          .put("undefinedV", OpenSearchDataType.of(ExprCoreType.UNDEFINED))
           .build();
   private static final double TOLERANCE = 1E-5;
   private final OpenSearchExprValueFactory exprValueFactory =
@@ -946,6 +948,17 @@ class OpenSearchExprValueFactoryTest {
     IllegalStateException exception =
         assertThrows(IllegalStateException.class, () -> tupleValue("{\"invalid_json:1}"));
     assertEquals("invalid json: {\"invalid_json:1}.", exception.getMessage());
+  }
+
+  @Test
+  public void constructUndefined() {
+    assertAll(
+        () ->
+            assertEquals(
+                stringValue("text"), tupleValue("{\"undefinedV\":\"text\"}").get("undefinedV")),
+        () -> assertEquals(stringValue("text"), constructFromObject("undefinedV", "text")),
+        () -> assertEquals(integerValue(1), tupleValue("{\"undefinedV\":1}").get("undefinedV")),
+        () -> assertEquals(integerValue(1), constructFromObject("undefinedV", 1)));
   }
 
   @Test
