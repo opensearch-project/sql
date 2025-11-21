@@ -12,9 +12,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.time.temporal.Temporal;
-import java.util.TimeZone;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -28,9 +26,14 @@ public class DateDiffTest extends DateTimeTestBase {
   private static final LocalDate dateSample2 = LocalDate.of(1961, 4, 12);
   private static final LocalDate dateSample3 = LocalDate.of(1993, 3, 4);
   private static final LocalDate epochStart = LocalDate.of(1970, 1, 1);
-  private static final LocalDate dateNow = LocalDate.now();
+  // Use fixed date instead of LocalDate.now() to avoid timezone issues
+  private static final LocalDate dateNow = LocalDate.of(2023, 5, 15);
   private static final LocalDateTime dateTimeSample1 = LocalDateTime.of(1961, 4, 12, 9, 7);
   private static final LocalDateTime dateTimeSample2 = LocalDateTime.of(1993, 3, 4, 5, 6);
+  // Use fixed datetime instead of LocalDateTime.now()
+  private static final LocalDateTime fixedNow = LocalDateTime.of(2023, 5, 15, 12, 0, 0);
+  // Use fixed instant instead of Instant.now()
+  private static final Instant fixedInstantNow = Instant.parse("2023-05-15T12:00:00Z");
 
   // Function signature is:
   // (DATE/DATETIME/TIMESTAMP/TIME, DATE/DATETIME/TIMESTAMP/TIME) -> LONG
@@ -39,15 +42,14 @@ public class DateDiffTest extends DateTimeTestBase {
     return Stream.of(
         Arguments.of(timeSample1, timeSample2, 0L),
         Arguments.of(timeSample1, dateNow, 0L),
-        Arguments.of(timeSample1, LocalDateTime.now(), 0L),
-        Arguments.of(
-            timeSample1, Instant.now().plusMillis(TimeZone.getDefault().getRawOffset()), 0L),
+        Arguments.of(timeSample1, fixedNow, 0L),
+        Arguments.of(timeSample1, fixedInstantNow, 0L),
         Arguments.of(dateSample1, timeSample1, -DAYS.between(dateSample1, dateNow)),
         Arguments.of(dateSample1, dateSample3, -DAYS.between(dateSample1, dateSample3)),
         Arguments.of(dateSample1, dateTimeSample1, -DAYS.between(dateSample1, dateSample2)),
         Arguments.of(
             dateSample1, Instant.ofEpochSecond(42), -DAYS.between(dateSample1, epochStart)),
-        Arguments.of(dateTimeSample1, LocalTime.now(), -DAYS.between(dateSample2, dateNow)),
+        Arguments.of(dateTimeSample1, LocalTime.of(12, 0), -DAYS.between(dateSample2, dateNow)),
         Arguments.of(dateTimeSample1, dateSample3, -DAYS.between(dateSample2, dateSample3)),
         Arguments.of(dateTimeSample1, dateTimeSample2, -DAYS.between(dateSample2, dateSample3)),
         Arguments.of(
@@ -58,8 +60,8 @@ public class DateDiffTest extends DateTimeTestBase {
             Instant.ofEpochSecond(0), dateTimeSample2, -DAYS.between(epochStart, dateSample3)),
         Arguments.of(
             Instant.ofEpochSecond(0),
-            Instant.now(),
-            -DAYS.between(epochStart, LocalDateTime.now(ZoneId.of("UTC")))));
+            fixedInstantNow,
+            -DAYS.between(epochStart, fixedNow.toLocalDate())));
   }
 
   @ParameterizedTest

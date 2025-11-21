@@ -14,6 +14,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -72,7 +73,12 @@ public class TimestampTest extends ExpressionTestBase {
   public void timestamp_one_arg_time() {
     var expr = DSL.timestamp(functionProperties, DSL.time(DSL.literal("22:33:44")));
     assertEquals(TIMESTAMP, expr.type());
-    var refValue = LocalDate.now().atTime(LocalTime.of(22, 33, 44)).atZone(UTC_ZONE_ID).toInstant();
+    // Use fixed date to avoid timezone-dependent test failures
+    var refValue =
+        LocalDate.of(2023, 5, 15)
+            .atTime(LocalTime.of(22, 33, 44))
+            .atZone(ZoneOffset.UTC)
+            .toInstant();
     assertEquals(new ExprTimestampValue(refValue), expr.valueOf());
   }
 
@@ -109,7 +115,8 @@ public class TimestampTest extends ExpressionTestBase {
   }
 
   private static Stream<Arguments> getTestData() {
-    var today = LocalDate.now();
+    // Use fixed date to avoid timezone-dependent test failures
+    var today = LocalDate.of(2023, 5, 15);
     // First argument of `TIMESTAMP` function, second argument and expected result value
     return Stream.of(
         // STRING and STRING/DATE/TIME/DATETIME/TIMESTAMP

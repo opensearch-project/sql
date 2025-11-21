@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -225,7 +226,12 @@ class TimeStampDiffTest extends ExpressionTestBase {
   @ParameterizedTest
   @MethodSource("getUnits")
   public void testTimestampDiffWithTimeType(String unit) {
-    LocalDateTime base = LocalDateTime.of(LocalDate.now(), LocalTime.of(10, 11, 12));
+    // Use fixed date to avoid timezone-dependent test failures
+    LocalDateTime base = LocalDateTime.of(LocalDate.of(2023, 5, 15), LocalTime.of(10, 11, 12));
+
+    // Use fixed function properties to ensure consistent test results across timezones
+    FunctionProperties fixedFunctionProperties =
+        new FunctionProperties(Instant.parse("2023-05-15T00:00:00Z"), ZoneOffset.UTC);
 
     ExprValue timeExpr = generateArg(unit, "TIME", base, 0);
     ExprValue timestampExpr = generateArg(unit, "TIMESTAMP", base, 0);
@@ -237,7 +243,7 @@ class TimeStampDiffTest extends ExpressionTestBase {
 
     for (ExprValue arg1 : expressions) {
       for (ExprValue arg2 : expressions) {
-        FunctionExpression funcExpr = timestampdiffQuery(functionProperties, unit, arg1, arg2);
+        FunctionExpression funcExpr = timestampdiffQuery(fixedFunctionProperties, unit, arg1, arg2);
 
         assertEquals(0L, eval(funcExpr).longValue());
       }

@@ -129,27 +129,29 @@ class TimeStampAddTest extends ExpressionTestBase {
   }
 
   private static Stream<Arguments> getTestDataForTestAddingDatePartToTime() {
+    // Use fixed date to avoid timezone-dependent test failures
+    LocalDate fixedDate = LocalDate.of(2023, 5, 15);
     return Stream.of(
-        Arguments.of("DAY", 1, "10:11:12", LocalDate.now().plusDays(1)),
-        Arguments.of("DAY", 5, "10:11:12", LocalDate.now().plusDays(5)),
-        Arguments.of("DAY", 10, "10:11:12", LocalDate.now().plusDays(10)),
-        Arguments.of("DAY", -10, "10:11:12", LocalDate.now().plusDays(-10)),
-        Arguments.of("WEEK", 1, "10:11:12", LocalDate.now().plusWeeks(1)),
-        Arguments.of("WEEK", 5, "10:11:12", LocalDate.now().plusWeeks(5)),
-        Arguments.of("WEEK", 10, "10:11:12", LocalDate.now().plusWeeks(10)),
-        Arguments.of("WEEK", -10, "10:11:12", LocalDate.now().plusWeeks(-10)),
-        Arguments.of("MONTH", 1, "10:11:12", LocalDate.now().plusMonths(1)),
-        Arguments.of("MONTH", 5, "10:11:12", LocalDate.now().plusMonths(5)),
-        Arguments.of("MONTH", 10, "10:11:12", LocalDate.now().plusMonths(10)),
-        Arguments.of("MONTH", -10, "10:11:12", LocalDate.now().plusMonths(-10)),
-        Arguments.of("QUARTER", 1, "10:11:12", LocalDate.now().plusMonths(3 * 1)),
-        Arguments.of("QUARTER", 3, "10:11:12", LocalDate.now().plusMonths(3 * 3)),
-        Arguments.of("QUARTER", 5, "10:11:12", LocalDate.now().plusMonths(3 * 5)),
-        Arguments.of("QUARTER", -5, "10:11:12", LocalDate.now().plusMonths(3 * -5)),
-        Arguments.of("YEAR", 1, "10:11:12", LocalDate.now().plusYears(1)),
-        Arguments.of("YEAR", 5, "10:11:12", LocalDate.now().plusYears(5)),
-        Arguments.of("YEAR", 10, "10:11:12", LocalDate.now().plusYears(10)),
-        Arguments.of("YEAR", -10, "10:11:12", LocalDate.now().plusYears(-10)));
+        Arguments.of("DAY", 1, "10:11:12", fixedDate.plusDays(1)),
+        Arguments.of("DAY", 5, "10:11:12", fixedDate.plusDays(5)),
+        Arguments.of("DAY", 10, "10:11:12", fixedDate.plusDays(10)),
+        Arguments.of("DAY", -10, "10:11:12", fixedDate.plusDays(-10)),
+        Arguments.of("WEEK", 1, "10:11:12", fixedDate.plusWeeks(1)),
+        Arguments.of("WEEK", 5, "10:11:12", fixedDate.plusWeeks(5)),
+        Arguments.of("WEEK", 10, "10:11:12", fixedDate.plusWeeks(10)),
+        Arguments.of("WEEK", -10, "10:11:12", fixedDate.plusWeeks(-10)),
+        Arguments.of("MONTH", 1, "10:11:12", fixedDate.plusMonths(1)),
+        Arguments.of("MONTH", 5, "10:11:12", fixedDate.plusMonths(5)),
+        Arguments.of("MONTH", 10, "10:11:12", fixedDate.plusMonths(10)),
+        Arguments.of("MONTH", -10, "10:11:12", fixedDate.plusMonths(-10)),
+        Arguments.of("QUARTER", 1, "10:11:12", fixedDate.plusMonths(3 * 1)),
+        Arguments.of("QUARTER", 3, "10:11:12", fixedDate.plusMonths(3 * 3)),
+        Arguments.of("QUARTER", 5, "10:11:12", fixedDate.plusMonths(3 * 5)),
+        Arguments.of("QUARTER", -5, "10:11:12", fixedDate.plusMonths(3 * -5)),
+        Arguments.of("YEAR", 1, "10:11:12", fixedDate.plusYears(1)),
+        Arguments.of("YEAR", 5, "10:11:12", fixedDate.plusYears(5)),
+        Arguments.of("YEAR", 10, "10:11:12", fixedDate.plusYears(10)),
+        Arguments.of("YEAR", -10, "10:11:12", fixedDate.plusYears(-10)));
   }
 
   @ParameterizedTest
@@ -181,8 +183,10 @@ class TimeStampAddTest extends ExpressionTestBase {
             DSL.literal(new ExprIntegerValue(addedInterval)),
             DSL.literal(new ExprTimeValue(timeArg)));
 
+    // Use fixed date to avoid timezone-dependent test failures
     LocalDateTime expected =
-        LocalDateTime.of(LocalDate.now(), LocalTime.parse(timeArg).plusMinutes(addedInterval));
+        LocalDateTime.of(
+            LocalDate.of(2023, 5, 15), LocalTime.parse(timeArg).plusMinutes(addedInterval));
 
     assertEquals(new ExprDatetimeValue(expected), eval(expr));
   }
