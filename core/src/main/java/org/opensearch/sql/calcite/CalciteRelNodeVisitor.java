@@ -331,6 +331,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitRex(Rex node, CalcitePlanContext context) {
     visitChildren(node, context);
 
+    flushFiltersBeforeSchemaChange(context);
+
     RexNode fieldRex = rexVisitor.analyze(node.getField(), context);
     String patternStr = (String) node.getPattern().getValue();
 
@@ -731,6 +733,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitBin(Bin node, CalcitePlanContext context) {
     visitChildren(node, context);
 
+    flushFiltersBeforeSchemaChange(context);
+
     RexNode fieldExpr = rexVisitor.analyze(node.getField(), context);
     String fieldName = BinUtils.extractFieldName(node);
 
@@ -745,6 +749,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitParse(Parse node, CalcitePlanContext context) {
     visitChildren(node, context);
+    flushFiltersBeforeSchemaChange(context);
     buildParseRelNode(node, context);
     return context.relBuilder.peek();
   }
