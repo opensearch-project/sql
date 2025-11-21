@@ -616,13 +616,13 @@ public interface PlanUtils {
                 .build());
   }
 
-  static boolean isTopHitsAgg(AggregateCall aggCall) {
-    return aggCall.getAggregation().kind == SqlKind.LITERAL_AGG
-        && aggCall.rexList.stream()
-            .anyMatch(
-                rex ->
-                    rex instanceof RexLiteral literal
-                        && literal.getValueAs(String.class).equals("TopHits"));
+  static @Nullable RexLiteral getObjectFromLiteralAgg(AggregateCall aggCall) {
+    if (aggCall.getAggregation().kind == SqlKind.LITERAL_AGG) {
+      return (RexLiteral)
+          aggCall.rexList.stream().filter(rex -> rex instanceof RexLiteral).findAny().orElse(null);
+    } else {
+      return null;
+    }
   }
 
   /**

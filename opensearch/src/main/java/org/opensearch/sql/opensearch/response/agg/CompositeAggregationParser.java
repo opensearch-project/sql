@@ -5,11 +5,12 @@
 
 package org.opensearch.sql.opensearch.response.agg;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.opensearch.search.SearchHits;
@@ -38,14 +39,14 @@ public class CompositeAggregationParser implements OpenSearchAggregationResponse
   @Override
   public List<Map<String, Object>> parse(Aggregations aggregations) {
     return ((CompositeAggregation) aggregations.asList().get(0))
-        .getBuckets().stream().map(this::parse).collect(Collectors.toList());
+        .getBuckets().stream().map(this::parse).flatMap(Collection::stream).toList();
   }
 
-  private Map<String, Object> parse(CompositeAggregation.Bucket bucket) {
-    Map<String, Object> resultMap = new HashMap<>();
-    resultMap.putAll(bucket.getKey());
-    resultMap.putAll(metricsParser.parse(bucket.getAggregations()));
-    return resultMap;
+  private List<Map<String, Object>> parse(CompositeAggregation.Bucket bucket) {
+    List<Map<String, Object>> resultMapList = new ArrayList<>();
+    resultMapList.add(new HashMap<>(bucket.getKey()));
+    resultMapList.addAll(metricsParser.parse(bucket.getAggregations()));
+    return resultMapList;
   }
 
   @Override

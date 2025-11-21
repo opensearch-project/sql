@@ -28,7 +28,6 @@
 package org.opensearch.sql.opensearch.request;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.calcite.sql.SqlKind.LITERAL_AGG;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
@@ -352,7 +351,7 @@ public class AggregateAnalyzer {
       AggregateCall aggCall, Project project, AggregateAnalyzer.AggregateBuilderHelper helper) {
     return project == null
         ? List.of()
-        : PlanUtils.isTopHitsAgg(aggCall)
+        : PlanUtils.getObjectFromLiteralAgg(aggCall) != null
             ? project.getProjects().stream().filter(rex -> !rex.isA(SqlKind.ROW_NUMBER)).toList()
             : aggCall.getArgList().stream().map(project.getProjects()::get).toList();
   }
@@ -482,7 +481,7 @@ public class AggregateAnalyzer {
                   .fetchField(helper.inferNamedField(args.getFirst()).getReferenceForTermQuery())
                   .size(helper.inferValue(args.getLast(), Integer.class))
                   .from(0),
-              new TopHitsParser(aggFieldName));
+              new TopHitsParser(aggFieldName, false));
           case FIRST -> {
             TopHitsAggregationBuilder firstBuilder =
                 AggregationBuilders.topHits(aggFieldName).size(1).from(0);
@@ -525,30 +524,31 @@ public class AggregateAnalyzer {
         };
       }
       case LITERAL_AGG -> {
-        if (PlanUtils.isTopHitsAgg(aggCall)) {
-          TopHitsAggregationBuilder topHitsAggregationBuilder =
-              AggregationBuilders.topHits(aggFieldName).size(1).from(0);
-          args.stream()
-              .forEach(
-                  rex -> {
-                    if (rex instanceof RexInputRef) {
-                      topHitsAggregationBuilder.fetchField(
-                          helper.inferNamedField(rex).getReference());
-                    } else if (rex instanceof RexCall || rex instanceof RexLiteral) {
-                      topHitsAggregationBuilder.scriptField(
-                          helper.inferNamedField(rex).getReference(),
-                          helper.inferScript(rex).getScript());
-                    } else {
-                      throw new AggregateAnalyzer.AggregateAnalyzerException(
-                          String.format(
-                              "Unsupported push-down aggregator %s due to rex type is %s",
-                              aggCall.getAggregation(), rex.getKind()));
-                    }
-                  });
-          yield Pair.of(topHitsAggregationBuilder, new TopHitsParser(aggFieldName, false, true));
+        RexLiteral literal = PlanUtils.getObjectFromLiteralAgg(aggCall);
+        if (literal == null || !(literal.getValue() instanceof Number)) {
+          throw new AggregateAnalyzer.AggregateAnalyzerException(
+              String.format("Unsupported push-down aggregator %s", aggCall.getAggregation()));
         }
-        throw new AggregateAnalyzer.AggregateAnalyzerException(
-            String.format("Unsupported push-down aggregator %s", aggCall.getAggregation()));
+        Integer dedupNumber = literal.getValueAs(Integer.class);
+        TopHitsAggregationBuilder topHitsAggregationBuilder =
+            AggregationBuilders.topHits(aggFieldName).from(0).fetchSource(false).size(dedupNumber);
+        args.stream()
+            .forEach(
+                rex -> {
+                  if (rex instanceof RexInputRef) {
+                    topHitsAggregationBuilder.fetchField(
+                        helper.inferNamedField(rex).getReference());
+                  } else if (rex instanceof RexCall || rex instanceof RexLiteral) {
+                    topHitsAggregationBuilder.scriptField(
+                        rex.toString(), helper.inferScript(rex).getScript());
+                  } else {
+                    throw new AggregateAnalyzer.AggregateAnalyzerException(
+                        String.format(
+                            "Unsupported push-down aggregator %s due to rex type is %s",
+                            aggCall.getAggregation(), rex.getKind()));
+                  }
+                });
+        yield Pair.of(topHitsAggregationBuilder, new TopHitsParser(aggFieldName, false));
       }
       default -> throw new AggregateAnalyzer.AggregateAnalyzerException(
           String.format("unsupported aggregator %s", aggCall.getAggregation()));

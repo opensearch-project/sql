@@ -186,19 +186,25 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testEvalDedup() {
+  public void testDedupExpr() {
     String ppl =
-        "source=EMP | eval NEW_DEPTNO = DEPTNO + 1 | fields NEW_DEPTNO, EMPNO, ENAME, JOB | dedup 1"
-            + " NEW_DEPTNO";
+        "source=EMP | eval NEW_DEPTNO = DEPTNO + 1 | fields EMPNO, ENAME, JOB, DEPTNO, NEW_DEPTNO |"
+            + " dedup 1 NEW_DEPTNO";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3])\n"
-            + "  LogicalFilter(condition=[<=($4, 1)])\n"
-            + "    LogicalProject(NEW_DEPTNO=[$0], EMPNO=[$1], ENAME=[$2], JOB=[$3],"
-            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $0)])\n"
-            + "      LogicalFilter(condition=[IS NOT NULL($0)])\n"
-            + "        LogicalProject(NEW_DEPTNO=[+($7, 1)], EMPNO=[$0], ENAME=[$1], JOB=[$2])\n"
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], DEPTNO=[$3], NEW_DEPTNO=[$4])\n"
+            + "  LogicalFilter(condition=[<=($5, 1)])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], DEPTNO=[$3], NEW_DEPTNO=[$4],"
+            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $4 ORDER BY $4)])\n"
+            + "      LogicalFilter(condition=[IS NOT NULL($4)])\n"
+            + "        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], DEPTNO=[$7],"
+            + " NEW_DEPTNO=[+($7, 1)])\n"
             + "          LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    ppl =
+        "source=EMP | fields EMPNO, ENAME, JOB, DEPTNO | eval NEW_DEPTNO = DEPTNO + 1 | dedup 1"
+            + " NEW_DEPTNO";
+    root = getRelNode(ppl);
     verifyLogical(root, expectedLogical);
     ppl =
         "source=EMP | eval NEW_DEPTNO = DEPTNO + 1 | fields NEW_DEPTNO, EMPNO, ENAME, JOB | dedup 1"

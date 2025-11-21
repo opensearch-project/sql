@@ -1789,6 +1789,101 @@ public class CalciteExplainIT extends ExplainIT {
     String expected = loadExpectedPlan("explain_dedup_complex1.yaml");
     assertYamlEqualsIgnoreId(
         expected, explainQueryYaml("source=opensearch-sql_test_index_account | dedup 1 gender"));
+    expected = loadExpectedPlan("explain_dedup_complex2.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | fields account_number, gender, age, state |"
+                + " dedup 1 gender, state"));
+    expected = loadExpectedPlan("explain_dedup_complex3.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml("source=opensearch-sql_test_index_account | dedup 2 gender, state"));
+    expected = loadExpectedPlan("explain_dedup_complex4.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | fields account_number, gender, age, state |"
+                + " dedup 2 gender, state"));
+  }
+
+  @Ignore("https://github.com/opensearch-project/sql/issues/4789")
+  public void testDedupExpr() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_dedup_expr1.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | eval new_gender = lower(gender) | dedup 1"
+                + " new_gender"));
+    expected = loadExpectedPlan("explain_dedup_expr2.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | fields account_number, gender, age, state |"
+                + " eval new_gender = lower(gender), new_state = lower(state) | dedup 1 new_gender,"
+                + " new_state"));
+    expected = loadExpectedPlan("explain_dedup_expr3.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | eval new_gender = lower(gender) | eval"
+                + " new_state = lower(state) | dedup 2 new_gender, new_state"));
+    expected = loadExpectedPlan("explain_dedup_expr4.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | fields account_number, gender, age, state |"
+                + " eval new_gender = lower(gender) | eval new_state = lower(state) | sort gender,"
+                + " -state | dedup 2 new_gender, new_state"));
+  }
+
+  @Ignore("https://github.com/opensearch-project/sql/issues/4789")
+  public void testDedupRename() throws IOException {
+    // rename changes nothing, reuse the same yaml files of testDedupExpr()
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_dedup_expr1.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | eval tmp_gender = lower(gender) | rename"
+                + " tmp_gender as new_gender | dedup 1 new_gender"));
+    expected = loadExpectedPlan("explain_dedup_expr2.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | fields account_number, gender, age, state |"
+                + " eval tmp_gender = lower(gender), tmp_state = lower(state) | rename tmp_gender"
+                + " as new_gender | rename tmp_state as new_state | dedup 1 new_gender,"
+                + " new_state"));
+    expected = loadExpectedPlan("explain_dedup_expr3.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | eval tmp_gender = lower(gender) | eval"
+                + " tmp_state = lower(state) | rename tmp_gender as new_gender | rename tmp_state"
+                + " as new_state | dedup 2 new_gender, new_state"));
+    expected = loadExpectedPlan("explain_dedup_expr4.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | fields account_number, gender, age, state |"
+                + " eval tmp_gender = lower(gender) | eval tmp_state = lower(state) | rename"
+                + " tmp_gender as new_gender | rename tmp_state as new_state | sort gender,"
+                + " -state | dedup 2 new_gender, new_state"));
+  }
+
+  @Ignore("SortExprIndexScanRule not work?")
+  public void testDedupRename2() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_dedup_expr4.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | fields account_number, gender, age, state |"
+                + " eval tmp_gender = lower(gender) | eval tmp_state = lower(state) | rename"
+                + " tmp_gender as new_gender | rename tmp_state as new_state | sort new_gender,"
+                + " -new_state | dedup 2 new_gender, new_state"));
   }
 
   @Test

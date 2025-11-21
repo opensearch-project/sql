@@ -14,7 +14,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.opensearch.response.AggregationResponseUtils.fromJson;
 import static org.opensearch.sql.opensearch.response.agg.Utils.handleNanInfValue;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Map;
@@ -131,9 +130,9 @@ class OpenSearchAggregationResponseParserTest {
         new CompositeAggregationParser(new SingleValueParser("avg"));
     assertThat(
         parse(parser, response),
-        containsInAnyOrder(
-            ImmutableMap.of("type", "cost", "region", "us", "avg", 20d),
-            ImmutableMap.of("type", "sale", "region", "uk", "avg", 130d)));
+        contains(
+            ImmutableMap.of("type", "cost", "region", "us"), ImmutableMap.of("avg", 20d),
+            ImmutableMap.of("type", "sale", "region", "uk"), ImmutableMap.of("avg", 130d)));
   }
 
   @Test
@@ -296,10 +295,13 @@ class OpenSearchAggregationResponseParserTest {
             + "  }\n"
             + "}";
     OpenSearchAggregationResponseParser parser =
-        new CompositeAggregationParser(new TopHitsParser("take"));
+        new CompositeAggregationParser(new TopHitsParser("take", false));
     assertThat(
         parse(parser, response),
-        contains(ImmutableMap.of("type", "take", "take", ImmutableList.of("m", "f"))));
+        contains(
+            ImmutableMap.of("type", "take"),
+            ImmutableMap.of("gender", "m"),
+            ImmutableMap.of("gender", "f")));
   }
 
   /** SELECT PERCENTILE(age, 50) FROM accounts. */
@@ -422,9 +424,11 @@ class OpenSearchAggregationResponseParserTest {
             new SinglePercentileParser("percentile"), new SingleValueParser("max"));
     assertThat(
         parse(parser, response),
-        containsInAnyOrder(
-            ImmutableMap.of("type", "cost", "region", "us", "percentile", 40d),
-            ImmutableMap.of("type", "sale", "region", "uk", "percentile", 100d)));
+        contains(
+            ImmutableMap.of("type", "cost", "region", "us"),
+            ImmutableMap.of("percentile", 40d),
+            ImmutableMap.of("type", "sale", "region", "uk"),
+            ImmutableMap.of("percentile", 100d)));
   }
 
   /** SELECT PERCENTILES(age) FROM accounts. */
@@ -560,21 +564,11 @@ class OpenSearchAggregationResponseParserTest {
         new CompositeAggregationParser(new PercentilesParser("percentiles"));
     assertThat(
         parse(parser, response),
-        containsInAnyOrder(
-            ImmutableMap.of(
-                "type",
-                "cost",
-                "region",
-                "us",
-                "percentiles",
-                List.of(21.0, 27.0, 30.0, 35.0, 55.0, 58.0, 60.0)),
-            ImmutableMap.of(
-                "type",
-                "sale",
-                "region",
-                "uk",
-                "percentiles",
-                List.of(21.0, 27.0, 30.0, 35.0, 55.0, 58.0, 60.0))));
+        contains(
+            ImmutableMap.of("type", "cost", "region", "us"),
+                ImmutableMap.of("percentiles", List.of(21.0, 27.0, 30.0, 35.0, 55.0, 58.0, 60.0)),
+            ImmutableMap.of("type", "sale", "region", "uk"),
+                ImmutableMap.of("percentiles", List.of(21.0, 27.0, 30.0, 35.0, 55.0, 58.0, 60.0))));
   }
 
   public List<Map<String, Object>> parse(OpenSearchAggregationResponseParser parser, String json) {

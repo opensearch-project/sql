@@ -156,7 +156,7 @@ public class MetricAggregationBuilder
             node.getArguments().get(1),
             condition,
             name,
-            new TopHitsParser(name));
+            new TopHitsParser(name, false));
       case "percentile":
       case "percentile_approx":
         return make(

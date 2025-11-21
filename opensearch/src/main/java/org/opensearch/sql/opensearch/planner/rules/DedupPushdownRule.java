@@ -5,11 +5,11 @@
 
 package org.opensearch.sql.opensearch.planner.rules;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
@@ -18,7 +18,6 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.RelBuilder;
@@ -28,7 +27,6 @@ import org.apache.logging.log4j.Logger;
 import org.immutables.value.Value;
 import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
 import org.opensearch.sql.calcite.utils.PlanUtils;
-import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
@@ -46,13 +44,18 @@ public class DedupPushdownRule extends RelRule<DedupPushdownRule.Config> {
     final LogicalFilter numOfDedupFilter = call.rel(1);
     final LogicalProject projectWithWindow = call.rel(2);
     if (call.rels.length == 4) {
-      System.out.println("dedup " + numOfDedupFilter);
       final CalciteLogicalIndexScan scan = call.rel(3);
       apply(call, finalProject, numOfDedupFilter, projectWithWindow, scan);
-    } else if (call.rels.length == 5) {
-      final LogicalProject project = call.rel(4);
+    } else if (call.rels.length == 6) {
+      final LogicalProject projectWithCall = call.rel(4);
       final CalciteLogicalIndexScan scan = call.rel(5);
-      apply(call, finalProject, numOfDedupFilter, projectWithWindow, scan);
+      apply(
+          call,
+          finalProject,
+          numOfDedupFilter,
+          projectWithWindow,
+          //          Optional.of(projectWithCall),
+          scan);
     } else {
       throw new AssertionError(
           String.format(
@@ -90,7 +93,28 @@ public class DedupPushdownRule extends RelRule<DedupPushdownRule.Config> {
       return;
     }
 
-    // Initialization for building Aggregate
+    List<RexNode> rexCallsExceptWindow =
+        projectWithWindow.getProjects().stream()
+            .filter(rex -> !rex.isA(SqlKind.ROW_NUMBER))
+            .filter(rex -> rex instanceof RexCall)
+            .toList();
+    if (!rexCallsExceptWindow.isEmpty()
+        && hasRexCallAppliedOnDedupColumn(rexCallsExceptWindow, dedupColumns)) {
+      // TODO https://github.com/opensearch-project/sql/issues/4789
+      return;
+    }
+
+    // must be row_number <= number
+    assert numOfDedupFilter.getCondition().isA(SqlKind.LESS_THAN_OR_EQUAL);
+    RexLiteral literal =
+        (RexLiteral) ((RexCall) numOfDedupFilter.getCondition()).getOperands().getLast();
+    Integer dedupNumer = literal.getValueAs(Integer.class);
+
+    // We convert the dedup pushdown to composite aggregate + top_hits:
+    // Aggregate(literalAgg(dedupNumer), groups)
+    // +- Project(groups, remaining)
+    //    +- Scan
+    // 1. push Scan
     RelBuilder relBuilder = call.builder();
     relBuilder.push(scan);
     Mapping mappingForDedupColumns =
@@ -101,27 +125,35 @@ public class DedupPushdownRule extends RelRule<DedupPushdownRule.Config> {
         .filter(rex -> !rex.isA(SqlKind.ROW_NUMBER))
         .filter(Predicate.not(dedupColumns::contains))
         .forEach(reordered::add);
-    relBuilder.project(reordered);
+    // 2. push Project
+    relBuilder.project(reordered, ImmutableList.of(), true);
     // childProject includes all list of finalOutput columns
     LogicalProject childProject = (LogicalProject) relBuilder.peek();
 
     final List<RexNode> newDedupColumns = RexUtil.apply(mappingForDedupColumns, dedupColumns);
-    // Create the Aggregate for pushdown.
-    relBuilder.aggregate(relBuilder.groupKey(newDedupColumns), relBuilder.literalAgg("TopHits"));
+    // 3. push Aggregate
+    relBuilder.aggregate(relBuilder.groupKey(newDedupColumns), relBuilder.literalAgg(dedupNumer));
+    PlanUtils.addIgnoreNullBucketHintToAggregate(relBuilder);
+    // peek the aggregate after hint being added
+    LogicalAggregate aggregate = (LogicalAggregate) relBuilder.build();
 
-    List<RexNode> predicates = RelOptUtil.disjunctions(numOfDedupFilter.getCondition());
-    if (predicates.size() == 1) {
-      // KEEPEMPTY=false
-      PlanUtils.addIgnoreNullBucketHintToAggregate(relBuilder);
-      // peek the aggregate after hint being added
-      LogicalAggregate aggregate = (LogicalAggregate) relBuilder.build();
-      CalciteLogicalIndexScan newScan =
-          (CalciteLogicalIndexScan) scan.pushDownAggregate(aggregate, childProject);
-      if (newScan != null) {
-        // reorder back to original order
-        call.transformTo(newScan.copyWithNewSchema(finalProject.getRowType()));
-      }
+    CalciteLogicalIndexScan newScan =
+        (CalciteLogicalIndexScan) scan.pushDownAggregate(aggregate, childProject);
+    if (newScan != null) {
+      // reorder back to original order
+      call.transformTo(newScan.copyWithNewSchema(finalProject.getRowType()));
     }
+  }
+
+  private static boolean hasRexCallAppliedOnDedupColumn(
+      List<RexNode> calls, List<RexNode> dedupColumns) {
+    List<Integer> dedupColumnIndicesFromCall =
+        PlanUtils.getSelectColumns(calls).stream().distinct().toList();
+    List<Integer> dedupColumnsIndicesFromPartitionKeys =
+        PlanUtils.getSelectColumns(dedupColumns).stream().distinct().toList();
+    // check dedupColumnIndicesFromCall equals to dedupColumnsIndicesFromPartitionKeys
+    return dedupColumnsIndicesFromPartitionKeys.stream()
+        .anyMatch(dedupColumnIndicesFromCall::contains);
   }
 
   @Value.Immutable
@@ -129,11 +161,12 @@ public class DedupPushdownRule extends RelRule<DedupPushdownRule.Config> {
     // Can only push the case with KEEPEMPTY=false:
     // +- LogicalProject(no _row_number_dedup_)
     //    +- LogicalFilter(condition contains _row_number_dedup_)
-    //       +- LogicalProject(contains _row_number_dedup_, no call)
+    //       +- LogicalProject(contains _row_number_dedup_)
     //          +- CalciteLogicalIndexScan
     Config DEFAULT =
         ImmutableDedupPushdownRule.Config.builder()
             .build()
+            .withDescription("Dedup-to-Aggregate")
             .withOperandSupplier(
                 b0 ->
                     b0.operand(LogicalProject.class)
@@ -141,7 +174,7 @@ public class DedupPushdownRule extends RelRule<DedupPushdownRule.Config> {
                         .oneInput(
                             b1 ->
                                 b1.operand(LogicalFilter.class)
-                                    .predicate(Config::validFilter)
+                                    .predicate(Config::validDedupNumberChecker)
                                     .oneInput(
                                         b2 ->
                                             b2.operand(LogicalProject.class)
@@ -162,12 +195,15 @@ public class DedupPushdownRule extends RelRule<DedupPushdownRule.Config> {
                                                             .noInputs()))));
     // +- LogicalProject(no _row_number_dedup_)
     //    +- LogicalFilter(condition contains _row_number_dedup_)
-    //       +- LogicalProject(contains _row_number_dedup_, not contains call)
-    //          +- LogicalProject(contains call) <- cannot pushdown script project
+    //       +- LogicalProject(contains _row_number_dedup_)
+    //          +- LogicalFilter(condition IS NOT NULL(dedupColumn)) // could be optimized similar
+    // to https://github.com/opensearch-project/sql/issues/4811
+    //             +- LogicalProject(dedupColumn is call)
     //                +- CalciteLogicalIndexScan
-    Config DEDUP_SCRIPT =
+    Config DEDUP_EXPR =
         ImmutableDedupPushdownRule.Config.builder()
             .build()
+            .withDescription("DedupWithExpression-to-Aggregate")
             .withOperandSupplier(
                 b0 ->
                     b0.operand(LogicalProject.class)
@@ -175,74 +211,51 @@ public class DedupPushdownRule extends RelRule<DedupPushdownRule.Config> {
                         .oneInput(
                             b1 ->
                                 b1.operand(LogicalFilter.class)
-                                    .predicate(Config::validFilter)
+                                    .predicate(Config::validDedupNumberChecker)
                                     .oneInput(
                                         b2 ->
                                             b2.operand(LogicalProject.class)
                                                 .predicate(PlanUtils::containsRowNumberDedup)
                                                 .oneInput(
                                                     b3 ->
-                                                        b3.operand(LogicalProject.class)
-                                                            .predicate(PlanUtils::containsRexCall)
+                                                        b3.operand(LogicalFilter.class)
+                                                            .predicate(Config::isNotNull)
                                                             .oneInput(
                                                                 b4 ->
-                                                                    b4.operand(
-                                                                            CalciteLogicalIndexScan
-                                                                                .class)
+                                                                    b4.operand(LogicalProject.class)
                                                                         .predicate(
-                                                                            Predicate.not(
-                                                                                    AbstractCalciteIndexScan
-                                                                                        ::isLimitPushed)
-                                                                                .and(
-                                                                                    AbstractCalciteIndexScan
-                                                                                        ::noAggregatePushed)
-                                                                                .and(
-                                                                                    AbstractCalciteIndexScan
-                                                                                        ::isProjectPushed))
-                                                                        .noInputs())))));
+                                                                            PlanUtils
+                                                                                ::containsRexCall)
+                                                                        .oneInput(
+                                                                            b5 ->
+                                                                                b5.operand(
+                                                                                        CalciteLogicalIndexScan
+                                                                                            .class)
+                                                                                    .predicate(
+                                                                                        Predicate
+                                                                                            .not(
+                                                                                                AbstractCalciteIndexScan
+                                                                                                    ::isLimitPushed)
+                                                                                            .and(
+                                                                                                AbstractCalciteIndexScan
+                                                                                                    ::noAggregatePushed)
+                                                                                            .and(
+                                                                                                AbstractCalciteIndexScan
+                                                                                                    ::isProjectPushed))
+                                                                                    .noInputs()))))));
 
     @Override
     default DedupPushdownRule toRule() {
       return new DedupPushdownRule(this);
     }
 
-    private static boolean validFilter(LogicalFilter filter) {
-      try {
-        filter
-            .getCondition()
-            .accept(
-                new RexVisitorImpl<Void>(true) {
-                  @Override
-                  public Void visitCall(RexCall call) {
-                    if (call.isA(SqlKind.LESS_THAN_OR_EQUAL)) {
-                      List<RexNode> operandsOfCondition = call.getOperands();
-                      RexNode rightOperand = operandsOfCondition.getLast();
-                      if (!(rightOperand instanceof RexLiteral numLiteral)) {
-                        throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
-                            "Cannot pushdown the dedup since the right operand is not RexLiteral");
-                      }
-                      Integer num = numLiteral.getValueAs(Integer.class);
-                      if (num == null || num > 1) {
-                        // TODO https://github.com/opensearch-project/sql/issues/4789
-                        // support number of duplication more than 1
-                        throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
-                            "Cannot pushdown the dedup since number of duplicate events is larger"
-                                + " than 1");
-                      }
-                    } else {
-                      // Only support the case with KEEPEMPTY=false
-                      throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
-                          "Cannot pushdown the dedup since the condition type is "
-                              + call.getKind());
-                    }
-                    return null;
-                  }
-                });
-        return PlanUtils.containsRowNumberDedup(filter);
-      } catch (Exception e) {
-        if (LOG.isDebugEnabled()) LOG.debug(e.getMessage());
-        return false;
-      }
+    private static boolean validDedupNumberChecker(LogicalFilter filter) {
+      return filter.getCondition().isA(SqlKind.LESS_THAN_OR_EQUAL)
+          && PlanUtils.containsRowNumberDedup(filter);
+    }
+
+    private static boolean isNotNull(LogicalFilter filter) {
+      return filter.getCondition().isA(SqlKind.IS_NOT_NULL);
     }
   }
 }
