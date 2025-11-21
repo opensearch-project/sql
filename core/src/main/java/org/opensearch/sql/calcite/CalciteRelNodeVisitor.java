@@ -182,13 +182,24 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       context.enableFilterAccumulation();
       try {
         unresolved.accept(this, context);
-        context.flushFilterConditions(); // Flush accumulated conditions before returning
-        return context.relBuilder.peek(); // Get the result after flushing
+        context.flushFilterConditions();
+        return context.relBuilder.peek();
       } finally {
         context.disableFilterAccumulation();
       }
     } else {
       return unresolved.accept(this, context);
+    }
+  }
+
+  /**
+   * Flushes accumulated filter conditions before schema-changing operations. This prevents
+   * RexInputRef index mismatches that occur when filters reference field indices from the old
+   * schema.
+   */
+  private void flushFiltersBeforeSchemaChange(CalcitePlanContext context) {
+    if (context.isFilterAccumulationEnabled() && context.hasPendingFilterConditions()) {
+      context.flushFilterConditions();
     }
   }
 
@@ -407,10 +418,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitProject(Project node, CalcitePlanContext context) {
     visitChildren(node, context);
 
-    // Flush accumulated filter conditions before schema-changing operations
-    if (context.isFilterAccumulationEnabled() && context.hasPendingFilterConditions()) {
-      context.flushFilterConditions();
-    }
+    flushFiltersBeforeSchemaChange(context);
 
     if (isSingleAllFieldsProject(node)) {
       return handleAllFieldsProject(node, context);
@@ -886,6 +894,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitEval(Eval node, CalcitePlanContext context) {
     visitChildren(node, context);
+
+    flushFiltersBeforeSchemaChange(context);
+
     node.getExpressionList()
         .forEach(
             expr -> {
@@ -1155,6 +1166,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   /** Visits an aggregation for stats command */
   @Override
   public RelNode visitAggregation(Aggregation node, CalcitePlanContext context) {
+    // Flush accumulated filter conditions before schema-changing aggregation operations
+    flushFiltersBeforeSchemaChange(context);
+
     Argument.ArgumentMap statsArgs = Argument.ArgumentMap.of(node.getArgExprList());
     Boolean bucketNullable = (Boolean) statsArgs.get(Argument.BUCKET_NULLABLE).getValue();
     int nGroup = node.getGroupExprList().size() + (Objects.nonNull(node.getSpan()) ? 1 : 0);
@@ -2273,10 +2287,26 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitMultisearch(Multisearch node, CalcitePlanContext context) {
     List<RelNode> subsearchNodes = new ArrayList<>();
+    // Save the current filter accumulation state - we'll process each subsearch independently
+    boolean wasFilterAccumulationEnabled = context.isFilterAccumulationEnabled();
+
     for (UnresolvedPlan subsearch : node.getSubsearches()) {
       UnresolvedPlan prunedSubSearch = subsearch.accept(new EmptySourcePropagateVisitor(), null);
-      prunedSubSearch.accept(this, context);
+
+      // Temporarily disable filter accumulation so each subsearch gets its own independent
+      // lifecycle via analyze(). This prevents filter state from bleeding across branches.
+      if (wasFilterAccumulationEnabled) {
+        context.disableFilterAccumulation();
+      }
+
+      // Use analyze() to let each subsearch determine its own filter accumulation needs
+      analyze(prunedSubSearch, context);
       subsearchNodes.add(context.relBuilder.build());
+
+      // Restore filter accumulation state for the next iteration
+      if (wasFilterAccumulationEnabled) {
+        context.enableFilterAccumulation();
+      }
     }
 
     // Use shared schema merging logic that handles type conflicts via field renaming
@@ -3273,8 +3303,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
    * RelNodes. This is used to detect queries with multiple regex/filter operations that could cause
    * deep Filter RelNode chains and memory exhaustion.
    *
+   * <p>Stops counting at schema-changing operations (like Aggregation, Project with computed
+   * expressions) to avoid enabling filter accumulation across schema boundaries, which would cause
+   * RexInputRef index mismatches.
+   *
    * @param plan the UnresolvedPlan to analyze
-   * @return the count of filtering operations found
+   * @return the count of filtering operations found before the first schema-changing operation
    */
   private int countFilteringOperations(UnresolvedPlan plan) {
     if (plan == null) {
@@ -3284,8 +3318,25 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     int count = 0;
 
     // Count this node if it's a filtering operation
-    if (plan instanceof Regex || plan instanceof Filter) {
+    // BUT: Don't count Filter nodes that contain function calls, as they can cause
+    // type mismatches when accumulated and flushed later
+    if (plan instanceof Regex) {
       count = 1;
+    } else if (plan instanceof Filter) {
+      Filter filterNode = (Filter) plan;
+      if (!containsFunctionCall(filterNode.getCondition())) {
+        count = 1;
+      }
+    }
+
+    // Stop counting at schema-changing operations to prevent accumulation across schema boundaries
+    // Schema-changing operations include: Aggregation, Eval, Project (with computed expressions),
+    // Window, StreamWindow, etc.
+    if (plan instanceof Aggregation
+        || plan instanceof Eval
+        || plan instanceof Window
+        || plan instanceof StreamWindow) {
+      return count; // Don't recurse into children beyond schema changes
     }
 
     // Recursively count filtering operations in children
@@ -3298,5 +3349,30 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     return count;
+  }
+
+  /**
+   * Checks if an expression contains any function calls. Filter expressions with function calls can
+   * cause type mismatches when accumulated and flushed later, so we exclude them from filter
+   * accumulation.
+   */
+  private boolean containsFunctionCall(UnresolvedExpression expr) {
+    if (expr == null) {
+      return false;
+    }
+
+    if (expr instanceof org.opensearch.sql.ast.expression.Function) {
+      return true;
+    }
+
+    // Check children recursively
+    for (Node child : expr.getChild()) {
+      if (child instanceof UnresolvedExpression
+          && containsFunctionCall((UnresolvedExpression) child)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }
