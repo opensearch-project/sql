@@ -830,6 +830,15 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testMvdedup() {
+    // Test mvdedup with array containing duplicates
+    assertEquals(
+        "source=table | eval identifier=mvdedup(array(***,***,***,***,***,***)) | fields +"
+            + " identifier",
+        anonymize("source=t | eval result=mvdedup(array(1, 2, 2, 3, 1, 4)) | fields result"));
+  }
+
+  @Test
   public void testRexWithOffsetField() {
     when(settings.getSettingValue(Key.PPL_REX_MAX_MATCH_LIMIT)).thenReturn(10);
 
