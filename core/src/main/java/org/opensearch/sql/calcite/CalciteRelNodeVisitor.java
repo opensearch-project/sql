@@ -449,8 +449,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               .filter(addedFields::add)
               .forEach(field -> expandedFields.add(context.relBuilder.field(field)));
         }
-        default -> throw new IllegalStateException(
-            "Unexpected expression type in project list: " + expr.getClass().getSimpleName());
+        default ->
+            throw new IllegalStateException(
+                "Unexpected expression type in project list: " + expr.getClass().getSimpleName());
       }
     }
 
@@ -1613,9 +1614,32 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitWindow(Window node, CalcitePlanContext context) {
     visitChildren(node, context);
+
+    List<UnresolvedExpression> groupList = node.getGroupList();
+    boolean hasGroup = groupList != null && !groupList.isEmpty();
+    boolean bucketNullable = node.isBucketNullable();
+
     List<RexNode> overExpressions =
         node.getWindowFunctionList().stream().map(w -> rexVisitor.analyze(w, context)).toList();
-    context.relBuilder.projectPlus(overExpressions);
+
+    if (hasGroup && !bucketNullable) {
+      // construct groupNotNull predicate
+      List<RexNode> groupByList =
+          groupList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
+      List<RexNode> notNullList =
+          PlanUtils.getSelectColumns(groupByList).stream()
+              .map(context.relBuilder::field)
+              .map(context.relBuilder::isNotNull)
+              .toList();
+      RexNode groupNotNull = context.relBuilder.and(notNullList);
+
+      // wrap each expr: CASE WHEN groupNotNull THEN rawExpr ELSE CAST(NULL AS rawType) END
+      List<RexNode> wrappedOverExprs =
+          wrapWindowFunctionsWithGroupNotNull(overExpressions, groupNotNull, context);
+      context.relBuilder.projectPlus(wrappedOverExprs);
+    } else {
+      context.relBuilder.projectPlus(overExpressions);
+    }
     return context.relBuilder.peek();
   }
 

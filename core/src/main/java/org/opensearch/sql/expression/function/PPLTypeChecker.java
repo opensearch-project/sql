@@ -600,25 +600,28 @@ public interface PPLTypeChecker {
   private static List<ExprType> getExprTypes(SqlTypeFamily family) {
     List<RelDataType> concreteTypes =
         switch (family) {
-          case DATETIME -> List.of(
-              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.TIMESTAMP),
-              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.DATE),
-              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.TIME));
-          case NUMERIC -> List.of(
-              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER),
-              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE));
-            // Integer is mapped to BIGINT in family.getDefaultConcreteType
-          case INTEGER -> List.of(
-              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER));
-          case ANY, IGNORE -> List.of(
-              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.ANY));
-          case DATETIME_INTERVAL -> SqlTypeName.INTERVAL_TYPES.stream()
-              .map(
-                  type ->
-                      OpenSearchTypeFactory.TYPE_FACTORY.createSqlIntervalType(
-                          new SqlIntervalQualifier(
-                              type.getStartUnit(), type.getEndUnit(), SqlParserPos.ZERO)))
-              .collect(Collectors.toList());
+          case DATETIME ->
+              List.of(
+                  OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.TIMESTAMP),
+                  OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.DATE),
+                  OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.TIME));
+          case NUMERIC ->
+              List.of(
+                  OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER),
+                  OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE));
+          // Integer is mapped to BIGINT in family.getDefaultConcreteType
+          case INTEGER ->
+              List.of(OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER));
+          case ANY, IGNORE ->
+              List.of(OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.ANY));
+          case DATETIME_INTERVAL ->
+              SqlTypeName.INTERVAL_TYPES.stream()
+                  .map(
+                      type ->
+                          OpenSearchTypeFactory.TYPE_FACTORY.createSqlIntervalType(
+                              new SqlIntervalQualifier(
+                                  type.getStartUnit(), type.getEndUnit(), SqlParserPos.ZERO)))
+                  .collect(Collectors.toList());
           default -> {
             RelDataType type = family.getDefaultConcreteType(OpenSearchTypeFactory.TYPE_FACTORY);
             if (type == null) {
