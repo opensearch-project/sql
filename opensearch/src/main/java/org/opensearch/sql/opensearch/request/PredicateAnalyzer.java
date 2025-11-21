@@ -34,6 +34,7 @@ import static java.util.Objects.requireNonNull;
 import static org.opensearch.index.query.QueryBuilders.boolQuery;
 import static org.opensearch.index.query.QueryBuilders.existsQuery;
 import static org.opensearch.index.query.QueryBuilders.matchQuery;
+import static org.opensearch.index.query.QueryBuilders.nestedQuery;
 import static org.opensearch.index.query.QueryBuilders.rangeQuery;
 import static org.opensearch.index.query.QueryBuilders.regexpQuery;
 import static org.opensearch.index.query.QueryBuilders.termQuery;
@@ -44,6 +45,7 @@ import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.MULTI_FI
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.SINGLE_FIELD_RELEVANCE_FUNCTION_SET;
 import static org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.COMPOUNDED_LANG_NAME;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
 import java.math.BigDecimal;
@@ -56,8 +58,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
@@ -77,9 +82,11 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.RangeSets;
 import org.apache.calcite.util.Sarg;
+import org.apache.lucene.search.join.ScoreMode;
 import org.opensearch.index.mapper.DateFieldMapper;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.index.query.ScriptQueryBuilder;
 import org.opensearch.script.Script;
@@ -87,6 +94,7 @@ import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.type.ExprIPType;
 import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
@@ -1200,6 +1208,9 @@ public class PredicateAnalyzer {
       if (builder == null) {
         throw new IllegalStateException("Builder was not initialized");
       }
+      if (rel != null && !Strings.isNullOrEmpty(rel.nestedPath)) {
+        return nestedQuery(rel.nestedPath, builder, ScoreMode.None);
+      }
       return builder;
     }
 
@@ -1452,6 +1463,8 @@ public class PredicateAnalyzer {
     private final Supplier<String> codeGenerator;
     private String generatedCode;
     private final ScriptParameterHelper parameterHelper;
+    private final Map<String, ExprType> fieldTypes;
+    private final List<String> referredFields;
 
     public ScriptQueryExpression(
         RexNode rexNode,
@@ -1473,6 +1486,12 @@ public class PredicateAnalyzer {
           () ->
               SerializationWrapper.wrapWithLangType(
                   ScriptEngineType.CALCITE, serializer.serialize(rexNode, parameterHelper));
+      this.referredFields =
+          PlanUtils.getInputRefs(rexNode).stream()
+              .map(RexInputRef::getIndex)
+              .map(rowType.getFieldNames()::get)
+              .toList();
+      this.fieldTypes = fieldTypes;
     }
 
     // For filter script, this method will be called after planning phase;
@@ -1487,7 +1506,25 @@ public class PredicateAnalyzer {
 
     @Override
     public QueryBuilder builder() {
-      return new ScriptQueryBuilder(getScript());
+      ScriptQueryBuilder scriptQuery = QueryBuilders.scriptQuery(getScript());
+      List<String> nestedPaths =
+          referredFields.stream()
+              .map(p -> resolveNestedPath(p, fieldTypes))
+              .filter(Predicate.not(Strings::isNullOrEmpty))
+              .distinct()
+              .collect(Collectors.toUnmodifiableList());
+      if (nestedPaths.size() > 1) {
+        throw new UnsupportedScriptException(
+            String.format(
+                Locale.ROOT,
+                "Accessing multiple nested fields under different hierarchies in script is not"
+                    + " supported: %s",
+                nestedPaths));
+      }
+      if (!nestedPaths.isEmpty()) {
+        return nestedQuery(nestedPaths.get(0), scriptQuery, ScoreMode.None);
+      }
+      return scriptQuery;
     }
 
     public Script getScript() {
@@ -1563,25 +1600,22 @@ public class PredicateAnalyzer {
   }
 
   /** Used for bind variables. */
+  @RequiredArgsConstructor
   public static final class NamedFieldExpression implements TerminalExpression {
 
     private final String name;
     private final ExprType type;
+    @Getter private final String nestedPath;
 
     public NamedFieldExpression(
         int refIndex, List<String> schema, Map<String, ExprType> filedTypes) {
       this.name = refIndex >= schema.size() ? null : schema.get(refIndex);
       this.type = filedTypes.get(name);
-    }
-
-    public NamedFieldExpression(String name, ExprType type) {
-      this.name = name;
-      this.type = type;
+      this.nestedPath = resolveNestedPath(name, filedTypes);
     }
 
     private NamedFieldExpression() {
-      this.name = null;
-      this.type = null;
+      this(null, null, "");
     }
 
     private NamedFieldExpression(
@@ -1589,11 +1623,11 @@ public class PredicateAnalyzer {
       this.name =
           (ref == null || ref.getIndex() >= schema.size()) ? null : schema.get(ref.getIndex());
       this.type = filedTypes.get(name);
+      this.nestedPath = resolveNestedPath(name, filedTypes);
     }
 
     private NamedFieldExpression(RexLiteral literal) {
-      this.name = literal == null ? null : RexLiteral.stringValue(literal);
-      this.type = null;
+      this(literal == null ? null : RexLiteral.stringValue(literal), null, "");
     }
 
     public String getRootName() {
@@ -1799,5 +1833,34 @@ public class PredicateAnalyzer {
               "OpenSearch DSL does not handle %s on nested fields correctly",
               call.getKind()));
     }
+  }
+
+  /**
+   * Find the nested path for fields referenced in the expression. If multiple nested paths exist,
+   * returns the deepest one.
+   *
+   * @param name Field name to resolve
+   * @param fieldTypes Map of field names to their types. It HAS TO contain parent-level mappings
+   * @return The nested path, or empty string if no nested fields are found
+   */
+  private static String resolveNestedPath(String name, Map<String, ExprType> fieldTypes) {
+    if (fieldTypes == null || fieldTypes.isEmpty()) {
+      return "";
+    }
+    if (name.contains(".")) {
+      String[] parts = name.split("\\.");
+      // Check if the field is part of a nested structure
+      // Start from the deepest parent path and work backwards
+      // For "a.b.c.d", check "a.b.c" first, then "a.b", then "a"
+      for (int depth = parts.length - 1; depth > 0; depth--) {
+        String currentPath = String.join(".", java.util.Arrays.copyOfRange(parts, 0, depth));
+        ExprType pathType = fieldTypes.get(currentPath);
+        // OpenSearchDataType.Nested is mapped to ExprCoreType.ARRAY
+        if (pathType == ExprCoreType.ARRAY) {
+          return currentPath;
+        }
+      }
+    }
+    return "";
   }
 }
