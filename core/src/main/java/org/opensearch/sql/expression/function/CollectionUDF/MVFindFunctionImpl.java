@@ -60,44 +60,45 @@ public class MVFindFunctionImpl extends ImplementorUDF {
       // Check if regex pattern is a literal - compile at planning time
       if (call.operands.size() >= 2 && call.operands.get(1) instanceof RexLiteral) {
         RexLiteral patternLiteral = (RexLiteral) call.operands.get(1);
-        Object literalValue = patternLiteral.getValue();
-
-        if (literalValue != null) {
-          // Convert numeric or other types to string for regex matching
-          String patternString = literalValue.toString();
-          try {
-            // Compile pattern at planning time and validate
-            Pattern compiledPattern = Pattern.compile(patternString);
-            // Generate code that uses the pre-compiled pattern
-            return Expressions.call(
-                Types.lookupMethod(
-                    MVFindFunctionImpl.class, "evalWithPattern", List.class, Pattern.class),
-                arrayExpr,
-                Expressions.constant(compiledPattern, Pattern.class));
-          } catch (PatternSyntaxException e) {
-            // Convert to IllegalArgumentException so it's treated as a client error (400)
-            throw new IllegalArgumentException(
-                String.format("Invalid regex pattern '%s': %s", patternString, e.getDescription()),
-                e);
-          }
+        Expression literalPatternExpr = tryCompileLiteralPattern(patternLiteral, arrayExpr);
+        if (literalPatternExpr != null) {
+          return literalPatternExpr;
         }
       }
 
-      // For null or dynamic patterns, use evalWithString
+      // For dynamic patterns, use evalWithString
       return Expressions.call(
           Types.lookupMethod(MVFindFunctionImpl.class, "evalWithString", List.class, Object.class),
           arrayExpr,
           patternExpr);
     }
+
+    private static Expression tryCompileLiteralPattern(
+        RexLiteral patternLiteral, Expression arrayExpr) {
+      Object literalValue = patternLiteral.getValue();
+      if (literalValue == null) {
+        return null;
+      }
+
+      // Convert numeric or other types to string for regex matching
+      String patternString = literalValue.toString();
+      try {
+        // Compile pattern at planning time and validate
+        Pattern compiledPattern = Pattern.compile(patternString);
+        // Generate code that uses the pre-compiled pattern
+        return Expressions.call(
+            Types.lookupMethod(
+                MVFindFunctionImpl.class, "evalWithPattern", List.class, Pattern.class),
+            arrayExpr,
+            Expressions.constant(compiledPattern, Pattern.class));
+      } catch (PatternSyntaxException e) {
+        // Convert to IllegalArgumentException so it's treated as a client error (400)
+        throw new IllegalArgumentException(
+            String.format("Invalid regex pattern '%s': %s", patternString, e.getDescription()), e);
+      }
+    }
   }
 
-  /**
-   * Core mvfind logic that searches for a pattern in an array.
-   *
-   * @param array The array to search
-   * @param pattern The pre-compiled regex pattern
-   * @return The 0-based index of the first matching element, or null if no match
-   */
   private static Integer mvfindCore(List<Object> array, Pattern pattern) {
     for (int i = 0; i < array.size(); i++) {
       Object element = array.get(i);
@@ -131,31 +132,6 @@ public class MVFindFunctionImpl extends ImplementorUDF {
   }
 
   /**
-   * Evaluates mvfind with a String pattern. Compiles the regex pattern and executes search.
-   *
-   * @param array The array to search
-   * @param regex The regex pattern string
-   * @return The 0-based index of the first matching element, or null if no match
-   */
-  public static Integer mvfind(List<Object> array, String regex) {
-    if (array == null || regex == null) {
-      return null;
-    }
-
-    try {
-      Pattern pattern = Pattern.compile(regex);
-      return mvfindCore(array, pattern);
-    } catch (PatternSyntaxException e) {
-      // Invalid regex is a client error (400)
-      throw new IllegalArgumentException(
-          String.format("Invalid regex pattern '%s': %s", regex, e.getDescription()), e);
-    } catch (Exception e) {
-      // Other unexpected errors
-      throw new RuntimeException("Error in mvfind function: " + e.getMessage(), e);
-    }
-  }
-
-  /**
    * Evaluates mvfind with type coercion support (for dynamic patterns at runtime). Converts numeric
    * or other types to string before pattern compilation.
    *
@@ -171,5 +147,30 @@ public class MVFindFunctionImpl extends ImplementorUDF {
     // Support type coercion: convert numeric or other types to string
     String patternString = regex.toString();
     return mvfind(array, patternString);
+  }
+
+  /**
+   * Evaluates mvfind with a String pattern. Compiles the regex pattern and executes search.
+   *
+   * @param array The array to search
+   * @param regex The regex pattern string
+   * @return The 0-based index of the first matching element, or null if no match
+   */
+  private static Integer mvfind(List<Object> array, String regex) {
+    if (array == null || regex == null) {
+      return null;
+    }
+
+    try {
+      Pattern pattern = Pattern.compile(regex);
+      return mvfindCore(array, pattern);
+    } catch (PatternSyntaxException e) {
+      // Invalid regex is a client error (400)
+      throw new IllegalArgumentException(
+          String.format("Invalid regex pattern '%s': %s", regex, e.getDescription()), e);
+    } catch (Exception e) {
+      // Other unexpected errors
+      throw new RuntimeException("Error in mvfind function: " + e.getMessage(), e);
+    }
   }
 }
