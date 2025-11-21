@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
 import java.sql.Connection;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +61,12 @@ public class CalcitePlanContext {
   private final Stack<List<RexNode>> windowPartitions = new Stack<>();
 
   @Getter public Map<String, RexLambdaRef> rexLambdaRefMap;
+
+  /** Accumulated filter conditions to prevent deep Filter node chains */
+  private final List<RexNode> pendingFilterConditions = new ArrayList<>();
+
+  /** Flag to indicate if filter accumulation mode is active */
+  @Getter @Setter private boolean filterAccumulationEnabled = false;
 
   private CalcitePlanContext(FrameworkConfig config, SysLimit sysLimit, QueryType queryType) {
     this.config = config;
@@ -133,5 +140,53 @@ public class CalcitePlanContext {
 
   public void putRexLambdaRefMap(Map<String, RexLambdaRef> candidateMap) {
     this.rexLambdaRefMap.putAll(candidateMap);
+  }
+
+  /**
+   * Adds a filter condition to the accumulation list instead of creating immediate Filter RelNode.
+   * This prevents deep Filter node chains that cause memory explosion.
+   */
+  public void addFilterCondition(RexNode condition) {
+    pendingFilterConditions.add(condition);
+  }
+
+  /**
+   * Applies all accumulated filter conditions as a single Filter RelNode with AND operations. This
+   * creates a single Filter node instead of a deep chain of Filter nodes.
+   */
+  public void flushFilterConditions() {
+    if (pendingFilterConditions.isEmpty()) {
+      return;
+    }
+
+    if (pendingFilterConditions.size() == 1) {
+      relBuilder.filter(pendingFilterConditions.get(0));
+    } else {
+      // Combine all filter conditions with AND
+      RexNode combinedCondition = relBuilder.and(pendingFilterConditions);
+      relBuilder.filter(combinedCondition);
+    }
+    pendingFilterConditions.clear();
+  }
+
+  /**
+   * Enables filter accumulation mode to prevent deep Filter node chains. Should be called before
+   * processing multiple filter operations.
+   */
+  public void enableFilterAccumulation() {
+    filterAccumulationEnabled = true;
+  }
+
+  /**
+   * Disables filter accumulation mode. Should be called after processing multiple filter
+   * operations.
+   */
+  public void disableFilterAccumulation() {
+    filterAccumulationEnabled = false;
+  }
+
+  /** Returns true if there are pending filter conditions that need to be flushed. */
+  public boolean hasPendingFilterConditions() {
+    return !pendingFilterConditions.isEmpty();
   }
 }

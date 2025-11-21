@@ -176,7 +176,20 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   public RelNode analyze(UnresolvedPlan unresolved, CalcitePlanContext context) {
-    return unresolved.accept(this, context);
+    // Enable filter accumulation if this plan contains multiple filtering operations
+    // that could create deep Filter RelNode chains
+    if (countFilteringOperations(unresolved) >= 2) {
+      context.enableFilterAccumulation();
+      try {
+        unresolved.accept(this, context);
+        context.flushFilterConditions(); // Flush accumulated conditions before returning
+        return context.relBuilder.peek(); // Get the result after flushing
+      } finally {
+        context.disableFilterAccumulation();
+      }
+    } else {
+      return unresolved.accept(this, context);
+    }
   }
 
   @Override
@@ -244,7 +257,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       context.relBuilder.filter(ImmutableList.of(v.get().id), condition);
       context.popCorrelVar();
     } else {
-      context.relBuilder.filter(condition);
+      // Use filter accumulation to prevent deep Filter node chains
+      if (context.isFilterAccumulationEnabled()) {
+        context.addFilterCondition(condition);
+      } else {
+        context.relBuilder.filter(condition);
+      }
     }
     return context.relBuilder.peek();
   }
@@ -293,7 +311,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       regexCondition = context.rexBuilder.makeCall(SqlStdOperatorTable.NOT, regexCondition);
     }
 
-    context.relBuilder.filter(regexCondition);
+    // Use filter accumulation to prevent deep Filter node chains
+    if (context.isFilterAccumulationEnabled()) {
+      context.addFilterCondition(regexCondition);
+    } else {
+      context.relBuilder.filter(regexCondition);
+    }
     return context.relBuilder.peek();
   }
 
@@ -383,6 +406,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitProject(Project node, CalcitePlanContext context) {
     visitChildren(node, context);
+
+    // Flush accumulated filter conditions before schema-changing operations
+    if (context.isFilterAccumulationEnabled() && context.hasPendingFilterConditions()) {
+      context.flushFilterConditions();
+    }
 
     if (isSingleAllFieldsProject(node)) {
       return handleAllFieldsProject(node, context);
@@ -3238,5 +3266,37 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     } catch (Exception e) {
       throw new RuntimeException("Failed to optimize sed expression: " + sedExpression, e);
     }
+  }
+
+  /**
+   * Counts the number of filtering operations in an UnresolvedPlan tree that would create Filter
+   * RelNodes. This is used to detect queries with multiple regex/filter operations that could cause
+   * deep Filter RelNode chains and memory exhaustion.
+   *
+   * @param plan the UnresolvedPlan to analyze
+   * @return the count of filtering operations found
+   */
+  private int countFilteringOperations(UnresolvedPlan plan) {
+    if (plan == null) {
+      return 0;
+    }
+
+    int count = 0;
+
+    // Count this node if it's a filtering operation
+    if (plan instanceof Regex || plan instanceof Filter) {
+      count = 1;
+    }
+
+    // Recursively count filtering operations in children
+    if (plan.getChild() != null) {
+      for (Node child : plan.getChild()) {
+        if (child instanceof UnresolvedPlan) {
+          count += countFilteringOperations((UnresolvedPlan) child);
+        }
+      }
+    }
+
+    return count;
   }
 }
