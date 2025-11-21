@@ -35,7 +35,7 @@ public class CalciteLikeQueryIT extends LikeQueryIT {
     String query =
         "source="
             + TEST_INDEX_WILDCARD
-            + " | WHERE Like(KeywordBody, 'test Wildcard%') | fields KeywordBody";
+            + " | WHERE Like(KeywordBody, 'test Wildcard%', true) | fields KeywordBody";
     JSONObject result = executeQuery(query);
     verifyNumOfRows(result, 0);
   }

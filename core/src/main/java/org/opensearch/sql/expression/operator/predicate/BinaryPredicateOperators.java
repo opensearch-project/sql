@@ -387,7 +387,8 @@ public class BinaryPredicateOperators {
   private static DefaultFunctionResolver like() {
     return define(
         BuiltinFunctionName.LIKE.getName(),
-        impl(nullMissingHandling(OperatorUtils::matches), BOOLEAN, STRING, STRING));
+        impl(nullMissingHandling(OperatorUtils::matches2), BOOLEAN, STRING, STRING),
+        impl(nullMissingHandling(OperatorUtils::matches3), BOOLEAN, STRING, STRING, BOOLEAN));
   }
 
   private static DefaultFunctionResolver regexp() {
@@ -401,10 +402,17 @@ public class BinaryPredicateOperators {
         BuiltinFunctionName.NOT_LIKE.getName(),
         impl(
             nullMissingHandling(
-                (v1, v2) -> UnaryPredicateOperators.not(OperatorUtils.matches(v1, v2))),
+                (v1, v2) -> UnaryPredicateOperators.not(OperatorUtils.matches2(v1, v2))),
             BOOLEAN,
             STRING,
-            STRING));
+            STRING),
+        impl(
+            nullMissingHandling(
+                (v1, v2, v3) -> UnaryPredicateOperators.not(OperatorUtils.matches3(v1, v2, v3))),
+            BOOLEAN,
+            STRING,
+            STRING,
+            BOOLEAN));
   }
 
   private static ExprValue lookupTableFunction(
