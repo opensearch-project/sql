@@ -31,7 +31,7 @@ bin <field> [span=<interval>] [minspan=<interval>] [bins=<count>] [aligntime=(ea
     * minute (m, min, mins, minute, minutes)
     * hour (h, hr, hrs, hour, hours)
     * day (d, day, days)
-    * month (mon, month, months)
+    * month (M, mon, month, months)
 
 * minspan: optional. The minimum interval size for automatic span calculation. Cannot be used with span or bins parameters.
 * bins: optional. The maximum number of equal-width bins to create. Cannot be used with span or minspan parameters. The bins parameter must be between 2 and 50000 (inclusive).
@@ -345,4 +345,3 @@ PPL query::
     | 1       | 20-30   |
     | 3       | 30-40   |
     +---------+---------+
-
