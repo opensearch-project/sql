@@ -53,6 +53,22 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals("source=table | where identifier = ***", anonymize("search source=t | where a=1"));
   }
 
+  @Test
+  public void testLikeFunction() {
+    when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(false);
+    assertEquals(
+        "source=table | where like(identifier,***)",
+        anonymize("search source=t | where like(a, '%llo%')"));
+    when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
+    assertEquals(
+        "source=table | where like(identifier,***,false)",
+        anonymize("search source=t | where like(a, '%llo%')"));
+    when(settings.getSettingValue(Key.PPL_SYNTAX_LEGACY_PREFERRED)).thenReturn(false);
+    assertEquals(
+        "source=table | where like(identifier,***,true)",
+        anonymize("search source=t | where like(a, '%llo%')"));
+  }
+
   // Fields and Table Command Tests
   @Test
   public void testFieldsCommandWithoutArguments() {
