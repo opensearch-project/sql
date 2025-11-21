@@ -691,11 +691,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (node.getPath() != null) {
       return visitEval(node.rewriteAsEval(), context);
     } else {
-      return spathWithoutPath(node, context);
+      return spathExtractAll(node, context);
     }
   }
 
-  private RelNode spathWithoutPath(SPath node, CalcitePlanContext context) {
+  private RelNode spathExtractAll(SPath node, CalcitePlanContext context) {
     visitChildren(node, context);
 
     // 1. Extract all fields from JSON in `inField` and merge with existing dynamic fields.
