@@ -667,6 +667,36 @@ public class CalciteExplainIT extends ExplainIT {
     assertYamlEqualsIgnoreId(expected, result);
   }
 
+  @Test
+  public void testStreamstatsNullBucketExplain() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | streamstats bucket_nullable=false avg(age) as"
+            + " avg_age by gender";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_streamstats_null_bucket.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testStreamstatsGlobalNullBucketExplain() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | streamstats bucket_nullable=false window=2"
+            + " global=true avg(age) as avg_age by gender";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_streamstats_global_null_bucket.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testStreamstatsResetNullBucketExplain() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | streamstats bucket_nullable=false current=false"
+            + " reset_before=age>34 reset_after=age<25 avg(age) as avg_age by gender";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_streamstats_reset_null_bucket.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
   // Only for Calcite, as v2 gets unstable serialized string for function
   @Test
   public void testExplainOnAggregationWithSumEnhancement() throws IOException {
