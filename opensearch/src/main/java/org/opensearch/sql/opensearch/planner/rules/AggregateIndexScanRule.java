@@ -125,7 +125,7 @@ public class AggregateIndexScanRule extends RelRule<AggregateIndexScanRule.Confi
     Function<RexNode, Boolean> isNotNullFromAgg =
         rex ->
             rex instanceof RexCall rexCall
-                && rexCall.getOperator() == SqlStdOperatorTable.IS_NOT_NULL
+                && rexCall.isA(SqlKind.IS_NOT_NULL)
                 && rexCall.getOperands().get(0) instanceof RexInputRef ref
                 && groupRefList.contains(ref.getIndex());
 
@@ -302,15 +302,17 @@ public class AggregateIndexScanRule extends RelRule<AggregateIndexScanRule.Confi
 
     static boolean mayBeFilterFromBucketNonNull(LogicalFilter filter) {
       RexNode condition = filter.getCondition();
-      return isNotNull(condition)
+      return isNotNullOnRef(condition)
           || (condition instanceof RexCall rexCall
               && rexCall.getOperator().equals(SqlStdOperatorTable.AND)
-              && rexCall.getOperands().stream().allMatch(AggregateIndexScanRule.Config::isNotNull));
+              && rexCall.getOperands().stream()
+                  .allMatch(AggregateIndexScanRule.Config::isNotNullOnRef));
     }
 
-    private static boolean isNotNull(RexNode rex) {
+    private static boolean isNotNullOnRef(RexNode rex) {
       return rex instanceof RexCall rexCall
-          && rexCall.getOperator().equals(SqlStdOperatorTable.IS_NOT_NULL);
+          && rexCall.isA(SqlKind.IS_NOT_NULL)
+          && rexCall.getOperands().get(0) instanceof RexInputRef;
     }
 
     static boolean containsWidthBucketFuncOnDate(LogicalProject project) {
