@@ -17,6 +17,13 @@ public abstract class SearchExpression extends UnresolvedExpression {
    */
   public abstract String toQueryString();
 
+  /**
+   * Convert the search expression to anonymized string
+   *
+   * @return the anonymized string
+   */
+  public abstract String toAnonymizedString();
+
   @Override
   public <R, C> R accept(AbstractNodeVisitor<R, C> nodeVisitor, C context) {
     return nodeVisitor.visitChildren(this, context);

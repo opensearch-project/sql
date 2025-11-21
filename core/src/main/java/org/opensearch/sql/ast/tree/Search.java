@@ -7,11 +7,13 @@ package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import javax.annotation.Nullable;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.expression.SearchExpression;
 
 /**
  * Logical plan node for Search operation. Represents search expressions that get converted to
@@ -19,12 +21,19 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
  */
 @Getter
 @ToString
-@EqualsAndHashCode(callSuper = false)
+@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @RequiredArgsConstructor
 public class Search extends UnresolvedPlan {
 
-  private final UnresolvedPlan child;
-  private final String queryString;
+  @EqualsAndHashCode.Include private final UnresolvedPlan child;
+  @EqualsAndHashCode.Include private final String queryString;
+
+  // Currently it's only for anonymizer
+  private final @Nullable SearchExpression originalExpression;
+
+  public Search(UnresolvedPlan child, String queryString) {
+    this(child, queryString, null);
+  }
 
   @Override
   public List<UnresolvedPlan> getChild() {
@@ -38,6 +47,6 @@ public class Search extends UnresolvedPlan {
 
   @Override
   public UnresolvedPlan attach(UnresolvedPlan child) {
-    return new Search(child, queryString);
+    return new Search(child, queryString, originalExpression);
   }
 }

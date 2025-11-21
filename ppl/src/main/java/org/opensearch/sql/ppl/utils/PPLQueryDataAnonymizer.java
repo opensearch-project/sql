@@ -7,6 +7,9 @@ package org.opensearch.sql.ppl.utils;
 
 import static org.opensearch.sql.calcite.utils.PlanUtils.getRelation;
 import static org.opensearch.sql.calcite.utils.PlanUtils.transformPlanToAttachChild;
+import static org.opensearch.sql.utils.QueryStringUtils.MASK_COLUMN;
+import static org.opensearch.sql.utils.QueryStringUtils.MASK_LITERAL;
+import static org.opensearch.sql.utils.QueryStringUtils.maskField;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -108,12 +111,7 @@ import org.opensearch.sql.planner.logical.LogicalSort;
 /** Utility class to mask sensitive information in incoming PPL queries. */
 public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> {
 
-  private static final String MASK_LITERAL = "***";
-  private static final String MASK_IDENTIFIER = "identifier";
-
-  private static final String MASK_COLUMN = "identifier";
-
-  private static final String MASK_TABLE = "table";
+  public static final String MASK_TABLE = "table";
 
   private final AnonymizerExpressionAnalyzer expressionAnalyzer;
   private final Settings settings;
@@ -255,9 +253,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   @Override
   public String visitSearch(Search node, String context) {
     String source = node.getChild().get(0).accept(this, context);
-    String queryString = node.getQueryString();
-    String anonymized = queryString.replaceAll(":\\S+", ":" + MASK_LITERAL);
-    return StringUtils.format("%s %s", source, anonymized);
+    return StringUtils.format("%s %s", source, node.getOriginalExpression().toAnonymizedString());
   }
 
   @Override
@@ -726,7 +722,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
           "%s | fillnull value=%s %s",
           child,
           MASK_LITERAL,
-          fieldFills.stream().map(n -> MASK_IDENTIFIER).collect(Collectors.joining(" ")));
+          fieldFills.stream().map(n -> MASK_COLUMN).collect(Collectors.joining(" ")));
     }
 
     // Distinguish between with...in and using based on whether all values are the same
@@ -919,7 +915,8 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
     @Override
     public String visitField(Field node, String context) {
-      return MASK_COLUMN;
+      String fieldName = node.getField().toString();
+      return maskField(fieldName);
     }
 
     @Override
