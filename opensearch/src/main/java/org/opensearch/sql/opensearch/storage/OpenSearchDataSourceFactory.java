@@ -31,6 +31,6 @@ public class OpenSearchDataSourceFactory implements DataSourceFactory {
     return new DataSource(
         metadata.getName(),
         DataSourceType.OPENSEARCH,
-        new OpenSearchStorageEngine(client, settings));
+        new OpenSearchStorageEngine(client, settings, true));
   }
 }
