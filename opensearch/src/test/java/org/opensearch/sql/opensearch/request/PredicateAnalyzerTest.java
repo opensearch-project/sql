@@ -611,6 +611,27 @@ public class PredicateAnalyzerTest {
           "wildcard" : {
             "b.keyword" : {
               "wildcard" : "*Hi*",
+              "boost" : 1.0
+            }
+          }
+        }\
+        """,
+        result.toString());
+  }
+
+  @Test
+  void ilikeFunction_keywordField_generatesWildcardQuery() throws ExpressionNotAnalyzableException {
+    List<RexNode> arguments = Arrays.asList(field2, builder.makeLiteral("%Hi%"));
+    RexNode call =
+        PPLFuncImpTable.INSTANCE.resolve(builder, "ilike", arguments.toArray(new RexNode[0]));
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+    assertInstanceOf(WildcardQueryBuilder.class, result);
+    assertEquals(
+        """
+        {
+          "wildcard" : {
+            "b.keyword" : {
+              "wildcard" : "*Hi*",
               "case_insensitive" : true,
               "boost" : 1.0
             }
