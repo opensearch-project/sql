@@ -97,6 +97,18 @@ public class PPLFuncImpTable {
     }
   }
 
+  public interface FunctionImp3 extends FunctionImp {
+    RexNode resolve(RexBuilder builder, RexNode arg1, RexNode arg2, RexNode arg3);
+
+    @Override
+    default RexNode resolve(RexBuilder builder, RexNode... args) {
+      if (args.length != 3) {
+        throw new IllegalArgumentException("This function requires exactly 3 arguments");
+      }
+      return resolve(builder, args[0], args[1], args[2]);
+    }
+  }
+
   /** The singleton instance. */
   public static final PPLFuncImpTable INSTANCE;
 
@@ -989,25 +1001,18 @@ public class PPLFuncImpTable {
           (FunctionImp2)
               (builder, arg1, arg2) ->
                   builder.makeCall(
-                      SqlLibraryOperators.ILIKE,
-                      arg1,
-                      arg2,
-                      // TODO: Figure out escaping solution. '\\' is used for JSON input but is not
-                      // necessary for SQL function input
-                      builder.makeLiteral("\\")),
+                      SqlLibraryOperators.ILIKE, arg1, arg2, builder.makeLiteral("\\")),
           PPLTypeChecker.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING));
       register(
           LIKE,
-          (FunctionImp2)
-              (builder, arg1, arg2) ->
-                  builder.makeCall(
-                      SqlStdOperatorTable.LIKE,
-                      arg1,
-                      arg2,
-                      // TODO: Figure out escaping solution. '\\' is used for JSON input but is not
-                      // necessary for SQL function input
-                      builder.makeLiteral("\\")),
-          PPLTypeChecker.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING));
+          (FunctionImp3)
+              (builder, arg1, arg2, arg3) ->
+                  ((RexLiteral) arg3).getValueAs(Boolean.class)
+                      ? builder.makeCall(
+                          SqlStdOperatorTable.LIKE, arg1, arg2, builder.makeLiteral("\\"))
+                      : builder.makeCall(
+                          SqlLibraryOperators.ILIKE, arg1, arg2, builder.makeLiteral("\\")),
+          PPLTypeChecker.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.BOOLEAN));
     }
   }
 

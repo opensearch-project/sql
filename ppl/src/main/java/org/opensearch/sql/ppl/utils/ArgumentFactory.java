@@ -87,7 +87,7 @@ public class ArgumentFactory {
     return list;
   }
 
-  private static boolean legacyPreferred(Settings settings) {
+  public static boolean legacyPreferred(Settings settings) {
     return settings == null
         || settings.getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED) == null
         || Boolean.TRUE.equals(settings.getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED));

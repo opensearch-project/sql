@@ -86,22 +86,29 @@ LIKE
 Description
 >>>>>>>>>>>
 
-Usage: like(string, PATTERN) return true if the string match the PATTERN, PATTERN is **case-sensitive**.
+Usage: like(string, PATTERN[, case_sensitive]) return true if the string match the PATTERN. ``case_sensitive`` is optional. When set to ``true``, PATTERN is **case-sensitive**. **Default:** Determined by ``plugins.ppl.syntax.legacy.preferred``.
+
+ * When ``plugins.ppl.syntax.legacy.preferred=true``, ``case_sensitive`` defaults to ``false``
+ * When ``plugins.ppl.syntax.legacy.preferred=false``, ``case_sensitive`` defaults to ``true``
 
 There are two wildcards often used in conjunction with the LIKE operator:
 
 * ``%`` - The percent sign represents zero, one, or multiple characters
 * ``_`` - The underscore represents a single character
 
+Argument type: STRING, STRING [, BOOLEAN]
+
+Return type: INTEGER
+
 Example::
 
-    os> source=people | eval `LIKE('hello world', '_ello%')` = LIKE('hello world', '_ello%'), `LIKE('hello world', '_ELLo%')` = LIKE('hello world', '_ELLo%') | fields `LIKE('hello world', '_ello%')`, `LIKE('hello world', '_ELLo%')`
+    os> source=people | eval `LIKE('hello world', '_ello%')` = LIKE('hello world', '_ello%'), `LIKE('hello world', '_ELLo%', true)` = LIKE('hello world', '_ELLo%', true), `LIKE('hello world', '_ELLo%', false)` = LIKE('hello world', '_ELLo%', false) | fields `LIKE('hello world', '_ello%')`, `LIKE('hello world', '_ELLo%', true)`, `LIKE('hello world', '_ELLo%', false)`
     fetched rows / total rows = 1/1
-    +-------------------------------+-------------------------------+
-    | LIKE('hello world', '_ello%') | LIKE('hello world', '_ELLo%') |
-    |-------------------------------+-------------------------------|
-    | True                          | False                         |
-    +-------------------------------+-------------------------------+
+    +-------------------------------+-------------------------------------+--------------------------------------+
+    | LIKE('hello world', '_ello%') | LIKE('hello world', '_ELLo%', true) | LIKE('hello world', '_ELLo%', false) |
+    |-------------------------------+-------------------------------------+--------------------------------------|
+    | True                          | False                               | True                                 |
+    +-------------------------------+-------------------------------------+--------------------------------------+
 
 
 Limitation: The pushdown of the LIKE function to a DSL wildcard query is supported only for keyword fields.
@@ -119,15 +126,19 @@ There are two wildcards often used in conjunction with the ILIKE operator:
 * ``%`` - The percent sign represents zero, one, or multiple characters
 * ``_`` - The underscore represents a single character
 
+Argument type: STRING, STRING
+
+Return type: INTEGER
+
 Example::
 
-    os> source=people | eval `ILIKE('hello world', '_ello%')` = ILIKE('hello world', '_ello%'), `ILIKE('hello world', '_ELLo%')` = ILIKE('hello world', '_ELLo%') | fields `ILIKE('hello world', '_ello%')`, `ILIKE('hello world', '_ELLo%')`
+    os> source=people | eval `ILIKE('hello world', '_ELLo%')` = ILIKE('hello world', '_ELLo%') | fields `ILIKE('hello world', '_ELLo%')`
     fetched rows / total rows = 1/1
-    +--------------------------------+--------------------------------+
-    | ILIKE('hello world', '_ello%') | ILIKE('hello world', '_ELLo%') |
-    |--------------------------------+--------------------------------|
-    | True                           | True                           |
-    +--------------------------------+--------------------------------+
+    +--------------------------------+
+    | ILIKE('hello world', '_ELLo%') |
+    |--------------------------------|
+    | True                           |
+    +--------------------------------+
 
 
 Limitation: The pushdown of the ILIKE function to a DSL wildcard query is supported only for keyword fields.

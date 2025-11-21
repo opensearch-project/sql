@@ -20,6 +20,7 @@ import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.TestUtils;
 
 public class ExplainIT extends PPLIntegTestCase {
@@ -551,7 +552,20 @@ public class ExplainIT extends PPLIntegTestCase {
     assertYamlEqualsIgnoreId(
         expected,
         explainQueryYaml(
-            "source=opensearch-sql_test_index_account | where like(firstname, '%mbe%')"));
+            "source=opensearch-sql_test_index_account | where like(firstname, '%mbe%', true)"));
+    withSettings(
+        Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED,
+        "false",
+        () -> {
+          try {
+            assertYamlEqualsIgnoreId(
+                expected,
+                explainQueryYaml(
+                    "source=opensearch-sql_test_index_account | where like(firstname, '%mbe%')"));
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
   @Test
@@ -560,7 +574,20 @@ public class ExplainIT extends PPLIntegTestCase {
     assertYamlEqualsIgnoreId(
         expected,
         explainQueryYaml(
-            "source=opensearch-sql_test_index_account | where like(address, '%Holmes%')"));
+            "source=opensearch-sql_test_index_account | where like(address, '%Holmes%', true)"));
+    withSettings(
+        Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED,
+        "false",
+        () -> {
+          try {
+            assertYamlEqualsIgnoreId(
+                expected,
+                explainQueryYaml(
+                    "source=opensearch-sql_test_index_account | where like(address, '%Holmes%')"));
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
   @Ignore("The serialized string is unstable because of function properties")

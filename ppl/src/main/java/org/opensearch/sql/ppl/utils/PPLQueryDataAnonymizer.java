@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import lombok.Getter;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -115,7 +116,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   private static final String MASK_TABLE = "table";
 
   private final AnonymizerExpressionAnalyzer expressionAnalyzer;
-  private final Settings settings;
+  @Getter private final Settings settings;
 
   public PPLQueryDataAnonymizer(Settings settings) {
     this.expressionAnalyzer = new AnonymizerExpressionAnalyzer(this);
@@ -399,7 +400,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String fields = visitFieldList(node.getFields());
     String group = visitExpressionList(node.getGroupExprList());
     String options =
-        isCalciteEnabled(settings)
+        isCalciteEnabled()
             ? StringUtils.format(
                 "countield='%s' showcount=%s usenull=%s ", countField, showCount, useNull)
             : "";
@@ -800,12 +801,16 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     return Strings.isNullOrEmpty(groupBy) ? "" : StringUtils.format("by %s", groupBy);
   }
 
-  private boolean isCalciteEnabled(Settings settings) {
-    if (settings != null) {
-      return settings.getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED);
-    } else {
-      return false;
-    }
+  private boolean isCalciteEnabled() {
+    return settings == null
+        || settings.getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED) == null
+        || Boolean.TRUE.equals(settings.getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED));
+  }
+
+  private boolean legacyPreferred() {
+    return settings == null
+        || settings.getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED) == null
+        || Boolean.TRUE.equals(settings.getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED));
   }
 
   /** Expression Anonymizer. */
@@ -878,6 +883,11 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
           node.getFuncArgs().stream()
               .map(unresolvedExpression -> analyze(unresolvedExpression, context))
               .collect(Collectors.joining(","));
+      if (queryAnonymizer.isCalciteEnabled()
+          && node.getFuncName().equalsIgnoreCase("LIKE")
+          && node.getFuncArgs().size() == 2) {
+        arguments = arguments + "," + (queryAnonymizer.legacyPreferred() ? "false" : "true");
+      }
       return StringUtils.format("%s(%s)", node.getFuncName(), arguments);
     }
 

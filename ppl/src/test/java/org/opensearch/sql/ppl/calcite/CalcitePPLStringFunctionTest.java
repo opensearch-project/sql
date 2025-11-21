@@ -281,7 +281,7 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testLike() {
-    String ppl = "source=EMP | where like(JOB, 'SALE%') | stats count() as cnt";
+    String ppl = "source=EMP | where like(JOB, 'SALE%', true) | stats count() as cnt";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""

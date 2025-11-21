@@ -600,7 +600,8 @@ public class PredicateAnalyzerTest {
 
   @Test
   void likeFunction_keywordField_generatesWildcardQuery() throws ExpressionNotAnalyzableException {
-    List<RexNode> arguments = Arrays.asList(field2, builder.makeLiteral("%Hi%"));
+    List<RexNode> arguments =
+        Arrays.asList(field2, builder.makeLiteral("%Hi%"), builder.makeLiteral(true));
     RexNode call =
         PPLFuncImpTable.INSTANCE.resolve(builder, "like", arguments.toArray(new RexNode[0]));
     QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
@@ -644,7 +645,8 @@ public class PredicateAnalyzerTest {
   @Test
   void likeFunction_textField_scriptPushDown() throws ExpressionNotAnalyzableException {
     RexInputRef field3 = builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.VARCHAR), 2);
-    List<RexNode> arguments = Arrays.asList(field3, builder.makeLiteral("%Hi%"));
+    List<RexNode> arguments =
+        Arrays.asList(field3, builder.makeLiteral("%Hi%"), builder.makeLiteral(true));
     RexNode call =
         PPLFuncImpTable.INSTANCE.resolve(builder, "like", arguments.toArray(new RexNode[0]));
 
