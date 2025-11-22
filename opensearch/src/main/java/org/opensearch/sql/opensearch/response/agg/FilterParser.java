@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.opensearch.response.agg;
 
+import java.util.List;
 import java.util.Map;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -25,7 +26,7 @@ public class FilterParser implements MetricParser {
   @Getter private final String name;
 
   @Override
-  public Map<String, Object> parse(Aggregation aggregations) {
+  public List<Map<String, Object>> parse(Aggregation aggregations) {
     return metricsParser.parse(((Filter) aggregations).getAggregations().asList().get(0));
   }
 }

@@ -108,7 +108,7 @@ public class AggregateIndexScanRule extends RelRule<AggregateIndexScanRule.Confi
                                         // 1. No RexOver and no duplicate projection
                                         // 2. Contains width_bucket function on date field referring
                                         // to bin command with parameter bins
-                                        Predicate.not(PlanUtils::containsRexOver)
+                                        Predicate.not(LogicalProject::containsOver)
                                             .and(PlanUtils::distinctProjectList)
                                             .or(Config::containsWidthBucketFuncOnDate))
                                     .oneInput(
@@ -175,7 +175,7 @@ public class AggregateIndexScanRule extends RelRule<AggregateIndexScanRule.Confi
                                                     // 2. Contains width_bucket function on date
                                                     // field referring
                                                     // to bin command with parameter bins
-                                                    Predicate.not(PlanUtils::containsRexOver)
+                                                    Predicate.not(LogicalProject::containsOver)
                                                         .and(PlanUtils::distinctProjectList)
                                                         .or(Config::containsWidthBucketFuncOnDate))
                                                 .oneInput(

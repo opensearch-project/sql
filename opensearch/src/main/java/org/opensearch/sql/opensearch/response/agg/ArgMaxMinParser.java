@@ -6,6 +6,8 @@
 package org.opensearch.sql.opensearch.response.agg;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import lombok.Value;
 import org.opensearch.search.SearchHit;
@@ -19,20 +21,22 @@ public class ArgMaxMinParser implements MetricParser {
   String name;
 
   @Override
-  public Map<String, Object> parse(Aggregation agg) {
+  public List<Map<String, Object>> parse(Aggregation agg) {
     TopHits topHits = (TopHits) agg;
     SearchHit[] hits = topHits.getHits().getHits();
 
     if (hits.length == 0) {
-      return Collections.singletonMap(agg.getName(), null);
+      return Collections.singletonList(
+          new HashMap<>(Collections.singletonMap(agg.getName(), null)));
     }
 
     // Get value from fields (fetchField)
     if (hits[0].getFields() != null && !hits[0].getFields().isEmpty()) {
       Object value = hits[0].getFields().values().iterator().next().getValue();
-      return Collections.singletonMap(agg.getName(), value);
+      return Collections.singletonList(Collections.singletonMap(agg.getName(), value));
+    } else {
+      return Collections.singletonList(
+          new HashMap<>(Collections.singletonMap(agg.getName(), null)));
     }
-
-    return Collections.singletonMap(agg.getName(), null);
   }
 }
