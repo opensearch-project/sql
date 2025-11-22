@@ -20,6 +20,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.logging.log4j.LogManager;
@@ -76,15 +77,19 @@ public class DedupPushdownRule extends RelRule<DedupPushdownRule.Config> {
     }
 
     List<RexNode> dedupColumns = windows.get(0).partitionKeys;
+    if (dedupColumns.stream()
+        .filter(rex -> rex.isA(SqlKind.INPUT_REF))
+        .anyMatch(rex -> rex.getType().getSqlTypeName() == SqlTypeName.MAP)) {
+      LOG.debug("Cannot pushdown the dedup since the dedup fields contains MAP type");
+      // TODO https://github.com/opensearch-project/sql/issues/4564
+      return;
+    }
     if (projectWithWindow.getProjects().stream()
         .filter(rex -> !rex.isA(SqlKind.ROW_NUMBER))
         .filter(Predicate.not(dedupColumns::contains))
         .anyMatch(rex -> !rex.isA(SqlKind.INPUT_REF))) {
-      // We can push down:
-      // | eval new_gender = lower(gender) | fields new_gender, age | dedup 1 new_gender
-      // But cannot push down:
-      // | eval new_age = age + 1 | fields gender, new_age | dedup 1 gender
       // TODO fallback to the approach of Collapse search
+      // | eval new_age = age + 1 | fields gender, new_age | dedup 1 gender
       if (LOG.isDebugEnabled()) {
         LOG.debug(
             "Cannot pushdown the dedup since the final outputs contain a column which is not"
@@ -99,8 +104,12 @@ public class DedupPushdownRule extends RelRule<DedupPushdownRule.Config> {
             .filter(rex -> rex instanceof RexCall)
             .toList();
     if (!rexCallsExceptWindow.isEmpty()
-        && hasRexCallAppliedOnDedupColumn(rexCallsExceptWindow, dedupColumns)) {
+        && dedupColumnsContainRexCall(rexCallsExceptWindow, dedupColumns)) {
       // TODO https://github.com/opensearch-project/sql/issues/4789
+      // | eval new_gender = lower(gender) | fields new_gender, age | dedup 1 new_gender
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Cannot pushdown the dedup since the dedup columns contain RexCall");
+      }
       return;
     }
 
@@ -114,24 +123,25 @@ public class DedupPushdownRule extends RelRule<DedupPushdownRule.Config> {
     // Aggregate(literalAgg(dedupNumer), groups)
     // +- Project(groups, remaining)
     //    +- Scan
-    // 1. push Scan
+    // 1. Initial a RelBuilder to build aggregate by pushing Scan and Project
     RelBuilder relBuilder = call.builder();
     relBuilder.push(scan);
+    relBuilder.push(projectWithWindow); // baseline the rowType to handle rename case
     Mapping mappingForDedupColumns =
         PlanUtils.mapping(dedupColumns, relBuilder.peek().getRowType());
-    // Create new Project: grouping first, then remaining finalOutput columns
+
+    // 2. Push a Project which groups is first, then remaining finalOutput columns
     List<RexNode> reordered = new ArrayList<>(PlanUtils.getInputRefs(dedupColumns));
     projectWithWindow.getProjects().stream()
         .filter(rex -> !rex.isA(SqlKind.ROW_NUMBER))
         .filter(Predicate.not(dedupColumns::contains))
         .forEach(reordered::add);
-    // 2. push Project
     relBuilder.project(reordered, ImmutableList.of(), true);
     // childProject includes all list of finalOutput columns
     LogicalProject childProject = (LogicalProject) relBuilder.peek();
 
+    // 3. Push an Aggregate
     final List<RexNode> newDedupColumns = RexUtil.apply(mappingForDedupColumns, dedupColumns);
-    // 3. push Aggregate
     relBuilder.aggregate(relBuilder.groupKey(newDedupColumns), relBuilder.literalAgg(dedupNumer));
     PlanUtils.addIgnoreNullBucketHintToAggregate(relBuilder);
     // peek the aggregate after hint being added
@@ -145,13 +155,12 @@ public class DedupPushdownRule extends RelRule<DedupPushdownRule.Config> {
     }
   }
 
-  private static boolean hasRexCallAppliedOnDedupColumn(
+  private static boolean dedupColumnsContainRexCall(
       List<RexNode> calls, List<RexNode> dedupColumns) {
     List<Integer> dedupColumnIndicesFromCall =
         PlanUtils.getSelectColumns(calls).stream().distinct().toList();
     List<Integer> dedupColumnsIndicesFromPartitionKeys =
         PlanUtils.getSelectColumns(dedupColumns).stream().distinct().toList();
-    // check dedupColumnIndicesFromCall equals to dedupColumnsIndicesFromPartitionKeys
     return dedupColumnsIndicesFromPartitionKeys.stream()
         .anyMatch(dedupColumnIndicesFromCall::contains);
   }
