@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.opensearch.response.agg;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -32,15 +31,9 @@ public class ArgMaxMinParser implements MetricParser {
     }
 
     // Get value from fields (fetchField)
-    List<Map<String, Object>> res =
-        Arrays.stream(hits)
-            .filter(hit -> hit.getFields() != null && hit.getFields().isEmpty())
-            .map(hit -> hit.getFields().values().iterator().next().getValue())
-            .map(v -> new HashMap<>(Collections.singletonMap(agg.getName(), v)))
-            .map(v -> (Map<String, Object>) v)
-            .toList();
-    if (!res.isEmpty()) {
-      return res;
+    if (hits[0].getFields() != null && !hits[0].getFields().isEmpty()) {
+      Object value = hits[0].getFields().values().iterator().next().getValue();
+      return Collections.singletonList(Collections.singletonMap(agg.getName(), value));
     } else {
       return Collections.singletonList(
           new HashMap<>(Collections.singletonMap(agg.getName(), null)));

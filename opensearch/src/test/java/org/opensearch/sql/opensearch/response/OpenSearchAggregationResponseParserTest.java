@@ -295,7 +295,7 @@ class OpenSearchAggregationResponseParserTest {
             + "  }\n"
             + "}";
     OpenSearchAggregationResponseParser parser =
-        new CompositeAggregationParser(new TopHitsParser("take", false));
+        new CompositeAggregationParser(new TopHitsParser("take", false, false));
     assertThat(
         parse(parser, response),
         contains(

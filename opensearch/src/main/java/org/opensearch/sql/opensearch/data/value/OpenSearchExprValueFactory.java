@@ -299,7 +299,7 @@ public class OpenSearchExprValueFactory {
    * value. For example, {"empty_field": []}.
    */
   private Optional<ExprType> type(String field) {
-    return Optional.ofNullable(typeMapping.get(field));
+    return Optional.ofNullable(typeMapping.get(field)).map(ExprType::getOriginalExprType);
   }
 
   /**

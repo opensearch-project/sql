@@ -426,7 +426,7 @@ public class AggregateAnalyzer {
                   .sort(
                       helper.inferNamedField(args.getFirst()).getReferenceForTermQuery(),
                       SortOrder.ASC),
-              new TopHitsParser(aggFieldName, true));
+              new TopHitsParser(aggFieldName, true, false));
         }
       }
       case MAX -> {
@@ -445,7 +445,7 @@ public class AggregateAnalyzer {
                   .sort(
                       helper.inferNamedField(args.getFirst()).getReferenceForTermQuery(),
                       SortOrder.DESC),
-              new TopHitsParser(aggFieldName, true));
+              new TopHitsParser(aggFieldName, true, false));
         }
       }
       case VAR_SAMP ->
@@ -495,7 +495,7 @@ public class AggregateAnalyzer {
                           helper.inferNamedField(args.getFirst()).getReferenceForTermQuery())
                       .size(helper.inferValue(args.getLast(), Integer.class))
                       .from(0),
-                  new TopHitsParser(aggFieldName, false));
+                  new TopHitsParser(aggFieldName, false, true));
           case FIRST -> {
             TopHitsAggregationBuilder firstBuilder =
                 AggregationBuilders.topHits(aggFieldName).size(1).from(0);
@@ -503,7 +503,7 @@ public class AggregateAnalyzer {
               firstBuilder.fetchField(
                   helper.inferNamedField(args.getFirst()).getReferenceForTermQuery());
             }
-            yield Pair.of(firstBuilder, new TopHitsParser(aggFieldName, true));
+            yield Pair.of(firstBuilder, new TopHitsParser(aggFieldName, true, false));
           }
           case LAST -> {
             TopHitsAggregationBuilder lastBuilder =
@@ -515,7 +515,7 @@ public class AggregateAnalyzer {
               lastBuilder.fetchField(
                   helper.inferNamedField(args.getFirst()).getReferenceForTermQuery());
             }
-            yield Pair.of(lastBuilder, new TopHitsParser(aggFieldName, true));
+            yield Pair.of(lastBuilder, new TopHitsParser(aggFieldName, true, false));
           }
           case PERCENTILE_APPROX -> {
             PercentilesAggregationBuilder aggBuilder =
@@ -564,7 +564,7 @@ public class AggregateAnalyzer {
                             aggCall.getAggregation(), rex.getKind()));
                   }
                 });
-        yield Pair.of(topHitsAggregationBuilder, new TopHitsParser(aggFieldName, false));
+        yield Pair.of(topHitsAggregationBuilder, new TopHitsParser(aggFieldName, false, false));
       }
       default ->
           throw new AggregateAnalyzer.AggregateAnalyzerException(

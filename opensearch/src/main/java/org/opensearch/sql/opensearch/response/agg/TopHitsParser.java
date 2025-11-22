@@ -11,9 +11,11 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import org.opensearch.common.document.DocumentField;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.aggregations.Aggregation;
 import org.opensearch.search.aggregations.metrics.TopHits;
@@ -24,10 +26,12 @@ public class TopHitsParser implements MetricParser {
 
   @Getter private final String name;
   private final boolean returnSingleValue;
+  private final boolean returnMergeValue;
 
-  public TopHitsParser(String name, boolean returnSingleValue) {
+  public TopHitsParser(String name, boolean returnSingleValue, boolean returnMergeValue) {
     this.name = name;
     this.returnSingleValue = returnSingleValue;
+    this.returnMergeValue = returnMergeValue;
   }
 
   @Override
@@ -42,13 +46,33 @@ public class TopHitsParser implements MetricParser {
 
     if (hits[0].getFields() == null || hits[0].getFields().isEmpty()) {
       return Collections.singletonList(
-          new HashMap<>(Collections.singletonMap(agg.getName(), Collections.emptyList())));
+          new HashMap<>(
+              Collections.singletonMap(
+                  agg.getName(), returnSingleValue ? null : Collections.emptyList())));
     }
     if (returnSingleValue) {
+      if (hits[0].getFields() == null || hits[0].getFields().isEmpty()) {
+        return Collections.singletonList(
+            new HashMap<>(Collections.singletonMap(agg.getName(), null)));
+      }
       // Extract the single value from the first (and only) hit from fields (fetchField)
       Object value = hits[0].getFields().values().iterator().next().getValue();
       return Collections.singletonList(
           new HashMap<>(Collections.singletonMap(agg.getName(), value)));
+    } else if (returnMergeValue) {
+      if (hits[0].getFields() == null || hits[0].getFields().isEmpty()) {
+        return Collections.singletonList(
+            new HashMap<>(Collections.singletonMap(agg.getName(), Collections.emptyList())));
+      }
+      // Return all values as a list from fields (fetchField)
+      return Collections.singletonList(
+          Collections.singletonMap(
+              agg.getName(),
+              Arrays.stream(hits)
+                  .flatMap(h -> h.getFields().values().stream())
+                  .map(DocumentField::getValue)
+                  .filter(Objects::nonNull) // Filter out null values
+                  .collect(Collectors.toList())));
     } else {
       // "hits": {
       //   "hits": [
