@@ -25,6 +25,7 @@ import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
 import org.apache.calcite.rel.rel2sql.SqlImplementor;
+import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -58,6 +59,21 @@ public class CalcitePPLAbstractTest {
 
   public CalcitePPLAbstractTest(CalciteAssert.SchemaSpec... schemaSpecs) {
     this.config = config(schemaSpecs);
+    this.dataSourceService = mock(DataSourceService.class);
+    this.planTransformer = new CalciteRelNodeVisitor(dataSourceService);
+    this.converter = new RelToSqlConverter(OpenSearchSparkSqlDialect.DEFAULT);
+    this.settings = mock(Settings.class);
+  }
+
+  public CalcitePPLAbstractTest(Schema customSchema) {
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    rootSchema.add("CUSTOM", customSchema);
+    this.config =
+        Frameworks.newConfigBuilder()
+            .parserConfig(SqlParser.Config.DEFAULT)
+            .defaultSchema(rootSchema.getSubSchema("CUSTOM"))
+            .traitDefs((List<RelTraitDef>) null)
+            .programs(Programs.heuristicJoinOrder(Programs.RULE_SET, true, 2));
     this.dataSourceService = mock(DataSourceService.class);
     this.planTransformer = new CalciteRelNodeVisitor(dataSourceService);
     this.converter = new RelToSqlConverter(OpenSearchSparkSqlDialect.DEFAULT);
