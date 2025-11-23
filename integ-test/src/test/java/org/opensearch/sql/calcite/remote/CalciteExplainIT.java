@@ -41,11 +41,8 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.LOGS);
     loadIndex(Index.WORKER);
     loadIndex(Index.WORK_INFORMATION);
-<<<<<<< HEAD
     loadIndex(Index.WEBLOG);
-=======
     loadIndex(Index.MVEXPAND_EDGE_CASES);
->>>>>>> 148ccc5f2 (Add Tests)
   }
 
   @Override
