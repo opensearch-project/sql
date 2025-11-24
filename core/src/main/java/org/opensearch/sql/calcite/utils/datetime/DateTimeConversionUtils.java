@@ -30,16 +30,18 @@ public final class DateTimeConversionUtils {
       ExprValue value, FunctionProperties properties) {
     return switch (value) {
       case ExprTimestampValue timestampValue -> timestampValue;
-      case ExprDateValue dateValue -> (ExprTimestampValue)
-          ExprValueUtils.timestampValue(dateValue.timestampValue());
-      case ExprTimeValue timeValue -> (ExprTimestampValue)
-          ExprValueUtils.timestampValue(timeValue.timestampValue(properties));
-      case ExprStringValue stringValue -> new ExprTimestampValue(
-          DateTimeParser.parse(stringValue.stringValue()));
-      default -> throw new ExpressionEvaluationException(
-          String.format(
-              "Cannot convert %s to timestamp, only STRING, DATE, TIME and TIMESTAMP are supported",
-              value.type()));
+      case ExprDateValue dateValue ->
+          (ExprTimestampValue) ExprValueUtils.timestampValue(dateValue.timestampValue());
+      case ExprTimeValue timeValue ->
+          (ExprTimestampValue) ExprValueUtils.timestampValue(timeValue.timestampValue(properties));
+      case ExprStringValue stringValue ->
+          new ExprTimestampValue(DateTimeParser.parse(stringValue.stringValue()));
+      default ->
+          throw new ExpressionEvaluationException(
+              String.format(
+                  "Cannot convert %s to timestamp, only STRING, DATE, TIME and TIMESTAMP are"
+                      + " supported",
+                  value.type()));
     };
   }
 
@@ -129,8 +131,9 @@ public final class DateTimeConversionUtils {
       case MICROSECOND -> Duration.ofNanos(number * 1000);
       case NANOSECOND -> Duration.ofNanos(number);
 
-      default -> throw new UnsupportedOperationException(
-          "No mapping defined for Calcite TimeUnit: " + unit);
+      default ->
+          throw new UnsupportedOperationException(
+              "No mapping defined for Calcite TimeUnit: " + unit);
     };
   }
 }

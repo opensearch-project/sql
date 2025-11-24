@@ -212,7 +212,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
       // Create Search node with relation and query string
       Relation relation = (Relation) visitFromClause(ctx.fromClause());
-      return new Search(relation, queryString);
+      return new Search(relation, queryString, combined);
     }
   }
 
@@ -479,14 +479,24 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   /** Eventstats command. */
   public UnresolvedPlan visitEventstatsCommand(OpenSearchPPLParser.EventstatsCommandContext ctx) {
+    // 1. Parse arguments from the eventstats command
+    List<Argument> argExprList = ArgumentFactory.getArgumentList(ctx, settings);
+    ArgumentMap arguments = ArgumentMap.of(argExprList);
+
+    // bucket_nullable
+    boolean bucketNullable =
+        (Boolean) arguments.getOrDefault(Argument.BUCKET_NULLABLE, Literal.TRUE).getValue();
+
+    // 2. Build groupList
+    List<UnresolvedExpression> groupList = getPartitionExprList(ctx.statsByClause());
+
     ImmutableList.Builder<UnresolvedExpression> windownFunctionListBuilder =
         new ImmutableList.Builder<>();
     for (OpenSearchPPLParser.EventstatsAggTermContext aggCtx : ctx.eventstatsAggTerm()) {
       UnresolvedExpression windowFunction = internalVisitExpression(aggCtx.windowFunction());
       // set partition by list for window function
       if (windowFunction instanceof WindowFunction) {
-        ((WindowFunction) windowFunction)
-            .setPartitionByList(getPartitionExprList(ctx.statsByClause()));
+        ((WindowFunction) windowFunction).setPartitionByList(groupList);
       }
       String name =
           aggCtx.alias == null
@@ -496,7 +506,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       windownFunctionListBuilder.add(alias);
     }
 
-    return new Window(windownFunctionListBuilder.build());
+    return new Window(windownFunctionListBuilder.build(), groupList, bucketNullable);
   }
 
   /** Streamstats command. */

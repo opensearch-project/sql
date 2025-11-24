@@ -374,7 +374,7 @@ public class PredicateAnalyzer {
               || MULTI_FIELDS_RELEVANCE_FUNCTION_SET.contains(functionName)) {
             return visitRelevanceFunc(call);
           }
-          // fall through
+        // fall through
         default:
           String message =
               format(Locale.ROOT, "Unsupported syntax [%s] for call: [%s]", syntax, call);
@@ -657,14 +657,16 @@ public class PredicateAnalyzer {
           RexUnknownAs nullAs = getNullAsForSearch(call);
           QueryExpression finalExpression =
               switch (nullAs) {
-                  // e.g. where isNotNull(a) and (a = 1 or a = 2)
-                  // TODO: For this case, seems return `expression` should be equivalent
-                case FALSE -> CompoundQueryExpression.and(
-                    false, expression, QueryExpression.create(pair.getKey()).exists());
-                  // e.g. where isNull(a) or a = 1 or a = 2
-                case TRUE -> CompoundQueryExpression.or(
-                    expression, QueryExpression.create(pair.getKey()).notExists());
-                  // e.g. where a = 1 or a = 2
+                // e.g. where isNotNull(a) and (a = 1 or a = 2)
+                // TODO: For this case, seems return `expression` should be equivalent
+                case FALSE ->
+                    CompoundQueryExpression.and(
+                        false, expression, QueryExpression.create(pair.getKey()).exists());
+                // e.g. where isNull(a) or a = 1 or a = 2
+                case TRUE ->
+                    CompoundQueryExpression.or(
+                        expression, QueryExpression.create(pair.getKey()).notExists());
+                // e.g. where a = 1 or a = 2
                 case UNKNOWN -> expression;
               };
           finalExpression.updateAnalyzedNodes(call);

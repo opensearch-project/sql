@@ -113,24 +113,24 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
         String.format(
             Locale.ROOT,
             """
-        {
-          "cluster_permissions": [
-            "cluster:admin/opensearch/ppl"
-          ],
-          "index_permissions": [{
-            "index_patterns": [
-              "%s"
-            ],
-            "allowed_actions": [
-              "indices:data/read/search*",
-              "indices:admin/mappings/get",
-              "indices:monitor/settings/get",
-              "indices:data/read/point_in_time/create",
-              "indices:data/read/point_in_time/delete"
-            ]
-          }]
-        }
-        """,
+            {
+              "cluster_permissions": [
+                "cluster:admin/opensearch/ppl"
+              ],
+              "index_permissions": [{
+                "index_patterns": [
+                  "%s"
+                ],
+                "allowed_actions": [
+                  "indices:data/read/search*",
+                  "indices:admin/mappings/get",
+                  "indices:monitor/settings/get",
+                  "indices:data/read/point_in_time/create",
+                  "indices:data/read/point_in_time/delete"
+                ]
+              }]
+            }
+            """,
             indexPattern));
 
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
@@ -151,12 +151,12 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
         String.format(
             Locale.ROOT,
             """
-        {
-          "password": "%s",
-          "backend_roles": [],
-          "attributes": {}
-        }
-        """,
+            {
+              "password": "%s",
+              "backend_roles": [],
+              "attributes": {}
+            }
+            """,
             STRONG_PASSWORD));
 
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
@@ -175,12 +175,12 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
         String.format(
             Locale.ROOT,
             """
-        {
-          "backend_roles": [],
-          "hosts": [],
-          "users": ["%s"]
-        }
-        """,
+            {
+              "backend_roles": [],
+              "hosts": [],
+              "users": ["%s"]
+            }
+            """,
             username));
 
     mappingRequest.setOptions(restOptionsBuilder);
@@ -270,14 +270,14 @@ public class PPLPermissionsIT extends PPLIntegTestCase {
         String.format(
             Locale.ROOT,
             """
-        {
-          "cluster_permissions": [%s],
-          "index_permissions": [{
-            "index_patterns": ["%s"],
-            "allowed_actions": [%s]
-          }]
-        }
-        """,
+            {
+              "cluster_permissions": [%s],
+              "index_permissions": [{
+                "index_patterns": ["%s"],
+                "allowed_actions": [%s]
+              }]
+            }
+            """,
             clusterPermsJson,
             indexPattern,
             indexPermsJson));

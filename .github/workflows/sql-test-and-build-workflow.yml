@@ -29,7 +29,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java: [21, 24]
+        java: [21, 25]
         test-type: ['unit', 'integration', 'doc']
     runs-on: ubuntu-latest
     container:
@@ -52,9 +52,9 @@ jobs:
         run: |
           chown -R 1000:1000 `pwd`
           if [ "${{ matrix.test-type }}" = "unit" ]; then
-            su `id -un 1000` -c "./gradlew --continue build -x integTest -x doctest"
+            su `id -un 1000` -c "./gradlew --continue build -x integTest -x yamlRestTest -x doctest"
           elif [ "${{ matrix.test-type }}" = "integration" ]; then
-            su `id -un 1000` -c "./gradlew --continue integTest"
+            su `id -un 1000` -c "./gradlew --continue integTest yamlRestTest"
           else
             su `id -un 1000` -c "./gradlew --continue doctest"
           fi
@@ -106,16 +106,16 @@ jobs:
       matrix:
         entry:
           - { os: windows-latest, java: 21, os_build_args: -PbuildPlatform=windows }
-          - { os: windows-latest, java: 24, os_build_args: -PbuildPlatform=windows }
+          - { os: windows-latest, java: 25, os_build_args: -PbuildPlatform=windows }
           - { os: macos-14, java: 21, os_build_args: '' }
-          - { os: macos-14, java: 24, os_build_args: '' }
+          - { os: macos-14, java: 25, os_build_args: '' }
         test-type: ['unit', 'integration', 'doc']
         exclude:
           # Exclude doctest for Windows
           - test-type: doc
             entry: { os: windows-latest, java: 21, os_build_args: -PbuildPlatform=windows }
           - test-type: doc
-            entry: { os: windows-latest, java: 24, os_build_args: -PbuildPlatform=windows }
+            entry: { os: windows-latest, java: 25, os_build_args: -PbuildPlatform=windows }
     runs-on: ${{ matrix.entry.os }}
 
     steps:
@@ -130,9 +130,9 @@ jobs:
       - name: Build and Test
         run: |
           if [ "${{ matrix.test-type }}" = "unit" ]; then
-            ./gradlew --continue build -x integTest -x doctest ${{ matrix.entry.os_build_args }}
+            ./gradlew --continue build -x integTest -x yamlRestTest -x doctest ${{ matrix.entry.os_build_args }}
           elif [ "${{ matrix.test-type }}" = "integration" ]; then
-            ./gradlew --continue integTest ${{ matrix.entry.os_build_args }}
+            ./gradlew --continue integTest yamlRestTest ${{ matrix.entry.os_build_args }}
           else
             ./gradlew --continue doctest ${{ matrix.entry.os_build_args }}
           fi
@@ -184,7 +184,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        java: [21, 24]
+        java: [21, 25]
     container:
       image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
       options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}
@@ -230,7 +230,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        java: [21, 24]
+        java: [21, 25]
     container:
       image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
       options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}

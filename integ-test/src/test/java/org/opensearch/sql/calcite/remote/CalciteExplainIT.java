@@ -619,6 +619,16 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testEventstatsNullBucketExplain() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | eventstats bucket_nullable=false count() by"
+            + " state";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_eventstats_null_bucket.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
   public void testStreamstatsDistinctCountExplain() throws IOException {
     String query =
         "source=opensearch-sql_test_index_account | streamstats dc(state) as distinct_states";
