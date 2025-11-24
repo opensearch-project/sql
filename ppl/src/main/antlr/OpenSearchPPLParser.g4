@@ -1099,6 +1099,7 @@ collectionFunctionName
     | MVINDEX
     | MVDEDUP
     | SPLIT
+    | MVMAP
     | FORALL
     | EXISTS
     | FILTER
