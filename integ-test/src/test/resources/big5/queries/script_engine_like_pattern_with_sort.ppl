@@ -31,7 +31,7 @@
   }
 }
 */
-source = custom-big5
+source = big5
 | where like(`message`, '%sshd%')
 | sort - `@timestamp`
 | head 10

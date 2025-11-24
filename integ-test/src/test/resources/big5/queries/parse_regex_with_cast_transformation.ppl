@@ -1,14 +1,14 @@
 /*
 {
-  "name": "parse_field_with_cast_transformation",
+  "name": "parse_regex_with_cast_transformation",
   "operation-type": "search",
-  "index": "{{index_name | default('custom-big5')}}",
+  "index": "{{index_name | default('big5')}}",
   "body": {
     "query": {
       "match_all": {}
     },
     "_source": {
-      "includes": ["aws.cloudwatch.log_stream", "@timestamp"],
+      "includes": ["log.file.path", "@timestamp"],
       "excludes": []
     },
     "sort": [
@@ -22,8 +22,8 @@
   }
 }
 */
-source = custom-big5
-| parse `aws.cloudwatch.log_stream` "eni-(?<eniid>[0-9]+)"
-| eval eniid_num = cast(eniid as int)
-| fields `aws.cloudwatch.log_stream`, eniid, eniid_num, `@timestamp`
+source = big5
+| parse `log.file.path` '/var/log/(?<logType>\\w+)/(?<filename>\\w+)'
+| eval filename_len = length(filename)
+| fields `log.file.path`, logType, filename, filename_len, `@timestamp`
 | sort - `@timestamp`

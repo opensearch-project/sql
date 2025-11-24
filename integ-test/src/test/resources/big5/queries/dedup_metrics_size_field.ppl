@@ -17,6 +17,6 @@
   }
 }
 */
-source = custom-big5
+source = big5
 | dedup `metrics.size`
 | sort - `@timestamp`
