@@ -408,7 +408,8 @@ public class MatcherUtils {
 
   public static void assertYamlEqualsIgnoreId(String expectedYaml, String actualYaml) {
     String cleanedYaml = cleanUpYaml(actualYaml);
-    assertYamlEquals(expectedYaml, cleanedYaml);
+    String cleanedExpectedYaml = cleanUpYaml(expectedYaml);
+    assertYamlEquals(cleanedExpectedYaml, cleanedYaml);
   }
 
   public static void assertYamlEquals(String expected, String actual) {
@@ -426,7 +427,8 @@ public class MatcherUtils {
     return s.replaceAll("\"utcTimestamp\":\\d+", "\"utcTimestamp\": 0")
         .replaceAll("rel#\\d+", "rel#")
         .replaceAll("RelSubset#\\d+", "RelSubset#")
-        .replaceAll("pitId=[^,]+,", "pitId=*,");
+        .replaceAll("pitId=[^,]+,", "pitId=*,")
+        .replaceAll("\\$t?\\d+", "\\$FIELD_INDEX");
   }
 
   private static String jsonToYaml(String json) {
