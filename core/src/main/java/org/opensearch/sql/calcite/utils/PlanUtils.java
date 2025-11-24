@@ -616,6 +616,7 @@ public interface PlanUtils {
                 .build());
   }
 
+  /** Extract the RexLiteral from the aggregate call if the aggregate call is a LITERAL_AGG. */
   static @Nullable RexLiteral getObjectFromLiteralAgg(AggregateCall aggCall) {
     if (aggCall.getAggregation().kind == SqlKind.LITERAL_AGG) {
       return (RexLiteral)

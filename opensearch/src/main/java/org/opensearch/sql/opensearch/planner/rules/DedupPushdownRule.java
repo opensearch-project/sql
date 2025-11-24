@@ -141,6 +141,10 @@ public class DedupPushdownRule extends RelRule<DedupPushdownRule.Config> {
     LogicalProject childProject = (LogicalProject) relBuilder.peek();
 
     // 3. Push an Aggregate
+    // We push down a LITERAL_AGG with dedupNumer for converting the dedup command to aggregate:
+    // (1) Pass the dedupNumer to AggregateAnalyzer.processAggregateCalls()
+    // (2) Distinguish it from an optimization operator and user defined aggregator.
+    // (LITERAL_AGG is used in optimization normally, see {@link SqlKind#LITERAL_AGG})
     final List<RexNode> newDedupColumns = RexUtil.apply(mappingForDedupColumns, dedupColumns);
     relBuilder.aggregate(relBuilder.groupKey(newDedupColumns), relBuilder.literalAgg(dedupNumer));
     PlanUtils.addIgnoreNullBucketHintToAggregate(relBuilder);

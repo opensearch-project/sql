@@ -335,7 +335,7 @@ public class AggregateAnalyzer {
 
     for (int i = 0; i < aggCalls.size(); i++) {
       AggregateCall aggCall = aggCalls.get(i);
-      List<RexNode> args = convertAggArgThroughProject(aggCall, project, helper);
+      List<RexNode> args = convertAggArgThroughProject(aggCall, project);
       String aggFieldName = aggFieldNames.get(i);
 
       Pair<AggregationBuilder, MetricParser> builderAndParser =
@@ -347,8 +347,16 @@ public class AggregateAnalyzer {
     return Pair.of(metricBuilder, metricParserList);
   }
 
-  private static List<RexNode> convertAggArgThroughProject(
-      AggregateCall aggCall, Project project, AggregateAnalyzer.AggregateBuilderHelper helper) {
+  /**
+   * Convert aggregate arguments through child project. Normally, just return the rex nodes of
+   * Project which are included in aggCall expression. If the aggCall is a LITERAL_AGG, it returns
+   * all rex nodes of Project except WindowFunction.
+   *
+   * @param aggCall the aggregate call
+   * @param project the project
+   * @return the converted RexNode list
+   */
+  private static List<RexNode> convertAggArgThroughProject(AggregateCall aggCall, Project project) {
     return project == null
         ? List.of()
         : PlanUtils.getObjectFromLiteralAgg(aggCall) != null
@@ -546,6 +554,7 @@ public class AggregateAnalyzer {
               String.format("Unsupported push-down aggregator %s", aggCall.getAggregation()));
         }
         Integer dedupNumber = literal.getValueAs(Integer.class);
+        // Disable fetchSource since TopHitsParser only parses fetchField currently.
         TopHitsAggregationBuilder topHitsAggregationBuilder =
             AggregationBuilders.topHits(aggFieldName).from(0).fetchSource(false).size(dedupNumber);
         args.stream()
