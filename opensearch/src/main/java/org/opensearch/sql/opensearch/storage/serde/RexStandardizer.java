@@ -181,8 +181,8 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
             literal.getType(),
             OpenSearchTypeFactory.TYPE_FACTORY,
             org.apache.calcite.adapter.enumerable.RexImpTable.NullAs.NOT_POSSIBLE);
-    if (expression instanceof ConstantExpression constantExpression) {
-      return constantExpression.value;
+    if (expression instanceof ConstantExpression) {
+      return ((ConstantExpression) expression).value;
     }
     return null;
   }

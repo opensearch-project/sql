@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.DataContext;
@@ -180,7 +181,8 @@ public class CalciteScriptEngine implements ScriptEngine {
       this.docProvider = docProvider;
       this.sourceLookup = sourceLookup;
       this.utcTimestamp = (long) params.get(Variable.UTC_TIMESTAMP.camelName);
-      this.sources = ((List<Integer>) params.get(SOURCES)).stream().map(Source::fromValue).toList();
+      this.sources = ((List<Integer>) params.get(SOURCES)).stream().map(Source::fromValue).collect(
+          Collectors.toList());
       this.digests = (List<Object>) params.get(DIGESTS);
       this.parameterToIndex = parameterToIndex;
     }
@@ -207,11 +209,16 @@ public class CalciteScriptEngine implements ScriptEngine {
 
       try {
         int index = parameterToIndex.get(name);
-        return switch (sources.get(index)) {
-          case DOC_VALUE -> getFromDocValue((String) digests.get(index));
-          case SOURCE -> getFromSource((String) digests.get(index));
-          case LITERAL -> digests.get(index);
-        };
+        switch (sources.get(index)) {
+          case DOC_VALUE:
+            return getFromDocValue((String) digests.get(index));
+          case SOURCE:
+            return getFromSource((String) digests.get(index));
+          case LITERAL:
+            return digests.get(index);
+          default:
+            throw new IllegalStateException("Unknown source type for parameter at index: " + index);
+        }
       } catch (Exception e) {
         throw new IllegalStateException("Failed to get value for parameter " + name);
       }
