@@ -302,6 +302,44 @@ Example::
     | [1,text,2.5] |
     +--------------+
 
+MVDEDUP
+-------
+
+Description
+>>>>>>>>>>>
+
+Usage: mvdedup(array) removes duplicate values from a multivalue array while preserving the order of first occurrence. NULL elements are filtered out. Returns an array with duplicates removed, or null if the input is null.
+
+Argument type: array: ARRAY
+
+Return type: ARRAY
+
+Example::
+
+    os> source=people | eval array = array(1, 2, 2, 3, 1, 4), result = mvdedup(array) | fields result | head 1
+    fetched rows / total rows = 1/1
+    +-----------+
+    | result    |
+    |-----------|
+    | [1,2,3,4] |
+    +-----------+
+
+    os> source=people | eval array = array('z', 'a', 'z', 'b', 'a', 'c'), result = mvdedup(array) | fields result | head 1
+    fetched rows / total rows = 1/1
+    +-----------+
+    | result    |
+    |-----------|
+    | [z,a,b,c] |
+    +-----------+
+
+    os> source=people | eval array = array(), result = mvdedup(array) | fields result | head 1
+    fetched rows / total rows = 1/1
+    +--------+
+    | result |
+    |--------|
+    | []     |
+    +--------+
+
 MVINDEX
 -------
 
