@@ -105,6 +105,21 @@ public class TestUtils {
   }
 
   /**
+   * Return how many docs in the index
+   *
+   * @param client client connection
+   * @param indexName index name
+   * @return doc count of the index
+   * @throws IOException
+   */
+  public static int getDocCount(RestClient client, String indexName) throws IOException {
+    Request request = new Request("GET", "/" + indexName + "/_count");
+    Response response = performRequest(client, request);
+    JSONObject jsonObject = new JSONObject(getResponseBody(response));
+    return jsonObject.getInt("count");
+  }
+
+  /**
    * Perform a request by REST client.
    *
    * @param client client connection

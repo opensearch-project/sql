@@ -33,7 +33,7 @@ public class PPLQueryDataAnonymizerTest {
 
   @Test
   public void testSearchCommand() {
-    assertEquals("source=table a:***", anonymize("search source=t a=1"));
+    assertEquals("source=table identifier = ***", anonymize("search source=t a=1"));
   }
 
   @Test
@@ -271,8 +271,8 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testTimechartCommand() {
     assertEquals(
-        "source=table | timechart limit=*** useother=*** count() by span(identifier, *** m)"
-            + " identifier",
+        "source=table | timechart limit=*** useother=*** count() by span(time_identifier, ***"
+            + " m) identifier",
         anonymize("source=t | timechart count() by host"));
   }
 
@@ -402,6 +402,13 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=table | where identifier = *** and identifier = ***",
         anonymize("source=t | where a=1 and b=2"));
+  }
+
+  @Test
+  public void testAndExpressionWithMetaData() {
+    assertEquals(
+        "source=table | where meta_identifier = *** and identifier = ***",
+        anonymize("source=t | where _id=1 and b=2"));
   }
 
   @Test
@@ -895,8 +902,35 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testSearchWithAbsoluteTimeRange() {
     assertEquals(
-        "source=table (@timestamp:*** AND (@timestamp:***",
+        "source=table (time_identifier >= ***) AND (time_identifier <= ***)",
         anonymize("search source=t earliest='2012-12-10 15:00:00' latest=now"));
+  }
+
+  @Test
+  public void testSearchWithIn() {
+    assertEquals("source=table identifier IN ***", anonymize("search source=t balance in (2000)"));
+  }
+
+  @Test
+  public void testSearchWithNot() {
+    assertEquals(
+        "source=table NOT(identifier = ***)", anonymize("search NOT balance=2000 source=t"));
+  }
+
+  @Test
+  public void testSearchWithGroup() {
+    assertEquals(
+        "source=table ((identifier = *** OR identifier = ***) AND identifier > ***)",
+        anonymize(
+            "search (severityText=\"ERROR\" OR severityText=\"WARN\") AND severityNumber>10"
+                + " source=t"));
+  }
+
+  @Test
+  public void testSearchWithOr() {
+    assertEquals(
+        "source=table (time_identifier >= *** OR time_identifier <= ***)",
+        anonymize("search source=t earliest='2012-12-10 15:00:00' or latest=now"));
   }
 
   @Test
