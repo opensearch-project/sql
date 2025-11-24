@@ -439,6 +439,12 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     final String mappedName =
         FUNCTION_NAME_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), functionName);
 
+    // Handle mvmap with implicit binding: mvmap(field, field * 10) -> mvmap(field, field -> field *
+    // 10)
+    if ("mvmap".equalsIgnoreCase(mappedName)) {
+      return buildMvmapFunction(ctx.functionArgs().functionArg());
+    }
+
     // Rewrite sum and avg functions to arithmetic expressions
     if (SUM.getName().getFunctionName().equalsIgnoreCase(mappedName)
         || AVG.getName().getFunctionName().equalsIgnoreCase(mappedName)) {
@@ -452,6 +458,58 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
       String functionName, List<OpenSearchPPLParser.FunctionArgContext> args) {
     return new Function(
         functionName, args.stream().map(this::visitFunctionArg).collect(Collectors.toList()));
+  }
+
+  /**
+   * Builds mvmap function with implicit binding support. Transforms mvmap(field, field * 10) to
+   * mvmap(field, field -> field * 10).
+   */
+  private Function buildMvmapFunction(List<OpenSearchPPLParser.FunctionArgContext> args) {
+    if (args.size() != 2) {
+      return buildFunction("mvmap", args);
+    }
+
+    UnresolvedExpression firstArg = visitFunctionArg(args.get(0));
+    UnresolvedExpression secondArg = visitFunctionArg(args.get(1));
+
+    // If second arg is already a lambda, use as-is (backward compatible)
+    if (secondArg instanceof LambdaFunction) {
+      return new Function("mvmap", Arrays.asList(firstArg, secondArg));
+    }
+
+    // Extract field name from first argument for implicit binding
+    QualifiedName fieldName = extractFieldName(firstArg);
+    if (fieldName == null) {
+      // Can't determine field name, fall back to regular function call
+      return new Function("mvmap", Arrays.asList(firstArg, secondArg));
+    }
+
+    // Wrap expression in lambda: expr -> LambdaFunction(expr, [fieldName])
+    LambdaFunction lambda = new LambdaFunction(secondArg, Collections.singletonList(fieldName));
+    return new Function("mvmap", Arrays.asList(firstArg, lambda));
+  }
+
+  /** Extracts the field name from an expression for implicit lambda binding. */
+  private QualifiedName extractFieldName(UnresolvedExpression expr) {
+    if (expr instanceof Field) {
+      UnresolvedExpression fieldExpr = ((Field) expr).getField();
+      if (fieldExpr instanceof QualifiedName) {
+        return (QualifiedName) fieldExpr;
+      }
+      return extractFieldName(fieldExpr);
+    }
+    if (expr instanceof QualifiedName) {
+      return (QualifiedName) expr;
+    }
+    // For function calls like mvindex(results, 1, 2), try to extract field from first argument
+    if (expr instanceof Function) {
+      Function func = (Function) expr;
+      List<UnresolvedExpression> funcArgs = func.getFuncArgs();
+      if (!funcArgs.isEmpty()) {
+        return extractFieldName(funcArgs.get(0));
+      }
+    }
+    return null;
   }
 
   /** Cast function. */

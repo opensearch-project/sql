@@ -675,4 +675,30 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     // Empty delimiter splits into individual characters
     verifyDataRows(actual, rows(List.of("a", "b", "c", "d")));
   }
+
+  @Test
+  public void testMvmap() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array(1, 2, 3), result = mvmap(arr, arr * 10) | head 1 |"
+                    + " fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of(10, 20, 30)));
+  }
+
+  @Test
+  public void testMvmapWithAddition() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array(1, 2, 3), result = mvmap(arr, arr + 5) | head 1 |"
+                    + " fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of(6, 7, 8)));
+  }
 }

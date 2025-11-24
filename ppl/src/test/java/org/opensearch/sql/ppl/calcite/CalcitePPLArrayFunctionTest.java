@@ -504,4 +504,35 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testMvmapBasic() {
+    String ppl =
+        "source=EMP | eval arr = array(1, 2, 3), result = mvmap(arr, arr * 10) | head 1 |"
+            + " fields result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(result=[$9])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[array(1, 2, 3)],"
+            + " result=[transform(array(1, 2, 3), (arr) -> *(arr, 10))])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult = "result=[10, 20, 30]\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testMvmapWithAddition() {
+    String ppl =
+        "source=EMP | eval arr = array(1, 2, 3), result = mvmap(arr, arr + 5) | head 1 |"
+            + " fields result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "result=[6, 7, 8]\n";
+    verifyResult(root, expectedResult);
+  }
 }

@@ -898,6 +898,14 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testMvmap() {
+    assertEquals(
+        "source=table | eval identifier=mvmap(array(***,***,***),*(identifier,***)) | fields +"
+            + " identifier",
+        anonymize("source=t | eval result=mvmap(array(1, 2, 3), arr * 10) | fields result"));
+  }
+
+  @Test
   public void testRexWithOffsetField() {
     when(settings.getSettingValue(Key.PPL_REX_MAX_MATCH_LIMIT)).thenReturn(10);
 

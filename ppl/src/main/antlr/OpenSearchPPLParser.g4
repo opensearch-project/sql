@@ -1127,6 +1127,7 @@ collectionFunctionName
     | MVDEDUP
     | MVZIP
     | SPLIT
+    | MVMAP
     | FORALL
     | EXISTS
     | FILTER
