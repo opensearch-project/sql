@@ -21,6 +21,8 @@ public class OpenSearchIndexRules {
   // TODO: No need this rule once https://github.com/opensearch-project/sql/issues/4403 is addressed
   private static final AggregateIndexScanRule BUCKET_NON_NULL_AGG_INDEX_SCAN =
       AggregateIndexScanRule.Config.BUCKET_NON_NULL_AGG.toRule();
+  private static final AggregateIndexScanRule BUCKET_NON_NULL_AGG_WITH_UDF_INDEX_SCAN =
+      AggregateIndexScanRule.Config.BUCKET_NON_NULL_AGG_WITH_UDF.toRule();
   private static final LimitIndexScanRule LIMIT_INDEX_SCAN =
       LimitIndexScanRule.Config.DEFAULT.toRule();
   private static final SortIndexScanRule SORT_INDEX_SCAN =
@@ -51,6 +53,7 @@ public class OpenSearchIndexRules {
           AGGREGATE_INDEX_SCAN,
           COUNT_STAR_INDEX_SCAN,
           BUCKET_NON_NULL_AGG_INDEX_SCAN,
+          BUCKET_NON_NULL_AGG_WITH_UDF_INDEX_SCAN,
           LIMIT_INDEX_SCAN,
           SORT_INDEX_SCAN,
           DEDUP_PUSH_DOWN,
