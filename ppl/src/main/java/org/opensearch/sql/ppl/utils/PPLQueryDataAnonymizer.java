@@ -516,11 +516,13 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
       if ("top".equals(argName)) {
         continue;
       }
-      chartCommand.append(" ").append(argName).append("=");
+
       switch (argName) {
         case "limit", "useother", "usenull", "otherstr", "nullstr" ->
-            chartCommand.append(MASK_LITERAL);
-        case "timefield" -> chartCommand.append(MASK_TIMESTAMP_COLUMN);
+            chartCommand.append(" ").append(argName).append("=").append(MASK_LITERAL);
+        case "spanliteral" -> chartCommand.append(" span=").append(MASK_LITERAL);
+        case "timefield" ->
+            chartCommand.append(" ").append(argName).append("=").append(MASK_TIMESTAMP_COLUMN);
         default ->
             throw new NotImplementedException(
                 StringUtils.format("Please implement anonymizer for arg: %s", argName));
