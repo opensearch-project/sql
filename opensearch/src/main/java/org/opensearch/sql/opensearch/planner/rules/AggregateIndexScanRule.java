@@ -263,7 +263,7 @@ public class AggregateIndexScanRule extends RelRule<AggregateIndexScanRule.Confi
                             b1 ->
                                 b1.operand(LogicalProject.class)
                                     .predicate(
-                                        Predicate.not(PlanUtils::containsRexOver)
+                                        Predicate.not(LogicalProject::containsOver)
                                             .and(PlanUtils::distinctProjectList))
                                     .oneInput(
                                         b2 ->
@@ -274,7 +274,8 @@ public class AggregateIndexScanRule extends RelRule<AggregateIndexScanRule.Confi
                                                         b3.operand(LogicalProject.class)
                                                             .predicate(
                                                                 Predicate.not(
-                                                                        PlanUtils::containsRexOver)
+                                                                        LogicalProject
+                                                                            ::containsOver)
                                                                     .and(
                                                                         PlanUtils
                                                                             ::distinctProjectList)
