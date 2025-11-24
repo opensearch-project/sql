@@ -436,3 +436,11 @@ Example::
     |-----------|
     | [1,a,2,b] |
     +-----------+
+
+    os> source=people | eval arr1 = array(1, 2, 3), arr2 = array('a', 'b', 'c'), arr3 = array('x', 'y', 'z'), result = mvzip(mvzip(arr1, arr2), arr3) | fields result | head 1
+    fetched rows / total rows = 1/1
+    +---------------------+
+    | result              |
+    |---------------------|
+    | [1,a,x,2,b,y,3,c,z] |
+    +---------------------+
