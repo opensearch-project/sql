@@ -868,16 +868,6 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
           node.getFuncArgs().stream()
               .map(unresolvedExpression -> analyze(unresolvedExpression, context))
               .collect(Collectors.joining(","));
-      if (UnresolvedPlanHelper.isCalciteEnabled(queryAnonymizer.settings)
-          && node.getFuncName().equalsIgnoreCase("LIKE")
-          && node.getFuncArgs().size() == 2) {
-        arguments =
-            arguments
-                + ","
-                + (UnresolvedPlanHelper.legacyPreferred(queryAnonymizer.settings)
-                    ? "false"
-                    : "true");
-      }
       return StringUtils.format("%s(%s)", node.getFuncName(), arguments);
     }
 

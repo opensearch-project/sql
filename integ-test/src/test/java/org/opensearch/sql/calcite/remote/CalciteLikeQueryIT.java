@@ -31,16 +31,6 @@ public class CalciteLikeQueryIT extends LikeQueryIT {
   }
 
   @Test
-  public void test_like_should_be_case_sensitive() throws IOException {
-    String query =
-        "source="
-            + TEST_INDEX_WILDCARD
-            + " | WHERE Like(KeywordBody, 'test Wildcard%', true) | fields KeywordBody";
-    JSONObject result = executeQuery(query);
-    verifyNumOfRows(result, 0);
-  }
-
-  @Test
   public void test_ilike_is_case_insensitive() throws IOException {
     String query =
         "source="
@@ -56,31 +46,6 @@ public class CalciteLikeQueryIT extends LikeQueryIT {
         rows("test wildcard in the end of the text_"),
         rows("test wildcard in _ the middle of the text"),
         rows("test wildcard __ beside each other"));
-  }
-
-  @Test
-  public void test_like_with_case_sensitive() throws IOException {
-    // only work in v3
-    String query =
-        "source="
-            + TEST_INDEX_WILDCARD
-            + " | WHERE Like(KeywordBody, 'test Wildcard%', false) | fields KeywordBody";
-    JSONObject result = executeQuery(query);
-    verifyDataRows(
-        result,
-        rows("test wildcard"),
-        rows("test wildcard in the end of the text%"),
-        rows("test wildcard in % the middle of the text"),
-        rows("test wildcard %% beside each other"),
-        rows("test wildcard in the end of the text_"),
-        rows("test wildcard in _ the middle of the text"),
-        rows("test wildcard __ beside each other"));
-    query =
-        "source="
-            + TEST_INDEX_WILDCARD
-            + " | WHERE Like(KeywordBody, 'test Wildcard%', true) | fields KeywordBody";
-    result = executeQuery(query);
-    verifyNumOfRows(result, 0);
   }
 
   @Test

@@ -21,7 +21,14 @@ public class LikeQuery extends LuceneQuery {
   @Override
   public QueryBuilder doBuild(String fieldName, ExprType fieldType, ExprValue literal) {
     String field = OpenSearchTextType.convertTextToKeyword(fieldName, fieldType);
-    return createBuilder(field, literal.stringValue());
+    return createBuilder(field, literal.stringValue(), false);
+  }
+
+  @Override
+  public QueryBuilder doBuild(
+      String fieldName, ExprType fieldType, ExprValue literal1, ExprValue literal2) {
+    String field = OpenSearchTextType.convertTextToKeyword(fieldName, fieldType);
+    return createBuilder(field, literal1.stringValue(), literal2.booleanValue());
   }
 
   /**
@@ -29,9 +36,9 @@ public class LikeQuery extends LuceneQuery {
    * relevance function which wildcard_query is. The arguments in LIKE are of type
    * ReferenceExpression while wildcard_query are of type NamedArgumentExpression
    */
-  protected WildcardQueryBuilder createBuilder(String field, String query) {
+  protected WildcardQueryBuilder createBuilder(String field, String query, Boolean caseSensitive) {
     String matchText = StringUtils.convertSqlWildcardToLuceneSafe(query);
-    return QueryBuilders.wildcardQuery(field, matchText).caseInsensitive(true);
+    return QueryBuilders.wildcardQuery(field, matchText).caseInsensitive(!caseSensitive);
   }
 
   /**
@@ -49,6 +56,11 @@ public class LikeQuery extends LuceneQuery {
         && (func.getArguments().get(0) instanceof ReferenceExpression)
         && (func.getArguments().get(1) instanceof LiteralExpression
             || literalExpressionWrappedByCast(func))) {
+      if (func.getArguments().size() == 3
+          && !(func.getArguments().get(2) instanceof LiteralExpression)) {
+        // The third argument of like function must be boolean literal
+        return false;
+      }
       ReferenceExpression ref = (ReferenceExpression) func.getArguments().get(0);
       // Only support keyword type field
       if (OpenSearchTextType.toKeywordSubField(ref.getRawPath(), ref.getType()) != null) {

@@ -28,7 +28,6 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    disableLegacyPPLSyntaxPreferred();
 
     loadIndex(Index.TPCH_CUSTOMER);
     loadIndex(Index.TPCH_LINEITEM);

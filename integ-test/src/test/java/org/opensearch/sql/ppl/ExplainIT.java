@@ -571,6 +571,15 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testKeywordLikeFunctionCaseInsensitiveExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_keyword_like_function_case_insensitive.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | where like(firstname, '%mbe%', false)"));
+  }
+
+  @Test
   public void testTextLikeFunctionExplain() throws IOException {
     String expected = loadExpectedPlan("explain_text_like_function.yaml");
     assertYamlEqualsIgnoreId(
@@ -593,6 +602,15 @@ public class ExplainIT extends PPLIntegTestCase {
             }
           });
     }
+  }
+
+  @Test
+  public void testTextLikeFunctionCaseInsensitiveExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_text_like_function_case_insensitive.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | where like(address, '%Holmes%', false)"));
   }
 
   @Ignore("The serialized string is unstable because of function properties")

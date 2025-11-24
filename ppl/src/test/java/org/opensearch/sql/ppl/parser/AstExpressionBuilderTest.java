@@ -177,6 +177,24 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void testLogicalLikeExprCaseSensitive() {
+    assertEqual(
+        "source=t | where like(a, '_a%b%c_d_', true)",
+        filter(
+            relation("t"),
+            function("like", field("a"), stringLiteral("_a%b%c_d_"), booleanLiteral(true))));
+  }
+
+  @Test
+  public void testLogicalLikeExprCaseInSensitive() {
+    assertEqual(
+        "source=t | where like(a, '_a%b%c_d_', false)",
+        filter(
+            relation("t"),
+            function("like", field("a"), stringLiteral("_a%b%c_d_"), booleanLiteral(false))));
+  }
+
+  @Test
   public void testLikeOperatorExpr() {
     // Test LIKE operator syntax
     assertEqual(
