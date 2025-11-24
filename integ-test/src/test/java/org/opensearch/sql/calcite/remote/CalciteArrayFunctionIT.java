@@ -533,17 +533,30 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testMvzipWithNull() throws IOException {
-    // When either input is null, result should be null
+  public void testMvzipWithEmptyArray() throws IOException {
+    // When one array is empty, result should be empty array (not null)
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval result = mvzip(nullif(1, 1), array('test')) | head 1 | fields"
+                "source=%s | eval result = mvzip(array(), array('a', 'b')) | head 1 | fields"
                     + " result",
                 TEST_INDEX_BANK));
 
     verifySchema(actual, schema("result", "array"));
-    verifyDataRows(actual, rows((Object) null));
+    verifyDataRows(actual, rows(List.of()));
+  }
+
+  @Test
+  public void testMvzipWithBothEmptyArrays() throws IOException {
+    // When both arrays are empty, result should be empty array (not null)
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = mvzip(array(), array()) | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of()));
   }
 
   @Test

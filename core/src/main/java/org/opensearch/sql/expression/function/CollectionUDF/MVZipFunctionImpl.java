@@ -7,6 +7,7 @@ package org.opensearch.sql.expression.function.CollectionUDF;
 
 import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -17,19 +18,34 @@ import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
- * MVZip function that combines two multivalue fields pairwise with a delimiter. Returns an array of
- * strings or null if either input is null.
+ * MVZip function that combines two multivalue fields pairwise with a delimiter.
+ *
+ * <p>This function zips together two arrays by combining the first value of left with the first
+ * value of right, the second with the second, and so on, up to the length of the shorter array.
+ *
+ * <p>Behavior:
+ *
+ * <ul>
+ *   <li>Returns null if either left or right is null
+ *   <li>Returns an empty array if one or both arrays are empty
+ *   <li>Stops at the length of the shorter array (like Python's zip)
+ *   <li>Uses the provided delimiter to join values (default: ",")
+ * </ul>
  */
 public class MVZipFunctionImpl extends ImplementorUDF {
 
   public MVZipFunctionImpl() {
-    super(new MVZipImplementor(), NullPolicy.ALL);
+    // Use ANY: return null if any argument is null
+    super(new MVZipImplementor(), NullPolicy.ANY);
   }
 
   @Override
@@ -46,7 +62,13 @@ public class MVZipFunctionImpl extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return null;
+    // First two arguments must be arrays, optional STRING delimiter
+    return UDFOperandMetadata.wrap(
+        (CompositeOperandTypeChecker)
+            OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.ARRAY)
+                .or(
+                    OperandTypes.family(
+                        SqlTypeFamily.ARRAY, SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER)));
   }
 
   public static class MVZipImplementor implements NotNullImplementor {
@@ -78,14 +100,39 @@ public class MVZipFunctionImpl extends ImplementorUDF {
   }
 
   /**
-   * Entry point for mvzip function.
+   * Combines two multivalue arrays pairwise with a delimiter. Note: Parameters are typed as Object
+   * (rather than List) because Calcite's reflection-based method lookup uses Object.class. Type
+   * validation is enforced at compile time via {@link #getOperandMetadata()}.
    *
-   * @param left The left multivalue field or scalar value
-   * @param right The right multivalue field or scalar value
+   * @param left The left multivalue array
+   * @param right The right multivalue array
    * @param delimiter The delimiter to use for joining values (default: ",")
-   * @return A list of combined values, or null if either input is null
+   * @return A list of combined values, empty list if either array is empty, or null if either input
+   *     is null
    */
-  public static Object mvzip(Object left, Object right, String delimiter) {
-    return MVZipCore.zipElements(left, right, delimiter);
+  public static List<Object> mvzip(Object left, Object right, String delimiter) {
+    if (left == null || right == null) {
+      return null;
+    }
+
+    List<?> leftList = toList(left);
+    List<?> rightList = toList(right);
+
+    List<Object> result = new ArrayList<>();
+    int minLength = Math.min(leftList.size(), rightList.size());
+
+    for (int i = 0; i < minLength; i++) {
+      String combined = leftList.get(i) + delimiter + rightList.get(i);
+      result.add(combined);
+    }
+
+    return result;
+  }
+
+  private static List<?> toList(Object obj) {
+    if (obj instanceof List) {
+      return (List<?>) obj;
+    }
+    return List.of(obj);
   }
 }
