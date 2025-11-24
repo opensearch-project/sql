@@ -9,6 +9,7 @@ import static org.opensearch.sql.calcite.utils.PlanUtils.getRelation;
 import static org.opensearch.sql.calcite.utils.PlanUtils.transformPlanToAttachChild;
 import static org.opensearch.sql.utils.QueryStringUtils.MASK_COLUMN;
 import static org.opensearch.sql.utils.QueryStringUtils.MASK_LITERAL;
+import static org.opensearch.sql.utils.QueryStringUtils.MASK_TIMESTAMP_COLUMN;
 import static org.opensearch.sql.utils.QueryStringUtils.maskField;
 
 import com.google.common.base.Strings;
@@ -18,7 +19,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -97,6 +100,7 @@ import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
@@ -512,10 +516,14 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
       if ("top".equals(argName)) {
         continue;
       }
-      if ("limit".equals(argName) || "useother".equals(argName) || "usenull".equals(argName)) {
-        chartCommand.append(" ").append(argName).append("=").append(MASK_LITERAL);
-      } else if ("otherstr".equals(argName) || "nullstr".equals(argName)) {
-        chartCommand.append(" ").append(argName).append("=").append(MASK_LITERAL);
+      chartCommand.append(" ").append(argName).append("=");
+      switch (argName) {
+        case "limit", "useother", "usenull", "otherstr", "nullstr" ->
+            chartCommand.append(MASK_LITERAL);
+        case "timefield" -> chartCommand.append(MASK_TIMESTAMP_COLUMN);
+        default ->
+            throw new NotImplementedException(
+                StringUtils.format("Please implement anonymizer for arg: %s", argName));
       }
     }
 
@@ -542,8 +550,12 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
       Alias alias = (Alias) node.getRowSplit();
       if (alias.getDelegated() instanceof Span) {
         Span span = (Span) alias.getDelegated();
+        String timeFieldName =
+            Optional.ofNullable(ArgumentMap.of(node.getArguments()).get("timefield"))
+                .map(Literal::toString)
+                .orElse(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP);
         return span.getField() instanceof Field
-            && "@timestamp".equals(((Field) span.getField()).getField().toString());
+            && timeFieldName.equals(((Field) span.getField()).getField().toString());
       }
     }
     return false;
