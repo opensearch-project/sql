@@ -301,13 +301,13 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
         schema("age", "int"),
         schema("cnt", "bigint"),
         schema("avg", "double"));
-    // Reverse is ignored, data remains in original order
+    // With backtracking, reverse now works and reverses the __stream_seq__ order
     verifyDataRowsInOrder(
         result,
-        rows("Jake", "USA", "California", 4, 2023, 70, 1, 70),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 2, 50),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2, 22.5),
         rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2, 22.5));
+        rows("Hello", "USA", "New York", 4, 2023, 30, 2, 50),
+        rows("Jake", "USA", "California", 4, 2023, 70, 1, 70));
   }
 
   @Test
