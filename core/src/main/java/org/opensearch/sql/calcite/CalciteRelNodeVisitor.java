@@ -50,6 +50,7 @@ import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
@@ -682,6 +683,76 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
+  /**
+   * Backtrack through the RelNode tree to find the first Sort node with non-empty collation. Stops
+   * at blocking operators (Aggregate, Join, Correlate) that break ordering.
+   *
+   * @param node the starting RelNode to backtrack from
+   * @return the collation found, or null if no sort or blocking operator encountered
+   */
+  private RelCollation backtrackForCollation(RelNode node) {
+    while (node != null) {
+      // Check for blocking operators that destroy collation
+      if (node instanceof Aggregate
+          || node instanceof org.apache.calcite.rel.core.Join
+          || node instanceof Correlate) {
+        return null;
+      }
+
+      // Check for Sort node with collation
+      if (node instanceof org.apache.calcite.rel.core.Sort) {
+        org.apache.calcite.rel.core.Sort sort = (org.apache.calcite.rel.core.Sort) node;
+        if (sort.getCollation() != null && !sort.getCollation().getFieldCollations().isEmpty()) {
+          return sort.getCollation();
+        }
+      }
+
+      // Continue to child node
+      if (node.getInputs().isEmpty()) {
+        break;
+      }
+      node = node.getInput(0);
+    }
+    return null;
+  }
+
+  /**
+   * Insert a reversed sort node after finding the original sort in the tree. This rebuilds the tree
+   * with the reversed sort inserted right after the original sort.
+   *
+   * @param root the root of the tree to rebuild
+   * @param reversedCollation the reversed collation to insert
+   * @param context the Calcite plan context
+   * @return the rebuilt tree with reversed sort inserted
+   */
+  private RelNode insertReversedSortInTree(
+      RelNode root, RelCollation reversedCollation, CalcitePlanContext context) {
+    return root.accept(
+        new org.apache.calcite.rel.RelHomogeneousShuttle() {
+          boolean sortFound = false;
+
+          @Override
+          public RelNode visit(RelNode other) {
+            // Check if this is a Sort node and we haven't inserted the reversed sort yet
+            if (!sortFound && other instanceof org.apache.calcite.rel.core.Sort) {
+              org.apache.calcite.rel.core.Sort sort = (org.apache.calcite.rel.core.Sort) other;
+              if (sort.getCollation() != null
+                  && !sort.getCollation().getFieldCollations().isEmpty()) {
+                // Found the sort node - insert reversed sort after it
+                sortFound = true;
+                // First visit the sort's children
+                RelNode visitedSort = super.visit(other);
+                // Create a new reversed sort on top of the original sort
+                return org.apache.calcite.rel.logical.LogicalSort.create(
+                    visitedSort, reversedCollation, null, null);
+              }
+            }
+            // For all other nodes, continue traversal
+            return super.visit(other);
+          }
+        });
+  }
+
   @Override
   public RelNode visitReverse(
       org.opensearch.sql.ast.tree.Reverse node, CalcitePlanContext context) {
@@ -697,15 +768,28 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       RelCollation reversedCollation = PlanUtils.reverseCollation(collation);
       context.relBuilder.sort(reversedCollation);
     } else {
-      // Check if @timestamp field exists in the row type
-      List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
-      if (fieldNames.contains(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP)) {
-        // If @timestamp exists, sort by it in descending order
-        context.relBuilder.sort(
-            context.relBuilder.desc(
-                context.relBuilder.field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP)));
+      // Collation not found on current node - try backtracking
+      RelNode currentNode = context.relBuilder.peek();
+      RelCollation backtrackCollation = backtrackForCollation(currentNode);
+
+      if (backtrackCollation != null && !backtrackCollation.getFieldCollations().isEmpty()) {
+        // Found collation through backtracking - rebuild tree with reversed sort
+        RelCollation reversedCollation = PlanUtils.reverseCollation(backtrackCollation);
+        RelNode rebuiltTree = insertReversedSortInTree(currentNode, reversedCollation, context);
+        // Replace the current node in the builder with the rebuilt tree
+        context.relBuilder.build(); // Pop the current node
+        context.relBuilder.push(rebuiltTree); // Push the rebuilt tree
+      } else {
+        // Check if @timestamp field exists in the row type
+        List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+        if (fieldNames.contains(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP)) {
+          // If @timestamp exists, sort by it in descending order
+          context.relBuilder.sort(
+              context.relBuilder.desc(
+                  context.relBuilder.field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP)));
+        }
+        // If neither collation nor @timestamp exists, ignore the reverse command (no-op)
       }
-      // If neither collation nor @timestamp exists, ignore the reverse command (no-op)
     }
 
     return context.relBuilder.peek();
