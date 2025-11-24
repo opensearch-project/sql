@@ -522,12 +522,11 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     chartCommand.append(" ").append(visitExpression(node.getAggregationFunction()));
 
     if (node.getRowSplit() != null && node.getColumnSplit() != null) {
-      chartCommand
-          .append(" by ")
-          .append(visitExpression(node.getRowSplit()))
-          .append(" ")
-          .append(visitExpression(node.getColumnSplit()));
-    } else if (node.getRowSplit() != null) {
+      chartCommand.append(" by");
+      // timechart command does not have to explicit the by-timestamp field clause
+      if (!isTimechart) chartCommand.append(" ").append(visitExpression(node.getRowSplit()));
+      chartCommand.append(" ").append(visitExpression(node.getColumnSplit()));
+    } else if (node.getRowSplit() != null && !isTimechart) {
       chartCommand.append(" by ").append(visitExpression(node.getRowSplit()));
     } else if (node.getColumnSplit() != null) {
       chartCommand.append(" by ").append(visitExpression(node.getColumnSplit()));
