@@ -18,7 +18,6 @@ import java.util.Locale;
 
 import org.json.JSONObject;
 import org.junit.Assume;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 import org.opensearch.sql.util.Retry;
@@ -144,9 +143,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
         rows(4423, 3055.9365, "1995-02-17 00:00:00", 0));
   }
 
-  // TODO: Aggregation push down has a hard-coded limit of 1000 buckets for output, so this query
-  // will not return the correct results with aggregation push down and it's unstable
-  @Ignore
+  @Test
   public void testQ4() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q4.ppl"));
     JSONObject actual = executeQuery(ppl);
@@ -154,11 +151,11 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
         actual, schema("o_orderpriority", "string"), schema("order_count", "bigint"));
     verifyDataRows(
         actual,
-        rows("1-URGENT", 7),
+        rows("1-URGENT", 9),
         rows("2-HIGH", 7),
-        rows("3-MEDIUM", 4),
-        rows("4-NOT SPECIFIED", 7),
-        rows("5-LOW", 10));
+        rows("3-MEDIUM", 9),
+        rows("4-NOT SPECIFIED", 8),
+        rows("5-LOW", 12));
   }
 
   @Test
@@ -407,7 +404,6 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
     verifyNumOfRows(actual, 0);
   }
 
-  @Ignore("This IT is easily flaky failure in 2.19.0, but more stable after 2.19.3")
   @Test
   public void testQ19() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q19.ppl"));
