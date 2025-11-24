@@ -311,7 +311,7 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `mvzip`(`array`('a', 'b', 'c'), `array`('x', 'y')) `result`\n"
+        "SELECT MVZIP(ARRAY('a', 'b', 'c'), ARRAY('x', 'y')) `result`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -337,7 +337,7 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `mvzip`(`array`('a', 'b'), `array`('x', 'y'), '|') `result`\n"
+        "SELECT MVZIP(ARRAY('a', 'b'), ARRAY('x', 'y'), '|') `result`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -365,7 +365,7 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `mvzip`(`mvzip`(`array`('a', 'b'), `array`('c', 'd'), '|'), `array`('e', 'f'),"
+        "SELECT MVZIP(MVZIP(ARRAY('a', 'b'), ARRAY('c', 'd'), '|'), ARRAY('e', 'f'),"
             + " '|') `result`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 1";
