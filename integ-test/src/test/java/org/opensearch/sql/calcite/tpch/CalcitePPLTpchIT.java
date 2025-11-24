@@ -404,7 +404,6 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
     verifyNumOfRows(actual, 0);
   }
 
-  @Ignore("This IT is easily flaky failure in 2.19.0, but more stable after 2.19.3")
   @Test
   public void testQ19() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q19.ppl"));
