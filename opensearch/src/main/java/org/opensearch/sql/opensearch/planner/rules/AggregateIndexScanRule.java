@@ -11,6 +11,7 @@ import static org.opensearch.sql.expression.function.PPLBuiltinOperators.WIDTH_B
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
@@ -62,7 +63,7 @@ public class AggregateIndexScanRule extends RelRule<AggregateIndexScanRule.Confi
               .filter(rex -> ignoreNullBucket || isTimeSpan(rex))
               .flatMap(expr -> PlanUtils.getInputRefs(expr).stream())
               .map(RexSlot::getIndex)
-              .toList();
+              .collect(Collectors.toUnmodifiableList());
       if (isNotNullDerivedFromAgg(filter, groupRefList)) {
         final List<RexNode> newProjects =
             RelOptUtil.pushPastProjectUnlessBloat(
@@ -73,8 +74,8 @@ public class AggregateIndexScanRule extends RelRule<AggregateIndexScanRule.Confi
           relBuilder.push(scan);
           relBuilder.project(newProjects, topProject.getRowType().getFieldNames());
           RelNode node = relBuilder.build();
-          if (node instanceof LogicalProject newProject) {
-            apply(call, aggregate, newProject, scan);
+          if (node instanceof LogicalProject) {
+            apply(call, aggregate, (LogicalProject)node , scan);
           } else if (node.equals(scan)) {
             // It means no project is needed
             apply(call, aggregate, null, scan);
@@ -112,27 +113,27 @@ public class AggregateIndexScanRule extends RelRule<AggregateIndexScanRule.Confi
   }
 
   private boolean isTimeSpan(RexNode rex) {
-    return rex instanceof RexCall rexCall
-        && rexCall.getKind() == SqlKind.OTHER_FUNCTION
-        && rexCall.getOperator().getName().equalsIgnoreCase(BuiltinFunctionName.SPAN.name())
-        && rexCall.getOperands().size() == 3
-        && rexCall.getOperands().get(2) instanceof RexLiteral unitLiteral
-        && unitLiteral.getTypeName() != SqlTypeName.NULL;
+    return rex instanceof RexCall
+        && rex.getKind() == SqlKind.OTHER_FUNCTION
+        && ((RexCall)rex).getOperator().getName().equalsIgnoreCase(BuiltinFunctionName.SPAN.name())
+        && ((RexCall)rex).getOperands().size() == 3
+        && ((RexCall)rex).getOperands().get(2) instanceof RexLiteral
+        && ((RexLiteral)((RexCall)rex).getOperands().get(2)).getTypeName() != SqlTypeName.NULL;
   }
 
   private boolean isNotNullDerivedFromAgg(LogicalFilter filter, List<Integer> groupRefList) {
     RexNode condition = filter.getCondition();
     Function<RexNode, Boolean> isNotNullFromAgg =
         rex ->
-            rex instanceof RexCall rexCall
-                && rexCall.isA(SqlKind.IS_NOT_NULL)
-                && rexCall.getOperands().get(0) instanceof RexInputRef ref
-                && groupRefList.contains(ref.getIndex());
+            rex instanceof RexCall
+                && rex.isA(SqlKind.IS_NOT_NULL)
+                && ((RexCall)rex).getOperands().get(0) instanceof RexInputRef
+                && groupRefList.contains(((RexInputRef)((RexCall)rex).getOperands().get(0)).getIndex());
 
     return isNotNullFromAgg.apply(condition)
-        || (condition instanceof RexCall rexCall
-            && rexCall.getOperator() == SqlStdOperatorTable.AND
-            && rexCall.getOperands().stream().allMatch(isNotNullFromAgg::apply));
+        || (condition instanceof RexCall
+            && condition.isA(SqlKind.AND)
+            && ((RexCall)condition).getOperands().stream().allMatch(isNotNullFromAgg::apply));
   }
 
   protected void apply(
