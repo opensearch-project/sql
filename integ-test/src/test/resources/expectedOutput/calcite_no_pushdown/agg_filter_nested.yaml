@@ -1,0 +1,11 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalAggregate(group=[{}], george_and_jk=[COUNT($0)])
+        LogicalProject($f1=[CASE(<($7, 'K'), 1, null:NULL)])
+          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_cascaded_nested]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableAggregate(group=[{}], george_and_jk=[COUNT() FILTER $0])
+        EnumerableCalc(expr#0..13=[{inputs}], expr#14=['K'], expr#15=[<($t7, $t14)], expr#16=[IS TRUE($t15)], $f1=[$t16])
+          CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_cascaded_nested]])

@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.WhereCommandIT;
 
 public class CalciteWhereCommandIT extends WhereCommandIT {
@@ -139,5 +140,16 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
         t,
         "Accessing multiple nested fields under different hierarchies in script is not supported:"
             + " [author.books.reviews, author.books]");
+  }
+
+  @Test
+  public void testAggFilterOnNestedFields() throws IOException {
+    JSONObject result =
+        executeQuery(
+            StringUtils.format(
+                "source=%s | stats count(eval(author.name < 'K')) as george_and_jk",
+                TEST_INDEX_CASCADED_NESTED));
+    verifySchema(result, schema("george_and_jk", "bigint"));
+    verifyDataRows(result, rows(2));
   }
 }
