@@ -31,6 +31,7 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.externalize.RelWriterImpl;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.metadata.RelMdUtil;
@@ -96,7 +97,11 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
 
   @Override
   public RelWriter explainTerms(RelWriter pw) {
-    String explainString = pushDownContext + ", " + pushDownContext.getRequestBuilder();
+    String explainString = String.valueOf(pushDownContext);
+    if (pw instanceof RelWriterImpl) {
+      // Only add request builder to the explain plan
+      explainString += ", " + pushDownContext.createRequestBuilder();
+    }
     return super.explainTerms(pw)
         .itemIf("PushDownContext", explainString, !pushDownContext.isEmpty());
   }
