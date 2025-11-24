@@ -55,11 +55,11 @@ public class AggregateIndexScanRule extends RelRule<AggregateIndexScanRule.Confi
       final LogicalFilter filter = call.rel(2);
       final LogicalProject bottomProject = call.rel(3);
       final CalciteLogicalIndexScan scan = call.rel(4);
-      boolean isBucketNullable = Config.isBucketNullableAgg.test(aggregate);
+      boolean ignoreNullBucket = Config.aggIgnoreNullBucket.test(aggregate);
       List<Integer> groupRefList =
           aggregate.getGroupSet().asList().stream()
               .map(topProject.getProjects()::get)
-              .filter(rex -> isBucketNullable || isTimeSpan(rex))
+              .filter(rex -> ignoreNullBucket || isTimeSpan(rex))
               .flatMap(expr -> PlanUtils.getInputRefs(expr).stream())
               .map(RexSlot::getIndex)
               .toList();
@@ -199,7 +199,7 @@ public class AggregateIndexScanRule extends RelRule<AggregateIndexScanRule.Confi
                                         Predicate.not(AbstractCalciteIndexScan::isLimitPushed)
                                             .and(AbstractCalciteIndexScan::noAggregatePushed))
                                     .noInputs()));
-    Predicate<Aggregate> isBucketNullableAgg =
+    Predicate<Aggregate> aggIgnoreNullBucket =
         agg ->
             agg.getHints().stream()
                 .anyMatch(
@@ -221,7 +221,7 @@ public class AggregateIndexScanRule extends RelRule<AggregateIndexScanRule.Confi
             .withOperandSupplier(
                 b0 ->
                     b0.operand(LogicalAggregate.class)
-                        .predicate(isBucketNullableAgg)
+                        .predicate(aggIgnoreNullBucket)
                         .oneInput(
                             b1 ->
                                 b1.operand(LogicalFilter.class)
@@ -258,7 +258,7 @@ public class AggregateIndexScanRule extends RelRule<AggregateIndexScanRule.Confi
             .withOperandSupplier(
                 b0 ->
                     b0.operand(LogicalAggregate.class)
-                        .predicate(isBucketNullableAgg.or(maybeTimeSpanAgg))
+                        .predicate(aggIgnoreNullBucket.or(maybeTimeSpanAgg))
                         .oneInput(
                             b1 ->
                                 b1.operand(LogicalProject.class)
