@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.opensearch.planner.rules;
 
-import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
@@ -44,19 +43,9 @@ public class DedupPushdownRule extends RelRule<DedupPushdownRule.Config> {
     final LogicalProject finalProject = call.rel(0);
     final LogicalFilter numOfDedupFilter = call.rel(1);
     final LogicalProject projectWithWindow = call.rel(2);
-    if (call.rels.length == 4) {
-      final CalciteLogicalIndexScan scan = call.rel(3);
+    if (call.rels.length == 5) {
+      final CalciteLogicalIndexScan scan = call.rel(4);
       apply(call, finalProject, numOfDedupFilter, projectWithWindow, scan);
-    } else if (call.rels.length == 6) {
-      final LogicalProject projectWithCall = call.rel(4);
-      final CalciteLogicalIndexScan scan = call.rel(5);
-      apply(
-          call,
-          finalProject,
-          numOfDedupFilter,
-          projectWithWindow,
-          //          Optional.of(projectWithCall),
-          scan);
     } else {
       throw new AssertionError(
           String.format(
@@ -123,30 +112,58 @@ public class DedupPushdownRule extends RelRule<DedupPushdownRule.Config> {
     // Aggregate(literalAgg(dedupNumer), groups)
     // +- Project(groups, remaining)
     //    +- Scan
-    // 1. Initial a RelBuilder to build aggregate by pushing Scan and Project
+    // Step 1: Initial a RelBuilder to build aggregate by pushing Scan and Project
     RelBuilder relBuilder = call.builder();
     relBuilder.push(scan);
-    relBuilder.push(projectWithWindow); // baseline the rowType to handle rename case
+    // To baseline the rowType, merge the fields() and projectWithWindow
+    List<RexNode> mergedRexList = new ArrayList<>();
+    List<String> mergedFieldNames = new ArrayList<>();
+    List<RexNode> builderFields = relBuilder.fields();
+    List<RexNode> projectFields = projectWithWindow.getProjects();
+    List<String> builderFieldNames = relBuilder.peek().getRowType().getFieldNames();
+    List<String> projectFieldNames = projectWithWindow.getRowType().getFieldNames();
+
+    // Add existing fields with proper names
+    // For rename case: source = t | rename old as new | dedup new
+    for (RexNode field : builderFields) {
+      mergedRexList.add(field);
+      int projectIndex = projectFields.indexOf(field);
+      if (projectIndex >= 0) {
+        mergedFieldNames.add(projectFieldNames.get(projectIndex));
+      } else {
+        mergedFieldNames.add(builderFieldNames.get(builderFields.indexOf(field)));
+      }
+    }
+    // Append new fields from project (excluding ROW_NUMBER and duplicates)
+    for (RexNode field : projectFields) {
+      if (!field.isA(SqlKind.ROW_NUMBER) && !builderFields.contains(field)) {
+        mergedRexList.add(field);
+        mergedFieldNames.add(field.toString());
+      }
+    }
+    // Force add the project
+    relBuilder.project(mergedRexList, mergedFieldNames, true);
+    LogicalProject baseline = (LogicalProject) relBuilder.peek();
     Mapping mappingForDedupColumns =
         PlanUtils.mapping(dedupColumns, relBuilder.peek().getRowType());
 
-    // 2. Push a Project which groups is first, then remaining finalOutput columns
+    // Step 2: Push a Project which groups is first, then remaining finalOutput columns
     List<RexNode> reordered = new ArrayList<>(PlanUtils.getInputRefs(dedupColumns));
-    projectWithWindow.getProjects().stream()
-        .filter(rex -> !rex.isA(SqlKind.ROW_NUMBER))
+    baseline.getProjects().stream()
         .filter(Predicate.not(dedupColumns::contains))
         .forEach(reordered::add);
-    relBuilder.project(reordered, ImmutableList.of(), true);
+    relBuilder.project(reordered);
     // childProject includes all list of finalOutput columns
     LogicalProject childProject = (LogicalProject) relBuilder.peek();
 
-    // 3. Push an Aggregate
+    // Step 3: Push an Aggregate
     // We push down a LITERAL_AGG with dedupNumer for converting the dedup command to aggregate:
     // (1) Pass the dedupNumer to AggregateAnalyzer.processAggregateCalls()
     // (2) Distinguish it from an optimization operator and user defined aggregator.
     // (LITERAL_AGG is used in optimization normally, see {@link SqlKind#LITERAL_AGG})
     final List<RexNode> newDedupColumns = RexUtil.apply(mappingForDedupColumns, dedupColumns);
     relBuilder.aggregate(relBuilder.groupKey(newDedupColumns), relBuilder.literalAgg(dedupNumer));
+    // add bucket_nullable = false hint
     PlanUtils.addIgnoreNullBucketHintToAggregate(relBuilder);
     // peek the aggregate after hint being added
     LogicalAggregate aggregate = (LogicalAggregate) relBuilder.build();
@@ -154,7 +171,7 @@ public class DedupPushdownRule extends RelRule<DedupPushdownRule.Config> {
     CalciteLogicalIndexScan newScan =
         (CalciteLogicalIndexScan) scan.pushDownAggregate(aggregate, childProject);
     if (newScan != null) {
-      // reorder back to original order
+      // Reorder back to original order
       call.transformTo(newScan.copyWithNewSchema(finalProject.getRowType()));
     }
   }
@@ -175,7 +192,8 @@ public class DedupPushdownRule extends RelRule<DedupPushdownRule.Config> {
     // +- LogicalProject(no _row_number_dedup_)
     //    +- LogicalFilter(condition contains _row_number_dedup_)
     //       +- LogicalProject(contains _row_number_dedup_)
-    //          +- CalciteLogicalIndexScan
+    //          +- LogicalFilter(condition=IS NOT NULL(dedupColumn))"
+    //             +- CalciteLogicalIndexScan
     Config DEFAULT =
         ImmutableDedupPushdownRule.Config.builder()
             .build()
@@ -194,23 +212,30 @@ public class DedupPushdownRule extends RelRule<DedupPushdownRule.Config> {
                                                 .predicate(PlanUtils::containsRowNumberDedup)
                                                 .oneInput(
                                                     b3 ->
-                                                        b3.operand(CalciteLogicalIndexScan.class)
+                                                        b3.operand(LogicalFilter.class)
                                                             .predicate(
-                                                                Predicate.not(
-                                                                        AbstractCalciteIndexScan
-                                                                            ::isLimitPushed)
-                                                                    .and(
-                                                                        AbstractCalciteIndexScan
-                                                                            ::noAggregatePushed)
-                                                                    .and(
-                                                                        AbstractCalciteIndexScan
-                                                                            ::isProjectPushed))
-                                                            .noInputs()))));
+                                                                PlanUtils
+                                                                    ::mayBeFilterFromBucketNonNull)
+                                                            .oneInput(
+                                                                b4 ->
+                                                                    b4.operand(
+                                                                            CalciteLogicalIndexScan
+                                                                                .class)
+                                                                        .predicate(
+                                                                            Predicate.not(
+                                                                                    AbstractCalciteIndexScan
+                                                                                        ::isLimitPushed)
+                                                                                .and(
+                                                                                    AbstractCalciteIndexScan
+                                                                                        ::noAggregatePushed)
+                                                                                .and(
+                                                                                    AbstractCalciteIndexScan
+                                                                                        ::isProjectPushed))
+                                                                        .noInputs())))));
     // +- LogicalProject(no _row_number_dedup_)
     //    +- LogicalFilter(condition contains _row_number_dedup_)
     //       +- LogicalProject(contains _row_number_dedup_)
-    //          +- LogicalFilter(condition IS NOT NULL(dedupColumn)) // could be optimized similar
-    // to https://github.com/opensearch-project/sql/issues/4811
+    //          +- LogicalFilter(condition IS NOT NULL(dedupColumn))
     //             +- LogicalProject(dedupColumn is call)
     //                +- CalciteLogicalIndexScan
     Config DEDUP_EXPR =

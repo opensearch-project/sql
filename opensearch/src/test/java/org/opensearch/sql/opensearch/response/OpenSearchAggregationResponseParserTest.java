@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.opensearch.response.AggregationResponseUtils.fromJson;
 import static org.opensearch.sql.opensearch.response.agg.Utils.handleNanInfValue;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Map;
@@ -295,13 +296,11 @@ class OpenSearchAggregationResponseParserTest {
             + "  }\n"
             + "}";
     OpenSearchAggregationResponseParser parser =
-        new CompositeAggregationParser(new TopHitsParser("take", false, false));
+        new CompositeAggregationParser(new TopHitsParser("take", false, true));
     assertThat(
         parse(parser, response),
         contains(
-            ImmutableMap.of("type", "take"),
-            ImmutableMap.of("gender", "m"),
-            ImmutableMap.of("gender", "f")));
+            ImmutableMap.of("type", "take"), ImmutableMap.of("take", ImmutableList.of("m", "f"))));
   }
 
   /** SELECT PERCENTILE(age, 50) FROM accounts. */

@@ -73,6 +73,7 @@ import org.opensearch.search.aggregations.metrics.TopHitsAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.ValueCountAggregationBuilder;
 import org.opensearch.search.aggregations.support.ValueType;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
@@ -556,23 +557,27 @@ public class AggregateAnalyzer {
         Integer dedupNumber = literal.getValueAs(Integer.class);
         // Disable fetchSource since TopHitsParser only parses fetchField currently.
         TopHitsAggregationBuilder topHitsAggregationBuilder =
-            AggregationBuilders.topHits(aggFieldName).from(0).fetchSource(false).size(dedupNumber);
-        args.stream()
-            .forEach(
-                rex -> {
-                  if (rex instanceof RexInputRef) {
-                    topHitsAggregationBuilder.fetchField(
-                        helper.inferNamedField(rex).getReference());
-                  } else if (rex instanceof RexCall || rex instanceof RexLiteral) {
-                    topHitsAggregationBuilder.scriptField(
-                        rex.toString(), helper.inferScript(rex).getScript());
-                  } else {
-                    throw new AggregateAnalyzer.AggregateAnalyzerException(
-                        String.format(
-                            "Unsupported push-down aggregator %s due to rex type is %s",
-                            aggCall.getAggregation(), rex.getKind()));
-                  }
-                });
+            AggregationBuilders.topHits(aggFieldName).from(0).size(dedupNumber);
+        List<String> sources = new ArrayList<>();
+        List<SearchSourceBuilder.ScriptField> scripts = new ArrayList<>();
+        args.forEach(
+            rex -> {
+              if (rex instanceof RexInputRef) {
+                sources.add(helper.inferNamedField(rex).getReference());
+              } else if (rex instanceof RexCall || rex instanceof RexLiteral) {
+                scripts.add(
+                    new SearchSourceBuilder.ScriptField(
+                        rex.toString(), helper.inferScript(rex).getScript(), false));
+              } else {
+                throw new AggregateAnalyzer.AggregateAnalyzerException(
+                    String.format(
+                        "Unsupported push-down aggregator %s due to rex type is %s",
+                        aggCall.getAggregation(), rex.getKind()));
+              }
+            });
+        topHitsAggregationBuilder.fetchSource(
+            sources.stream().distinct().toArray(String[]::new), new String[0]);
+        topHitsAggregationBuilder.scriptFields(scripts);
         yield Pair.of(topHitsAggregationBuilder, new TopHitsParser(aggFieldName, false, false));
       }
       default ->

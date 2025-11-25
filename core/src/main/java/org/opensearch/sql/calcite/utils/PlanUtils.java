@@ -32,6 +32,7 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.type.RelDataType;
@@ -636,5 +637,19 @@ public interface PlanUtils {
    */
   static Mapping mapping(List<RexNode> rexNodes, RelDataType schema) {
     return Mappings.target(getSelectColumns(rexNodes), schema.getFieldCount());
+  }
+
+  static boolean mayBeFilterFromBucketNonNull(LogicalFilter filter) {
+    RexNode condition = filter.getCondition();
+    return isNotNullOnRef(condition)
+        || (condition instanceof RexCall rexCall
+            && rexCall.getOperator().equals(SqlStdOperatorTable.AND)
+            && rexCall.getOperands().stream().allMatch(PlanUtils::isNotNullOnRef));
+  }
+
+  private static boolean isNotNullOnRef(RexNode rex) {
+    return rex instanceof RexCall rexCall
+        && rexCall.isA(SqlKind.IS_NOT_NULL)
+        && rexCall.getOperands().get(0) instanceof RexInputRef;
   }
 }

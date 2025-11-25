@@ -44,12 +44,6 @@ public class TopHitsParser implements MetricParser {
           new HashMap<>(Collections.singletonMap(agg.getName(), null)));
     }
 
-    if (hits[0].getFields() == null || hits[0].getFields().isEmpty()) {
-      return Collections.singletonList(
-          new HashMap<>(
-              Collections.singletonMap(
-                  agg.getName(), returnSingleValue ? null : Collections.emptyList())));
-    }
     if (returnSingleValue) {
       if (hits[0].getFields() == null || hits[0].getFields().isEmpty()) {
         return Collections.singletonList(
@@ -75,47 +69,29 @@ public class TopHitsParser implements MetricParser {
                   .collect(Collectors.toList())));
     } else {
       // "hits": {
-      //   "hits": [
-      //     {
-      //       "fields": {
-      //         "name": [
-      //           "A"
-      //         ],
-      //         "category": [
-      //           "X"
-      //         ]
-      //       }
-      //     },
-      //     {
-      //       "fields": {
-      //         "name": [
-      //           "A"
-      //         ],
-      //         "category": [
-      //           "X"
-      //         ]
-      //       }
-      //     }
-      //   ]
+      //    "hits": [
+      //      {
+      //        "_source": {
+      //          "name": "A",
+      //          "category": "X"
+      //        }
+      //      },
+      //      {
+      //        "_source": {
+      //          "name": "A",
+      //          "category": "Y"
+      //        }
+      //      }
+      //    ]
       // }
       // will converts to:
       // List[
       //   LinkedHashMap["name" -> "A", "category" -> "X"],
-      //   LinkedHashMap["name" -> "A", "category" -> "X"]
+      //   LinkedHashMap["name" -> "A", "category" -> "Y"]
       // ]
-      List<Map<String, Object>> res =
-          Arrays.stream(hits)
-              .<Map<String, Object>>map(
-                  hit ->
-                      hit.getFields().entrySet().stream()
-                          .collect(
-                              Collectors.toMap(
-                                  Map.Entry::getKey,
-                                  entry -> entry.getValue().getValue(),
-                                  (a, b) -> a,
-                                  LinkedHashMap::new)))
-              .toList();
-      return res;
+      return Arrays.stream(hits)
+          .<Map<String, Object>>map(hit -> new LinkedHashMap<>(hit.getSourceAsMap()))
+          .toList();
     }
   }
 }
