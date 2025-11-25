@@ -436,7 +436,7 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
   public void testTopTCPFlags() throws IOException {
     String query =
         String.format(
-            "source=%s | STATS count() as Count by `event.tcp.tcp_flags` | SORT - Count | HEAD 10",
+            "source=%s | STATS count() as Count by `event.tcp.tcp_flags` | SORT - Count, `event.tcp.tcp_flags` | HEAD 10",
             NFW_LOGS_INDEX);
     JSONObject response = executeQuery(query);
     verifySchema(response, schema("Count", "bigint"), schema("event.tcp.tcp_flags", "string"));

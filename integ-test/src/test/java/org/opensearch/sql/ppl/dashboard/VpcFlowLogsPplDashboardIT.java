@@ -167,7 +167,7 @@ public class VpcFlowLogsPplDashboardIT extends PPLIntegTestCase {
   public void testTopTalkersByPackets() throws IOException {
     String query =
         String.format(
-            "source=%s | stats sum(packets) as Packets by srcaddr | sort - Packets | head 10",
+            "source=%s | stats sum(packets) as Packets by srcaddr | sort - Packets, srcaddr | head 10",
             VPC_FLOW_LOGS_INDEX);
     JSONObject response = executeQuery(query);
     verifySchema(response, schema("Packets", null, "bigint"), schema("srcaddr", null, "string"));
@@ -189,7 +189,7 @@ public class VpcFlowLogsPplDashboardIT extends PPLIntegTestCase {
   public void testTopDestinationsByPackets() throws IOException {
     String query =
         String.format(
-            "source=%s | stats sum(packets) as Packets by dstaddr | sort - Packets | head 10",
+            "source=%s | stats sum(packets) as Packets by dstaddr | sort - Packets, dstaddr | head 10",
             VPC_FLOW_LOGS_INDEX);
     JSONObject response = executeQuery(query);
     verifySchema(response, schema("Packets", null, "bigint"), schema("dstaddr", null, "string"));
@@ -211,7 +211,7 @@ public class VpcFlowLogsPplDashboardIT extends PPLIntegTestCase {
   public void testTopTalkersByIPs() throws IOException {
     String query =
         String.format(
-            "source=%s | STATS count() as Count by srcaddr | SORT - Count | HEAD 10",
+            "source=%s | STATS count() as Count by srcaddr | SORT - Count, srcaddr | HEAD 10",
             VPC_FLOW_LOGS_INDEX);
     JSONObject response = executeQuery(query);
     verifySchema(response, schema("Count", null, "bigint"), schema("srcaddr", null, "string"));
@@ -233,7 +233,7 @@ public class VpcFlowLogsPplDashboardIT extends PPLIntegTestCase {
   public void testTopDestinationsByIPs() throws IOException {
     String query =
         String.format(
-            "source=%s | stats count() as Requests by dstaddr | sort - Requests | head 10",
+            "source=%s | stats count() as Requests by dstaddr | sort - Requests, dstaddr | head 10",
             VPC_FLOW_LOGS_INDEX);
     JSONObject response = executeQuery(query);
     verifySchema(response, schema("Requests", null, "bigint"), schema("dstaddr", null, "string"));
