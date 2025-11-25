@@ -113,7 +113,7 @@ public class ArgumentFactory {
                 getArgumentValue(ctx.streamstatsArgs().bucketNullableArg(0).bucket_nullable))
             : new Argument(
                 Argument.BUCKET_NULLABLE,
-                legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE));
+                UnresolvedPlanHelper.legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE));
   }
 
   /**
