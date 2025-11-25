@@ -1102,6 +1102,7 @@ collectionFunctionName
     | MVAPPEND
     | MVJOIN
     | MVINDEX
+    | MVDEDUP
     | FORALL
     | EXISTS
     | FILTER

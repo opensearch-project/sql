@@ -489,4 +489,82 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     verifySchema(actual, schema("result", "array"));
     verifyDataRows(actual, rows(List.of(3)));
   }
+
+  @Test
+  public void testMvdedupWithDuplicates() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array(1, 2, 2, 3, 1, 4), result = mvdedup(arr) | head 1 |"
+                    + " fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of(1, 2, 3, 4)));
+  }
+
+  @Test
+  public void testMvdedupWithNoDuplicates() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array(1, 2, 3, 4), result = mvdedup(arr) | head 1 |"
+                    + " fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of(1, 2, 3, 4)));
+  }
+
+  @Test
+  public void testMvdedupWithAllDuplicates() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array(5, 5, 5, 5), result = mvdedup(arr) | head 1 |"
+                    + " fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of(5)));
+  }
+
+  @Test
+  public void testMvdedupWithEmptyArray() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array(), result = mvdedup(arr) | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of()));
+  }
+
+  @Test
+  public void testMvdedupWithStrings() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('apple', 'banana', 'apple', 'cherry', 'banana'),"
+                    + " result = mvdedup(arr) | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of("apple", "banana", "cherry")));
+  }
+
+  @Test
+  public void testMvdedupPreservesOrder() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('z', 'a', 'z', 'b', 'a', 'c'), result ="
+                    + " mvdedup(arr) | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    // Should preserve first occurrence order: z, a, b, c
+    verifyDataRows(actual, rows(List.of("z", "a", "b", "c")));
+  }
 }
