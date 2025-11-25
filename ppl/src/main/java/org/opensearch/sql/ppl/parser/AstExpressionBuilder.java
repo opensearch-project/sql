@@ -439,12 +439,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     final String mappedName =
         FUNCTION_NAME_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), functionName);
 
-    // Handle mvmap with implicit binding: mvmap(field, field * 10) -> mvmap(field, field -> field *
-    // 10)
-    if ("mvmap".equalsIgnoreCase(mappedName)) {
-      return buildMvmapFunction(ctx.functionArgs().functionArg());
-    }
-
     // Rewrite sum and avg functions to arithmetic expressions
     if (SUM.getName().getFunctionName().equalsIgnoreCase(mappedName)
         || AVG.getName().getFunctionName().equalsIgnoreCase(mappedName)) {
@@ -454,20 +448,11 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return buildFunction(mappedName, ctx.functionArgs().functionArg());
   }
 
-  private Function buildFunction(
-      String functionName, List<OpenSearchPPLParser.FunctionArgContext> args) {
-    return new Function(
-        functionName, args.stream().map(this::visitFunctionArg).collect(Collectors.toList()));
-  }
-
-  /**
-   * Builds mvmap function with implicit binding support. Transforms mvmap(field, field * 10) to
-   * mvmap(field, field -> field * 10).
-   */
-  private Function buildMvmapFunction(List<OpenSearchPPLParser.FunctionArgContext> args) {
-    if (args.size() != 2) {
-      throw new SyntaxCheckException("mvmap requires exactly 2 arguments");
-    }
+  /** Mvmap function with implicit lambda binding. */
+  @Override
+  public UnresolvedExpression visitMvmapFunctionCall(
+      OpenSearchPPLParser.MvmapFunctionCallContext ctx) {
+    List<OpenSearchPPLParser.FunctionArgContext> args = ctx.functionArg();
 
     UnresolvedExpression firstArg = visitFunctionArg(args.get(0));
     UnresolvedExpression secondArg = visitFunctionArg(args.get(1));
@@ -485,7 +470,17 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return new Function("mvmap", Arrays.asList(firstArg, lambda));
   }
 
-  /** Extracts the field name from an expression for implicit lambda binding. */
+  private Function buildFunction(
+      String functionName, List<OpenSearchPPLParser.FunctionArgContext> args) {
+    return new Function(
+        functionName, args.stream().map(this::visitFunctionArg).collect(Collectors.toList()));
+  }
+
+  /**
+   * Extracts the field name from the first argument for implicit lambda binding. The second
+   * argument must reference this same field. E.g., {@code mvmap(mvindex(arr, 1, 2), arr * 10)}
+   * extracts 'arr' and creates {@code arr -> arr * 10}.
+   */
   private QualifiedName extractFieldName(UnresolvedExpression expr) {
     if (expr instanceof Field) {
       UnresolvedExpression fieldExpr = ((Field) expr).getField();

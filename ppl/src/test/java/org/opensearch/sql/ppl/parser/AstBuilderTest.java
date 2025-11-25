@@ -1627,16 +1627,11 @@ public class AstBuilderTest {
 
   @Test
   public void testMvmapWithWrongNumberOfArgsThrowsException() {
-    assertEquals(
-        "mvmap requires exactly 2 arguments",
-        assertThrows(SyntaxCheckException.class, () -> plan("source=t | eval result = mvmap(arr)"))
-            .getMessage());
-    assertEquals(
-        "mvmap requires exactly 2 arguments",
-        assertThrows(
-                SyntaxCheckException.class,
-                () -> plan("source=t | eval result = mvmap(arr, arr * 10, extra)"))
-            .getMessage());
+    // Grammar enforces exactly 2 arguments, so parser throws syntax error
+    assertThrows(SyntaxCheckException.class, () -> plan("source=t | eval result = mvmap(arr)"));
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> plan("source=t | eval result = mvmap(arr, arr * 10, extra)"));
   }
 
   @Test

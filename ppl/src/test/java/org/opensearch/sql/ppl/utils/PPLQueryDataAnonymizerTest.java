@@ -900,9 +900,9 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testMvmap() {
     assertEquals(
-        "source=table | eval identifier=mvmap(array(***,***,***),*(identifier,***)) | fields +"
+        "source=table | eval identifier=mvmap(identifier,*(identifier,***)) | fields +"
             + " identifier",
-        anonymize("source=t | eval result=mvmap(array(1, 2, 3), arr * 10) | fields result"));
+        anonymize("source=t | eval result=mvmap(arr, arr * 10) | fields result"));
   }
 
   @Test
