@@ -21,23 +21,22 @@ import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
- * The following usage options are available, depending on the parameter types
- * and the number of parameters.
+ * The following usage options are available, depending on the parameter types and the number of
+ * parameters.
  *
- * <p><b>Usage:</b> {@code tonumber(string, [base])} converts the value in the first
- * argument. The second argument describes the base of the first argument.
- * If the second argument is not provided, the value is converted using base 10.
+ * <p><b>Usage:</b> {@code tonumber(string, [base])} converts the value in the first argument. The
+ * second argument describes the base of the first argument. If the second argument is not provided,
+ * the value is converted using base 10.
  *
  * <p><b>Return type:</b> Number
  *
  * <p>You can use this function with the eval commands and as part of eval expressions.
  *
- * <p>Base values can range from 2 to 36.
- * The maximum value supported for base 10 is {@code +(2 − 2^-52) · 2^1023}
- * and the minimum is {@code −(2 − 2^-52) · 2^1023}.
+ * <p>Base values can range from 2 to 36. The maximum value supported for base 10 is {@code +(2 −
+ * 2^-52) · 2^1023} and the minimum is {@code −(2 − 2^-52) · 2^1023}.
  *
- * <p>The maximum for other supported bases is {@code 2^63 − 1} (or {@code 7FFFFFFFFFFFFFFF})
- * and the minimum is {@code -2^63} (or {@code -7FFFFFFFFFFFFFFF}).
+ * <p>The maximum for other supported bases is {@code 2^63 − 1} (or {@code 7FFFFFFFFFFFFFFF}) and
+ * the minimum is {@code -2^63} (or {@code -7FFFFFFFFFFFFFFF}).
  */
 public class ToNumberFunction extends ImplementorUDF {
   public ToNumberFunction() {
