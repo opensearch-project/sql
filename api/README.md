@@ -4,9 +4,16 @@ This module provides a high-level integration layer for the Calcite-based query 
 
 ## Overview
 
-The `UnifiedQueryPlanner` serves as the primary entry point for external consumers. It accepts PPL (Piped Processing Language) queries and returns Calcite `RelNode` logical plans as intermediate representation.
+This module provides two primary components:
+
+- **`UnifiedQueryPlanner`**: Accepts PPL (Piped Processing Language) queries and returns Calcite `RelNode` logical plans as intermediate representation.
+- **`UnifiedQueryTranspiler`**: Converts Calcite logical plans (`RelNode`) into SQL strings for various target databases using different SQL dialects.
+
+Together, these components enable a complete workflow: parse PPL queries into logical plans, then transpile those plans into target database SQL.
 
 ## Usage
+
+### UnifiedQueryPlanner
 
 Use the declarative, fluent builder API to initialize the `UnifiedQueryPlanner`.
 
@@ -20,6 +27,42 @@ UnifiedQueryPlanner planner = UnifiedQueryPlanner.builder()
 
 RelNode plan = planner.plan("source = opensearch.test");
 ```
+
+### UnifiedQueryTranspiler
+
+Use `UnifiedQueryTranspiler` to convert Calcite logical plans into SQL strings for target databases. The transpiler supports various SQL dialects through Calcite's `SqlDialect` interface.
+
+```java
+UnifiedQueryTranspiler transpiler = new UnifiedQueryTranspiler();
+String sql = transpiler.toSql(plan, SparkSqlDialect.DEFAULT);
+```
+
+### Complete Workflow Example
+
+Combining both components to transpile PPL queries into target database SQL:
+
+```java
+// Step 1: Initialize planner
+UnifiedQueryPlanner planner = UnifiedQueryPlanner.builder()
+    .language(QueryType.PPL)
+    .catalog("catalog", schema)
+    .defaultNamespace("catalog")
+    .build();
+
+// Step 2: Parse PPL query into logical plan
+RelNode plan = planner.plan("source = employees | where age > 30");
+
+// Step 3: Transpile to target SQL dialect
+UnifiedQueryTranspiler transpiler = new UnifiedQueryTranspiler();
+String sparkSql = transpiler.toSql(plan, SparkSqlDialect.DEFAULT);
+// Result: SELECT * FROM `catalog`.`employees` WHERE `age` > 30
+```
+
+Supported SQL dialects include:
+- `SparkSqlDialect.DEFAULT` - Apache Spark SQL
+- `PostgresqlSqlDialect.DEFAULT` - PostgreSQL
+- `MysqlSqlDialect.DEFAULT` - MySQL
+- And other Calcite-supported dialects
 
 ## Development & Testing
 
