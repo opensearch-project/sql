@@ -73,6 +73,42 @@ PPL query::
       "status": 400
     }
 
+plugins.ppl.query.timeout
+=========================
+
+Description
+-----------
+
+This setting controls the maximum execution time for PPL queries. When a query exceeds this timeout, it will be interrupted and return a timeout error.
+
+1. The default value is 120s (2 minutes).
+2. This setting is node scope.
+3. This setting can be updated dynamically.
+
+Example
+-------
+
+You can configure the query timeout:
+
+PPL query::
+
+    sh$ curl -sS -H 'Content-Type: application/json' \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"transient" : {"plugins.ppl.query.timeout" : "60s"}}'
+    {
+      "acknowledged": true,
+      "persistent": {},
+      "transient": {
+        "plugins": {
+          "ppl": {
+            "query": {
+              "timeout": "60s"
+            }
+          }
+        }
+      }
+    }
+
 plugins.query.memory_limit
 ==========================
 
