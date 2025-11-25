@@ -701,4 +701,21 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     verifySchema(actual, schema("result", "array"));
     verifyDataRows(actual, rows(List.of(6, 7, 8)));
   }
+
+  @Test
+  public void testMvmapWithNestedFunction() throws IOException {
+    // Test mvmap with mvindex as first argument - extracts field name from nested function
+    // Equivalent to Splunk: mvmap(mvindex(arr, 1, 3), arr * 10)
+    // The lambda binds 'arr' and iterates over mvindex output (values at indices 1-3)
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array(10, 20, 30, 40, 50), result = mvmap(mvindex(arr, 1,"
+                    + " 3), arr * 2) | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    // mvindex(arr, 1, 3) returns [20, 30, 40], then mvmap multiplies each by 2
+    verifyDataRows(actual, rows(List.of(40, 60, 80)));
+  }
 }

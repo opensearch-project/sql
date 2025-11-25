@@ -466,25 +466,21 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
    */
   private Function buildMvmapFunction(List<OpenSearchPPLParser.FunctionArgContext> args) {
     if (args.size() != 2) {
-      return buildFunction("mvmap", args);
+      throw new SyntaxCheckException("mvmap requires exactly 2 arguments");
     }
 
     UnresolvedExpression firstArg = visitFunctionArg(args.get(0));
     UnresolvedExpression secondArg = visitFunctionArg(args.get(1));
 
-    // If second arg is already a lambda, use as-is (backward compatible)
     if (secondArg instanceof LambdaFunction) {
-      return new Function("mvmap", Arrays.asList(firstArg, secondArg));
+      throw new SyntaxCheckException("mvmap does not accept lambda expression as second argument");
     }
 
-    // Extract field name from first argument for implicit binding
     QualifiedName fieldName = extractFieldName(firstArg);
     if (fieldName == null) {
-      // Can't determine field name, fall back to regular function call
-      return new Function("mvmap", Arrays.asList(firstArg, secondArg));
+      throw new SyntaxCheckException("mvmap first argument must be a field or field expression");
     }
 
-    // Wrap expression in lambda: expr -> LambdaFunction(expr, [fieldName])
     LambdaFunction lambda = new LambdaFunction(secondArg, Collections.singletonList(fieldName));
     return new Function("mvmap", Arrays.asList(firstArg, lambda));
   }

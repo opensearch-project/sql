@@ -550,4 +550,31 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testMvmapWithNestedFunction() {
+    // Test mvmap with mvindex as first argument - extracts field name from nested function
+    // The lambda binds 'arr' and iterates over mvindex output
+    String ppl =
+        "source=EMP | eval arr = array(1, 2, 3, 4, 5), result = mvmap(mvindex(arr, 1, 3), arr * 10)"
+            + " | head 1 | fields result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(result=[$9])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[array(1, 2, 3, 4, 5)],"
+            + " result=[transform(ARRAY_SLICE(array(1, 2, 3, 4, 5), 1, +(-(3, 1), 1)), (arr) ->"
+            + " *(arr, 10))])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT TRANSFORM(ARRAY_SLICE(ARRAY(1, 2, 3, 4, 5), 1, 3 - 1 + 1), `arr` -> `arr` * 10)"
+            + " `result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }
