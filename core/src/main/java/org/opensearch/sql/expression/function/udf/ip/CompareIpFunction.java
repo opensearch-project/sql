@@ -99,9 +99,10 @@ public class CompareIpFunction extends ImplementorUDF {
           case GREATER_THAN_OR_EQUAL -> PPLBuiltinOperators.LTE_IP;
           case EQUALS -> PPLBuiltinOperators.EQUALS_IP;
           case NOT_EQUALS -> PPLBuiltinOperators.NOT_EQUALS_IP;
-          default -> throw new IllegalArgumentException(
-              String.format(
-                  Locale.ROOT, "CompareIpFunction is not supposed to be of kind: %s", kind));
+          default ->
+              throw new IllegalArgumentException(
+                  String.format(
+                      Locale.ROOT, "CompareIpFunction is not supposed to be of kind: %s", kind));
         };
       }
 
@@ -151,8 +152,9 @@ public class CompareIpFunction extends ImplementorUDF {
         case LESS_THAN_OR_EQUAL -> Expressions.lessThanOrEqual(compareResult, zero);
         case GREATER_THAN -> Expressions.greaterThan(compareResult, zero);
         case GREATER_THAN_OR_EQUAL -> Expressions.greaterThanOrEqual(compareResult, zero);
-        default -> throw new UnsupportedOperationException(
-            String.format(Locale.ROOT, "Unsupported compare type: %s", compareType));
+        default ->
+            throw new UnsupportedOperationException(
+                String.format(Locale.ROOT, "Unsupported compare type: %s", compareType));
       };
     }
 

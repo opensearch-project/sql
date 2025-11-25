@@ -70,6 +70,7 @@ import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.fun.SqlLikeOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -374,7 +375,7 @@ public class PredicateAnalyzer {
               || MULTI_FIELDS_RELEVANCE_FUNCTION_SET.contains(functionName)) {
             return visitRelevanceFunc(call);
           }
-          // fall through
+        // fall through
         default:
           String message =
               format(Locale.ROOT, "Unsupported syntax [%s] for call: [%s]", syntax, call);
@@ -657,14 +658,16 @@ public class PredicateAnalyzer {
           RexUnknownAs nullAs = getNullAsForSearch(call);
           QueryExpression finalExpression =
               switch (nullAs) {
-                  // e.g. where isNotNull(a) and (a = 1 or a = 2)
-                  // TODO: For this case, seems return `expression` should be equivalent
-                case FALSE -> CompoundQueryExpression.and(
-                    false, expression, QueryExpression.create(pair.getKey()).exists());
-                  // e.g. where isNull(a) or a = 1 or a = 2
-                case TRUE -> CompoundQueryExpression.or(
-                    expression, QueryExpression.create(pair.getKey()).notExists());
-                  // e.g. where a = 1 or a = 2
+                // e.g. where isNotNull(a) and (a = 1 or a = 2)
+                // TODO: For this case, seems return `expression` should be equivalent
+                case FALSE ->
+                    CompoundQueryExpression.and(
+                        false, expression, QueryExpression.create(pair.getKey()).exists());
+                // e.g. where isNull(a) or a = 1 or a = 2
+                case TRUE ->
+                    CompoundQueryExpression.or(
+                        expression, QueryExpression.create(pair.getKey()).notExists());
+                // e.g. where a = 1 or a = 2
                 case UNKNOWN -> expression;
               };
           finalExpression.updateAnalyzedNodes(call);
@@ -683,7 +686,8 @@ public class PredicateAnalyzer {
       final Expression a = call.getOperands().get(0).accept(this);
       final Expression b = call.getOperands().get(1).accept(this);
       final SwapResult pair = swap(a, b);
-      return QueryExpression.create(pair.getKey()).like(pair.getValue());
+      final boolean caseSensitive = ((SqlLikeOperator) call.getOperator()).isCaseSensitive();
+      return QueryExpression.create(pair.getKey()).like(pair.getValue(), caseSensitive);
     }
 
     private static QueryExpression constructQueryExpressionForSearch(
@@ -959,7 +963,7 @@ public class PredicateAnalyzer {
       throw new PredicateAnalyzerException("between cannot be applied to " + this.getClass());
     }
 
-    QueryExpression like(LiteralExpression literal) {
+    QueryExpression like(LiteralExpression literal, boolean caseSensitive) {
       throw new PredicateAnalyzerException(
           "SqlOperatorImpl ['like'] " + "cannot be applied to " + this.getClass());
     }
@@ -1242,7 +1246,7 @@ public class PredicateAnalyzer {
      * matching one by one, which is not same behavior with regular like function without pushdown.
      */
     @Override
-    public QueryExpression like(LiteralExpression literal) {
+    public QueryExpression like(LiteralExpression literal, boolean caseSensitive) {
       String fieldName = getFieldReference();
       String keywordField = OpenSearchTextType.toKeywordSubField(fieldName, this.rel.getExprType());
       boolean isKeywordField = keywordField != null;
@@ -1250,7 +1254,7 @@ public class PredicateAnalyzer {
         builder =
             wildcardQuery(
                     keywordField, StringUtils.convertSqlWildcardToLuceneSafe(literal.stringValue()))
-                .caseInsensitive(true);
+                .caseInsensitive(!caseSensitive);
         return this;
       }
       throw new UnsupportedOperationException("Like query is not supported for text field");

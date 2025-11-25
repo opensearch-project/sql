@@ -171,8 +171,9 @@ public class ExtendedRexBuilder extends RexBuilder {
                   "Cannot convert %s to IP, only STRING and IP types are supported",
                   argExprType));
         }
-        default -> throw new SemanticCheckException(
-            String.format(Locale.ROOT, "Cannot cast from %s to %s", argExprType, udt.name()));
+        default ->
+            throw new SemanticCheckException(
+                String.format(Locale.ROOT, "Cannot cast from %s to %s", argExprType, udt.name()));
       };
     }
     // Use a custom operator when casting floating point or decimal number to a character type.
