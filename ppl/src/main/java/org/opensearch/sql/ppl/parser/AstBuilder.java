@@ -486,8 +486,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     ArgumentMap arguments = ArgumentMap.of(argExprList);
 
     // bucket_nullable
-    boolean bucketNullable =
-        (Boolean) arguments.getOrDefault(Argument.BUCKET_NULLABLE, Literal.TRUE).getValue();
+    boolean bucketNullable = (Boolean) arguments.get(Argument.BUCKET_NULLABLE).getValue();
 
     // 2. Build groupList
     List<UnresolvedExpression> groupList = getPartitionExprList(ctx.statsByClause());
@@ -521,8 +520,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     boolean current = (Boolean) arguments.get("current").getValue();
     int window = (Integer) arguments.get("window").getValue();
     boolean global = (Boolean) arguments.get("global").getValue();
-    boolean bucketNullable =
-        (Boolean) arguments.getOrDefault(Argument.BUCKET_NULLABLE, Literal.TRUE).getValue();
+    boolean bucketNullable = (Boolean) arguments.get(Argument.BUCKET_NULLABLE).getValue();
 
     if (window < 0) {
       throw new IllegalArgumentException("Window size must be >= 0, but got: " + window);
