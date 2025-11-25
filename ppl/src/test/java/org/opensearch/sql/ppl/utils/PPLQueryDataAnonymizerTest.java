@@ -53,6 +53,19 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals("source=table | where identifier = ***", anonymize("search source=t | where a=1"));
   }
 
+  @Test
+  public void testLikeFunction() {
+    assertEquals(
+        "source=table | where like(identifier,***)",
+        anonymize("search source=t | where like(a, '%llo%')"));
+    assertEquals(
+        "source=table | where like(identifier,***,***)",
+        anonymize("search source=t | where like(a, '%llo%', true)"));
+    assertEquals(
+        "source=table | where like(identifier,***,***)",
+        anonymize("search source=t | where like(a, '%llo%', false)"));
+  }
+
   // Fields and Table Command Tests
   @Test
   public void testFieldsCommandWithoutArguments() {

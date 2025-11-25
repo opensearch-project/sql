@@ -79,6 +79,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.HOUR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.HOUR_OF_DAY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IFNULL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ILIKE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_GROK;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_ITEM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PARSE;
@@ -324,6 +325,18 @@ public class PPLFuncImpTable {
         throw new IllegalArgumentException("This function requires exactly 2 arguments");
       }
       return resolve(builder, args[0], args[1]);
+    }
+  }
+
+  public interface FunctionImp3 extends FunctionImp {
+    RexNode resolve(RexBuilder builder, RexNode arg1, RexNode arg2, RexNode arg3);
+
+    @Override
+    default RexNode resolve(RexBuilder builder, RexNode... args) {
+      if (args.length != 3) {
+        throw new IllegalArgumentException("This function requires exactly 3 arguments");
+      }
+      return resolve(builder, args[0], args[1], args[2]);
     }
   }
 
@@ -1216,17 +1229,22 @@ public class PPLFuncImpTable {
                               arg))),
           PPLTypeChecker.family(SqlTypeFamily.ANY));
       register(
-          LIKE,
+          ILIKE,
           (FunctionImp2)
               (builder, arg1, arg2) ->
                   builder.makeCall(
-                      SqlLibraryOperators.ILIKE,
-                      arg1,
-                      arg2,
-                      // TODO: Figure out escaping solution. '\\' is used for JSON input but is not
-                      // necessary for SQL function input
-                      builder.makeLiteral("\\")),
+                      SqlLibraryOperators.ILIKE, arg1, arg2, builder.makeLiteral("\\")),
           PPLTypeChecker.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING));
+      register(
+          LIKE,
+          (FunctionImp3)
+              (builder, arg1, arg2, arg3) ->
+                  ((RexLiteral) arg3).getValueAs(Boolean.class)
+                      ? builder.makeCall(
+                          SqlStdOperatorTable.LIKE, arg1, arg2, builder.makeLiteral("\\"))
+                      : builder.makeCall(
+                          SqlLibraryOperators.ILIKE, arg1, arg2, builder.makeLiteral("\\")),
+          PPLTypeChecker.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.BOOLEAN));
     }
   }
 
