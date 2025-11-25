@@ -107,18 +107,7 @@ public class LikeQueryIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void test_like_should_be_case_sensitive() throws IOException {
-    String query =
-        "source="
-            + TEST_INDEX_WILDCARD
-            + " | WHERE Like(KeywordBody, 'test Wildcard%', true) | fields KeywordBody";
-    JSONObject result = executeQuery(query);
-    verifyNumOfRows(result, 0);
-  }
-
-  @Test
   public void test_like_with_case_sensitive() throws IOException {
-    // only work in v3
     String query =
         "source="
             + TEST_INDEX_WILDCARD
