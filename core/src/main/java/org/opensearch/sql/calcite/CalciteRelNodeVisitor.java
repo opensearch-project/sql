@@ -47,11 +47,15 @@ import lombok.AllArgsConstructor;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.ViewExpanders;
+import org.apache.calcite.rel.BiRel;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
-import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.SetOp;
+import org.apache.calcite.rel.hint.HintStrategyTable;
+import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
@@ -693,9 +697,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   private RelCollation backtrackForCollation(RelNode node) {
     while (node != null) {
       // Check for blocking operators that destroy collation
-      if (node instanceof Aggregate
-          || node instanceof org.apache.calcite.rel.core.Join
-          || node instanceof Correlate) {
+      // BiRel covers Join, Correlate, and other binary relations
+      // SetOp covers Union, Intersect, Except
+      if (node instanceof Aggregate || node instanceof BiRel || node instanceof SetOp) {
         return null;
       }
 
