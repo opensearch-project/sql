@@ -70,6 +70,13 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<TimeValue> PPL_QUERY_TIMEOUT_SETTING =
+      Setting.positiveTimeSetting(
+          Key.PPL_QUERY_TIMEOUT.getKeyValue(),
+          TimeValue.timeValueSeconds(60),
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   public static final Setting<?> PPL_SYNTAX_LEGACY_PREFERRED_SETTING =
       Setting.boolSetting(
           Key.PPL_SYNTAX_LEGACY_PREFERRED.getKeyValue(),
@@ -367,6 +374,12 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.PPL_QUERY_TIMEOUT,
+        PPL_QUERY_TIMEOUT_SETTING,
+        new Updater(Key.PPL_QUERY_TIMEOUT));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.PPL_SYNTAX_LEGACY_PREFERRED,
         PPL_SYNTAX_LEGACY_PREFERRED_SETTING,
         new Updater(Key.PPL_SYNTAX_LEGACY_PREFERRED));
@@ -638,6 +651,7 @@ public class OpenSearchSettings extends Settings {
         .add(SQL_SLOWLOG_SETTING)
         .add(SQL_CURSOR_KEEP_ALIVE_SETTING)
         .add(PPL_ENABLED_SETTING)
+        .add(PPL_QUERY_TIMEOUT_SETTING)
         .add(PPL_SYNTAX_LEGACY_PREFERRED_SETTING)
         .add(CALCITE_ENGINE_ENABLED_SETTING)
         .add(CALCITE_FALLBACK_ALLOWED_SETTING)

@@ -11,7 +11,6 @@ import java.util.Optional;
 import java.util.function.Predicate;
 import org.apache.calcite.adapter.enumerable.EnumerableProject;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.volcano.AbstractConverter;
@@ -44,14 +43,14 @@ import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
  */
 @Value.Enclosing
 public class ExpandCollationOnProjectExprRule
-    extends RelRule<ExpandCollationOnProjectExprRule.Config> {
+    extends InterruptibleRelRule<ExpandCollationOnProjectExprRule.Config> {
 
   protected ExpandCollationOnProjectExprRule(Config config) {
     super(config);
   }
 
   @Override
-  public void onMatch(RelOptRuleCall call) {
+  protected void onMatchImpl(RelOptRuleCall call) {
     final AbstractConverter converter = call.rel(0);
     final Project project = call.rel(1);
     final RelTraitSet toTraits = converter.getTraitSet();

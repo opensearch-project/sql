@@ -10,7 +10,6 @@ import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_D
 import java.util.List;
 import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexCall;
@@ -28,7 +27,7 @@ import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
 @Value.Enclosing
-public class DedupPushdownRule extends RelRule<DedupPushdownRule.Config> {
+public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Config> {
   private static final Logger LOG = LogManager.getLogger();
 
   protected DedupPushdownRule(Config config) {
@@ -36,7 +35,7 @@ public class DedupPushdownRule extends RelRule<DedupPushdownRule.Config> {
   }
 
   @Override
-  public void onMatch(RelOptRuleCall call) {
+  protected void onMatchImpl(RelOptRuleCall call) {
     final LogicalProject finalOutput = call.rel(0);
     // TODO Used when number of duplication is more than 1
     final LogicalFilter numOfDedupFilter = call.rel(1);
