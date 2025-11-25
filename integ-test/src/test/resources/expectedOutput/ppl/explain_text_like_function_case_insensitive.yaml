@@ -6,7 +6,7 @@ root:
   children:
     - name: FilterOperator
       description:
-        conditions: "like(address, \"%Holmes%\", true)"
+        conditions: "like(address, \"%Holmes%\", false)"
       children:
         - name: OpenSearchIndexScan
           description:

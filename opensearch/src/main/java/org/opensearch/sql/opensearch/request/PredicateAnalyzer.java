@@ -70,6 +70,7 @@ import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.fun.SqlLikeOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -698,7 +699,8 @@ public class PredicateAnalyzer {
       final Expression a = call.getOperands().get(0).accept(this);
       final Expression b = call.getOperands().get(1).accept(this);
       final SwapResult pair = swap(a, b);
-      return QueryExpression.create(pair.getKey()).like(pair.getValue());
+      final boolean caseSensitive = ((SqlLikeOperator) call.getOperator()).isCaseSensitive();
+      return QueryExpression.create(pair.getKey()).like(pair.getValue(), caseSensitive);
     }
 
     private static QueryExpression constructQueryExpressionForSearch(
@@ -974,7 +976,7 @@ public class PredicateAnalyzer {
       throw new PredicateAnalyzerException("between cannot be applied to " + this.getClass());
     }
 
-    QueryExpression like(LiteralExpression literal) {
+    QueryExpression like(LiteralExpression literal, boolean caseSensitive) {
       throw new PredicateAnalyzerException(
           "SqlOperatorImpl ['like'] " + "cannot be applied to " + this.getClass());
     }
@@ -1257,7 +1259,7 @@ public class PredicateAnalyzer {
      * matching one by one, which is not same behavior with regular like function without pushdown.
      */
     @Override
-    public QueryExpression like(LiteralExpression literal) {
+    public QueryExpression like(LiteralExpression literal, boolean caseSensitive) {
       String fieldName = getFieldReference();
       String keywordField = OpenSearchTextType.toKeywordSubField(fieldName, this.rel.getExprType());
       boolean isKeywordField = keywordField != null;
@@ -1265,7 +1267,7 @@ public class PredicateAnalyzer {
         builder =
             wildcardQuery(
                     keywordField, StringUtils.convertSqlWildcardToLuceneSafe(literal.stringValue()))
-                .caseInsensitive(true);
+                .caseInsensitive(!caseSensitive);
         return this;
       }
       throw new UnsupportedOperationException("Like query is not supported for text field");
