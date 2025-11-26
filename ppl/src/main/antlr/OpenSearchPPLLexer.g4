@@ -429,6 +429,7 @@ CAST:                               'CAST';
 
 // BOOL FUNCTIONS
 LIKE:                               'LIKE';
+ILIKE:                              'ILIKE';
 ISNULL:                             'ISNULL';
 ISNOTNULL:                          'ISNOTNULL';
 CIDRMATCH:                          'CIDRMATCH';
@@ -443,6 +444,7 @@ ARRAY_LENGTH:                       'ARRAY_LENGTH';
 MVAPPEND:                           'MVAPPEND';
 MVJOIN:                             'MVJOIN';
 MVINDEX:                            'MVINDEX';
+MVDEDUP:                            'MVDEDUP';
 FORALL:                             'FORALL';
 FILTER:                             'FILTER';
 TRANSFORM:                          'TRANSFORM';

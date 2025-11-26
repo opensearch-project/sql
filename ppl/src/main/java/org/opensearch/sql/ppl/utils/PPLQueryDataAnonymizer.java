@@ -21,6 +21,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import lombok.Getter;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -118,7 +119,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   public static final String MASK_TABLE = "table";
 
   private final AnonymizerExpressionAnalyzer expressionAnalyzer;
-  private final Settings settings;
+  @Getter private final Settings settings;
 
   public PPLQueryDataAnonymizer(Settings settings) {
     this.expressionAnalyzer = new AnonymizerExpressionAnalyzer(this);
@@ -400,7 +401,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String fields = visitFieldList(node.getFields());
     String group = visitExpressionList(node.getGroupExprList());
     String options =
-        isCalciteEnabled(settings)
+        UnresolvedPlanHelper.isCalciteEnabled(settings)
             ? StringUtils.format(
                 "countield='%s' showcount=%s usenull=%s ", countField, showCount, useNull)
             : "";
@@ -808,14 +809,6 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   private String groupBy(String groupBy) {
     return Strings.isNullOrEmpty(groupBy) ? "" : StringUtils.format("by %s", groupBy);
-  }
-
-  private boolean isCalciteEnabled(Settings settings) {
-    if (settings != null) {
-      return settings.getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED);
-    } else {
-      return false;
-    }
   }
 
   /** Expression Anonymizer. */
