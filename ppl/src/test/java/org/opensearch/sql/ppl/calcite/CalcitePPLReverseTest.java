@@ -288,4 +288,172 @@ public class CalcitePPLReverseTest extends CalcitePPLAbstractTest {
             + "ORDER BY `SAL` DESC";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  // ==================== Complex query tests with blocking operators ====================
+  // These tests verify that reverse becomes a no-op after blocking operators
+  // that destroy collation (aggregate, join, set ops, window functions).
+  // Since SCOTT_WITH_TEMPORAL schema has no @timestamp field, reverse is ignored.
+
+  @Test
+  public void testReverseAfterAggregationIsNoOp() {
+    // Aggregation destroys input ordering, so reverse has no collation to reverse
+    // and no @timestamp field exists, so reverse should be a no-op
+    String ppl = "source=EMP | stats count() as c by DEPTNO | reverse";
+    RelNode root = getRelNode(ppl);
+    // No additional sort node for reverse - it's a no-op after aggregation
+    // Note: There's a project for column reordering (c, DEPTNO) in the output
+    String expectedLogical =
+        "LogicalProject(c=[$1], DEPTNO=[$0])\n"
+            + "  LogicalAggregate(group=[{0}], c=[COUNT()])\n"
+            + "    LogicalProject(DEPTNO=[$7])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT COUNT(*) `c`, `DEPTNO`\n" + "FROM `scott`.`EMP`\n" + "GROUP BY `DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testReverseAfterJoinIsNoOp() {
+    // Join destroys input ordering, so reverse has no collation to reverse
+    // and no @timestamp field exists, so reverse should be a no-op
+    String ppl = "source=EMP | join on EMP.DEPTNO = DEPT.DEPTNO DEPT | reverse";
+    RelNode root = getRelNode(ppl);
+    // No additional sort node for reverse - it's a no-op after join
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], DEPT.DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
+            + "  LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, `EMP`.`HIREDATE`,"
+            + " `EMP`.`SAL`, `EMP`.`COMM`, `EMP`.`DEPTNO`, `DEPT`.`DEPTNO` `DEPT.DEPTNO`,"
+            + " `DEPT`.`DNAME`, `DEPT`.`LOC`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "INNER JOIN `scott`.`DEPT` ON `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testReverseAfterSortAndAggregationIsNoOp() {
+    // Even if there's a sort before aggregation, aggregation destroys the collation
+    // so reverse after aggregation should be a no-op
+    String ppl = "source=EMP | sort SAL | stats count() as c by DEPTNO | reverse";
+    RelNode root = getRelNode(ppl);
+    // Sort before aggregation is present, but reverse after aggregation is a no-op
+    // Note: There's a project for column reordering (c, DEPTNO) in the output
+    String expectedLogical =
+        "LogicalProject(c=[$1], DEPTNO=[$0])\n"
+            + "  LogicalAggregate(group=[{0}], c=[COUNT()])\n"
+            + "    LogicalProject(DEPTNO=[$7])\n"
+            + "      LogicalSort(sort0=[$5], dir0=[ASC-nulls-first])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    // Verify result data - reverse is a no-op, so data remains in aggregation order
+    String expectedResult = "c=5; DEPTNO=20\n" + "c=3; DEPTNO=10\n" + "c=6; DEPTNO=30\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testReverseAfterWhereWithSort() {
+    // Filter (where) doesn't destroy collation, so reverse should work through it
+    String ppl = "source=EMP | sort SAL | where DEPTNO = 10 | reverse";
+    RelNode root = getRelNode(ppl);
+    // Reverse backtracks through filter to find the sort and inserts reversed sort
+    // after the original sort, then the filter is applied on top
+    String expectedLogical =
+        "LogicalSort(sort0=[$5], dir0=[DESC-nulls-last])\n"
+            + "  LogicalFilter(condition=[=($7, 10)])\n"
+            + "    LogicalSort(sort0=[$5], dir0=[ASC-nulls-first])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT *\n"
+            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "ORDER BY `SAL`) `t`\n"
+            + "WHERE `DEPTNO` = 10\n"
+            + "ORDER BY `SAL` DESC";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testReverseAfterEvalWithSort() {
+    // Eval (project) doesn't destroy collation, so reverse should work through it
+    String ppl = "source=EMP | sort SAL | eval bonus = SAL * 0.1 | reverse";
+    RelNode root = getRelNode(ppl);
+    // Reversed sort is added on top of the project (eval)
+    String expectedLogical =
+        "LogicalSort(sort0=[$5], dir0=[DESC-nulls-last])\n"
+            + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], bonus=[*($5, 0.1:DECIMAL(2, 1))])\n"
+            + "    LogicalSort(sort0=[$5], dir0=[ASC-nulls-first])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testReverseAfterMultipleFiltersWithSort() {
+    // Multiple filters don't destroy collation
+    String ppl = "source=EMP | sort SAL | where DEPTNO = 10 | where SAL > 1000 | reverse";
+    RelNode root = getRelNode(ppl);
+    // Reversed sort is added on top of the filters
+    String expectedLogical =
+        "LogicalSort(sort0=[$5], dir0=[DESC-nulls-last])\n"
+            + "  LogicalFilter(condition=[>($5, 1000)])\n"
+            + "    LogicalFilter(condition=[=($7, 10)])\n"
+            + "      LogicalSort(sort0=[$5], dir0=[ASC-nulls-first])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testReverseSortJoinSort() {
+    // Sort before join, then another sort after join, reverse should work
+    String ppl =
+        "source=EMP | sort SAL | join on EMP.DEPTNO = DEPT.DEPTNO DEPT | sort DNAME | reverse";
+    RelNode root = getRelNode(ppl);
+    // The sort before join is destroyed by join, but sort after join can be reversed
+    String expectedLogical =
+        "LogicalSort(sort0=[$9], dir0=[DESC-nulls-last])\n"
+            + "  LogicalSort(sort0=[$9], dir0=[ASC-nulls-first])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], DEPT.DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
+            + "      LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "        LogicalSort(sort0=[$5], dir0=[ASC-nulls-first])\n"
+            + "          LogicalTableScan(table=[[scott, EMP]])\n"
+            + "        LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testReverseAfterAggregationWithSort() {
+    // Sort after aggregation, then reverse should work
+    String ppl = "source=EMP | stats count() as c by DEPTNO | sort DEPTNO | reverse";
+    RelNode root = getRelNode(ppl);
+    // Note: There's a project for column reordering (c, DEPTNO) so DEPTNO is at position 1
+    String expectedLogical =
+        "LogicalSort(sort0=[$1], dir0=[DESC-nulls-last])\n"
+            + "  LogicalSort(sort0=[$1], dir0=[ASC-nulls-first])\n"
+            + "    LogicalProject(c=[$1], DEPTNO=[$0])\n"
+            + "      LogicalAggregate(group=[{0}], c=[COUNT()])\n"
+            + "        LogicalProject(DEPTNO=[$7])\n"
+            + "          LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT *\n"
+            + "FROM (SELECT COUNT(*) `c`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "GROUP BY `DEPTNO`\n"
+            + "ORDER BY `DEPTNO`) `t2`\n"
+            + "ORDER BY `DEPTNO` DESC";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }
