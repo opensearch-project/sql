@@ -13,6 +13,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
+import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalciteTimechartCommandIT extends PPLIntegTestCase {
@@ -64,7 +65,7 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testTimechartWithoutTimestampField() throws IOException {
+  public void testTimechartWithoutTimestampField() {
     Throwable exception =
         assertThrows(
             ResponseException.class,
@@ -72,6 +73,16 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
               executeQuery(String.format("source=%s | timechart count()", TEST_INDEX_BANK));
             });
     verifyErrorMessageContains(exception, "Field [@timestamp] not found.");
+  }
+
+  @Test
+  public void testTimechartWithCustomTimeField() throws IOException {
+    JSONObject result =
+        executeQuery(
+            StringUtils.format(
+                "source=%s | timechart timefield=birthdate span=1year count()", TEST_INDEX_BANK));
+    verifySchema(result, schema("birthdate", "timestamp"), schema("count()", "bigint"));
+    verifyDataRows(result, rows("2017-01-01 00:00:00", 2), rows("2018-01-01 00:00:00", 5));
   }
 
   @Test
