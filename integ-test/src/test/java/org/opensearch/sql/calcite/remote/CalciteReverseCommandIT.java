@@ -29,6 +29,7 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
     loadIndex(Index.BANK);
     loadIndex(Index.TIME_TEST_DATA);
     loadIndex(Index.STATE_COUNTRY);
+    loadIndex(Index.EVENTS);
   }
 
   @Test
@@ -453,5 +454,63 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
     // Use verifyDataRows (unordered) since aggregation order is not guaranteed
     // Categories: A=26, B=25, C=25, D=24
     verifyDataRows(result, rows(26, "A"), rows(25, "B"), rows(25, "C"), rows(24, "D"));
+  }
+
+  // ==================== Timechart with Reverse tests ====================
+  // These tests verify that reverse works correctly with timechart.
+  // Timechart always adds a sort at the end of its plan (tier 1), so reverse
+  // will find the collation via metadata query and flip the sort direction.
+
+  @Test
+  public void testTimechartWithReverse() throws IOException {
+    // Timechart adds ORDER BY @timestamp ASC at the end
+    // Reverse should flip it to DESC, returning data in reverse chronological order
+    JSONObject result = executeQuery("source=events | timechart span=1m count() | reverse");
+    verifySchema(result, schema("@timestamp", "timestamp"), schema("count()", "bigint"));
+    // Events data has timestamps at 00:00, 00:01, 00:02, 00:03, 00:04
+    // Reversed order: 00:04, 00:03, 00:02, 00:01, 00:00
+    verifyDataRowsInOrder(
+        result,
+        rows("2024-07-01 00:04:00", 1),
+        rows("2024-07-01 00:03:00", 1),
+        rows("2024-07-01 00:02:00", 1),
+        rows("2024-07-01 00:01:00", 1),
+        rows("2024-07-01 00:00:00", 1));
+  }
+
+  @Test
+  public void testTimechartWithCustomTimefieldAndReverse() throws IOException {
+    // Test timechart with custom timefield (birthdate instead of @timestamp)
+    // PR #4784 allows users to specify a custom timefield in timechart
+    // The sort should be on the custom field, not @timestamp
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | timechart timefield=birthdate span=1year count() | reverse",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("birthdate", "timestamp"), schema("count()", "bigint"));
+    // Bank data has birthdates in 2017 and 2018
+    // Timechart groups by year: 2017 (2 records), 2018 (5 records)
+    // Reversed order: 2018, 2017
+    verifyDataRowsInOrder(result, rows("2018-01-01 00:00:00", 5), rows("2017-01-01 00:00:00", 2));
+  }
+
+  @Test
+  public void testTimechartWithGroupByAndReverse() throws IOException {
+    // Test timechart with group by and reverse
+    // The sort is on both @timestamp and the group by field
+    JSONObject result = executeQuery("source=events | timechart span=1h count() by host | reverse");
+    verifySchema(
+        result,
+        schema("@timestamp", "timestamp"),
+        schema("host", "string"),
+        schema("count()", "bigint"));
+    // All events are in the same hour, so only one time bucket
+    // Hosts are grouped and results are reversed
+    verifyDataRows(
+        result,
+        rows("2024-07-01 00:00:00", "db-01", 1),
+        rows("2024-07-01 00:00:00", "web-01", 2),
+        rows("2024-07-01 00:00:00", "web-02", 2));
   }
 }
