@@ -57,7 +57,7 @@ public class OpenSearchQueryManager implements QueryManager {
                         executionThread.interrupt();
                       },
                       timeout,
-                      SQL_WORKER_THREAD_POOL_NAME);
+                      ThreadPool.Names.GENERIC);
 
               try {
                 task.run();
