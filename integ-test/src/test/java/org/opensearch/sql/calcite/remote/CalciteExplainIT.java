@@ -667,6 +667,56 @@ public class CalciteExplainIT extends ExplainIT {
     assertYamlEqualsIgnoreId(expected, result);
   }
 
+  @Test
+  public void testStreamstatsNullBucketExplain() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | streamstats bucket_nullable=false avg(age) as"
+            + " avg_age by gender";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_streamstats_null_bucket.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testStreamstatsGlobalNullBucketExplain() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | streamstats bucket_nullable=false window=2"
+            + " global=true avg(age) as avg_age by gender";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_streamstats_global_null_bucket.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testStreamstatsResetNullBucketExplain() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | streamstats bucket_nullable=false current=false"
+            + " reset_before=age>34 reset_after=age<25 avg(age) as avg_age by gender";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_streamstats_reset_null_bucket.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testKeywordILikeFunctionExplain() throws IOException {
+    // ilike is only supported in v3
+    String expected = loadExpectedPlan("explain_keyword_ilike_function.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | where ilike(firstname, '%mbe%')"));
+  }
+
+  @Test
+  public void testTextILikeFunctionExplain() throws IOException {
+    // ilike is only supported in v3
+    String expected = loadExpectedPlan("explain_text_ilike_function.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | where ilike(address, '%Holmes%')"));
+  }
+
   // Only for Calcite, as v2 gets unstable serialized string for function
   @Test
   public void testExplainOnAggregationWithSumEnhancement() throws IOException {
