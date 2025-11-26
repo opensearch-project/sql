@@ -30,7 +30,7 @@ public class UnifiedQueryTranspilerTest extends UnifiedQueryTestBase {
             .defaultNamespace("catalog")
             .build();
 
-    transpiler = new UnifiedQueryTranspiler();
+    transpiler = UnifiedQueryTranspiler.builder().dialect(SparkSqlDialect.DEFAULT).build();
   }
 
   @Test
@@ -38,7 +38,7 @@ public class UnifiedQueryTranspilerTest extends UnifiedQueryTestBase {
     String pplQuery = "source = employees";
     RelNode plan = planner.plan(pplQuery);
 
-    String sql = transpiler.toSql(plan, SparkSqlDialect.DEFAULT);
+    String sql = transpiler.toSql(plan);
     String expectedSql = "SELECT *\nFROM `catalog`.`employees`";
     assertEquals("Generated SQL should match expected", expectedSql, sql);
   }

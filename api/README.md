@@ -33,8 +33,11 @@ RelNode plan = planner.plan("source = opensearch.test");
 Use `UnifiedQueryTranspiler` to convert Calcite logical plans into SQL strings for target databases. The transpiler supports various SQL dialects through Calcite's `SqlDialect` interface.
 
 ```java
-UnifiedQueryTranspiler transpiler = new UnifiedQueryTranspiler();
-String sql = transpiler.toSql(plan, SparkSqlDialect.DEFAULT);
+UnifiedQueryTranspiler transpiler = UnifiedQueryTranspiler.builder()
+    .dialect(SparkSqlDialect.DEFAULT)
+    .build();
+
+String sql = transpiler.toSql(plan);
 ```
 
 ### Complete Workflow Example
@@ -52,9 +55,13 @@ UnifiedQueryPlanner planner = UnifiedQueryPlanner.builder()
 // Step 2: Parse PPL query into logical plan
 RelNode plan = planner.plan("source = employees | where age > 30");
 
-// Step 3: Transpile to target SQL dialect
-UnifiedQueryTranspiler transpiler = new UnifiedQueryTranspiler();
-String sparkSql = transpiler.toSql(plan, SparkSqlDialect.DEFAULT);
+// Step 3: Initialize transpiler with target dialect
+UnifiedQueryTranspiler transpiler = UnifiedQueryTranspiler.builder()
+    .dialect(SparkSqlDialect.DEFAULT)
+    .build();
+
+// Step 4: Transpile to target SQL
+String sparkSql = transpiler.toSql(plan);
 // Result: SELECT * FROM `catalog`.`employees` WHERE `age` > 30
 ```
 

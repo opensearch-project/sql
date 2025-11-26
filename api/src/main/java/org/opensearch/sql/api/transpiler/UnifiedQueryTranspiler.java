@@ -17,20 +17,66 @@ import org.apache.calcite.sql.SqlNode;
  */
 public class UnifiedQueryTranspiler {
 
+  /** Target SQL dialect */
+  private final SqlDialect dialect;
+
+  private UnifiedQueryTranspiler(Builder builder) {
+    this.dialect = builder.dialect;
+  }
+
   /**
-   * Converts a Calcite logical plan to a SQL string using the specified transpile options.
+   * Converts a Calcite logical plan to a SQL string using the configured target dialect.
    *
    * @param plan the logical plan to convert (must not be null)
-   * @param options the transpilation options including target dialect and formatting preferences
    * @return the generated SQL string
    */
-  public String toSql(RelNode plan, SqlDialect target) {
+  public String toSql(RelNode plan) {
     try {
-      RelToSqlConverter converter = new RelToSqlConverter(target);
+      RelToSqlConverter converter = new RelToSqlConverter(dialect);
       SqlNode sqlNode = converter.visitRoot(plan).asStatement();
-      return sqlNode.toSqlString(target).getSql();
+      return sqlNode.toSqlString(dialect).getSql();
     } catch (Exception e) {
       throw new IllegalStateException("Failed to transpile logical plan to SQL", e);
+    }
+  }
+
+  /**
+   * Creates a new builder for constructing a UnifiedQueryTranspiler.
+   *
+   * @return a new builder instance
+   */
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  /** Builder for UnifiedQueryTranspiler. */
+  public static class Builder {
+    private SqlDialect dialect;
+
+    private Builder() {}
+
+    /**
+     * Sets the target SQL dialect for transpilation.
+     *
+     * @param dialect the SQL dialect to use (must not be null)
+     * @return this builder
+     */
+    public Builder dialect(SqlDialect dialect) {
+      this.dialect = dialect;
+      return this;
+    }
+
+    /**
+     * Builds a new UnifiedQueryTranspiler instance.
+     *
+     * @return a new UnifiedQueryTranspiler
+     * @throws IllegalStateException if dialect has not been set
+     */
+    public UnifiedQueryTranspiler build() {
+      if (dialect == null) {
+        throw new IllegalStateException("SQL dialect must be specified");
+      }
+      return new UnifiedQueryTranspiler(this);
     }
   }
 }
