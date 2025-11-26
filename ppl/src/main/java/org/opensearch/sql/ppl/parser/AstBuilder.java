@@ -63,8 +63,6 @@ import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.SearchAnd;
 import org.opensearch.sql.ast.expression.SearchExpression;
 import org.opensearch.sql.ast.expression.SearchGroup;
-import org.opensearch.sql.ast.expression.Span;
-import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFrame;
@@ -772,42 +770,28 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   /** Timechart command. */
   @Override
   public UnresolvedPlan visitTimechartCommand(OpenSearchPPLParser.TimechartCommandContext ctx) {
-    UnresolvedExpression binExpression =
-        AstDSL.span(AstDSL.implicitTimestampField(), AstDSL.intLiteral(1), SpanUnit.m);
-    Integer limit = 10;
-    Boolean useOther = true;
-    // Process timechart parameters
-    for (OpenSearchPPLParser.TimechartParameterContext paramCtx : ctx.timechartParameter()) {
-      UnresolvedExpression param = internalVisitExpression(paramCtx);
-      if (param instanceof Span) {
-        binExpression = param;
-      } else if (param instanceof Literal) {
-        Literal literal = (Literal) param;
-        if (DataType.BOOLEAN.equals(literal.getType())) {
-          useOther = (Boolean) literal.getValue();
-        } else if (DataType.INTEGER.equals(literal.getType())
-            || DataType.LONG.equals(literal.getType())) {
-          limit = (Integer) literal.getValue();
-        }
-      }
-    }
+    List<Argument> arguments = ArgumentFactory.getArgumentList(ctx, expressionBuilder);
+    ArgumentMap argMap = ArgumentMap.of(arguments);
+    Literal spanLiteral = argMap.getOrDefault("spanliteral", AstDSL.stringLiteral("1m"));
+    String timeFieldName =
+        Optional.ofNullable(argMap.get("timefield"))
+            .map(l -> (String) l.getValue())
+            .orElse(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP);
+    Field spanField = AstDSL.field(timeFieldName);
+    Alias span =
+        AstDSL.alias(timeFieldName, AstDSL.spanFromSpanLengthLiteral(spanField, spanLiteral));
     UnresolvedExpression aggregateFunction = parseAggTerms(List.of(ctx.statsAggTerm())).get(0);
-
     UnresolvedExpression byField =
-        ctx.fieldExpression() != null ? internalVisitExpression(ctx.fieldExpression()) : null;
-    List<Argument> arguments =
-        List.of(
-            new Argument("limit", AstDSL.intLiteral(limit)),
-            new Argument("useother", AstDSL.booleanLiteral(useOther)));
-    binExpression = AstDSL.alias(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP, binExpression);
-    if (byField != null) {
-      byField =
-          AstDSL.alias(
-              StringUtils.unquoteIdentifier(getTextInQuery(ctx.fieldExpression())), byField);
-    }
+        Optional.ofNullable(ctx.fieldExpression())
+            .map(
+                f ->
+                    AstDSL.alias(
+                        StringUtils.unquoteIdentifier(getTextInQuery(f)),
+                        internalVisitExpression(f)))
+            .orElse(null);
     return Chart.builder()
         .aggregationFunction(aggregateFunction)
-        .rowSplit(binExpression)
+        .rowSplit(span)
         .columnSplit(byField)
         .arguments(arguments)
         .build();
