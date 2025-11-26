@@ -16,7 +16,9 @@ Description
 Syntax
 ======
 
-timechart [span=<time_interval>] [limit=<number>] [useother=<boolean>] <aggregation_function> [by <field>]
+timechart [timefield=<field_name>] [span=<time_interval>] [limit=<number>] [useother=<boolean>] <aggregation_function> [by <field>]
+
+* timefield:  optional. Specifies the timestamp field to use for time interval grouping. **Default**: ``@timestamp``.
 
 * span: optional. Specifies the time interval for grouping data. **Default:** 1m (1 minute).
 
@@ -92,7 +94,7 @@ Return type: DOUBLE
 Notes
 =====
 
-* The ``timechart`` command requires a timestamp field named ``@timestamp`` in the data.
+* The ``timechart`` command requires a timestamp field in the data. By default, it uses the ``@timestamp`` field, but you can specify a different field using the ``timefield`` parameter.
 * Results are returned in an unpivoted format with separate rows for each time-field combination that has data.
 * Only combinations with actual data are included in the results - empty combinations are omitted rather than showing null or zero values.
 * The "top N" values for the ``limit`` parameter are selected based on the sum of values across all time intervals for each distinct field value.
