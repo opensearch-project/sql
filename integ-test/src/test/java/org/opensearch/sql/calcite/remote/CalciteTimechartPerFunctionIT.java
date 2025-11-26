@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.util.MatcherUtils.closeTo;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -13,6 +14,8 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.legacy.TestsConstants;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalciteTimechartPerFunctionIT extends PPLIntegTestCase {
@@ -24,6 +27,7 @@ public class CalciteTimechartPerFunctionIT extends PPLIntegTestCase {
     disallowCalciteFallback();
 
     loadIndex(Index.EVENTS_TRAFFIC);
+    loadIndex(Index.BANK);
   }
 
   @Test
@@ -207,5 +211,27 @@ public class CalciteTimechartPerFunctionIT extends PPLIntegTestCase {
         rows("2025-09-08 10:00:00", "server1", 129600.0), // (60+120) * 720
         rows("2025-09-08 10:02:00", "server1", 43200.0), // 60 * 720
         rows("2025-09-08 10:02:00", "server2", 129600.0)); // 180 * 720
+  }
+
+  @Test
+  public void testTimechartPerMonthWithSpecifiedSpan() throws IOException {
+    JSONObject result =
+        executeQuery(
+            StringUtils.format(
+                "source=%s | timechart timefield=birthdate span=1month per_day(balance) by gender",
+                TestsConstants.TEST_INDEX_BANK));
+    verifySchema(
+        result,
+        schema("birthdate", "timestamp"),
+        schema("gender", "string"),
+        schema("per_day(balance)", "double"));
+    verifyDataRows(
+        result,
+        closeTo("2017-10-01 00:00:00", "M", 1265.3225806451612),
+        closeTo("2017-11-01 00:00:00", "M", 189.53333333333333),
+        closeTo("2018-06-01 00:00:00", "F", 1094.6),
+        closeTo("2018-06-01 00:00:00", "M", 547.2666666666667),
+        closeTo("2018-08-01 00:00:00", "F", 2858.9032258064517),
+        closeTo("2018-11-01 00:00:00", "M", 139.33333333333334));
   }
 }
