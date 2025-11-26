@@ -23,7 +23,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.utils.ComparisonUtil.compare;
-import static org.opensearch.sql.utils.OperatorUtils.matches;
+import static org.opensearch.sql.utils.OperatorUtils.matches2;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -556,7 +556,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   public void test_like(ExprValue v1, ExprValue v2) {
     FunctionExpression like = DSL.like(DSL.literal(v1), DSL.literal(v2));
     assertEquals(BOOLEAN, like.type());
-    assertEquals(matches(v1, v2), like.valueOf(valueEnv()));
+    assertEquals(matches2(v1, v2), like.valueOf(valueEnv()));
     assertEquals(String.format("like(%s, %s)", v1.toString(), v2.toString()), like.toString());
   }
 
