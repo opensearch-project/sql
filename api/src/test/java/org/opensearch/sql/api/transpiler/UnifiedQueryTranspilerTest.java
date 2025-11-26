@@ -11,25 +11,15 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.junit.Before;
 import org.junit.Test;
-import org.opensearch.sql.api.UnifiedQueryPlanner;
 import org.opensearch.sql.api.UnifiedQueryTestBase;
-import org.opensearch.sql.executor.QueryType;
 
 public class UnifiedQueryTranspilerTest extends UnifiedQueryTestBase {
 
-  private UnifiedQueryPlanner planner;
   private UnifiedQueryTranspiler transpiler;
 
   @Before
   public void setUp() {
     super.setUp();
-    planner =
-        UnifiedQueryPlanner.builder()
-            .language(QueryType.PPL)
-            .catalog("catalog", testSchema)
-            .defaultNamespace("catalog")
-            .build();
-
     transpiler = UnifiedQueryTranspiler.builder().dialect(SparkSqlDialect.DEFAULT).build();
   }
 

@@ -14,12 +14,16 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.junit.Before;
+import org.opensearch.sql.executor.QueryType;
 
 /** Base class for unified query tests providing common test schema and utilities. */
 public abstract class UnifiedQueryTestBase {
 
   /** Test schema containing sample tables for testing */
   protected AbstractSchema testSchema;
+
+  /** Unified query planner configured with test schema */
+  protected UnifiedQueryPlanner planner;
 
   @Before
   public void setUp() {
@@ -30,6 +34,13 @@ public abstract class UnifiedQueryTestBase {
             return Map.of("employees", createEmployeesTable());
           }
         };
+
+    planner =
+        UnifiedQueryPlanner.builder()
+            .language(QueryType.PPL)
+            .catalog("catalog", testSchema)
+            .defaultNamespace("catalog")
+            .build();
   }
 
   protected Table createEmployeesTable() {
