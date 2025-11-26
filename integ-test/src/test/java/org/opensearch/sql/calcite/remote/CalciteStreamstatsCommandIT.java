@@ -147,13 +147,60 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2, 22.5, 20, 25),
         rows(null, "Canada", null, 4, 2023, 10, 3, 18.333333333333332, 10, 25),
-        rows("Kevin", null, null, 4, 2023, null, null, null, null, null));
+        rows("Kevin", null, null, 4, 2023, null, 1, null, null, null));
 
     actual =
         executeQuery(
             String.format(
                 "source=%s | streamstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
                     + " as max by state | fields name, country, state, month, year, age, cnt, avg, min, max",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+    verifyDataRows(
+        actual,
+        rows("Jake", "USA", "California", 4, 2023, 70, 1, 70, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 1, 30, 30, 30),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 1, 20, 20, 20),
+        rows(null, "Canada", null, 4, 2023, 10, 1, 10, 10, 10),
+        rows("Kevin", null, null, 4, 2023, null, 2, 10, 10, 10));
+  }
+
+  @Test
+  public void testStreamstatsByWithNullBucket() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | streamstats bucket_nullable=false count() as cnt, avg(age) as avg,"
+                    + " min(age) as min, max(age) as max by country | fields name, country, state, month, year, age, cnt, avg, min, max",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchemaInOrder(
+        actual,
+        schema("name", "string"),
+        schema("country", "string"),
+        schema("state", "string"),
+        schema("month", "int"),
+        schema("year", "int"),
+        schema("age", "int"),
+        schema("cnt", "bigint"),
+        schema("avg", "double"),
+        schema("min", "int"),
+        schema("max", "int"));
+
+    verifyDataRows(
+        actual,
+        rows("Jake", "USA", "California", 4, 2023, 70, 1, 70, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 2, 50, 30, 70),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2, 22.5, 20, 25),
+        rows(null, "Canada", null, 4, 2023, 10, 3, 18.333333333333332, 10, 25),
+        rows("Kevin", null, null, 4, 2023, null, null, null, null, null));
+
+    actual =
+        executeQuery(
+            String.format(
+                "source=%s | streamstats bucket_nullable=false count() as cnt, avg(age) as avg,"
+                    + " min(age) as min, max(age) as max by state | fields name, country, state, month, year, age, cnt, avg, min, max",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
     verifyDataRows(
         actual,
@@ -198,7 +245,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2, 22.5, 20, 25),
         rows(null, "Canada", null, 4, 2023, 10, 1, 10, 10, 10),
-        rows("Kevin", null, null, 4, 2023, null, null, null, null, null));
+        rows("Kevin", null, null, 4, 2023, null, 1, null, null, null));
   }
 
   @Test
@@ -240,8 +287,9 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by span(age, 10) as age_span, country | fields name, country, state, month, year, age, cnt, avg, min, max",
+                "source=%s | streamstats bucket_nullable=false count() as cnt, avg(age) as avg,"
+                    + " min(age) as min, max(age) as max by span(age, 10) as age_span, country |"
+                    + " fields name, country, state, month, year, age, cnt, avg, min, max",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifyDataRows(
@@ -252,6 +300,23 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2, 22.5, 20, 25),
         rows(null, "Canada", null, 4, 2023, 10, 1, 10, 10, 10),
         rows("Kevin", null, null, 4, 2023, null, null, null, null, null));
+
+    JSONObject actual2 =
+        executeQuery(
+            String.format(
+                "source=%s | streamstats bucket_nullable=true count() as cnt, avg(age) as avg,"
+                    + " min(age) as min, max(age) as max by span(age, 10) as age_span, country |"
+                    + " fields name, country, state, month, year, age, cnt, avg, min, max",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifyDataRows(
+        actual2,
+        rows("Jake", "USA", "California", 4, 2023, 70, 1, 70, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 1, 30, 30, 30),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2, 22.5, 20, 25),
+        rows(null, "Canada", null, 4, 2023, 10, 1, 10, 10, 10),
+        rows("Kevin", null, null, 4, 2023, null, 1, null, null, null));
   }
 
   @Test
@@ -259,8 +324,9 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by span(age, 10) as age_span, state | fields name, country, state, month, year, age, cnt, avg, min, max",
+                "source=%s | streamstats bucket_nullable=false count() as cnt, avg(age) as avg,"
+                    + " min(age) as min, max(age) as max by span(age, 10) as age_span, state |"
+                    + " fields name, country, state, month, year, age, cnt, avg, min, max",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifyDataRows(
@@ -271,6 +337,23 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 1, 20, 20, 20),
         rows(null, "Canada", null, 4, 2023, 10, null, null, null, null),
         rows("Kevin", null, null, 4, 2023, null, null, null, null, null));
+
+    JSONObject actual2 =
+        executeQuery(
+            String.format(
+                "source=%s | streamstats bucket_nullable=true count() as cnt, avg(age) as avg,"
+                    + " min(age) as min, max(age) as max by span(age, 10) as age_span, state |"
+                    + " fields name, country, state, month, year, age, cnt, avg, min, max",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifyDataRows(
+        actual2,
+        rows("Jake", "USA", "California", 4, 2023, 70, 1, 70, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 1, 30, 30, 30),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 1, 20, 20, 20),
+        rows(null, "Canada", null, 4, 2023, 10, 1, 10, 10, 10),
+        rows("Kevin", null, null, 4, 2023, null, 1, null, null, null));
   }
 
   @Test
@@ -503,6 +586,61 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testStreamstatsGlobalWithNullBucket() throws IOException {
+    final int docId = 7;
+    Request insertRequest =
+        new Request(
+            "PUT",
+            String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY_WITH_NULL, docId));
+    insertRequest.setJsonEntity(
+        "{\"name\": \"Jay\",\"age\": 40,\"state\":"
+            + " \"Quebec\",\"country\": \"USA\",\"year\": 2023,\"month\":"
+            + " 4}\n");
+    client().performRequest(insertRequest);
+    try {
+      JSONObject actual =
+          executeQuery(
+              String.format(
+                  "source=%s | streamstats bucket_nullable=false window=2 global=true avg(age) as"
+                      + " avg by state | fields name, country, state, month, year, age, avg",
+                  TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+      verifyDataRows(
+          actual,
+          rows("Jake", "USA", "California", 4, 2023, 70, 70),
+          rows("Hello", "USA", "New York", 4, 2023, 30, 30),
+          rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+          rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20),
+          rows(null, "Canada", null, 4, 2023, 10, null),
+          rows("Kevin", null, null, 4, 2023, null, null),
+          rows("Jay", "USA", "Quebec", 4, 2023, 40, 40));
+
+      JSONObject actual2 =
+          executeQuery(
+              String.format(
+                  "source=%s | streamstats bucket_nullable=true window=2 global=true avg(age) as"
+                      + " avg by state | fields name, country, state, month, year, age, avg",
+                  TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+      verifyDataRows(
+          actual2,
+          rows("Jake", "USA", "California", 4, 2023, 70, 70),
+          rows("Hello", "USA", "New York", 4, 2023, 30, 30),
+          rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+          rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20),
+          rows(null, "Canada", null, 4, 2023, 10, 10),
+          rows("Kevin", null, null, 4, 2023, null, 10),
+          rows("Jay", "USA", "Quebec", 4, 2023, 40, 40));
+    } finally {
+      Request deleteRequest =
+          new Request(
+              "DELETE",
+              String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY_WITH_NULL, docId));
+      client().performRequest(deleteRequest);
+    }
+  }
+
+  @Test
   public void testStreamstatsReset() throws IOException {
     final int docId = 5;
     Request insertRequest =
@@ -603,6 +741,61 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testStreamstatsResetWithNullBucket() throws IOException {
+    final int docId = 7;
+    Request insertRequest =
+        new Request(
+            "PUT",
+            String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY_WITH_NULL, docId));
+    insertRequest.setJsonEntity(
+        "{\"name\": \"Jay\",\"age\": 28,\"state\":"
+            + " \"Quebec\",\"country\": \"USA\",\"year\": 2023,\"month\":"
+            + " 4}\n");
+    client().performRequest(insertRequest);
+    try {
+      JSONObject actual =
+          executeQuery(
+              String.format(
+                  "source=%s | streamstats bucket_nullable=true window=2 reset_before=age>29"
+                      + " avg(age) as avg by state | fields name, country, state, month, year, age, avg",
+                  TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+      verifyDataRows(
+          actual,
+          rows("Jake", "USA", "California", 4, 2023, 70, 70),
+          rows("Hello", "USA", "New York", 4, 2023, 30, 30),
+          rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+          rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20),
+          rows(null, "Canada", null, 4, 2023, 10, 10),
+          rows("Kevin", null, null, 4, 2023, null, 10),
+          rows("Jay", "USA", "Quebec", 4, 2023, 28, 28));
+
+      JSONObject actual2 =
+          executeQuery(
+              String.format(
+                  "source=%s | streamstats bucket_nullable=false window=2 reset_after=age>22"
+                      + " avg(age) as avg by state | fields name, country, state, month, year, age, avg",
+                  TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+      verifyDataRows(
+          actual2,
+          rows("Jake", "USA", "California", 4, 2023, 70, 70),
+          rows("Hello", "USA", "New York", 4, 2023, 30, 30),
+          rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+          rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20),
+          rows(null, "Canada", null, 4, 2023, 10, null),
+          rows("Kevin", null, null, 4, 2023, null, null),
+          rows("Jay", "USA", "Quebec", 4, 2023, 28, 28));
+    } finally {
+      Request deleteRequest =
+          new Request(
+              "DELETE",
+              String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY_WITH_NULL, docId));
+      client().performRequest(deleteRequest);
+    }
+  }
+
+  @Test
   public void testUnsupportedWindowFunctions() {
     List<String> unsupported = List.of("PERCENTILE_APPROX", "PERCENTILE");
     for (String u : unsupported) {
@@ -649,6 +842,23 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         rows("Hello", "USA", "New York", 4, 2023, 30, 30, 50),
         rows("John", "Canada", "Ontario", 4, 2023, 25, 25, 25),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20, 22.5),
+        rows(null, "Canada", null, 4, 2023, 10, 10, 18.333333333333332),
+        rows("Kevin", null, null, 4, 2023, null, null, null));
+
+    JSONObject actual2 =
+        executeQuery(
+            String.format(
+                "source=%s | streamstats bucket_nullable=false avg(age) as avg_age by state,"
+                    + " country | streamstats bucket_nullable=false avg(avg_age) as avg_state_age"
+                    + " by country",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifyDataRows(
+        actual2,
+        rows("Jake", "USA", "California", 4, 2023, 70, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 30, 50),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20, 22.5),
         rows(null, "Canada", null, 4, 2023, 10, null, 22.5),
         rows("Kevin", null, null, 4, 2023, null, null, null));
   }
@@ -669,11 +879,27 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
           executeQuery(
               String.format(
                   "source=%s | streamstats avg(age) as avg_age by state, country | streamstats"
-                      + " avg(avg_age) as avg_state_age by country  | fields name, country, state, month, year, age, avg_age, avg_state_age",
+                      + " avg(avg_age) as avg_state_age by country | fields name, country, state, month, year, age, avg_age, avg_state_age",
                   TEST_INDEX_STATE_COUNTRY));
 
       verifyDataRows(
           actual,
+          rows("Jake", "USA", "California", 4, 2023, 70, 70, 70),
+          rows("Hello", "USA", "New York", 4, 2023, 30, 30, 50),
+          rows("John", "Canada", "Ontario", 4, 2023, 25, 25, 25),
+          rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20, 22.5),
+          rows("Jay", "USA", null, 4, 2023, 28, 28, 42.666666666666664));
+
+      JSONObject actual2 =
+          executeQuery(
+              String.format(
+                  "source=%s | streamstats bucket_nullable=false avg(age) as avg_age by state,"
+                      + " country | streamstats bucket_nullable=false avg(avg_age) as avg_state_age"
+                      + " by country | fields name, country, state, month, year, age, avg_age, avg_state_age",
+                  TEST_INDEX_STATE_COUNTRY));
+
+      verifyDataRows(
+          actual2,
           rows("Jake", "USA", "California", 4, 2023, 70, 70, 70),
           rows("Hello", "USA", "New York", 4, 2023, 30, 30, 50),
           rows("John", "Canada", "Ontario", 4, 2023, 25, 25, 25),
@@ -726,7 +952,8 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s as l | left join left=l right=r on l.country = r.country [ source=%s |"
-                    + " streamstats window=2 avg(age) as avg_age] | fields l.name, l.country, l.state, l.month, l.year, l.age, r.name, r.country, r.state, r.month, r.year, r.age, avg_age",
+                    + " streamstats window=2 avg(age) as avg_age] | fields l.name, l.country, l.state,"
+                    + " l.month, l.year, l.age, r.name, r.country, r.state, r.month, r.year, r.age, avg_age",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifyDataRows(
@@ -792,7 +1019,8 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval new_state=lower(state), new_country=lower(country) | streamstats"
-                    + " avg(age) as avg_age by new_state, new_country | fields name, country, state, month, year, age, new_state, new_country, avg_age",
+                    + " bucket_nullable=false avg(age) as avg_age by new_state, new_country |"
+                    + " fields name, country, state, month, year, age, new_state, new_country, avg_age",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchemaInOrder(
@@ -814,6 +1042,23 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
         rows("John", "Canada", "Ontario", 4, 2023, 25, "ontario", "canada", 25),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, "quebec", "canada", 20),
         rows(null, "Canada", null, 4, 2023, 10, null, "canada", null),
+        rows("Kevin", null, null, 4, 2023, null, null, null, null));
+
+    JSONObject actual2 =
+        executeQuery(
+            String.format(
+                "source=%s | eval new_state=lower(state), new_country=lower(country) | streamstats"
+                    + " bucket_nullable=true avg(age) as avg_age by new_state, new_country |"
+                    + " fields name, country, state, month, year, age, new_state, new_country, avg_age",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifyDataRows(
+        actual2,
+        rows("Jake", "USA", "California", 4, 2023, 70, "california", "usa", 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, "new york", "usa", 30),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, "ontario", "canada", 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, "quebec", "canada", 20),
+        rows(null, "Canada", null, 4, 2023, 10, null, "canada", 10),
         rows("Kevin", null, null, 4, 2023, null, null, null, null));
   }
 

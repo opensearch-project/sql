@@ -267,7 +267,7 @@ streamstatsCommand
    ;
 
 streamstatsArgs
-   : (currentArg | windowArg | globalArg | resetBeforeArg | resetAfterArg)*
+   : (currentArg | windowArg | globalArg | resetBeforeArg | resetAfterArg | bucketNullableArg)*
    ;
 
 currentArg

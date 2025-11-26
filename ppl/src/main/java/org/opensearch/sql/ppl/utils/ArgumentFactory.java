@@ -99,7 +99,7 @@ public class ArgumentFactory {
    * @param ctx StreamstatsCommandContext instance
    * @return the list of arguments fetched from the streamstats command
    */
-  public static List<Argument> getArgumentList(StreamstatsCommandContext ctx) {
+  public static List<Argument> getArgumentList(StreamstatsCommandContext ctx, Settings settings) {
     return Arrays.asList(
         ctx.streamstatsArgs().currentArg() != null && !ctx.streamstatsArgs().currentArg().isEmpty()
             ? new Argument("current", getArgumentValue(ctx.streamstatsArgs().currentArg(0).current))
@@ -109,7 +109,15 @@ public class ArgumentFactory {
             : new Argument("window", new Literal(0, DataType.INTEGER)),
         ctx.streamstatsArgs().globalArg() != null && !ctx.streamstatsArgs().globalArg().isEmpty()
             ? new Argument("global", getArgumentValue(ctx.streamstatsArgs().globalArg(0).global))
-            : new Argument("global", new Literal(true, DataType.BOOLEAN)));
+            : new Argument("global", new Literal(true, DataType.BOOLEAN)),
+        ctx.streamstatsArgs().bucketNullableArg() != null
+                && !ctx.streamstatsArgs().bucketNullableArg().isEmpty()
+            ? new Argument(
+                Argument.BUCKET_NULLABLE,
+                getArgumentValue(ctx.streamstatsArgs().bucketNullableArg(0).bucket_nullable))
+            : new Argument(
+                Argument.BUCKET_NULLABLE,
+                UnresolvedPlanHelper.legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE));
   }
 
   /**

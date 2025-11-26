@@ -43,9 +43,14 @@ All of these commands can be used to generate aggregations such as average, sum,
 
 Syntax
 ======
-streamstats [current=<bool>] [window=<int>] [global=<bool>] [reset_before="("<eval-expression>")"] [reset_after="("<eval-expression>")"] <function>... [by-clause]
+streamstats [bucket_nullable=bool] [current=<bool>] [window=<int>] [global=<bool>] [reset_before="("<eval-expression>")"] [reset_after="("<eval-expression>")"] <function>... [by-clause]
 
 * function: mandatory. A aggregation function or window function.
+* bucket_nullable: optional. Controls whether the streamstats command consider null buckets as a valid group in group-by aggregations. When set to ``false``, it will not treat null group-by values as a distinct group during aggregation. **Default:** Determined by ``plugins.ppl.syntax.legacy.preferred``.
+
+ * When ``plugins.ppl.syntax.legacy.preferred=true``, ``bucket_nullable`` defaults to ``true``
+ * When ``plugins.ppl.syntax.legacy.preferred=false``, ``bucket_nullable`` defaults to ``false``
+
 * current: optional. If true, the search includes the given, or current, event in the summary calculations. If false, the search uses the field value from the previous event. Syntax: current=<boolean>. **Default:** true.
 * window: optional. Specifies the number of events to use when computing the statistics. Syntax: window=<integer>. **Default:** 0, which means that all previous and current events are used.
 * global: optional. Used only when the window argument is set. Defines whether to use a single window, global=true, or to use separate windows based on the by clause. If global=false and window is set to a non-zero value, a separate window is used for each group of values of the field specified in the by clause. Syntax: global=<boolean>. **Default:** true.
@@ -227,3 +232,33 @@ PPL query::
     | Rick  | Canada  | B.C        | 4     | 2023 | 70  | null    |
     | David | USA     | Washington | 4     | 2023 | 40  | null    |
     +-------+---------+------------+-------+------+-----+---------+
+
+
+Example 5: Null buckets handling
+================================
+
+PPL query::
+
+    os> source=accounts | streamstats bucket_nullable=false count() as cnt by employer | fields account_number, firstname, employer, cnt;
+    fetched rows / total rows = 4/4
+    +----------------+-----------+----------+------+
+    | account_number | firstname | employer | cnt  |
+    |----------------+-----------+----------+------|
+    | 1              | Amber     | Pyrami   | 1    |
+    | 6              | Hattie    | Netagy   | 1    |
+    | 13             | Nanette   | Quility  | 1    |
+    | 18             | Dale      | null     | null |
+    +----------------+-----------+----------+------+
+
+PPL query::
+
+    os> source=accounts | streamstats bucket_nullable=true count() as cnt by employer | fields account_number, firstname, employer, cnt;
+    fetched rows / total rows = 4/4
+    +----------------+-----------+----------+-----+
+    | account_number | firstname | employer | cnt |
+    |----------------+-----------+----------+-----|
+    | 1              | Amber     | Pyrami   | 1   |
+    | 6              | Hattie    | Netagy   | 1   |
+    | 13             | Nanette   | Quility  | 1   |
+    | 18             | Dale      | null     | 1   |
+    +----------------+-----------+----------+-----+
