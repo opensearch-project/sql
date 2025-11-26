@@ -145,6 +145,7 @@ LIMIT:                              'LIMIT';
 USEOTHER:                           'USEOTHER';
 OTHERSTR:                           'OTHERSTR';
 NULLSTR:                            'NULLSTR';
+TIMEFIELD:                          'TIMEFIELD';
 INPUT:                              'INPUT';
 OUTPUT:                             'OUTPUT';
 PATH:                               'PATH';
@@ -428,6 +429,7 @@ CAST:                               'CAST';
 
 // BOOL FUNCTIONS
 LIKE:                               'LIKE';
+ILIKE:                              'ILIKE';
 ISNULL:                             'ISNULL';
 ISNOTNULL:                          'ISNOTNULL';
 CIDRMATCH:                          'CIDRMATCH';

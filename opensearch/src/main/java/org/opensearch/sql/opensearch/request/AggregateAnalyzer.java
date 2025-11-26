@@ -73,14 +73,17 @@ import org.opensearch.search.aggregations.metrics.TopHitsAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.ValueCountAggregationBuilder;
 import org.opensearch.search.aggregations.support.ValueType;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
+import org.opensearch.sql.opensearch.request.PredicateAnalyzer.ScriptQueryExpression;
 import org.opensearch.sql.opensearch.response.agg.ArgMaxMinParser;
 import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.CountAsTotalHitsParser;
@@ -146,14 +149,9 @@ public class AggregateAnalyzer {
     <T> T build(RexNode node, Function<String, T> fieldBuilder, Function<Script, T> scriptBuilder) {
       if (node == null) return fieldBuilder.apply(METADATA_FIELD);
       else if (node instanceof RexInputRef ref) {
-        return fieldBuilder.apply(
-            new NamedFieldExpression(ref.getIndex(), rowType.getFieldNames(), fieldTypes)
-                .getReferenceForTermQuery());
+        return fieldBuilder.apply(inferNamedField(node).getReferenceForTermQuery());
       } else if (node instanceof RexCall || node instanceof RexLiteral) {
-        return scriptBuilder.apply(
-            (new PredicateAnalyzer.ScriptQueryExpression(
-                    node, rowType, fieldTypes, cluster, Collections.emptyMap()))
-                .getScript());
+        return scriptBuilder.apply(inferScript(node).getScript());
       }
       throw new IllegalStateException(
           String.format("Metric aggregation doesn't support RexNode %s", node));
@@ -165,6 +163,15 @@ public class AggregateAnalyzer {
       }
       throw new IllegalStateException(
           String.format("Cannot infer field name from RexNode %s", node));
+    }
+
+    ScriptQueryExpression inferScript(RexNode node) {
+      if (node instanceof RexCall || node instanceof RexLiteral) {
+        return new ScriptQueryExpression(
+            node, rowType, fieldTypes, cluster, Collections.emptyMap());
+      }
+      throw new IllegalStateException(
+          String.format("Metric aggregation doesn't support RexNode %s", node));
     }
 
     <T> T inferValue(RexNode node, Class<T> clazz) {
@@ -341,10 +348,21 @@ public class AggregateAnalyzer {
     return Pair.of(metricBuilder, metricParserList);
   }
 
+  /**
+   * Convert aggregate arguments through child project. Normally, just return the rex nodes of
+   * Project which are included in aggCall expression. If the aggCall is a LITERAL_AGG, it returns
+   * all rex nodes of Project except WindowFunction.
+   *
+   * @param aggCall the aggregate call
+   * @param project the project
+   * @return the converted RexNode list
+   */
   private static List<RexNode> convertAggArgThroughProject(AggregateCall aggCall, Project project) {
     return project == null
         ? List.of()
-        : aggCall.getArgList().stream().map(project.getProjects()::get).toList();
+        : PlanUtils.getObjectFromLiteralAgg(aggCall) != null
+            ? project.getProjects().stream().filter(rex -> !rex.isA(SqlKind.ROW_NUMBER)).toList()
+            : aggCall.getArgList().stream().map(project.getProjects()::get).toList();
   }
 
   private static Pair<AggregationBuilder, MetricParser> createAggregationBuilderAndParser(
@@ -417,7 +435,7 @@ public class AggregateAnalyzer {
                   .sort(
                       helper.inferNamedField(args.getFirst()).getReferenceForTermQuery(),
                       SortOrder.ASC),
-              new TopHitsParser(aggFieldName, true));
+              new TopHitsParser(aggFieldName, true, false));
         }
       }
       case MAX -> {
@@ -436,7 +454,7 @@ public class AggregateAnalyzer {
                   .sort(
                       helper.inferNamedField(args.getFirst()).getReferenceForTermQuery(),
                       SortOrder.DESC),
-              new TopHitsParser(aggFieldName, true));
+              new TopHitsParser(aggFieldName, true, false));
         }
       }
       case VAR_SAMP ->
@@ -486,7 +504,7 @@ public class AggregateAnalyzer {
                           helper.inferNamedField(args.getFirst()).getReferenceForTermQuery())
                       .size(helper.inferValue(args.getLast(), Integer.class))
                       .from(0),
-                  new TopHitsParser(aggFieldName));
+                  new TopHitsParser(aggFieldName, false, true));
           case FIRST -> {
             TopHitsAggregationBuilder firstBuilder =
                 AggregationBuilders.topHits(aggFieldName).size(1).from(0);
@@ -494,7 +512,7 @@ public class AggregateAnalyzer {
               firstBuilder.fetchField(
                   helper.inferNamedField(args.getFirst()).getReferenceForTermQuery());
             }
-            yield Pair.of(firstBuilder, new TopHitsParser(aggFieldName, true));
+            yield Pair.of(firstBuilder, new TopHitsParser(aggFieldName, true, false));
           }
           case LAST -> {
             TopHitsAggregationBuilder lastBuilder =
@@ -506,7 +524,7 @@ public class AggregateAnalyzer {
               lastBuilder.fetchField(
                   helper.inferNamedField(args.getFirst()).getReferenceForTermQuery());
             }
-            yield Pair.of(lastBuilder, new TopHitsParser(aggFieldName, true));
+            yield Pair.of(lastBuilder, new TopHitsParser(aggFieldName, true, false));
           }
           case PERCENTILE_APPROX -> {
             PercentilesAggregationBuilder aggBuilder =
@@ -529,6 +547,38 @@ public class AggregateAnalyzer {
               throw new AggregateAnalyzer.AggregateAnalyzerException(
                   String.format("Unsupported push-down aggregator %s", aggCall.getAggregation()));
         };
+      }
+      case LITERAL_AGG -> {
+        RexLiteral literal = PlanUtils.getObjectFromLiteralAgg(aggCall);
+        if (literal == null || !(literal.getValue() instanceof Number)) {
+          throw new AggregateAnalyzer.AggregateAnalyzerException(
+              String.format("Unsupported push-down aggregator %s", aggCall.getAggregation()));
+        }
+        Integer dedupNumber = literal.getValueAs(Integer.class);
+        // Disable fetchSource since TopHitsParser only parses fetchField currently.
+        TopHitsAggregationBuilder topHitsAggregationBuilder =
+            AggregationBuilders.topHits(aggFieldName).from(0).size(dedupNumber);
+        List<String> sources = new ArrayList<>();
+        List<SearchSourceBuilder.ScriptField> scripts = new ArrayList<>();
+        args.forEach(
+            rex -> {
+              if (rex instanceof RexInputRef) {
+                sources.add(helper.inferNamedField(rex).getReference());
+              } else if (rex instanceof RexCall || rex instanceof RexLiteral) {
+                scripts.add(
+                    new SearchSourceBuilder.ScriptField(
+                        rex.toString(), helper.inferScript(rex).getScript(), false));
+              } else {
+                throw new AggregateAnalyzer.AggregateAnalyzerException(
+                    String.format(
+                        "Unsupported push-down aggregator %s due to rex type is %s",
+                        aggCall.getAggregation(), rex.getKind()));
+              }
+            });
+        topHitsAggregationBuilder.fetchSource(
+            sources.stream().distinct().toArray(String[]::new), new String[0]);
+        topHitsAggregationBuilder.scriptFields(scripts);
+        yield Pair.of(topHitsAggregationBuilder, new TopHitsParser(aggFieldName, false, false));
       }
       default ->
           throw new AggregateAnalyzer.AggregateAnalyzerException(

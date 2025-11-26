@@ -203,7 +203,7 @@ public class ExpandCollationOnProjectExprRule
                                 b1.operand(EnumerableProject.class)
                                     .predicate(
                                         Predicate.not(Project::containsOver)
-                                            .and(PlanUtils::projectContainsExpr))
+                                            .and(PlanUtils::containsRexCall))
                                     .anyInputs()));
 
     @Override

@@ -5,11 +5,12 @@
 
 package org.opensearch.sql.opensearch.response.agg;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.opensearch.search.SearchHits;
@@ -26,8 +27,6 @@ import org.opensearch.search.aggregations.bucket.composite.CompositeAggregation;
 public class CompositeAggregationParser implements OpenSearchAggregationResponseParser {
 
   private final MetricParserHelper metricsParser;
-  // countAggNameList dedicated the list of count aggregations which are filled by doc_count
-  private List<String> countAggNameList = List.of();
 
   public CompositeAggregationParser(MetricParser... metricParserList) {
     metricsParser = new MetricParserHelper(Arrays.asList(metricParserList));
@@ -37,25 +36,17 @@ public class CompositeAggregationParser implements OpenSearchAggregationResponse
     metricsParser = new MetricParserHelper(metricParserList);
   }
 
-  /** CompositeAggregationParser with count aggregation name list, used in v3 */
-  public CompositeAggregationParser(
-      List<MetricParser> metricParserList, List<String> countAggNameList) {
-    metricsParser = new MetricParserHelper(metricParserList);
-    this.countAggNameList = countAggNameList;
-  }
-
   @Override
   public List<Map<String, Object>> parse(Aggregations aggregations) {
     return ((CompositeAggregation) aggregations.asList().get(0))
-        .getBuckets().stream().map(this::parse).collect(Collectors.toList());
+        .getBuckets().stream().map(this::parse).flatMap(Collection::stream).toList();
   }
 
-  private Map<String, Object> parse(CompositeAggregation.Bucket bucket) {
-    Map<String, Object> resultMap = new HashMap<>();
-    resultMap.putAll(bucket.getKey());
-    resultMap.putAll(metricsParser.parse(bucket.getAggregations()));
-    countAggNameList.forEach(name -> resultMap.put(name, bucket.getDocCount()));
-    return resultMap;
+  private List<Map<String, Object>> parse(CompositeAggregation.Bucket bucket) {
+    List<Map<String, Object>> resultMapList = new ArrayList<>();
+    resultMapList.add(new HashMap<>(bucket.getKey()));
+    resultMapList.addAll(metricsParser.parse(bucket.getAggregations()));
+    return resultMapList;
   }
 
   @Override

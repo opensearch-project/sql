@@ -259,7 +259,7 @@ public class OpenSearchExprValueFactory {
    * value. For example, {"empty_field": []}.
    */
   private Optional<ExprType> type(String field) {
-    return Optional.ofNullable(typeMapping.get(field));
+    return Optional.ofNullable(typeMapping.get(field)).map(ExprType::getOriginalType);
   }
 
   /**
@@ -316,6 +316,11 @@ public class OpenSearchExprValueFactory {
   }
 
   private static ExprValue createOpenSearchDateType(Content value, ExprType type) {
+    return createOpenSearchDateType(value, type, false);
+  }
+
+  private static ExprValue createOpenSearchDateType(
+      Content value, ExprType type, Boolean supportArrays) {
     OpenSearchDateType dt = (OpenSearchDateType) type;
     ExprCoreType returnFormat = dt.getExprCoreType();
     if (value.isNumber()) { // isNumber
