@@ -15,6 +15,7 @@ import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_DEDUP;
+import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_JOIN_MAX_DEDUP;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_MAIN;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_RARE_TOP;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_STREAMSTATS;
@@ -48,9 +49,6 @@ import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.hint.HintStrategyTable;
-import org.apache.calcite.rel.hint.RelHint;
-import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
@@ -1055,7 +1053,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<String> intendedGroupKeyAliases = getGroupKeyNamesAfterAggregation(reResolved.getLeft());
     context.relBuilder.aggregate(
         context.relBuilder.groupKey(reResolved.getLeft()), reResolved.getRight());
-    if (hintBucketNonNull) addIgnoreNullBucketHintToAggregate(context);
+    if (hintBucketNonNull) PlanUtils.addIgnoreNullBucketHintToAggregate(context.relBuilder);
     // During aggregation, Calcite projects both input dependencies and output group-by fields.
     // When names conflict, Calcite adds numeric suffixes (e.g., "value0").
     // Apply explicit renaming to restore the intended aliases.
@@ -1323,7 +1321,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 : duplicatedFieldNames.stream()
                     .map(a -> (RexNode) context.relBuilder.field(a))
                 .collect(Collectors.toList());
-        buildDedupNotNull(context, dedupeFields, allowedDuplication);
+        buildDedupNotNull(context, dedupeFields, allowedDuplication, true);
       }
       context.relBuilder.join(
           JoinAndLookupUtils.translateJoinType(node.getJoinType()), joinCondition);
@@ -1379,7 +1377,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         List<RexNode> dedupeFields =
             getRightColumnsInJoinCriteria(context.relBuilder, joinCondition);
 
-        buildDedupNotNull(context, dedupeFields, allowedDuplication);
+        buildDedupNotNull(context, dedupeFields, allowedDuplication, true);
       }
       context.relBuilder.join(
           JoinAndLookupUtils.translateJoinType(node.getJoinType()), joinCondition);
@@ -1544,7 +1542,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (keepEmpty) {
       buildDedupOrNull(context, dedupeFields, allowedDuplication);
     } else {
-      buildDedupNotNull(context, dedupeFields, allowedDuplication);
+      buildDedupNotNull(context, dedupeFields, allowedDuplication, false);
     }
     return context.relBuilder.peek();
   }
@@ -1552,16 +1550,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   private static void buildDedupOrNull(
       CalcitePlanContext context, List<RexNode> dedupeFields, Integer allowedDuplication) {
     /*
-     * | dedup 2 a, b keepempty=false
-     * DropColumns('_row_number_dedup_)
-     * +- Filter ('_row_number_dedup_ <= n OR isnull('a) OR isnull('b))
-     *    +- Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST, specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_dedup_], ['a, 'b], ['a ASC NULLS FIRST, 'b ASC NULLS FIRST]
+     * | dedup 2 a, b keepempty=true
+     * LogicalProject(...)
+     * +- LogicalFilter(condition=[OR(IS NULL(a), IS NULL(b), <=(_row_number_dedup_, 1))])
+     *    +- LogicalProject(..., _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY a, b ORDER BY a, b)])
      *        +- ...
      */
-    // Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST,
-    // specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_dedup_], ['a, 'b], ['a
-    // ASC
-    // NULLS FIRST, 'b ASC NULLS FIRST]
     RexNode rowNumber =
         context
             .relBuilder
@@ -1584,16 +1578,21 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   private static void buildDedupNotNull(
-      CalcitePlanContext context, List<RexNode> dedupeFields, Integer allowedDuplication) {
+      CalcitePlanContext context,
+      List<RexNode> dedupeFields,
+      Integer allowedDuplication,
+      boolean fromJoinMaxOption) {
     /*
      * | dedup 2 a, b keepempty=false
-     * DropColumns('_row_number_dedup_)
-     * +- Filter ('_row_number_dedup_ <= n)
-     *    +- Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST, specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_dedup_], ['a, 'b], ['a ASC NULLS FIRST, 'b ASC NULLS FIRST]
-     *       +- Filter (isnotnull('a) AND isnotnull('b))
-     *          +- ...
+     * LogicalProject(...)
+     * +- LogicalFilter(condition=[<=(_row_number_dedup_, n)]))
+     *    +- LogicalProject(..., _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY a, b ORDER BY a, b)])
+     *        +- LogicalFilter(condition=[AND(IS NOT NULL(a), IS NOT NULL(b))])
+     *           +- ...
      */
     // Filter (isnotnull('a) AND isnotnull('b))
+    String rowNumberAlias =
+        fromJoinMaxOption ? ROW_NUMBER_COLUMN_FOR_JOIN_MAX_DEDUP : ROW_NUMBER_COLUMN_FOR_DEDUP;
     context.relBuilder.filter(
         context.relBuilder.and(dedupeFields.stream().map(context.relBuilder::isNotNull).collect(Collectors.toList())));
     // Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST,
@@ -1607,15 +1606,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .partitionBy(dedupeFields)
             .orderBy(dedupeFields)
             .rowsTo(RexWindowBounds.CURRENT_ROW)
-            .as(ROW_NUMBER_COLUMN_FOR_DEDUP);
+            .as(rowNumberAlias);
     context.relBuilder.projectPlus(rowNumber);
-    RexNode _row_number_dedup_ = context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_DEDUP);
+    RexNode rowNumberField = context.relBuilder.field(rowNumberAlias);
     // Filter ('_row_number_dedup_ <= n)
     context.relBuilder.filter(
         context.relBuilder.lessThanOrEqual(
-            _row_number_dedup_, context.relBuilder.literal(allowedDuplication)));
+            rowNumberField, context.relBuilder.literal(allowedDuplication)));
     // DropColumns('_row_number_dedup_)
-    context.relBuilder.projectExcept(_row_number_dedup_);
+    context.relBuilder.projectExcept(rowNumberField);
   }
 
   @Override
@@ -2397,25 +2396,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           context.relBuilder.field(countFieldName));
     }
     return context.relBuilder.peek();
-  }
-
-  private static void addIgnoreNullBucketHintToAggregate(CalcitePlanContext context) {
-    final RelHint statHits =
-        RelHint.builder("stats_args").hintOption(Argument.BUCKET_NULLABLE, "false").build();
-    assert context.relBuilder.peek() instanceof LogicalAggregate
-        : "Stats hits should be added to LogicalAggregate";
-    context.relBuilder.hints(statHits);
-    context
-        .relBuilder
-        .getCluster()
-        .setHintStrategies(
-            HintStrategyTable.builder()
-                .hintStrategy(
-                    "stats_args",
-                    (hint, rel) -> {
-                      return rel instanceof LogicalAggregate;
-                    })
-                .build());
   }
 
   @Override

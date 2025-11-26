@@ -43,11 +43,11 @@ teardown:
         Content-Type: 'application/json'
       ppl:
         body:
-          query: source=test | rename status as http_status | dedup http_status | fields http_status
+          query: source=test | rename status as http_status | dedup http_status | fields http_status | sort http_status
 
   - match: { total: 3 }
   - match: { schema: [{"name": "http_status", "type": "string"}] }
-  - match: { datarows: [["200"], ["500"], ["404"]] }
+  - match: { datarows: [["200"], ["404"], ["500"]] }
 
 ---
 "4664: Test rename then filter":

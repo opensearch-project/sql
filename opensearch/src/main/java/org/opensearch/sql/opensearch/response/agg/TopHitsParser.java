@@ -7,10 +7,15 @@ package org.opensearch.sql.opensearch.response.agg;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import org.opensearch.common.document.DocumentField;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.aggregations.Aggregation;
 import org.opensearch.search.aggregations.metrics.TopHits;
@@ -21,45 +26,72 @@ public class TopHitsParser implements MetricParser {
 
   @Getter private final String name;
   private final boolean returnSingleValue;
+  private final boolean returnMergeValue;
 
-  public TopHitsParser(String name) {
-    this.name = name;
-    this.returnSingleValue = false;
-  }
-
-  public TopHitsParser(String name, boolean returnSingleValue) {
+  public TopHitsParser(String name, boolean returnSingleValue, boolean returnMergeValue) {
     this.name = name;
     this.returnSingleValue = returnSingleValue;
+    this.returnMergeValue = returnMergeValue;
   }
 
   @Override
-  public Map<String, Object> parse(Aggregation agg) {
+  public List<Map<String, Object>> parse(Aggregation agg) {
     TopHits topHits = (TopHits) agg;
     SearchHit[] hits = topHits.getHits().getHits();
 
     if (hits.length == 0) {
-      return Collections.singletonMap(agg.getName(), null);
+      return Collections.singletonList(
+          new HashMap<>(Collections.singletonMap(agg.getName(), null)));
     }
 
     if (returnSingleValue) {
+      if (hits[0].getFields() == null || hits[0].getFields().isEmpty()) {
+        return Collections.singletonList(
+            new HashMap<>(Collections.singletonMap(agg.getName(), null)));
+      }
       // Extract the single value from the first (and only) hit from fields (fetchField)
-      if (hits[0].getFields() != null && !hits[0].getFields().isEmpty()) {
-        Object value = hits[0].getFields().values().iterator().next().getValue();
-        return Collections.singletonMap(agg.getName(), value);
+      Object value = hits[0].getFields().values().iterator().next().getValue();
+      return Collections.singletonList(
+          new HashMap<>(Collections.singletonMap(agg.getName(), value)));
+    } else if (returnMergeValue) {
+      if (hits[0].getFields() == null || hits[0].getFields().isEmpty()) {
+        return Collections.singletonList(
+            new HashMap<>(Collections.singletonMap(agg.getName(), Collections.emptyList())));
       }
-      return Collections.singletonMap(agg.getName(), null);
-    } else {
       // Return all values as a list from fields (fetchField)
-      if (hits[0].getFields() != null && !hits[0].getFields().isEmpty()) {
-        return Collections.singletonMap(
-            agg.getName(),
-            Arrays.stream(hits)
-                .flatMap(h -> h.getFields().values().stream())
-                .map(f -> f.getValue())
-                .filter(v -> v != null) // Filter out null values
-                .collect(Collectors.toList()));
-      }
-      return Collections.singletonMap(agg.getName(), Collections.emptyList());
+      return Collections.singletonList(
+          Collections.singletonMap(
+              agg.getName(),
+              Arrays.stream(hits)
+                  .flatMap(h -> h.getFields().values().stream())
+                  .map(DocumentField::getValue)
+                  .filter(Objects::nonNull) // Filter out null values
+                  .collect(Collectors.toList())));
+    } else {
+      // "hits": {
+      //    "hits": [
+      //      {
+      //        "_source": {
+      //          "name": "A",
+      //          "category": "X"
+      //        }
+      //      },
+      //      {
+      //        "_source": {
+      //          "name": "A",
+      //          "category": "Y"
+      //        }
+      //      }
+      //    ]
+      // }
+      // will converts to:
+      // List[
+      //   LinkedHashMap["name" -> "A", "category" -> "X"],
+      //   LinkedHashMap["name" -> "A", "category" -> "Y"]
+      // ]
+      return Arrays.stream(hits)
+          .<Map<String, Object>>map(hit -> new LinkedHashMap<>(hit.getSourceAsMap()))
+          .collect(Collectors.toList());
     }
   }
 }
