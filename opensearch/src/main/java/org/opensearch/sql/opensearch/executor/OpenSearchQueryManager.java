@@ -62,6 +62,8 @@ public class OpenSearchQueryManager implements QueryManager {
               try {
                 task.run();
                 timeoutTask.cancel();
+                // Clear any leftover thread interrupts to keep the thread pool clean
+                Thread.interrupted();
               } catch (Exception e) {
                 timeoutTask.cancel();
 
