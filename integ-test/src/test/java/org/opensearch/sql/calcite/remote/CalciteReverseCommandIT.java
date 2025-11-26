@@ -10,6 +10,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TIME_DATA;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
@@ -334,5 +335,113 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
         rows("Jake", "USA", "California", 4, 2023, 70, 1),
         rows("Hello", "USA", "New York", 4, 2023, 30, 2),
         rows("John", "Canada", "Ontario", 4, 2023, 25, 3));
+  }
+
+  // ==================== Tests for blocking operators ====================
+  // These tests verify that reverse is a no-op after blocking operators
+  // that destroy collation (aggregate, join, window functions).
+
+  @Test
+  public void testReverseAfterAggregationIsNoOp() throws IOException {
+    // Test that reverse is a no-op after aggregation (stats)
+    // Aggregation destroys input ordering, so reverse has no collation to reverse
+    // and BANK index has no @timestamp, so reverse should be ignored
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | stats count() as c by gender | reverse", TEST_INDEX_BANK));
+    verifySchema(result, schema("c", "bigint"), schema("gender", "string"));
+    // Data should be in aggregation order (no reverse applied)
+    // Use verifyDataRows (unordered) since aggregation order is not guaranteed
+    verifyDataRows(result, rows(4, "M"), rows(3, "F"));
+  }
+
+  @Test
+  public void testReverseAfterAggregationWithSort() throws IOException {
+    // Test that reverse works when there's an explicit sort after aggregation
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() as c by gender | sort gender | reverse",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("c", "bigint"), schema("gender", "string"));
+    // With explicit sort and reverse, data should be in descending gender order
+    verifyDataRowsInOrder(result, rows(4, "M"), rows(3, "F"));
+  }
+
+  @Test
+  public void testReverseSortAggregationIsNoOp() throws IOException {
+    // Test that sort before aggregation doesn't allow reverse after aggregation
+    // Even with sort before stats, aggregation destroys the collation
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | sort account_number | stats count() as c by gender | reverse",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("c", "bigint"), schema("gender", "string"));
+    // Reverse is a no-op because aggregation destroyed the sort collation
+    // Use verifyDataRows (unordered) since aggregation order is not guaranteed
+    verifyDataRows(result, rows(4, "M"), rows(3, "F"));
+  }
+
+  @Test
+  public void testReverseAfterWhereWithSort() throws IOException {
+    // Test that reverse works through filter (where) to find the sort
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | sort account_number | where balance > 30000 | fields account_number,"
+                    + " balance | reverse",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("account_number", "bigint"), schema("balance", "bigint"));
+    // Reverse should work through the filter to reverse the sort
+    verifyDataRowsInOrder(
+        result, rows(32, 48086), rows(25, 40540), rows(18, 35983), rows(13, 32838));
+  }
+
+  @Test
+  public void testReverseAfterEvalWithSort() throws IOException {
+    // Test that reverse works through eval (project) to find the sort
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | sort account_number | eval double_balance = balance * 2 | fields"
+                    + " account_number, double_balance | reverse | head 3",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("account_number", "bigint"), schema("double_balance", "bigint"));
+    // Reverse should work through eval to reverse the sort
+    verifyDataRowsInOrder(result, rows(32, 96172), rows(25, 81080), rows(20, 73438));
+  }
+
+  @Test
+  public void testReverseAfterMultipleFilters() throws IOException {
+    // Test that reverse works through multiple filters
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | sort account_number | where balance > 20000 | where age > 30 | fields"
+                    + " account_number, balance, age | reverse",
+                TEST_INDEX_BANK));
+    verifySchema(
+        result,
+        schema("account_number", "bigint"),
+        schema("balance", "bigint"),
+        schema("age", "int"));
+    // Reverse should work through multiple filters
+    verifyDataRowsInOrder(result, rows(32, 48086, 39), rows(25, 40540, 36), rows(18, 35983, 33));
+  }
+
+  @Test
+  public void testReverseWithTimestampAfterAggregation() throws IOException {
+    // Test that reverse uses @timestamp when aggregation destroys collation
+    // TIME_TEST_DATA has @timestamp field
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() as c by category | reverse", TEST_INDEX_TIME_DATA));
+    verifySchema(result, schema("c", "bigint"), schema("category", "string"));
+    // Even though aggregation destroys collation, there's no @timestamp in the
+    // aggregated result, so reverse is a no-op
+    // Use verifyDataRows (unordered) since aggregation order is not guaranteed
+    verifyDataRows(result, rows(25, "A"), rows(25, "B"), rows(25, "C"), rows(25, "D"));
   }
 }
