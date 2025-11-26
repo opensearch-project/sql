@@ -72,6 +72,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceContex
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WcFieldExpressionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
+import org.opensearch.sql.ppl.utils.UnresolvedPlanHelper;
 import org.opensearch.sql.utils.DateTimeUtils;
 
 /** Class of building AST Expression nodes. */
@@ -160,9 +161,16 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     String operator = ctx.comparisonOperator().getText();
     if ("==".equals(operator)) {
       operator = EQUAL.getName().getFunctionName();
-    } else if (LIKE.getName().getFunctionName().equalsIgnoreCase(operator)) {
-      operator = LIKE.getName().getFunctionName();
+    } else if (LIKE.getName().getFunctionName().equalsIgnoreCase(operator)
+        && UnresolvedPlanHelper.isCalciteEnabled(astBuilder.getSettings())) {
+      operator =
+          UnresolvedPlanHelper.legacyPreferred(astBuilder.getSettings())
+              ? ILIKE.getName().getFunctionName()
+              : LIKE.getName().getFunctionName();
+    } else if (ILIKE.getName().getFunctionName().equalsIgnoreCase(operator)) {
+      operator = ILIKE.getName().getFunctionName();
     }
+
     return new Compare(operator, visit(ctx.left), visit(ctx.right));
   }
 

@@ -105,6 +105,10 @@ public abstract class LuceneQuery {
     Expression expr = func.getArguments().get(1);
     ExprValue literalValue =
         expr instanceof LiteralExpression ? expr.valueOf() : cast((FunctionExpression) expr, ref);
+    if (func.getArguments().size() == 3) {
+      return doBuild(
+          ref.getRawPath(), ref.type(), literalValue, func.getArguments().get(2).valueOf());
+    }
     return doBuild(ref.getRawPath(), ref.type(), literalValue);
   }
 
@@ -287,6 +291,12 @@ public abstract class LuceneQuery {
    * @return query
    */
   protected QueryBuilder doBuild(String fieldName, ExprType fieldType, ExprValue literal) {
+    throw new UnsupportedOperationException(
+        "Subclass doesn't implement this and build method either");
+  }
+
+  protected QueryBuilder doBuild(
+      String fieldName, ExprType fieldType, ExprValue literal1, ExprValue literal2) {
     throw new UnsupportedOperationException(
         "Subclass doesn't implement this and build method either");
   }

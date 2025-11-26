@@ -79,19 +79,15 @@ public class ArgumentFactory {
                         getArgumentValue(ctx1.bucketNullableArg(0).bucket_nullable))
                     : new Argument(
                         Argument.BUCKET_NULLABLE,
-                        legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE)));
+                        UnresolvedPlanHelper.legacyPreferred(settings)
+                            ? Literal.TRUE
+                            : Literal.FALSE)));
     if (ctx2 != null) {
       list.add(new Argument("dedupsplit", getArgumentValue(ctx2.dedupsplit)));
     } else {
       list.add(new Argument("dedupsplit", Literal.FALSE));
     }
     return list;
-  }
-
-  private static boolean legacyPreferred(Settings settings) {
-    return settings == null
-        || settings.getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED) == null
-        || Boolean.TRUE.equals(settings.getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED));
   }
 
   /**
@@ -126,7 +122,7 @@ public class ArgumentFactory {
                 Argument.BUCKET_NULLABLE, getArgumentValue(ctx.bucketNullableArg().bucket_nullable))
             : new Argument(
                 Argument.BUCKET_NULLABLE,
-                legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE));
+                UnresolvedPlanHelper.legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE));
   }
 
   /**
@@ -333,7 +329,7 @@ public class ArgumentFactory {
             RareTopN.Option.useNull.name(),
             opt.isPresent()
                 ? getArgumentValue(opt.get().useNull)
-                : legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE));
+                : UnresolvedPlanHelper.legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE));
     return list;
   }
 
