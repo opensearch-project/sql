@@ -930,7 +930,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
             newEnv.define(new Symbol(Namespace.FIELD_NAME, group.getNameOrAlias()), group.type()));
 
     Argument.ArgumentMap statsArgs = Argument.ArgumentMap.of(node.getArgExprList());
-    boolean bucketNullable = (Boolean) statsArgs.get(Argument.BUCKET_NULLABLE).getValue();
+    boolean bucketNullable =
+        (Boolean) statsArgs.getOrDefault(Argument.BUCKET_NULLABLE, Literal.TRUE).getValue();
     return new LogicalAggregation(child, aggregators, groupBys, bucketNullable);
   }
 
