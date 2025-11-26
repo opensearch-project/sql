@@ -53,13 +53,28 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
     ImmutableList<Object[]> rows =
         ImmutableList.of(
             new Object[] {
-              java.sql.Timestamp.valueOf("2024-07-01 00:00:00"), "web-01", "us-east", 45.2, 120
+              java.sql.Timestamp.valueOf("2024-07-01 00:00:00"),
+              java.sql.Timestamp.valueOf("2024-01-15 10:00:00"),
+              "web-01",
+              "us-east",
+              45.2,
+              120
             },
             new Object[] {
-              java.sql.Timestamp.valueOf("2024-07-01 00:01:00"), "web-02", "us-west", 38.7, 150
+              java.sql.Timestamp.valueOf("2024-07-01 00:01:00"),
+              java.sql.Timestamp.valueOf("2024-02-20 11:00:00"),
+              "web-02",
+              "us-west",
+              38.7,
+              150
             },
             new Object[] {
-              java.sql.Timestamp.valueOf("2024-07-01 00:02:00"), "web-01", "us-east", 55.3, 200
+              java.sql.Timestamp.valueOf("2024-07-01 00:02:00"),
+              java.sql.Timestamp.valueOf("2024-03-25 12:00:00"),
+              "web-01",
+              "us-east",
+              55.3,
+              200
             });
     schema.add("events", new EventsTable(rows));
     return Frameworks.newConfigBuilder()
@@ -347,6 +362,68 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
     verifyErrorMessageContains(t, "Zero or negative time interval not supported: 0h");
   }
 
+  // ==================== Timechart with Reverse tests ====================
+  // These tests verify that reverse works correctly with timechart.
+  // Timechart always adds a sort at the end of its plan, so reverse will
+  // find the collation via metadata query (tier 1) and flip the sort direction.
+
+  @Test
+  public void testTimechartWithReverse() {
+    // Timechart adds ORDER BY @timestamp ASC at the end
+    // Reverse should flip it to DESC
+    String ppl = "source=events | timechart count() | reverse";
+    RelNode root = getRelNode(ppl);
+    // The plan should have two sorts: original ASC from timechart, then DESC from reverse
+    String expectedLogical =
+        "LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[ASC])\n"
+            + "    LogicalProject(@timestamp=[$0], count()=[$1])\n"
+            + "      LogicalAggregate(group=[{0}], count()=[COUNT()])\n"
+            + "        LogicalProject(@timestamp0=[SPAN($0, 1, 'm')])\n"
+            + "          LogicalFilter(condition=[IS NOT NULL($0)])\n"
+            + "            LogicalTableScan(table=[[scott, events]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT *\n"
+            + "FROM (SELECT SPAN(`@timestamp`, 1, 'm') `@timestamp`, COUNT(*) `count()`\n"
+            + "FROM `scott`.`events`\n"
+            + "WHERE `@timestamp` IS NOT NULL\n"
+            + "GROUP BY SPAN(`@timestamp`, 1, 'm')\n"
+            + "ORDER BY 1 NULLS LAST) `t3`\n"
+            + "ORDER BY `@timestamp` DESC NULLS FIRST";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testTimechartWithCustomTimefieldAndReverse() {
+    // Timechart with custom timefield should also work with reverse
+    // The sort is on created_at (the custom field), not @timestamp
+    String ppl = "source=events | timechart timefield=created_at span=1month count() | reverse";
+    RelNode root = getRelNode(ppl);
+
+    // Verify the logical plan shows two sorts: ASC from timechart, DESC from reverse
+    String expectedLogical =
+        "LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[ASC])\n"
+            + "    LogicalProject(created_at=[$0], count()=[$1])\n"
+            + "      LogicalAggregate(group=[{0}], count()=[COUNT()])\n"
+            + "        LogicalProject(created_at0=[SPAN($1, 1, 'M')])\n"
+            + "          LogicalFilter(condition=[IS NOT NULL($1)])\n"
+            + "            LogicalTableScan(table=[[scott, events]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT *\n"
+            + "FROM (SELECT SPAN(`created_at`, 1, 'M') `created_at`, COUNT(*) `count()`\n"
+            + "FROM `scott`.`events`\n"
+            + "WHERE `created_at` IS NOT NULL\n"
+            + "GROUP BY SPAN(`created_at`, 1, 'M')\n"
+            + "ORDER BY 1 NULLS LAST) `t3`\n"
+            + "ORDER BY `created_at` DESC NULLS FIRST";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
   private UnresolvedPlan parsePPL(String query) {
     PPLSyntaxParser parser = new PPLSyntaxParser();
     AstBuilder astBuilder = new AstBuilder(query);
@@ -362,6 +439,8 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
             factory
                 .builder()
                 .add("@timestamp", SqlTypeName.TIMESTAMP)
+                .nullable(true)
+                .add("created_at", SqlTypeName.TIMESTAMP)
                 .nullable(true)
                 .add("host", SqlTypeName.VARCHAR)
                 .nullable(true)
