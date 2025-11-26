@@ -1,0 +1,10 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalAD(arguments=[{}])
+        LogicalProject(double_number=[$0])
+          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_datatypes_numeric]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableAD(arguments=[{}])
+        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_datatypes_numeric]], PushDownContext=[[PROJECT->[double_number]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","_source":{"includes":["double_number"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

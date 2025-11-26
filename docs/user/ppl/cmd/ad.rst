@@ -12,6 +12,7 @@ ad (deprecated by ml command)
 Description
 ===========
 | The ``ad`` command applies Random Cut Forest (RCF) algorithm in the ml-commons plugin on the search result returned by a PPL command. Based on the input, the command uses two types of RCF algorithms: fixed in time RCF for processing time-series data, batch RCF for processing non-time-series data.
+| The command accepts columns containing optional time series field, optional category field, and the other data fields must be double values.
 
 
 Syntax
@@ -109,4 +110,4 @@ PPL query::
 
 Limitations
 ===========
-The ``ad`` command can only work with ``plugins.calcite.enabled=false``.
+The ``ad`` command can only process double type values.

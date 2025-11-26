@@ -212,7 +212,7 @@ public abstract class MLCommonsOperatorActions extends PhysicalPlan {
    * @param nodeClient node client
    * @return ml-commons train and predict result
    */
-  protected MLPredictionOutput getMLPredictionResult(
+  public static MLPredictionOutput getMLPredictionResult(
       FunctionName functionName,
       MLAlgoParams mlAlgoParams,
       DataFrame inputDataFrame,

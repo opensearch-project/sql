@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OTEL_LOGS;
@@ -42,6 +43,7 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.WORKER);
     loadIndex(Index.WORK_INFORMATION);
     loadIndex(Index.WEBLOG);
+    loadIndex(Index.DATA_TYPE_NUMERIC);
   }
 
   @Override
@@ -1787,5 +1789,39 @@ public class CalciteExplainIT extends ExplainIT {
                 "source=%s | eval info = geoip('dummy-datasource', host) | fields host, info,"
                     + " info.dummy_sub_field",
                 TEST_INDEX_WEBLOGS)));
+  }
+
+
+  @Test
+  public void testAD() throws IOException {
+    String expected = loadExpectedPlan("ad.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            String.format("source=%s | fields double_number | ad", TEST_INDEX_DATATYPE_NUMERIC)));
+  }
+
+  @Test
+  public void testADWithCategory() throws IOException {
+    String expected = loadExpectedPlan("ad_category.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            String.format(
+                "source=%s | stats max(double_number) as max by integer_number | fields"
+                    + " integer_number, max | ad category_field='integer_number'",
+                TEST_INDEX_DATATYPE_NUMERIC)));
+  }
+
+  @Test
+  public void testADWithTimeSeries() throws IOException {
+    String expected = loadExpectedPlan("ad_time_series.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            String.format(
+                "source=%s | where integer_number < 10 | fields long_number, integer_number,"
+                    + " double_number | ad category_field='integer_number' time_field='timestamp'",
+                TEST_INDEX_DATATYPE_NUMERIC)));
   }
 }

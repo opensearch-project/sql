@@ -1,0 +1,11 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalAD(arguments=[{time_field=timestamp, category_field=integer_number}])
+        LogicalProject(long_number=[$1], integer_number=[$2], double_number=[$0])
+          LogicalFilter(condition=[<($2, 10)])
+            CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_datatypes_numeric]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableAD(arguments=[{time_field=timestamp, category_field=integer_number}])
+        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_datatypes_numeric]], PushDownContext=[[PROJECT->[double_number, long_number, integer_number], FILTER-><($2, 10), PROJECT->[long_number, integer_number, double_number]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","query":{"range":{"integer_number":{"from":null,"to":10,"include_lower":true,"include_upper":false,"boost":1.0}}},"_source":{"includes":["long_number","integer_number","double_number"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

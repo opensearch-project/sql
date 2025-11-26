@@ -57,6 +57,7 @@ import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
 import org.opensearch.sql.opensearch.functions.DistinctCountApproxAggFunction;
 import org.opensearch.sql.opensearch.functions.GeoIpFunction;
+import org.opensearch.sql.opensearch.storage.NodeClientHolder;
 import org.opensearch.sql.opensearch.util.JdbcOpenSearchDataTypeConvertor;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.TableScanOperator;
@@ -75,6 +76,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       ExecutionProtector executionProtector,
       PlanSerializer planSerializer) {
     this.client = client;
+    NodeClientHolder.init(client.getNodeClient());
     this.executionProtector = executionProtector;
     this.planSerializer = planSerializer;
     registerOpenSearchFunctions();

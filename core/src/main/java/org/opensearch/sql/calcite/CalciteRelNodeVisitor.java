@@ -43,6 +43,8 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelNode;
@@ -145,6 +147,7 @@ import org.opensearch.sql.ast.tree.Trendline.TrendlineType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.calcite.plan.LogicalAD;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
@@ -2269,14 +2272,28 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return null;
   }
 
+  @Override
+  public RelNode visitAD(AD node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    RelNode child = context.relBuilder.build();
+    RelOptCluster cluster = context.relBuilder.getCluster();
+    Map<String, Object> arguments =
+        node.getArguments().entrySet().stream()
+            .map(entry -> Pair.of(entry.getKey(), entry.getValue().getValue()))
+            .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
+
+    LogicalAD ad =
+        new LogicalAD(cluster, cluster.traitSet().replace(Convention.NONE), child, arguments);
+
+    context.relBuilder.push(ad);
+
+    return context.relBuilder.peek();
+  }
+
   /*
    * Unsupported Commands of PPL with Calcite for OpenSearch 3.0.0-beta
    */
-  @Override
-  public RelNode visitAD(AD node, CalcitePlanContext context) {
-    throw new CalciteUnsupportedException("AD command is unsupported in Calcite");
-  }
-
   @Override
   public RelNode visitCloseCursor(CloseCursor closeCursor, CalcitePlanContext context) {
     throw new CalciteUnsupportedException("Close cursor operation is unsupported in Calcite");

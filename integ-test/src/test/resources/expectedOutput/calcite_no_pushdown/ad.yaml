@@ -1,0 +1,11 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalAD(arguments=[{}])
+        LogicalProject(double_number=[$0])
+          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_datatypes_numeric]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableAD(arguments=[{}])
+        EnumerableCalc(expr#0..13=[{inputs}], double_number=[$t0])
+          CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_datatypes_numeric]])

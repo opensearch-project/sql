@@ -57,6 +57,7 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.planner.rules.EnumerableADRule;
 import org.opensearch.sql.opensearch.planner.rules.EnumerableIndexScanRule;
 import org.opensearch.sql.opensearch.planner.rules.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
@@ -138,6 +139,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
   public void register(RelOptPlanner planner) {
     super.register(planner);
     planner.addRule(EnumerableIndexScanRule.DEFAULT_CONFIG.toRule());
+    planner.addRule(EnumerableADRule.DEFAULT_CONFIG.toRule());
     if ((Boolean) osIndex.getSettings().getSettingValue(Settings.Key.CALCITE_PUSHDOWN_ENABLED)) {
       // When pushdown is enabled, use normal rules (they handle everything including relevance
       // functions)
