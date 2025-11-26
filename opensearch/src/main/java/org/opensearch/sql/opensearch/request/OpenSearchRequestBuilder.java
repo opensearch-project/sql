@@ -73,6 +73,8 @@ public class OpenSearchRequestBuilder {
 
   @ToString.Exclude private final Settings settings;
 
+  @ToString.Exclude private boolean topHitsAgg = false;
+
   public static class PushDownUnSupportedException extends RuntimeException {
     public PushDownUnSupportedException(String message) {
       super(message);
