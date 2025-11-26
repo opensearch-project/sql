@@ -73,7 +73,7 @@ public class OpenSearchSettings extends Settings {
   public static final Setting<TimeValue> PPL_QUERY_TIMEOUT_SETTING =
       Setting.positiveTimeSetting(
           Key.PPL_QUERY_TIMEOUT.getKeyValue(),
-          TimeValue.timeValueSeconds(120),
+          TimeValue.timeValueSeconds(300),
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 

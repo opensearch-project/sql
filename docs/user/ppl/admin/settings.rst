@@ -81,7 +81,7 @@ Description
 
 This setting controls the maximum execution time for PPL queries. When a query exceeds this timeout, it will be interrupted and return a timeout error.
 
-1. The default value is 120s (2 minutes).
+1. The default value is 300s (5 minutes).
 2. This setting is node scope.
 3. This setting can be updated dynamically.
 
