@@ -1747,30 +1747,30 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                     .as(ROW_NUMBER_COLUMN_FOR_STREAMSTATS);
             context.relBuilder.projectPlus(streamSeq);
 
-        if (!node.isBucketNullable()) {
-            // construct groupNotNull predicate
-            List<RexNode> groupByList =
-                groupList.stream().map(expr -> rexVisitor.analyze(expr, context)).collect(Collectors.toList());
-            List<RexNode> notNullList =
-                PlanUtils.getSelectColumns(groupByList).stream()
-                    .map(context.relBuilder::field)
-                    .map(context.relBuilder::isNotNull)
-                    .collect(Collectors.toList());
-            RexNode groupNotNull = context.relBuilder.and(notNullList);
+            if (!node.isBucketNullable()) {
+                // construct groupNotNull predicate
+                List<RexNode> groupByList =
+                    groupList.stream().map(expr -> rexVisitor.analyze(expr, context)).collect(Collectors.toList());
+                List<RexNode> notNullList =
+                    PlanUtils.getSelectColumns(groupByList).stream()
+                        .map(context.relBuilder::field)
+                        .map(context.relBuilder::isNotNull)
+                        .collect(Collectors.toList());
+                RexNode groupNotNull = context.relBuilder.and(notNullList);
 
-            // wrap each expr: CASE WHEN groupNotNull THEN rawExpr ELSE CAST(NULL AS rawType) END
-            List<RexNode> wrappedOverExprs =
-                wrapWindowFunctionsWithGroupNotNull(overExpressions, groupNotNull, context);
-            context.relBuilder.projectPlus(wrappedOverExprs);
-            } else {
-              context.relBuilder.projectPlus(overExpressions);
-            }
+                // wrap each expr: CASE WHEN groupNotNull THEN rawExpr ELSE CAST(NULL AS rawType) END
+                List<RexNode> wrappedOverExprs =
+                    wrapWindowFunctionsWithGroupNotNull(overExpressions, groupNotNull, context);
+                context.relBuilder.projectPlus(wrappedOverExprs);
+                } else {
+                  context.relBuilder.projectPlus(overExpressions);
+                }
 
             // resort when there is by condition
             context.relBuilder.sort(context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_STREAMSTATS));
             context.relBuilder.projectExcept(context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_STREAMSTATS));
         } else {
-          context.relBuilder.projectPlus(overExpressions);
+            context.relBuilder.projectPlus(overExpressions);
         }
 
         return context.relBuilder.peek();
