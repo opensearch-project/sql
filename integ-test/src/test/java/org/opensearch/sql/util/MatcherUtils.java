@@ -415,7 +415,7 @@ public class MatcherUtils {
    * Compare two JSON string are equals with ignoring the RelNode id in the Calcite plan.
    * Deprecated, use {@link #assertYamlEqualsIgnoreId(String, String)}
    */
-  @Deprecated // use assertYamlEqualsIgnoreId instead
+  @Deprecated
   public static void assertJsonEqualsIgnoreId(String expected, String actual) {
     assertJsonEquals(cleanUpId(expected), cleanUpId(actual));
   }

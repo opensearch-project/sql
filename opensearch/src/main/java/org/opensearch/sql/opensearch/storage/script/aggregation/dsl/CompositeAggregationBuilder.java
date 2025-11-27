@@ -16,7 +16,6 @@ import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSource
 import org.opensearch.search.aggregations.bucket.composite.DateHistogramValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.composite.HistogramValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
-import org.opensearch.search.aggregations.bucket.histogram.DateHistogramAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.histogram.DateHistogramInterval;
 import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
 import org.opensearch.search.aggregations.support.ValueType;
@@ -106,14 +105,24 @@ public class CompositeAggregationBuilder {
   public static CompositeValuesSourceBuilder<?> buildDateHistogram(
       String name, String field, Integer value, SpanUnit unit) {
     String spanValue = value + unit.getName();
-    DateHistogramValuesSourceBuilder builder =
-        new DateHistogramValuesSourceBuilder(name).field(field);
-    return useCalendarInterval(spanValue)
-        ? builder.calendarInterval(new DateHistogramInterval(spanValue))
-        : builder.fixedInterval(new DateHistogramInterval(spanValue));
-  }
-
-  private static boolean useCalendarInterval(String spanValue) {
-    return DateHistogramAggregationBuilder.DATE_FIELD_UNITS.containsKey(spanValue);
+    switch (unit) {
+      case MILLISECOND:
+      case MS:
+      case SECOND:
+      case S:
+      case MINUTE:
+      case m:
+      case HOUR:
+      case H:
+      case DAY:
+      case D:
+        return new DateHistogramValuesSourceBuilder(name)
+            .field(field)
+            .fixedInterval(new DateHistogramInterval(spanValue));
+      default:
+        return new DateHistogramValuesSourceBuilder(name)
+            .field(field)
+            .calendarInterval(new DateHistogramInterval(spanValue));
+    }
   }
 }

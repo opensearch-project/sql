@@ -9,7 +9,7 @@ root:
           size\":0,\"timeout\":\"1m\",\"aggregations\":{\"composite_buckets\":{\"\
           composite\":{\"size\":1000,\"sources\":[{\"span(`@timestamp`,1h)\":{\"date_histogram\"\
           :{\"field\":\"@timestamp\",\"missing_bucket\":false,\"order\":\"asc\",\"\
-          calendar_interval\":\"1h\"}}}]},\"aggregations\":{\"count()\":{\"value_count\"\
+          fixed_interval\":\"1h\"}}}]},\"aggregations\":{\"count()\":{\"value_count\"\
           :{\"field\":\"_index\"}}}}}}, needClean=true, searchDone=false, pitId=*,\
           \ cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
       children: []
