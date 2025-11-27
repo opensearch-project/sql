@@ -1820,19 +1820,19 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         RexNode rightSeq = context.relBuilder.field(seqCol);
         RexNode outerSeq = context.relBuilder.field(v.get(), seqCol);
 
-    RexNode filter;
-    if (segmentCol != null) { // reset condition
-      RexNode segRight = context.relBuilder.field(segmentCol);
-      RexNode segOuter = context.relBuilder.field(v.get(), segmentCol);
-      RexNode frame = buildResetFrameFilter(context, node, outerSeq, rightSeq, segOuter, segRight);
-      RexNode group = buildGroupFilter(context, node, groupList, v.get());
-      filter = (group == null) ? frame : context.relBuilder.and(frame, group);
-    } else { // global + window + by condition
-      RexNode frame = buildFrameFilter(context, node, outerSeq, rightSeq);
-      RexNode group = buildGroupFilter(context, node, groupList, v.get());
-      filter = context.relBuilder.and(frame, group);
-    }
-    context.relBuilder.filter(filter);
+        RexNode filter;
+        if (segmentCol != null) { // reset condition
+            RexNode segRight = context.relBuilder.field(segmentCol);
+            RexNode segOuter = context.relBuilder.field(v.get(), segmentCol);
+            RexNode frame = buildResetFrameFilter(context, node, outerSeq, rightSeq, segOuter, segRight);
+            RexNode group = buildGroupFilter(context, node, groupList, v.get());
+            filter = (group == null) ? frame : context.relBuilder.and(frame, group);
+        } else { // global + window + by condition
+            RexNode frame = buildFrameFilter(context, node, outerSeq, rightSeq);
+            RexNode group = buildGroupFilter(context, node, groupList, v.get());
+            filter = context.relBuilder.and(frame, group);
+        }
+        context.relBuilder.filter(filter);
 
         // aggregate all window functions on right side
         List<AggCall> aggCalls = buildAggCallsForWindowFunctions(node.getWindowFunctionList(), context);
@@ -1978,37 +1978,37 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         return context.relBuilder.and(seqFilter, segFilter);
     }
 
-  private RexNode buildGroupFilter(
-      CalcitePlanContext context,
-      StreamWindow node,
-      List<UnresolvedExpression> groupList,
-      RexCorrelVariable correl) {
-    // build conjunctive equality filters: right.g_i = outer.g_i
-    if (groupList.isEmpty()) {
-      return null;
+    private RexNode buildGroupFilter(
+        CalcitePlanContext context,
+        StreamWindow node,
+        List<UnresolvedExpression> groupList,
+        RexCorrelVariable correl) {
+        // build conjunctive equality filters: right.g_i = outer.g_i
+        if (groupList.isEmpty()) {
+          return null;
+        }
+        List<RexNode> equalsList =
+            groupList.stream()
+                .map(
+                    expr -> {
+                        String groupName = extractGroupFieldName(expr);
+                        RexNode rightGroup = context.relBuilder.field(groupName);
+                        RexNode outerGroup = context.relBuilder.field(correl, groupName);
+                        RexNode equalCondition = context.relBuilder.equals(rightGroup, outerGroup);
+                        // handle bucket_nullable case
+                        if (!node.isBucketNullable()) {
+                            return equalCondition;
+                        } else {
+                            RexNode bothNull =
+                                context.relBuilder.and(
+                                    context.relBuilder.isNull(rightGroup),
+                                    context.relBuilder.isNull(outerGroup));
+                            return context.relBuilder.or(equalCondition, bothNull);
+                        }
+                    })
+                .collect(Collectors.toList());
+        return context.relBuilder.and(equalsList);
     }
-    List<RexNode> equalsList =
-        groupList.stream()
-            .map(
-                expr -> {
-                  String groupName = extractGroupFieldName(expr);
-                  RexNode rightGroup = context.relBuilder.field(groupName);
-                  RexNode outerGroup = context.relBuilder.field(correl, groupName);
-                  RexNode equalCondition = context.relBuilder.equals(rightGroup, outerGroup);
-                  // handle bucket_nullable case
-                  if (!node.isBucketNullable()) {
-                    return equalCondition;
-                  } else {
-                    RexNode bothNull =
-                        context.relBuilder.and(
-                            context.relBuilder.isNull(rightGroup),
-                            context.relBuilder.isNull(outerGroup));
-                    return context.relBuilder.or(equalCondition, bothNull);
-                  }
-                })
-            .collect(Collectors.toList());
-    return context.relBuilder.and(equalsList);
-  }
 
     private String extractGroupFieldName(UnresolvedExpression groupExpr) {
         if (groupExpr instanceof Alias) {
