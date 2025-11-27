@@ -11,46 +11,14 @@ appendcol
 
 Description
 ============
-| (Experimental)
-| (From 3.1.0)
-| Using ``appendcol`` command to append the result of a sub-search and attach it alongside with the input search results (The main search).
-
-Version
-=======
-3.1.0
+The ``appendcol`` command appends the result of a sub-search and attaches it alongside with the input search results (The main search).
 
 Syntax
-============
+======
 appendcol [override=<boolean>] <sub-search>
 
-* override=<boolean>: optional. Boolean field to specify should result from main-result be overwritten in the case of column name conflict.
+* override=<boolean>: optional. Boolean field to specify should result from main-result be overwritten in the case of column name conflict. **Default:** false.
 * sub-search: mandatory. Executes PPL commands as a secondary search. The sub-search uses the same data specified in the source clause of the main search results as its input.
-
-Configuration
-=============
-This command requires Calcite enabled.
-
-Enable Calcite::
-
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
-	  "transient" : {
-	    "plugins.calcite.enabled" : true
-	  }
-	}'
-
-Result set::
-
-    {
-      "acknowledged": true,
-      "persistent": {
-        "plugins": {
-          "calcite": {
-            "enabled": "true"
-          }
-        }
-      },
-      "transient": {}
-    }
 
 Example 1: Append a count aggregation to existing search result
 ===============================================================
@@ -103,6 +71,8 @@ PPL query::
 Example 3: Append multiple sub-search results
 =============================================
 
+This example shows how to chain multiple appendcol commands to add columns from different sub-searches.
+
 PPL query::
 
     PPL> source=employees | fields name, dept, age | appendcol [ stats avg(age) as avg_age ] | appendcol [ stats max(age) as max_age ];
@@ -123,6 +93,8 @@ PPL query::
 
 Example 4: Override case of column name conflict
 ================================================
+
+This example demonstrates the override option when column names conflict between main search and sub-search.
 
 PPL query::
 

@@ -10,47 +10,53 @@ ml
 
 
 Description
-============
-| The ``ml`` command is to train/predict/trainandpredict on any algorithm in the ml-commons plugin on the search result returned by a PPL command.
+===========
+| Use the ``ml`` command to train/predict/train and predict on any algorithm in the ml-commons plugin on the search result returned by a PPL command.
 
+Syntax
+======
 
-List of algorithms supported
-============
-AD(RCF)
-KMEANS
+AD - Fixed In Time RCF For Time-series Data:
+--------------------------------------------
 
-
-AD - Fixed In Time RCF For Time-series Data Command Syntax
-=====================================================
 ml action='train' algorithm='rcf' <number_of_trees> <shingle_size> <sample_size> <output_after> <time_decay> <anomaly_rate> <time_field> <date_format> <time_zone>
 
-* number_of_trees(integer): optional. Number of trees in the forest. The default value is 30.
-* shingle_size(integer): optional. A shingle is a consecutive sequence of the most recent records. The default value is 8.
-* sample_size(integer): optional. The sample size used by stream samplers in this forest. The default value is 256.
-* output_after(integer): optional. The number of points required by stream samplers before results are returned. The default value is 32.
-* time_decay(double): optional. The decay factor used by stream samplers in this forest. The default value is 0.0001.
-* anomaly_rate(double): optional. The anomaly rate. The default value is 0.005.
-* time_field(string): mandatory. It specifies the time field for RCF to use as time-series data.
-* date_format(string): optional. It's used for formatting time_field field. The default formatting is "yyyy-MM-dd HH:mm:ss".
-* time_zone(string): optional. It's used for setting time zone for time_field filed. The default time zone is UTC.
-* category_field(string): optional. It specifies the category field used to group inputs. Each category will be independently predicted.
+* number_of_trees: optional integer. Number of trees in the forest. **Default:** 30.
+* shingle_size: optional integer. A shingle is a consecutive sequence of the most recent records. **Default:** 8.
+* sample_size: optional integer. The sample size used by stream samplers in this forest. **Default:** 256.
+* output_after: optional integer. The number of points required by stream samplers before results are returned. **Default:** 32.
+* time_decay: optional double. The decay factor used by stream samplers in this forest. **Default:** 0.0001.
+* anomaly_rate: optional double. The anomaly rate. **Default:** 0.005.
+* time_field: mandatory string. It specifies the time field for RCF to use as time-series data.
+* date_format: optional string. It's used for formatting time_field field. **Default:** "yyyy-MM-dd HH:mm:ss".
+* time_zone: optional string. It's used for setting time zone for time_field field. **Default:** UTC.
+* category_field: optional string. It specifies the category field used to group inputs. Each category will be independently predicted.
 
+AD - Batch RCF for Non-time-series Data:
+----------------------------------------
 
-AD - Batch RCF for Non-time-series Data Command Syntax
-=================================================
 ml action='train' algorithm='rcf' <number_of_trees> <sample_size> <output_after> <training_data_size> <anomaly_score_threshold>
 
-* number_of_trees(integer): optional. Number of trees in the forest. The default value is 30.
-* sample_size(integer): optional. Number of random samples given to each tree from the training data set. The default value is 256.
-* output_after(integer): optional. The number of points required by stream samplers before results are returned. The default value is 32.
-* training_data_size(integer): optional. The default value is the size of your training data set.
-* anomaly_score_threshold(double): optional. The threshold of anomaly score. The default value is 1.0.
-* category_field(string): optional. It specifies the category field used to group inputs. Each category will be independently predicted.
+* number_of_trees: optional integer. Number of trees in the forest. **Default:** 30.
+* sample_size: optional integer. Number of random samples given to each tree from the training data set. **Default:** 256.
+* output_after: optional integer. The number of points required by stream samplers before results are returned. **Default:** 32.
+* training_data_size: optional integer. **Default:** size of your training data set.
+* anomaly_score_threshold: optional double. The threshold of anomaly score. **Default:** 1.0.
+* category_field: optional string. It specifies the category field used to group inputs. Each category will be independently predicted.
+
+KMEANS:
+-------
+
+ml action='train' algorithm='kmeans' <centroids> <iterations> <distance_type>
+
+* centroids: optional integer. The number of clusters you want to group your data points into. **Default:** 2.
+* iterations: optional integer. Number of iterations. **Default:** 10.
+* distance_type: optional string. The distance type can be COSINE, L1, or EUCLIDEAN. **Default:** EUCLIDEAN.
 
 Example 1: Detecting events in New York City from taxi ridership data with time-series data
 ===========================================================================================
 
-The example trains an RCF model and uses the model to detect anomalies in the time-series ridership data.
+This example trains an RCF model and uses the model to detect anomalies in the time-series ridership data.
 
 PPL query::
 
@@ -65,7 +71,7 @@ PPL query::
 Example 2: Detecting events in New York City from taxi ridership data with time-series data independently with each category
 ============================================================================================================================
 
-The example trains an RCF model and uses the model to detect anomalies in the time-series ridership data with multiple category values.
+This example trains an RCF model and uses the model to detect anomalies in the time-series ridership data with multiple category values.
 
 PPL query::
 
@@ -82,7 +88,7 @@ PPL query::
 Example 3: Detecting events in New York City from taxi ridership data with non-time-series data
 ===============================================================================================
 
-The example trains an RCF model and uses the model to detect anomalies in the non-time-series ridership data.
+This example trains an RCF model and uses the model to detect anomalies in the non-time-series ridership data.
 
 PPL query::
 
@@ -97,7 +103,7 @@ PPL query::
 Example 4: Detecting events in New York City from taxi ridership data with non-time-series data independently with each category
 ================================================================================================================================
 
-The example trains an RCF model and uses the model to detect anomalies in the non-time-series ridership data with multiple category values.
+This example trains an RCF model and uses the model to detect anomalies in the non-time-series ridership data with multiple category values.
 
 PPL query::
 
@@ -110,19 +116,10 @@ PPL query::
     | day      | 6526.0  | 0.0   | False     |
     +----------+---------+-------+-----------+
 
-KMEANS
-======
-ml action='train' algorithm='kmeans' <centroids> <iterations> <distance_type>
+Example 5: KMEANS - Clustering of Iris Dataset
+===============================================
 
-* centroids: optional. The number of clusters you want to group your data points into. The default value is 2.
-* iterations: optional. Number of iterations. The default value is 10.
-* distance_type: optional. The distance type can be COSINE, L1, or EUCLIDEAN, The default type is EUCLIDEAN.
-
-
-Example: Clustering of Iris Dataset
-===================================
-
-The example shows how to classify three Iris species (Iris setosa, Iris virginica and Iris versicolor) based on the combination of four features measured from each sample: the length and the width of the sepals and petals.
+This example shows how to use KMEANS to classify three Iris species (Iris setosa, Iris virginica and Iris versicolor) based on the combination of four features measured from each sample: the length and the width of the sepals and petals.
 
 PPL query::
 
@@ -139,4 +136,3 @@ PPL query::
 Limitations
 ===========
 The ``ml`` command can only work with ``plugins.calcite.enabled=false``.
-It means ``ml``  command cannot work together with new PPL commands/functions introduced in 3.0.0 and above.

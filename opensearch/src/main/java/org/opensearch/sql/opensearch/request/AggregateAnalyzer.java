@@ -366,13 +366,15 @@ public class AggregateAnalyzer {
       AggregateBuilderHelper helper) {
 
     return switch (aggCall.getAggregation().kind) {
-      case COUNT -> Pair.of(
-          helper.build(
-              !args.isEmpty() ? args.getFirst() : null,
-              AggregationBuilders.cardinality(aggFieldName)),
-          new SingleValueParser(aggFieldName));
-      default -> throw new AggregateAnalyzer.AggregateAnalyzerException(
-          String.format("unsupported distinct aggregator %s", aggCall.getAggregation()));
+      case COUNT ->
+          Pair.of(
+              helper.build(
+                  !args.isEmpty() ? args.getFirst() : null,
+                  AggregationBuilders.cardinality(aggFieldName)),
+              new SingleValueParser(aggFieldName));
+      default ->
+          throw new AggregateAnalyzer.AggregateAnalyzerException(
+              String.format("unsupported distinct aggregator %s", aggCall.getAggregation()));
     };
   }
 
@@ -383,18 +385,22 @@ public class AggregateAnalyzer {
       AggregateBuilderHelper helper) {
 
     return switch (aggCall.getAggregation().kind) {
-      case AVG -> Pair.of(
-          helper.build(args.getFirst(), AggregationBuilders.avg(aggFieldName)),
-          new SingleValueParser(aggFieldName));
-        // 1. Only case SUM, skip SUM0 / COUNT since calling avg() in DSL should be faster.
-        // 2. To align with databases, SUM0 is not preferred now.
-      case SUM -> Pair.of(
-          helper.build(args.getFirst(), AggregationBuilders.sum(aggFieldName)),
-          new SingleValueParser(aggFieldName));
-      case COUNT -> Pair.of(
-          helper.build(
-              !args.isEmpty() ? args.getFirst() : null, AggregationBuilders.count(aggFieldName)),
-          new SingleValueParser(aggFieldName));
+      case AVG ->
+          Pair.of(
+              helper.build(args.getFirst(), AggregationBuilders.avg(aggFieldName)),
+              new SingleValueParser(aggFieldName));
+      // 1. Only case SUM, skip SUM0 / COUNT since calling avg() in DSL should be faster.
+      // 2. To align with databases, SUM0 is not preferred now.
+      case SUM ->
+          Pair.of(
+              helper.build(args.getFirst(), AggregationBuilders.sum(aggFieldName)),
+              new SingleValueParser(aggFieldName));
+      case COUNT ->
+          Pair.of(
+              helper.build(
+                  !args.isEmpty() ? args.getFirst() : null,
+                  AggregationBuilders.count(aggFieldName)),
+              new SingleValueParser(aggFieldName));
       case MIN -> {
         ExprType fieldType =
             OpenSearchTypeFactory.convertRelDataTypeToExprType(args.getFirst().getType());
@@ -433,46 +439,54 @@ public class AggregateAnalyzer {
               new TopHitsParser(aggFieldName, true));
         }
       }
-      case VAR_SAMP -> Pair.of(
-          helper.build(args.getFirst(), AggregationBuilders.extendedStats(aggFieldName)),
-          new StatsParser(ExtendedStats::getVarianceSampling, aggFieldName));
-      case VAR_POP -> Pair.of(
-          helper.build(args.getFirst(), AggregationBuilders.extendedStats(aggFieldName)),
-          new StatsParser(ExtendedStats::getVariancePopulation, aggFieldName));
-      case STDDEV_SAMP -> Pair.of(
-          helper.build(args.getFirst(), AggregationBuilders.extendedStats(aggFieldName)),
-          new StatsParser(ExtendedStats::getStdDeviationSampling, aggFieldName));
-      case STDDEV_POP -> Pair.of(
-          helper.build(args.getFirst(), AggregationBuilders.extendedStats(aggFieldName)),
-          new StatsParser(ExtendedStats::getStdDeviationPopulation, aggFieldName));
-      case ARG_MAX -> Pair.of(
-          AggregationBuilders.topHits(aggFieldName)
-              .fetchField(helper.inferNamedField(args.getFirst()).getReferenceForTermQuery())
-              .size(1)
-              .from(0)
-              .sort(
-                  helper.inferNamedField(args.get(1)).getReferenceForTermQuery(),
-                  org.opensearch.search.sort.SortOrder.DESC),
-          new ArgMaxMinParser(aggFieldName));
-      case ARG_MIN -> Pair.of(
-          AggregationBuilders.topHits(aggFieldName)
-              .fetchField(helper.inferNamedField(args.getFirst()).getReferenceForTermQuery())
-              .size(1)
-              .from(0)
-              .sort(
-                  helper.inferNamedField(args.get(1)).getReferenceForTermQuery(),
-                  org.opensearch.search.sort.SortOrder.ASC),
-          new ArgMaxMinParser(aggFieldName));
+      case VAR_SAMP ->
+          Pair.of(
+              helper.build(args.getFirst(), AggregationBuilders.extendedStats(aggFieldName)),
+              new StatsParser(ExtendedStats::getVarianceSampling, aggFieldName));
+      case VAR_POP ->
+          Pair.of(
+              helper.build(args.getFirst(), AggregationBuilders.extendedStats(aggFieldName)),
+              new StatsParser(ExtendedStats::getVariancePopulation, aggFieldName));
+      case STDDEV_SAMP ->
+          Pair.of(
+              helper.build(args.getFirst(), AggregationBuilders.extendedStats(aggFieldName)),
+              new StatsParser(ExtendedStats::getStdDeviationSampling, aggFieldName));
+      case STDDEV_POP ->
+          Pair.of(
+              helper.build(args.getFirst(), AggregationBuilders.extendedStats(aggFieldName)),
+              new StatsParser(ExtendedStats::getStdDeviationPopulation, aggFieldName));
+      case ARG_MAX ->
+          Pair.of(
+              AggregationBuilders.topHits(aggFieldName)
+                  .fetchField(helper.inferNamedField(args.getFirst()).getReferenceForTermQuery())
+                  .size(1)
+                  .from(0)
+                  .sort(
+                      helper.inferNamedField(args.get(1)).getReferenceForTermQuery(),
+                      org.opensearch.search.sort.SortOrder.DESC),
+              new ArgMaxMinParser(aggFieldName));
+      case ARG_MIN ->
+          Pair.of(
+              AggregationBuilders.topHits(aggFieldName)
+                  .fetchField(helper.inferNamedField(args.getFirst()).getReferenceForTermQuery())
+                  .size(1)
+                  .from(0)
+                  .sort(
+                      helper.inferNamedField(args.get(1)).getReferenceForTermQuery(),
+                      org.opensearch.search.sort.SortOrder.ASC),
+              new ArgMaxMinParser(aggFieldName));
       case OTHER_FUNCTION -> {
         BuiltinFunctionName functionName =
             BuiltinFunctionName.ofAggregation(aggCall.getAggregation().getName()).get();
         yield switch (functionName) {
-          case TAKE -> Pair.of(
-              AggregationBuilders.topHits(aggFieldName)
-                  .fetchField(helper.inferNamedField(args.getFirst()).getReferenceForTermQuery())
-                  .size(helper.inferValue(args.getLast(), Integer.class))
-                  .from(0),
-              new TopHitsParser(aggFieldName));
+          case TAKE ->
+              Pair.of(
+                  AggregationBuilders.topHits(aggFieldName)
+                      .fetchField(
+                          helper.inferNamedField(args.getFirst()).getReferenceForTermQuery())
+                      .size(helper.inferValue(args.getLast(), Integer.class))
+                      .from(0),
+                  new TopHitsParser(aggFieldName));
           case FIRST -> {
             TopHitsAggregationBuilder firstBuilder =
                 AggregationBuilders.topHits(aggFieldName).size(1).from(0);
@@ -505,17 +519,20 @@ public class AggregateAnalyzer {
             }
             yield Pair.of(aggBuilder, new SinglePercentileParser(aggFieldName));
           }
-          case DISTINCT_COUNT_APPROX -> Pair.of(
-              helper.build(
-                  !args.isEmpty() ? args.getFirst() : null,
-                  AggregationBuilders.cardinality(aggFieldName)),
-              new SingleValueParser(aggFieldName));
-          default -> throw new AggregateAnalyzer.AggregateAnalyzerException(
-              String.format("Unsupported push-down aggregator %s", aggCall.getAggregation()));
+          case DISTINCT_COUNT_APPROX ->
+              Pair.of(
+                  helper.build(
+                      !args.isEmpty() ? args.getFirst() : null,
+                      AggregationBuilders.cardinality(aggFieldName)),
+                  new SingleValueParser(aggFieldName));
+          default ->
+              throw new AggregateAnalyzer.AggregateAnalyzerException(
+                  String.format("Unsupported push-down aggregator %s", aggCall.getAggregation()));
         };
       }
-      default -> throw new AggregateAnalyzer.AggregateAnalyzerException(
-          String.format("unsupported aggregator %s", aggCall.getAggregation()));
+      default ->
+          throw new AggregateAnalyzer.AggregateAnalyzerException(
+              String.format("unsupported aggregator %s", aggCall.getAggregation()));
     };
   }
 

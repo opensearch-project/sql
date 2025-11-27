@@ -156,8 +156,8 @@ public interface PlanUtils {
     RexWindowBound lowerBound = convert(context, windowFrame.getLower());
     RexWindowBound upperBound = convert(context, windowFrame.getUpper());
     switch (functionName) {
-        // There is no "avg" AggImplementor in Calcite, we have to change avg window
-        // function to `sum over(...).toRex / count over(...).toRex`
+      // There is no "avg" AggImplementor in Calcite, we have to change avg window
+      // function to `sum over(...).toRex / count over(...).toRex`
       case AVG:
         // avg(x) ==>
         //     sum(x) / count(x)
@@ -167,17 +167,17 @@ public interface PlanUtils {
             context.relBuilder.cast(
                 countOver(context, field, partitions, rows, lowerBound, upperBound),
                 SqlTypeName.DOUBLE));
-        // stddev_pop(x) ==>
-        //     power((sum(x * x) - sum(x) * sum(x) / count(x)) / count(x), 0.5)
-        //
-        // stddev_samp(x) ==>
-        //     power((sum(x * x) - sum(x) * sum(x) / count(x)) / (count(x) - 1), 0.5)
-        //
-        // var_pop(x) ==>
-        //     (sum(x * x) - sum(x) * sum(x) / count(x)) / count(x)
-        //
-        // var_samp(x) ==>
-        //     (sum(x * x) - sum(x) * sum(x) / count(x)) / (count(x) - 1)
+      // stddev_pop(x) ==>
+      //     power((sum(x * x) - sum(x) * sum(x) / count(x)) / count(x), 0.5)
+      //
+      // stddev_samp(x) ==>
+      //     power((sum(x * x) - sum(x) * sum(x) / count(x)) / (count(x) - 1), 0.5)
+      //
+      // var_pop(x) ==>
+      //     (sum(x * x) - sum(x) * sum(x) / count(x)) / count(x)
+      //
+      // var_samp(x) ==>
+      //     (sum(x * x) - sum(x) * sum(x) / count(x)) / (count(x) - 1)
       case STDDEV_POP:
         return variance(context, field, partitions, rows, lowerBound, upperBound, true, true);
       case STDDEV_SAMP:

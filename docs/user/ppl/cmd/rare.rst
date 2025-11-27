@@ -11,30 +11,28 @@ rare
 
 Description
 ===========
-| Using ``rare`` command to find the least common tuple of values of all fields in the field list.
+| The ``rare`` command finds the least common tuple of values of all fields in the field list.
 
-**Note**: A maximum of 10 results is returned for each distinct tuple of values of the group-by fields.
+| **Note**: A maximum of 10 results is returned for each distinct tuple of values of the group-by fields.
 
 Syntax
 ======
-rare <field-list> [by-clause]
+rare [rare-options] <field-list> [by-clause]
 
-rare [rare-options] <field-list> [by-clause] ``(available from 3.1.0+)``
+* field-list: mandatory. Comma-delimited list of field names.
+* by-clause: optional. One or more fields to group the results by.
+* rare-options: optional. Options for the rare command. Supported syntax is [countfield=<string>] [showcount=<bool>].
+* showcount=<bool>: optional. Whether to create a field in output that represent a count of the tuple of values. **Default:** ``true``.
+* countfield=<string>: optional. The name of the field that contains count. **Default:** ``'count'``.
+* usenull=<bool>: optional. whether to output the null value. **Default:** Determined by ``plugins.ppl.syntax.legacy.preferred``:
 
-* field-list: mandatory. comma-delimited list of field names.
-* by-clause: optional. one or more fields to group the results by.
-* rare-options: optional. options for the rare command. Supported syntax is [countfield=<string>] [showcount=<bool>].
-* showcount=<bool>: optional. whether to create a field in output that represent a count of the tuple of values. Default value is ``true``.
-* countfield=<string>: optional. the name of the field that contains count. Default value is ``'count'``.
-* usenull=<bool>: optional (since 3.4.0). whether to output the null value. The default value of ``usenull`` is determined by ``plugins.ppl.syntax.legacy.preferred``:
-
- * When ``plugins.ppl.syntax.legacy.preferred=true``, ``usenull`` defaults to ``true``
- * When ``plugins.ppl.syntax.legacy.preferred=false``, ``usenull`` defaults to ``false``
+  * When ``plugins.ppl.syntax.legacy.preferred=true``, ``usenull`` defaults to ``true``
+  * When ``plugins.ppl.syntax.legacy.preferred=false``, ``usenull`` defaults to ``false``
 
 Example 1: Find the least common values in a field
 ==================================================
 
-The example finds least common gender of all the accounts.
+This example shows how to find the least common gender of all the accounts.
 
 PPL query::
 
@@ -51,7 +49,7 @@ PPL query::
 Example 2: Find the least common values organized by gender
 ===========================================================
 
-The example finds least common age of all the accounts group by gender.
+This example shows how to find the least common age of all the accounts grouped by gender.
 
 PPL query::
 
@@ -66,8 +64,10 @@ PPL query::
     | M      | 36  |
     +--------+-----+
 
-Example 3: Rare command with Calcite enabled
-============================================
+Example 3: Rare command
+=======================
+
+This example shows how to find the least common gender of all the accounts.
 
 PPL query::
 
@@ -83,6 +83,8 @@ PPL query::
 
 Example 4: Specify the count field option
 =========================================
+
+This example shows how to specify the count field.
 
 PPL query::
 

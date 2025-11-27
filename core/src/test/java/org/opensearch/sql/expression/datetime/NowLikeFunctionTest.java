@@ -251,7 +251,7 @@ class NowLikeFunctionTest extends ExpressionTestBase {
         return LocalDateTime.ofInstant(func.valueOf().timestampValue(), ZoneOffset.UTC);
       case TIME:
         return func.valueOf().timeValue();
-        // unreachable code
+      // unreachable code
       default:
         throw new IllegalArgumentException(String.format("%s", func.type()));
     }

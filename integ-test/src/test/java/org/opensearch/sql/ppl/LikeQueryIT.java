@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WILDCARD;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 
 import java.io.IOException;
 import org.json.JSONObject;
@@ -103,5 +104,29 @@ public class LikeQueryIT extends PPLIntegTestCase {
             + " | WHERE Like(TextKeywordBody, '*') | fields TextKeywordBody";
     String result = explainQueryToString(query);
     assertTrue(result.contains("TextKeywordBody.keyword"));
+  }
+
+  @Test
+  public void test_like_with_case_sensitive() throws IOException {
+    String query =
+        "source="
+            + TEST_INDEX_WILDCARD
+            + " | WHERE Like(KeywordBody, 'test Wildcard%', false) | fields KeywordBody";
+    JSONObject result = executeQuery(query);
+    verifyDataRows(
+        result,
+        rows("test wildcard"),
+        rows("test wildcard in the end of the text%"),
+        rows("test wildcard in % the middle of the text"),
+        rows("test wildcard %% beside each other"),
+        rows("test wildcard in the end of the text_"),
+        rows("test wildcard in _ the middle of the text"),
+        rows("test wildcard __ beside each other"));
+    query =
+        "source="
+            + TEST_INDEX_WILDCARD
+            + " | WHERE Like(KeywordBody, 'test Wildcard%', true) | fields KeywordBody";
+    result = executeQuery(query);
+    verifyNumOfRows(result, 0);
   }
 }

@@ -41,6 +41,7 @@ dependencies {
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
     }
     testImplementation("org.opensearch.test:framework:${opensearch_version}")
+    testRuntimeOnly('org.junit.platform:junit-platform-launcher')
 }
 
 test {

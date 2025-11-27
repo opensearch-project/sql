@@ -1249,10 +1249,7 @@ public class AstBuilderTest {
                     alias("@timestamp", span(field("@timestamp"), intLiteral(1), SpanUnit.of("m"))))
                 .columnSplit(null)
                 .aggregationFunction(alias("per_second(a)", aggregate("sum", field("a"))))
-                .arguments(
-                    exprList(
-                        argument("limit", intLiteral(10)),
-                        argument("useother", booleanLiteral(true))))
+                .arguments(exprList())
                 .build(),
             let(
                 field("per_second(a)"),
@@ -1281,10 +1278,7 @@ public class AstBuilderTest {
                     alias("@timestamp", span(field("@timestamp"), intLiteral(1), SpanUnit.of("m"))))
                 .columnSplit(null)
                 .aggregationFunction(alias("per_minute(a)", aggregate("sum", field("a"))))
-                .arguments(
-                    exprList(
-                        argument("limit", intLiteral(10)),
-                        argument("useother", booleanLiteral(true))))
+                .arguments(exprList())
                 .build(),
             let(
                 field("per_minute(a)"),
@@ -1313,10 +1307,7 @@ public class AstBuilderTest {
                     alias("@timestamp", span(field("@timestamp"), intLiteral(1), SpanUnit.of("m"))))
                 .columnSplit(null)
                 .aggregationFunction(alias("per_hour(a)", aggregate("sum", field("a"))))
-                .arguments(
-                    exprList(
-                        argument("limit", intLiteral(10)),
-                        argument("useother", booleanLiteral(true))))
+                .arguments(exprList())
                 .build(),
             let(
                 field("per_hour(a)"),
@@ -1345,10 +1336,7 @@ public class AstBuilderTest {
                     alias("@timestamp", span(field("@timestamp"), intLiteral(1), SpanUnit.of("m"))))
                 .columnSplit(null)
                 .aggregationFunction(alias("per_day(a)", aggregate("sum", field("a"))))
-                .arguments(
-                    exprList(
-                        argument("limit", intLiteral(10)),
-                        argument("useother", booleanLiteral(true))))
+                .arguments(exprList())
                 .build(),
             let(
                 field("per_day(a)"),

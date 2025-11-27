@@ -61,12 +61,11 @@ class CalciteAggregationScript extends AggregationScript {
     // See logic in {@link ExpressionAggregationScript::execute}
     return switch ((ExprCoreType) exprType) {
       case TIME ->
-      // Can't get timestamp from `ExprTimeValue`
-      MILLIS.between(LocalTime.MIN, ExprValueUtils.fromObjectValue(value, TIME).timeValue());
+          // Can't get timestamp from `ExprTimeValue`
+          MILLIS.between(LocalTime.MIN, ExprValueUtils.fromObjectValue(value, TIME).timeValue());
       case DATE -> ExprValueUtils.fromObjectValue(value, DATE).timestampValue().toEpochMilli();
-      case TIMESTAMP -> ExprValueUtils.fromObjectValue(value, TIMESTAMP)
-          .timestampValue()
-          .toEpochMilli();
+      case TIMESTAMP ->
+          ExprValueUtils.fromObjectValue(value, TIMESTAMP).timestampValue().toEpochMilli();
       default -> value;
     };
   }

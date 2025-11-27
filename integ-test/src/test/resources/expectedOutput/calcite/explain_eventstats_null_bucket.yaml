@@ -1,0 +1,11 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], count()=[CASE(IS NOT NULL($7), COUNT() OVER (PARTITION BY $7), null:BIGINT)])
+        CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..12=[{inputs}], expr#13=[null:BIGINT], expr#14=[CASE($t11, $t12, $t13)], proj#0..10=[{exprs}], count()=[$t14])
+        EnumerableWindow(window#0=[window(partition {7} aggs [COUNT()])])
+          EnumerableCalc(expr#0..10=[{inputs}], expr#11=[IS NOT NULL($t7)], proj#0..11=[{exprs}])
+            CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[account_number, firstname, address, balance, gender, city, employer, state, age, email, lastname]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","_source":{"includes":["account_number","firstname","address","balance","gender","city","employer","state","age","email","lastname"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

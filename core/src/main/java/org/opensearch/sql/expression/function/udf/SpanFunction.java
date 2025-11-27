@@ -88,11 +88,12 @@ public class SpanFunction extends ImplementorUDF {
       }
       if (SqlTypeUtil.isNull(unitType)) {
         return switch (call.getType().getSqlTypeName()) {
-          case BIGINT, INTEGER, SMALLINT, TINYINT -> Expressions.multiply(
-              Expressions.divide(field, interval), interval);
-          default -> Expressions.multiply(
-              Expressions.call(BuiltInMethod.FLOOR.method, Expressions.divide(field, interval)),
-              interval);
+          case BIGINT, INTEGER, SMALLINT, TINYINT ->
+              Expressions.multiply(Expressions.divide(field, interval), interval);
+          default ->
+              Expressions.multiply(
+                  Expressions.call(BuiltInMethod.FLOOR.method, Expressions.divide(field, interval)),
+                  interval);
         };
       } else if (fieldType instanceof ExprSqlType exprSqlType) {
         // TODO: pass in constant arguments when constructing
@@ -101,8 +102,9 @@ public class SpanFunction extends ImplementorUDF {
               case EXPR_DATE -> "evalDate";
               case EXPR_TIME -> "evalTime";
               case EXPR_TIMESTAMP -> "evalTimestamp";
-              default -> throw new IllegalArgumentException(
-                  String.format("Unsupported expr type: %s", exprSqlType.getExprType()));
+              default ->
+                  throw new IllegalArgumentException(
+                      String.format("Unsupported expr type: %s", exprSqlType.getExprType()));
             };
         ScalarFunctionImpl function =
             (ScalarFunctionImpl)

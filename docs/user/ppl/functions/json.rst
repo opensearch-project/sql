@@ -39,10 +39,6 @@ JSON
 Description
 >>>>>>>>>>>
 
-Version: 3.1.0
-
-Limitation: Only works when plugins.calcite.enabled=true
-
 Usage: `json(value)` Evaluates whether a string can be parsed as a json-encoded string. Returns the value if valid, null otherwise.
 
 Argument type: STRING
@@ -94,10 +90,6 @@ JSON_OBJECT
 Description
 >>>>>>>>>>>
 
-Version: 3.1.0
-
-Limitation: Only works when plugins.calcite.enabled=true
-
 Usage: `json_object(key1, value1, key2, value2...)` create a json object string with key value pairs. The key must be string.
 
 Argument type: key1: STRING, value1: ANY, key2: STRING, value2: ANY ...
@@ -120,10 +112,6 @@ JSON_ARRAY
 Description
 >>>>>>>>>>>
 
-Version: 3.1.0
-
-Limitation: Only works when plugins.calcite.enabled=true
-
 Usage: `json_array(element1, element2, ...)` create a json array string with elements.
 
 Argument type: element1: ANY, element2: ANY ...
@@ -145,10 +133,6 @@ JSON_ARRAY_LENGTH
 
 Description
 >>>>>>>>>>>
-
-Version: 3.1.0
-
-Limitation: Only works when plugins.calcite.enabled=true
 
 Usage: `json_array_length(value)` parse the string to json array and return size,, null is returned in case of any other valid JSON string, null or an invalid JSON.
 
@@ -180,10 +164,6 @@ JSON_EXTRACT
 Description
 >>>>>>>>>>>
 
-Version: 3.1.0
-
-Limitation: Only works when plugins.calcite.enabled=true
-
 Usage: `json_extract(json_string, path1, path2, ...)` Extracts values using the specified JSON paths. If only one path is provided, it returns a single value. If multiple paths are provided, it returns a JSON Array in the order of the paths. If one path cannot find value, return null as the result for this path. The path use "{<index>}" to represent index for array, "{}" means "{*}".
 
 Argument type: json_string: STRING, path1: STRING, path2: STRING ...
@@ -213,10 +193,6 @@ JSON_DELETE
 
 Description
 >>>>>>>>>>>
-
-Version: 3.1.0
-
-Limitation: Only works when plugins.calcite.enabled=true
 
 Usage: `json_delete(json_string, path1, path2, ...)` Delete values using the specified JSON paths. Return the json string after deleting. If one path cannot find value, do nothing.
 
@@ -256,10 +232,6 @@ JSON_SET
 Description
 >>>>>>>>>>>
 
-Version: 3.1.0
-
-Limitation: Only works when plugins.calcite.enabled=true
-
 Usage: `json_set(json_string, path1, value1,  path2, value2...)` Set values to corresponding paths using the specified JSON paths. If one path's parent node is not a json object, skip the path. Return the json string after setting.
 
 Argument type: json_string: STRING, path1: STRING, value1: ANY, path2: STRING, value2: ANY ...
@@ -289,10 +261,6 @@ JSON_APPEND
 
 Description
 >>>>>>>>>>>
-
-Version: 3.1.0
-
-Limitation: Only works when plugins.calcite.enabled=true
 
 Usage: `json_append(json_string, path1, value1,  path2, value2...)` Append values to corresponding paths using the specified JSON paths. If one path's target node is not an array, skip the path. Return the json string after setting.
 
@@ -332,10 +300,6 @@ JSON_EXTEND
 Description
 >>>>>>>>>>>
 
-Version: 3.1.0
-
-Limitation: Only works when plugins.calcite.enabled=true
-
 Usage: `json_extend(json_string, path1, value1,  path2, value2...)` Extend values to corresponding paths using the specified JSON paths. If one path's target node is not an array, skip the path. The function will try to parse the value as an array. If it can be parsed, extend it to the target array. Otherwise, regard the value a single one. Return the json string after setting.
 
 Argument type: json_string: STRING, path1: STRING, value1: ANY, path2: STRING, value2: ANY ...
@@ -373,10 +337,6 @@ JSON_KEYS
 
 Description
 >>>>>>>>>>>
-
-Version: 3.1.0
-
-Limitation: Only works when plugins.calcite.enabled=true
 
 Usage: `json_keys(json_string)` Return the key list of the Json object as a Json array. Otherwise, return null.
 

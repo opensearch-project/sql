@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.ast.expression;
 
+import static org.opensearch.sql.utils.QueryStringUtils.maskField;
+
 import java.util.Arrays;
 import java.util.List;
 import lombok.EqualsAndHashCode;
@@ -61,6 +63,12 @@ public class SearchComparison extends SearchExpression {
       default:
         return fieldName + ":" + valueStr;
     }
+  }
+
+  @Override
+  public String toAnonymizedString() {
+    String fieldName = QueryStringUtils.escapeFieldName(field.getField().toString());
+    return maskField(fieldName) + " " + operator.symbol + " ***";
   }
 
   @Override

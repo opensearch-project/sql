@@ -24,28 +24,40 @@ Difference between ``stats``, ``eventstats`` and ``streamstats``
 
 All of these commands can be used to generate aggregations such as average, sum, and maximum, but they have some key differences in how they operate and what they produce:
 
-* Transformation Behavior:
- * ``stats``: Transforms all events into an aggregated result table, losing original event structure.
- * ``eventstats``: Adds aggregation results as new fields to the original events without removing the event structure.
- * ``streamstats``: Adds cumulative (running) aggregation results to each event as they stream through the pipeline.
-* Output Format:
- * ``stats``: Output contains only aggregated values. Original raw events are not preserved.
- * ``eventstats``: Original events remain, with extra fields containing summary statistics.
- * ``streamstats``: Original events remain, with extra fields containing running totals or cumulative statistics.
-* Aggregation Scope:
- * ``stats``: Based on all events in the search (or groups defined by BY clause).
- * ``eventstats``: Based on all relevant events, then the result is added back to each event in the group.
- * ``streamstats``: Calculations occur progressively as each event is processed; can be scoped by window.
-* Use Cases:
- * ``stats``: When only aggregated results are needed (e.g., counts, averages, sums).
- * ``eventstats``: When aggregated statistics are needed alongside original event data.
- * ``streamstats``: When a running total or cumulative statistic is needed across event streams.
+* Transformation Behavior
+
+  * ``stats``: Transforms all events into an aggregated result table, losing original event structure.
+  * ``eventstats``: Adds aggregation results as new fields to the original events without removing the event structure.
+  * ``streamstats``: Adds cumulative (running) aggregation results to each event as they stream through the pipeline.
+
+* Output Format
+
+  * ``stats``: Output contains only aggregated values. Original raw events are not preserved.
+  * ``eventstats``: Original events remain, with extra fields containing summary statistics.
+  * ``streamstats``: Original events remain, with extra fields containing running totals or cumulative statistics.
+
+* Aggregation Scope
+
+  * ``stats``: Based on all events in the search (or groups defined by BY clause).
+  * ``eventstats``: Based on all relevant events, then the result is added back to each event in the group.
+  * ``streamstats``: Calculations occur progressively as each event is processed; can be scoped by window.
+
+* Use Cases
+
+  * ``stats``: When only aggregated results are needed (e.g., counts, averages, sums).
+  * ``eventstats``: When aggregated statistics are needed alongside original event data.
+  * ``streamstats``: When a running total or cumulative statistic is needed across event streams.
 
 Syntax
 ======
-streamstats [current=<bool>] [window=<int>] [global=<bool>] [reset_before="("<eval-expression>")"] [reset_after="("<eval-expression>")"] <function>... [by-clause]
+streamstats [bucket_nullable=bool] [current=<bool>] [window=<int>] [global=<bool>] [reset_before="("<eval-expression>")"] [reset_after="("<eval-expression>")"] <function>... [by-clause]
 
 * function: mandatory. A aggregation function or window function.
+* bucket_nullable: optional. Controls whether the streamstats command consider null buckets as a valid group in group-by aggregations. When set to ``false``, it will not treat null group-by values as a distinct group during aggregation. **Default:** Determined by ``plugins.ppl.syntax.legacy.preferred``.
+
+ * When ``plugins.ppl.syntax.legacy.preferred=true``, ``bucket_nullable`` defaults to ``true``
+ * When ``plugins.ppl.syntax.legacy.preferred=false``, ``bucket_nullable`` defaults to ``false``
+
 * current: optional. If true, the search includes the given, or current, event in the summary calculations. If false, the search uses the field value from the previous event. Syntax: current=<boolean>. **Default:** true.
 * window: optional. Specifies the number of events to use when computing the statistics. Syntax: window=<integer>. **Default:** 0, which means that all previous and current events are used.
 * global: optional. Used only when the window argument is set. Defines whether to use a single window, global=true, or to use separate windows based on the by clause. If global=false and window is set to a non-zero value, a separate window is used for each group of values of the field specified in the by clause. Syntax: global=<boolean>. **Default:** true.
@@ -53,7 +65,9 @@ streamstats [current=<bool>] [window=<int>] [global=<bool>] [reset_before="("<ev
 * reset_after: optional. After streamstats calculations for an event, reset_after resets all accumulated statistics when the eval-expression evaluates to true. This expression can reference fields returned by streamstats. If used with window, the window is also reset. Syntax: reset_after="("<eval-expression>")". **Default:** false.
 * by-clause: optional. The by clause could be the fields and expressions like scalar functions and aggregation functions. Besides, the span clause can be used to split specific field into buckets in the same interval, the stats then does the aggregation by these span buckets. Syntax: by [span-expression,] [field,]... **Default:** If no <by-clause> is specified, all events are processed as a single group and running statistics are computed across the entire event stream.
 * span-expression: optional, at most one. Splits field into buckets by intervals. Syntax: span(field_expr, interval_expr). For example, ``span(age, 10)`` creates 10-year age buckets, ``span(timestamp, 1h)`` creates hourly buckets.
-  * Available time units:
+
+  * Available time units
+
     * millisecond (ms)
     * second (s)
     * minute (m, case sensitive)
@@ -82,7 +96,7 @@ The streamstats command supports the following aggregation functions:
 * EARLIEST: Earliest value by timestamp
 * LATEST: Latest value by timestamp
 
-For detailed documentation of each function, see `Aggregation Functions <../functions/aggregation.rst>`_.
+For detailed documentation of each function, see `Aggregation Functions <../functions/aggregations.rst>`_.
 
 Usage
 =====
@@ -227,3 +241,33 @@ PPL query::
     | Rick  | Canada  | B.C        | 4     | 2023 | 70  | null    |
     | David | USA     | Washington | 4     | 2023 | 40  | null    |
     +-------+---------+------------+-------+------+-----+---------+
+
+
+Example 5: Null buckets handling
+================================
+
+PPL query::
+
+    os> source=accounts | streamstats bucket_nullable=false count() as cnt by employer | fields account_number, firstname, employer, cnt;
+    fetched rows / total rows = 4/4
+    +----------------+-----------+----------+------+
+    | account_number | firstname | employer | cnt  |
+    |----------------+-----------+----------+------|
+    | 1              | Amber     | Pyrami   | 1    |
+    | 6              | Hattie    | Netagy   | 1    |
+    | 13             | Nanette   | Quility  | 1    |
+    | 18             | Dale      | null     | null |
+    +----------------+-----------+----------+------+
+
+PPL query::
+
+    os> source=accounts | streamstats bucket_nullable=true count() as cnt by employer | fields account_number, firstname, employer, cnt;
+    fetched rows / total rows = 4/4
+    +----------------+-----------+----------+-----+
+    | account_number | firstname | employer | cnt |
+    |----------------+-----------+----------+-----|
+    | 1              | Amber     | Pyrami   | 1   |
+    | 6              | Hattie    | Netagy   | 1   |
+    | 13             | Nanette   | Quility  | 1   |
+    | 18             | Dale      | null     | 1   |
+    +----------------+-----------+----------+-----+

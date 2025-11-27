@@ -97,7 +97,7 @@ public class OpenSearchRelOptUtil {
           return getOrderEquivalentInputInfo(variable)
               .map(inputInfo -> Pair.of(inputInfo.getLeft(), flipped != inputInfo.getRight()));
         }
-        // Ignore DIVIDE operator for now because it has too many precision issues
+      // Ignore DIVIDE operator for now because it has too many precision issues
       case CAST, SAFE_CAST:
         {
           RexNode child = ((RexCall) expr).getOperands().get(0);

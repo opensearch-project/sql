@@ -8,6 +8,26 @@ package org.opensearch.sql.utils;
 /** Utility class for query_string syntax operations. */
 public class QueryStringUtils {
 
+  private static final String INTERNAL_TIMESTAMP = "@timestamp";
+
+  public static final String MASK_LITERAL = "***";
+
+  public static final String MASK_COLUMN = "identifier";
+
+  public static final String MASK_TIMESTAMP_COLUMN = "time_identifier";
+
+  public static final String MASK_METADATA_COLUMN = "meta_identifier";
+
+  public static String maskField(String fieldName) {
+    if (fieldName.equals(INTERNAL_TIMESTAMP)) {
+      return MASK_TIMESTAMP_COLUMN;
+    }
+    if (fieldName.startsWith("_")) {
+      return MASK_METADATA_COLUMN;
+    }
+    return MASK_COLUMN;
+  }
+
   // For field names, we typically don't escape dots as they're used for nested fields
   // But we escape other special characters
   public static final String LUCENE_SPECIAL_CHARS = "+-&|!(){}[]^\"~:/";
