@@ -8,6 +8,7 @@ package org.opensearch.sql.opensearch.data.type;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import lombok.Getter;
 import org.opensearch.sql.data.type.ExprType;
 
 /**
@@ -21,7 +22,7 @@ public class OpenSearchAliasType extends OpenSearchDataType {
   public static final Set<MappingType> objectFieldTypes =
       Set.of(MappingType.Object, MappingType.Nested);
   private final String path;
-  private final OpenSearchDataType originalType;
+  @Getter private final OpenSearchDataType originalType;
 
   public OpenSearchAliasType(String path, OpenSearchDataType type) {
     super(type.getExprCoreType());

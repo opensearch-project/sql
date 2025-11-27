@@ -164,7 +164,7 @@ public class AggregateIndexScanRule extends RelRule<AggregateIndexScanRule.Confi
                                         // 1. No RexOver and no duplicate projection
                                         // 2. Contains width_bucket function on date field referring
                                         // to bin command with parameter bins
-                                        Predicate.not(PlanUtils::containsRexOver)
+                                        Predicate.not(LogicalProject::containsOver)
                                             .and(PlanUtils::distinctProjectList)
                                             .or(Config::containsWidthBucketFuncOnDate))
                                     .oneInput(
@@ -225,7 +225,7 @@ public class AggregateIndexScanRule extends RelRule<AggregateIndexScanRule.Confi
                         .oneInput(
                             b1 ->
                                 b1.operand(LogicalFilter.class)
-                                    .predicate(Config::mayBeFilterFromBucketNonNull)
+                                    .predicate(PlanUtils::mayBeFilterFromBucketNonNull)
                                     .oneInput(
                                         b2 ->
                                             b2.operand(LogicalProject.class)
@@ -236,7 +236,7 @@ public class AggregateIndexScanRule extends RelRule<AggregateIndexScanRule.Confi
                                                     // 2. Contains width_bucket function on date
                                                     // field referring
                                                     // to bin command with parameter bins
-                                                    Predicate.not(PlanUtils::containsRexOver)
+                                                    Predicate.not(LogicalProject::containsOver)
                                                         .and(PlanUtils::distinctProjectList)
                                                         .or(Config::containsWidthBucketFuncOnDate))
                                                 .oneInput(
@@ -263,18 +263,19 @@ public class AggregateIndexScanRule extends RelRule<AggregateIndexScanRule.Confi
                             b1 ->
                                 b1.operand(LogicalProject.class)
                                     .predicate(
-                                        Predicate.not(PlanUtils::containsRexOver)
+                                        Predicate.not(LogicalProject::containsOver)
                                             .and(PlanUtils::distinctProjectList))
                                     .oneInput(
                                         b2 ->
                                             b2.operand(LogicalFilter.class)
-                                                .predicate(Config::mayBeFilterFromBucketNonNull)
+                                                .predicate(PlanUtils::mayBeFilterFromBucketNonNull)
                                                 .oneInput(
                                                     b3 ->
                                                         b3.operand(LogicalProject.class)
                                                             .predicate(
                                                                 Predicate.not(
-                                                                        PlanUtils::containsRexOver)
+                                                                        LogicalProject
+                                                                            ::containsOver)
                                                                     .and(
                                                                         PlanUtils
                                                                             ::distinctProjectList)
@@ -298,21 +299,6 @@ public class AggregateIndexScanRule extends RelRule<AggregateIndexScanRule.Confi
     @Override
     default AggregateIndexScanRule toRule() {
       return new AggregateIndexScanRule(this);
-    }
-
-    static boolean mayBeFilterFromBucketNonNull(LogicalFilter filter) {
-      RexNode condition = filter.getCondition();
-      return isNotNullOnRef(condition)
-          || (condition instanceof RexCall rexCall
-              && rexCall.getOperator().equals(SqlStdOperatorTable.AND)
-              && rexCall.getOperands().stream()
-                  .allMatch(AggregateIndexScanRule.Config::isNotNullOnRef));
-    }
-
-    private static boolean isNotNullOnRef(RexNode rex) {
-      return rex instanceof RexCall rexCall
-          && rexCall.isA(SqlKind.IS_NOT_NULL)
-          && rexCall.getOperands().get(0) instanceof RexInputRef;
     }
 
     static boolean containsWidthBucketFuncOnDate(LogicalProject project) {

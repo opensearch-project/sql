@@ -25,15 +25,21 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.hint.HintStrategyTable;
+import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexVisitorImpl;
@@ -45,8 +51,11 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.mapping.Mapping;
+import org.apache.calcite.util.mapping.Mappings;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
+import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.IntervalUnit;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.WindowBound;
@@ -62,6 +71,7 @@ public interface PlanUtils {
   /** this is only for dedup command, do not reuse it in other command */
   String ROW_NUMBER_COLUMN_FOR_DEDUP = "_row_number_dedup_";
 
+  String ROW_NUMBER_COLUMN_FOR_JOIN_MAX_DEDUP = "_row_number_join_max_dedup_";
   String ROW_NUMBER_COLUMN_FOR_RARE_TOP = "_row_number_rare_top_";
   String ROW_NUMBER_COLUMN_FOR_MAIN = "_row_number_main_";
   String ROW_NUMBER_COLUMN_FOR_SUBSEARCH = "_row_number_subsearch_";
@@ -449,18 +459,15 @@ public interface PlanUtils {
     return rexNode;
   }
 
-  /** Check if contains RexOver introduced by dedup */
-  static boolean containsRowNumberDedup(LogicalProject project) {
-    return project.getProjects().stream()
-            .anyMatch(p -> p instanceof RexOver && p.getKind() == SqlKind.ROW_NUMBER)
-        && project.getRowType().getFieldNames().contains(ROW_NUMBER_COLUMN_FOR_DEDUP);
+  /** Check if contains dedup */
+  static boolean containsRowNumberDedup(RelNode node) {
+    return node.getRowType().getFieldNames().stream().anyMatch(ROW_NUMBER_COLUMN_FOR_DEDUP::equals);
   }
 
-  /** Check if contains RexOver introduced by dedup top/rare */
-  static boolean containsRowNumberRareTop(LogicalProject project) {
-    return project.getProjects().stream()
-            .anyMatch(p -> p instanceof RexOver && p.getKind() == SqlKind.ROW_NUMBER)
-        && project.getRowType().getFieldNames().contains(ROW_NUMBER_COLUMN_FOR_RARE_TOP);
+  /** Check if contains dedup for top/rare */
+  static boolean containsRowNumberRareTop(RelNode node) {
+    return node.getRowType().getFieldNames().stream()
+        .anyMatch(ROW_NUMBER_COLUMN_FOR_RARE_TOP::equals);
   }
 
   /** Get all RexWindow list from LogicalProject */
@@ -508,10 +515,6 @@ public interface PlanUtils {
     return project.getNamedProjects().stream().allMatch(rexSet::add);
   }
 
-  static boolean containsRexOver(LogicalProject project) {
-    return project.getProjects().stream().anyMatch(RexOver::containsOver);
-  }
-
   /**
    * The LogicalSort is a LIMIT that should be pushed down when its fetch field is not null and its
    * collation is empty. For example: <code>sort name | head 5</code> should not be pushed down
@@ -524,7 +527,7 @@ public interface PlanUtils {
     return sort.fetch != null;
   }
 
-  static boolean projectContainsExpr(Project project) {
+  static boolean containsRexCall(Project project) {
     return project.getProjects().stream().anyMatch(p -> p instanceof RexCall);
   }
 
@@ -594,5 +597,59 @@ public interface PlanUtils {
     } catch (Exception e) {
       throw new IllegalStateException("Unable to invoke RelBuilder.replaceTop", e);
     }
+  }
+
+  static void addIgnoreNullBucketHintToAggregate(RelBuilder relBuilder) {
+    final RelHint statHits =
+        RelHint.builder("stats_args").hintOption(Argument.BUCKET_NULLABLE, "false").build();
+    assert relBuilder.peek() instanceof LogicalAggregate
+        : "Stats hits should be added to LogicalAggregate";
+    relBuilder.hints(statHits);
+    relBuilder
+        .getCluster()
+        .setHintStrategies(
+            HintStrategyTable.builder()
+                .hintStrategy(
+                    "stats_args",
+                    (hint, rel) -> {
+                      return rel instanceof LogicalAggregate;
+                    })
+                .build());
+  }
+
+  /** Extract the RexLiteral from the aggregate call if the aggregate call is a LITERAL_AGG. */
+  static @Nullable RexLiteral getObjectFromLiteralAgg(AggregateCall aggCall) {
+    if (aggCall.getAggregation().kind == SqlKind.LITERAL_AGG) {
+      return (RexLiteral)
+          aggCall.rexList.stream().filter(rex -> rex instanceof RexLiteral).findAny().orElse(null);
+    } else {
+      return null;
+    }
+  }
+
+  /**
+   * This is a helper method to create a target mapping easily for replacing calling {@link
+   * Mappings#target(List, int)}
+   *
+   * @param rexNodes the rex list in schema
+   * @param schema the schema which contains the rex list
+   * @return the target mapping
+   */
+  static Mapping mapping(List<RexNode> rexNodes, RelDataType schema) {
+    return Mappings.target(getSelectColumns(rexNodes), schema.getFieldCount());
+  }
+
+  static boolean mayBeFilterFromBucketNonNull(LogicalFilter filter) {
+    RexNode condition = filter.getCondition();
+    return isNotNullOnRef(condition)
+        || (condition instanceof RexCall rexCall
+            && rexCall.getOperator().equals(SqlStdOperatorTable.AND)
+            && rexCall.getOperands().stream().allMatch(PlanUtils::isNotNullOnRef));
+  }
+
+  private static boolean isNotNullOnRef(RexNode rex) {
+    return rex instanceof RexCall rexCall
+        && rexCall.isA(SqlKind.IS_NOT_NULL)
+        && rexCall.getOperands().get(0) instanceof RexInputRef;
   }
 }

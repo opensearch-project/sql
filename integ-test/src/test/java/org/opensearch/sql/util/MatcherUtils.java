@@ -425,7 +425,9 @@ public class MatcherUtils {
   }
 
   private static String eliminateRelId(String s) {
-    return s.replaceAll("rel#\\d+", "rel#").replaceAll("RelSubset#\\d+", "RelSubset#");
+    return s.replaceAll("rel#\\d+", "rel#")
+        .replaceAll("RelSubset#\\d+", "RelSubset#")
+        .replaceAll("LogicalProject#\\d+", "LogicalProject#");
   }
 
   private static String eliminatePid(String s) {
@@ -452,6 +454,7 @@ public class MatcherUtils {
     return s.replaceAll("\"utcTimestamp\":\\d+", "\"utcTimestamp\": 0")
         .replaceAll("rel#\\d+", "rel#")
         .replaceAll("RelSubset#\\d+", "RelSubset#")
+        .replaceAll("LogicalProject#\\d+", "LogicalProject#")
         .replaceAll("pitId=[^,]+,", "pitId=*,");
   }
 
