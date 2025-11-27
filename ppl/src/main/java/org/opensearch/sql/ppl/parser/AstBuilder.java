@@ -63,8 +63,6 @@ import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.SearchAnd;
 import org.opensearch.sql.ast.expression.SearchExpression;
 import org.opensearch.sql.ast.expression.SearchGroup;
-import org.opensearch.sql.ast.expression.Span;
-import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFrame;
@@ -487,8 +485,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     ArgumentMap arguments = ArgumentMap.of(argExprList);
 
     // bucket_nullable
-    boolean bucketNullable =
-        (Boolean) arguments.getOrDefault(Argument.BUCKET_NULLABLE, Literal.TRUE).getValue();
+    boolean bucketNullable = (Boolean) arguments.get(Argument.BUCKET_NULLABLE).getValue();
 
     // 2. Build groupList
     List<UnresolvedExpression> groupList = getPartitionExprList(ctx.statsByClause());
@@ -515,13 +512,14 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   /** Streamstats command. */
   public UnresolvedPlan visitStreamstatsCommand(OpenSearchPPLParser.StreamstatsCommandContext ctx) {
     // 1. Parse arguments from the streamstats command
-    List<Argument> argExprList = ArgumentFactory.getArgumentList(ctx);
+    List<Argument> argExprList = ArgumentFactory.getArgumentList(ctx, settings);
     ArgumentMap arguments = ArgumentMap.of(argExprList);
 
-    // current, window and global from ArgumentFactory
+    // current, window, global and bucket_nullable from ArgumentFactory
     boolean current = (Boolean) arguments.get("current").getValue();
     int window = (Integer) arguments.get("window").getValue();
     boolean global = (Boolean) arguments.get("global").getValue();
+    boolean bucketNullable = (Boolean) arguments.get(Argument.BUCKET_NULLABLE).getValue();
 
     if (window < 0) {
       throw new IllegalArgumentException("Window size must be >= 0, but got: " + window);
@@ -572,6 +570,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         current,
         window,
         global,
+        bucketNullable,
         resetBeforeExpr,
         resetAfterExpr);
   }
@@ -771,41 +770,28 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   /** Timechart command. */
   @Override
   public UnresolvedPlan visitTimechartCommand(OpenSearchPPLParser.TimechartCommandContext ctx) {
-    UnresolvedExpression binExpression =
-        AstDSL.span(AstDSL.implicitTimestampField(), AstDSL.intLiteral(1), SpanUnit.m);
-    Integer limit = 10;
-    Boolean useOther = true;
-    // Process timechart parameters
-    for (OpenSearchPPLParser.TimechartParameterContext paramCtx : ctx.timechartParameter()) {
-      UnresolvedExpression param = internalVisitExpression(paramCtx);
-      if (param instanceof Span) {
-        binExpression = param;
-      } else if (param instanceof Literal literal) {
-        if (DataType.BOOLEAN.equals(literal.getType())) {
-          useOther = (Boolean) literal.getValue();
-        } else if (DataType.INTEGER.equals(literal.getType())
-            || DataType.LONG.equals(literal.getType())) {
-          limit = (Integer) literal.getValue();
-        }
-      }
-    }
+    List<Argument> arguments = ArgumentFactory.getArgumentList(ctx, expressionBuilder);
+    ArgumentMap argMap = ArgumentMap.of(arguments);
+    Literal spanLiteral = argMap.getOrDefault("spanliteral", AstDSL.stringLiteral("1m"));
+    String timeFieldName =
+        Optional.ofNullable(argMap.get("timefield"))
+            .map(l -> (String) l.getValue())
+            .orElse(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP);
+    Field spanField = AstDSL.field(timeFieldName);
+    Alias span =
+        AstDSL.alias(timeFieldName, AstDSL.spanFromSpanLengthLiteral(spanField, spanLiteral));
     UnresolvedExpression aggregateFunction = parseAggTerms(List.of(ctx.statsAggTerm())).getFirst();
-
     UnresolvedExpression byField =
-        ctx.fieldExpression() != null ? internalVisitExpression(ctx.fieldExpression()) : null;
-    List<Argument> arguments =
-        List.of(
-            new Argument("limit", AstDSL.intLiteral(limit)),
-            new Argument("useother", AstDSL.booleanLiteral(useOther)));
-    binExpression = AstDSL.alias(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP, binExpression);
-    if (byField != null) {
-      byField =
-          AstDSL.alias(
-              StringUtils.unquoteIdentifier(getTextInQuery(ctx.fieldExpression())), byField);
-    }
+        Optional.ofNullable(ctx.fieldExpression())
+            .map(
+                f ->
+                    AstDSL.alias(
+                        StringUtils.unquoteIdentifier(getTextInQuery(f)),
+                        internalVisitExpression(f)))
+            .orElse(null);
     return Chart.builder()
         .aggregationFunction(aggregateFunction)
-        .rowSplit(binExpression)
+        .rowSplit(span)
         .columnSplit(byField)
         .arguments(arguments)
         .build();
@@ -970,8 +956,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             AstDSL.intLiteral(settings.getSettingValue(Key.PATTERN_MAX_SAMPLE_COUNT)));
     Literal patternBufferLimit =
         cmdOptions.getOrDefault(
-            "max_sample_count",
-            AstDSL.intLiteral(settings.getSettingValue(Key.PATTERN_BUFFER_LIMIT)));
+            "buffer_limit", AstDSL.intLiteral(settings.getSettingValue(Key.PATTERN_BUFFER_LIMIT)));
     Literal showNumberedToken =
         cmdOptions.getOrDefault(
             "show_numbered_token",

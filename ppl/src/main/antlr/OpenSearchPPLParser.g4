@@ -265,7 +265,7 @@ streamstatsCommand
    ;
 
 streamstatsArgs
-   : (currentArg | windowArg | globalArg | resetBeforeArg | resetAfterArg)*
+   : (currentArg | windowArg | globalArg | resetBeforeArg | resetAfterArg | bucketNullableArg)*
    ;
 
 currentArg
@@ -330,6 +330,7 @@ timechartParameter
    : LIMIT EQUAL integerLiteral
    | SPAN EQUAL spanLiteral
    | USEOTHER EQUAL (booleanLiteral | ident)
+   | TIMEFIELD EQUAL (ident | stringLiteral)
    ;
 
 spanLiteral
@@ -1102,6 +1103,7 @@ collectionFunctionName
     | MVAPPEND
     | MVJOIN
     | MVINDEX
+    | MVDEDUP
     | FORALL
     | EXISTS
     | FILTER
@@ -1272,6 +1274,7 @@ timestampFunctionName
 // condition function return boolean value
 conditionFunctionName
    : LIKE
+   | ILIKE
    | ISNULL
    | ISNOTNULL
    | CIDRMATCH
@@ -1333,6 +1336,7 @@ positionFunctionName
    | NOT_GREATER
    | REGEXP
    | LIKE
+   | ILIKE
    ;
 
 singleFieldRelevanceFunctionName
@@ -1573,6 +1577,7 @@ searchableKeyWord
    | SED
    | MAX_MATCH
    | OFFSET_FIELD
+   | TIMEFIELD
    | patternMethod
    | patternMode
    // AGGREGATIONS AND WINDOW

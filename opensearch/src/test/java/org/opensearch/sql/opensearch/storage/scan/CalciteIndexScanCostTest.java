@@ -192,19 +192,6 @@ public class CalciteIndexScanCostTest {
   }
 
   @Test
-  void test_cost_on_collapse_pushdown() {
-    RelDataType relDataType = mock(RelDataType.class);
-    lenient().when(relDataType.getFieldList()).thenReturn(new MockFieldList(10));
-    lenient().when(table.getRowType()).thenReturn(relDataType);
-
-    CalciteLogicalIndexScan scan = new CalciteLogicalIndexScan(cluster, table, osIndex);
-    scan.getPushDownContext()
-        .add(
-            new PushDownOperation(PushDownType.COLLAPSE, null, (OSRequestBuilderAction) req -> {}));
-    assertEquals(9900, Objects.requireNonNull(scan.computeSelfCost(planner, mq)).getRows());
-  }
-
-  @Test
   void test_cost_on_aggregate_pushdown() {
     RelDataType relDataType = mock(RelDataType.class);
     lenient().when(relDataType.getFieldList()).thenReturn(new MockFieldList(10));
