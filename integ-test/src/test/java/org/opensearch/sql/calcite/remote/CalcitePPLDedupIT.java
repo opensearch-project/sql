@@ -252,7 +252,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
   @Test
   public void testDedupComplex() throws IOException {
     JSONObject actual =
-        executeQuery(String.format("source=%s | dedup 1 name", TEST_INDEX_DUPLICATION_NULLABLE));
+        executeQuery(String.format("source=%s | dedup 1 name | fields category, name, id", TEST_INDEX_DUPLICATION_NULLABLE));
     verifyDataRows(
         actual,
         rows("X", "A", 1),
@@ -269,7 +269,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
         actual, rows("X", "A"), rows("Z", "B"), rows("X", "C"), rows("Z", "D"), rows(null, "E"));
     actual =
         executeQuery(
-            String.format("source=%s | dedup 1 name, category", TEST_INDEX_DUPLICATION_NULLABLE));
+            String.format("source=%s | dedup 1 name, category | fields category, name, id", TEST_INDEX_DUPLICATION_NULLABLE));
     verifyDataRows(
         actual,
         rows("X", "A", 1),
@@ -302,7 +302,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval new_name = lower(name) | dedup 1 new_name",
+                "source=%s | eval new_name = lower(name) | dedup 1 new_name | fields category, name, id, new_name",
                 TEST_INDEX_DUPLICATION_NULLABLE));
     verifyDataRows(
         actual,
@@ -315,7 +315,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | fields category, name, id | eval new_name = lower(name), new_category"
-                    + " = lower(category) | dedup 1 new_name, new_category",
+                    + " = lower(category) | dedup 1 new_name, new_category | fields category, name, id, new_name, new_category",
                 TEST_INDEX_DUPLICATION_NULLABLE));
     verifyDataRows(
         actual,
@@ -329,7 +329,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval new_name = lower(name), new_category = lower(category) | dedup 2"
-                    + " name, category",
+                    + " name, category | fields category, name, id, new_name, new_category",
                 TEST_INDEX_DUPLICATION_NULLABLE));
     verifyDataRows(
         actual,
@@ -348,7 +348,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | fields category, id, name | eval new_name = lower(name) | eval"
                     + " new_category = lower(category) | sort name, -category | dedup 2 new_name,"
-                    + " new_category",
+                    + " new_category | fields category, id, name, new_name, new_category",
                 TEST_INDEX_DUPLICATION_NULLABLE));
     verifyDataRows(
         actual,
