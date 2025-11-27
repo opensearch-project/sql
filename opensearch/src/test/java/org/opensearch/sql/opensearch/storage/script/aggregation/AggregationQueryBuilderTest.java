@@ -609,7 +609,7 @@ class AggregationQueryBuilderTest {
                 + "            \"field\" : \"timestamp\",%n"
                 + "            \"missing_bucket\" : false,%n"
                 + "            \"order\" : \"asc\",%n"
-                + "            \"fixed_interval\" : \"1h\"%n"
+                + "            \"calendar_interval\" : \"1h\"%n"
                 + "          }%n"
                 + "        }%n"
                 + "      } ]%n"

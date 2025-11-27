@@ -13,7 +13,7 @@ root:
           boost\":1.0}}}],\"adjust_pure_negative\":true,\"boost\":1.0}},\"aggregations\"\
           :{\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\":[{\"span(`@timestamp`,1m)\"\
           :{\"date_histogram\":{\"field\":\"@timestamp\",\"missing_bucket\":false,\"\
-          order\":\"asc\",\"fixed_interval\":\"1m\"}}}]},\"aggregations\":{\"count()\"\
+          order\":\"asc\",\"calendar_interval\":\"1m\"}}}]},\"aggregations\":{\"count()\"\
           :{\"value_count\":{\"field\":\"_index\"}}}}}}, needClean=true, searchDone=false,\
           \ pitId=*, cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
       children: []

@@ -411,7 +411,11 @@ public class MatcherUtils {
         JsonParser.parseString(eliminatePid(actual)));
   }
 
-  /** Compare two JSON string are equals with ignoring the RelNode id in the Calcite plan. */
+  /**
+   * Compare two JSON string are equals with ignoring the RelNode id in the Calcite plan.
+   * Deprecated, use {@link #assertYamlEqualsIgnoreId(String, String)}
+   */
+  @Deprecated // use assertYamlEqualsIgnoreId instead
   public static void assertJsonEqualsIgnoreId(String expected, String actual) {
     assertJsonEquals(cleanUpId(expected), cleanUpId(actual));
   }
@@ -434,6 +438,7 @@ public class MatcherUtils {
     return s.replaceAll("pitId=[^,]+,", "pitId=*,");
   }
 
+  /** Compare two YAML strings are equals with ignoring the RelNode id in the Calcite plan. */
   public static void assertYamlEqualsIgnoreId(String expectedYaml, String actualYaml) {
     String cleanedYaml = cleanUpYaml(actualYaml);
     assertYamlEquals(expectedYaml, cleanedYaml);
