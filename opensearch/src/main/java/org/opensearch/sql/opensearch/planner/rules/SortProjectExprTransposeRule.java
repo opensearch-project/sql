@@ -136,7 +136,7 @@ public class SortProjectExprTransposeRule extends RelRule<SortProjectExprTranspo
                                 b1.operand(Project.class)
                                     .predicate(
                                         Predicate.not(Project::containsOver)
-                                            .and(PlanUtils::projectContainsExpr))
+                                            .and(PlanUtils::containsRexCall))
                                     .anyInputs()));
 
     @Override

@@ -1742,7 +1742,8 @@ class FilterQueryBuilderTest {
                   "boost" : 1.0
                 }
               }
-            }""",
+            }\
+            """,
             expr.valueOf().stringValue());
 
     assertJsonEquals(json, buildQuery(DSL.equal(ref("ip_value", IP), DSL.castIp(expr))));

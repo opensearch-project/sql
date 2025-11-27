@@ -214,7 +214,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     }
     CalciteLogicalIndexScan newScan = this.copyWithNewSchema(finalOutput.getRowType());
     newScan.pushDownContext.add(
-        PushDownType.COLLAPSE,
+        PushDownType.AGGREGATION,
         fieldName,
         (OSRequestBuilderAction) requestBuilder -> requestBuilder.pushDownCollapse(field));
     return newScan;

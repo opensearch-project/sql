@@ -418,6 +418,15 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       }
     }
 
+    if ("LIKE".equalsIgnoreCase(node.getFuncName()) && arguments.size() == 2) {
+      RexNode defaultCaseSensitive =
+          CalcitePlanContext.isLegacyPreferred()
+              ? context.rexBuilder.makeLiteral(false)
+              : context.rexBuilder.makeLiteral(true);
+      arguments = new ArrayList<>(arguments);
+      arguments.add(defaultCaseSensitive);
+    }
+
     RexNode resolvedNode =
         PPLFuncImpTable.INSTANCE.resolve(
             context.rexBuilder, node.getFuncName(), arguments.toArray(new RexNode[0]));

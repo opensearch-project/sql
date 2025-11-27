@@ -113,7 +113,8 @@ class CaseRangeAnalyzerTest {
               "keyed" : true
             }
           }
-        }""";
+        }\
+        """;
 
     assertEquals(normalizeJson(expectedJson), normalizeJson(builder.toString()));
   }
@@ -159,7 +160,8 @@ class CaseRangeAnalyzerTest {
               "keyed" : true
             }
           }
-        }""";
+        }\
+        """;
 
     assertEquals(normalizeJson(expectedJson), normalizeJson(builder.toString()));
   }
@@ -216,7 +218,8 @@ class CaseRangeAnalyzerTest {
               "keyed" : true
             }
           }
-        }""";
+        }\
+        """;
 
     assertEquals(normalizeJson(expectedJson), normalizeJson(builder.toString()));
   }
@@ -265,7 +268,8 @@ class CaseRangeAnalyzerTest {
               "keyed" : true
             }
           }
-        }""";
+        }\
+        """;
 
     assertEquals(normalizeJson(expectedJson), normalizeJson(builder.toString()));
   }
@@ -444,7 +448,8 @@ class CaseRangeAnalyzerTest {
               "keyed" : true
             }
           }
-        }""";
+        }\
+        """;
 
     assertEquals(normalizeJson(expectedJson), normalizeJson(builder.toString()));
   }
@@ -514,7 +519,8 @@ class CaseRangeAnalyzerTest {
               "keyed" : true
             }
           }
-        }""";
+        }\
+        """;
 
     assertEquals(normalizeJson(expectedJson), normalizeJson(builder.toString()));
   }
@@ -576,7 +582,8 @@ class CaseRangeAnalyzerTest {
               "keyed" : true
             }
           }
-        }""";
+        }\
+        """;
 
     assertEquals(normalizeJson(expectedJson), normalizeJson(builder.toString()));
   }
@@ -622,7 +629,8 @@ class CaseRangeAnalyzerTest {
               "keyed" : true
             }
           }
-        }""";
+        }\
+        """;
 
     assertEquals(normalizeJson(expectedJson), normalizeJson(builder.toString()));
   }
@@ -670,7 +678,8 @@ class CaseRangeAnalyzerTest {
               "keyed" : true
             }
           }
-        }""";
+        }\
+        """;
 
     assertEquals(normalizeJson(expectedJson), normalizeJson(builder.toString()));
   }
@@ -727,7 +736,8 @@ class CaseRangeAnalyzerTest {
               "keyed" : true
             }
           }
-        }""";
+        }\
+        """;
 
     assertEquals(normalizeJson(expectedJson), normalizeJson(builder.toString()));
   }
@@ -798,7 +808,8 @@ class CaseRangeAnalyzerTest {
               "keyed" : true
             }
           }
-        }""";
+        }\
+        """;
 
     assertEquals(normalizeJson(expectedJson), normalizeJson(builder.toString()));
   }

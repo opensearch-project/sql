@@ -56,6 +56,11 @@ public class SearchLiteral extends SearchExpression {
   }
 
   @Override
+  public String toAnonymizedString() {
+    return "***";
+  }
+
+  @Override
   public List<? extends UnresolvedExpression> getChild() {
     return Collections.singletonList(literal);
   }

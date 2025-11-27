@@ -82,25 +82,29 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   // Only for Calcite
-  @Ignore("https://github.com/opensearch-project/OpenSearch/issues/3725")
+  @Test
   public void testJoinWithCriteriaAndMaxOption() throws IOException {
+    // TODO could be optimized with https://github.com/opensearch-project/OpenSearch/issues/3725
+    enabledOnlyWhenPushdownIsEnabled();
     String query =
         "source=opensearch-sql_test_index_bank | join max=1 left=l right=r on"
             + " l.account_number=r.account_number opensearch-sql_test_index_bank";
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_join_with_criteria_max_option.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_join_with_criteria_max_option.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   // Only for Calcite
-  @Ignore("https://github.com/opensearch-project/OpenSearch/issues/3725")
+  @Test
   public void testJoinWithFieldListAndMaxOption() throws IOException {
+    // TODO could be optimized with https://github.com/opensearch-project/OpenSearch/issues/3725
+    enabledOnlyWhenPushdownIsEnabled();
     String query =
         "source=opensearch-sql_test_index_bank | join type=inner max=1 account_number"
             + " opensearch-sql_test_index_bank";
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_join_with_fields_max_option.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_join_with_fields_max_option.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   // Only for Calcite
@@ -665,6 +669,56 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryYaml(query);
     String expected = loadExpectedPlan("explain_streamstats_reset.yaml");
     assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testStreamstatsNullBucketExplain() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | streamstats bucket_nullable=false avg(age) as"
+            + " avg_age by gender";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_streamstats_null_bucket.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testStreamstatsGlobalNullBucketExplain() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | streamstats bucket_nullable=false window=2"
+            + " global=true avg(age) as avg_age by gender";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_streamstats_global_null_bucket.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testStreamstatsResetNullBucketExplain() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account | streamstats bucket_nullable=false current=false"
+            + " reset_before=age>34 reset_after=age<25 avg(age) as avg_age by gender";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_streamstats_reset_null_bucket.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testKeywordILikeFunctionExplain() throws IOException {
+    // ilike is only supported in v3
+    String expected = loadExpectedPlan("explain_keyword_ilike_function.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | where ilike(firstname, '%mbe%')"));
+  }
+
+  @Test
+  public void testTextILikeFunctionExplain() throws IOException {
+    // ilike is only supported in v3
+    String expected = loadExpectedPlan("explain_text_ilike_function.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | where ilike(address, '%Holmes%')"));
   }
 
   // Only for Calcite, as v2 gets unstable serialized string for function
@@ -1818,5 +1872,116 @@ public class CalciteExplainIT extends ExplainIT {
                 "source=%s | eval info = geoip('dummy-datasource', host) | fields host, info,"
                     + " info.dummy_sub_field",
                 TEST_INDEX_WEBLOGS)));
+  }
+
+  @Test
+  public void testComplexDedup() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_dedup_complex1.yaml");
+    assertYamlEqualsIgnoreId(
+        expected, explainQueryYaml("source=opensearch-sql_test_index_account | dedup 1 gender"));
+    expected = loadExpectedPlan("explain_dedup_complex2.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | fields account_number, gender, age, state |"
+                + " dedup 1 gender, state"));
+    expected = loadExpectedPlan("explain_dedup_complex3.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml("source=opensearch-sql_test_index_account | dedup 2 gender, state"));
+    expected = loadExpectedPlan("explain_dedup_complex4.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | fields account_number, gender, age, state |"
+                + " dedup 2 gender, state"));
+  }
+
+  @Ignore("https://github.com/opensearch-project/sql/issues/4789")
+  public void testDedupExpr() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_dedup_expr1.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | eval new_gender = lower(gender) | dedup 1"
+                + " new_gender"));
+    expected = loadExpectedPlan("explain_dedup_expr2.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | fields account_number, gender, age, state |"
+                + " eval new_gender = lower(gender), new_state = lower(state) | dedup 1 new_gender,"
+                + " new_state"));
+    expected = loadExpectedPlan("explain_dedup_expr3.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | eval new_gender = lower(gender) | eval"
+                + " new_state = lower(state) | dedup 2 new_gender, new_state"));
+    expected = loadExpectedPlan("explain_dedup_expr4.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | fields account_number, gender, age, state |"
+                + " eval new_gender = lower(gender) | eval new_state = lower(state) | sort gender,"
+                + " -state | dedup 2 new_gender, new_state"));
+  }
+
+  @Ignore("https://github.com/opensearch-project/sql/issues/4789")
+  public void testDedupRename() throws IOException {
+    // rename changes nothing, reuse the same yaml files of testDedupExpr()
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_dedup_expr1.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | eval tmp_gender = lower(gender) | rename"
+                + " tmp_gender as new_gender | dedup 1 new_gender"));
+    expected = loadExpectedPlan("explain_dedup_expr2.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | fields account_number, gender, age, state |"
+                + " eval tmp_gender = lower(gender), tmp_state = lower(state) | rename tmp_gender"
+                + " as new_gender | rename tmp_state as new_state | dedup 1 new_gender,"
+                + " new_state"));
+    expected = loadExpectedPlan("explain_dedup_expr3.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | eval tmp_gender = lower(gender) | eval"
+                + " tmp_state = lower(state) | rename tmp_gender as new_gender | rename tmp_state"
+                + " as new_state | dedup 2 new_gender, new_state"));
+    expected = loadExpectedPlan("explain_dedup_expr4.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | fields account_number, gender, age, state |"
+                + " eval tmp_gender = lower(gender) | eval tmp_state = lower(state) | rename"
+                + " tmp_gender as new_gender | rename tmp_state as new_state | sort gender,"
+                + " -state | dedup 2 new_gender, new_state"));
+  }
+
+  @Ignore("SortExprIndexScanRule not work?")
+  public void testDedupRename2() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_dedup_expr4.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | fields account_number, gender, age, state |"
+                + " eval tmp_gender = lower(gender) | eval tmp_state = lower(state) | rename"
+                + " tmp_gender as new_gender | rename tmp_state as new_state | sort new_gender,"
+                + " -new_state | dedup 2 new_gender, new_state"));
+  }
+
+  @Test
+  public void testDedupTextTypeNotPushdown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_dedup_text_type_no_push.yaml");
+    assertYamlEqualsIgnoreId(
+        expected, explainQueryYaml(String.format("source=%s | dedup email", TEST_INDEX_BANK)));
   }
 }
