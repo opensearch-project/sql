@@ -33,6 +33,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PrefixSortFieldCo
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StreamstatsCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SuffixSortFieldContext;
+import org.opensearch.sql.ppl.parser.AstExpressionBuilder;
 
 /** Util class to get all arguments as a list from the PPL command. */
 public class ArgumentFactory {
@@ -78,19 +79,15 @@ public class ArgumentFactory {
                         getArgumentValue(ctx1.bucketNullableArg(0).bucket_nullable))
                     : new Argument(
                         Argument.BUCKET_NULLABLE,
-                        legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE)));
+                        UnresolvedPlanHelper.legacyPreferred(settings)
+                            ? Literal.TRUE
+                            : Literal.FALSE)));
     if (ctx2 != null) {
       list.add(new Argument("dedupsplit", getArgumentValue(ctx2.dedupsplit)));
     } else {
       list.add(new Argument("dedupsplit", Literal.FALSE));
     }
     return list;
-  }
-
-  private static boolean legacyPreferred(Settings settings) {
-    return settings == null
-        || settings.getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED) == null
-        || Boolean.TRUE.equals(settings.getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED));
   }
 
   /**
@@ -133,7 +130,7 @@ public class ArgumentFactory {
                 Argument.BUCKET_NULLABLE, getArgumentValue(ctx.bucketNullableArg().bucket_nullable))
             : new Argument(
                 Argument.BUCKET_NULLABLE,
-                legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE));
+                UnresolvedPlanHelper.legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE));
   }
 
   /**
@@ -257,6 +254,60 @@ public class ArgumentFactory {
     return arguments;
   }
 
+  public static List<Argument> getArgumentList(
+      OpenSearchPPLParser.TimechartCommandContext timechartCtx,
+      AstExpressionBuilder expressionBuilder) {
+    List<Argument> arguments = new ArrayList<>();
+    for (OpenSearchPPLParser.TimechartParameterContext ctx : timechartCtx.timechartParameter()) {
+      if (ctx.SPAN() != null) {
+        arguments.add(
+            new Argument("spanliteral", (Literal) expressionBuilder.visit(ctx.spanLiteral())));
+      } else if (ctx.LIMIT() != null) {
+        Literal limit = getArgumentValue(ctx.integerLiteral());
+        if ((Integer) limit.getValue() < 0) {
+          throw new IllegalArgumentException("Limit must be a non-negative number");
+        }
+        arguments.add(new Argument("limit", limit));
+      } else if (ctx.USEOTHER() != null) {
+        Literal useOther;
+        if (ctx.booleanLiteral() != null) {
+          useOther = getArgumentValue(ctx.booleanLiteral());
+        } else if (ctx.ident() != null) {
+          String identLiteral = expressionBuilder.visitIdentifiers(List.of(ctx.ident())).toString();
+          if ("true".equalsIgnoreCase(identLiteral) || "t".equalsIgnoreCase(identLiteral)) {
+            useOther = AstDSL.booleanLiteral(true);
+          } else if ("false".equalsIgnoreCase(identLiteral) || "f".equalsIgnoreCase(identLiteral)) {
+            useOther = AstDSL.booleanLiteral(false);
+          } else {
+            throw new IllegalArgumentException(
+                "Invalid useOther value: "
+                    + ctx.ident().getText()
+                    + ". Expected true/false or t/f");
+          }
+        } else {
+          throw new IllegalArgumentException("value for useOther must be a boolean or identifier");
+        }
+        arguments.add(new Argument("useother", useOther));
+      } else if (ctx.TIMEFIELD() != null) {
+        Literal timeField;
+        if (ctx.ident() != null) {
+          timeField =
+              AstDSL.stringLiteral(
+                  expressionBuilder.visitIdentifiers(List.of(ctx.ident())).toString());
+        } else {
+          timeField = getArgumentValue(ctx.stringLiteral());
+        }
+        arguments.add(new Argument("timefield", timeField));
+      } else {
+        throw new IllegalArgumentException(
+            String.format(
+                "A parameter of timechart must be a span, limit, useother, or timefield, got %s",
+                ctx));
+      }
+    }
+    return arguments;
+  }
+
   /**
    * Get list of {@link Argument}.
    *
@@ -286,7 +337,7 @@ public class ArgumentFactory {
             RareTopN.Option.useNull.name(),
             opt.isPresent()
                 ? getArgumentValue(opt.get().useNull)
-                : legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE));
+                : UnresolvedPlanHelper.legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE));
     return list;
   }
 

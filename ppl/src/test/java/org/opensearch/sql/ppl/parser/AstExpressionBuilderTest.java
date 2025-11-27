@@ -176,16 +176,34 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void testLogicalLikeExprCaseSensitive() {
+    assertEqual(
+        "source=t | where like(a, '_a%b%c_d_', true)",
+        filter(
+            relation("t"),
+            function("like", field("a"), stringLiteral("_a%b%c_d_"), booleanLiteral(true))));
+  }
+
+  @Test
+  public void testLogicalLikeExprCaseInSensitive() {
+    assertEqual(
+        "source=t | where like(a, '_a%b%c_d_', false)",
+        filter(
+            relation("t"),
+            function("like", field("a"), stringLiteral("_a%b%c_d_"), booleanLiteral(false))));
+  }
+
+  @Test
   public void testLikeOperatorExpr() {
     // Test LIKE operator syntax
     assertEqual(
         "source=t | where a LIKE '_a%b%c_d_'",
-        filter(relation("t"), compare("like", field("a"), stringLiteral("_a%b%c_d_"))));
+        filter(relation("t"), compare("ilike", field("a"), stringLiteral("_a%b%c_d_"))));
 
     // Test with fields on both sides
     assertEqual(
         "source=t | where a LIKE b",
-        filter(relation("t"), compare("like", field("a"), field("b"))));
+        filter(relation("t"), compare("ilike", field("a"), field("b"))));
   }
 
   @Test
@@ -193,19 +211,19 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
     // Test LIKE operator with different cases - all should map to lowercase "like"
     assertEqual(
         "source=t | where a LIKE 'pattern'",
-        filter(relation("t"), compare("like", field("a"), stringLiteral("pattern"))));
+        filter(relation("t"), compare("ilike", field("a"), stringLiteral("pattern"))));
 
     assertEqual(
         "source=t | where a like 'pattern'",
-        filter(relation("t"), compare("like", field("a"), stringLiteral("pattern"))));
+        filter(relation("t"), compare("ilike", field("a"), stringLiteral("pattern"))));
 
     assertEqual(
         "source=t | where a Like 'pattern'",
-        filter(relation("t"), compare("like", field("a"), stringLiteral("pattern"))));
+        filter(relation("t"), compare("ilike", field("a"), stringLiteral("pattern"))));
 
     assertEqual(
         "source=t | where a LiKe 'pattern'",
-        filter(relation("t"), compare("like", field("a"), stringLiteral("pattern"))));
+        filter(relation("t"), compare("ilike", field("a"), stringLiteral("pattern"))));
   }
 
   @Test
@@ -1404,9 +1422,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                         intLiteral(30),
                         SpanUnit.m)))
             .aggregationFunction(alias("count()", aggregate("count", allFields())))
-            .arguments(
-                exprList(
-                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
+            .arguments(exprList(argument("spanliteral", stringLiteral("30m"))))
             .build());
   }
 
@@ -1424,9 +1440,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                         intLiteral(1),
                         SpanUnit.m)))
             .aggregationFunction(alias("count()", aggregate("count", allFields())))
-            .arguments(
-                exprList(
-                    argument("limit", intLiteral(100)), argument("useother", booleanLiteral(true))))
+            .arguments(exprList(argument("limit", intLiteral(100))))
             .build());
   }
 
@@ -1451,9 +1465,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                         intLiteral(1),
                         SpanUnit.m)))
             .aggregationFunction(alias("count()", aggregate("count", allFields())))
-            .arguments(
-                exprList(
-                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
+            .arguments(exprList(argument("useother", booleanLiteral(true))))
             .build());
 
     assertEqual(
@@ -1468,9 +1480,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                         intLiteral(1),
                         SpanUnit.m)))
             .aggregationFunction(alias("count()", aggregate("count", allFields())))
-            .arguments(
-                exprList(
-                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(false))))
+            .arguments(exprList(argument("useother", booleanLiteral(false))))
             .build());
   }
 
@@ -1488,9 +1498,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                         intLiteral(1),
                         SpanUnit.m)))
             .aggregationFunction(alias("count()", aggregate("count", allFields())))
-            .arguments(
-                exprList(
-                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
+            .arguments(exprList(argument("useother", booleanLiteral(true))))
             .build());
 
     assertEqual(
@@ -1505,9 +1513,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                         intLiteral(1),
                         SpanUnit.m)))
             .aggregationFunction(alias("count()", aggregate("count", allFields())))
-            .arguments(
-                exprList(
-                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(false))))
+            .arguments(exprList(argument("useother", booleanLiteral(false))))
             .build());
 
     assertEqual(
@@ -1522,9 +1528,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                         intLiteral(1),
                         SpanUnit.m)))
             .aggregationFunction(alias("count()", aggregate("count", allFields())))
-            .arguments(
-                exprList(
-                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
+            .arguments(exprList(argument("useother", booleanLiteral(true))))
             .build());
 
     assertEqual(
@@ -1539,9 +1543,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                         intLiteral(1),
                         SpanUnit.m)))
             .aggregationFunction(alias("count()", aggregate("count", allFields())))
-            .arguments(
-                exprList(
-                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(false))))
+            .arguments(exprList(argument("useother", booleanLiteral(false))))
             .build());
   }
 
@@ -1615,9 +1617,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                         intLiteral(1),
                         SpanUnit.H)))
             .aggregationFunction(alias("count()", aggregate("count", allFields())))
-            .arguments(
-                exprList(
-                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
+            .arguments(exprList(argument("spanliteral", stringLiteral("1h"))))
             .build());
 
     // Test span literal with decimal value and minute unit
@@ -1633,9 +1633,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                         intLiteral(2),
                         SpanUnit.m)))
             .aggregationFunction(alias("count()", aggregate("count", allFields())))
-            .arguments(
-                exprList(
-                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
+            .arguments(exprList(argument("spanliteral", stringLiteral("2m"))))
             .build());
 
     // Test span literal without unit (should use NONE unit)
@@ -1651,9 +1649,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                         intLiteral(10),
                         SpanUnit.NONE)))
             .aggregationFunction(alias("count()", aggregate("count", allFields())))
-            .arguments(
-                exprList(
-                    argument("limit", intLiteral(10)), argument("useother", booleanLiteral(true))))
+            .arguments(exprList(argument("spanliteral", intLiteral(10))))
             .build());
 
     // Test span literal with decimal value
