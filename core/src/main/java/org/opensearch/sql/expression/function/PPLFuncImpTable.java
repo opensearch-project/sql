@@ -557,6 +557,11 @@ public class PPLFuncImpTable {
         if (implement.getKey().match(functionName.getName(), argTypes)) {
           return implement.getValue().resolve(builder, args);
         }
+//        // TODO: How to deal with multiple overrides?
+//        //  A temporary implementation to return once name matches
+//        if (implement.getKey().functionName().equals(functionName.getName())){
+//          return implement.getValue().resolve(builder, args);
+//        }
       }
 
       // If no implementation found with exact match, try to cast arguments to match the
