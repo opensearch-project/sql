@@ -15,6 +15,8 @@ package org.opensearch.sql.opensearch.response.agg;
 
 import com.google.common.collect.Streams;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
@@ -31,14 +33,16 @@ public class PercentilesParser implements MetricParser {
   @Getter private final String name;
 
   @Override
-  public Map<String, Object> parse(Aggregation agg) {
-    return Collections.singletonMap(
-        agg.getName(),
-        // TODO a better implementation here is providing a class `MultiValueParser`
-        // similar to `SingleValueParser`. However, there is no method `values()` available
-        // in `org.opensearch.search.aggregations.metrics.MultiValue`.
-        Streams.stream(((Percentiles) agg).iterator())
-            .map(Percentile::getValue)
-            .collect(Collectors.toList()));
+  public List<Map<String, Object>> parse(Aggregation agg) {
+    return Collections.singletonList(
+        new HashMap<>(
+            Collections.singletonMap(
+                agg.getName(),
+                // TODO a better implementation here is providing a class `MultiValueParser`
+                // similar to `SingleValueParser`. However, there is no method `values()` available
+                // in `org.opensearch.search.aggregations.metrics.MultiValue`.
+                Streams.stream(((Percentiles) agg).iterator())
+                    .map(Percentile::getValue)
+                    .collect(Collectors.toList()))));
   }
 }

@@ -13,6 +13,7 @@
 
 package org.opensearch.sql.opensearch.response.agg;
 
+import java.util.List;
 import java.util.Map;
 import org.opensearch.search.aggregations.Aggregation;
 
@@ -28,5 +29,5 @@ public interface MetricParser {
    * @param aggregation {@link Aggregation}
    * @return the map between metric name and metric value.
    */
-  Map<String, Object> parse(Aggregation aggregation);
+  List<Map<String, Object>> parse(Aggregation aggregation);
 }
