@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
@@ -30,7 +31,7 @@ public interface AliasFieldsWrappable {
     List<RexNode> aliasFieldsNew =
         aliasFieldsSet.stream()
             .map(entry -> relBuilder.alias(relBuilder.field(entry.getValue()), entry.getKey()))
-            .toList();
+            .collect(Collectors.toList());
     return relBuilder.projectPlus(aliasFieldsNew).peek();
   }
 }
