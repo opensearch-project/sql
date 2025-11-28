@@ -2865,7 +2865,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     UnresolvedExpression inner = f.getField();
 
     if (inner instanceof QualifiedName) {
-      return ((QualifiedName) inner).getParts().get(0);
+      List<String> parts = ((QualifiedName) inner).getParts();
+      if (!parts.isEmpty()) {
+        return parts.get(0);
+      }
     }
 
     // Fallback - return clean string
