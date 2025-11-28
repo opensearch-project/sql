@@ -5,10 +5,25 @@
 
 package org.opensearch.sql.calcite.validate;
 
+import java.util.List;
+import java.util.function.Function;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelRecordType;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 
 /**
  * Custom SQL validator for PPL queries.
@@ -32,5 +47,69 @@ public class PplValidator extends SqlValidatorImpl {
       RelDataTypeFactory typeFactory,
       Config config) {
     super(opTab, catalogReader, typeFactory, config);
+  }
+
+  /**
+   * Overrides the deriveType method to map user-defined types (UDTs) to SqlTypes so that they can
+   * be validated
+   */
+  @Override
+  public RelDataType deriveType(SqlValidatorScope scope, SqlNode expr) {
+    RelDataType type = super.deriveType(scope, expr);
+    return userDefinedTypeToSqlType(type);
+  }
+
+  @Override
+  public @Nullable RelDataType getValidatedNodeTypeIfKnown(SqlNode node) {
+    RelDataType type = super.getValidatedNodeTypeIfKnown(node);
+    return sqlTypeToUserDefinedType(type);
+  }
+
+  private RelDataType userDefinedTypeToSqlType(RelDataType type) {
+    return convertType(
+        type,
+        t -> {
+          if (OpenSearchTypeFactory.isUserDefinedType(t)) {
+            AbstractExprRelDataType<?> exprType = (AbstractExprRelDataType<?>) t;
+            ExprType udtType = exprType.getExprType();
+            OpenSearchTypeFactory typeFactory = (OpenSearchTypeFactory) this.getTypeFactory();
+            return switch (udtType) {
+              case ExprCoreType.TIMESTAMP ->
+                  typeFactory.createSqlType(SqlTypeName.TIMESTAMP, t.isNullable());
+              case ExprCoreType.TIME -> typeFactory.createSqlType(SqlTypeName.TIME, t.isNullable());
+              case ExprCoreType.DATE -> typeFactory.createSqlType(SqlTypeName.DATE, t.isNullable());
+              case ExprCoreType.BINARY ->
+                  typeFactory.createSqlType(SqlTypeName.BINARY, t.isNullable());
+              case ExprCoreType.IP -> UserDefinedFunctionUtils.NULLABLE_IP_UDT;
+              default -> t;
+            };
+          }
+          return t;
+        });
+  }
+
+  private RelDataType sqlTypeToUserDefinedType(RelDataType type) {
+    return convertType(
+        type,
+        t -> {
+          OpenSearchTypeFactory typeFactory = (OpenSearchTypeFactory) this.getTypeFactory();
+          return switch (t.getSqlTypeName()) {
+            case TIMESTAMP -> typeFactory.createUDT(ExprUDT.EXPR_TIMESTAMP, t.isNullable());
+            case TIME -> typeFactory.createUDT(ExprUDT.EXPR_TIME, t.isNullable());
+            case DATE -> typeFactory.createUDT(ExprUDT.EXPR_DATE, t.isNullable());
+            case BINARY -> typeFactory.createUDT(ExprUDT.EXPR_BINARY, t.isNullable());
+            default -> t;
+          };
+        });
+  }
+
+  private RelDataType convertType(RelDataType type, Function<RelDataType, RelDataType> convert) {
+    if (type == null) return null;
+    if (type instanceof RelRecordType recordType) {
+      List<RelDataType> subTypes =
+          recordType.getFieldList().stream().map(RelDataTypeField::getType).map(convert).toList();
+      return typeFactory.createStructType(subTypes, recordType.getFieldNames());
+    }
+    return convert.apply(type);
   }
 }
