@@ -86,6 +86,10 @@ import org.opensearch.sql.ast.tree.*;
 import org.opensearch.sql.ast.tree.Lookup.OutputStrategy;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.Trendline.TrendlineType;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
@@ -139,7 +143,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       throw new CalciteUnsupportedException("information_schema is unsupported in Calcite");
     }
     context.relBuilder.scan(node.getTableQualifiedName().getParts());
-    return context.relBuilder.peek();
+    RelNode scan = context.relBuilder.peek();
+    if (scan instanceof AliasFieldsWrappable) {
+      return ((AliasFieldsWrappable) scan).wrapProjectForAliasFields(context.relBuilder);
+    }
+    return scan;
   }
 
   // This is a tool method to add an existed RelOptTable to builder stack, not used for now

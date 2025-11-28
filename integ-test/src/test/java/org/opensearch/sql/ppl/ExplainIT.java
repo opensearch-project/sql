@@ -464,22 +464,22 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testStatsByTimeSpan() throws IOException {
-    String expected = loadExpectedPlan("explain_stats_by_timespan.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_stats_by_timespan.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format("source=%s | stats count() by span(birthdate,1m)", TEST_INDEX_BANK)));
 
-    expected = loadExpectedPlan("explain_stats_by_timespan2.json");
-    assertJsonEqualsIgnoreId(
+    expected = loadExpectedPlan("explain_stats_by_timespan2.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format("source=%s | stats count() by span(birthdate,1M)", TEST_INDEX_BANK)));
 
     // bucket_nullable doesn't impact by-span-time
-    assertJsonEqualsIgnoreId(
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 "source=%s | stats bucket_nullable=false count() by span(birthdate,1M)",
                 TEST_INDEX_BANK)));
