@@ -318,7 +318,6 @@ public class CalciteExplainIT extends ExplainIT {
     assertYamlEqualsIgnoreId(expected, result);
   }
 
-  // Only for Calcite
   @Test
   public void testMvexpandExplain() throws IOException {
     // script pushdown
