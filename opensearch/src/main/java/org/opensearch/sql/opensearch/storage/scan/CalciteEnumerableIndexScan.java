@@ -118,18 +118,12 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
         OpenSearchRequestBuilder requestBuilder = pushDownContext.createRequestBuilder();
         return new OpenSearchIndexEnumerator(
             osIndex.getClient(),
-            getFieldPath(),
+            getRowType().getFieldNames(),
             requestBuilder.getMaxResponseSize(),
             requestBuilder.getMaxResultWindow(),
             osIndex.buildRequest(requestBuilder),
             osIndex.createOpenSearchResourceMonitor());
       }
     };
-  }
-
-  private List<String> getFieldPath() {
-    return getRowType().getFieldNames().stream()
-        .map(f -> osIndex.getAliasMapping().getOrDefault(f, f))
-            .collect(Collectors.toList());
   }
 }
