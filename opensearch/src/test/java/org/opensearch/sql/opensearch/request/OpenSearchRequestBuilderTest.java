@@ -96,8 +96,8 @@ class OpenSearchRequestBuilderTest {
     requestBuilder.pushDownTrackedScore(true);
 
     assertEquals(
-        new OpenSearchQueryRequest(
-            new OpenSearchRequest.IndexName("test"),
+        OpenSearchQueryRequest.of(
+            "test",
             new SearchSourceBuilder()
                 .from(offset)
                 .size(limit)
@@ -167,8 +167,8 @@ class OpenSearchRequestBuilderTest {
     requestBuilder.pushDownLimit(limit, offset);
 
     assertEquals(
-        new OpenSearchQueryRequest(
-            new OpenSearchRequest.IndexName("test"),
+        OpenSearchQueryRequest.of(
+            "test",
             new SearchSourceBuilder().from(offset).size(limit).timeout(DEFAULT_QUERY_TIMEOUT),
             exprValueFactory,
             List.of()),
@@ -240,7 +240,7 @@ class OpenSearchRequestBuilderTest {
             "composite_buckets", Collections.singletonList(new TermsValuesSourceBuilder("longA")));
     OpenSearchAggregationResponseParser responseParser =
         new CompositeAggregationParser(new SingleValueParser("AVG(intA)"));
-    requestBuilder.pushDownAggregation(Pair.of(List.of(aggBuilder), responseParser));
+    requestBuilder.pushDownAggregation(Pair.of(List.of(aggBuilder), responseParser), false);
 
     assertEquals(
         new SearchSourceBuilder()
@@ -259,7 +259,7 @@ class OpenSearchRequestBuilderTest {
             "composite_buckets", Collections.singletonList(new TermsValuesSourceBuilder("longA")));
     OpenSearchAggregationResponseParser responseParser =
         new CompositeAggregationParser(new SinglePercentileParser("PERCENTILE(intA, 50)"));
-    requestBuilder.pushDownAggregation(Pair.of(List.of(aggBuilder), responseParser));
+    requestBuilder.pushDownAggregation(Pair.of(List.of(aggBuilder), responseParser), false);
 
     assertEquals(
         new SearchSourceBuilder()
@@ -469,8 +469,8 @@ class OpenSearchRequestBuilderTest {
         requestBuilder);
 
     assertEquals(
-        new OpenSearchQueryRequest(
-            new OpenSearchRequest.IndexName("test"),
+        OpenSearchQueryRequest.of(
+            "test",
             new SearchSourceBuilder()
                 .from(offset)
                 .size(limit)
@@ -499,8 +499,8 @@ class OpenSearchRequestBuilderTest {
         requestBuilder);
 
     assertEquals(
-        new OpenSearchQueryRequest(
-            new OpenSearchRequest.IndexName("test"),
+        OpenSearchQueryRequest.of(
+            "test",
             new SearchSourceBuilder()
                 .from(offset)
                 .size(limit)

@@ -1,0 +1,12 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalFilter(condition=[OR(>($3, 1000), >($4, 1))])
+        LogicalProject(avg=[$1], cnt=[$2], state=[$0], new_avg=[+($1, 1000)], new_cnt=[+($2, 1)])
+          LogicalAggregate(group=[{0}], avg=[AVG($1)], cnt=[COUNT()])
+            LogicalProject(state=[$7], balance=[$3])
+              CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t1):DOUBLE], expr#5=[/($t4, $t2)], expr#6=[1000], expr#7=[+($t5, $t6)], expr#8=[1], expr#9=[+($t3, $t8)], expr#10=[>($t7, $t6)], expr#11=[>($t9, $t8)], expr#12=[OR($t10, $t11)], avg=[$t5], cnt=[$t3], state=[$t0], new_avg=[$t7], new_cnt=[$t9], $condition=[$t12])
+        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0},agg#0=SUM($1),agg#1=COUNT($1),cnt=COUNT()), HAVING->OR(>(+($1, 1000), 1000), >(+($2, 1), 1))], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"state":{"terms":{"field":"state.keyword","missing_bucket":true,"missing_order":"first","order":"asc"}}}]},"aggregations":{"$f1":{"sum":{"field":"balance"}},"$f2":{"value_count":{"field":"balance"}}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0, paginatingAgg=true)])

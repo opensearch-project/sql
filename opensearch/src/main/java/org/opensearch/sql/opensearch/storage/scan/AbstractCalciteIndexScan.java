@@ -36,6 +36,7 @@ import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.util.NumberUtil;
+import org.apache.calcite.util.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -125,7 +126,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                   case SORT_AGG_METRICS ->
                       NumberUtil.min(rowCount, osIndex.getBucketSize().doubleValue());
                   // Refer the org.apache.calcite.rel.metadata.RelMdRowCount
-                  case FILTER, SCRIPT ->
+                  case FILTER, SCRIPT, HAVING ->
                       NumberUtil.multiply(
                           rowCount,
                           RelMdUtil.guessSelectivity(
@@ -182,7 +183,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
           dCpu += NumberUtil.multiply(dRows, 1.1 * complexExprCount);
         }
         // Ignore cost the primitive filter but it will affect the rows count.
-        case FILTER ->
+        case FILTER, HAVING ->
             dRows =
                 NumberUtil.multiply(
                     dRows,
@@ -318,6 +319,18 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
         .reduce(false, Boolean::logicalOr);
   }
 
+  public List<String> getAggMeasureNameList() {
+    Stream<LogicalAggregate> aggregates =
+        pushDownContext.stream()
+            .filter(action -> action.type() == PushDownType.AGGREGATION)
+            .map(action -> ((LogicalAggregate) action.digest()));
+    return aggregates
+        .flatMap(aggregate -> aggregate.getNamedAggCalls().stream())
+        .map(Pair::getValue)
+        .distinct()
+        .toList();
+  }
+
   /**
    * The sort pushdown is not only applied in logical plan side, but also should be applied in
    * physical plan side. Because we could push down the {@link EnumerableSort} of {@link
@@ -431,5 +444,9 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
 
   public boolean isProjectPushed() {
     return this.getPushDownContext().isProjectPushed();
+  }
+
+  public boolean isHavingFlagPushed() {
+    return this.getPushDownContext().isHavingFlagPushed();
   }
 }

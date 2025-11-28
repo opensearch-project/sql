@@ -81,10 +81,10 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
   private void fetchNextBatch() {
     OpenSearchResponse response = client.search(request);
-    if (response.isAggregationResponse()
+    if ((response.isAggregationResponse() && response.noCompositeAfterKey())
         || response.isCountResponse()
-        || response.getHitsSize() < maxResultWindow) {
-      // no need to fetch next batch if it's for an aggregation
+        || (response.getHitsSize() > 0 && response.getHitsSize() < maxResultWindow)) {
+      // no need to fetch next batch if it's for an aggregation (without composite afterKey)
       // or the length of response hits is less than max result window size.
       fetchOnce = true;
     }

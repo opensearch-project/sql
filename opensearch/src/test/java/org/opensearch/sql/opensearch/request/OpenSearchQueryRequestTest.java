@@ -60,10 +60,10 @@ public class OpenSearchQueryRequestTest {
   @Mock private OpenSearchExprValueFactory factory;
 
   private final OpenSearchQueryRequest request =
-      new OpenSearchQueryRequest("test", 200, factory, List.of());
+      OpenSearchQueryRequest.of("test", 200, factory, List.of());
 
   private final OpenSearchQueryRequest remoteRequest =
-      new OpenSearchQueryRequest("ccs:test", 200, factory, List.of());
+      OpenSearchQueryRequest.of("ccs:test", 200, factory, List.of());
 
   @Mock private StreamOutput streamOutput;
   @Mock private StreamInput streamInput;
@@ -139,7 +139,7 @@ public class OpenSearchQueryRequestTest {
 
   @Test
   void testWriteToWithoutPIT() {
-    serializationRequest = new OpenSearchQueryRequest("test", 200, factory, List.of());
+    serializationRequest = OpenSearchQueryRequest.of("test", 200, factory, List.of());
 
     UnsupportedOperationException exception =
         assertThrows(
@@ -155,8 +155,7 @@ public class OpenSearchQueryRequestTest {
   @Test
   void search() {
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
-            new OpenSearchRequest.IndexName("test"), sourceBuilder, factory, List.of());
+        OpenSearchQueryRequest.of("test", sourceBuilder, factory, List.of());
 
     when(searchAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
@@ -308,8 +307,7 @@ public class OpenSearchQueryRequestTest {
   @Test
   void search_withoutContext() {
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
-            new OpenSearchRequest.IndexName("test"), sourceBuilder, factory, List.of());
+        OpenSearchQueryRequest.of("test", sourceBuilder, factory, List.of());
 
     when(searchAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
@@ -322,8 +320,7 @@ public class OpenSearchQueryRequestTest {
   @Test
   void search_withIncludes() {
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
-            new OpenSearchRequest.IndexName("test"), sourceBuilder, factory, List.of());
+        OpenSearchQueryRequest.of("test", sourceBuilder, factory, List.of());
 
     String[] includes = {"_id", "_index"};
     when(searchAction.apply(any())).thenReturn(searchResponse);

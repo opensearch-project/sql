@@ -26,6 +26,7 @@ import org.opensearch.core.common.text.Text;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.aggregations.Aggregations;
+import org.opensearch.search.aggregations.bucket.composite.InternalComposite;
 import org.opensearch.sql.data.model.ExprFloatValue;
 import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprStringValue;
@@ -102,6 +103,16 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
 
   public boolean isAggregationResponse() {
     return aggregations != null;
+  }
+
+  public boolean noCompositeAfterKey() {
+    return isAggregationResponse()
+        && aggregations.asList().stream()
+            .noneMatch(
+                a ->
+                    a instanceof InternalComposite c
+                        && c.afterKey() != null
+                        && !c.afterKey().isEmpty());
   }
 
   public boolean isCountResponse() {

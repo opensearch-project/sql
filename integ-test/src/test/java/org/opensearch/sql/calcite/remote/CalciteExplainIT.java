@@ -1272,6 +1272,30 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testHaving() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_agg_having1.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | stats count() as c by"
+                + " state | where c > 10"));
+    expected = loadExpectedPlan("explain_agg_having2.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | stats bucket_nullable = false count() by"
+                + " state | where `count()` > 10"));
+    expected = loadExpectedPlan("explain_agg_having3.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | stats avg(balance) as avg, count() as cnt"
+                + " by state | eval new_avg = avg + 1000, new_cnt = cnt + 1 | where new_avg > 1000"
+                + " or new_cnt > 1"));
+  }
+
+  @Test
   public void testExplainSortOnMeasure() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_agg_sort_on_measure1.yaml");

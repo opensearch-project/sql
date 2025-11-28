@@ -12,6 +12,7 @@ import static org.opensearch.search.sort.SortOrder.ASC;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import lombok.EqualsAndHashCode;
@@ -28,6 +29,9 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.SearchModule;
+import org.opensearch.search.aggregations.Aggregation;
+import org.opensearch.search.aggregations.bucket.composite.CompositeAggregation;
+import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationBuilder;
 import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.FieldSortBuilder;
@@ -75,34 +79,42 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
 
   private SearchResponse searchResponse = null;
 
-  /** Constructor of OpenSearchQueryRequest. */
-  public OpenSearchQueryRequest(
-      String indexName, int size, OpenSearchExprValueFactory factory, List<String> includes) {
-    this(new IndexName(indexName), size, factory, includes);
-  }
+  @ToString.Exclude private boolean paginatingAgg;
 
-  /** Constructor of OpenSearchQueryRequest. */
-  public OpenSearchQueryRequest(
-      IndexName indexName, int size, OpenSearchExprValueFactory factory, List<String> includes) {
-    this.indexName = indexName;
-    this.sourceBuilder = new SearchSourceBuilder();
+  @ToString.Exclude private Map<String, Object> afterKey;
+
+  /** For testing only. */
+  static OpenSearchQueryRequest of(
+      String indexName, int size, OpenSearchExprValueFactory factory, List<String> includes) {
+    SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
     sourceBuilder.from(0);
     sourceBuilder.size(size);
     sourceBuilder.timeout(DEFAULT_QUERY_TIMEOUT);
-    this.exprValueFactory = factory;
-    this.includes = includes;
+    return of(indexName, sourceBuilder, factory, includes);
   }
 
-  /** Constructor of OpenSearchQueryRequest. */
+  /** For testing only. */
+  static OpenSearchQueryRequest of(
+      String indexName,
+      SearchSourceBuilder sourceBuilder,
+      OpenSearchExprValueFactory factory,
+      List<String> includes) {
+    return new OpenSearchQueryRequest(
+        new IndexName(indexName), sourceBuilder, factory, includes, false);
+  }
+
+  /** Constructor of OpenSearchQueryRequest without PIT support. */
   public OpenSearchQueryRequest(
       IndexName indexName,
       SearchSourceBuilder sourceBuilder,
       OpenSearchExprValueFactory factory,
-      List<String> includes) {
+      List<String> includes,
+      boolean paginatingAgg) {
     this.indexName = indexName;
     this.sourceBuilder = sourceBuilder;
     this.exprValueFactory = factory;
     this.includes = includes;
+    this.paginatingAgg = paginatingAgg;
   }
 
   /** Constructor of OpenSearchQueryRequest with PIT support. */
@@ -119,6 +131,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     this.includes = includes;
     this.cursorKeepAlive = cursorKeepAlive;
     this.pitId = pitId;
+    this.paginatingAgg = false; // mutex with pitId
   }
 
   /** true if the request is a count aggregation request. */
@@ -170,26 +183,65 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   public OpenSearchResponse search(
       Function<SearchRequest, SearchResponse> searchAction,
       Function<SearchScrollRequest, SearchResponse> scrollAction) {
-    if (this.pitId == null) {
-      // When SearchRequest doesn't contain PitId, fetch single page request
-      if (searchDone) {
-        return new OpenSearchResponse(
-            SearchHits.empty(), exprValueFactory, includes, isCountAggRequest());
-      } else {
-        // get the value before set searchDone = true
-        boolean isCountAggRequest = isCountAggRequest();
-        searchDone = true;
-        return new OpenSearchResponse(
-            searchAction.apply(
-                new SearchRequest().indices(indexName.getIndexNames()).source(sourceBuilder)),
-            exprValueFactory,
-            includes,
-            isCountAggRequest);
-      }
+    if (paginatingAgg) {
+      return searchPaginatingAgg(searchAction);
+    } else if (this.pitId == null) {
+      return searchSinglePage(searchAction);
     } else {
       // Search with PIT instead of scroll API
       return searchWithPIT(searchAction);
     }
+  }
+
+  private OpenSearchResponse searchSinglePage(
+      Function<SearchRequest, SearchResponse> searchAction) {
+    // When SearchRequest doesn't contain PitId, fetch single page request
+    if (searchDone) {
+      return new OpenSearchResponse(
+          SearchHits.empty(), exprValueFactory, includes, isCountAggRequest());
+    } else {
+      // get the value before set searchDone = true
+      boolean isCountAggRequest = isCountAggRequest();
+      searchDone = true;
+      return new OpenSearchResponse(
+          searchAction.apply(
+              new SearchRequest().indices(indexName.getIndexNames()).source(sourceBuilder)),
+          exprValueFactory,
+          includes,
+          isCountAggRequest);
+    }
+  }
+
+  private OpenSearchResponse searchPaginatingAgg(
+      Function<SearchRequest, SearchResponse> searchAction) {
+    OpenSearchResponse openSearchResponse;
+    if (searchDone) {
+      openSearchResponse =
+          new OpenSearchResponse(
+              SearchHits.empty(), exprValueFactory, includes, isCountAggRequest());
+    } else {
+      SearchRequest searchRequest =
+          new SearchRequest().indices(indexName.getIndexNames()).source(this.sourceBuilder);
+      this.searchResponse = searchAction.apply(searchRequest);
+
+      openSearchResponse =
+          new OpenSearchResponse(
+              this.searchResponse, exprValueFactory, includes, isCountAggRequest());
+      // get the value before set searchDone = true
+      boolean isCountAggRequest = isCountAggRequest();
+      needClean = openSearchResponse.isEmpty();
+      searchDone = openSearchResponse.isEmpty();
+      Aggregation agg = this.searchResponse.getAggregations().asList().get(0);
+      if (agg instanceof CompositeAggregation compositeAgg) {
+        afterKey = compositeAgg.afterKey();
+        if (afterKey != null && !afterKey.isEmpty()) {
+          this.sourceBuilder.aggregations().getAggregatorFactories().stream()
+              .filter(b -> b instanceof CompositeAggregationBuilder)
+              .forEach(c -> ((CompositeAggregationBuilder) c).aggregateAfter(afterKey));
+        }
+      }
+    }
+    return openSearchResponse;
   }
 
   public OpenSearchResponse searchWithPIT(Function<SearchRequest, SearchResponse> searchAction) {
@@ -252,6 +304,8 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       }
     } finally {
       this.pitId = null;
+      this.searchAfter = null;
+      this.afterKey = null;
     }
   }
 
@@ -264,6 +318,8 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       }
     } finally {
       this.pitId = null;
+      this.searchAfter = null;
+      this.afterKey = null;
     }
   }
 
