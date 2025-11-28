@@ -855,6 +855,7 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=table | mvexpand identifier limit=***",
         anonymize("source=t | mvexpand skills limit=5"));
+    }
 
   @Test
   public void testMvdedup() {
