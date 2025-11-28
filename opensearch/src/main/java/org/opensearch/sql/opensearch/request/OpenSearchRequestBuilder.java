@@ -222,14 +222,14 @@ public class OpenSearchRequestBuilder {
    * Push down aggregation to DSL request.
    *
    * @param builderAndParser pair of aggregation query and aggregation parser.
-   * @param having indicates there is a HAVING after aggregation.
+   * @param hasHavingClause indicates there is a HAVING clause after aggregation.
    */
   public void pushDownAggregation(
       Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> builderAndParser,
-      boolean having) {
+      boolean hasHavingClause) {
     builderAndParser.getLeft().forEach(sourceBuilder::aggregation);
     sourceBuilder.size(0);
-    this.paginatingAgg = having;
+    this.paginatingAgg = hasHavingClause;
     exprValueFactory.setParser(builderAndParser.getRight());
     // no need to sort docs for aggregation
     if (sourceBuilder.sorts() != null) {
