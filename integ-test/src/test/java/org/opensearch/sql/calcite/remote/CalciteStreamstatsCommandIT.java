@@ -850,7 +850,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | streamstats bucket_nullable=false avg(age) as avg_age by state,"
                     + " country | streamstats bucket_nullable=false avg(avg_age) as avg_state_age"
-                    + " by country",
+                    + " by country | fields name, country, state, month, year, age, avg_age, avg_state_age",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifyDataRows(
