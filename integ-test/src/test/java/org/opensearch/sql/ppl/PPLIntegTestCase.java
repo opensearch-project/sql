@@ -59,6 +59,8 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     return getResponseBody(response, true);
   }
 
+  /** Deprecated, use {@link #explainQueryYaml(String)} */
+  @Deprecated
   protected String explainQueryToString(String query) throws IOException {
     return explainQueryToString(query, false);
   }
