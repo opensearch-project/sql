@@ -330,6 +330,8 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     Map<String, ExprType> fieldTypes = new LinkedHashMap<>(table.getFieldTypes());
     fieldTypes.putAll(table.getReservedFieldTypes());
     for (Entry<String, ExprType> entry : fieldTypes.entrySet()) {
+      // skip alias type fields when constructing schema
+      if (entry.getValue().getOriginalPath().isPresent()) continue;
       fieldNameList.add(entry.getKey());
       typeList.add(OpenSearchTypeFactory.convertExprTypeToRelDataType(entry.getValue()));
     }
