@@ -103,30 +103,34 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
   }
 
   /**
-   * This Enumerator may be iterated for multiple times, so we need to create opensearch request for
-   * each time to avoid reusing source builder. That's because the source builder has stats like PIT
-   * or SearchAfter recorded during previous search.
+   * Provide an enumerable over rows read from the OpenSearch index.
+   *
+   * <p>Each call to {@code enumerator()} builds a fresh OpenSearch request and returns an
+   * OpenSearchIndexEnumerator so the source builder's mutable search state (for example PIT or
+   * search_after) is not reused across iterations.
+   *
+   * @return an Enumerable that yields row objects (nullable); each enumerator constructs a new
+   *     OpenSearchIndexEnumerator using the current row type field names and a fresh request
    */
   @Override
   public Enumerable<@Nullable Object> scan() {
     return new AbstractEnumerable<>() {
+      /**
+       * Creates an Enumerator that iterates over documents returned by the configured OpenSearch index scan.
+       *
+       * @return an {@code Enumerator<Object>} that produces row objects from the OpenSearch scan. 
+       */
       @Override
       public Enumerator<Object> enumerator() {
         OpenSearchRequestBuilder requestBuilder = pushDownContext.createRequestBuilder();
         return new OpenSearchIndexEnumerator(
             osIndex.getClient(),
-            getFieldPath(),
+            getRowType().getFieldNames(),
             requestBuilder.getMaxResponseSize(),
             requestBuilder.getMaxResultWindow(),
             osIndex.buildRequest(requestBuilder),
             osIndex.createOpenSearchResourceMonitor());
       }
     };
-  }
-
-  private List<String> getFieldPath() {
-    return getRowType().getFieldNames().stream()
-        .map(f -> osIndex.getAliasMapping().getOrDefault(f, f))
-        .toList();
   }
 }

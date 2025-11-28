@@ -307,12 +307,25 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     }
   }
 
+  /**
+   * Builds a Calcite struct type that represents the given table's schema.
+   *
+   * <p>Combines the table's declared and reserved fields, omits fields whose
+   * ExprType has an original path (type/alias entries), converts each remaining
+   * ExprType to a corresponding RelDataType, and returns a struct with all
+   * fields marked nullable.
+   *
+   * @param table the table whose fields will be converted into a struct type
+   * @return a struct {@link RelDataType} containing the table's converted fields (all nullable); fields with an original path are excluded
+   */
   public static RelDataType convertSchema(Table table) {
     List<String> fieldNameList = new ArrayList<>();
     List<RelDataType> typeList = new ArrayList<>();
     Map<String, ExprType> fieldTypes = new LinkedHashMap<>(table.getFieldTypes());
     fieldTypes.putAll(table.getReservedFieldTypes());
     for (Entry<String, ExprType> entry : fieldTypes.entrySet()) {
+      // skip alias type fields when constructing schema
+      if (entry.getValue().getOriginalPath().isPresent()) continue;
       fieldNameList.add(entry.getKey());
       typeList.add(OpenSearchTypeFactory.convertExprTypeToRelDataType(entry.getValue()));
     }

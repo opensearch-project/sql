@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ALIAS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
@@ -27,6 +28,14 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.ExplainIT;
 
 public class CalciteExplainIT extends ExplainIT {
+  /**
+   * Initialize the test fixture for Calcite explain integration tests.
+   *
+   * Sets up Calcite mode, configures the query bucket size, and loads the test indices required
+   * by the Calcite-specific explain test suite.
+   *
+   * @throws Exception if initialization or index loading fails
+   */
   @Override
   public void init() throws Exception {
     super.init();
@@ -42,6 +51,7 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.WORKER);
     loadIndex(Index.WORK_INFORMATION);
     loadIndex(Index.WEBLOG);
+    loadIndex(Index.DATA_TYPE_ALIAS);
   }
 
   @Override
@@ -1946,11 +1956,30 @@ public class CalciteExplainIT extends ExplainIT {
                 + " -new_state | dedup 2 new_gender, new_state"));
   }
 
+  /**
+   * Checks that a dedup operation on a text field is not pushed down in the explain plan.
+   *
+   * Loads the expected YAML plan and asserts the actual explain plan for `source=... | dedup email`
+   * matches the expectation when pushdown is enabled.
+   *
+   * @throws IOException if the expected plan file cannot be read
+   */
   @Test
   public void testDedupTextTypeNotPushdown() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_dedup_text_type_no_push.yaml");
     assertYamlEqualsIgnoreId(
         expected, explainQueryYaml(String.format("source=%s | dedup email", TEST_INDEX_BANK)));
+  }
+
+  @Test
+  public void testAliasTypeField() throws IOException {
+    String expected = loadExpectedPlan("explain_alias_type_field.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            String.format(
+                "source=%s | fields alias_col | where alias_col > 10 | stats avg(alias_col)",
+                TEST_INDEX_ALIAS)));
   }
 }

@@ -234,8 +234,19 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
   }
 
   /**
-   * When pushing down a project, we need to create a new CalciteLogicalIndexScan with the updated
-   * schema since we cannot override getRowType() which is defined to be final.
+   * Create a new scan whose row type is the projection of this scan to the given column indices
+   * and register a PROJECT pushdown for that projection.
+   *
+   * The method builds a new row type from the specified column indices, reindexes any collations
+   * to match the projected field positions, clones the current pushDownContext, and attaches a
+   * pushdown action: a no-op for an already-pushed aggregation or a request-builder action that
+   * instructs the request to stream only the projected field names.
+   *
+   * @param selectedColumns the list of field indices (from this scan's current row type) to include
+   *                        in the projection, in desired output order
+   * @return the new CalciteLogicalIndexScan with the projected schema and a registered PROJECT
+   *         pushdown, or `null` if the projection cannot be pushed down (for example if it would
+   *         create a circular pushdown)
    */
   public CalciteLogicalIndexScan pushDownProject(List<Integer> selectedColumns) {
     final RelDataTypeFactory.Builder builder = getCluster().getTypeFactory().builder();
@@ -272,15 +283,10 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       // For aggregate, we do nothing on query builder but only change the schema of the scan.
       action = (AggregationBuilderAction) aggAction -> {};
     } else {
-      Map<String, String> aliasMapping = this.osIndex.getAliasMapping();
-      // For alias types, we need to push down its original path instead of the alias name.
-      List<String> projectedFields =
-          newSchema.getFieldNames().stream()
-              .map(fieldName -> aliasMapping.getOrDefault(fieldName, fieldName))
-              .toList();
       action =
           (OSRequestBuilderAction)
-              requestBuilder -> requestBuilder.pushDownProjectStream(projectedFields.stream());
+              requestBuilder ->
+                  requestBuilder.pushDownProjectStream(newSchema.getFieldNames().stream());
     }
     newScan.pushDownContext.add(PushDownType.PROJECT, newSchema.getFieldNames(), action);
     return newScan;

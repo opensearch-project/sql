@@ -11,6 +11,7 @@ import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_RO
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 import lombok.Getter;
 import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
@@ -43,6 +44,7 @@ import org.opensearch.search.sort.ScoreSortBuilder;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
+import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
@@ -61,7 +63,7 @@ import org.opensearch.sql.opensearch.storage.scan.context.SortExprDigest;
 
 /** An abstract relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
-public abstract class AbstractCalciteIndexScan extends TableScan {
+public abstract class AbstractCalciteIndexScan extends TableScan implements AliasFieldsWrappable {
   private static final Logger LOG = LogManager.getLogger(AbstractCalciteIndexScan.class);
   public final OpenSearchIndex osIndex;
   // The schema of this scan operator, it's initialized with the row type of the table, but may be
@@ -243,7 +245,19 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     return multiplier;
   }
 
-  protected abstract AbstractCalciteIndexScan buildScan(
+  /**
+       * Create a new scan instance configured with the given cluster, traits, table and push-down context.
+       *
+       * @param cluster the optimization cluster for the new relational node
+       * @param traitSet the trait set to assign to the new scan
+       * @param hints planner hints to attach to the created scan
+       * @param table the table metadata that the scan will read from
+       * @param osIndex the OpenSearchIndex backing the scan
+       * @param schema the output row type/schema for the created scan
+       * @param pushDownContext the push-down actions to apply to the scan
+       * @return a new AbstractCalciteIndexScan instance configured with the supplied parameters
+       */
+      protected abstract AbstractCalciteIndexScan buildScan(
       RelOptCluster cluster,
       RelTraitSet traitSet,
       List<RelHint> hints,
@@ -252,6 +266,22 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       RelDataType schema,
       PushDownContext pushDownContext);
 
+  /**
+   * Provides the mapping from alias names to underlying field names for the scanned index.
+   *
+   * @return a map where each key is an alias and the corresponding value is the actual field name
+   */
+  @Override
+  public Map<String, String> getAliasMapping() {
+    return osIndex.getAliasMapping();
+  }
+
+  /**
+   * Map a list of field collations to their corresponding field names in the current row type.
+   *
+   * @param collations list of field collations whose field indexes are resolved against this scan's row type
+   * @return a list of field names in the same order as the provided collations
+   */
   protected List<String> getCollationNames(List<RelFieldCollation> collations) {
     return collations.stream()
         .map(collation -> getRowType().getFieldNames().get(collation.getFieldIndex()))

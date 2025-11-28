@@ -143,6 +143,7 @@ import org.opensearch.sql.ast.tree.Trendline.TrendlineType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
@@ -178,6 +179,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return unresolved.accept(this, context);
   }
 
+  /**
+   * Resolve a relation's data source, validate it for Calcite support, push a table scan onto
+   * the relBuilder, and return the resulting RelNode (wrapping it for alias fields when supported).
+   *
+   * @param node the unresolved relation node containing the qualified table name
+   * @param context the current Calcite plan context holding the relBuilder and other state
+   * @return the pushed table scan RelNode, or a project-wrapped RelNode when the scan supports alias-field wrapping
+   * @throws CalciteUnsupportedException if the relation references a non-default datasource, the DATASOURCES
+   *     table, or the information_schema, which are unsupported by Calcite
+   */
   @Override
   public RelNode visitRelation(Relation node, CalcitePlanContext context) {
     DataSourceSchemaIdentifierNameResolver nameResolver =
@@ -196,7 +207,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       throw new CalciteUnsupportedException("information_schema is unsupported in Calcite");
     }
     context.relBuilder.scan(node.getTableQualifiedName().getParts());
-    return context.relBuilder.peek();
+    RelNode scan = context.relBuilder.peek();
+    if (scan instanceof AliasFieldsWrappable) {
+      return ((AliasFieldsWrappable) scan).wrapProjectForAliasFields(context.relBuilder);
+    }
+    return scan;
   }
 
   // This is a tool method to add an existed RelOptTable to builder stack, not used for now
