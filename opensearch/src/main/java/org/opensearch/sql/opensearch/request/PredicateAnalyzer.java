@@ -667,9 +667,9 @@ public class PredicateAnalyzer {
           switch (nullAs) {
             case FALSE:
               // e.g. where isNotNull(a) and (a = 1 or a = 2)
-              // TODO: For this case, seems return `expression` should be equivalent
-              finalExpression = CompoundQueryExpression.and(
-                false, expression, QueryExpression.create(pair.getKey()).exists());
+              // For this case, return `expression` is equivalent
+              // But DSL `bool.must` could slow down the query, so we return `expression`
+              finalExpression = expression;
               break;
             case TRUE:
               // e.g. where isNull(a) or a = 1 or a = 2
