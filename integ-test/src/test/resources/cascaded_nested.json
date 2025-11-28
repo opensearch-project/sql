@@ -1,0 +1,6 @@
+{"index": {"_id": "1"}}
+{"author": {"name": "J.K. Rowling", "books": [{"title": "Harry Potter and the Sorcerer's Stone", "reviews": [{"rating": 5, "comment": "Magical and enchanting!", "review_date": "2023-01-15"}, {"rating": 4, "comment": "Great for kids and adults", "review_date": "2023-06-22"}]}, {"title": "Harry Potter and the Chamber of Secrets", "reviews": [{"rating": 5, "comment": "Even better than the first", "review_date": "2023-02-10"}, {"rating": 4, "comment": "Darker tone emerging", "review_date": "2023-07-18"}]}]}}
+{"index": {"_id": "2"}}
+{"author": {"name": "George R.R. Martin", "books": [{"title": "A Game of Thrones", "reviews": [{"rating": 4, "comment": "Epic fantasy masterpiece", "review_date": "2022-11-05"}, {"rating": 3, "comment": "Too many characters to track", "review_date": "2023-03-20"}]}, {"title": "A Clash of Kings", "reviews": [{"rating": 2, "comment": "Incredible plot twists", "review_date": "2023-08-14"}]}]}}
+{"index": {"_id": "3"}}
+{"author": {"name": "Stephen King", "books": [{"title": "The Shining", "reviews": [{"rating": 3, "comment": "Brilliant but terrifying", "review_date": "2022-09-03"}, {"rating": 4, "comment": "Psychological horror at its best", "review_date": "2023-04-12"}, {"rating": 2, "comment": "Too slow in places", "review_date": "2023-10-28"}]}]}}
