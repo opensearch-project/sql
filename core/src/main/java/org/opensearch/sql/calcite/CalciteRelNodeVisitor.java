@@ -2855,6 +2855,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     Integer limit = mvExpand.getLimit();
     if (limit != null) {
+      if (limit <= 0) {
+        throw new SemanticCheckException(
+            String.format("mvexpand limit must be positive, but got %d", limit));
+      }
       relBuilder.limit(0, limit);
     }
 
