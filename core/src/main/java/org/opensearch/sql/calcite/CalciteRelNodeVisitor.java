@@ -845,7 +845,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 .toList();
         context.relBuilder.aggregate(context.relBuilder.groupKey(groupByList), aggCall);
         buildExpandRelNode(
-            context.relBuilder.field(node.getAlias()), node.getAlias(), node.getAlias(), context);
+            context.relBuilder.field(node.getAlias()),
+            node.getAlias(),
+            node.getAlias(),
+            null,
+            context);
         flattenParsedPattern(
             node.getAlias(),
             context.relBuilder.field(node.getAlias()),
@@ -2835,7 +2839,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RexInputRef arrayFieldRex = (RexInputRef) rexVisitor.analyze(arrayField, context);
     String alias = expand.getAlias();
 
-    buildExpandRelNode(arrayFieldRex, arrayField.getField().toString(), alias, context);
+    buildExpandRelNode(arrayFieldRex, arrayField.getField().toString(), alias, null, context);
 
     return context.relBuilder.peek();
   }
@@ -2903,20 +2907,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               fieldName, sqlType.getName()));
     }
 
-    // 2C. Valid array → expand
+    // 2C. Valid array → expand (with optional per-document limit)
     int index = matched.getIndex();
     RexInputRef fieldRef = context.rexBuilder.makeInputRef(type, index);
 
-    buildExpandRelNode(fieldRef, fieldName, fieldName, context);
-
     Integer limit = mvExpand.getLimit();
-    if (limit != null) {
-      if (limit <= 0) {
-        throw new SemanticCheckException(
-            String.format("mvexpand limit must be positive, but got %d", limit));
-      }
-      relBuilder.limit(0, limit);
+    if (limit != null && limit <= 0) {
+      throw new SemanticCheckException(
+          String.format("mvexpand limit must be positive, but got %d", limit));
     }
+    buildExpandRelNode(fieldRef, fieldName, fieldName, limit, context);
 
     return relBuilder.peek();
   }
@@ -3179,7 +3179,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   private void buildExpandRelNode(
-      RexInputRef arrayFieldRex, String arrayFieldName, String alias, CalcitePlanContext context) {
+      RexInputRef arrayFieldRex,
+      String arrayFieldName,
+      String alias,
+      @Nullable Integer perDocLimit,
+      CalcitePlanContext context) {
     // 3. Capture the outer row in a CorrelationId
     Holder<RexCorrelVariable> correlVariable = Holder.empty();
     context.relBuilder.variable(correlVariable::set);
@@ -3194,14 +3198,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RelNode leftNode = context.relBuilder.build();
 
     // 5. Build join right node and expand the array field using uncollect
-    RelNode rightNode =
-        context
-            .relBuilder
-            // fake input, see convertUnnest and convertExpression in Calcite SqlToRelConverter
-            .push(LogicalValues.createOneRow(context.relBuilder.getCluster()))
-            .project(List.of(correlArrayFieldAccess), List.of(arrayFieldName))
-            .uncollect(List.of(), false)
-            .build();
+    context
+        .relBuilder
+        // fake input, see convertUnnest and convertExpression in Calcite SqlToRelConverter
+        .push(LogicalValues.createOneRow(context.relBuilder.getCluster()))
+        .project(List.of(correlArrayFieldAccess), List.of(arrayFieldName))
+        .uncollect(List.of(), false);
+
+    if (perDocLimit != null) {
+      context.relBuilder.limit(0, perDocLimit);
+    }
+    RelNode rightNode = context.relBuilder.build();
 
     // 6. Perform a nested-loop join (correlate) between the original table and the expanded
     // array field.
