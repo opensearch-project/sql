@@ -1,0 +1,83 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  - do:
+      indices.create:
+        index: test1
+        body:
+          mappings:
+            properties:
+              "timestamp":
+                type: date
+              "status":
+                type: integer
+              "client_ip":
+                type: ip
+  - do:
+      indices.create:
+        index: test2
+        body:
+          mappings:
+            properties:
+              "client_ip":
+                type: ip
+              "city":
+                type: keyword
+              "country":
+                type: keyword
+  - do:
+      bulk:
+        index: test1
+        refresh: true
+        body:
+          - '{"index":{}}'
+          - '{"datetime":"2025-01-15T00:30:00Z","status":200,"client_ip":"10.0.0.1"}'
+          - '{"index":{}}'
+          - '{"datetime":"2025-01-15T02:15:00Z","status":200,"client_ip":"10.0.0.2"}'
+          - '{"index":{}}'
+          - '{"datetime":"2025-01-15T10:50:00Z","status":200,"client_ip":"10.0.0.11"}'
+          - '{"index":{}}'
+          - '{"datetime":"2025-01-15T23:45:00Z","status":200,"client_ip":"10.0.0.24"}'
+  - do:
+      bulk:
+        index: test2
+        refresh: true
+        body:
+          - '{"index":{}}'
+          - '{"client_ip": "10.0.0.1","country": "Canada","city": "Toronto"}'
+          - '{"index":{}}'
+          - '{"client_ip": "10.0.0.24","country": "UK","city": "London"}'
+          - '{"index":{}}'
+          - '{"client_ip": "10.0.1.1","country": "USA","city": "New York"}'
+          - '{"index":{}}'
+          - '{"client_ip": "10.0.1.2","country": "USA","city": "Seattle"}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"hash join on IP type should work":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test1 | stats count() as cnt by client_ip | join type=inner client_ip test2 | fields client_ip, cnt
+
+
+  - match: { total: 2 }
+  - match: {"datarows": [["10.0.0.1", 1], ["10.0.0.24", 1]]}
