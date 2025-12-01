@@ -1268,6 +1268,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               context.relBuilder.peek(),
               context.relBuilder.literal(context.sysLimit.joinSubsearchLimit())));
     }
+    List<String> leftAllFields = context.fieldBuilder.getAllFieldNames(1);
+    List<String> rightAllFields = context.fieldBuilder.getAllFieldNames(0);
     if (node.getJoinCondition().isEmpty()) {
       // join-with-field-list grammar
       List<String> leftColumns = context.fieldBuilder.getStaticFieldNames(1);
@@ -1299,12 +1301,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           || (node.getArgumentMap().get("overwrite").equals(Literal.TRUE))) {
         toBeRemovedFields =
             duplicatedFieldNames.stream()
-                .map(field -> JoinAndLookupUtils.analyzeFieldsForLookUp(field, true, context))
+                .map(field -> JoinAndLookupUtils.analyzeFieldsInLeft(field, context))
                 .toList();
       } else {
         toBeRemovedFields =
             duplicatedFieldNames.stream()
-                .map(field -> JoinAndLookupUtils.analyzeFieldsForLookUp(field, false, context))
+                .map(field -> JoinAndLookupUtils.analyzeFieldsInRight(field, context))
                 .toList();
       }
       Literal max = node.getArgumentMap().get("max");
@@ -1329,6 +1331,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       if (!toBeRemovedFields.isEmpty()) {
         context.relBuilder.projectExcept(toBeRemovedFields);
       }
+      context.fieldBuilder.reorganizeDynamicFields(leftAllFields, rightAllFields);
+
       return context.relBuilder.peek();
     }
     // The join-with-criteria grammar doesn't allow empty join condition
@@ -1336,6 +1340,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         node.getJoinCondition()
             .map(c -> rexVisitor.analyzeJoinCondition(c, context))
             .orElse(context.relBuilder.literal(true));
+    joinCondition = context.rexBuilder.castAnyToAlignTypes(joinCondition, context);
     if (node.getJoinType() == SEMI || node.getJoinType() == ANTI) {
       // semi and anti join only return left table outputs
       context.relBuilder.join(
@@ -1346,7 +1351,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       // when a new project add to stack. To avoid `id0`, we will rename the `id0` to `alias.id`
       // or `tableIdentifier.id`:
       List<String> leftColumns = context.fieldBuilder.getStaticFieldNames(1);
-      List<String> rightColumns = context.fieldBuilder.getStaticFieldNames();
+      List<String> rightColumns = context.fieldBuilder.getStaticFieldNames(0);
       List<String> rightTableName =
           PlanUtils.findTable(context.relBuilder.peek()).getQualifiedName();
       // Using `table.column` instead of `catalog.database.table.column` as column prefix because
@@ -1381,6 +1386,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       }
       context.relBuilder.join(
           JoinAndLookupUtils.translateJoinType(node.getJoinType()), joinCondition);
+
+      context.fieldBuilder.reorganizeDynamicFields(leftAllFields, rightAllFields);
       JoinAndLookupUtils.renameToExpectedFields(
           rightColumnsWithAliasIfConflict, leftColumns.size(), context);
     }
@@ -1413,9 +1420,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   private static RexNode buildJoinConditionByFieldName(
       CalcitePlanContext context, String fieldName) {
-    RexNode lookupKey = JoinAndLookupUtils.analyzeFieldsForLookUp(fieldName, false, context);
-    RexNode sourceKey = JoinAndLookupUtils.analyzeFieldsForLookUp(fieldName, true, context);
-    return context.rexBuilder.equals(sourceKey, lookupKey);
+    RexNode sourceKey = JoinAndLookupUtils.analyzeFieldsInLeft(fieldName, context);
+    RexNode lookupKey = JoinAndLookupUtils.analyzeFieldsInRight(fieldName, context);
+    return context.rexBuilder.equalsWithCastAsNeeded(sourceKey, lookupKey);
   }
 
   @Override
@@ -1441,6 +1448,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Get lookupColumns from top of stack (after above potential projection).
     List<String> lookupTableFieldNames = context.fieldBuilder.getStaticFieldNames();
 
+    // For merging with dynamic fields later
+    List<String> leftAllFields = context.fieldBuilder.getAllFieldNames(1);
+    List<String> rightAllFields = context.fieldBuilder.getAllFieldNames(0);
+
     // 3. Find fields which should be removed in lookup-table.
     // For lookup table, the mapping fields should be dropped after join
     // unless they are explicitly put in the output fields
@@ -1454,6 +1465,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .toList();
     List<RexNode> toBeRemovedLookupFields =
         toBeRemovedLookupFieldNames.stream()
+            .filter(d -> lookupTableFieldNames.contains(d))
             .map(d -> (RexNode) context.fieldBuilder.staticField(2, 1, d))
             .toList();
     List<RexNode> toBeRemovedFields = new ArrayList<>(toBeRemovedLookupFields);
@@ -1465,7 +1477,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     List<RexNode> duplicatedSourceFields =
         duplicatedFieldNamesMap.keySet().stream()
-            .map(field -> JoinAndLookupUtils.analyzeFieldsForLookUp(field, true, context))
+            .map(field -> JoinAndLookupUtils.analyzeFieldsInLeft(field, context))
             .toList();
     // Duplicated fields in source-field should always be removed.
     toBeRemovedFields.addAll(duplicatedSourceFields);
@@ -1477,7 +1489,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (!duplicatedFieldNamesMap.isEmpty() && node.getOutputStrategy() == OutputStrategy.APPEND) {
       List<RexNode> duplicatedProvidedFields =
           duplicatedFieldNamesMap.values().stream()
-              .map(field -> JoinAndLookupUtils.analyzeFieldsForLookUp(field, false, context))
+              .map(field -> JoinAndLookupUtils.analyzeFieldsInRight(field, context))
               .toList();
       for (int i = 0; i < duplicatedProvidedFields.size(); ++i) {
         newCoalesceList.add(
@@ -1514,7 +1526,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       context.relBuilder.projectExcept(toBeRemovedFields);
     }
 
-    // TODO: dedupe dynamic fields
+    context.fieldBuilder.reorganizeDynamicFields(leftAllFields, rightAllFields);
 
     // 7. Rename the fields to the expected names.
     JoinAndLookupUtils.renameToExpectedFields(

@@ -13,9 +13,11 @@ import java.util.Locale;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -23,6 +25,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.RexConverter;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -42,6 +45,20 @@ public class ExtendedRexBuilder extends RexBuilder {
 
   public RexNode equals(RexNode n1, RexNode n2) {
     return this.makeCall(SqlStdOperatorTable.EQUALS, n1, n2);
+  }
+
+  /** Make equals call with adding cast in case the node type is ANY. */
+  public RexNode equalsWithCastAsNeeded(RexNode n1, RexNode n2) {
+    if (isAnyType(n1) && isAnyType(n2)) {
+      n1 = castToString(n1);
+      n2 = castToString(n2);
+    } else if (isAnyType(n1)) {
+      n1 = castToTargetType(n1, n2);
+    } else if (isAnyType(n2)) {
+      n2 = castToTargetType(n2, n1);
+    }
+
+    return equals(n1, n2);
   }
 
   public RexNode and(RexNode left, RexNode right) {
@@ -167,6 +184,10 @@ public class ExtendedRexBuilder extends RexBuilder {
     return super.makeCast(pos, type, exp, matchNullability, safe, format);
   }
 
+  public boolean isAnyType(RexNode node) {
+    return node.getType().getSqlTypeName().equals(SqlTypeName.ANY);
+  }
+
   /** Cast node to string */
   public RexNode castToString(RexNode node) {
     RelDataType stringType = getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
@@ -193,5 +214,30 @@ public class ExtendedRexBuilder extends RexBuilder {
     }
 
     return makeCall(arrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, elements);
+  }
+
+  /** cast node to the same type as target */
+  public RexNode castToTargetType(RexNode node, RexNode target) {
+    return makeCast(target.getType(), node, true, true);
+  }
+
+  /**
+   * Utility to cast ANY to specific types to avoid compare issue in Calcite:
+   * https://issues.apache.org/jira/browse/CALCITE-7206
+   */
+  RexNode castAnyToAlignTypes(RexNode rexNode, CalcitePlanContext context) {
+    return rexNode.accept(
+        new RexConverter() {
+          @Override
+          public RexNode visitCall(RexCall call) {
+            if (call.getKind() == SqlKind.EQUALS) {
+              RexNode n0 = call.operands.get(0);
+              RexNode n1 = call.operands.get(1);
+              return super.visitCall((RexCall) equalsWithCastAsNeeded(n0, n1));
+            } else {
+              return super.visitCall(call);
+            }
+          }
+        });
   }
 }
