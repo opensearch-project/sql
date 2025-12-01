@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.calcite.standalone;
 
+import static org.hamcrest.Matchers.equalTo;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
@@ -85,10 +87,7 @@ public class AppendFunctionIT extends CalcitePPLRelNodeIntegTestCase {
           assertTrue(resultSet.next());
           verifyColumns(resultSet, RESULT_FIELD);
           List<?> result = getResultList(resultSet);
-          assertEquals(3, result.size());
-          assertEquals(1, result.get(0));
-          assertEquals(2, result.get(1));
-          assertEquals(3, result.get(2));
+          assertThat(result, equalTo(List.of(1, 2, 3)));
         });
   }
 
@@ -113,11 +112,7 @@ public class AppendFunctionIT extends CalcitePPLRelNodeIntegTestCase {
           assertTrue(resultSet.next());
           verifyColumns(resultSet, RESULT_FIELD);
           List<?> result = getResultList(resultSet);
-          assertEquals(4, result.size());
-          assertEquals("a", result.get(0));
-          assertEquals("b", result.get(1));
-          assertEquals("c", result.get(2));
-          assertEquals("d", result.get(3));
+          assertThat(result, equalTo(List.of("a", "b", "c", "d")));
         });
   }
 
@@ -143,11 +138,7 @@ public class AppendFunctionIT extends CalcitePPLRelNodeIntegTestCase {
           assertTrue(resultSet.next());
           verifyColumns(resultSet, RESULT_FIELD);
           List<?> result = getResultList(resultSet);
-          assertEquals(4, result.size());
-          assertEquals("a", result.get(0));
-          assertEquals("b", result.get(1));
-          assertEquals(42, result.get(2));
-          assertEquals("hello", result.get(3));
+          assertThat(result, equalTo(List.of("a", "b", 42, "hello")));
         });
   }
 
@@ -195,13 +186,10 @@ public class AppendFunctionIT extends CalcitePPLRelNodeIntegTestCase {
           assertTrue(resultSet.next());
           verifyColumns(resultSet, RESULT_FIELD);
           List<?> result = getResultList(resultSet);
-          assertEquals(2, result.size());
-          assertEquals("hello", result.get(0));
-          assertEquals("world", result.get(1));
+          assertThat(result, equalTo(List.of("hello", "world")));
         });
   }
 
-  @SuppressWarnings("unchecked")
   private List<?> getResultList(ResultSet resultSet) throws SQLException {
     Object result = resultSet.getObject(1);
     assertTrue(result instanceof List);
