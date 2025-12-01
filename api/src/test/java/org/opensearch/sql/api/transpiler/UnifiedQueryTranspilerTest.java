@@ -29,9 +29,10 @@ public class UnifiedQueryTranspilerTest extends UnifiedQueryTestBase {
     String pplQuery = "source = employees";
     RelNode plan = planner.plan(pplQuery);
 
-    String sql = transpiler.toSql(plan);
+    String actualSql = transpiler.toSql(plan);
     String expectedSql = "SELECT *\nFROM `catalog`.`employees`";
-    assertEquals("Generated SQL should match expected", expectedSql, sql);
+    assertEquals(
+        "Transpiled SQL using SparkSqlDialect should match expected SQL", expectedSql, actualSql);
   }
 
   @Test
@@ -39,15 +40,14 @@ public class UnifiedQueryTranspilerTest extends UnifiedQueryTestBase {
     String pplQuery = "source = employees | where name = 123";
     RelNode plan = planner.plan(pplQuery);
 
-    // OpenSearchSparkSqlDialect translates SAFE_CAST to TRY_CAST for Spark SQL compatibility
     UnifiedQueryTranspiler customTranspiler =
         UnifiedQueryTranspiler.builder().dialect(OpenSearchSparkSqlDialect.DEFAULT).build();
-    String sql = customTranspiler.toSql(plan);
-    String expectedCustomSql =
-        "SELECT *\n"
-            + "FROM `catalog`.`employees`\n"
-            + "WHERE TRY_CAST(`name` AS DOUBLE) = 1.230E2";
+    String actualSql = customTranspiler.toSql(plan);
+    String expectedSql =
+        "SELECT *\nFROM `catalog`.`employees`\nWHERE TRY_CAST(`name` AS DOUBLE) = 1.230E2";
     assertEquals(
-        "OpenSearchSparkSqlDialect should translate SAFE_CAST to TRY_CAST", expectedCustomSql, sql);
+        "Transpiled query using OpenSearchSparkSqlDialect should translate SAFE_CAST to TRY_CAST",
+        expectedSql,
+        actualSql);
   }
 }
