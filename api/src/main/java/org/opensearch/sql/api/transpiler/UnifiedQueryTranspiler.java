@@ -14,11 +14,12 @@ import org.apache.calcite.sql.SqlNode;
 /**
  * Transpiles Calcite logical plans ({@link RelNode}) into SQL strings for various target databases.
  * Uses Calcite's {@link RelToSqlConverter} to perform the conversion, respecting the specified SQL
- * dialect and formatting options.
+ * dialect.
  */
 @Builder
 public class UnifiedQueryTranspiler {
 
+  /** Target SQL dialect */
   private final SqlDialect dialect;
 
   /**

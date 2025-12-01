@@ -12,6 +12,7 @@ import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.junit.Before;
 import org.junit.Test;
 import org.opensearch.sql.api.UnifiedQueryTestBase;
+import org.opensearch.sql.ppl.calcite.OpenSearchSparkSqlDialect;
 
 public class UnifiedQueryTranspilerTest extends UnifiedQueryTestBase {
 
@@ -31,5 +32,22 @@ public class UnifiedQueryTranspilerTest extends UnifiedQueryTestBase {
     String sql = transpiler.toSql(plan);
     String expectedSql = "SELECT *\nFROM `catalog`.`employees`";
     assertEquals("Generated SQL should match expected", expectedSql, sql);
+  }
+
+  @Test
+  public void testToSqlWithCustomDialect() {
+    String pplQuery = "source = employees | where name = 123";
+    RelNode plan = planner.plan(pplQuery);
+
+    // OpenSearchSparkSqlDialect translates SAFE_CAST to TRY_CAST for Spark SQL compatibility
+    UnifiedQueryTranspiler customTranspiler =
+        UnifiedQueryTranspiler.builder().dialect(OpenSearchSparkSqlDialect.DEFAULT).build();
+    String sql = customTranspiler.toSql(plan);
+    String expectedCustomSql =
+        "SELECT *\n"
+            + "FROM `catalog`.`employees`\n"
+            + "WHERE TRY_CAST(`name` AS DOUBLE) = 1.230E2";
+    assertEquals(
+        "OpenSearchSparkSqlDialect should translate SAFE_CAST to TRY_CAST", expectedCustomSql, sql);
   }
 }
