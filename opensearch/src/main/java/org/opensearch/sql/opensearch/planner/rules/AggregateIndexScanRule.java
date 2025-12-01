@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.opensearch.planner.rules;
 
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.isTimeBasedType;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.isDatetime;
 import static org.opensearch.sql.expression.function.PPLBuiltinOperators.WIDTH_BUCKET;
 
 import java.util.List;
@@ -210,7 +210,7 @@ public class AggregateIndexScanRule extends InterruptibleRelRule<AggregateIndexS
             agg.getGroupSet().stream()
                 .allMatch(
                     group ->
-                        isTimeBasedType(
+                        isDatetime(
                             agg.getInput().getRowType().getFieldList().get(group).getType()));
 
     Config BUCKET_NON_NULL_AGG =

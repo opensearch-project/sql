@@ -48,7 +48,7 @@ public interface UDFOperandMetadata extends SqlOperandMetadata {
 
       @Override
       public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
-        return typeChecker.checkOperandTypesWithoutTypeCoercion(callBinding, throwOnFailure);
+        return typeChecker.checkOperandTypes(callBinding, throwOnFailure);
       }
 
       @Override

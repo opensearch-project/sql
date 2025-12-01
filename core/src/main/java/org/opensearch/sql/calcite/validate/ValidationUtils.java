@@ -12,6 +12,7 @@ import lombok.experimental.UtilityClass;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 
@@ -56,5 +57,20 @@ public class ValidationUtils {
     }
     RelDataType type = typeFactory.createUDT(userDefinedType);
     return syncAttributes(typeFactory, fromType, type);
+  }
+
+  public static RelDataType createUDTWithAttributes(
+      RelDataTypeFactory factory, RelDataType fromType, SqlTypeName sqlTypeName) {
+    return switch (sqlTypeName) {
+      case SqlTypeName.DATE ->
+          createUDTWithAttributes(factory, fromType, OpenSearchTypeFactory.ExprUDT.EXPR_DATE);
+      case SqlTypeName.TIME ->
+          createUDTWithAttributes(factory, fromType, OpenSearchTypeFactory.ExprUDT.EXPR_TIME);
+      case SqlTypeName.TIMESTAMP ->
+          createUDTWithAttributes(factory, fromType, OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP);
+      case SqlTypeName.BINARY ->
+          createUDTWithAttributes(factory, fromType, OpenSearchTypeFactory.ExprUDT.EXPR_BINARY);
+      default -> throw new IllegalArgumentException("Unsupported type: " + sqlTypeName);
+    };
   }
 }

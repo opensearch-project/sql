@@ -5,16 +5,23 @@
 
 package org.opensearch.sql.calcite.validate;
 
+import static java.util.Objects.requireNonNull;
 import static org.opensearch.sql.calcite.validate.ValidationUtils.createUDTWithAttributes;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.IntStream;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeCoercionRule;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeMappingRule;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -24,6 +31,9 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.implicit.TypeCoercionImpl;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
 /**
  * Custom type coercion implementation for PPL that extends Calcite's default type coercion with
@@ -86,13 +96,16 @@ public class PplTypeCoercion extends TypeCoercionImpl {
   @Override
   public @Nullable RelDataType implicitCast(RelDataType in, SqlTypeFamily expected) {
     RelDataType casted = super.implicitCast(in, expected);
+    if (casted == null) {
+      // String -> DATETIME is converted to String -> TIMESTAMP
+      if (OpenSearchTypeFactory.isCharacter(in) && expected == SqlTypeFamily.DATETIME) {
+        return createUDTWithAttributes(factory, in, OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP);
+      }
+      return null;
+    }
     return switch (casted.getSqlTypeName()) {
-      case SqlTypeName.DATE ->
-          createUDTWithAttributes(factory, in, OpenSearchTypeFactory.ExprUDT.EXPR_DATE);
-      case SqlTypeName.TIME ->
-          createUDTWithAttributes(factory, in, OpenSearchTypeFactory.ExprUDT.EXPR_TIME);
-      case SqlTypeName.TIMESTAMP ->
-          createUDTWithAttributes(factory, in, OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP);
+      case SqlTypeName.DATE, SqlTypeName.TIME, SqlTypeName.TIMESTAMP, SqlTypeName.BINARY ->
+          createUDTWithAttributes(factory, in, casted.getSqlTypeName());
       default -> casted;
     };
   }
@@ -106,9 +119,90 @@ public class PplTypeCoercion extends TypeCoercionImpl {
       SqlValidatorScope scope, SqlNode node, RelDataType toType, SqlTypeMappingRule mappingRule) {
     boolean need = super.needToCast(scope, node, toType, mappingRule);
     RelDataType fromType = validator.deriveType(scope, node);
-    if (OpenSearchTypeFactory.isUserDefinedType(toType) && SqlTypeUtil.isCharacter(fromType)) {
+    if (OpenSearchTypeFactory.isUserDefinedType(toType)
+        && OpenSearchTypeFactory.isCharacter(fromType)) {
       need = true;
     }
     return need;
+  }
+
+  @Override
+  protected boolean dateTimeStringEquality(
+      SqlCallBinding binding, RelDataType left, RelDataType right) {
+    if (OpenSearchTypeFactory.isCharacter(left) && OpenSearchTypeFactory.isDatetime(right)) {
+      // Use user-defined types in place of inbuilt datetime types
+      RelDataType r =
+          OpenSearchTypeFactory.isUserDefinedType(right)
+              ? right
+              : ValidationUtils.createUDTWithAttributes(factory, right, right.getSqlTypeName());
+      return coerceOperandType(binding.getScope(), binding.getCall(), 0, r);
+    }
+    if (OpenSearchTypeFactory.isCharacter(right) && OpenSearchTypeFactory.isDatetime(left)) {
+      RelDataType l =
+          OpenSearchTypeFactory.isUserDefinedType(left)
+              ? left
+              : ValidationUtils.createUDTWithAttributes(factory, left, left.getSqlTypeName());
+      return coerceOperandType(binding.getScope(), binding.getCall(), 1, l);
+    }
+    return false;
+  }
+
+  @Override
+  protected @Nullable RelDataType commonTypeForComparison(List<RelDataType> dataTypes) {
+    return super.commonTypeForComparison(dataTypes);
+  }
+
+  /**
+   * Cast operand at index {@code index} to target type. we do this base on the fact that validate
+   * happens before type coercion.
+   */
+  protected boolean coerceOperandType(
+      @Nullable SqlValidatorScope scope, SqlCall call, int index, RelDataType targetType) {
+    // Transform the JavaType to SQL type because the SqlDataTypeSpec
+    // does not support deriving JavaType yet.
+    if (RelDataTypeFactoryImpl.isJavaType(targetType)) {
+      targetType = ((JavaTypeFactory) factory).toSql(targetType);
+    }
+
+    SqlNode operand = call.getOperandList().get(index);
+    if (operand instanceof SqlDynamicParam) {
+      // Do not support implicit type coercion for dynamic param.
+      return false;
+    }
+    requireNonNull(scope, "scope");
+    RelDataType operandType = validator.deriveType(scope, operand);
+    if (coerceStringToArray(call, operand, index, operandType, targetType)) {
+      return true;
+    }
+
+    // Check it early.
+    if (!needToCast(scope, operand, targetType, SqlTypeCoercionRule.lenientInstance())) {
+      return false;
+    }
+    // Fix up nullable attr.
+    RelDataType targetType1 = ValidationUtils.syncAttributes(factory, operandType, targetType);
+    SqlNode desired = castTo(operand, targetType1);
+    call.setOperand(index, desired);
+    updateInferredType(desired, targetType1);
+    return true;
+  }
+
+  private static SqlNode castTo(SqlNode node, RelDataType type) {
+    if (OpenSearchTypeFactory.isDatetime(type)) {
+      ExprType exprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(type);
+      return switch (exprType) {
+        case ExprCoreType.DATE ->
+            PPLBuiltinOperators.DATE.createCall(node.getParserPosition(), node);
+        case ExprCoreType.TIMESTAMP ->
+            PPLBuiltinOperators.TIMESTAMP.createCall(node.getParserPosition(), node);
+        case ExprCoreType.TIME ->
+            PPLBuiltinOperators.TIME.createCall(node.getParserPosition(), node);
+        default -> throw new UnsupportedOperationException("Unsupported type: " + exprType);
+      };
+    }
+    return SqlStdOperatorTable.CAST.createCall(
+        node.getParserPosition(),
+        node,
+        SqlTypeUtil.convertTypeToSpec(type).withNullable(type.isNullable()));
   }
 }

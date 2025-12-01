@@ -5,9 +5,6 @@
 
 package org.opensearch.sql.calcite.utils;
 
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_DATE;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIME;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP;
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.BINARY;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
@@ -385,8 +382,9 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
    * @param fieldType the RelDataType to check
    * @return true if the type is time-based, false otherwise
    */
-  public static boolean isTimeBasedType(RelDataType fieldType) {
+  public static boolean isDatetime(RelDataType fieldType) {
     // Check standard SQL time types
+    // TODO: Optimize with SqlTypeUtil.isDatetime
     SqlTypeName sqlType = fieldType.getSqlTypeName();
     if (sqlType == SqlTypeName.TIMESTAMP
         || sqlType == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
@@ -407,5 +405,13 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
 
     // Fallback check if type string contains EXPR_TIMESTAMP
     return fieldType.toString().contains("EXPR_TIMESTAMP");
+  }
+
+  /**
+   * This method should be used in place for {@link SqlTypeUtil#isCharacter(RelDataType)} because
+   * user-defined types also have VARCHAR as their SqlTypeName.
+   */
+  public static boolean isCharacter(RelDataType type) {
+    return !isUserDefinedType(type) && SqlTypeUtil.isCharacter(type);
   }
 }
