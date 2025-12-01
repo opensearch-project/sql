@@ -16,8 +16,8 @@ reviews:
   collapse_walkthrough: false
   
   auto_review:
-    enabled: true
-    auto_incremental_review: true
+    enabled: false # Disabled auto-review until it becomes stable
+    auto_incremental_review: false
     drafts: false  # Don't review draft PRs
     ignore_title_keywords:
       - "WIP"
