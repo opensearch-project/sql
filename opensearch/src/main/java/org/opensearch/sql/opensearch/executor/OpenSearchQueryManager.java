@@ -30,7 +30,8 @@ public class OpenSearchQueryManager implements QueryManager {
 
   private final Settings settings;
 
-  private static final String SQL_WORKER_THREAD_POOL_NAME = "sql-worker";
+  public static final String SQL_WORKER_THREAD_POOL_NAME = "sql-worker";
+  public static final String SQL_BACKGROUND_THREAD_POOL_NAME = "sql_background_io";
 
   @Override
   public QueryId submit(AbstractPlan queryPlan) {
