@@ -75,7 +75,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
   private final PlanSerializer planSerializer;
 
   static {
-      CalcitePlanContext.setOperatorTableProvider(OperatorTable::getChainedOperatorTable);
+    CalcitePlanContext.setOperatorTableProvider(OperatorTable::getChainedOperatorTable);
   }
 
   public OpenSearchExecutionEngine(

@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.calcite.validate;
 
+import static org.opensearch.sql.calcite.validate.ValidationUtils.createUDTWithAttributes;
+
 import java.util.List;
 import java.util.function.Function;
 import org.apache.calcite.rel.type.RelDataType;
@@ -94,10 +96,10 @@ public class PplValidator extends SqlValidatorImpl {
         t -> {
           OpenSearchTypeFactory typeFactory = (OpenSearchTypeFactory) this.getTypeFactory();
           return switch (t.getSqlTypeName()) {
-            case TIMESTAMP -> typeFactory.createUDT(ExprUDT.EXPR_TIMESTAMP, t.isNullable());
-            case TIME -> typeFactory.createUDT(ExprUDT.EXPR_TIME, t.isNullable());
-            case DATE -> typeFactory.createUDT(ExprUDT.EXPR_DATE, t.isNullable());
-            case BINARY -> typeFactory.createUDT(ExprUDT.EXPR_BINARY, t.isNullable());
+            case TIMESTAMP -> createUDTWithAttributes(typeFactory, t, ExprUDT.EXPR_TIMESTAMP);
+            case TIME -> createUDTWithAttributes(typeFactory, t, ExprUDT.EXPR_TIME);
+            case DATE -> createUDTWithAttributes(typeFactory, t, ExprUDT.EXPR_DATE);
+            case BINARY -> createUDTWithAttributes(typeFactory, t, ExprUDT.EXPR_BINARY);
             default -> t;
           };
         });
