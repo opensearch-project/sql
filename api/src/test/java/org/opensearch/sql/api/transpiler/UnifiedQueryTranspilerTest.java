@@ -30,7 +30,7 @@ public class UnifiedQueryTranspilerTest extends UnifiedQueryTestBase {
     RelNode plan = planner.plan(pplQuery);
 
     String actualSql = transpiler.toSql(plan);
-    String expectedSql = "SELECT *\nFROM `catalog`.`employees`";
+    String expectedSql = normalize("SELECT *\nFROM `catalog`.`employees`");
     assertEquals(
         "Transpiled SQL using SparkSqlDialect should match expected SQL", expectedSql, actualSql);
   }
@@ -44,10 +44,16 @@ public class UnifiedQueryTranspilerTest extends UnifiedQueryTestBase {
         UnifiedQueryTranspiler.builder().dialect(OpenSearchSparkSqlDialect.DEFAULT).build();
     String actualSql = customTranspiler.toSql(plan);
     String expectedSql =
-        "SELECT *\nFROM `catalog`.`employees`\nWHERE TRY_CAST(`name` AS DOUBLE) = 1.230E2";
+        normalize(
+            "SELECT *\nFROM `catalog`.`employees`\nWHERE TRY_CAST(`name` AS DOUBLE) = 1.230E2");
     assertEquals(
         "Transpiled query using OpenSearchSparkSqlDialect should translate SAFE_CAST to TRY_CAST",
         expectedSql,
         actualSql);
+  }
+
+  /** Normalizes line endings to platform-specific format for cross-platform test compatibility. */
+  private String normalize(String sql) {
+    return sql.replace("\n", System.lineSeparator());
   }
 }
