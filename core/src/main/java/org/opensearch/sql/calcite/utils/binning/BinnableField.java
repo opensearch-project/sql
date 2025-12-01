@@ -33,7 +33,7 @@ public class BinnableField {
     this.fieldType = fieldType;
     this.fieldName = fieldName;
 
-    this.isTimeBased = OpenSearchTypeFactory.isTimeBasedType(fieldType);
+    this.isTimeBased = OpenSearchTypeFactory.isDatetime(fieldType);
     this.isNumeric = OpenSearchTypeFactory.isNumericType(fieldType);
 
     // Reject truly unsupported types (e.g., BOOLEAN, ARRAY, MAP)
