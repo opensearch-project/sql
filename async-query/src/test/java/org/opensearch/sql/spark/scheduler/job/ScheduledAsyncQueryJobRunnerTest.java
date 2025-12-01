@@ -15,6 +15,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
 
 import java.time.Instant;
 import org.apache.logging.log4j.LogManager;
@@ -87,7 +88,7 @@ public class ScheduledAsyncQueryJobRunnerTest {
     spyJobRunner.runJob(request, context);
 
     ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
-    verify(threadPool.executor(AsyncRestExecutor.SQL_WORKER_THREAD_POOL_NAME))
+    verify(threadPool.executor(SQL_WORKER_THREAD_POOL_NAME))
         .submit(captor.capture());
 
     Runnable runnable = captor.getValue();
@@ -145,7 +146,7 @@ public class ScheduledAsyncQueryJobRunnerTest {
     spyJobRunner.runJob(request, context);
 
     ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
-    verify(threadPool.executor(AsyncRestExecutor.SQL_WORKER_THREAD_POOL_NAME))
+    verify(threadPool.executor(SQL_WORKER_THREAD_POOL_NAME))
         .submit(captor.capture());
 
     Runnable runnable = captor.getValue();

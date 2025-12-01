@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.legacy.executor.cursor;
 
+import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
+
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
@@ -24,9 +26,6 @@ import org.opensearch.sql.legacy.query.join.BackOffRetryStrategy;
 import org.opensearch.threadpool.ThreadPool;
 
 public class CursorAsyncRestExecutor {
-  /** Custom thread pool name managed by OpenSearch */
-  public static final String SQL_WORKER_THREAD_POOL_NAME = "sql-worker";
-
   private static final Logger LOG = LogManager.getLogger(CursorAsyncRestExecutor.class);
 
   /** Delegated rest executor to async */
