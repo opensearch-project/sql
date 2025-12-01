@@ -167,17 +167,18 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
             + "  logical: |\n"
             + "    LogicalSystemLimit(fetch=[200], type=[QUERY_SIZE_LIMIT])\n"
             + "      LogicalSort(fetch=[1])\n"
-            + "        LogicalProject(department=[ITEM($9, 'department')],"
-            + " initial=[ITEM(PARSE(SAFE_CAST(ITEM($9, 'department')),"
+            + "        LogicalProject(department=[ITEM(MAP_REMOVE($9, ARRAY('initial')),"
+            + " 'department')], initial=[ITEM(PARSE(SAFE_CAST(ITEM($9, 'department')),"
             + " '(?<initial>[A-Z]).*':VARCHAR, 'regex':VARCHAR), 'initial':VARCHAR)])\n"
             + "          CalciteLogicalIndexScan(table=[[OpenSearch, test_dynamic_fields]])\n"
             + "  physical: |\n"
             + "    EnumerableLimit(fetch=[200])\n"
-            + "      EnumerableCalc(expr#0..9=[{inputs}], expr#10=['department'],"
-            + " expr#11=[ITEM($t9, $t10)], expr#12=[SAFE_CAST($t11)],"
-            + " expr#13=['(?<initial>[A-Z]).*':VARCHAR], expr#14=['regex':VARCHAR],"
-            + " expr#15=[PARSE($t12, $t13, $t14)], expr#16=['initial':VARCHAR], expr#17=[ITEM($t15,"
-            + " $t16)], department=[$t11], initial=[$t17])\n"
+            + "      EnumerableCalc(expr#0..9=[{inputs}], expr#10=['initial'],"
+            + " expr#11=[ARRAY($t10)], expr#12=[MAP_REMOVE($t9, $t11)], expr#13=['department'],"
+            + " expr#14=[ITEM($t12, $t13)], expr#15=[ITEM($t9, $t13)], expr#16=[SAFE_CAST($t15)],"
+            + " expr#17=['(?<initial>[A-Z]).*':VARCHAR], expr#18=['regex':VARCHAR],"
+            + " expr#19=[PARSE($t16, $t17, $t18)], expr#20=['initial':VARCHAR], expr#21=[ITEM($t19,"
+            + " $t20)], department=[$t14], initial=[$t21])\n"
             + "        EnumerableLimit(fetch=[1])\n"
             + "          CalciteEnumerableIndexScan(table=[[OpenSearch, test_dynamic_fields]])\n");
 
@@ -188,19 +189,20 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
   }
 
   @Test
-  @Ignore("rename requires refactoring as it currently uses field list")
   public void testRename() throws IOException {
+    // rename command won't consider dynamic fields for now
     String query =
         source(
             TEST_INDEX_DYNAMIC,
-            "rename department as dep, salary as sal | fields account_number, dep, sal | head 1");
+            "rename department as dep, salary as sal | fields account_number, department, salary |"
+                + " head 1");
     JSONObject result = executeQuery(query);
 
     verifySchema(
         result,
         schema("account_number", "bigint"),
-        schema("dep", "string"),
-        schema("sal", "bigint"));
+        schema("department", "string"),
+        schema("salary", "int"));
     verifyDataRows(result, rows(1, "Engineering", 75000));
   }
 
@@ -268,13 +270,11 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
 
   @Test
   public void testPatternsWithAggregation() throws IOException {
-    // TODO:
     String query =
         source(
             TEST_INDEX_DYNAMIC,
-            "patterns department mode=aggregation"
-                + " method=simple_pattern | fields patterns_field, pattern_count, sample_logs |"
-                + " head 1");
+            "patterns department mode=aggregation method=simple_pattern | fields patterns_field,"
+                + " pattern_count, sample_logs | head 1");
     JSONObject result = executeQuery(query);
 
     verifySchema(
@@ -296,13 +296,32 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
   }
 
   @Test
-  @Ignore("fillnull require logic change as it currently use field list")
   public void testFillnull() throws IOException {
     String query =
         source(
             TEST_INDEX_DYNAMIC,
             "fillnull with '<NULL>' in department | where account_number >= 4 | fields"
                 + " account_number, department");
+    assertExplainYaml(
+        query,
+        "calcite:\n"
+            + "  logical: |\n"
+            + "    LogicalSystemLimit(fetch=[200], type=[QUERY_SIZE_LIMIT])\n"
+            + "      LogicalProject(account_number=[$0], department=[$9])\n"
+            + "        LogicalFilter(condition=[>=($0, 4)])\n"
+            + "          LogicalProject(account_number=[$0], firstname=[$1], lastname=[$2],"
+            + " _id=[$3], _index=[$4], _score=[$5], _maxscore=[$6], _sort=[$7], _routing=[$8],"
+            + " department=[COALESCE(ITEM($9, 'department'), '<NULL>':VARCHAR)],"
+            + " _MAP=[MAP_REMOVE($9, ARRAY('department'))])\n"
+            + "            CalciteLogicalIndexScan(table=[[OpenSearch, test_dynamic_fields]])\n"
+            + "  physical: |\n"
+            + "    EnumerableCalc(expr#0..9=[{inputs}], expr#10=['department'], expr#11=[ITEM($t9,"
+            + " $t10)], expr#12=['<NULL>':VARCHAR], expr#13=[COALESCE($t11, $t12)],"
+            + " account_number=[$t0], department=[$t13])\n"
+            + "      EnumerableLimit(fetch=[200])\n"
+            + "        EnumerableCalc(expr#0..9=[{inputs}], expr#10=[4], expr#11=[>=($t0, $t10)],"
+            + " proj#0..9=[{exprs}], $condition=[$t11])\n"
+            + "          CalciteEnumerableIndexScan(table=[[OpenSearch, test_dynamic_fields]])\n");
 
     JSONObject result = executeQuery(query);
 
@@ -311,14 +330,11 @@ public class CalciteDynamicFieldsCommandIT extends CalcitePPLPermissiveIntegTest
   }
 
   @Test
-  @Ignore("Need to define the spec with the dynamic fields since we cannot decide the field set")
-  public void testFlatten() throws IOException {
+  public void testFlattenThrows() throws IOException {
+    // flatten cannot handle dynamic fields since it depends on already flattened fields in input
     String query = source(TEST_INDEX_DYNAMIC, "flatten obj as (a, b)");
 
-    JSONObject result = executeQuery(query);
-
-    verifySchema(result, schema("account_number", "bigint"), schema("department", "string"));
-    verifyDataRows(result, rows(4, "Engineering"), rows(5, "<NULL>"));
+    assertThrows(IllegalArgumentException.class, () -> executeQuery(query));
   }
 
   @Test

@@ -505,7 +505,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
    */
   private static void forceProjectExcept(
       CalcitePlanContext context, Iterable<RexNode> expressions) {
-    List<RexNode> allExpressions = context.fieldBuilder.staticFields();
+    List<RexNode> allExpressions = new ArrayList<>(context.fieldBuilder.staticFields());
     Set<RexNode> excludeExpressions = new HashSet<>();
     for (RexNode excludeExp : expressions) {
       if (!excludeExpressions.add(excludeExp)) {
@@ -734,7 +734,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-  // might need to remove fields in _MAP
   @Override
   public RelNode visitPatterns(Patterns node, CalcitePlanContext context) {
     visitChildren(node, context);
@@ -872,7 +871,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-  // need to consider _MAP fields
   @Override
   public RelNode visitEval(Eval node, CalcitePlanContext context) {
     visitChildren(node, context);
@@ -905,7 +903,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-  // needs to remove new fields from _MAP
   private void projectPlusOverriding(
       List<RexNode> newFields, List<String> newNames, CalcitePlanContext context) {
     List<String> originalFieldNames = context.fieldBuilder.getAllFieldNames();
@@ -930,8 +927,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // 5. rename
     context.relBuilder.rename(expectedRenameFields);
     // 6. dedupe dynamic fields
-
-    // TODO: MAP_REMOVE(_MAP, fields in newFields but not in toOverrideList)
+    context.fieldBuilder.removeFieldsFromDynamicFields(newNames);
   }
 
   private boolean shouldOverrideField(String originalName, List<String> newNames) {
@@ -1666,9 +1662,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitFillNull(FillNull node, CalcitePlanContext context) {
     visitChildren(node, context);
-    if (node.getFields().size()
-        != new HashSet<>(node.getFields().stream().map(f -> f.getField().toString()).toList())
-            .size()) {
+    if (!isUnique(node.getFields())) {
       throw new IllegalArgumentException("The field list cannot be duplicated in fillnull");
     }
 
@@ -1684,12 +1678,33 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       }
     }
 
+    Set<String> staticFieldNames = new HashSet<>(context.fieldBuilder.getStaticFieldNames());
+    List<Pair<Field, UnresolvedExpression>> staticFieldReplacements = new ArrayList<>();
+    List<Pair<Field, UnresolvedExpression>> dynamicFieldReplacements = new ArrayList<>();
+    for (Pair<Field, UnresolvedExpression> pair : node.getReplacementPairs()) {
+      if (staticFieldNames.contains(pair.getLeft().getField().toString())) {
+        staticFieldReplacements.add(pair);
+      } else {
+        dynamicFieldReplacements.add(pair);
+      }
+    }
+
+    List<RexNode> projects = fillnullStaticFields(node, context, staticFieldReplacements);
+    projects.addAll(fillnullDynamicFields(context, dynamicFieldReplacements));
+
+    context.relBuilder.project(projects);
+    return context.relBuilder.peek();
+  }
+
+  private List<RexNode> fillnullStaticFields(
+      FillNull node,
+      CalcitePlanContext context,
+      List<Pair<Field, UnresolvedExpression>> staticFieldReplacements) {
     List<RexNode> projects = new ArrayList<>();
-    List<RelDataTypeField> fieldsList = context.fieldBuilder.staticFieldList();
-    for (RelDataTypeField field : fieldsList) {
+    for (RelDataTypeField field : context.fieldBuilder.staticFieldList()) {
       RexNode fieldRef = context.rexBuilder.makeInputRef(field.getType(), field.getIndex());
       boolean toReplace = false;
-      for (Pair<Field, UnresolvedExpression> pair : node.getReplacementPairs()) {
+      for (Pair<Field, UnresolvedExpression> pair : staticFieldReplacements) {
         if (field.getName().equalsIgnoreCase(pair.getLeft().getField().toString())) {
           RexNode replacement = rexVisitor.analyze(pair.getRight(), context);
           // Validate type compatibility before COALESCE
@@ -1710,8 +1725,32 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         projects.add(coalesceWithAlias);
       }
     }
-    context.relBuilder.project(projects);
-    return context.relBuilder.peek();
+    return projects;
+  }
+
+  private List<RexNode> fillnullDynamicFields(
+      CalcitePlanContext context,
+      List<Pair<Field, UnresolvedExpression>> dynamicFieldReplacements) {
+    List<RexNode> projects = new ArrayList<>();
+    if (context.fieldBuilder.isDynamicFieldsExist()) {
+      List<String> toBeRemoved = new ArrayList<>();
+      for (Pair<Field, UnresolvedExpression> pair : dynamicFieldReplacements) {
+        String fieldName = pair.getLeft().getField().toString();
+        RexNode replacement = rexVisitor.analyze(pair.getRight(), context);
+        RexNode dynamicFieldValue = context.fieldBuilder.dynamicField(fieldName);
+        RexNode coalesce = context.rexBuilder.coalesce(dynamicFieldValue, replacement);
+        RexNode coalesceWithAlias = context.relBuilder.alias(coalesce, fieldName);
+        projects.add(coalesceWithAlias);
+        toBeRemoved.add(fieldName);
+      }
+      projects.add(context.fieldBuilder.getDynamicFieldsWithout(toBeRemoved));
+    }
+    return projects;
+  }
+
+  private boolean isUnique(List<Field> fields) {
+    Set<String> fieldNames = new HashSet<>();
+    return fields.stream().allMatch(field -> fieldNames.add(field.getField().toString()));
   }
 
   @Override
