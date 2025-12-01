@@ -176,13 +176,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   public RelNode analyze(UnresolvedPlan unresolved, CalcitePlanContext context) {
-    // Build the RelNode tree (may contain deep Filter chains)
-    RelNode relNode = unresolved.accept(this, context);
-
-    // Apply filter merge optimization as post-processing
-    // This merges consecutive LogicalFilter nodes to prevent OOM with deep chains
-    FilterMergeVisitor filterMergeVisitor = new FilterMergeVisitor();
-    return relNode.accept(filterMergeVisitor);
+    return unresolved.accept(this, context);
   }
 
   @Override

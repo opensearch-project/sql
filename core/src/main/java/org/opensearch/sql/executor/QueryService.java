@@ -16,11 +16,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.tools.FrameworkConfig;
@@ -100,6 +104,7 @@ public class QueryService {
                           CalcitePlanContext.create(
                               buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
                       RelNode relNode = analyze(plan, context);
+                      relNode = mergeAdjacentFilters(relNode);
                       RelNode optimized = optimize(relNode, context);
                       RelNode calcitePlan = convertToCalcitePlan(optimized);
                       executionEngine.execute(calcitePlan, context, listener);
@@ -145,6 +150,7 @@ public class QueryService {
                       context.run(
                           () -> {
                             RelNode relNode = analyze(plan, context);
+                            relNode = mergeAdjacentFilters(relNode);
                             RelNode optimized = optimize(relNode, context);
                             RelNode calcitePlan = convertToCalcitePlan(optimized);
                             executionEngine.explain(calcitePlan, format, context, listener);
@@ -257,6 +263,18 @@ public class QueryService {
 
   public RelNode analyze(UnresolvedPlan plan, CalcitePlanContext context) {
     return getRelNodeVisitor().analyze(plan, context);
+  }
+
+  /**
+   * Run Calcite FILTER_MERGE once so adjacent filters created during analysis can collapse before
+   * the rest of optimization.
+   */
+  private RelNode mergeAdjacentFilters(RelNode relNode) {
+    HepProgram program =
+        new HepProgramBuilder().addRuleInstance(FilterMergeRule.Config.DEFAULT.toRule()).build();
+    HepPlanner planner = new HepPlanner(program);
+    planner.setRoot(relNode);
+    return planner.findBestExp();
   }
 
   /** Analyze {@link UnresolvedPlan}. */
