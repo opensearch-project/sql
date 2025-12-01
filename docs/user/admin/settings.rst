@@ -253,6 +253,27 @@ Result set::
       "transient": {}
     }
 
+Thread Pool Settings
+====================
+
+The SQL plugin is integrated with the `OpenSearch Thread Pool Settings <https://docs.opensearch.org/latest/install-and-configure/configuring-opensearch/thread-pool-settings/>`_.
+There are two thread pools which can be configured on cluster setup via `settings.yml`::
+
+    thread_pool:
+      sql-worker:
+        size: 30
+        queue_size: 100
+      sql_background_io:
+        size: 30
+        queue_size: 1000
+
+The ``sql-worker`` pool corresponds to compute resources related to running queries, such as compute-heavy evaluations on result sets.
+This directly maps to the number of queries that can be run concurrently.
+This is the primary pool you interact with externally.
+``sql_background_io`` is a low-footprint pool for IO requests the plugin makes,
+and can be used to limit indirect load that SQL places on your cluster for Calcite-enabled operations.
+A ``sql-worker`` thread may spawn multiple background threads.
+
 plugins.query.executionengine.spark.session.limit
 ==================================================
 
