@@ -111,11 +111,12 @@ public class AggPushDownAction implements OSRequestBuilderAction {
       List<RelFieldCollation> collations, List<String> fieldNames) {
     if (builderAndParser.getLeft().isEmpty()) return;
     if (builderAndParser.getLeft().getFirst() instanceof CompositeAggregationBuilder composite) {
+      boolean asc = collations.get(0).getDirection() == RelFieldCollation.Direction.ASCENDING;
       String path = getAggregationPath(collations, fieldNames, composite);
       BucketOrder bucketOrder =
-          collations.get(0).getDirection() == RelFieldCollation.Direction.ASCENDING
-              ? BucketOrder.aggregation(path, true)
-              : BucketOrder.aggregation(path, false);
+          composite.getSubAggregations().isEmpty()
+              ? BucketOrder.count(asc)
+              : BucketOrder.aggregation(path, asc);
       AggregationBuilder aggregationBuilder = null;
       if (composite.sources().size() == 1) {
         if (composite.sources().get(0) instanceof TermsValuesSourceBuilder terms
@@ -310,17 +311,15 @@ public class AggPushDownAction implements OSRequestBuilderAction {
       Collection<AggregationBuilder> subAggregations,
       String path,
       AggregationBuilder aggregationBuilder) {
-    AggregatorFactories.Builder metricBuilder = new AggregatorFactories.Builder();
-    if (subAggregations.isEmpty()) {
-      metricBuilder.addAggregator(AggregationBuilders.count(path).field("_index"));
-    } else {
+    if (!subAggregations.isEmpty()) {
+      AggregatorFactories.Builder metricBuilder = new AggregatorFactories.Builder();
       subAggregations.forEach(metricBuilder::addAggregator);
       // the count aggregator may be eliminated by doc_count optimization, add it back
       if (subAggregations.stream().noneMatch(sub -> sub.getName().equals(path))) {
         metricBuilder.addAggregator(AggregationBuilders.count(path).field("_index"));
       }
+      aggregationBuilder.subAggregations(metricBuilder);
     }
-    aggregationBuilder.subAggregations(metricBuilder);
     return aggregationBuilder;
   }
 

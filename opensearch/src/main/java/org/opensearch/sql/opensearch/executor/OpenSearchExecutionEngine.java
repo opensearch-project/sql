@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
@@ -53,7 +54,6 @@ import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
-import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
 import org.opensearch.sql.opensearch.functions.DistinctCountApproxAggFunction;
 import org.opensearch.sql.opensearch.functions.GeoIpFunction;
@@ -61,6 +61,7 @@ import org.opensearch.sql.opensearch.storage.NodeClientHolder;
 import org.opensearch.sql.opensearch.util.JdbcOpenSearchDataTypeConvertor;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.TableScanOperator;
+import org.opensearch.transport.client.node.NodeClient;
 
 /** OpenSearch execution engine implementation. */
 public class OpenSearchExecutionEngine implements ExecutionEngine {
@@ -277,9 +278,10 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
 
   /** Registers opensearch-dependent functions */
   private void registerOpenSearchFunctions() {
-    if (client instanceof OpenSearchNodeClient) {
+    Optional<NodeClient> nodeClient = client.getNodeClient();
+    if (nodeClient.isPresent()) {
       SqlUserDefinedFunction geoIpFunction =
-          new GeoIpFunction(client.getNodeClient()).toUDF(BuiltinFunctionName.GEOIP.name());
+          new GeoIpFunction(nodeClient.get()).toUDF(BuiltinFunctionName.GEOIP.name());
       PPLFuncImpTable.INSTANCE.registerExternalOperator(BuiltinFunctionName.GEOIP, geoIpFunction);
       OperatorTable.addOperator(BuiltinFunctionName.GEOIP.name(), geoIpFunction);
     } else {

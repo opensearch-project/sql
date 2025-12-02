@@ -53,6 +53,19 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals("source=table | where identifier = ***", anonymize("search source=t | where a=1"));
   }
 
+  @Test
+  public void testLikeFunction() {
+    assertEquals(
+        "source=table | where like(identifier,***)",
+        anonymize("search source=t | where like(a, '%llo%')"));
+    assertEquals(
+        "source=table | where like(identifier,***,***)",
+        anonymize("search source=t | where like(a, '%llo%', true)"));
+    assertEquals(
+        "source=table | where like(identifier,***,***)",
+        anonymize("search source=t | where like(a, '%llo%', false)"));
+  }
+
   // Fields and Table Command Tests
   @Test
   public void testFieldsCommandWithoutArguments() {
@@ -255,9 +268,12 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testTimechartCommand() {
     assertEquals(
-        "source=table | timechart limit=*** useother=*** count() by span(time_identifier, ***"
-            + " m) identifier",
+        "source=table | timechart count() by identifier",
         anonymize("source=t | timechart count() by host"));
+
+    assertEquals(
+        "source=table | timechart timefield=time_identifier max(identifier)",
+        anonymize("source=t | timechart timefield=month max(revenue)"));
   }
 
   @Test
@@ -827,6 +843,15 @@ public class PPLQueryDataAnonymizerTest {
         "source=table | eval identifier=mvindex(array(***,***,***,***,***),***,***) | fields +"
             + " identifier",
         anonymize("source=t | eval result=mvindex(array(1, 2, 3, 4, 5), 1, 3) | fields result"));
+  }
+
+  @Test
+  public void testMvdedup() {
+    // Test mvdedup with array containing duplicates
+    assertEquals(
+        "source=table | eval identifier=mvdedup(array(***,***,***,***,***,***)) | fields +"
+            + " identifier",
+        anonymize("source=t | eval result=mvdedup(array(1, 2, 2, 3, 1, 4)) | fields result"));
   }
 
   @Test
