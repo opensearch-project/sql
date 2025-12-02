@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite;
+package org.opensearch.sql.calcite.validate;
 
 import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
 import org.apache.calcite.sql.SqlDialect;
@@ -15,8 +15,8 @@ import org.apache.calcite.sql.SqlDialect;
  * <p>This converter is used during the validation phase to convert RelNode back to SqlNode for
  * validation and type checking using Calcite's SqlValidator.
  *
- * <p>Currently, we haven't implemented any specific changes to it, just leaving it for future
- * extension.
+ * <p>Note: Interval literal issues are handled by preprocessing with {@link
+ * IntervalLiteralFixShuttle} before conversion.
  */
 public class PplRelToSqlConverter extends RelToSqlConverter {
   /**

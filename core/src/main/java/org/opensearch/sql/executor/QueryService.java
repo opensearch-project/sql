@@ -49,10 +49,11 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.calcite.OpenSearchSchema;
-import org.opensearch.sql.calcite.PplRelToSqlConverter;
 import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
+import org.opensearch.sql.calcite.validate.PplRelToSqlNodeConverter;
+import org.opensearch.sql.calcite.validate.PplRelToSqlRelShuttle;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
@@ -78,8 +79,8 @@ public class QueryService {
   private final Planner planner;
   private DataSourceService dataSourceService;
   private Settings settings;
-  private static final PplRelToSqlConverter converter =
-      new PplRelToSqlConverter(MysqlSqlDialect.DEFAULT);
+  private static final PplRelToSqlNodeConverter converter =
+      new PplRelToSqlNodeConverter(MysqlSqlDialect.DEFAULT);
 
   @Getter(lazy = true)
   private final CalciteRelNodeVisitor relNodeVisitor = new CalciteRelNodeVisitor(dataSourceService);
@@ -302,8 +303,11 @@ public class QueryService {
    * @return the validated (and potentially modified) relation node
    */
   private RelNode validate(RelNode relNode, CalcitePlanContext context) {
+    // Fix interval literals before conversion to SQL
+    RelNode sqlRelNode = relNode.accept(new PplRelToSqlRelShuttle(context.rexBuilder, true));
+
     // Convert RelNode to SqlNode for validation
-    SqlImplementor.Result result = converter.visitRoot(relNode);
+    SqlImplementor.Result result = converter.visitRoot(sqlRelNode);
     SqlNode root = result.asStatement();
 
     // Rewrite SqlNode to remove database qualifiers
@@ -325,20 +329,14 @@ public class QueryService {
     SqlValidator validator = context.getValidator();
     if (rewritten != null) {
       try {
-        String before = rewritten.toString();
-        // rewritten will be modified in-place by validation
+        log.debug("Before validation: {}", rewritten);
         validator.validate(rewritten);
         log.debug("After validation: {}", rewritten);
-        String after = rewritten.toString();
-        if (before.equals(after)) {
-          // If the rewritten SQL node is not modified, return the original RelNode as is
-          return relNode;
-        }
       } catch (CalciteContextException e) {
         throw new ExpressionEvaluationException(e.getMessage(), e);
       }
     } else {
-      log.debug("Failed to rewrite the SQL node before validation: {}", root);
+      log.info("Failed to rewrite the SQL node before validation: {}", root);
       return relNode;
     }
 
@@ -355,8 +353,8 @@ public class QueryService {
             cluster,
             StandardConvertletTable.INSTANCE,
             SqlToRelConverter.config());
-    RelRoot validatedRelRoot = sql2rel.convertQuery(rewritten, true, true);
-    return validatedRelRoot.rel;
+    RelRoot validatedRelRoot = sql2rel.convertQuery(rewritten, false, true);
+    return validatedRelRoot.rel.accept(new PplRelToSqlRelShuttle(context.rexBuilder, false));
   }
 
   /** Translate {@link LogicalPlan} to {@link PhysicalPlan}. */
