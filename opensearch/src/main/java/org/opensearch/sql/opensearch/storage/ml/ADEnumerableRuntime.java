@@ -44,9 +44,9 @@ import org.opensearch.ml.common.output.MLPredictionOutput;
 import org.opensearch.transport.client.node.NodeClient;
 
 /**
- * Enumerable AD operator runtime method to collect all rows of input enumerator, call
- * ml-commons node client API to train and predict ad result and then form new operator
- * enumerator for downstream operators.
+ * Enumerable AD operator runtime method to collect all rows of input enumerator, call ml-commons
+ * node client API to train and predict ad result and then form new operator enumerator for
+ * downstream operators.
  */
 public class ADEnumerableRuntime {
 

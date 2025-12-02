@@ -41,7 +41,9 @@ public class CalcitePPLAdTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testAdWithOtherParameters() {
-    String ppl = "source=EMP | where SAL < 10 | fields JOB, SAL, DEPTNO | AD category_field='JOB' time_field='DEPTNO' sample_size=10";
+    String ppl =
+        "source=EMP | where SAL < 10 | fields JOB, SAL, DEPTNO | AD category_field='JOB'"
+            + " time_field='DEPTNO' sample_size=10";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalAD(arguments=[{time_field=DEPTNO, sample_size=10, category_field=JOB}])\n"

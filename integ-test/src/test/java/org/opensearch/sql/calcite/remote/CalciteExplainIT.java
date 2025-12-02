@@ -1969,7 +1969,6 @@ public class CalciteExplainIT extends ExplainIT {
                 TEST_INDEX_ALIAS)));
   }
 
-
   @Test
   public void testAD() throws IOException {
     String expected = loadExpectedPlan("ad.yaml");
