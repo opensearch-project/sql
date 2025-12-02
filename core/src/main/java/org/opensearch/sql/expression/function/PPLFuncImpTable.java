@@ -549,6 +549,8 @@ public class PPLFuncImpTable {
     // For example, the REDUCE function requires the second argument to be cast to the
     // return type of the lambda function.
     compulsoryCast(builder, functionName, args);
+    // TODO: How to deal with multiple overrides?
+    if (true) return implementList.getFirst().getValue().resolve(builder, args);
 
     List<RelDataType> argTypes = Arrays.stream(args).map(RexNode::getType).toList();
     try {
@@ -556,11 +558,11 @@ public class PPLFuncImpTable {
         if (implement.getKey().match(functionName.getName(), argTypes)) {
           return implement.getValue().resolve(builder, args);
         }
-//        // TODO: How to deal with multiple overrides?
-//        //  A temporary implementation to return once name matches
-//        if (implement.getKey().functionName().equals(functionName.getName())){
-//          return implement.getValue().resolve(builder, args);
-//        }
+        //        // TODO: How to deal with multiple overrides?
+        //        //  A temporary implementation to return once name matches
+        //        if (implement.getKey().functionName().equals(functionName.getName())){
+        //          return implement.getValue().resolve(builder, args);
+        //        }
       }
 
       // If no implementation found with exact match, try to cast arguments to match the
@@ -712,12 +714,23 @@ public class PPLFuncImpTable {
 
     void populate() {
       // register operators for comparison
-      registerOperator(NOTEQUAL, PPLBuiltinOperators.NOT_EQUALS_IP, SqlStdOperatorTable.NOT_EQUALS);
-      registerOperator(EQUAL, PPLBuiltinOperators.EQUALS_IP, SqlStdOperatorTable.EQUALS);
-      registerOperator(GREATER, PPLBuiltinOperators.GREATER_IP, SqlStdOperatorTable.GREATER_THAN);
-      registerOperator(GTE, PPLBuiltinOperators.GTE_IP, SqlStdOperatorTable.GREATER_THAN_OR_EQUAL);
-      registerOperator(LESS, PPLBuiltinOperators.LESS_IP, SqlStdOperatorTable.LESS_THAN);
-      registerOperator(LTE, PPLBuiltinOperators.LTE_IP, SqlStdOperatorTable.LESS_THAN_OR_EQUAL);
+      //      registerOperator(NOTEQUAL, PPLBuiltinOperators.NOT_EQUALS_IP,
+      // SqlStdOperatorTable.NOT_EQUALS);
+      //      registerOperator(EQUAL, PPLBuiltinOperators.EQUALS_IP, SqlStdOperatorTable.EQUALS);
+      //      registerOperator(GREATER, PPLBuiltinOperators.GREATER_IP,
+      // SqlStdOperatorTable.GREATER_THAN);
+      //      registerOperator(GTE, PPLBuiltinOperators.GTE_IP,
+      // SqlStdOperatorTable.GREATER_THAN_OR_EQUAL);
+      //      registerOperator(LESS, PPLBuiltinOperators.LESS_IP, SqlStdOperatorTable.LESS_THAN);
+      //      registerOperator(LTE, PPLBuiltinOperators.LTE_IP,
+      // SqlStdOperatorTable.LESS_THAN_OR_EQUAL);
+
+      registerOperator(NOTEQUAL, SqlStdOperatorTable.NOT_EQUALS);
+      registerOperator(EQUAL, SqlStdOperatorTable.EQUALS);
+      registerOperator(GREATER, SqlStdOperatorTable.GREATER_THAN);
+      registerOperator(GTE, SqlStdOperatorTable.GREATER_THAN_OR_EQUAL);
+      registerOperator(LESS, SqlStdOperatorTable.LESS_THAN);
+      registerOperator(LTE, SqlStdOperatorTable.LESS_THAN_OR_EQUAL);
 
       // Register std operator
       registerOperator(AND, SqlStdOperatorTable.AND);
@@ -1083,10 +1096,10 @@ public class PPLFuncImpTable {
 
       // Register ADD (+ symbol) for string concatenation
       // Replaced type checker since CONCAT also supports array concatenation
-      registerOperator(
-          ADD,
-          SqlStdOperatorTable.CONCAT,
-          PPLTypeChecker.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER));
+      //      registerOperator(
+      //          ADD,
+      //          SqlStdOperatorTable.CONCAT,
+      //          PPLTypeChecker.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER));
       // Register ADD (+ symbol) for numeric addition
       // Replace type checker since PLUS also supports binary addition
       registerOperator(
