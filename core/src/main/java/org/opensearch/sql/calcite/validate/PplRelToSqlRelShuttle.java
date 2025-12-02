@@ -39,9 +39,18 @@ public class PplRelToSqlRelShuttle extends RelShuttleImpl {
               return literal;
             }
             TimeUnit unit = qualifier.getUnit();
+            // An ad-hoc fix to a Calcite bug in RexLiteral#intervalString -- quarter type does not
+            // exist in SqlTypeName, rendering it return number of months instead of number of
+            // quarters.
+            BigDecimal forwardMultiplier =
+                TimeUnit.QUARTER.equals(unit) ? BigDecimal.valueOf(1) : unit.multiplier;
+
+            // QUARTER intervals are stored as INTERVAL_MONTH in Calcite's type system
+            // but the qualifier preserves the actual unit (QUARTER vs MONTH).
+            // The multiplier for QUARTER is 3 (months), for MONTH is 1.
             BigDecimal newValue =
                 forward
-                    ? value.multiply(unit.multiplier)
+                    ? value.multiply(forwardMultiplier)
                     : value.divideToIntegralValue(unit.multiplier);
             return rexBuilder.makeIntervalLiteral(newValue, qualifier);
           }
@@ -50,9 +59,7 @@ public class PplRelToSqlRelShuttle extends RelShuttleImpl {
 
   @Override
   protected RelNode visitChild(RelNode parent, int i, RelNode child) {
-    // First visit the child recursively
     RelNode newChild = super.visitChild(parent, i, child);
-    // Then apply the RexShuttle to the child's expressions
     return newChild.accept(rexShuttle);
   }
 }

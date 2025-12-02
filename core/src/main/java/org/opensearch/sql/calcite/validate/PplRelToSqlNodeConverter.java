@@ -14,17 +14,14 @@ import org.apache.calcite.sql.SqlDialect;
  *
  * <p>This converter is used during the validation phase to convert RelNode back to SqlNode for
  * validation and type checking using Calcite's SqlValidator.
- *
- * <p>Note: Interval literal issues are handled by preprocessing with {@link
- * IntervalLiteralFixShuttle} before conversion.
  */
-public class PplRelToSqlConverter extends RelToSqlConverter {
+public class PplRelToSqlNodeConverter extends RelToSqlConverter {
   /**
    * Creates a RelToSqlConverter for PPL.
    *
    * @param dialect the SQL dialect to use for conversion
    */
-  public PplRelToSqlConverter(SqlDialect dialect) {
+  public PplRelToSqlNodeConverter(SqlDialect dialect) {
     super(dialect);
   }
 }
