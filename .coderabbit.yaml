@@ -1,0 +1,97 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+# CodeRabbit Configuration for OpenSearch SQL Project
+# This configuration uses .rules/REVIEW_GUIDELINES.md for code review standards
+
+language: "en-US"
+early_access: false
+
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  high_level_summary_placeholder: "@coderabbitai summary"
+  poem: false  # Keep reviews professional and concise
+  review_status: true
+  collapse_walkthrough: false
+  
+  auto_review:
+    enabled: false # Disabled auto-review until it becomes stable
+    auto_incremental_review: false
+    drafts: false  # Don't review draft PRs
+    ignore_title_keywords:
+      - "WIP"
+      - "DO NOT MERGE"
+      - "DRAFT"
+  
+  # Path-specific review instructions
+  path_instructions:
+    - path: "**/*.java"
+      instructions: |
+        - Verify Java naming conventions (PascalCase for classes, camelCase for methods/variables)
+        - Check for proper JavaDoc on public classes and methods
+        - Flag redundant comments that restate obvious code
+        - Ensure methods are under 20 lines with single responsibility
+        - Verify proper error handling with specific exception types
+        - Check for Optional<T> usage instead of null returns
+        - Validate proper use of try-with-resources for resource management
+    
+    - path: "**/test/**/*.java"
+      instructions: |
+        - Verify test coverage for new business logic
+        - Check test naming follows conventions (*Test.java for unit, *IT.java for integration)
+        - Ensure tests are independent and don't rely on execution order
+        - Validate meaningful test data that reflects real-world scenarios
+        - Check for proper cleanup of test resources
+    
+    - path: "integ-test/**/*IT.java"
+      instructions: |
+        - Verify integration tests are in correct module (integ-test/)
+        - Check tests can be run with ./gradlew :integ-test:integTest
+        - Ensure proper test data setup and teardown
+        - Validate end-to-end scenario coverage
+    
+    - path: "**/ppl/**/*.java"
+      instructions: |
+        - For PPL parser changes, verify grammar tests with positive/negative cases
+        - Check AST generation for new syntax
+        - Ensure corresponding AST builder classes are updated
+        - Validate edge cases and boundary conditions
+    
+    - path: "**/calcite/**/*.java"
+      instructions: |
+        - Follow existing patterns in CalciteRelNodeVisitor and CalciteRexNodeVisitor
+        - Verify SQL generation and optimization paths
+        - Document any Calcite-specific workarounds
+        - Test compatibility with Calcite version constraints
+
+chat:
+  auto_reply: true
+
+# Knowledge base configuration
+knowledge_base:
+  # Don't opt out - use knowledge base features
+  opt_out: false
+  
+  # Code guidelines - reference our custom review guidelines
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      # Reference our custom review guidelines
+      - ".rules/REVIEW_GUIDELINES.md"
+  
+  # Enable web search for additional context
+  web_search:
+    enabled: true
+  
+  # Use repository-specific learnings for this project
+  learnings:
+    scope: "local"
+  
+  # Use repository-specific issues
+  issues:
+    scope: "local"
+  
+  # Use repository-specific pull requests for context
+  pull_requests:
+    scope: "local"
