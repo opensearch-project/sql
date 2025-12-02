@@ -1,0 +1,171 @@
+setup:
+  - do:
+      indices.create:
+        index: test_filter_merge
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              name:
+                type: keyword
+              age:
+                type: integer
+              email:
+                type: keyword
+              status:
+                type: keyword
+              score:
+                type: double
+              city:
+                type: keyword
+              department:
+                type: keyword
+              active:
+                type: boolean
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"Filter merge with multiple consecutive where clauses":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      bulk:
+        index: test_filter_merge
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"name": "Alice", "age": 30, "email": "alice@example.com", "status": "active", "score": 95.5, "city": "Seattle", "department": "Engineering", "active": true}'
+          - '{"index": {}}'
+          - '{"name": "Bob", "age": 25, "email": "bob@example.com", "status": "active", "score": 88.0, "city": "Portland", "department": "Sales", "active": true}'
+          - '{"index": {}}'
+          - '{"name": "Charlie", "age": 35, "email": "charlie@example.com", "status": "inactive", "score": 72.5, "city": "Seattle", "department": "Engineering", "active": false}'
+          - '{"index": {}}'
+          - '{"name": "Diana", "age": 28, "email": "diana@example.com", "status": "active", "score": 91.0, "city": "Seattle", "department": "Marketing", "active": true}'
+          - '{"index": {}}'
+          - '{"name": "Eve", "age": 32, "email": "eve@example.com", "status": "active", "score": 85.5, "city": "Portland", "department": "Engineering", "active": true}'
+
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: |
+            source=test_filter_merge
+            | where name != ""
+            | where email != ""
+            | where status = "active"
+            | where age > 25
+            | where age < 40
+            | where score > 80
+            | where score < 100
+            | where city = "Seattle"
+            | where department = "Engineering"
+            | where active = true
+            | fields name, age, email, score
+
+  - match: {"total": 1}
+  - match: {"datarows": [["Alice", 30, "alice@example.com", 95.5]]}
+
+---
+"Filter merge with IS NOT NULL checks":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      bulk:
+        index: test_filter_merge
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"name": "Frank", "age": 40, "email": "frank@example.com", "status": "active", "score": 78.0, "city": "Boston", "department": "Sales", "active": true}'
+          - '{"index": {}}'
+          - '{"name": "Grace", "age": 35, "email": "", "status": "active", "score": 92.0, "city": "Boston", "department": "Sales", "active": true}'
+          - '{"index": {}}'
+          - '{"name": "", "age": 29, "email": "helen@example.com", "status": "active", "score": 80.0, "city": "Boston", "department": "Sales", "active": true}'
+
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: |
+            source=test_filter_merge
+            | where name != ""
+            | where email != ""
+            | where status = "active"
+            | where isnotnull(score)
+            | where age > 30
+            | where age < 50
+            | where score > 70
+            | where city = "Boston"
+            | where department = "Sales"
+            | where active = true
+            | fields name, email, status, score
+
+  - match: {"total": 1}
+  - match: {"datarows": [["Frank", "frank@example.com", "active", 78.0]]}
+
+---
+"Filter merge with range and equality checks":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      bulk:
+        index: test_filter_merge
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"name": "Ivan", "age": 27, "email": "ivan@example.com", "status": "active", "score": 85.0, "city": "Seattle", "department": "HR", "active": true}'
+          - '{"index": {}}'
+          - '{"name": "Julia", "age": 33, "email": "julia@example.com", "status": "active", "score": 90.0, "city": "Portland", "department": "HR", "active": true}'
+          - '{"index": {}}'
+          - '{"name": "Kevin", "age": 45, "email": "kevin@example.com", "status": "active", "score": 88.0, "city": "Seattle", "department": "HR", "active": false}'
+          - '{"index": {}}'
+          - '{"name": "Laura", "age": 26, "email": "laura@example.com", "status": "inactive", "score": 75.0, "city": "Seattle", "department": "HR", "active": true}'
+
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: |
+            source=test_filter_merge
+            | where status = "active"
+            | where age >= 25
+            | where age <= 35
+            | where score >= 85
+            | where score <= 95
+            | where city = "Seattle"
+            | where name != ""
+            | where email != ""
+            | where department = "HR"
+            | where active = true
+            | stats count() by city
+
+  - match: {"total": 1}
+  - match: {"datarows": [[1, "Seattle"]]}
