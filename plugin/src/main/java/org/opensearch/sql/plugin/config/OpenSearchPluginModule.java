@@ -80,8 +80,8 @@ public class OpenSearchPluginModule extends AbstractModule {
 
   @Provides
   @Singleton
-  public QueryManager queryManager(NodeClient nodeClient) {
-    return new OpenSearchQueryManager(nodeClient);
+  public QueryManager queryManager(NodeClient nodeClient, Settings settings) {
+    return new OpenSearchQueryManager(nodeClient, settings);
   }
 
   @Provides
