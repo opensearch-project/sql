@@ -56,6 +56,9 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 @AllArgsConstructor
 @Log4j2
 public class QueryService {
+  private static final HepProgram FILTER_MERGE_PROGRAM =
+      new HepProgramBuilder().addRuleInstance(FilterMergeRule.Config.DEFAULT.toRule()).build();
+
   private final Analyzer analyzer;
   private final ExecutionEngine executionEngine;
   private final Planner planner;
@@ -270,9 +273,7 @@ public class QueryService {
    * the rest of optimization.
    */
   private RelNode mergeAdjacentFilters(RelNode relNode) {
-    HepProgram program =
-        new HepProgramBuilder().addRuleInstance(FilterMergeRule.Config.DEFAULT.toRule()).build();
-    HepPlanner planner = new HepPlanner(program);
+    HepPlanner planner = new HepPlanner(FILTER_MERGE_PROGRAM);
     planner.setRoot(relNode);
     return planner.findBestExp();
   }

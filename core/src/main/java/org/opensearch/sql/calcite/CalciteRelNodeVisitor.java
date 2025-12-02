@@ -858,7 +858,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitEval(Eval node, CalcitePlanContext context) {
     visitChildren(node, context);
-
     node.getExpressionList()
         .forEach(
             expr -> {
@@ -2246,10 +2245,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitMultisearch(Multisearch node, CalcitePlanContext context) {
     List<RelNode> subsearchNodes = new ArrayList<>();
-
     for (UnresolvedPlan subsearch : node.getSubsearches()) {
       UnresolvedPlan prunedSubSearch = subsearch.accept(new EmptySourcePropagateVisitor(), null);
-      analyze(prunedSubSearch, context);
+      prunedSubSearch.accept(this, context);
       subsearchNodes.add(context.relBuilder.build());
     }
 
