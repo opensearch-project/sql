@@ -272,15 +272,10 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       // For aggregate, we do nothing on query builder but only change the schema of the scan.
       action = (AggregationBuilderAction) aggAction -> {};
     } else {
-      Map<String, String> aliasMapping = this.osIndex.getAliasMapping();
-      // For alias types, we need to push down its original path instead of the alias name.
-      List<String> projectedFields =
-          newSchema.getFieldNames().stream()
-              .map(fieldName -> aliasMapping.getOrDefault(fieldName, fieldName))
-              .toList();
       action =
           (OSRequestBuilderAction)
-              requestBuilder -> requestBuilder.pushDownProjectStream(projectedFields.stream());
+              requestBuilder ->
+                  requestBuilder.pushDownProjectStream(newSchema.getFieldNames().stream());
     }
     newScan.pushDownContext.add(PushDownType.PROJECT, newSchema.getFieldNames(), action);
     return newScan;

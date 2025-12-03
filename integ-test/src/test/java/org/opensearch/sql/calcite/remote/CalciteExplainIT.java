@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ALIAS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
@@ -42,6 +43,7 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.WORKER);
     loadIndex(Index.WORK_INFORMATION);
     loadIndex(Index.WEBLOG);
+    loadIndex(Index.DATA_TYPE_ALIAS);
   }
 
   @Override
@@ -2029,5 +2031,16 @@ public class CalciteExplainIT extends ExplainIT {
     String expected = loadExpectedPlan("explain_dedup_text_type_no_push.yaml");
     assertYamlEqualsIgnoreId(
         expected, explainQueryYaml(String.format("source=%s | dedup email", TEST_INDEX_BANK)));
+  }
+
+  @Test
+  public void testAliasTypeField() throws IOException {
+    String expected = loadExpectedPlan("explain_alias_type_field.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            String.format(
+                "source=%s | fields alias_col | where alias_col > 10 | stats avg(alias_col)",
+                TEST_INDEX_ALIAS)));
   }
 }
