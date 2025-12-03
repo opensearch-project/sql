@@ -77,7 +77,9 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       ExecutionProtector executionProtector,
       PlanSerializer planSerializer) {
     this.client = client;
-    NodeClientHolder.init(client.getNodeClient());
+    if (client.getNodeClient().isPresent()) {
+      NodeClientHolder.init(client.getNodeClient().get());
+    }
     this.executionProtector = executionProtector;
     this.planSerializer = planSerializer;
     registerOpenSearchFunctions();
