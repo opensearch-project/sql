@@ -148,8 +148,26 @@ public class PplTypeCoercion extends TypeCoercionImpl {
   }
 
   @Override
-  protected @Nullable RelDataType commonTypeForComparison(List<RelDataType> dataTypes) {
-    return super.commonTypeForComparison(dataTypes);
+  public @Nullable RelDataType commonTypeForBinaryComparison(
+      @Nullable RelDataType type1, @Nullable RelDataType type2) {
+      // Prepend following rules for datetime comparisons
+      // - (date, time) -> timestamp
+      // - (time, timestamp) -> timestamp
+    if (type1 != null & type2 != null) {
+      boolean anyNullable = type1.isNullable() || type2.isNullable();
+      if ((SqlTypeUtil.isDate(type1) && OpenSearchTypeFactory.isTime(type2))
+          || (OpenSearchTypeFactory.isTime(type1) && SqlTypeUtil.isDate(type2))) {
+        return factory.createTypeWithNullability(
+            factory.createSqlType(SqlTypeName.TIMESTAMP), anyNullable);
+      }
+      if (OpenSearchTypeFactory.isTime(type1) && SqlTypeUtil.isTimestamp(type2)) {
+        return factory.createTypeWithNullability(type2, anyNullable);
+      }
+      if (SqlTypeUtil.isTimestamp(type1) && OpenSearchTypeFactory.isTime(type2)) {
+        return factory.createTypeWithNullability(type1, anyNullable);
+      }
+    }
+    return super.commonTypeForBinaryComparison(type1, type2);
   }
 
   /**

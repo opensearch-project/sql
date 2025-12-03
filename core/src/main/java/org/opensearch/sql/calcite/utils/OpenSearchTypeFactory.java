@@ -408,6 +408,28 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   }
 
   /**
+   * Checks whether a {@link RelDataType} represents a time type.
+   *
+   * <p>This method returns true for both Calcite's built-in {@link SqlTypeName#TIME} type and
+   * OpenSearch's user-defined time type {@link ExprUDT#EXPR_TIME}.
+   *
+   * @param type the type to check
+   * @return true if the type is a time type (built-in or user-defined), false otherwise
+   */
+  public static boolean isTime(RelDataType type) {
+    if (isUserDefinedType(type)) {
+      if (((AbstractExprRelDataType<?>) type).getUdt() == ExprUDT.EXPR_TIME) {
+        return true;
+      }
+    }
+    SqlTypeName typeName = type.getSqlTypeName();
+    if (typeName == null) {
+      return false;
+    }
+    return type.getSqlTypeName() == SqlTypeName.TIME;
+  }
+
+  /**
    * This method should be used in place for {@link SqlTypeUtil#isCharacter(RelDataType)} because
    * user-defined types also have VARCHAR as their SqlTypeName.
    */
