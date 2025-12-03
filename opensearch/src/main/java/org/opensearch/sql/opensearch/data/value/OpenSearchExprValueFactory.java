@@ -376,9 +376,10 @@ public class OpenSearchExprValueFactory {
             entry ->
                 populateValueRecursive(
                     result,
-                    // Use literal() because entry.getKey() is a JSON field name where dots are
-                    // literal characters, not path separators (e.g., ".", "..", "a...", ".a")
-                    JsonPath.literal(entry.getKey()),
+                    // Use fromPath() to split dot-separated field names into nested paths
+                    // (e.g., "log.json" -> ["log", "json"] for flattening support).
+                    // fromPath() handles edge cases like "." or ".." that would otherwise crash.
+                    JsonPath.fromPath(entry.getKey()),
                     parse(
                         entry.getValue(),
                         makeField(prefix, entry.getKey()),
@@ -429,11 +430,34 @@ public class OpenSearchExprValueFactory {
      * Create a JsonPath by splitting a dot-separated path into components. Use this when the path
      * represents a nested field structure (e.g., "log.json.time" → ["log", "json", "time"]).
      *
+     * <p>Handles edge cases:
+     *
+     * <ul>
+     *   <li>Dot-only field names like "." or ".." - split returns empty array, use literal
+     *   <li>Leading/trailing/consecutive dots like ".a", "a.", "a..b" - split produces empty
+     *       strings, use literal to avoid creating nested structures with empty keys
+     * </ul>
+     *
      * @param path The dot-separated path
-     * @return A JsonPath with components split by dots
+     * @return A JsonPath with components split by dots, or literal if splitting would produce empty
+     *     keys
      */
     public static JsonPath fromPath(String path) {
-      return new JsonPath(List.of(path.split("\\.")));
+      // Use -1 limit to preserve trailing empty strings (e.g., "a..." -> ["a", "", "", ""])
+      String[] parts = path.split("\\.", -1);
+      // Handle edge cases where splitting would produce problematic results:
+      // 1. Empty array (dot-only field names like "." or "..")
+      // 2. Array with empty strings (e.g., ".a" -> ["", "a"], "a..." -> ["a", "", "", ""])
+      // In these cases, treat the original string as a literal field name
+      if (parts.length == 0) {
+        return new JsonPath(List.of(path));
+      }
+      for (String part : parts) {
+        if (part.isEmpty()) {
+          return new JsonPath(List.of(path));
+        }
+      }
+      return new JsonPath(List.of(parts));
     }
 
     private JsonPath(List<String> paths) {
