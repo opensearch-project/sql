@@ -36,6 +36,7 @@ import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchTimeoutException;
 import org.opensearch.sql.ast.statement.Explain.ExplainFormat;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
@@ -215,6 +216,11 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
                         buildResultSet(
                             result, rel.getRowType(), context.sysLimit.querySizeLimit(), listener);
                       } catch (SQLException e) {
+                        if (e.getCause() instanceof OpenSearchTimeoutException) {
+                          // Special case: execution failed due to timing, not other generic runtime
+                          // issues
+                          throw (OpenSearchTimeoutException) e.getCause();
+                        }
                         throw new RuntimeException(e);
                       }
                       return null;
