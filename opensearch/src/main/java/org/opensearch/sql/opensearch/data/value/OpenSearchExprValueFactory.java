@@ -412,7 +412,14 @@ public class OpenSearchExprValueFactory {
     private final List<String> paths;
 
     public JsonPath(String rawPath) {
-      this.paths = List.of(rawPath.split("\\."));
+      String[] parts = rawPath.split("\\.");
+      // If split returns empty array (e.g., "." or ".."), treat the original string as a literal
+      // field name instead of a path separator
+      if (parts.length == 0) {
+        this.paths = List.of(rawPath);
+      } else {
+        this.paths = List.of(parts);
+      }
     }
 
     public JsonPath(List<String> paths) {

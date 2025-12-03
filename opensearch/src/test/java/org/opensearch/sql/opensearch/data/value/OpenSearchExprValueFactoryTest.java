@@ -1041,6 +1041,41 @@ class OpenSearchExprValueFactoryTest {
     assertEquals(expectedValue, tupleValue);
   }
 
+  @Test
+  public void constructWithDotOnlyFieldNameReturnsValue() {
+    // Field name "." (single dot) should return the actual value, not crash or return null
+    // This can happen with disabled object fields in OpenSearch
+    Map<String, ExprValue> result = tupleValue("{\"structV\":{\".\":\"value\"}}");
+    ExprValue structValue = result.get("structV");
+    // The "." field should contain the actual value
+    assertEquals(stringValue("value"), structValue.tupleValue().get("."));
+  }
+
+  @Test
+  public void constructWithMultipleDotsFieldNameReturnsValue() {
+    // Field name ".." (multiple dots) should also return the actual value
+    Map<String, ExprValue> result = tupleValue("{\"structV\":{\"..\":\"value\"}}");
+    ExprValue structValue = result.get("structV");
+    assertEquals(stringValue("value"), structValue.tupleValue().get(".."));
+  }
+
+  @Test
+  public void constructWithDotFieldAlongsideValidFieldsReturnsAll() {
+    // Both dot field and valid fields should be returned
+    Map<String, ExprValue> result =
+        tupleValue(
+            "{\"structV\":{\".\":\"dotValue\",\"id\":1,\"state\":\"WA\"},\"stringV\":\"test\"}");
+
+    // stringV field should be returned normally
+    assertEquals(stringValue("test"), result.get("stringV"));
+
+    // All fields inside structV should be returned
+    ExprValue structValue = result.get("structV");
+    assertEquals(stringValue("dotValue"), structValue.tupleValue().get("."));
+    assertEquals(integerValue(1), structValue.tupleValue().get("id"));
+    assertEquals(stringValue("WA"), structValue.tupleValue().get("state"));
+  }
+
   public Map<String, ExprValue> tupleValue(String jsonString) {
     final ExprValue construct = exprValueFactory.construct(jsonString, false);
     return construct.tupleValue();

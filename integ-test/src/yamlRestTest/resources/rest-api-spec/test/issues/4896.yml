@@ -1,0 +1,89 @@
+# Issue: https://github.com/opensearch-project/sql/issues/4896
+# ArrayIndexOutOfBoundsException when querying index with dot-only field name
+#
+# Root cause: When a document has a field name that is just "." (a single dot),
+# the JsonPath constructor's split("\\.") returns an empty array, causing
+# paths.get(0) to crash with ArrayIndexOutOfBoundsException.
+#
+# This can happen when an index has a disabled object field (enabled: false),
+# which allows storing documents without validating inner field names.
+#
+# Fix: When split returns empty array, treat the original string as a literal
+# field name, allowing the data to be returned properly.
+
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+  # Create index with disabled object field
+  - do:
+      indices.create:
+        index: test_disabled_object_4896
+        body:
+          mappings:
+            properties:
+              log:
+                type: object
+                enabled: false
+              "@timestamp":
+                type: date
+              message:
+                type: text
+
+  # Index document with "." field name inside disabled object
+  # OpenSearch allows this because the object is disabled (no validation of inner fields)
+  - do:
+      index:
+        index: test_disabled_object_4896
+        id: 1
+        refresh: true
+        body:
+          "@timestamp": "2025-11-26T17:10:00.000Z"
+          message: "test message"
+          log:
+            ".": "dot field value"
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+  - do:
+      indices.delete:
+        index: test_disabled_object_4896
+
+---
+"Query index with dot-only field name should return actual value":
+  - skip:
+      features:
+        - headers
+
+  # Test 1: Query valid fields - should succeed
+  # Before fix: This would crash because the entire document is parsed
+  # After fix: Query succeeds, all fields returned normally
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_disabled_object_4896 | fields @timestamp, message
+  - match: { "total": 1 }
+  - match: { "datarows.0.0": "2025-11-26 17:10:00" }
+  - match: { "datarows.0.1": "test message" }
+
+  # Test 2: Query the log field with "." subfield
+  # Before fix: ArrayIndexOutOfBoundsException crash
+  # After fix: Returns the log object with the "." field containing actual value
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_disabled_object_4896 | fields log
+  - match: { "total": 1 }
+  # The log field should contain the "." subfield with its value
+  - match: { "datarows.0.0": { ".": "dot field value" } }
