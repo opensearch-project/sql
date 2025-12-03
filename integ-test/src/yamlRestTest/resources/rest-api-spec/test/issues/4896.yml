@@ -7,6 +7,10 @@
 #
 # This can happen when an index has a disabled object field (enabled: false),
 # which allows storing documents without validating inner field names.
+#
+# Fix: The query engine now tolerates corrupt/invalid field names by returning null
+# for those fields (with a warning log), allowing the rest of the document to be
+# processed normally.
 
 setup:
   - do:
@@ -26,6 +30,8 @@ setup:
                 enabled: false
               "@timestamp":
                 type: date
+              message:
+                type: text
 
   # Index document with "." field name inside disabled object
   # OpenSearch allows this because the object is disabled (no validation of inner fields)
@@ -36,6 +42,7 @@ setup:
         refresh: true
         body:
           "@timestamp": "2025-11-26T17:10:00.000Z"
+          message: "test message"
           log:
             ".": "problematic value"
 
@@ -51,20 +58,30 @@ teardown:
         index: test_disabled_object_4896
 
 ---
-"Query index with dot-only field name in disabled object should return meaningful error":
+"Query index with dot-only field name in disabled object should succeed with valid fields":
   - skip:
       features:
         - headers
-        - regex
-  # Query should return meaningful error instead of ArrayIndexOutOfBoundsException
-  # The error is returned as 500 Internal Server Error with a meaningful message
   # Before the fix: ArrayIndexOutOfBoundsException: Index 0 out of bounds for length 0
-  # After the fix: Invalid field name '.': field names cannot consist only of dots
+  # After the fix: Query succeeds, invalid field returns null with a warning log,
+  # and valid fields (@timestamp, message) are returned normally
+  # Query valid fields - should succeed
   - do:
-      catch: request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_disabled_object_4896 | fields @timestamp, message
+  - match: { "total": 1 }
+  - match: { "datarows.0.0": "2025-11-26 17:10:00" }
+  - match: { "datarows.0.1": "test message" }
+
+  # Query all fields including log - should succeed without crash
+  # The log field with invalid "." field name will have null for that field
+  - do:
       headers:
         Content-Type: 'application/json'
       ppl:
         body:
           query: source=test_disabled_object_4896
-  - match: { "$body": "/Invalid field name.*cannot consist only of dots/" }
+  - match: { "total": 1 }

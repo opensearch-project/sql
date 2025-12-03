@@ -38,6 +38,8 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchParseException;
 import org.opensearch.common.time.DateFormatter;
 import org.opensearch.common.time.DateFormatters;
@@ -72,6 +74,8 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 
 /** Construct ExprValue from OpenSearch response. */
 public class OpenSearchExprValueFactory {
+  private static final Logger LOG = LogManager.getLogger(OpenSearchExprValueFactory.class);
+
   /** The Mapping of Field and ExprType. */
   private final Map<String, OpenSearchDataType> typeMapping;
 
@@ -373,15 +377,25 @@ public class OpenSearchExprValueFactory {
     content
         .map()
         .forEachRemaining(
-            entry ->
+            entry -> {
+              String fieldKey = entry.getKey();
+              String fullFieldPath = makeField(prefix, fieldKey);
+              try {
                 populateValueRecursive(
                     result,
-                    new JsonPath(entry.getKey()),
-                    parse(
-                        entry.getValue(),
-                        makeField(prefix, entry.getKey()),
-                        type(makeField(prefix, entry.getKey())),
-                        supportArrays)));
+                    new JsonPath(fieldKey),
+                    parse(entry.getValue(), fullFieldPath, type(fullFieldPath), supportArrays));
+              } catch (IllegalArgumentException e) {
+                // Return null for invalid field names (e.g., fields consisting only of dots)
+                // This can happen with disabled object fields that bypass field name validation
+                // Log warning to hint users about corrupt data
+                LOG.warn(
+                    "Field '{}' has invalid name and will return null: {}",
+                    fullFieldPath,
+                    e.getMessage());
+                result.tupleValue().put(fieldKey, ExprNullValue.of());
+              }
+            });
     return result;
   }
 
