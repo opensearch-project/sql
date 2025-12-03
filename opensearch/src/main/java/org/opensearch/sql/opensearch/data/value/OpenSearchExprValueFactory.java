@@ -376,7 +376,9 @@ public class OpenSearchExprValueFactory {
             entry ->
                 populateValueRecursive(
                     result,
-                    new JsonPath(entry.getKey()),
+                    // Use literal() because entry.getKey() is a JSON field name where dots are
+                    // literal characters, not path separators (e.g., ".", "..", "a...", ".a")
+                    JsonPath.literal(entry.getKey()),
                     parse(
                         entry.getValue(),
                         makeField(prefix, entry.getKey()),
@@ -411,18 +413,30 @@ public class OpenSearchExprValueFactory {
   static class JsonPath {
     private final List<String> paths;
 
-    public JsonPath(String rawPath) {
-      String[] parts = rawPath.split("\\.");
-      // If split returns empty array (e.g., "." or ".."), treat the original string as a literal
-      // field name instead of a path separator
-      if (parts.length == 0) {
-        this.paths = List.of(rawPath);
-      } else {
-        this.paths = List.of(parts);
-      }
+    /**
+     * Create a JsonPath from a literal field name (no splitting by dots). Use this when the field
+     * name comes directly from JSON object keys, where dots are literal characters in the field
+     * name, not path separators.
+     *
+     * @param fieldName The literal field name (e.g., ".", "..", "a...", ".a")
+     * @return A JsonPath with a single element containing the literal field name
+     */
+    public static JsonPath literal(String fieldName) {
+      return new JsonPath(List.of(fieldName));
     }
 
-    public JsonPath(List<String> paths) {
+    /**
+     * Create a JsonPath by splitting a dot-separated path into components. Use this when the path
+     * represents a nested field structure (e.g., "log.json.time" → ["log", "json", "time"]).
+     *
+     * @param path The dot-separated path
+     * @return A JsonPath with components split by dots
+     */
+    public static JsonPath fromPath(String path) {
+      return new JsonPath(List.of(path.split("\\.")));
+    }
+
+    private JsonPath(List<String> paths) {
       this.paths = paths;
     }
 

@@ -999,7 +999,7 @@ class OpenSearchExprValueFactoryTest {
     ExprTupleValue tupleValue = ExprTupleValue.empty();
 
     OpenSearchExprValueFactory.populateValueRecursive(
-        tupleValue, new JsonPath("log.json.time"), ExprValueUtils.integerValue(100));
+        tupleValue, JsonPath.fromPath("log.json.time"), ExprValueUtils.integerValue(100));
     ExprValue expectedValue =
         ExprValueUtils.tupleValue(
             Map.of("log", Map.of("json", new LinkedHashMap<>(Map.of("time", 100)))));
@@ -1007,7 +1007,7 @@ class OpenSearchExprValueFactoryTest {
 
     OpenSearchExprValueFactory.populateValueRecursive(
         tupleValue,
-        new JsonPath("log.json"),
+        JsonPath.fromPath("log.json"),
         ExprValueUtils.tupleValue(new LinkedHashMap<>(Map.of("status", "SUCCESS"))));
     expectedValue =
         ExprValueUtils.tupleValue(
@@ -1025,7 +1025,7 @@ class OpenSearchExprValueFactoryTest {
 
     // update the conflict value with the latest
     OpenSearchExprValueFactory.populateValueRecursive(
-        tupleValue, new JsonPath("log.json.status"), ExprValueUtils.stringValue("FAILED"));
+        tupleValue, JsonPath.fromPath("log.json.status"), ExprValueUtils.stringValue("FAILED"));
     expectedValue =
         ExprValueUtils.tupleValue(
             Map.of(
@@ -1074,6 +1074,31 @@ class OpenSearchExprValueFactoryTest {
     assertEquals(stringValue("dotValue"), structValue.tupleValue().get("."));
     assertEquals(integerValue(1), structValue.tupleValue().get("id"));
     assertEquals(stringValue("WA"), structValue.tupleValue().get("state"));
+  }
+
+  @Test
+  public void constructWithTrailingDotsFieldNameReturnsValue() {
+    // Field name "a..." (with trailing dots) should preserve the original name
+    Map<String, ExprValue> result = tupleValue("{\"structV\":{\"a...\":\"value\"}}");
+    ExprValue structValue = result.get("structV");
+    // The field should be stored under "a...", not "a"
+    assertEquals(stringValue("value"), structValue.tupleValue().get("a..."));
+  }
+
+  @Test
+  public void constructWithLeadingDotsFieldNameReturnsValue() {
+    // Field name ".a" (with leading dot) should preserve the original name
+    Map<String, ExprValue> result = tupleValue("{\"structV\":{\".a\":\"value\"}}");
+    ExprValue structValue = result.get("structV");
+    assertEquals(stringValue("value"), structValue.tupleValue().get(".a"));
+  }
+
+  @Test
+  public void constructWithMiddleDotsFieldNameReturnsValue() {
+    // Field name "a..b" (with consecutive dots in middle) should preserve the original name
+    Map<String, ExprValue> result = tupleValue("{\"structV\":{\"a..b\":\"value\"}}");
+    ExprValue structValue = result.get("structV");
+    assertEquals(stringValue("value"), structValue.tupleValue().get("a..b"));
   }
 
   public Map<String, ExprValue> tupleValue(String jsonString) {

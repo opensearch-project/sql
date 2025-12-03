@@ -1,15 +1,14 @@
 # Issue: https://github.com/opensearch-project/sql/issues/4896
-# ArrayIndexOutOfBoundsException when querying index with dot-only field name
+# ArrayIndexOutOfBoundsException when querying index with dot-containing field names
 #
-# Root cause: When a document has a field name that is just "." (a single dot),
-# the JsonPath constructor's split("\\.") returns an empty array, causing
-# paths.get(0) to crash with ArrayIndexOutOfBoundsException.
+# Root cause: JSON field names containing dots (e.g., ".", "..", "a...", ".a")
+# were incorrectly split as path separators, causing crashes or data corruption.
 #
 # This can happen when an index has a disabled object field (enabled: false),
 # which allows storing documents without validating inner field names.
 #
-# Fix: When split returns empty array, treat the original string as a literal
-# field name, allowing the data to be returned properly.
+# Fix: Treat JSON field names as literal strings, not dot-separated paths.
+# Dots in field names are literal characters, not path separators.
 
 setup:
   - do:
@@ -32,18 +31,85 @@ setup:
               message:
                 type: text
 
-  # Index document with "." field name inside disabled object
-  # OpenSearch allows this because the object is disabled (no validation of inner fields)
+  # Document 1: Single dot field name "."
   - do:
       index:
         index: test_disabled_object_4896
         id: 1
-        refresh: true
         body:
           "@timestamp": "2025-11-26T17:10:00.000Z"
-          message: "test message"
+          message: "single dot"
           log:
-            ".": "dot field value"
+            ".": "single dot value"
+
+  # Document 2: Multiple dots field name ".."
+  - do:
+      index:
+        index: test_disabled_object_4896
+        id: 2
+        body:
+          "@timestamp": "2025-11-26T17:11:00.000Z"
+          message: "multiple dots"
+          log:
+            "..": "double dot value"
+
+  # Document 3: Trailing dots field name "a..."
+  - do:
+      index:
+        index: test_disabled_object_4896
+        id: 3
+        body:
+          "@timestamp": "2025-11-26T17:12:00.000Z"
+          message: "trailing dots"
+          log:
+            "a...": "trailing dots value"
+
+  # Document 4: Leading dot field name ".a"
+  - do:
+      index:
+        index: test_disabled_object_4896
+        id: 4
+        body:
+          "@timestamp": "2025-11-26T17:13:00.000Z"
+          message: "leading dot"
+          log:
+            ".a": "leading dot value"
+
+  # Document 5: Middle dots field name "a..b"
+  - do:
+      index:
+        index: test_disabled_object_4896
+        id: 5
+        body:
+          "@timestamp": "2025-11-26T17:14:00.000Z"
+          message: "middle dots"
+          log:
+            "a..b": "middle dots value"
+
+  # Document 6: Multiple unusual fields in same object
+  - do:
+      index:
+        index: test_disabled_object_4896
+        id: 6
+        body:
+          "@timestamp": "2025-11-26T17:15:00.000Z"
+          message: "mixed fields"
+          log:
+            ".": "dot1"
+            "..": "dot2"
+            "normal": "normal value"
+
+  # Document 7: Malformed top-level field name "log." (trailing dot)
+  - do:
+      index:
+        index: test_disabled_object_4896
+        id: 7
+        refresh: true
+        body:
+          "@timestamp": "2025-11-26T17:16:00.000Z"
+          message: "malformed top-level"
+          "log.":
+            "nested": "value in log."
 
 ---
 teardown:
@@ -57,33 +123,124 @@ teardown:
         index: test_disabled_object_4896
 
 ---
-"Query index with dot-only field name should return actual value":
+"Single dot field name returns actual value":
   - skip:
       features:
         - headers
 
-  # Test 1: Query valid fields - should succeed
-  # Before fix: This would crash because the entire document is parsed
-  # After fix: Query succeeds, all fields returned normally
   - do:
       headers:
         Content-Type: 'application/json'
       ppl:
         body:
-          query: source=test_disabled_object_4896 | fields @timestamp, message
+          query: source=test_disabled_object_4896 | where message = 'single dot' | fields log
   - match: { "total": 1 }
-  - match: { "datarows.0.0": "2025-11-26 17:10:00" }
-  - match: { "datarows.0.1": "test message" }
+  - match: { "datarows.0.0": { ".": "single dot value" } }
 
-  # Test 2: Query the log field with "." subfield
-  # Before fix: ArrayIndexOutOfBoundsException crash
-  # After fix: Returns the log object with the "." field containing actual value
+---
+"Multiple dots field name returns actual value":
+  - skip:
+      features:
+        - headers
+
   - do:
       headers:
         Content-Type: 'application/json'
       ppl:
         body:
-          query: source=test_disabled_object_4896 | fields log
+          query: source=test_disabled_object_4896 | where message = 'multiple dots' | fields log
   - match: { "total": 1 }
-  # The log field should contain the "." subfield with its value
-  - match: { "datarows.0.0": { ".": "dot field value" } }
+  - match: { "datarows.0.0": { "..": "double dot value" } }
+
+---
+"Trailing dots field name preserves original name":
+  - skip:
+      features:
+        - headers
+
+  # Field "a..." should NOT be truncated to "a"
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_disabled_object_4896 | where message = 'trailing dots' | fields log
+  - match: { "total": 1 }
+  - match: { "datarows.0.0": { "a...": "trailing dots value" } }
+
+---
+"Leading dot field name preserves original name":
+  - skip:
+      features:
+        - headers
+
+  # Field ".a" should NOT create nested structure
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_disabled_object_4896 | where message = 'leading dot' | fields log
+  - match: { "total": 1 }
+  - match: { "datarows.0.0": { ".a": "leading dot value" } }
+
+---
+"Middle dots field name preserves original name":
+  - skip:
+      features:
+        - headers
+
+  # Field "a..b" should NOT create nested structure a -> "" -> b
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_disabled_object_4896 | where message = 'middle dots' | fields log
+  - match: { "total": 1 }
+  - match: { "datarows.0.0": { "a..b": "middle dots value" } }
+
+---
+"Multiple unusual fields coexist with normal fields":
+  - skip:
+      features:
+        - headers
+
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_disabled_object_4896 | where message = 'mixed fields' | fields log
+  - match: { "total": 1 }
+  - match: { "datarows.0.0": { ".": "dot1", "..": "dot2", "normal": "normal value" } }
+
+---
+"Malformed top-level field name preserves original name":
+  - skip:
+      features:
+        - headers
+
+  # Top-level field "log." should be preserved, not truncated to "log"
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_disabled_object_4896 | where message = 'malformed top-level'
+  - match: { "total": 1 }
+
+---
+"Query all documents with unusual field names succeeds":
+  - skip:
+      features:
+        - headers
+
+  # All 7 documents should be queryable without crash
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_disabled_object_4896
+  - match: { "total": 7 }
