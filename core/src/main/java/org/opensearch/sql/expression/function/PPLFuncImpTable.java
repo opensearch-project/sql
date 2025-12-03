@@ -876,6 +876,7 @@ public class PPLFuncImpTable {
       registerOperator(REVERSE, SqlLibraryOperators.REVERSE);
       registerOperator(RIGHT, SqlLibraryOperators.RIGHT);
       registerOperator(LEFT, SqlLibraryOperators.LEFT);
+      registerOperator(LOG, SqlLibraryOperators.LOG_MYSQL);
       registerOperator(LOG2, SqlLibraryOperators.LOG2);
       registerOperator(MD5, SqlLibraryOperators.MD5);
       registerOperator(SHA1, SqlLibraryOperators.SHA1);
@@ -1213,20 +1214,6 @@ public class PPLFuncImpTable {
                               SqlTypeFamily.INTEGER,
                               SqlTypeFamily.INTEGER)),
               false));
-      register(
-          LOG,
-          (FunctionImp2)
-              (builder, arg1, arg2) -> builder.makeCall(SqlLibraryOperators.LOG, arg2, arg1),
-          PPLTypeChecker.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));
-      register(
-          LOG,
-          (FunctionImp1)
-              (builder, arg) ->
-                  builder.makeCall(
-                      SqlLibraryOperators.LOG,
-                      arg,
-                      builder.makeApproxLiteral(BigDecimal.valueOf(Math.E))),
-          PPLTypeChecker.family(SqlTypeFamily.NUMERIC));
       // SqlStdOperatorTable.SQRT is declared but not implemented. The call to SQRT in Calcite is
       // converted to POWER(x, 0.5).
       register(
