@@ -1041,6 +1041,37 @@ class OpenSearchExprValueFactoryTest {
     assertEquals(expectedValue, tupleValue);
   }
 
+  @Test
+  public void testJsonPathWithDotOnlyFieldName() {
+    IllegalArgumentException ex =
+        assertThrows(IllegalArgumentException.class, () -> new JsonPath("."));
+    assertTrue(ex.getMessage().contains("Invalid field name"));
+    assertTrue(ex.getMessage().contains("cannot consist only of dots"));
+  }
+
+  @Test
+  public void testJsonPathWithMultipleDotsFieldName() {
+    IllegalArgumentException ex =
+        assertThrows(IllegalArgumentException.class, () -> new JsonPath(".."));
+    assertTrue(ex.getMessage().contains("Invalid field name"));
+    assertTrue(ex.getMessage().contains("cannot consist only of dots"));
+  }
+
+  @Test
+  public void testJsonPathWithTripleDotsFieldName() {
+    IllegalArgumentException ex =
+        assertThrows(IllegalArgumentException.class, () -> new JsonPath("..."));
+    assertTrue(ex.getMessage().contains("Invalid field name"));
+  }
+
+  @Test
+  public void testJsonPathWithValidFieldName() {
+    // Regular field names should work
+    JsonPath path = new JsonPath("log.json.time");
+    assertEquals("log", path.getRootPath());
+    assertEquals(3, path.getPaths().size());
+  }
+
   public Map<String, ExprValue> tupleValue(String jsonString) {
     final ExprValue construct = exprValueFactory.construct(jsonString, false);
     return construct.tupleValue();

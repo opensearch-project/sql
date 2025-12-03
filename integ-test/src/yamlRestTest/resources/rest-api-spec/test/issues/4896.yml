@@ -1,0 +1,70 @@
+# Issue: https://github.com/opensearch-project/sql/issues/4896
+# ArrayIndexOutOfBoundsException when querying index with dot-only field name in disabled object
+#
+# Root cause: When a document has a field name that is just "." (a single dot),
+# the JsonPath constructor's split("\\.") returns an empty array, causing
+# paths.get(0) to crash with ArrayIndexOutOfBoundsException.
+#
+# This can happen when an index has a disabled object field (enabled: false),
+# which allows storing documents without validating inner field names.
+
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+  # Create index with disabled object field
+  - do:
+      indices.create:
+        index: test_disabled_object_4896
+        body:
+          mappings:
+            properties:
+              log:
+                type: object
+                enabled: false
+              "@timestamp":
+                type: date
+
+  # Index document with "." field name inside disabled object
+  # OpenSearch allows this because the object is disabled (no validation of inner fields)
+  - do:
+      index:
+        index: test_disabled_object_4896
+        id: 1
+        refresh: true
+        body:
+          "@timestamp": "2025-11-26T17:10:00.000Z"
+          log:
+            ".": "problematic value"
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+  - do:
+      indices.delete:
+        index: test_disabled_object_4896
+
+---
+"Query index with dot-only field name in disabled object should return meaningful error":
+  - skip:
+      features:
+        - headers
+        - regex
+  # Query should return meaningful error instead of ArrayIndexOutOfBoundsException
+  # The error is returned as 500 Internal Server Error with a meaningful message
+  # Before the fix: ArrayIndexOutOfBoundsException: Index 0 out of bounds for length 0
+  # After the fix: Invalid field name '.': field names cannot consist only of dots
+  - do:
+      catch: request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_disabled_object_4896
+  - match: { "$body": "/Invalid field name.*cannot consist only of dots/" }

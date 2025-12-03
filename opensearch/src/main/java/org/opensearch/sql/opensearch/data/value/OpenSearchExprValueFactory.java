@@ -412,7 +412,14 @@ public class OpenSearchExprValueFactory {
     private final List<String> paths;
 
     public JsonPath(String rawPath) {
-      this.paths = List.of(rawPath.split("\\."));
+      String[] parts = rawPath.split("\\.");
+      // Handle edge case where split returns empty array (e.g., rawPath = "." or "..")
+      if (parts.length == 0) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Invalid field name '%s': field names cannot consist only of dots", rawPath));
+      }
+      this.paths = List.of(parts);
     }
 
     public JsonPath(List<String> paths) {
