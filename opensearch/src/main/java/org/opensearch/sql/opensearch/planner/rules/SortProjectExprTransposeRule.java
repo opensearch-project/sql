@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
@@ -35,14 +34,15 @@ import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
  * push down sort expression script into scan.
  */
 @Value.Enclosing
-public class SortProjectExprTransposeRule extends RelRule<SortProjectExprTransposeRule.Config> {
+public class SortProjectExprTransposeRule
+    extends InterruptibleRelRule<SortProjectExprTransposeRule.Config> {
 
   protected SortProjectExprTransposeRule(Config config) {
     super(config);
   }
 
   @Override
-  public void onMatch(RelOptRuleCall call) {
+  protected void onMatchImpl(RelOptRuleCall call) {
     final Sort sort = call.rel(0);
     final Project project = call.rel(1);
 

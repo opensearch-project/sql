@@ -14,7 +14,9 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 
 /**
  * The JavaType for ExprUDT. The UDT which needs to use self-implemented java class should extend
- * this.
+ * this. Its javaClazz should override equals() and hashCode() methods. For example, {@link
+ * org.opensearch.sql.data.model.ExprIpValue} (javaClazz of {@link ExprIPType}) overrides the
+ * equals() and hashCode().
  */
 public class ExprJavaType extends AbstractExprRelDataType<JavaType> {
   public ExprJavaType(OpenSearchTypeFactory typeFactory, ExprUDT exprUDT, Class<?> javaClazz) {
