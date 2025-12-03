@@ -8,6 +8,7 @@ package org.opensearch.sql.opensearch.data.value;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.model.ExprValueUtils.booleanValue;
@@ -1099,6 +1100,77 @@ class OpenSearchExprValueFactoryTest {
     Map<String, ExprValue> result = tupleValue("{\"structV\":{\"a..b\":\"value\"}}");
     ExprValue structValue = result.get("structV");
     assertEquals(stringValue("value"), structValue.tupleValue().get("a..b"));
+  }
+
+  @Test
+  public void constructWithTopLevelTrailingDotFieldName() {
+    // Top-level field name "field." should be preserved
+    Map<String, ExprValue> result = tupleValue("{\"field.\":\"value\"}");
+    assertEquals(stringValue("value"), result.get("field."));
+  }
+
+  @Test
+  public void constructWithTopLevelLeadingDotFieldName() {
+    // Top-level field name ".field" should be preserved
+    Map<String, ExprValue> result = tupleValue("{\".field\":\"value\"}");
+    assertEquals(stringValue("value"), result.get(".field"));
+  }
+
+  @Test
+  public void constructWithMultipleMalformedFieldsAtSameLevel() {
+    // Multiple malformed fields at same level should all be preserved
+    Map<String, ExprValue> result =
+        tupleValue("{\"structV\":{\".\":\"v1\",\"..\":\"v2\",\"...\":\"v3\"}}");
+    ExprValue structValue = result.get("structV");
+    assertEquals(stringValue("v1"), structValue.tupleValue().get("."));
+    assertEquals(stringValue("v2"), structValue.tupleValue().get(".."));
+    assertEquals(stringValue("v3"), structValue.tupleValue().get("..."));
+  }
+
+  @Test
+  public void constructWithMalformedFieldContainingValue() {
+    // Malformed field name "a." containing a value should be preserved
+    Map<String, ExprValue> result = tupleValue("{\"structV\":{\"a.\":\"value\"}}");
+    ExprValue structValue = result.get("structV");
+    ExprValue aValue = structValue.tupleValue().get("a.");
+    assertNotNull(aValue);
+    assertEquals(stringValue("value"), aValue);
+  }
+
+  @Test
+  public void constructWithVariousMalformedFieldPatterns() {
+    // Test various malformed field name patterns
+    Map<String, ExprValue> result =
+        tupleValue("{\"structV\":{\"a.b.\":\"v1\",\".a.b\":\"v2\",\"a..b\":\"v3\"}}");
+    ExprValue structValue = result.get("structV");
+    assertEquals(stringValue("v1"), structValue.tupleValue().get("a.b."));
+    assertEquals(stringValue("v2"), structValue.tupleValue().get(".a.b"));
+    assertEquals(stringValue("v3"), structValue.tupleValue().get("a..b"));
+  }
+
+  @Test
+  public void jsonPathLiteralPreservesFieldName() {
+    // JsonPath.literal() should preserve the exact field name
+    JsonPath path = JsonPath.literal("a..b");
+    assertEquals(1, path.getPaths().size());
+    assertEquals("a..b", path.getRootPath());
+  }
+
+  @Test
+  public void jsonPathLiteralWithDotOnlyFieldName() {
+    // JsonPath.literal() with "." should create single-element path
+    JsonPath path = JsonPath.literal(".");
+    assertEquals(1, path.getPaths().size());
+    assertEquals(".", path.getRootPath());
+  }
+
+  @Test
+  public void jsonPathFromPathSplitsByDots() {
+    // JsonPath.fromPath() should split by dots for nested paths
+    JsonPath path = JsonPath.fromPath("a.b.c");
+    assertEquals(3, path.getPaths().size());
+    assertEquals("a", path.getRootPath());
+    assertEquals(List.of("b", "c"), path.getChildPath().getPaths());
   }
 
   public Map<String, ExprValue> tupleValue(String jsonString) {
