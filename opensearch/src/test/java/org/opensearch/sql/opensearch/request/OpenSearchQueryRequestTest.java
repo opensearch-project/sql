@@ -161,10 +161,8 @@ public class OpenSearchQueryRequestTest {
     when(searchResponse.getHits()).thenReturn(searchHits);
     when(searchHits.getHits()).thenReturn(new SearchHit[] {searchHit});
 
-    OpenSearchResponse searchResponse = request.search(searchAction, scrollAction);
-    assertFalse(searchResponse.isEmpty());
-    searchResponse = request.search(searchAction, scrollAction);
-    assertTrue(searchResponse.isEmpty());
+    OpenSearchResponse response = request.search(searchAction, scrollAction);
+    assertFalse(response.isEmpty());
     verify(searchAction, times(1)).apply(any());
   }
 
@@ -329,9 +327,6 @@ public class OpenSearchQueryRequestTest {
 
     OpenSearchResponse searchResponse = request.search(searchAction, scrollAction);
     assertFalse(searchResponse.isEmpty());
-
-    searchResponse = request.search(searchAction, scrollAction);
-    assertTrue(searchResponse.isEmpty());
 
     verify(searchAction, times(1)).apply(any());
   }

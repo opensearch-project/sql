@@ -1272,27 +1272,80 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testHaving() throws IOException {
+  public void testPaginatingAggForHaving() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
-    String expected = loadExpectedPlan("explain_agg_having1.yaml");
-    assertYamlEqualsIgnoreId(
-        expected,
-        explainQueryYaml(
-            "source=opensearch-sql_test_index_account | stats count() as c by"
-                + " state | where c > 10"));
-    expected = loadExpectedPlan("explain_agg_having2.yaml");
-    assertYamlEqualsIgnoreId(
-        expected,
-        explainQueryYaml(
-            "source=opensearch-sql_test_index_account | stats bucket_nullable = false count() by"
-                + " state | where `count()` > 10"));
-    expected = loadExpectedPlan("explain_agg_having3.yaml");
-    assertYamlEqualsIgnoreId(
-        expected,
-        explainQueryYaml(
-            "source=opensearch-sql_test_index_account | stats avg(balance) as avg, count() as cnt"
-                + " by state | eval new_avg = avg + 1000, new_cnt = cnt + 1 | where new_avg > 1000"
-                + " or new_cnt > 1"));
+    try {
+      setQueryBucketSize(2);
+      String expected = loadExpectedPlan("explain_agg_paginating_having1.yaml");
+      assertYamlEqualsIgnoreId(
+          expected,
+          explainQueryYaml(
+              "source=opensearch-sql_test_index_account | stats count() as c by"
+                  + " state | where c > 10"));
+      expected = loadExpectedPlan("explain_agg_paginating_having2.yaml");
+      assertYamlEqualsIgnoreId(
+          expected,
+          explainQueryYaml(
+              "source=opensearch-sql_test_index_account | stats bucket_nullable = false count() by"
+                  + " state | where `count()` > 10"));
+      expected = loadExpectedPlan("explain_agg_paginating_having3.yaml");
+      assertYamlEqualsIgnoreId(
+          expected,
+          explainQueryYaml(
+              "source=opensearch-sql_test_index_account | stats avg(balance) as avg, count() as cnt"
+                  + " by state | eval new_avg = avg + 1000, new_cnt = cnt + 1 | where new_avg >"
+                  + " 1000 or new_cnt > 1"));
+    } finally {
+      resetQueryBucketSize();
+    }
+  }
+
+  @Test
+  public void testPaginatingAggForJoin() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    try {
+      setQueryBucketSize(2);
+      String expected = loadExpectedPlan("explain_agg_paginating_join1.yaml");
+      assertYamlEqualsIgnoreId(
+          expected,
+          explainQueryYaml(
+              "source=opensearch-sql_test_index_account | stats count() as c by state | join left=l"
+                  + " right=r on l.state=r.state [ source=opensearch-sql_test_index_account | stats"
+                  + " count() as c by state ]"));
+      expected = loadExpectedPlan("explain_agg_paginating_join2.yaml");
+      assertYamlEqualsIgnoreId(
+          expected,
+          explainQueryYaml(
+              "source=opensearch-sql_test_index_account | stats bucket_nullable = false count() as"
+                  + " c by state | join left=l right=r on l.state=r.state ["
+                  + " source=opensearch-sql_test_index_account | stats bucket_nullable = false"
+                  + " count() as c by state ]"));
+      expected = loadExpectedPlan("explain_agg_paginating_join3.yaml");
+      assertYamlEqualsIgnoreId(
+          expected,
+          explainQueryYaml(
+              "source=opensearch-sql_test_index_account | stats count() as c by state | join"
+                  + " type=inner state [ source=opensearch-sql_test_index_account | stats count()"
+                  + " as c by state ]"));
+    } finally {
+      resetQueryBucketSize();
+    }
+  }
+
+  @Test
+  public void testPaginatingAggForHeadFrom() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    try {
+      setQueryBucketSize(2);
+      String expected = loadExpectedPlan("explain_agg_paginating_head_from.yaml");
+      assertYamlEqualsIgnoreId(
+          expected,
+          explainQueryYaml(
+              "source=opensearch-sql_test_index_account | stats count() as c by state | head 10"
+                  + " from 2"));
+    } finally {
+      resetQueryBucketSize();
+    }
   }
 
   @Test

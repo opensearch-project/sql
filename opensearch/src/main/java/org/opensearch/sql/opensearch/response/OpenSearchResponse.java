@@ -95,7 +95,7 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
    * @return true for empty
    */
   public boolean isEmpty() {
-    return (hits.getHits() == null)
+    return (hits == null || hits.getHits() == null)
         || (((hits.getHits().length == 0) && aggregations == null)
             && (!isCountAgg
                 || hits.getTotalHits() == null)); // check total hits if is count aggregation

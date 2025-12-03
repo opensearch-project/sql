@@ -57,7 +57,7 @@ class OpenSearchIndexScanAggregationBuilder implements PushDownQueryBuilder {
         new AggregationQueryBuilder(new DefaultExpressionSerializer());
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder =
         builder.buildAggregationBuilder(aggregatorList, groupByList, sortList, bucketNullable);
-    requestBuilder.pushDownAggregation(aggregationBuilder, false);
+    requestBuilder.pushDownAggregation(aggregationBuilder);
     requestBuilder.pushTypeMapping(builder.buildTypeMapping(aggregatorList, groupByList));
     return requestBuilder;
   }

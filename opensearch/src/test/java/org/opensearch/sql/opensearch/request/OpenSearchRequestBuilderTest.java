@@ -240,7 +240,7 @@ class OpenSearchRequestBuilderTest {
             "composite_buckets", Collections.singletonList(new TermsValuesSourceBuilder("longA")));
     OpenSearchAggregationResponseParser responseParser =
         new CompositeAggregationParser(new SingleValueParser("AVG(intA)"));
-    requestBuilder.pushDownAggregation(Pair.of(List.of(aggBuilder), responseParser), false);
+    requestBuilder.pushDownAggregation(Pair.of(List.of(aggBuilder), responseParser));
 
     assertEquals(
         new SearchSourceBuilder()
@@ -259,7 +259,7 @@ class OpenSearchRequestBuilderTest {
             "composite_buckets", Collections.singletonList(new TermsValuesSourceBuilder("longA")));
     OpenSearchAggregationResponseParser responseParser =
         new CompositeAggregationParser(new SinglePercentileParser("PERCENTILE(intA, 50)"));
-    requestBuilder.pushDownAggregation(Pair.of(List.of(aggBuilder), responseParser), false);
+    requestBuilder.pushDownAggregation(Pair.of(List.of(aggBuilder), responseParser));
 
     assertEquals(
         new SearchSourceBuilder()

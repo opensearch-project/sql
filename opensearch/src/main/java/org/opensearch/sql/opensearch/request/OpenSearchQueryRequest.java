@@ -79,8 +79,6 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
 
   private SearchResponse searchResponse = null;
 
-  @ToString.Exclude private boolean paginatingAgg;
-
   @ToString.Exclude private Map<String, Object> afterKey;
 
   /** For testing only. */
@@ -99,8 +97,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       SearchSourceBuilder sourceBuilder,
       OpenSearchExprValueFactory factory,
       List<String> includes) {
-    return new OpenSearchQueryRequest(
-        new IndexName(indexName), sourceBuilder, factory, includes, false);
+    return new OpenSearchQueryRequest(new IndexName(indexName), sourceBuilder, factory, includes);
   }
 
   /** Constructor of OpenSearchQueryRequest without PIT support. */
@@ -108,13 +105,11 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       IndexName indexName,
       SearchSourceBuilder sourceBuilder,
       OpenSearchExprValueFactory factory,
-      List<String> includes,
-      boolean paginatingAgg) {
+      List<String> includes) {
     this.indexName = indexName;
     this.sourceBuilder = sourceBuilder;
     this.exprValueFactory = factory;
     this.includes = includes;
-    this.paginatingAgg = paginatingAgg;
   }
 
   /** Constructor of OpenSearchQueryRequest with PIT support. */
@@ -131,7 +126,6 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     this.includes = includes;
     this.cursorKeepAlive = cursorKeepAlive;
     this.pitId = pitId;
-    this.paginatingAgg = false; // mutex with pitId
   }
 
   /** true if the request is a count aggregation request. */
@@ -183,10 +177,8 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   public OpenSearchResponse search(
       Function<SearchRequest, SearchResponse> searchAction,
       Function<SearchScrollRequest, SearchResponse> scrollAction) {
-    if (paginatingAgg) {
-      return searchPaginatingAgg(searchAction);
-    } else if (this.pitId == null) {
-      return searchSinglePage(searchAction);
+    if (this.pitId == null) {
+      return search(searchAction);
     } else {
       // Search with PIT instead of scroll API
       return searchWithPIT(searchAction);
@@ -212,8 +204,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     }
   }
 
-  private OpenSearchResponse searchPaginatingAgg(
-      Function<SearchRequest, SearchResponse> searchAction) {
+  private OpenSearchResponse search(Function<SearchRequest, SearchResponse> searchAction) {
     OpenSearchResponse openSearchResponse;
     if (searchDone) {
       openSearchResponse =
@@ -228,16 +219,17 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
           new OpenSearchResponse(
               this.searchResponse, exprValueFactory, includes, isCountAggRequest());
       // get the value before set searchDone = true
-      boolean isCountAggRequest = isCountAggRequest();
       needClean = openSearchResponse.isEmpty();
       searchDone = openSearchResponse.isEmpty();
-      Aggregation agg = this.searchResponse.getAggregations().asList().get(0);
-      if (agg instanceof CompositeAggregation compositeAgg) {
-        afterKey = compositeAgg.afterKey();
-        if (afterKey != null && !afterKey.isEmpty()) {
-          this.sourceBuilder.aggregations().getAggregatorFactories().stream()
-              .filter(b -> b instanceof CompositeAggregationBuilder)
-              .forEach(c -> ((CompositeAggregationBuilder) c).aggregateAfter(afterKey));
+      if (this.searchResponse.getAggregations() != null) {
+        Aggregation agg = this.searchResponse.getAggregations().asList().get(0);
+        if (agg instanceof CompositeAggregation compositeAgg) {
+          afterKey = compositeAgg.afterKey();
+          if (afterKey != null && !afterKey.isEmpty()) {
+            this.sourceBuilder.aggregations().getAggregatorFactories().stream()
+                .filter(b -> b instanceof CompositeAggregationBuilder)
+                .forEach(c -> ((CompositeAggregationBuilder) c).aggregateAfter(afterKey));
+          }
         }
       }
     }

@@ -126,7 +126,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                   case SORT_AGG_METRICS ->
                       NumberUtil.min(rowCount, osIndex.getBucketSize().doubleValue());
                   // Refer the org.apache.calcite.rel.metadata.RelMdRowCount
-                  case FILTER, SCRIPT, HAVING ->
+                  case FILTER, SCRIPT ->
                       NumberUtil.multiply(
                           rowCount,
                           RelMdUtil.guessSelectivity(
@@ -183,7 +183,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
           dCpu += NumberUtil.multiply(dRows, 1.1 * complexExprCount);
         }
         // Ignore cost the primitive filter but it will affect the rows count.
-        case FILTER, HAVING ->
+        case FILTER ->
             dRows =
                 NumberUtil.multiply(
                     dRows,
@@ -444,9 +444,5 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
 
   public boolean isProjectPushed() {
     return this.getPushDownContext().isProjectPushed();
-  }
-
-  public boolean isHavingFlagPushed() {
-    return this.getPushDownContext().isHavingFlagPushed();
   }
 }

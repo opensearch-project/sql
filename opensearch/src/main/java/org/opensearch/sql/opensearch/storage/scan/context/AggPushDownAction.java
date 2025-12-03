@@ -50,7 +50,6 @@ public class AggPushDownAction implements OSRequestBuilderAction {
   private final long scriptCount;
   // Record the output field names of all buckets as the sequence of buckets
   private List<String> bucketNames;
-  private boolean hasHavingClause;
 
   public AggPushDownAction(
       Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> builderAndParser,
@@ -83,7 +82,7 @@ public class AggPushDownAction implements OSRequestBuilderAction {
 
   @Override
   public void apply(OpenSearchRequestBuilder requestBuilder) {
-    requestBuilder.pushDownAggregation(builderAndParser, hasHavingClause);
+    requestBuilder.pushDownAggregation(builderAndParser);
     requestBuilder.pushTypeMapping(extendedTypeMapping);
   }
 
@@ -105,11 +104,6 @@ public class AggPushDownAction implements OSRequestBuilderAction {
         .map(TermsValuesSourceBuilder.class::cast)
         .map(TermsValuesSourceBuilder::name)
         .collect(Collectors.joining("|")); // PIPE cannot be used in identifier
-  }
-
-  /** Set the HAVING flat to true */
-  public void setHavingClauseFlag() {
-    this.hasHavingClause = true;
   }
 
   /** Re-pushdown a sort aggregation measure to replace the pushed composite aggregation */

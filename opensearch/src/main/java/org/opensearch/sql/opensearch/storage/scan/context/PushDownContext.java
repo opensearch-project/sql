@@ -37,7 +37,6 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
   private boolean isTopKPushed = false;
   private boolean isRareTopPushed = false;
   private boolean isScriptPushed = false;
-  private boolean isHavingFlagPushed = false;
 
   public PushDownContext(OpenSearchIndex osIndex) {
     this.osIndex = osIndex;
@@ -134,9 +133,6 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
     }
     if (operation.type() == PushDownType.SCRIPT) {
       isScriptPushed = true;
-    }
-    if (operation.type() == PushDownType.HAVING) {
-      isHavingFlagPushed = true;
     }
     return true;
   }

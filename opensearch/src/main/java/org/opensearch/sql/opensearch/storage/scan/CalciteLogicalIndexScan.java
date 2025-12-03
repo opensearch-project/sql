@@ -21,7 +21,6 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelCollation;
@@ -33,7 +32,6 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.hint.RelHint;
-import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -54,7 +52,6 @@ import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
-import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -305,44 +302,6 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       newTraitSet = getTraitSet();
     }
     return newTraitSet;
-  }
-
-  /**
-   * Push HAVING flag for aggregation pagination. Note: Only composite aggregation supports
-   * pagination.
-   */
-  public CalciteLogicalIndexScan pushDownHavingClauseFlag(LogicalFilter filter) {
-    try {
-      if (!pushDownContext.isAggregatePushed()) return null;
-      List<AggregationBuilder> aggregationBuilders =
-          pushDownContext.getAggPushDownAction().getBuilderAndParser().getLeft();
-      if (aggregationBuilders.size() != 1) {
-        return null;
-      }
-      if (!(aggregationBuilders.getFirst() instanceof CompositeAggregationBuilder)) {
-        return null;
-      }
-      List<String> aggMeasureNames = getAggMeasureNameList();
-      List<String> fieldNamesInCondition =
-          PlanUtils.getSelectColumns(RelOptUtil.conjunctions(filter.getCondition())).stream()
-              .map(i -> filter.getRowType().getFieldNames().get(i))
-              .distinct()
-              .toList();
-      if (fieldNamesInCondition.stream().noneMatch(aggMeasureNames::contains)) {
-        return null;
-      }
-      CalciteLogicalIndexScan newScan = copy();
-      AbstractAction<?> newAction =
-          (AggregationBuilderAction) AggPushDownAction::setHavingClauseFlag;
-      FilterDigest digest = new FilterDigest(0, filter.getCondition());
-      newScan.pushDownContext.add(PushDownType.HAVING, digest, newAction);
-      return newScan;
-    } catch (Exception e) {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Cannot pushdown the having flag", e);
-      }
-    }
-    return null;
   }
 
   public CalciteLogicalIndexScan pushDownSortAggregateMeasure(Sort sort) {

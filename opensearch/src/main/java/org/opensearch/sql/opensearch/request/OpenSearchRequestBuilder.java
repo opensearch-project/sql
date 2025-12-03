@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.ToString;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.lucene.search.join.ScoreMode;
 import org.opensearch.action.search.CreatePitRequest;
@@ -50,6 +51,7 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 /** OpenSearch search request builder. */
 @EqualsAndHashCode
 @Getter
+@ToString
 public class OpenSearchRequestBuilder {
 
   /** Search request source builder. */
@@ -62,30 +64,14 @@ public class OpenSearchRequestBuilder {
   private Integer pageSize = null;
 
   /** OpenSearchExprValueFactory. */
-  @EqualsAndHashCode.Exclude private final OpenSearchExprValueFactory exprValueFactory;
+  @EqualsAndHashCode.Exclude @ToString.Exclude
+  private final OpenSearchExprValueFactory exprValueFactory;
 
-  @EqualsAndHashCode.Exclude private final int maxResultWindow;
+  @EqualsAndHashCode.Exclude @ToString.Exclude private final int maxResultWindow;
 
   private int startFrom = 0;
 
-  @EqualsAndHashCode.Exclude private final Settings settings;
-
-  @EqualsAndHashCode.Exclude private boolean paginatingAgg = false;
-
-  @Override
-  public String toString() {
-    return "OpenSearchRequestBuilder("
-        + "sourceBuilder="
-        + sourceBuilder
-        + ", requestedTotalSize="
-        + requestedTotalSize
-        + ", pageSize="
-        + pageSize
-        + ", startFrom="
-        + startFrom
-        + (paginatingAgg ? ", paginatingAgg=true" : "")
-        + ')';
-  }
+  @EqualsAndHashCode.Exclude @ToString.Exclude private final Settings settings;
 
   public static class PushDownUnSupportedException extends RuntimeException {
     public PushDownUnSupportedException(String message) {
@@ -124,17 +110,11 @@ public class OpenSearchRequestBuilder {
       OpenSearchClient client,
       boolean isMappingEmpty) {
     /* Don't use PIT search:
-     * 1. If the paginatingAgg is true. It means this is an paginating aggregation request.
-     * 2. If the size of source is 0. It means this is an aggregation request and no need to use pit.
-     * 3. If mapping is empty. It means no data in the index. PIT search relies on `_id` fields to do sort, thus it will fail if using PIT search in this case.
+     * 1. If the size of source is 0. It means this is an aggregation request and no need to use pit.
+     * 2. If mapping is empty. It means no data in the index. PIT search relies on `_id` fields to do sort, thus it will fail if using PIT search in this case.
      */
-    if (paginatingAgg) {
-      return new OpenSearchQueryRequest(
-          indexName, sourceBuilder, exprValueFactory, List.of(), true);
-    }
     if (sourceBuilder.size() == 0 || isMappingEmpty) {
-      return new OpenSearchQueryRequest(
-          indexName, sourceBuilder, exprValueFactory, List.of(), false);
+      return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, List.of());
     }
     return buildRequestWithPit(indexName, cursorKeepAlive, client);
   }
@@ -155,9 +135,8 @@ public class OpenSearchRequestBuilder {
       } else {
         sourceBuilder.from(startFrom);
         sourceBuilder.size(size);
-        // Search with non-Pit at last request, the paginatingAgg flag must be false here.
-        return new OpenSearchQueryRequest(
-            indexName, sourceBuilder, exprValueFactory, includes, false);
+        // Search with non-Pit request
+        return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, includes);
       }
     } else {
       if (startFrom != 0) {
@@ -222,14 +201,11 @@ public class OpenSearchRequestBuilder {
    * Push down aggregation to DSL request.
    *
    * @param builderAndParser pair of aggregation query and aggregation parser.
-   * @param hasHavingClause indicates there is a HAVING clause after aggregation.
    */
   public void pushDownAggregation(
-      Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> builderAndParser,
-      boolean hasHavingClause) {
+      Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> builderAndParser) {
     builderAndParser.getLeft().forEach(sourceBuilder::aggregation);
     sourceBuilder.size(0);
-    this.paginatingAgg = hasHavingClause;
     exprValueFactory.setParser(builderAndParser.getRight());
     // no need to sort docs for aggregation
     if (sourceBuilder.sorts() != null) {

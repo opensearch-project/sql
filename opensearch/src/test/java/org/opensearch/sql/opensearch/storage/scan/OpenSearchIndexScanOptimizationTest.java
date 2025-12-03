@@ -805,8 +805,7 @@ class OpenSearchIndexScanOptimizationTest {
     responseParser = new BucketAggregationParser(new SingleValueParser(aggregation.aggregateName));
 
     return () -> {
-      verify(requestBuilder, times(1))
-          .pushDownAggregation(Pair.of(aggBuilders, responseParser), false);
+      verify(requestBuilder, times(1)).pushDownAggregation(Pair.of(aggBuilders, responseParser));
       verify(requestBuilder, times(1))
           .pushTypeMapping(
               aggregation.resultTypes.entrySet().stream()
