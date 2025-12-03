@@ -32,9 +32,11 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiFunction;
 import lombok.Getter;
 import lombok.Setter;
@@ -75,6 +77,13 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 /** Construct ExprValue from OpenSearch response. */
 public class OpenSearchExprValueFactory {
   private static final Logger LOG = LogManager.getLogger(OpenSearchExprValueFactory.class);
+
+  /**
+   * Collects invalid field names encountered during parsing. Uses ThreadLocal to avoid log spam by
+   * logging all invalid fields once per construct() call instead of per field.
+   */
+  private static final ThreadLocal<Set<String>> INVALID_FIELDS =
+      ThreadLocal.withInitial(HashSet::new);
 
   /** The Mapping of Field and ExprType. */
   private final Map<String, OpenSearchDataType> typeMapping;
@@ -168,14 +177,31 @@ public class OpenSearchExprValueFactory {
    *  </pre>
    */
   public ExprValue construct(String jsonString, boolean supportArrays) {
+    INVALID_FIELDS.get().clear();
     try {
-      return parse(
-          new OpenSearchJsonContent(OBJECT_MAPPER.readTree(jsonString)),
-          TOP_PATH,
-          Optional.of(STRUCT),
-          fieldTypeTolerance || supportArrays);
+      ExprValue result =
+          parse(
+              new OpenSearchJsonContent(OBJECT_MAPPER.readTree(jsonString)),
+              TOP_PATH,
+              Optional.of(STRUCT),
+              fieldTypeTolerance || supportArrays);
+      logInvalidFields();
+      return result;
     } catch (JsonProcessingException e) {
       throw new IllegalStateException(String.format("invalid json: %s.", jsonString), e);
+    } finally {
+      INVALID_FIELDS.get().clear();
+    }
+  }
+
+  /** Log all invalid fields encountered during parsing (once per construct call). */
+  private void logInvalidFields() {
+    Set<String> invalidFields = INVALID_FIELDS.get();
+    if (!invalidFields.isEmpty()) {
+      LOG.warn(
+          "The following field(s) have invalid names and will return null: {}. "
+              + "This can happen with disabled object fields that bypass field name validation.",
+          invalidFields);
     }
   }
 
@@ -380,23 +406,33 @@ public class OpenSearchExprValueFactory {
             entry -> {
               String fieldKey = entry.getKey();
               String fullFieldPath = makeField(prefix, fieldKey);
-              try {
+              // Check for invalid field names (e.g., fields consisting only of dots like "." or
+              // "..")
+              // before creating JsonPath to avoid masking other IllegalArgumentExceptions
+              if (isInvalidFieldName(fieldKey)) {
+                // Collect invalid fields to log once per construct() call to avoid log spam
+                INVALID_FIELDS.get().add(fullFieldPath);
+                result.tupleValue().put(fieldKey, ExprNullValue.of());
+              } else {
                 populateValueRecursive(
                     result,
                     new JsonPath(fieldKey),
                     parse(entry.getValue(), fullFieldPath, type(fullFieldPath), supportArrays));
-              } catch (IllegalArgumentException e) {
-                // Return null for invalid field names (e.g., fields consisting only of dots)
-                // This can happen with disabled object fields that bypass field name validation
-                // Log warning to hint users about corrupt data
-                LOG.warn(
-                    "Field '{}' has invalid name and will return null: {}",
-                    fullFieldPath,
-                    e.getMessage());
-                result.tupleValue().put(fieldKey, ExprNullValue.of());
               }
             });
     return result;
+  }
+
+  /**
+   * Check if a field name is invalid. A field name is invalid if it consists only of dots (e.g.,
+   * ".", "..", "..."). Such field names cause issues because String.split("\\.") returns an empty
+   * array for them.
+   *
+   * @param fieldName The field name to check.
+   * @return true if the field name is invalid, false otherwise.
+   */
+  private static boolean isInvalidFieldName(String fieldName) {
+    return fieldName.split("\\.").length == 0;
   }
 
   /**

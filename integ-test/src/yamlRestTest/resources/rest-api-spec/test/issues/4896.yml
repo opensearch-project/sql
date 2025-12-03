@@ -76,12 +76,15 @@ teardown:
   - match: { "datarows.0.0": "2025-11-26 17:10:00" }
   - match: { "datarows.0.1": "test message" }
 
-  # Query all fields including log - should succeed without crash
-  # The log field with invalid "." field name will have null for that field
+  # Query the log field specifically - should succeed without crash
+  # The log field with invalid "." field name will have null for that invalid subfield
   - do:
       headers:
         Content-Type: 'application/json'
       ppl:
         body:
-          query: source=test_disabled_object_4896
+          query: source=test_disabled_object_4896 | fields log
   - match: { "total": 1 }
+  # The log field returns an empty object because the invalid "." field resolves to null
+  # and null values are omitted from JSON serialization
+  - match: { "datarows.0.0": {} }
