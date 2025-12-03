@@ -13,7 +13,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -40,7 +39,7 @@ import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
 /** Planner rule that push a {@link LogicalAggregate} down to {@link CalciteLogicalIndexScan} */
 @Value.Enclosing
-public class AggregateIndexScanRule extends RelRule<AggregateIndexScanRule.Config> {
+public class AggregateIndexScanRule extends InterruptibleRelRule<AggregateIndexScanRule.Config> {
 
   /** Creates a AggregateIndexScanRule. */
   protected AggregateIndexScanRule(Config config) {
@@ -48,7 +47,7 @@ public class AggregateIndexScanRule extends RelRule<AggregateIndexScanRule.Confi
   }
 
   @Override
-  public void onMatch(RelOptRuleCall call) {
+  protected void onMatchImpl(RelOptRuleCall call) {
     if (call.rels.length == 5) {
       final LogicalAggregate aggregate = call.rel(0);
       final LogicalProject topProject = call.rel(1);

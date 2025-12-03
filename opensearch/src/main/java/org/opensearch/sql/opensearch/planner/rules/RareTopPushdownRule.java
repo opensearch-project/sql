@@ -8,7 +8,6 @@ package org.opensearch.sql.opensearch.planner.rules;
 import java.util.List;
 import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexCall;
@@ -24,14 +23,14 @@ import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.context.RareTopDigest;
 
 @Value.Enclosing
-public class RareTopPushdownRule extends RelRule<RareTopPushdownRule.Config> {
+public class RareTopPushdownRule extends InterruptibleRelRule<RareTopPushdownRule.Config> {
 
   protected RareTopPushdownRule(Config config) {
     super(config);
   }
 
   @Override
-  public void onMatch(RelOptRuleCall call) {
+  protected void onMatchImpl(RelOptRuleCall call) {
     final LogicalFilter filter = call.rel(0);
     final LogicalProject project = call.rel(1);
     final CalciteLogicalIndexScan scan = call.rel(2);
