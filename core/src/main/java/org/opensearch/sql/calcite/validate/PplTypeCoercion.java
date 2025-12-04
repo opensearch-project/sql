@@ -150,9 +150,9 @@ public class PplTypeCoercion extends TypeCoercionImpl {
   @Override
   public @Nullable RelDataType commonTypeForBinaryComparison(
       @Nullable RelDataType type1, @Nullable RelDataType type2) {
-      // Prepend following rules for datetime comparisons
-      // - (date, time) -> timestamp
-      // - (time, timestamp) -> timestamp
+    // Prepend following rules for datetime comparisons:
+    // - (date, time) -> timestamp
+    // - (time, timestamp) -> timestamp
     if (type1 != null & type2 != null) {
       boolean anyNullable = type1.isNullable() || type2.isNullable();
       if ((SqlTypeUtil.isDate(type1) && OpenSearchTypeFactory.isTime(type2))
