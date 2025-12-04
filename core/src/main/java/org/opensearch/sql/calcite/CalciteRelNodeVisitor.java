@@ -2501,7 +2501,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return sb.toString();
   }
 
-  /** Transforms visitAddTotals command into SQL-based operations. */
+  /** Transforms visitAddColTotals command into SQL-based operations. */
   @Override
   public RelNode visitAddColTotals(AddColTotals node, CalcitePlanContext context) {
     visitChildren(node, context);
@@ -2534,7 +2534,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<String> fieldNameToSum = new ArrayList<>();
     RelNode originalData = context.relBuilder.peek();
 
-    boolean foundLableField = false;
+    boolean foundLabelField = false;
     int labelLength =
         (labelField != null) && (labelField.length() > label.length())
             ? labelField.length()
@@ -2574,7 +2574,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       }
       if (addTotalsForEachColumn && fieldDataType.getName().equals(labelField)) {
         // Use specified label field for the label
-        foundLableField = true;
+        foundLabelField = true;
       }
     }
     if (addTotalsForEachRow && !fieldsToSum.isEmpty()) {
@@ -2582,11 +2582,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       context.relBuilder.projectPlus(
           context.relBuilder.alias(sumExpression, newColTotalsFieldName));
       if (newColTotalsFieldName.equals(labelField)) {
-        foundLableField = true;
+        foundLabelField = true;
       }
     }
     if (addTotalsForEachColumn) {
-      if (!foundLableField && (labelField != null)) {
+      if (!foundLabelField && (labelField != null)) {
         context.relBuilder.projectPlus(
             context.relBuilder.alias(
                 context.relBuilder.getRexBuilder().makeNullLiteral(labelVarcharType), labelField));
@@ -2675,12 +2675,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         label);
   }
 
-  /** Helper method to extract option values from the options map */
   private String getOptionValue(Map<String, Literal> options, String key, String defaultValue) {
-    if (options.containsKey(key)) {
-      return options.get(key).toString().replace("\"", "");
+    Literal literal = options.get(key);
+    if (literal == null) {
+      return defaultValue;
     }
-    return defaultValue;
+    Object value = literal.getValue();
+    if (value == null) {
+      return defaultValue;
+    }
+    return value.toString();
   }
 
   /** Helper method to extract boolean option values */
