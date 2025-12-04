@@ -18,6 +18,9 @@ import java.util.function.Function;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.TestOnly;
 import org.opensearch.action.search.*;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
@@ -29,7 +32,6 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.SearchModule;
-import org.opensearch.search.aggregations.Aggregation;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregation;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationBuilder;
 import org.opensearch.search.builder.PointInTimeBuilder;
@@ -52,6 +54,7 @@ import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 @Getter
 @ToString
 public class OpenSearchQueryRequest implements OpenSearchRequest {
+  private static final Logger LOG = LogManager.getLogger();
 
   /** {@link OpenSearchRequest.IndexName}. */
   private final IndexName indexName;
@@ -66,14 +69,11 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   /** List of includes expected in the response. */
   @EqualsAndHashCode.Exclude @ToString.Exclude private final List<String> includes;
 
-  @EqualsAndHashCode.Exclude private boolean needClean = true;
-
-  /** Indicate the search already done. */
-  private boolean searchDone = false;
+  @EqualsAndHashCode.Exclude @ToString.Exclude private boolean needClean = false;
 
   private String pitId;
 
-  private TimeValue cursorKeepAlive;
+  private final TimeValue cursorKeepAlive;
 
   private Object[] searchAfter;
 
@@ -81,7 +81,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
 
   @ToString.Exclude private Map<String, Object> afterKey;
 
-  /** For testing only. */
+  @TestOnly
   static OpenSearchQueryRequest of(
       String indexName, int size, OpenSearchExprValueFactory factory, List<String> includes) {
     SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
@@ -91,29 +91,38 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     return of(indexName, sourceBuilder, factory, includes);
   }
 
-  /** For testing only. */
+  @TestOnly
   static OpenSearchQueryRequest of(
       String indexName,
       SearchSourceBuilder sourceBuilder,
       OpenSearchExprValueFactory factory,
       List<String> includes) {
-    return new OpenSearchQueryRequest(new IndexName(indexName), sourceBuilder, factory, includes);
+    return OpenSearchQueryRequest.of(new IndexName(indexName), sourceBuilder, factory, includes);
   }
 
-  /** Constructor of OpenSearchQueryRequest without PIT support. */
-  public OpenSearchQueryRequest(
+  /** Build an OpenSearchQueryRequest without PIT support. */
+  public static OpenSearchQueryRequest of(
       IndexName indexName,
       SearchSourceBuilder sourceBuilder,
       OpenSearchExprValueFactory factory,
       List<String> includes) {
-    this.indexName = indexName;
-    this.sourceBuilder = sourceBuilder;
-    this.exprValueFactory = factory;
-    this.includes = includes;
+    return new OpenSearchQueryRequest(indexName, sourceBuilder, factory, includes, null, null);
   }
 
-  /** Constructor of OpenSearchQueryRequest with PIT support. */
-  public OpenSearchQueryRequest(
+  /** Build an OpenSearchQueryRequest with PIT support. */
+  public static OpenSearchQueryRequest pitOf(
+      IndexName indexName,
+      SearchSourceBuilder sourceBuilder,
+      OpenSearchExprValueFactory factory,
+      List<String> includes,
+      TimeValue cursorKeepAlive,
+      String pitId) {
+    return new OpenSearchQueryRequest(
+        indexName, sourceBuilder, factory, includes, cursorKeepAlive, pitId);
+  }
+
+  /** Do not new it directly, use of() and pitOf() instead. */
+  OpenSearchQueryRequest(
       IndexName indexName,
       SearchSourceBuilder sourceBuilder,
       OpenSearchExprValueFactory factory,
@@ -126,14 +135,6 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     this.includes = includes;
     this.cursorKeepAlive = cursorKeepAlive;
     this.pitId = pitId;
-  }
-
-  /** true if the request is a count aggregation request. */
-  public boolean isCountAggRequest() {
-    return !searchDone
-        && sourceBuilder.size() == 0
-        && sourceBuilder.trackTotalHitsUpTo() != null // only set in v3
-        && sourceBuilder.trackTotalHitsUpTo() == Integer.MAX_VALUE;
   }
 
   /**
@@ -185,28 +186,17 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     }
   }
 
-  private OpenSearchResponse searchSinglePage(
-      Function<SearchRequest, SearchResponse> searchAction) {
-    // When SearchRequest doesn't contain PitId, fetch single page request
-    if (searchDone) {
-      return new OpenSearchResponse(
-          SearchHits.empty(), exprValueFactory, includes, isCountAggRequest());
-    } else {
-      // get the value before set searchDone = true
-      boolean isCountAggRequest = isCountAggRequest();
-      searchDone = true;
-      return new OpenSearchResponse(
-          searchAction.apply(
-              new SearchRequest().indices(indexName.getIndexNames()).source(sourceBuilder)),
-          exprValueFactory,
-          includes,
-          isCountAggRequest);
-    }
+  /** true if the request is a count aggregation request. */
+  public boolean isCountAggRequest() {
+    return !needClean
+        && sourceBuilder.size() == 0
+        && sourceBuilder.trackTotalHitsUpTo() != null // only set in v3
+        && sourceBuilder.trackTotalHitsUpTo() == Integer.MAX_VALUE;
   }
 
   private OpenSearchResponse search(Function<SearchRequest, SearchResponse> searchAction) {
     OpenSearchResponse openSearchResponse;
-    if (searchDone) {
+    if (needClean) {
       openSearchResponse =
           new OpenSearchResponse(
               SearchHits.empty(), exprValueFactory, includes, isCountAggRequest());
@@ -218,17 +208,18 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       openSearchResponse =
           new OpenSearchResponse(
               this.searchResponse, exprValueFactory, includes, isCountAggRequest());
-      // get the value before set searchDone = true
+
       needClean = openSearchResponse.isEmpty();
-      searchDone = openSearchResponse.isEmpty();
-      if (this.searchResponse.getAggregations() != null) {
-        Aggregation agg = this.searchResponse.getAggregations().asList().get(0);
-        if (agg instanceof CompositeAggregation compositeAgg) {
-          afterKey = compositeAgg.afterKey();
-          if (afterKey != null && !afterKey.isEmpty()) {
-            this.sourceBuilder.aggregations().getAggregatorFactories().stream()
-                .filter(b -> b instanceof CompositeAggregationBuilder)
-                .forEach(c -> ((CompositeAggregationBuilder) c).aggregateAfter(afterKey));
+      if (openSearchResponse.isCompositeAggregationResponse()) {
+        CompositeAggregation compositeAgg =
+            (CompositeAggregation) this.searchResponse.getAggregations().asList().get(0);
+        afterKey = compositeAgg.afterKey();
+        if (afterKey != null && !afterKey.isEmpty()) {
+          this.sourceBuilder.aggregations().getAggregatorFactories().stream()
+              .filter(b -> b instanceof CompositeAggregationBuilder)
+              .forEach(c -> ((CompositeAggregationBuilder) c).aggregateAfter(afterKey));
+          if (LOG.isDebugEnabled()) {
+            LOG.debug(sourceBuilder);
           }
         }
       }
@@ -238,7 +229,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
 
   public OpenSearchResponse searchWithPIT(Function<SearchRequest, SearchResponse> searchAction) {
     OpenSearchResponse openSearchResponse;
-    if (searchDone) {
+    if (needClean) {
       openSearchResponse =
           new OpenSearchResponse(
               SearchHits.empty(), exprValueFactory, includes, isCountAggRequest());
@@ -276,11 +267,13 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
               this.searchResponse, exprValueFactory, includes, isCountAggRequest());
 
       needClean = openSearchResponse.isEmpty();
-      searchDone = openSearchResponse.isEmpty();
       SearchHit[] searchHits = this.searchResponse.getHits().getHits();
       if (searchHits != null && searchHits.length > 0) {
         searchAfter = searchHits[searchHits.length - 1].getSortValues();
         this.sourceBuilder.searchAfter(searchAfter);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(sourceBuilder);
+        }
       }
     }
     return openSearchResponse;
@@ -292,7 +285,6 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       // clean on the last page only, to prevent deleting the PitId in the middle of paging.
       if (this.pitId != null && needClean) {
         cleanAction.accept(this.pitId);
-        searchDone = true;
       }
     } finally {
       this.pitId = null;
@@ -306,7 +298,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     try {
       if (this.pitId != null) {
         cleanAction.accept(this.pitId);
-        searchDone = true;
+        needClean = true;
       }
     } finally {
       this.pitId = null;

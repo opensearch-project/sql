@@ -198,7 +198,7 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
     return cachedMaxResultWindow;
   }
 
-  public Integer getBucketSize() {
+  public Integer getQueryBucketSize() {
     return Math.min(
         settings.getSettingValue(Settings.Key.QUERY_BUCKET_SIZE),
         settings.getSettingValue(Settings.Key.SEARCH_MAX_BUCKETS));
@@ -220,6 +220,8 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
             new OpenSearchIndexScan(
                 client,
                 requestBuilder.getMaxResponseSize(),
+                requestBuilder.getMaxResultWindow(),
+                this.getQueryBucketSize(),
                 requestBuilder.build(
                     indexName, cursorKeepAlive, client, cachedFieldOpenSearchTypes.isEmpty()));
     return new OpenSearchIndexScanBuilder(builder, createScanOperator);

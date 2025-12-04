@@ -126,7 +126,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
                   case AGGREGATION -> mq.getRowCount((RelNode) operation.digest());
                   case PROJECT, SORT, SORT_EXPR -> rowCount;
                   case SORT_AGG_METRICS ->
-                      NumberUtil.min(rowCount, osIndex.getBucketSize().doubleValue());
+                      NumberUtil.min(rowCount, osIndex.getQueryBucketSize().doubleValue());
                   // Refer the org.apache.calcite.rel.metadata.RelMdRowCount
                   case FILTER, SCRIPT ->
                       NumberUtil.multiply(

@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import org.jetbrains.annotations.TestOnly;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.core.common.text.Text;
 import org.opensearch.search.SearchHit;
@@ -40,6 +41,8 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 @ToString
 public class OpenSearchResponse implements Iterable<ExprValue> {
 
+  public static final OpenSearchResponse EMPTY = empty();
+
   /** Search query result (non-aggregation). */
   private final SearchHits hits;
 
@@ -54,12 +57,17 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
   /** OpenSearchExprValueFactory used to build ExprValue from search result. */
   @EqualsAndHashCode.Exclude private final OpenSearchExprValueFactory exprValueFactory;
 
-  /** Constructor of OpenSearchResponse. */
-  public OpenSearchResponse(
+  /** The empty OpenSearchResponse which is used for invalid search. */
+  private static OpenSearchResponse empty() {
+    return new OpenSearchResponse(SearchHits.empty(), null, List.of(), false);
+  }
+
+  @TestOnly
+  public static OpenSearchResponse of(
       SearchResponse searchResponse,
       OpenSearchExprValueFactory exprValueFactory,
       List<String> includes) {
-    this(searchResponse, exprValueFactory, includes, false);
+    return new OpenSearchResponse(searchResponse, exprValueFactory, includes, false);
   }
 
   /** Constructor of OpenSearchResponse. */
@@ -95,24 +103,30 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
    * @return true for empty
    */
   public boolean isEmpty() {
-    return (hits == null || hits.getHits() == null)
-        || (((hits.getHits().length == 0) && aggregations == null)
-            && (!isCountAgg
-                || hits.getTotalHits() == null)); // check total hits if is count aggregation
+    if (isCountResponse()) {
+      return hits.getTotalHits() == null;
+    } else if (isAggregationResponse()) {
+      return aggregations.asList().isEmpty();
+    } else {
+      return getHitsSize() == 0;
+    }
   }
 
   public boolean isAggregationResponse() {
     return aggregations != null;
   }
 
-  public boolean noCompositeAfterKey() {
+  public boolean isCompositeAggregationResponse() {
     return isAggregationResponse()
-        && aggregations.asList().stream()
-            .noneMatch(
-                a ->
-                    a instanceof InternalComposite c
-                        && c.afterKey() != null
-                        && !c.afterKey().isEmpty());
+        && !aggregations.asList().isEmpty()
+        && (aggregations.asList().get(0) instanceof InternalComposite);
+  }
+
+  public int getCompositeBucketSize() {
+    if (isCompositeAggregationResponse()) {
+      return ((InternalComposite) aggregations.asList().get(0)).getBuckets().size();
+    }
+    return 0;
   }
 
   public boolean isCountResponse() {
@@ -120,7 +134,7 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
   }
 
   public int getHitsSize() {
-    return hits.getHits() == null ? 0 : hits.getHits().length;
+    return hits == null ? 0 : hits.getHits() == null ? 0 : hits.getHits().length;
   }
 
   /**

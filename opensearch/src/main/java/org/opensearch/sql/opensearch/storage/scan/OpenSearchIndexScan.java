@@ -22,7 +22,6 @@ import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
-import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 import org.opensearch.sql.planner.SerializablePlan;
 import org.opensearch.sql.storage.TableScanOperator;
@@ -44,28 +43,33 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
   /** Number of rows returned. */
   private Integer queryCount;
 
-  /** Search response for current batch. */
   private Iterator<ExprValue> iterator;
+
+  private BackgroundSearchScanner bgScanner;
 
   /** Creates index scan based on a provided OpenSearchRequestBuilder. */
   public OpenSearchIndexScan(
-      OpenSearchClient client, int maxResponseSize, OpenSearchRequest request) {
+      OpenSearchClient client,
+      int maxResponseSize,
+      int maxResultWindow,
+      int queryBucketSize,
+      OpenSearchRequest request) {
     this.maxResponseSize = maxResponseSize;
     this.client = client;
     this.request = request;
+    this.bgScanner = new BackgroundSearchScanner(client, maxResultWindow, queryBucketSize);
   }
 
   @TestOnly
   public OpenSearchIndexScan(OpenSearchClient client, OpenSearchRequest request) {
-    this(client, Integer.MAX_VALUE, request);
+    this(client, Integer.MAX_VALUE, 10000, 10000, request);
   }
 
   @Override
   public void open() {
     super.open();
-    iterator = Collections.emptyIterator();
     queryCount = 0;
-    fetchNextBatch();
+    this.bgScanner.startScanning(request);
   }
 
   @Override
@@ -80,8 +84,8 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
       return false;
     }
 
-    if (!iterator.hasNext()) {
-      fetchNextBatch();
+    if (iterator == null || (!iterator.hasNext() && !this.bgScanner.isScanDone())) {
+      iterator = fetchNextBatch();
     }
     return iterator.hasNext();
   }
@@ -97,17 +101,16 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
     return iterator.next();
   }
 
-  private void fetchNextBatch() {
-    OpenSearchResponse response = client.search(request);
-    if (!response.isEmpty()) {
-      iterator = response.iterator();
-    }
+  private Iterator<ExprValue> fetchNextBatch() {
+    BackgroundSearchScanner.SearchBatchResult result = bgScanner.fetchNextBatch(request);
+    return result.iterator();
   }
 
   @Override
   public void close() {
     super.close();
-
+    iterator = Collections.emptyIterator();
+    bgScanner.close();
     client.cleanup(request);
   }
 

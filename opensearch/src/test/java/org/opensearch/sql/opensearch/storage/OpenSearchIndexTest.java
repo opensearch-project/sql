@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -32,6 +33,8 @@ import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -39,7 +42,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.ast.tree.Sort;
@@ -60,6 +62,7 @@ import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
+import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.node.NodeClient;
 
 @ExtendWith(MockitoExtension.class)
@@ -86,6 +89,8 @@ class OpenSearchIndexTest {
     lenient()
         .when(settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE))
         .thenReturn(TimeValue.timeValueMinutes(1));
+    lenient().when(settings.getSettingValue(Settings.Key.QUERY_BUCKET_SIZE)).thenReturn(10000);
+    lenient().when(settings.getSettingValue(Settings.Key.SEARCH_MAX_BUCKETS)).thenReturn(65535);
   }
 
   @Test
@@ -228,7 +233,12 @@ class OpenSearchIndexTest {
   @Test
   void implementOtherLogicalOperators() {
     when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
-    when(client.getNodeClient()).thenReturn(Optional.of(Mockito.mock(NodeClient.class)));
+    NodeClient nodeClient = mock(NodeClient.class);
+    ThreadPool threadPool = mock(ThreadPool.class);
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    when(client.getNodeClient()).thenReturn(Optional.of(nodeClient));
+    when(nodeClient.threadPool()).thenReturn(threadPool);
+    when(threadPool.executor(any())).thenReturn(executor);
     NamedExpression include = named("age", ref("age", INTEGER));
     ReferenceExpression exclude = ref("name", STRING);
     ReferenceExpression dedupeField = ref("name", STRING);

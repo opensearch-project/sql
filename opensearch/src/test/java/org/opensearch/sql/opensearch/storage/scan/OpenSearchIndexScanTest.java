@@ -119,11 +119,11 @@ class OpenSearchIndexScanTest {
             .map(i -> "column" + i)
             .collect(Collectors.toList());
     var request =
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             INDEX_NAME, searchSourceBuilder, factory, includes, CURSOR_KEEP_ALIVE, "samplePitId");
     // make a response, so OpenSearchResponse::isEmpty would return true and unset needClean
     var response = mock(SearchResponse.class);
-    when(response.getAggregations()).thenReturn(mock());
+    when(response.getAggregations()).thenReturn(null);
     var hits = mock(SearchHits.class);
     when(response.getHits()).thenReturn(hits);
     SearchHit hit = mock(SearchHit.class);
@@ -213,10 +213,15 @@ class OpenSearchIndexScanTest {
         new ExprValue[] {employee(1, "John", "IT"), employee(2, "Smith", "HR")},
         new ExprValue[] {employee(3, "Allen", "IT")});
 
-    final var requestBuilder = new OpenSearchRequestBuilder(exprValueFactory, 10000, settings);
+    final var requestBuilder =
+        new OpenSearchRequestBuilder(exprValueFactory, MAX_RESULT_WINDOW, settings);
     try (OpenSearchIndexScan indexScan =
         new OpenSearchIndexScan(
-            client, requestBuilder.build(INDEX_NAME, CURSOR_KEEP_ALIVE, client))) {
+            client,
+            Integer.MAX_VALUE,
+            2,
+            2,
+            requestBuilder.build(INDEX_NAME, CURSOR_KEEP_ALIVE, client))) {
       indexScan.open();
 
       assertAll(
@@ -266,7 +271,7 @@ class OpenSearchIndexScanTest {
     requestuilder.pushDownLimit(3, 0);
     try (OpenSearchIndexScan indexScan =
         new OpenSearchIndexScan(
-            client, 3, requestuilder.build(INDEX_NAME, CURSOR_KEEP_ALIVE, client))) {
+            client, 3, 2, 2, requestuilder.build(INDEX_NAME, CURSOR_KEEP_ALIVE, client))) {
       indexScan.open();
 
       assertAll(
@@ -374,7 +379,7 @@ class OpenSearchIndexScanTest {
 
       this.response = mock(OpenSearchResponse.class);
       this.factory = valueFactory;
-      when(response.isEmpty()).thenReturn(true);
+      lenient().when(response.isEmpty()).thenReturn(true);
     }
 
     PushDownAssertion pushDown(QueryBuilder query) {
@@ -396,10 +401,10 @@ class OpenSearchIndexScanTest {
               .size(MAX_RESULT_WINDOW)
               .highlighter(highlight);
       OpenSearchRequest request =
-          new OpenSearchQueryRequest(
+          OpenSearchQueryRequest.pitOf(
               EMPLOYEES_INDEX, sourceBuilder, factory, List.of(), CURSOR_KEEP_ALIVE, null);
 
-      when(client.search(request)).thenReturn(response);
+      lenient().when(client.search(request)).thenReturn(response);
       var indexScan =
           new OpenSearchIndexScan(
               client, requestBuilder.build(EMPLOYEES_INDEX, CURSOR_KEEP_ALIVE, client));
@@ -415,9 +420,9 @@ class OpenSearchIndexScanTest {
               .size(MAX_RESULT_WINDOW)
               .timeout(CURSOR_KEEP_ALIVE);
       OpenSearchRequest request =
-          new OpenSearchQueryRequest(
+          OpenSearchQueryRequest.pitOf(
               EMPLOYEES_INDEX, builder, factory, List.of(), CURSOR_KEEP_ALIVE, null);
-      when(client.search(request)).thenReturn(response);
+      lenient().when(client.search(request)).thenReturn(response);
       var indexScan =
           new OpenSearchIndexScan(
               client, requestBuilder.build(EMPLOYEES_INDEX, CURSOR_KEEP_ALIVE, client));
@@ -440,6 +445,10 @@ class OpenSearchIndexScanTest {
                   when(response.isEmpty()).thenReturn(false);
                   ExprValue[] searchHit = searchHitBatches[batchNum];
                   when(response.iterator()).thenReturn(Arrays.asList(searchHit).iterator());
+                  when(response.isCountResponse()).thenReturn(false);
+                  when(response.isAggregationResponse()).thenReturn(false);
+                  when(response.isCompositeAggregationResponse()).thenReturn(false);
+                  when(response.getHitsSize()).thenReturn(searchHit.length);
                 } else {
                   when(response.isEmpty()).thenReturn(true);
                 }

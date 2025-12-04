@@ -364,7 +364,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               .filter(entry -> schema.contains(entry.getKey()))
               .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
       List<String> outputFields = aggregate.getRowType().getFieldNames();
-      int bucketSize = osIndex.getBucketSize();
+      int queryBucketSize = osIndex.getQueryBucketSize();
       boolean bucketNullable =
           Boolean.parseBoolean(
               aggregate.getHints().stream()
@@ -374,7 +374,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
                   .orElseGet(() -> "true"));
       AggregateAnalyzer.AggregateBuilderHelper helper =
           new AggregateAnalyzer.AggregateBuilderHelper(
-              getRowType(), fieldTypes, getCluster(), bucketNullable, bucketSize);
+              getRowType(), fieldTypes, getCluster(), bucketNullable, queryBucketSize);
       final Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> builderAndParser =
           AggregateAnalyzer.analyze(aggregate, project, outputFields, helper);
       Map<String, OpenSearchDataType> extendedTypeMapping =

@@ -22,6 +22,5 @@ root:
           log\",\"message\",\"tags\",\"cloud\",\"input\",\"@timestamp\",\"ecs\",\"\
           data_stream\",\"meta\",\"host\",\"metrics\",\"aws\",\"event\"],\"excludes\"\
           :[]},\"sort\":[{\"@timestamp\":{\"order\":\"asc\",\"missing\":\"_first\"\
-          }}]}, needClean=true, searchDone=false, pitId=*, cursorKeepAlive=null,\
-          \ searchAfter=null, searchResponse=null)"
+          }}]}, pitId=*, cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
       children: []

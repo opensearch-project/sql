@@ -435,7 +435,7 @@ class OpenSearchRestClientTest {
   @SneakyThrows
   void cleanup_pit_request() {
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             new SearchSourceBuilder(),
             factory,
@@ -453,7 +453,7 @@ class OpenSearchRestClientTest {
   void cleanup_pit_request_throw_exception() {
     when(restClient.deletePit(any(), any())).thenThrow(new IOException());
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             new SearchSourceBuilder(),
             factory,

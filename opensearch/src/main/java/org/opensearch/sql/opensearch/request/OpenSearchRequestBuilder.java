@@ -24,6 +24,7 @@ import lombok.Getter;
 import lombok.ToString;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.lucene.search.join.ScoreMode;
+import org.jetbrains.annotations.TestOnly;
 import org.opensearch.action.search.CreatePitRequest;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.query.BoolQueryBuilder;
@@ -98,6 +99,7 @@ public class OpenSearchRequestBuilder {
    * @return query request with PIT or scroll request
    * @deprecated for testing only now.
    */
+  @TestOnly
   @Deprecated
   public OpenSearchRequest build(
       OpenSearchRequest.IndexName indexName, TimeValue cursorKeepAlive, OpenSearchClient client) {
@@ -114,7 +116,7 @@ public class OpenSearchRequestBuilder {
      * 2. If mapping is empty. It means no data in the index. PIT search relies on `_id` fields to do sort, thus it will fail if using PIT search in this case.
      */
     if (sourceBuilder.size() == 0 || isMappingEmpty) {
-      return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, List.of());
+      return OpenSearchQueryRequest.of(indexName, sourceBuilder, exprValueFactory, List.of());
     }
     return buildRequestWithPit(indexName, cursorKeepAlive, client);
   }
@@ -130,13 +132,14 @@ public class OpenSearchRequestBuilder {
         sourceBuilder.size(maxResultWindow - startFrom);
         // Search with PIT request
         String pitId = createPit(indexName, cursorKeepAlive, client);
-        return new OpenSearchQueryRequest(
+        return OpenSearchQueryRequest.pitOf(
             indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
       } else {
         sourceBuilder.from(startFrom);
         sourceBuilder.size(size);
         // Search with non-Pit request
-        return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, includes);
+        return OpenSearchQueryRequest.pitOf(
+            indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, null);
       }
     } else {
       if (startFrom != 0) {
@@ -145,7 +148,7 @@ public class OpenSearchRequestBuilder {
       sourceBuilder.size(pageSize);
       // Search with PIT request
       String pitId = createPit(indexName, cursorKeepAlive, client);
-      return new OpenSearchQueryRequest(
+      return OpenSearchQueryRequest.pitOf(
           indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
     }
   }

@@ -13,6 +13,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import javax.annotation.Nullable;
+import org.opensearch.OpenSearchException;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.NonFallbackCalciteException;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
@@ -63,9 +64,14 @@ public class BackgroundSearchScanner {
   @Nullable private final Executor backgroundExecutor;
   private CompletableFuture<OpenSearchResponse> nextBatchFuture = null;
   private boolean stopIteration = false;
+  private int maxResultWindow = 0;
+  private int queryBucketSize = 0;
 
-  public BackgroundSearchScanner(OpenSearchClient client) {
+  public BackgroundSearchScanner(
+      OpenSearchClient client, int maxResultWindow, int queryBucketSize) {
     this.client = client;
+    this.maxResultWindow = maxResultWindow;
+    this.queryBucketSize = queryBucketSize;
     // We can only actually do the background operation if we have the ability to access the thread
     // pool. Otherwise, fallback to synchronous fetch.
     if (client.getNodeClient().isPresent()) {
@@ -105,6 +111,15 @@ public class BackgroundSearchScanner {
       try {
         return nextBatchFuture.get();
       } catch (InterruptedException | ExecutionException e) {
+        if (e.getCause() instanceof OpenSearchException) {
+          if (((OpenSearchException) e.getCause()).getRootCause()
+              instanceof ArrayIndexOutOfBoundsException) {
+            // It could cause by searching CompositeAggregator with the last afterKey
+            // which is not exist in the index.
+            // In this case, we can safely ignore this exception.
+            return OpenSearchResponse.EMPTY;
+          }
+        }
         throw new NonFallbackCalciteException(
             "Failed to fetch data from the index: the background task failed or interrupted.\n"
                 + "  Inner error: "
@@ -120,20 +135,23 @@ public class BackgroundSearchScanner {
    * also trigger the next background fetch.
    *
    * @param request The OpenSearch request to execute
-   * @param maxResultWindow Maximum number of results to fetch per batch
    * @return SearchBatchResult containing the current batch's iterator and completion status
    * @throws NonFallbackCalciteException if the background fetch fails or is interrupted
    */
-  public SearchBatchResult fetchNextBatch(OpenSearchRequest request, int maxResultWindow) {
+  public SearchBatchResult fetchNextBatch(OpenSearchRequest request) {
     OpenSearchResponse response = getCurrentResponse(request);
 
-    // Determine if we need future batches:
-    // If it's for an aggregation (without composite afterKey)
-    // or the length of response hits is less than max result window size.
-    if ((response.isAggregationResponse() && response.noCompositeAfterKey())
-        || response.isCountResponse()
-        || (response.getHitsSize() > 0 && response.getHitsSize() < maxResultWindow)) {
+    // Determine if we need future batches
+    if (response.isCountResponse()) {
       stopIteration = true;
+    } else if (response.isCompositeAggregationResponse()) {
+      // For composite aggregations, if we get fewer buckets than requested, we're done
+      stopIteration = response.getCompositeBucketSize() < queryBucketSize;
+    } else if (response.isAggregationResponse()) {
+      stopIteration = true;
+    } else {
+      // For regular search results, if we get fewer hits than maxResultWindow, we're done
+      stopIteration = response.getHitsSize() < maxResultWindow;
     }
 
     Iterator<ExprValue> iterator;

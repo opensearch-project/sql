@@ -14,7 +14,6 @@ root:
         - name: OpenSearchIndexScan
           description:
             request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account,\
-              \ sourceBuilder={\"from\":0,\"size\":5,\"timeout\":\"1m\"}, needClean=true,\
-              \ searchDone=false, pitId=*, cursorKeepAlive=null, searchAfter=null,\
-              \ searchResponse=null)"
+              \ sourceBuilder={\"from\":0,\"size\":5,\"timeout\":\"1m\"}, pitId=*,\
+              \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
           children: []
