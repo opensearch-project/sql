@@ -12,7 +12,7 @@ Description
 ===========
 
 The ``addtotals`` command computes the sum of numeric fields and appends a row with the totals to the result.  The command can also add row totals and add a field to store row totals.  This is useful for creating summary reports with subtotals or grand totals.
-The ``addtotals`` command only sums numeric fields (integers, floats, doubles). Non-numeric fields in the field list are ignored even if its specified in field-list or in the case of no field-list specified.
+The ``addtotals`` command only sums numeric fields (integers, floats, doubles). Non-numeric fields in the field list are ignored even if it's specified in field-list or in the case of no field-list specified.
 
 Syntax
 ======

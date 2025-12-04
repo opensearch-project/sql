@@ -103,14 +103,14 @@ public class AddTotalsCommandIT extends PPLIntegTestCase {
   }
 
   public void compareDataRowTotals(
-      org.json.JSONArray dataRows, List<Integer> field_indexes, int totalColIndex) {
+      org.json.JSONArray dataRows, List<Integer> fieldIndexes, int totalColIndex) {
     for (int i = 0; i < dataRows.length(); i++) {
       var row = dataRows.getJSONArray(i);
 
       BigDecimal cRowTotal = new BigDecimal(0);
       // Iterate through each field in the row
-      for (int j = 0; j < field_indexes.size(); j++) {
-        int colIndex = field_indexes.get(j);
+      for (int j = 0; j < fieldIndexes.size(); j++) {
+        int colIndex = fieldIndexes.get(j);
         Object value = row.isNull(colIndex) ? 0 : row.get(colIndex);
         if (value instanceof Integer) {
           cRowTotal = cRowTotal.add(new BigDecimal((Integer) (value)));

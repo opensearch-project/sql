@@ -108,6 +108,7 @@ public class CalcitePPLAddTotalsTest extends CalcitePPLAbstractTest {
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
+  @Test
   public void testAddTotalsWithFieldname() throws IOException {
     String ppl = "source=EMP  | fields DEPTNO, SAL, JOB | addtotals SAL  fieldname='CustomSum' ";
     RelNode root = getRelNode(ppl);
