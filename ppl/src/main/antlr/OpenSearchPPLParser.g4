@@ -571,6 +571,7 @@ mlArg
 
 addtotalsCommand
    : ADDTOTALS (fieldList)? addtotalsOption*
+   | ADDTOTALS addtotalsOption* (fieldList)?
    ;
 
 addtotalsOption
@@ -583,6 +584,7 @@ addtotalsOption
 
 addcoltotalsCommand
    : ADDCOLTOTALS (fieldList)? addcoltotalsOption*
+   | ADDCOLTOTALS addcoltotalsOption* (fieldList)?
    ;
 
 addcoltotalsOption
@@ -1617,4 +1619,12 @@ searchableKeyWord
    | LEFT_HINT
    | RIGHT_HINT
    | PERCENTILE_SHORTCUT
+   | ADDTOTALS
+   | ADDCOLTOTALS
+   | LABEL
+   | LABELFIELD
+   | FIELDNAME
+   | ROW
+   | COL
    ;
+

@@ -248,6 +248,22 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testCrossClusterAddTotals() throws IOException {
+    // Test query_string without fields parameter on remote cluster
+    JSONObject result =
+        executeQuery(String.format("search source=%s | addtotals age", TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows("Hattie"));
+  }
+
+  @Test
+  public void testCrossClusterAddColTotals() throws IOException {
+    // Test query_string without fields parameter on remote cluster
+    JSONObject result =
+        executeQuery(String.format("search source=%s | addcoltotals age", TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows("Hattie"));
+  }
+
+  @Test
   public void testCrossClusterAppend() throws IOException {
     // TODO: We should enable calcite by default in CrossClusterSearchIT?
     enableCalcite();
