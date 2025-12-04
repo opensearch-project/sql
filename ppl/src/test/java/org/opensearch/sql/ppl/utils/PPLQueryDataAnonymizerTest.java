@@ -33,7 +33,7 @@ public class PPLQueryDataAnonymizerTest {
 
   @Test
   public void testSearchCommand() {
-    assertEquals("source=table a:***", anonymize("search source=t a=1"));
+    assertEquals("source=table identifier = ***", anonymize("search source=t a=1"));
   }
 
   @Test
