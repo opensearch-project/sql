@@ -32,16 +32,12 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.BiFunction;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchParseException;
 import org.opensearch.common.time.DateFormatter;
 import org.opensearch.common.time.DateFormatters;
@@ -76,14 +72,6 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 
 /** Construct ExprValue from OpenSearch response. */
 public class OpenSearchExprValueFactory {
-  private static final Logger LOG = LogManager.getLogger(OpenSearchExprValueFactory.class);
-
-  /**
-   * Collects invalid field names encountered during parsing. Uses ThreadLocal to avoid log spam by
-   * logging all invalid fields once per construct() call instead of per field.
-   */
-  private static final ThreadLocal<Set<String>> INVALID_FIELDS =
-      ThreadLocal.withInitial(HashSet::new);
 
   /** The Mapping of Field and ExprType. */
   private final Map<String, OpenSearchDataType> typeMapping;
@@ -177,31 +165,14 @@ public class OpenSearchExprValueFactory {
    *  </pre>
    */
   public ExprValue construct(String jsonString, boolean supportArrays) {
-    INVALID_FIELDS.get().clear();
     try {
-      ExprValue result =
-          parse(
-              new OpenSearchJsonContent(OBJECT_MAPPER.readTree(jsonString)),
-              TOP_PATH,
-              Optional.of(STRUCT),
-              fieldTypeTolerance || supportArrays);
-      logInvalidFields();
-      return result;
+      return parse(
+          new OpenSearchJsonContent(OBJECT_MAPPER.readTree(jsonString)),
+          TOP_PATH,
+          Optional.of(STRUCT),
+          fieldTypeTolerance || supportArrays);
     } catch (JsonProcessingException e) {
       throw new IllegalStateException(String.format("invalid json: %s.", jsonString), e);
-    } finally {
-      INVALID_FIELDS.get().clear();
-    }
-  }
-
-  /** Log all invalid fields encountered during parsing (once per construct call). */
-  private void logInvalidFields() {
-    Set<String> invalidFields = INVALID_FIELDS.get();
-    if (!invalidFields.isEmpty()) {
-      LOG.warn(
-          "The following field(s) have invalid names and will return null: {}. "
-              + "This can happen with disabled object fields that bypass field name validation.",
-          invalidFields);
     }
   }
 
@@ -406,12 +377,9 @@ public class OpenSearchExprValueFactory {
             entry -> {
               String fieldKey = entry.getKey();
               String fullFieldPath = makeField(prefix, fieldKey);
-              // Check for invalid field names (e.g., fields consisting only of dots like "." or
-              // "..")
-              // before creating JsonPath to avoid masking other IllegalArgumentExceptions
-              if (isInvalidFieldName(fieldKey)) {
-                // Collect invalid fields to log once per construct() call to avoid log spam
-                INVALID_FIELDS.get().add(fullFieldPath);
+              // Check for malformed field names before creating JsonPath.
+              // See isFieldNameMalformed() for details on what constitutes a malformed field name.
+              if (isFieldNameMalformed(fieldKey)) {
                 result.tupleValue().put(fieldKey, ExprNullValue.of());
               } else {
                 populateValueRecursive(
@@ -424,15 +392,38 @@ public class OpenSearchExprValueFactory {
   }
 
   /**
-   * Check if a field name is invalid. A field name is invalid if it consists only of dots (e.g.,
-   * ".", "..", "..."). Such field names cause issues because String.split("\\.") returns an empty
-   * array for them.
+   * Check if a field name is malformed and cannot be processed by JsonPath.
+   *
+   * <p>A field name is malformed if it contains dot patterns that would cause String.split("\\.")
+   * to produce empty strings. This includes:
+   *
+   * <ul>
+   *   <li>Dot-only field names: ".", "..", "..."
+   *   <li>Leading dots: ".a", "..a"
+   *   <li>Trailing dots: "a.", "a.."
+   *   <li>Consecutive dots: "a..b", "a...b"
+   * </ul>
+   *
+   * <p>Such field names can occur in disabled object fields (enabled: false) which bypass
+   * OpenSearch's field name validation. Normal OpenSearch indices reject these field names.
    *
    * @param fieldName The field name to check.
-   * @return true if the field name is invalid, false otherwise.
+   * @return true if the field name is malformed, false otherwise.
    */
-  private static boolean isInvalidFieldName(String fieldName) {
-    return fieldName.split("\\.").length == 0;
+  static boolean isFieldNameMalformed(String fieldName) {
+    // Use -1 limit to preserve trailing empty strings (e.g., "a." -> ["a", ""])
+    String[] parts = fieldName.split("\\.", -1);
+    // Dot-only field names produce empty array
+    if (parts.length == 0) {
+      return true;
+    }
+    // Check for empty parts which indicate leading, trailing, or consecutive dots
+    for (String part : parts) {
+      if (part.isEmpty()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -461,15 +452,18 @@ public class OpenSearchExprValueFactory {
   static class JsonPath {
     private final List<String> paths;
 
+    /**
+     * Create a JsonPath from a raw path string. The path is split by dots to support nested field
+     * access (e.g., "log.json" becomes ["log", "json"]).
+     *
+     * <p>Note: Callers must validate the rawPath using {@link #isFieldNameMalformed} before calling
+     * this constructor. Malformed field names (containing empty parts after split) will cause
+     * unexpected behavior.
+     *
+     * @param rawPath The field path, potentially dot-separated for nested fields.
+     */
     public JsonPath(String rawPath) {
-      String[] parts = rawPath.split("\\.");
-      // Handle edge case where split returns empty array (e.g., rawPath = "." or "..")
-      if (parts.length == 0) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Invalid field name '%s': field names cannot consist only of dots", rawPath));
-      }
-      this.paths = List.of(parts);
+      this.paths = List.of(rawPath.split("\\."));
     }
 
     public JsonPath(List<String> paths) {
