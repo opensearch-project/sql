@@ -31,85 +31,33 @@ setup:
               message:
                 type: text
 
-  # Document 1: Single dot field name "."
+  # Bulk index all test documents
   - do:
-      index:
+      bulk:
         index: test_disabled_object_4896
-        id: 1
-        body:
-          "@timestamp": "2025-11-26T17:10:00.000Z"
-          message: "single dot"
-          log:
-            ".": "single dot value"
-
-  # Document 2: Multiple dots field name ".."
-  - do:
-      index:
-        index: test_disabled_object_4896
-        id: 2
-        body:
-          "@timestamp": "2025-11-26T17:11:00.000Z"
-          message: "multiple dots"
-          log:
-            "..": "double dot value"
-
-  # Document 3: Trailing dots field name "a..."
-  - do:
-      index:
-        index: test_disabled_object_4896
-        id: 3
-        body:
-          "@timestamp": "2025-11-26T17:12:00.000Z"
-          message: "trailing dots"
-          log:
-            "a...": "trailing dots value"
-
-  # Document 4: Leading dot field name ".a"
-  - do:
-      index:
-        index: test_disabled_object_4896
-        id: 4
-        body:
-          "@timestamp": "2025-11-26T17:13:00.000Z"
-          message: "leading dot"
-          log:
-            ".a": "leading dot value"
-
-  # Document 5: Middle dots field name "a..b"
-  - do:
-      index:
-        index: test_disabled_object_4896
-        id: 5
-        body:
-          "@timestamp": "2025-11-26T17:14:00.000Z"
-          message: "middle dots"
-          log:
-            "a..b": "middle dots value"
-
-  # Document 6: Multiple unusual fields in same object
-  - do:
-      index:
-        index: test_disabled_object_4896
-        id: 6
-        body:
-          "@timestamp": "2025-11-26T17:15:00.000Z"
-          message: "mixed fields"
-          log:
-            ".": "dot1"
-            "..": "dot2"
-            "normal": "normal value"
-
-  # Document 7: Malformed top-level field name "log." (trailing dot)
-  - do:
-      index:
-        index: test_disabled_object_4896
-        id: 7
         refresh: true
         body:
-          "@timestamp": "2025-11-26T17:16:00.000Z"
-          message: "malformed top-level"
-          "log.":
-            "nested": "value in log."
+          # Document 1: Single dot field name "."
+          - '{"index": {"_id": "1"}}'
+          - '{"@timestamp": "2025-11-26T17:10:00.000Z", "message": "single dot", "log": {".": "single dot value"}}'
+          # Document 2: Multiple dots field name ".."
+          - '{"index": {"_id": "2"}}'
+          - '{"@timestamp": "2025-11-26T17:11:00.000Z", "message": "multiple dots", "log": {"..": "double dot value"}}'
+          # Document 3: Trailing dots field name "a..."
+          - '{"index": {"_id": "3"}}'
+          - '{"@timestamp": "2025-11-26T17:12:00.000Z", "message": "trailing dots", "log": {"a...": "trailing dots value"}}'
+          # Document 4: Leading dot field name ".a"
+          - '{"index": {"_id": "4"}}'
+          - '{"@timestamp": "2025-11-26T17:13:00.000Z", "message": "leading dot", "log": {".a": "leading dot value"}}'
+          # Document 5: Middle dots field name "a..b"
+          - '{"index": {"_id": "5"}}'
+          - '{"@timestamp": "2025-11-26T17:14:00.000Z", "message": "middle dots", "log": {"a..b": "middle dots value"}}'
+          # Document 6: Multiple unusual fields in same object
+          - '{"index": {"_id": "6"}}'
+          - '{"@timestamp": "2025-11-26T17:15:00.000Z", "message": "mixed fields", "log": {".": "dot1", "..": "dot2", "normal": "normal value"}}'
+          # Document 7: Malformed top-level field name "log." (trailing dot)
+          - '{"index": {"_id": "7"}}'
+          - '{"@timestamp": "2025-11-26T17:16:00.000Z", "message": "malformed top-level", "log.": {"nested": "value in log."}}'
 
 ---
 teardown:
@@ -183,6 +131,27 @@ teardown:
           query: source=test_disabled_object_4896 | where message = 'leading dot' | fields log
   - match: { "total": 1 }
   - match: { "datarows.0.0": { ".a": "leading dot value" } }
+
+  # Querying "log.a" should NOT return the ".a" field value
+  # Because "log.a" means nested field "a" inside "log", not literal ".a"
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_disabled_object_4896 | where message = 'leading dot' | fields log.a
+  - match: { "total": 1 }
+  - match: { "datarows.0.0": null }
+
+  # To access literal field ".a" inside log, use backticks: log.`.a`
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_disabled_object_4896 | where message = 'leading dot' | fields log.`.a`
+  - match: { "total": 1 }
+  - match: { "datarows.0.0": "leading dot value" }
 
 ---
 "Middle dots field name preserves original name":
