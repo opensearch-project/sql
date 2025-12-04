@@ -13,11 +13,8 @@ import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
-<<<<<<< HEAD
 import org.opensearch.client.node.NodeClient;
-=======
 import org.opensearch.OpenSearchTimeoutException;
->>>>>>> 679d8ca64 (Support timeouts for Calcite queries (#4857))
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryId;
