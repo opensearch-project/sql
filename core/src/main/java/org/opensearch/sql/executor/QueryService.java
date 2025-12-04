@@ -38,7 +38,6 @@ import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
-import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
@@ -52,6 +51,7 @@ import org.opensearch.sql.calcite.OpenSearchSchema;
 import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
+import org.opensearch.sql.calcite.validate.PplConvertletTable;
 import org.opensearch.sql.calcite.validate.PplRelToSqlNodeConverter;
 import org.opensearch.sql.calcite.validate.PplRelToSqlRelShuttle;
 import org.opensearch.sql.common.response.ResponseListener;
@@ -79,7 +79,7 @@ public class QueryService {
   private final Planner planner;
   private DataSourceService dataSourceService;
   private Settings settings;
-  private static final PplRelToSqlNodeConverter converter =
+  private static final PplRelToSqlNodeConverter rel2sql =
       new PplRelToSqlNodeConverter(MysqlSqlDialect.DEFAULT);
 
   @Getter(lazy = true)
@@ -307,7 +307,7 @@ public class QueryService {
     RelNode sqlRelNode = relNode.accept(new PplRelToSqlRelShuttle(context.rexBuilder, true));
 
     // Convert RelNode to SqlNode for validation
-    SqlImplementor.Result result = converter.visitRoot(sqlRelNode);
+    SqlImplementor.Result result = rel2sql.visitRoot(sqlRelNode);
     SqlNode root = result.asStatement();
 
     // Rewrite SqlNode to remove database qualifiers
@@ -351,7 +351,7 @@ public class QueryService {
             validator,
             catalogReader,
             cluster,
-            StandardConvertletTable.INSTANCE,
+            PplConvertletTable.INSTANCE,
             SqlToRelConverter.config());
     RelRoot validatedRelRoot = sql2rel.convertQuery(rewritten, false, true);
     return validatedRelRoot.rel.accept(new PplRelToSqlRelShuttle(context.rexBuilder, false));

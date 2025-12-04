@@ -12,6 +12,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
@@ -88,7 +89,13 @@ public interface UDFOperandMetadata extends SqlOperandMetadata {
 
     @Override
     public SqlOperandCountRange getOperandCountRange() {
-      return null;
+      int max = Integer.MIN_VALUE;
+      int min = Integer.MAX_VALUE;
+      for (List<ExprType> paramTypes : allowedParamTypes) {
+        max = Math.max(max, paramTypes.size());
+        min = Math.min(min, paramTypes.size());
+      }
+      return SqlOperandCountRanges.between(min, max);
     }
 
     @Override
