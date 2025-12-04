@@ -107,12 +107,12 @@ For the following functionalities, the query will be forwarded to the V2 query e
 
 * Commands with ``fetch_size`` parameter
 
-Malformed Field Names in Disabled Object Fields
-================================================
+Malformed Field Names in Object Fields
+======================================
 
 OpenSearch normally rejects field names containing problematic dot patterns (such as ``.``, ``..``, ``.a``, ``a.``, or ``a..b``). However, when an object field has ``enabled: false``, OpenSearch bypasses field name validation and allows storing documents with any field names.
 
-If a document contains malformed field names inside a disabled object field, PPL queries will return ``null`` for those specific fields. Other valid fields in the document are returned normally.
+If a document contains malformed field names inside an object field, PPL ignores those malformed field names. Other valid fields in the document are returned normally.
 
 **Example of affected data:**
 
@@ -127,6 +127,6 @@ If a document contains malformed field names inside a disabled object field, PPL
       }
     }
 
-When ``log`` is a disabled object field (``enabled: false``), all subfields with malformed names will resolve to ``null``.
+When ``log`` is an object field with ``enabled: false``, subfields with malformed names are ignored.
 
 **Recommendation:** Avoid using field names that contain leading dots, trailing dots, consecutive dots, or consist only of dots. This aligns with OpenSearch's default field naming requirements.
