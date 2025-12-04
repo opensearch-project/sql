@@ -21,7 +21,6 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.type.SqlTypeCoercionRule;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeMappingRule;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -50,13 +49,6 @@ public class PplTypeCoercion extends TypeCoercionImpl {
   static {
     // Initialize the blacklist for coercions that are not allowed in PPL.
     BLACKLISTED_COERCIONS = Map.of();
-    //        Map.of(
-    //            SqlTypeFamily.CHARACTER,
-    //            Set.of(SqlTypeFamily.NUMERIC),
-    //            SqlTypeFamily.STRING,
-    //            Set.of(SqlTypeFamily.NUMERIC),
-    //            SqlTypeFamily.NUMERIC,
-    //            Set.of(SqlTypeFamily.CHARACTER, SqlTypeFamily.STRING));
   }
 
   public PplTypeCoercion(RelDataTypeFactory typeFactory, SqlValidator validator) {
@@ -153,6 +145,7 @@ public class PplTypeCoercion extends TypeCoercionImpl {
     // Prepend following rules for datetime comparisons:
     // - (date, time) -> timestamp
     // - (time, timestamp) -> timestamp
+    // - (ip, string) -> ip
     if (type1 != null & type2 != null) {
       boolean anyNullable = type1.isNullable() || type2.isNullable();
       if ((SqlTypeUtil.isDate(type1) && OpenSearchTypeFactory.isTime(type2))
@@ -165,6 +158,12 @@ public class PplTypeCoercion extends TypeCoercionImpl {
       }
       if (SqlTypeUtil.isTimestamp(type1) && OpenSearchTypeFactory.isTime(type2)) {
         return factory.createTypeWithNullability(type1, anyNullable);
+      }
+      if (OpenSearchTypeFactory.isIp(type1) && OpenSearchTypeFactory.isCharacter(type2)) {
+        return factory.createTypeWithNullability(type1, anyNullable);
+      }
+      if (OpenSearchTypeFactory.isCharacter(type1) && OpenSearchTypeFactory.isIp(type2)) {
+        return factory.createTypeWithNullability(type2, anyNullable);
       }
     }
     return super.commonTypeForBinaryComparison(type1, type2);
@@ -194,7 +193,7 @@ public class PplTypeCoercion extends TypeCoercionImpl {
     }
 
     // Check it early.
-    if (!needToCast(scope, operand, targetType, SqlTypeCoercionRule.lenientInstance())) {
+    if (!needToCast(scope, operand, targetType, PplTypeCoercionRule.lenientInstance())) {
       return false;
     }
     // Fix up nullable attr.
@@ -206,7 +205,7 @@ public class PplTypeCoercion extends TypeCoercionImpl {
   }
 
   private static SqlNode castTo(SqlNode node, RelDataType type) {
-    if (OpenSearchTypeFactory.isDatetime(type)) {
+    if (OpenSearchTypeFactory.isDatetime(type) || OpenSearchTypeFactory.isIp(type)) {
       ExprType exprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(type);
       return switch (exprType) {
         case ExprCoreType.DATE ->
@@ -215,6 +214,7 @@ public class PplTypeCoercion extends TypeCoercionImpl {
             PPLBuiltinOperators.TIMESTAMP.createCall(node.getParserPosition(), node);
         case ExprCoreType.TIME ->
             PPLBuiltinOperators.TIME.createCall(node.getParserPosition(), node);
+        case ExprCoreType.IP -> PPLBuiltinOperators.IP.createCall(node.getParserPosition(), node);
         default -> throw new UnsupportedOperationException("Unsupported type: " + exprType);
       };
     }
