@@ -1,0 +1,52 @@
+setup:
+  - do:
+      indices.create:
+        index: opensearch-sql_test_index_otel_logs
+        body:
+          mappings:
+            properties:
+              "@timestamp":
+                type: date
+              "severityNumber":
+                type: long
+              "severityText":
+                type: keyword
+  - do:
+      bulk:
+        index: opensearch-sql_test_index_otel_logs
+        refresh: true
+        body:
+          - '{"index":{}}'
+          - '{"@timestamp":"2024-01-15T10:00:00.000Z","severityNumber":24,"severityText":"FATAL4"}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2024-01-15T10:00:01.000Z","severityNumber":24,"severityText":"FATAL4"}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2024-01-15T10:00:02.000Z","severityNumber":23,"severityText":"ERROR5"}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2024-01-15T10:00:03.000Z","severityNumber":22,"severityText":"ERROR6"}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2024-01-15T10:00:04.000Z","severityNumber":21,"severityText":"WARN7"}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2024-01-15T10:00:05.000Z","severityNumber":20,"severityText":"INFO8"}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2024-01-15T10:00:06.000Z","severityNumber":19,"severityText":"DEBUG9"}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2024-01-15T10:00:07.000Z","severityNumber":18,"severityText":"TRACE10"}'
+
+---
+"timechart with limit should use max aggregation for OTHER category":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=opensearch-sql_test_index_otel_logs | timechart limit=1 span=1d max(severityNumber) by severityText
+
+  - match: { total: 2 }
+  - match: { "schema": [ { "name": "@timestamp", "type": "timestamp" }, { "name": "severityText", "type": "string" }, { "name": "max(severityNumber)", "type": "bigint" }] }
+  # The FATAL4 category has max(severityNumber) = 24
+  # The OTHER category should have max(severityNumber) = 23 (not sum of all others which would be 143)
+  - match: {"datarows": [["2024-01-15 00:00:00", "FATAL4", 24], ["2024-01-15 00:00:00", "OTHER", 23]]}

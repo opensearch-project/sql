@@ -11,6 +11,8 @@ import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.binning.BinConstants;
 import org.opensearch.sql.calcite.utils.binning.RangeFormatter;
 import org.opensearch.sql.calcite.utils.binning.SpanInfo;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 /** Helper for creating logarithmic span expressions. */
 public class LogSpanHelper {
@@ -31,14 +33,19 @@ public class LogSpanHelper {
     RexNode adjustedField = fieldExpr;
     if (coefficient != 1.0) {
       adjustedField =
-          context.relBuilder.call(
-              SqlStdOperatorTable.DIVIDE, fieldExpr, context.relBuilder.literal(coefficient));
+          PPLFuncImpTable.INSTANCE.resolve(
+              context.rexBuilder,
+              BuiltinFunctionName.DIVIDE,
+              fieldExpr,
+              context.relBuilder.literal(coefficient));
     }
 
     // Calculate log_base(adjusted_field)
     RexNode lnField = context.relBuilder.call(SqlStdOperatorTable.LN, adjustedField);
     RexNode lnBase = context.relBuilder.literal(Math.log(base));
-    RexNode logValue = context.relBuilder.call(SqlStdOperatorTable.DIVIDE, lnField, lnBase);
+    RexNode logValue =
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder, BuiltinFunctionName.DIVIDE, lnField, lnBase);
 
     // Get bin number
     RexNode binNumber = context.relBuilder.call(SqlStdOperatorTable.FLOOR, logValue);
@@ -49,15 +56,20 @@ public class LogSpanHelper {
 
     RexNode basePowerBin = context.relBuilder.call(SqlStdOperatorTable.POWER, baseNode, binNumber);
     RexNode lowerBound =
-        context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, coefficientNode, basePowerBin);
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder, BuiltinFunctionName.MULTIPLY, coefficientNode, basePowerBin);
 
     RexNode binPlusOne =
-        context.relBuilder.call(
-            SqlStdOperatorTable.PLUS, binNumber, context.relBuilder.literal(1.0));
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder,
+            BuiltinFunctionName.ADD,
+            binNumber,
+            context.relBuilder.literal(1.0));
     RexNode basePowerBinPlusOne =
         context.relBuilder.call(SqlStdOperatorTable.POWER, baseNode, binPlusOne);
     RexNode upperBound =
-        context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, coefficientNode, basePowerBinPlusOne);
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder, BuiltinFunctionName.MULTIPLY, coefficientNode, basePowerBinPlusOne);
 
     // Create range string
     RexNode rangeStr = RangeFormatter.createRangeString(lowerBound, upperBound, context);

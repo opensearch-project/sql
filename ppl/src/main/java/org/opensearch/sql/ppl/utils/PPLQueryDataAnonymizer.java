@@ -7,6 +7,10 @@ package org.opensearch.sql.ppl.utils;
 
 import static org.opensearch.sql.calcite.utils.PlanUtils.getRelation;
 import static org.opensearch.sql.calcite.utils.PlanUtils.transformPlanToAttachChild;
+import static org.opensearch.sql.utils.QueryStringUtils.MASK_COLUMN;
+import static org.opensearch.sql.utils.QueryStringUtils.MASK_LITERAL;
+import static org.opensearch.sql.utils.QueryStringUtils.MASK_TIMESTAMP_COLUMN;
+import static org.opensearch.sql.utils.QueryStringUtils.maskField;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -15,7 +19,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
+import lombok.Getter;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -57,6 +64,7 @@ import org.opensearch.sql.ast.tree.AddTotals;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.CountBin;
@@ -91,11 +99,11 @@ import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
-import org.opensearch.sql.ast.tree.Timechart;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
@@ -110,14 +118,10 @@ import org.opensearch.sql.planner.logical.LogicalSort;
 /** Utility class to mask sensitive information in incoming PPL queries. */
 public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> {
 
-  private static final String MASK_LITERAL = "***";
-
-  private static final String MASK_COLUMN = "identifier";
-
-  private static final String MASK_TABLE = "table";
+  public static final String MASK_TABLE = "table";
 
   private final AnonymizerExpressionAnalyzer expressionAnalyzer;
-  private final Settings settings;
+  @Getter private final Settings settings;
 
   public PPLQueryDataAnonymizer(Settings settings) {
     this.expressionAnalyzer = new AnonymizerExpressionAnalyzer(this);
@@ -254,9 +258,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   @Override
   public String visitSearch(Search node, String context) {
     String source = node.getChild().get(0).accept(this, context);
-    String queryString = node.getQueryString();
-    String anonymized = queryString.replaceAll(":\\S+", ":" + MASK_LITERAL);
-    return StringUtils.format("%s %s", source, anonymized);
+    return StringUtils.format("%s %s", source, node.getOriginalExpression().toAnonymizedString());
   }
 
   @Override
@@ -401,7 +403,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String fields = visitFieldList(node.getFields());
     String group = visitExpressionList(node.getGroupExprList());
     String options =
-        isCalciteEnabled(settings)
+        UnresolvedPlanHelper.isCalciteEnabled(settings)
             ? StringUtils.format(
                 "countield='%s' showcount=%s usenull=%s ", countField, showCount, useNull)
             : "";
@@ -503,42 +505,13 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   }
 
   @Override
-  public String visitTimechart(Timechart node, String context) {
-    String child = node.getChild().get(0).accept(this, context);
-    StringBuilder timechartCommand = new StringBuilder();
-    timechartCommand.append(" | timechart");
-
-    // Add span if present
-    if (node.getBinExpression() != null) {
-      timechartCommand.append(" span=").append(visitExpression(node.getBinExpression()));
-    }
-
-    // Add limit if present
-    if (node.getLimit() != null) {
-      timechartCommand.append(" limit=").append(node.getLimit());
-    }
-
-    // Add useother if present
-    if (node.getUseOther() != null) {
-      timechartCommand.append(" useother=").append(node.getUseOther());
-    }
-
-    // Add aggregation function
-    timechartCommand.append(" ").append(visitExpression(node.getAggregateFunction()));
-
-    // Add by clause if present
-    if (node.getByField() != null) {
-      timechartCommand.append(" by ").append(visitExpression(node.getByField()));
-    }
-
-    return StringUtils.format("%s%s", child, timechartCommand.toString());
-  }
-
-  @Override
   public String visitChart(Chart node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     StringBuilder chartCommand = new StringBuilder();
-    chartCommand.append(" | chart");
+
+    // Check if this is a timechart by looking for timestamp span in rowSplit
+    boolean isTimechart = isTimechartNode(node);
+    chartCommand.append(isTimechart ? " | timechart" : " | chart");
 
     for (Argument arg : node.getArguments()) {
       String argName = arg.getArgName();
@@ -546,28 +519,51 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
       if ("top".equals(argName)) {
         continue;
       }
-      if ("limit".equals(argName) || "useother".equals(argName) || "usenull".equals(argName)) {
-        chartCommand.append(" ").append(argName).append("=").append(MASK_LITERAL);
-      } else if ("otherstr".equals(argName) || "nullstr".equals(argName)) {
-        chartCommand.append(" ").append(argName).append("=").append(MASK_LITERAL);
+
+      switch (argName) {
+        case "limit", "useother", "usenull", "otherstr", "nullstr" ->
+            chartCommand.append(" ").append(argName).append("=").append(MASK_LITERAL);
+        case "spanliteral" -> chartCommand.append(" span=").append(MASK_LITERAL);
+        case "timefield" ->
+            chartCommand.append(" ").append(argName).append("=").append(MASK_TIMESTAMP_COLUMN);
+        default ->
+            throw new NotImplementedException(
+                StringUtils.format("Please implement anonymizer for arg: %s", argName));
       }
     }
 
     chartCommand.append(" ").append(visitExpression(node.getAggregationFunction()));
 
     if (node.getRowSplit() != null && node.getColumnSplit() != null) {
-      chartCommand
-          .append(" by ")
-          .append(visitExpression(node.getRowSplit()))
-          .append(" ")
-          .append(visitExpression(node.getColumnSplit()));
-    } else if (node.getRowSplit() != null) {
+      chartCommand.append(" by");
+      // timechart command does not have to explicit the by-timestamp field clause
+      if (!isTimechart) chartCommand.append(" ").append(visitExpression(node.getRowSplit()));
+      chartCommand.append(" ").append(visitExpression(node.getColumnSplit()));
+    } else if (node.getRowSplit() != null && !isTimechart) {
       chartCommand.append(" by ").append(visitExpression(node.getRowSplit()));
     } else if (node.getColumnSplit() != null) {
       chartCommand.append(" by ").append(visitExpression(node.getColumnSplit()));
     }
 
     return StringUtils.format("%s%s", child, chartCommand.toString());
+  }
+
+  private boolean isTimechartNode(Chart node) {
+    // A Chart node represents a timechart if it has a rowSplit that's an alias containing
+    // a span on the implicit timestamp field
+    if (node.getRowSplit() instanceof Alias) {
+      Alias alias = (Alias) node.getRowSplit();
+      if (alias.getDelegated() instanceof Span) {
+        Span span = (Span) alias.getDelegated();
+        String timeFieldName =
+            Optional.ofNullable(ArgumentMap.of(node.getArguments()).get("timefield"))
+                .map(Literal::toString)
+                .orElse(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP);
+        return span.getField() instanceof Field
+            && timeFieldName.equals(((Field) span.getField()).getField().toString());
+      }
+    }
+    return false;
   }
 
   public String visitRex(Rex node, String context) {
@@ -714,6 +710,19 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   }
 
   @Override
+  public String visitAppendPipe(AppendPipe node, String context) {
+    Values emptyValue = new Values(null);
+    UnresolvedPlan childNode = node.getSubQuery();
+    while (childNode != null && !childNode.getChild().isEmpty()) {
+      childNode = (UnresolvedPlan) childNode.getChild().get(0);
+    }
+    childNode.attach(emptyValue);
+    String child = node.getChild().get(0).accept(this, context);
+    String subPipeline = anonymizeData(node.getSubQuery());
+    return StringUtils.format("%s | appendpipe [%s]", child, subPipeline);
+  }
+
+  @Override
   public String visitFillNull(FillNull node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     List<Pair<Field, UnresolvedExpression>> fieldFills = node.getReplacementPairs();
@@ -839,14 +848,6 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     return Strings.isNullOrEmpty(groupBy) ? "" : StringUtils.format("by %s", groupBy);
   }
 
-  private boolean isCalciteEnabled(Settings settings) {
-    if (settings != null) {
-      return settings.getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED);
-    } else {
-      return false;
-    }
-  }
-
   /** Expression Anonymizer. */
   private static class AnonymizerExpressionAnalyzer extends AbstractNodeVisitor<String, String> {
     private final PPLQueryDataAnonymizer queryAnonymizer;
@@ -957,7 +958,8 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
     @Override
     public String visitField(Field node, String context) {
-      return MASK_COLUMN;
+      String fieldName = node.getField().toString();
+      return maskField(fieldName);
     }
 
     @Override

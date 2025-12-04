@@ -2,5 +2,5 @@
 SELECT COUNT(*) FROM hits WHERE URL LIKE '%google%';
 */
 source=hits
-| where like(URL, '%google%')
+| where like(URL, '%google%', true)
 | stats count()

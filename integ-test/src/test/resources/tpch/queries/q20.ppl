@@ -45,7 +45,7 @@ source = supplier
     source = partsupp
     | where ps_partkey in [
         source = part
-        | where like(p_name, 'forest%')
+        | where like(p_name, 'forest%', true)
         | fields p_partkey
       ]
       and ps_availqty > [

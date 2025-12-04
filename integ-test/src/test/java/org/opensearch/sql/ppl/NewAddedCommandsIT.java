@@ -24,7 +24,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
     super.init();
     loadIndex(Index.BANK);
     loadIndex(Index.DOG);
-    loadIndex(Index.BANK_WITH_STRING_VALUES);
+    loadIndex(Index.STRINGS);
   }
 
   @Test
@@ -123,12 +123,26 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testRegexMatch() throws IOException {
-    // Test regex_match with pattern that matches substring
+  public void testRegexpMatch() throws IOException {
+    // Test regexp_match with pattern that matches substring
     try {
       executeQuery(
           String.format(
-              "source=%s | eval f=regex_match(name, 'ell') | fields f", TEST_INDEX_STRINGS));
+              "source=%s | eval f=regexp_match(name, 'ell') | fields f", TEST_INDEX_STRINGS));
+    } catch (ResponseException e) {
+      JSONObject result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+      verifyQuery(result);
+    }
+  }
+
+  @Test
+  public void testRegexpReplace() throws IOException {
+    // Test regexp_replace with pattern that matches substring
+    try {
+      executeQuery(
+          String.format(
+              "source=%s | eval f=regexp_replace(name, 'ell', '\1') | fields f",
+              TEST_INDEX_STRINGS));
     } catch (ResponseException e) {
       JSONObject result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
       verifyQuery(result);

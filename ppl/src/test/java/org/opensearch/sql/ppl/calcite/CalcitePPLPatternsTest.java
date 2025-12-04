@@ -64,9 +64,9 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, SAFE_CAST(`PATTERN_PARSER`(CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN"
+        "SELECT `ENAME`, TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN"
             + " '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END, `ENAME`)['pattern'] AS"
-            + " STRING) `patterns_field`, SAFE_CAST(`PATTERN_PARSER`(CASE WHEN `ENAME` IS NULL OR"
+            + " STRING) `patterns_field`, TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR"
             + " `ENAME` = '' THEN '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END,"
             + " `ENAME`)['tokens'] AS MAP< VARCHAR, VARCHAR ARRAY >) `tokens`\n"
             + "FROM `scott`.`EMP`";
@@ -91,9 +91,9 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, SAFE_CAST(`PATTERN_PARSER`(CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN"
+        "SELECT `ENAME`, TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN"
             + " '' ELSE REGEXP_REPLACE(`ENAME`, '[A-H]', '<*>') END, `ENAME`)['pattern'] AS STRING)"
-            + " `patterns_field`, SAFE_CAST(`PATTERN_PARSER`(CASE WHEN `ENAME` IS NULL OR `ENAME` ="
+            + " `patterns_field`, TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR `ENAME` ="
             + " '' THEN '' ELSE REGEXP_REPLACE(`ENAME`, '[A-H]', '<*>') END, `ENAME`)['tokens'] AS"
             + " MAP< VARCHAR, VARCHAR ARRAY >) `tokens`\n"
             + "FROM `scott`.`EMP`";
@@ -138,9 +138,9 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `DEPTNO`, SAFE_CAST(`PATTERN_PARSER`(CASE WHEN `ENAME` IS NULL OR `ENAME`"
+        "SELECT `ENAME`, `DEPTNO`, TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR `ENAME`"
             + " = '' THEN '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END,"
-            + " `ENAME`)['pattern'] AS STRING) `patterns_field`, SAFE_CAST(`PATTERN_PARSER`(CASE"
+            + " `ENAME`)['pattern'] AS STRING) `patterns_field`, TRY_CAST(PATTERN_PARSER(CASE"
             + " WHEN `ENAME` IS NULL OR `ENAME` = '' THEN '' ELSE REGEXP_REPLACE(`ENAME`,"
             + " '[a-zA-Z0-9]+', '<*>') END, `ENAME`)['tokens'] AS MAP< VARCHAR, VARCHAR ARRAY >)"
             + " `tokens`\n"
@@ -160,7 +160,7 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, SAFE_CAST(`PATTERN_PARSER`(`ENAME`, `pattern`(`ENAME`, 10, 100000, FALSE)"
+        "SELECT `ENAME`, TRY_CAST(PATTERN_PARSER(`ENAME`, `pattern`(`ENAME`, 10, 100000, FALSE)"
             + " OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING), FALSE)['pattern']"
             + " AS STRING) `patterns_field`\n"
             + "FROM `scott`.`EMP`";
@@ -183,9 +183,9 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, SAFE_CAST(`PATTERN_PARSER`(`ENAME`, `pattern`(`ENAME`, 10, 100000, TRUE)"
+        "SELECT `ENAME`, TRY_CAST(PATTERN_PARSER(`ENAME`, `pattern`(`ENAME`, 10, 100000, TRUE)"
             + " OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING), TRUE)['pattern']"
-            + " AS STRING) `patterns_field`, SAFE_CAST(`PATTERN_PARSER`(`ENAME`, `pattern`(`ENAME`,"
+            + " AS STRING) `patterns_field`, TRY_CAST(PATTERN_PARSER(`ENAME`, `pattern`(`ENAME`,"
             + " 10, 100000, TRUE) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING),"
             + " TRUE)['tokens'] AS MAP< VARCHAR, VARCHAR ARRAY >) `tokens`\n"
             + "FROM `scott`.`EMP`";
@@ -206,7 +206,7 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `DEPTNO`, SAFE_CAST(`PATTERN_PARSER`(`ENAME`, `pattern`(`ENAME`, 10,"
+        "SELECT `ENAME`, `DEPTNO`, TRY_CAST(PATTERN_PARSER(`ENAME`, `pattern`(`ENAME`, 10,"
             + " 100000, FALSE) OVER (PARTITION BY `DEPTNO` RANGE BETWEEN UNBOUNDED PRECEDING AND"
             + " UNBOUNDED FOLLOWING), FALSE)['pattern'] AS STRING) `patterns_field`\n"
             + "FROM `scott`.`EMP`";
@@ -229,10 +229,10 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `ENAME`, `DEPTNO`, SAFE_CAST(`PATTERN_PARSER`(`ENAME`, `pattern`(`ENAME`, 10,"
+        "SELECT `ENAME`, `DEPTNO`, TRY_CAST(PATTERN_PARSER(`ENAME`, `pattern`(`ENAME`, 10,"
             + " 100000, TRUE) OVER (PARTITION BY `DEPTNO` RANGE BETWEEN UNBOUNDED PRECEDING AND"
             + " UNBOUNDED FOLLOWING), TRUE)['pattern'] AS STRING) `patterns_field`,"
-            + " SAFE_CAST(`PATTERN_PARSER`(`ENAME`, `pattern`(`ENAME`, 10, 100000, TRUE) OVER"
+            + " TRY_CAST(PATTERN_PARSER(`ENAME`, `pattern`(`ENAME`, 10, 100000, TRUE) OVER"
             + " (PARTITION BY `DEPTNO` RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING),"
             + " TRUE)['tokens'] AS MAP< VARCHAR, VARCHAR ARRAY >) `tokens`\n"
             + "FROM `scott`.`EMP`";
@@ -281,11 +281,11 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT SAFE_CAST(`PATTERN_PARSER`(CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN '' ELSE"
+        "SELECT TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN '' ELSE"
             + " REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END, `TAKE`(`ENAME`, 10))['pattern']"
             + " AS STRING) `patterns_field`, COUNT(CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN"
             + " '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END) `pattern_count`,"
-            + " SAFE_CAST(`PATTERN_PARSER`(CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN '' ELSE"
+            + " TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN '' ELSE"
             + " REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END, `TAKE`(`ENAME`, 10))['tokens']"
             + " AS MAP< VARCHAR, VARCHAR ARRAY >) `tokens`, `TAKE`(`ENAME`, 10) `sample_logs`\n"
             + "FROM `scott`.`EMP`\n"
@@ -312,17 +312,50 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `DEPTNO`, SAFE_CAST(`PATTERN_PARSER`(CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN"
-            + " '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END, `TAKE`(`ENAME`,"
+        "SELECT `DEPTNO`, TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN ''"
+            + " ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END, `TAKE`(`ENAME`,"
             + " 10))['pattern'] AS STRING) `patterns_field`, COUNT(CASE WHEN `ENAME` IS NULL OR"
             + " `ENAME` = '' THEN '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END)"
-            + " `pattern_count`, SAFE_CAST(`PATTERN_PARSER`(CASE WHEN `ENAME` IS NULL OR `ENAME` ="
-            + " '' THEN '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END, `TAKE`(`ENAME`,"
+            + " `pattern_count`, TRY_CAST(PATTERN_PARSER(CASE WHEN `ENAME` IS NULL OR `ENAME` = ''"
+            + " THEN '' ELSE REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END, `TAKE`(`ENAME`,"
             + " 10))['tokens'] AS MAP< VARCHAR, VARCHAR ARRAY >) `tokens`, `TAKE`(`ENAME`, 10)"
             + " `sample_logs`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`, CASE WHEN `ENAME` IS NULL OR `ENAME` = '' THEN '' ELSE"
             + " REGEXP_REPLACE(`ENAME`, '[a-zA-Z0-9]+', '<*>') END";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testPatternsAggregationMode_SpecifyAllParameters_ForBrainMethod() {
+    String ppl =
+        "source=EMP | patterns ENAME method=BRAIN mode=aggregation max_sample_count=2"
+            + " buffer_limit=1000 show_numbered_token=false variable_count_threshold=3"
+            + " frequency_threshold_percentage=0.1";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(patterns_field=[SAFE_CAST(ITEM($1, 'pattern'))],"
+            + " pattern_count=[SAFE_CAST(ITEM($1, 'pattern_count'))],"
+            + " sample_logs=[SAFE_CAST(ITEM($1, 'sample_logs'))])\n"
+            + "  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])\n"
+            + "    LogicalAggregate(group=[{}], patterns_field=[pattern($0, $1, $2, $3, $4, $5)])\n"
+            + "      LogicalProject(ENAME=[$1], $f8=[2], $f9=[1000], $f10=[false],"
+            + " $f11=[0.1:DECIMAL(2, 1)], $f12=[3])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    Uncollect\n"
+            + "      LogicalProject(patterns_field=[$cor0.patterns_field])\n"
+            + "        LogicalValues(tuples=[[{ 0 }]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT TRY_CAST(`t20`.`patterns_field`['pattern'] AS STRING) `patterns_field`,"
+            + " TRY_CAST(`t20`.`patterns_field`['pattern_count'] AS BIGINT) `pattern_count`,"
+            + " TRY_CAST(`t20`.`patterns_field`['sample_logs'] AS ARRAY< STRING >) `sample_logs`\n"
+            + "FROM (SELECT `pattern`(`ENAME`, 2, 1000, FALSE, 0.1, 3) `patterns_field`\n"
+            + "FROM `scott`.`EMP`) `$cor0`,\n"
+            + "LATERAL UNNEST((SELECT `$cor0`.`patterns_field`\n"
+            + "FROM (VALUES (0)) `t` (`ZERO`))) `t20` (`patterns_field`)";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -344,14 +377,10 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
             + "        LogicalValues(tuples=[[{ 0 }]])\n";
     verifyLogical(root, expectedLogical);
 
-    /*
-     * TODO: Fix Spark SQL conformance
-     * Spark doesn't have SAFE_CAST and UNNEST
-     */
     String expectedSparkSql =
-        "SELECT SAFE_CAST(`t20`.`patterns_field`['pattern'] AS STRING) `patterns_field`,"
-            + " SAFE_CAST(`t20`.`patterns_field`['pattern_count'] AS BIGINT) `pattern_count`,"
-            + " SAFE_CAST(`t20`.`patterns_field`['sample_logs'] AS ARRAY< STRING >) `sample_logs`\n"
+        "SELECT TRY_CAST(`t20`.`patterns_field`['pattern'] AS STRING) `patterns_field`,"
+            + " TRY_CAST(`t20`.`patterns_field`['pattern_count'] AS BIGINT) `pattern_count`,"
+            + " TRY_CAST(`t20`.`patterns_field`['sample_logs'] AS ARRAY< STRING >) `sample_logs`\n"
             + "FROM (SELECT `pattern`(`ENAME`, 10, 100000, FALSE) `patterns_field`\n"
             + "FROM `scott`.`EMP`) `$cor0`,\n"
             + "LATERAL UNNEST((SELECT `$cor0`.`patterns_field`\n"
@@ -378,15 +407,11 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
             + "        LogicalValues(tuples=[[{ 0 }]])\n";
     verifyLogical(root, expectedLogical);
 
-    /*
-     * TODO: Fix Spark SQL conformance
-     * Spark doesn't have SAFE_CAST and UNNEST
-     */
     String expectedSparkSql =
-        "SELECT SAFE_CAST(`t20`.`patterns_field`['pattern'] AS STRING) `patterns_field`,"
-            + " SAFE_CAST(`t20`.`patterns_field`['pattern_count'] AS BIGINT) `pattern_count`,"
-            + " SAFE_CAST(`t20`.`patterns_field`['tokens'] AS MAP< VARCHAR, VARCHAR ARRAY >)"
-            + " `tokens`, SAFE_CAST(`t20`.`patterns_field`['sample_logs'] AS ARRAY< STRING >)"
+        "SELECT TRY_CAST(`t20`.`patterns_field`['pattern'] AS STRING) `patterns_field`,"
+            + " TRY_CAST(`t20`.`patterns_field`['pattern_count'] AS BIGINT) `pattern_count`,"
+            + " TRY_CAST(`t20`.`patterns_field`['tokens'] AS MAP< VARCHAR, VARCHAR ARRAY >)"
+            + " `tokens`, TRY_CAST(`t20`.`patterns_field`['sample_logs'] AS ARRAY< STRING >)"
             + " `sample_logs`\n"
             + "FROM (SELECT `pattern`(`ENAME`, 10, 100000, TRUE) `patterns_field`\n"
             + "FROM `scott`.`EMP`) `$cor0`,\n"
@@ -414,14 +439,10 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
             + "        LogicalValues(tuples=[[{ 0 }]])\n";
     verifyLogical(root, expectedLogical);
 
-    /*
-     * TODO: Fix Spark SQL conformance
-     * Spark doesn't have SAFE_CAST and UNNEST
-     */
     String expectedSparkSql =
-        "SELECT `$cor0`.`DEPTNO`, SAFE_CAST(`t20`.`patterns_field`['pattern'] AS STRING)"
-            + " `patterns_field`, SAFE_CAST(`t20`.`patterns_field`['pattern_count'] AS BIGINT)"
-            + " `pattern_count`, SAFE_CAST(`t20`.`patterns_field`['sample_logs'] AS ARRAY< STRING"
+        "SELECT `$cor0`.`DEPTNO`, TRY_CAST(`t20`.`patterns_field`['pattern'] AS STRING)"
+            + " `patterns_field`, TRY_CAST(`t20`.`patterns_field`['pattern_count'] AS BIGINT)"
+            + " `pattern_count`, TRY_CAST(`t20`.`patterns_field`['sample_logs'] AS ARRAY< STRING"
             + " >) `sample_logs`\n"
             + "FROM (SELECT `DEPTNO`, `pattern`(`ENAME`, 10, 100000, FALSE) `patterns_field`\n"
             + "FROM `scott`.`EMP`\n"
@@ -451,15 +472,11 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
             + "        LogicalValues(tuples=[[{ 0 }]])\n";
     verifyLogical(root, expectedLogical);
 
-    /*
-     * TODO: Fix Spark SQL conformance
-     * Spark doesn't have SAFE_CAST and UNNEST
-     */
     String expectedSparkSql =
-        "SELECT `$cor0`.`DEPTNO`, SAFE_CAST(`t20`.`patterns_field`['pattern'] AS STRING)"
-            + " `patterns_field`, SAFE_CAST(`t20`.`patterns_field`['pattern_count'] AS BIGINT)"
-            + " `pattern_count`, SAFE_CAST(`t20`.`patterns_field`['tokens'] AS MAP< VARCHAR,"
-            + " VARCHAR ARRAY >) `tokens`, SAFE_CAST(`t20`.`patterns_field`['sample_logs'] AS"
+        "SELECT `$cor0`.`DEPTNO`, TRY_CAST(`t20`.`patterns_field`['pattern'] AS STRING)"
+            + " `patterns_field`, TRY_CAST(`t20`.`patterns_field`['pattern_count'] AS BIGINT)"
+            + " `pattern_count`, TRY_CAST(`t20`.`patterns_field`['tokens'] AS MAP< VARCHAR,"
+            + " VARCHAR ARRAY >) `tokens`, TRY_CAST(`t20`.`patterns_field`['sample_logs'] AS"
             + " ARRAY< STRING >) `sample_logs`\n"
             + "FROM (SELECT `DEPTNO`, `pattern`(`ENAME`, 10, 100000, TRUE) `patterns_field`\n"
             + "FROM `scott`.`EMP`\n"

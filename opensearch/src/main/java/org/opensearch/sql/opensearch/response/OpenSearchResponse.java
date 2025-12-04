@@ -229,7 +229,7 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
               for (Map.Entry<String, Object> value : entry.entrySet()) {
                 builder.put(
                     value.getKey(),
-                    exprValueFactory.construct(value.getKey(), value.getValue(), false));
+                    exprValueFactory.construct(value.getKey(), value.getValue(), true));
               }
               return (ExprValue) ExprTupleValue.fromExprValueMap(builder.build());
             })

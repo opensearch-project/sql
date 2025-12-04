@@ -1,6 +1,6 @@
-=============
+====
 sort
-=============
+====
 
 .. rubric:: Table of contents
 
@@ -10,16 +10,15 @@ sort
 
 
 Description
-============
-| Using ``sort`` command to sorts all the search result by the specified fields.
-
+===========
+| The ``sort`` command sorts all the search results by the specified fields.
 
 Syntax
 ============
 sort [count] <[+|-] sort-field | sort-field [asc|a|desc|d]>...
 
 
-* count (Since 3.3): optional. The number of results to return. **Default:** returns all results. Specifying a count of 0 or less than 0 also returns all results.
+* count: optional. The number of results to return. Specifying a count of 0 or less than 0 returns all results. **Default:** 0.
 * [+|-]: optional. The plus [+] stands for ascending order and NULL/MISSING first and a minus [-] stands for descending order and NULL/MISSING last. **Default:** ascending order and NULL/MISSING first.
 * [asc|a|desc|d]: optional. asc/a stands for ascending order and NULL/MISSING first. desc/d stands for descending order and NULL/MISSING last. **Default:** ascending order and NULL/MISSING first.
 * sort-field: mandatory. The field used to sort. Can use ``auto(field)``, ``str(field)``, ``ip(field)``, or ``num(field)`` to specify how to interpret field values.
@@ -29,9 +28,9 @@ sort [count] <[+|-] sort-field | sort-field [asc|a|desc|d]>...
 
 
 Example 1: Sort by one field
-=============================
+============================
 
-The example show sort all the document with age field in ascending order.
+This example shows sorting all documents by age field in ascending order.
 
 PPL query::
 
@@ -50,7 +49,7 @@ PPL query::
 Example 2: Sort by one field return all the result
 ==================================================
 
-The example show sort all the document with age field in ascending order.
+This example shows sorting all documents by age field in ascending order and returning all results.
 
 PPL query::
 
@@ -69,7 +68,7 @@ PPL query::
 Example 3: Sort by one field in descending order (using -)
 ==========================================================
 
-The example show sort all the document with age field in descending order using the - operator.
+This example shows sorting all documents by age field in descending order.
 
 PPL query::
 
@@ -87,7 +86,7 @@ PPL query::
 Example 4: Sort by one field in descending order (using desc)
 ==============================================================
 
-The example show sort all the document with age field in descending order using the desc keyword.
+This example shows sorting all the document by the age field in descending order using the desc keyword.
 
 PPL query::
 
@@ -105,7 +104,7 @@ PPL query::
 Example 5: Sort by multiple fields (using +/-)
 ==============================================
 
-The example show sort all the document with gender field in ascending order and age field in descending using +/- operators.
+This example shows sorting all documents by gender field in ascending order and age field in descending order using +/- operators.
 
 PPL query::
 
@@ -123,7 +122,7 @@ PPL query::
 Example 6: Sort by multiple fields (using asc/desc)
 ====================================================
 
-The example show sort all the document with gender field in ascending order and age field in descending using asc/desc keywords.
+This example shows sorting all the document by the gender field in ascending order and age field in descending order using asc/desc keywords.
 
 PPL query::
 
@@ -141,7 +140,7 @@ PPL query::
 Example 7: Sort by field include null value
 ===========================================
 
-The example shows sorting the employer field by the default option (ascending order and null first), the result shows that the null value is in the first row.
+This example shows sorting employer field by default option (ascending order and null first). The result shows that null value is in the first row.
 
 PPL query::
 
@@ -159,7 +158,7 @@ PPL query::
 Example 8: Specify the number of sorted documents to return
 ============================================================
 
-The example shows sorting all the document and returning 2 documents.
+This example shows sorting all documents and returning 2 documents.
 
 PPL query::
 
@@ -175,7 +174,7 @@ PPL query::
 Example 9: Sort with desc modifier
 ===================================
 
-The example shows sorting with the desc modifier to reverse sort order.
+This example shows sorting with the desc modifier to reverse sort order.
 
 PPL query::
 
@@ -193,7 +192,7 @@ PPL query::
 Example 10: Sort with specifying field type
 ==================================
 
-The example shows sorting with str() to sort numeric values lexicographically.
+This example shows sorting with str() to sort numeric values lexicographically.
 
 PPL query::
 

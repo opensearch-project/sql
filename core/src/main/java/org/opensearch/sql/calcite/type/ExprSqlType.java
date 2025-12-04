@@ -54,7 +54,8 @@ public class ExprSqlType extends AbstractExprRelDataType<BasicSqlType> {
           INTEGER,
           INTERVAL_YEAR,
           INTERVAL_YEAR_MONTH,
-          INTERVAL_MONTH -> this.isNullable() ? Integer.class : int.class;
+          INTERVAL_MONTH ->
+          this.isNullable() ? Integer.class : int.class;
       case TIMESTAMP,
           TIMESTAMP_WITH_LOCAL_TIME_ZONE,
           TIMESTAMP_TZ,
@@ -68,13 +69,14 @@ public class ExprSqlType extends AbstractExprRelDataType<BasicSqlType> {
           INTERVAL_HOUR_SECOND,
           INTERVAL_MINUTE,
           INTERVAL_MINUTE_SECOND,
-          INTERVAL_SECOND -> this.isNullable() ? Long.class : long.class;
+          INTERVAL_SECOND ->
+          this.isNullable() ? Long.class : long.class;
       case SMALLINT -> this.isNullable() ? Short.class : short.class;
       case TINYINT -> this.isNullable() ? Byte.class : byte.class;
       case DECIMAL -> BigDecimal.class;
       case BOOLEAN -> this.isNullable() ? Boolean.class : boolean.class;
       case DOUBLE, FLOAT -> // sic
-      this.isNullable() ? Double.class : double.class;
+          this.isNullable() ? Double.class : double.class;
       case REAL -> this.isNullable() ? Float.class : float.class;
       case BINARY, VARBINARY -> ByteString.class;
       case GEOMETRY -> Geometry.class;

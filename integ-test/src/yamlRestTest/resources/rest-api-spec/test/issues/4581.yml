@@ -1,0 +1,53 @@
+setup:
+  - do:
+      indices.create:
+        index: opensearch-sql_test_index_otel_logs
+        body:
+          mappings:
+            properties:
+              "@timestamp":
+                type: date
+              "severityNumber":
+                type: integer
+              "flags":
+                type: long
+  - do:
+      bulk:
+        index: opensearch-sql_test_index_otel_logs
+        refresh: true
+        body:
+          - '{"index":{}}'
+          - '{"@timestamp":"2023-10-08T10:00:00.000Z","severityNumber":10,"flags":0}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2023-10-08T10:00:01.000Z","severityNumber":12,"flags":0}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2023-10-08T10:00:02.000Z","severityNumber":15,"flags":0}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2023-10-08T10:00:03.000Z","severityNumber":13,"flags":0}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2023-10-08T10:00:04.000Z","severityNumber":11,"flags":0}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2023-10-08T10:00:05.000Z","severityNumber":14,"flags":0}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2023-10-08T10:00:06.000Z","severityNumber":16,"flags":0}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2023-10-08T10:00:07.000Z","severityNumber":9,"flags":1}'
+
+---
+"timechart with grouping by non-string field":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=opensearch-sql_test_index_otel_logs | timechart avg(severityNumber) by flags
+
+  - match: { total: 2 }
+  - match: { "schema": [ { "name": "@timestamp", "type": "timestamp" }, { "name": "flags", "type": "string" }, { "name": "avg(severityNumber)", "type": "double" }] }
+  - match: {"datarows": [["2023-10-08 10:00:00", "0", 13.0], ["2023-10-08 10:00:00", "1", 9.0]]}

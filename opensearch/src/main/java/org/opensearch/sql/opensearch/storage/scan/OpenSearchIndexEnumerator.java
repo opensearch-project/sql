@@ -17,7 +17,6 @@ import org.opensearch.sql.exception.NonFallbackCalciteException;
 import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
-import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
 /**
  * Supports a simple iteration over a collection for OpenSearch index
@@ -30,6 +29,8 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
   /** OpenSearch client. */
   private final OpenSearchClient client;
+
+  private final BackgroundSearchScanner bgScanner;
 
   private final List<String> fields;
 
@@ -49,15 +50,12 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   private final ResourceMonitor monitor;
 
   /** Number of rows returned. */
-  private Integer queryCount;
+  private Integer queryCount = 0;
 
   /** Search response for current batch. */
   private Iterator<ExprValue> iterator;
 
-  private ExprValue current;
-
-  /** flag to indicate whether fetch more than one batch */
-  private boolean fetchOnce = false;
+  private ExprValue current = null;
 
   public OpenSearchIndexEnumerator(
       OpenSearchClient client,
@@ -66,33 +64,24 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
       int maxResultWindow,
       OpenSearchRequest request,
       ResourceMonitor monitor) {
-    this.client = client;
+    if (!monitor.isHealthy()) {
+      throw new NonFallbackCalciteException("insufficient resources to run the query, quit.");
+    }
+
     this.fields = fields;
     this.request = request;
     this.maxResponseSize = maxResponseSize;
     this.maxResultWindow = maxResultWindow;
     this.monitor = monitor;
-    this.queryCount = 0;
-    this.current = null;
-    if (!this.monitor.isHealthy()) {
-      throw new NonFallbackCalciteException("insufficient resources to run the query, quit.");
-    }
+    this.client = client;
+    this.bgScanner = new BackgroundSearchScanner(client);
+    this.bgScanner.startScanning(request);
   }
 
-  private void fetchNextBatch() {
-    OpenSearchResponse response = client.search(request);
-    if (response.isAggregationResponse()
-        || response.isCountResponse()
-        || response.getHitsSize() < maxResultWindow) {
-      // no need to fetch next batch if it's for an aggregation
-      // or the length of response hits is less than max result window size.
-      fetchOnce = true;
-    }
-    if (!response.isEmpty()) {
-      iterator = response.iterator();
-    } else if (iterator == null) {
-      iterator = Collections.emptyIterator();
-    }
+  private Iterator<ExprValue> fetchNextBatch() {
+    BackgroundSearchScanner.SearchBatchResult result =
+        bgScanner.fetchNextBatch(request, maxResultWindow);
+    return result.iterator();
   }
 
   @Override
@@ -121,8 +110,8 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
       throw new NonFallbackCalciteException("insufficient resources to load next row, quit.");
     }
 
-    if (iterator == null || (!iterator.hasNext() && !fetchOnce)) {
-      fetchNextBatch();
+    if (iterator == null || (!iterator.hasNext() && !this.bgScanner.isScanDone())) {
+      iterator = fetchNextBatch();
     }
     if (iterator.hasNext()) {
       current = iterator.next();
@@ -135,18 +124,16 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
   @Override
   public void reset() {
-    OpenSearchResponse response = client.search(request);
-    if (!response.isEmpty()) {
-      iterator = response.iterator();
-    } else {
-      iterator = Collections.emptyIterator();
-    }
+    bgScanner.reset(request);
+    iterator = bgScanner.fetchNextBatch(request, maxResultWindow).iterator();
     queryCount = 0;
   }
 
   @Override
   public void close() {
     iterator = Collections.emptyIterator();
+    queryCount = 0;
+    bgScanner.close();
     if (request != null) {
       client.forceCleanup(request);
       request = null;

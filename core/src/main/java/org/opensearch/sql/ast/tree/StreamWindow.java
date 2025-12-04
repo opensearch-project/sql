@@ -9,6 +9,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
@@ -16,6 +17,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @Getter
 @ToString
 @EqualsAndHashCode(callSuper = false)
+@RequiredArgsConstructor
 public class StreamWindow extends UnresolvedPlan {
 
   private final List<UnresolvedExpression> windowFunctionList;
@@ -23,35 +25,10 @@ public class StreamWindow extends UnresolvedPlan {
   private final boolean current;
   private final int window;
   private final boolean global;
+  private final boolean bucketNullable;
   private final UnresolvedExpression resetBefore;
   private final UnresolvedExpression resetAfter;
   @ToString.Exclude private UnresolvedPlan child;
-
-  /** StreamWindow Constructor. */
-  public StreamWindow(
-      List<UnresolvedExpression> windowFunctionList,
-      List<UnresolvedExpression> groupList,
-      boolean current,
-      int window,
-      boolean global,
-      UnresolvedExpression resetBefore,
-      UnresolvedExpression resetAfter) {
-    this.windowFunctionList = windowFunctionList;
-    this.groupList = groupList;
-    this.current = current;
-    this.window = window;
-    this.global = global;
-    this.resetBefore = resetBefore;
-    this.resetAfter = resetAfter;
-  }
-
-  public boolean isCurrent() {
-    return current;
-  }
-
-  public boolean isGlobal() {
-    return global;
-  }
 
   @Override
   public StreamWindow attach(UnresolvedPlan child) {

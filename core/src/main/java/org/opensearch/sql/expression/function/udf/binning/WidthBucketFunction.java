@@ -66,7 +66,7 @@ public class WidthBucketFunction extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return PPLOperandTypes.NUMERIC_NUMERIC_NUMERIC_NUMERIC;
+    return PPLOperandTypes.WIDTH_BUCKET_OPERAND;
   }
 
   public static class WidthBucketImplementor implements NotNullImplementor {

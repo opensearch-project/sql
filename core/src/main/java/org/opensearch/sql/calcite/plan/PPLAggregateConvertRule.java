@@ -240,7 +240,7 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
 
   /** Rule configuration. */
   @Value.Immutable
-  public interface Config extends RelRule.Config {
+  public interface Config extends OpenSearchRuleConfig {
     Config SUM_CONVERTER =
         ImmutablePPLAggregateConvertRule.Config.builder()
             .build()

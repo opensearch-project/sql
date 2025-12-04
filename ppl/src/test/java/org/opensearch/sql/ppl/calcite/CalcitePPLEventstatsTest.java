@@ -70,4 +70,25 @@ public class CalcitePPLEventstatsTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testEventstatsNullBucket() {
+    String ppl = "source=EMP | eventstats bucket_nullable=false avg(SAL) by DEPTNO";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], avg(SAL)=[CASE(IS NOT NULL($7), /(SUM($5) OVER (PARTITION"
+            + " BY $7), CAST(COUNT($5) OVER (PARTITION BY $7)):DOUBLE NOT NULL), null:DOUBLE)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, CASE WHEN"
+            + " `DEPTNO` IS NOT NULL THEN (SUM(`SAL`) OVER (PARTITION BY `DEPTNO` RANGE BETWEEN"
+            + " UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)) / CAST(COUNT(`SAL`) OVER (PARTITION"
+            + " BY `DEPTNO` RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS DOUBLE)"
+            + " ELSE NULL END `avg(SAL)`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }

@@ -230,9 +230,8 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
             "BLOCK* NameSystem.allocateBlock:"
                 + " /user/root/sortrand/_temporary/_task_200811092030_0002_r_000296_0/part-00296."
                 + " blk_-6620182933895093708",
-            "BLOCK* NameSystem.allocateBlock:"
-                + " /user/root/sortrand/_temporary/_task_<*>_<*>_r_<*>_<*>/part<*>"
-                + " blk_<*>"));
+            "<*> NameSystem.allocateBlock:"
+                + " /user/root/sortrand/_temporary/_task_<*>_<*>_r_<*>_<*>/part<*> blk_<*>"));
   }
 
   @Test
@@ -268,21 +267,23 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
             "BLOCK* NameSystem.allocateBlock:"
                 + " /user/root/sortrand/_temporary/_task_200811092030_0002_r_000296_0/part-00296."
                 + " blk_-6620182933895093708",
-            "BLOCK* NameSystem.allocateBlock:"
-                + " /user/root/sortrand/_temporary/_task_<token1>_<token2>_r_<token3>_<token4>/part<token5>"
-                + " blk_<token6>",
+            "<token1> NameSystem.allocateBlock:"
+                + " /user/root/sortrand/_temporary/_task_<token2>_<token3>_r_<token4>_<token5>/part<token6>"
+                + " blk_<token7>",
             ImmutableMap.of(
                 "<token1>",
-                ImmutableList.of("200811092030"),
+                ImmutableList.of("BLOCK*"),
                 "<token2>",
-                ImmutableList.of("0002"),
+                ImmutableList.of("200811092030"),
                 "<token3>",
-                ImmutableList.of("000296"),
+                ImmutableList.of("0002"),
                 "<token4>",
-                ImmutableList.of("0"),
+                ImmutableList.of("000296"),
                 "<token5>",
-                ImmutableList.of("-00296."),
+                ImmutableList.of("0"),
                 "<token6>",
+                ImmutableList.of("-00296."),
+                "<token7>",
                 ImmutableList.of("-6620182933895093708"))));
   }
 

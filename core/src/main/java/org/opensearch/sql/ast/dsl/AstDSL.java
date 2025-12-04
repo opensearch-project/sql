@@ -49,6 +49,7 @@ import org.opensearch.sql.ast.expression.When;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.CountBin;
 import org.opensearch.sql.ast.tree.Dedupe;
@@ -112,7 +113,7 @@ public class AstDSL {
   }
 
   public static UnresolvedPlan search(UnresolvedPlan input, String queryString) {
-    return new Search(input, queryString);
+    return new Search(input, queryString, null);
   }
 
   public UnresolvedPlan subqueryAlias(UnresolvedPlan child, String alias) {
@@ -563,6 +564,11 @@ public class AstDSL {
     return new Trendline(sortField, Arrays.asList(computations)).attach(input);
   }
 
+  public static AppendPipe appendPipe(UnresolvedPlan input, UnresolvedPlan subquery) {
+
+    return new AppendPipe(subquery).attach(input);
+  }
+
   public static Trendline.TrendlineComputation computation(
       Integer numDataPoints, Field dataField, String alias, Trendline.TrendlineType type) {
     return new Trendline.TrendlineComputation(numDataPoints, dataField, alias, type);
@@ -728,7 +734,7 @@ public class AstDSL {
   }
 
   /** Get a reference to the implicit timestamp field {@code @timestamp} */
-  public static Field referImplicitTimestampField() {
+  public static Field implicitTimestampField() {
     return AstDSL.field(OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP);
   }
 }

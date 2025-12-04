@@ -1,0 +1,117 @@
+{
+  "mappings": {
+    "properties": {
+      "firewall_name": {
+        "type": "keyword"
+      },
+      "availability_zone": {
+        "type": "keyword"
+      },
+      "event_timestamp": {
+        "type": "keyword"
+      },
+      "event": {
+        "properties": {
+          "timestamp": {
+            "type": "date"
+          },
+          "src_ip": {
+            "type": "keyword"
+          },
+          "dest_ip": {
+            "type": "keyword"
+          },
+          "src_port": {
+            "type": "integer"
+          },
+          "dest_port": {
+            "type": "integer"
+          },
+          "proto": {
+            "type": "keyword"
+          },
+          "app_proto": {
+            "type": "keyword"
+          },
+          "event_type": {
+            "type": "keyword"
+          },
+          "flow_id": {
+            "type": "long"
+          },
+          "netflow": {
+            "properties": {
+              "pkts": {
+                "type": "integer"
+              },
+              "bytes": {
+                "type": "integer"
+              },
+              "start": {
+                "type": "date"
+              },
+              "end": {
+                "type": "date"
+              },
+              "age": {
+                "type": "integer"
+              },
+              "min_ttl": {
+                "type": "integer"
+              },
+              "max_ttl": {
+                "type": "integer"
+              }
+            }
+          },
+          "tcp": {
+            "properties": {
+              "tcp_flags": {
+                "type": "keyword"
+              },
+              "syn": {
+                "type": "boolean"
+              },
+              "ack": {
+                "type": "boolean"
+              }
+            }
+          },
+          "tls": {
+            "properties": {
+              "sni": {
+                "type": "keyword"
+              }
+            }
+          },
+          "http": {
+            "properties": {
+              "hostname": {
+                "type": "keyword"
+              },
+              "url": {
+                "type": "keyword"
+              },
+              "http_user_agent": {
+                "type": "keyword"
+              }
+            }
+          },
+          "alert": {
+            "properties": {
+              "action": {
+                "type": "keyword"
+              },
+              "signature_id": {
+                "type": "integer"
+              },
+              "signature": {
+                "type": "keyword"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

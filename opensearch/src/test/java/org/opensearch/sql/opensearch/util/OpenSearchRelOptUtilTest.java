@@ -8,10 +8,21 @@ package org.opensearch.sql.opensearch.util;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelFieldCollation.Direction;
+import org.apache.calcite.rel.RelFieldCollation.NullDirection;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -26,6 +37,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
+import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
+import org.opensearch.sql.opensearch.storage.scan.context.PushDownOperation;
+import org.opensearch.sql.opensearch.storage.scan.context.PushDownType;
+import org.opensearch.sql.opensearch.storage.scan.context.SortExprDigest;
 
 @ExtendWith(MockitoExtension.class)
 public class OpenSearchRelOptUtilTest {
@@ -324,5 +340,400 @@ public class OpenSearchRelOptUtilTest {
     List<String> expected = Arrays.asList("col1", "col2", "col3");
     List<String> result = OpenSearchRelOptUtil.resolveColumnNameConflicts(input);
     assertEquals(expected, result);
+  }
+
+  @Test
+  public void testSourceCollationSatisfiesTargetCollation_DirectInputRef() {
+    // Source collation: col0 ASC
+    // Target collation: col0 ASC (output index 0)
+    Optional<Pair<Integer, Boolean>> orderEquivInfo = Optional.of(Pair.of(0, false));
+
+    RelFieldCollation sourceCollation = new RelFieldCollation(0, Direction.ASCENDING);
+    RelFieldCollation targetCollation = new RelFieldCollation(0, Direction.ASCENDING);
+
+    assertTrue(
+        OpenSearchRelOptUtil.sourceCollationSatisfiesTargetCollation(
+            sourceCollation, targetCollation, orderEquivInfo));
+  }
+
+  @Test
+  public void testSourceCollationSatisfiesTargetCollation_EmptyOrderEquivInfo() {
+    Optional<Pair<Integer, Boolean>> orderEquivInfo = Optional.empty();
+
+    RelFieldCollation sourceCollation = new RelFieldCollation(0, Direction.DESCENDING);
+    RelFieldCollation targetCollation = new RelFieldCollation(0, Direction.DESCENDING);
+
+    assertFalse(
+        OpenSearchRelOptUtil.sourceCollationSatisfiesTargetCollation(
+            sourceCollation, targetCollation, orderEquivInfo));
+  }
+
+  @Test
+  public void testSourceCollationSatisfiesTargetCollation_DirectInputRefDescending() {
+    // Source collation: col0 DESC
+    // Target collation: col0 DESC (output index 0)
+    Optional<Pair<Integer, Boolean>> orderEquivInfo = Optional.of(Pair.of(0, false));
+
+    RelFieldCollation sourceCollation = new RelFieldCollation(0, Direction.DESCENDING);
+    RelFieldCollation targetCollation = new RelFieldCollation(0, Direction.DESCENDING);
+
+    assertTrue(
+        OpenSearchRelOptUtil.sourceCollationSatisfiesTargetCollation(
+            sourceCollation, targetCollation, orderEquivInfo));
+  }
+
+  @Test
+  public void testSourceCollationSatisfiesTargetCollation_DirectionMismatch() {
+    // Source collation: col0 ASC
+    // Target collation: col0 DESC (output index 0)
+    Optional<Pair<Integer, Boolean>> orderEquivInfo = Optional.of(Pair.of(0, false));
+
+    RelFieldCollation sourceCollation = new RelFieldCollation(0, Direction.ASCENDING);
+    RelFieldCollation targetCollation = new RelFieldCollation(0, Direction.DESCENDING);
+
+    assertFalse(
+        OpenSearchRelOptUtil.sourceCollationSatisfiesTargetCollation(
+            sourceCollation, targetCollation, orderEquivInfo));
+  }
+
+  @Test
+  public void testSourceCollationSatisfiesTargetCollation_IndexMismatch() {
+    // Source collation: col0 ASC
+    // Target collation: col1 ASC (output index 1)
+    Optional<Pair<Integer, Boolean>> orderEquivInfo = Optional.of(Pair.of(1, false));
+
+    RelFieldCollation sourceCollation = new RelFieldCollation(0, Direction.ASCENDING);
+    RelFieldCollation targetCollation = new RelFieldCollation(1, Direction.ASCENDING);
+
+    assertFalse(
+        OpenSearchRelOptUtil.sourceCollationSatisfiesTargetCollation(
+            sourceCollation, targetCollation, orderEquivInfo));
+  }
+
+  @Test
+  public void testSourceCollationSatisfiesTargetCollation_DirectionFlipped() {
+    // Source collation: col0 ASC
+    // Target collation: -col0 DESC (output index 0)
+    Optional<Pair<Integer, Boolean>> orderEquivInfo = Optional.of(Pair.of(0, true));
+
+    RelFieldCollation sourceCollation = new RelFieldCollation(0, Direction.ASCENDING);
+    RelFieldCollation targetCollation = new RelFieldCollation(0, Direction.DESCENDING);
+
+    assertTrue(
+        OpenSearchRelOptUtil.sourceCollationSatisfiesTargetCollation(
+            sourceCollation, targetCollation, orderEquivInfo));
+  }
+
+  @Test
+  public void testSourceCollationSatisfiesTargetCollation_DirectionFlippedMismatched() {
+    // Source collation: col0 ASC
+    // Target collation: -col0 ASC (output index 0) - should be DESC
+    Optional<Pair<Integer, Boolean>> orderEquivInfo = Optional.of(Pair.of(0, true));
+
+    RelFieldCollation sourceCollation = new RelFieldCollation(0, Direction.ASCENDING);
+    RelFieldCollation targetCollation = new RelFieldCollation(0, Direction.ASCENDING);
+
+    assertFalse(
+        OpenSearchRelOptUtil.sourceCollationSatisfiesTargetCollation(
+            sourceCollation, targetCollation, orderEquivInfo));
+  }
+
+  @Test
+  public void testCanScanProvideSortCollation_EmptySortExprDigests() {
+    Map<Integer, Optional<Pair<Integer, Boolean>>> orderEquivInfoMap = Collections.emptyMap();
+    AbstractCalciteIndexScan scan = createMockScanWithSort(Collections.emptyList());
+    Project project = createMockProject(Arrays.asList(rexBuilder.makeInputRef(inputType, 0)));
+    RelCollation collation = RelCollations.of(new RelFieldCollation(0, Direction.ASCENDING));
+
+    assertFalse(
+        OpenSearchRelOptUtil.canScanProvideSortCollation(
+            scan, project, collation, orderEquivInfoMap));
+  }
+
+  @Test
+  public void testCanScanProvideSortCollation_InsufficientSortExprDigests() {
+    // Scan has 1 sort expression, but collation requires 2
+    Map<Integer, Optional<Pair<Integer, Boolean>>> orderEquivInfoMap = Collections.emptyMap();
+    RexNode scanExpr = rexBuilder.makeInputRef(inputType, 0);
+    SortExprDigest sortDigest =
+        new SortExprDigest(scanExpr, Direction.ASCENDING, NullDirection.LAST);
+    AbstractCalciteIndexScan scan = createMockScanWithSort(Arrays.asList(sortDigest));
+
+    Project project =
+        createMockProject(
+            Arrays.asList(
+                rexBuilder.makeInputRef(inputType, 0), rexBuilder.makeInputRef(inputType, 1)));
+    RelCollation collation =
+        RelCollations.of(
+            new RelFieldCollation(0, Direction.ASCENDING),
+            new RelFieldCollation(1, Direction.ASCENDING));
+
+    assertFalse(
+        OpenSearchRelOptUtil.canScanProvideSortCollation(
+            scan, project, collation, orderEquivInfoMap));
+  }
+
+  @Test
+  public void testCanScanProvideSortCollation_ExactMatch() {
+    // Scan sorts by col0 ASC, project outputs col0, collation requires col0 ASC
+    Map<Integer, Optional<Pair<Integer, Boolean>>> orderEquivInfoMap =
+        Map.of(0, Optional.of(Pair.of(0, false)));
+    RexNode scanExpr = rexBuilder.makeInputRef(inputType, 0);
+    RexNode projectExpr = rexBuilder.makeInputRef(inputType, 0);
+    SortExprDigest sortDigest =
+        new SortExprDigest(scanExpr, Direction.ASCENDING, NullDirection.LAST);
+    AbstractCalciteIndexScan scan = createMockScanWithSort(Arrays.asList(sortDigest));
+
+    Project project = createMockProject(Arrays.asList(projectExpr));
+    RelCollation collation =
+        RelCollations.of(new RelFieldCollation(0, Direction.ASCENDING, NullDirection.LAST));
+
+    assertTrue(
+        OpenSearchRelOptUtil.canScanProvideSortCollation(
+            scan, project, collation, orderEquivInfoMap));
+  }
+
+  @Test
+  public void testCanScanProvideSortCollation_DirectionMismatch() {
+    // Scan sorts by col0 ASC, but collation requires col0 DESC
+    Map<Integer, Optional<Pair<Integer, Boolean>>> orderEquivInfoMap =
+        Map.of(0, Optional.of(Pair.of(0, false)));
+    RexNode scanExpr = rexBuilder.makeInputRef(inputType, 0);
+    RexNode projectExpr = rexBuilder.makeInputRef(inputType, 0);
+    SortExprDigest sortDigest =
+        new SortExprDigest(scanExpr, Direction.ASCENDING, NullDirection.LAST);
+    AbstractCalciteIndexScan scan = createMockScanWithSort(Arrays.asList(sortDigest));
+
+    Project project = createMockProject(Arrays.asList(projectExpr));
+    RelCollation collation =
+        RelCollations.of(new RelFieldCollation(0, Direction.DESCENDING, NullDirection.LAST));
+
+    assertFalse(
+        OpenSearchRelOptUtil.canScanProvideSortCollation(
+            scan, project, collation, orderEquivInfoMap));
+  }
+
+  @Test
+  public void testCanScanProvideSortCollation_NullDirectionMismatch() {
+    // Scan sorts by col0 ASC NULLS LAST, but collation requires NULLS FIRST
+    Map<Integer, Optional<Pair<Integer, Boolean>>> orderEquivInfoMap =
+        Map.of(0, Optional.of(Pair.of(0, false)));
+    RexNode scanExpr = rexBuilder.makeInputRef(inputType, 0);
+    RexNode projectExpr = rexBuilder.makeInputRef(inputType, 0);
+    SortExprDigest sortDigest =
+        new SortExprDigest(scanExpr, Direction.ASCENDING, NullDirection.LAST);
+    AbstractCalciteIndexScan scan = createMockScanWithSort(Arrays.asList(sortDigest));
+
+    Project project = createMockProject(Arrays.asList(projectExpr));
+    RelCollation collation =
+        RelCollations.of(new RelFieldCollation(0, Direction.ASCENDING, NullDirection.FIRST));
+
+    assertFalse(
+        OpenSearchRelOptUtil.canScanProvideSortCollation(
+            scan, project, collation, orderEquivInfoMap));
+  }
+
+  @Test
+  public void testCanScanProvideSortCollation_ProjectTransformation() {
+    // Scan sorts by col0 ASC, project outputs -col0, collation requires -col0 DESC
+    Map<Integer, Optional<Pair<Integer, Boolean>>> orderEquivInfoMap =
+        Map.of(0, Optional.of(Pair.of(0, true)));
+    RexNode scanExpr = rexBuilder.makeInputRef(inputType, 0);
+    RexNode projectExpr =
+        rexBuilder.makeCall(SqlStdOperatorTable.UNARY_MINUS, rexBuilder.makeInputRef(inputType, 0));
+    SortExprDigest sortDigest =
+        new SortExprDigest(scanExpr, Direction.ASCENDING, NullDirection.LAST);
+    AbstractCalciteIndexScan scan = createMockScanWithSort(Arrays.asList(sortDigest));
+
+    Project project = createMockProject(Arrays.asList(projectExpr));
+    RelCollation collation =
+        RelCollations.of(new RelFieldCollation(0, Direction.DESCENDING, NullDirection.LAST));
+
+    assertTrue(
+        OpenSearchRelOptUtil.canScanProvideSortCollation(
+            scan, project, collation, orderEquivInfoMap));
+  }
+
+  @Test
+  public void testCanScanProvideSortCollation_ExpressionMismatch() {
+    // Scan sorts by col0, but project outputs col1
+    Map<Integer, Optional<Pair<Integer, Boolean>>> orderEquivInfoMap =
+        Map.of(0, Optional.of(Pair.of(1, false)));
+    RexNode scanExpr = rexBuilder.makeInputRef(inputType, 0);
+    RexNode projectExpr = rexBuilder.makeInputRef(inputType, 1);
+    SortExprDigest sortDigest =
+        new SortExprDigest(scanExpr, Direction.ASCENDING, NullDirection.LAST);
+    AbstractCalciteIndexScan scan = createMockScanWithSort(Arrays.asList(sortDigest));
+
+    Project project = createMockProject(Arrays.asList(projectExpr));
+    RelCollation collation =
+        RelCollations.of(new RelFieldCollation(0, Direction.ASCENDING, NullDirection.LAST));
+
+    assertFalse(
+        OpenSearchRelOptUtil.canScanProvideSortCollation(
+            scan, project, collation, orderEquivInfoMap));
+  }
+
+  @Test
+  public void testCanScanProvideSortCollation_ComplexRexCall() {
+    // Scan sorts by (col0 + col1) ASC, project outputs (col0 + col1), collation requires (col0 +
+    // col1) ASC
+    Map<Integer, Optional<Pair<Integer, Boolean>>> orderEquivInfoMap = Map.of(0, Optional.empty());
+    RexNode scanExpr =
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.PLUS,
+            rexBuilder.makeInputRef(inputType, 0),
+            rexBuilder.makeInputRef(inputType, 1));
+    RexNode projectExpr =
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.PLUS,
+            rexBuilder.makeInputRef(inputType, 0),
+            rexBuilder.makeInputRef(inputType, 1));
+    SortExprDigest sortDigest =
+        new SortExprDigest(scanExpr, Direction.ASCENDING, NullDirection.LAST);
+    AbstractCalciteIndexScan scan = createMockScanWithSort(Arrays.asList(sortDigest));
+
+    Project project = createMockProject(Arrays.asList(projectExpr));
+    RelCollation collation =
+        RelCollations.of(new RelFieldCollation(0, Direction.ASCENDING, NullDirection.LAST));
+
+    assertTrue(
+        OpenSearchRelOptUtil.canScanProvideSortCollation(
+            scan, project, collation, orderEquivInfoMap));
+  }
+
+  @Test
+  public void testCanScanProvideSortCollation_ComplexRexCall_DifferentExpression() {
+    // Scan sorts by (col0 + 10), but project outputs (col0 + 20) - should not match
+    Map<Integer, Optional<Pair<Integer, Boolean>>> orderEquivInfoMap =
+        Map.of(0, Optional.of(Pair.of(0, false)));
+    RexNode scanExpr =
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.PLUS,
+            rexBuilder.makeInputRef(inputType, 0),
+            rexBuilder.makeLiteral(10, inputType));
+    RexNode projectExpr =
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.PLUS,
+            rexBuilder.makeInputRef(inputType, 0),
+            rexBuilder.makeLiteral(20, inputType));
+    SortExprDigest sortDigest =
+        new SortExprDigest(scanExpr, Direction.ASCENDING, NullDirection.LAST);
+    AbstractCalciteIndexScan scan = createMockScanWithSort(Arrays.asList(sortDigest));
+
+    Project project = createMockProject(Arrays.asList(projectExpr));
+    RelCollation collation =
+        RelCollations.of(new RelFieldCollation(0, Direction.ASCENDING, NullDirection.LAST));
+
+    assertFalse(
+        OpenSearchRelOptUtil.canScanProvideSortCollation(
+            scan, project, collation, orderEquivInfoMap));
+  }
+
+  @Test
+  public void testCanScanProvideSortCollation_ComplexRexCall_MixedSimpleAndComplex() {
+    // Scan sorts by col0 ASC, (col1 + 5) DESC
+    // Project outputs col0, (col1 + 5)
+    // Collation requires col0 ASC, (col1 + 5) DESC
+    Map<Integer, Optional<Pair<Integer, Boolean>>> orderEquivInfoMap =
+        Map.of(0, Optional.of(Pair.of(0, false)));
+    RexNode scanExpr0 = rexBuilder.makeInputRef(inputType, 0);
+    RexNode scanExpr1 =
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.PLUS,
+            rexBuilder.makeInputRef(inputType, 1),
+            rexBuilder.makeLiteral(5, inputType));
+
+    RexNode projectExpr0 = rexBuilder.makeInputRef(inputType, 0);
+    RexNode projectExpr1 =
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.PLUS,
+            rexBuilder.makeInputRef(inputType, 1),
+            rexBuilder.makeLiteral(5, inputType));
+
+    SortExprDigest sortDigest0 =
+        new SortExprDigest(scanExpr0, Direction.ASCENDING, NullDirection.LAST);
+    SortExprDigest sortDigest1 =
+        new SortExprDigest(scanExpr1, Direction.DESCENDING, NullDirection.FIRST);
+    AbstractCalciteIndexScan scan = createMockScanWithSort(Arrays.asList(sortDigest0, sortDigest1));
+
+    Project project = createMockProject(Arrays.asList(projectExpr0, projectExpr1));
+    RelCollation collation =
+        RelCollations.of(
+            new RelFieldCollation(0, Direction.ASCENDING, NullDirection.LAST),
+            new RelFieldCollation(1, Direction.DESCENDING, NullDirection.FIRST));
+
+    assertTrue(
+        OpenSearchRelOptUtil.canScanProvideSortCollation(
+            scan, project, collation, orderEquivInfoMap));
+  }
+
+  @Test
+  public void testCanScanProvideSortCollation_ComplexRexCall_PartialMatch() {
+    // Scan sorts by (col0 + 10) ASC, col1 DESC
+    // Project outputs (col0 + 10), col1
+    // Collation requires only (col0 + 10) ASC - should match (prefix match)
+    Map<Integer, Optional<Pair<Integer, Boolean>>> orderEquivInfoMap =
+        Map.of(0, Optional.of(Pair.of(0, false)));
+    RexNode scanExpr0 =
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.PLUS,
+            rexBuilder.makeInputRef(inputType, 0),
+            rexBuilder.makeLiteral(10, inputType));
+    RexNode scanExpr1 = rexBuilder.makeInputRef(inputType, 1);
+
+    RexNode projectExpr0 =
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.PLUS,
+            rexBuilder.makeInputRef(inputType, 0),
+            rexBuilder.makeLiteral(10, inputType));
+    RexNode projectExpr1 = rexBuilder.makeInputRef(inputType, 1);
+
+    SortExprDigest sortDigest0 =
+        new SortExprDigest(scanExpr0, Direction.ASCENDING, NullDirection.LAST);
+    SortExprDigest sortDigest1 =
+        new SortExprDigest(scanExpr1, Direction.DESCENDING, NullDirection.LAST);
+    AbstractCalciteIndexScan scan = createMockScanWithSort(Arrays.asList(sortDigest0, sortDigest1));
+
+    Project project = createMockProject(Arrays.asList(projectExpr0, projectExpr1));
+    RelCollation collation =
+        RelCollations.of(new RelFieldCollation(0, Direction.ASCENDING, NullDirection.LAST));
+
+    assertTrue(
+        OpenSearchRelOptUtil.canScanProvideSortCollation(
+            scan, project, collation, orderEquivInfoMap));
+  }
+
+  private Project createMockProject(List<RexNode> projects) {
+    Project project = mock(Project.class, org.mockito.Mockito.withSettings().lenient());
+    when(project.getProjects()).thenReturn(projects);
+    return project;
+  }
+
+  // Create mock scan with list of sortExprDigest
+  private AbstractCalciteIndexScan createMockScanWithSort(List<SortExprDigest> sortDigests) {
+    AbstractCalciteIndexScan scan =
+        mock(AbstractCalciteIndexScan.class, org.mockito.Mockito.withSettings().lenient());
+    PushDownContext context =
+        mock(PushDownContext.class, org.mockito.Mockito.withSettings().lenient());
+    PushDownOperation sortOperation =
+        mock(PushDownOperation.class, org.mockito.Mockito.withSettings().lenient());
+
+    when(scan.getPushDownContext()).thenReturn(context);
+    when(context.stream()).thenReturn(Arrays.asList(sortOperation).stream());
+    when(sortOperation.type()).thenReturn(PushDownType.SORT_EXPR);
+    when(context.getDigestByType(PushDownType.SORT_EXPR)).thenReturn(sortDigests);
+
+    // Mock the cluster and RexBuilder for getEffectiveExpression
+    RelOptCluster cluster = mock(RelOptCluster.class, org.mockito.Mockito.withSettings().lenient());
+    when(scan.getCluster()).thenReturn(cluster);
+    when(cluster.getRexBuilder()).thenReturn(rexBuilder);
+
+    // Mock the row type
+    RelDataType rowType =
+        typeFactory.builder().add("col0", inputType).add("col1", inputType).build();
+    when(scan.getRowType()).thenReturn(rowType);
+
+    return scan;
   }
 }

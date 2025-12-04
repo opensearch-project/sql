@@ -22,9 +22,13 @@ import java.util.function.UnaryOperator;
 import lombok.Getter;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
 import org.apache.calcite.rel.rel2sql.SqlImplementor;
+import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -101,8 +105,17 @@ public class CalcitePPLAbstractTest {
     Query query = (Query) plan(pplParser, ppl);
     planTransformer.analyze(query.getPlan(), context);
     RelNode root = context.relBuilder.build();
+    root = mergeAdjacentFilters(root);
     System.out.println(root.explain());
     return root;
+  }
+
+  private RelNode mergeAdjacentFilters(RelNode relNode) {
+    HepProgram program =
+        new HepProgramBuilder().addRuleInstance(FilterMergeRule.Config.DEFAULT.toRule()).build();
+    HepPlanner planner = new HepPlanner(program);
+    planner.setRoot(relNode);
+    return planner.findBestExp();
   }
 
   private Node plan(PPLSyntaxParser parser, String query) {

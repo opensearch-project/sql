@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
@@ -26,6 +25,7 @@ import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rex.RexNode;
 import org.apache.commons.lang3.tuple.Pair;
 import org.immutables.value.Value;
+import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
 
@@ -36,14 +36,15 @@ import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
  * push down sort expression script into scan.
  */
 @Value.Enclosing
-public class SortProjectExprTransposeRule extends RelRule<SortProjectExprTransposeRule.Config> {
+public class SortProjectExprTransposeRule
+    extends InterruptibleRelRule<SortProjectExprTransposeRule.Config> {
 
   protected SortProjectExprTransposeRule(Config config) {
     super(config);
   }
 
   @Override
-  public void onMatch(RelOptRuleCall call) {
+  protected void onMatchImpl(RelOptRuleCall call) {
     final Sort sort = call.rel(0);
     final Project project = call.rel(1);
 
@@ -121,7 +122,7 @@ public class SortProjectExprTransposeRule extends RelRule<SortProjectExprTranspo
    * and physical conventions, aka LogicalSort with fetch vs EnumerableLimit.
    */
   @Value.Immutable
-  public interface Config extends RelRule.Config {
+  public interface Config extends OpenSearchRuleConfig {
     SortProjectExprTransposeRule.Config DEFAULT =
         ImmutableSortProjectExprTransposeRule.Config.builder()
             .build()
@@ -133,7 +134,7 @@ public class SortProjectExprTransposeRule extends RelRule<SortProjectExprTranspo
                                 b1.operand(LogicalProject.class)
                                     .predicate(
                                         Predicate.not(LogicalProject::containsOver)
-                                            .and(PlanUtils::projectContainsExpr))
+                                            .and(PlanUtils::containsRexCall))
                                     .anyInputs()));
 
     @Override

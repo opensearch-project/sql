@@ -50,7 +50,7 @@ public class CalcitePPLSearchTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT *\nFROM `scott`.`EMP`\nWHERE `query_string`(MAP ('query', 'DEPTNO:20'))";
+        "SELECT *\nFROM `scott`.`EMP`\nWHERE QUERY_STRING(MAP ('query', 'DEPTNO:20'))";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -78,7 +78,7 @@ public class CalcitePPLSearchTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT *\n"
             + "FROM `scott`.`LOGS`\n"
-            + "WHERE `query_string`(MAP ('query', '(@timestamp:>=2020\\-10\\-11T00\\:00\\:00Z) AND"
+            + "WHERE QUERY_STRING(MAP ('query', '(@timestamp:>=2020\\-10\\-11T00\\:00\\:00Z) AND"
             + " (@timestamp:<=2025\\-01\\-01T00\\:00\\:00Z)'))";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }

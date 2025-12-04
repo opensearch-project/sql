@@ -79,13 +79,20 @@ public class OpenSearchExprValueFactory {
   private final boolean fieldTypeTolerance;
 
   /**
-   * Extend existing mapping by new data without overwrite. Called from aggregation only {@see
-   * AggregationQueryBuilder#buildTypeMapping}.
+   * Extend existing mapping by new data. Overwrite only when the ExprCoreType of them are
+   * different. Called from aggregation only {@see AggregationQueryBuilder#buildTypeMapping}.
    *
    * @param typeMapping A data type mapping produced by aggregation.
    */
   public void extendTypeMapping(Map<String, OpenSearchDataType> typeMapping) {
-    this.typeMapping.putAll(typeMapping);
+    typeMapping.forEach(
+        (groupKey, extendedType) -> {
+          OpenSearchDataType existedType = this.typeMapping.get(groupKey);
+          if (existedType == null
+              || !existedType.getExprCoreType().equals(extendedType.getExprCoreType())) {
+            this.typeMapping.put(groupKey, extendedType);
+          }
+        });
   }
 
   @Getter @Setter private OpenSearchAggregationResponseParser parser;
@@ -252,7 +259,7 @@ public class OpenSearchExprValueFactory {
    * value. For example, {"empty_field": []}.
    */
   private Optional<ExprType> type(String field) {
-    return Optional.ofNullable(typeMapping.get(field));
+    return Optional.ofNullable(typeMapping.get(field)).map(ExprType::getOriginalType);
   }
 
   /**
@@ -309,6 +316,11 @@ public class OpenSearchExprValueFactory {
   }
 
   private static ExprValue createOpenSearchDateType(Content value, ExprType type) {
+    return createOpenSearchDateType(value, type, false);
+  }
+
+  private static ExprValue createOpenSearchDateType(
+      Content value, ExprType type, Boolean supportArrays) {
     OpenSearchDateType dt = (OpenSearchDateType) type;
     ExprCoreType returnFormat = dt.getExprCoreType();
     if (value.isNumber()) { // isNumber

@@ -6,11 +6,13 @@
 package org.opensearch.sql.data.model;
 
 import inet.ipaddr.IPAddress;
+import lombok.EqualsAndHashCode;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.utils.IPUtils;
 
 /** Expression IP Address Value. */
+@EqualsAndHashCode(callSuper = false)
 public class ExprIpValue extends AbstractExprValue {
   private final IPAddress value;
 

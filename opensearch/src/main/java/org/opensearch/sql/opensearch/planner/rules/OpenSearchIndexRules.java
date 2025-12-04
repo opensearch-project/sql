@@ -21,12 +21,16 @@ public class OpenSearchIndexRules {
   // TODO: No need this rule once https://github.com/opensearch-project/sql/issues/4403 is addressed
   private static final AggregateIndexScanRule BUCKET_NON_NULL_AGG_INDEX_SCAN =
       AggregateIndexScanRule.Config.BUCKET_NON_NULL_AGG.toRule();
+  private static final AggregateIndexScanRule BUCKET_NON_NULL_AGG_WITH_UDF_INDEX_SCAN =
+      AggregateIndexScanRule.Config.BUCKET_NON_NULL_AGG_WITH_UDF.toRule();
   private static final LimitIndexScanRule LIMIT_INDEX_SCAN =
       LimitIndexScanRule.Config.DEFAULT.toRule();
   private static final SortIndexScanRule SORT_INDEX_SCAN =
       SortIndexScanRule.Config.DEFAULT.toRule();
   private static final DedupPushdownRule DEDUP_PUSH_DOWN =
       DedupPushdownRule.Config.DEFAULT.toRule();
+  private static final DedupPushdownRule DEDUP_EXPR_PUSH_DOWN =
+      DedupPushdownRule.Config.DEDUP_EXPR.toRule();
   private static final SortProjectExprTransposeRule SORT_PROJECT_EXPR_TRANSPOSE =
       SortProjectExprTransposeRule.Config.DEFAULT.toRule();
   private static final ExpandCollationOnProjectExprRule EXPAND_COLLATION_ON_PROJECT_EXPR =
@@ -35,6 +39,8 @@ public class OpenSearchIndexRules {
       SortAggregateMeasureRule.Config.DEFAULT.toRule();
   private static final RareTopPushdownRule RARE_TOP_PUSH_DOWN =
       RareTopPushdownRule.Config.DEFAULT.toRule();
+  private static final SortExprIndexScanRule SORT_EXPR_INDEX_SCAN =
+      SortExprIndexScanRule.Config.DEFAULT.toRule();
 
   // Rule that always pushes down relevance functions regardless of pushdown settings
   public static final RelevanceFunctionPushdownRule RELEVANCE_FUNCTION_PUSHDOWN =
@@ -47,14 +53,17 @@ public class OpenSearchIndexRules {
           AGGREGATE_INDEX_SCAN,
           COUNT_STAR_INDEX_SCAN,
           BUCKET_NON_NULL_AGG_INDEX_SCAN,
+          BUCKET_NON_NULL_AGG_WITH_UDF_INDEX_SCAN,
           LIMIT_INDEX_SCAN,
           SORT_INDEX_SCAN,
-          // TODO enable if https://github.com/opensearch-project/OpenSearch/issues/3725 resolved
-          // DEDUP_PUSH_DOWN,
+          DEDUP_PUSH_DOWN,
+          // TODO https://github.com/opensearch-project/sql/issues/4789
+          // DEDUP_EXPR_PUSH_DOWN,
           SORT_PROJECT_EXPR_TRANSPOSE,
           SORT_AGGREGATION_METRICS_RULE,
           RARE_TOP_PUSH_DOWN,
-          EXPAND_COLLATION_ON_PROJECT_EXPR);
+          EXPAND_COLLATION_ON_PROJECT_EXPR,
+          SORT_EXPR_INDEX_SCAN);
 
   // prevent instantiation
   private OpenSearchIndexRules() {}

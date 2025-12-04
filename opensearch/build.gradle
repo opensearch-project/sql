@@ -26,7 +26,7 @@ plugins {
     id 'java-library'
     id "io.freefair.lombok"
     id 'jacoco'
-    id 'info.solidsoft.pitest' version '1.9.0'
+    id 'info.solidsoft.pitest' version '1.19.0-rc.2'
     id 'com.diffplug.spotless'
 }
 
@@ -47,8 +47,8 @@ dependencies {
 
     testImplementation('org.junit.jupiter:junit-jupiter-api:5.9.3')
     testImplementation('org.junit.jupiter:junit-jupiter-params:5.9.3')
-    testRuntimeOnly('org.junit.jupiter:junit-jupiter-engine:5.9.3')
-    testRuntimeOnly('org.junit.platform:junit-platform-launcher:1.9.3')
+    testRuntimeOnly('org.junit.jupiter:junit-jupiter-engine')
+    testRuntimeOnly('org.junit.platform:junit-platform-launcher')
 
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: "${hamcrest_version}"
     testImplementation group: 'org.mockito', name: 'mockito-core', version: "${mockito_version}"
@@ -72,13 +72,13 @@ spotless {
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
-        googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
+        googleJavaFormat('1.32.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
     }
 }
 
 pitest {
     targetClasses = ['org.opensearch.sql.*']
-    pitestVersion = '1.9.0'
+    pitestVersion = '1.19.0-rc.2'
     threads = 4
     outputFormats = ['HTML', 'XML']
     timestampedReports = false

@@ -184,6 +184,12 @@ public class MatcherUtils {
     verifyInOrder(response.getJSONArray("datarows"), matchers);
   }
 
+  @SafeVarargs
+  @SuppressWarnings("unchecked")
+  public static void verifyDataRowsSome(JSONObject response, Matcher<JSONArray>... matchers) {
+    verifySome(response.getJSONArray("datarows"), matchers);
+  }
+
   public static void verifyNumOfRows(JSONObject response, int numOfRow) {
     assertEquals(numOfRow, response.getJSONArray("datarows").length());
   }
@@ -405,7 +411,11 @@ public class MatcherUtils {
         JsonParser.parseString(eliminatePid(actual)));
   }
 
-  /** Compare two JSON string are equals with ignoring the RelNode id in the Calcite plan. */
+  /**
+   * Compare two JSON string are equals with ignoring the RelNode id in the Calcite plan.
+   * Deprecated, use {@link #assertYamlEqualsIgnoreId(String, String)}
+   */
+  @Deprecated
   public static void assertJsonEqualsIgnoreId(String expected, String actual) {
     assertJsonEquals(cleanUpId(expected), cleanUpId(actual));
   }
@@ -419,13 +429,16 @@ public class MatcherUtils {
   }
 
   private static String eliminateRelId(String s) {
-    return s.replaceAll("rel#\\d+", "rel#").replaceAll("RelSubset#\\d+", "RelSubset#");
+    return s.replaceAll("rel#\\d+", "rel#")
+        .replaceAll("RelSubset#\\d+", "RelSubset#")
+        .replaceAll("LogicalProject#\\d+", "LogicalProject#");
   }
 
   private static String eliminatePid(String s) {
     return s.replaceAll("pitId=[^,]+,", "pitId=*,");
   }
 
+  /** Compare two YAML strings are equals with ignoring the RelNode id in the Calcite plan. */
   public static void assertYamlEqualsIgnoreId(String expectedYaml, String actualYaml) {
     String cleanedYaml = cleanUpYaml(actualYaml);
     assertYamlEquals(expectedYaml, cleanedYaml);
@@ -446,6 +459,7 @@ public class MatcherUtils {
     return s.replaceAll("\"utcTimestamp\":\\d+", "\"utcTimestamp\": 0")
         .replaceAll("rel#\\d+", "rel#")
         .replaceAll("RelSubset#\\d+", "RelSubset#")
+        .replaceAll("LogicalProject#\\d+", "LogicalProject#")
         .replaceAll("pitId=[^,]+,", "pitId=*,");
   }
 

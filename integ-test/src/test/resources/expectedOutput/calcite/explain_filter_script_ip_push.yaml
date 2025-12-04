@@ -1,0 +1,8 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(host=[$0])
+        LogicalFilter(condition=[CIDRMATCH($0, '0.0.0.0/24':VARCHAR)])
+          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_weblogs]])
+  physical: |
+    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_weblogs]], PushDownContext=[[PROJECT->[host], SCRIPT->CIDRMATCH($0, '0.0.0.0/24':VARCHAR), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10000,"timeout":"1m","query":{"script":{"script":{"source":"{\"langType\":\"calcite\",\"script\":\"rO0ABXQCR3sKICAib3AiOiB7CiAgICAibmFtZSI6ICJDSURSTUFUQ0giLAogICAgImtpbmQiOiAiT1RIRVJfRlVOQ1RJT04iLAogICAgInN5bnRheCI6ICJGVU5DVElPTiIKICB9LAogICJvcGVyYW5kcyI6IFsKICAgIHsKICAgICAgImR5bmFtaWNQYXJhbSI6IDAsCiAgICAgICJ0eXBlIjogewogICAgICAgICJ1ZHQiOiAiRVhQUl9JUCIsCiAgICAgICAgInR5cGUiOiAiT1RIRVIiLAogICAgICAgICJudWxsYWJsZSI6IHRydWUKICAgICAgfQogICAgfSwKICAgIHsKICAgICAgImR5bmFtaWNQYXJhbSI6IDEsCiAgICAgICJ0eXBlIjogewogICAgICAgICJ0eXBlIjogIlZBUkNIQVIiLAogICAgICAgICJudWxsYWJsZSI6IGZhbHNlLAogICAgICAgICJwcmVjaXNpb24iOiAtMQogICAgICB9CiAgICB9CiAgXSwKICAiY2xhc3MiOiAib3JnLm9wZW5zZWFyY2guc3FsLmV4cHJlc3Npb24uZnVuY3Rpb24uVXNlckRlZmluZWRGdW5jdGlvbkJ1aWxkZXIkMSIsCiAgInR5cGUiOiB7CiAgICAidHlwZSI6ICJCT09MRUFOIiwKICAgICJudWxsYWJsZSI6IHRydWUKICB9LAogICJkZXRlcm1pbmlzdGljIjogdHJ1ZSwKICAiZHluYW1pYyI6IGZhbHNlCn0=\"}","lang":"opensearch_compounded_script","params":{"utcTimestamp": 0,"SOURCES":[0,2],"DIGESTS":["host","0.0.0.0/24"]}},"boost":1.0}},"_source":{"includes":["host"],"excludes":[]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])

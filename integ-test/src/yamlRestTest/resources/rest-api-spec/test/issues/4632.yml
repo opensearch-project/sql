@@ -1,0 +1,69 @@
+setup:
+  - do:
+      indices.create:
+        index: events
+        body:
+          mappings:
+            properties:
+              "@timestamp":
+                type: date
+              "host":
+                type: text
+              "packets":
+                type: long
+  - do:
+      bulk:
+        index: events
+        refresh: true
+        body:
+          - '{"index":{}}'
+          - '{"@timestamp":"2023-01-01T10:00:00Z","host":"server1","packets":60}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2023-01-01T10:05:00Z","host":"server2","packets":30}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2023-01-01T10:10:00Z","host":"server1","packets":60}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2023-01-01T10:15:00Z","host":"server2","packets":30}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2023-01-01T10:20:00Z","host":"server1","packets":60}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2023-01-01T10:25:00Z","host":"server2","packets":30}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2023-01-01T10:30:00Z","host":"server1","packets":180}'
+          - '{"index":{}}'
+          - '{"@timestamp":"2023-01-01T10:35:00Z","host":"server2","packets":90}'
+
+---
+"timechart count() by field should not return empty buckets":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=events | timechart span=1m count() by host
+
+  - match: { total: 8 }
+  - match: { "schema": [ { "name": "@timestamp", "type": "timestamp" }, { "name": "host", "type": "string" }, { "name": "count()", "type": "bigint" }] }
+  # Verify that only non-empty buckets are returned (8 rows instead of 16)
+  # Each time bucket should only have one host with actual data
+  - match: {"datarows": [["2023-01-01 10:00:00", "server1", 1], ["2023-01-01 10:05:00", "server2", 1], ["2023-01-01 10:10:00", "server1", 1], ["2023-01-01 10:15:00", "server2", 1], ["2023-01-01 10:20:00", "server1", 1], ["2023-01-01 10:25:00", "server2", 1], ["2023-01-01 10:30:00", "server1", 1], ["2023-01-01 10:35:00", "server2", 1]]}
+
+---
+"timechart max() by field should not return empty buckets":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=events | timechart span=1m max(packets) by host
+
+  - match: { total: 8 }
+  - match: { "schema": [ { "name": "@timestamp", "type": "timestamp" }, { "name": "host", "type": "string" }, { "name": "max(packets)", "type": "bigint" }] }
+  # Verify that only non-empty buckets are returned
+  - match: {"datarows": [["2023-01-01 10:00:00", "server1", 60], ["2023-01-01 10:05:00", "server2", 30], ["2023-01-01 10:10:00", "server1", 60], ["2023-01-01 10:15:00", "server2", 30], ["2023-01-01 10:20:00", "server1", 60], ["2023-01-01 10:25:00", "server2", 30], ["2023-01-01 10:30:00", "server1", 180], ["2023-01-01 10:35:00", "server2", 90]]}

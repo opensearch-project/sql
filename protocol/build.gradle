@@ -42,6 +42,7 @@ dependencies {
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: "${hamcrest_version}"
     testImplementation group: 'org.mockito', name: 'mockito-core', version: "${mockito_version}"
     testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: "${mockito_version}"
+    testRuntimeOnly('org.junit.platform:junit-platform-launcher')
 }
 
 configurations.all {
@@ -86,7 +87,7 @@ spotless {
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
-        googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
+        googleJavaFormat('1.32.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
     }
 }
 

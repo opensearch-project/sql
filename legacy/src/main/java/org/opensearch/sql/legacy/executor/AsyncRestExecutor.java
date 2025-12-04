@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.legacy.executor;
 
+import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
+
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
@@ -30,10 +32,6 @@ import org.opensearch.transport.client.Client;
 
 /** A RestExecutor wrapper to execute request asynchronously to avoid blocking transport thread. */
 public class AsyncRestExecutor implements RestExecutor {
-
-  /** Custom thread pool name managed by OpenSearch */
-  public static final String SQL_WORKER_THREAD_POOL_NAME = "sql-worker";
-
   private static final Logger LOG = LogManager.getLogger(AsyncRestExecutor.class);
 
   /**

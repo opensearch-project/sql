@@ -48,7 +48,7 @@ public class CalcitePPLEventstatsEarliestLatestTest extends CalcitePPLAbstractTe
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `server`, `level`, `message`, `@timestamp`, `created_at`, MIN_BY (`message`,"
+        "SELECT `server`, `level`, `message`, `@timestamp`, `created_at`, MIN_BY(`message`,"
             + " `@timestamp`) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)"
             + " `earliest_message`\n"
             + "FROM `POST`.`LOGS`";
@@ -66,7 +66,7 @@ public class CalcitePPLEventstatsEarliestLatestTest extends CalcitePPLAbstractTe
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `server`, `level`, `message`, `@timestamp`, `created_at`, MAX_BY (`message`,"
+        "SELECT `server`, `level`, `message`, `@timestamp`, `created_at`, MAX_BY(`message`,"
             + " `@timestamp`) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)"
             + " `latest_message`\n"
             + "FROM `POST`.`LOGS`";
@@ -84,7 +84,7 @@ public class CalcitePPLEventstatsEarliestLatestTest extends CalcitePPLAbstractTe
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `server`, `level`, `message`, `@timestamp`, `created_at`, MIN_BY (`message`,"
+        "SELECT `server`, `level`, `message`, `@timestamp`, `created_at`, MIN_BY(`message`,"
             + " `@timestamp`) OVER (PARTITION BY `server` RANGE BETWEEN UNBOUNDED PRECEDING AND"
             + " UNBOUNDED FOLLOWING) `earliest_message`\n"
             + "FROM `POST`.`LOGS`";
@@ -102,7 +102,7 @@ public class CalcitePPLEventstatsEarliestLatestTest extends CalcitePPLAbstractTe
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `server`, `level`, `message`, `@timestamp`, `created_at`, MAX_BY (`message`,"
+        "SELECT `server`, `level`, `message`, `@timestamp`, `created_at`, MAX_BY(`message`,"
             + " `@timestamp`) OVER (PARTITION BY `server` RANGE BETWEEN UNBOUNDED PRECEDING AND"
             + " UNBOUNDED FOLLOWING) `latest_message`\n"
             + "FROM `POST`.`LOGS`";
@@ -122,7 +122,7 @@ public class CalcitePPLEventstatsEarliestLatestTest extends CalcitePPLAbstractTe
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `server`, `level`, `message`, `@timestamp`, `created_at`, MIN_BY (`message`,"
+        "SELECT `server`, `level`, `message`, `@timestamp`, `created_at`, MIN_BY(`message`,"
             + " `@timestamp`) OVER (PARTITION BY `server` RANGE BETWEEN UNBOUNDED PRECEDING AND"
             + " UNBOUNDED FOLLOWING) `earliest_message`, COUNT(*) OVER (PARTITION BY `server` RANGE"
             + " BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) `cnt`\n"
@@ -141,7 +141,7 @@ public class CalcitePPLEventstatsEarliestLatestTest extends CalcitePPLAbstractTe
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `server`, `level`, `message`, `@timestamp`, `created_at`, MIN_BY (`message`,"
+        "SELECT `server`, `level`, `message`, `@timestamp`, `created_at`, MIN_BY(`message`,"
             + " `created_at`) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)"
             + " `earliest_message`\n"
             + "FROM `POST`.`LOGS`";
@@ -159,7 +159,7 @@ public class CalcitePPLEventstatsEarliestLatestTest extends CalcitePPLAbstractTe
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `server`, `level`, `message`, `@timestamp`, `created_at`, MAX_BY (`message`,"
+        "SELECT `server`, `level`, `message`, `@timestamp`, `created_at`, MAX_BY(`message`,"
             + " `created_at`) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)"
             + " `latest_message`\n"
             + "FROM `POST`.`LOGS`";
@@ -180,9 +180,9 @@ public class CalcitePPLEventstatsEarliestLatestTest extends CalcitePPLAbstractTe
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `server`, `level`, `message`, `@timestamp`, `created_at`, MIN_BY (`message`,"
+        "SELECT `server`, `level`, `message`, `@timestamp`, `created_at`, MIN_BY(`message`,"
             + " `@timestamp`) OVER (PARTITION BY `server` RANGE BETWEEN UNBOUNDED PRECEDING AND"
-            + " UNBOUNDED FOLLOWING) `earliest_msg`, MAX_BY (`message`, `@timestamp`) OVER"
+            + " UNBOUNDED FOLLOWING) `earliest_msg`, MAX_BY(`message`, `@timestamp`) OVER"
             + " (PARTITION BY `server` RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)"
             + " `latest_msg`\n"
             + "FROM `POST`.`LOGS`";

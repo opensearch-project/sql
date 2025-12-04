@@ -131,8 +131,8 @@ public class UserDefinedFunctionUtils {
         case EXPR_DATE -> SqlTypeName.DATE;
         case EXPR_TIME -> SqlTypeName.TIME;
         case EXPR_TIMESTAMP -> SqlTypeName.TIMESTAMP;
-          // EXPR_IP is mapped to SqlTypeName.OTHER since there is no
-          // corresponding SqlTypeName in Calcite.
+        // EXPR_IP is mapped to SqlTypeName.OTHER since there is no
+        // corresponding SqlTypeName in Calcite.
         case EXPR_IP -> SqlTypeName.OTHER;
         case EXPR_BINARY -> SqlTypeName.VARBINARY;
         default -> type.getSqlTypeName();

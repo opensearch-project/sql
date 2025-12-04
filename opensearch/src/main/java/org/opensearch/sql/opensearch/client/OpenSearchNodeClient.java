@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -223,8 +224,8 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   }
 
   @Override
-  public NodeClient getNodeClient() {
-    return client;
+  public Optional<NodeClient> getNodeClient() {
+    return Optional.of(client);
   }
 
   @Override

@@ -359,7 +359,8 @@ class AggregateAnalyzerTest {
         .withAggCall(b -> b.aggregateCall(PPLBuiltinOperators.FIRST, b.field("a")).as("first_a"))
         .expectDslQuery(
             "[{\"first_a\":{\"top_hits\":{\"from\":0,\"size\":1,\"version\":false,\"seq_no_primary_term\":false,\"explain\":false}}}]")
-        .expectResponseParser(new MetricParserHelper(List.of(new TopHitsParser("first_a", true))))
+        .expectResponseParser(
+            new MetricParserHelper(List.of(new TopHitsParser("first_a", true, false))))
         .verify();
   }
 
@@ -369,7 +370,8 @@ class AggregateAnalyzerTest {
         .withAggCall(b -> b.aggregateCall(PPLBuiltinOperators.LAST, b.field("b")).as("last_b"))
         .expectDslQuery(
             "[{\"last_b\":{\"top_hits\":{\"from\":0,\"size\":1,\"version\":false,\"seq_no_primary_term\":false,\"explain\":false,\"sort\":[{\"_doc\":{\"order\":\"desc\"}}]}}}]")
-        .expectResponseParser(new MetricParserHelper(List.of(new TopHitsParser("last_b", true))))
+        .expectResponseParser(
+            new MetricParserHelper(List.of(new TopHitsParser("last_b", true, false))))
         .verify();
   }
 
@@ -488,10 +490,10 @@ class AggregateAnalyzerTest {
                     "filter_complex_count"))
         .expectDslTemplate(
             "[{\"filter_bool_count\":{\"filter\":{\"script\":{\"script\":{\"source\":\"{\\\"langType\\\":\\\"calcite\\\",\\\"script\\\":\\\"*\\\"}\","
-                + "\"lang\":\"opensearch_compounded_script\",\"params\":{\"utcTimestamp\":0}},\"boost\":1.0}},"
+                + "\"lang\":\"opensearch_compounded_script\",\"params\":{*}},\"boost\":1.0}},"
                 + "\"aggregations\":{\"filter_bool_count\":{\"value_count\":{\"field\":\"_index\"}}}}},"
                 + " {\"filter_complex_count\":{\"filter\":{\"script\":{\"script\":{\"source\":\"{\\\"langType\\\":\\\"calcite\\\",\\\"script\\\":\\\"*\\\"}\","
-                + "\"lang\":\"opensearch_compounded_script\",\"params\":{\"utcTimestamp\":0}},\"boost\":1.0}},"
+                + "\"lang\":\"opensearch_compounded_script\",\"params\":{*}},\"boost\":1.0}},"
                 + "\"aggregations\":{\"filter_complex_count\":{\"value_count\":{\"field\":\"_index\"}}}}}]")
         .expectResponseParser(
             new MetricParserHelper(

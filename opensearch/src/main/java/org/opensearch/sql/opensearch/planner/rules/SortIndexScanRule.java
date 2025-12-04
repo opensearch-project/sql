@@ -7,21 +7,21 @@ package org.opensearch.sql.opensearch.planner.rules;
 
 import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.core.Sort;
 import org.immutables.value.Value;
+import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 
 @Value.Enclosing
-public class SortIndexScanRule extends RelRule<SortIndexScanRule.Config> {
+public class SortIndexScanRule extends InterruptibleRelRule<SortIndexScanRule.Config> {
 
   protected SortIndexScanRule(Config config) {
     super(config);
   }
 
   @Override
-  public void onMatch(RelOptRuleCall call) {
+  protected void onMatchImpl(RelOptRuleCall call) {
     final Sort sort = call.rel(0);
     final AbstractCalciteIndexScan scan = call.rel(1);
     if (sort.getConvention() != scan.getConvention()) {
@@ -37,7 +37,7 @@ public class SortIndexScanRule extends RelRule<SortIndexScanRule.Config> {
 
   /** Rule configuration. */
   @Value.Immutable
-  public interface Config extends RelRule.Config {
+  public interface Config extends OpenSearchRuleConfig {
     SortIndexScanRule.Config DEFAULT =
         ImmutableSortIndexScanRule.Config.builder()
             .build()

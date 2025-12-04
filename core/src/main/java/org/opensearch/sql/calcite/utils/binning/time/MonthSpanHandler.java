@@ -9,7 +9,9 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.binning.BinConstants;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 /** Handler for month-based time spans using SPL Monthly Binning Algorithm. */
 public class MonthSpanHandler {
@@ -36,12 +38,17 @@ public class MonthSpanHandler {
         context.rexBuilder.makeCall(
             PPLBuiltinOperators.MAKEDATE,
             binStartYear,
-            context.rexBuilder.makeCall(
-                SqlStdOperatorTable.PLUS,
-                context.rexBuilder.makeCall(
-                    SqlStdOperatorTable.MULTIPLY,
-                    context.rexBuilder.makeCall(
-                        SqlStdOperatorTable.MINUS, binStartMonth, context.relBuilder.literal(1)),
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder,
+                BuiltinFunctionName.ADD,
+                PPLFuncImpTable.INSTANCE.resolve(
+                    context.rexBuilder,
+                    BuiltinFunctionName.MULTIPLY,
+                    PPLFuncImpTable.INSTANCE.resolve(
+                        context.rexBuilder,
+                        BuiltinFunctionName.SUBTRACT,
+                        binStartMonth,
+                        context.relBuilder.literal(1)),
                     context.relBuilder.literal(31)),
                 context.relBuilder.literal(1)));
 
@@ -52,38 +59,52 @@ public class MonthSpanHandler {
   private RexNode calculateMonthsSinceEpoch(
       RexNode inputYear, RexNode inputMonth, CalcitePlanContext context) {
     RexNode yearsSinceEpoch =
-        context.relBuilder.call(
-            SqlStdOperatorTable.MINUS,
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder,
+            BuiltinFunctionName.SUBTRACT,
             inputYear,
             context.relBuilder.literal(BinConstants.UNIX_EPOCH_YEAR));
     RexNode monthsFromYears =
-        context.relBuilder.call(
-            SqlStdOperatorTable.MULTIPLY, yearsSinceEpoch, context.relBuilder.literal(12));
-    return context.relBuilder.call(
-        SqlStdOperatorTable.PLUS,
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder,
+            BuiltinFunctionName.MULTIPLY,
+            yearsSinceEpoch,
+            context.relBuilder.literal(12));
+    return PPLFuncImpTable.INSTANCE.resolve(
+        context.rexBuilder,
+        BuiltinFunctionName.ADD,
         monthsFromYears,
-        context.relBuilder.call(
-            SqlStdOperatorTable.MINUS, inputMonth, context.relBuilder.literal(1)));
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder,
+            BuiltinFunctionName.SUBTRACT,
+            inputMonth,
+            context.relBuilder.literal(1)));
   }
 
   private RexNode calculateBinStart(RexNode value, int interval, CalcitePlanContext context) {
     RexNode intervalLiteral = context.relBuilder.literal(interval);
     RexNode positionInCycle =
         context.relBuilder.call(SqlStdOperatorTable.MOD, value, intervalLiteral);
-    return context.relBuilder.call(SqlStdOperatorTable.MINUS, value, positionInCycle);
+    return PPLFuncImpTable.INSTANCE.resolve(
+        context.rexBuilder, BuiltinFunctionName.SUBTRACT, value, positionInCycle);
   }
 
   private RexNode calculateBinStartYear(RexNode binStartMonths, CalcitePlanContext context) {
-    return context.relBuilder.call(
-        SqlStdOperatorTable.PLUS,
+    return PPLFuncImpTable.INSTANCE.resolve(
+        context.rexBuilder,
+        BuiltinFunctionName.ADD,
         context.relBuilder.literal(BinConstants.UNIX_EPOCH_YEAR),
-        context.relBuilder.call(
-            SqlStdOperatorTable.DIVIDE, binStartMonths, context.relBuilder.literal(12)));
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder,
+            BuiltinFunctionName.DIVIDE,
+            binStartMonths,
+            context.relBuilder.literal(12)));
   }
 
   private RexNode calculateBinStartMonth(RexNode binStartMonths, CalcitePlanContext context) {
-    return context.relBuilder.call(
-        SqlStdOperatorTable.PLUS,
+    return PPLFuncImpTable.INSTANCE.resolve(
+        context.rexBuilder,
+        BuiltinFunctionName.ADD,
         context.relBuilder.call(
             SqlStdOperatorTable.MOD, binStartMonths, context.relBuilder.literal(12)),
         context.relBuilder.literal(1));
