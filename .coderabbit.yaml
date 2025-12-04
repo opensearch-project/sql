@@ -10,14 +10,14 @@ reviews:
   profile: "chill"
   request_changes_workflow: false
   high_level_summary: true
-  high_level_summary_placeholder: "@coderabbitai summary"
+  high_level_summary_in_walkthrough: true
   poem: false  # Keep reviews professional and concise
   review_status: true
-  collapse_walkthrough: false
+  collapse_walkthrough: true
   
   auto_review:
-    enabled: false # Disabled auto-review until it becomes stable
-    auto_incremental_review: false
+    enabled: true
+    auto_incremental_review: true
     drafts: false  # Don't review draft PRs
     ignore_title_keywords:
       - "WIP"
@@ -66,7 +66,8 @@ reviews:
         - Test compatibility with Calcite version constraints
 
 chat:
-  auto_reply: true
+  auto_reply: false # require explicit tagging 
+  art: false # disable ASCII / Emoji art
 
 # Knowledge base configuration
 knowledge_base:
