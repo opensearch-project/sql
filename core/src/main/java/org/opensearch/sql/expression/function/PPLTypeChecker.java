@@ -6,8 +6,6 @@
 package org.opensearch.sql.expression.function;
 
 import com.google.common.collect.Lists;
-import java.lang.reflect.Field;
-import java.lang.reflect.InaccessibleObjectException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -18,9 +16,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
-import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
 import org.apache.calcite.sql.type.SameOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -41,6 +37,7 @@ import org.opensearch.sql.data.type.ExprType;
  * because {@code SqlOperandTypeChecker::checkOperandTypes(SqlCallBinding, boolean)} cannot be
  * directly used for type checking at the logical plan level.
  */
+@Deprecated
 public interface PPLTypeChecker {
   /**
    * Validates the operand types.
@@ -118,131 +115,6 @@ public interface PPLTypeChecker {
     @Override
     public String toString() {
       return String.format("PPLFamilyTypeChecker[families=%s]", getAllowedSignatures());
-    }
-  }
-
-  /**
-   * A {@code PPLTypeChecker} implementation that wraps a Calcite {@link
-   * ImplicitCastOperandTypeChecker}.
-   *
-   * <p>This checker delegates operand count and type validation to the wrapped Calcite type
-   * checker, allowing PPL functions to leverage Calcite's implicit casting and type family logic
-   * for operand validation.
-   */
-  class PPLFamilyTypeCheckerWrapper implements PPLTypeChecker {
-    protected final ImplicitCastOperandTypeChecker innerTypeChecker;
-
-    public PPLFamilyTypeCheckerWrapper(ImplicitCastOperandTypeChecker typeChecker) {
-      this.innerTypeChecker = typeChecker;
-    }
-
-    @Override
-    public boolean checkOperandTypes(List<RelDataType> types) {
-      if (innerTypeChecker instanceof SqlOperandTypeChecker sqlOperandTypeChecker
-          && !sqlOperandTypeChecker.getOperandCountRange().isValidCount(types.size())) return false;
-      List<SqlTypeFamily> families =
-          IntStream.range(0, types.size())
-              .mapToObj(innerTypeChecker::getOperandSqlTypeFamily)
-              .collect(Collectors.toList());
-      return validateOperands(families, types);
-    }
-
-    @Override
-    public String getAllowedSignatures() {
-      if (innerTypeChecker instanceof FamilyOperandTypeChecker familyOperandTypeChecker) {
-        var allowedExprSignatures = getExprSignatures(familyOperandTypeChecker);
-        return PPLTypeChecker.formatExprSignatures(allowedExprSignatures);
-      } else {
-        return "";
-      }
-    }
-
-    @Override
-    public List<List<ExprType>> getParameterTypes() {
-      if (innerTypeChecker instanceof FamilyOperandTypeChecker familyOperandTypeChecker) {
-        return getExprSignatures(familyOperandTypeChecker);
-      } else {
-        // If the inner type checker is not a FamilyOperandTypeChecker, we cannot provide
-        // parameter types.
-        return Collections.emptyList();
-      }
-    }
-  }
-
-  /**
-   * A {@code PPLTypeChecker} implementation that wraps a Calcite {@link
-   * CompositeOperandTypeChecker}.
-   *
-   * <p>This checker allows for the composition of multiple operand type checkers, enabling flexible
-   * validation of operand types in PPL functions.
-   *
-   * <p>The implementation currently supports only OR compositions of {@link
-   * ImplicitCastOperandTypeChecker}.
-   */
-  class PPLCompositeTypeChecker implements PPLTypeChecker {
-
-    private final List<? extends SqlOperandTypeChecker> allowedRules;
-
-    public PPLCompositeTypeChecker(CompositeOperandTypeChecker typeChecker) {
-      allowedRules = typeChecker.getRules();
-    }
-
-    private static boolean validateWithFamilyTypeChecker(
-        SqlOperandTypeChecker checker, List<RelDataType> types) {
-      if (!checker.getOperandCountRange().isValidCount(types.size())) {
-        return false;
-      }
-      if (checker instanceof ImplicitCastOperandTypeChecker implicitCastOperandTypeChecker) {
-        List<SqlTypeFamily> families =
-            IntStream.range(0, types.size())
-                .mapToObj(implicitCastOperandTypeChecker::getOperandSqlTypeFamily)
-                .toList();
-        return validateOperands(families, types);
-      }
-      throw new IllegalArgumentException(
-          "Currently only compositions of ImplicitCastOperandTypeChecker are supported");
-    }
-
-    @Override
-    public boolean checkOperandTypes(List<RelDataType> types) {
-      boolean operandCountValid =
-          allowedRules.stream()
-              .anyMatch(rule -> rule.getOperandCountRange().isValidCount(types.size()));
-      if (!operandCountValid) {
-        return false;
-      }
-      return allowedRules.stream().anyMatch(rule -> validateWithFamilyTypeChecker(rule, types));
-    }
-
-    @Override
-    public String getAllowedSignatures() {
-      StringBuilder builder = new StringBuilder();
-      for (SqlOperandTypeChecker rule : allowedRules) {
-        if (rule instanceof FamilyOperandTypeChecker familyOperandTypeChecker) {
-          if (!builder.isEmpty()) {
-            builder.append("|");
-          }
-          builder.append(PPLTypeChecker.getFamilySignatures(familyOperandTypeChecker));
-        } else {
-          throw new IllegalArgumentException(
-              "Currently only compositions of FamilyOperandTypeChecker are supported");
-        }
-      }
-      return builder.toString();
-    }
-
-    @Override
-    public List<List<ExprType>> getParameterTypes() {
-      List<List<ExprType>> parameterTypes = new ArrayList<>();
-      for (SqlOperandTypeChecker rule : allowedRules) {
-        if (rule instanceof FamilyOperandTypeChecker familyOperandTypeChecker) {
-          parameterTypes.addAll(getExprSignatures(familyOperandTypeChecker));
-        } else {
-          throw new IllegalArgumentException(
-              "Currently only compositions of FamilyOperandTypeChecker are supported");
-        }
-      }
-      return parameterTypes;
     }
   }
 
@@ -435,81 +307,8 @@ public interface PPLTypeChecker {
     return new PPLFamilyTypeChecker(families);
   }
 
-  /**
-   * Wraps a Calcite {@link ImplicitCastOperandTypeChecker} (usually a {@link
-   * FamilyOperandTypeChecker}) into a custom PPLTypeChecker of type {@link
-   * PPLFamilyTypeCheckerWrapper}.
-   *
-   * <p>The allow operand count may be fixed or variable, depending on the wrapped type checker.
-   *
-   * @param typeChecker the Calcite type checker to wrap
-   * @return a PPLTypeChecker that uses the wrapped type checker
-   */
-  static PPLFamilyTypeCheckerWrapper wrapFamily(ImplicitCastOperandTypeChecker typeChecker) {
-    return new PPLFamilyTypeCheckerWrapper(typeChecker);
-  }
-
-  /**
-   * Wraps a Calcite {@link CompositeOperandTypeChecker} into a custom {@link
-   * PPLCompositeTypeChecker}.
-   *
-   * <p>This method requires that all rules within the provided {@code CompositeOperandTypeChecker}
-   * are instances of {@link ImplicitCastOperandTypeChecker}. If any rule does not meet this
-   * requirement, an {@link IllegalArgumentException} is thrown.
-   *
-   * <p>Additionally, if {@code checkCompositionType} is true, the method checks if the composition
-   * type of the provided {@code CompositeOperandTypeChecker} is OR via reflection. If it is not, an
-   * {@link IllegalArgumentException} is thrown. If the reflective access to the composition field
-   * of CompositeOperandTypeChecker fails, an {@link UnsupportedOperationException} is thrown.
-   *
-   * @param typeChecker the Calcite {@link CompositeOperandTypeChecker} to wrap
-   * @param checkCompositionType if true, checks if the composition type is OR.
-   * @return a {@link PPLCompositeTypeChecker} that delegates type checking to the wrapped rules
-   * @throws IllegalArgumentException if any rule is not an {@link ImplicitCastOperandTypeChecker}
-   */
-  static PPLCompositeTypeChecker wrapComposite(
-      CompositeOperandTypeChecker typeChecker, boolean checkCompositionType)
-      throws IllegalArgumentException, UnsupportedOperationException {
-    if (checkCompositionType) {
-      try {
-        if (!isCompositionOr(typeChecker)) {
-          throw new IllegalArgumentException(
-              "Currently only support CompositeOperandTypeChecker with a OR composition");
-        }
-      } catch (ReflectiveOperationException | InaccessibleObjectException | SecurityException e) {
-        throw new UnsupportedOperationException(
-            String.format("Failed to check composition type of %s", typeChecker), e);
-      }
-    }
-
-    for (SqlOperandTypeChecker rule : typeChecker.getRules()) {
-      if (!(rule instanceof ImplicitCastOperandTypeChecker)) {
-        throw new IllegalArgumentException(
-            "Currently only compositions of ImplicitCastOperandTypeChecker are supported, found:"
-                + rule.getClass().getName());
-      }
-    }
-    return new PPLCompositeTypeChecker(typeChecker);
-  }
-
   static PPLComparableTypeChecker wrapComparable(SameOperandTypeChecker typeChecker) {
     return new PPLComparableTypeChecker(typeChecker);
-  }
-
-  /**
-   * Creates a {@link PPLDefaultTypeChecker} that wraps any {@link SqlOperandTypeChecker} and
-   * provides basic type checking functionality when specialized PPL type checkers cannot be used.
-   *
-   * <p>This is a fallback wrapper that provides basic operand count validation and attempts to
-   * extract type family information when possible. It should be used when other specialized PPL
-   * type checkers (like {@link PPLFamilyTypeChecker}, {@link PPLCompositeTypeChecker}, etc.) are
-   * not applicable.
-   *
-   * @param typeChecker the Calcite type checker to wrap
-   * @return a {@link PPLDefaultTypeChecker} that provides basic type checking functionality
-   */
-  static PPLDefaultTypeChecker wrapDefault(SqlOperandTypeChecker typeChecker) {
-    return new PPLDefaultTypeChecker(typeChecker);
   }
 
   /**
@@ -663,27 +462,6 @@ public interface PPLTypeChecker {
     List<List<ExprType>> signatures = getExprSignatures(families);
     // Convert each signature to a string representation and then concatenate them
     return formatExprSignatures(signatures);
-  }
-
-  /**
-   * Checks if the provided {@link CompositeOperandTypeChecker} is of type OR composition.
-   *
-   * <p>This method uses reflection to access the protected "composition" field of the
-   * CompositeOperandTypeChecker class.
-   *
-   * @param typeChecker the CompositeOperandTypeChecker to check
-   * @return true if the composition is OR, false otherwise
-   */
-  private static boolean isCompositionOr(CompositeOperandTypeChecker typeChecker)
-      throws NoSuchFieldException,
-          IllegalAccessException,
-          InaccessibleObjectException,
-          SecurityException {
-    Field compositionField = CompositeOperandTypeChecker.class.getDeclaredField("composition");
-    compositionField.setAccessible(true);
-    CompositeOperandTypeChecker.Composition composition =
-        (CompositeOperandTypeChecker.Composition) compositionField.get(typeChecker);
-    return composition == CompositeOperandTypeChecker.Composition.OR;
   }
 
   private static String formatExprSignatures(List<List<ExprType>> signatures) {

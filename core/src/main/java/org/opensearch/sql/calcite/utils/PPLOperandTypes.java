@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.utils;
 import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
@@ -84,10 +85,8 @@ public class PPLOperandTypes {
       UDFOperandMetadata.wrap(
           (CompositeOperandTypeChecker)
               OperandTypes.ANY.or(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.INTEGER)));
-  public static final UDFOperandMetadata ANY_OPTIONAL_TIMESTAMP =
-      UDFOperandMetadata.wrap(
-          (CompositeOperandTypeChecker)
-              OperandTypes.ANY.or(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.TIMESTAMP)));
+  public static final SqlOperandTypeChecker ANY_OPTIONAL_TIMESTAMP =
+      OperandTypes.ANY.or(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.TIMESTAMP));
   public static final UDFOperandMetadata INTEGER_INTEGER =
       UDFOperandMetadata.wrap((FamilyOperandTypeChecker) OperandTypes.INTEGER_INTEGER);
   public static final UDFOperandMetadata STRING_STRING =

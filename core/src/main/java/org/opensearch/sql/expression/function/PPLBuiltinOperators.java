@@ -23,21 +23,11 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlAggFunction;
-import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlFunction;
-import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlLiteral;
-import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.fun.SqlLibraryOperators;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.fun.SqlTrimFunction;
-import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
-import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.BuiltInMethod;
 import org.opensearch.sql.calcite.udf.udaf.FirstAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.LastAggFunction;
@@ -145,130 +135,6 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator CIDRMATCH = new CidrMatchFunction().toUDF("CIDRMATCH");
   public static final SqlOperator SCALAR_MAX = new ScalarMaxFunction().toUDF("SCALAR_MAX");
   public static final SqlOperator SCALAR_MIN = new ScalarMinFunction().toUDF("SCALAR_MIN");
-
-  // Math functions with rewrite rules for validation
-  public static final SqlOperator LOG_VALIDATOR =
-      new SqlFunction(
-          "LOG",
-          SqlKind.LOG,
-          ReturnTypes.DOUBLE_NULLABLE,
-          null,
-          OperandTypes.NUMERIC_OPTIONAL_NUMERIC,
-          SqlFunctionCategory.USER_DEFINED_FUNCTION) {
-        @Override
-        public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
-          // Rewrite LOG(x, b) to LOG(b, x) - swap arguments for Calcite compatibility
-          if (call.operandCount() == 2) {
-            return SqlLibraryOperators.LOG.createCall(
-                call.getParserPosition(), call.operand(1), call.operand(0));
-          }
-          return super.rewriteCall(validator, call);
-        }
-      };
-
-  public static final SqlFunction ATAN_VALIDATOR =
-      new SqlFunction(
-          "ATAN",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.DOUBLE_NULLABLE,
-          null,
-          OperandTypes.NUMERIC_OPTIONAL_NUMERIC,
-          SqlFunctionCategory.USER_DEFINED_FUNCTION) {
-        @Override
-        public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
-          // Rewrite ATAN(y, x) to ATAN2(y, x)
-          if (call.operandCount() == 2) {
-            return SqlStdOperatorTable.ATAN2.createCall(
-                call.getParserPosition(), call.operand(0), call.operand(1));
-          }
-          return super.rewriteCall(validator, call);
-        }
-      };
-
-  public static final SqlFunction SQRT_VALIDATOR =
-      new SqlFunction(
-          "SQRT",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.DOUBLE_NULLABLE,
-          null,
-          OperandTypes.NUMERIC,
-          SqlFunctionCategory.USER_DEFINED_FUNCTION) {
-        @Override
-        public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
-          // Rewrite SQRT(x) to POWER(x, 0.5)
-          return SqlStdOperatorTable.POWER.createCall(
-              call.getParserPosition(),
-              call.operand(0),
-              SqlLiteral.createExactNumeric("0.5", call.getParserPosition()));
-        }
-      };
-
-  // String functions with rewrite rules for validation
-  public static final SqlFunction TRIM_VALIDATOR =
-      new SqlFunction(
-          "TRIM",
-          SqlKind.TRIM,
-          ReturnTypes.VARCHAR_NULLABLE,
-          null,
-          OperandTypes.CHARACTER,
-          SqlFunctionCategory.USER_DEFINED_FUNCTION) {
-        @Override
-        public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
-          // Rewrite TRIM(x) to TRIM(BOTH ' ' FROM x)
-          if (call.operandCount() == 1) {
-            return SqlStdOperatorTable.TRIM.createCall(
-                call.getParserPosition(),
-                SqlLiteral.createSymbol(SqlTrimFunction.Flag.BOTH, call.getParserPosition()),
-                SqlLiteral.createCharString(" ", call.getParserPosition()),
-                call.operand(0));
-          }
-          return super.rewriteCall(validator, call);
-        }
-      };
-
-  public static final SqlFunction LTRIM_VALIDATOR =
-      new SqlFunction(
-          "LTRIM",
-          SqlKind.LTRIM,
-          ReturnTypes.VARCHAR_NULLABLE,
-          null,
-          OperandTypes.CHARACTER,
-          SqlFunctionCategory.USER_DEFINED_FUNCTION) {
-        @Override
-        public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
-          // Rewrite LTRIM(x) to TRIM(LEADING ' ' FROM x)
-          if (call.operandCount() == 1) {
-            return SqlStdOperatorTable.TRIM.createCall(
-                call.getParserPosition(),
-                SqlLiteral.createSymbol(SqlTrimFunction.Flag.LEADING, call.getParserPosition()),
-                SqlLiteral.createCharString(" ", call.getParserPosition()),
-                call.operand(0));
-          }
-          return super.rewriteCall(validator, call);
-        }
-      };
-
-  public static final SqlFunction RTRIM_VALIDATOR =
-      new SqlFunction(
-          "RTRIM",
-          SqlKind.RTRIM,
-          ReturnTypes.VARCHAR_NULLABLE,
-          null,
-          OperandTypes.CHARACTER,
-          SqlFunctionCategory.USER_DEFINED_FUNCTION) {
-        @Override
-        public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
-          // Rewrite RTRIM(x) to TRIM(TRAILING ' ' FROM x)
-          if (call.operandCount() == 1) {
-            return SqlStdOperatorTable.TRIM.createCall(
-                call.getParserPosition(),
-                SqlLiteral.createSymbol(SqlTrimFunction.Flag.TRAILING, call.getParserPosition()),
-                SqlLiteral.createCharString(" ", call.getParserPosition()),
-                call.operand(0));
-          }
-          return super.rewriteCall(validator, call);
-        }
-      };
 
   public static final SqlOperator COSH =
       adaptMathFunctionToUDF(
