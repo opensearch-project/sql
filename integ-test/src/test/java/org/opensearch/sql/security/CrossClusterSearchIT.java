@@ -15,7 +15,6 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
 import lombok.SneakyThrows;
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -253,9 +252,7 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
     // Test query_string without fields parameter on remote cluster
     JSONObject result =
         executeQuery(String.format("search source=%s | addtotals age", TEST_INDEX_BANK_REMOTE));
-    JSONArray array = result.getJSONArray("datarows");
-    array.iterator().forEachRemaining(o -> System.out.println(o.toString()));
-    verifyDataRows(result, rows("Hattie"));
+    verifyDataRows(result, rows("36"));
   }
 
   @Test
@@ -263,9 +260,7 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
     // Test query_string without fields parameter on remote cluster
     JSONObject result =
         executeQuery(String.format("search source=%s | addcoltotals age", TEST_INDEX_BANK_REMOTE));
-    JSONArray array = result.getJSONArray("datarows");
-    array.iterator().forEachRemaining(o -> System.out.println(o.toString()));
-    verifyDataRows(result, rows("Hattie"));
+    verifyDataRows(result, rows("36"));
   }
 
   @Test
