@@ -26,6 +26,7 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
  * PPL-specific operator tables.
  */
 public class TypeChecker {
+
   /**
    * Creates a SqlValidator configured for PPL validation.
    *
@@ -63,8 +64,7 @@ public class TypeChecker {
    * @return SqlTypeCoercionRule instance
    */
   public static SqlTypeCoercionRule getTypeCoercionRule() {
-    var defaultMapping = SqlTypeCoercionRule.instance().getTypeMapping();
-    return SqlTypeCoercionRule.instance(defaultMapping);
+    return PplTypeCoercionRule.instance();
   }
 
   /**

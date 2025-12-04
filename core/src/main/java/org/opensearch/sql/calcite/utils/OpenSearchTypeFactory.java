@@ -42,12 +42,14 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.type.ExprBinaryType;
 import org.opensearch.sql.calcite.type.ExprDateType;
 import org.opensearch.sql.calcite.type.ExprIPType;
 import org.opensearch.sql.calcite.type.ExprTimeStampType;
 import org.opensearch.sql.calcite.type.ExprTimeType;
+import org.opensearch.sql.calcite.validate.PplTypeCoercionRule;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -327,6 +329,12 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     return super.getJavaClass(type);
   }
 
+  @Override
+  public @Nullable RelDataType leastRestrictive(List<RelDataType> types) {
+    // In parent: leastRestrictive(types, SqlTypeMappingRules.instance(false))
+    return leastRestrictive(types, PplTypeCoercionRule.assignmentInstance());
+  }
+
   /**
    * Whether a given RelDataType is a user-defined type (UDT)
    *
@@ -435,5 +443,12 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
    */
   public static boolean isCharacter(RelDataType type) {
     return !isUserDefinedType(type) && SqlTypeUtil.isCharacter(type);
+  }
+
+  public static boolean isIp(RelDataType type) {
+    if (isUserDefinedType(type)) {
+      return ((AbstractExprRelDataType<?>) type).getUdt() == ExprUDT.EXPR_IP;
+    }
+    return false;
   }
 }

@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 import java.util.TimeZone;
 import org.json.JSONObject;
 import org.junit.After;
@@ -26,7 +27,6 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
-import org.opensearch.sql.common.utils.StringUtils;
 
 @SuppressWarnings("unchecked")
 public class DateTimeFunctionIT extends PPLIntegTestCase {
@@ -1139,9 +1139,12 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
   private void week(String date, int mode, int expectedResult) throws IOException {
     JSONObject result =
         executeQuery(
-            StringUtils.format(
+            String.format(
+                Locale.ROOT,
                 "source=%s | eval f = week(date('%s'), %d) | fields f",
-                TEST_INDEX_DATE, date, mode));
+                TEST_INDEX_DATE,
+                date,
+                mode));
     verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(expectedResult));
   }

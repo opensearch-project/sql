@@ -711,17 +711,6 @@ public class PPLFuncImpTable {
 
     void populate() {
       // register operators for comparison
-      //      registerOperator(NOTEQUAL, PPLBuiltinOperators.NOT_EQUALS_IP,
-      // SqlStdOperatorTable.NOT_EQUALS);
-      //      registerOperator(EQUAL, PPLBuiltinOperators.EQUALS_IP, SqlStdOperatorTable.EQUALS);
-      //      registerOperator(GREATER, PPLBuiltinOperators.GREATER_IP,
-      // SqlStdOperatorTable.GREATER_THAN);
-      //      registerOperator(GTE, PPLBuiltinOperators.GTE_IP,
-      // SqlStdOperatorTable.GREATER_THAN_OR_EQUAL);
-      //      registerOperator(LESS, PPLBuiltinOperators.LESS_IP, SqlStdOperatorTable.LESS_THAN);
-      //      registerOperator(LTE, PPLBuiltinOperators.LTE_IP,
-      // SqlStdOperatorTable.LESS_THAN_OR_EQUAL);
-
       registerOperator(NOTEQUAL, SqlStdOperatorTable.NOT_EQUALS);
       registerOperator(EQUAL, SqlStdOperatorTable.EQUALS);
       registerOperator(GREATER, SqlStdOperatorTable.GREATER_THAN);
