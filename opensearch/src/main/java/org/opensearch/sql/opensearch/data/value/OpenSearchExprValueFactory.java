@@ -452,16 +452,6 @@ public class OpenSearchExprValueFactory {
   static class JsonPath {
     private final List<String> paths;
 
-    /**
-     * Create a JsonPath from a raw path string. The path is split by dots to support nested field
-     * access (e.g., "log.json" becomes ["log", "json"]).
-     *
-     * <p>Note: Callers must validate the rawPath using {@link #isFieldNameMalformed} before calling
-     * this constructor. Malformed field names (containing empty parts after split) will cause
-     * unexpected behavior.
-     *
-     * @param rawPath The field path, potentially dot-separated for nested fields.
-     */
     public JsonPath(String rawPath) {
       this.paths = List.of(rawPath.split("\\."));
     }
