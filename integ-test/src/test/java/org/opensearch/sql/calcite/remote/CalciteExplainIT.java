@@ -1868,6 +1868,8 @@ public class CalciteExplainIT extends ExplainIT {
             "source=opensearch-sql_test_index_account"
                 + "| head 5 "
                 + "|  addcoltotals balance age label='GrandTotal'"));
+  }
+
   public void testComplexDedup() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_dedup_complex1.yaml");
