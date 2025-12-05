@@ -262,8 +262,11 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
   public void testCrossClusterAddColTotals() throws IOException {
     // Test query_string without fields parameter on remote cluster
     JSONObject result =
-        executeQuery(String.format("search source=%s | addcoltotals age", TEST_INDEX_BANK_REMOTE));
-    verifyDataRows(result, rows("36"));
+        executeQuery(
+            String.format(
+                "search source=%s |  sort 1 age | fields firstname, age | addcoltotals age",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows("Nanette", 28), rows(null, 28));
   }
 
   @Test
