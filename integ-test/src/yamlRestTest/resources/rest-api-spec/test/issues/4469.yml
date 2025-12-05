@@ -10,26 +10,27 @@ setup:
         body:
           mappings:
             properties:
-              "timestamp":
-                type: date
               "status":
                 type: integer
-              "client_ip":
-                type: ip
+              "name":
+                type: keyword
+              "bool":
+                type: boolean
   - do:
       bulk:
         index: test
         refresh: true
         body:
           - '{"index":{}}'
-          - '{"datetime":"2025-01-15T00:30:00Z","status":200,"client_ip":"10.0.0.1"}'
+          - '{"status":[1,11,111],"name":["a","aa","aaa"],"bool":[false,true,true]}'
           - '{"index":{}}'
-          - '{"datetime":"2025-01-15T02:15:00Z","status":200,"client_ip":"10.0.0.2"}'
+          - '{"status":[2,22],"name":["b","bb"],"bool":[true,false]}'
           - '{"index":{}}'
-          - '{"datetime":"2025-01-15T10:50:00Z","status":200,"client_ip":"10.0.0.11"}'
+          - '{"status":[3],"name":["c"],"bool":[false,true,false]}'
           - '{"index":{}}'
-          - '{"datetime":"2025-01-15T23:45:00Z","status":200,"client_ip":"10.0.0.24"}'
-
+          - '{"status":4,"name":"d","bool":true}'
+          - '{"index":{}}'
+          - '{"status":[],"name":[],"bool":[]}'
 
 ---
 teardown:
@@ -40,7 +41,7 @@ teardown:
             plugins.calcite.enabled : false
 
 ---
-"agg with script and sort on group key":
+"array return first element":
   - skip:
       features:
         - headers
@@ -52,10 +53,10 @@ teardown:
         Content-Type: 'application/json'
       ppl:
         body:
-          query: source=test | eval hour_of_day = HOUR(datetime) | stats count() as request_count by hour_of_day | sort hour_of_day asc
+          query: source=test | fields status, name, bool
 
 
-  - match: { total: 4 }
-  - match: { "schema": [ { "name": "request_count", "type": "bigint" }, { "name": "hour_of_day", "type": "int" }] }
-  # it got [[1, 0], [1, 10], [1, 2], [1, 23]] without the fix of this issue
-  - match: {"datarows": [[1, 0], [1, 2], [1, 10], [1, 23]]}
+  - match: { total: 5 }
+  - match: { "schema": [ { "name": "status", "type": "int" } , { "name": "name", "type": "string" }, { "name": "bool", "type": "boolean" }] }
+  - match: {"datarows": [[1, "a", false], [2, "b", true], [3, "c", false], [4, "d", true], [null, null, null]]}
+

@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.data.model;
 
+import java.util.ArrayList;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 
 /** Abstract ExprValue. */
@@ -85,6 +86,14 @@ public abstract class AbstractExprValue implements ExprValue {
 
   @Override
   public Object valueForCalcite() {
-    return value();
+    if (value() instanceof ArrayList arrayList) {
+      if (arrayList.isEmpty()) {
+        return null;
+      } else {
+        return arrayList.getFirst();
+      }
+    } else {
+      return value();
+    }
   }
 }
