@@ -267,7 +267,7 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
             String.format(
                 "search source=%s | where  firstname='Hattie' or firstname ='Nanette'|fields"
                     + " firstname,age,balance | addcoltotals age balance",
-                TEST_INDEX_ACCOUNT_REMOTE));
+                TEST_INDEX_BANK_REMOTE));
     JSONArray array = result.getJSONArray("datarows");
     array.iterator().forEachRemaining(o -> System.out.println(o.toString()));
     System.out.println(array.toString());
