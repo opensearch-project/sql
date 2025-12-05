@@ -13,6 +13,7 @@ import java.util.Iterator;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.jetbrains.annotations.TestOnly;
+import org.opensearch.OpenSearchTimeoutException;
 import org.opensearch.common.io.stream.BytesStreamOutput;
 import org.opensearch.core.common.io.stream.BytesStreamInput;
 import org.opensearch.sql.common.setting.Settings;
@@ -71,6 +72,11 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
 
   @Override
   public boolean hasNext() {
+    // Check for thread interruption to support query timeout
+    if (Thread.currentThread().isInterrupted()) {
+      throw new OpenSearchTimeoutException(new InterruptedException("Query execution interrupted"));
+    }
+
     // For pagination and limit, we need to limit the return rows count to pageSize or limit size
     if (queryCount >= maxResponseSize) {
       return false;
@@ -84,6 +90,11 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
 
   @Override
   public ExprValue next() {
+    // Check for thread interruption to support query timeout
+    if (Thread.currentThread().isInterrupted()) {
+      throw new OpenSearchTimeoutException(new InterruptedException("Query execution interrupted"));
+    }
+
     queryCount++;
     return iterator.next();
   }
