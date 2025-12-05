@@ -66,7 +66,17 @@ public class JdbcOpenSearchDataTypeConvertor {
   public static ExprValue getExprValueFromSqlType(
       ResultSet rs, int i, int sqlType, RelDataType fieldType, String fieldName)
       throws SQLException {
-    Object value = rs.getObject(i);
+    Object value = null;
+    try {
+      value = rs.getObject(i);
+    } catch (ClassCastException e) {
+      // Handle Integer/Long casting issue in Calcite aggregation results. For aggregate row added,
+      // it will throw exception
+      // java.lang.ClassCastException: class java.lang.Integer cannot be cast to class
+      // java.lang.Long (java.lang.Integer and java.lang.Long are in module java.base of loader
+      // 'bootstrap'
+
+    }
     if (value == null) {
       return ExprNullValue.of();
     }
