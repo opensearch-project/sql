@@ -14,6 +14,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import javax.annotation.Nullable;
 import org.opensearch.OpenSearchException;
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.NonFallbackCalciteException;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
@@ -110,7 +111,12 @@ public class BackgroundSearchScanner {
     if (isAsync()) {
       try {
         return nextBatchFuture.get();
+      } catch (OpenSearchSecurityException e) {
+        throw e;
       } catch (InterruptedException | ExecutionException e) {
+        if (e.getCause() instanceof OpenSearchSecurityException) {
+          throw (OpenSearchSecurityException) e.getCause();
+        }
         if (e.getCause() instanceof OpenSearchException) {
           if (((OpenSearchException) e.getCause()).getRootCause()
               instanceof ArrayIndexOutOfBoundsException) {
