@@ -123,7 +123,8 @@ public class BackgroundSearchScanner {
         throw new NonFallbackCalciteException(
             "Failed to fetch data from the index: the background task failed or interrupted.\n"
                 + "  Inner error: "
-                + e.getMessage());
+                + e.getMessage(),
+            e);
       }
     } else {
       return client.search(request);

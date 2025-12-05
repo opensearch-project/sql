@@ -122,11 +122,16 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
         && (aggregations.asList().get(0) instanceof InternalComposite);
   }
 
+  /**
+   * Get the size of composite aggregation bucket. Must be called after
+   * isCompositeAggregationResponse() is true.
+   */
   public int getCompositeBucketSize() {
     if (isCompositeAggregationResponse()) {
       return ((InternalComposite) aggregations.asList().get(0)).getBuckets().size();
     }
-    throw new RuntimeException("Should not go to here");
+    assert false : "Should never call here";
+    return -1;
   }
 
   public boolean isCountResponse() {

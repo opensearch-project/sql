@@ -79,7 +79,9 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
 
   private SearchResponse searchResponse = null;
 
-  @ToString.Exclude private Map<String, Object> afterKey = Collections.emptyMap();
+  @ToString.Exclude private Map<String, Object> afterKey;
+
+  @EqualsAndHashCode.Exclude @ToString.Exclude private boolean afterKeyToReset = false;
 
   @TestOnly
   static OpenSearchQueryRequest of(
@@ -201,13 +203,22 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
           new OpenSearchResponse(
               SearchHits.empty(), exprValueFactory, includes, isCountAggRequest());
     } else {
+      // On first call: reset builder to clear any afterKey from other requests
       if (this.sourceBuilder.aggregations() != null) {
         this.sourceBuilder.aggregations().getAggregatorFactories().stream()
             .filter(b -> b instanceof CompositeAggregationBuilder)
-            .forEach(c -> ((CompositeAggregationBuilder) c).aggregateAfter(afterKey));
-        if (LOG.isDebugEnabled()) {
-          LOG.debug(sourceBuilder);
-        }
+            .forEach(
+                c -> {
+                  if (!afterKeyToReset) {
+                    // First call: reset to clear any previous afterKey from shared builder
+                    // Use null instead of empty map to avoid "[after] has 0 value(s)" error
+                    ((CompositeAggregationBuilder) c).aggregateAfter(null);
+                    afterKeyToReset = true;
+                  }
+                  if (afterKey != null && !afterKey.isEmpty()) {
+                    ((CompositeAggregationBuilder) c).aggregateAfter(afterKey);
+                  }
+                });
       }
 
       SearchRequest searchRequest =
