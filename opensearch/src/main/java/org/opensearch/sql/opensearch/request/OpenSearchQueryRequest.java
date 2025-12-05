@@ -69,7 +69,10 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   /** List of includes expected in the response. */
   @EqualsAndHashCode.Exclude @ToString.Exclude private final List<String> includes;
 
-  @EqualsAndHashCode.Exclude @ToString.Exclude private boolean needClean = false;
+  @EqualsAndHashCode.Exclude @ToString.Exclude private boolean needClean = true;
+
+  /** Indicate the search already done. */
+  @EqualsAndHashCode.Exclude @ToString.Exclude private boolean searchDone = false;
 
   private String pitId;
 
@@ -145,6 +148,14 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     this.calciteEnabled = calciteEnabled;
   }
 
+  /** true if the request is a count aggregation request. */
+  public boolean isCountAggRequest() {
+    return !searchDone
+        && sourceBuilder.size() == 0
+        && sourceBuilder.trackTotalHitsUpTo() != null // only set in v3
+        && sourceBuilder.trackTotalHitsUpTo() == Integer.MAX_VALUE;
+  }
+
   /**
    * Constructs OpenSearchQueryRequest from serialized representation.
    *
@@ -194,25 +205,17 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     }
   }
 
-  /** true if the request is a count aggregation request. */
-  public boolean isCountAggRequest() {
-    return !needClean
-        && sourceBuilder.size() == 0
-        && sourceBuilder.trackTotalHitsUpTo() != null // only set in v3
-        && sourceBuilder.trackTotalHitsUpTo() == Integer.MAX_VALUE;
-  }
-
   /** Call the old search logic for v2, since we don't support paginating aggregate in v2. */
   @Deprecated
   private OpenSearchResponse searchForV2(Function<SearchRequest, SearchResponse> searchAction) {
     // When SearchRequest doesn't contain PitId, fetch single page request
-    if (needClean) {
+    if (searchDone) {
       return new OpenSearchResponse(
           SearchHits.empty(), exprValueFactory, includes, isCountAggRequest());
     } else {
-      // get the value before set needClean = true
+      // get the value before set searchDone = true
       boolean isCountAggRequest = isCountAggRequest();
-      needClean = true;
+      searchDone = true;
       return new OpenSearchResponse(
           searchAction.apply(
               new SearchRequest().indices(indexName.getIndexNames()).source(sourceBuilder)),
@@ -224,7 +227,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
 
   private OpenSearchResponse search(Function<SearchRequest, SearchResponse> searchAction) {
     OpenSearchResponse openSearchResponse;
-    if (needClean) {
+    if (searchDone) {
       openSearchResponse =
           new OpenSearchResponse(
               SearchHits.empty(), exprValueFactory, includes, isCountAggRequest());
@@ -248,6 +251,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
               this.searchResponse, exprValueFactory, includes, isCountAggRequest());
 
       needClean = openSearchResponse.isEmpty();
+      searchDone = openSearchResponse.isEmpty();
       // Get afterKey from response
       if (openSearchResponse.isAggregationResponse()) {
         openSearchResponse.getAggregations().asList().stream()
@@ -260,7 +264,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
 
   public OpenSearchResponse searchWithPIT(Function<SearchRequest, SearchResponse> searchAction) {
     OpenSearchResponse openSearchResponse;
-    if (needClean) {
+    if (searchDone) {
       openSearchResponse =
           new OpenSearchResponse(
               SearchHits.empty(), exprValueFactory, includes, isCountAggRequest());
@@ -298,6 +302,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
               this.searchResponse, exprValueFactory, includes, isCountAggRequest());
 
       needClean = openSearchResponse.isEmpty();
+      searchDone = openSearchResponse.isEmpty();
       SearchHit[] searchHits = this.searchResponse.getHits().getHits();
       if (searchHits != null && searchHits.length > 0) {
         searchAfter = searchHits[searchHits.length - 1].getSortValues();
@@ -316,6 +321,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       // clean on the last page only, to prevent deleting the PitId in the middle of paging.
       if (this.pitId != null && needClean) {
         cleanAction.accept(this.pitId);
+        searchDone = true;
       }
     } finally {
       this.pitId = null;
@@ -329,7 +335,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     try {
       if (this.pitId != null) {
         cleanAction.accept(this.pitId);
-        needClean = true;
+        searchDone = true;
       }
     } finally {
       this.pitId = null;

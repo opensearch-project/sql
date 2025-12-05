@@ -275,7 +275,7 @@ public class OpenSearchQueryRequestTest {
             new TimeValue(1000),
             "sample",
             false);
-    assertTrue(request.hasAnotherBatch());
+    assertFalse(request.hasAnotherBatch());
   }
 
   @Test
@@ -366,7 +366,7 @@ public class OpenSearchQueryRequestTest {
     request.clean(cleanAction);
 
     verify(cleanAction, times(1)).accept("samplePid");
-    assertTrue(openSearchResponse.isEmpty());
+    assertTrue(request.isSearchDone());
     assertNull(request.getPitId());
   }
 
@@ -389,7 +389,7 @@ public class OpenSearchQueryRequestTest {
 
     request.clean(cleanAction);
     verify(cleanAction, never()).accept(anyString());
-    assertFalse(openSearchResponse.isEmpty());
+    assertFalse(request.isSearchDone());
     assertNull(request.getPitId());
   }
 
@@ -407,7 +407,7 @@ public class OpenSearchQueryRequestTest {
 
     request.clean(cleanAction);
     verify(cleanAction, never()).accept(anyString());
-    assertFalse(request.isNeedClean());
+    assertFalse(request.isSearchDone());
     assertNull(request.getPitId());
   }
 
