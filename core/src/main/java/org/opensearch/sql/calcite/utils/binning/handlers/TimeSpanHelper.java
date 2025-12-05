@@ -31,14 +31,14 @@ public class TimeSpanHelper {
   private boolean shouldApplyAligntime(String spanStr) {
     if (spanStr == null) return false;
 
-    spanStr = spanStr.replace("'", "").replace("\"", "").trim().toLowerCase();
+    spanStr = spanStr.replace("'", "").replace("\"", "").trim();
     String timeUnit = SpanParser.extractTimeUnit(spanStr);
 
     if (timeUnit == null) return true; // Pure number, assume hours
 
     // Aligntime ignored for days, months, years
-    String normalizedUnit = normalizeTimeUnit(timeUnit);
-    return !normalizedUnit.equals("d") && !normalizedUnit.equals("M");
+    String normalizedUnit = SpanParser.getNormalizedUnit(timeUnit);
+    return !normalizedUnit.equals("d") && !normalizedUnit.equals("months");
   }
 
   private RexNode createAlignedTimeSpan(
@@ -64,7 +64,7 @@ public class TimeSpanHelper {
     if (timeUnit != null) {
       String valueStr = spanStr.substring(0, spanStr.length() - timeUnit.length());
       intervalValue = Integer.parseInt(valueStr);
-      normalizedUnit = normalizeTimeUnit(timeUnit);
+      normalizedUnit = SpanParser.getNormalizedUnit(timeUnit);
     } else {
       intervalValue = Integer.parseInt(spanStr);
       normalizedUnit = "h";
@@ -86,7 +86,7 @@ public class TimeSpanHelper {
     if (timeUnit != null) {
       String valueStr = spanStr.substring(0, spanStr.length() - timeUnit.length());
       int value = Integer.parseInt(valueStr);
-      String normalizedUnit = normalizeTimeUnit(timeUnit);
+      String normalizedUnit = SpanParser.getNormalizedUnit(timeUnit);
       return BinTimeSpanUtils.createBinTimeSpanExpression(
           fieldExpr, value, normalizedUnit, 0, context);
     } else {
@@ -119,40 +119,5 @@ public class TimeSpanHelper {
     }
 
     return null;
-  }
-
-  private String normalizeTimeUnit(String unit) {
-    switch (unit.toLowerCase()) {
-      case "s", "sec", "secs", "second", "seconds" -> {
-        return "s";
-      }
-      case "m", "min", "mins", "minute", "minutes" -> {
-        return "m";
-      }
-      case "h", "hr", "hrs", "hour", "hours" -> {
-        return "h";
-      }
-      case "d", "day", "days" -> {
-        return "d";
-      }
-      case "mon", "month", "months" -> {
-        return "months";
-      }
-      case "us" -> {
-        return "us";
-      }
-      case "ms" -> {
-        return "ms";
-      }
-      case "cs" -> {
-        return "cs";
-      }
-      case "ds" -> {
-        return "ds";
-      }
-      default -> {
-        return unit;
-      }
-    }
   }
 }
