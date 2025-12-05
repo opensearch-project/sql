@@ -448,10 +448,59 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return buildFunction(mappedName, ctx.functionArgs().functionArg());
   }
 
+  /** Mvmap function with implicit lambda binding. */
+  @Override
+  public UnresolvedExpression visitMvmapFunctionCall(
+      OpenSearchPPLParser.MvmapFunctionCallContext ctx) {
+    List<OpenSearchPPLParser.FunctionArgContext> args = ctx.functionArg();
+
+    UnresolvedExpression firstArg = visitFunctionArg(args.get(0));
+    UnresolvedExpression secondArg = visitFunctionArg(args.get(1));
+
+    if (secondArg instanceof LambdaFunction) {
+      throw new SyntaxCheckException("mvmap does not accept lambda expression as second argument");
+    }
+
+    QualifiedName fieldName = extractFieldName(firstArg);
+    if (fieldName == null) {
+      throw new SyntaxCheckException("mvmap first argument must be a field or field expression");
+    }
+
+    LambdaFunction lambda = new LambdaFunction(secondArg, Collections.singletonList(fieldName));
+    return new Function("mvmap", Arrays.asList(firstArg, lambda));
+  }
+
   private Function buildFunction(
       String functionName, List<OpenSearchPPLParser.FunctionArgContext> args) {
     return new Function(
         functionName, args.stream().map(this::visitFunctionArg).collect(Collectors.toList()));
+  }
+
+  /**
+   * Extracts the field name from the first argument for implicit lambda binding. The second
+   * argument must reference this same field. E.g., {@code mvmap(mvindex(arr, 1, 2), arr * 10)}
+   * extracts 'arr' and creates {@code arr -> arr * 10}.
+   */
+  private QualifiedName extractFieldName(UnresolvedExpression expr) {
+    if (expr instanceof Field) {
+      UnresolvedExpression fieldExpr = ((Field) expr).getField();
+      if (fieldExpr instanceof QualifiedName) {
+        return (QualifiedName) fieldExpr;
+      }
+      return extractFieldName(fieldExpr);
+    }
+    if (expr instanceof QualifiedName) {
+      return (QualifiedName) expr;
+    }
+    // For function calls like mvindex(results, 1, 2), try to extract field from first argument
+    if (expr instanceof Function) {
+      Function func = (Function) expr;
+      List<UnresolvedExpression> funcArgs = func.getFuncArgs();
+      if (!funcArgs.isEmpty()) {
+        return extractFieldName(funcArgs.get(0));
+      }
+    }
+    return null;
   }
 
   /** Cast function. */

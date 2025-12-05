@@ -76,6 +76,7 @@ public enum BuiltinFunctionName {
   MVJOIN(FunctionName.of("mvjoin")),
   MVINDEX(FunctionName.of("mvindex")),
   MVDEDUP(FunctionName.of("mvdedup")),
+  MVMAP(FunctionName.of("mvmap")),
   FORALL(FunctionName.of("forall")),
   EXISTS(FunctionName.of("exists")),
   FILTER(FunctionName.of("filter")),
