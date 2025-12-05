@@ -13,6 +13,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import javax.annotation.Nullable;
+import org.opensearch.OpenSearchTimeoutException;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.NonFallbackCalciteException;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
@@ -104,11 +105,16 @@ public class BackgroundSearchScanner {
     if (isAsync()) {
       try {
         return nextBatchFuture.get();
-      } catch (InterruptedException | ExecutionException e) {
+      } catch (ExecutionException e) {
         throw new NonFallbackCalciteException(
             "Failed to fetch data from the index: the background task failed or interrupted.\n"
                 + "  Inner error: "
                 + e.getMessage());
+      } catch (InterruptedException e) {
+        throw new OpenSearchTimeoutException(
+            new InterruptedException(
+                "Execution of the index search timed out. Increase the timeout via the"
+                    + " `ppl.query.timeout` setting."));
       }
     } else {
       return client.search(request);
