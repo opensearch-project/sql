@@ -265,12 +265,14 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s |  sort 1 age | fields firstname, age | addcoltotals age",
-                TEST_INDEX_BANK_REMOTE));
+                "search source=%s | where  firstname='Hattie' or firstname ='Nanette'|fields"
+                    + " firstname,age,balance | addcoltotals age balance",
+                TEST_INDEX_ACCOUNT_REMOTE));
     JSONArray array = result.getJSONArray("datarows");
     array.iterator().forEachRemaining(o -> System.out.println(o.toString()));
-
-    verifyDataRows(result, rows("Nanette", 28), rows(null, 28));
+    System.out.println(array.toString());
+    verifyDataRows(
+        result, rows("Hattie", 36, 5686), rows("Nanette", 28, 32838), rows(null, 64, 38524));
   }
 
   @Test
