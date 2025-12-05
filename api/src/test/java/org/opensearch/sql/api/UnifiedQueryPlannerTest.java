@@ -8,41 +8,15 @@ package org.opensearch.sql.api;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 
-import java.util.List;
 import java.util.Map;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.Schema;
-import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
-import org.apache.calcite.schema.impl.AbstractTable;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.junit.Test;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.executor.QueryType;
 
-public class UnifiedQueryPlannerTest {
-
-  /** Test schema consists of a test table with id and name columns */
-  private final AbstractSchema testSchema =
-      new AbstractSchema() {
-        @Override
-        protected Map<String, Table> getTableMap() {
-          return Map.of(
-              "index",
-              new AbstractTable() {
-                @Override
-                public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-                  return typeFactory.createStructType(
-                      List.of(
-                          typeFactory.createSqlType(SqlTypeName.INTEGER),
-                          typeFactory.createSqlType(SqlTypeName.VARCHAR)),
-                      List.of("id", "name"));
-                }
-              });
-        }
-      };
+public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
 
   /** Test catalog consists of test schema above */
   private final AbstractSchema testDeepSchema =
@@ -61,7 +35,7 @@ public class UnifiedQueryPlannerTest {
             .catalog("opensearch", testSchema)
             .build();
 
-    RelNode plan = planner.plan("source = opensearch.index | eval f = abs(id)");
+    RelNode plan = planner.plan("source = opensearch.employees | eval f = abs(id)");
     assertNotNull("Plan should be created", plan);
   }
 
@@ -74,8 +48,8 @@ public class UnifiedQueryPlannerTest {
             .defaultNamespace("opensearch")
             .build();
 
-    assertNotNull("Plan should be created", planner.plan("source = opensearch.index"));
-    assertNotNull("Plan should be created", planner.plan("source = index"));
+    assertNotNull("Plan should be created", planner.plan("source = opensearch.employees"));
+    assertNotNull("Plan should be created", planner.plan("source = employees"));
   }
 
   @Test
@@ -87,12 +61,12 @@ public class UnifiedQueryPlannerTest {
             .defaultNamespace("catalog.opensearch")
             .build();
 
-    assertNotNull("Plan should be created", planner.plan("source = catalog.opensearch.index"));
-    assertNotNull("Plan should be created", planner.plan("source = index"));
+    assertNotNull("Plan should be created", planner.plan("source = catalog.opensearch.employees"));
+    assertNotNull("Plan should be created", planner.plan("source = employees"));
 
     // This is valid in SparkSQL, but Calcite requires "catalog" as the default root schema to
     // resolve it
-    assertThrows(IllegalStateException.class, () -> planner.plan("source = opensearch.index"));
+    assertThrows(IllegalStateException.class, () -> planner.plan("source = opensearch.employees"));
   }
 
   @Test
@@ -105,7 +79,8 @@ public class UnifiedQueryPlannerTest {
             .build();
 
     RelNode plan =
-        planner.plan("source = catalog1.index | lookup catalog2.index id | eval f = abs(id)");
+        planner.plan(
+            "source = catalog1.employees | lookup catalog2.employees id | eval f = abs(id)");
     assertNotNull("Plan should be created with multiple catalogs", plan);
   }
 
@@ -119,7 +94,8 @@ public class UnifiedQueryPlannerTest {
             .defaultNamespace("catalog2")
             .build();
 
-    RelNode plan = planner.plan("source = catalog1.index | lookup index id | eval f = abs(id)");
+    RelNode plan =
+        planner.plan("source = catalog1.employees | lookup employees id | eval f = abs(id)");
     assertNotNull("Plan should be created with multiple catalogs", plan);
   }
 
@@ -132,7 +108,7 @@ public class UnifiedQueryPlannerTest {
             .cacheMetadata(true)
             .build();
 
-    RelNode plan = planner.plan("source = opensearch.index");
+    RelNode plan = planner.plan("source = opensearch.employees");
     assertNotNull("Plan should be created", plan);
   }
 
@@ -166,7 +142,7 @@ public class UnifiedQueryPlannerTest {
             .catalog("opensearch", testSchema)
             .build();
 
-    planner.plan("explain source = index"); // explain statement
+    planner.plan("explain source = employees"); // explain statement
   }
 
   @Test(expected = SyntaxCheckException.class)
@@ -177,6 +153,6 @@ public class UnifiedQueryPlannerTest {
             .catalog("opensearch", testSchema)
             .build();
 
-    planner.plan("source = index | eval"); // Trigger syntax error from parser
+    planner.plan("source = employees | eval"); // Trigger syntax error from parser
   }
 }

@@ -5,6 +5,7 @@
 
 plugins {
     id 'java-library'
+    id "io.freefair.lombok"
     id 'jacoco'
     id 'com.diffplug.spotless'
 }
@@ -25,6 +26,10 @@ spotless {
             exclude '**/build/**', '**/build-*/**', 'src/main/gen/**'
         }
         importOrder()
+        licenseHeader("/*\n" +
+                " * Copyright OpenSearch Contributors\n" +
+                " * SPDX-License-Identifier: Apache-2.0\n" +
+                " */\n\n")
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
