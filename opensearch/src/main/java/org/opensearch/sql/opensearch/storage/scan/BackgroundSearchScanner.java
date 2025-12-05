@@ -64,8 +64,8 @@ public class BackgroundSearchScanner {
   @Nullable private final Executor backgroundExecutor;
   private CompletableFuture<OpenSearchResponse> nextBatchFuture = null;
   private boolean stopIteration = false;
-  private int maxResultWindow = 0;
-  private int queryBucketSize = 0;
+  private final int maxResultWindow;
+  private final int queryBucketSize;
 
   public BackgroundSearchScanner(
       OpenSearchClient client, int maxResultWindow, int queryBucketSize) {

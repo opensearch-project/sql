@@ -32,8 +32,8 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.SearchModule;
-import org.opensearch.search.aggregations.bucket.composite.CompositeAggregation;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationBuilder;
+import org.opensearch.search.aggregations.bucket.composite.InternalComposite;
 import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.FieldSortBuilder;
@@ -79,7 +79,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
 
   private SearchResponse searchResponse = null;
 
-  @ToString.Exclude private Map<String, Object> afterKey;
+  @ToString.Exclude private Map<String, Object> afterKey = Collections.emptyMap();
 
   @TestOnly
   static OpenSearchQueryRequest of(
@@ -201,6 +201,15 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
           new OpenSearchResponse(
               SearchHits.empty(), exprValueFactory, includes, isCountAggRequest());
     } else {
+      if (this.sourceBuilder.aggregations() != null) {
+        this.sourceBuilder.aggregations().getAggregatorFactories().stream()
+            .filter(b -> b instanceof CompositeAggregationBuilder)
+            .forEach(c -> ((CompositeAggregationBuilder) c).aggregateAfter(afterKey));
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(sourceBuilder);
+        }
+      }
+
       SearchRequest searchRequest =
           new SearchRequest().indices(indexName.getIndexNames()).source(this.sourceBuilder);
       this.searchResponse = searchAction.apply(searchRequest);
@@ -211,17 +220,10 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
 
       needClean = openSearchResponse.isEmpty();
       if (openSearchResponse.isCompositeAggregationResponse()) {
-        CompositeAggregation compositeAgg =
-            (CompositeAggregation) this.searchResponse.getAggregations().asList().get(0);
+        InternalComposite compositeAgg =
+            (InternalComposite) this.searchResponse.getAggregations().asList().get(0);
+        // Update afterKey from response
         afterKey = compositeAgg.afterKey();
-        if (afterKey != null && !afterKey.isEmpty()) {
-          this.sourceBuilder.aggregations().getAggregatorFactories().stream()
-              .filter(b -> b instanceof CompositeAggregationBuilder)
-              .forEach(c -> ((CompositeAggregationBuilder) c).aggregateAfter(afterKey));
-          if (LOG.isDebugEnabled()) {
-            LOG.debug(sourceBuilder);
-          }
-        }
       }
     }
     return openSearchResponse;

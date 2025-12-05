@@ -126,7 +126,7 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
     if (isCompositeAggregationResponse()) {
       return ((InternalComposite) aggregations.asList().get(0)).getBuckets().size();
     }
-    return 0;
+    throw new RuntimeException("Should not go to here");
   }
 
   public boolean isCountResponse() {

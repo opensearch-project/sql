@@ -9,7 +9,6 @@ import static java.util.Objects.requireNonNull;
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -37,7 +36,6 @@ import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.util.NumberUtil;
-import org.apache.calcite.util.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -267,35 +265,6 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
   }
 
   /**
-   * Check if all sort-by collations equal aggregators that are pushed down. E.g. In `stats avg(age)
-   * as avg_age, sum(age) as sum_age by state | sort avg_age, sum_age`, the sort keys `avg_age`,
-   * `sum_age` which equal the pushed down aggregators `avg(age)`, `sum(age)`.
-   *
-   * @param collations List of collation names to check against aggregators.
-   * @return True if all collation names match all aggregator output, false otherwise.
-   */
-  protected boolean isAllCollationNamesEqualAggregators(List<String> collations) {
-    Stream<LogicalAggregate> aggregates =
-        pushDownContext.stream()
-            .filter(action -> action.type() == PushDownType.AGGREGATION)
-            .map(action -> ((LogicalAggregate) action.digest()));
-    return aggregates
-        .map(aggregate -> isAllCollationNamesEqualAggregators(aggregate, collations))
-        .reduce(false, Boolean::logicalOr);
-  }
-
-  private boolean isAllCollationNamesEqualAggregators(
-      LogicalAggregate aggregate, List<String> collations) {
-    List<String> fieldNames = aggregate.getRowType().getFieldNames();
-    // The output fields of the aggregate are in the format of
-    // [...grouping fields, ...aggregator fields], so we set an offset to skip
-    // the grouping fields.
-    int groupOffset = aggregate.getGroupSet().cardinality();
-    List<String> fieldsWithoutGrouping = fieldNames.subList(groupOffset, fieldNames.size());
-    return new HashSet<>(collations).equals(new HashSet<>(fieldsWithoutGrouping));
-  }
-
-  /**
    * Check if any sort-by collations is in aggregators that are pushed down. E.g. In `stats avg(age)
    * as avg_age by state | sort avg_age`, the sort clause has `avg_age` which is an aggregator. The
    * function will return true in this case.
@@ -324,18 +293,6 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
     return collations.stream()
         .map(fieldsWithoutGrouping::contains)
         .reduce(false, Boolean::logicalOr);
-  }
-
-  public List<String> getAggMeasureNameList() {
-    Stream<LogicalAggregate> aggregates =
-        pushDownContext.stream()
-            .filter(action -> action.type() == PushDownType.AGGREGATION)
-            .map(action -> ((LogicalAggregate) action.digest()));
-    return aggregates
-        .flatMap(aggregate -> aggregate.getNamedAggCalls().stream())
-        .map(Pair::getValue)
-        .distinct()
-        .toList();
   }
 
   /**
