@@ -228,8 +228,6 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
             new OpenSearchIndexScan(
                 client,
                 requestBuilder.getMaxResponseSize(),
-                requestBuilder.getMaxResultWindow(),
-                this.getQueryBucketSize(),
                 requestBuilder.build(
                     indexName, cursorKeepAlive, client, cachedFieldOpenSearchTypes.isEmpty()));
     return new OpenSearchIndexScanBuilder(builder, createScanOperator);

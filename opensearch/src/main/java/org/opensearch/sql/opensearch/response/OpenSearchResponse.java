@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.ToString;
 import org.jetbrains.annotations.TestOnly;
 import org.opensearch.action.search.SearchResponse;
@@ -47,7 +48,7 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
   private final SearchHits hits;
 
   /** Search aggregation result. */
-  private final Aggregations aggregations;
+  @Getter private final Aggregations aggregations;
 
   /** List of requested include fields. */
   private final List<String> includes;

@@ -133,13 +133,18 @@ public class OpenSearchRequestBuilder {
         // Search with PIT request
         String pitId = createPit(indexName, cursorKeepAlive, client);
         return OpenSearchQueryRequest.pitOf(
-            indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
+            indexName,
+            sourceBuilder,
+            exprValueFactory,
+            includes,
+            cursorKeepAlive,
+            pitId,
+            isCalciteEnabled());
       } else {
         sourceBuilder.from(startFrom);
         sourceBuilder.size(size);
         // Search with non-Pit request
-        return OpenSearchQueryRequest.pitOf(
-            indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, null);
+        return OpenSearchQueryRequest.of(indexName, sourceBuilder, exprValueFactory, includes);
       }
     } else {
       if (startFrom != 0) {
@@ -149,7 +154,13 @@ public class OpenSearchRequestBuilder {
       // Search with PIT request
       String pitId = createPit(indexName, cursorKeepAlive, client);
       return OpenSearchQueryRequest.pitOf(
-          indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
+          indexName,
+          sourceBuilder,
+          exprValueFactory,
+          includes,
+          cursorKeepAlive,
+          pitId,
+          isCalciteEnabled());
     }
   }
 
@@ -450,5 +461,11 @@ public class OpenSearchRequestBuilder {
    */
   private BoolQueryBuilder query() {
     return (BoolQueryBuilder) sourceBuilder.query();
+  }
+
+  private boolean isCalciteEnabled() {
+    return settings == null
+        || settings.getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED) == null
+        || Boolean.TRUE.equals(settings.getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED));
   }
 }
