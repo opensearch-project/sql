@@ -6,9 +6,13 @@
 package org.opensearch.sql.opensearch.storage.serde;
 
 import com.google.common.collect.ImmutableList;
+import java.math.BigDecimal;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.ConstantExpression;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBiVisitorImpl;
 import org.apache.calcite.rex.RexCall;
@@ -21,22 +25,33 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexNodeAndFieldIndex;
+import org.apache.calcite.rex.RexNormalize;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexRangeRef;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexTableInputRef;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.Pair;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.executor.OpenSearchTypeSystem;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.Source;
 
 /**
- * This help standardizes the RexNode expression, the process including: 1. Replace RexInputRef with
- * RexDynamicParam 2. Replace RexLiteral with RexDynamicParam TODO: 3. Replace RexCall with
- * equivalent functions 4. Replace RelDataType with a wider type 5. Do constant folding
+ * This help standardizes the RexNode expression, the process including:
+ * <p> 1. Replace RexInputRef with RexDynamicParam
+ * <p> 2. Replace RexLiteral with RexDynamicParam
+ * <p> 3. Replace RexCall with equivalent functions
+ * <p> 4. Replace RelDataType with a wider type
+ * <p> TODO: 5. Do constant folding
  */
 public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHelper> {
   private static final RexStandardizer standardizer = new RexStandardizer(true);
@@ -47,17 +62,24 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
 
   @Override
   public RexNode visitCall(final RexCall call, ScriptParameterHelper helper) {
-    boolean[] update = {false};
-    List<RexNode> clonedOperands = visitList(call.operands, helper, update);
-    if (update[0]) {
-      // REVIEW jvs 8-Mar-2005:  This doesn't take into account
-      // the fact that a rewrite may have changed the result type.
-      // To do that, we would need to take a RexBuilder and
-      // watch out for special operators like CAST and NEW where
-      // the type is embedded in the original call.
-      return call.clone(call.getType(), clonedOperands);
-    } else {
-      return call;
+    // Try to expand `SEARCH` before standardization since we cannot translate literal `Sarg`.
+    if (call.op.kind == SqlKind.SEARCH) {
+      try {
+        return RexUtil.expandSearch(helper.rexBuilder, null, call).accept(this, helper);
+      } catch (Exception ignored) {
+        // Continue to use the original call if failing to expand.
+        // We can downgrade to still use `Sarg` literal instead of replacing it with parameter.
+      }
+    }
+    boolean allowNumericTypeWiden = call.op.kind.belongsTo(SqlKind.BINARY_ARITHMETIC) ||  call.op.kind.belongsTo(SqlKind.BINARY_COMPARISON);
+    helper.stack.push(allowNumericTypeWiden);
+    try {
+      boolean[] update = {false};
+      List<RexNode> clonedOperands = visitList(call.operands, helper, update);
+      Pair<SqlOperator, List<RexNode>> normalized = RexNormalize.normalize(call.op, clonedOperands);
+      return helper.rexBuilder.makeCall(call.getType(), normalized.left, normalized.right);
+    } finally {
+      helper.stack.pop();
     }
   }
 
@@ -78,7 +100,7 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
       helper.digests.add(field.getName());
       helper.sources.add(Source.SOURCE.getValue());
     }
-    return new RexDynamicParam(field.getType(), newIndex);
+    return new RexDynamicParam(widenType(field.getType(), helper.stack.peek()), newIndex);
   }
 
   @Override
@@ -89,7 +111,6 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
      * 3. Skip INTERVAL_TYPES as it has bug, introduced by calcite-1.41.1, TODO: remove this when fixed;
      */
     if (literal.getTypeName() == SqlTypeName.SARG
-        || literal.getType().getSqlTypeName() == SqlTypeName.DECIMAL
         || literal.getTypeName() == SqlTypeName.SYMBOL
         || literal.getTypeName() == SqlTypeName.NULL
         || SqlTypeName.INTERVAL_TYPES.contains(literal.getTypeName())) {
@@ -101,7 +122,7 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
     int newIndex = helper.sources.size();
     helper.sources.add(Source.LITERAL.getValue());
     helper.digests.add(literalValue);
-    return new RexDynamicParam(literal.getType(), newIndex);
+    return new RexDynamicParam(widenType(literal.getType(), helper.stack.peek()), newIndex);
   }
 
   /** Override all below method to avoid returning null. */
@@ -175,6 +196,11 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
   }
 
   private static Object translateLiteral(RexLiteral literal) {
+    // OpenSearch doesn't accept big decimal value in its script.
+    // So try to return its double value directly as we don't really support decimal literal.
+    if (SqlTypeUtil.isDecimal(literal.getType()) && literal.getValue() instanceof BigDecimal) {
+      return ((BigDecimal)literal.getValue()).doubleValue();
+    }
     org.apache.calcite.linq4j.tree.Expression expression =
         RexToLixTranslator.translateLiteral(
             literal,
@@ -187,8 +213,38 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
     return null;
   }
 
+  /**
+   * Widen the input type to a wider and nullable type
+   * 1. DECIMAL(*, *) -> DECIMAL(38, 38)
+   * 2. TINYINT, SMALLINT, INTEGER, BIGINT -> BIGINT
+   * 3. FLOAT, REAL, DOUBLE -> DOUBLE
+   * 4. CHAR(*), VARCHAR -> VARCHAR
+   * @param type input type
+   * @param allowNumericTypeWiden whether allow numeric type widening
+   * @return widened type
+   */
+  private static RelDataType widenType(RelDataType type, Boolean allowNumericTypeWiden) {
+    if (type instanceof BasicSqlType) {
+      // Scale the decimal type to max precision and scale
+      if (SqlTypeUtil.isDecimal(type)) {
+        return OpenSearchTypeFactory.TYPE_FACTORY.createTypeWithNullability(
+            OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.DECIMAL,
+                OpenSearchTypeSystem.MAX_PRECISION, OpenSearchTypeSystem.MAX_SCALE),
+            true);
+      } else if ((allowNumericTypeWiden == null || allowNumericTypeWiden) && SqlTypeUtil.isExactNumeric(type)) {
+        return OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.BIGINT, true);
+      } else if ((allowNumericTypeWiden == null || allowNumericTypeWiden) && SqlTypeUtil.isApproximateNumeric(type)) {
+        return OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE, true);
+      } else if (SqlTypeUtil.isCharacter(type)) {
+        return OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, true);
+      }
+    }
+    return type;
+  }
+
   public static RexNode standardizeRexNodeExpression(
       RexNode rexNode, ScriptParameterHelper helper) {
+    assert helper.stack.isEmpty() : "[BUG]Stack should be empty before standardizing";
     return rexNode.accept(standardizer, helper);
   }
 }

@@ -62,7 +62,7 @@ public class RelJsonSerializerTest {
             rexBuilder.makeDynamicParam(rowType.getFieldList().get(0).getType(), 0));
 
     final ScriptParameterHelper helper =
-        new ScriptParameterHelper(rowType.getFieldList(), fieldTypes);
+        new ScriptParameterHelper(rowType.getFieldList(), fieldTypes, rexBuilder);
     String code = serializer.serialize(rexUpper, helper);
     RexNode rexNode = serializer.deserialize(code);
 
@@ -110,7 +110,7 @@ public class RelJsonSerializerTest {
             rexBuilder.makeDynamicParam(TYPE_FACTORY.createSqlType(SqlTypeName.OTHER, true), 3),
             rexBuilder.makeDynamicParam(rowTypeWithUDT.getFieldList().get(4).getType(), 4));
     final ScriptParameterHelper helper =
-        new ScriptParameterHelper(rowTypeWithUDT.getFieldList(), fieldTypesWithUDT);
+        new ScriptParameterHelper(rowTypeWithUDT.getFieldList(), fieldTypesWithUDT, rexBuilder);
     String serialized = serializer.serialize(rexNode, helper);
     RexNode expr = serializer.deserialize(serialized);
     assertEquals(expectedNode, expr);
@@ -125,7 +125,7 @@ public class RelJsonSerializerTest {
         IllegalStateException.class,
         () ->
             serializer.serialize(
-                illegalRex, new ScriptParameterHelper(rowType.getFieldList(), fieldTypes)));
+                illegalRex, new ScriptParameterHelper(rowType.getFieldList(), fieldTypes, rexBuilder)));
   }
 
   @Test
@@ -142,7 +142,7 @@ public class RelJsonSerializerTest {
             rexBuilder.makeLiteral(
                 1, rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER)));
     final ScriptParameterHelper helper =
-        new ScriptParameterHelper(rowType.getFieldList(), fieldTypes);
+        new ScriptParameterHelper(rowType.getFieldList(), fieldTypes, rexBuilder);
     String code = serializer.serialize(outOfScopeRex, helper);
     assertThrows(IllegalStateException.class, () -> serializer.deserialize(code));
   }
@@ -175,7 +175,7 @@ public class RelJsonSerializerTest {
             BuiltinFunctionName.UPPER,
             rexBuilder.makeDynamicParam(rowType.getFieldList().get(0).getType(), 0));
     final ScriptParameterHelper helper =
-        new ScriptParameterHelper(originalRowType.getFieldList(), originalFieldTypes);
+        new ScriptParameterHelper(originalRowType.getFieldList(), originalFieldTypes, rexBuilder);
     String code = serializer.serialize(originalRexUpper, helper);
     RexNode rex = serializer.deserialize(code);
     assertEquals(expectedNode, rex);
@@ -210,7 +210,7 @@ public class RelJsonSerializerTest {
             rexBuilder.makeDynamicParam(rowTypeWithUDT.getFieldList().get(1).getType(), 1),
             rexBuilder.makeDynamicParam(TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER, false), 2));
     final ScriptParameterHelper helper =
-        new ScriptParameterHelper(rowTypeWithUDT.getFieldList(), fieldTypesWithUDT);
+        new ScriptParameterHelper(rowTypeWithUDT.getFieldList(), fieldTypesWithUDT, rexBuilder);
     String serialized = serializer.serialize(rexNode, helper);
     RexNode expr = serializer.deserialize(serialized);
     assertEquals(expectedNode, expr);

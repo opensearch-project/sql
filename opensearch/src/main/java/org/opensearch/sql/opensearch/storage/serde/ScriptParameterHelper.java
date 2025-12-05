@@ -5,14 +5,17 @@
 
 package org.opensearch.sql.opensearch.storage.serde;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.Getter;
 import org.apache.calcite.DataContext.Variable;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.runtime.Hook;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.UnsupportedScriptException;
@@ -29,6 +32,10 @@ public class ScriptParameterHelper {
 
   List<RelDataTypeField> inputFieldList;
   Map<String, ExprType> fieldTypes;
+  RexBuilder rexBuilder;
+
+  /** The stack to record whether the current RexCall allows widening numeric type */
+  final Deque<Boolean> stack = new ArrayDeque<>();
 
   /**
    * Records the source of each parameter, it decides which kind of source to retrieve value.
@@ -52,17 +59,19 @@ public class ScriptParameterHelper {
   List<Object> digests;
 
   public ScriptParameterHelper(
-      List<RelDataTypeField> inputFieldList, Map<String, ExprType> fieldTypes) {
-    this(inputFieldList, fieldTypes, Collections.emptyMap());
+      List<RelDataTypeField> inputFieldList, Map<String, ExprType> fieldTypes, RexBuilder rexBuilder) {
+    this(inputFieldList, fieldTypes, Collections.emptyMap(), rexBuilder);
   }
 
   public ScriptParameterHelper(
       List<RelDataTypeField> inputFieldList,
       Map<String, ExprType> fieldTypes,
-      Map<String, Object> params) {
+      Map<String, Object> params,
+      RexBuilder rexBuilder) {
     this.existingParams = params;
     this.inputFieldList = inputFieldList;
     this.fieldTypes = fieldTypes;
+    this.rexBuilder = rexBuilder;
     this.sources = new ArrayList<>();
     this.digests = new ArrayList<>();
   }
