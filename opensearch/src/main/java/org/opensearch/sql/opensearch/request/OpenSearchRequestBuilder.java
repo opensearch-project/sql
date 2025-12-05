@@ -116,7 +116,8 @@ public class OpenSearchRequestBuilder {
      * 2. If mapping is empty. It means no data in the index. PIT search relies on `_id` fields to do sort, thus it will fail if using PIT search in this case.
      */
     if (sourceBuilder.size() == 0 || isMappingEmpty) {
-      return OpenSearchQueryRequest.of(indexName, sourceBuilder, exprValueFactory, List.of());
+      return OpenSearchQueryRequest.of(
+          indexName, sourceBuilder, exprValueFactory, List.of(), isCalciteEnabled());
     }
     return buildRequestWithPit(indexName, cursorKeepAlive, client);
   }
@@ -144,7 +145,8 @@ public class OpenSearchRequestBuilder {
         sourceBuilder.from(startFrom);
         sourceBuilder.size(size);
         // Search with non-Pit request
-        return OpenSearchQueryRequest.of(indexName, sourceBuilder, exprValueFactory, includes);
+        return OpenSearchQueryRequest.of(
+            indexName, sourceBuilder, exprValueFactory, includes, isCalciteEnabled());
       }
     } else {
       if (startFrom != 0) {

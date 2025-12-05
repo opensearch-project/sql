@@ -16,5 +16,5 @@ root:
               description:
                 request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account,\
                   \ sourceBuilder={\"from\":0,\"size\":10,\"timeout\":\"1m\"}, pitId=*,\
-                  \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
+                  \ cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
               children: []

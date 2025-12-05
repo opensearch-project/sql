@@ -81,7 +81,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
 
   @ToString.Exclude private Map<String, Object> afterKey;
 
-  @ToString.Exclude private boolean calciteEnabled;
+  @EqualsAndHashCode.Exclude @ToString.Exclude private boolean calciteEnabled;
 
   @TestOnly
   static OpenSearchQueryRequest of(
@@ -99,7 +99,8 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       SearchSourceBuilder sourceBuilder,
       OpenSearchExprValueFactory factory,
       List<String> includes) {
-    return OpenSearchQueryRequest.of(new IndexName(indexName), sourceBuilder, factory, includes);
+    return OpenSearchQueryRequest.of(
+        new IndexName(indexName), sourceBuilder, factory, includes, false);
   }
 
   /** Build an OpenSearchQueryRequest without PIT support. */
@@ -107,9 +108,10 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       IndexName indexName,
       SearchSourceBuilder sourceBuilder,
       OpenSearchExprValueFactory factory,
-      List<String> includes) {
+      List<String> includes,
+      boolean calciteEnabled) {
     return new OpenSearchQueryRequest(
-        indexName, sourceBuilder, factory, includes, null, null, false);
+        indexName, sourceBuilder, factory, includes, null, null, calciteEnabled);
   }
 
   /** Build an OpenSearchQueryRequest with PIT support. */
@@ -230,7 +232,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       // Set afterKey to request
       if (this.sourceBuilder.aggregations() != null) {
         this.sourceBuilder.aggregations().getAggregatorFactories().stream()
-            .filter(b -> b instanceof CompositeAggregationBuilder)
+            .filter(a -> a instanceof CompositeAggregationBuilder)
             .forEach(c -> ((CompositeAggregationBuilder) c).aggregateAfter(afterKey));
         if (LOG.isDebugEnabled()) {
           LOG.debug(sourceBuilder);
@@ -249,7 +251,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       // Get afterKey from response
       if (openSearchResponse.isAggregationResponse()) {
         openSearchResponse.getAggregations().asList().stream()
-            .filter(b -> b instanceof InternalComposite)
+            .filter(a -> a instanceof InternalComposite)
             .forEach(c -> afterKey = ((InternalComposite) c).afterKey());
       }
     }

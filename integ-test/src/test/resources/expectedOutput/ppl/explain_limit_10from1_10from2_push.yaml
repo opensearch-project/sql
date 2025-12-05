@@ -7,6 +7,6 @@ root:
       description:
         request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account,\
           \ sourceBuilder={\"from\":3,\"size\":8,\"timeout\":\"1m\",\"_source\":{\"\
-          includes\":[\"age\"],\"excludes\":[]}}, pitId=*, cursorKeepAlive=1m,\
+          includes\":[\"age\"],\"excludes\":[]}}, pitId=*, cursorKeepAlive=null,\
           \ searchAfter=null, searchResponse=null)"
       children: []

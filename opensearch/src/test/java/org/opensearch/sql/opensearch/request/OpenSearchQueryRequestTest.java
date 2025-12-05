@@ -94,7 +94,8 @@ public class OpenSearchQueryRequestTest {
             factory,
             includes,
             new TimeValue(1000),
-            "samplePITId");
+            "samplePITId",
+            false);
 
     Field searchAfterField = OpenSearchQueryRequest.class.getDeclaredField("searchAfter");
     searchAfterField.setAccessible(true);
@@ -126,7 +127,8 @@ public class OpenSearchQueryRequestTest {
             factory,
             includes,
             new TimeValue(1000),
-            "samplePITId");
+            "samplePITId",
+            false);
 
     serializationRequest.writeTo(streamOutput);
     verify(streamOutput).writeString("{\"timeout\":\"30s\"}");
@@ -175,7 +177,8 @@ public class OpenSearchQueryRequestTest {
             factory,
             List.of(),
             new TimeValue(1000),
-            "samplePid");
+            "samplePid",
+            false);
 
     when(searchAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
@@ -206,7 +209,8 @@ public class OpenSearchQueryRequestTest {
             factory,
             List.of(),
             new TimeValue(1000),
-            "samplePid");
+            "samplePid",
+            false);
 
     when(searchAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
@@ -227,7 +231,8 @@ public class OpenSearchQueryRequestTest {
             factory,
             List.of(),
             new TimeValue(1000),
-            "samplePid");
+            "samplePid",
+            false);
 
     when(searchAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
@@ -248,7 +253,8 @@ public class OpenSearchQueryRequestTest {
             factory,
             List.of(),
             new TimeValue(1000),
-            "sample");
+            "sample",
+            false);
 
     when(searchAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
@@ -267,7 +273,8 @@ public class OpenSearchQueryRequestTest {
             factory,
             List.of(),
             new TimeValue(1000),
-            "sample");
+            "sample",
+            false);
     assertTrue(request.hasAnotherBatch());
   }
 
@@ -280,7 +287,8 @@ public class OpenSearchQueryRequestTest {
             factory,
             List.of(),
             new TimeValue(1000),
-            null);
+            null,
+            false);
     assertFalse(request.hasAnotherBatch());
   }
 
@@ -293,7 +301,8 @@ public class OpenSearchQueryRequestTest {
             factory,
             List.of(),
             new TimeValue(1000),
-            "samplePid");
+            "samplePid",
+            false);
 
     when(searchAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
@@ -346,7 +355,8 @@ public class OpenSearchQueryRequestTest {
             factory,
             List.of(),
             new TimeValue(1000),
-            "samplePid");
+            "samplePid",
+            false);
 
     when(searchAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
@@ -369,7 +379,8 @@ public class OpenSearchQueryRequestTest {
             factory,
             List.of(),
             new TimeValue(1000),
-            "samplePid");
+            "samplePid",
+            false);
 
     when(searchAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
@@ -391,7 +402,8 @@ public class OpenSearchQueryRequestTest {
             factory,
             List.of(),
             new TimeValue(1000),
-            null);
+            null,
+            false);
 
     request.clean(cleanAction);
     verify(cleanAction, never()).accept(anyString());

@@ -11,5 +11,5 @@ root:
           ,\"log\",\"message\",\"tags\",\"cloud\",\"input\",\"@timestamp\",\"ecs\"\
           ,\"data_stream\",\"meta\",\"host\",\"metrics\",\"aws\",\"event\"],\"excludes\"\
           :[]},\"sort\":[{\"metrics.size\":{\"order\":\"asc\",\"missing\":\"_first\"\
-          }}]}, pitId=*, cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
+          }}]}, pitId=*, cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
       children: []

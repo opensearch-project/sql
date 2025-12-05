@@ -441,7 +441,8 @@ class OpenSearchRestClientTest {
             factory,
             List.of(),
             TimeValue.timeValueMinutes(1L),
-            "samplePitId");
+            "samplePitId",
+            false);
     // Enforce cleaning by setting a private field.
     FieldUtils.writeField(request, "needClean", true, true);
     client.cleanup(request);
@@ -459,7 +460,8 @@ class OpenSearchRestClientTest {
             factory,
             List.of(),
             TimeValue.timeValueMinutes(1L),
-            "samplePitId");
+            "samplePitId",
+            false);
     // Enforce cleaning by setting a private field.
     FieldUtils.writeField(request, "needClean", true, true);
     assertThrows(RuntimeException.class, () -> client.cleanup(request));
