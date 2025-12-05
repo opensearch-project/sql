@@ -323,6 +323,10 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     Assume.assumeTrue("This test is only for when push down is enabled", !isPushdownDisabled());
   }
 
+  protected void enabledOnlyWhenPushdownIsDisabled() throws IOException {
+    Assume.assumeTrue("This test is only for when push down is disabled", isPushdownDisabled());
+  }
+
   public void updatePushdownSettings() throws IOException {
     String pushdownEnabled = String.valueOf(GlobalPushdownConfig.enabled);
     assert !pushdownEnabled.isBlank() : "Pushdown enabled setting cannot be empty";
