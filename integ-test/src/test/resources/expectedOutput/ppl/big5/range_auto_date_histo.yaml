@@ -32,7 +32,6 @@ root:
                 - name: OpenSearchIndexScan
                   description:
                     request: "OpenSearchQueryRequest(indexName=big5, sourceBuilder={\"\
-                      from\":0,\"size\":10000,\"timeout\":\"1m\"}, needClean=true,\
-                      \ searchDone=false, pitId=*,\
+                      from\":0,\"size\":10000,\"timeout\":\"1m\"}, pitId=*,\
                       \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
                   children: []

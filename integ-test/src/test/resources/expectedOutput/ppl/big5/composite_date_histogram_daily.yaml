@@ -20,6 +20,6 @@ root:
               sources\":[{\"span(`@timestamp`,1d)\":{\"date_histogram\":{\"field\"\
               :\"@timestamp\",\"missing_bucket\":false,\"order\":\"asc\",\"fixed_interval\"\
               :\"1d\"}}}]},\"aggregations\":{\"count()\":{\"value_count\":{\"field\"\
-              :\"_index\"}}}}}}, needClean=true, searchDone=false, pitId=*, cursorKeepAlive=null,\
-              \ searchAfter=null, searchResponse=null)"
+              :\"_index\"}}}}}}, pitId=*, cursorKeepAlive=null, searchAfter=null,\
+              \ searchResponse=null)"
           children: []

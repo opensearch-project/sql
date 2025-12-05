@@ -435,13 +435,14 @@ class OpenSearchRestClientTest {
   @SneakyThrows
   void cleanup_pit_request() {
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             new SearchSourceBuilder(),
             factory,
             List.of(),
             TimeValue.timeValueMinutes(1L),
-            "samplePitId");
+            "samplePitId",
+            false);
     // Enforce cleaning by setting a private field.
     FieldUtils.writeField(request, "needClean", true, true);
     client.cleanup(request);
@@ -453,13 +454,14 @@ class OpenSearchRestClientTest {
   void cleanup_pit_request_throw_exception() {
     when(restClient.deletePit(any(), any())).thenThrow(new IOException());
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             new SearchSourceBuilder(),
             factory,
             List.of(),
             TimeValue.timeValueMinutes(1L),
-            "samplePitId");
+            "samplePitId",
+            false);
     // Enforce cleaning by setting a private field.
     FieldUtils.writeField(request, "needClean", true, true);
     assertThrows(RuntimeException.class, () -> client.cleanup(request));

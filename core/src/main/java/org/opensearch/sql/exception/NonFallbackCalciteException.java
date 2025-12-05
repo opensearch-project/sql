@@ -11,4 +11,8 @@ public class NonFallbackCalciteException extends QueryEngineException {
   public NonFallbackCalciteException(String message) {
     super(message);
   }
+
+  public NonFallbackCalciteException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

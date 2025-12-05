@@ -421,7 +421,7 @@ public class MatcherUtils {
   }
 
   private static String cleanUpId(String s) {
-    return eliminateTimeStamp(eliminatePid(eliminateRelId(s)));
+    return eliminateTimeStamp(eliminatePid(eliminateRelId(eliminateRequestOptions(s))));
   }
 
   private static String eliminateTimeStamp(String s) {
@@ -434,14 +434,17 @@ public class MatcherUtils {
         .replaceAll("LogicalProject#\\d+", "LogicalProject#");
   }
 
+  private static String eliminateRequestOptions(String s) {
+    return s.replaceAll(" needClean=true,", "").replaceAll(" searchDone=false,", "");
+  }
+
   private static String eliminatePid(String s) {
     return s.replaceAll("pitId=[^,]+,", "pitId=*,");
   }
 
   /** Compare two YAML strings are equals with ignoring the RelNode id in the Calcite plan. */
   public static void assertYamlEqualsIgnoreId(String expectedYaml, String actualYaml) {
-    String cleanedYaml = cleanUpYaml(actualYaml);
-    assertYamlEquals(expectedYaml, cleanedYaml);
+    assertYamlEquals(cleanUpYaml(expectedYaml), cleanUpYaml(actualYaml));
   }
 
   public static void assertYamlEquals(String expected, String actual) {
@@ -460,7 +463,9 @@ public class MatcherUtils {
         .replaceAll("rel#\\d+", "rel#")
         .replaceAll("RelSubset#\\d+", "RelSubset#")
         .replaceAll("LogicalProject#\\d+", "LogicalProject#")
-        .replaceAll("pitId=[^,]+,", "pitId=*,");
+        .replaceAll("pitId=[^,]+,", "pitId=*,")
+        .replaceAll(" needClean=true,", "")
+        .replaceAll(" searchDone=false,", "");
   }
 
   private static String jsonToYaml(String json) {

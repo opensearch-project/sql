@@ -96,8 +96,8 @@ class OpenSearchRequestBuilderTest {
     requestBuilder.pushDownTrackedScore(true);
 
     assertEquals(
-        new OpenSearchQueryRequest(
-            new OpenSearchRequest.IndexName("test"),
+        OpenSearchQueryRequest.of(
+            "test",
             new SearchSourceBuilder()
                 .from(offset)
                 .size(limit)
@@ -105,7 +105,7 @@ class OpenSearchRequestBuilderTest {
                 .trackScores(true),
             exprValueFactory,
             List.of()),
-        requestBuilder.build(indexName, DEFAULT_QUERY_TIMEOUT, client));
+        requestBuilder.build(indexName, null, client));
   }
 
   @Test
@@ -127,13 +127,14 @@ class OpenSearchRequestBuilderTest {
     requestBuilder.pushDownPageSize(2);
 
     assertEquals(
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             new SearchSourceBuilder().from(offset).size(2).timeout(DEFAULT_QUERY_TIMEOUT),
             exprValueFactory,
             List.of(),
             TimeValue.timeValueMinutes(1),
-            "samplePITId"),
+            "samplePITId",
+            false),
         requestBuilder.build(indexName, DEFAULT_QUERY_TIMEOUT, client));
   }
 
@@ -146,7 +147,7 @@ class OpenSearchRequestBuilderTest {
     requestBuilder.pushDownLimit(limit, offset);
 
     assertEquals(
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             new SearchSourceBuilder()
                 .from(offset)
@@ -155,7 +156,8 @@ class OpenSearchRequestBuilderTest {
             exprValueFactory,
             List.of(),
             TimeValue.timeValueMinutes(1),
-            "samplePITId"),
+            "samplePITId",
+            false),
         requestBuilder.build(indexName, DEFAULT_QUERY_TIMEOUT, client));
   }
 
@@ -167,12 +169,12 @@ class OpenSearchRequestBuilderTest {
     requestBuilder.pushDownLimit(limit, offset);
 
     assertEquals(
-        new OpenSearchQueryRequest(
-            new OpenSearchRequest.IndexName("test"),
+        OpenSearchQueryRequest.of(
+            "test",
             new SearchSourceBuilder().from(offset).size(limit).timeout(DEFAULT_QUERY_TIMEOUT),
             exprValueFactory,
             List.of()),
-        requestBuilder.build(indexName, DEFAULT_QUERY_TIMEOUT, client));
+        requestBuilder.build(indexName, null, client));
   }
 
   @Test
@@ -185,13 +187,14 @@ class OpenSearchRequestBuilderTest {
     when(client.createPit(any(CreatePitRequest.class))).thenReturn("samplePITId");
 
     assertEquals(
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             new SearchSourceBuilder().from(offset).size(pageSize).timeout(DEFAULT_QUERY_TIMEOUT),
             exprValueFactory,
             List.of(),
             TimeValue.timeValueMinutes(1),
-            "samplePITId"),
+            "samplePITId",
+            false),
         requestBuilder.build(indexName, DEFAULT_QUERY_TIMEOUT, client));
   }
 
@@ -434,7 +437,7 @@ class OpenSearchRequestBuilderTest {
         requestBuilder);
 
     assertEquals(
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             new SearchSourceBuilder()
                 .from(DEFAULT_OFFSET)
@@ -447,7 +450,8 @@ class OpenSearchRequestBuilderTest {
             exprValueFactory,
             List.of("intA"),
             DEFAULT_QUERY_TIMEOUT,
-            "samplePITId"),
+            "samplePITId",
+            false),
         requestBuilder.build(indexName, DEFAULT_QUERY_TIMEOUT, client));
   }
 
@@ -469,8 +473,8 @@ class OpenSearchRequestBuilderTest {
         requestBuilder);
 
     assertEquals(
-        new OpenSearchQueryRequest(
-            new OpenSearchRequest.IndexName("test"),
+        OpenSearchQueryRequest.of(
+            "test",
             new SearchSourceBuilder()
                 .from(offset)
                 .size(limit)
@@ -478,7 +482,7 @@ class OpenSearchRequestBuilderTest {
                 .fetchSource("intA", null),
             exprValueFactory,
             List.of("intA")),
-        requestBuilder.build(indexName, DEFAULT_QUERY_TIMEOUT, client));
+        requestBuilder.build(indexName, null, client));
   }
 
   @Test
@@ -499,8 +503,8 @@ class OpenSearchRequestBuilderTest {
         requestBuilder);
 
     assertEquals(
-        new OpenSearchQueryRequest(
-            new OpenSearchRequest.IndexName("test"),
+        OpenSearchQueryRequest.of(
+            "test",
             new SearchSourceBuilder()
                 .from(offset)
                 .size(limit)
@@ -508,7 +512,7 @@ class OpenSearchRequestBuilderTest {
                 .fetchSource("intA", null),
             exprValueFactory,
             List.of("intA")),
-        requestBuilder.build(indexName, DEFAULT_QUERY_TIMEOUT, client));
+        requestBuilder.build(indexName, null, client));
   }
 
   @Test
@@ -562,7 +566,7 @@ class OpenSearchRequestBuilderTest {
         requestBuilder);
 
     assertEquals(
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             new SearchSourceBuilder()
                 .from(DEFAULT_OFFSET)
@@ -575,7 +579,8 @@ class OpenSearchRequestBuilderTest {
             exprValueFactory,
             List.of("intA"),
             DEFAULT_QUERY_TIMEOUT,
-            "samplePITId"),
+            "samplePITId",
+            false),
         requestBuilder.build(indexName, DEFAULT_QUERY_TIMEOUT, client));
   }
 

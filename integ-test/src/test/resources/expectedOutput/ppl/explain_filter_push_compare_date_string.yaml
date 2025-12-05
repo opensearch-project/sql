@@ -16,7 +16,6 @@ root:
               description:
                 request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_date_formats,\
                   \ sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"\
-                  _source\":{\"includes\":[\"yyyy-MM-dd\"],\"excludes\":[]}}, needClean=true,\
-                  \ searchDone=false, pitId=*,\
+                  _source\":{\"includes\":[\"yyyy-MM-dd\"],\"excludes\":[]}}, pitId=*,\
                   \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
               children: []

@@ -25,7 +25,6 @@ root:
               ,\"missing_bucket\":true,\"missing_order\":\"first\",\"order\":\"asc\"\
               }}},{\"cloud.region\":{\"terms\":{\"field\":\"cloud.region\",\"missing_bucket\"\
               :true,\"missing_order\":\"first\",\"order\":\"asc\"}}}]},\"aggregations\"\
-              :{\"count()\":{\"value_count\":{\"field\":\"_index\"}}}}}}, needClean=true,\
-              \ searchDone=false, pitId=*, cursorKeepAlive=null, searchAfter=null,\
-              \ searchResponse=null)"
+              :{\"count()\":{\"value_count\":{\"field\":\"_index\"}}}}}}, pitId=*,\
+              \ cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
           children: []

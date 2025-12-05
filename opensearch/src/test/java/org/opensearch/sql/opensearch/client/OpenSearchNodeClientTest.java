@@ -409,13 +409,14 @@ class OpenSearchNodeClientTest {
   @SneakyThrows
   void cleanup_pit_request() {
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             new SearchSourceBuilder(),
             factory,
             List.of(),
             TimeValue.timeValueMinutes(1L),
-            "samplePitId");
+            "samplePitId",
+            false);
     // Enforce cleaning by setting a private field.
     FieldUtils.writeField(request, "needClean", true, true);
     client.cleanup(request);
