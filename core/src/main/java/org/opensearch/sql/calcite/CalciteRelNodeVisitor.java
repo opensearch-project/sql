@@ -2518,6 +2518,27 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         context, fieldsToAggregate, false, true, null, labelField, label);
   }
 
+  /**
+   * Cast integer sum to long, real/float to double to avoid ClassCastException
+   *
+   * @param context
+   * @param fieldRef
+   * @param fieldDataType
+   * @return
+   */
+  public RexNode getAggregateDataTypeFieldRef(
+      CalcitePlanContext context, RexNode fieldRef, RelDataTypeField fieldDataType) {
+    RexNode castFieldRef = fieldRef;
+    if (fieldDataType.getType().getSqlTypeName() == SqlTypeName.INTEGER) {
+      castFieldRef = context.relBuilder.cast(fieldRef, SqlTypeName.BIGINT);
+    } else if ((fieldDataType.getType().getSqlTypeName() == SqlTypeName.FLOAT)
+        || (fieldDataType.getType().getSqlTypeName() == SqlTypeName.REAL)) {
+      castFieldRef = context.relBuilder.cast(fieldRef, SqlTypeName.DOUBLE);
+    }
+
+    return castFieldRef;
+  }
+
   public RelNode buildAddRowTotalAggregate(
       CalcitePlanContext context,
       List<Field> fieldsToAggregate,
@@ -2557,17 +2578,25 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         if (isNumericField(fieldRef, context)) {
           fieldsToSum.add(fieldRef);
           if (addTotalsForEachColumn) {
-            AggCall sumCall = context.relBuilder.sum(fieldRef).as(fieldDataType.getName());
+            // Cast integer sum to long/double for int/float types to avoid ClassCastException
+            RexNode castFieldRef = getAggregateDataTypeFieldRef(context, fieldRef, fieldDataType);
+            AggCall sumCall = context.relBuilder.sum(castFieldRef).as(fieldDataType.getName());
             aggCalls.add(sumCall);
           }
           fieldNameToSum.add(fieldDataType.getName());
           if (addTotalsForEachRow) {
+            // Use cast field for row totals to avoid ClassCastException
+            RexNode rowCastFieldRef =
+                getAggregateDataTypeFieldRef(context, fieldRef, fieldDataType);
+
             if (sumExpression == null) {
-              sumExpression = fieldRef;
+              sumExpression = rowCastFieldRef;
             } else {
               sumExpression =
                   context.relBuilder.call(
-                      org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS, sumExpression, fieldRef);
+                      org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS,
+                      sumExpression,
+                      rowCastFieldRef);
             }
           }
         }
