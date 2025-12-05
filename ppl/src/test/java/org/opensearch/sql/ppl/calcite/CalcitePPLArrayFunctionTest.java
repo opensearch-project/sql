@@ -290,4 +290,81 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testSplitWithSemicolonDelimiter() {
+    String ppl =
+        "source=EMP | eval test = 'buttercup;rarity;tenderhoof', result = split(test, ';') | head"
+            + " 1 | fields result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(result=[$9])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], test=['buttercup;rarity;tenderhoof':VARCHAR],"
+            + " result=[CASE(=(';', ''),"
+            + " REGEXP_EXTRACT_ALL('buttercup;rarity;tenderhoof':VARCHAR, '.'),"
+            + " SPLIT('buttercup;rarity;tenderhoof':VARCHAR, ';'))])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT CASE WHEN ';' = '' THEN REGEXP_EXTRACT_ALL('buttercup;rarity;tenderhoof', "
+            + "'.') ELSE SPLIT('buttercup;rarity;tenderhoof', ';') END "
+            + "`result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testSplitWithMultiCharDelimiter() {
+    String ppl =
+        "source=EMP | eval test = '1a2b3c4def567890', result = split(test, 'def') | head 1 |"
+            + " fields result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(result=[$9])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], test=['1a2b3c4def567890':VARCHAR],"
+            + " result=[CASE(=('def':VARCHAR, ''), REGEXP_EXTRACT_ALL('1a2b3c4def567890':VARCHAR,"
+            + " '.'), SPLIT('1a2b3c4def567890':VARCHAR, 'def':VARCHAR))])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT CASE WHEN 'def' = '' THEN REGEXP_EXTRACT_ALL('1a2b3c4def567890', "
+            + "'.') ELSE SPLIT('1a2b3c4def567890', 'def') END `result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testSplitWithEmptyDelimiter() {
+    String ppl =
+        "source=EMP | eval test = 'abcd', result = split(test, '') | head 1 | fields result";
+    RelNode root = getRelNode(ppl);
+
+    // With empty delimiter, should split into individual characters
+    String expectedLogical =
+        "LogicalProject(result=[$9])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], test=['abcd':VARCHAR],"
+            + " result=[CASE(=('':VARCHAR, ''), REGEXP_EXTRACT_ALL('abcd':VARCHAR,"
+            + " '.'), SPLIT('abcd':VARCHAR, '':VARCHAR))])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT CASE WHEN '' = '' THEN REGEXP_EXTRACT_ALL('abcd', '.') "
+            + "ELSE SPLIT('abcd', '') END `result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }
