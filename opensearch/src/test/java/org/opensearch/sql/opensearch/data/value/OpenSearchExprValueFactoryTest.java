@@ -1075,6 +1075,114 @@ class OpenSearchExprValueFactoryTest {
     return exprValueFactory.construct(fieldName, value, true);
   }
 
+  // ==================== Malformed Field Name Tests ====================
+  // Tests for issue #4896: ArrayIndexOutOfBoundsException with dot-containing field names
+
+  @Test
+  public void isFieldNameMalformed_dotOnlyFieldNames() {
+    // Single dot
+    assertTrue(OpenSearchExprValueFactory.isFieldNameMalformed("."));
+    // Multiple dots
+    assertTrue(OpenSearchExprValueFactory.isFieldNameMalformed(".."));
+    assertTrue(OpenSearchExprValueFactory.isFieldNameMalformed("..."));
+    assertTrue(OpenSearchExprValueFactory.isFieldNameMalformed("...."));
+  }
+
+  @Test
+  public void isFieldNameMalformed_leadingDots() {
+    assertTrue(OpenSearchExprValueFactory.isFieldNameMalformed(".a"));
+    assertTrue(OpenSearchExprValueFactory.isFieldNameMalformed("..a"));
+    assertTrue(OpenSearchExprValueFactory.isFieldNameMalformed(".field"));
+    assertTrue(OpenSearchExprValueFactory.isFieldNameMalformed("..field.name"));
+  }
+
+  @Test
+  public void isFieldNameMalformed_trailingDots() {
+    assertTrue(OpenSearchExprValueFactory.isFieldNameMalformed("a."));
+    assertTrue(OpenSearchExprValueFactory.isFieldNameMalformed("a.."));
+    assertTrue(OpenSearchExprValueFactory.isFieldNameMalformed("field."));
+    assertTrue(OpenSearchExprValueFactory.isFieldNameMalformed("field.name.."));
+  }
+
+  @Test
+  public void isFieldNameMalformed_consecutiveDots() {
+    assertTrue(OpenSearchExprValueFactory.isFieldNameMalformed("a..b"));
+    assertTrue(OpenSearchExprValueFactory.isFieldNameMalformed("a...b"));
+    assertTrue(OpenSearchExprValueFactory.isFieldNameMalformed("field..name"));
+    assertTrue(OpenSearchExprValueFactory.isFieldNameMalformed("a..b..c"));
+  }
+
+  @Test
+  public void isFieldNameMalformed_validFieldNames() {
+    // Simple field names
+    assertFalse(OpenSearchExprValueFactory.isFieldNameMalformed("a"));
+    assertFalse(OpenSearchExprValueFactory.isFieldNameMalformed("field"));
+    assertFalse(OpenSearchExprValueFactory.isFieldNameMalformed("fieldName"));
+    // Nested field names (valid dot usage)
+    assertFalse(OpenSearchExprValueFactory.isFieldNameMalformed("a.b"));
+    assertFalse(OpenSearchExprValueFactory.isFieldNameMalformed("log.json"));
+    assertFalse(OpenSearchExprValueFactory.isFieldNameMalformed("a.b.c"));
+    assertFalse(OpenSearchExprValueFactory.isFieldNameMalformed("field.name.value"));
+  }
+
+  @Test
+  public void constructStructWithDotOnlyFieldName_returnsNull() {
+    // Test that a single dot field name returns null
+    assertEquals(
+        nullValue(),
+        tupleValue("{\"structV\":{\".\":\"value\"}}").get("structV").tupleValue().get("."));
+  }
+
+  @Test
+  public void constructStructWithMultipleDotFieldName_returnsNull() {
+    // Test that multiple dot field names return null
+    assertEquals(
+        nullValue(),
+        tupleValue("{\"structV\":{\"..\":\"value\"}}").get("structV").tupleValue().get(".."));
+    assertEquals(
+        nullValue(),
+        tupleValue("{\"structV\":{\"...\":\"value\"}}").get("structV").tupleValue().get("..."));
+  }
+
+  @Test
+  public void constructStructWithLeadingDotFieldName_returnsNull() {
+    assertEquals(
+        nullValue(),
+        tupleValue("{\"structV\":{\".a\":\"value\"}}").get("structV").tupleValue().get(".a"));
+    assertEquals(
+        nullValue(),
+        tupleValue("{\"structV\":{\"..a\":\"value\"}}").get("structV").tupleValue().get("..a"));
+  }
+
+  @Test
+  public void constructStructWithTrailingDotFieldName_returnsNull() {
+    assertEquals(
+        nullValue(),
+        tupleValue("{\"structV\":{\"a.\":\"value\"}}").get("structV").tupleValue().get("a."));
+    assertEquals(
+        nullValue(),
+        tupleValue("{\"structV\":{\"a..\":\"value\"}}").get("structV").tupleValue().get("a.."));
+  }
+
+  @Test
+  public void constructStructWithConsecutiveDotsFieldName_returnsNull() {
+    assertEquals(
+        nullValue(),
+        tupleValue("{\"structV\":{\"a..b\":\"value\"}}").get("structV").tupleValue().get("a..b"));
+    assertEquals(
+        nullValue(),
+        tupleValue("{\"structV\":{\"a...b\":\"value\"}}").get("structV").tupleValue().get("a...b"));
+  }
+
+  @Test
+  public void constructStructWithMalformedAndValidFields_preservesValidFields() {
+    // Test that valid fields are preserved when malformed fields are present
+    Map<String, ExprValue> structValue =
+        tupleValue("{\"structV\":{\".\":\"bad\",\"good\":\"value\"}}").get("structV").tupleValue();
+    assertEquals(nullValue(), structValue.get("."));
+    assertEquals(stringValue("value"), structValue.get("good"));
+  }
+
   @EqualsAndHashCode(callSuper = false)
   @ToString
   private static class TestType extends OpenSearchDataType {
