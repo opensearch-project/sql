@@ -240,7 +240,7 @@ public class CalciteToolsHelper {
      * return {@link OpenSearchCalcitePreparingStmt}
      */
     @Override
-    protected CalcitePrepareImpl.CalcitePreparingStmt getPreparingStmt(
+    public CalcitePrepareImpl.CalcitePreparingStmt getPreparingStmt(
         CalcitePrepare.Context context,
         Type elementType,
         CalciteCatalogReader catalogReader,
