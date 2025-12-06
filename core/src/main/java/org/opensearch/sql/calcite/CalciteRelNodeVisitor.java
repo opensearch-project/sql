@@ -2530,10 +2530,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       CalcitePlanContext context, RexNode fieldRef, RelDataTypeField fieldDataType) {
     RexNode castFieldRef = fieldRef;
     if (fieldDataType.getType().getSqlTypeName() == SqlTypeName.INTEGER) {
-      castFieldRef = context.relBuilder.cast(fieldRef, SqlTypeName.INTEGER);
+      castFieldRef = context.relBuilder.cast(fieldRef, SqlTypeName.BIGINT);
     } else if ((fieldDataType.getType().getSqlTypeName() == SqlTypeName.FLOAT)
         || (fieldDataType.getType().getSqlTypeName() == SqlTypeName.REAL)) {
-      castFieldRef = context.relBuilder.cast(fieldRef, SqlTypeName.FLOAT);
+      castFieldRef = context.relBuilder.cast(fieldRef, SqlTypeName.DOUBLE);
     }
 
     return castFieldRef;
@@ -2636,10 +2636,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       for (RelDataTypeField fieldDataType : fieldList) {
         if (fieldNameToSum.contains(fieldDataType.getName())) {
           selectList.add(
-              context.relBuilder.cast(
-                  context.relBuilder.alias(
-                      context.relBuilder.field(fieldDataType.getName()), fieldDataType.getName()),
-                  fieldDataType.getType().getSqlTypeName()));
+              context.relBuilder.alias(
+                  context.relBuilder.field(fieldDataType.getName()), fieldDataType.getName()));
 
         } else if (fieldDataType.getName().equals(labelField)
             && (extraColTotalField
