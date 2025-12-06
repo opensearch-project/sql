@@ -2554,7 +2554,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<AggCall> aggCalls = new ArrayList<>();
     List<String> fieldNameToSum = new ArrayList<>();
     RelNode originalData = context.relBuilder.peek();
-
+    List<String> fieldNames = originalData.getRowType().getFieldNames();
     boolean foundLabelField = false;
     int labelLength =
         (labelField != null) && (labelField.length() > label.length())
@@ -2568,18 +2568,23 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (fieldsToAggregate.isEmpty()) {
       fieldsToAggregate = getAllNumericFields(originalData, context);
     }
-
+    List<RexNode> orginalDataProjectedFields = new ArrayList<>();
     List<RexNode> fieldsToSum = new ArrayList<>();
     java.util.List<org.apache.calcite.rel.type.RelDataTypeField> fieldList =
         originalData.getRowType().getFieldList();
     for (RelDataTypeField fieldDataType : fieldList) {
+      RexNode fieldRef = context.relBuilder.field(fieldDataType.getName());
+      boolean columnAddedToNewProject = false;
       if (shouldAggregateField(fieldDataType.getName(), fieldsToAggregate)) {
-        RexNode fieldRef = context.relBuilder.field(fieldDataType.getName());
+
         if (isNumericField(fieldRef, context)) {
           fieldsToSum.add(fieldRef);
           if (addTotalsForEachColumn) {
             // Cast integer sum to long/double for int/float types to avoid ClassCastException
             RexNode castFieldRef = getAggregateDataTypeFieldRef(context, fieldRef, fieldDataType);
+            orginalDataProjectedFields.add(castFieldRef);
+            columnAddedToNewProject = true;
+
             AggCall sumCall = context.relBuilder.sum(castFieldRef).as(fieldDataType.getName());
             aggCalls.add(sumCall);
           }
@@ -2601,11 +2606,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           }
         }
       }
+      if (!columnAddedToNewProject) {
+        orginalDataProjectedFields.add(fieldRef);
+      }
       if (addTotalsForEachColumn && fieldDataType.getName().equals(labelField)) {
         // Use specified label field for the label
         foundLabelField = true;
       }
     }
+    context.relBuilder.project(orginalDataProjectedFields, fieldNames);
     if (addTotalsForEachRow && !fieldsToSum.isEmpty()) {
       // Add the new column with the sum
       context.relBuilder.projectPlus(
@@ -2622,6 +2631,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         extraColTotalField = true;
       }
     }
+
     originalData = context.relBuilder.build();
     context.relBuilder.push(originalData);
     if (addTotalsForEachColumn) {
