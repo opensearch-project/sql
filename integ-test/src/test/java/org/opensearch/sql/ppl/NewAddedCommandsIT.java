@@ -180,6 +180,28 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
     }
   }
 
+  @Test
+  public void testAddTotalCommand() throws IOException {
+    JSONObject result;
+    try {
+      executeQuery(String.format("search source=%s  | addtotals ", TEST_INDEX_BANK));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+      verifyQuery(result);
+    }
+  }
+
+  @Test
+  public void testAddColTotalCommand() throws IOException {
+    JSONObject result;
+    try {
+      executeQuery(String.format("search source=%s  | addcoltotals ", TEST_INDEX_BANK));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+      verifyQuery(result);
+    }
+  }
+
   private void verifyQuery(JSONObject result) throws IOException {
     if (isCalciteEnabled()) {
       assertFalse(result.getJSONArray("datarows").isEmpty());

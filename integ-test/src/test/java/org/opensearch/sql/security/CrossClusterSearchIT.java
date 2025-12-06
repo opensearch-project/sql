@@ -15,6 +15,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
 import lombok.SneakyThrows;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -245,6 +246,33 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
                 "search source=%s | where query_string('Hattie') | fields firstname",
                 TEST_INDEX_BANK_REMOTE));
     verifyDataRows(result, rows("Hattie"));
+  }
+
+  @Test
+  public void testCrossClusterAddTotals() throws IOException {
+    // Test query_string without fields parameter on remote cluster
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s| sort 1 age | fields firstname, age | addtotals age",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows("Nanette", 28, 28));
+  }
+
+  @Test
+  public void testCrossClusterAddColTotals() throws IOException {
+    // Test query_string without fields parameter on remote cluster
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | where  firstname='Hattie' or firstname ='Nanette'|fields"
+                    + " firstname,age,balance | addcoltotals age balance",
+                TEST_INDEX_BANK_REMOTE));
+    JSONArray array = result.getJSONArray("datarows");
+    array.iterator().forEachRemaining(o -> System.out.println(o.toString()));
+    System.out.println(array.toString());
+    verifyDataRows(
+        result, rows("Hattie", 36, 5686), rows("Nanette", 28, 32838), rows(null, 64, 38524));
   }
 
   @Test
