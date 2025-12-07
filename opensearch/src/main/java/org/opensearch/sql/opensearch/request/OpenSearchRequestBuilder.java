@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.lucene.search.join.ScoreMode;
@@ -59,7 +60,7 @@ public class OpenSearchRequestBuilder {
   private final SearchSourceBuilder sourceBuilder;
 
   /** Query size of the request -- how many rows will be returned. */
-  private int requestedTotalSize = Integer.MAX_VALUE;
+  @Setter private int requestedTotalSize = Integer.MAX_VALUE;
 
   /** Size of each page request to return. */
   private Integer pageSize = null;
@@ -116,8 +117,7 @@ public class OpenSearchRequestBuilder {
      * 2. If mapping is empty. It means no data in the index. PIT search relies on `_id` fields to do sort, thus it will fail if using PIT search in this case.
      */
     if (sourceBuilder.size() == 0 || isMappingEmpty) {
-      return OpenSearchQueryRequest.of(
-          indexName, sourceBuilder, exprValueFactory, List.of(), isCalciteEnabled());
+      return OpenSearchQueryRequest.of(indexName, sourceBuilder, exprValueFactory, List.of());
     }
     return buildRequestWithPit(indexName, cursorKeepAlive, client);
   }
@@ -134,19 +134,12 @@ public class OpenSearchRequestBuilder {
         // Search with PIT request
         String pitId = createPit(indexName, cursorKeepAlive, client);
         return OpenSearchQueryRequest.pitOf(
-            indexName,
-            sourceBuilder,
-            exprValueFactory,
-            includes,
-            cursorKeepAlive,
-            pitId,
-            isCalciteEnabled());
+            indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
       } else {
         sourceBuilder.from(startFrom);
         sourceBuilder.size(size);
         // Search with non-Pit request
-        return OpenSearchQueryRequest.of(
-            indexName, sourceBuilder, exprValueFactory, includes, isCalciteEnabled());
+        return OpenSearchQueryRequest.of(indexName, sourceBuilder, exprValueFactory, includes);
       }
     } else {
       if (startFrom != 0) {
@@ -156,13 +149,7 @@ public class OpenSearchRequestBuilder {
       // Search with PIT request
       String pitId = createPit(indexName, cursorKeepAlive, client);
       return OpenSearchQueryRequest.pitOf(
-          indexName,
-          sourceBuilder,
-          exprValueFactory,
-          includes,
-          cursorKeepAlive,
-          pitId,
-          isCalciteEnabled());
+          indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
     }
   }
 
@@ -463,11 +450,5 @@ public class OpenSearchRequestBuilder {
    */
   private BoolQueryBuilder query() {
     return (BoolQueryBuilder) sourceBuilder.query();
-  }
-
-  private boolean isCalciteEnabled() {
-    return settings == null
-        || settings.getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED) == null
-        || Boolean.TRUE.equals(settings.getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED));
   }
 }

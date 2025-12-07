@@ -415,8 +415,7 @@ class OpenSearchNodeClientTest {
             factory,
             List.of(),
             TimeValue.timeValueMinutes(1L),
-            "samplePitId",
-            false);
+            "samplePitId");
     // Enforce cleaning by setting a private field.
     FieldUtils.writeField(request, "needClean", true, true);
     client.cleanup(request);

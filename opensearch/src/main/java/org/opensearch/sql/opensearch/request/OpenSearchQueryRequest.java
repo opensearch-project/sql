@@ -84,8 +84,6 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
 
   @ToString.Exclude private Map<String, Object> afterKey;
 
-  @EqualsAndHashCode.Exclude @ToString.Exclude private boolean calciteEnabled;
-
   @TestOnly
   static OpenSearchQueryRequest of(
       String indexName, int size, OpenSearchExprValueFactory factory, List<String> includes) {
@@ -102,8 +100,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       SearchSourceBuilder sourceBuilder,
       OpenSearchExprValueFactory factory,
       List<String> includes) {
-    return OpenSearchQueryRequest.of(
-        new IndexName(indexName), sourceBuilder, factory, includes, false);
+    return OpenSearchQueryRequest.of(new IndexName(indexName), sourceBuilder, factory, includes);
   }
 
   /** Build an OpenSearchQueryRequest without PIT support. */
@@ -111,10 +108,8 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       IndexName indexName,
       SearchSourceBuilder sourceBuilder,
       OpenSearchExprValueFactory factory,
-      List<String> includes,
-      boolean calciteEnabled) {
-    return new OpenSearchQueryRequest(
-        indexName, sourceBuilder, factory, includes, null, null, calciteEnabled);
+      List<String> includes) {
+    return new OpenSearchQueryRequest(indexName, sourceBuilder, factory, includes, null, null);
   }
 
   /** Build an OpenSearchQueryRequest with PIT support. */
@@ -124,10 +119,9 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       OpenSearchExprValueFactory factory,
       List<String> includes,
       TimeValue cursorKeepAlive,
-      String pitId,
-      boolean calciteEnabled) {
+      String pitId) {
     return new OpenSearchQueryRequest(
-        indexName, sourceBuilder, factory, includes, cursorKeepAlive, pitId, calciteEnabled);
+        indexName, sourceBuilder, factory, includes, cursorKeepAlive, pitId);
   }
 
   /** Do not new it directly, use of() and pitOf() instead. */
@@ -137,15 +131,13 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       OpenSearchExprValueFactory factory,
       List<String> includes,
       TimeValue cursorKeepAlive,
-      String pitId,
-      boolean calciteEnabled) {
+      String pitId) {
     this.indexName = indexName;
     this.sourceBuilder = sourceBuilder;
     this.exprValueFactory = factory;
     this.includes = includes;
     this.cursorKeepAlive = cursorKeepAlive;
     this.pitId = pitId;
-    this.calciteEnabled = calciteEnabled;
   }
 
   /** true if the request is a count aggregation request. */
@@ -198,30 +190,10 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       Function<SearchRequest, SearchResponse> searchAction,
       Function<SearchScrollRequest, SearchResponse> scrollAction) {
     if (this.pitId == null) {
-      return calciteEnabled ? search(searchAction) : searchForV2(searchAction);
+      return search(searchAction);
     } else {
       // Search with PIT instead of scroll API
       return searchWithPIT(searchAction);
-    }
-  }
-
-  /** Call the old search logic for v2, since we don't support paginating aggregate in v2. */
-  @Deprecated
-  private OpenSearchResponse searchForV2(Function<SearchRequest, SearchResponse> searchAction) {
-    // When SearchRequest doesn't contain PitId, fetch single page request
-    if (searchDone) {
-      return new OpenSearchResponse(
-          SearchHits.empty(), exprValueFactory, includes, isCountAggRequest());
-    } else {
-      // get the value before set searchDone = true
-      boolean isCountAggRequest = isCountAggRequest();
-      searchDone = true;
-      return new OpenSearchResponse(
-          searchAction.apply(
-              new SearchRequest().indices(indexName.getIndexNames()).source(sourceBuilder)),
-          exprValueFactory,
-          includes,
-          isCountAggRequest);
     }
   }
 
@@ -232,7 +204,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
           new OpenSearchResponse(
               SearchHits.empty(), exprValueFactory, includes, isCountAggRequest());
     } else {
-      // Set afterKey to request
+      // Set afterKey to request, null for first round (afterKey is null in the beginning).
       if (this.sourceBuilder.aggregations() != null) {
         this.sourceBuilder.aggregations().getAggregatorFactories().stream()
             .filter(a -> a instanceof CompositeAggregationBuilder)
@@ -250,14 +222,20 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
           new OpenSearchResponse(
               this.searchResponse, exprValueFactory, includes, isCountAggRequest());
 
-      needClean = openSearchResponse.isEmpty();
-      searchDone = openSearchResponse.isEmpty();
-      // Get afterKey from response
+      // Update afterKey from response
       if (openSearchResponse.isAggregationResponse()) {
         openSearchResponse.getAggregations().asList().stream()
             .filter(a -> a instanceof InternalComposite)
             .forEach(c -> afterKey = ((InternalComposite) c).afterKey());
       }
+      if (afterKey != null) {
+        // For composite aggregation, searchDone is determined by response result.
+        searchDone = openSearchResponse.isEmpty();
+      } else {
+        // Direct set searchDone to true for non-composite aggregation.
+        searchDone = true;
+      }
+      needClean = searchDone;
     }
     return openSearchResponse;
   }

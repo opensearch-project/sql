@@ -1024,10 +1024,10 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainAppendCommand() throws IOException {
-    String expected = loadExpectedPlan("explain_append_command.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_append_command.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 Locale.ROOT,
                 "source=%s | stats count(balance) as cnt by gender | append [ source=%s | stats"
@@ -1312,7 +1312,7 @@ public class CalciteExplainIT extends ExplainIT {
           expected,
           explainQueryYaml(
               "source=opensearch-sql_test_index_account | stats count() as c by state | join left=l"
-                  + " right=r on l.state=r.state [ source=opensearch-sql_test_index_account | stats"
+                  + " right=r on l.state=r.state [ source=opensearch-sql_test_index_bank | stats"
                   + " count() as c by state ]"));
       expected = loadExpectedPlan("explain_agg_paginating_join2.yaml");
       assertYamlEqualsIgnoreId(
@@ -1320,14 +1320,14 @@ public class CalciteExplainIT extends ExplainIT {
           explainQueryYaml(
               "source=opensearch-sql_test_index_account | stats bucket_nullable = false count() as"
                   + " c by state | join left=l right=r on l.state=r.state ["
-                  + " source=opensearch-sql_test_index_account | stats bucket_nullable = false"
+                  + " source=opensearch-sql_test_index_bank | stats bucket_nullable = false"
                   + " count() as c by state ]"));
       expected = loadExpectedPlan("explain_agg_paginating_join3.yaml");
       assertYamlEqualsIgnoreId(
           expected,
           explainQueryYaml(
               "source=opensearch-sql_test_index_account | stats count() as c by state | join"
-                  + " type=inner state [ source=opensearch-sql_test_index_account | stats count()"
+                  + " type=inner state [ source=opensearch-sql_test_index_bank | stats count()"
                   + " as c by state ]"));
     } finally {
       resetQueryBucketSize();
@@ -1345,6 +1345,35 @@ public class CalciteExplainIT extends ExplainIT {
           explainQueryYaml(
               "source=opensearch-sql_test_index_account | stats count() as c by state | head 10"
                   + " from 2"));
+    } finally {
+      resetQueryBucketSize();
+    }
+  }
+
+  @Test
+  public void testPaginatingHeadSizeNoLessThanQueryBucketSize() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    try {
+      setQueryBucketSize(2);
+      String expected =
+          loadExpectedPlan("explain_agg_paginating_head_size_query_bucket_size1.yaml");
+      assertYamlEqualsIgnoreId(
+          expected,
+          explainQueryYaml(
+              String.format(
+                  "source=%s | stats count() by age | sort -age | head 3", TEST_INDEX_BANK)));
+      expected = loadExpectedPlan("explain_agg_paginating_head_size_query_bucket_size2.yaml");
+      assertYamlEqualsIgnoreId(
+          expected,
+          explainQueryYaml(
+              String.format(
+                  "source=%s | stats count() by age | sort -age | head 2", TEST_INDEX_BANK)));
+      expected = loadExpectedPlan("explain_agg_paginating_head_size_query_bucket_size3.yaml");
+      assertYamlEqualsIgnoreId(
+          expected,
+          explainQueryYaml(
+              String.format(
+                  "source=%s | stats count() by age | sort -age | head 1", TEST_INDEX_BANK)));
     } finally {
       resetQueryBucketSize();
     }

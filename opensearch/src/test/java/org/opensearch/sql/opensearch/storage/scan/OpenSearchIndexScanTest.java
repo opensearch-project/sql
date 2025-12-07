@@ -120,13 +120,7 @@ class OpenSearchIndexScanTest {
             .collect(Collectors.toList());
     var request =
         OpenSearchQueryRequest.pitOf(
-            INDEX_NAME,
-            searchSourceBuilder,
-            factory,
-            includes,
-            CURSOR_KEEP_ALIVE,
-            "samplePitId",
-            false);
+            INDEX_NAME, searchSourceBuilder, factory, includes, CURSOR_KEEP_ALIVE, "samplePitId");
     // make a response, so OpenSearchResponse::isEmpty would return true and unset needClean
     var response = mock(SearchResponse.class);
     when(response.getAggregations()).thenReturn(null);
@@ -403,7 +397,7 @@ class OpenSearchIndexScanTest {
               .highlighter(highlight);
       OpenSearchRequest request =
           OpenSearchQueryRequest.pitOf(
-              EMPLOYEES_INDEX, sourceBuilder, factory, List.of(), CURSOR_KEEP_ALIVE, null, false);
+              EMPLOYEES_INDEX, sourceBuilder, factory, List.of(), CURSOR_KEEP_ALIVE, null);
 
       when(client.search(request)).thenReturn(response);
       var indexScan =
@@ -422,7 +416,7 @@ class OpenSearchIndexScanTest {
               .timeout(CURSOR_KEEP_ALIVE);
       OpenSearchRequest request =
           OpenSearchQueryRequest.pitOf(
-              EMPLOYEES_INDEX, builder, factory, List.of(), CURSOR_KEEP_ALIVE, null, false);
+              EMPLOYEES_INDEX, builder, factory, List.of(), CURSOR_KEEP_ALIVE, null);
       when(client.search(request)).thenReturn(response);
       var indexScan =
           new OpenSearchIndexScan(

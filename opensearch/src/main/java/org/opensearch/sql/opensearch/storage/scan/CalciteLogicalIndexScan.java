@@ -406,15 +406,21 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       if (pushDownContext.isAggregatePushed()) {
         // Push down the limit into the aggregation bucket in advance to detect whether the limit
         // can update the aggregation builder
-        boolean updated =
+        boolean canUpdate =
             pushDownContext.getAggPushDownAction().pushDownLimitIntoBucketSize(limit + offset);
-        if (!updated && offset > 0) return null;
+        if (!canUpdate && offset > 0) return null;
         CalciteLogicalIndexScan newScan = this.copyWithNewSchema(getRowType());
+        if (newScan.pushDownContext.getAggPushDownAction().isCompositeAggregation()) {
+          newScan
+              .pushDownContext
+              .getAggPushDownAction()
+              .updateRequestedTotalInCompositeAgg(limit + offset);
+        }
         // Simplify the action if it doesn't update the aggregation builder, otherwise keep the
-        // original action
-        // It won't change the aggregation builder by do this action again since it's idempotent
+        // original action.
+        // It changes the aggregation builder only when the argument 'update' is true.
         AggregationBuilderAction action =
-            updated
+            canUpdate
                 ? aggAction -> aggAction.pushDownLimitIntoBucketSize(limit + offset)
                 : aggAction -> {};
         newScan.pushDownContext.add(PushDownType.LIMIT, new LimitDigest(limit, offset), action);

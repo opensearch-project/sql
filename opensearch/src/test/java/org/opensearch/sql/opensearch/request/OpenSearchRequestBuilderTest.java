@@ -133,8 +133,7 @@ class OpenSearchRequestBuilderTest {
             exprValueFactory,
             List.of(),
             TimeValue.timeValueMinutes(1),
-            "samplePITId",
-            false),
+            "samplePITId"),
         requestBuilder.build(indexName, DEFAULT_QUERY_TIMEOUT, client));
   }
 
@@ -156,8 +155,7 @@ class OpenSearchRequestBuilderTest {
             exprValueFactory,
             List.of(),
             TimeValue.timeValueMinutes(1),
-            "samplePITId",
-            false),
+            "samplePITId"),
         requestBuilder.build(indexName, DEFAULT_QUERY_TIMEOUT, client));
   }
 
@@ -193,8 +191,7 @@ class OpenSearchRequestBuilderTest {
             exprValueFactory,
             List.of(),
             TimeValue.timeValueMinutes(1),
-            "samplePITId",
-            false),
+            "samplePITId"),
         requestBuilder.build(indexName, DEFAULT_QUERY_TIMEOUT, client));
   }
 
@@ -450,8 +447,7 @@ class OpenSearchRequestBuilderTest {
             exprValueFactory,
             List.of("intA"),
             DEFAULT_QUERY_TIMEOUT,
-            "samplePITId",
-            false),
+            "samplePITId"),
         requestBuilder.build(indexName, DEFAULT_QUERY_TIMEOUT, client));
   }
 
@@ -579,8 +575,7 @@ class OpenSearchRequestBuilderTest {
             exprValueFactory,
             List.of("intA"),
             DEFAULT_QUERY_TIMEOUT,
-            "samplePITId",
-            false),
+            "samplePITId"),
         requestBuilder.build(indexName, DEFAULT_QUERY_TIMEOUT, client));
   }
 
