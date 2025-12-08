@@ -19,11 +19,10 @@ import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexCallBinding;
-import org.apache.calcite.rex.RexLambda;
-import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.type.ArraySqlType;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
@@ -43,9 +42,7 @@ public class TransformFunctionImpl extends ImplementorUDF {
   public SqlReturnTypeInference getReturnTypeInference() {
     return sqlOperatorBinding -> {
       RelDataTypeFactory typeFactory = sqlOperatorBinding.getTypeFactory();
-      RexCallBinding rexCallBinding = (RexCallBinding) sqlOperatorBinding;
-      List<RexNode> operands = rexCallBinding.operands();
-      RelDataType lambdaReturnType = ((RexLambda) operands.get(1)).getExpression().getType();
+      RelDataType lambdaReturnType = sqlOperatorBinding.getOperandType(1);
       return createArrayType(
           typeFactory, typeFactory.createTypeWithNullability(lambdaReturnType, true), true);
     };
@@ -53,7 +50,8 @@ public class TransformFunctionImpl extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return null;
+    return UDFOperandMetadata.wrap(
+        OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.FUNCTION));
   }
 
   public static class TransformImplementor implements NotNullImplementor {
