@@ -444,6 +444,7 @@ ARRAY_LENGTH:                       'ARRAY_LENGTH';
 MVAPPEND:                           'MVAPPEND';
 MVJOIN:                             'MVJOIN';
 MVINDEX:                            'MVINDEX';
+MVFIND:                             'MVFIND';
 MVDEDUP:                            'MVDEDUP';
 FORALL:                             'FORALL';
 FILTER:                             'FILTER';
