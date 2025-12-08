@@ -73,9 +73,11 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
         // We can downgrade to still use `Sarg` literal instead of replacing it with parameter.
       }
     }
+    // Some functions only support limited numeric type. Keep conservative here.
+    // TODO: Use type checker to be more precise.
     boolean allowNumericTypeWiden =
         call.op.kind.belongsTo(SqlKind.BINARY_ARITHMETIC)
-            || call.op.kind.belongsTo(SqlKind.BINARY_COMPARISON);
+            || call.op.kind.belongsTo(SqlKind.COMPARISON);
     helper.stack.push(allowNumericTypeWiden);
     try {
       boolean[] update = {false};
