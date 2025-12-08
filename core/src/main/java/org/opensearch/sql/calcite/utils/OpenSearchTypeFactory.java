@@ -331,8 +331,12 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
 
   @Override
   public @Nullable RelDataType leastRestrictive(List<RelDataType> types) {
-    // In parent: leastRestrictive(types, SqlTypeMappingRules.instance(false))
-    return leastRestrictive(types, PplTypeCoercionRule.assignmentInstance());
+    RelDataType type = leastRestrictive(types, PplTypeCoercionRule.assignmentInstance());
+    // Convert CHAR(precision) to VARCHAR so that results won't be padded
+    if (type != null && SqlTypeName.CHAR.equals(type.getSqlTypeName())) {
+      return createSqlType(SqlTypeName.VARCHAR, type.isNullable());
+    }
+    return type;
   }
 
   /**
