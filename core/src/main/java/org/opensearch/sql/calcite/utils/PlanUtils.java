@@ -29,7 +29,6 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
-import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
@@ -605,16 +604,7 @@ public interface PlanUtils {
     assert relBuilder.peek() instanceof LogicalAggregate
         : "Stats hits should be added to LogicalAggregate";
     relBuilder.hints(statHits);
-    relBuilder
-        .getCluster()
-        .setHintStrategies(
-            HintStrategyTable.builder()
-                .hintStrategy(
-                    "stats_args",
-                    (hint, rel) -> {
-                      return rel instanceof LogicalAggregate;
-                    })
-                .build());
+    relBuilder.getCluster().setHintStrategies(PPLHintStrategyTable.getHintStrategyTable());
   }
 
   /** Extract the RexLiteral from the aggregate call if the aggregate call is a LITERAL_AGG. */

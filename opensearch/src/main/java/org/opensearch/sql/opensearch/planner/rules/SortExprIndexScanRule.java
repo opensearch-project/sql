@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelFieldCollation.Direction;
 import org.apache.calcite.rel.core.Project;
@@ -27,6 +26,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.immutables.value.Value;
+import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
@@ -39,14 +39,14 @@ import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
  * the OpenSearch level for better performance.
  */
 @Value.Enclosing
-public class SortExprIndexScanRule extends RelRule<SortExprIndexScanRule.Config> {
+public class SortExprIndexScanRule extends InterruptibleRelRule<SortExprIndexScanRule.Config> {
 
   protected SortExprIndexScanRule(SortExprIndexScanRule.Config config) {
     super(config);
   }
 
   @Override
-  public void onMatch(RelOptRuleCall call) {
+  protected void onMatchImpl(RelOptRuleCall call) {
     final LogicalSort sort = call.rel(0);
     final LogicalProject project = call.rel(1);
     final CalciteLogicalIndexScan scan = call.rel(2);
@@ -232,7 +232,7 @@ public class SortExprIndexScanRule extends RelRule<SortExprIndexScanRule.Config>
 
   /** Rule configuration. */
   @Value.Immutable
-  public interface Config extends RelRule.Config {
+  public interface Config extends OpenSearchRuleConfig {
     SortExprIndexScanRule.Config DEFAULT =
         ImmutableSortExprIndexScanRule.Config.builder()
             .build()

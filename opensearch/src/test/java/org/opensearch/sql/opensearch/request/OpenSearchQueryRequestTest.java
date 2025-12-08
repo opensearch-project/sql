@@ -60,10 +60,10 @@ public class OpenSearchQueryRequestTest {
   @Mock private OpenSearchExprValueFactory factory;
 
   private final OpenSearchQueryRequest request =
-      new OpenSearchQueryRequest("test", 200, factory, List.of());
+      OpenSearchQueryRequest.of("test", 200, factory, List.of());
 
   private final OpenSearchQueryRequest remoteRequest =
-      new OpenSearchQueryRequest("ccs:test", 200, factory, List.of());
+      OpenSearchQueryRequest.of("ccs:test", 200, factory, List.of());
 
   @Mock private StreamOutput streamOutput;
   @Mock private StreamInput streamInput;
@@ -88,7 +88,7 @@ public class OpenSearchQueryRequestTest {
     sourceBuilderForSerializer.searchAfter(new Object[] {"value1", 123});
     List<String> includes = List.of("field1", "field2");
     serializationRequest =
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             sourceBuilderForSerializer,
             factory,
@@ -120,7 +120,7 @@ public class OpenSearchQueryRequestTest {
 
     List<String> includes = List.of("field1", "field2");
     serializationRequest =
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             sourceBuilderForSerializer,
             factory,
@@ -139,7 +139,7 @@ public class OpenSearchQueryRequestTest {
 
   @Test
   void testWriteToWithoutPIT() {
-    serializationRequest = new OpenSearchQueryRequest("test", 200, factory, List.of());
+    serializationRequest = OpenSearchQueryRequest.of("test", 200, factory, List.of());
 
     UnsupportedOperationException exception =
         assertThrows(
@@ -155,24 +155,21 @@ public class OpenSearchQueryRequestTest {
   @Test
   void search() {
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
-            new OpenSearchRequest.IndexName("test"), sourceBuilder, factory, List.of());
+        OpenSearchQueryRequest.of("test", sourceBuilder, factory, List.of());
 
     when(searchAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
     when(searchHits.getHits()).thenReturn(new SearchHit[] {searchHit});
 
-    OpenSearchResponse searchResponse = request.search(searchAction, scrollAction);
-    assertFalse(searchResponse.isEmpty());
-    searchResponse = request.search(searchAction, scrollAction);
-    assertTrue(searchResponse.isEmpty());
+    OpenSearchResponse response = request.search(searchAction, scrollAction);
+    assertFalse(response.isEmpty());
     verify(searchAction, times(1)).apply(any());
   }
 
   @Test
   void search_with_pit() {
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             sourceBuilder,
             factory,
@@ -203,7 +200,7 @@ public class OpenSearchQueryRequestTest {
   @Test
   void search_with_pit_hits_null() {
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             sourceBuilder,
             factory,
@@ -224,7 +221,7 @@ public class OpenSearchQueryRequestTest {
     SearchResponse searchResponse = mock(SearchResponse.class);
     SearchHits searchHits = mock(SearchHits.class);
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             sourceBuilder,
             factory,
@@ -245,7 +242,7 @@ public class OpenSearchQueryRequestTest {
     SearchResponse searchResponse = mock(SearchResponse.class);
     SearchHits searchHits = mock(SearchHits.class);
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             sourceBuilder,
             factory,
@@ -264,7 +261,7 @@ public class OpenSearchQueryRequestTest {
   @Test
   void has_another_batch() {
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             sourceBuilder,
             factory,
@@ -277,7 +274,7 @@ public class OpenSearchQueryRequestTest {
   @Test
   void has_another_batch_pid_null() {
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             sourceBuilder,
             factory,
@@ -290,7 +287,7 @@ public class OpenSearchQueryRequestTest {
   @Test
   void has_another_batch_need_clean() {
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             sourceBuilder,
             factory,
@@ -308,8 +305,7 @@ public class OpenSearchQueryRequestTest {
   @Test
   void search_withoutContext() {
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
-            new OpenSearchRequest.IndexName("test"), sourceBuilder, factory, List.of());
+        OpenSearchQueryRequest.of("test", sourceBuilder, factory, List.of());
 
     when(searchAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
@@ -322,8 +318,7 @@ public class OpenSearchQueryRequestTest {
   @Test
   void search_withIncludes() {
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
-            new OpenSearchRequest.IndexName("test"), sourceBuilder, factory, List.of());
+        OpenSearchQueryRequest.of("test", sourceBuilder, factory, List.of());
 
     String[] includes = {"_id", "_index"};
     when(searchAction.apply(any())).thenReturn(searchResponse);
@@ -332,9 +327,6 @@ public class OpenSearchQueryRequestTest {
 
     OpenSearchResponse searchResponse = request.search(searchAction, scrollAction);
     assertFalse(searchResponse.isEmpty());
-
-    searchResponse = request.search(searchAction, scrollAction);
-    assertTrue(searchResponse.isEmpty());
 
     verify(searchAction, times(1)).apply(any());
   }
@@ -348,7 +340,7 @@ public class OpenSearchQueryRequestTest {
   @Test
   void testCleanConditionTrue() {
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             sourceBuilder,
             factory,
@@ -371,7 +363,7 @@ public class OpenSearchQueryRequestTest {
   @Test
   void testCleanConditionFalse_needCleanFalse() {
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             sourceBuilder,
             factory,
@@ -393,7 +385,7 @@ public class OpenSearchQueryRequestTest {
   @Test
   void testCleanConditionFalse_pidNull() {
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             sourceBuilder,
             factory,

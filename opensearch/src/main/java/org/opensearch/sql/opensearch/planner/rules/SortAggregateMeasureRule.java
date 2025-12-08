@@ -7,7 +7,6 @@ package org.opensearch.sql.opensearch.planner.rules;
 
 import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.immutables.value.Value;
@@ -17,14 +16,15 @@ import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
 @Value.Enclosing
-public class SortAggregateMeasureRule extends RelRule<SortAggregateMeasureRule.Config> {
+public class SortAggregateMeasureRule
+    extends InterruptibleRelRule<SortAggregateMeasureRule.Config> {
 
   protected SortAggregateMeasureRule(Config config) {
     super(config);
   }
 
   @Override
-  public void onMatch(RelOptRuleCall call) {
+  protected void onMatchImpl(RelOptRuleCall call) {
     final LogicalSort sort = call.rel(0);
     final CalciteLogicalIndexScan scan = call.rel(1);
     CalciteLogicalIndexScan newScan = scan.pushDownSortAggregateMeasure(sort);

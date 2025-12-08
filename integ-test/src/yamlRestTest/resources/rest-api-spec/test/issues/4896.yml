@@ -1,0 +1,204 @@
+# Issue: https://github.com/opensearch-project/sql/issues/4896
+# ArrayIndexOutOfBoundsException when querying index with malformed field names in disabled object
+#
+# Root cause: When a document has a field name with problematic dot patterns (e.g., ".", "..", ".a",
+# "a.", "a..b"), the JsonPath parsing logic fails because String.split("\\.") produces empty strings.
+#
+# This can happen when an index has a disabled object field (enabled: false), which allows storing
+# documents without validating inner field names. Normal OpenSearch indices reject such field names.
+#
+# Fix: The query engine now detects malformed field names and returns null for those fields,
+# allowing the rest of the document to be processed normally.
+
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+  # Create index with disabled object field to allow unusual field names
+  - do:
+      indices.create:
+        index: test_malformed_fields_4896
+        body:
+          mappings:
+            properties:
+              log:
+                type: object
+                enabled: false
+              "@timestamp":
+                type: date
+              message:
+                type: text
+              status:
+                type: keyword
+
+  # Use bulk indexing to create all test documents
+  - do:
+      bulk:
+        index: test_malformed_fields_4896
+        refresh: true
+        body:
+          - '{"index": {"_id": "1"}}'
+          - '{"@timestamp": "2025-11-26T17:10:00.000Z", "message": "single dot test", "status": "ok", "log": {".": "dot only value", "valid": "normal value"}}'
+          - '{"index": {"_id": "2"}}'
+          - '{"@timestamp": "2025-11-26T17:11:00.000Z", "message": "double dot test", "status": "ok", "log": {"..": "double dot value", "valid": "normal value"}}'
+          - '{"index": {"_id": "3"}}'
+          - '{"@timestamp": "2025-11-26T17:12:00.000Z", "message": "triple dot test", "status": "ok", "log": {"...": "triple dot value", "valid": "normal value"}}'
+          - '{"index": {"_id": "4"}}'
+          - '{"@timestamp": "2025-11-26T17:13:00.000Z", "message": "leading dot test", "status": "ok", "log": {".a": "leading dot value", "valid": "normal value"}}'
+          - '{"index": {"_id": "5"}}'
+          - '{"@timestamp": "2025-11-26T17:14:00.000Z", "message": "trailing dot test", "status": "ok", "log": {"a.": "trailing dot value", "valid": "normal value"}}'
+          - '{"index": {"_id": "6"}}'
+          - '{"@timestamp": "2025-11-26T17:15:00.000Z", "message": "consecutive dots test", "status": "ok", "log": {"a..b": "consecutive dots value", "valid": "normal value"}}'
+          - '{"index": {"_id": "7"}}'
+          - '{"@timestamp": "2025-11-26T17:16:00.000Z", "message": "multiple malformed test", "status": "ok", "log": {".": "dot1", "..": "dot2", ".leading": "dot3", "trailing.": "dot4", "mid..dle": "dot5", "valid1": "normal1", "valid2": "normal2"}}'
+          - '{"index": {"_id": "8"}}'
+          - '{"@timestamp": "2025-11-26T17:17:00.000Z", "message": "valid nested test", "status": "ok", "log": {"nested.field": "nested value"}}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+  - do:
+      indices.delete:
+        index: test_malformed_fields_4896
+
+---
+"Query all documents with unusual field names succeeds":
+  - skip:
+      features:
+        - headers
+  # Before the fix: ArrayIndexOutOfBoundsException: Index 0 out of bounds for length 0
+  # After the fix: Query succeeds for all documents
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_malformed_fields_4896 | fields @timestamp, message, status | sort @timestamp
+  - match: { "total": 8 }
+  - match: { "datarows.0.0": "2025-11-26 17:10:00" }
+  - match: { "datarows.0.1": "single dot test" }
+  - match: { "datarows.7.0": "2025-11-26 17:17:00" }
+  - match: { "datarows.7.1": "valid nested test" }
+
+---
+"Single dot field name returns null for malformed field":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_malformed_fields_4896 | where message = "single dot test" | fields log
+  - match: { "total": 1 }
+  # The "." field returns null, so log contains only the valid field
+  - match: { "datarows.0.0": {"valid": "normal value"} }
+
+---
+"Multiple dots field name returns null for malformed field":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_malformed_fields_4896 | where message = "double dot test" | fields log
+  - match: { "total": 1 }
+  # The ".." field returns null, so log contains only the valid field
+  - match: { "datarows.0.0": {"valid": "normal value"} }
+
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_malformed_fields_4896 | where message = "triple dot test" | fields log
+  - match: { "total": 1 }
+  # The "..." field returns null, so log contains only the valid field
+  - match: { "datarows.0.0": {"valid": "normal value"} }
+
+---
+"Leading dot field name returns null for malformed field":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_malformed_fields_4896 | where message = "leading dot test" | fields log
+  - match: { "total": 1 }
+  # The ".a" field returns null, so log contains only the valid field
+  - match: { "datarows.0.0": {"valid": "normal value"} }
+
+---
+"Trailing dot field name returns null for malformed field":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_malformed_fields_4896 | where message = "trailing dot test" | fields log
+  - match: { "total": 1 }
+  # The "a." field returns null, so log contains only the valid field
+  - match: { "datarows.0.0": {"valid": "normal value"} }
+
+---
+"Consecutive dots field name returns null for malformed field":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_malformed_fields_4896 | where message = "consecutive dots test" | fields log
+  - match: { "total": 1 }
+  # The "a..b" field returns null, so log contains only the valid field
+  - match: { "datarows.0.0": {"valid": "normal value"} }
+
+---
+"Multiple malformed fields coexist with valid fields":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_malformed_fields_4896 | where message = "multiple malformed test" | fields log
+  - match: { "total": 1 }
+  # All malformed fields return null, only valid fields remain
+  - match: { "datarows.0.0": {"valid1": "normal1", "valid2": "normal2"} }
+
+---
+"Valid nested field still works (issue #3477 compatibility)":
+  - skip:
+      features:
+        - headers
+  # This tests that the fix for #4896 doesn't break the flattening behavior from #3477
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_malformed_fields_4896 | where message = "valid nested test" | fields log
+  - match: { "total": 1 }
+  # Valid nested field "nested.field" is properly expanded to nested structure
+  - match: { "datarows.0.0": {"nested": {"field": "nested value"}} }
+
