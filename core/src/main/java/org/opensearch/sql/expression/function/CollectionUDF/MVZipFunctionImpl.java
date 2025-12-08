@@ -9,6 +9,7 @@ import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -80,7 +81,7 @@ public class MVZipFunctionImpl extends ImplementorUDF {
         // mvzip(left, right) - use default delimiter ","
         return Expressions.call(
             Types.lookupMethod(
-                MVZipFunctionImpl.class, "mvzip", Object.class, Object.class, String.class),
+                MVZipFunctionImpl.class, "mvzip", List.class, List.class, String.class),
             translatedOperands.get(0),
             translatedOperands.get(1),
             Expressions.constant(","));
@@ -88,7 +89,7 @@ public class MVZipFunctionImpl extends ImplementorUDF {
         // mvzip(left, right, delimiter)
         return Expressions.call(
             Types.lookupMethod(
-                MVZipFunctionImpl.class, "mvzip", Object.class, Object.class, String.class),
+                MVZipFunctionImpl.class, "mvzip", List.class, List.class, String.class),
             translatedOperands.get(0),
             translatedOperands.get(1),
             translatedOperands.get(2));
@@ -100,9 +101,7 @@ public class MVZipFunctionImpl extends ImplementorUDF {
   }
 
   /**
-   * Combines two multivalue arrays pairwise with a delimiter. Note: Parameters are typed as Object
-   * (rather than List) because Calcite's reflection-based method lookup uses Object.class. Type
-   * validation is enforced at compile time via {@link #getOperandMetadata()}.
+   * Combines two multivalue arrays pairwise with a delimiter.
    *
    * @param left The left multivalue array
    * @param right The right multivalue array
@@ -110,29 +109,20 @@ public class MVZipFunctionImpl extends ImplementorUDF {
    * @return A list of combined values, empty list if either array is empty, or null if either input
    *     is null
    */
-  public static List<Object> mvzip(Object left, Object right, String delimiter) {
+  public static List<Object> mvzip(List<?> left, List<?> right, String delimiter) {
     if (left == null || right == null) {
       return null;
     }
 
-    List<?> leftList = toList(left);
-    List<?> rightList = toList(right);
-
     List<Object> result = new ArrayList<>();
-    int minLength = Math.min(leftList.size(), rightList.size());
+    int minLength = Math.min(left.size(), right.size());
 
     for (int i = 0; i < minLength; i++) {
-      String combined = leftList.get(i) + delimiter + rightList.get(i);
+      String combined =
+          Objects.toString(left.get(i), "") + delimiter + Objects.toString(right.get(i), "");
       result.add(combined);
     }
 
     return result;
-  }
-
-  private static List<?> toList(Object obj) {
-    if (obj instanceof List) {
-      return (List<?>) obj;
-    }
-    return List.of(obj);
   }
 }
