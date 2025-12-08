@@ -7,7 +7,6 @@ package org.opensearch.sql.api;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.Mockito.when;
 
 import java.util.Map;
 import org.apache.calcite.rel.RelNode;
@@ -199,9 +198,6 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
 
   @Test
   public void testJoinQuery() {
-    when(testSettings.getSettingValue(Settings.Key.CALCITE_SUPPORT_ALL_JOIN_TYPES))
-      .thenReturn(true);
-
     UnifiedQueryPlanner planner = UnifiedQueryPlanner.builder()
       .language(QueryType.PPL)
       .catalog("opensearch", testSchema)
@@ -209,8 +205,6 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
       .settings(testSettings)
       .build();
 
-    planner.plan(
-      "source = index | join on index.id = index2.id index2"
-    );
+    planner.plan("source = index | join on index.id = index2.id index2");
   }
 }
