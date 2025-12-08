@@ -57,7 +57,7 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return UDFOperandMetadata.wrap(OperandTypes.family(SqlTypeFamily.STRING));
+    return UDFOperandMetadata.wrap(OperandTypes.CHARACTER);
   }
 
   public static class JsonExtractAllImplementor implements NotNullImplementor {
