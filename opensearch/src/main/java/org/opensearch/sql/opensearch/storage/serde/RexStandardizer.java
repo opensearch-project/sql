@@ -74,7 +74,6 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
       }
     }
     // Some functions only support limited numeric type. Keep conservative here.
-    // TODO: Use type checker to be more precise.
     boolean allowNumericTypeWiden =
         call.op.kind.belongsTo(SqlKind.BINARY_ARITHMETIC)
             || call.op.kind.belongsTo(SqlKind.COMPARISON);
