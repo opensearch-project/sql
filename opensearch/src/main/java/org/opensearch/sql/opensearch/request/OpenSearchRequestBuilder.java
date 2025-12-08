@@ -21,7 +21,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.ToString;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.lucene.search.join.ScoreMode;
@@ -60,7 +59,7 @@ public class OpenSearchRequestBuilder {
   private final SearchSourceBuilder sourceBuilder;
 
   /** Query size of the request -- how many rows will be returned. */
-  @Setter private int requestedTotalSize = Integer.MAX_VALUE;
+  private int requestedTotalSize = Integer.MAX_VALUE;
 
   /** Size of each page request to return. */
   private Integer pageSize = null;
@@ -240,6 +239,16 @@ public class OpenSearchRequestBuilder {
     for (Supplier<SortBuilder<?>> sortBuilderSupplier : sortBuilderSuppliers) {
       sourceBuilder.sort(sortBuilderSupplier.get());
     }
+  }
+
+  /** Push down the limit to requestedTotalSize for paginating aggregation. */
+  public void pushDownLimitToRequestTotal(Integer limit, Integer offset) {
+    requestedTotalSize = Math.min(requestedTotalSize, limit + offset);
+  }
+
+  /** Reset the requestedTotalSize since we convert composite aggregation to others. */
+  public void resetRequestTotal() {
+    requestedTotalSize = Integer.MAX_VALUE;
   }
 
   public void pushDownLimit(Integer limit, Integer offset) {

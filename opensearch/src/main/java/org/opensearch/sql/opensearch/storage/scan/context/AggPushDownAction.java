@@ -50,8 +50,6 @@ public class AggPushDownAction implements OSRequestBuilderAction {
   private final long scriptCount;
   // Record the output field names of all buckets as the sequence of buckets
   private List<String> bucketNames;
-  // An optimization to fast return in paginating composite aggregation
-  private int requestedTotalInCompositeAgg;
 
   public AggPushDownAction(
       Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> builderAndParser,
@@ -62,7 +60,6 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     this.scriptCount =
         builderAndParser.getLeft().stream().mapToInt(AggPushDownAction::getScriptCount).sum();
     this.bucketNames = bucketNames;
-    resetRequestedTotalInCompositeAgg();
   }
 
   private static int getScriptCount(AggregationBuilder aggBuilder) {
@@ -87,12 +84,6 @@ public class AggPushDownAction implements OSRequestBuilderAction {
   public void apply(OpenSearchRequestBuilder requestBuilder) {
     requestBuilder.pushDownAggregation(builderAndParser);
     requestBuilder.pushTypeMapping(extendedTypeMapping);
-    // The bucket size is not the total requested size in
-    // composite aggregation when paginating is supported.
-    // Integer.MAX_VALUE is always correct but not efficient,
-    // so we set the requested total size to the pushed limit size.
-    // We only apply this optimization in v3.
-    requestBuilder.setRequestedTotalSize(requestedTotalInCompositeAgg);
   }
 
   /** Convert a {@link CompositeAggregationParser} to {@link BucketAggregationParser} */
@@ -113,16 +104,6 @@ public class AggPushDownAction implements OSRequestBuilderAction {
         .map(TermsValuesSourceBuilder.class::cast)
         .map(TermsValuesSourceBuilder::name)
         .collect(Collectors.joining("|")); // PIPE cannot be used in identifier
-  }
-
-  /** Reset the requestedTotalInCompositeAgg since we convert composite to non-composite. */
-  public void resetRequestedTotalInCompositeAgg() {
-    this.requestedTotalInCompositeAgg = Integer.MAX_VALUE;
-  }
-
-  /** Update the requestedTotalInCompositeAgg to a less value. */
-  public void updateRequestedTotalInCompositeAgg(int newLimit) {
-    this.requestedTotalInCompositeAgg = Math.min(this.requestedTotalInCompositeAgg, newLimit);
   }
 
   /** Re-pushdown a sort aggregation measure to replace the pushed composite aggregation */
@@ -166,7 +147,6 @@ public class AggPushDownAction implements OSRequestBuilderAction {
               "Cannot pushdown sort aggregate measure");
         }
       }
-      resetRequestedTotalInCompositeAgg();
       builderAndParser =
           Pair.of(
               Collections.singletonList(aggregationBuilder),
@@ -220,7 +200,6 @@ public class AggPushDownAction implements OSRequestBuilderAction {
               "Cannot pushdown " + digest);
         }
       }
-      resetRequestedTotalInCompositeAgg();
       builderAndParser =
           Pair.of(
               Collections.singletonList(aggregationBuilder),

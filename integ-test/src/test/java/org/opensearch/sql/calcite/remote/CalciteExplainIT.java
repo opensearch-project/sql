@@ -1329,6 +1329,13 @@ public class CalciteExplainIT extends ExplainIT {
               "source=opensearch-sql_test_index_account | stats count() as c by state | join"
                   + " type=inner state [ source=opensearch-sql_test_index_bank | stats count()"
                   + " as c by state ]"));
+      expected = loadExpectedPlan("explain_agg_paginating_join4.yaml");
+      assertYamlEqualsIgnoreId(
+          expected,
+          explainQueryYaml(
+              "source=opensearch-sql_test_index_account | stats count() as c by state | head 10"
+                  + " | join type=inner state [ source=opensearch-sql_test_index_account"
+                  + " | stats count() as c by state ]"));
     } finally {
       resetQueryBucketSize();
     }
