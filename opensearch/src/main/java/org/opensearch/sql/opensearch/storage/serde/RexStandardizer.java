@@ -203,6 +203,7 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
     // OpenSearch doesn't accept big decimal value in its script.
     // So try to return its double value directly as we don't really support decimal literal.
     if (SqlTypeUtil.isDecimal(literal.getType()) && literal.getValue() instanceof BigDecimal) {
+      // Note: Precision may be lost for values with > 15-17 significant digits
       return ((BigDecimal) literal.getValue()).doubleValue();
     }
     org.apache.calcite.linq4j.tree.Expression expression =
@@ -218,8 +219,13 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
   }
 
   /**
-   * Widen the input type to a wider and nullable type 1. TINYINT, SMALLINT, INTEGER, BIGINT ->
-   * BIGINT 2. FLOAT, REAL, DOUBLE, DECIMAL -> DOUBLE 3. CHAR(*), VARCHAR -> VARCHAR
+   * Widen the input type to a wider and nullable type
+   *
+   * <p>1. TINYINT, SMALLINT, INTEGER, BIGINT -> BIGINT
+   *
+   * <p>2. FLOAT, REAL, DOUBLE, DECIMAL -> DOUBLE
+   *
+   * <p>3. CHAR(*), VARCHAR -> VARCHAR
    *
    * @param type input type
    * @param allowNumericTypeWiden whether allow numeric type widening
@@ -240,7 +246,7 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
         return OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, true);
       }
     }
-    return type;
+    return OpenSearchTypeFactory.TYPE_FACTORY.createTypeWithNullability(type, true);
   }
 
   public static RexNode standardizeRexNodeExpression(
