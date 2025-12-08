@@ -9,6 +9,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
+import com.google.common.collect.ImmutableRangeSet;
+import com.google.common.collect.Range;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import org.apache.calcite.plan.RelOptCluster;
@@ -17,8 +20,11 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.StructKind;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Sarg;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
@@ -45,6 +51,7 @@ public class RelJsonSerializerTest {
           .builder()
           .kind(StructKind.FULLY_QUALIFIED)
           .add("Referer", rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR))
+          .add("Number", rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER))
           .build();
   private final Map<String, ExprType> fieldTypes = Map.of("Referer", ExprCoreType.STRING);
 
@@ -215,5 +222,130 @@ public class RelJsonSerializerTest {
     assertEquals(expectedNode, expr);
     assertEquals(List.of(0, 1, 2), helper.sources);
     assertEquals(List.of("date", "text", 1), helper.digests);
+  }
+
+  @Test
+  void testRexCallStandardization() {
+    RexNode rexUpper =
+        PPLFuncImpTable.INSTANCE.resolve(
+            rexBuilder,
+            BuiltinFunctionName.GREATER,
+            rexBuilder.makeInputRef(rowType.getFieldList().get(1).getType(), 1),
+            rexBuilder.makeLiteral(10, TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER, true)));
+    RexNode expectedNode =
+        PPLFuncImpTable.INSTANCE.resolve(
+            rexBuilder,
+            BuiltinFunctionName.LESS,
+            rexBuilder.makeDynamicParam(
+                OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.BIGINT, true), 0),
+            rexBuilder.makeDynamicParam(
+                OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.BIGINT, true), 1));
+
+    final ScriptParameterHelper helper =
+        new ScriptParameterHelper(rowType.getFieldList(), fieldTypes, rexBuilder);
+    String code = serializer.serialize(rexUpper, helper);
+    RexNode rexNode = serializer.deserialize(code);
+
+    assertEquals(expectedNode, rexNode);
+    assertEquals(List.of(2, 0), helper.sources);
+    assertEquals(List.of(10, "Number"), helper.digests);
+  }
+
+  @Test
+  void testRelDataTypeStandardization() {
+    RexNode rexUpper =
+        PPLFuncImpTable.INSTANCE.resolve(
+            rexBuilder,
+            BuiltinFunctionName.EQUAL,
+            rexBuilder.makeInputRef(rowType.getFieldList().get(0).getType(), 0),
+            rexBuilder.makeLiteral("aa", TYPE_FACTORY.createSqlType(SqlTypeName.CHAR, 2)));
+    RexNode expectedNode =
+        PPLFuncImpTable.INSTANCE.resolve(
+            rexBuilder,
+            BuiltinFunctionName.EQUAL,
+            rexBuilder.makeDynamicParam(
+                OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, true), 0),
+            rexBuilder.makeDynamicParam(
+                OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, true), 1));
+
+    final ScriptParameterHelper helper =
+        new ScriptParameterHelper(rowType.getFieldList(), fieldTypes, rexBuilder);
+    String code = serializer.serialize(rexUpper, helper);
+    RexNode rexNode = serializer.deserialize(code);
+
+    assertEquals(expectedNode, rexNode);
+    assertEquals(List.of(0, 2), helper.sources);
+    assertEquals(List.of("Referer", "aa"), helper.digests);
+  }
+
+  @Test
+  void testRelDataTypeStandardization2() {
+    // Won't widen type for function SUBSTRING and keep using INTEGER
+    RexNode rexUpper =
+        PPLFuncImpTable.INSTANCE.resolve(
+            rexBuilder,
+            BuiltinFunctionName.SUBSTRING,
+            rexBuilder.makeInputRef(rowType.getFieldList().get(0).getType(), 0),
+            rexBuilder.makeLiteral(0, TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER, false)),
+            rexBuilder.makeLiteral(2, TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER, false)));
+    RexNode expectedNode =
+        PPLFuncImpTable.INSTANCE.resolve(
+            rexBuilder,
+            BuiltinFunctionName.SUBSTRING,
+            rexBuilder.makeDynamicParam(
+                OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, true), 0),
+            rexBuilder.makeDynamicParam(
+                OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER, true), 1),
+            rexBuilder.makeDynamicParam(
+                OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER, true), 2));
+
+    final ScriptParameterHelper helper =
+        new ScriptParameterHelper(rowType.getFieldList(), fieldTypes, rexBuilder);
+    String code = serializer.serialize(rexUpper, helper);
+    RexNode rexNode = serializer.deserialize(code);
+
+    assertEquals(expectedNode, rexNode);
+    assertEquals(List.of(0, 2, 2), helper.sources);
+    assertEquals(List.of("Referer", 0, 2), helper.digests);
+  }
+
+  @Test
+  void testSerializeAndDeserializeSearch() {
+    RexNode rexUpper =
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.SEARCH,
+            rexBuilder.makeInputRef(rowType.getFieldList().get(1).getType(), 1),
+            rexBuilder.makeSearchArgumentLiteral(
+                Sarg.of(
+                    RexUnknownAs.UNKNOWN,
+                    ImmutableRangeSet.<BigDecimal>builder()
+                        .add(Range.lessThan(BigDecimal.valueOf(10)))
+                        .add(Range.atLeast(BigDecimal.valueOf(20)))
+                        .build()),
+                TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER, true)));
+    RexNode expectedNode =
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.OR,
+            rexBuilder.makeCall(
+                SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
+                rexBuilder.makeDynamicParam(
+                    TYPE_FACTORY.createSqlType(SqlTypeName.BIGINT, true), 0),
+                rexBuilder.makeDynamicParam(
+                    TYPE_FACTORY.createSqlType(SqlTypeName.BIGINT, true), 1)),
+            rexBuilder.makeCall(
+                SqlStdOperatorTable.LESS_THAN,
+                rexBuilder.makeDynamicParam(
+                    TYPE_FACTORY.createSqlType(SqlTypeName.BIGINT, true), 2),
+                rexBuilder.makeDynamicParam(
+                    TYPE_FACTORY.createSqlType(SqlTypeName.BIGINT, true), 3)));
+
+    final ScriptParameterHelper helper =
+        new ScriptParameterHelper(rowType.getFieldList(), fieldTypes, rexBuilder);
+    String code = serializer.serialize(rexUpper, helper);
+    RexNode rexNode = serializer.deserialize(code);
+
+    assertEquals(expectedNode, rexNode);
+    assertEquals(List.of(2, 0, 0, 2), helper.sources);
+    assertEquals(List.of(20, "Number", "Number", 10), helper.digests);
   }
 }

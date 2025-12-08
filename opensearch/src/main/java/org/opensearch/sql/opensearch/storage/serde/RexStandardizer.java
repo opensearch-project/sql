@@ -81,9 +81,10 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
     helper.stack.push(allowNumericTypeWiden);
     try {
       boolean[] update = {false};
-      List<RexNode> clonedOperands = visitList(call.operands, helper, update);
-      Pair<SqlOperator, List<RexNode>> normalized = RexNormalize.normalize(call.op, clonedOperands);
-      return helper.rexBuilder.makeCall(call.getType(), normalized.left, normalized.right);
+      // Do normalization before standardization
+      Pair<SqlOperator, List<RexNode>> normalized = RexNormalize.normalize(call.op, call.operands);
+      List<RexNode> standardizedOperands = visitList(normalized.right, helper, update);
+      return helper.rexBuilder.makeCall(call.getType(), normalized.left, standardizedOperands);
     } finally {
       helper.stack.pop();
     }
