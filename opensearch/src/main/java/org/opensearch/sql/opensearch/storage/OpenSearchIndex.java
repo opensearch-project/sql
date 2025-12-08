@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.opensearch.storage;
 
+import static org.opensearch.search.aggregations.MultiBucketConsumerService.DEFAULT_MAX_BUCKETS;
+
 import com.google.common.annotations.VisibleForTesting;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -198,10 +200,16 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
     return cachedMaxResultWindow;
   }
 
-  public Integer getBucketSize() {
-    return Math.min(
-        settings.getSettingValue(Settings.Key.QUERY_BUCKET_SIZE),
-        settings.getSettingValue(Settings.Key.SEARCH_MAX_BUCKETS));
+  public Integer getQueryBucketSize() {
+    return Math.min(settings.getSettingValue(Settings.Key.QUERY_BUCKET_SIZE), getMaxBuckets());
+  }
+
+  public Integer getMaxBuckets() {
+    try {
+      return settings.getSettingValue(Settings.Key.SEARCH_MAX_BUCKETS);
+    } catch (Exception e) {
+      return DEFAULT_MAX_BUCKETS;
+    }
   }
 
   /** TODO: Push down operations to index scan operator as much as possible in future. */
@@ -293,6 +301,7 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
     return new OpenSearchResourceMonitor(getSettings(), new OpenSearchMemoryHealthy(settings));
   }
 
+  /** The v3 API to build an OpenSearchRequest, calling by CalciteEnumerableIndexScan */
   public OpenSearchRequest buildRequest(OpenSearchRequestBuilder requestBuilder) {
     final TimeValue cursorKeepAlive = settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
     return requestBuilder.build(
