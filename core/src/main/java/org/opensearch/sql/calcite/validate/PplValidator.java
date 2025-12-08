@@ -36,6 +36,13 @@ import org.opensearch.sql.data.type.ExprType;
  */
 public class PplValidator extends SqlValidatorImpl {
   /**
+   * Tracks whether the current deriveType call is at the top level (true) or a recursive call
+   * (false). Top-level calls return user-defined types, while recursive calls return SQL types for
+   * internal validation.
+   */
+  private boolean top;
+
+  /**
    * Creates a PPL validator.
    *
    * @param opTab Operator table containing PPL operators
@@ -49,6 +56,7 @@ public class PplValidator extends SqlValidatorImpl {
       RelDataTypeFactory typeFactory,
       Config config) {
     super(opTab, catalogReader, typeFactory, config);
+    top = true;
   }
 
   /**
@@ -57,7 +65,14 @@ public class PplValidator extends SqlValidatorImpl {
    */
   @Override
   public RelDataType deriveType(SqlValidatorScope scope, SqlNode expr) {
+    // The type has to be sql type during type derivation & validation
+    boolean original = top;
+    top = false;
     RelDataType type = super.deriveType(scope, expr);
+    top = original;
+    if (top) {
+      return sqlTypeToUserDefinedType(type);
+    }
     return userDefinedTypeToSqlType(type);
   }
 
