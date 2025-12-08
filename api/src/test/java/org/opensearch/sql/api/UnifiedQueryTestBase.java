@@ -17,6 +17,7 @@ import org.junit.Before;
 import org.opensearch.sql.executor.QueryType;
 
 /** Base class for unified query tests providing common test schema and utilities. */
+@RunWith(MockitoJUnitRunner.class)
 public abstract class UnifiedQueryTestBase {
 
   /** Test schema containing sample tables for testing */

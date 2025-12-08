@@ -80,17 +80,6 @@ public class UnifiedQueryPlanner {
   }
 
   /**
-   * Constructs a UnifiedQueryPlanner for a given query type and schema root.
-   *
-   * @param queryType the query language type (e.g., PPL)
-   * @param rootSchema the root Calcite schema containing all catalogs and tables
-   * @param defaultPath dot-separated path of schema to set as default schema
-   */
-  public UnifiedQueryPlanner(QueryType queryType, SchemaPlus rootSchema, String defaultPath) {
-      this(queryType, rootSchema, defaultPath, null);
-  }
-
-  /**
    * Parses and analyzes a query string into a Calcite logical plan (RelNode). TODO: Generate
    * optimal physical plan to fully unify query execution and leverage Calcite's optimizer.
    *
