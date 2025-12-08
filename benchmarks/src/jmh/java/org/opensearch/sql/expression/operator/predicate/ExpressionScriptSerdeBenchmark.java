@@ -77,7 +77,8 @@ public class ExpressionScriptSerdeBenchmark {
 
     String serializedStr =
         relJsonSerializer.serialize(
-            rexNotEquals, new ScriptParameterHelper(rowType.getFieldList(), fieldTypes, rexBuilder));
+            rexNotEquals,
+            new ScriptParameterHelper(rowType.getFieldList(), fieldTypes, rexBuilder));
     relJsonSerializer.deserialize(serializedStr);
   }
 }

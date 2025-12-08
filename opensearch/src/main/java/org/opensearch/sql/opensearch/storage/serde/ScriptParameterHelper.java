@@ -59,7 +59,9 @@ public class ScriptParameterHelper {
   List<Object> digests;
 
   public ScriptParameterHelper(
-      List<RelDataTypeField> inputFieldList, Map<String, ExprType> fieldTypes, RexBuilder rexBuilder) {
+      List<RelDataTypeField> inputFieldList,
+      Map<String, ExprType> fieldTypes,
+      RexBuilder rexBuilder) {
     this(inputFieldList, fieldTypes, Collections.emptyMap(), rexBuilder);
   }
 

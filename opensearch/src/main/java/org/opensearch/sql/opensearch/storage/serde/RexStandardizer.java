@@ -7,8 +7,6 @@ package org.opensearch.sql.opensearch.storage.serde;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.ConstantExpression;
@@ -41,17 +39,21 @@ import org.apache.calcite.util.Pair;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
-import org.opensearch.sql.executor.OpenSearchTypeSystem;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.Source;
 
 /**
  * This help standardizes the RexNode expression, the process including:
- * <p> 1. Replace RexInputRef with RexDynamicParam
- * <p> 2. Replace RexLiteral with RexDynamicParam
- * <p> 3. Replace RexCall with equivalent functions
- * <p> 4. Replace RelDataType with a wider type
- * <p> TODO: 5. Do constant folding
+ *
+ * <p>1. Replace RexInputRef with RexDynamicParam
+ *
+ * <p>2. Replace RexLiteral with RexDynamicParam
+ *
+ * <p>3. Replace RexCall with equivalent functions
+ *
+ * <p>4. Replace RelDataType with a wider type
+ *
+ * <p>TODO: 5. Do constant folding
  */
 public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHelper> {
   private static final RexStandardizer standardizer = new RexStandardizer(true);
@@ -71,7 +73,9 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
         // We can downgrade to still use `Sarg` literal instead of replacing it with parameter.
       }
     }
-    boolean allowNumericTypeWiden = call.op.kind.belongsTo(SqlKind.BINARY_ARITHMETIC) ||  call.op.kind.belongsTo(SqlKind.BINARY_COMPARISON);
+    boolean allowNumericTypeWiden =
+        call.op.kind.belongsTo(SqlKind.BINARY_ARITHMETIC)
+            || call.op.kind.belongsTo(SqlKind.BINARY_COMPARISON);
     helper.stack.push(allowNumericTypeWiden);
     try {
       boolean[] update = {false};
@@ -199,7 +203,7 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
     // OpenSearch doesn't accept big decimal value in its script.
     // So try to return its double value directly as we don't really support decimal literal.
     if (SqlTypeUtil.isDecimal(literal.getType()) && literal.getValue() instanceof BigDecimal) {
-      return ((BigDecimal)literal.getValue()).doubleValue();
+      return ((BigDecimal) literal.getValue()).doubleValue();
     }
     org.apache.calcite.linq4j.tree.Expression expression =
         RexToLixTranslator.translateLiteral(
@@ -214,27 +218,24 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
   }
 
   /**
-   * Widen the input type to a wider and nullable type
-   * 1. DECIMAL(*, *) -> DECIMAL(38, 38)
-   * 2. TINYINT, SMALLINT, INTEGER, BIGINT -> BIGINT
-   * 3. FLOAT, REAL, DOUBLE -> DOUBLE
-   * 4. CHAR(*), VARCHAR -> VARCHAR
+   * Widen the input type to a wider and nullable type 1. TINYINT, SMALLINT, INTEGER, BIGINT ->
+   * BIGINT 2. FLOAT, REAL, DOUBLE, DECIMAL -> DOUBLE 3. CHAR(*), VARCHAR -> VARCHAR
+   *
    * @param type input type
    * @param allowNumericTypeWiden whether allow numeric type widening
    * @return widened type
    */
   private static RelDataType widenType(RelDataType type, Boolean allowNumericTypeWiden) {
     if (type instanceof BasicSqlType) {
-      // Scale the decimal type to max precision and scale
-      if (SqlTypeUtil.isDecimal(type)) {
-        return OpenSearchTypeFactory.TYPE_FACTORY.createTypeWithNullability(
-            OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.DECIMAL,
-                OpenSearchTypeSystem.MAX_PRECISION, OpenSearchTypeSystem.MAX_SCALE),
-            true);
-      } else if ((allowNumericTypeWiden == null || allowNumericTypeWiden) && SqlTypeUtil.isExactNumeric(type)) {
-        return OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.BIGINT, true);
-      } else if ((allowNumericTypeWiden == null || allowNumericTypeWiden) && SqlTypeUtil.isApproximateNumeric(type)) {
+      // Downgrade decimal to double since we don't really have that type in core.
+      // Using DECIMAL(38, 38) is another choice, but it will be less efficient and isolate the
+      // shared cases of types.
+      if ((allowNumericTypeWiden == null || allowNumericTypeWiden)
+          && (SqlTypeUtil.isDecimal(type) || SqlTypeUtil.isApproximateNumeric(type))) {
         return OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE, true);
+      } else if ((allowNumericTypeWiden == null || allowNumericTypeWiden)
+          && SqlTypeUtil.isExactNumeric(type)) {
+        return OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.BIGINT, true);
       } else if (SqlTypeUtil.isCharacter(type)) {
         return OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, true);
       }

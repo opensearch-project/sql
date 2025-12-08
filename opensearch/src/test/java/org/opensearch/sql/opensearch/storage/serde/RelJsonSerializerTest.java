@@ -125,7 +125,8 @@ public class RelJsonSerializerTest {
         IllegalStateException.class,
         () ->
             serializer.serialize(
-                illegalRex, new ScriptParameterHelper(rowType.getFieldList(), fieldTypes, rexBuilder)));
+                illegalRex,
+                new ScriptParameterHelper(rowType.getFieldList(), fieldTypes, rexBuilder)));
   }
 
   @Test
