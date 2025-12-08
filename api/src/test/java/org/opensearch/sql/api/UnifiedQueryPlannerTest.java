@@ -198,12 +198,13 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
 
   @Test
   public void testJoinQuery() {
-    UnifiedQueryPlanner planner = UnifiedQueryPlanner.builder()
-      .language(QueryType.PPL)
-      .catalog("opensearch", testSchema)
-      .defaultNamespace("opensearch")
-      .settings(testSettings)
-      .build();
+    UnifiedQueryPlanner planner =
+        UnifiedQueryPlanner.builder()
+            .language(QueryType.PPL)
+            .catalog("opensearch", testSchema)
+            .defaultNamespace("opensearch")
+            .settings(testSettings)
+            .build();
 
     planner.plan("source = index | join on index.id = index2.id index2");
   }

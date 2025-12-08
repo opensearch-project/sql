@@ -68,15 +68,11 @@ public class UnifiedQueryPlanner {
    * @param settings configuration settings for query processing
    */
   public UnifiedQueryPlanner(
-      QueryType queryType,
-      SchemaPlus rootSchema,
-      String defaultPath,
-      Settings settings
-  ) {
-      this.queryType = queryType;
-      this.parser = buildQueryParser(queryType);
-      this.config = buildCalciteConfig(rootSchema, defaultPath);
-      this.settings = settings;
+      QueryType queryType, SchemaPlus rootSchema, String defaultPath, Settings settings) {
+    this.queryType = queryType;
+    this.parser = buildQueryParser(queryType);
+    this.config = buildCalciteConfig(rootSchema, defaultPath);
+    this.settings = settings;
   }
 
   /**
@@ -135,8 +131,7 @@ public class UnifiedQueryPlanner {
     AstStatementBuilder astStmtBuilder =
         new AstStatementBuilder(
             new AstBuilder(query, settings),
-            AstStatementBuilder.StatementBuilderContext.builder().build()
-        );
+            AstStatementBuilder.StatementBuilderContext.builder().build());
     Statement statement = cst.accept(astStmtBuilder);
 
     if (statement instanceof Query) {
