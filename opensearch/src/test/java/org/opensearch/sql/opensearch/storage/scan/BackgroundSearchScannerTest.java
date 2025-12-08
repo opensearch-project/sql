@@ -22,6 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.threadpool.ThreadPool;
@@ -40,14 +41,14 @@ class BackgroundSearchScannerTest {
     client = mock(OpenSearchClient.class);
     nodeClient = mock(NodeClient.class);
     threadPool = mock(ThreadPool.class);
-    request = mock(OpenSearchRequest.class);
+    request = mock(OpenSearchQueryRequest.class);
     executor = Executors.newSingleThreadExecutor();
 
     when(client.getNodeClient()).thenReturn(Optional.of(nodeClient));
     when(nodeClient.threadPool()).thenReturn(threadPool);
     when(threadPool.executor(any())).thenReturn(executor);
 
-    scanner = new BackgroundSearchScanner(client);
+    scanner = new BackgroundSearchScanner(client, 10, 10);
   }
 
   @Test
@@ -55,13 +56,13 @@ class BackgroundSearchScannerTest {
     // Setup client without node client
     OpenSearchClient syncClient = mock(OpenSearchClient.class);
     when(syncClient.getNodeClient()).thenReturn(Optional.empty());
-    scanner = new BackgroundSearchScanner(syncClient);
+    scanner = new BackgroundSearchScanner(syncClient, 10, 10);
 
     OpenSearchResponse response = mockResponse(false, false, 10);
     when(syncClient.search(request)).thenReturn(response);
 
     scanner.startScanning(request);
-    BackgroundSearchScanner.SearchBatchResult result = scanner.fetchNextBatch(request, 10);
+    BackgroundSearchScanner.SearchBatchResult result = scanner.fetchNextBatch(request);
 
     assertFalse(
         result.stopIteration(), "Expected iteration to continue after fetching one full page");
@@ -80,13 +81,13 @@ class BackgroundSearchScannerTest {
     scanner.startScanning(request);
 
     // First batch
-    BackgroundSearchScanner.SearchBatchResult result1 = scanner.fetchNextBatch(request, 10);
+    BackgroundSearchScanner.SearchBatchResult result1 = scanner.fetchNextBatch(request);
     assertFalse(
         result1.stopIteration(), "Expected iteration to continue after fetching 10/15 results");
     assertTrue(result1.iterator().hasNext());
 
     // Second batch
-    BackgroundSearchScanner.SearchBatchResult result2 = scanner.fetchNextBatch(request, 10);
+    BackgroundSearchScanner.SearchBatchResult result2 = scanner.fetchNextBatch(request);
     assertTrue(result2.stopIteration());
     assertFalse(result2.iterator().hasNext());
   }
@@ -97,7 +98,7 @@ class BackgroundSearchScannerTest {
     when(client.search(request)).thenReturn(response);
 
     scanner.startScanning(request);
-    BackgroundSearchScanner.SearchBatchResult result = scanner.fetchNextBatch(request, 10);
+    BackgroundSearchScanner.SearchBatchResult result = scanner.fetchNextBatch(request);
 
     assertTrue(scanner.isScanDone());
   }
@@ -108,7 +109,7 @@ class BackgroundSearchScannerTest {
     when(client.search(request)).thenReturn(response);
 
     scanner.startScanning(request);
-    BackgroundSearchScanner.SearchBatchResult result = scanner.fetchNextBatch(request, 10);
+    BackgroundSearchScanner.SearchBatchResult result = scanner.fetchNextBatch(request);
 
     assertTrue(scanner.isScanDone());
   }
@@ -121,8 +122,8 @@ class BackgroundSearchScannerTest {
     when(client.search(request)).thenReturn(response1).thenReturn(response2);
 
     scanner.startScanning(request);
-    scanner.fetchNextBatch(request, 10);
-    scanner.fetchNextBatch(request, 10);
+    scanner.fetchNextBatch(request);
+    scanner.fetchNextBatch(request);
 
     assertTrue(scanner.isScanDone());
 

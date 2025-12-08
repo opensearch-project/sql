@@ -10,6 +10,6 @@ import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 /** A lambda action to apply on the {@link OpenSearchRequestBuilder} */
 public interface OSRequestBuilderAction extends AbstractAction<OpenSearchRequestBuilder> {
   default void pushOperation(PushDownContext context, PushDownOperation operation) {
-    context.getOperationsForRequestBuilder().add(operation);
+    context.addOperationForRequestBuilder(operation);
   }
 }

@@ -10,7 +10,6 @@ import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_RO
 import static org.opensearch.sql.opensearch.storage.scan.context.PushDownType.AGGREGATION;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.Map;
@@ -132,7 +131,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
                   return rowCount;
                 case SORT_AGG_METRICS:
                   return NumberUtil.min(
-                      rowCount, osIndex.getBucketSize().doubleValue());
+                      rowCount, osIndex.getQueryBucketSize().doubleValue());
                 case FILTER:
                 case SCRIPT:
                   return NumberUtil.multiply(
@@ -280,35 +279,6 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
     return collations.stream()
         .map(collation -> getRowType().getFieldNames().get(collation.getFieldIndex()))
         .collect(Collectors.toList());
-  }
-
-  /**
-   * Check if all sort-by collations equal aggregators that are pushed down. E.g. In `stats avg(age)
-   * as avg_age, sum(age) as sum_age by state | sort avg_age, sum_age`, the sort keys `avg_age`,
-   * `sum_age` which equal the pushed down aggregators `avg(age)`, `sum(age)`.
-   *
-   * @param collations List of collation names to check against aggregators.
-   * @return True if all collation names match all aggregator output, false otherwise.
-   */
-  protected boolean isAllCollationNamesEqualAggregators(List<String> collations) {
-    Stream<LogicalAggregate> aggregates =
-        pushDownContext.stream()
-            .filter(action -> action.type() == AGGREGATION)
-            .map(action -> ((LogicalAggregate) action.digest()));
-    return aggregates
-        .map(aggregate -> isAllCollationNamesEqualAggregators(aggregate, collations))
-        .reduce(false, Boolean::logicalOr);
-  }
-
-  private boolean isAllCollationNamesEqualAggregators(
-      LogicalAggregate aggregate, List<String> collations) {
-    List<String> fieldNames = aggregate.getRowType().getFieldNames();
-    // The output fields of the aggregate are in the format of
-    // [...grouping fields, ...aggregator fields], so we set an offset to skip
-    // the grouping fields.
-    int groupOffset = aggregate.getGroupSet().cardinality();
-    List<String> fieldsWithoutGrouping = fieldNames.subList(groupOffset, fieldNames.size());
-    return new HashSet<>(collations).equals(new HashSet<>(fieldsWithoutGrouping));
   }
 
   /**
