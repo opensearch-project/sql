@@ -29,7 +29,7 @@ public class OpenSearchDefaultImplementorTest {
   @Test
   public void visitMachineLearning() {
     LogicalMLCommons node = Mockito.mock(LogicalMLCommons.class, Answers.RETURNS_DEEP_STUBS);
-    Mockito.when(node.getChild().getFirst()).thenReturn(Mockito.mock(LogicalPlan.class));
+    Mockito.when(node.getChild().get(0)).thenReturn(Mockito.mock(LogicalPlan.class));
     Mockito.when(client.getNodeClient()).thenReturn(Optional.of(Mockito.mock(NodeClient.class)));
     OpenSearchIndex.OpenSearchDefaultImplementor implementor =
         new OpenSearchIndex.OpenSearchDefaultImplementor(client);
@@ -39,7 +39,7 @@ public class OpenSearchDefaultImplementorTest {
   @Test
   public void visitAD() {
     LogicalAD node = Mockito.mock(LogicalAD.class, Answers.RETURNS_DEEP_STUBS);
-    Mockito.when(node.getChild().getFirst()).thenReturn(Mockito.mock(LogicalPlan.class));
+    Mockito.when(node.getChild().get(0)).thenReturn(Mockito.mock(LogicalPlan.class));
     Mockito.when(client.getNodeClient()).thenReturn(Optional.of(Mockito.mock(NodeClient.class)));
     OpenSearchIndex.OpenSearchDefaultImplementor implementor =
         new OpenSearchIndex.OpenSearchDefaultImplementor(client);
@@ -49,7 +49,7 @@ public class OpenSearchDefaultImplementorTest {
   @Test
   public void visitML() {
     LogicalML node = Mockito.mock(LogicalML.class, Answers.RETURNS_DEEP_STUBS);
-    Mockito.when(node.getChild().getFirst()).thenReturn(Mockito.mock(LogicalPlan.class));
+    Mockito.when(node.getChild().get(0)).thenReturn(Mockito.mock(LogicalPlan.class));
     Mockito.when(client.getNodeClient()).thenReturn(Optional.of(Mockito.mock(NodeClient.class)));
     OpenSearchIndex.OpenSearchDefaultImplementor implementor =
         new OpenSearchIndex.OpenSearchDefaultImplementor(client);
