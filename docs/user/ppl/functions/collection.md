@@ -772,6 +772,26 @@ fetched rows / total rows = 1/1
 
 Note: For nested expressions like ``mvmap(mvindex(arr, 1, 3), arr * 2)``, the field name (``arr``) is extracted from the first argument and must match the field referenced in the expression.
 
+The expression can also reference other single-value fields:
+
+```ppl
+source=people
+| eval array = array(1, 2, 3), multiplier = 10, result = mvmap(array, array * multiplier)
+| fields result
+| head 1
+```
+
+Expected output:
+
+```text
+fetched rows / total rows = 1/1
++------------+
+| result     |
+|------------|
+| [10,20,30] |
++------------+
+```
+
 
 ## MVZIP
 
