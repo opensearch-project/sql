@@ -31,9 +31,13 @@ import org.apache.calcite.rel.rel2sql.SqlImplementor;
 import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.dialect.MysqlSqlDialect;
+import org.apache.calcite.sql.dialect.SparkSqlDialect;
+import org.apache.calcite.sql.fun.SqlCountAggFunction;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -80,7 +84,7 @@ public class QueryService {
   private DataSourceService dataSourceService;
   private Settings settings;
   private static final PplRelToSqlNodeConverter rel2sql =
-      new PplRelToSqlNodeConverter(MysqlSqlDialect.DEFAULT);
+      new PplRelToSqlNodeConverter(SparkSqlDialect.DEFAULT);
 
   @Getter(lazy = true)
   private final CalciteRelNodeVisitor relNodeVisitor = new CalciteRelNodeVisitor(dataSourceService);
@@ -323,6 +327,23 @@ public class QueryService {
                       Collections.singletonList(id.names.get(1)), id.getParserPosition());
                 }
                 return id;
+              }
+
+              @Override
+              public @org.checkerframework.checker.nullness.qual.Nullable SqlNode visit(
+                  SqlCall call) {
+                if (call.getOperator() instanceof SqlCountAggFunction
+                    && call.getOperandList().isEmpty()) {
+                  // Convert COUNT() to COUNT(*) so that SqlCall.isCountStar() resolves to True
+                  // This is useful when deriving the return types in SqlCountAggFunction#deriveType
+                  call =
+                      new SqlBasicCall(
+                          SqlStdOperatorTable.COUNT,
+                          List.of(SqlIdentifier.STAR),
+                          call.getParserPosition(),
+                          call.getFunctionQuantifier());
+                }
+                return super.visit(call);
               }
             });
 
