@@ -26,9 +26,9 @@ Find more details in [V3 Architecture](./intro-v3-architecture.md).
 
 In the initial release of the V3 engine (3.0.0), the main new features focus on enhancing the PPL language while maintaining maximum compatibility with V2 behavior.
 
-* **[Join](../user/ppl/cmd/join.rst) Command**
-* **[Lookup](../user/ppl/cmd/lookup.rst) Command**
-* **[Subquery](../user/ppl/cmd/subquery.rst) Command**
+* **[Join](../user/ppl/cmd/join.md) Command**
+* **[Lookup](../user/ppl/cmd/lookup.md) Command**
+* **[Subquery](../user/ppl/cmd/subquery.md) Command**
 
 V3 (Calcite integration) engine is enabled by default in 3.3.0.
 

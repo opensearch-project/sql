@@ -8,7 +8,7 @@ This page covers s3Glue datasource configuration and also how to query and s3Glu
 
 * `EMRServerless Spark Execution Engine Config Setting`:  Since we execute s3Glue queries on top of spark execution engine, we require this configuration.  
   
-  More details: [ExecutionEngine Config](../../../interfaces/asyncqueryinterface.md#id2)
+  More details: [ExecutionEngine Config](../../../interfaces/asyncqueryinterface.rst#id2)
 * `S3`: This is where the data lies.  
 * `Glue` Metadata store: Glue takes care of table metadata.  
 * `Opensearch IndexStore`: Index for s3 data lies in opensearch and also acts as temporary buffer for query results.  
@@ -73,5 +73,5 @@ Sample Queries
 * Create Covering Index Query: `create index clientip_year on my_glue.default.http_logs (clientip, year) WITH (auto_refresh=true)`  
 * Create Skipping Index: `create skipping index on mys3.default.http_logs (status VALUE_SET)`  
   
-These queries would work only top of async queries. Documentation: [Async Query APIs](../../../interfaces/asyncqueryinterface.md)
+These queries would work only top of async queries. Documentation: [Async Query APIs](../../../interfaces/asyncqueryinterface.rst)
 Documentation for Index Queries: https://github.com/opensearch-project/opensearch-spark/blob/main/docs/index.md

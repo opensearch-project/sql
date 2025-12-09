@@ -7,7 +7,7 @@ Security Lake connector provides a way to query Security Lake tables.
 
 * `EMRServerless Spark Execution Engine Config Setting`:  Since we execute s3Glue queries on top of spark execution engine, we require this configuration.  
   
-  More details: [ExecutionEngine Config](../../../interfaces/asyncqueryinterface.md#id2)
+  More details: [ExecutionEngine Config](../../../interfaces/asyncqueryinterface.rst#id2)
 * `S3`: This is where the data lies.  
 * `Glue`: Metadata store: Glue takes care of table metadata.  
 * `Lake Formation`: AWS service that performs authorization on Security Lake tables  
@@ -59,5 +59,5 @@ Sample Queries
 * Select Query : `select * from mysl.amazon_security_lake_glue_db_eu_west_1.amazon_security_lake_table_eu_west_1_vpc_flow_2_0 limit 1`  
 * Create Covering Index Query: `create index srcip_time on mysl.amazon_security_lake_glue_db_eu_west_1.amazon_security_lake_table_eu_west_1_vpc_flow_2_0 (src_endpoint.ip, time) WITH (auto_refresh=true)`  
   
-These queries would work only top of async queries. Documentation: [Async Query APIs](../../../interfaces/asyncqueryinterface.md)
+These queries would work only top of async queries. Documentation: [Async Query APIs](../../../interfaces/asyncqueryinterface.rst)
 Documentation for Index Queries: https://github.com/opensearch-project/opensearch-spark/blob/main/docs/index.md
