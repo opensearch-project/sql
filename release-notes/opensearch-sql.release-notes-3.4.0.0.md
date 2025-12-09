@@ -111,6 +111,7 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.4.0
 * Reverting to _doc + _id ([#4435](https://github.com/opensearch-project/sql/pull/4435))
 
 ### Infrastructure
+* Add config for CodeRabbit review ([#4890](https://github.com/opensearch-project/sql/pull/4890))
 * Split bwc-tests to bwc-rolling-upgrade and bwc-full-restart ([#4716](https://github.com/opensearch-project/sql/pull/4716))
 * Update github workflows to move from macos-13 to 14 ([#4779](https://github.com/opensearch-project/sql/pull/4779))
 * Fix the flaky CalcitePPLTcphIT ([#4846](https://github.com/opensearch-project/sql/pull/4846))
