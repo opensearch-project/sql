@@ -20,41 +20,8 @@ import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryType;
 
+@RunWith(MockitoJUnitRunner.class)
 public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
-// @RunWith(MockitoJUnitRunner.class)
-// public class UnifiedQueryPlannerTest {
-
-//   /** Test schema consists of a test table with id and name columns */
-//   private final AbstractSchema testSchema =
-//       new AbstractSchema() {
-//         @Override
-//         protected Map<String, Table> getTableMap() {
-//           return Map.of(
-//               "index",
-//               new AbstractTable() {
-//                 @Override
-//                 public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-//                   return typeFactory.createStructType(
-//                       List.of(
-//                           typeFactory.createSqlType(SqlTypeName.INTEGER),
-//                           typeFactory.createSqlType(SqlTypeName.VARCHAR)),
-//                       List.of("id", "name"));
-//                 }
-//               },
-//               "index2",
-//               new AbstractTable() {
-//                   @Override
-//                   public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-//                   return typeFactory.createStructType(
-//                       List.of(
-//                           typeFactory.createSqlType(SqlTypeName.INTEGER),
-//                           typeFactory.createSqlType(SqlTypeName.FLOAT)),
-//                       List.of("id", "value"));
-//                   }
-//               }
-//             );
-//         }
-//       };
 
   /** Test catalog consists of test schema above */
   private final AbstractSchema testDeepSchema =
@@ -206,6 +173,6 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
             .settings(testSettings)
             .build();
 
-    planner.plan("source = index | join on index.id = index2.id index2");
+    planner.plan("source = employees | join on employees.id = payslips.id payslips");
   }
 }
