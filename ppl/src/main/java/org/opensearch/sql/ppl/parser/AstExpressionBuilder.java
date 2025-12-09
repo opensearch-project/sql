@@ -22,6 +22,8 @@ import java.util.stream.Stream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.*;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
@@ -482,26 +484,39 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
    * extracts 'arr' and creates {@code arr -> arr * 10}.
    */
   private QualifiedName extractFieldName(UnresolvedExpression expr) {
-    if (expr instanceof Field) {
-      UnresolvedExpression fieldExpr = ((Field) expr).getField();
-      if (fieldExpr instanceof QualifiedName) {
-        return (QualifiedName) fieldExpr;
-      }
-      return extractFieldName(fieldExpr);
-    }
-    if (expr instanceof QualifiedName) {
-      return (QualifiedName) expr;
-    }
-    // For function calls like mvindex(results, 1, 2), try to extract field from first argument
-    if (expr instanceof Function) {
-      Function func = (Function) expr;
-      List<UnresolvedExpression> funcArgs = func.getFuncArgs();
-      if (!funcArgs.isEmpty()) {
-        return extractFieldName(funcArgs.get(0));
-      }
-    }
-    return null;
+    return expr.accept(FIELD_NAME_EXTRACTOR, null);
   }
+
+  /**
+   * Visitor for extracting field names from expressions. Used for mvmap's implicit lambda binding.
+   */
+  private static final AbstractNodeVisitor<QualifiedName, Void> FIELD_NAME_EXTRACTOR =
+      new AbstractNodeVisitor<>() {
+        @Override
+        public QualifiedName visitField(Field node, Void context) {
+          return node.getField().accept(this, context);
+        }
+
+        @Override
+        public QualifiedName visitQualifiedName(QualifiedName node, Void context) {
+          return node;
+        }
+
+        @Override
+        public QualifiedName visitFunction(Function node, Void context) {
+          List<UnresolvedExpression> funcArgs = node.getFuncArgs();
+          if (!funcArgs.isEmpty()) {
+            return funcArgs.get(0).accept(this, context);
+          }
+          return null;
+        }
+
+        @Override
+        public QualifiedName visitChildren(Node node, Void context) {
+          // Default behavior: return null for unknown expression types
+          return null;
+        }
+      };
 
   /** Cast function. */
   @Override
