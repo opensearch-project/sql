@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import lombok.Getter;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
@@ -349,7 +350,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     }
   }
 
-  public AbstractRelNode pushDownAggregate(Aggregate aggregate, Project project) {
+  public AbstractRelNode pushDownAggregate(Aggregate aggregate, @Nullable Project project) {
     try {
       CalciteLogicalIndexScan newScan =
           new CalciteLogicalIndexScan(
