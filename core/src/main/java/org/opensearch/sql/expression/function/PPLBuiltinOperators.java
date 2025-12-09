@@ -469,7 +469,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
           PercentileApproxFunction.class,
           "percentile_approx",
           ReturnTypes.ARG0_FORCE_NULLABLE,
-          PPLOperandTypes.NUMERIC_NUMERIC_OPTIONAL_NUMERIC);
+          PPLOperandTypes.NUMERIC_NUMERIC_OPTIONAL_NUMERIC_SYMBOL);
   public static final SqlAggFunction INTERNAL_PATTERN =
       createUserDefinedAggFunction(
           LogPatternAggFunction.class,

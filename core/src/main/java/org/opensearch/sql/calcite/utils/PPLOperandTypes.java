@@ -124,12 +124,15 @@ public class PPLOperandTypes {
               (OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING))
                   .or(OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING)));
 
-  public static final UDFOperandMetadata NUMERIC_NUMERIC_OPTIONAL_NUMERIC =
+  public static final UDFOperandMetadata NUMERIC_NUMERIC_OPTIONAL_NUMERIC_SYMBOL =
       UDFOperandMetadata.wrap(
-          (CompositeOperandTypeChecker)
-              OperandTypes.NUMERIC_NUMERIC.or(
+          OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC, SqlTypeFamily.ANY)
+              .or(
                   OperandTypes.family(
-                      SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC)));
+                      SqlTypeFamily.NUMERIC,
+                      SqlTypeFamily.NUMERIC,
+                      SqlTypeFamily.NUMERIC,
+                      SqlTypeFamily.ANY)));
   public static final UDFOperandMetadata NUMERIC_NUMERIC_NUMERIC =
       UDFOperandMetadata.wrap(
           OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));
