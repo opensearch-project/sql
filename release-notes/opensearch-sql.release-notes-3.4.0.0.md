@@ -59,6 +59,7 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.4.0
 * Support eval returns decimal division result instead of integer ([#4440](https://github.com/opensearch-project/sql/pull/4440))
 * Add mvappend function for Calcite PPL ([#4438](https://github.com/opensearch-project/sql/pull/4438))
 * PPL `fillnull` command enhancement ([#4421](https://github.com/opensearch-project/sql/pull/4421))
+* Support format=yaml in Explain API ([#4446](https://github.com/opensearch-project/sql/pull/4446))
 
 ### Bug Fixes
 * Add hashCode() and equals() to the value class of ExprJavaType ([#4885](https://github.com/opensearch-project/sql/pull/4885))
@@ -139,7 +140,6 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.4.0
 * Update eventstats.rst ([#4447](https://github.com/opensearch-project/sql/pull/4447))
 
 ### Maintenance
-* Support format=yaml in Explain API ([#4446](https://github.com/opensearch-project/sql/pull/4446))
 * Bump Calcite to 1.41.0 ([#4714](https://github.com/opensearch-project/sql/pull/4714))
 * Execute yamlRestTest in integration job ([#4838](https://github.com/opensearch-project/sql/pull/4838))
 * Fix test failures due to version in mapping ([#4748](https://github.com/opensearch-project/sql/pull/4748))
@@ -151,7 +151,5 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.4.0
 * Revert "Update grammar files and developer guide (#4301)" ([#4643](https://github.com/opensearch-project/sql/pull/4643))
 * Increment version to 3.4.0-SNAPSHOT ([#4452](https://github.com/opensearch-project/sql/pull/4452))
 * Revert partial of #4401 ([#4503](https://github.com/opensearch-project/sql/pull/4503))
-
-### Refactoring
 * Implement one-batch lookahead for index enumerators ([#4345](https://github.com/opensearch-project/sql/pull/4345))
 * Refactor name resolution in Calcite PPL ([#4393](https://github.com/opensearch-project/sql/pull/4393))
