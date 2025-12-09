@@ -1,5 +1,10 @@
 setup:
   - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+  - do:
       indices.create:
         index: events
         body:
@@ -32,6 +37,14 @@ setup:
           - '{"@timestamp":"2023-01-01T10:30:00Z","host":"server1","packets":180}'
           - '{"index":{}}'
           - '{"@timestamp":"2023-01-01T10:35:00Z","host":"server2","packets":90}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
 
 ---
 "timechart count() by field should not return empty buckets":

@@ -1,5 +1,10 @@
 setup:
   - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  - do:
       indices.create:
         index: opensearch-sql_test_index_otel_logs
         body:
@@ -32,6 +37,14 @@ setup:
           - '{"@timestamp":"2024-01-15T10:00:06.000Z","severityNumber":19,"severityText":"DEBUG9"}'
           - '{"index":{}}'
           - '{"@timestamp":"2024-01-15T10:00:07.000Z","severityNumber":18,"severityText":"TRACE10"}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
 
 ---
 "timechart with limit should use max aggregation for OTHER category":

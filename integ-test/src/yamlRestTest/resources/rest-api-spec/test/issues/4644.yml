@@ -1,5 +1,10 @@
 setup:
   - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  - do:
       indices.create:
         index: timechart-eval-bug
         body:
@@ -22,6 +27,14 @@ setup:
           - '{"@timestamp":"2024-05-02T00:45:00Z","user":"alice"}'
           - '{"index":{}}'
           - '{"@timestamp":"2024-05-03T00:20:00Z","user":"bob"}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
 
 ---
 "timechart with eval on @timestamp field":

@@ -1,5 +1,10 @@
 setup:
   - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  - do:
       indices.create:
         index: test_data_2023
         body:
@@ -24,6 +29,14 @@ setup:
           - '{"@timestamp":"2023-10-08T10:00:01.500Z","packets":25}'
           - '{"index":{}}'
           - '{"@timestamp":"2023-10-08T10:00:02.000Z","packets":30}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
 
 ---
 "timechart with millisecond span":

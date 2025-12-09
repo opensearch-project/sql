@@ -1,5 +1,10 @@
 setup:
   - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  - do:
       bulk:
         index: test
         refresh: true
@@ -10,6 +15,15 @@ setup:
           - '{"value": "2"}'
           - '{"index": {"_id": "3"}}'
           - '{"value": "3"}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
 ---
 "handle agg script push down on metadata field":
   - skip:

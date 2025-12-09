@@ -1,5 +1,10 @@
 setup:
   - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  - do:
       indices.create:
         index: opensearch-sql_test_index_otel_logs
         body:
@@ -32,6 +37,14 @@ setup:
           - '{"@timestamp":"2023-10-08T10:00:06.000Z","severityNumber":16,"flags":0}'
           - '{"index":{}}'
           - '{"@timestamp":"2023-10-08T10:00:07.000Z","severityNumber":9,"flags":1}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
 
 ---
 "timechart with grouping by non-string field":
