@@ -30,6 +30,7 @@ import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
@@ -508,6 +509,11 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
           return call;
         }
       };
+  // SPARK dialect is not included in lookup table to resolve overrides issues (e.g. reverse
+  // function won't work if spark is included because there are multiple overrides of reverse, and
+  // it will choose none of them in the end.) Therefore, SPARK functions used are explicitly
+  // declared here for lookup.
+  public static final SqlFunction REGEXP = SqlLibraryOperators.REGEXP;
 
   /**
    * Returns the PPL specific operator table, creating it if necessary.

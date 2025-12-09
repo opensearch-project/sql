@@ -834,7 +834,7 @@ public class PPLFuncImpTable {
       registerOperator(COALESCE, PPLBuiltinOperators.ENHANCED_COALESCE);
 
       // Register library operator
-      registerOperator(REGEXP, SqlLibraryOperators.REGEXP);
+      registerOperator(REGEXP, PPLBuiltinOperators.REGEXP);
       registerOperator(REGEXP_MATCH, SqlLibraryOperators.REGEXP_CONTAINS);
       registerOperator(CONCAT, SqlLibraryOperators.CONCAT_FUNCTION);
       registerOperator(CONCAT_WS, SqlLibraryOperators.CONCAT_WS);
@@ -1004,7 +1004,7 @@ public class PPLFuncImpTable {
                 return builder.makeCall(
                     SqlStdOperatorTable.CASE, isEmptyDelimiter, splitChars, normalSplit);
               },
-          PPLTypeChecker.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER));
+          OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER));
 
       // Register MVINDEX to use Calcite's ITEM/ARRAY_SLICE with index normalization
       register(
@@ -1196,7 +1196,7 @@ public class PPLFuncImpTable {
                   builder.makeCall(
                       SqlStdOperatorTable.OR,
                       builder.makeCall(SqlStdOperatorTable.IS_NULL, arg),
-                      builder.makeCall(SqlStdOperatorTable.IS_EMPTY, arg)),
+                      builder.makeCall(SqlStdOperatorTable.EQUALS, arg, builder.makeLiteral(""))),
           OperandTypes.family(SqlTypeFamily.ANY));
       register(
           IS_BLANK,
@@ -1206,12 +1206,13 @@ public class PPLFuncImpTable {
                       SqlStdOperatorTable.OR,
                       builder.makeCall(SqlStdOperatorTable.IS_NULL, arg),
                       builder.makeCall(
-                          SqlStdOperatorTable.IS_EMPTY,
+                          SqlStdOperatorTable.EQUALS,
                           builder.makeCall(
                               SqlStdOperatorTable.TRIM,
                               builder.makeFlag(Flag.BOTH),
                               builder.makeLiteral(" "),
-                              arg))),
+                              arg),
+                          builder.makeLiteral(""))),
           OperandTypes.family(SqlTypeFamily.ANY));
       register(
           ILIKE,

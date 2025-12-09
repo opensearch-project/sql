@@ -51,7 +51,7 @@ public class MVAppendFunctionImpl extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return UDFOperandMetadata.wrap(OperandTypes.ARRAY);
+    return UDFOperandMetadata.wrap(OperandTypes.VARIADIC);
   }
 
   private static RelDataType determineElementType(
