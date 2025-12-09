@@ -856,7 +856,7 @@ public class PPLQueryDataAnonymizerTest {
         "source=table | mvexpand identifier limit=***",
         anonymize("source=t | mvexpand skills limit=5"));
   }
-  
+
   @Test
   public void testSplit() {
     // Test split with delimiter
