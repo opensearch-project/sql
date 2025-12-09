@@ -338,11 +338,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
           OperatorTable.instance(),
           // Add a list of necessary SqlLibrary if needed
           SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
-              SqlLibrary.MYSQL,
-              SqlLibrary.BIG_QUERY,
-              SqlLibrary.SPARK,
-              SqlLibrary.POSTGRESQL,
-              SqlLibrary.HIVE));
+              SqlLibrary.MYSQL, SqlLibrary.BIG_QUERY, SqlLibrary.POSTGRESQL, SqlLibrary.HIVE));
     }
   }
 }

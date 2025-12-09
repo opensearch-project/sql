@@ -475,7 +475,8 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
           LogPatternAggFunction.class,
           "pattern",
           ReturnTypes.explicit(UserDefinedFunctionUtils.nullablePatternAggList),
-          null);
+          UDFOperandMetadata.wrap(
+              OperandTypes.VARIADIC)); // operand types of patterns are very flexible
   public static final SqlAggFunction LIST =
       createUserDefinedAggFunction(
           ListAggFunction.class, "LIST", PPLReturnTypes.STRING_ARRAY, PPLOperandTypes.ANY_SCALAR);
