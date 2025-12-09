@@ -1044,6 +1044,17 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testComplexSortExprPushdownForSMJWithMaxOption() throws Exception {
+    String query =
+        "source=opensearch-sql_test_index_bank | rex field=lastname \\\"(?<lastname>^[A-Z])\\\" |"
+            + " join type=left max=1 lastname opensearch-sql_test_index_bank";
+    var result = explainQueryYaml(query);
+    String expected =
+        loadExpectedPlan("explain_complex_sort_expr_pushdown_for_smj_w_max_option.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
   public void testRexExplain() throws IOException {
     String query =
         "source=opensearch-sql_test_index_account | rex field=lastname \\\"(?<initial>^[A-Z])\\\" |"
