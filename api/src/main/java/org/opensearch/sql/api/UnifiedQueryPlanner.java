@@ -5,17 +5,12 @@
 
 package org.opensearch.sql.api;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
-import org.apache.calcite.schema.Schema;
-import org.apache.calcite.schema.SchemaPlus;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -45,28 +40,12 @@ public class UnifiedQueryPlanner {
 
   /**
    * Constructs a UnifiedQueryPlanner with a unified query context.
-   * This is the recommended constructor for new code.
    *
    * @param context the unified query context containing CalcitePlanContext
    */
   public UnifiedQueryPlanner(UnifiedQueryContext context) {
     this.parser = buildQueryParser(context.getPlanContext().queryType);
     this.context = context;
-  }
-
-  /**
-   * Constructs a UnifiedQueryPlanner for a given query type and schema root.
-   * This constructor is maintained for backward compatibility.
-   *
-   * @param queryType the query language type (e.g., PPL)
-   * @param rootSchema the root Calcite schema containing all catalogs and tables
-   * @param defaultPath dot-separated path of schema to set as default schema
-   * @deprecated Use {@link #UnifiedQueryPlanner(UnifiedQueryContext)} instead
-   */
-  @Deprecated
-  public UnifiedQueryPlanner(QueryType queryType, SchemaPlus rootSchema, String defaultPath) {
-    this.parser = buildQueryParser(queryType);
-    this.context = createContextFromLegacyParams(queryType, rootSchema, defaultPath);
   }
 
   /**
@@ -94,34 +73,6 @@ public class UnifiedQueryPlanner {
     throw new IllegalArgumentException("Unsupported query type: " + queryType);
   }
 
-  /**
-   * Creates a UnifiedQueryContext from legacy constructor parameters.
-   * Used internally to support backward compatibility.
-   */
-  @SuppressWarnings("deprecation")
-  private static UnifiedQueryContext createContextFromLegacyParams(
-      QueryType queryType, SchemaPlus rootSchema, String defaultPath) {
-    // Extract catalogs from root schema
-    Map<String, Schema> catalogs = new HashMap<>();
-    for (String catalogName : rootSchema.getSubSchemaNames()) {
-      Schema catalog = rootSchema.getSubSchema(catalogName);
-      if (catalog != null) {
-        catalogs.put(catalogName, catalog);
-      }
-    }
-
-    // Build context with extracted catalogs
-    UnifiedQueryContext.UnifiedQueryContextBuilder builder =
-        UnifiedQueryContext.builder().queryType(queryType);
-    catalogs.forEach(builder::catalog);
-
-    if (defaultPath != null) {
-      builder.defaultNamespace(defaultPath);
-    }
-
-    return builder.build();
-  }
-
   private UnresolvedPlan parse(String query) {
     ParseTree cst = parser.parse(query);
     AstStatementBuilder astStmtBuilder =
@@ -147,116 +98,5 @@ public class UnifiedQueryPlanner {
       calcitePlan = LogicalSort.create(logical, collation, null, null);
     }
     return calcitePlan;
-  }
-
-  /** Builder for {@link UnifiedQueryPlanner}, supporting declarative fluent API. */
-  public static Builder builder() {
-    return new Builder();
-  }
-
-  /**
-   * Builder for {@link UnifiedQueryPlanner}, supporting both new context-based API
-   * and legacy catalog-based API for backward compatibility.
-   * Delegates all configuration to UnifiedQueryContext.Builder.
-   */
-  public static class Builder {
-    private UnifiedQueryContext context;
-    private UnifiedQueryContext.UnifiedQueryContextBuilder contextBuilder;
-
-    /**
-     * Sets the query language frontend to be used by the planner.
-     * Delegates to context builder.
-     *
-     * @param queryType the {@link QueryType}, such as PPL
-     * @return this builder instance
-     */
-    public Builder language(QueryType queryType) {
-      ensureContextBuilder();
-      contextBuilder.queryType(queryType);
-      return this;
-    }
-
-    /**
-     * Sets the unified query context directly (new API).
-     *
-     * @param context the unified query context
-     * @return this builder instance
-     */
-    public Builder context(UnifiedQueryContext context) {
-      if (contextBuilder != null) {
-        throw new IllegalStateException(
-            "Cannot set context after using language/catalog/defaultNamespace/cacheMetadata methods");
-      }
-      this.context = context;
-      return this;
-    }
-
-    /**
-     * Registers a catalog with the specified name and its associated schema.
-     * Delegates to context builder.
-     *
-     * @param name the name of the catalog to register
-     * @param schema the schema representing the structure of the catalog
-     * @return this builder instance
-     */
-    public Builder catalog(String name, Schema schema) {
-      ensureContextBuilder();
-      contextBuilder.catalog(name, schema);
-      return this;
-    }
-
-    /**
-     * Sets the default namespace path for resolving unqualified table names.
-     * Delegates to context builder.
-     *
-     * @param namespace dot-separated path (e.g., "spark_catalog.default" or "opensearch")
-     * @return this builder instance
-     */
-    public Builder defaultNamespace(String namespace) {
-      ensureContextBuilder();
-      contextBuilder.defaultNamespace(namespace);
-      return this;
-    }
-
-    /**
-     * Enables or disables catalog metadata caching in the root schema.
-     * Delegates to context builder.
-     *
-     * @param cache whether to enable metadata caching
-     * @return this builder instance
-     */
-    public Builder cacheMetadata(boolean cache) {
-      ensureContextBuilder();
-      contextBuilder.cacheMetadata(cache);
-      return this;
-    }
-
-    /**
-     * Builds a {@link UnifiedQueryPlanner} with the configuration.
-     *
-     * @return a new instance of {@link UnifiedQueryPlanner}
-     */
-    public UnifiedQueryPlanner build() {
-      // Build context if not provided directly
-      if (context == null) {
-        if (contextBuilder == null) {
-          throw new IllegalStateException(
-              "Must provide either context or use language/catalog configuration");
-        }
-        context = contextBuilder.build();
-      }
-
-      return new UnifiedQueryPlanner(context);
-    }
-
-    private void ensureContextBuilder() {
-      if (context != null) {
-        throw new IllegalStateException(
-            "Cannot use language/catalog/defaultNamespace/cacheMetadata after setting context");
-      }
-      if (contextBuilder == null) {
-        contextBuilder = UnifiedQueryContext.builder();
-      }
-    }
   }
 }

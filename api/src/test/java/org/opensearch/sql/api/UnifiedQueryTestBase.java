@@ -35,12 +35,13 @@ public abstract class UnifiedQueryTestBase {
           }
         };
 
-    planner =
-        UnifiedQueryPlanner.builder()
-            .language(QueryType.PPL)
+    UnifiedQueryContext context =
+        UnifiedQueryContext.builder()
+            .queryType(QueryType.PPL)
             .catalog("catalog", testSchema)
             .defaultNamespace("catalog")
             .build();
+    planner = new UnifiedQueryPlanner(context);
   }
 
   protected Table createEmployeesTable() {

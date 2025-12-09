@@ -17,12 +17,12 @@ Together, these components enable a complete workflow: parse PPL queries into lo
 
 ## Usage
 
-### UnifiedQueryContext (Recommended)
+### UnifiedQueryContext and UnifiedQueryPlanner
 
-The recommended approach is to create a reusable `UnifiedQueryContext` that encapsulates a `CalcitePlanContext` with all catalog configuration and query type. This context can be shared across multiple queries.
+Create a reusable `UnifiedQueryContext` that encapsulates a `CalcitePlanContext` with all catalog configuration and query type. This context can be shared across multiple queries.
 
 ```java
-// Create a reusable context with query type
+// Create a reusable context with query type and catalogs
 UnifiedQueryContext context = UnifiedQueryContext.builder()
     .queryType(QueryType.PPL)
     .catalog("opensearch", opensearchSchema)
@@ -37,21 +37,6 @@ UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
 // Plan multiple queries (context is reused)
 RelNode plan1 = planner.plan("source = logs | where status = 200");
 RelNode plan2 = planner.plan("source = metrics | stats avg(cpu)");
-```
-
-### UnifiedQueryPlanner (Legacy Builder API)
-
-The legacy builder API is still supported for backward compatibility:
-
-```java
-UnifiedQueryPlanner planner = UnifiedQueryPlanner.builder()
-    .language(QueryType.PPL)
-    .catalog("opensearch", schema)
-    .defaultNamespace("opensearch")
-    .cacheMetadata(true)
-    .build();
-
-RelNode plan = planner.plan("source = opensearch.test");
 ```
 
 ### UnifiedQueryTranspiler

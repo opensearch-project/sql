@@ -29,11 +29,12 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
 
   @Test
   public void testPPLQueryPlanning() {
-    UnifiedQueryPlanner planner =
-        UnifiedQueryPlanner.builder()
-            .language(QueryType.PPL)
+    UnifiedQueryContext context =
+        UnifiedQueryContext.builder()
+            .queryType(QueryType.PPL)
             .catalog("opensearch", testSchema)
             .build();
+    UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
 
     RelNode plan = planner.plan("source = opensearch.employees | eval f = abs(id)");
     assertNotNull("Plan should be created", plan);
@@ -41,12 +42,13 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
 
   @Test
   public void testPPLQueryPlanningWithDefaultNamespace() {
-    UnifiedQueryPlanner planner =
-        UnifiedQueryPlanner.builder()
-            .language(QueryType.PPL)
+    UnifiedQueryContext context =
+        UnifiedQueryContext.builder()
+            .queryType(QueryType.PPL)
             .catalog("opensearch", testSchema)
             .defaultNamespace("opensearch")
             .build();
+    UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
 
     assertNotNull("Plan should be created", planner.plan("source = opensearch.employees"));
     assertNotNull("Plan should be created", planner.plan("source = employees"));
@@ -54,12 +56,13 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
 
   @Test
   public void testPPLQueryPlanningWithDefaultNamespaceMultiLevel() {
-    UnifiedQueryPlanner planner =
-        UnifiedQueryPlanner.builder()
-            .language(QueryType.PPL)
+    UnifiedQueryContext context =
+        UnifiedQueryContext.builder()
+            .queryType(QueryType.PPL)
             .catalog("catalog", testDeepSchema)
             .defaultNamespace("catalog.opensearch")
             .build();
+    UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
 
     assertNotNull("Plan should be created", planner.plan("source = catalog.opensearch.employees"));
     assertNotNull("Plan should be created", planner.plan("source = employees"));
@@ -71,12 +74,13 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
 
   @Test
   public void testPPLQueryPlanningWithMultipleCatalogs() {
-    UnifiedQueryPlanner planner =
-        UnifiedQueryPlanner.builder()
-            .language(QueryType.PPL)
+    UnifiedQueryContext context =
+        UnifiedQueryContext.builder()
+            .queryType(QueryType.PPL)
             .catalog("catalog1", testSchema)
             .catalog("catalog2", testSchema)
             .build();
+    UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
 
     RelNode plan =
         planner.plan(
@@ -86,13 +90,14 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
 
   @Test
   public void testPPLQueryPlanningWithMultipleCatalogsAndDefaultNamespace() {
-    UnifiedQueryPlanner planner =
-        UnifiedQueryPlanner.builder()
-            .language(QueryType.PPL)
+    UnifiedQueryContext context =
+        UnifiedQueryContext.builder()
+            .queryType(QueryType.PPL)
             .catalog("catalog1", testSchema)
             .catalog("catalog2", testSchema)
             .defaultNamespace("catalog2")
             .build();
+    UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
 
     RelNode plan =
         planner.plan("source = catalog1.employees | lookup employees id | eval f = abs(id)");
@@ -101,12 +106,13 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
 
   @Test
   public void testPPLQueryPlanningWithMetadataCaching() {
-    UnifiedQueryPlanner planner =
-        UnifiedQueryPlanner.builder()
-            .language(QueryType.PPL)
+    UnifiedQueryContext context =
+        UnifiedQueryContext.builder()
+            .queryType(QueryType.PPL)
             .catalog("opensearch", testSchema)
             .cacheMetadata(true)
             .build();
+    UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
 
     RelNode plan = planner.plan("source = opensearch.employees");
     assertNotNull("Plan should be created", plan);
@@ -114,21 +120,23 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
 
   @Test(expected = IllegalArgumentException.class)
   public void testMissingQueryLanguage() {
-    UnifiedQueryPlanner.builder().catalog("opensearch", testSchema).build();
+    UnifiedQueryContext.builder().catalog("opensearch", testSchema).build();
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testUnsupportedQueryLanguage() {
-    UnifiedQueryPlanner.builder()
-        .language(QueryType.SQL) // only PPL is supported for now
-        .catalog("opensearch", testSchema)
-        .build();
+    UnifiedQueryContext context =
+        UnifiedQueryContext.builder()
+            .queryType(QueryType.SQL) // only PPL is supported for now
+            .catalog("opensearch", testSchema)
+            .build();
+    new UnifiedQueryPlanner(context);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testInvalidDefaultNamespacePath() {
-    UnifiedQueryPlanner.builder()
-        .language(QueryType.PPL)
+    UnifiedQueryContext.builder()
+        .queryType(QueryType.PPL)
         .catalog("opensearch", testSchema)
         .defaultNamespace("nonexistent") // nonexistent namespace path
         .build();
@@ -136,22 +144,24 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
 
   @Test(expected = IllegalStateException.class)
   public void testUnsupportedStatementType() {
-    UnifiedQueryPlanner planner =
-        UnifiedQueryPlanner.builder()
-            .language(QueryType.PPL)
+    UnifiedQueryContext context =
+        UnifiedQueryContext.builder()
+            .queryType(QueryType.PPL)
             .catalog("opensearch", testSchema)
             .build();
+    UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
 
     planner.plan("explain source = employees"); // explain statement
   }
 
   @Test(expected = SyntaxCheckException.class)
   public void testPlanPropagatingSyntaxCheckException() {
-    UnifiedQueryPlanner planner =
-        UnifiedQueryPlanner.builder()
-            .language(QueryType.PPL)
+    UnifiedQueryContext context =
+        UnifiedQueryContext.builder()
+            .queryType(QueryType.PPL)
             .catalog("opensearch", testSchema)
             .build();
+    UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
 
     planner.plan("source = employees | eval"); // Trigger syntax error from parser
   }
