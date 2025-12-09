@@ -30,6 +30,7 @@ import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ListSqlOperatorTable;
@@ -56,6 +57,7 @@ import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
 import org.opensearch.sql.opensearch.functions.DistinctCountApproxAggFunction;
@@ -293,7 +295,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
             DistinctCountApproxAggFunction.class,
             BuiltinFunctionName.DISTINCT_COUNT_APPROX.name(),
             ReturnTypes.BIGINT_FORCE_NULLABLE,
-            null);
+            UDFOperandMetadata.wrap(OperandTypes.ANY));
     PPLFuncImpTable.INSTANCE.registerExternalAggOperator(
         BuiltinFunctionName.DISTINCT_COUNT_APPROX, approxDistinctCountFunction);
     OperatorTable.addOperator(
