@@ -6,8 +6,6 @@
 package org.opensearch.sql.opensearch.executor;
 
 import com.google.common.base.Suppliers;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -186,9 +184,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
                   CalcitePlanContext.skipEncoding.set(true);
                 }
                 // triggers the hook
-                AccessController.doPrivileged(
-                    (PrivilegedAction<PreparedStatement>)
-                        () -> OpenSearchRelRunners.run(context, rel));
+                OpenSearchRelRunners.run(context, rel);
               }
               listener.onResponse(
                   new ExplainResponse(
@@ -206,19 +202,14 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
   public void execute(
       RelNode rel, CalcitePlanContext context, ResponseListener<QueryResponse> listener) {
     client.schedule(
-        () ->
-            AccessController.doPrivileged(
-                (PrivilegedAction<Void>)
-                    () -> {
-                      try (PreparedStatement statement = OpenSearchRelRunners.run(context, rel)) {
-                        ResultSet result = statement.executeQuery();
-                        buildResultSet(
-                            result, rel.getRowType(), context.sysLimit.querySizeLimit(), listener);
-                      } catch (SQLException e) {
-                        throw new RuntimeException(e);
-                      }
-                      return null;
-                    }));
+        () -> {
+          try (PreparedStatement statement = OpenSearchRelRunners.run(context, rel)) {
+            ResultSet result = statement.executeQuery();
+            buildResultSet(result, rel.getRowType(), context.sysLimit.querySizeLimit(), listener);
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
   private void buildResultSet(

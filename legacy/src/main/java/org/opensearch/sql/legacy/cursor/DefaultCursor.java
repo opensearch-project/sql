@@ -13,8 +13,6 @@ import com.google.common.base.Strings;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
@@ -132,16 +130,12 @@ public class DefaultCursor implements Cursor {
     json.put(SCHEMA_COLUMNS, getSchemaAsJson());
     json.put(FIELD_ALIAS_MAP, fieldAliasMap);
     json.put(PIT_ID, pitId);
-    String sortFieldValue =
-        AccessController.doPrivileged(
-            (PrivilegedAction<String>)
-                () -> {
-                  try {
-                    return objectMapper.writeValueAsString(sortFields);
-                  } catch (JsonProcessingException e) {
-                    throw new RuntimeException("Failed to parse sort fields from JSON string.", e);
-                  }
-                });
+    String sortFieldValue;
+    try {
+      sortFieldValue = objectMapper.writeValueAsString(sortFields);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Failed to parse sort fields from JSON string.", e);
+    }
     json.put(SORT_FIELDS, sortFieldValue);
     setSearchRequestString(json, searchSourceBuilder);
 
@@ -205,15 +199,11 @@ public class DefaultCursor implements Cursor {
   }
 
   private static Object[] getSortFieldsFromJson(JSONObject json) {
-    return AccessController.doPrivileged(
-        (PrivilegedAction<Object[]>)
-            () -> {
-              try {
-                return objectMapper.readValue(json.getString(SORT_FIELDS), Object[].class);
-              } catch (JsonProcessingException e) {
-                throw new RuntimeException("Failed to parse sort fields from JSON string.", e);
-              }
-            });
+    try {
+      return objectMapper.readValue(json.getString(SORT_FIELDS), Object[].class);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Failed to parse sort fields from JSON string.", e);
+    }
   }
 
   private JSONArray getSchemaAsJson() {
