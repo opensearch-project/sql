@@ -856,6 +856,22 @@ public class PPLQueryDataAnonymizerTest {
         "source=table | mvexpand identifier limit=***",
         anonymize("source=t | mvexpand skills limit=5"));
   }
+  
+  @Test
+  public void testSplit() {
+    // Test split with delimiter
+    assertEquals(
+        "source=table | eval identifier=split(***,***) | fields + identifier",
+        anonymize("source=t | eval result=split('a;b;c', ';') | fields result"));
+    // Test split with field reference
+    assertEquals(
+        "source=table | eval identifier=split(identifier,***) | fields + identifier",
+        anonymize("source=t | eval result=split(text, ',') | fields result"));
+    // Test split with empty delimiter (splits into characters)
+    assertEquals(
+        "source=table | eval identifier=split(***,***) | fields + identifier",
+        anonymize("source=t | eval result=split('abcd', '') | fields result"));
+  }
 
   @Test
   public void testMvdedup() {

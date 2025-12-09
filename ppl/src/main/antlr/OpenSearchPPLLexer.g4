@@ -446,6 +446,7 @@ MVAPPEND:                           'MVAPPEND';
 MVJOIN:                             'MVJOIN';
 MVINDEX:                            'MVINDEX';
 MVDEDUP:                            'MVDEDUP';
+SPLIT:                              'SPLIT';
 FORALL:                             'FORALL';
 FILTER:                             'FILTER';
 TRANSFORM:                          'TRANSFORM';
