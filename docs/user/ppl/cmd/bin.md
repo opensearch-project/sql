@@ -21,6 +21,7 @@ bin \<field\> [span=\<interval\>] [minspan=\<interval\>] [bins=\<count\>] [align
     * month (mon, month, months)  
 * minspan: optional. The minimum interval size for automatic span calculation. Cannot be used with span or bins parameters.  
 * bins: optional. The maximum number of equal-width bins to create. Cannot be used with span or minspan parameters. The bins parameter must be between 2 and 50000 (inclusive).
+
   **Limitation**: The bins parameter on timestamp fields has the following requirements:
 
   1. **Pushdown must be enabled**: Controlled by ``plugins.calcite.pushdown.enabled`` (enabled by default). When pushdown is disabled, use the ``span`` parameter instead (e.g., ``bin @timestamp span=5m``).
