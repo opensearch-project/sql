@@ -102,7 +102,7 @@ The query start with search command and then flowing a set of command delimited 
 
 * **Functions**
 
-  - `Aggregation Functions <functions/aggregation.rst>`_
+  - `Aggregation Functions <functions/aggregations.rst>`_
 
   - `Collection Functions <functions/collection.rst>`_
 
