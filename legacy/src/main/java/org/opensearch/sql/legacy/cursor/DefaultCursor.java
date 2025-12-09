@@ -134,7 +134,7 @@ public class DefaultCursor implements Cursor {
     try {
       sortFieldValue = objectMapper.writeValueAsString(sortFields);
     } catch (JsonProcessingException e) {
-      throw new RuntimeException("Failed to parse sort fields from JSON string.", e);
+      throw new RuntimeException("Failed to serialize sort fields to JSON string.", e);
     }
     json.put(SORT_FIELDS, sortFieldValue);
     setSearchRequestString(json, searchSourceBuilder);
