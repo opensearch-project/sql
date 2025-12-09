@@ -5,8 +5,8 @@
 
 package org.opensearch.sql.ast.expression;
 
-import static org.opensearch.sql.utils.QueryStringUtils.maskField;
 import static org.opensearch.sql.ast.expression.SearchComparison.Operator.EQUALS;
+import static org.opensearch.sql.utils.QueryStringUtils.maskField;
 
 import java.util.Arrays;
 import java.util.List;
