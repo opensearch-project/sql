@@ -112,7 +112,7 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
     assertNotNull("Plan should be created", plan);
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testMissingQueryLanguage() {
     UnifiedQueryPlanner.builder().catalog("opensearch", testSchema).build();
   }

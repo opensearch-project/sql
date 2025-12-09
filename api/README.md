@@ -17,9 +17,31 @@ Together, these components enable a complete workflow: parse PPL queries into lo
 
 ## Usage
 
-### UnifiedQueryPlanner
+### UnifiedQueryContext (Recommended)
 
-Use the declarative, fluent builder API to initialize the `UnifiedQueryPlanner`.
+The recommended approach is to create a reusable `UnifiedQueryContext` that encapsulates a `CalcitePlanContext` with all catalog configuration and query type. This context can be shared across multiple queries.
+
+```java
+// Create a reusable context with query type
+UnifiedQueryContext context = UnifiedQueryContext.builder()
+    .queryType(QueryType.PPL)
+    .catalog("opensearch", opensearchSchema)
+    .catalog("spark_catalog", sparkSchema)
+    .defaultNamespace("opensearch")
+    .cacheMetadata(true)
+    .build();
+
+// Create planner with context
+UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
+
+// Plan multiple queries (context is reused)
+RelNode plan1 = planner.plan("source = logs | where status = 200");
+RelNode plan2 = planner.plan("source = metrics | stats avg(cpu)");
+```
+
+### UnifiedQueryPlanner (Legacy Builder API)
+
+The legacy builder API is still supported for backward compatibility:
 
 ```java
 UnifiedQueryPlanner planner = UnifiedQueryPlanner.builder()
@@ -49,22 +71,25 @@ String sql = transpiler.toSql(plan);
 Combining both components to transpile PPL queries into target database SQL:
 
 ```java
-// Step 1: Initialize planner
-UnifiedQueryPlanner planner = UnifiedQueryPlanner.builder()
-    .language(QueryType.PPL)
+// Step 1: Create reusable context with query type
+UnifiedQueryContext context = UnifiedQueryContext.builder()
+    .queryType(QueryType.PPL)
     .catalog("catalog", schema)
     .defaultNamespace("catalog")
     .build();
 
-// Step 2: Parse PPL query into logical plan
+// Step 2: Initialize planner with context
+UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
+
+// Step 3: Parse PPL query into logical plan
 RelNode plan = planner.plan("source = employees | where age > 30");
 
-// Step 3: Initialize transpiler with target dialect
+// Step 4: Initialize transpiler with target dialect
 UnifiedQueryTranspiler transpiler = UnifiedQueryTranspiler.builder()
     .dialect(SparkSqlDialect.DEFAULT)
     .build();
 
-// Step 4: Transpile to target SQL
+// Step 5: Transpile to target SQL
 String sparkSql = transpiler.toSql(plan);
 // Result: SELECT * FROM `catalog`.`employees` WHERE `age` > 30
 ```
