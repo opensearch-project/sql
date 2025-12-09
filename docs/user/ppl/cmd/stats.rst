@@ -71,8 +71,8 @@ For detailed documentation of each function, see `Aggregation Functions <../func
 Limitations:
 ============
 
-The bucket aggregation result may be approximate in large dataset
------------------------------------------------------------------
+Bucket aggregation result may be approximate in large dataset
+-------------------------------------------------------------
 
 In OpenSearch, ``doc_count`` values for a terms bucket aggregation may be approximate. As a result, any aggregations (such as ``sum`` and ``avg``) on the terms bucket aggregation may also be approximate.
 For example, the following PPL query (find the top 10 URLs) may return an approximate result if the cardinality of ``URL`` is high.
@@ -85,7 +85,6 @@ PPL query::
       | head 10
 
 This query is pushed down to a terms bucket aggregation DSL query with ``"order": { "_count": "desc" }``. In OpenSearch, this terms aggregation may throw away some buckets.
-
 
 Sorting by ascending doc_count may produce inaccurate results
 -------------------------------------------------------------
