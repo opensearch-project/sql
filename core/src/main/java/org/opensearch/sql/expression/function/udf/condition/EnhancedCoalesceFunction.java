@@ -11,6 +11,7 @@ import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.data.model.ExprValue;
@@ -103,6 +104,6 @@ public class EnhancedCoalesceFunction extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return null;
+    return UDFOperandMetadata.wrap(SqlStdOperatorTable.COALESCE.getOperandTypeChecker());
   }
 }
