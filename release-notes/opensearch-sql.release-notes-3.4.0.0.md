@@ -6,7 +6,6 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.4.0
 * Support `chart` command in PPL ([#4579](https://github.com/opensearch-project/sql/pull/4579))
 * Support `Streamstats` command with calcite ([#4297](https://github.com/opensearch-project/sql/pull/4297))
 * Support `multisearch` command in calcite ([#4332](https://github.com/opensearch-project/sql/pull/4332))
-* Support composite aggregation paginating ([#4884](https://github.com/opensearch-project/sql/pull/4884))
 * Add replace command with Calcite ([#4451](https://github.com/opensearch-project/sql/pull/4451))
 
 ### Enhancements
@@ -32,7 +31,6 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.4.0
 * Add `bucket_nullable` argument for `Eventstats` ([#4817](https://github.com/opensearch-project/sql/pull/4817))
 * Bin command error message enhancement ([#4690](https://github.com/opensearch-project/sql/pull/4690))
 * Update clickbench queries with parameter bucket_nullable=false ([#4732](https://github.com/opensearch-project/sql/pull/4732))
-* Error handling for dot-containing field names ([#4907](https://github.com/opensearch-project/sql/pull/4907))
 * Support 'usenull' option in PPL `top` and `rare` commands ([#4696](https://github.com/opensearch-project/sql/pull/4696))
 * Support millisecond span ([#4672](https://github.com/opensearch-project/sql/pull/4672))
 * Enhance dynamic source clause to support only metadata filters ([#4554](https://github.com/opensearch-project/sql/pull/4554))
@@ -113,11 +111,8 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.4.0
 * Reverting to _doc + _id ([#4435](https://github.com/opensearch-project/sql/pull/4435))
 
 ### Infrastructure
-* Add config for CodeRabbit review ([#4890](https://github.com/opensearch-project/sql/pull/4890))
 * Split bwc-tests to bwc-rolling-upgrade and bwc-full-restart ([#4716](https://github.com/opensearch-project/sql/pull/4716))
 * Update github workflows to move from macos-13 to 14 ([#4779](https://github.com/opensearch-project/sql/pull/4779))
-* Remove access controller step in Calcite script ([#4900](https://github.com/opensearch-project/sql/pull/4900))
-* Adjust CodeRabbit review config ([#4901](https://github.com/opensearch-project/sql/pull/4901))
 * Fix the flaky CalcitePPLTcphIT ([#4846](https://github.com/opensearch-project/sql/pull/4846))
 * Fix UT failure and Linkchecker failure ([#4809](https://github.com/opensearch-project/sql/pull/4809))
 * Adding IT suite for PPL-based dashboards in Neo for CloudWatch Lake ([#4695](https://github.com/opensearch-project/sql/pull/4695))
