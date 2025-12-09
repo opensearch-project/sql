@@ -23,12 +23,19 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.BuiltInMethod;
 import org.opensearch.sql.calcite.udf.udaf.FirstAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.LastAggFunction;
@@ -481,6 +488,25 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
 
   public static final SqlFunction ENHANCED_COALESCE =
       new EnhancedCoalesceFunction().toUDF("COALESCE");
+
+  public static final SqlFunction ATAN =
+      new SqlFunction(
+          "ATAN",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.NUMERIC_OPTIONAL_NUMERIC,
+          SqlFunctionCategory.NUMERIC) {
+        @Override
+        public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
+          SqlOperator op =
+              call.getOperandList().size() == 2
+                  ? SqlStdOperatorTable.ATAN2
+                  : SqlStdOperatorTable.ATAN;
+          ((SqlBasicCall) call).setOperator(op);
+          return call;
+        }
+      };
 
   /**
    * Returns the PPL specific operator table, creating it if necessary.

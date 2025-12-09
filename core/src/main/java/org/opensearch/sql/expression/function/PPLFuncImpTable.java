@@ -786,7 +786,7 @@ public class PPLFuncImpTable {
       registerOperator(ABS, SqlStdOperatorTable.ABS);
       registerOperator(ACOS, SqlStdOperatorTable.ACOS);
       registerOperator(ASIN, SqlStdOperatorTable.ASIN);
-      registerOperator(ATAN, SqlStdOperatorTable.ATAN);
+      registerOperator(ATAN, PPLBuiltinOperators.ATAN);
       registerOperator(ATAN2, SqlStdOperatorTable.ATAN2);
       // TODO, workaround to support sequence CompositeOperandTypeChecker.
       registerOperator(
