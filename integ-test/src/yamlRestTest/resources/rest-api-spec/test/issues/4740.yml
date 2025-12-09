@@ -1,5 +1,10 @@
 setup:
   - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  - do:
       indices.create:
         index: test_binning_4740
         body:
@@ -28,6 +33,14 @@ setup:
           - '{"@timestamp":"2024-01-01T00:15:00.000Z","age":"40","balance":"4000.0","name":"David"}'
           - '{"index":{}}'
           - '{"@timestamp":"2024-01-01T00:20:00.000Z","age":"45","balance":"5000.0","name":"Eve"}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
 
 ---
 "bin with numeric field using WIDTH_BUCKET - issue 4740":
