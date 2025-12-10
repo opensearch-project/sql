@@ -1013,6 +1013,48 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testComplexSortExprPushdownForSMJ() throws Exception {
+    String query =
+        "source=opensearch-sql_test_index_bank | rex field=lastname \\\"(?<initial>^[A-Z])\\\" |"
+            + " join left=a right=b on a.initial = b.firstname opensearch-sql_test_index_bank";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_complex_sort_expr_pushdown_for_smj.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testSimpleSortExprPushdownForSMJ() throws Exception {
+    String query =
+        "source=opensearch-sql_test_index_bank | join left=a right=b on a.age + 1 = b.balance - 20"
+            + " opensearch-sql_test_index_bank";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_simple_sort_expr_pushdown_for_smj.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testSortPassThroughJoinThenPushdown() throws Exception {
+    String query =
+        "source=opensearch-sql_test_index_bank | rex field=lastname \\\"(?<initial>^[A-Z])\\\" |"
+            + " join type=left left=a right=b on a.initial = b.firstname"
+            + " opensearch-sql_test_index_bank | sort initial";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_sort_pass_through_join_then_pushdown.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testComplexSortExprPushdownForSMJWithMaxOption() throws Exception {
+    String query =
+        "source=opensearch-sql_test_index_bank | rex field=lastname \\\"(?<lastname>^[A-Z])\\\" |"
+            + " join type=left max=1 lastname opensearch-sql_test_index_bank";
+    var result = explainQueryYaml(query);
+    String expected =
+        loadExpectedPlan("explain_complex_sort_expr_pushdown_for_smj_w_max_option.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
   public void testRexExplain() throws IOException {
     String query =
         "source=opensearch-sql_test_index_account | rex field=lastname \\\"(?<initial>^[A-Z])\\\" |"
