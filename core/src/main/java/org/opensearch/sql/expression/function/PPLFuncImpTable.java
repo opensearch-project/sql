@@ -279,6 +279,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -722,9 +723,6 @@ public class PPLFuncImpTable {
       registerOperator(AND, SqlStdOperatorTable.AND);
       registerOperator(OR, SqlStdOperatorTable.OR);
       registerOperator(NOT, SqlStdOperatorTable.NOT);
-
-      // Register ADDFUNCTION for numeric addition only
-      registerOperator(ADDFUNCTION, SqlStdOperatorTable.PLUS);
       registerOperator(SUBTRACTFUNCTION, SqlStdOperatorTable.MINUS, OperandTypes.NUMERIC_NUMERIC);
       registerOperator(SUBTRACT, SqlStdOperatorTable.MINUS, OperandTypes.NUMERIC_NUMERIC);
       // Add DATETIME-DATETIME variant for timestamp binning support
@@ -1059,19 +1057,18 @@ public class PPLFuncImpTable {
       registerOperator(JSON_EXTRACT_ALL, PPLBuiltinOperators.JSON_EXTRACT_ALL); // internal
 
       // Register operators with a different type checker
-
-      // Register ADD (+ symbol) for string concatenation
-      // Replaced type checker since CONCAT also supports array concatenation
-      //      registerOperator(
-      //          ADD,
-      //          SqlStdOperatorTable.CONCAT,
-      //          OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER));
-      // Register ADD (+ symbol) for numeric addition
-      // Replace type checker since PLUS also supports binary addition
-      registerOperator(
-          ADD,
-          SqlStdOperatorTable.PLUS,
-          OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));
+      // Register ADD (+ symbol) for string concatenation and numeric addition
+      // Not creating PPL builtin operator as it will cause confusion during function resolution
+      FunctionImp add =
+          (builder, args) -> {
+            SqlOperator op =
+                (Stream.of(args).map(RexNode::getType).anyMatch(OpenSearchTypeFactory::isCharacter))
+                    ? SqlStdOperatorTable.CONCAT
+                    : SqlStdOperatorTable.PLUS;
+            return builder.makeCall(op, args);
+          };
+      register(ADD, add, SqlStdOperatorTable.PLUS.getOperandTypeChecker());
+      register(ADDFUNCTION, add, SqlStdOperatorTable.PLUS.getOperandTypeChecker());
       // Replace with a custom CompositeOperandTypeChecker to check both operands as
       // SqlStdOperatorTable.ITEM.getOperandTypeChecker() checks only the first
       // operand instead
