@@ -8,8 +8,6 @@
 package org.opensearch.sql.prometheus.functions.scan;
 
 import java.io.IOException;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
@@ -37,25 +35,20 @@ public class QueryRangeFunctionTableScanOperator extends TableScanOperator {
   @Override
   public void open() {
     super.open();
-    this.prometheusResponseHandle =
-        AccessController.doPrivileged(
-            (PrivilegedAction<PrometheusFunctionResponseHandle>)
-                () -> {
-                  try {
-                    JSONObject responseObject =
-                        prometheusClient.queryRange(
-                            request.getPromQl(),
-                            request.getStartTime(),
-                            request.getEndTime(),
-                            request.getStep());
-                    return new QueryRangeFunctionResponseHandle(responseObject);
-                  } catch (IOException e) {
-                    LOG.error(e.getMessage());
-                    throw new RuntimeException(
-                        String.format(
-                            "Error fetching data from prometheus server: %s", e.getMessage()));
-                  }
-                });
+    try {
+      JSONObject responseObject =
+          prometheusClient.queryRange(
+              request.getPromQl(),
+              request.getStartTime(),
+              request.getEndTime(),
+              request.getStep());
+      this.prometheusResponseHandle = new QueryRangeFunctionResponseHandle(responseObject);
+    } catch (IOException e) {
+      LOG.error(e.getMessage());
+      throw new RuntimeException(
+          String.format(
+              "Error fetching data from prometheus server: %s", e.getMessage()));
+    }
   }
 
   @Override
