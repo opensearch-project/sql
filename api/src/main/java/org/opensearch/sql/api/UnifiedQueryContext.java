@@ -65,25 +65,48 @@ public class UnifiedQueryContext {
                 PPL_SUBSEARCH_MAXOUT, SysLimit.DEFAULT.subsearchLimit(),
                 PPL_JOIN_SUBSEARCH_MAXOUT, SysLimit.DEFAULT.joinSubsearchLimit()));
 
-    /** Sets the query type. */
-    public Builder queryType(QueryType queryType) {
+    /**
+     * Sets the query language frontend to be used.
+     *
+     * @param queryType the {@link QueryType}, such as PPL
+     * @return this builder instance
+     */
+    public Builder language(QueryType queryType) {
       this.queryType = queryType;
       return this;
     }
 
-    /** Registers a catalog with the specified name and schema. */
+    /**
+     * Registers a catalog with the specified name and its associated schema. The schema can be a
+     * flat or nested structure (e.g., catalog → schema → table), depending on how data is
+     * organized.
+     *
+     * @param name the name of the catalog to register
+     * @param schema the schema representing the structure of the catalog
+     * @return this builder instance
+     */
     public Builder catalog(String name, Schema schema) {
       catalogs.put(name, schema);
       return this;
     }
 
-    /** Sets the default namespace path. */
+    /**
+     * Sets the default namespace path for resolving unqualified table names.
+     *
+     * @param namespace dot-separated path (e.g., "spark_catalog.default" or "opensearch")
+     * @return this builder instance
+     */
     public Builder defaultNamespace(String namespace) {
       this.defaultNamespace = namespace;
       return this;
     }
 
-    /** Enables or disables metadata caching. */
+    /**
+     * Enables or disables catalog metadata caching in the root schema.
+     *
+     * @param cache whether to enable metadata caching
+     * @return this builder instance
+     */
     public Builder cacheMetadata(boolean cache) {
       this.cacheMetadata = cache;
       return this;
@@ -104,9 +127,13 @@ public class UnifiedQueryContext {
       return this;
     }
 
-    /** Builds the UnifiedQueryContext from the provided configuration. */
+    /**
+     * Builds a {@link UnifiedQueryContext} with the configuration.
+     *
+     * @return a new instance of {@link UnifiedQueryContext}
+     */
     public UnifiedQueryContext build() {
-      Objects.requireNonNull(queryType, "QueryType must be specified");
+      Objects.requireNonNull(queryType, "Must specify language before build");
 
       CalcitePlanContext planContext =
           CalcitePlanContext.create(

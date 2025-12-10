@@ -37,7 +37,7 @@ public abstract class UnifiedQueryTestBase {
 
     UnifiedQueryContext context =
         UnifiedQueryContext.builder()
-            .queryType(QueryType.PPL)
+            .language(QueryType.PPL)
             .catalog("catalog", testSchema)
             .defaultNamespace("catalog")
             .build();

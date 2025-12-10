@@ -25,12 +25,12 @@ Create a context with catalog configuration, query type, and optional settings:
 
 ```java
 UnifiedQueryContext context = UnifiedQueryContext.builder()
-    .queryType(QueryType.PPL)
+    .language(QueryType.PPL)
     .catalog("opensearch", opensearchSchema)
     .catalog("spark_catalog", sparkSchema)
     .defaultNamespace("opensearch")
     .cacheMetadata(true)
-    .setting("plugins.query.size_limit", 200)  // Optional: override defaults
+    .setting("plugins.query.size_limit", 200)
     .build();
 ```
 
@@ -66,7 +66,7 @@ Combining all components to transpile PPL queries into target database SQL:
 ```java
 // Step 1: Create reusable context (shared across components)
 UnifiedQueryContext context = UnifiedQueryContext.builder()
-    .queryType(QueryType.PPL)
+    .language(QueryType.PPL)
     .catalog("catalog", schema)
     .defaultNamespace("catalog")
     .build();

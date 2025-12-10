@@ -19,7 +19,7 @@ public class UnifiedQueryContextTest extends UnifiedQueryTestBase {
   public void testContextCreationWithDefaults() {
     UnifiedQueryContext context =
         UnifiedQueryContext.builder()
-            .queryType(QueryType.PPL)
+            .language(QueryType.PPL)
             .catalog("opensearch", testSchema)
             .defaultNamespace("opensearch")
             .build();
@@ -37,7 +37,7 @@ public class UnifiedQueryContextTest extends UnifiedQueryTestBase {
   public void testContextCreationWithCustomConfig() {
     UnifiedQueryContext context =
         UnifiedQueryContext.builder()
-            .queryType(QueryType.PPL)
+            .language(QueryType.PPL)
             .catalog("opensearch", testSchema)
             .cacheMetadata(true)
             .setting("plugins.query.size_limit", 200)
@@ -50,7 +50,7 @@ public class UnifiedQueryContextTest extends UnifiedQueryTestBase {
   @Test(expected = IllegalArgumentException.class)
   public void testInvalidSettingName() {
     UnifiedQueryContext.builder()
-        .queryType(QueryType.PPL)
+        .language(QueryType.PPL)
         .catalog("opensearch", testSchema)
         .setting("invalid.setting.name", 123)
         .build();
@@ -65,7 +65,7 @@ public class UnifiedQueryContextTest extends UnifiedQueryTestBase {
   public void testUnsupportedQueryType() {
     UnifiedQueryContext context =
         UnifiedQueryContext.builder()
-            .queryType(QueryType.SQL) // only PPL is supported for now
+            .language(QueryType.SQL) // only PPL is supported for now
             .catalog("opensearch", testSchema)
             .build();
     new UnifiedQueryPlanner(context);
@@ -74,7 +74,7 @@ public class UnifiedQueryContextTest extends UnifiedQueryTestBase {
   @Test(expected = IllegalArgumentException.class)
   public void testInvalidDefaultNamespace() {
     UnifiedQueryContext.builder()
-        .queryType(QueryType.PPL)
+        .language(QueryType.PPL)
         .catalog("opensearch", testSchema)
         .defaultNamespace("nonexistent")
         .build();

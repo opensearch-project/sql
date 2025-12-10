@@ -31,7 +31,7 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
   public void testPPLQueryPlanning() {
     UnifiedQueryContext context =
         UnifiedQueryContext.builder()
-            .queryType(QueryType.PPL)
+            .language(QueryType.PPL)
             .catalog("opensearch", testSchema)
             .build();
     UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
@@ -44,7 +44,7 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
   public void testPPLJoinQueryPlanning() {
     UnifiedQueryContext context =
         UnifiedQueryContext.builder()
-            .queryType(QueryType.PPL)
+            .language(QueryType.PPL)
             .catalog("opensearch", testSchema)
             .defaultNamespace("opensearch")
             .build();
@@ -59,7 +59,7 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
   public void testPPLQueryPlanningWithDefaultNamespace() {
     UnifiedQueryContext context =
         UnifiedQueryContext.builder()
-            .queryType(QueryType.PPL)
+            .language(QueryType.PPL)
             .catalog("opensearch", testSchema)
             .defaultNamespace("opensearch")
             .build();
@@ -73,7 +73,7 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
   public void testPPLQueryPlanningWithDefaultNamespaceMultiLevel() {
     UnifiedQueryContext context =
         UnifiedQueryContext.builder()
-            .queryType(QueryType.PPL)
+            .language(QueryType.PPL)
             .catalog("catalog", testDeepSchema)
             .defaultNamespace("catalog.opensearch")
             .build();
@@ -91,7 +91,7 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
   public void testPPLQueryPlanningWithMultipleCatalogs() {
     UnifiedQueryContext context =
         UnifiedQueryContext.builder()
-            .queryType(QueryType.PPL)
+            .language(QueryType.PPL)
             .catalog("catalog1", testSchema)
             .catalog("catalog2", testSchema)
             .build();
@@ -107,7 +107,7 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
   public void testPPLQueryPlanningWithMultipleCatalogsAndDefaultNamespace() {
     UnifiedQueryContext context =
         UnifiedQueryContext.builder()
-            .queryType(QueryType.PPL)
+            .language(QueryType.PPL)
             .catalog("catalog1", testSchema)
             .catalog("catalog2", testSchema)
             .defaultNamespace("catalog2")
@@ -123,7 +123,7 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
   public void testUnsupportedStatementType() {
     UnifiedQueryContext context =
         UnifiedQueryContext.builder()
-            .queryType(QueryType.PPL)
+            .language(QueryType.PPL)
             .catalog("opensearch", testSchema)
             .build();
     UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
@@ -135,7 +135,7 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
   public void testPlanPropagatingSyntaxCheckException() {
     UnifiedQueryContext context =
         UnifiedQueryContext.builder()
-            .queryType(QueryType.PPL)
+            .language(QueryType.PPL)
             .catalog("opensearch", testSchema)
             .build();
     UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
