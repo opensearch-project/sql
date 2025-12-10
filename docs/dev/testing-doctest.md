@@ -57,10 +57,57 @@ Doctest runs with project build by `./gradlew build`. You can also only run doct
 Make sure you don't have any OpenSearch instance running at `http://localhost:9200`
 
 ### 1.4.2 How to write documentation with doctest?
+
+#### RST Format (SQL docs only. On Deprecation path. Use markdown for PPL)
 1. If you want to add a new doc, you can add it to `docs` folder, under correct sub-folder, in `.rst` format. 
 > **Attention**: For code examples in documentation, a Mixing usage of `cli` and `bash` in one doc is not supported yet.
 2. Add your new doc file path to `docs/category.json` by its category
 3. Run doctest `./gradlew doctest` (optionally with `-DignorePrometheus`) to see if your tests can pass
+
+#### Markdown Format (New - Currently for docs/user/ppl only)
+For PPL documentation, Markdown format is now supported with the following guidelines:
+
+1. **File Format**: Create `.md` file(s) in `docs/user/ppl` folder
+2. **Category Configuration**: Add markdown files to markdown-only categories in `docs/category.json`:
+   - `ppl_cli_calcite`: PPL CLI examples with Calcite engine
+   - `bash_calcite`: Bash/curl examples with Calcite engine  
+   - `bash_settings`: Bash examples for settings/configuration
+
+3. **Code Block Format**: Use **paired** fenced code blocks - each input block must be followed by its expected output block:
+
+```ppl
+search source=accounts | where age > 25 | fields firstname, lastname
+```
+
+Expected output:
+
+```text
++-------------+------------+
+| firstname   | lastname   |
+|-------------+------------|
+| Amber       | Duke       |
+| Hattie      | Bond       |
++-------------+------------+
+```
+
+**Input/Output Pairs**: Each input code fence must be immediately followed by an "Expected output:" section with an output code fence
+- **Supported Input Languages**: `sql`, `ppl`, `bash`, `sh`, `bash ppl`
+- **Supported Output Languages**: `text`, `console`, `output`, `json`, `yaml`
+
+4. **Ignoring Tests**: To skip specific code blocks from testing, add `ignore` attribute:
+
+```ppl ignore
+search source=accounts | head 5
+```
+
+Expected output:
+
+```text
+This output won't be tested
+```
+
+5. **Validation**: Markdown categories only accept `.md` files - mixing with `.rst` files will cause validation errors
+6. **Testing**: Run `./gradlew doctest` to validate your markdown documentation
 
 Currently, there is a `sample` folder under `docs` module to help you get started.
 
