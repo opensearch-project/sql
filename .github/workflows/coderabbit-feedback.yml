@@ -1,0 +1,28 @@
+name: CodeRabbit Feedback Reminder
+on:
+  pull_request_review_comment:
+    types: [created]
+permissions:
+  pull-requests: write
+jobs:
+  add-reaction-encouragement:
+    runs-on: ubuntu-latest
+    if: github.event.comment.user.login == 'coderabbitai[bot]'
+    steps:
+      - uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const comment = context.payload.comment;
+            const originalBody = comment.body;
+            const feedbackMessage = "\n\n<sub>👋 Leave emoji reaction (👍/👎) to track effectiveness of CodeRabbit.</sub>";
+
+            // Only add the message if it's not already there
+            if (!originalBody.includes(feedbackMessage)) {
+              await github.rest.pulls.updateReviewComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: comment.id,
+                body: originalBody + feedbackMessage
+              });
+            }
