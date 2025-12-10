@@ -130,7 +130,7 @@ class OpenSearchIndexScanTest {
     request.setScrollId("valid-id");
     // make a response, so OpenSearchResponse::isEmpty would return true and unset needClean
     var response = mock(SearchResponse.class);
-    when(response.getAggregations()).thenReturn(mock());
+    when(response.getAggregations()).thenReturn(null);
     var hits = mock(SearchHits.class);
     when(response.getHits()).thenReturn(hits);
     when(response.getScrollId()).thenReturn("valid-id");
