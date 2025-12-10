@@ -5,8 +5,9 @@
 
 package org.opensearch.sql.plugin;
 
-import static java.util.Collections.singletonList;
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpenSearchDataSourceMetadata;
+import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_BACKGROUND_THREAD_POOL_NAME;
+import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_REQUEST_BUFFER_INDEX_NAME;
 
 import com.google.common.collect.ImmutableList;
@@ -76,7 +77,6 @@ import org.opensearch.sql.datasources.transport.TransportGetDataSourceAction;
 import org.opensearch.sql.datasources.transport.TransportPatchDataSourceAction;
 import org.opensearch.sql.datasources.transport.TransportUpdateDataSourceAction;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
-import org.opensearch.sql.legacy.executor.AsyncRestExecutor;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.plugin.RestSqlAction;
 import org.opensearch.sql.legacy.plugin.RestSqlStatsAction;
@@ -279,13 +279,24 @@ public class SQLPlugin extends Plugin
 
   @Override
   public List<ExecutorBuilder<?>> getExecutorBuilders(Settings settings) {
-    return singletonList(
+    // The worker pool is the primary pool where most of the work is done. The background thread
+    // pool is a separate queue for asynchronous requests to other nodes. We keep them separate to
+    // prevent deadlocks during async fetches on small node counts. Tasks in the background pool
+    // should do no work except I/O to other services.
+    return List.of(
         new FixedExecutorBuilder(
             settings,
-            AsyncRestExecutor.SQL_WORKER_THREAD_POOL_NAME,
+            SQL_WORKER_THREAD_POOL_NAME,
             OpenSearchExecutors.allocatedProcessors(settings),
             1000,
-            null));
+            "thread_pool." + SQL_WORKER_THREAD_POOL_NAME),
+        new FixedExecutorBuilder(
+            settings,
+            SQL_BACKGROUND_THREAD_POOL_NAME,
+            settings.getAsInt(
+                "thread_pool.search.size", OpenSearchExecutors.allocatedProcessors(settings)),
+            1000,
+            "thread_pool." + SQL_BACKGROUND_THREAD_POOL_NAME));
   }
 
   @Override
