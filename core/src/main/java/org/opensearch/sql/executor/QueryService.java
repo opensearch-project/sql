@@ -27,6 +27,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
 import org.apache.calcite.rel.rel2sql.SqlImplementor;
 import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.runtime.CalciteContextException;
@@ -83,8 +84,6 @@ public class QueryService {
   private final Planner planner;
   private DataSourceService dataSourceService;
   private Settings settings;
-  private static final PplRelToSqlNodeConverter rel2sql =
-      new PplRelToSqlNodeConverter(SparkSqlDialect.DEFAULT);
 
   @Getter(lazy = true)
   private final CalciteRelNodeVisitor relNodeVisitor = new CalciteRelNodeVisitor(dataSourceService);
@@ -311,6 +310,7 @@ public class QueryService {
     RelNode sqlRelNode = relNode.accept(new PplRelToSqlRelShuttle(context.rexBuilder, true));
 
     // Convert RelNode to SqlNode for validation
+    RelToSqlConverter rel2sql = new PplRelToSqlNodeConverter(SparkSqlDialect.DEFAULT);
     SqlImplementor.Result result = rel2sql.visitRoot(sqlRelNode);
     SqlNode root = result.asStatement();
 
