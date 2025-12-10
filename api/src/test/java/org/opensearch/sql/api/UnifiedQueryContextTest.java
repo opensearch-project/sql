@@ -34,17 +34,26 @@ public class UnifiedQueryContextTest extends UnifiedQueryTestBase {
   }
 
   @Test
-  public void testContextCreationWithCustomSettings() {
+  public void testContextCreationWithCustomConfig() {
     UnifiedQueryContext context =
         UnifiedQueryContext.builder()
             .queryType(QueryType.PPL)
             .catalog("opensearch", testSchema)
-            .cacheMetadata(false)
+            .cacheMetadata(true)
             .setting("plugins.query.size_limit", 200)
             .build();
 
     Integer querySizeLimit = context.getSettings().getSettingValue(QUERY_SIZE_LIMIT);
-    assertEquals(Integer.valueOf(200), querySizeLimit);
+    assertEquals("Custom setting should be applied", Integer.valueOf(200), querySizeLimit);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testInvalidSettingName() {
+    UnifiedQueryContext.builder()
+        .queryType(QueryType.PPL)
+        .catalog("opensearch", testSchema)
+        .setting("invalid.setting.name", 123)
+        .build();
   }
 
   @Test(expected = NullPointerException.class)

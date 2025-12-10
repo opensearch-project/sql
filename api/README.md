@@ -17,38 +17,34 @@ Together, these components enable a complete workflow: parse PPL queries into lo
 
 ## Usage
 
-### UnifiedQueryContext and UnifiedQueryPlanner
+### UnifiedQueryContext
 
-Create a reusable `UnifiedQueryContext` that encapsulates a `CalcitePlanContext` with all catalog configuration, query type, and settings. This context can be shared across multiple queries.
+`UnifiedQueryContext` is a reusable session-level abstraction shared across unified query components (planner, compiler, etc.). It bundles `CalcitePlanContext` and `Settings` into a single object, centralizing configuration for all unified query operations.
+
+Create a context with catalog configuration, query type, and optional settings:
 
 ```java
-// Create a reusable context with query type and catalogs
 UnifiedQueryContext context = UnifiedQueryContext.builder()
     .queryType(QueryType.PPL)
     .catalog("opensearch", opensearchSchema)
     .catalog("spark_catalog", sparkSchema)
     .defaultNamespace("opensearch")
     .cacheMetadata(true)
-    .build();  // Uses default settings
+    .setting("plugins.query.size_limit", 200)  // Optional: override defaults
+    .build();
+```
 
+### UnifiedQueryPlanner
+
+Use `UnifiedQueryPlanner` to parse and analyze PPL queries into Calcite logical plans. The planner accepts a `UnifiedQueryContext` and can be reused for multiple queries.
+
+```java
 // Create planner with context
 UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
 
 // Plan multiple queries (context is reused)
 RelNode plan1 = planner.plan("source = logs | where status = 200");
 RelNode plan2 = planner.plan("source = metrics | stats avg(cpu)");
-```
-
-For queries requiring specific settings (e.g., joins):
-
-```java
-UnifiedQueryContext context = UnifiedQueryContext.builder()
-    .queryType(QueryType.PPL)
-    .catalog("opensearch", schema)
-    .setting("plugins.query.size_limit", 10000)
-    .setting("plugins.ppl.subsearch.maxout", 10000)
-    .setting("plugins.ppl.join.subsearch_maxout", 50000)
-    .build();
 ```
 
 ### UnifiedQueryTranspiler
@@ -65,23 +61,23 @@ String sql = transpiler.toSql(plan);
 
 ### Complete Workflow Example
 
-Combining both components to transpile PPL queries into target database SQL:
+Combining all components to transpile PPL queries into target database SQL:
 
 ```java
-// Step 1: Create reusable context with query type
+// Step 1: Create reusable context (shared across components)
 UnifiedQueryContext context = UnifiedQueryContext.builder()
     .queryType(QueryType.PPL)
     .catalog("catalog", schema)
     .defaultNamespace("catalog")
     .build();
 
-// Step 2: Initialize planner with context
+// Step 2: Create planner with context
 UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
 
 // Step 3: Parse PPL query into logical plan
 RelNode plan = planner.plan("source = employees | where age > 30");
 
-// Step 4: Initialize transpiler with target dialect
+// Step 4: Create transpiler with target dialect
 UnifiedQueryTranspiler transpiler = UnifiedQueryTranspiler.builder()
     .dialect(SparkSqlDialect.DEFAULT)
     .build();

@@ -5,7 +5,9 @@
 
 package org.opensearch.sql.api;
 
-import static org.opensearch.sql.common.setting.Settings.Key.*;
+import static org.opensearch.sql.common.setting.Settings.Key.PPL_JOIN_SUBSEARCH_MAXOUT;
+import static org.opensearch.sql.common.setting.Settings.Key.PPL_SUBSEARCH_MAXOUT;
+import static org.opensearch.sql.common.setting.Settings.Key.QUERY_SIZE_LIMIT;
 
 import java.util.HashMap;
 import java.util.List;
@@ -24,36 +26,20 @@ import org.apache.calcite.tools.Programs;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.common.setting.Settings;
-import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.executor.QueryType;
 
 /**
- * Represents a unified query context that encapsulates a CalcitePlanContext. Contexts are immutable
- * and thread-safe, designed to be reused across multiple queries.
- *
- * <p>Example usage:
- *
- * <pre>{@code
- * UnifiedQueryContext context = UnifiedQueryContext.builder()
- *     .queryType(QueryType.PPL)
- *     .catalog("opensearch", mySchema)
- *     .defaultNamespace("opensearch")
- *     .build();
- *
- * UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
- * RelNode plan = planner.plan("source=logs | where status=200");
- * }</pre>
+ * A reusable session-level abstraction shared across unified query components (planner, compiler,
+ * etc.). This centralizes configuration for catalog schemas, query type, execution limits, and
+ * other settings, enabling consistent behavior across all unified query operations.
  */
 @Value
 public class UnifiedQueryContext {
 
-  /** The CalcitePlanContext that holds all Calcite configuration and query type. */
+  /** CalcitePlanContext containing Calcite framework configuration and query type. */
   CalcitePlanContext planContext;
 
-  /**
-   * Settings for query execution configuration. Used by parsers to validate query features (e.g.,
-   * join types).
-   */
+  /** Settings containing execution limits and feature flags used by parsers and planners. */
   Settings settings;
 
   /** Creates a new builder for UnifiedQueryContext. */
@@ -61,10 +47,7 @@ public class UnifiedQueryContext {
     return new Builder();
   }
 
-  /**
-   * Builder for UnifiedQueryContext with validation. Builds the CalcitePlanContext with all
-   * necessary configuration.
-   */
+  /** Builder that constructs UnifiedQueryContext. */
   public static class Builder {
     private QueryType queryType;
     private final Map<String, Schema> catalogs = new HashMap<>();
@@ -75,12 +58,12 @@ public class UnifiedQueryContext {
      * Setting values with defaults from SysLimit.DEFAULT. Only includes planning-required settings
      * to avoid coupling with OpenSearchSettings.
      */
-    private final Map<String, Object> settingValues =
-        new HashMap<>(
+    private final Map<Settings.Key, Object> settings =
+        new HashMap<Settings.Key, Object>(
             Map.of(
-                QUERY_SIZE_LIMIT.getKeyValue(), SysLimit.DEFAULT.querySizeLimit(),
-                PPL_SUBSEARCH_MAXOUT.getKeyValue(), SysLimit.DEFAULT.subsearchLimit(),
-                PPL_JOIN_SUBSEARCH_MAXOUT.getKeyValue(), SysLimit.DEFAULT.joinSubsearchLimit()));
+                QUERY_SIZE_LIMIT, SysLimit.DEFAULT.querySizeLimit(),
+                PPL_SUBSEARCH_MAXOUT, SysLimit.DEFAULT.subsearchLimit(),
+                PPL_JOIN_SUBSEARCH_MAXOUT, SysLimit.DEFAULT.joinSubsearchLimit()));
 
     /** Sets the query type. */
     public Builder queryType(QueryType queryType) {
@@ -111,16 +94,17 @@ public class UnifiedQueryContext {
      *
      * @param name the setting key name (e.g., "plugins.query.size_limit")
      * @param value the setting value
+     * @throws IllegalArgumentException if the setting name is not recognized
      */
     public Builder setting(String name, Object value) {
-      settingValues.put(name, value);
+      Settings.Key key =
+          Settings.Key.of(name)
+              .orElseThrow(() -> new IllegalArgumentException("Unknown setting name: " + name));
+      settings.put(key, value);
       return this;
     }
 
-    /**
-     * Builds the UnifiedQueryContext with validation. Validates the default namespace path to fail
-     * fast on invalid configuration.
-     */
+    /** Builds the UnifiedQueryContext from the provided configuration. */
     public UnifiedQueryContext build() {
       Objects.requireNonNull(queryType, "QueryType must be specified");
 
@@ -130,24 +114,17 @@ public class UnifiedQueryContext {
       return new UnifiedQueryContext(planContext, buildSettings());
     }
 
-    /** Builds Settings from the settingValues map (which includes defaults). */
     private Settings buildSettings() {
-      final Map<Key, Object> settingsMap = new HashMap<>();
-      settingValues.forEach(
-          (name, value) -> {
-            Key.of(name).ifPresent(key -> settingsMap.put(key, value));
-          });
-
       return new Settings() {
         @Override
         @SuppressWarnings("unchecked")
         public <T> T getSettingValue(Key key) {
-          return (T) settingsMap.get(key);
+          return (T) settings.get(key);
         }
 
         @Override
         public List<?> getSettings() {
-          return List.copyOf(settingsMap.entrySet());
+          return List.copyOf(settings.entrySet());
         }
       };
     }
@@ -166,8 +143,7 @@ public class UnifiedQueryContext {
           .build();
     }
 
-    @SuppressWarnings("deprecation")
-    private static SchemaPlus findSchemaByPath(SchemaPlus rootSchema, String defaultPath) {
+    private SchemaPlus findSchemaByPath(SchemaPlus rootSchema, String defaultPath) {
       if (defaultPath == null) {
         return rootSchema;
       }
