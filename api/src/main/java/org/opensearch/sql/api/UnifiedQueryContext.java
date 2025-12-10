@@ -42,55 +42,63 @@ import org.opensearch.sql.executor.QueryType;
 @Value
 public class UnifiedQueryContext {
 
-  /**
-   * The CalcitePlanContext that holds all Calcite configuration and query type. This is the only
-   * field stored - everything else is just for building this.
-   */
+  /** The CalcitePlanContext that holds all Calcite configuration and query type. */
   CalcitePlanContext planContext;
 
+  /**
+   * Settings for query execution configuration. Used by parsers to validate query features (e.g.,
+   * join types).
+   */
+  org.opensearch.sql.common.setting.Settings settings;
+
   /** Creates a new builder for UnifiedQueryContext. */
-  public static UnifiedQueryContextBuilder builder() {
-    return new UnifiedQueryContextBuilder();
+  public static Builder builder() {
+    return new Builder();
   }
 
   /**
    * Builder for UnifiedQueryContext with validation. Builds the CalcitePlanContext with all
    * necessary configuration.
    */
-  public static class UnifiedQueryContextBuilder {
+  public static class Builder {
     private QueryType queryType;
     private final Map<String, Schema> catalogs = new HashMap<>();
     private String defaultNamespace;
     private boolean cacheMetadata = false;
-    private SysLimit sysLimit = new SysLimit(10000, 10000, 10000);
+    private final Map<String, Object> settingValues = new HashMap<>();
 
     /** Sets the query type. */
-    public UnifiedQueryContextBuilder queryType(QueryType queryType) {
+    public Builder queryType(QueryType queryType) {
       this.queryType = queryType;
       return this;
     }
 
     /** Registers a catalog with the specified name and schema. */
-    public UnifiedQueryContextBuilder catalog(String name, Schema schema) {
+    public Builder catalog(String name, Schema schema) {
       catalogs.put(name, schema);
       return this;
     }
 
     /** Sets the default namespace path. */
-    public UnifiedQueryContextBuilder defaultNamespace(String namespace) {
+    public Builder defaultNamespace(String namespace) {
       this.defaultNamespace = namespace;
       return this;
     }
 
     /** Enables or disables metadata caching. */
-    public UnifiedQueryContextBuilder cacheMetadata(boolean cache) {
+    public Builder cacheMetadata(boolean cache) {
       this.cacheMetadata = cache;
       return this;
     }
 
-    /** Sets the query execution limits. */
-    public UnifiedQueryContextBuilder sysLimit(SysLimit limit) {
-      this.sysLimit = limit;
+    /**
+     * Sets a specific setting value by name.
+     *
+     * @param name the setting key name (e.g., "plugins.query.size_limit")
+     * @param value the setting value
+     */
+    public Builder setting(String name, Object value) {
+      settingValues.put(name, value);
       return this;
     }
 
@@ -103,14 +111,47 @@ public class UnifiedQueryContext {
         throw new IllegalArgumentException("QueryType must be specified");
       }
 
+      // Build settings from provided values
+      org.opensearch.sql.common.setting.Settings settings = buildSettings();
+
       // Build and validate framework config
       FrameworkConfig frameworkConfig = buildFrameworkConfig();
+
+      // Create SysLimit from settings
+      SysLimit sysLimit = SysLimit.fromSettings(settings);
 
       // Create CalcitePlanContext with all configuration
       CalcitePlanContext planContext =
           CalcitePlanContext.create(frameworkConfig, sysLimit, queryType);
 
-      return new UnifiedQueryContext(planContext);
+      return new UnifiedQueryContext(planContext, settings);
+    }
+
+    /**
+     * Builds Settings from the provided setting values. Returns a Settings instance that looks up
+     * values from the settingValues map. Users must configure all required settings explicitly.
+     */
+    private org.opensearch.sql.common.setting.Settings buildSettings() {
+      final Map<org.opensearch.sql.common.setting.Settings.Key, Object> settingsMap =
+          new HashMap<>();
+      settingValues.forEach(
+          (name, value) -> {
+            org.opensearch.sql.common.setting.Settings.Key.of(name)
+                .ifPresent(key -> settingsMap.put(key, value));
+          });
+
+      return new org.opensearch.sql.common.setting.Settings() {
+        @Override
+        @SuppressWarnings("unchecked")
+        public <T> T getSettingValue(Key key) {
+          return (T) settingsMap.get(key);
+        }
+
+        @Override
+        public List<?> getSettings() {
+          return List.copyOf(settingsMap.entrySet());
+        }
+      };
     }
 
     @SuppressWarnings({"rawtypes"})

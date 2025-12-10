@@ -19,7 +19,7 @@ Together, these components enable a complete workflow: parse PPL queries into lo
 
 ### UnifiedQueryContext and UnifiedQueryPlanner
 
-Create a reusable `UnifiedQueryContext` that encapsulates a `CalcitePlanContext` with all catalog configuration and query type. This context can be shared across multiple queries.
+Create a reusable `UnifiedQueryContext` that encapsulates a `CalcitePlanContext` with all catalog configuration, query type, and settings. This context can be shared across multiple queries.
 
 ```java
 // Create a reusable context with query type and catalogs
@@ -29,7 +29,7 @@ UnifiedQueryContext context = UnifiedQueryContext.builder()
     .catalog("spark_catalog", sparkSchema)
     .defaultNamespace("opensearch")
     .cacheMetadata(true)
-    .build();
+    .build();  // Uses default settings
 
 // Create planner with context
 UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
@@ -37,6 +37,18 @@ UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
 // Plan multiple queries (context is reused)
 RelNode plan1 = planner.plan("source = logs | where status = 200");
 RelNode plan2 = planner.plan("source = metrics | stats avg(cpu)");
+```
+
+For queries requiring specific settings (e.g., joins):
+
+```java
+UnifiedQueryContext context = UnifiedQueryContext.builder()
+    .queryType(QueryType.PPL)
+    .catalog("opensearch", schema)
+    .setting("plugins.query.size_limit", 10000)
+    .setting("plugins.ppl.subsearch.maxout", 10000)
+    .setting("plugins.ppl.join.subsearch_maxout", 50000)
+    .build();
 ```
 
 ### UnifiedQueryTranspiler

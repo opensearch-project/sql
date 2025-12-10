@@ -41,6 +41,24 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
   }
 
   @Test
+  public void testPPLJoinQueryPlanning() {
+    UnifiedQueryContext context =
+        UnifiedQueryContext.builder()
+            .queryType(QueryType.PPL)
+            .catalog("opensearch", testSchema)
+            .defaultNamespace("opensearch")
+            .setting("plugins.query.size_limit", 10000)
+            .setting("plugins.ppl.subsearch.maxout", 10000)
+            .setting("plugins.ppl.join.subsearch_maxout", 50000)
+            .build();
+    UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
+
+    RelNode plan =
+        planner.plan("source = employees | join on employees.id = employees.age employees");
+    assertNotNull("Join query should be created", plan);
+  }
+
+  @Test
   public void testPPLQueryPlanningWithDefaultNamespace() {
     UnifiedQueryContext context =
         UnifiedQueryContext.builder()

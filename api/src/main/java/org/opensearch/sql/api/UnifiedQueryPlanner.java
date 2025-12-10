@@ -77,7 +77,8 @@ public class UnifiedQueryPlanner {
     ParseTree cst = parser.parse(query);
     AstStatementBuilder astStmtBuilder =
         new AstStatementBuilder(
-            new AstBuilder(query), AstStatementBuilder.StatementBuilderContext.builder().build());
+            new AstBuilder(query, context.getSettings()),
+            AstStatementBuilder.StatementBuilderContext.builder().build());
     Statement statement = cst.accept(astStmtBuilder);
 
     if (statement instanceof Query) {
