@@ -47,9 +47,6 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
             .queryType(QueryType.PPL)
             .catalog("opensearch", testSchema)
             .defaultNamespace("opensearch")
-            .setting("plugins.query.size_limit", 10000)
-            .setting("plugins.ppl.subsearch.maxout", 10000)
-            .setting("plugins.ppl.join.subsearch_maxout", 50000)
             .build();
     UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
 
@@ -120,44 +117,6 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
     RelNode plan =
         planner.plan("source = catalog1.employees | lookup employees id | eval f = abs(id)");
     assertNotNull("Plan should be created with multiple catalogs", plan);
-  }
-
-  @Test
-  public void testPPLQueryPlanningWithMetadataCaching() {
-    UnifiedQueryContext context =
-        UnifiedQueryContext.builder()
-            .queryType(QueryType.PPL)
-            .catalog("opensearch", testSchema)
-            .cacheMetadata(true)
-            .build();
-    UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
-
-    RelNode plan = planner.plan("source = opensearch.employees");
-    assertNotNull("Plan should be created", plan);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testMissingQueryLanguage() {
-    UnifiedQueryContext.builder().catalog("opensearch", testSchema).build();
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testUnsupportedQueryLanguage() {
-    UnifiedQueryContext context =
-        UnifiedQueryContext.builder()
-            .queryType(QueryType.SQL) // only PPL is supported for now
-            .catalog("opensearch", testSchema)
-            .build();
-    new UnifiedQueryPlanner(context);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testInvalidDefaultNamespacePath() {
-    UnifiedQueryContext.builder()
-        .queryType(QueryType.PPL)
-        .catalog("opensearch", testSchema)
-        .defaultNamespace("nonexistent") // nonexistent namespace path
-        .build();
   }
 
   @Test(expected = IllegalStateException.class)

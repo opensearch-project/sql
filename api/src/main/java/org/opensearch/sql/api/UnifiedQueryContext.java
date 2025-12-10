@@ -5,9 +5,12 @@
 
 package org.opensearch.sql.api;
 
+import static org.opensearch.sql.common.setting.Settings.Key.*;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import lombok.Value;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelTraitDef;
@@ -20,6 +23,8 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.SysLimit;
+import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.executor.QueryType;
 
 /**
@@ -49,7 +54,7 @@ public class UnifiedQueryContext {
    * Settings for query execution configuration. Used by parsers to validate query features (e.g.,
    * join types).
    */
-  org.opensearch.sql.common.setting.Settings settings;
+  Settings settings;
 
   /** Creates a new builder for UnifiedQueryContext. */
   public static Builder builder() {
@@ -65,7 +70,17 @@ public class UnifiedQueryContext {
     private final Map<String, Schema> catalogs = new HashMap<>();
     private String defaultNamespace;
     private boolean cacheMetadata = false;
-    private final Map<String, Object> settingValues = new HashMap<>();
+
+    /**
+     * Setting values with defaults from SysLimit.DEFAULT. Only includes planning-required settings
+     * to avoid coupling with OpenSearchSettings.
+     */
+    private final Map<String, Object> settingValues =
+        new HashMap<>(
+            Map.of(
+                QUERY_SIZE_LIMIT.getKeyValue(), SysLimit.DEFAULT.querySizeLimit(),
+                PPL_SUBSEARCH_MAXOUT.getKeyValue(), SysLimit.DEFAULT.subsearchLimit(),
+                PPL_JOIN_SUBSEARCH_MAXOUT.getKeyValue(), SysLimit.DEFAULT.joinSubsearchLimit()));
 
     /** Sets the query type. */
     public Builder queryType(QueryType queryType) {
@@ -107,40 +122,23 @@ public class UnifiedQueryContext {
      * fast on invalid configuration.
      */
     public UnifiedQueryContext build() {
-      if (queryType == null) {
-        throw new IllegalArgumentException("QueryType must be specified");
-      }
+      Objects.requireNonNull(queryType, "QueryType must be specified");
 
-      // Build settings from provided values
-      org.opensearch.sql.common.setting.Settings settings = buildSettings();
-
-      // Build and validate framework config
-      FrameworkConfig frameworkConfig = buildFrameworkConfig();
-
-      // Create SysLimit from settings
-      SysLimit sysLimit = SysLimit.fromSettings(settings);
-
-      // Create CalcitePlanContext with all configuration
       CalcitePlanContext planContext =
-          CalcitePlanContext.create(frameworkConfig, sysLimit, queryType);
-
-      return new UnifiedQueryContext(planContext, settings);
+          CalcitePlanContext.create(
+              buildFrameworkConfig(), SysLimit.fromSettings(buildSettings()), queryType);
+      return new UnifiedQueryContext(planContext, buildSettings());
     }
 
-    /**
-     * Builds Settings from the provided setting values. Returns a Settings instance that looks up
-     * values from the settingValues map. Users must configure all required settings explicitly.
-     */
-    private org.opensearch.sql.common.setting.Settings buildSettings() {
-      final Map<org.opensearch.sql.common.setting.Settings.Key, Object> settingsMap =
-          new HashMap<>();
+    /** Builds Settings from the settingValues map (which includes defaults). */
+    private Settings buildSettings() {
+      final Map<Key, Object> settingsMap = new HashMap<>();
       settingValues.forEach(
           (name, value) -> {
-            org.opensearch.sql.common.setting.Settings.Key.of(name)
-                .ifPresent(key -> settingsMap.put(key, value));
+            Key.of(name).ifPresent(key -> settingsMap.put(key, value));
           });
 
-      return new org.opensearch.sql.common.setting.Settings() {
+      return new Settings() {
         @Override
         @SuppressWarnings("unchecked")
         public <T> T getSettingValue(Key key) {
