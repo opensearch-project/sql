@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.client;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.opensearch.action.search.CreatePitRequest;
 import org.opensearch.action.search.DeletePitRequest;
 import org.opensearch.client.node.NodeClient;
@@ -97,7 +98,7 @@ public interface OpenSearchClient {
    */
   void schedule(Runnable task);
 
-  NodeClient getNodeClient();
+  Optional<NodeClient> getNodeClient();
 
   /**
    * Create PIT for given indices
