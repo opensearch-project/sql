@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.ppl.calcite;
+package org.opensearch.sql.calcite.validate;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
