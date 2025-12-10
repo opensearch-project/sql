@@ -1256,15 +1256,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitJoin(Join node, CalcitePlanContext context) {
     List<UnresolvedPlan> children = node.getChildren();
     children.forEach(c -> analyze(c, context));
-    // add join.subsearch_maxout limit to subsearch side, 0 and negative means unlimited.
-    if (context.sysLimit.joinSubsearchLimit() > 0) {
-      PlanUtils.replaceTop(
-          context.relBuilder,
-          LogicalSystemLimit.create(
-              SystemLimitType.JOIN_SUBSEARCH_MAXOUT,
-              context.relBuilder.peek(),
-              context.relBuilder.literal(context.sysLimit.joinSubsearchLimit())));
-    }
     if (node.getJoinCondition().isEmpty()) {
       // join-with-field-list grammar
       List<String> leftColumns = context.relBuilder.peek(1).getRowType().getFieldNames();
@@ -1321,23 +1312,25 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                     .toList();
         buildDedupNotNull(context, dedupeFields, allowedDuplication, true);
       }
+      // add LogicalSystemLimit after dedup
+      addSysLimitForJoinSubsearch(context);
       context.relBuilder.join(
           JoinAndLookupUtils.translateJoinType(node.getJoinType()), joinCondition);
       if (!toBeRemovedFields.isEmpty()) {
         context.relBuilder.projectExcept(toBeRemovedFields);
       }
-      return context.relBuilder.peek();
-    }
-    // The join-with-criteria grammar doesn't allow empty join condition
-    RexNode joinCondition =
-        node.getJoinCondition()
-            .map(c -> rexVisitor.analyzeJoinCondition(c, context))
-            .orElse(context.relBuilder.literal(true));
-    if (node.getJoinType() == SEMI || node.getJoinType() == ANTI) {
-      // semi and anti join only return left table outputs
-      context.relBuilder.join(
-          JoinAndLookupUtils.translateJoinType(node.getJoinType()), joinCondition);
     } else {
+      // The join-with-criteria grammar doesn't allow empty join condition
+      RexNode joinCondition =
+          node.getJoinCondition()
+              .map(c -> rexVisitor.analyzeJoinCondition(c, context))
+              .orElse(context.relBuilder.literal(true));
+      if (node.getJoinType() == SEMI || node.getJoinType() == ANTI) {
+        // semi and anti join only return left table outputs
+        context.relBuilder.join(
+            JoinAndLookupUtils.translateJoinType(node.getJoinType()), joinCondition);
+        return context.relBuilder.peek();
+      }
       // Join condition could contain duplicated column name, Calcite will rename the duplicated
       // column name with numeric suffix, e.g. ON t1.id = t2.id, the output contains `id` and `id0`
       // when a new project add to stack. To avoid `id0`, we will rename the `id0` to `alias.id`
@@ -1377,12 +1370,26 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
         buildDedupNotNull(context, dedupeFields, allowedDuplication, true);
       }
+      // add LogicalSystemLimit after dedup
+      addSysLimitForJoinSubsearch(context);
       context.relBuilder.join(
           JoinAndLookupUtils.translateJoinType(node.getJoinType()), joinCondition);
       JoinAndLookupUtils.renameToExpectedFields(
           rightColumnsWithAliasIfConflict, leftColumns.size(), context);
     }
     return context.relBuilder.peek();
+  }
+
+  private static void addSysLimitForJoinSubsearch(CalcitePlanContext context) {
+    // add join.subsearch_maxout limit to subsearch side, 0 and negative means unlimited.
+    if (context.sysLimit.joinSubsearchLimit() > 0) {
+      PlanUtils.replaceTop(
+          context.relBuilder,
+          LogicalSystemLimit.create(
+              SystemLimitType.JOIN_SUBSEARCH_MAXOUT,
+              context.relBuilder.peek(),
+              context.relBuilder.literal(context.sysLimit.joinSubsearchLimit())));
+    }
   }
 
   private List<RexNode> getRightColumnsInJoinCriteria(
@@ -1560,7 +1567,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
             .over()
             .partitionBy(dedupeFields)
-            .orderBy(dedupeFields)
             .rowsTo(RexWindowBounds.CURRENT_ROW)
             .as(ROW_NUMBER_COLUMN_FOR_DEDUP);
     context.relBuilder.projectPlus(rowNumber);
@@ -1602,7 +1608,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
             .over()
             .partitionBy(dedupeFields)
-            .orderBy(dedupeFields)
             .rowsTo(RexWindowBounds.CURRENT_ROW)
             .as(rowNumberAlias);
     context.relBuilder.projectPlus(rowNumber);
