@@ -269,4 +269,71 @@ fetched rows / total rows = 1/1
 | TRUE        |
 +-------------+
 ```
+
+## TONUMBER
+
+### Description
+
+The following usage options are available, depending on the parameter
+types and the number of parameters.
+
+Usage: tonumber(string, \[base\]) converts the value in first argument.
+The second argument describe the base of first argument. If second
+argument is not provided, then it converts to base 10 number
+representation.
+
+Return type: Number
+
+You can use this function with the eval commands and as part of eval
+expressions. Base values can be between 2 and 36. The maximum value
+supported for base 10 is +(2-2\^-52)·2\^1023 and minimum is
+-(2-2\^-52)·2\^1023. The maximum for other supported bases is 2\^63-1
+(or 7FFFFFFFFFFFFFFF) and minimum is -2\^63 (or -7FFFFFFFFFFFFFFF). If
+the tonumber function cannot parse a field value to a number, the
+function returns NULL. You can use this function to convert a string
+representation of a binary number to return the corresponding number in
+base 10.
+
+Following example converts a string in binary to the number
+representation:
+
+    os> source=people | eval int_value = tonumber('010101',2) | fields int_value | head 1
+    fetched rows / total rows = 1/1
+    +-----------+
+    | int_value |
+    |-----------|
+    | 21.0      |
+    +-----------+
+
+Following example converts a string in hex to the number representation:
+
+    os> source=people | eval int_value = tonumber('FA34',16) | fields int_value | head 1
+    fetched rows / total rows = 1/1
+    +-----------+
+    | int_value |
+    |-----------|
+    | 64052.0   |
+    +-----------+
+
+Following example converts a string in decimal to the number
+representation:
+
+    os> source=people | eval int_value = tonumber('4598') | fields int_value | head 1
+    fetched rows / total rows = 1/1
+    +-----------+
+    | int_value |
+    |-----------|
+    | 4598.0    |
+    +-----------+
+
+Following example converts a string in decimal with fraction to the
+number representation:
+
+    os> source=people | eval double_value = tonumber('4598.678') | fields double_value | head 1
+    fetched rows / total rows = 1/1
+    +--------------+
+    | double_value |
+    |--------------|
+    | 4598.678     |
+    +--------------+
   
