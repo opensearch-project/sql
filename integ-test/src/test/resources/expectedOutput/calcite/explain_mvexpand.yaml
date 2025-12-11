@@ -1,0 +1,7 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(sort0=[$2], dir0=[ASC], fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(skills=[$0], username=[$3], VALUE=[$10])
+        LogicalValues(tuples=[[]])
+  physical: |
+    EnumerableValues(tuples=[[]])

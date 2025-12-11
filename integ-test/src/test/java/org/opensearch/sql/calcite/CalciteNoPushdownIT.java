@@ -32,6 +32,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteDedupCommandIT.class,
   CalciteDescribeCommandIT.class,
   CalciteExpandCommandIT.class,
+  CalciteMvExpandCommandIT.class,
   CalciteFieldsCommandIT.class,
   CalciteFillNullCommandIT.class,
   CalciteFlattenCommandIT.class,
