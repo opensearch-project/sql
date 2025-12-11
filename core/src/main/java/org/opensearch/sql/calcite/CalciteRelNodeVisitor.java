@@ -2831,7 +2831,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
    *
    * @param mvExpand MVExpand command to be visited
    * @param context CalcitePlanContext containing the RelBuilder and other context
-   * @return RelNode representing records with the expanded multivalue field
+   * @return RelNode representing records with the expanded multi-value field
    */
   @Override
   public RelNode visitMvExpand(MvExpand mvExpand, CalcitePlanContext context) {
