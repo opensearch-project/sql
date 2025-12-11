@@ -11,7 +11,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import static org.opensearch.sql.executor.execution.QueryPlanFactory.NO_CONSUMER_RESPONSE_LISTENER;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -28,11 +27,9 @@ import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
-import org.opensearch.sql.exception.UnsupportedCursorRequestException;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.QueryType;
-import org.opensearch.sql.executor.pagination.CanPaginateVisitor;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -100,8 +97,7 @@ class QueryPlanFactoryTest {
   }
 
   @Test
-  public void create_query_with_fetch_size_which_can_be_paged() {
-    when(plan.accept(any(CanPaginateVisitor.class), any())).thenReturn(Boolean.TRUE);
+  public void create_query_with_fetch_size_should_create_query_plan() {
     factory = new QueryPlanFactory(queryService);
     Statement query = new Query(plan, 10, queryType);
     AbstractPlan queryExecution = factory.create(query, queryListener, explainListener);
@@ -109,13 +105,11 @@ class QueryPlanFactoryTest {
   }
 
   @Test
-  public void create_query_with_fetch_size_which_cannot_be_paged() {
-    when(plan.accept(any(CanPaginateVisitor.class), any())).thenReturn(Boolean.FALSE);
+  public void create_query_with_fetch_size_and_offset_should_create_query_plan() {
     factory = new QueryPlanFactory(queryService);
-    Statement query = new Query(plan, 10, queryType);
-    assertThrows(
-        UnsupportedCursorRequestException.class,
-        () -> factory.create(query, queryListener, explainListener));
+    Statement query = new Query(plan, 10, queryType, 50);
+    AbstractPlan queryExecution = factory.create(query, queryListener, explainListener);
+    assertTrue(queryExecution instanceof QueryPlan);
   }
 
   @Test
