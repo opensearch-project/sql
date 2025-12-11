@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.validate;
+package org.opensearch.sql.calcite.validate.shuttles;
 
 import java.math.BigDecimal;
 import org.apache.calcite.avatica.util.TimeUnit;
