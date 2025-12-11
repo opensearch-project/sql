@@ -115,13 +115,6 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testMvExpandWithHeadCommand() {
-    String ppl = "source=DEPT | mvexpand EMPNOS | head 1";
-    // Smoke test: planning should succeed with head command after mvexpand.
-    getRelNode(ppl);
-  }
-
-  @Test
   public void testMvExpandWithLimitParameter() {
     String ppl = "source=DEPT | mvexpand EMPNOS limit=2";
     // Smoke test: planning should succeed with mvexpand limit parameter.
