@@ -1022,7 +1022,7 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval name2=substring(name, 2, 1) | join max=1 name2,age [ source=%s |"
-                    + " eval name2=substring(state, 2, 1) ] ｜ fields name, country, state, month, year, age, name2",
+                    + " eval name2=substring(state, 2, 1) ] | fields name, country, state, month, year, age, name2",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_STATE_COUNTRY));
     verifySchema(
         actual,
