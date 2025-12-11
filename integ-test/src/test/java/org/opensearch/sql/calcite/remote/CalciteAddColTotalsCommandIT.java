@@ -16,6 +16,11 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
+/**
+ * Integration tests for PPL addcoltotals command with Calcite engine enabled.
+ * Tests column-wise total computation scenarios including field selection,
+ * custom labels, and interactions with other PPL commands.
+ */
 public class CalciteAddColTotalsCommandIT extends PPLIntegTestCase {
 
   @Override
