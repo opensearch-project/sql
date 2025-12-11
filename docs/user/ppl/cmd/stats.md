@@ -56,7 +56,7 @@ For detailed documentation of each function, see [Aggregation Functions](../func
 In OpenSearch, `doc_count` values for a terms bucket aggregation may be approximate. As a result, any aggregations (such as `sum` and `avg`) on the terms bucket aggregation may also be approximate.
 For example, the following PPL query (find the top 10 URLs) may return an approximate result if the cardinality of `URL` is high.
 
-```ppl
+```ppl ignore
 source=hits
 | stats bucket_nullable=false count() as c by URL
 | sort - c
@@ -69,7 +69,7 @@ This query is pushed down to a terms bucket aggregation DSL query with `"order":
 
 Similar to above PPL query, the following query (find the rare 10 URLs) often produces inaccurate results.
 
-```ppl
+```ppl ignore
 source=hits
 | stats bucket_nullable=false count() as c by URL
 | sort + c
