@@ -15,7 +15,6 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
 import lombok.SneakyThrows;
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

@@ -14,9 +14,9 @@ import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Literal;
 
 /**
- * AST node representing the PPL addcoltotals command.
- * Computes column-wise totals across events and optionally appends a summary event.
- * 
+ * AST node representing the PPL addcoltotals command. Computes column-wise totals across events and
+ * optionally appends a summary event.
+ *
  * @see AddTotals for row-wise totals
  */
 @Getter
