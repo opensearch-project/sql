@@ -65,7 +65,7 @@ public class CalciteAddColTotalsCommandIT extends PPLIntegTestCase {
     verifyColTotals(dataRows, field_indexes, null);
   }
 
-  public static boolean isNumeric(String str) {
+  private static boolean isNumeric(String str) {
     return str != null && str.matches("-?\\d+(\\.\\d+)?");
   }
 
