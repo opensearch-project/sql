@@ -2125,7 +2125,7 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testRexStandardizationForScript() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
-    assertYamlEqualsIgnoreId(
+    assertJsonEqualsIgnoreId(
         loadExpectedPlan("explain_extended_for_standardization.json"),
         explainQueryToString(
             String.format(
