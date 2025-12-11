@@ -54,4 +54,4 @@ If you are working on contributing a new PPL command, please read this guide and
   - Add a test in `CrossClusterSearchIT`
 
 - [ ] **User doc:**
-  - Add a xxx.rst under `docs/user/ppl/cmd` and link the new doc to `docs/user/ppl/index.rst`
+  - Add a xxx.md under `docs/user/ppl/cmd` and link the new doc to `docs/user/ppl/index.md`
