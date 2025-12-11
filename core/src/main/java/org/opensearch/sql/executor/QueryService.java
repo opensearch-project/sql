@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.executor;
 
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nullable;
@@ -135,14 +137,6 @@ public class QueryService {
     CalcitePlanContext.run(
         () -> {
           try {
-            CalcitePlanContext context =
-                CalcitePlanContext.create(
-                    buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
-            RelNode relNode = analyze(plan, context);
-            relNode = mergeAdjacentFilters(relNode);
-            RelNode optimized = optimize(relNode, context);
-            RelNode calcitePlan = convertToCalcitePlan(optimized);
-            executionEngine.execute(calcitePlan, context, listener);
             AccessController.doPrivileged(
                 (PrivilegedAction<Void>)
                     () -> {
