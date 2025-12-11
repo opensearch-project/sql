@@ -13,6 +13,12 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Literal;
 
+/**
+ * AST node representing the PPL addcoltotals command.
+ * Computes column-wise totals across events and optionally appends a summary event.
+ * 
+ * @see AddTotals for row-wise totals
+ */
 @Getter
 @Setter
 @ToString
