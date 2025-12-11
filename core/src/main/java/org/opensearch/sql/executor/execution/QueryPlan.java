@@ -8,7 +8,6 @@ package org.opensearch.sql.executor.execution;
 import java.util.Optional;
 import org.apache.commons.lang3.NotImplementedException;
 import org.opensearch.sql.ast.statement.Explain;
-import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
@@ -29,6 +28,9 @@ public class QueryPlan extends AbstractPlan {
 
   protected final Optional<Integer> pageSize;
 
+  /** Pagination offset (0-based). Only used when pageSize is present. */
+  protected final int paginationOffset;
+
   /** Constructor. */
   public QueryPlan(
       QueryId queryId,
@@ -41,9 +43,10 @@ public class QueryPlan extends AbstractPlan {
     this.queryService = queryService;
     this.listener = listener;
     this.pageSize = Optional.empty();
+    this.paginationOffset = 0;
   }
 
-  /** Constructor with page size. */
+  /** Constructor with page size (backward compatible, offset defaults to 0). */
   public QueryPlan(
       QueryId queryId,
       QueryType queryType,
@@ -51,17 +54,31 @@ public class QueryPlan extends AbstractPlan {
       int pageSize,
       QueryService queryService,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
+    this(queryId, queryType, plan, pageSize, 0, queryService, listener);
+  }
+
+  /** Constructor with page size and offset for pagination. */
+  public QueryPlan(
+      QueryId queryId,
+      QueryType queryType,
+      UnresolvedPlan plan,
+      int pageSize,
+      int paginationOffset,
+      QueryService queryService,
+      ResponseListener<ExecutionEngine.QueryResponse> listener) {
     super(queryId, queryType);
     this.plan = plan;
     this.queryService = queryService;
     this.listener = listener;
     this.pageSize = Optional.of(pageSize);
+    this.paginationOffset = paginationOffset;
   }
 
   @Override
   public void execute() {
     if (pageSize.isPresent()) {
-      queryService.execute(new Paginate(pageSize.get(), plan), getQueryType(), listener);
+      // Use new pagination with offset for Calcite path
+      queryService.execute(plan, getQueryType(), listener, pageSize.get(), paginationOffset);
     } else {
       queryService.execute(plan, getQueryType(), listener);
     }

@@ -30,7 +30,12 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
 
   @Override
   public Statement visitPplStatement(OpenSearchPPLParser.PplStatementContext ctx) {
-    Query query = new Query(addSelectAll(astBuilder.visit(ctx)), context.getFetchSize(), PPL);
+    Query query =
+        new Query(
+            addSelectAll(astBuilder.visit(ctx)),
+            context.getFetchSize(),
+            PPL,
+            context.getPaginationOffset());
     if (ctx.explainStatement() != null) {
       if (ctx.explainStatement().explainMode() == null) {
         return new Explain(query, PPL);
@@ -52,6 +57,7 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
   public static class StatementBuilderContext {
     private final boolean isExplain;
     private final int fetchSize;
+    private final int paginationOffset;
     private final String format;
   }
 

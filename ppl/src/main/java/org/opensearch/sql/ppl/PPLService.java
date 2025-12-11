@@ -98,12 +98,16 @@ public class PPLService {
                 AstStatementBuilder.StatementBuilderContext.builder()
                     .isExplain(request.isExplainRequest())
                     .format(request.getFormat())
+                    .fetchSize(request.getPageSize())
+                    .paginationOffset(request.getOffset())
                     .build()));
 
     log.info(
-        "[{}] Incoming request {}",
+        "[{}] Incoming request {} (pageSize={}, offset={})",
         QueryContext.getRequestId(),
-        anonymizer.anonymizeStatement(statement));
+        anonymizer.anonymizeStatement(statement),
+        request.getPageSize(),
+        request.getOffset());
 
     return queryExecutionFactory.create(statement, queryListener, explainListener);
   }

@@ -25,6 +25,12 @@ public class PPLQueryRequest {
   @Getter private final String path;
   @Getter private String format = "";
 
+  /** Current offset for pagination (0-based). */
+  @Getter private final int offset;
+
+  /** Page size for pagination. 0 means pagination is disabled. */
+  @Getter private final int pageSize;
+
   @Setter
   @Getter
   @Accessors(fluent = true)
@@ -36,15 +42,37 @@ public class PPLQueryRequest {
   private JsonResponseFormatter.Style style = JsonResponseFormatter.Style.COMPACT;
 
   public PPLQueryRequest(String pplQuery, JSONObject jsonContent, String path) {
-    this(pplQuery, jsonContent, path, "");
+    this(pplQuery, jsonContent, path, "", 0, 0);
   }
 
   /** Constructor of PPLQueryRequest. */
   public PPLQueryRequest(String pplQuery, JSONObject jsonContent, String path, String format) {
+    this(pplQuery, jsonContent, path, format, 0, 0);
+  }
+
+  /** Constructor of PPLQueryRequest with pagination parameters. */
+  public PPLQueryRequest(
+      String pplQuery,
+      JSONObject jsonContent,
+      String path,
+      String format,
+      int offset,
+      int pageSize) {
     this.pplQuery = pplQuery;
     this.jsonContent = jsonContent;
     this.path = Optional.ofNullable(path).orElse(DEFAULT_PPL_PATH);
     this.format = format;
+    this.offset = offset;
+    this.pageSize = pageSize;
+  }
+
+  /**
+   * Check if pagination is enabled for this request.
+   *
+   * @return true if pageSize > 0
+   */
+  public boolean isPaginationEnabled() {
+    return pageSize > 0;
   }
 
   public String getRequest() {

@@ -23,6 +23,8 @@ public class PPLQueryRequestFactory {
   private static final String DEFAULT_RESPONSE_FORMAT = "jdbc";
   private static final String DEFAULT_EXPLAIN_FORMAT = "standard";
   private static final String QUERY_PARAMS_PRETTY = "pretty";
+  private static final String PAGINATION_OFFSET = "offset";
+  private static final String PAGINATION_PAGE_SIZE = "pageSize";
 
   /**
    * Build {@link PPLQueryRequest} from {@link RestRequest}.
@@ -59,12 +61,27 @@ public class PPLQueryRequestFactory {
     boolean pretty = getPrettyOption(restRequest.params());
     try {
       jsonContent = new JSONObject(content);
+
+      // Parse pagination parameters
+      int offset = jsonContent.optInt(PAGINATION_OFFSET, 0);
+      int pageSize = jsonContent.optInt(PAGINATION_PAGE_SIZE, 0);
+
+      // Validate pagination parameters
+      if (offset < 0) {
+        throw new IllegalArgumentException("offset must be non-negative");
+      }
+      if (pageSize < 0) {
+        throw new IllegalArgumentException("pageSize must be non-negative");
+      }
+
       PPLQueryRequest pplRequest =
           new PPLQueryRequest(
               jsonContent.getString(PPL_FIELD_NAME),
               jsonContent,
               restRequest.path(),
-              format.getFormatName());
+              format.getFormatName(),
+              offset,
+              pageSize);
       // set sanitize option if csv format
       if (format.equals(Format.CSV)) {
         pplRequest.sanitize(getSanitizeOption(restRequest.params()));
