@@ -2001,6 +2001,30 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testaddTotalsExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_add_totals.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account"
+                + "| head 5 "
+                + "| addtotals  balance age label='ColTotal' "
+                + " fieldname='CustomSum' labelfield='all_emp_total' row=true col=true"));
+  }
+
+  @Test
+  public void testaddColTotalsExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_add_col_totals.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account"
+                + "| head 5 "
+                + "|  addcoltotals balance age label='GrandTotal'"));
+  }
+
   public void testComplexDedup() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_dedup_complex1.yaml");
