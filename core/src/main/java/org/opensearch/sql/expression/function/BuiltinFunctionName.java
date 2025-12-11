@@ -160,6 +160,7 @@ public enum BuiltinFunctionName {
 
   /** Text Functions. */
   TOSTRING(FunctionName.of("tostring")),
+  TONUMBER(FunctionName.of("tonumber")),
 
   /** IP Functions. */
   CIDRMATCH(FunctionName.of("cidrmatch")),
