@@ -10,8 +10,6 @@ package org.opensearch.sql.prometheus.storage;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -53,20 +51,15 @@ public class PrometheusStorageFactory implements DataSourceFactory {
 
   StorageEngine getStorageEngine(Map<String, String> requiredConfig) {
     PrometheusClient prometheusClient;
-    prometheusClient =
-        AccessController.doPrivileged(
-            (PrivilegedAction<PrometheusClientImpl>)
-                () -> {
-                  try {
-                    validateDataSourceConfigProperties(requiredConfig);
-                    return new PrometheusClientImpl(
-                        PrometheusClientUtils.getHttpClient(requiredConfig, settings),
-                        new URI(requiredConfig.get(URI)));
-                  } catch (URISyntaxException | UnknownHostException e) {
-                    throw new IllegalArgumentException(
-                        String.format("Invalid URI in prometheus properties: %s", e.getMessage()));
-                  }
-                });
+    try {
+      validateDataSourceConfigProperties(requiredConfig);
+      prometheusClient = new PrometheusClientImpl(
+          PrometheusClientUtils.getHttpClient(requiredConfig, settings),
+          new URI(requiredConfig.get(URI)));
+    } catch (URISyntaxException | UnknownHostException e) {
+      throw new IllegalArgumentException(
+          String.format("Invalid URI in prometheus properties: %s", e.getMessage()));
+    }
     return new PrometheusStorageEngine(prometheusClient);
   }
 
