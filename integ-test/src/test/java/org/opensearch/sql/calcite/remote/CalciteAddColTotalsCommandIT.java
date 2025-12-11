@@ -69,7 +69,7 @@ public class CalciteAddColTotalsCommandIT extends PPLIntegTestCase {
     return str != null && str.matches("-?\\d+(\\.\\d+)?");
   }
 
-  public void verifyColTotals(
+  private void verifyColTotals(
       org.json.JSONArray dataRows, List<Integer> field_indexes, String finalSummaryEventLevel) {
 
     BigDecimal[] cColTotals = new BigDecimal[field_indexes.size()];
