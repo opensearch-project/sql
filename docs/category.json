@@ -59,7 +59,7 @@
     "user/ppl/general/comments.md",
     "user/ppl/general/datatypes.md",
     "user/ppl/general/identifiers.md",
-    "user/ppl/general/mvexpand.md"
+    "user/ppl/general/mvexpand.rst"
   ],
   "sql_cli": [
     "user/dql/expressions.rst",

@@ -83,6 +83,8 @@ Example 4: Single-value array (case "single")
 ---------------------------------------------
 Single-element array should expand to one row.
 
+PPL query / expected output::
+
     os> source=mvexpand_logs | where case='single' | mvexpand tags | fields tags.value
     fetched rows / total rows = 1/1
     +------------+
@@ -94,6 +96,8 @@ Single-element array should expand to one row.
 Example 5: Missing Field
 ------------------------
 If the field is missing in the document (case "missing"), no rows are produced.
+
+PPL query / expected output::
 
     os> source=mvexpand_logs | where case='missing' | mvexpand tags | fields tags.value
     fetched rows / total rows = 0/0
