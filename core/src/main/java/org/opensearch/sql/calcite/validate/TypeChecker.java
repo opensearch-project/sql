@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.validate;
 
+import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.prepare.CalciteCatalogReader;
@@ -13,7 +14,6 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeCoercionRule;
-import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.tools.FrameworkConfig;
@@ -53,7 +53,9 @@ public class TypeChecker {
             .withTypeCoercionRules(getTypeCoercionRule())
             .withTypeCoercionFactory(TypeChecker::createTypeCoercion)
             // Use lenient conformance for PPL compatibility
-            .withConformance(SqlConformanceEnum.LENIENT);
+            .withConformance(OpenSearchSparkSqlDialect.DEFAULT.getConformance())
+            // Use Spark SQL's NULL collation (NULLs sorted LOW/FIRST)
+            .withDefaultNullCollation(NullCollation.LOW);
     return new PplValidator(
         operatorTable, catalogReader, OpenSearchTypeFactory.TYPE_FACTORY, validatorConfig);
   }
