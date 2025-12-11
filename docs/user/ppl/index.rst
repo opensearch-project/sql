@@ -64,7 +64,7 @@ The query start with search command and then flowing a set of command delimited 
   `replace command <cmd/replace.rst>`_                            3.4                 experimental (since 3.4)  Replace text in one or more fields in the search result
   `fillnull command <cmd/fillnull.rst>`_                          3.0                 experimental (since 3.0)  Fill null with provided value in one or more fields in the search result.
   `expand command <cmd/expand.rst>`_                              3.1                 experimental (since 3.1)  Transform a single document into multiple documents by expanding a nested array field.
-  `mvexpand command <cmd/mvexpand.rst>`_                          3.4                 experimental (since 3.4)  Expand a multi-valued field into separate documents (one per value).
+  `mvexpand command <cmd/mvexpand.md>`_                          3.4                 experimental (since 3.4)  Expand a multi-valued field into separate documents (one per value).
   `flatten command  <cmd/flatten.rst>`_                           3.1                 experimental (since 3.1)  Flatten a struct or an object field into separate fields in a document.
   `table command <cmd/table.rst>`_                                3.3                 experimental (since 3.3)  Keep or remove fields from the search result using enhanced syntax options.
   `stats command <cmd/stats.rst>`_                                1.0                 stable (since 1.0)        Calculate aggregation from search results.

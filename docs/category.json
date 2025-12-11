@@ -27,6 +27,7 @@
     "user/ppl/cmd/regex.md",
     "user/ppl/cmd/rename.md",
     "user/ppl/cmd/multisearch.md",
+    "user/ppl/cmd/mvexpand.md",
     "user/ppl/cmd/replace.md",
     "user/ppl/cmd/rex.md",
     "user/ppl/cmd/search.md",
@@ -58,8 +59,7 @@
     "user/ppl/functions/system.md",
     "user/ppl/general/comments.md",
     "user/ppl/general/datatypes.md",
-    "user/ppl/general/identifiers.md",
-    "user/ppl/general/mvexpand.rst"
+    "user/ppl/general/identifiers.md"
   ],
   "sql_cli": [
     "user/dql/expressions.rst",
