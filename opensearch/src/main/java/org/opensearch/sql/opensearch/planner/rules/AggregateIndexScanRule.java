@@ -31,9 +31,9 @@ import org.apache.calcite.tools.RelBuilder;
 import org.immutables.value.Value;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
-import org.opensearch.sql.expression.function.udf.binning.WidthBucketFunction;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
@@ -306,7 +306,7 @@ public class AggregateIndexScanRule extends InterruptibleRelRule<AggregateIndexS
               expr ->
                   expr instanceof RexCall rexCall
                       && rexCall.getOperator().equals(WIDTH_BUCKET)
-                      && WidthBucketFunction.dateRelatedType(
+                      && OpenSearchTypeFactory.isDatetime(
                           rexCall.getOperands().getFirst().getType()));
     }
   }
