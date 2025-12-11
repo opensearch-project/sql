@@ -567,4 +567,43 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     // Should preserve first occurrence order: z, a, b, c
     verifyDataRows(actual, rows(List.of("z", "a", "b", "c")));
   }
+
+  @Test
+  public void testSplitWithSemicolonDelimiter() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval test = 'buttercup;rarity;tenderhoof;dash;mcintosh', result ="
+                    + " split(test, ';') | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of("buttercup", "rarity", "tenderhoof", "dash", "mcintosh")));
+  }
+
+  @Test
+  public void testSplitWithMultiCharDelimiter() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval test = '1a2b3c4def567890', result = split(test, 'def') | head 1 |"
+                    + " fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of("1a2b3c4", "567890")));
+  }
+
+  @Test
+  public void testSplitWithEmptyDelimiter() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval test = 'abcd', result = split(test, '') | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    // Empty delimiter splits into individual characters
+    verifyDataRows(actual, rows(List.of("a", "b", "c", "d")));
+  }
 }

@@ -410,7 +410,7 @@ class OpenSearchNodeClientTest {
   @SneakyThrows
   void cleanup_pit_request() {
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             new SearchSourceBuilder(),
             factory,

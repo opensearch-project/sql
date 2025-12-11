@@ -136,7 +136,7 @@ public class AggregateAnalyzer {
     final Map<String, ExprType> fieldTypes;
     final RelOptCluster cluster;
     final boolean bucketNullable;
-    final int bucketSize;
+    final int queryBucketSize;
 
     <T extends ValuesSourceAggregationBuilder<T>> T build(RexNode node, T aggBuilder) {
       return build(node, aggBuilder::field, aggBuilder::script);
@@ -266,7 +266,8 @@ public class AggregateAnalyzer {
                     + " aggregation");
           }
           AggregationBuilder compositeBuilder =
-              AggregationBuilders.composite("composite_buckets", buckets).size(helper.bucketSize);
+              AggregationBuilders.composite("composite_buckets", buckets)
+                  .size(helper.queryBucketSize);
           if (subBuilder != null) {
             compositeBuilder.subAggregations(subBuilder);
           }
@@ -768,7 +769,7 @@ public class AggregateAnalyzer {
         helper.build(
             group,
             new TermsAggregationBuilder(bucketName)
-                .size(helper.bucketSize)
+                .size(helper.queryBucketSize)
                 .order(BucketOrder.key(true)));
     return withValueTypeHint(
         sourceBuilder,

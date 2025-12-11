@@ -98,7 +98,7 @@ public class OpenSearchIndexScanPaginationTest {
     OpenSearchRequest request = mock();
     OpenSearchResponse response = mock();
     when(builder.build(any(), any(), any())).thenReturn(request);
-    when(client.search(any())).thenReturn(response);
+    lenient().when(client.search(any())).thenReturn(response);
     try (var indexScan =
         new OpenSearchIndexScan(client, builder.build(INDEX_NAME, SCROLL_TIMEOUT, client))) {
       indexScan.open();

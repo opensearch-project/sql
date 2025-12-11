@@ -5,10 +5,8 @@
 
 package org.opensearch.sql.opensearch.storage.scan.context;
 
-import com.google.common.collect.Iterators;
 import java.util.AbstractCollection;
 import java.util.ArrayDeque;
-import java.util.Collections;
 import java.util.Iterator;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
@@ -20,6 +18,7 @@ import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 @Getter
 public class PushDownContext extends AbstractCollection<PushDownOperation> {
   private final OpenSearchIndex osIndex;
+  private ArrayDeque<PushDownOperation> queue = new ArrayDeque<>();
   private ArrayDeque<PushDownOperation> operationsForRequestBuilder;
 
   private boolean isAggregatePushed = false;
@@ -67,33 +66,28 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
   @NotNull
   @Override
   public Iterator<PushDownOperation> iterator() {
-    if (operationsForRequestBuilder == null) {
-      return Collections.emptyIterator();
-    } else if (operationsForAgg == null) {
-      return operationsForRequestBuilder.iterator();
-    } else {
-      return Iterators.concat(operationsForRequestBuilder.iterator(), operationsForAgg.iterator());
-    }
+    return queue.iterator();
   }
 
   @Override
   public int size() {
-    return (operationsForRequestBuilder == null ? 0 : operationsForRequestBuilder.size())
-        + (operationsForAgg == null ? 0 : operationsForAgg.size());
+    return queue.size();
   }
 
-  ArrayDeque<PushDownOperation> getOperationsForRequestBuilder() {
+  void addOperationForRequestBuilder(PushDownOperation operation) {
     if (operationsForRequestBuilder == null) {
       this.operationsForRequestBuilder = new ArrayDeque<>();
     }
-    return operationsForRequestBuilder;
+    operationsForRequestBuilder.add(operation);
+    queue.add(operation);
   }
 
-  ArrayDeque<PushDownOperation> getOperationsForAgg() {
+  void addOperationForAgg(PushDownOperation operation) {
     if (operationsForAgg == null) {
       this.operationsForAgg = new ArrayDeque<>();
     }
-    return operationsForAgg;
+    operationsForAgg.add(operation);
+    queue.add(operation);
   }
 
   @Override
