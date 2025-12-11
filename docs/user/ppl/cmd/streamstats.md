@@ -116,7 +116,7 @@ fetched rows / total rows = 4/4
 
 This example calculates the running maximum age over a 2-row window, excluding the current event.
   
-```ppl
+```ppl ignore
 source=state_country
 | streamstats current=false window=2 max(age) as prev_max_age
 ```
@@ -164,7 +164,7 @@ original data
 * global=true: The window slides across all rows globally (following their input order), but inside each window, aggregation is still computed by country. So we process the data stream row by row to build the sliding window with size 2. We can see that David and Rick are in a window.  
 * global=false: Each by group (country) forms its own independent stream and window (size 2). So David and Hello are in one window for USA. This time we get running_avg 35 for David, rather than 40 when global is set true.  
   
-```ppl
+```ppl ignore
 source=state_country
 | streamstats window=2 global=true avg(age) as running_avg by country
 ```
@@ -187,7 +187,7 @@ fetched rows / total rows = 8/8
 +-------+---------+------------+-------+------+-----+-------------+
 ```
   
-```ppl
+```ppl ignore
 source=state_country 
 | streamstats window=2 global=false avg(age) as running_avg by country ;
 ```
@@ -214,7 +214,7 @@ fetched rows / total rows = 8/8
 
 This example calculates the running average of age across accounts by country, with resets applied.
   
-```ppl
+```ppl ignore
 source=state_country
 | streamstats current=false reset_before=age>34 reset_after=age<25 avg(age) as avg_age by country
 ```

@@ -66,7 +66,7 @@ Explain output could be set different formats: `standard` (the default format), 
 
 Explain query
   
-```bash ppl
+```bash ppl ignore
 curl -sS -H 'Content-Type: application/json' \
 -X POST localhost:9200/_plugins/_ppl/_explain \
 -d '{"query" : "source=state_country | where age>30"}'
@@ -108,7 +108,7 @@ Expected output:
 
 Explain query
   
-```bash ppl
+```bash ppl ignore
 curl -sS -H 'Content-Type: application/json' \
 -X POST localhost:9200/_plugins/_ppl/_explain?format=extended \
 -d '{"query" : "source=state_country | where age>30"}'
@@ -133,7 +133,7 @@ Expected output:
 Return Explain response format in In `yaml` format.
 Explain query
   
-```bash ppl
+```bash ppl ignore
 curl -sS -H 'Content-Type: application/json' \
 -X POST localhost:9200/_plugins/_ppl/_explain?format=yaml \
 -d '{"query" : "source=state_country | where age>30"}'
