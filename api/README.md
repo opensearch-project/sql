@@ -74,7 +74,7 @@ UnifiedQueryContext context = UnifiedQueryContext.builder()
 // Step 2: Create planner with context
 UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
 
-// Step 3: Parse PPL query into logical plan
+// Step 3: Plan PPL query into logical plan
 RelNode plan = planner.plan("source = employees | where age > 30");
 
 // Step 4: Create transpiler with target dialect

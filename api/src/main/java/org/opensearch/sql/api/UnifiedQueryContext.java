@@ -135,10 +135,11 @@ public class UnifiedQueryContext {
     public UnifiedQueryContext build() {
       Objects.requireNonNull(queryType, "Must specify language before build");
 
+      Settings settings = buildSettings();
       CalcitePlanContext planContext =
           CalcitePlanContext.create(
-              buildFrameworkConfig(), SysLimit.fromSettings(buildSettings()), queryType);
-      return new UnifiedQueryContext(planContext, buildSettings());
+              buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
+      return new UnifiedQueryContext(planContext, settings);
     }
 
     private Settings buildSettings() {
