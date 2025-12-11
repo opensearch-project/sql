@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.opensearch.storage.scan.context;
 
+import static org.opensearch.search.aggregations.MultiBucketConsumerService.DEFAULT_MAX_BUCKETS;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -43,8 +45,6 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 @Getter
 @EqualsAndHashCode
 public class AggPushDownAction implements OSRequestBuilderAction {
-  private static final int MAX_BUCKET_SIZE = 65535;
-
   private Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> builderAndParser;
   private final Map<String, OpenSearchDataType> extendedTypeMapping;
   private final long scriptCount;
@@ -208,13 +208,13 @@ public class AggPushDownAction implements OSRequestBuilderAction {
           for (int i = 0; i < composite.sources().size(); i++) {
             TermsValuesSourceBuilder terms = (TermsValuesSourceBuilder) composite.sources().get(i);
             if (i == 0) { // first
-              aggregationBuilder = buildTermsAggregationBuilder(terms, null, MAX_BUCKET_SIZE);
+              aggregationBuilder = buildTermsAggregationBuilder(terms, null, DEFAULT_MAX_BUCKETS);
             } else if (i == composite.sources().size() - 1) { // last
               aggregationBuilder.subAggregation(
                   buildTermsAggregationBuilder(terms, bucketOrder, digest.number()));
             } else {
               aggregationBuilder.subAggregation(
-                  buildTermsAggregationBuilder(terms, null, MAX_BUCKET_SIZE));
+                  buildTermsAggregationBuilder(terms, null, DEFAULT_MAX_BUCKETS));
             }
           }
         } else {
@@ -417,6 +417,11 @@ public class AggPushDownAction implements OSRequestBuilderAction {
       termsAggBuilder.order(BucketOrder.key(!collations.get(0).getDirection().isDescending()));
     }
     // TODO for MultiTermsAggregationBuilder
+  }
+
+  public boolean isCompositeAggregation() {
+    return builderAndParser.getLeft().stream()
+        .anyMatch(builder -> builder instanceof CompositeAggregationBuilder);
   }
 
   /**

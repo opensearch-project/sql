@@ -315,13 +315,15 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         return null;
       }
       CalciteLogicalIndexScan newScan = copyWithNewTraitSet(sort.getTraitSet());
-      AbstractAction<?> newAction =
-          (AggregationBuilderAction)
-              aggAction ->
-                  aggAction.rePushDownSortAggMeasure(
-                      sort.getCollation().getFieldCollations(), rowType.getFieldNames());
+      newScan
+          .pushDownContext
+          .getAggPushDownAction()
+          .rePushDownSortAggMeasure(
+              sort.getCollation().getFieldCollations(), rowType.getFieldNames());
+      AbstractAction<?> action =
+          (OSRequestBuilderAction) requestAction -> requestAction.resetRequestTotal();
       Object digest = sort.getCollation().getFieldCollations();
-      newScan.pushDownContext.add(PushDownType.SORT_AGG_METRICS, digest, newAction);
+      newScan.pushDownContext.add(PushDownType.SORT_AGG_METRICS, digest, action);
       return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
@@ -334,9 +336,10 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
   public CalciteLogicalIndexScan pushDownRareTop(Project project, RareTopDigest digest) {
     try {
       CalciteLogicalIndexScan newScan = copyWithNewSchema(project.getRowType());
-      AbstractAction<?> newAction =
-          (AggregationBuilderAction) aggAction -> aggAction.rePushDownRareTop(digest);
-      newScan.pushDownContext.add(PushDownType.RARE_TOP, digest, newAction);
+      newScan.pushDownContext.getAggPushDownAction().rePushDownRareTop(digest);
+      AbstractAction<?> action =
+          (OSRequestBuilderAction) requestAction -> requestAction.resetRequestTotal();
+      newScan.pushDownContext.add(PushDownType.RARE_TOP, digest, action);
       return newScan;
     } catch (Exception e) {
       if (LOG.isDebugEnabled()) {
@@ -364,7 +367,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               .filter(entry -> schema.contains(entry.getKey()))
               .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
       List<String> outputFields = aggregate.getRowType().getFieldNames();
-      int bucketSize = osIndex.getBucketSize();
+      int queryBucketSize = osIndex.getQueryBucketSize();
       boolean bucketNullable =
           Boolean.parseBoolean(
               aggregate.getHints().stream()
@@ -374,7 +377,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
                   .orElseGet(() -> "true"));
       AggregateAnalyzer.AggregateBuilderHelper helper =
           new AggregateAnalyzer.AggregateBuilderHelper(
-              getRowType(), fieldTypes, getCluster(), bucketNullable, bucketSize);
+              getRowType(), fieldTypes, getCluster(), bucketNullable, queryBucketSize);
       final Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> builderAndParser =
           AggregateAnalyzer.analyze(aggregate, project, outputFields, helper);
       Map<String, OpenSearchDataType> extendedTypeMapping =
@@ -406,17 +409,24 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       if (pushDownContext.isAggregatePushed()) {
         // Push down the limit into the aggregation bucket in advance to detect whether the limit
         // can update the aggregation builder
-        boolean updated =
+        boolean canUpdate =
             pushDownContext.getAggPushDownAction().pushDownLimitIntoBucketSize(limit + offset);
-        if (!updated && offset > 0) return null;
+        if (!canUpdate && offset > 0) return null;
         CalciteLogicalIndexScan newScan = this.copyWithNewSchema(getRowType());
-        // Simplify the action if it doesn't update the aggregation builder, otherwise keep the
-        // original action
-        // It won't change the aggregation builder by do this action again since it's idempotent
-        AggregationBuilderAction action =
-            updated
-                ? aggAction -> aggAction.pushDownLimitIntoBucketSize(limit + offset)
-                : aggAction -> {};
+        if (canUpdate) {
+          newScan
+              .pushDownContext
+              .getAggPushDownAction()
+              .pushDownLimitIntoBucketSize(limit + offset);
+        }
+        AbstractAction action;
+        if (pushDownContext.getAggPushDownAction().isCompositeAggregation()) {
+          action =
+              (OSRequestBuilderAction)
+                  requestBuilder -> requestBuilder.pushDownLimitToRequestTotal(limit, offset);
+        } else {
+          action = (AggregationBuilderAction) aggAction -> {};
+        }
         newScan.pushDownContext.add(PushDownType.LIMIT, new LimitDigest(limit, offset), action);
         return offset > 0 ? sort.copy(sort.getTraitSet(), List.of(newScan)) : newScan;
       } else {

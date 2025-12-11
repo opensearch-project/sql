@@ -47,7 +47,7 @@ Explain::
           {
             "name": "OpenSearchIndexScan",
             "description": {
-              "request": """OpenSearchQueryRequest(indexName=state_country, sourceBuilder={"from":0,"size":10000,"timeout":"1m","query":{"bool":{"should":[{"term":{"country":{"value":"USA","boost":1.0}}},{"term":{"country":{"value":"England","boost":1.0}}}],"adjust_pure_negative":true,"boost":1.0}},"aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"country":{"terms":{"field":"country","missing_bucket":true,"missing_order":"first","order":"asc"}}}]},"aggregations":{"count()":{"value_count":{"field":"_index"}}}}}}, needClean=true, searchDone=false, pitId=null, cursorKeepAlive=null, searchAfter=null, searchResponse=null)"""
+              "request": """OpenSearchQueryRequest(indexName=state_country, sourceBuilder={"from":0,"size":10000,"timeout":"1m","query":{"bool":{"should":[{"term":{"country":{"value":"USA","boost":1.0}}},{"term":{"country":{"value":"England","boost":1.0}}}],"adjust_pure_negative":true,"boost":1.0}},"aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"country":{"terms":{"field":"country","missing_bucket":true,"missing_order":"first","order":"asc"}}}]},"aggregations":{"count()":{"value_count":{"field":"_index"}}}}}}, pitId=null, cursorKeepAlive=null, searchAfter=null, searchResponse=null)"""
             },
             "children": []
           }

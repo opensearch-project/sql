@@ -24,6 +24,7 @@ import lombok.Getter;
 import lombok.ToString;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.lucene.search.join.ScoreMode;
+import org.jetbrains.annotations.TestOnly;
 import org.opensearch.action.search.CreatePitRequest;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.query.BoolQueryBuilder;
@@ -71,9 +72,7 @@ public class OpenSearchRequestBuilder {
 
   private int startFrom = 0;
 
-  @ToString.Exclude private final Settings settings;
-
-  @ToString.Exclude private boolean topHitsAgg = false;
+  @EqualsAndHashCode.Exclude @ToString.Exclude private final Settings settings;
 
   public static class PushDownUnSupportedException extends RuntimeException {
     public PushDownUnSupportedException(String message) {
@@ -98,7 +97,10 @@ public class OpenSearchRequestBuilder {
    * Build DSL request.
    *
    * @return query request with PIT or scroll request
+   * @deprecated for testing only now.
    */
+  @TestOnly
+  @Deprecated
   public OpenSearchRequest build(
       OpenSearchRequest.IndexName indexName, TimeValue cursorKeepAlive, OpenSearchClient client) {
     return build(indexName, cursorKeepAlive, client, false);
@@ -114,7 +116,7 @@ public class OpenSearchRequestBuilder {
      * 2. If mapping is empty. It means no data in the index. PIT search relies on `_id` fields to do sort, thus it will fail if using PIT search in this case.
      */
     if (sourceBuilder.size() == 0 || isMappingEmpty) {
-      return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, List.of());
+      return OpenSearchQueryRequest.of(indexName, sourceBuilder, exprValueFactory, List.of());
     }
     return buildRequestWithPit(indexName, cursorKeepAlive, client);
   }
@@ -130,13 +132,13 @@ public class OpenSearchRequestBuilder {
         sourceBuilder.size(maxResultWindow - startFrom);
         // Search with PIT request
         String pitId = createPit(indexName, cursorKeepAlive, client);
-        return new OpenSearchQueryRequest(
+        return OpenSearchQueryRequest.pitOf(
             indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
       } else {
         sourceBuilder.from(startFrom);
         sourceBuilder.size(size);
         // Search with non-Pit request
-        return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, includes);
+        return OpenSearchQueryRequest.of(indexName, sourceBuilder, exprValueFactory, includes);
       }
     } else {
       if (startFrom != 0) {
@@ -145,34 +147,8 @@ public class OpenSearchRequestBuilder {
       sourceBuilder.size(pageSize);
       // Search with PIT request
       String pitId = createPit(indexName, cursorKeepAlive, client);
-      return new OpenSearchQueryRequest(
+      return OpenSearchQueryRequest.pitOf(
           indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
-    }
-  }
-
-  private OpenSearchRequest buildRequestWithScroll(
-      OpenSearchRequest.IndexName indexName, int maxResultWindow, TimeValue cursorKeepAlive) {
-    int size = requestedTotalSize;
-    FetchSourceContext fetchSource = this.sourceBuilder.fetchSource();
-    List<String> includes = fetchSource != null ? Arrays.asList(fetchSource.includes()) : List.of();
-
-    if (pageSize == null) {
-      if (startFrom + size > maxResultWindow) {
-        sourceBuilder.size(maxResultWindow - startFrom);
-        return new OpenSearchScrollRequest(
-            indexName, cursorKeepAlive, sourceBuilder, exprValueFactory, includes);
-      } else {
-        sourceBuilder.from(startFrom);
-        sourceBuilder.size(requestedTotalSize);
-        return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, includes);
-      }
-    } else {
-      if (startFrom != 0) {
-        throw new UnsupportedOperationException("Non-zero offset is not supported with pagination");
-      }
-      sourceBuilder.size(pageSize);
-      return new OpenSearchScrollRequest(
-          indexName, cursorKeepAlive, sourceBuilder, exprValueFactory, includes);
     }
   }
 
@@ -263,6 +239,16 @@ public class OpenSearchRequestBuilder {
     for (Supplier<SortBuilder<?>> sortBuilderSupplier : sortBuilderSuppliers) {
       sourceBuilder.sort(sortBuilderSupplier.get());
     }
+  }
+
+  /** Push down the limit to requestedTotalSize for paginating aggregation. */
+  public void pushDownLimitToRequestTotal(Integer limit, Integer offset) {
+    requestedTotalSize = Math.min(requestedTotalSize, limit + offset);
+  }
+
+  /** Reset the requestedTotalSize since we convert composite aggregation to others. */
+  public void resetRequestTotal() {
+    requestedTotalSize = Integer.MAX_VALUE;
   }
 
   public void pushDownLimit(Integer limit, Integer offset) {

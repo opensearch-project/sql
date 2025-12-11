@@ -21,6 +21,5 @@ root:
           :true,\"boost\":1.0}},\"_source\":{\"includes\":[\"agent\",\"process\",\"\
           log\",\"message\",\"tags\",\"cloud\",\"input\",\"@timestamp\",\"ecs\",\"\
           data_stream\",\"meta\",\"host\",\"metrics\",\"aws\",\"event\"],\"excludes\"\
-          :[]}}, needClean=true, searchDone=false, pitId=*, cursorKeepAlive=null,\
-          \ searchAfter=null, searchResponse=null)"
+          :[]}}, pitId=*, cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
       children: []

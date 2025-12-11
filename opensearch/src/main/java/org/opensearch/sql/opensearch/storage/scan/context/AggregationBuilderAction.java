@@ -11,6 +11,6 @@ public interface AggregationBuilderAction extends AbstractAction<AggPushDownActi
     // Apply transformation to aggregation builder in the optimization phase as some transformation
     //  may cause exception. We need to detect that exception in advance.
     apply(context.getAggPushDownAction());
-    context.getOperationsForAgg().add(operation);
+    context.addOperationForAgg(operation);
   }
 }

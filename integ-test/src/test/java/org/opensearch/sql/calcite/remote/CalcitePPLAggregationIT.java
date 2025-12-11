@@ -1267,6 +1267,16 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
                 "source=%s | stats count() by age | sort -age | head 3", TEST_INDEX_BANK));
     verifySchema(response, schema("count()", "bigint"), schema("age", "int"));
     verifyDataRows(response, rows(1, 39), rows(2, 36), rows(1, 34));
+    response =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() by age | sort -age | head 2", TEST_INDEX_BANK));
+    verifyDataRows(response, rows(1, 39), rows(2, 36));
+    response =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() by age | sort -age | head 1", TEST_INDEX_BANK));
+    verifyDataRows(response, rows(1, 39));
   }
 
   @Test

@@ -989,4 +989,85 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + "ORDER BY 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testHaving1() {
+    String ppl = "source=EMP | stats avg(SAL) as avg by DEPTNO | where avg > 0";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalFilter(condition=[>($0, 0)])\n"
+            + "  LogicalProject(avg=[$1], DEPTNO=[$0])\n"
+            + "    LogicalAggregate(group=[{0}], avg=[AVG($1)])\n"
+            + "      LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedResult =
+        "avg=2175.; DEPTNO=20\navg=2916.666666; DEPTNO=10\navg=1566.666666; DEPTNO=30\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT *\n"
+            + "FROM (SELECT AVG(`SAL`) `avg`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "GROUP BY `DEPTNO`) `t1`\n"
+            + "WHERE `avg` > 0";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testHaving2() {
+    String ppl =
+        "source=EMP | stats bucket_nullable = false avg(SAL) as avg by DEPTNO | where avg > 0";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalFilter(condition=[>($0, 0)])\n"
+            + "  LogicalProject(avg=[$1], DEPTNO=[$0])\n"
+            + "    LogicalAggregate(group=[{0}], avg=[AVG($1)])\n"
+            + "      LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+            + "        LogicalFilter(condition=[IS NOT NULL($7)])\n"
+            + "          LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedResult =
+        "avg=2175.; DEPTNO=20\navg=2916.666666; DEPTNO=10\navg=1566.666666; DEPTNO=30\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT *\n"
+            + "FROM (SELECT AVG(`SAL`) `avg`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE `DEPTNO` IS NOT NULL\n"
+            + "GROUP BY `DEPTNO`) `t2`\n"
+            + "WHERE `avg` > 0";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testHaving3() {
+    String ppl =
+        "source=EMP | stats avg(SAL) as avg, count() as cnt by DEPTNO | eval new_avg = avg + 1000,"
+            + " new_cnt = cnt + 1 | where new_avg > 1000 or new_cnt > 2";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalFilter(condition=[OR(>($3, 1000), >($4, 2))])\n"
+            + "  LogicalProject(avg=[$1], cnt=[$2], DEPTNO=[$0], new_avg=[+($1, 1000)],"
+            + " new_cnt=[+($2, 1)])\n"
+            + "    LogicalAggregate(group=[{0}], avg=[AVG($1)], cnt=[COUNT()])\n"
+            + "      LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedResult =
+        "avg=2175.; cnt=5; DEPTNO=20; new_avg=3175.; new_cnt=6\n"
+            + "avg=2916.666666; cnt=3; DEPTNO=10; new_avg=3916.666666; new_cnt=4\n"
+            + "avg=1566.666666; cnt=6; DEPTNO=30; new_avg=2566.666666; new_cnt=7\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT *\n"
+            + "FROM (SELECT AVG(`SAL`) `avg`, COUNT(*) `cnt`, `DEPTNO`, AVG(`SAL`) + 1000"
+            + " `new_avg`, COUNT(*) + 1 `new_cnt`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "GROUP BY `DEPTNO`) `t1`\n"
+            + "WHERE `new_avg` > 1000 OR `new_cnt` > 2";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }

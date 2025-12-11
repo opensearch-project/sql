@@ -40,9 +40,6 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   /** Largest number of rows allowed in the response. */
   @EqualsAndHashCode.Include @ToString.Include private final int maxResponseSize;
 
-  /** Largest number of rows allowed in the response. */
-  @EqualsAndHashCode.Include @ToString.Include private final int maxResultWindow;
-
   /** How many moveNext() calls to perform resource check once. */
   private static final long NUMBER_OF_NEXT_CALL_TO_CHECK = 1000;
 
@@ -62,6 +59,7 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
       List<String> fields,
       int maxResponseSize,
       int maxResultWindow,
+      int queryBucketSize,
       OpenSearchRequest request,
       ResourceMonitor monitor) {
     if (!monitor.isHealthy()) {
@@ -71,16 +69,14 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
     this.fields = fields;
     this.request = request;
     this.maxResponseSize = maxResponseSize;
-    this.maxResultWindow = maxResultWindow;
     this.monitor = monitor;
     this.client = client;
-    this.bgScanner = new BackgroundSearchScanner(client);
+    this.bgScanner = new BackgroundSearchScanner(client, maxResultWindow, queryBucketSize);
     this.bgScanner.startScanning(request);
   }
 
   private Iterator<ExprValue> fetchNextBatch() {
-    BackgroundSearchScanner.SearchBatchResult result =
-        bgScanner.fetchNextBatch(request, maxResultWindow);
+    BackgroundSearchScanner.SearchBatchResult result = bgScanner.fetchNextBatch(request);
     return result.iterator();
   }
 
@@ -125,7 +121,7 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   @Override
   public void reset() {
     bgScanner.reset(request);
-    iterator = bgScanner.fetchNextBatch(request, maxResultWindow).iterator();
+    iterator = bgScanner.fetchNextBatch(request).iterator();
     queryCount = 0;
   }
 

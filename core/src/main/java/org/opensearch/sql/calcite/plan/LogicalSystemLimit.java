@@ -43,17 +43,6 @@ public class LogicalSystemLimit extends Sort {
       SystemLimitType type,
       RelOptCluster cluster,
       RelTraitSet traitSet,
-      RelNode input,
-      RelCollation collation,
-      @Nullable RexNode offset,
-      @Nullable RexNode fetch) {
-    this(type, cluster, traitSet, Collections.emptyList(), input, collation, offset, fetch);
-  }
-
-  private LogicalSystemLimit(
-      SystemLimitType type,
-      RelOptCluster cluster,
-      RelTraitSet traitSet,
       List<RelHint> hints,
       RelNode input,
       RelCollation collation,
@@ -76,7 +65,8 @@ public class LogicalSystemLimit extends Sort {
     RelCollation collation = collations == null ? null : collations.get(0);
     collation = RelCollationTraitDef.INSTANCE.canonize(collation);
     RelTraitSet traitSet = input.getTraitSet().replace(Convention.NONE).replace(collation);
-    return new LogicalSystemLimit(type, cluster, traitSet, input, collation, offset, fetch);
+    return new LogicalSystemLimit(
+        type, cluster, traitSet, Collections.emptyList(), input, collation, offset, fetch);
   }
 
   @Override
