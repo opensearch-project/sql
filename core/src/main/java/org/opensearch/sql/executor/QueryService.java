@@ -387,6 +387,10 @@ public class QueryService {
     RelOptCluster cluster = context.relBuilder.getCluster();
     CalciteCatalogReader catalogReader =
         validator.getCatalogReader().unwrap(CalciteCatalogReader.class);
+    // Do not remove sort in subqueries so that the orders for queries like `... | sort a | fields
+    // b` is preserved
+    SqlToRelConverter.Config sql2relConfig =
+        SqlToRelConverter.config().withRemoveSortInSubQuery(false);
     SqlToRelConverter sql2rel =
         new SqlToRelConverter(
             viewExpander,
@@ -394,7 +398,7 @@ public class QueryService {
             catalogReader,
             cluster,
             PplConvertletTable.INSTANCE,
-            SqlToRelConverter.config());
+            sql2relConfig);
     RelRoot validatedRelRoot = sql2rel.convertQuery(rewritten, false, true);
     return validatedRelRoot.rel.accept(new PplRelToSqlRelShuttle(context.rexBuilder, false));
   }
