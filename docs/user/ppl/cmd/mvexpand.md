@@ -20,9 +20,13 @@ mvexpand <field> [limit=<int>]
 ### Example 1: Basic Expansion (single document)
 Input document (case "basic") contains three tag values.
 
-PPL query / expected output:
+PPL query:
+```ppl
+source=mvexpand_logs | where case='basic' | mvexpand tags | fields tags.value
+```
+
+Expected output:
 ```text
-os> source=mvexpand_logs | where case='basic' | mvexpand tags | fields tags.value
 fetched rows / total rows = 3/3
 +------------+
 | tags.value |
@@ -36,9 +40,13 @@ fetched rows / total rows = 3/3
 ### Example 2: Expansion with Limit
 Input document (case "ids") contains an array of integers; expand and apply limit.
 
-PPL query / expected output:
+PPL query:
+```ppl
+source=mvexpand_logs | where case='ids' | mvexpand ids limit=3 | fields ids.value
+```
+
+Expected output:
 ```text
-os> source=mvexpand_logs | where case='ids' | mvexpand ids limit=3 | fields ids.value
 fetched rows / total rows = 3/3
 +-----------+
 | ids.value |
@@ -51,8 +59,14 @@ fetched rows / total rows = 3/3
 
 ### Example 3: Empty and Null Arrays
 Empty array (case "empty"):
+
+PPL query:
+```ppl
+source=mvexpand_logs | where case='empty' | mvexpand tags | fields tags.value
+```
+
+Expected output:
 ```text
-os> source=mvexpand_logs | where case='empty' | mvexpand tags | fields tags.value
 fetched rows / total rows = 0/0
 +------------+
 | tags.value |
@@ -61,8 +75,14 @@ fetched rows / total rows = 0/0
 ```
 
 Null array (case "null"):
+
+PPL query:
+```ppl
+source=mvexpand_logs | where case='null' | mvexpand tags | fields tags.value
+```
+
+Expected output:
 ```text
-os> source=mvexpand_logs | where case='null' | mvexpand tags | fields tags.value
 fetched rows / total rows = 0/0
 +------------+
 | tags.value |
@@ -73,9 +93,13 @@ fetched rows / total rows = 0/0
 ### Example 4: Single-value array (case "single")
 Single-element array should expand to one row.
 
-PPL query / expected output:
+PPL query:
+```ppl
+source=mvexpand_logs | where case='single' | mvexpand tags | fields tags.value
+```
+
+Expected output:
 ```text
-os> source=mvexpand_logs | where case='single' | mvexpand tags | fields tags.value
 fetched rows / total rows = 1/1
 +------------+
 | tags.value |
@@ -87,9 +111,13 @@ fetched rows / total rows = 1/1
 ### Example 5: Missing Field
 If the field is missing in the document (case "missing"), no rows are produced.
 
-PPL query / expected output:
+PPL query:
+```ppl
+source=mvexpand_logs | where case='missing' | mvexpand tags | fields tags.value
+```
+
+Expected output:
 ```text
-os> source=mvexpand_logs | where case='missing' | mvexpand tags | fields tags.value
 fetched rows / total rows = 0/0
 +------------+
 | tags.value |
