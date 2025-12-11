@@ -269,7 +269,6 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
                     + " firstname,age,balance | addcoltotals age balance",
                 TEST_INDEX_BANK_REMOTE));
     verifyDataRows(
-    verifyDataRows(
         result, rows("Hattie", 36, 5686), rows("Nanette", 28, 32838), rows(null, 64, 38524));
   }
 
