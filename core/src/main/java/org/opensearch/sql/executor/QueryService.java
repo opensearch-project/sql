@@ -27,7 +27,6 @@ import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
@@ -399,8 +398,8 @@ public class QueryService {
             cluster,
             PplConvertletTable.INSTANCE,
             sql2relConfig);
-    RelRoot validatedRelRoot = sql2rel.convertQuery(rewritten, false, true);
-    return validatedRelRoot.rel.accept(new PplRelToSqlRelShuttle(context.rexBuilder, false));
+    RelNode validatedRel = sql2rel.convertQuery(rewritten, false, true).project();
+    return validatedRel.accept(new PplRelToSqlRelShuttle(context.rexBuilder, false));
   }
 
   /** Translate {@link LogicalPlan} to {@link PhysicalPlan}. */
