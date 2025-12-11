@@ -258,6 +258,7 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
     verifyDataRows(result, rows("Nanette", 28, 28));
   }
 
+  /** CrossClusterSearchIT Test for addcoltotals. */
   @Test
   public void testCrossClusterAddColTotals() throws IOException {
     // Test query_string without fields parameter on remote cluster
