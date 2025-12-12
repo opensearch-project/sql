@@ -387,10 +387,15 @@ public class QueryService {
     RelOptCluster cluster = context.relBuilder.getCluster();
     CalciteCatalogReader catalogReader =
         validator.getCatalogReader().unwrap(CalciteCatalogReader.class);
-    // Do not remove sort in subqueries so that the orders for queries like `... | sort a | fields
+    // 1. Do not remove sort in subqueries so that the orders for queries like `... | sort a |
+    // fields
     // b` is preserved
+    // 2. Disable automatic JSON_TYPE_OPERATOR wrapping for nested JSON functions
+    // (See CALCITE-4989: Calcite wraps nested JSON functions with JSON_TYPE by default)
     SqlToRelConverter.Config sql2relConfig =
-        SqlToRelConverter.config().withRemoveSortInSubQuery(false);
+        SqlToRelConverter.config()
+            .withRemoveSortInSubQuery(false)
+            .withAddJsonTypeOperatorEnabled(false);
     SqlToRelConverter sql2rel =
         new PplSqlToRelConverter(
             viewExpander,
