@@ -86,8 +86,6 @@ public class CalciteExplainIT extends ExplainIT {
   // Only for Calcite
   @Test
   public void testJoinWithCriteriaAndMaxOption() throws IOException {
-    // TODO could be optimized with https://github.com/opensearch-project/OpenSearch/issues/3725
-    enabledOnlyWhenPushdownIsEnabled();
     String query =
         "source=opensearch-sql_test_index_bank | join max=1 left=l right=r on"
             + " l.account_number=r.account_number opensearch-sql_test_index_bank";
@@ -99,8 +97,6 @@ public class CalciteExplainIT extends ExplainIT {
   // Only for Calcite
   @Test
   public void testJoinWithFieldListAndMaxOption() throws IOException {
-    // TODO could be optimized with https://github.com/opensearch-project/OpenSearch/issues/3725
-    enabledOnlyWhenPushdownIsEnabled();
     String query =
         "source=opensearch-sql_test_index_bank | join type=inner max=1 account_number"
             + " opensearch-sql_test_index_bank";

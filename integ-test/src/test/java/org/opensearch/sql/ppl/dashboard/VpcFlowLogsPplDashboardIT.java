@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.ppl.dashboard;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -167,7 +166,8 @@ public class VpcFlowLogsPplDashboardIT extends PPLIntegTestCase {
   public void testTopTalkersByPackets() throws IOException {
     String query =
         String.format(
-            "source=%s | stats sum(packets) as Packets by srcaddr | sort - Packets, srcaddr | head 10",
+            "source=%s | stats sum(packets) as Packets by srcaddr | sort - Packets, srcaddr | head"
+                + " 10",
             VPC_FLOW_LOGS_INDEX);
     JSONObject response = executeQuery(query);
     verifySchema(response, schema("Packets", null, "bigint"), schema("srcaddr", null, "string"));
@@ -189,7 +189,8 @@ public class VpcFlowLogsPplDashboardIT extends PPLIntegTestCase {
   public void testTopDestinationsByPackets() throws IOException {
     String query =
         String.format(
-            "source=%s | stats sum(packets) as Packets by dstaddr | sort - Packets, dstaddr | head 10",
+            "source=%s | stats sum(packets) as Packets by dstaddr | sort - Packets, dstaddr | head"
+                + " 10",
             VPC_FLOW_LOGS_INDEX);
     JSONObject response = executeQuery(query);
     verifySchema(response, schema("Packets", null, "bigint"), schema("dstaddr", null, "string"));

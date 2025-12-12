@@ -3,7 +3,7 @@ calcite:
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalProject(account_number=[$0], gender=[$1], age=[$2])
         LogicalFilter(condition=[<=($3, 1)])
-          LogicalProject(account_number=[$0], gender=[$1], age=[$2], _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $1 ORDER BY $1)])
+          LogicalProject(account_number=[$0], gender=[$1], age=[$2], _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $1)])
             LogicalFilter(condition=[IS NOT NULL($1)])
               LogicalProject(account_number=[$0], gender=[$4], age=[$8])
                 CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
