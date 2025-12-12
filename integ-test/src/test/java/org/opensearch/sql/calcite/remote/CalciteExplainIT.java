@@ -85,6 +85,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void supportSearchMatchPushDown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
     String query =
         "source=opensearch-sql_test_index_bank birthdate = '2016-12-08 00:00:00.000000000'";
     var result = explainQueryToString(query);
