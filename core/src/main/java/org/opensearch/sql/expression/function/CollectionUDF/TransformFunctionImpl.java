@@ -73,6 +73,12 @@ public class TransformFunctionImpl extends ImplementorUDF {
     List<Object> target = (List<Object>) args[0];
     List<Object> results = new ArrayList<>();
     SqlTypeName returnType = (SqlTypeName) args[args.length - 1];
+
+    // Check for captured variables: args structure is [array, lambda, captured1, captured2, ...,
+    // returnType]
+    // If there are more than 3 args (array, lambda, returnType), we have captured variables
+    boolean hasCapturedVars = args.length > 3;
+
     if (args[1] instanceof org.apache.calcite.linq4j.function.Function1) {
       org.apache.calcite.linq4j.function.Function1 lambdaFunction =
           (org.apache.calcite.linq4j.function.Function1) args[1];
@@ -90,9 +96,21 @@ public class TransformFunctionImpl extends ImplementorUDF {
       org.apache.calcite.linq4j.function.Function2 lambdaFunction =
           (org.apache.calcite.linq4j.function.Function2) args[1];
       try {
-        for (int i = 0; i < target.size(); i++) {
-          results.add(
-              transferLambdaOutputToTargetType(lambdaFunction.apply(target.get(i), i), returnType));
+        if (hasCapturedVars) {
+          // Lambda has captured variables - pass the first captured variable as second arg
+          Object capturedVar = args[2];
+          for (Object candidate : target) {
+            results.add(
+                transferLambdaOutputToTargetType(
+                    lambdaFunction.apply(candidate, capturedVar), returnType));
+          }
+        } else {
+          // Original behavior: lambda with index (x, i) -> expr
+          for (int i = 0; i < target.size(); i++) {
+            results.add(
+                transferLambdaOutputToTargetType(
+                    lambdaFunction.apply(target.get(i), i), returnType));
+          }
         }
       } catch (Exception e) {
         throw new RuntimeException(e);
