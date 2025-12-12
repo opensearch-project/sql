@@ -21,8 +21,6 @@ import com.amazonaws.services.emrserverless.model.SparkSubmit;
 import com.amazonaws.services.emrserverless.model.StartJobRunRequest;
 import com.amazonaws.services.emrserverless.model.StartJobRunResult;
 import com.amazonaws.services.emrserverless.model.ValidationException;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -61,23 +59,18 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
                             .withEntryPointArguments(resultIndex)
                             .withSparkSubmitParameters(startJobRequest.getSparkSubmitParams())));
 
-    StartJobRunResult startJobRunResult =
-        AccessController.doPrivileged(
-            (PrivilegedAction<StartJobRunResult>)
-                () -> {
-                  try {
-                    return emrServerless.startJobRun(request);
-                  } catch (Throwable t) {
-                    logger.error("Error while making start job request to emr:", t);
-                    metricsService.incrementNumericalMetric(EMR_START_JOB_REQUEST_FAILURE_COUNT);
-                    if (t instanceof ValidationException) {
-                      throw new IllegalArgumentException(
-                          "The input fails to satisfy the constraints specified by AWS EMR"
-                              + " Serverless.");
-                    }
-                    throw new RuntimeException(GENERIC_INTERNAL_SERVER_ERROR_MESSAGE);
-                  }
-                });
+    StartJobRunResult startJobRunResult;
+    try {
+      startJobRunResult = emrServerless.startJobRun(request);
+    } catch (Throwable t) {
+      logger.error("Error while making start job request to emr:", t);
+      metricsService.incrementNumericalMetric(EMR_START_JOB_REQUEST_FAILURE_COUNT);
+      if (t instanceof ValidationException) {
+        throw new IllegalArgumentException(
+            "The input fails to satisfy the constraints specified by AWS EMR" + " Serverless.");
+      }
+      throw new RuntimeException(GENERIC_INTERNAL_SERVER_ERROR_MESSAGE);
+    }
     logger.info("Job Run ID: " + startJobRunResult.getJobRunId());
     return startJobRunResult.getJobRunId();
   }
@@ -86,18 +79,14 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
   public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
     GetJobRunRequest request =
         new GetJobRunRequest().withApplicationId(applicationId).withJobRunId(jobId);
-    GetJobRunResult getJobRunResult =
-        AccessController.doPrivileged(
-            (PrivilegedAction<GetJobRunResult>)
-                () -> {
-                  try {
-                    return emrServerless.getJobRun(request);
-                  } catch (Throwable t) {
-                    logger.error("Error while making get job run request to emr:", t);
-                    metricsService.incrementNumericalMetric(EMR_GET_JOB_RESULT_FAILURE_COUNT);
-                    throw new RuntimeException(GENERIC_INTERNAL_SERVER_ERROR_MESSAGE);
-                  }
-                });
+    GetJobRunResult getJobRunResult;
+    try {
+      getJobRunResult = emrServerless.getJobRun(request);
+    } catch (Throwable t) {
+      logger.error("Error while making get job run request to emr:", t);
+      metricsService.incrementNumericalMetric(EMR_GET_JOB_RESULT_FAILURE_COUNT);
+      throw new RuntimeException(GENERIC_INTERNAL_SERVER_ERROR_MESSAGE);
+    }
     logger.info("Job Run state: " + getJobRunResult.getJobRun().getState());
     return getJobRunResult;
   }
@@ -107,27 +96,22 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
       String applicationId, String jobId, boolean allowExceptionPropagation) {
     CancelJobRunRequest cancelJobRunRequest =
         new CancelJobRunRequest().withJobRunId(jobId).withApplicationId(applicationId);
-    CancelJobRunResult cancelJobRunResult =
-        AccessController.doPrivileged(
-            (PrivilegedAction<CancelJobRunResult>)
-                () -> {
-                  try {
-                    return emrServerless.cancelJobRun(cancelJobRunRequest);
-                  } catch (Throwable t) {
-                    if (allowExceptionPropagation) {
-                      throw t;
-                    }
+    CancelJobRunResult cancelJobRunResult;
+    try {
+      cancelJobRunResult = emrServerless.cancelJobRun(cancelJobRunRequest);
+    } catch (Throwable t) {
+      if (allowExceptionPropagation) {
+        throw t;
+      }
 
-                    logger.error("Error while making cancel job request to emr: jobId=" + jobId, t);
-                    metricsService.incrementNumericalMetric(EMR_CANCEL_JOB_REQUEST_FAILURE_COUNT);
-                    if (t instanceof ValidationException) {
-                      throw new IllegalArgumentException(
-                          "The input fails to satisfy the constraints specified by AWS EMR"
-                              + " Serverless.");
-                    }
-                    throw new RuntimeException(GENERIC_INTERNAL_SERVER_ERROR_MESSAGE);
-                  }
-                });
+      logger.error("Error while making cancel job request to emr: jobId=" + jobId, t);
+      metricsService.incrementNumericalMetric(EMR_CANCEL_JOB_REQUEST_FAILURE_COUNT);
+      if (t instanceof ValidationException) {
+        throw new IllegalArgumentException(
+            "The input fails to satisfy the constraints specified by AWS EMR" + " Serverless.");
+      }
+      throw new RuntimeException(GENERIC_INTERNAL_SERVER_ERROR_MESSAGE);
+    }
     logger.info(String.format("Job : %s cancelled", cancelJobRunResult.getJobRunId()));
     return cancelJobRunResult;
   }

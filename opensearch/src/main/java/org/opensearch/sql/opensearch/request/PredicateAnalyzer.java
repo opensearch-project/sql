@@ -1469,7 +1469,9 @@ public class PredicateAnalyzer {
       }
       accumulateScriptCount(1);
       RelJsonSerializer serializer = new RelJsonSerializer(cluster);
-      this.parameterHelper = new ScriptParameterHelper(rowType.getFieldList(), fieldTypes, params);
+      this.parameterHelper =
+          new ScriptParameterHelper(
+              rowType.getFieldList(), fieldTypes, params, cluster.getRexBuilder());
       this.codeGenerator =
           () ->
               SerializationWrapper.wrapWithLangType(

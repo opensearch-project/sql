@@ -1815,7 +1815,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.push(leftWithHelpers);
     context.relBuilder.variable(v::set);
 
-    context.relBuilder.push(leftWithHelpers);
     RexNode rightSeq = context.relBuilder.field(seqCol);
     RexNode outerSeq = context.relBuilder.field(v.get(), seqCol);
 
@@ -1834,8 +1833,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.filter(filter);
 
     // aggregate all window functions on right side
-    List<AggCall> aggCalls = buildAggCallsForWindowFunctions(node.getWindowFunctionList(), context);
-    context.relBuilder.aggregate(context.relBuilder.groupKey(), aggCalls);
+    aggregateWithTrimming(List.of(), node.getWindowFunctionList(), context, false);
     RelNode rightAgg = context.relBuilder.build();
 
     // correlate LEFT with RIGHT using seq + group fields
@@ -2019,27 +2017,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       throw new IllegalArgumentException(
           "Unsupported group expression: only field or alias(field) is supported");
     }
-  }
-
-  private List<AggCall> buildAggCallsForWindowFunctions(
-      List<UnresolvedExpression> windowExprs, CalcitePlanContext context) {
-    List<AggCall> aggCalls = new ArrayList<>();
-    for (UnresolvedExpression expr : windowExprs) {
-      if (expr instanceof Alias a && a.getDelegated() instanceof WindowFunction wf) {
-        Function func = (Function) wf.getFunction();
-        List<UnresolvedExpression> args = func.getFuncArgs();
-        // first argument is the input field, others are function params
-        UnresolvedExpression field = args.isEmpty() ? null : args.get(0);
-        List<UnresolvedExpression> rest =
-            args.size() <= 1 ? List.of() : args.subList(1, args.size());
-        AggregateFunction aggFunc = new AggregateFunction(func.getFuncName(), field, rest);
-        AggCall call = aggVisitor.analyze(new Alias(a.getName(), aggFunc), context);
-        aggCalls.add(call);
-      } else {
-        throw new IllegalArgumentException("Unsupported window function in streamstats");
-      }
-    }
-    return aggCalls;
   }
 
   private List<RexNode> buildRequiredLeft(

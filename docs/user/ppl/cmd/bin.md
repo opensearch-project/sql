@@ -18,9 +18,14 @@ bin \<field\> [span=\<interval\>] [minspan=\<interval\>] [bins=\<count\>] [align
     * minute (m, min, mins, minute, minutes)  
     * hour (h, hr, hrs, hour, hours)  
     * day (d, day, days)  
-    * month (mon, month, months)  
+    * month (M, mon, month, months)  
 * minspan: optional. The minimum interval size for automatic span calculation. Cannot be used with span or bins parameters.  
-* bins: optional. The maximum number of equal-width bins to create. Cannot be used with span or minspan parameters. The bins parameter must be between 2 and 50000 (inclusive).  
+* bins: optional. The maximum number of equal-width bins to create. Cannot be used with span or minspan parameters. The bins parameter must be between 2 and 50000 (inclusive).
+
+  **Limitation**: The bins parameter on timestamp fields has the following requirements:
+
+  1. **Pushdown must be enabled**: Controlled by ``plugins.calcite.pushdown.enabled`` (enabled by default). When pushdown is disabled, use the ``span`` parameter instead (e.g., ``bin @timestamp span=5m``).
+  2. **Timestamp field must be used as an aggregation bucket**: The binned timestamp field must be used in a ``stats`` aggregation (e.g., ``source=events | bin @timestamp bins=3 | stats count() by @timestamp``). Using bins on timestamp fields outside of aggregation buckets is not supported.  
 * aligntime: optional. Align the bin times for time-based fields. Valid only for time-based discretization. Options:  
   * earliest: Align bins to the earliest timestamp in the data  
   * latest: Align bins to the latest timestamp in the data  
