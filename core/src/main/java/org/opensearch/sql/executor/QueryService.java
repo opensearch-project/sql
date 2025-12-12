@@ -65,6 +65,7 @@ import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.validate.OpenSearchSparkSqlDialect;
 import org.opensearch.sql.calcite.validate.PplConvertletTable;
 import org.opensearch.sql.calcite.validate.PplRelToSqlNodeConverter;
+import org.opensearch.sql.calcite.validate.PplSqlToRelConverter;
 import org.opensearch.sql.calcite.validate.shuttles.PplRelToSqlRelShuttle;
 import org.opensearch.sql.calcite.validate.shuttles.SkipRelValidationShuttle;
 import org.opensearch.sql.common.response.ResponseListener;
@@ -391,7 +392,7 @@ public class QueryService {
     SqlToRelConverter.Config sql2relConfig =
         SqlToRelConverter.config().withRemoveSortInSubQuery(false);
     SqlToRelConverter sql2rel =
-        new SqlToRelConverter(
+        new PplSqlToRelConverter(
             viewExpander,
             validator,
             catalogReader,

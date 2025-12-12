@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.validate;
 
 import org.apache.calcite.rel.core.Correlate;
+import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
 import org.apache.calcite.sql.JoinConditionType;
@@ -52,5 +53,58 @@ public class PplRelToSqlNodeConverter extends RelToSqlConverter {
       join.setOperand(5, SqlLiteral.createBoolean(true, POS));
     }
     return result;
+  }
+
+  /**
+   * Override to convert ANTI and SEMI joins to Spark SQL's native LEFT ANTI JOIN and LEFT SEMI JOIN
+   * syntax, instead of using NOT EXISTS / EXISTS subqueries.
+   *
+   * <p>The default implementation in {@link RelToSqlConverter#visitAntiOrSemiJoin} converts
+   * ANTI/SEMI joins to standard SQL using NOT EXISTS / EXISTS subqueries. However, a subtle bug in
+   * calcite (as of Calcite 1.41) leads to incorrect results after the conversion: correlation
+   * variables in the subquery are generated as unqualified identifiers.
+   *
+   * <p>For example:
+   *
+   * <pre>{@code
+   * -- Base implementation generates:
+   * SELECT ... FROM table1 AS t0
+   * WHERE ... AND NOT EXISTS (
+   *   SELECT 1 FROM table2 AS t2
+   *   WHERE name = t2.name    -- 'name' is unqualified!
+   * )
+   * }</pre>
+   *
+   * <p>The unqualified {@code name} is resolved to the inner scope (t2.name) instead of the outer
+   * scope (t0.name), resulting in incorrect results.
+   *
+   * <p>The override implementation uses ANTI / SEMI join syntax:
+   *
+   * <pre>{@code
+   * SELECT ... FROM table1 AS t0
+   * LEFT ANTI JOIN table2 AS t2 ON t0.name = t2.name
+   * }</pre>
+   */
+  @Override
+  protected Result visitAntiOrSemiJoin(Join e) {
+    final Result leftResult = visitInput(e, 0).resetAlias();
+    final Result rightResult = visitInput(e, 1).resetAlias();
+    final Context leftContext = leftResult.qualifiedContext();
+    final Context rightContext = rightResult.qualifiedContext();
+
+    JoinType joinType =
+        e.getJoinType() == JoinRelType.ANTI ? JoinType.LEFT_ANTI_JOIN : JoinType.LEFT_SEMI_JOIN;
+    SqlNode sqlCondition = convertConditionToSqlNode(e.getCondition(), leftContext, rightContext);
+    SqlNode join =
+        new SqlJoin(
+            POS,
+            leftResult.asFrom(),
+            SqlLiteral.createBoolean(false, POS),
+            joinType.symbol(POS), // LEFT ANTI JOIN or LEFT SEMI JOIN
+            rightResult.asFrom(),
+            JoinConditionType.ON.symbol(POS),
+            sqlCondition);
+
+    return result(join, leftResult, rightResult);
   }
 }
