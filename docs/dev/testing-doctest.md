@@ -75,12 +75,15 @@ For PPL documentation, Markdown format is now supported with the following guide
 
 3. **Code Block Format**: Use **paired** fenced code blocks - each input block must be followed by its expected output block:
 
+````text
 ```ppl
 search source=accounts | where age > 25 | fields firstname, lastname
 ```
+````
 
 Expected output:
 
+````text
 ```text
 +-------------+------------+
 | firstname   | lastname   |
@@ -89,6 +92,7 @@ Expected output:
 | Hattie      | Bond       |
 +-------------+------------+
 ```
+````
 
 **Input/Output Pairs**: Each input code fence must be immediately followed by an "Expected output:" section with an output code fence
 - **Supported Input Languages**: `sql`, `ppl`, `bash`, `sh`, `bash ppl`
@@ -96,15 +100,11 @@ Expected output:
 
 4. **Ignoring Tests**: To skip specific code blocks from testing, add `ignore` attribute:
 
+````text
 ```ppl ignore
 search source=accounts | head 5
 ```
-
-Expected output:
-
-```text
-This output won't be tested
-```
+````
 
 5. **Validation**: Markdown categories only accept `.md` files - mixing with `.rst` files will cause validation errors
 6. **Testing**: Run `./gradlew doctest` to validate your markdown documentation
