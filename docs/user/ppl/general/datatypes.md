@@ -1,5 +1,3 @@
-##   
-
 # Data Types  
 
 ## Overview  

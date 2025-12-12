@@ -11,7 +11,7 @@ The query start with search command and then flowing a set of command delimited 
 
 for example, the following query retrieve firstname and lastname from accounts if age large than 18. 
   
-```
+```ppl ignore
 source=accounts
 | where age > 18
 | fields firstname, lastname
