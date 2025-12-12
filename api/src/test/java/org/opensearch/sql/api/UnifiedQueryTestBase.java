@@ -22,7 +22,10 @@ public abstract class UnifiedQueryTestBase {
   /** Test schema containing sample tables for testing */
   protected AbstractSchema testSchema;
 
-  /** Unified query planner configured with test schema */
+  /** Unified query context configured with test schema */
+  protected UnifiedQueryContext context;
+
+  /** Unified query planner configured with test context */
   protected UnifiedQueryPlanner planner;
 
   @Before
@@ -35,12 +38,12 @@ public abstract class UnifiedQueryTestBase {
           }
         };
 
-    planner =
-        UnifiedQueryPlanner.builder()
+    context =
+        UnifiedQueryContext.builder()
             .language(QueryType.PPL)
             .catalog("catalog", testSchema)
-            .defaultNamespace("catalog")
             .build();
+    planner = new UnifiedQueryPlanner(context);
   }
 
   protected Table createEmployeesTable() {
