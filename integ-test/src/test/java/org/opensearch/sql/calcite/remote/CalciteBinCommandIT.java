@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.legacy.TestsConstants.*;
@@ -986,6 +987,33 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         rows(50.25, "us-east", "2024-07-01 00:00:00"),
         rows(50, "us-east", "2024-07-01 00:05:00"),
         rows(40.25, "us-west", "2024-07-01 00:01:00"));
+  }
+
+  @Test
+  public void testBinsOnTimeFieldWithPushdownDisabled_ShouldFail() throws IOException {
+    // Verify that bins parameter on timestamp fields fails with clear error when pushdown disabled
+    enabledOnlyWhenPushdownIsDisabled();
+
+    ResponseException exception =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "source=events_null | bin @timestamp bins=3 | stats count() by @timestamp"));
+
+    // Verify the error message clearly explains the limitation and suggests solutions
+    // Note: bins parameter on timestamp fields requires BOTH:
+    //   1. Pushdown to be enabled (plugins.calcite.pushdown.enabled=true, enabled by default)
+    //   2. The timestamp field to be used as an aggregation bucket (e.g., stats count() by
+    // @timestamp)
+    String errorMessage = exception.getMessage();
+    assertTrue(
+        "Expected clear error message about bins parameter requirements on timestamp fields, but"
+            + " got: "
+            + errorMessage,
+        errorMessage.contains("bins' parameter on timestamp fields requires")
+            && errorMessage.contains("pushdown to be enabled")
+            && errorMessage.contains("aggregation bucket"));
   }
 
   @Test
