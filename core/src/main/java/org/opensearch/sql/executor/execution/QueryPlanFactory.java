@@ -17,6 +17,7 @@ import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.exception.UnsupportedCursorRequestException;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
@@ -106,15 +107,31 @@ public class QueryPlanFactory
           context) {
     requireNonNull(context.getLeft(), "[BUG] query listener must be not null");
     if (node.getFetchSize() > 0) {
-      // Pagination enabled - use pageSize and offset
-      return new QueryPlan(
-          QueryId.queryId(),
-          node.getQueryType(),
-          node.getPlan(),
-          node.getFetchSize(),
-          node.getPaginationOffset(),
-          queryService,
-          context.getLeft());
+      if (node.getQueryType() == QueryType.PPL) {
+        // PPL pagination - use pageSize and offset (Calcite path)
+        return new QueryPlan(
+            QueryId.queryId(),
+            node.getQueryType(),
+            node.getPlan(),
+            node.getFetchSize(),
+            node.getPaginationOffset(),
+            queryService,
+            context.getLeft());
+      } else {
+        // SQL pagination - use legacy cursor-based pagination
+        if (canConvertToCursor(node.getPlan())) {
+          return new QueryPlan(
+              QueryId.queryId(),
+              node.getQueryType(),
+              node.getPlan(),
+              node.getFetchSize(),
+              queryService,
+              context.getLeft());
+        } else {
+          // This should be picked up by the legacy engine.
+          throw new UnsupportedCursorRequestException();
+        }
+      }
     } else {
       return new QueryPlan(
           QueryId.queryId(), node.getQueryType(), node.getPlan(), queryService, context.getLeft());

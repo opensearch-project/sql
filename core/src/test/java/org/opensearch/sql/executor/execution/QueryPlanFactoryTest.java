@@ -99,7 +99,8 @@ class QueryPlanFactoryTest {
   @Test
   public void create_query_with_fetch_size_should_create_query_plan() {
     factory = new QueryPlanFactory(queryService);
-    Statement query = new Query(plan, 10, queryType);
+    // Use PPL query type for new pagination feature
+    Statement query = new Query(plan, 10, QueryType.PPL);
     AbstractPlan queryExecution = factory.create(query, queryListener, explainListener);
     assertTrue(queryExecution instanceof QueryPlan);
   }
@@ -107,7 +108,8 @@ class QueryPlanFactoryTest {
   @Test
   public void create_query_with_fetch_size_and_offset_should_create_query_plan() {
     factory = new QueryPlanFactory(queryService);
-    Statement query = new Query(plan, 10, queryType, 50);
+    // Use PPL query type for new pagination with offset feature
+    Statement query = new Query(plan, 10, QueryType.PPL, 50);
     AbstractPlan queryExecution = factory.create(query, queryListener, explainListener);
     assertTrue(queryExecution instanceof QueryPlan);
   }

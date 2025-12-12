@@ -33,6 +33,7 @@ import org.apache.calcite.tools.Programs;
 import org.opensearch.sql.analysis.AnalysisContext;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.ast.statement.Explain;
+import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
@@ -95,7 +96,12 @@ public class QueryService {
     if (shouldUseCalcite(queryType)) {
       executeWithCalcite(plan, queryType, listener, pageSize, offset);
     } else {
-      executeWithLegacy(plan, queryType, listener, Optional.empty());
+      // For legacy path (SQL), wrap with Paginate when pagination is enabled
+      if (pageSize > 0) {
+        executeWithLegacy(new Paginate(pageSize, plan), queryType, listener, Optional.empty());
+      } else {
+        executeWithLegacy(plan, queryType, listener, Optional.empty());
+      }
     }
   }
 
