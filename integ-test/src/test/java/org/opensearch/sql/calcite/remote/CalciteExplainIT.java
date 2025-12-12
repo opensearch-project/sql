@@ -30,7 +30,6 @@ import org.opensearch.sql.ppl.ExplainIT;
 public class CalciteExplainIT extends ExplainIT {
   @Override
   public void init() throws Exception {
-    GlobalPushdownConfig.enabled = false;
     super.init();
     enableCalcite();
     setQueryBucketSize(1000);
