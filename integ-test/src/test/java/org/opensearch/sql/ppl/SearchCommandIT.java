@@ -519,11 +519,16 @@ public class SearchCommandIT extends PPLIntegTestCase {
     // lucene escaping -> \\\\
     // rest request escaping -> \\\\\\\\
     // java string escaping ->\\\\\\\\
+    String targetString = "\\\"C:\\\\\\\\\\\\\\\\Users\\\\\\\\\\\\\\\\admin\\\"";
+    if (isCalciteEnabled() && !isPushdownDisabled()) {
+      targetString = "\\\"C:\\\\\\\\Users\\\\\\\\admin\\\"";
+    }
     JSONObject backslashSearch =
         executeQuery(
             String.format(
                 "search source=%s"
-                    + " `attributes.error.type`=\\\"C:\\\\\\\\\\\\\\\\Users\\\\\\\\\\\\\\\\admin\\\""
+                    + " `attributes.error.type`="
+                    + targetString
                     + " | sort time | fields attributes.error.type",
                 TEST_INDEX_OTEL_LOGS));
     verifyDataRows(backslashSearch, rows("C:\\Users\\admin"));
@@ -712,20 +717,44 @@ public class SearchCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testSearchWithInvalidFieldName() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s nonexistent_field=\\\"value\\\"", TEST_INDEX_OTEL_LOGS));
-    verifyDataRows(result);
+    if (!isPushdownDisabled() && isCalciteEnabled()) {
+      Throwable error =
+          assertThrows(
+              Exception.class,
+              () ->
+                  executeQuery(
+                      String.format(
+                          "search source=%s nonexistent_field=\\\"value\\\"",
+                          TEST_INDEX_OTEL_LOGS)));
+      assertTrue(error.getMessage().contains("Field [nonexistent_field] not found."));
+    } else {
+      JSONObject result =
+          executeQuery(
+              String.format(
+                  "search source=%s nonexistent_field=\\\"value\\\"", TEST_INDEX_OTEL_LOGS));
+      verifyDataRows(result);
+    }
   }
 
   @Test
   public void testSearchWithTypeMismatch() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s severityNumber=\\\"not-a-number\\\"", TEST_INDEX_OTEL_LOGS));
-    verifyDataRows(result);
+    if (!isPushdownDisabled() && isCalciteEnabled()) {
+      Throwable error =
+          assertThrows(
+              Exception.class,
+              () ->
+                  executeQuery(
+                      String.format(
+                          "search source=%s severityNumber=\\\"not-a-number\\\"",
+                          TEST_INDEX_OTEL_LOGS)));
+      assertTrue(error.getMessage().contains("NumberFormatException"));
+    } else {
+      JSONObject result =
+          executeQuery(
+              String.format(
+                  "search source=%s severityNumber=\\\"not-a-number\\\"", TEST_INDEX_OTEL_LOGS));
+      verifyDataRows(result);
+    }
   }
 
   @Test

@@ -70,7 +70,7 @@ public class SearchComparison extends SearchExpression {
   @Override
   public Function toDSLFunction() {
     String fieldName = QueryStringUtils.escapeFieldName(field.getField().toString());
-    String valueStr = value.toQueryString();
+    String valueStr = value.getLiteral().toString();
     if (operator == EQUALS
         && !(valueStr.contains("*")
             || valueStr.contains("?"))) { // for regex case, we cannot use match
