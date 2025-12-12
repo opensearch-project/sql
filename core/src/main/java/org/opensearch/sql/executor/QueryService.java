@@ -361,6 +361,30 @@ public class QueryService {
                           List.of(SqlIdentifier.STAR),
                           call.getParserPosition(),
                           call.getFunctionQuantifier());
+                } else if (call.getKind() == SqlKind.IN || call.getKind() == SqlKind.NOT_IN) {
+                  // Fix for tuple IN / NOT IN queries: Convert SqlNodeList to ROW SqlCall
+                  //
+                  // When RelToSqlConverter converts a tuple expression like (id, name) back to
+                  // SqlNode, it generates a bare SqlNodeList instead of wrapping it in a ROW
+                  // operator. This causes validation to fail because:
+                  // 1. SqlValidator.deriveType() doesn't know how to handle SqlNodeList
+                  // 2. SqlToRelConverter.visit(SqlNodeList) throws UnsupportedOperationException
+                  //
+                  // For example, the query:
+                  //   WHERE (id, name) NOT IN (SELECT uid, name FROM ...)
+                  //
+                  // After Rel-to-SQL conversion becomes:
+                  //   IN operator with operands: [SqlNodeList[id, name], SqlSelect[...]]
+                  //
+                  // But it should be:
+                  //   IN operator with operands: [ROW(id, name), SqlSelect[...]]
+                  //
+                  // This fix wraps the SqlNodeList in a ROW SqlCall before validation,
+                  // ensuring proper type derivation and subsequent SQL-to-Rel conversion.
+                  if (!call.getOperandList().isEmpty()
+                      && call.getOperandList().get(0) instanceof SqlNodeList nodes) {
+                    call.setOperand(0, SqlStdOperatorTable.ROW.createCall(nodes));
+                  }
                 }
                 return super.visit(call);
               }
