@@ -32,6 +32,7 @@ import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.common.antlr.Parser;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.parser.AstBuilder;
@@ -52,21 +53,26 @@ public class UnifiedQueryPlanner {
   /** Calcite framework configuration used during logical plan construction. */
   private final FrameworkConfig config;
 
+  private final Settings settings;
+
   /** AST-to-RelNode visitor that builds logical plans from the parsed AST. */
   private final CalciteRelNodeVisitor relNodeVisitor =
       new CalciteRelNodeVisitor(new EmptyDataSourceService());
 
   /**
-   * Constructs a UnifiedQueryPlanner for a given query type and schema root.
+   * Constructs a UnifiedQueryPlanner for a given query type, schema root, and settings.
    *
    * @param queryType the query language type (e.g., PPL)
    * @param rootSchema the root Calcite schema containing all catalogs and tables
    * @param defaultPath dot-separated path of schema to set as default schema
+   * @param settings configuration settings for query processing
    */
-  public UnifiedQueryPlanner(QueryType queryType, SchemaPlus rootSchema, String defaultPath) {
+  public UnifiedQueryPlanner(
+      QueryType queryType, SchemaPlus rootSchema, String defaultPath, Settings settings) {
     this.queryType = queryType;
     this.parser = buildQueryParser(queryType);
     this.config = buildCalciteConfig(rootSchema, defaultPath);
+    this.settings = settings;
   }
 
   /**
@@ -124,7 +130,8 @@ public class UnifiedQueryPlanner {
     ParseTree cst = parser.parse(query);
     AstStatementBuilder astStmtBuilder =
         new AstStatementBuilder(
-            new AstBuilder(query), AstStatementBuilder.StatementBuilderContext.builder().build());
+            new AstBuilder(query, settings),
+            AstStatementBuilder.StatementBuilderContext.builder().build());
     Statement statement = cst.accept(astStmtBuilder);
 
     if (statement instanceof Query) {
@@ -164,6 +171,7 @@ public class UnifiedQueryPlanner {
     private String defaultNamespace;
     private QueryType queryType;
     private boolean cacheMetadata;
+    private Settings settings;
 
     /**
      * Sets the query language frontend to be used by the planner.
@@ -173,6 +181,17 @@ public class UnifiedQueryPlanner {
      */
     public Builder language(QueryType queryType) {
       this.queryType = queryType;
+      return this;
+    }
+
+    /**
+     * Sets the settings for query processing configuration.
+     *
+     * @param settings the Settings instance for configuration
+     * @return this builder instance
+     */
+    public Builder settings(Settings settings) {
+      this.settings = settings;
       return this;
     }
 
@@ -221,7 +240,7 @@ public class UnifiedQueryPlanner {
       Objects.requireNonNull(queryType, "Must specify language before build");
       SchemaPlus rootSchema = CalciteSchema.createRootSchema(true, cacheMetadata).plus();
       catalogs.forEach(rootSchema::add);
-      return new UnifiedQueryPlanner(queryType, rootSchema, defaultNamespace);
+      return new UnifiedQueryPlanner(queryType, rootSchema, defaultNamespace, settings);
     }
   }
 }

@@ -31,7 +31,7 @@ public abstract class UnifiedQueryTestBase {
         new AbstractSchema() {
           @Override
           protected Map<String, Table> getTableMap() {
-            return Map.of("employees", createEmployeesTable());
+            return Map.of("employees", createEmployeesTable(), "payslips", createPayslipsTable());
           }
         };
 
@@ -54,6 +54,20 @@ public abstract class UnifiedQueryTestBase {
                 typeFactory.createSqlType(SqlTypeName.INTEGER),
                 typeFactory.createSqlType(SqlTypeName.VARCHAR)),
             List.of("id", "name", "age", "department"));
+      }
+    };
+  }
+
+  protected Table createPayslipsTable() {
+    return new AbstractTable() {
+      @Override
+      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+        return typeFactory.createStructType(
+            List.of(
+                typeFactory.createSqlType(SqlTypeName.INTEGER),
+                typeFactory.createSqlType(SqlTypeName.DATE),
+                typeFactory.createSqlType(SqlTypeName.FLOAT)),
+            List.of("id", "date", "salary"));
       }
     };
   }

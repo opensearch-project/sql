@@ -13,9 +13,14 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryType;
 
+@RunWith(MockitoJUnitRunner.class)
 public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
 
   /** Test catalog consists of test schema above */
@@ -26,6 +31,8 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
           return Map.of("opensearch", testSchema);
         }
       };
+
+  @Mock private Settings testSettings;
 
   @Test
   public void testPPLQueryPlanning() {
@@ -154,5 +161,18 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
             .build();
 
     planner.plan("source = employees | eval"); // Trigger syntax error from parser
+  }
+
+  @Test
+  public void testJoinQuery() {
+    UnifiedQueryPlanner planner =
+        UnifiedQueryPlanner.builder()
+            .language(QueryType.PPL)
+            .catalog("opensearch", testSchema)
+            .defaultNamespace("opensearch")
+            .settings(testSettings)
+            .build();
+
+    planner.plan("source = employees | join on employees.id = payslips.id payslips");
   }
 }
