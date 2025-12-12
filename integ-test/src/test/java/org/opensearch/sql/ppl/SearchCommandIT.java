@@ -520,7 +520,7 @@ public class SearchCommandIT extends PPLIntegTestCase {
     // rest request escaping -> \\\\\\\\
     // java string escaping ->\\\\\\\\
     String targetString = "\\\"C:\\\\\\\\\\\\\\\\Users\\\\\\\\\\\\\\\\admin\\\"";
-    if (isCalciteEnabled() && !isPushdownDisabled()) {
+    if (isCalciteEnabled()) {
       targetString = "\\\"C:\\\\\\\\Users\\\\\\\\admin\\\"";
     }
     JSONObject backslashSearch =
@@ -717,7 +717,7 @@ public class SearchCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testSearchWithInvalidFieldName() throws IOException {
-    if (!isPushdownDisabled() && isCalciteEnabled()) {
+    if (isCalciteEnabled()) {
       Throwable error =
           assertThrows(
               Exception.class,
@@ -738,7 +738,7 @@ public class SearchCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testSearchWithTypeMismatch() throws IOException {
-    if (!isPushdownDisabled() && isCalciteEnabled()) {
+    if (isCalciteEnabled()) {
       Throwable error =
           assertThrows(
               Exception.class,
