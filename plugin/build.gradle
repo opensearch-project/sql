@@ -31,7 +31,6 @@ plugins {
     id 'jacoco'
     id 'opensearch.opensearchplugin'
     id 'com.diffplug.spotless'
-    //id 'com.gradleup.shadow'
 }
 
 apply plugin: 'opensearch.pluginzip'
