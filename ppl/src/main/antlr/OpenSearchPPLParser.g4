@@ -78,6 +78,7 @@ commands
    | appendcolCommand
    | appendCommand
    | expandCommand
+   | mvexpandCommand
    | flattenCommand
    | reverseCommand
    | regexCommand
@@ -116,6 +117,7 @@ commandName
    | ML
    | FILLNULL
    | EXPAND
+   | MVEXPAND
    | FLATTEN
    | TRENDLINE
    | TIMECHART
@@ -525,6 +527,10 @@ trendlineType
 
 expandCommand
     : EXPAND fieldExpression (AS alias = qualifiedName)?
+    ;
+
+mvexpandCommand
+    : MVEXPAND fieldExpression (LIMIT EQUAL INTEGER_LITERAL)?
     ;
 
 flattenCommand
