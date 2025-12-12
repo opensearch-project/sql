@@ -75,6 +75,7 @@ public enum BuiltinFunctionName {
   MVAPPEND(FunctionName.of("mvappend")),
   MVJOIN(FunctionName.of("mvjoin")),
   MVINDEX(FunctionName.of("mvindex")),
+  SPLIT(FunctionName.of("split")),
   MVDEDUP(FunctionName.of("mvdedup")),
   FORALL(FunctionName.of("forall")),
   EXISTS(FunctionName.of("exists")),
@@ -159,6 +160,7 @@ public enum BuiltinFunctionName {
 
   /** Text Functions. */
   TOSTRING(FunctionName.of("tostring")),
+  TONUMBER(FunctionName.of("tonumber")),
 
   /** IP Functions. */
   CIDRMATCH(FunctionName.of("cidrmatch")),

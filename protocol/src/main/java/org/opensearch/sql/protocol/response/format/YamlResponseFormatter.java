@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.protocol.response.format;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.utils.YamlFormatter;
 
@@ -43,7 +41,6 @@ public abstract class YamlResponseFormatter<R> implements ResponseFormatter<R> {
   protected abstract Object buildYamlObject(R response);
 
   protected String yamlify(Object yamlObject) {
-    return AccessController.doPrivileged(
-        (PrivilegedAction<String>) () -> YamlFormatter.formatToYaml(yamlObject));
+    return YamlFormatter.formatToYaml(yamlObject);
   }
 }

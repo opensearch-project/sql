@@ -86,8 +86,6 @@ public class CalciteExplainIT extends ExplainIT {
   // Only for Calcite
   @Test
   public void testJoinWithCriteriaAndMaxOption() throws IOException {
-    // TODO could be optimized with https://github.com/opensearch-project/OpenSearch/issues/3725
-    enabledOnlyWhenPushdownIsEnabled();
     String query =
         "source=opensearch-sql_test_index_bank | join max=1 left=l right=r on"
             + " l.account_number=r.account_number opensearch-sql_test_index_bank";
@@ -99,8 +97,6 @@ public class CalciteExplainIT extends ExplainIT {
   // Only for Calcite
   @Test
   public void testJoinWithFieldListAndMaxOption() throws IOException {
-    // TODO could be optimized with https://github.com/opensearch-project/OpenSearch/issues/3725
-    enabledOnlyWhenPushdownIsEnabled();
     String query =
         "source=opensearch-sql_test_index_bank | join type=inner max=1 account_number"
             + " opensearch-sql_test_index_bank";
@@ -1009,6 +1005,48 @@ public class CalciteExplainIT extends ExplainIT {
             + " sort age2, balance2 ";
     var result = explainQueryYaml(query);
     String expected = loadExpectedPlan("explain_sort_complex_and_simple_expr.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testComplexSortExprPushdownForSMJ() throws Exception {
+    String query =
+        "source=opensearch-sql_test_index_bank | rex field=lastname \\\"(?<initial>^[A-Z])\\\" |"
+            + " join left=a right=b on a.initial = b.firstname opensearch-sql_test_index_bank";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_complex_sort_expr_pushdown_for_smj.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testSimpleSortExprPushdownForSMJ() throws Exception {
+    String query =
+        "source=opensearch-sql_test_index_bank | join left=a right=b on a.age + 1 = b.balance - 20"
+            + " opensearch-sql_test_index_bank";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_simple_sort_expr_pushdown_for_smj.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testSortPassThroughJoinThenPushdown() throws Exception {
+    String query =
+        "source=opensearch-sql_test_index_bank | rex field=lastname \\\"(?<initial>^[A-Z])\\\" |"
+            + " join type=left left=a right=b on a.initial = b.firstname"
+            + " opensearch-sql_test_index_bank | sort initial";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_sort_pass_through_join_then_pushdown.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testComplexSortExprPushdownForSMJWithMaxOption() throws Exception {
+    String query =
+        "source=opensearch-sql_test_index_bank | rex field=lastname \\\"(?<lastname>^[A-Z])\\\" |"
+            + " join type=left max=1 lastname opensearch-sql_test_index_bank";
+    var result = explainQueryYaml(query);
+    String expected =
+        loadExpectedPlan("explain_complex_sort_expr_pushdown_for_smj_w_max_option.yaml");
     assertYamlEqualsIgnoreId(expected, result);
   }
 
@@ -2078,5 +2116,18 @@ public class CalciteExplainIT extends ExplainIT {
             String.format(
                 "source=%s | fields alias_col | where alias_col > 10 | stats avg(alias_col)",
                 TEST_INDEX_ALIAS)));
+  }
+
+  @Test
+  public void testRexStandardizationForScript() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    assertJsonEqualsIgnoreId(
+        loadExpectedPlan("explain_extended_for_standardization.json"),
+        explainQueryToString(
+            String.format(
+                "source=%s | eval age_range = case(age < 30, 'u30', age >= 30 and age <= 40, 'u40'"
+                    + " else 'u100') | stats avg(age) as avg_age by age_range",
+                TEST_INDEX_BANK),
+            true));
   }
 }

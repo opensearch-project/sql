@@ -463,7 +463,11 @@ public interface PlanUtils {
 
   /** Check if contains dedup */
   static boolean containsRowNumberDedup(RelNode node) {
-    return node.getRowType().getFieldNames().stream().anyMatch(ROW_NUMBER_COLUMN_FOR_DEDUP::equals);
+    return node.getRowType().getFieldNames().stream()
+        .anyMatch(
+            name ->
+                name.equals(ROW_NUMBER_COLUMN_FOR_DEDUP)
+                    || name.equals(ROW_NUMBER_COLUMN_FOR_JOIN_MAX_DEDUP));
   }
 
   /** Check if contains dedup for top/rare */

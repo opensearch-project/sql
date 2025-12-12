@@ -144,7 +144,8 @@ public class WafPplDashboardIT extends PPLIntegTestCase {
   public void testTopTerminatingRules() throws IOException {
     String query =
         String.format(
-            "source=%s | stats count() as Count by `terminatingRuleId` | sort - Count | head 10",
+            "source=%s | stats count() as Count by `terminatingRuleId` | sort - Count,"
+                + " `terminatingRuleId` | head 10",
             WAF_LOGS_INDEX);
 
     JSONObject response = executeQuery(query);

@@ -11,8 +11,6 @@ import static org.opensearch.sql.protocol.response.format.ErrorFormatter.prettyF
 import static org.opensearch.sql.protocol.response.format.ErrorFormatter.prettyJsonify;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -41,8 +39,7 @@ public abstract class JsonResponseFormatter<R> implements ResponseFormatter<R> {
 
   @Override
   public String format(Throwable t) {
-    return AccessController.doPrivileged(
-        (PrivilegedAction<String>) () -> (style == PRETTY) ? prettyFormat(t) : compactFormat(t));
+    return (style == PRETTY) ? prettyFormat(t) : compactFormat(t);
   }
 
   public String contentType() {
@@ -58,8 +55,6 @@ public abstract class JsonResponseFormatter<R> implements ResponseFormatter<R> {
   protected abstract Object buildJsonObject(R response);
 
   protected String jsonify(Object jsonObject) {
-    return AccessController.doPrivileged(
-        (PrivilegedAction<String>)
-            () -> (style == PRETTY) ? prettyJsonify(jsonObject) : compactJsonify(jsonObject));
+    return (style == PRETTY) ? prettyJsonify(jsonObject) : compactJsonify(jsonObject);
   }
 }

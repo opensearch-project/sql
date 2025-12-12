@@ -195,6 +195,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SINH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SPAN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SPAN_BUCKET;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SPLIT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SQRT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_POP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_SAMP;
@@ -217,6 +218,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTA
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMPDIFF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME_FORMAT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME_TO_SEC;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TONUMBER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TOSTRING;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TO_DAYS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TO_SECONDS;
@@ -973,6 +975,7 @@ public class PPLFuncImpTable {
       registerOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK);
 
       registerOperator(INTERNAL_PATTERN_PARSER, PPLBuiltinOperators.PATTERN_PARSER);
+      registerOperator(TONUMBER, PPLBuiltinOperators.TONUMBER);
       registerOperator(TOSTRING, PPLBuiltinOperators.TOSTRING);
       register(
           TOSTRING,
@@ -988,6 +991,34 @@ public class PPLFuncImpTable {
               (builder, array, delimiter) ->
                   builder.makeCall(SqlLibraryOperators.ARRAY_JOIN, array, delimiter),
           PPLTypeChecker.family(SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER));
+
+      // Register SPLIT with custom logic for empty delimiter
+      // Case 1: Delimiter is not empty string, use SPLIT
+      // Case 2: Delimiter is empty string, use REGEXP_EXTRACT_ALL with '.' pattern
+      register(
+          SPLIT,
+          (FunctionImp2)
+              (builder, str, delimiter) -> {
+                // Create condition: delimiter = ''
+                RexNode emptyString = builder.makeLiteral("");
+                RexNode isEmptyDelimiter =
+                    builder.makeCall(SqlStdOperatorTable.EQUALS, delimiter, emptyString);
+
+                // For empty delimiter: split into characters using REGEXP_EXTRACT_ALL with '.'
+                // pattern This matches each individual character
+                RexNode dotPattern = builder.makeLiteral(".");
+                RexNode splitChars =
+                    builder.makeCall(SqlLibraryOperators.REGEXP_EXTRACT_ALL, str, dotPattern);
+
+                // For non-empty delimiter: use standard SPLIT
+                RexNode normalSplit = builder.makeCall(SqlLibraryOperators.SPLIT, str, delimiter);
+
+                // Use CASE to choose between the two approaches
+                // CASE WHEN isEmptyDelimiter THEN splitChars ELSE normalSplit END
+                return builder.makeCall(
+                    SqlStdOperatorTable.CASE, isEmptyDelimiter, splitChars, normalSplit);
+              },
+          PPLTypeChecker.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER));
 
       // Register MVINDEX to use Calcite's ITEM/ARRAY_SLICE with index normalization
       register(
@@ -1162,7 +1193,6 @@ public class PPLFuncImpTable {
                               SqlTypeFamily.INTEGER,
                               SqlTypeFamily.INTEGER)),
               false));
-
       register(
           LOG,
           (FunctionImp2)

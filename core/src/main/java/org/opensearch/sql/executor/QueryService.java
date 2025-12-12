@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.executor;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nullable;
@@ -100,19 +98,14 @@ public class QueryService {
     CalcitePlanContext.run(
         () -> {
           try {
-            AccessController.doPrivileged(
-                (PrivilegedAction<Void>)
-                    () -> {
-                      CalcitePlanContext context =
-                          CalcitePlanContext.create(
-                              buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
-                      RelNode relNode = analyze(plan, context);
-                      relNode = mergeAdjacentFilters(relNode);
-                      RelNode optimized = optimize(relNode, context);
-                      RelNode calcitePlan = convertToCalcitePlan(optimized);
-                      executionEngine.execute(calcitePlan, context, listener);
-                      return null;
-                    });
+            CalcitePlanContext context =
+                CalcitePlanContext.create(
+                    buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
+            RelNode relNode = analyze(plan, context);
+            relNode = mergeAdjacentFilters(relNode);
+            RelNode optimized = optimize(relNode, context);
+            RelNode calcitePlan = convertToCalcitePlan(optimized);
+            executionEngine.execute(calcitePlan, context, listener);
           } catch (Throwable t) {
             if (isCalciteFallbackAllowed(t) && !(t instanceof NonFallbackCalciteException)) {
               log.warn("Fallback to V2 query engine since got exception", t);
@@ -144,23 +137,18 @@ public class QueryService {
     CalcitePlanContext.run(
         () -> {
           try {
-            AccessController.doPrivileged(
-                (PrivilegedAction<Void>)
-                    () -> {
-                      CalcitePlanContext context =
-                          CalcitePlanContext.create(
-                              buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
-                      context.run(
-                          () -> {
-                            RelNode relNode = analyze(plan, context);
-                            relNode = mergeAdjacentFilters(relNode);
-                            RelNode optimized = optimize(relNode, context);
-                            RelNode calcitePlan = convertToCalcitePlan(optimized);
-                            executionEngine.explain(calcitePlan, format, context, listener);
-                          },
-                          settings);
-                      return null;
-                    });
+            CalcitePlanContext context =
+                CalcitePlanContext.create(
+                    buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
+            context.run(
+                () -> {
+                  RelNode relNode = analyze(plan, context);
+                  relNode = mergeAdjacentFilters(relNode);
+                  RelNode optimized = optimize(relNode, context);
+                  RelNode calcitePlan = convertToCalcitePlan(optimized);
+                  executionEngine.explain(calcitePlan, format, context, listener);
+                },
+                settings);
           } catch (Throwable t) {
             if (isCalciteFallbackAllowed(t)) {
               log.warn("Fallback to V2 query engine since got exception", t);

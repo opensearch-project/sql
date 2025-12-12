@@ -1098,6 +1098,7 @@ collectionFunctionName
     | MVJOIN
     | MVINDEX
     | MVDEDUP
+    | SPLIT
     | FORALL
     | EXISTS
     | FILTER
@@ -1312,6 +1313,7 @@ textFunctionName
    | LOCATE
    | REPLACE
    | REVERSE
+   | TONUMBER
    | REGEXP_REPLACE
    ;
 
@@ -1518,6 +1520,7 @@ searchableKeyWord
    | USING
    | VALUE
    | CAST
+   | TONUMBER
    | TOSTRING
    | GET_FORMAT
    | EXTRACT
