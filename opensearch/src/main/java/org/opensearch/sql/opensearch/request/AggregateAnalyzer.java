@@ -187,7 +187,9 @@ public class AggregateAnalyzer {
     }
 
     String inferFieldNameFromIndex(int index, Project project) {
-      return project == null ? rowType.getFieldNames().get(index) : project.getRowType().getFieldNames().get(index);
+      return project == null
+          ? rowType.getFieldNames().get(index)
+          : project.getRowType().getFieldNames().get(index);
     }
   }
 
@@ -368,9 +370,12 @@ public class AggregateAnalyzer {
    * @param helper the AggregateBuilderHelper
    * @return the converted RexNode list
    */
-  private static List<RexNode> convertAggArgThroughProject(AggregateCall aggCall, Project project, AggregateAnalyzer.AggregateBuilderHelper helper) {
+  private static List<RexNode> convertAggArgThroughProject(
+      AggregateCall aggCall, Project project, AggregateAnalyzer.AggregateBuilderHelper helper) {
     return project == null
-        ? aggCall.getArgList().stream().map(i -> (RexNode)RexInputRef.of(i, helper.rowType)).toList()
+        ? aggCall.getArgList().stream()
+            .map(i -> (RexNode) RexInputRef.of(i, helper.rowType))
+            .toList()
         : PlanUtils.getObjectFromLiteralAgg(aggCall) != null
             ? project.getProjects().stream().filter(rex -> !rex.isA(SqlKind.ROW_NUMBER)).toList()
             : aggCall.getArgList().stream().map(project.getProjects()::get).toList();
@@ -610,7 +615,9 @@ public class AggregateAnalyzer {
   }
 
   private static List<CompositeValuesSourceBuilder<?>> createCompositeBuckets(
-      List<Integer> groupList, @Nullable Project project, AggregateAnalyzer.AggregateBuilderHelper helper) {
+      List<Integer> groupList,
+      @Nullable Project project,
+      AggregateAnalyzer.AggregateBuilderHelper helper) {
     ImmutableList.Builder<CompositeValuesSourceBuilder<?>> resultBuilder = ImmutableList.builder();
     groupList.forEach(
         groupIndex -> resultBuilder.add(createCompositeBucket(groupIndex, project, helper)));
@@ -730,7 +737,9 @@ public class AggregateAnalyzer {
   }
 
   private static CompositeValuesSourceBuilder<?> createCompositeBucket(
-      Integer groupIndex, @Nullable Project project, AggregateAnalyzer.AggregateBuilderHelper helper) {
+      Integer groupIndex,
+      @Nullable Project project,
+      AggregateAnalyzer.AggregateBuilderHelper helper) {
     RexNode rex = helper.inferRexNodeFromIndex(groupIndex, project);
     String bucketName = helper.inferFieldNameFromIndex(groupIndex, project);
     if (rex instanceof RexCall rexCall

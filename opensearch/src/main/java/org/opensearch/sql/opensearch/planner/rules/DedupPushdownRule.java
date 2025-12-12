@@ -12,6 +12,7 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.rules.SubstitutionRule;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -30,7 +31,8 @@ import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
 @Value.Enclosing
-public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Config> {
+public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Config>
+    implements SubstitutionRule {
   private static final Logger LOG = LogManager.getLogger();
 
   protected DedupPushdownRule(Config config) {
@@ -173,6 +175,7 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
     if (newScan != null) {
       // Reorder back to original order
       call.transformTo(newScan.copyWithNewSchema(finalProject.getRowType()));
+      PlanUtils.tryPruneRelNodes(call);
     }
   }
 

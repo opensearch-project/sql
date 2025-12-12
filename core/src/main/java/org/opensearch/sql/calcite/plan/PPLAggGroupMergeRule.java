@@ -15,6 +15,7 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.rules.SubstitutionRule;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
@@ -27,6 +28,7 @@ import org.apache.calcite.util.mapping.Mappings;
 import org.apache.commons.lang3.tuple.Pair;
 import org.immutables.value.Value;
 import org.opensearch.sql.calcite.utils.CalciteUtils;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 
 /**
  * Planner rule that merge multiple agg group fields into a single one, on which all other group
@@ -41,7 +43,8 @@ import org.opensearch.sql.calcite.utils.CalciteUtils;
  * these UDFs' output must have equivalent cardinality as `a`.
  */
 @Value.Enclosing
-public class PPLAggGroupMergeRule extends RelRule<PPLAggGroupMergeRule.Config> {
+public class PPLAggGroupMergeRule extends RelRule<PPLAggGroupMergeRule.Config>
+    implements SubstitutionRule {
 
   /** Creates a OpenSearchAggregateConvertRule. */
   protected PPLAggGroupMergeRule(Config config) {
@@ -101,6 +104,7 @@ public class PPLAggGroupMergeRule extends RelRule<PPLAggGroupMergeRule.Config> {
     parentProjections.addAll(aggCallRefs);
     relBuilder.project(parentProjections);
     call.transformTo(relBuilder.build());
+    PlanUtils.tryPruneRelNodes(call);
   }
 
   /** Rule configuration. */

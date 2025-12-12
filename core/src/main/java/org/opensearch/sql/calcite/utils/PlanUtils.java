@@ -14,6 +14,7 @@ import static org.apache.calcite.rex.RexWindowBounds.preceding;
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -21,7 +22,9 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
@@ -641,5 +644,26 @@ public interface PlanUtils {
     return rex instanceof RexCall rexCall
         && rexCall.isA(SqlKind.IS_NOT_NULL)
         && rexCall.getOperands().get(0) instanceof RexInputRef;
+  }
+
+  /**
+   * Try to prune all RelNodes in the RuleCall from top to down. We can prune a RelNode if:
+   *
+   * <p>1. It's the root RelNode of the current RuleCall. Or,
+   *
+   * <p>2. It only has one parent and its parent is pruned. TODO: To be more precisely, we can prune
+   * a RelNode whose parents are all pruned, but `prunedNodes` in VolcanoPlanner is not available.
+   *
+   * @param call the RuleCall to prune
+   */
+  static void tryPruneRelNodes(RelOptRuleCall call) {
+    if (call.getPlanner() instanceof VolcanoPlanner volcanoPlanner) {
+      Arrays.stream(call.rels)
+          .takeWhile(
+              rel ->
+                  rel == call.rels[0]
+                      || volcanoPlanner.getSubsetNonNull(rel).getParentRels().size() == 1)
+          .forEach(volcanoPlanner::prune);
+    }
   }
 }

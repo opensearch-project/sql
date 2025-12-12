@@ -11,6 +11,7 @@ import static org.opensearch.sql.expression.function.PPLBuiltinOperators.WIDTH_B
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import javax.annotation.Nullable;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.AbstractRelNode;
@@ -19,6 +20,7 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.rules.SubstitutionRule;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -39,7 +41,8 @@ import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
 /** Planner rule that push a {@link LogicalAggregate} down to {@link CalciteLogicalIndexScan} */
 @Value.Enclosing
-public class AggregateIndexScanRule extends InterruptibleRelRule<AggregateIndexScanRule.Config> {
+public class AggregateIndexScanRule extends InterruptibleRelRule<AggregateIndexScanRule.Config>
+    implements SubstitutionRule {
 
   /** Creates a AggregateIndexScanRule. */
   protected AggregateIndexScanRule(Config config) {
@@ -98,7 +101,6 @@ public class AggregateIndexScanRule extends InterruptibleRelRule<AggregateIndexS
       final CalciteLogicalIndexScan scan = call.rel(2);
       apply(call, aggregate, project, scan);
     } else if (call.rels.length == 2) {
-      // case of count() without group-by
       final LogicalAggregate aggregate = call.rel(0);
       final CalciteLogicalIndexScan scan = call.rel(1);
       apply(call, aggregate, null, scan);
@@ -137,11 +139,12 @@ public class AggregateIndexScanRule extends InterruptibleRelRule<AggregateIndexS
   protected void apply(
       RelOptRuleCall call,
       LogicalAggregate aggregate,
-      LogicalProject project,
+      @Nullable LogicalProject project,
       CalciteLogicalIndexScan scan) {
     AbstractRelNode newRelNode = scan.pushDownAggregate(aggregate, project);
     if (newRelNode != null) {
       call.transformTo(newRelNode);
+      PlanUtils.tryPruneRelNodes(call);
     }
   }
 
@@ -176,21 +179,13 @@ public class AggregateIndexScanRule extends InterruptibleRelRule<AggregateIndexS
                                                             AbstractCalciteIndexScan
                                                                 ::noAggregatePushed))
                                                 .noInputs())));
-    Config COUNT_STAR =
+    Config AGGREGATE_SCAN =
         ImmutableAggregateIndexScanRule.Config.builder()
             .build()
-            .withDescription("Agg[count()]-TableScan")
+            .withDescription("Agg-TableScan")
             .withOperandSupplier(
                 b0 ->
                     b0.operand(LogicalAggregate.class)
-                        .predicate(
-                            agg ->
-                                agg.getGroupSet().isEmpty()
-                                    && agg.getAggCallList().stream()
-                                        .allMatch(
-                                            call ->
-                                                call.getAggregation().kind == SqlKind.COUNT
-                                                    && call.getArgList().isEmpty()))
                         .oneInput(
                             b1 ->
                                 b1.operand(CalciteLogicalIndexScan.class)
