@@ -45,12 +45,14 @@ public class CalcitePPLSearchTest extends CalcitePPLAbstractTest {
     String ppl = "search source=EMP DEPTNO=20";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalFilter(condition=[query_string(MAP('query', 'DEPTNO:20':VARCHAR))])\n"
+        "LogicalFilter(condition=[match(MAP('field_name', $7), MAP('value', '20':VARCHAR))])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT *\nFROM `scott`.`EMP`\nWHERE QUERY_STRING(MAP ('query', 'DEPTNO:20'))";
+        "SELECT *\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE MATCH(MAP ('field_name', `DEPTNO`), MAP ('value', '20'))";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 

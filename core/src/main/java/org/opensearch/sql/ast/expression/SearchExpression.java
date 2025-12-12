@@ -6,6 +6,7 @@
 package org.opensearch.sql.ast.expression;
 
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.dsl.AstDSL;
 
 /** Base class for search expressions that get converted to query_string syntax. */
 public abstract class SearchExpression extends UnresolvedExpression {
@@ -16,6 +17,14 @@ public abstract class SearchExpression extends UnresolvedExpression {
    * @return the query string representation
    */
   public abstract String toQueryString();
+
+  public Function toDSLFunction() {
+    Function queryStringFunc =
+        AstDSL.function(
+            "query_string",
+            AstDSL.unresolvedArg("query", AstDSL.stringLiteral(this.toQueryString())));
+    return queryStringFunc;
+  }
 
   /**
    * Convert the search expression to anonymized string
