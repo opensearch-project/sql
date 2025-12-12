@@ -1,0 +1,13 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(sort0=[$1], dir0=[ASC-nulls-first], offset=[2], fetch=[3], type=[PAGINATION])
+      LogicalSort(sort0=[$1], dir0=[ASC-nulls-first])
+        LogicalProject(firstname=[$1], age=[$10])
+          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
+  physical: |
+    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]], PushDownContext=[[PROJECT->[firstname, age], SORT->[{
+      "age" : {
+        "order" : "asc",
+        "missing" : "_first"
+      }
+    }], LIMIT->[3 from 2]], OpenSearchRequestBuilder(sourceBuilder={"from":2,"size":3,"timeout":"1m","_source":{"includes":["firstname","age"],"excludes":[]},"sort":[{"age":{"order":"asc","missing":"_first"}}]}, requestedTotalSize=3, pageSize=null, startFrom=2)])

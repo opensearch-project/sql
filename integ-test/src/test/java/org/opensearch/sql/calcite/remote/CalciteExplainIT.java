@@ -2154,4 +2154,73 @@ public class CalciteExplainIT extends ExplainIT {
                 TEST_INDEX_BANK),
             true));
   }
+
+  // Pagination explain tests
+
+  /**
+   * Test explain for head X from Y syntax. This verifies the explain plan shows the correct
+   * LIMIT/OFFSET structure.
+   */
+  @Test
+  public void testExplainHeadFromOffset() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        String.format(
+            "source=%s | fields firstname, age | sort age | head 3 from 2", TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_head_from_offset.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  /**
+   * Test explain for head X from Y with filter. This verifies the explain plan shows the correct
+   * LIMIT/OFFSET structure with filter applied first.
+   */
+  @Test
+  public void testExplainHeadFromOffsetWithFilter() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        String.format(
+            "source=%s | where age > 30 | fields firstname, age | sort age | head 2 from 3",
+            TEST_INDEX_BANK);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_head_from_offset_with_filter.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  /**
+   * Test explain for pagination API. This verifies that using pageSize and offset parameters
+   * produces a plan with LogicalSystemLimit(type=PAGINATION) applied on top.
+   */
+  @Test
+  public void testExplainPaginationApi() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query = String.format("source=%s | fields firstname, age | sort age", TEST_INDEX_BANK);
+    var result = explainQueryYamlWithPagination(query, 3, 2);
+    String expected = loadExpectedPlan("explain_pagination_api.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  /**
+   * Test using both pagination API and head X from Y together. The query uses head to limit results
+   * first, then pagination API applies additional LIMIT/OFFSET on top of that result.
+   *
+   * <p>Example: Query "head 5 from 1" returns rows 2-6 (5 rows starting from offset 1). Then
+   * pagination with pageSize=2, offset=1 returns rows 2-3 of that result (i.e., original rows 3-4).
+   */
+  @Test
+  public void testExplainPaginationApiWithHeadFrom() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    // Query with head 5 from 1, then apply pagination pageSize=2, offset=1
+    String query =
+        String.format(
+            "source=%s | fields firstname, age | sort age | head 5 from 1", TEST_INDEX_BANK);
+    var result = explainQueryYamlWithPagination(query, 2, 1);
+
+    // The plan should show both:
+    // 1. LogicalSystemLimit with type=[PAGINATION] (from pagination API)
+    // 2. LogicalSort with offset and fetch (from head 5 from 1)
+    String expected = loadExpectedPlan("explain_pagination_api_with_head_from.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
 }

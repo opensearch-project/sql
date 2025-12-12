@@ -35,6 +35,13 @@ public class LogicalSystemLimit extends Sort {
     JOIN_SUBSEARCH_MAXOUT,
     /** Max output to return from a subsearch. */
     SUBSEARCH_MAXOUT,
+    /**
+     * Pagination limit type for API pagination support.
+     *
+     * <p>This type is used to apply LIMIT/OFFSET for paginating query results. Unlike
+     * QUERY_SIZE_LIMIT, pagination is applied as post-processing after the user's query executes.
+     */
+    PAGINATION,
   }
 
   @Getter private final SystemLimitType type;
