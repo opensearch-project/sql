@@ -354,6 +354,92 @@ public class CalcitePaginationIT extends PPLIntegTestCase {
   }
 
   /**
+   * Test that pagination API with pageSize and offset produces equivalent results to using 'head X
+   * from Y' in the query.
+   *
+   * <p>Example: The query with pagination:
+   *
+   * <pre>
+   * POST /_plugins/_ppl
+   * {
+   *   "query": "source=bank | fields firstname, age | sort age",
+   *   "pageSize": 3,
+   *   "offset": 2
+   * }
+   * </pre>
+   *
+   * Should produce equivalent results to:
+   *
+   * <pre>
+   * POST /_plugins/_ppl
+   * {
+   *   "query": "source=bank | fields firstname, age | sort age | head 3 from 2"
+   * }
+   * </pre>
+   */
+  @Test
+  public void testPaginationEquivalentToHeadFromOffset() throws IOException {
+    // Execute with pagination API: pageSize=3, offset=2
+    JSONObject paginationResult =
+        executePaginatedQuery(
+            String.format("source=%s | fields firstname, age | sort age", TEST_INDEX_BANK), 3, 2);
+
+    // Execute with head X from Y syntax
+    JSONObject headFromResult =
+        executePaginatedQuery(
+            String.format(
+                "source=%s | fields firstname, age | sort age | head 3 from 2", TEST_INDEX_BANK),
+            0, // no pagination
+            0);
+
+    // Both should return the same data: rows 3-5 (0-indexed: 2,3,4)
+    // BANK dataset sorted by age: Nanette(28), Amber(32), Dale(33), Dillard(34), Hattie(36),
+    // Elinor(36), Virginia(39)
+    // Skip 2 (Nanette, Amber), return 3 (Dale, Dillard, Hattie)
+    verifySchema(paginationResult, schema("firstname", "string"), schema("age", "int"));
+    verifySchema(headFromResult, schema("firstname", "string"), schema("age", "int"));
+
+    verifyDataRows(paginationResult, rows("Dale", 33), rows("Dillard", 34), rows("Hattie", 36));
+    verifyDataRows(headFromResult, rows("Dale", 33), rows("Dillard", 34), rows("Hattie", 36));
+  }
+
+  /**
+   * Test that pagination with filter and sort produces equivalent results to head X from Y with
+   * same filter and sort.
+   */
+  @Test
+  public void testPaginationWithFilterEquivalentToHeadFromOffset() throws IOException {
+    // Filter: age > 30, Sort: age ascending
+    // BANK dataset filtered (age>30): Amber(32), Dale(33), Dillard(34), Hattie(36), Elinor(36),
+    // Virginia(39)
+
+    // Execute with pagination API: pageSize=2, offset=3
+    JSONObject paginationResult =
+        executePaginatedQuery(
+            String.format(
+                "source=%s | where age > 30 | fields firstname, age | sort age", TEST_INDEX_BANK),
+            2,
+            3);
+
+    // Execute with head X from Y syntax
+    JSONObject headFromResult =
+        executePaginatedQuery(
+            String.format(
+                "source=%s | where age > 30 | fields firstname, age | sort age | head 2 from 3",
+                TEST_INDEX_BANK),
+            0,
+            0);
+
+    // Both should return rows 4-5 (0-indexed: 3,4) of filtered result
+    // Skip 3 (Amber, Dale, Dillard), return 2 (Hattie, Elinor)
+    verifySchema(paginationResult, schema("firstname", "string"), schema("age", "int"));
+    verifySchema(headFromResult, schema("firstname", "string"), schema("age", "int"));
+
+    verifyDataRows(paginationResult, rows("Hattie", 36), rows("Elinor", 36));
+    verifyDataRows(headFromResult, rows("Hattie", 36), rows("Elinor", 36));
+  }
+
+  /**
    * Execute a PPL query with pagination parameters.
    *
    * @param query the PPL query
