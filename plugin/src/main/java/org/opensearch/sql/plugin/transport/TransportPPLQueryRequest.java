@@ -35,6 +35,12 @@ public class TransportPPLQueryRequest extends ActionRequest {
 
   @Getter private String format = "";
 
+  /** Current offset for pagination (0-based). */
+  @Getter private int offset = 0;
+
+  /** Page size for pagination. 0 means pagination is disabled. */
+  @Getter private int pageSize = 0;
+
   @Setter
   @Getter
   @Accessors(fluent = true)
@@ -51,6 +57,8 @@ public class TransportPPLQueryRequest extends ActionRequest {
     jsonContent = pplQueryRequest.getJsonContent();
     path = pplQueryRequest.getPath();
     format = pplQueryRequest.getFormat();
+    offset = pplQueryRequest.getOffset();
+    pageSize = pplQueryRequest.getPageSize();
     sanitize = pplQueryRequest.sanitize();
     style = pplQueryRequest.style();
   }
@@ -63,6 +71,8 @@ public class TransportPPLQueryRequest extends ActionRequest {
     String jsonContentString = in.readOptionalString();
     jsonContent = jsonContentString != null ? new JSONObject(jsonContentString) : null;
     path = in.readOptionalString();
+    offset = in.readInt();
+    pageSize = in.readInt();
     sanitize = in.readBoolean();
     style = in.readEnum(JsonResponseFormatter.Style.class);
   }
@@ -93,6 +103,8 @@ public class TransportPPLQueryRequest extends ActionRequest {
     out.writeOptionalString(format);
     out.writeOptionalString(jsonContent != null ? jsonContent.toString() : null);
     out.writeOptionalString(path);
+    out.writeInt(offset);
+    out.writeInt(pageSize);
     out.writeBoolean(sanitize);
     out.writeEnum(style);
   }
@@ -128,7 +140,8 @@ public class TransportPPLQueryRequest extends ActionRequest {
 
   /** Convert to PPLQueryRequest. */
   public PPLQueryRequest toPPLQueryRequest() {
-    PPLQueryRequest pplQueryRequest = new PPLQueryRequest(pplQuery, jsonContent, path, format);
+    PPLQueryRequest pplQueryRequest =
+        new PPLQueryRequest(pplQuery, jsonContent, path, format, offset, pageSize);
     pplQueryRequest.sanitize(sanitize);
     pplQueryRequest.style(style);
     return pplQueryRequest;

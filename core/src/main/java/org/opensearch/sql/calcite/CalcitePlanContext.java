@@ -48,6 +48,21 @@ public class CalcitePlanContext {
   @Getter @Setter private boolean isResolvingSubquery = false;
   @Getter @Setter private boolean inCoalesceFunction = false;
 
+  /** Pagination offset (0-based). */
+  @Getter @Setter private int paginationOffset = 0;
+
+  /** Pagination page size. 0 means pagination is disabled. */
+  @Getter @Setter private int paginationSize = 0;
+
+  /**
+   * Check if pagination is enabled.
+   *
+   * @return true if paginationSize > 0
+   */
+  public boolean isPaginationEnabled() {
+    return paginationSize > 0;
+  }
+
   /**
    * The flag used to determine whether we do metadata field projection for user 1. If a project is
    * never visited, we will do metadata field projection for user 2. Else not because user may
