@@ -1,0 +1,18 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10])
+        LogicalUnion(all=[true])
+          LogicalSort(fetch=[5])
+            CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+          LogicalProject(account_number=[null:BIGINT], firstname=[null:VARCHAR], address=[null:VARCHAR], balance=[$0], gender=[null:VARCHAR], city=[null:VARCHAR], employer=[null:VARCHAR], state=[null:VARCHAR], age=[$1], email=[null:VARCHAR], lastname=[null:VARCHAR], _id=[null:VARCHAR], _index=[null:VARCHAR], _score=[null:REAL], _maxscore=[null:REAL], _sort=[null:BIGINT], _routing=[null:VARCHAR])
+            LogicalAggregate(group=[{}], balance=[SUM($3)], age=[SUM($8)])
+              LogicalSort(fetch=[5])
+                CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableUnion(all=[true])
+        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[account_number, firstname, address, balance, gender, city, employer, state, age, email, lastname], LIMIT->5], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":5,"timeout":"1m","_source":{"includes":["account_number","firstname","address","balance","gender","city","employer","state","age","email","lastname"],"excludes":[]}}, requestedTotalSize=5, pageSize=null, startFrom=0)])
+        EnumerableCalc(expr#0..1=[{inputs}], expr#2=[null:BIGINT], expr#3=[null:VARCHAR], account_number=[$t2], firstname=[$t3], address=[$t3], balance=[$t0], gender=[$t3], city=[$t3], employer=[$t3], state=[$t3], age=[$t1], email=[$t3], lastname=[$t3])
+          EnumerableAggregate(group=[{}], balance=[SUM($0)], age=[SUM($1)])
+            CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[balance, age], LIMIT->5], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":5,"timeout":"1m","_source":{"includes":["balance","age"],"excludes":[]}}, requestedTotalSize=5, pageSize=null, startFrom=0)])

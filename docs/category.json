@@ -10,6 +10,8 @@
   "ppl_cli_calcite": [
     "user/ppl/cmd/ad.md",
     "user/ppl/cmd/append.md",
+    "user/ppl/cmd/addtotals.md",
+    "user/ppl/cmd/addcoltotals.md",
     "user/ppl/cmd/bin.md",
     "user/ppl/cmd/dedup.md",
     "user/ppl/cmd/describe.md",

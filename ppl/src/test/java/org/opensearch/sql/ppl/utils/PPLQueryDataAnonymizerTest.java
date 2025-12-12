@@ -503,6 +503,23 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testAddTotals() {
+    assertEquals(
+        "source=table | addtotals row=true col=true label=identifier labelfield=identifier"
+            + " fieldname=identifier",
+        anonymize(
+            "source=table | addtotals row=true col=true label='identifier' labelfield='identifier'"
+                + " fieldname='identifier'"));
+  }
+
+  @Test
+  public void testAddColTotals() {
+    assertEquals(
+        "source=table | addcoltotals label=identifier labelfield=identifier",
+        anonymize("source=table | addcoltotals label='identifier' labelfield='identifier'"));
+  }
+
+  @Test
   public void testAppend() {
     assertEquals(
         "source=table | stats count() by identifier | append [ | stats sum(identifier) by"
