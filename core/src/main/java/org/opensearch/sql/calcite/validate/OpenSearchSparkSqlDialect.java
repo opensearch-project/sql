@@ -7,9 +7,11 @@ package org.opensearch.sql.calcite.validate;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
+import lombok.experimental.Delegate;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
+import org.apache.calcite.sql.validate.SqlConformance;
 
 /**
  * Custom Spark SQL dialect that extends Calcite's SparkSqlDialect to handle OpenSearch-specific
@@ -67,5 +69,25 @@ public class OpenSearchSparkSqlDialect extends SparkSqlDialect {
       call.operand(i).unparse(writer, 0, rightPrec);
     }
     writer.endList(frame);
+  }
+
+  @Override
+  public SqlConformance getConformance() {
+    return new ConformanceDelegate(super.getConformance());
+  }
+
+  /** SqlConformance delegator that enables liberal mode for LEFT SEMI/ANTI JOIN support. */
+  private static class ConformanceDelegate implements SqlConformance {
+    @Delegate private final SqlConformance delegate;
+
+    ConformanceDelegate(SqlConformance delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override
+    public boolean isLiberal() {
+      // This allows SQL feature LEFT ANTI JOIN & LEFT SEMI JOIN
+      return true;
+    }
   }
 }
