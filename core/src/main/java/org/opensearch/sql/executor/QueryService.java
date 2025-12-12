@@ -5,26 +5,50 @@
 
 package org.opensearch.sql.executor;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
+import org.apache.calcite.rel.rel2sql.SqlImplementor;
 import org.apache.calcite.rel.rules.FilterMergeRule;
+import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.fun.SqlCountAggFunction;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.util.SqlShuttle;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
@@ -38,10 +62,17 @@ import org.opensearch.sql.calcite.OpenSearchSchema;
 import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
+import org.opensearch.sql.calcite.validate.OpenSearchSparkSqlDialect;
+import org.opensearch.sql.calcite.validate.PplConvertletTable;
+import org.opensearch.sql.calcite.validate.PplRelToSqlNodeConverter;
+import org.opensearch.sql.calcite.validate.PplSqlToRelConverter;
+import org.opensearch.sql.calcite.validate.shuttles.PplRelToSqlRelShuttle;
+import org.opensearch.sql.calcite.validate.shuttles.SkipRelValidationShuttle;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.NonFallbackCalciteException;
 import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.Planner;
@@ -103,7 +134,8 @@ public class QueryService {
                     buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
             RelNode relNode = analyze(plan, context);
             relNode = mergeAdjacentFilters(relNode);
-            RelNode optimized = optimize(relNode, context);
+            RelNode validated = validate(relNode, context);
+            RelNode optimized = optimize(validated, context);
             RelNode calcitePlan = convertToCalcitePlan(optimized);
             executionEngine.execute(calcitePlan, context, listener);
           } catch (Throwable t) {
@@ -144,7 +176,8 @@ public class QueryService {
                 () -> {
                   RelNode relNode = analyze(plan, context);
                   relNode = mergeAdjacentFilters(relNode);
-                  RelNode optimized = optimize(relNode, context);
+                  RelNode validated = validate(relNode, context);
+                  RelNode optimized = optimize(validated, context);
                   RelNode calcitePlan = convertToCalcitePlan(optimized);
                   executionEngine.explain(calcitePlan, format, context, listener);
                 },
@@ -271,6 +304,134 @@ public class QueryService {
     return analyzer.analyze(plan, new AnalysisContext(queryType));
   }
 
+  /**
+   * Validates a RelNode by converting it to SqlNode, performing validation, and converting back.
+   *
+   * <p>This process enables Calcite's type validation and implicit casting mechanisms to work on
+   * PPL queries.
+   *
+   * @param relNode the relation node to validate
+   * @param context the Calcite plan context containing the validator
+   * @return the validated (and potentially modified) relation node
+   */
+  private RelNode validate(RelNode relNode, CalcitePlanContext context) {
+    SkipRelValidationShuttle skipShuttle = new SkipRelValidationShuttle();
+    relNode.accept(skipShuttle);
+    // WARNING: When a skip pattern is detected (e.g., WIDTH_BUCKET on datetime types),
+    // we bypass the entire validation pipeline, skipping potentially useful transformation relying
+    // on rewriting SQL node
+    // TODO: Make incompatible operations like bin-on-timestamp a validatable UDFs so that they can
+    //  be still be converted to SqlNode and back to RelNode
+    if (skipShuttle.shouldSkipValidation()) {
+      return relNode;
+    }
+    // Fix interval literals before conversion to SQL
+    RelNode sqlRelNode = relNode.accept(new PplRelToSqlRelShuttle(context.rexBuilder, true));
+
+    // Convert RelNode to SqlNode for validation
+    RelToSqlConverter rel2sql = new PplRelToSqlNodeConverter(OpenSearchSparkSqlDialect.DEFAULT);
+    SqlImplementor.Result result = rel2sql.visitRoot(sqlRelNode);
+    SqlNode root = result.asStatement();
+
+    // Rewrite SqlNode to remove database qualifiers
+    SqlNode rewritten =
+        root.accept(
+            new SqlShuttle() {
+              @Override
+              public SqlNode visit(SqlIdentifier id) {
+                // Remove database qualifier, keeping only table name
+                if (id.names.size() == 2
+                    && OpenSearchSchema.OPEN_SEARCH_SCHEMA_NAME.equals(id.names.get(0))) {
+                  return new SqlIdentifier(
+                      Collections.singletonList(id.names.get(1)), id.getParserPosition());
+                }
+                return id;
+              }
+
+              @Override
+              public @org.checkerframework.checker.nullness.qual.Nullable SqlNode visit(
+                  SqlCall call) {
+                if (call.getOperator() instanceof SqlCountAggFunction
+                    && call.getOperandList().isEmpty()) {
+                  // Convert COUNT() to COUNT(*) so that SqlCall.isCountStar() resolves to True
+                  // This is useful when deriving the return types in SqlCountAggFunction#deriveType
+                  call =
+                      new SqlBasicCall(
+                          SqlStdOperatorTable.COUNT,
+                          List.of(SqlIdentifier.STAR),
+                          call.getParserPosition(),
+                          call.getFunctionQuantifier());
+                } else if (call.getKind() == SqlKind.IN || call.getKind() == SqlKind.NOT_IN) {
+                  // Fix for tuple IN / NOT IN queries: Convert SqlNodeList to ROW SqlCall
+                  //
+                  // When RelToSqlConverter converts a tuple expression like (id, name) back to
+                  // SqlNode, it generates a bare SqlNodeList instead of wrapping it in a ROW
+                  // operator. This causes validation to fail because:
+                  // 1. SqlValidator.deriveType() doesn't know how to handle SqlNodeList
+                  // 2. SqlToRelConverter.visit(SqlNodeList) throws UnsupportedOperationException
+                  //
+                  // For example, the query:
+                  //   WHERE (id, name) NOT IN (SELECT uid, name FROM ...)
+                  //
+                  // After Rel-to-SQL conversion becomes:
+                  //   IN operator with operands: [SqlNodeList[id, name], SqlSelect[...]]
+                  //
+                  // But it should be:
+                  //   IN operator with operands: [ROW(id, name), SqlSelect[...]]
+                  //
+                  // This fix wraps the SqlNodeList in a ROW SqlCall before validation,
+                  // ensuring proper type derivation and subsequent SQL-to-Rel conversion.
+                  if (!call.getOperandList().isEmpty()
+                      && call.getOperandList().get(0) instanceof SqlNodeList nodes) {
+                    call.setOperand(0, SqlStdOperatorTable.ROW.createCall(nodes));
+                  }
+                }
+                return super.visit(call);
+              }
+            });
+    SqlValidator validator = context.getValidator();
+    if (rewritten != null) {
+      try {
+        log.debug("Before validation: {}", rewritten);
+        validator.validate(rewritten);
+        log.debug("After validation: {}", rewritten);
+      } catch (CalciteContextException e) {
+        throw new ExpressionEvaluationException(e.getMessage(), e);
+      }
+    } else {
+      log.info("Failed to rewrite the SQL node before validation: {}", root);
+      return relNode;
+    }
+
+    //    if (rewritten instanceof SqlSelect select) {
+    //        rewritten = rewriteGroupBy(select);
+    //    }
+    // Convert the validated SqlNode back to RelNode
+    RelOptTable.ViewExpander viewExpander = context.config.getViewExpander();
+    RelOptCluster cluster = context.relBuilder.getCluster();
+    CalciteCatalogReader catalogReader =
+        validator.getCatalogReader().unwrap(CalciteCatalogReader.class);
+    // 1. Do not remove sort in subqueries so that the orders for queries like `... | sort a |
+    // fields
+    // b` is preserved
+    // 2. Disable automatic JSON_TYPE_OPERATOR wrapping for nested JSON functions
+    // (See CALCITE-4989: Calcite wraps nested JSON functions with JSON_TYPE by default)
+    SqlToRelConverter.Config sql2relConfig =
+        SqlToRelConverter.config()
+            .withRemoveSortInSubQuery(false)
+            .withAddJsonTypeOperatorEnabled(false);
+    SqlToRelConverter sql2rel =
+        new PplSqlToRelConverter(
+            viewExpander,
+            validator,
+            catalogReader,
+            cluster,
+            PplConvertletTable.INSTANCE,
+            sql2relConfig);
+    RelNode validatedRel = sql2rel.convertQuery(rewritten, false, true).project();
+    return validatedRel.accept(new PplRelToSqlRelShuttle(context.rexBuilder, false));
+  }
+
   /** Translate {@link LogicalPlan} to {@link PhysicalPlan}. */
   public PhysicalPlan plan(LogicalPlan plan) {
     return planner.plan(plan);
@@ -355,5 +516,36 @@ public class QueryService {
       calcitePlan = LogicalSort.create(osPlan, collation, null, null);
     }
     return calcitePlan;
+  }
+
+  private SqlNode rewriteGroupBy(SqlSelect root) {
+    if (root.getGroup() == null) {
+      return root;
+    }
+    List<SqlNode> selectList = root.getSelectList().getList();
+    List<SqlNode> groupByList = root.getGroup().getList();
+    List<SqlNode> unwrappedGroupByList = groupByList.stream().map(QueryService::unwrapAs).toList();
+    List<SqlNode> unwrappedSelectList = selectList.stream().map(QueryService::unwrapAs).toList();
+    if (new HashSet<>(unwrappedSelectList).containsAll(unwrappedGroupByList)) {
+      List<Integer> ordinals =
+          unwrappedGroupByList.stream().map(unwrappedSelectList::indexOf).toList();
+      List<SqlNode> groupByOrdinals =
+          ordinals.stream()
+              .map(
+                  ordinal ->
+                      (SqlNode)
+                          SqlLiteral.createExactNumeric(
+                              Integer.toString(ordinal + 1), SqlParserPos.ZERO))
+              .collect(Collectors.toCollection(ArrayList::new));
+      root.setGroupBy(SqlNodeList.of(root.getGroup().getParserPosition(), groupByOrdinals));
+    }
+    return root;
+  }
+
+  private static SqlNode unwrapAs(SqlNode node) {
+    if (node.getKind() == SqlKind.AS && node instanceof SqlCall) {
+      return ((SqlCall) node).getOperandList().get(0);
+    }
+    return node;
   }
 }

@@ -12,7 +12,7 @@ import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.junit.Before;
 import org.junit.Test;
 import org.opensearch.sql.api.UnifiedQueryTestBase;
-import org.opensearch.sql.ppl.calcite.OpenSearchSparkSqlDialect;
+import org.opensearch.sql.calcite.validate.OpenSearchSparkSqlDialect;
 
 public class UnifiedQueryTranspilerTest extends UnifiedQueryTestBase {
 

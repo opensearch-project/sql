@@ -5,9 +5,6 @@
 
 package org.opensearch.sql.calcite.utils;
 
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_DATE;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIME;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP;
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.BINARY;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
@@ -45,12 +42,14 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.type.ExprBinaryType;
 import org.opensearch.sql.calcite.type.ExprDateType;
 import org.opensearch.sql.calcite.type.ExprIPType;
 import org.opensearch.sql.calcite.type.ExprTimeStampType;
 import org.opensearch.sql.calcite.type.ExprTimeType;
+import org.opensearch.sql.calcite.validate.PplTypeCoercionRule;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -330,6 +329,16 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     return super.getJavaClass(type);
   }
 
+  @Override
+  public @Nullable RelDataType leastRestrictive(List<RelDataType> types) {
+    RelDataType type = leastRestrictive(types, PplTypeCoercionRule.assignmentInstance());
+    // Convert CHAR(precision) to VARCHAR so that results won't be padded
+    if (type != null && SqlTypeName.CHAR.equals(type.getSqlTypeName())) {
+      return createSqlType(SqlTypeName.VARCHAR, type.isNullable());
+    }
+    return type;
+  }
+
   /**
    * Whether a given RelDataType is a user-defined type (UDT)
    *
@@ -385,8 +394,9 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
    * @param fieldType the RelDataType to check
    * @return true if the type is time-based, false otherwise
    */
-  public static boolean isTimeBasedType(RelDataType fieldType) {
+  public static boolean isDatetime(RelDataType fieldType) {
     // Check standard SQL time types
+    // TODO: Optimize with SqlTypeUtil.isDatetime
     SqlTypeName sqlType = fieldType.getSqlTypeName();
     if (sqlType == SqlTypeName.TIMESTAMP
         || sqlType == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
@@ -407,5 +417,42 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
 
     // Fallback check if type string contains EXPR_TIMESTAMP
     return fieldType.toString().contains("EXPR_TIMESTAMP");
+  }
+
+  /**
+   * Checks whether a {@link RelDataType} represents a time type.
+   *
+   * <p>This method returns true for both Calcite's built-in {@link SqlTypeName#TIME} type and
+   * OpenSearch's user-defined time type {@link ExprUDT#EXPR_TIME}.
+   *
+   * @param type the type to check
+   * @return true if the type is a time type (built-in or user-defined), false otherwise
+   */
+  public static boolean isTime(RelDataType type) {
+    if (isUserDefinedType(type)) {
+      if (((AbstractExprRelDataType<?>) type).getUdt() == ExprUDT.EXPR_TIME) {
+        return true;
+      }
+    }
+    SqlTypeName typeName = type.getSqlTypeName();
+    if (typeName == null) {
+      return false;
+    }
+    return type.getSqlTypeName() == SqlTypeName.TIME;
+  }
+
+  /**
+   * This method should be used in place for {@link SqlTypeUtil#isCharacter(RelDataType)} because
+   * user-defined types also have VARCHAR as their SqlTypeName.
+   */
+  public static boolean isCharacter(RelDataType type) {
+    return !isUserDefinedType(type) && SqlTypeUtil.isCharacter(type);
+  }
+
+  public static boolean isIp(RelDataType type) {
+    if (isUserDefinedType(type)) {
+      return ((AbstractExprRelDataType<?>) type).getUdt() == ExprUDT.EXPR_IP;
+    }
+    return false;
   }
 }
