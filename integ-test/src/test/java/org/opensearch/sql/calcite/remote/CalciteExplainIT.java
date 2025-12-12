@@ -2121,4 +2121,17 @@ public class CalciteExplainIT extends ExplainIT {
                 "source=%s | fields alias_col | where alias_col > 10 | stats avg(alias_col)",
                 TEST_INDEX_ALIAS)));
   }
+
+  @Test
+  public void testRexStandardizationForScript() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    assertJsonEqualsIgnoreId(
+        loadExpectedPlan("explain_extended_for_standardization.json"),
+        explainQueryToString(
+            String.format(
+                "source=%s | eval age_range = case(age < 30, 'u30', age >= 30 and age <= 40, 'u40'"
+                    + " else 'u100') | stats avg(age) as avg_age by age_range",
+                TEST_INDEX_BANK),
+            true));
+  }
 }
