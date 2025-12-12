@@ -6,14 +6,12 @@
 package org.opensearch.sql.executor.execution;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
@@ -110,20 +108,14 @@ class QueryPlanTest {
   }
 
   @Test
-  public void explain_is_not_supported_for_pagination() {
-    new QueryPlan(null, null, null, 0, null, null)
-        .explain(
-            new ResponseListener<>() {
-              @Override
-              public void onResponse(ExecutionEngine.ExplainResponse response) {
-                fail();
-              }
+  public void explain_with_pagination() {
+    int pageSize = 10;
+    int offset = 5;
+    QueryPlan query =
+        new QueryPlan(queryId, queryType, plan, pageSize, offset, queryService, queryListener);
+    query.explain(explainListener, format);
 
-              @Override
-              public void onFailure(Exception e) {
-                assertTrue(e instanceof NotImplementedException);
-              }
-            },
-            format);
+    verify(queryService, times(1))
+        .explain(plan, queryType, explainListener, format, pageSize, offset);
   }
 }
