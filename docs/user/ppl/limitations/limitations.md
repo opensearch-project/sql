@@ -87,3 +87,30 @@ If a document contains malformed field names inside an object field, PPL ignores
 When ``log`` is an object field with ``enabled: false``, subfields with malformed names are ignored.
 
 **Recommendation:** Avoid using field names that contain leading dots, trailing dots, consecutive dots, or consist only of dots. This aligns with OpenSearch's default field naming requirements.
+
+## Bucket aggregation result may be approximate in large dataset
+
+In OpenSearch, `doc_count` values for a terms bucket aggregation may be approximate. As a result, any aggregations (such as `sum` and `avg`) on the terms bucket aggregation may also be approximate.
+For example, the following PPL query (find the top 10 URLs) may return an approximate result if the cardinality of `URL` is high.
+
+```ppl ignore
+source=hits
+| stats bucket_nullable=false count() as c by URL
+| sort - c
+| head 10
+```
+
+This query is pushed down to a terms bucket aggregation DSL query with `"order": { "_count": "desc" }`. In OpenSearch, this terms aggregation may throw away some buckets.
+
+## Sorting by ascending doc_count may produce inaccurate results
+
+Similar to above PPL query, the following query (find the rare 10 URLs) often produces inaccurate results.
+
+```ppl ignore
+source=hits
+| stats bucket_nullable=false count() as c by URL
+| sort + c
+| head 10
+```
+
+A term that is globally infrequent might not appear as infrequent on every individual shard or might be entirely absent from the least frequent results returned by some shards. Conversely, a term that appears infrequently on one shard might be common on another. In both scenarios, rare terms can be missed during shard-level aggregation, resulting in incorrect overall results.
