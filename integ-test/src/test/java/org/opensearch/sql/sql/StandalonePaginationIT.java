@@ -140,21 +140,12 @@ public class StandalonePaginationIT extends SQLIntegTestCase {
 
   @Test
   @SneakyThrows
-  public void test_explain_not_supported() {
+  public void test_explain_cursor_not_supported() {
     var request = new Request("POST", "_plugins/_sql/_explain");
-    // Request should be rejected before index names are resolved
-    request.setJsonEntity("{ \"query\": \"select * from something\", \"fetch_size\": 10 }");
+    // Explain with cursor continuation should be rejected
+    request.setJsonEntity("{ \"cursor\" : \"n:0000\" }");
     var exception = assertThrows(ResponseException.class, () -> client().performRequest(request));
     var response =
-        new JSONObject(new String(exception.getResponse().getEntity().getContent().readAllBytes()));
-    assertEquals(
-        "`explain` feature for paginated requests is not implemented yet.",
-        response.getJSONObject("error").getString("details"));
-
-    // Request should be rejected before cursor parsed
-    request.setJsonEntity("{ \"cursor\" : \"n:0000\" }");
-    exception = assertThrows(ResponseException.class, () -> client().performRequest(request));
-    response =
         new JSONObject(new String(exception.getResponse().getEntity().getContent().readAllBytes()));
     assertEquals(
         "Explain of a paged query continuation is not supported. Use `explain` for the initial"
