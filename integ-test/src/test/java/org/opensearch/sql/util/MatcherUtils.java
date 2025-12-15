@@ -447,6 +447,16 @@ public class MatcherUtils {
     assertYamlEquals(cleanUpYaml(expectedYaml), cleanUpYaml(actualYaml));
   }
 
+  /** Due to the implementation of DSL, may both expected YAML files are correct. */
+  public static void assertYamlEqualsIgnoreId(
+      String expectedYaml1, String expectedYaml2, String actualYaml) {
+    try {
+      assertYamlEquals(cleanUpYaml(expectedYaml1), cleanUpYaml(actualYaml));
+    } catch (AssertionError e) {
+      assertYamlEquals(cleanUpYaml(expectedYaml2), cleanUpYaml(actualYaml));
+    }
+  }
+
   public static void assertYamlEquals(String expected, String actual) {
     String normalizedExpected = normalizeLineBreaks(expected).trim();
     String normalizedActual = normalizeLineBreaks(actual).trim();

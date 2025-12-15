@@ -67,6 +67,7 @@ import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownOperation;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownType;
 import org.opensearch.sql.opensearch.storage.scan.context.RareTopDigest;
+import org.opensearch.sql.opensearch.storage.scan.context.SortDigest;
 import org.opensearch.sql.opensearch.storage.scan.context.SortExprDigest;
 
 /** An abstract relational operator representing a scan of an OpenSearchIndex type. */
@@ -379,7 +380,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
           builders.add(sortBuilder.order(order));
         }
         action = (OSRequestBuilderAction) requestBuilder -> requestBuilder.pushDownSort(builders);
-        digest = builders.toString();
+        digest = new SortDigest(builders);
         newScan.pushDownContext.add(PushDownType.SORT, digest, action);
         return newScan;
       }
@@ -495,6 +496,14 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
 
   public boolean isProjectPushed() {
     return this.getPushDownContext().isProjectPushed();
+  }
+
+  public boolean isSortPushed() {
+    return this.getPushDownContext().isSortPushed();
+  }
+
+  public boolean isSortExprPushed() {
+    return this.getPushDownContext().isSortExprPushed();
   }
 
   /**

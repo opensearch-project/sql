@@ -8,6 +8,7 @@ package org.opensearch.sql.opensearch.storage.scan.context;
 import java.util.AbstractCollection;
 import java.util.ArrayDeque;
 import java.util.Iterator;
+import java.util.List;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
@@ -151,6 +152,19 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
         .map(PushDownOperation::digest)
         .findFirst()
         .orElse(null);
+  }
+
+  /**
+   * Get all digest of a specific type.
+   *
+   * @param type The PushDownType to get the digest for
+   * @return The digest list
+   */
+  public List<Object> getAllDigestByType(PushDownType type) {
+    return this.stream()
+        .filter(operation -> operation.type() == type)
+        .map(PushDownOperation::digest)
+        .toList();
   }
 
   public OpenSearchRequestBuilder createRequestBuilder() {
