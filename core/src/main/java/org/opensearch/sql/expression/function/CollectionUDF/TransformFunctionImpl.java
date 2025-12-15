@@ -98,6 +98,12 @@ public class TransformFunctionImpl extends ImplementorUDF {
       try {
         if (hasCapturedVars) {
           // Lambda has captured variables - pass the first captured variable as second arg
+          // LIMITATION: Currently only the first captured variable (args[2]) is supported.
+          // Supporting multiple captured variables would require either:
+          // 1. Packing args[2..args.length-1] into an Object[] and modifying lambda generation
+          //    to accept a container as the second parameter, or
+          // 2. Using higher-arity function interfaces (Function3, Function4, etc.)
+          // For now, lambdas that capture multiple external variables may not work correctly.
           Object capturedVar = args[2];
           for (Object candidate : target) {
             results.add(

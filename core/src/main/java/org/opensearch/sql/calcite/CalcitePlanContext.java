@@ -194,7 +194,10 @@ public class CalcitePlanContext {
 
     // Create a lambda ref for this captured variable
     // The index is offset by the number of lambda parameters (1 for single-param lambda)
-    int lambdaParamCount = rexLambdaRefMap.size();
+    // Count only actual lambda parameters, not captured variables
+    int lambdaParamCount =
+        (int)
+            rexLambdaRefMap.keySet().stream().filter(key -> !key.startsWith("__captured_")).count();
     RexLambdaRef lambdaRef =
         new RexLambdaRef(lambdaParamCount + captureIndex, fieldName, fieldRef.getType());
 
