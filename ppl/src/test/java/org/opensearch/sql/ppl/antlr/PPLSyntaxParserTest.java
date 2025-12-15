@@ -887,4 +887,36 @@ public class PPLSyntaxParserTest {
                 "SOURCE=test | WHERE query_string(['field1', 'field2' ^ 3.2], 'test query',"
                     + " analyzer='keyword')"));
   }
+
+  @Test
+  public void testAddTotalsCommandShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("source=t | addtotals");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testAddTotalsCommandWithFieldsShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("source=t | addtotals price, quantity");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testAddTotalsCommandWithLabelShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("source=t | addtotals label='Grand Total'");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testAddTotalsCommandWithLabelFieldShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("source=t | addtotals labelfield='category'");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testAddTotalsCommandWithAllOptionsShouldPass() {
+    ParseTree tree =
+        new PPLSyntaxParser()
+            .parse("source=t | addtotals price, quantity label='Total' labelfield='type'");
+    assertNotEquals(null, tree);
+  }
 }
