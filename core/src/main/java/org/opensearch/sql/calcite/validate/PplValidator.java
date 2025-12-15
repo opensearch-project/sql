@@ -15,6 +15,10 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.type.ArraySqlType;
+import org.apache.calcite.sql.type.MapSqlType;
+import org.apache.calcite.sql.type.MultisetSqlType;
+import org.apache.calcite.sql.type.ObjectSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
@@ -122,11 +126,31 @@ public class PplValidator extends SqlValidatorImpl {
 
   private RelDataType convertType(RelDataType type, Function<RelDataType, RelDataType> convert) {
     if (type == null) return null;
+
     if (type instanceof RelRecordType recordType) {
       List<RelDataType> subTypes =
           recordType.getFieldList().stream().map(RelDataTypeField::getType).map(convert).toList();
-      return typeFactory.createStructType(subTypes, recordType.getFieldNames());
+      return typeFactory.createTypeWithNullability(
+          typeFactory.createStructType(subTypes, recordType.getFieldNames()),
+          recordType.isNullable());
     }
+    if (type instanceof ArraySqlType arrayType) {
+      return typeFactory.createTypeWithNullability(
+          typeFactory.createArrayType(convert.apply(arrayType.getComponentType()), -1),
+          arrayType.isNullable());
+    }
+    if (type instanceof MapSqlType mapType) {
+      return typeFactory.createTypeWithNullability(
+          typeFactory.createMapType(
+              convert.apply(mapType.getKeyType()), convert.apply(mapType.getValueType())),
+          mapType.isNullable());
+    }
+    if (type instanceof MultisetSqlType multisetType) {
+      return typeFactory.createTypeWithNullability(
+          typeFactory.createMultisetType(convert.apply(multisetType.getComponentType()), -1),
+          multisetType.isNullable());
+    }
+
     return convert.apply(type);
   }
 }
