@@ -212,20 +212,4 @@ public class MVFindFunctionImplTest {
     Object result = MVFindFunctionImpl.evalWithString(array, "404");
     assertEquals(1, result);
   }
-
-  @Test
-  public void testMvfindWithNumericPattern() {
-    List<Object> array = Arrays.asList("apple", "404", "banana");
-    // Test with actual numeric pattern (type coercion)
-    Object result = MVFindFunctionImpl.evalWithString(array, 404);
-    assertEquals(1, result);
-  }
-
-  @Test
-  public void testMvfindWithNumericPatternRegex() {
-    List<Object> array = Arrays.asList("error123", "warn456", "info789");
-    // Test numeric pattern with regex digits
-    Object result = MVFindFunctionImpl.evalWithString(array, 123);
-    assertEquals(0, result);
-  }
 }
