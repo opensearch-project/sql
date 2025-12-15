@@ -504,9 +504,12 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
         @Override
         public QualifiedName visitFunction(Function node, Void context) {
-          List<UnresolvedExpression> funcArgs = node.getFuncArgs();
-          if (!funcArgs.isEmpty()) {
-            return funcArgs.get(0).accept(this, context);
+          // Visit each funcArg and return on first non-null (qualified name found)
+          for (UnresolvedExpression arg : node.getFuncArgs()) {
+            QualifiedName result = arg.accept(this, context);
+            if (result != null) {
+              return result;
+            }
           }
           return null;
         }
