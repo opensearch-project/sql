@@ -46,7 +46,7 @@ public class MVFindFunctionImpl extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    // Accept ARRAY and either CHARACTER or NUMERIC (coerced to string)
+    // Accept ARRAY and any type for the regex pattern (coerced to string via toString())
     return UDFOperandMetadata.wrap(OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.ANY));
   }
 
