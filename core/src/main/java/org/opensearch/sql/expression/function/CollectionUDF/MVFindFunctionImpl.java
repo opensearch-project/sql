@@ -46,8 +46,9 @@ public class MVFindFunctionImpl extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    // Accept ARRAY and any type for the regex pattern (coerced to string via toString())
-    return UDFOperandMetadata.wrap(OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.ANY));
+    // Accept ARRAY and STRING for the regex pattern
+    return UDFOperandMetadata.wrap(
+        OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER));
   }
 
   public static class MVFindImplementor implements NotNullImplementor {
@@ -68,24 +69,17 @@ public class MVFindFunctionImpl extends ImplementorUDF {
 
       // For dynamic patterns, use evalWithString
       return Expressions.call(
-          Types.lookupMethod(MVFindFunctionImpl.class, "evalWithString", List.class, Object.class),
+          Types.lookupMethod(MVFindFunctionImpl.class, "evalWithString", List.class, String.class),
           arrayExpr,
           patternExpr);
     }
 
     private static Expression tryCompileLiteralPattern(
         RexLiteral patternLiteral, Expression arrayExpr) {
-      Object literalValue = patternLiteral.getValue();
-      if (literalValue == null) {
-        return null;
-      }
-
-      // Use getValueAs(String.class) to correctly unwrap Calcite NlsString and other string
-      // literals
-      // Fall back to String.valueOf for numeric/other literal types
+      // Use getValueAs(String.class) to correctly unwrap Calcite NlsString
       String patternString = patternLiteral.getValueAs(String.class);
       if (patternString == null) {
-        patternString = String.valueOf(literalValue);
+        return null;
       }
       try {
         // Compile pattern at planning time and validate
@@ -133,21 +127,17 @@ public class MVFindFunctionImpl extends ImplementorUDF {
   }
 
   /**
-   * Evaluates mvfind with type coercion support (for dynamic patterns at runtime). Converts numeric
-   * or other types to string before pattern compilation.
+   * Evaluates mvfind with a string pattern (for dynamic patterns at runtime).
    *
    * @param array The array to search
-   * @param regex The regex pattern (String, Number, or any object with toString())
+   * @param regex The regex pattern string
    * @return The 0-based index of the first matching element, or null if no match
    */
-  public static Integer evalWithString(List<Object> array, Object regex) {
+  public static Integer evalWithString(List<Object> array, String regex) {
     if (array == null || regex == null) {
       return null;
     }
-
-    // Support type coercion: convert numeric or other types to string
-    String patternString = regex.toString();
-    return mvfind(array, patternString);
+    return mvfind(array, regex);
   }
 
   /**

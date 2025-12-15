@@ -595,6 +595,21 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testMvfindWithDynamicRegex() throws IOException {
+    // Test non-literal regex pattern (computed at runtime via concat)
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('apple', 'banana', 'apricot'), pattern ="
+                    + " concat('ban', '.*'), result = mvfind(arr, pattern) | head 1 | fields"
+                    + " result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "int"));
+    verifyDataRows(actual, rows(1));
+  }
+
+  @Test
   public void testMvzipBasic() throws IOException {
     // Basic example from spec: eval nserver=mvzip(hosts,ports)
     JSONObject actual =
