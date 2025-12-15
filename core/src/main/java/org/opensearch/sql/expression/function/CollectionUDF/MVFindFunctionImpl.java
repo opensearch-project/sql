@@ -119,6 +119,7 @@ public class MVFindFunctionImpl extends ImplementorUDF {
 
   /**
    * Evaluates mvfind with a pre-compiled Pattern (for literal patterns compiled at planning time).
+   * Any runtime exceptions from mvfindCore will propagate unchanged.
    *
    * @param array The array to search
    * @param pattern The pre-compiled regex pattern
@@ -128,12 +129,7 @@ public class MVFindFunctionImpl extends ImplementorUDF {
     if (array == null || pattern == null) {
       return null;
     }
-
-    try {
-      return mvfindCore(array, pattern);
-    } catch (Exception e) {
-      throw new RuntimeException("Error in mvfind function: " + e.getMessage(), e);
-    }
+    return mvfindCore(array, pattern);
   }
 
   /**
@@ -155,27 +151,28 @@ public class MVFindFunctionImpl extends ImplementorUDF {
   }
 
   /**
-   * Evaluates mvfind with a String pattern. Compiles the regex pattern and executes search.
+   * Evaluates mvfind with a String pattern. Compiles the regex pattern and executes search. Throws
+   * IllegalArgumentException for invalid regex patterns; other runtime exceptions propagate
+   * unchanged.
    *
    * @param array The array to search
    * @param regex The regex pattern string
    * @return The 0-based index of the first matching element, or null if no match
+   * @throws IllegalArgumentException if the regex pattern is invalid
    */
   private static Integer mvfind(List<Object> array, String regex) {
     if (array == null || regex == null) {
       return null;
     }
 
+    Pattern pattern;
     try {
-      Pattern pattern = Pattern.compile(regex);
-      return mvfindCore(array, pattern);
+      pattern = Pattern.compile(regex);
     } catch (PatternSyntaxException e) {
       // Invalid regex is a client error (400)
       throw new IllegalArgumentException(
           String.format("Invalid regex pattern '%s': %s", regex, e.getDescription()), e);
-    } catch (Exception e) {
-      // Other unexpected errors
-      throw new RuntimeException("Error in mvfind function: " + e.getMessage(), e);
     }
+    return mvfindCore(array, pattern);
   }
 }
