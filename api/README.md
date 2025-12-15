@@ -19,7 +19,7 @@ Together, these components enable a complete workflow: parse PPL queries into lo
 
 ### UnifiedQueryContext
 
-`UnifiedQueryContext` is a reusable session-level abstraction shared across unified query components (planner, compiler, etc.). It bundles `CalcitePlanContext` and `Settings` into a single object, centralizing configuration for all unified query operations.
+`UnifiedQueryContext` is a reusable abstraction shared across unified query components (planner, compiler, etc.). It bundles `CalcitePlanContext` and `Settings` into a single object, centralizing configuration for all unified query operations.
 
 Create a context with catalog configuration, query type, and optional settings:
 

@@ -29,9 +29,9 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryType;
 
 /**
- * A reusable session-level abstraction shared across unified query components (planner, compiler,
- * etc.). This centralizes configuration for catalog schemas, query type, execution limits, and
- * other settings, enabling consistent behavior across all unified query operations.
+ * A reusable abstraction shared across unified query components (planner, compiler, etc.). This
+ * centralizes configuration for catalog schemas, query type, execution limits, and other settings,
+ * enabling consistent behavior across all unified query operations.
  */
 @Value
 public class UnifiedQueryContext {
