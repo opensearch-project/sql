@@ -101,10 +101,15 @@ public class GeoIpFunction extends ImplementorUDF {
         ExprIpValue ipAddress,
         String commaSeparatedOptions,
         NodeClient nodeClient) {
+      return fetchIpEnrichment(dataSource, ipAddress.toString(), commaSeparatedOptions, nodeClient);
+    }
+
+    public static Map<String, ?> fetchIpEnrichment(
+        String dataSource, String ipAddress, String commaSeparatedOptions, NodeClient nodeClient) {
       String unquotedOptions = StringUtils.unquoteText(commaSeparatedOptions);
       final Set<String> options =
           Arrays.stream(unquotedOptions.split(",")).map(String::trim).collect(Collectors.toSet());
-      return fetchIpEnrichment(dataSource, ipAddress.toString(), options, nodeClient);
+      return fetchIpEnrichment(dataSource, ipAddress, options, nodeClient);
     }
 
     private static Map<String, ?> fetchIpEnrichment(
