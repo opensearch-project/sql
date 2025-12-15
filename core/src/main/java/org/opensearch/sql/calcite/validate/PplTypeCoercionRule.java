@@ -24,12 +24,17 @@ public class PplTypeCoercionRule {
    * <ul>
    *   <li>IP -> IP
    *   <li>CHARACTER -> IP
+   *   <li>IP -> CHARACTER
    * </ul>
    */
   private static final Map<SqlTypeName, ImmutableSet<@NonNull SqlTypeName>> additionalMapping =
       Map.of(
           SqlTypeName.OTHER,
-          ImmutableSet.of(SqlTypeName.OTHER, SqlTypeName.VARCHAR, SqlTypeName.CHAR));
+          ImmutableSet.of(SqlTypeName.OTHER, SqlTypeName.VARCHAR, SqlTypeName.CHAR),
+          SqlTypeName.VARCHAR,
+          ImmutableSet.of(SqlTypeName.OTHER),
+          SqlTypeName.CHAR,
+          ImmutableSet.of(SqlTypeName.OTHER));
 
   private static final SqlTypeCoercionRule INSTANCE =
       SqlTypeCoercionRule.instance(
