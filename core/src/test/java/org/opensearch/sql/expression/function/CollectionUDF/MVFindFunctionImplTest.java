@@ -8,6 +8,7 @@ package org.opensearch.sql.expression.function.CollectionUDF;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -168,8 +169,8 @@ public class MVFindFunctionImplTest {
             IllegalArgumentException.class,
             () -> MVFindFunctionImpl.evalWithString(array, "[invalid"));
     // Verify error message contains pattern details
-    assert exception.getMessage().contains("Invalid regex pattern");
-    assert exception.getMessage().contains("[invalid");
+    assertTrue(exception.getMessage().contains("Invalid regex pattern"));
+    assertTrue(exception.getMessage().contains("[invalid"));
   }
 
   // Type conversion tests
