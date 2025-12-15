@@ -292,6 +292,143 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testMvzipBasic() {
+    String ppl =
+        "source=EMP | eval arr1 = array('a', 'b', 'c'), arr2 = array('x', 'y'), result ="
+            + " mvzip(arr1, arr2) | head 1 | fields result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(result=[$10])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr1=[array('a', 'b', 'c')], arr2=[array('x',"
+            + " 'y')], result=[mvzip(array('a', 'b', 'c'), array('x', 'y'))])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult = "result=[a,x, b,y]\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT MVZIP(ARRAY('a', 'b', 'c'), ARRAY('x', 'y')) `result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMvzipWithCustomDelimiter() {
+    String ppl =
+        "source=EMP | eval result = mvzip(array('a', 'b'), array('x', 'y'), '|') | head 1 |"
+            + " fields result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(result=[$8])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], result=[mvzip(array('a', 'b'), array('x', 'y'),"
+            + " '|')])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult = "result=[a|x, b|y]\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT MVZIP(ARRAY('a', 'b'), ARRAY('x', 'y'), '|') `result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMvzipNested() {
+    String ppl =
+        "source=EMP | eval field1 = array('a', 'b'), field2 = array('c', 'd'), field3 ="
+            + " array('e', 'f'), result = mvzip(mvzip(field1, field2, '|'), field3, '|') | head 1"
+            + " | fields result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(result=[$11])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], field1=[array('a', 'b')], field2=[array('c',"
+            + " 'd')], field3=[array('e', 'f')], result=[mvzip(mvzip(array('a', 'b'), array('c',"
+            + " 'd'), '|'), array('e', 'f'), '|')])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult = "result=[a|c|e, b|d|f]\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT MVZIP(MVZIP(ARRAY('a', 'b'), ARRAY('c', 'd'), '|'), ARRAY('e', 'f'),"
+            + " '|') `result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMvzipWithEmptyLeftArray() {
+    String ppl =
+        "source=EMP | eval result = mvzip(array(), array('a', 'b')) | head 1 | fields result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(result=[$8])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], result=[mvzip(array(), array('a', 'b'))])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT MVZIP(ARRAY(), ARRAY('a', 'b')) `result`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMvzipWithEmptyRightArray() {
+    String ppl =
+        "source=EMP | eval result = mvzip(array('a', 'b'), array()) | head 1 | fields result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(result=[$8])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], result=[mvzip(array('a', 'b'), array())])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT MVZIP(ARRAY('a', 'b'), ARRAY()) `result`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMvzipWithBothEmptyArrays() {
+    String ppl = "source=EMP | eval result = mvzip(array(), array()) | head 1 | fields result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(result=[$8])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], result=[mvzip(array(), array())])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT MVZIP(ARRAY(), ARRAY()) `result`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
   public void testSplitWithSemicolonDelimiter() {
     String ppl =
         "source=EMP | eval test = 'buttercup;rarity;tenderhoof', result = split(test, ';') | head"

@@ -1104,6 +1104,7 @@ collectionFunctionName
     | MVJOIN
     | MVINDEX
     | MVDEDUP
+    | MVZIP
     | SPLIT
     | FORALL
     | EXISTS
