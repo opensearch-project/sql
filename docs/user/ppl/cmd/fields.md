@@ -1,17 +1,20 @@
-# fields  
+# fields
 
-## Description  
 
-The `fields` command keeps or removes fields from the search result.
-## Syntax  
+The `fields` command specifies the fields that should be included in or excluded from the search results.
 
-fields [+\|-] \<field-list\>
-* +\|-: optional. If the plus (+) is used, only the fields specified in the field list will be kept. If the minus (-) is used, all the fields specified in the field list will be removed. **Default:** +.  
-* field-list: mandatory. Comma-delimited or space-delimited list of fields to keep or remove. Supports wildcard patterns.  
+## Syntax
+
+Use the following syntax:
+
+`fields [+|-] <field-list>`
+* `+|-`: optional. If the plus (+) is used, only the fields specified in the field list will be included. If the minus (-) is used, all the fields specified in the field list will be excluded. **Default:** `+`.  
+* `field-list`: mandatory. Comma-delimited or space-delimited list of fields to keep or remove. Supports wildcard patterns.  
   
-## Example 1: Select specified fields from result  
 
-This example shows selecting account_number, firstname and lastname fields from search results.
+## Example 1: Select specified fields from the search result
+
+The following example PPL query shows how to retrieve the `account_number`, `firstname`, and `lastname` fields from the search results:
   
 ```ppl
 source=accounts
@@ -32,9 +35,10 @@ fetched rows / total rows = 4/4
 +----------------+-----------+----------+
 ```
   
-## Example 2: Remove specified fields from result  
 
-This example shows removing the account_number field from search results.
+## Example 2: Remove specified fields from the search results 
+
+The following example PPL query shows how to remove the `account_number` field from the search results:
   
 ```ppl
 source=accounts
@@ -56,6 +60,7 @@ fetched rows / total rows = 4/4
 +-----------+----------+
 ```
   
+
 ## Example 3: Space-delimited field selection  
 
 Fields can be specified using spaces instead of commas, providing a more concise syntax.
@@ -80,6 +85,7 @@ fetched rows / total rows = 4/4
 +-----------+----------+-----+
 ```
   
+
 ## Example 4: Prefix wildcard pattern  
 
 Select fields starting with a pattern using prefix wildcards.
@@ -103,6 +109,7 @@ fetched rows / total rows = 4/4
 +----------------+
 ```
   
+
 ## Example 5: Suffix wildcard pattern  
 
 Select fields ending with a pattern using suffix wildcards.
@@ -126,6 +133,7 @@ fetched rows / total rows = 4/4
 +-----------+----------+
 ```
   
+
 ## Example 6: Contains wildcard pattern  
 
 Select fields containing a pattern using contains wildcards.
@@ -147,6 +155,7 @@ fetched rows / total rows = 1/1
 +----------------+-----------+-----------------+---------+-------+-----+----------------------+----------+
 ```
   
+
 ## Example 7: Mixed delimiter syntax  
 
 Combine spaces and commas for flexible field specification.
@@ -170,6 +179,7 @@ fetched rows / total rows = 4/4
 +-----------+----------------+----------+
 ```
   
+
 ## Example 8: Field deduplication  
 
 Automatically prevents duplicate columns when wildcards expand to already specified fields.
@@ -194,6 +204,7 @@ fetched rows / total rows = 4/4
 ```
   
 Note: Even though `firstname` is explicitly specified and would also match `*name`, it appears only once due to automatic deduplication.
+
 ## Example 9: Full wildcard selection  
 
 Select all available fields using `*` or `` `*` ``. This selects all fields defined in the index schema, including fields that may contain null values.
@@ -216,6 +227,7 @@ fetched rows / total rows = 1/1
 ```
   
 Note: The `*` wildcard selects fields based on the index schema, not on data content. Fields with null values are included in the result set. Use backticks `` `*` ` if the plain `*`` doesn't return all expected fields.
+
 ## Example 10: Wildcard exclusion  
 
 Remove fields using wildcard patterns with the minus (-) operator.
@@ -239,6 +251,7 @@ fetched rows / total rows = 4/4
 +----------------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+
 ```
   
-## See Also  
+
+## See also  
 
 - [table](table.md) - Alias command with identical functionality  

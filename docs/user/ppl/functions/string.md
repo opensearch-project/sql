@@ -4,10 +4,10 @@
 
 ### Description  
 
-Usage: CONCAT(str1, str2, ...., str_9) adds up to 9 strings together.
-Argument type: STRING, STRING, ...., STRING
-Return type: STRING
-Example
+Usage: `CONCAT(str1, str2, ...., str_9)` adds up to 9 strings together.
+**Argument type:** `STRING, STRING, ...., STRING`
+**Return type:** `STRING`
+### Example
   
 ```ppl
 source=people
@@ -30,10 +30,10 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: CONCAT_WS(sep, str1, str2) returns str1 concatenated with str2 using sep as a separator between them.
-Argument type: STRING, STRING, STRING
-Return type: STRING
-Example
+Usage: `CONCAT_WS(sep, str1, str2)` returns str1 concatenated with str2 using sep as a separator between them.
+**Argument type:** `STRING, STRING, STRING`
+**Return type:** `STRING`
+### Example
   
 ```ppl
 source=people
@@ -59,10 +59,10 @@ fetched rows / total rows = 1/1
 Specifications:
 1. LENGTH(STRING) -> INTEGER  
   
-Usage: length(str) returns length of string measured in bytes.
-Argument type: STRING
-Return type: INTEGER
-Example
+Usage: `length(str)` returns length of string measured in bytes.
+**Argument type:** `STRING`
+**Return type:** `INTEGER`
+### Example
   
 ```ppl
 source=people
@@ -85,7 +85,7 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: like(string, PATTERN[, case_sensitive]) return true if the string match the PATTERN. `case_sensitive` is optional. When set to `true`, PATTERN is **case-sensitive**. **Default:** Determined by `plugins.ppl.syntax.legacy.preferred`.
+Usage: `like(string, PATTERN[, case_sensitive])` return true if the string match the PATTERN. `case_sensitive` is optional. When set to `true`, PATTERN is **case-sensitive**. **Default:** Determined by `plugins.ppl.syntax.legacy.preferred`.
  * When `plugins.ppl.syntax.legacy.preferred=true`, `case_sensitive` defaults to `false`  
  * When `plugins.ppl.syntax.legacy.preferred=false`, `case_sensitive` defaults to `true`  
   
@@ -93,9 +93,9 @@ There are two wildcards often used in conjunction with the LIKE operator:
 * `%` - The percent sign represents zero, one, or multiple characters  
 * `_` - The underscore represents a single character  
   
-Argument type: STRING, STRING [, BOOLEAN]
-Return type: INTEGER
-Example
+**Argument type:** `STRING, STRING [, BOOLEAN]`
+**Return type:** `INTEGER`
+### Example
   
 ```ppl
 source=people
@@ -119,14 +119,14 @@ Limitation: The pushdown of the LIKE function to a DSL wildcard query is support
 
 ### Description  
 
-Usage: ilike(string, PATTERN) return true if the string match the PATTERN, PATTERN is **case-insensitive**.
+Usage: `ilike(string, PATTERN)` return true if the string match the PATTERN, PATTERN is **case-insensitive**.
 There are two wildcards often used in conjunction with the ILIKE operator:
 * `%` - The percent sign represents zero, one, or multiple characters  
 * `_` - The underscore represents a single character  
   
-Argument type: STRING, STRING
-Return type: INTEGER
-Example
+**Argument type:** `STRING, STRING`
+**Return type:** `INTEGER`
+### Example
   
 ```ppl
 source=people
@@ -150,10 +150,10 @@ Limitation: The pushdown of the ILIKE function to a DSL wildcard query is suppor
 
 ### Description  
 
-Usage: locate(substr, str[, start]) returns the position of the first occurrence of substring substr in string str, starting searching from position start. If start is not specified, it defaults to 1 (the beginning of the string). Returns 0 if substr is not found. If any argument is NULL, the function returns NULL.
-Argument type: STRING, STRING[, INTEGER]
-Return type: INTEGER
-Example
+Usage: `locate(substr, str[, start])` returns the position of the first occurrence of substring substr in string str, starting searching from position start. If start is not specified, it defaults to 1 (the beginning of the string). Returns 0 if substr is not found. If any argument is NULL, the function returns NULL.
+**Argument type:** `STRING, STRING[, INTEGER]`
+**Return type:** `INTEGER`
+### Example
   
 ```ppl
 source=people
@@ -176,10 +176,10 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: lower(string) converts the string to lowercase.
-Argument type: STRING
-Return type: STRING
-Example
+Usage: `lower(string)` converts the string to lowercase.
+**Argument type:** `STRING`
+**Return type:** `STRING`
+### Example
   
 ```ppl
 source=people
@@ -202,10 +202,10 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: ltrim(str) trims leading space characters from the string.
-Argument type: STRING
-Return type: STRING
-Example
+Usage: `ltrim(str)` trims leading space characters from the string.
+**Argument type:** `STRING`
+**Return type:** `STRING`
+### Example
   
 ```ppl
 source=people
@@ -229,10 +229,10 @@ fetched rows / total rows = 1/1
 ### Description  
 
 Usage: The syntax POSITION(substr IN str) returns the position of the first occurrence of substring substr in string str. Returns 0 if substr is not in str. Returns NULL if any argument is NULL.
-Argument type: STRING, STRING
+**Argument type:** `STRING, STRING`
 Return type INTEGER
 (STRING IN STRING) -> INTEGER
-Example
+### Example
   
 ```ppl
 source=people
@@ -255,10 +255,10 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: replace(str, pattern, replacement) returns a string with all occurrences of the pattern replaced by the replacement string in str. If any argument is NULL, the function returns NULL.
+Usage: `replace(str, pattern, replacement)` returns a string with all occurrences of the pattern replaced by the replacement string in str. If any argument is NULL, the function returns NULL.
 **Regular Expression Support**: The pattern argument supports Java regex syntax, including:
-Argument type: STRING, STRING (regex pattern), STRING (replacement)
-Return type: STRING
+**Argument type:** `STRING, STRING (regex pattern), STRING (replacement)`
+**Return type:** `STRING`
 **Important - Regex Special Characters**: The pattern is interpreted as a regular expression. Characters like `.`, `*`, `+`, `[`, `]`, `(`, `)`, `{`, `}`, `^`, `$`, `|`, `?`, and `\` have special meaning in regex. To match them literally, escape with backslashes:
 * To match `example.com`: use `'example\\.com'` (escape the dots)  
 * To match `value*`: use `'value\\*'` (escape the asterisk)  
@@ -368,10 +368,10 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: REVERSE(str) returns reversed string of the string supplied as an argument.
-Argument type: STRING
-Return type: STRING
-Example
+Usage: `REVERSE(str)` returns reversed string of the string supplied as an argument.
+**Argument type:** `STRING`
+**Return type:** `STRING`
+### Example
   
 ```ppl
 source=people
@@ -394,10 +394,10 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: right(str, len) returns the rightmost len characters from the string str, or NULL if any argument is NULL.
-Argument type: STRING, INTEGER
-Return type: STRING
-Example
+Usage: `right(str, len)` returns the rightmost len characters from the string str, or NULL if any argument is NULL.
+**Argument type:** `STRING, INTEGER`
+**Return type:** `STRING`
+### Example
   
 ```ppl
 source=people
@@ -420,10 +420,10 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: rtrim(str) trims trailing space characters from the string.
-Argument type: STRING
-Return type: STRING
-Example
+Usage: `rtrim(str)` trims trailing space characters from the string.
+**Argument type:** `STRING`
+**Return type:** `STRING`
+### Example
   
 ```ppl
 source=people
@@ -446,11 +446,11 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: substring(str, start) or substring(str, start, length) returns substring using start and length. With no length, entire string from start is returned.
-Argument type: STRING, INTEGER, INTEGER
-Return type: STRING
+Usage: `substring(str, start)` or substring(str, start, length) returns substring using start and length. With no length, entire string from start is returned.
+**Argument type:** `STRING, INTEGER, INTEGER`
+**Return type:** `STRING`
 Synonyms: SUBSTR
-Example
+### Example
   
 ```ppl
 source=people
@@ -474,8 +474,8 @@ fetched rows / total rows = 1/1
 ### Description  
 
 Argument Type: STRING
-Return type: STRING
-Example
+**Return type:** `STRING`
+### Example
   
 ```ppl
 source=people
@@ -498,10 +498,10 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: upper(string) converts the string to uppercase.
-Argument type: STRING
-Return type: STRING
-Example
+Usage: `upper(string)` converts the string to uppercase.
+**Argument type:** `STRING`
+**Return type:** `STRING`
+### Example
   
 ```ppl
 source=people
@@ -524,11 +524,11 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: regexp_replace(str, pattern, replacement) replace all substrings of the string value that match pattern with replacement and returns modified string value.
-Argument type: STRING, STRING, STRING
-Return type: STRING
+Usage: `regexp_replace(str, pattern, replacement)` replace all substrings of the string value that match pattern with replacement and returns modified string value.
+**Argument type:** `STRING, STRING, STRING`
+**Return type:** `STRING`
 Synonyms: [REPLACE](#replace)
-Example
+### Example
   
 ```ppl
 source=people

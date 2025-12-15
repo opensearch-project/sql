@@ -1,6 +1,5 @@
-# expand  
+# expand
 
-## Description  
 
 The `expand` command transforms a single document with a nested array field into multiple documents—each containing one element from the array. All other fields in the original document are duplicated across the resulting documents.
 Key aspects of `expand`:
@@ -9,12 +8,16 @@ Key aspects of `expand`:
 * If an alias is provided, the expanded values appear under the alias instead of the original field name.  
 * If the specified field is an empty array, the row is retained with the expanded field set to null.  
   
-## Syntax  
 
-expand \<field\> [as alias]
-* field: mandatory. The field to be expanded (exploded). Currently only nested arrays are supported.  
-* alias: optional. The name to use instead of the original field name.  
+## Syntax
+
+Use the following syntax:
+
+`expand <field> [as alias]`
+* `field`: mandatory. The field to be expanded (exploded). Currently only nested arrays are supported.  
+* `alias`: optional. The name to use instead of the original field name.  
   
+
 ## Example 1: Expand address field with an alias  
 
 Given a dataset `migration` with the following data:
@@ -45,6 +48,7 @@ fetched rows / total rows = 3/3
 +-------+-----+-------------------------------------------------------------------------------------------+
 ```
   
+
 ## Limitations  
 
 * The `expand` command currently only supports nested arrays. Primitive fields storing arrays are not supported. E.g. a string field storing an array of strings cannot be expanded with the current implementation.

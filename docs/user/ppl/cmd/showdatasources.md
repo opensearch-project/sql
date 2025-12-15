@@ -1,14 +1,17 @@
-# show datasources  
+# show datasources
 
-## Description  
 
-Use the `show datasources` command to query datasources configured in the PPL engine. The `show datasources` command can only be used as the first command in the PPL query.
-## Syntax  
+The `show datasources` command queries datasources configured in the PPL engine. The `show datasources` command can only be used as the first command in the PPL query.
 
-show datasources
+## Syntax
+
+Use the following syntax:
+
+`show datasources`  
+
 ## Example 1: Fetch all PROMETHEUS datasources  
 
-This example shows fetching all the datasources of type prometheus.
+The following example PPL query shows how to use `showdatasources` to fetch all the datasources of type prometheus.
 PPL query for all PROMETHEUS DATASOURCES
   
 ```ppl
@@ -27,6 +30,7 @@ fetched rows / total rows = 1/1
 +-----------------+----------------+
 ```
   
+
 ## Limitations  
 
 The `show datasources` command can only work with `plugins.calcite.enabled=false`.

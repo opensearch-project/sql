@@ -1,21 +1,24 @@
-# top  
+# top
 
-## Description  
 
 The `top` command finds the most common tuple of values of all fields in the field list.
-## Syntax  
 
-top [N] [top-options] \<field-list\> [by-clause]
-* N: optional. number of results to return. **Default**: 10  
-* top-options: optional. options for the top command. Supported syntax is [countfield=\<string\>] [showcount=\<bool\>].  
+## Syntax
+
+Use the following syntax:
+
+`top [N] [top-options] <field-list> [by-clause]`
+* `N`: optional. number of results to return. **Default**: 10  
+* `top-options`: optional. options for the top command. Supported syntax is [countfield=\<string\>] [showcount=\<bool\>].  
   * showcount=\<bool\>: optional. whether to create a field in output that represent a count of the tuple of values. **Default:** true.  
   * countfield=\<string\>: optional. the name of the field that contains count. **Default:** 'count'.  
   * usenull=\<bool\>: optional (since 3.4.0). whether to output the null value. **Default:** Determined by `plugins.ppl.syntax.legacy.preferred`.  
     * When `plugins.ppl.syntax.legacy.preferred=true`, `usenull` defaults to `true`  
     * When `plugins.ppl.syntax.legacy.preferred=false`, `usenull` defaults to `false`  
-* field-list: mandatory. comma-delimited list of field names.  
-* by-clause: optional. one or more fields to group the results by.  
+* `field-list`: mandatory. comma-delimited list of field names.  
+* `by-clause`: optional. one or more fields to group the results by.  
   
+
 ## Example 1: Find the most common values in a field  
 
 This example finds the most common gender of all the accounts.
@@ -37,6 +40,7 @@ fetched rows / total rows = 2/2
 +--------+
 ```
   
+
 ## Example 2: Limit results to top N values  
 
 This example finds the most common gender and limits results to 1 value.
@@ -57,6 +61,7 @@ fetched rows / total rows = 1/1
 +--------+
 ```
   
+
 ## Example 3: Find the most common values grouped by field  
 
 This example finds the most common age of all the accounts grouped by gender.
@@ -78,6 +83,7 @@ fetched rows / total rows = 2/2
 +--------+-----+
 ```
   
+
 ## Example 4: Top command with count field  
 
 This example finds the most common gender of all the accounts and includes the count.
@@ -99,6 +105,7 @@ fetched rows / total rows = 2/2
 +--------+-------+
 ```
   
+
 ## Example 5: Specify the count field option  
 
 This example specifies a custom name for the count field.
@@ -120,6 +127,7 @@ fetched rows / total rows = 2/2
 +--------+-----+
 ```
   
+
 ## Example 5: Specify the usenull field option  
   
 ```ppl
@@ -159,6 +167,7 @@ fetched rows / total rows = 4/4
 +-----------------------+-------+
 ```
   
+
 ## Limitations  
 
-The `top` command is not rewritten to OpenSearch DSL, it is only executed on the coordination node.
+The `top` command is not rewritten to [query domain-specific language (DSL)](https://opensearch.org/docs/latest/query-dsl/index/). It is only run on the coordinating node.

@@ -1,15 +1,18 @@
-# describe  
+# describe
 
-## Description  
 
-Use the `describe` command to query metadata of the index. `describe` command can only be used as the first command in the PPL query.
-## Syntax  
+The `describe` command queries metadata of the index. The `describe` command can only be used as the first command in the PPL query.
 
-describe [dataSource.][schema.]\<tablename\>
-* dataSource: optional. If dataSource is not provided, it resolves to opensearch dataSource.  
-* schema: optional.  If schema is not provided, it resolves to default schema.  
-* tablename: mandatory. describe command must specify which tablename to query from.  
+## Syntax
+
+Use the following syntax:
+
+`describe [dataSource.][schema.]<tablename>`
+* `dataSource`: optional. If dataSource is not provided, it resolves to OpenSearch dataSource.  
+* `schema`: optional.  If schema is not provided, it resolves to default schema.  
+* `tablename`: mandatory. describe command must specify which tablename to query from.  
   
+
 ## Example 1: Fetch all the metadata  
 
 This example describes the accounts index.
@@ -39,6 +42,7 @@ fetched rows / total rows = 11/11
 +----------------+-------------+------------+----------------+-----------+-----------+-------------+---------------+----------------+----------------+----------+---------+------------+---------------+------------------+-------------------+------------------+-------------+---------------+--------------+-------------+------------------+------------------+--------------------+
 ```
   
+
 ## Example 2: Fetch metadata with condition and filter  
 
 This example retrieves columns with type bigint in the accounts index.
@@ -62,6 +66,7 @@ fetched rows / total rows = 3/3
 +----------------+
 ```
   
+
 ## Example 3: Fetch metadata for table in Prometheus datasource  
 
 See [Fetch metadata for table in Prometheus datasource](../admin/datasources.md) for more context.

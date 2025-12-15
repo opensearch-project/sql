@@ -5,9 +5,9 @@
 ### Description  
 
 Usage: `array(value1, value2, value3...)` create an array with input values. Currently we don't allow mixture types. We will infer a least restricted type, for example `array(1, "demo")` -> ["1", "demo"]
-Argument type: value1: ANY, value2: ANY, ...
-Return type: ARRAY
-Example
+**Argument type:** `value1: ANY, value2: ANY, ...`
+**Return type:** `ARRAY`
+### Example
   
 ```ppl
 source=people
@@ -50,9 +50,9 @@ fetched rows / total rows = 1/1
 ### Description  
 
 Usage: `array_length(array)` returns the length of input array.
-Argument type: array:ARRAY
-Return type: INTEGER
-Example
+**Argument type:** `array:ARRAY`
+**Return type:** `INTEGER`
+### Example
   
 ```ppl
 source=people
@@ -78,9 +78,9 @@ fetched rows / total rows = 1/1
 ### Description  
 
 Usage: `forall(array, function)` check whether all element inside array can meet the lambda function. The function should also return boolean. The lambda function accepts one single input.
-Argument type: array:ARRAY, function:LAMBDA
-Return type: BOOLEAN
-Example
+**Argument type:** `array:ARRAY, function:LAMBDA`
+**Return type:** `BOOLEAN`
+### Example
   
 ```ppl
 source=people
@@ -105,9 +105,9 @@ fetched rows / total rows = 1/1
 ### Description  
 
 Usage: `exists(array, function)` check whether existing one of element inside array can meet the lambda function. The function should also return boolean. The lambda function accepts one single input.
-Argument type: array:ARRAY, function:LAMBDA
-Return type: BOOLEAN
-Example
+**Argument type:** `array:ARRAY, function:LAMBDA`
+**Return type:** `BOOLEAN`
+### Example
   
 ```ppl
 source=people
@@ -132,9 +132,9 @@ fetched rows / total rows = 1/1
 ### Description  
 
 Usage: `filter(array, function)` filter the element in the array by the lambda function. The function should return boolean. The lambda function accepts one single input.
-Argument type: array:ARRAY, function:LAMBDA
-Return type: ARRAY
-Example
+**Argument type:** `array:ARRAY, function:LAMBDA`
+**Return type:** `ARRAY`
+### Example
   
 ```ppl
 source=people
@@ -159,9 +159,9 @@ fetched rows / total rows = 1/1
 ### Description  
 
 Usage: `transform(array, function)` transform the element of array one by one using lambda. The lambda function can accept one single input or two input. If the lambda accepts two argument, the second one is the index of element in array.
-Argument type: array:ARRAY, function:LAMBDA
-Return type: ARRAY
-Example
+**Argument type:** `array:ARRAY, function:LAMBDA`
+**Return type:** `ARRAY`
+### Example
   
 ```ppl
 source=people
@@ -204,9 +204,9 @@ fetched rows / total rows = 1/1
 ### Description  
 
 Usage: `reduce(array, acc_base, function, <reduce_function>)` use lambda function to go through all element and interact with acc_base. The lambda function accept two argument accumulator and array element. If add one more reduce_function, will apply reduce_function to accumulator finally. The reduce function accept accumulator as the one argument.
-Argument type: array:ARRAY, acc_base:ANY, function:LAMBDA, reduce_function:LAMBDA
-Return type: ANY
-Example
+**Argument type:** `array:ARRAY, acc_base:ANY, function:LAMBDA, reduce_function:LAMBDA`
+**Return type:** `ANY`
+### Example
   
 ```ppl
 source=people
@@ -248,10 +248,10 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: mvjoin(array, delimiter) joins string array elements into a single string, separated by the specified delimiter. NULL elements are excluded from the output. Only string arrays are supported. 
-Argument type: array: ARRAY of STRING, delimiter: STRING
-Return type: STRING
-Example
+Usage: `mvjoin(array, delimiter)` joins string array elements into a single string, separated by the specified delimiter. NULL elements are excluded from the output. Only string arrays are supported. 
+**Argument type:** `array: ARRAY of STRING, delimiter: STRING`
+**Return type:** `STRING`
+### Example
   
 ```ppl
 source=people
@@ -294,10 +294,10 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: mvappend(value1, value2, value3...) appends all elements from arguments to create an array. Flattens array arguments and collects all individual elements. Always returns an array or null for consistent type behavior.
-Argument type: value1: ANY, value2: ANY, ...
-Return type: ARRAY
-Example
+Usage: `mvappend(value1, value2, value3...)` appends all elements from arguments to create an array. Flattens array arguments and collects all individual elements. Always returns an array or null for consistent type behavior.
+**Argument type:** `value1: ANY, value2: ANY, ...`
+**Return type:** `ARRAY`
+### Example
   
 ```ppl
 source=people
@@ -465,11 +465,11 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: split(str, delimiter) splits the string values on the delimiter and returns the string values as a multivalue field (array). Use an empty string ("") to split the original string into one value per character. If the delimiter is not found, returns an array containing the original string. If the input string is empty, returns an empty array.
+Usage: `split(str, delimiter)` splits the string values on the delimiter and returns the string values as a multivalue field (array). Use an empty string ("") to split the original string into one value per character. If the delimiter is not found, returns an array containing the original string. If the input string is empty, returns an empty array.
 
-Argument type: str: STRING, delimiter: STRING
+**Argument type:** `str: STRING, delimiter: STRING`
 
-Return type: ARRAY of STRING
+**Return type:** `ARRAY of STRING`
 
 ### Example
 
@@ -567,10 +567,10 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: mvdedup(array) removes duplicate values from a multivalue array while preserving the order of first occurrence. NULL elements are filtered out. Returns an array with duplicates removed, or null if the input is null.
-Argument type: array: ARRAY
-Return type: ARRAY
-Example
+Usage: `mvdedup(array)` removes duplicate values from a multivalue array while preserving the order of first occurrence. NULL elements are filtered out. Returns an array with duplicates removed, or null if the input is null.
+**Argument type:** `array: ARRAY`
+**Return type:** `ARRAY`
+### Example
   
 ```ppl
 source=people
@@ -711,10 +711,10 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: mvindex(array, start, [end]) returns a subset of the multivalue array using the start and optional end index values. Indexes are 0-based (first element is at index 0). Supports negative indexing where -1 refers to the last element. When only start is provided, returns a single element. When both start and end are provided, returns an array of elements from start to end (inclusive).
-Argument type: array: ARRAY, start: INTEGER, end: INTEGER (optional)
-Return type: ANY (single element) or ARRAY (range)
-Example
+Usage: `mvindex(array, start, [end])` returns a subset of the multivalue array using the start and optional end index values. Indexes are 0-based (first element is at index 0). Supports negative indexing where -1 refers to the last element. When only start is provided, returns a single element. When both start and end are provided, returns an array of elements from start to end (inclusive).
+**Argument type:** `array: ARRAY, start: INTEGER, end: INTEGER (optional)`
+**Return type:** `ANY (single element) or ARRAY (range)`
+### Example
   
 ```ppl
 source=people
@@ -878,7 +878,7 @@ fetched rows / total rows = 1/1
 
 ### Description
 
-Usage: mvzip(mv_left, mv_right, [delim]) combines the values in two multivalue arrays by pairing corresponding elements and joining them into strings. The delimiter is used to specify a delimiting character to join the two values. This is similar to the Python zip command.
+Usage: `mvzip(mv_left, mv_right, [delim])` combines the values in two multivalue arrays by pairing corresponding elements and joining them into strings. The delimiter is used to specify a delimiting character to join the two values. This is similar to the Python zip command.
 
 The values are stitched together combining the first value of mv_left with the first value of mv_right, then the second with the second, and so on. Each pair is concatenated into a string using the delimiter. The function stops at the length of the shorter array.
 
@@ -886,9 +886,9 @@ The delimiter is optional. When specified, it must be enclosed in quotation mark
 
 Returns null if either input is null. Returns an empty array if either input array is empty.
 
-Argument type: mv_left: ARRAY, mv_right: ARRAY, delim: STRING (optional)
-Return type: ARRAY of STRING
-Example
+**Argument type:** `mv_left: ARRAY, mv_right: ARRAY, delim: STRING (optional)`
+**Return type:** `ARRAY of STRING`
+### Example
 
 ```ppl
 source=people

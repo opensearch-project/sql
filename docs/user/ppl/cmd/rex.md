@@ -1,14 +1,16 @@
-# rex  
+# rex
 
-## Description  
 
 The `rex` command extracts fields from a raw text field using regular expression named capture groups.
-## Syntax  
 
-rex [mode=\<mode\>] field=\<field\> \<pattern\> [max_match=\<int\>] [offset_field=\<string\>]
-* field: mandatory. The field must be a string field to extract data from.  
-* pattern: mandatory string. The regular expression pattern with named capture groups used to extract new fields. Pattern must contain at least one named capture group using `(?<name>pattern)` syntax.  
-* mode: optional. Either `extract` or `sed`. **Default:** extract  
+## Syntax
+
+Use the following syntax:
+
+`rex [mode=<mode>] field=<field> <pattern> [max_match=<int>] [offset_field=<string>]`
+* `field`: mandatory. The field must be a string field to extract data from.  
+* `pattern`: mandatory string. The regular expression pattern with named capture groups used to extract new fields. Pattern must contain at least one named capture group using `(?<name>pattern)` syntax.  
+* `mode`: optional. Either `extract` or `sed`. **Default:** extract  
   * **extract mode** (default): Creates new fields from regular expression named capture groups. This is the standard field extraction behavior.  
   * **sed mode**: Performs text substitution on the field using sed-style patterns  
     * `s/pattern/replacement/` - Replace first occurrence  
@@ -16,12 +18,13 @@ rex [mode=\<mode\>] field=\<field\> \<pattern\> [max_match=\<int\>] [offset_fiel
     * `s/pattern/replacement/n` - Replace only the nth occurrence (where n is a number)  
     * `y/from_chars/to_chars/` - Character-by-character transliteration  
     * Backreferences: `\1`, `\2`, etc. reference captured groups in replacement  
-* max_match: optional integer (default=1). Maximum number of matches to extract. If greater than 1, extracted fields become arrays. The value 0 means unlimited matches, but is automatically capped to the configured limit (default: 10, configurable via `plugins.ppl.rex.max_match.limit`).  
-* offset_field: optional string. Field name to store the character offset positions of matches. Only available in extract mode.  
+* `max_match`: optional integer (default=1). Maximum number of matches to extract. If greater than 1, extracted fields become arrays. The value 0 means unlimited matches, but is automatically capped to the configured limit (default: 10, configurable through `plugins.ppl.rex.max_match.limit`).  
+* `offset_field`: optional string. Field name to store the character offset positions of matches. Only available in extract mode.  
   
-## Example 1: Basic Field Extraction  
 
-This example shows extracting username and domain from email addresses using named capture groups. Both extracted fields are returned as string type.
+## Example 1: Basic field Extraction  
+
+The following example PPL query shows how to use `rex` to extract username and domain from email addresses using named capture groups. Both extracted fields are returned as string type.
   
 ```ppl
 source=accounts
@@ -42,9 +45,10 @@ fetched rows / total rows = 2/2
 +-----------------------+------------+--------+
 ```
   
-## Example 2: Handling Non-matching Patterns  
 
-This example shows the rex command returning all events, setting extracted fields to null for non-matching patterns. Extracted fields would be string type when matches are found.
+## Example 2: Handling non-matching Patterns  
+
+The following example PPL query shows that the rex command returns all events, setting extracted fields to null for non-matching patterns. Extracted fields would be string type when matches are found.
   
 ```ppl
 source=accounts
@@ -65,9 +69,10 @@ fetched rows / total rows = 2/2
 +-----------------------+------+--------+
 ```
   
-## Example 3: Multiple Matches with max_match  
 
-This example shows extracting multiple words from address field using max_match parameter. The extracted field is returned as an array type containing string elements.
+## Example 3: Multiple matches with max_match  
+
+The following example PPL query shows how to use `rex` to extract multiple words from address field using max_match parameter. The extracted field is returned as an array type containing string elements.
   
 ```ppl
 source=accounts
@@ -89,9 +94,10 @@ fetched rows / total rows = 3/3
 +--------------------+------------------+
 ```
   
-## Example 4: Text Replacement with mode=sed  
 
-This example shows replacing email domains using sed mode for text substitution. The extracted field is returned as string type.
+## Example 4: Text replacement with mode=sed  
+
+The following example PPL query shows how to use `rex` to replace email domains using sed mode for text substitution. The extracted field is returned as string type.
   
 ```ppl
 source=accounts
@@ -112,9 +118,10 @@ fetched rows / total rows = 2/2
 +------------------------+
 ```
   
+
 ## Example 5: Using offset_field  
 
-This example shows tracking the character positions where matches occur. Extracted fields are string type, and the offset_field is also string type.
+The following example PPL query shows how to use `rex` to track the character positions where matches occur. Extracted fields are string type, and the offset_field is also string type.
   
 ```ppl
 source=accounts
@@ -135,9 +142,10 @@ fetched rows / total rows = 2/2
 +-----------------------+------------+--------+---------------------------+
 ```
   
-## Example 6: Complex Email Pattern  
 
-This example shows extracting comprehensive email components including top-level domain. All extracted fields are returned as string type.
+## Example 6: Complex email Pattern  
+
+The following example PPL query shows how to use `rex` to extract comprehensive email components including top-level domain. All extracted fields are returned as string type.
   
 ```ppl
 source=accounts
@@ -158,9 +166,10 @@ fetched rows / total rows = 2/2
 +-----------------------+------------+--------+-----+
 ```
   
-## Example 7: Chaining Multiple rex Commands  
 
-This example shows extracting initial letters from both first and last names. All extracted fields are returned as string type.
+## Example 7: Chaining multiple rex Commands  
+
+The following example PPL query shows how to use `rex` to extract initial letters from both first and last names. All extracted fields are returned as string type.
   
 ```ppl
 source=accounts
@@ -183,9 +192,10 @@ fetched rows / total rows = 3/3
 +-----------+----------+--------------+-------------+
 ```
   
-## Example 8: Named Capture Group Limitations  
 
-This example demonstrates naming restrictions for capture groups. Group names cannot contain underscores due to Java regex limitations.
+## Example 8: Named capture group limitations  
+
+The following example PPL query demonstrates naming restrictions for capture groups. Group names cannot contain underscores due to Java regex limitations.
 Invalid PPL query with underscores
   
 ```ppl
@@ -222,9 +232,10 @@ fetched rows / total rows = 2/2
 +-----------------------+------------+-------------+
 ```
   
-## Example 9: Max Match Limit Protection  
 
-This example demonstrates the max_match limit protection mechanism. When max_match=0 (unlimited) is specified, the system automatically caps it to prevent memory exhaustion.
+## Example 9: Max match limit protection  
+
+The following example PPL query demonstrates the max_match limit protection mechanism. When max_match=0 (unlimited) is specified, the system automatically caps it to prevent memory exhaustion.
 PPL query with max_match=0 automatically capped to default limit of 10
   
 ```ppl
@@ -262,7 +273,8 @@ Expected output:
 Error: Query returned no data
 ```
   
-## Comparison with Related Commands  
+
+## Comparison with related commands  
   
 | Feature | rex | parse |
 | --- | --- | --- |
@@ -274,6 +286,7 @@ Error: Query returned no data
 | Offset Tracking | Yes | No |
 | Special Characters in Group Names | No | No |
   
+
 ## Limitations  
 
 **Named Capture Group Naming:**
@@ -288,4 +301,4 @@ Error: Query returned no data
 * The `max_match` parameter is subject to a configurable system limit to prevent memory exhaustion  
 * When `max_match=0` (unlimited) is specified, it is automatically capped at the configured limit (default: 10)  
 * User-specified values exceeding the configured limit will result in an error  
-* Users can adjust the limit via the `plugins.ppl.rex.max_match.limit` cluster setting. Setting this limit to a large value is not recommended as it can lead to excessive memory consumption, especially with patterns that match empty strings (e.g., `\d*`, `\w*`)  
+* Users can adjust the limit through the `plugins.ppl.rex.max_match.limit` cluster setting. Setting this limit to a large value is not recommended as it can lead to excessive memory consumption, especially with patterns that match empty strings (e.g., `\d*`, `\w*`)  

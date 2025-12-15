@@ -1,21 +1,24 @@
-# trendline  
+# trendline
 
-## Description  
 
 The `trendline` command calculates moving averages of fields.
-## Syntax  
 
-trendline [sort <[+\|-] sort-field>] \[sma\|wma\](number-of-datapoints, field) [as \<alias\>] [\[sma\|wma\](number-of-datapoints, field) [as \<alias\>]]...
-* [+\|-]: optional. The plus [+] stands for ascending order and NULL/MISSING first and a minus [-] stands for descending order and NULL/MISSING last. **Default:** ascending order and NULL/MISSING first.  
-* sort-field: mandatory when sorting is used. The field used to sort.  
-* sma\|wma: mandatory. Simple Moving Average (sma) applies equal weighting to all values, Weighted Moving Average (wma) applies greater weight to more recent values.  
-* number-of-datapoints: mandatory. The number of datapoints to calculate the moving average (must be greater than zero).  
-* field: mandatory. The name of the field the moving average should be calculated for.  
-* alias: optional. The name of the resulting column containing the moving average. **Default:** field name with "_trendline".  
+## Syntax
+
+Use the following syntax:
+
+`trendline [sort <[+|-] sort-field>] [sma|wma](number-of-datapoints, field) [as <alias>] [[sma|wma](number-of-datapoints, field) [as <alias>]]...`
+* `[+|-]`: optional. The plus [+] stands for ascending order and NULL/MISSING first and a minus [-] stands for descending order and NULL/MISSING last. **Default:** ascending order and NULL/MISSING first.  
+* `sort-field`: mandatory when sorting is used. The field used to sort.  
+* `sma|wma`: mandatory. Simple Moving Average (sma) applies equal weighting to all values, Weighted Moving Average (wma) applies greater weight to more recent values.  
+* `number-of-datapoints`: mandatory. The number of datapoints to calculate the moving average (must be greater than zero).  
+* `field`: mandatory. The name of the field the moving average should be calculated for.  
+* `alias`: optional. The name of the resulting column containing the moving average. **Default:** field name with "_trendline".  
   
-## Example 1: Calculate the simple moving average on one field.  
 
-This example shows how to calculate the simple moving average on one field.
+## Example 1: Calculate the simple moving average on one field
+
+The following example PPL query shows how to use `trendline` to calculate the simple moving average on one field.
   
 ```ppl
 source=accounts
@@ -37,9 +40,10 @@ fetched rows / total rows = 4/4
 +------+
 ```
   
-## Example 2: Calculate the simple moving average on multiple fields.  
 
-This example shows how to calculate the simple moving average on multiple fields.
+## Example 2: Calculate the simple moving average on multiple fields
+
+The following example PPL query shows how to use `trendline` to calculate the simple moving average on multiple fields.
   
 ```ppl
 source=accounts
@@ -61,9 +65,10 @@ fetched rows / total rows = 4/4
 +------+-----------+
 ```
   
-## Example 3: Calculate the simple moving average on one field without specifying an alias.  
 
-This example shows how to calculate the simple moving average on one field.
+## Example 3: Calculate the simple moving average on one field without specifying an alias
+
+The following example PPL query shows how to use `trendline` to calculate the simple moving average on one field.
   
 ```ppl
 source=accounts
@@ -85,9 +90,10 @@ fetched rows / total rows = 4/4
 +--------------------------+
 ```
   
-## Example 4: Calculate the weighted moving average on one field.  
 
-This example shows how to calculate the weighted moving average on one field.
+## Example 4: Calculate the weighted moving average on one field
+
+The following example PPL query shows how to use `trendline` to calculate the weighted moving average on one field.
   
 ```ppl
 source=accounts
@@ -109,6 +115,7 @@ fetched rows / total rows = 4/4
 +--------------------------+
 ```
   
+
 ## Limitations  
 
 The `trendline` command requires all values in the specified `field` to be non-null. Any rows with null values present in the calculation field will be automatically excluded from the command's output.

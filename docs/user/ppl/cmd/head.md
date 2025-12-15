@@ -1,17 +1,20 @@
-# head  
+# head
 
-## Description  
 
-The `head` command returns the first N number of specified results after an optional offset in search order.
-## Syntax  
+The `head` command returns the first N number of lines from a search result.
 
-head [\<size\>] [from \<offset\>]
-* size: optional integer. Number of results to return. **Default:** 10  
-* offset: optional integer after `from`. Number of results to skip. **Default:** 0  
+## Syntax
+
+Use the following syntax:
+
+`head [<size>] [from <offset>]`
+* `size`: optional integer. The number of results you want to return. **Default:** 10  
+* `offset`: optional integer after `from`. Number of results to skip. **Default:** 0  
   
-## Example 1: Get first 10 results  
 
-This example shows getting a maximum of 10 results from accounts index.
+## Example 1: Get the first 10 results 
+
+The following example PPL query shows how to use `head` to return the first 10 search results:
   
 ```ppl
 source=accounts
@@ -33,9 +36,10 @@ fetched rows / total rows = 4/4
 +-----------+-----+
 ```
   
+
 ## Example 2: Get first N results  
 
-This example shows getting the first 3 results from accounts index.
+The following example PPL query shows how to use `head` to get a specified number of search results. In this example, N is equal to 3: 
   
 ```ppl
 source=accounts
@@ -56,9 +60,10 @@ fetched rows / total rows = 3/3
 +-----------+-----+
 ```
   
-## Example 3: Get first N results after offset M  
 
-This example shows getting the first 3 results after offset 1 from accounts index.
+## Example 3: Get the first N results after offset M  
+
+The following example PPL query example shows getting the first 3 results after offset 1 from the `accounts` index.
   
 ```ppl
 source=accounts
@@ -79,6 +84,7 @@ fetched rows / total rows = 3/3
 +-----------+-----+
 ```
   
+
 ## Limitations  
 
-The `head` command is not rewritten to OpenSearch DSL, it is only executed on the coordination node.
+The `head` command is not rewritten to [query domain-specific language (DSL)](https://opensearch.org/docs/latest/query-dsl/index/). It is only run on the coordinating node.
