@@ -1,15 +1,17 @@
-# sort  
+# sort
 
-## Description  
 
 The `sort` command sorts all the search results by the specified fields.
-## Syntax  
 
-sort [count] <[+\|-] sort-field \| sort-field [asc\|a\|desc\|d]>...
-* count: optional. The number of results to return. Specifying a count of 0 or less than 0 returns all results. **Default:** 0.  
-* [+\|-]: optional. The plus [+] stands for ascending order and NULL/MISSING first and a minus [-] stands for descending order and NULL/MISSING last. **Default:** ascending order and NULL/MISSING first.  
-* [asc\|a\|desc\|d]: optional. asc/a stands for ascending order and NULL/MISSING first. desc/d stands for descending order and NULL/MISSING last. **Default:** ascending order and NULL/MISSING first.  
-* sort-field: mandatory. The field used to sort. Can use `auto(field)`, `str(field)`, `ip(field)`, or `num(field)` to specify how to interpret field values.  
+## Syntax
+
+Use the following syntax:
+
+`sort [count] <[+|-] sort-field | sort-field [asc|a|desc|d]>...`
+* `count`: optional. The number of results to return. Specifying a count of 0 or less than 0 returns all results. **Default:** 0.  
+* `[+|-]`: optional. The plus [+] stands for ascending order and NULL/MISSING first and a minus [-] stands for descending order and NULL/MISSING last. **Default:** ascending order and NULL/MISSING first.  
+* `[asc|a|desc|d]`: optional. asc/a stands for ascending order and NULL/MISSING first. desc/d stands for descending order and NULL/MISSING last. **Default:** ascending order and NULL/MISSING first.  
+* `sort-field`: mandatory. The field used to sort. Can use `auto(field)`, `str(field)`, `ip(field)`, or `num(field)` to specify how to interpret field values.  
   
 > **Note:**
 > You cannot mix +/- and asc/desc in the same sort command. Choose one approach for all fields in a single sort command.
@@ -18,7 +20,7 @@ sort [count] <[+\|-] sort-field \| sort-field [asc\|a\|desc\|d]>...
 
 ## Example 1: Sort by one field  
 
-This example shows sorting all documents by age field in ascending order.
+The following example PPL query shows how to use `sort` to sort all documents by age field in ascending order.
   
 ```ppl
 source=accounts
@@ -40,9 +42,10 @@ fetched rows / total rows = 4/4
 +----------------+-----+
 ```
   
+
 ## Example 2: Sort by one field return all the result  
 
-This example shows sorting all documents by age field in ascending order and returning all results.
+The following example PPL query shows how to use `sort` to sort all documents by age field in ascending order and return all results.
   
 ```ppl
 source=accounts
@@ -64,9 +67,10 @@ fetched rows / total rows = 4/4
 +----------------+-----+
 ```
   
+
 ## Example 3: Sort by one field in descending order (using -)  
 
-This example shows sorting all documents by age field in descending order.
+The following example PPL query shows how to use `sort` to sort all documents by age field in descending order.
   
 ```ppl
 source=accounts
@@ -88,9 +92,10 @@ fetched rows / total rows = 4/4
 +----------------+-----+
 ```
   
+
 ## Example 4: Sort by one field in descending order (using desc)  
 
-This example shows sorting all the document by the age field in descending order using the desc keyword.
+The following example PPL query shows how to use `sort` to sort all documents by the age field in descending order using the desc keyword.
   
 ```ppl
 source=accounts
@@ -112,9 +117,10 @@ fetched rows / total rows = 4/4
 +----------------+-----+
 ```
   
+
 ## Example 5: Sort by multiple fields (using +/-)  
 
-This example shows sorting all documents by gender field in ascending order and age field in descending order using +/- operators.
+The following example PPL query shows how to use `sort` to sort all documents by gender field in ascending order and age field in descending order using +/- operators.
   
 ```ppl
 source=accounts
@@ -136,9 +142,10 @@ fetched rows / total rows = 4/4
 +----------------+--------+-----+
 ```
   
+
 ## Example 6: Sort by multiple fields (using asc/desc)  
 
-This example shows sorting all the document by the gender field in ascending order and age field in descending order using asc/desc keywords.
+The following example PPL query shows how to use `sort` to sort all documents by the gender field in ascending order and age field in descending order using asc/desc keywords.
   
 ```ppl
 source=accounts
@@ -160,9 +167,10 @@ fetched rows / total rows = 4/4
 +----------------+--------+-----+
 ```
   
+
 ## Example 7: Sort by field include null value  
 
-This example shows sorting employer field by default option (ascending order and null first). The result shows that null value is in the first row.
+The following example PPL query shows how to use `sort` to sort employer field by default option (ascending order and null first). The result shows that null value is in the first row.
   
 ```ppl
 source=accounts
@@ -184,9 +192,10 @@ fetched rows / total rows = 4/4
 +----------+
 ```
   
+
 ## Example 8: Specify the number of sorted documents to return  
 
-This example shows sorting all documents and returning 2 documents.
+The following example PPL query shows how to use `sort` to sort all documents and return 2 documents.
   
 ```ppl
 source=accounts
@@ -206,9 +215,10 @@ fetched rows / total rows = 2/2
 +----------------+-----+
 ```
   
+
 ## Example 9: Sort with desc modifier  
 
-This example shows sorting with the desc modifier to reverse sort order.
+The following example PPL query shows how to use `sort` to sort with the desc modifier to reverse sort order.
   
 ```ppl
 source=accounts
@@ -230,9 +240,10 @@ fetched rows / total rows = 4/4
 +----------------+-----+
 ```
   
+
 ## Example 10: Sort with specifying field type  
 
-This example shows sorting with str() to sort numeric values lexicographically.
+The following example PPL query shows how to use `sort` to sort with str() to sort numeric values lexicographically.
   
 ```ppl
 source=accounts

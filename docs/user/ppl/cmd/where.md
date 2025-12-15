@@ -1,16 +1,19 @@
-# where  
+# where
 
-## Description  
 
-The `where` command filters the search result. The `where` command only returns the result when the bool-expression evaluates to true.
-## Syntax  
+The `where` command filters the search results. The `where` command only returns the result when the bool-expression evaluates to true.
 
-where \<boolean-expression\>
-* bool-expression: optional. Any expression which could be evaluated to boolean value.  
+## Syntax
+
+Use the following syntax:
+
+`where <boolean-expression>`  
+* `bool-expression`: optional. Any expression which could be evaluated to boolean value.  
   
-## Example 1: Filter result set with condition  
 
-This example shows fetching all the documents from the accounts index where account_number is 1 or gender is "F".
+## Example 1: Filter search results with condition  
+
+The following example PPL query shows how to use `where` to fetch all the documents from the accounts index where account_number is 1 or gender is "F".
   
 ```ppl
 source=accounts
@@ -30,9 +33,10 @@ fetched rows / total rows = 2/2
 +----------------+--------+
 ```
   
-## Example 2: Basic Field Comparison  
 
-The example shows how to filter accounts with balance greater than 30000.
+## Example 2: Basic field Comparison  
+
+The following example PPL query shows how to use `where` to filter accounts with balance greater than 30000.
   
 ```ppl
 source=accounts
@@ -52,10 +56,11 @@ fetched rows / total rows = 2/2
 +----------------+---------+
 ```
   
-## Example 3: Pattern Matching with LIKE  
+
+## Example 3: Pattern matching with LIKE  
 
 Pattern Matching with Underscore (\_)
-The example demonstrates using LIKE with underscore (\_) to match a single character.
+The following example PPL query demonstrates using LIKE with underscore (\_) to match a single character.
   
 ```ppl
 source=accounts
@@ -75,7 +80,7 @@ fetched rows / total rows = 1/1
 ```
   
 Pattern Matching with Percent (%)
-The example demonstrates using LIKE with percent (%) to match multiple characters.
+The following example PPL query demonstrates using LIKE with percent (%) to match multiple characters.
   
 ```ppl
 source=accounts
@@ -94,9 +99,10 @@ fetched rows / total rows = 1/1
 +----------------+-------+
 ```
   
-## Example 4: Multiple Conditions  
 
-The example shows how to combine multiple conditions using AND operator.
+## Example 4: Multiple conditions  
+
+The following example PPL query shows how to combine multiple conditions using AND operator.
   
 ```ppl
 source=accounts
@@ -117,9 +123,10 @@ fetched rows / total rows = 3/3
 +----------------+-----+--------+
 ```
   
-## Example 5: Using IN Operator  
 
-The example demonstrates using IN operator to match multiple values.
+## Example 5: Using IN operator  
+
+The following example PPL query demonstrates using IN operator to match multiple values.
   
 ```ppl
 source=accounts
@@ -139,9 +146,10 @@ fetched rows / total rows = 2/2
 +----------------+-------+
 ```
   
+
 ## Example 6: NULL Checks  
 
-The example shows how to filter records with NULL values.
+The following example PPL query shows how to filter records with NULL values.
   
 ```ppl
 source=accounts
@@ -160,9 +168,10 @@ fetched rows / total rows = 1/1
 +----------------+----------+
 ```
   
-## Example 7: Complex Conditions  
 
-The example demonstrates combining multiple conditions with parentheses and logical operators.
+## Example 7: Complex conditions  
+
+The following example PPL query demonstrates combining multiple conditions with parentheses and logical operators.
   
 ```ppl
 source=accounts
@@ -181,9 +190,10 @@ fetched rows / total rows = 1/1
 +----------------+---------+-----+--------+
 ```
   
-## Example 8: NOT Conditions  
 
-The example shows how to use NOT operator to exclude matching records.
+## Example 8: NOT conditions  
+
+The following example PPL query shows how to use NOT operator to exclude matching records.
   
 ```ppl
 source=accounts

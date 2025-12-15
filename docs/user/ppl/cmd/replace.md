@@ -1,18 +1,21 @@
-# replace  
+# replace
 
-## Description  
 
-The `replace` replaces text in one or more fields in the search result. Supports literal string replacement and wildcard patterns using `*`.
-## Syntax  
+The `replace` command replaces text in one or more fields in the search results. Supports literal string replacement and wildcard patterns using `*`.
 
-replace '\<pattern\>' WITH '\<replacement\>' [, '\<pattern\>' WITH '\<replacement\>']... IN \<field-name\>[, \<field-name\>]...
-* pattern: mandatory. The text pattern you want to replace.  
-* replacement: mandatory. The text you want to replace with.  
-* field-name: mandatory. One or more field names where the replacement should occur.  
+## Syntax
+
+Use the following syntax:
+
+`replace '<pattern>' WITH '<replacement>' [, '<pattern>' WITH '<replacement>']... IN <field-name>[, <field-name>]...`
+* `pattern`: mandatory. The text pattern you want to replace.  
+* `replacement`: mandatory. The text you want to replace with.  
+* `field-name`: mandatory. One or more field names where the replacement should occur.  
   
+
 ## Example 1: Replace text in one field  
 
-This example shows replacing text in one field.
+The following example PPL query shows how to use `replace` to replace text in one field.
   
 ```ppl
 source=accounts
@@ -34,9 +37,10 @@ fetched rows / total rows = 4/4
 +----------+
 ```
   
+
 ## Example 2: Replace text in multiple fields  
 
-This example shows replacing text in multiple fields.
+The following example PPL query shows how to use `replace` to replace text in multiple fields.
   
 ```ppl
 source=accounts
@@ -58,9 +62,10 @@ fetched rows / total rows = 4/4
 +----------+----------------------+
 ```
   
+
 ## Example 3: Replace with other commands in a pipeline  
 
-This example shows using replace with other commands in a query pipeline.
+The following example PPL query shows how to use `replace` with other commands in a query pipeline.
   
 ```ppl
 source=accounts
@@ -82,9 +87,10 @@ fetched rows / total rows = 3/3
 +----------+-----+
 ```
   
+
 ## Example 4: Replace with multiple pattern/replacement pairs  
 
-This example shows using multiple pattern/replacement pairs in a single replace command. The replacements are applied sequentially.
+The following example PPL query shows how to use `replace` with multiple pattern/replacement pairs in a single replace command. The replacements are applied sequentially.
   
 ```ppl
 source=accounts
@@ -106,6 +112,7 @@ fetched rows / total rows = 4/4
 +-----------+
 ```
   
+
 ## Example 5: Pattern matching with LIKE and replace  
 
 Since replace command only supports plain string literals, you can use LIKE command with replace for pattern matching needs.
@@ -128,6 +135,7 @@ fetched rows / total rows = 1/1
 +-----------------+-------+--------+-----+--------+
 ```
   
+
 ## Example 6: Wildcard suffix match  
 
 Replace values that end with a specific pattern. The wildcard `*` matches any prefix.
@@ -152,6 +160,7 @@ fetched rows / total rows = 4/4
 +----------+
 ```
   
+
 ## Example 7: Wildcard prefix match  
 
 Replace values that start with a specific pattern. The wildcard `*` matches any suffix.
@@ -176,6 +185,7 @@ fetched rows / total rows = 4/4
 +----------+
 ```
   
+
 ## Example 8: Wildcard capture and substitution  
 
 Use wildcards in both pattern and replacement to capture and reuse matched portions. The number of wildcards must match in pattern and replacement.
@@ -200,6 +210,7 @@ fetched rows / total rows = 4/4
 +----------------------+
 ```
   
+
 ## Example 9: Multiple wildcards for pattern transformation  
 
 Use multiple wildcards to transform patterns. Each wildcard in the replacement substitutes the corresponding captured value.
@@ -224,6 +235,7 @@ fetched rows / total rows = 4/4
 +----------------------+
 ```
   
+
 ## Example 10: Wildcard with zero wildcards in replacement  
 
 When replacement has zero wildcards, all matching values are replaced with the literal replacement string.
@@ -248,6 +260,7 @@ fetched rows / total rows = 4/4
 +----------+
 ```
   
+
 ## Example 11: Matching literal asterisks  
 
 Use `\*` to match literal asterisk characters (`\*` = literal asterisk, `\\` = literal backslash).
@@ -273,6 +286,7 @@ fetched rows / total rows = 4/4
 +------------+
 ```
   
+
 ## Example 12: Wildcard with no replacement wildcards  
 
 Use wildcards in pattern but none in replacement to create a fixed output.
@@ -298,6 +312,7 @@ fetched rows / total rows = 4/4
 +---------+
 ```
   
+
 ## Example 13: Escaped asterisks with wildcards  
 
 Combine escaped asterisks (literal) with wildcards for complex patterns.
@@ -323,8 +338,9 @@ fetched rows / total rows = 4/4
 +----------+
 ```
   
+
 ## Limitations  
 
-* Wildcards: `*` matches zero or more characters (case-sensitive)  
+* `Wildcards`: `*` matches zero or more characters (case-sensitive)  
 * Replacement wildcards must match pattern wildcard count, or be zero  
 * Escape sequences: `\*` (literal asterisk), `\\` (literal backslash)  

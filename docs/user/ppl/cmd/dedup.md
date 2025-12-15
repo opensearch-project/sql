@@ -1,19 +1,22 @@
-# dedup  
+# dedup
 
-## Description  
 
 The `dedup` command removes duplicate documents defined by specified fields from the search result.
-## Syntax  
 
-dedup [int] \<field-list\> [keepempty=\<bool\>] [consecutive=\<bool\>]
-* int: optional. The `dedup` command retains multiple events for each combination when you specify \<int\>. The number for \<int\> must be greater than 0. All other duplicates are removed from the results. **Default:** 1  
-* keepempty: optional. If set to true, keep the document if the any field in the field-list has NULL value or field is MISSING. **Default:** false.  
-* consecutive: optional. If set to true, removes only events with duplicate combinations of values that are consecutive. **Default:** false.  
-* field-list: mandatory. The comma-delimited field list. At least one field is required.  
+## Syntax
+
+Use the following syntax:
+
+`dedup [int] <field-list> [keepempty=<bool>] [consecutive=<bool>]`
+* `int`: optional. The `dedup` command retains multiple events for each combination when you specify `<int>`. The number for `<int>` must be greater than 0. All other duplicates are removed from the results. **Default:** 1  
+* `keepempty`: optional. If set to true, keep the document if any field in the field-list has NULL value or field is MISSING. **Default:** false.  
+* `consecutive`: optional. If set to true, removes only events with duplicate combinations of values that are consecutive. **Default:** false.  
+* `field-list`: mandatory. The comma-delimited field list. At least one field is required.  
   
+
 ## Example 1: Dedup by one field  
 
-This example shows deduplicating documents by gender field.
+The following example PPL query shows how to use `dedup` to remove duplicate documents based on the `gender` field:
   
 ```ppl
 source=accounts
@@ -34,9 +37,10 @@ fetched rows / total rows = 2/2
 +----------------+--------+
 ```
   
-## Example 2: Keep 2 duplicates documents  
 
-This example shows deduplicating documents by gender field while keeping 2 duplicates.
+## Example 2: Keep two duplicates documents  
+
+The following example PPL query shows how to use `dedup` to remove duplicate documents based on the `gender` field while keeping two duplicates:
   
 ```ppl
 source=accounts
@@ -58,9 +62,10 @@ fetched rows / total rows = 3/3
 +----------------+--------+
 ```
   
-## Example 3: Keep or Ignore the empty field by default  
 
-This example shows deduplicating documents while keeping null values.
+## Example 3: Keep or ignore empty fields by default  
+
+The following example PPL query shows how to use `dedup` to remove duplicate documents while keeping documents with null values in the specified field:
   
 ```ppl
 source=accounts
@@ -83,7 +88,7 @@ fetched rows / total rows = 4/4
 +----------------+-----------------------+
 ```
   
-This example shows deduplicating documents while ignoring null values.
+The following example PPL query shows how to use `dedup` to remove duplicate documents while ignoring documents with empty values in the specified field:
   
 ```ppl
 source=accounts
@@ -105,9 +110,10 @@ fetched rows / total rows = 3/3
 +----------------+-----------------------+
 ```
   
+
 ## Example 4: Dedup in consecutive document  
 
-This example shows deduplicating consecutive documents.
+The following example PPL query shows how to use `dedup` to remove duplicate consecutive documents:
   
 ```ppl
 source=accounts
@@ -129,6 +135,7 @@ fetched rows / total rows = 3/3
 +----------------+--------+
 ```
   
+
 ## Limitations  
 
 The `dedup` with `consecutive=true` command can only work with `plugins.calcite.enabled=false`.

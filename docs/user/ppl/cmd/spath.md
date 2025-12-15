@@ -1,19 +1,23 @@
-# spath  
+# spath
 
-## Description  
 
-The `spath` command allows extracting fields from structured text data. It currently allows selecting from JSON data with JSON paths.
-## Syntax  
+The `spath` command extracts fields from structured text data. It currently allows selecting from JSON data with JSON paths.
 
-spath input=\<field\> [output=\<field\>] [path=]\<path\>
-* input: mandatory. The field to scan for JSON data.  
-* output: optional. The destination field that the data will be loaded to. **Default:** value of `path`.  
-* path: mandatory. The path of the data to load for the object. For more information on path syntax, see [json_extract](../functions/json.md#json_extract).  
+## Syntax
+
+Use the following syntax:
+
+`spath input=<field> [output=<field>] [path=]<path>`
+* `input`: mandatory. The field to scan for JSON data.  
+* `output`: optional. The destination field that the data will be loaded to. **Default:** value of `path`.  
+* `path`: mandatory. The path of the data to load for the object. For more information about path syntax, see [json_extract](../functions/json.md#json_extract).  
   
+
 ## Note  
 
 The `spath` command currently does not support pushdown behavior for extraction. It will be slow on large datasets. It's generally better to index fields needed for filtering directly instead of using `spath` to filter nested fields.
-## Example 1: Simple Field Extraction  
+
+## Example 1: Simple field Extraction  
 
 The simplest spath is to extract a single field. This example extracts `n` from the `doc` field of type `text`.
   
@@ -36,9 +40,10 @@ fetched rows / total rows = 3/3
 +----------+---+
 ```
   
-## Example 2: Lists & Nesting  
 
-This example demonstrates more JSON path uses, like traversing nested fields and extracting list elements.
+## Example 2: Lists and nesting  
+
+The following example PPL query demonstrates more JSON path uses, like traversing nested fields and extracting list elements.
   
 ```ppl
 source=structured
@@ -61,9 +66,10 @@ fetched rows / total rows = 3/3
 +------------------------------------------------------+---------------+--------------+--------+
 ```
   
+
 ## Example 3: Sum of inner elements  
 
-This example shows extracting an inner field and doing statistics on it, using the docs from example 1. It also demonstrates that `spath` always returns strings for inner types.
+The following example PPL query shows how to use `spath` to extract an inner field and do statistics on it, using the docs from example 1. It also demonstrates that `spath` always returns strings for inner types.
   
 ```ppl
 source=structured
@@ -84,6 +90,7 @@ fetched rows / total rows = 1/1
 +--------+
 ```
   
+
 ## Example 4: Escaped paths  
 
 `spath` can escape paths with strings to accept any path that `json_extract` does. This includes escaping complex field names as array components.

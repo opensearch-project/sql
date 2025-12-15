@@ -4,10 +4,10 @@
 
 ### Description  
 
-Usage: abs(x) calculates the abs x.
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
-Return type: INTEGER/LONG/FLOAT/DOUBLE
-Example
+Usage: `abs(x)` calculates the abs x.
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `INTEGER/LONG/FLOAT/DOUBLE`
+### Example
   
 ```ppl
 source=people
@@ -30,11 +30,11 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: add(x, y) calculates x plus y.
-Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
-Return type: Wider number between x and y
+Usage: `add(x, y)` calculates x plus y.
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `Wider number between x and y`
 Synonyms: Addition Symbol (+)
-Example
+### Example
   
 ```ppl
 source=people
@@ -57,11 +57,11 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: subtract(x, y) calculates x minus y.
-Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
-Return type: Wider number between x and y
+Usage: `subtract(x, y)` calculates x minus y.
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `Wider number between x and y`
 Synonyms: Subtraction Symbol (-)
-Example
+### Example
   
 ```ppl
 source=people
@@ -84,11 +84,11 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: multiply(x, y) calculates the multiplication of x and y.
-Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
-Return type: Wider number between x and y. If y equals to 0, then returns NULL.
+Usage: `multiply(x, y)` calculates the multiplication of x and y.
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `Wider number between x and y. If y equals to 0, then returns NULL.`
 Synonyms: Multiplication Symbol (\*)
-Example
+### Example
   
 ```ppl
 source=people
@@ -111,11 +111,11 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: divide(x, y) calculates x divided by y.
-Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
-Return type: Wider number between x and y
+Usage: `divide(x, y)` calculates x divided by y.
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `Wider number between x and y`
 Synonyms: Division Symbol (/)
-Example
+### Example
   
 ```ppl
 source=people
@@ -138,11 +138,11 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: sum(x, y, ...) calculates the sum of all provided arguments. This function accepts a variable number of arguments.
+Usage: `sum(x, y, ...)` calculates the sum of all provided arguments. This function accepts a variable number of arguments.
 Note: This function is only available in the eval command context and is rewritten to arithmetic addition while query parsing.
-Argument type: Variable number of INTEGER/LONG/FLOAT/DOUBLE arguments
-Return type: Wider number type among all arguments
-Example
+**Argument type:** `Variable number of INTEGER/LONG/FLOAT/DOUBLE arguments`
+**Return type:** `Wider number type among all arguments`
+### Example
   
 ```ppl
 source=accounts
@@ -188,11 +188,11 @@ fetched rows / total rows = 4/4
 
 ### Description  
 
-Usage: avg(x, y, ...) calculates the average (arithmetic mean) of all provided arguments. This function accepts a variable number of arguments.
+Usage: `avg(x, y, ...)` calculates the average (arithmetic mean) of all provided arguments. This function accepts a variable number of arguments.
 Note: This function is only available in the eval command context and is rewritten to arithmetic expression (sum / count) at query parsing time.
-Argument type: Variable number of INTEGER/LONG/FLOAT/DOUBLE arguments
-Return type: DOUBLE
-Example
+**Argument type:** `Variable number of INTEGER/LONG/FLOAT/DOUBLE arguments`
+**Return type:** `DOUBLE`
+### Example
   
 ```ppl
 source=accounts
@@ -238,10 +238,10 @@ fetched rows / total rows = 4/4
 
 ### Description  
 
-Usage: acos(x) calculates the arc cosine of x. Returns NULL if x is not in the range -1 to 1.
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
-Return type: DOUBLE
-Example
+Usage: `acos(x)` calculates the arc cosine of x. Returns NULL if x is not in the range -1 to 1.
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `DOUBLE`
+### Example
   
 ```ppl
 source=people
@@ -264,10 +264,10 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: asin(x) calculate the arc sine of x. Returns NULL if x is not in the range -1 to 1.
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
-Return type: DOUBLE
-Example
+Usage: `asin(x)` calculate the arc sine of x. Returns NULL if x is not in the range -1 to 1.
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `DOUBLE`
+### Example
   
 ```ppl
 source=people
@@ -290,10 +290,10 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: atan(x) calculates the arc tangent of x. atan(y, x) calculates the arc tangent of y / x, except that the signs of both arguments are used to determine the quadrant of the result.
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
-Return type: DOUBLE
-Example
+Usage: `atan(x)` calculates the arc tangent of x. atan(y, x) calculates the arc tangent of y / x, except that the signs of both arguments are used to determine the quadrant of the result.
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `DOUBLE`
+### Example
   
 ```ppl
 source=people
@@ -317,9 +317,9 @@ fetched rows / total rows = 1/1
 ### Description  
 
 Usage: atan2(y, x) calculates the arc tangent of y / x, except that the signs of both arguments are used to determine the quadrant of the result.
-Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
-Return type: DOUBLE
-Example
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `DOUBLE`
+### Example
   
 ```ppl
 source=people
@@ -345,12 +345,12 @@ An alias for [CEILING](#ceiling) function.
 
 ### Description  
 
-Usage: CEILING(T) takes the ceiling of value T.
+Usage: `CEILING(T)` takes the ceiling of value T.
 Note: [CEIL](#ceil) and CEILING functions have the same implementation & functionality
 Limitation: CEILING only works as expected when IEEE 754 double type displays decimal when stored.
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
-Return type: same type with input
-Example
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `same type with input`
+### Example
   
 ```ppl
 source=people
@@ -390,10 +390,10 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: CONV(x, a, b) converts the number x from a base to b base.
-Argument type: x: STRING, a: INTEGER, b: INTEGER
-Return type: STRING
-Example
+Usage: `CONV(x, a, b)` converts the number x from a base to b base.
+**Argument type:** `x: STRING, a: INTEGER, b: INTEGER`
+**Return type:** `STRING`
+### Example
   
 ```ppl
 source=people
@@ -416,10 +416,10 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: cos(x) calculates the cosine of x, where x is given in radians.
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
-Return type: DOUBLE
-Example
+Usage: `cos(x)` calculates the cosine of x, where x is given in radians.
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `DOUBLE`
+### Example
   
 ```ppl
 source=people
@@ -442,10 +442,10 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: cosh(x) calculates the hyperbolic cosine of x, defined as (((e^x) + (e^(-x))) / 2).
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
-Return type: DOUBLE
-Example
+Usage: `cosh(x)` calculates the hyperbolic cosine of x, defined as (((e^x) + (e^(-x))) / 2).
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `DOUBLE`
+### Example
   
 ```ppl
 source=people
@@ -468,10 +468,10 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: cot(x) calculates the cotangent of x. Returns out-of-range error if x equals to 0.
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
-Return type: DOUBLE
-Example
+Usage: `cot(x)` calculates the cotangent of x. Returns out-of-range error if x equals to 0.
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `DOUBLE`
+### Example
   
 ```ppl
 source=people
@@ -495,9 +495,9 @@ fetched rows / total rows = 1/1
 ### Description  
 
 Usage: Calculates a cyclic redundancy check value and returns a 32-bit unsigned value.
-Argument type: STRING
-Return type: LONG
-Example
+**Argument type:** `STRING`
+**Return type:** `LONG`
+### Example
   
 ```ppl
 source=people
@@ -520,10 +520,10 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: degrees(x) converts x from radians to degrees.
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
-Return type: DOUBLE
-Example
+Usage: `degrees(x)` converts x from radians to degrees.
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `DOUBLE`
+### Example
   
 ```ppl
 source=people
@@ -546,9 +546,9 @@ fetched rows / total rows  = 1/1
 
 ### Description  
 
-Usage: E() returns the Euler's number
-Return type: DOUBLE
-Example
+Usage: `E()` returns the Euler's number
+**Return type:** `DOUBLE`
+### Example
   
 ```ppl
 source=people
@@ -571,10 +571,10 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: exp(x) return e raised to the power of x.
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
-Return type: DOUBLE
-Example
+Usage: `exp(x)` return e raised to the power of x.
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `DOUBLE`
+### Example
   
 ```ppl
 source=people
@@ -598,9 +598,9 @@ fetched rows / total rows = 1/1
 ### Description  
 
 Usage: expm1(NUMBER T) returns the exponential of T, minus 1.
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
-Return type: DOUBLE
-Example
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `DOUBLE`
+### Example
   
 ```ppl
 source=people
@@ -623,11 +623,11 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: FLOOR(T) takes the floor of value T.
+Usage: `FLOOR(T)` takes the floor of value T.
 Limitation: FLOOR only works as expected when IEEE 754 double type displays decimal when stored.
-Argument type: a: INTEGER/LONG/FLOAT/DOUBLE
-Return type: same type with input
-Example
+**Argument type:** `a: INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `same type with input`
+### Example
   
 ```ppl
 source=people
@@ -684,10 +684,10 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: ln(x) return the the natural logarithm of x.
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
-Return type: DOUBLE
-Example
+Usage: `ln(x)` return the the natural logarithm of x.
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `DOUBLE`
+### Example
   
 ```ppl
 source=people
@@ -711,10 +711,10 @@ fetched rows / total rows = 1/1
 ### Description  
 
 Specifications:
-Usage: log(x) returns the natural logarithm of x that is the base e logarithm of the x. log(B, x) is equivalent to log(x)/log(B).
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
-Return type: DOUBLE
-Example
+Usage: `log(x)` returns the natural logarithm of x that is the base e logarithm of the x. log(B, x) is equivalent to log(x)/log(B).
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `DOUBLE`
+### Example
   
 ```ppl
 source=people
@@ -739,9 +739,9 @@ fetched rows / total rows = 1/1
 
 Specifications:
 Usage: log2(x) is equivalent to log(x)/log(2).
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
-Return type: DOUBLE
-Example
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `DOUBLE`
+### Example
   
 ```ppl
 source=people
@@ -766,9 +766,9 @@ fetched rows / total rows = 1/1
 
 Specifications:
 Usage: log10(x) is equivalent to log(x)/log(10).
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
-Return type: DOUBLE
-Example
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `DOUBLE`
+### Example
   
 ```ppl
 source=people
@@ -791,10 +791,10 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: MOD(n, m) calculates the remainder of the number n divided by m.
-Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
-Return type: Wider type between types of n and m if m is nonzero value. If m equals to 0, then returns NULL.
-Example
+Usage: `MOD(n, m)` calculates the remainder of the number n divided by m.
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `Wider type between types of n and m if m is nonzero value. If m equals to 0, then returns NULL.`
+### Example
   
 ```ppl
 source=people
@@ -817,10 +817,10 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: MODULUS(n, m) calculates the remainder of the number n divided by m.
-Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
-Return type: Wider type between types of n and m if m is nonzero value. If m equals to 0, then returns NULL.
-Example
+Usage: `MODULUS(n, m)` calculates the remainder of the number n divided by m.
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `Wider type between types of n and m if m is nonzero value. If m equals to 0, then returns NULL.`
+### Example
   
 ```ppl
 source=people
@@ -843,9 +843,9 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: PI() returns the constant pi
-Return type: DOUBLE
-Example
+Usage: `PI()` returns the constant pi
+**Return type:** `DOUBLE`
+### Example
   
 ```ppl
 source=people
@@ -868,11 +868,11 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: POW(x, y) calculates the value of x raised to the power of y. Bad inputs return NULL result.
-Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
-Return type: DOUBLE
+Usage: `POW(x, y)` calculates the value of x raised to the power of y. Bad inputs return NULL result.
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `DOUBLE`
 Synonyms: [POWER](#power)
-Example
+### Example
   
 ```ppl
 source=people
@@ -895,11 +895,11 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: POWER(x, y) calculates the value of x raised to the power of y. Bad inputs return NULL result.
-Argument type: INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE
-Return type: DOUBLE
+Usage: `POWER(x, y)` calculates the value of x raised to the power of y. Bad inputs return NULL result.
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE, INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `DOUBLE`
 Synonyms: [POW](#pow)
-Example
+### Example
   
 ```ppl
 source=people
@@ -922,10 +922,10 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: radians(x) converts x from degrees to radians.
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
-Return type: DOUBLE
-Example
+Usage: `radians(x)` converts x from degrees to radians.
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `DOUBLE`
+### Example
   
 ```ppl
 source=people
@@ -948,10 +948,10 @@ fetched rows / total rows  = 1/1
 
 ### Description  
 
-Usage: RAND()/RAND(N) returns a random floating-point value in the range 0 <= value < 1.0. If integer N is specified, the seed is initialized prior to execution. One implication of this behavior is with identical argument N, rand(N) returns the same value each time, and thus produces a repeatable sequence of column values.
-Argument type: INTEGER
-Return type: FLOAT
-Example
+Usage: `RAND()`/`RAND(`N) returns a random floating-point value in the range 0 <= value < 1.0. If integer N is specified, the seed is initialized prior to execution. One implication of this behavior is with identical argument N, rand(N) returns the same value each time, and thus produces a repeatable sequence of column values.
+**Argument type:** `INTEGER`
+**Return type:** `FLOAT`
+### Example
   
 ```ppl
 source=people
@@ -974,12 +974,12 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: ROUND(x, d) rounds the argument x to d decimal places, d defaults to 0 if not specified
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
+Usage: `ROUND(x, d)` rounds the argument x to d decimal places, d defaults to 0 if not specified
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
 Return type map:
 (INTEGER/LONG [,INTEGER]) -> LONG
 (FLOAT/DOUBLE [,INTEGER]) -> LONG
-Example
+### Example
   
 ```ppl
 source=people
@@ -1003,9 +1003,9 @@ fetched rows / total rows = 1/1
 ### Description  
 
 Usage: Returns the sign of the argument as -1, 0, or 1, depending on whether the number is negative, zero, or positive
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
-Return type: same type with input
-Example
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `same type with input`
+### Example
   
 ```ppl
 source=people
@@ -1029,10 +1029,10 @@ fetched rows / total rows = 1/1
 ### Description  
 
 Usage: Returns the sign of the argument as -1, 0, or 1, depending on whether the number is negative, zero, or positive
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
-Return type: INTEGER
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `INTEGER`
 Synonyms: `SIGN`
-Example
+### Example
   
 ```ppl
 source=people
@@ -1055,10 +1055,10 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: sin(x) calculates the sine of x, where x is given in radians.
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
-Return type: DOUBLE
-Example
+Usage: `sin(x)` calculates the sine of x, where x is given in radians.
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `DOUBLE`
+### Example
   
 ```ppl
 source=people
@@ -1081,10 +1081,10 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: sinh(x) calculates the hyperbolic sine of x, defined as (((e^x) - (e^(-x))) / 2).
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
-Return type: DOUBLE
-Example
+Usage: `sinh(x)` calculates the hyperbolic sine of x, defined as (((e^x) - (e^(-x))) / 2).
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `DOUBLE`
+### Example
   
 ```ppl
 source=people
@@ -1108,11 +1108,11 @@ fetched rows / total rows = 1/1
 ### Description  
 
 Usage: Calculates the square root of a non-negative number
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
 Return type map:
 (Non-negative) INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
 (Negative) INTEGER/LONG/FLOAT/DOUBLE -> NULL
-Example
+### Example
   
 ```ppl
 source=people
@@ -1136,10 +1136,10 @@ fetched rows / total rows = 1/1
 ### Description  
 
 Usage: Calculates the cube root of a number
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
 Return type DOUBLE:
 INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
-Example
+### Example
   
 ```ppl ignore
 source=location
@@ -1163,10 +1163,10 @@ fetched rows / total rows = 2/2
 
 ### Description  
 
-Usage: rint(NUMBER T) returns T rounded to the closest whole integer number.
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
-Return type: DOUBLE
-Example
+Usage: `rint(NUMBER T)` returns T rounded to the closest whole integer number.
+**Argument type:** `INTEGER/LONG/FLOAT/DOUBLE`
+**Return type:** `DOUBLE`
+### Example
   
 ```ppl
 source=people

@@ -1,33 +1,37 @@
-# join  
+# join
 
-## Description  
 
 The `join` command combines two datasets together. The left side could be an index or results from a piped commands, the right side could be either an index or a subsearch.
-## Syntax  
 
+## Syntax
 
-### Basic syntax:  
+The `join` command supports basic and extended syntax options.
 
-[joinType] join [leftAlias] [rightAlias] (on \| where) \<joinCriteria\> \<right-dataset\>
-* joinType: optional. The type of join to perform. Options: `left`, `semi`, `anti`, and performance-sensitive types `right`, `full`, `cross`. **Default:** `inner`.  
-* leftAlias: optional. The subsearch alias to use with the left join side, to avoid ambiguous naming. Pattern: `left = <leftAlias>`  
-* rightAlias: optional. The subsearch alias to use with the right join side, to avoid ambiguous naming. Pattern: `right = <rightAlias>`  
-* joinCriteria: mandatory. Any comparison expression. Must follow `on` or `where` keyword.  
-* right-dataset: mandatory. Right dataset could be either an `index` or a `subsearch` with/without alias.  
+### Basic syntax
+
+`[joinType] join [leftAlias] [rightAlias] (on | where) <joinCriteria> <right-dataset>`
+* `joinType`: optional. The type of join to perform. Options: `left`, `semi`, `anti`, and performance-sensitive types `right`, `full`, `cross`. **Default:** `inner`.  
+* `leftAlias`: optional. The subsearch alias to use with the left join side, to avoid ambiguous naming. Pattern: `left = <leftAlias>`  
+* `rightAlias`: optional. The subsearch alias to use with the right join side, to avoid ambiguous naming. Pattern: `right = <rightAlias>`  
+* `joinCriteria`: mandatory. Any comparison expression. Must follow `on` or `where` keyword.  
+* `right-dataset`: mandatory. Right dataset could be either an `index` or a `subsearch` with/without alias.  
 
 ### Extended syntax:  
 
-join [type=<joinType>] [overwrite=<bool>] [max=n] (\<join-field-list\> \| [leftAlias] [rightAlias] (on \| where) \<joinCriteria\>) \<right-dataset\>
-* type: optional. Join type using extended syntax. Options: `left`, `outer` (alias of `left`), `semi`, `anti`, and performance-sensitive types `right`, `full`, `cross`. **Default:** `inner`.  
-* overwrite: optional boolean. Only works with `join-field-list`. Specifies whether duplicate-named fields from right-dataset should replace corresponding fields in the main search results. **Default:** `true`.  
-* max: optional integer. Controls how many subsearch results could be joined against each row in main search. **Default:** 0 (unlimited).  
-* join-field-list: optional. The fields used to build the join criteria. The join field list must exist on both sides. If not specified, all fields common to both sides will be used as join keys.  
-* leftAlias: optional. Same as basic syntax when used with extended syntax.  
-* rightAlias: optional. Same as basic syntax when used with extended syntax.  
-* joinCriteria: mandatory. Same as basic syntax when used with extended syntax.  
-* right-dataset: mandatory. Same as basic syntax.  
+`join [type=<joinType>] [overwrite=<bool>] [max=n] (<join-field-list> | [leftAlias] [rightAlias] (on | where) <joinCriteria>) <right-dataset>`
+* `type`: optional. Join type using extended syntax. Options: `left`, `outer` (alias of `left`), `semi`, `anti`, and performance-sensitive types `right`, `full`, `cross`. **Default:** `inner`.  
+* `overwrite`: optional boolean. Only works with `join-field-list`. Specifies whether duplicate-named fields from right-dataset should replace corresponding fields in the main search results. **Default:** `true`.  
+* `max`: optional integer. Controls how many subsearch results could be joined against each row in main search. **Default:** 0 (unlimited).  
+* `join-field-list`: optional. The fields used to build the join criteria. The join field list must exist on both sides. If not specified, all fields common to both sides will be used as join keys.  
+* `leftAlias`: optional. Same as basic syntax when used with extended syntax.  
+* `rightAlias`: optional. Same as basic syntax when used with extended syntax.  
+* `joinCriteria`: mandatory. Same as basic syntax when used with extended syntax.  
+* `right-dataset`: mandatory. Same as basic syntax.  
   
-## Configuration  
+
+## Configuration
+
+The following settings configure the `join` command behavior.
 
 ### plugins.ppl.join.subsearch_maxout  
 
@@ -56,6 +60,7 @@ curl -sS -H 'Content-Type: application/json' \
 }
 ```
   
+
 ## Usage  
 
 Basic join syntax: 
@@ -90,9 +95,10 @@ source = table1 | join type=inner max=1 a, b table2 | fields a, b, c
 source = table1 | join type=left overwrite=false max=0 a, b [source=table2 | rename d as b] | fields a, b, c  
 ```
   
-## Example 1: Two indices join  
 
-This example shows joining two indices using the basic join syntax.
+## Example 1: Two indexes join  
+
+The following example PPL query shows how to use `join` to join two indexes using the basic join syntax.
   
 ```ppl
 source = state_country
@@ -115,9 +121,10 @@ fetched rows / total rows = 5/5
 +-------------+----------+-----------+
 ```
   
+
 ## Example 2: Join with subsearch  
 
-This example shows joining with a subsearch using the basic join syntax.
+The following example PPL query shows how to use `join` to join with a subsearch using the basic join syntax.
   
 ```ppl
 source = state_country as a
@@ -143,9 +150,10 @@ fetched rows / total rows = 3/3
 +-------------+----------+-----------+
 ```
   
+
 ## Example 3: Join with field list  
 
-This example shows joining using the extended syntax with field list.
+The following example PPL query shows how to use `join` with the extended syntax and field list.
   
 ```ppl
 source = state_country
@@ -171,9 +179,10 @@ fetched rows / total rows = 3/3
 +-------------+----------+---------+
 ```
   
+
 ## Example 4: Join with options  
 
-This example shows joining using the extended syntax with additional options.
+The following example PPL query shows how to use `join` with the extended syntax and additional options.
   
 ```ppl
 source = state_country
@@ -195,6 +204,7 @@ fetched rows / total rows = 4/4
 +-------------+----------+---------+
 ```
   
+
 ## Limitations  
 
 For basic syntax, if fields in the left outputs and right outputs have the same name. Typically, in the join criteria

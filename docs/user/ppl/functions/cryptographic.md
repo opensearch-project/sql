@@ -6,9 +6,11 @@
 
 Version: 3.1.0  
 Usage: `md5(str)` calculates the MD5 digest and returns the value as a 32-character hex string.  
-Argument type: STRING  
-Return type: STRING  
-Example  
+
+**Argument type:** `STRING`  
+**Return type:** `STRING`  
+
+### Example  
   
 ```ppl
 source=people
@@ -33,9 +35,11 @@ fetched rows / total rows = 1/1
 
 Version: 3.1.0  
 Usage: `sha1(str)` returns the hex string result of SHA-1.  
-Argument type: STRING  
-Return type: STRING  
-Example  
+
+**Argument type:** `STRING`  
+**Return type:** `STRING`  
+
+### Example  
   
 ```ppl
 source=people
@@ -61,9 +65,11 @@ fetched rows / total rows = 1/1
 Version: 3.1.0  
 Usage: `sha2(str, numBits)` returns the hex string result of SHA-2 family of hash functions (SHA-224, SHA-256, SHA-384, and SHA-512).  
 The numBits indicates the desired bit length of the result, which must have a value of 224, 256, 384, or 512.  
-Argument type: STRING, INTEGER  
-Return type: STRING  
-Example  
+
+**Argument type:** `STRING`, `INTEGER`  
+**Return type:** `STRING`  
+
+### Example  
   
 ```ppl
 source=people
