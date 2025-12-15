@@ -8,10 +8,17 @@ package org.opensearch.sql.calcite.validate;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import lombok.experimental.Delegate;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDataTypeSpec;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 
 /**
  * Custom Spark SQL dialect that extends Calcite's SparkSqlDialect to handle OpenSearch-specific
@@ -51,6 +58,19 @@ public class OpenSearchSparkSqlDialect extends SparkSqlDialect {
     } else {
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  @Override
+  public @Nullable SqlNode getCastSpec(RelDataType type) {
+    // ExprIPType has sql type name OTHER, which can not be handled by spark dialect
+    if (OpenSearchTypeFactory.isIp(type)) {
+      return new SqlDataTypeSpec(
+          // It will use SqlTypeName.OTHER by type.getSqlTypeName() as OTHER is "borrowed" to
+          // represent IP type (see also: PplTypeCoercionRule.java)
+          new SqlAlienSystemTypeNameSpec("IP", type.getSqlTypeName(), SqlParserPos.ZERO),
+          SqlParserPos.ZERO);
+    }
+    return super.getCastSpec(type);
   }
 
   private void unparseFunction(
