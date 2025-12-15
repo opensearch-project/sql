@@ -80,8 +80,13 @@ public class MVFindFunctionImpl extends ImplementorUDF {
         return null;
       }
 
-      // Convert numeric or other types to string for regex matching
-      String patternString = literalValue.toString();
+      // Use getValueAs(String.class) to correctly unwrap Calcite NlsString and other string
+      // literals
+      // Fall back to String.valueOf for numeric/other literal types
+      String patternString = patternLiteral.getValueAs(String.class);
+      if (patternString == null) {
+        patternString = String.valueOf(literalValue);
+      }
       try {
         // Compile pattern at planning time and validate
         Pattern compiledPattern = Pattern.compile(patternString);
