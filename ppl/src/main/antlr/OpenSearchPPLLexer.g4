@@ -452,6 +452,7 @@ ARRAY_LENGTH:                       'ARRAY_LENGTH';
 MVAPPEND:                           'MVAPPEND';
 MVJOIN:                             'MVJOIN';
 MVINDEX:                            'MVINDEX';
+MVZIP:                              'MVZIP';
 MVDEDUP:                            'MVDEDUP';
 SPLIT:                              'SPLIT';
 FORALL:                             'FORALL';
