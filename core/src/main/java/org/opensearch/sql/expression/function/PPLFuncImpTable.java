@@ -829,7 +829,7 @@ public class PPLFuncImpTable {
       registerOperator(IFNULL, SqlStdOperatorTable.COALESCE);
       registerOperator(EARLIEST, PPLBuiltinOperators.EARLIEST);
       registerOperator(LATEST, PPLBuiltinOperators.LATEST);
-      registerOperator(COALESCE, PPLBuiltinOperators.ENHANCED_COALESCE);
+      registerOperator(COALESCE, SqlStdOperatorTable.COALESCE);
 
       // Register library operator
       registerOperator(REGEXP, PPLBuiltinOperators.REGEXP);

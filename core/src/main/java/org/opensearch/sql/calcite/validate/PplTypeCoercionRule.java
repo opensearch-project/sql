@@ -17,6 +17,31 @@ import org.apache.calcite.sql.type.SqlTypeAssignmentRule;
 import org.apache.calcite.sql.type.SqlTypeCoercionRule;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+/**
+ * Provides PPL-specific type coercion rules that extend Calcite's default type coercion behavior.
+ *
+ * <p>This class defines additional type mapping rules for PPL, particularly for handling custom
+ * types like IP addresses and number-to-string coercion. These additional rules are merged with
+ * Calcite's built-in type coercion rules.
+ *
+ * <p>The additional mappings defined include:
+ *
+ * <ul>
+ *   <li>IP can be coerced to/from string types
+ *   <li>VARCHAR can be coerced from numeric types
+ * </ul>
+ *
+ * <p>Three variants of type coercion rules are provided:
+ *
+ * <ul>
+ *   <li>{@link #instance()} - Standard type coercion rules
+ *   <li>{@link #lenientInstance()} - More permissive type coercion rules
+ *   <li>{@link #assignmentInstance()} - Rules for type assignment validation
+ * </ul>
+ *
+ * @see SqlTypeCoercionRule
+ * @see PplTypeCoercion
+ */
 public class PplTypeCoercionRule {
   /**
    * PPL-specific additional type mapping rules
@@ -25,6 +50,7 @@ public class PplTypeCoercionRule {
    *   <li>IP -> IP
    *   <li>CHARACTER -> IP
    *   <li>IP -> CHARACTER
+   *   <li>NUMBER -> VARCHAR
    * </ul>
    */
   private static final Map<SqlTypeName, ImmutableSet<@NonNull SqlTypeName>> additionalMapping =
@@ -32,7 +58,10 @@ public class PplTypeCoercionRule {
           SqlTypeName.OTHER,
           ImmutableSet.of(SqlTypeName.OTHER, SqlTypeName.VARCHAR, SqlTypeName.CHAR),
           SqlTypeName.VARCHAR,
-          ImmutableSet.of(SqlTypeName.OTHER),
+          ImmutableSet.<SqlTypeName>builder()
+              .add(SqlTypeName.OTHER)
+              .addAll(SqlTypeName.NUMERIC_TYPES)
+              .build(),
           SqlTypeName.CHAR,
           ImmutableSet.of(SqlTypeName.OTHER));
 

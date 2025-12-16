@@ -80,7 +80,6 @@ import org.opensearch.sql.expression.function.udf.SpanFunction;
 import org.opensearch.sql.expression.function.udf.ToNumberFunction;
 import org.opensearch.sql.expression.function.udf.ToStringFunction;
 import org.opensearch.sql.expression.function.udf.condition.EarliestFunction;
-import org.opensearch.sql.expression.function.udf.condition.EnhancedCoalesceFunction;
 import org.opensearch.sql.expression.function.udf.condition.LatestFunction;
 import org.opensearch.sql.expression.function.udf.datetime.AddSubDateFunction;
 import org.opensearch.sql.expression.function.udf.datetime.CurrentFunction;
@@ -487,9 +486,6 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
           "VALUES",
           PPLReturnTypes.STRING_ARRAY,
           PPLOperandTypes.ANY_SCALAR_OPTIONAL_INTEGER);
-
-  public static final SqlFunction ENHANCED_COALESCE =
-      new EnhancedCoalesceFunction().toUDF("COALESCE");
 
   public static final SqlFunction ATAN =
       new SqlFunction(
