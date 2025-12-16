@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.validate;
+package org.opensearch.sql.calcite.validate.converters;
 
 import java.util.List;
 import org.apache.calcite.plan.RelOptCluster;

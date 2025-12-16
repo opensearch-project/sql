@@ -5,8 +5,8 @@
 
 package org.opensearch.sql.executor;
 
-import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import javax.annotation.Nullable;
 import lombok.AllArgsConstructor;
@@ -14,8 +14,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.apache.calcite.jdbc.CalciteSchema;
-import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
@@ -31,16 +29,8 @@ import org.apache.calcite.rel.rel2sql.SqlImplementor;
 import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.sql.SqlBasicCall;
-import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlNodeList;
-import org.apache.calcite.sql.fun.SqlCountAggFunction;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
-import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.tools.FrameworkConfig;
@@ -58,10 +48,12 @@ import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.validate.OpenSearchSparkSqlDialect;
 import org.opensearch.sql.calcite.validate.PplConvertletTable;
-import org.opensearch.sql.calcite.validate.PplRelToSqlNodeConverter;
-import org.opensearch.sql.calcite.validate.PplSqlToRelConverter;
+import org.opensearch.sql.calcite.validate.ValidationUtils;
+import org.opensearch.sql.calcite.validate.converters.PplRelToSqlNodeConverter;
+import org.opensearch.sql.calcite.validate.converters.PplSqlToRelConverter;
 import org.opensearch.sql.calcite.validate.shuttles.PplRelToSqlRelShuttle;
 import org.opensearch.sql.calcite.validate.shuttles.SkipRelValidationShuttle;
+import org.opensearch.sql.calcite.validate.shuttles.SqlRewriteShuttle;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
@@ -311,11 +303,6 @@ public class QueryService {
   private RelNode validate(RelNode relNode, CalcitePlanContext context) {
     SkipRelValidationShuttle skipShuttle = new SkipRelValidationShuttle();
     relNode.accept(skipShuttle);
-    // WARNING: When a skip pattern is detected (e.g., WIDTH_BUCKET on datetime types),
-    // we bypass the entire validation pipeline, skipping potentially useful transformation relying
-    // on rewriting SQL node
-    // TODO: Make incompatible operations like bin-on-timestamp a validatable UDFs so that they can
-    //  be still be converted to SqlNode and back to RelNode
     if (skipShuttle.shouldSkipValidation()) {
       return relNode;
     }
@@ -328,115 +315,17 @@ public class QueryService {
     SqlNode root = result.asStatement();
 
     // Rewrite SqlNode to remove database qualifiers
-    SqlNode rewritten =
-        root.accept(
-            new SqlShuttle() {
-              @Override
-              public SqlNode visit(SqlIdentifier id) {
-                // Remove database qualifier, keeping only table name
-                if (id.names.size() == 2
-                    && OpenSearchSchema.OPEN_SEARCH_SCHEMA_NAME.equals(id.names.get(0))) {
-                  return new SqlIdentifier(
-                      Collections.singletonList(id.names.get(1)), id.getParserPosition());
-                }
-                return id;
-              }
-
-              @Override
-              public @org.checkerframework.checker.nullness.qual.Nullable SqlNode visit(
-                  SqlCall call) {
-                if (call.getOperator() instanceof SqlCountAggFunction
-                    && call.getOperandList().isEmpty()) {
-                  // Convert COUNT() to COUNT(*) so that SqlCall.isCountStar() resolves to True
-                  // This is useful when deriving the return types in SqlCountAggFunction#deriveType
-                  call =
-                      new SqlBasicCall(
-                          SqlStdOperatorTable.COUNT,
-                          List.of(SqlIdentifier.STAR),
-                          call.getParserPosition(),
-                          call.getFunctionQuantifier());
-                } else if (call.getKind() == SqlKind.IN || call.getKind() == SqlKind.NOT_IN) {
-                  // Fix for tuple IN / NOT IN queries: Convert SqlNodeList to ROW SqlCall
-                  //
-                  // When RelToSqlConverter converts a tuple expression like (id, name) back to
-                  // SqlNode, it generates a bare SqlNodeList instead of wrapping it in a ROW
-                  // operator. This causes validation to fail because:
-                  // 1. SqlValidator.deriveType() doesn't know how to handle SqlNodeList
-                  // 2. SqlToRelConverter.visit(SqlNodeList) throws UnsupportedOperationException
-                  //
-                  // For example, the query:
-                  //   WHERE (id, name) NOT IN (SELECT uid, name FROM ...)
-                  //
-                  // After Rel-to-SQL conversion becomes:
-                  //   IN operator with operands: [SqlNodeList[id, name], SqlSelect[...]]
-                  //
-                  // But it should be:
-                  //   IN operator with operands: [ROW(id, name), SqlSelect[...]]
-                  //
-                  // This fix wraps the SqlNodeList in a ROW SqlCall before validation,
-                  // ensuring proper type derivation and subsequent SQL-to-Rel conversion.
-                  if (!call.getOperandList().isEmpty()
-                      && call.getOperandList().get(0) instanceof SqlNodeList nodes) {
-                    call.setOperand(0, SqlStdOperatorTable.ROW.createCall(nodes));
-                  }
-                }
-                return super.visit(call);
-              }
-            });
+    SqlNode rewritten = root.accept(new SqlRewriteShuttle());
     SqlValidator validator = context.getValidator();
-    if (rewritten != null) {
-      try {
-        validator.validate(rewritten);
-      } catch (CalciteContextException e) {
-        /*
-         Special handling for nested window functions that fail validation due to a Calcite bug.
-         Only CalcitePPLEventstatsIT#testMultipleEventstatsWithNullBucket should be caught by this check.
-
-         <p><b>Calcite Bug (v1.41):</b> {@link SqlImplementor.Result#containsOver()} at
-         SqlImplementor.java:L2145 only checks {@link SqlBasicCall} nodes for window functions,
-         missing other {@link SqlCall} subclasses like {@link SqlCase}. This causes it to fail
-         detecting window functions inside CASE expressions.
-
-         <p><b>Impact:</b> When nested window functions exist (e.g., from double eventstats),
-         Calcite's {@link RelToSqlConverter} doesn't create the necessary subquery boundary
-         because {@code containsOver()} returns false for expressions like:
-
-         <pre>{@code
-        * CASE WHEN ... THEN (SUM(age) OVER (...)) END
-        * }</pre>
-
-         <p>This results in invalid SQL with nested aggregations:
-
-         <pre>{@code
-        * SUM(CASE WHEN ... THEN (SUM(age) OVER (...)) END) OVER (...)
-        * }</pre>
-
-         <p>Which fails validation with "Aggregate expressions cannot be nested".
-
-         <p><b>Workaround:</b> When this specific error occurs, we bypass validation and return
-         the unvalidated RelNode. The query will still execute correctly in the target engine
-         (OpenSearch/Spark SQL) even though Calcite's validator rejects it.
-
-         <p><b>TODO:</b> Remove this workaround when upgrading to a Calcite version that fixes the
-         bug, or implement a proper fix by post-processing the SqlNode to wrap inner window
-         functions in subqueries.
-        */
-        if (e.getMessage() != null
-            && e.getMessage().contains("Aggregate expressions cannot be nested")) {
-          return relNode;
-        }
-        throw new ExpressionEvaluationException(e.getMessage(), e);
+    try {
+      validator.validate(Objects.requireNonNull(rewritten));
+    } catch (CalciteContextException e) {
+      if (ValidationUtils.tolerantValidationException(e)) {
+        return relNode;
       }
-    } else {
-      log.info("Failed to rewrite the SQL node before validation: {}", root);
-      return relNode;
+      throw new ExpressionEvaluationException(e.getMessage(), e);
     }
 
-    // Convert the validated SqlNode back to RelNode
-    RelOptTable.ViewExpander viewExpander = context.config.getViewExpander();
-    RelOptCluster cluster = context.relBuilder.getCluster();
-    CalciteCatalogReader catalogReader =
-        validator.getCatalogReader().unwrap(CalciteCatalogReader.class);
     // 1. Do not remove sort in subqueries so that the orders for queries like `... | sort a |
     // fields b` is preserved
     // 2. Disable automatic JSON_TYPE_OPERATOR wrapping for nested JSON functions
@@ -447,12 +336,13 @@ public class QueryService {
             .withAddJsonTypeOperatorEnabled(false);
     SqlToRelConverter sql2rel =
         new PplSqlToRelConverter(
-            viewExpander,
+            context.config.getViewExpander(),
             validator,
-            catalogReader,
-            cluster,
+            validator.getCatalogReader().unwrap(CalciteCatalogReader.class),
+            context.relBuilder.getCluster(),
             PplConvertletTable.INSTANCE,
             sql2relConfig);
+    // Convert the validated SqlNode back to RelNode
     RelNode validatedRel = sql2rel.convertQuery(rewritten, false, true).project();
     return validatedRel.accept(new PplRelToSqlRelShuttle(context.rexBuilder, false));
   }

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.validate;
+package org.opensearch.sql.calcite.validate.converters;
 
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Join;

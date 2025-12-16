@@ -9,19 +9,26 @@ import static org.opensearch.sql.calcite.validate.ValidationUtils.createUDTWithA
 
 import java.util.List;
 import java.util.function.Function;
+import org.apache.calcite.jdbc.CalcitePrepare;
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelRecordType;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.tools.FrameworkConfig;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
@@ -44,6 +51,31 @@ public class PplValidator extends SqlValidatorImpl {
    * internal validation.
    */
   private boolean top;
+
+  /**
+   * Creates a SqlValidator configured for PPL validation.
+   *
+   * @param statement Calcite server statement
+   * @param frameworkConfig Framework configuration
+   * @param operatorTable SQL operator table to use for validation
+   * @return configured SqlValidator instance
+   */
+  public static PplValidator create(
+      CalciteServerStatement statement,
+      FrameworkConfig frameworkConfig,
+      SqlOperatorTable operatorTable,
+      RelDataTypeFactory typeFactory,
+      SqlValidator.Config validatorConfig) {
+    SchemaPlus defaultSchema = frameworkConfig.getDefaultSchema();
+
+    final CalcitePrepare.Context prepareContext = statement.createPrepareContext();
+    final CalciteSchema schema =
+        defaultSchema != null ? CalciteSchema.from(defaultSchema) : prepareContext.getRootSchema();
+    CalciteCatalogReader catalogReader =
+        new CalciteCatalogReader(
+            schema.root(), schema.path(null), typeFactory, prepareContext.config());
+    return new PplValidator(operatorTable, catalogReader, typeFactory, validatorConfig);
+  }
 
   /**
    * Creates a PPL validator.

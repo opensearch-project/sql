@@ -78,6 +78,9 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
  * <p><b>Note for developers</b>: when validations fail during developing new features, please try
  * to solve the root cause instead of adding skipping rules here. Under rare cases when you have to
  * skip validation, please document the exact reason.
+ *
+ * <p><b>WARNING</b>: When a skip pattern is detected, we bypass the entire validation pipeline,
+ * skipping potentially useful transformation relying on rewriting SQL node
  */
 public class SkipRelValidationShuttle extends RelShuttleImpl {
   private boolean shouldSkip = false;
@@ -93,6 +96,8 @@ public class SkipRelValidationShuttle extends RelShuttleImpl {
   public static final List<Predicate<LogicalValues>> SKIP_VALUES;
 
   static {
+    // TODO: Make incompatible operations like bin-on-timestamp a validatable UDFs so that they can
+    //  be still be converted to SqlNode and back to RelNode
     Predicate<RexCall> binOnTimestamp =
         call -> {
           if ("WIDTH_BUCKET".equalsIgnoreCase(call.getOperator().getName())) {

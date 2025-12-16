@@ -17,6 +17,7 @@ import java.util.Stack;
 import java.util.function.BiFunction;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
@@ -26,8 +27,11 @@ import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.RelBuilder;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
+import org.opensearch.sql.calcite.validate.OpenSearchSparkSqlDialect;
+import org.opensearch.sql.calcite.validate.PplTypeCoercion;
+import org.opensearch.sql.calcite.validate.PplTypeCoercionRule;
+import org.opensearch.sql.calcite.validate.PplValidator;
 import org.opensearch.sql.calcite.validate.SqlOperatorTableProvider;
-import org.opensearch.sql.calcite.validate.TypeChecker;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.FunctionProperties;
@@ -105,8 +109,21 @@ public class CalcitePlanContext {
         throw new IllegalStateException(
             "SqlOperatorTableProvider must be set before creating CalcitePlanContext");
       }
+      SqlValidator.Config validatorConfig =
+          SqlValidator.Config.DEFAULT
+              .withTypeCoercionRules(PplTypeCoercionRule.instance())
+              .withTypeCoercionFactory(PplTypeCoercion::create)
+              // Use lenient conformance for PPL compatibility
+              .withConformance(OpenSearchSparkSqlDialect.DEFAULT.getConformance())
+              // Use Spark SQL's NULL collation (NULLs sorted LOW/FIRST)
+              .withDefaultNullCollation(NullCollation.LOW);
       validator =
-          TypeChecker.getValidator(statement, config, operatorTableProvider.getOperatorTable());
+          PplValidator.create(
+              statement,
+              config,
+              operatorTableProvider.getOperatorTable(),
+              TYPE_FACTORY,
+              validatorConfig);
     }
     return validator;
   }
