@@ -5,12 +5,9 @@
 
 package org.opensearch.sql.executor;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -38,14 +35,11 @@ import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
-import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
@@ -403,17 +397,13 @@ public class QueryService {
       return relNode;
     }
 
-    //    if (rewritten instanceof SqlSelect select) {
-    //        rewritten = rewriteGroupBy(select);
-    //    }
     // Convert the validated SqlNode back to RelNode
     RelOptTable.ViewExpander viewExpander = context.config.getViewExpander();
     RelOptCluster cluster = context.relBuilder.getCluster();
     CalciteCatalogReader catalogReader =
         validator.getCatalogReader().unwrap(CalciteCatalogReader.class);
     // 1. Do not remove sort in subqueries so that the orders for queries like `... | sort a |
-    // fields
-    // b` is preserved
+    // fields b` is preserved
     // 2. Disable automatic JSON_TYPE_OPERATOR wrapping for nested JSON functions
     // (See CALCITE-4989: Calcite wraps nested JSON functions with JSON_TYPE by default)
     SqlToRelConverter.Config sql2relConfig =
@@ -516,36 +506,5 @@ public class QueryService {
       calcitePlan = LogicalSort.create(osPlan, collation, null, null);
     }
     return calcitePlan;
-  }
-
-  private SqlNode rewriteGroupBy(SqlSelect root) {
-    if (root.getGroup() == null) {
-      return root;
-    }
-    List<SqlNode> selectList = root.getSelectList().getList();
-    List<SqlNode> groupByList = root.getGroup().getList();
-    List<SqlNode> unwrappedGroupByList = groupByList.stream().map(QueryService::unwrapAs).toList();
-    List<SqlNode> unwrappedSelectList = selectList.stream().map(QueryService::unwrapAs).toList();
-    if (new HashSet<>(unwrappedSelectList).containsAll(unwrappedGroupByList)) {
-      List<Integer> ordinals =
-          unwrappedGroupByList.stream().map(unwrappedSelectList::indexOf).toList();
-      List<SqlNode> groupByOrdinals =
-          ordinals.stream()
-              .map(
-                  ordinal ->
-                      (SqlNode)
-                          SqlLiteral.createExactNumeric(
-                              Integer.toString(ordinal + 1), SqlParserPos.ZERO))
-              .collect(Collectors.toCollection(ArrayList::new));
-      root.setGroupBy(SqlNodeList.of(root.getGroup().getParserPosition(), groupByOrdinals));
-    }
-    return root;
-  }
-
-  private static SqlNode unwrapAs(SqlNode node) {
-    if (node.getKind() == SqlKind.AS && node instanceof SqlCall) {
-      return ((SqlCall) node).getOperandList().get(0);
-    }
-    return node;
   }
 }
