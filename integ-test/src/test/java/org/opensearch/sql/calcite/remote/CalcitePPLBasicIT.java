@@ -17,7 +17,6 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.ResponseException;
-import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLBasicIT extends PPLIntegTestCase {
@@ -455,16 +454,27 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testBetweenWithMixedTypes() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where age between '35' and 38 | fields firstname, age",
+                TEST_INDEX_BANK));
+    verifyDataRows(actual, rows("Hattie", 36), rows("Elinor", 36));
+  }
+
+  @Test
   public void testBetweenWithIncompatibleTypes() {
+    // Plan: CAST(NUMBER_TO_STRING(38.5:DECIMAL(3, 1))):INTEGER)
     Throwable e =
         assertThrowsWithReplace(
-            SemanticCheckException.class,
+            NumberFormatException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s | where age between '35' and 38.5 | fields firstname, age",
                         TEST_INDEX_BANK)));
-    verifyErrorMessageContains(e, "BETWEEN expression types are incompatible");
+    verifyErrorMessageContains(e, "For input string: \\\"38.5\\\"");
   }
 
   @Test
