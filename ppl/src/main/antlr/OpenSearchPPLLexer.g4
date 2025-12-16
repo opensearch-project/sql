@@ -46,6 +46,7 @@ ML:                                 'ML';
 FILLNULL:                           'FILLNULL';
 FLATTEN:                            'FLATTEN';
 TRENDLINE:                          'TRENDLINE';
+TRANSPOSE:                          'TRANSPOSE';
 CHART:                              'CHART';
 TIMECHART:                          'TIMECHART';
 APPENDCOL:                          'APPENDCOL';
@@ -156,6 +157,10 @@ TIMEFIELD:                          'TIMEFIELD';
 INPUT:                              'INPUT';
 OUTPUT:                             'OUTPUT';
 PATH:                               'PATH';
+COLUMN_NAME:                        'COLUMN_NAME';
+HEADER_FIELD:                       'HEADER_FIELD';
+INCLUDE_EMPTY:                      'INCLUDE_EMPTY';
+
 
 // COMPARISON FUNCTION KEYWORDS
 CASE:                               'CASE';
