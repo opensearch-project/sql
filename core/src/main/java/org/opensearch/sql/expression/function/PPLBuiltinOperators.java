@@ -404,8 +404,8 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlFunction MVAPPEND = new MVAppendFunctionImpl().toUDF("mvappend");
   public static final SqlFunction MVZIP = new MVZipFunctionImpl().toUDF("mvzip");
   public static final SqlFunction FILTER = new FilterFunctionImpl().toUDF("filter");
-  public static final SqlOperator TRANSFORM = new TransformFunctionImpl().toUDF("transform");
-  public static final SqlOperator REDUCE = new ReduceFunctionImpl().toUDF("reduce");
+  public static final SqlFunction TRANSFORM = new TransformFunctionImpl().toUDF("transform");
+  public static final SqlFunction REDUCE = new ReduceFunctionImpl().toUDF("reduce");
 
   private static final RelevanceQueryFunction RELEVANCE_QUERY_FUNCTION_INSTANCE =
       new RelevanceQueryFunction();

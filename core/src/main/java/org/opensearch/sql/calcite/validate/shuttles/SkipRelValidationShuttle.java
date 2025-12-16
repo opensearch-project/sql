@@ -122,7 +122,7 @@ public class SkipRelValidationShuttle extends RelShuttleImpl {
     return shouldSkip;
   }
 
-    @Override
+  @Override
   protected RelNode visitChild(RelNode parent, int i, RelNode child) {
     RelNode newChild = super.visitChild(parent, i, child);
     return newChild.accept(rexShuttle);
