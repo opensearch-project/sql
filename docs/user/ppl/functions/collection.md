@@ -724,4 +724,109 @@ fetched rows / total rows = 1/1
 | [alex,celestino,claudia] |
 +--------------------------+
 ```
-  
+
+## MVZIP
+
+### Description
+
+Usage: mvzip(mv_left, mv_right, [delim]) combines the values in two multivalue arrays by pairing corresponding elements and joining them into strings. The delimiter is used to specify a delimiting character to join the two values. This is similar to the Python zip command.
+
+The values are stitched together combining the first value of mv_left with the first value of mv_right, then the second with the second, and so on. Each pair is concatenated into a string using the delimiter. The function stops at the length of the shorter array.
+
+The delimiter is optional. When specified, it must be enclosed in quotation marks. The default delimiter is a comma ( , ).
+
+Returns null if either input is null. Returns an empty array if either input array is empty.
+
+Argument type: mv_left: ARRAY, mv_right: ARRAY, delim: STRING (optional)
+Return type: ARRAY of STRING
+Example
+
+```ppl
+source=people
+| eval hosts = array('host1', 'host2'), ports = array('80', '443'), nserver = mvzip(hosts, ports, ':')
+| fields nserver
+| head 1
+```
+
+Expected output:
+
+```text
+fetched rows / total rows = 1/1
++----------------------+
+| nserver              |
+|----------------------|
+| [host1:80,host2:443] |
++----------------------+
+```
+
+```ppl
+source=people
+| eval arr1 = array('a', 'b', 'c'), arr2 = array('x', 'y', 'z'), result = mvzip(arr1, arr2, '|')
+| fields result
+| head 1
+```
+
+Expected output:
+
+```text
+fetched rows / total rows = 1/1
++---------------+
+| result        |
+|---------------|
+| [a|x,b|y,c|z] |
++---------------+
+```
+
+```ppl
+source=people
+| eval arr1 = array('1', '2', '3'), arr2 = array('a', 'b'), result = mvzip(arr1, arr2, '-')
+| fields result
+| head 1
+```
+
+Expected output:
+
+```text
+fetched rows / total rows = 1/1
++-----------+
+| result    |
+|-----------|
+| [1-a,2-b] |
++-----------+
+```
+
+```ppl
+source=people
+| eval arr1 = array('a', 'b', 'c'), arr2 = array('x', 'y', 'z'), arr3 = array('1', '2', '3'), result = mvzip(mvzip(arr1, arr2, '-'), arr3, ':')
+| fields result
+| head 1
+```
+
+Expected output:
+
+```text
+fetched rows / total rows = 1/1
++---------------------+
+| result              |
+|---------------------|
+| [a-x:1,b-y:2,c-z:3] |
++---------------------+
+```
+
+```ppl
+source=people
+| eval arr1 = array('a', 'b'), arr2 = array(), result = mvzip(arr1, arr2)
+| fields result
+| head 1
+```
+
+Expected output:
+
+```text
+fetched rows / total rows = 1/1
++--------+
+| result |
+|--------|
+| []     |
++--------+
+```

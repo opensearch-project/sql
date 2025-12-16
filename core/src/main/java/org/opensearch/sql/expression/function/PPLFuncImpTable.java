@@ -154,6 +154,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVAPPEN
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVDEDUP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVINDEX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVJOIN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVZIP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOTEQUAL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOW;
@@ -1042,6 +1043,7 @@ public class PPLFuncImpTable {
       registerOperator(ARRAY, PPLBuiltinOperators.ARRAY);
       registerOperator(MVAPPEND, PPLBuiltinOperators.MVAPPEND);
       registerOperator(MVDEDUP, SqlLibraryOperators.ARRAY_DISTINCT);
+      registerOperator(MVZIP, PPLBuiltinOperators.MVZIP);
       registerOperator(MAP_APPEND, PPLBuiltinOperators.MAP_APPEND);
       registerOperator(MAP_CONCAT, SqlLibraryOperators.MAP_CONCAT);
       registerOperator(MAP_REMOVE, PPLBuiltinOperators.MAP_REMOVE);
