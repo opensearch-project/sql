@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.opensearch.planner.rules;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -27,6 +26,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.immutables.value.Value;
+import org.opensearch.ml.repackage.com.google.common.collect.Streams;
 import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
@@ -81,13 +81,9 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
       // TODO https://github.com/opensearch-project/sql/issues/4564
       return;
     }
-    List<Integer> dedupColumnIndicesInWindowProject =
-        dedupColumns.stream()
-            .filter(rex -> rex.isA(SqlKind.INPUT_REF))
-            .map(r -> ((RexInputRef) r).getIndex())
-            .toList();
+    List<Integer> dedupColumnIndices = getInputRefIndices(dedupColumns);
     List<String> dedupColumnNames =
-        dedupColumnIndicesInWindowProject.stream()
+        dedupColumnIndices.stream()
             .map(
                 i ->
                     projectWithWindow.getNamedProjects().stream()
@@ -107,58 +103,26 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
     // We convert the dedup pushdown to composite aggregate + top_hits:
     // Aggregate(literalAgg(dedupNumer), groups)
     // +- Project(groups, remaining)
-    //    +- Scan or Project with expression
     RelBuilder relBuilder = call.builder();
     // 1 Initial a RelBuilder by pushing Scan and Project
     if (projectWithExpr == null) {
-      // 1.1 if projectWithExpr not existed, push scan
+      // 1.1 if projectWithExpr not existed, push a scan then create a new project
       relBuilder.push(scan);
-      // 1.2 To baseline the rowType, merge the fields() and projectWithWindow
-      List<RexNode> columnsMerged = new ArrayList<>();
-      List<String> colNamesMerged = new ArrayList<>();
       List<RexNode> columnsFromScan = relBuilder.fields();
-      List<RexNode> columnsFromWindowProj = projectWithWindow.getProjects();
       List<String> colNamesFromScan = relBuilder.peek().getRowType().getFieldNames();
-      List<String> colNamesFromWindowProj = projectWithWindow.getRowType().getFieldNames();
-
-      // 1.3 Add existing columns with proper names
-      // For rename case: source = t | rename old as new | dedup new
-      // Add the column `old` with name "new"
-      for (RexNode col : columnsFromScan) {
-        columnsMerged.add(col);
-        int projectIndex = columnsFromWindowProj.indexOf(col);
-        if (projectIndex >= 0) {
-          colNamesMerged.add(colNamesFromWindowProj.get(projectIndex));
-        } else {
-          colNamesMerged.add(colNamesFromScan.get(columnsFromScan.indexOf(col)));
-        }
-      }
-      // 1.4 Append new columns from project (excluding ROW_NUMBER and duplicates)
-      for (RexNode col : columnsFromWindowProj) {
-        if (!col.isA(SqlKind.ROW_NUMBER) && !columnsFromScan.contains(col)) {
-          columnsMerged.add(col);
-          colNamesMerged.add(col.toString());
-        }
-      }
-      // 1.5 if reorder required, build the reordered project
-      List<Pair<RexNode, String>> merged =
-          IntStream.range(0, columnsMerged.size())
-              .mapToObj(i -> new Pair<>(columnsMerged.get(i), colNamesMerged.get(i)))
-              .toList();
+      List<Pair<RexNode, String>> namedPairFromScan =
+          Streams.zip(columnsFromScan.stream(), colNamesFromScan.stream(), Pair::new).toList();
       List<Pair<RexNode, String>> reordered =
-          moveForwardDedupColumns(merged, dedupColumnIndicesInWindowProject, dedupColumnNames);
-      // 1.6 force add this reordered project
+          advanceDedupColumns(namedPairFromScan, dedupColumnIndices, dedupColumnNames);
       relBuilder.project(
           reordered.stream().map(Pair::getKey).toList(),
           reordered.stream().map(Pair::getValue).toList(),
           true);
     } else {
-      // 1.7 if projectWithExpr existed, push a reordered projectWithExpr
+      // 1.2 if projectWithExpr existed, push a reordered projectWithExpr
       List<Pair<RexNode, String>> reordered =
-          moveForwardDedupColumns(
-              projectWithExpr.getNamedProjects(),
-              dedupColumnIndicesInWindowProject,
-              dedupColumnNames);
+          advanceDedupColumns(
+              projectWithExpr.getNamedProjects(), dedupColumnIndices, dedupColumnNames);
       LogicalProject reorderedProject =
           LogicalProject.create(
               projectWithExpr.getInput(),
@@ -191,8 +155,22 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
     }
   }
 
-  /** Move the dedup columns to the front of the original column list. */
-  private static List<Pair<RexNode, String>> moveForwardDedupColumns(
+  private static List<Integer> getInputRefIndices(List<RexNode> columns) {
+    return columns.stream()
+        .filter(rex -> rex.isA(SqlKind.INPUT_REF))
+        .map(r -> ((RexInputRef) r).getIndex())
+        .toList();
+  }
+
+  /**
+   * Move the dedup columns to the front of the original column list.
+   *
+   * @param originalColumnList The original column pair list
+   * @param dedupColumnIndices The indices of dedup columns
+   * @param dedupColumnNames The names of dedup columns
+   * @return The reordered column pair list
+   */
+  private static List<Pair<RexNode, String>> advanceDedupColumns(
       List<Pair<RexNode, String>> originalColumnList,
       List<Integer> dedupColumnIndices,
       List<String> dedupColumnNames) {
