@@ -386,10 +386,45 @@ public class QueryService {
     SqlValidator validator = context.getValidator();
     if (rewritten != null) {
       try {
-        log.debug("Before validation: {}", rewritten);
         validator.validate(rewritten);
-        log.debug("After validation: {}", rewritten);
       } catch (CalciteContextException e) {
+        /*
+         Special handling for nested window functions that fail validation due to a Calcite bug.
+         Only CalcitePPLEventstatsIT#testMultipleEventstatsWithNullBucket should be caught by this check.
+
+         <p><b>Calcite Bug (v1.41):</b> {@link SqlImplementor.Result#containsOver()} at
+         SqlImplementor.java:L2145 only checks {@link SqlBasicCall} nodes for window functions,
+         missing other {@link SqlCall} subclasses like {@link SqlCase}. This causes it to fail
+         detecting window functions inside CASE expressions.
+
+         <p><b>Impact:</b> When nested window functions exist (e.g., from double eventstats),
+         Calcite's {@link RelToSqlConverter} doesn't create the necessary subquery boundary
+         because {@code containsOver()} returns false for expressions like:
+
+         <pre>{@code
+        * CASE WHEN ... THEN (SUM(age) OVER (...)) END
+        * }</pre>
+
+         <p>This results in invalid SQL with nested aggregations:
+
+         <pre>{@code
+        * SUM(CASE WHEN ... THEN (SUM(age) OVER (...)) END) OVER (...)
+        * }</pre>
+
+         <p>Which fails validation with "Aggregate expressions cannot be nested".
+
+         <p><b>Workaround:</b> When this specific error occurs, we bypass validation and return
+         the unvalidated RelNode. The query will still execute correctly in the target engine
+         (OpenSearch/Spark SQL) even though Calcite's validator rejects it.
+
+         <p><b>TODO:</b> Remove this workaround when upgrading to a Calcite version that fixes the
+         bug, or implement a proper fix by post-processing the SqlNode to wrap inner window
+         functions in subqueries.
+        */
+        if (e.getMessage() != null
+            && e.getMessage().contains("Aggregate expressions cannot be nested")) {
+          return relNode;
+        }
         throw new ExpressionEvaluationException(e.getMessage(), e);
       }
     } else {
