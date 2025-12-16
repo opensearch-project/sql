@@ -88,7 +88,14 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
             .toList();
     List<String> dedupColumnNames =
         dedupColumnIndicesInWindowProject.stream()
-            .map(i -> projectWithWindow.getInput().getRowType().getFieldNames().get(i))
+            .map(
+                i ->
+                    projectWithWindow.getNamedProjects().stream()
+                        .filter(pair -> pair.getKey().isA(SqlKind.INPUT_REF))
+                        .filter(pair -> ((RexInputRef) pair.getKey()).getIndex() == i)
+                        .map(Pair::getValue)
+                        .findFirst()
+                        .get())
             .toList();
 
     // must be row_number <= number
