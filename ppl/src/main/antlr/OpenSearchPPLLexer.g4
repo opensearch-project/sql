@@ -456,6 +456,7 @@ MVFIND:                             'MVFIND';
 MVZIP:                              'MVZIP';
 MVDEDUP:                            'MVDEDUP';
 SPLIT:                              'SPLIT';
+MVMAP:                              'MVMAP';
 FORALL:                             'FORALL';
 FILTER:                             'FILTER';
 TRANSFORM:                          'TRANSFORM';

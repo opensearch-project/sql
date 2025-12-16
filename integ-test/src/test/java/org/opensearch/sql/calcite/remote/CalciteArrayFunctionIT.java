@@ -794,4 +794,77 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     // Empty delimiter splits into individual characters
     verifyDataRows(actual, rows(List.of("a", "b", "c", "d")));
   }
+
+  @Test
+  public void testMvmap() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array(1, 2, 3), result = mvmap(arr, arr * 10) | head 1 |"
+                    + " fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of(10, 20, 30)));
+  }
+
+  @Test
+  public void testMvmapWithAddition() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array(1, 2, 3), result = mvmap(arr, arr + 5) | head 1 |"
+                    + " fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of(6, 7, 8)));
+  }
+
+  @Test
+  public void testMvmapWithNestedFunction() throws IOException {
+    // Test mvmap with mvindex as first argument - extracts field name from nested function
+    // Equivalent to Splunk: mvmap(mvindex(arr, 1, 3), arr * 10)
+    // The lambda binds 'arr' and iterates over mvindex output (values at indices 1-3)
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array(10, 20, 30, 40, 50), result = mvmap(mvindex(arr, 1,"
+                    + " 3), arr * 2) | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    // mvindex(arr, 1, 3) returns [20, 30, 40], then mvmap multiplies each by 2
+    verifyDataRows(actual, rows(List.of(40, 60, 80)));
+  }
+
+  @Test
+  public void testMvmapWithOtherFieldReference() throws IOException {
+    // Test mvmap with reference to another field in the expression
+    // The first record in bank has age=32, so array(1,2,3) * 32 = [32, 64, 96]
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array(1, 2, 3), result = mvmap(arr, arr * age) | head 1 |"
+                    + " fields age, result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("age", "int"), schema("result", "array"));
+    verifyDataRows(actual, rows(32, List.of(32, 64, 96)));
+  }
+
+  @Test
+  public void testMvmapWithEvalFieldReference() throws IOException {
+    // Test mvmap with reference to another field created by eval
+    // array(1,2,3) * 10 = [10, 20, 30]
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array(1, 2, 3), multiplier = 10, result = mvmap(arr, arr *"
+                    + " multiplier) | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of(10, 20, 30)));
+  }
 }
