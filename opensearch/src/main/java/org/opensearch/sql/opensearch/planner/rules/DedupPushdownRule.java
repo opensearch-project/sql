@@ -87,10 +87,16 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
             .map(r -> ((RexInputRef) r).getIndex())
             .map(i -> projectWithWindow.getInput().getRowType().getFieldNames().get(i))
             .toList();
-    if (projectWithExpr != null && projectWithWindow.getProjects().stream()
-        .filter(rex -> !rex.isA(SqlKind.ROW_NUMBER))
-        .filter(Predicate.not(dedupColumns::contains))
-        .anyMatch(rex -> !projectWithExpr.getProjects().get(((RexInputRef) rex).getIndex()).isA(SqlKind.INPUT_REF))) {
+    if (projectWithExpr != null
+        && projectWithWindow.getProjects().stream()
+            .filter(rex -> !rex.isA(SqlKind.ROW_NUMBER))
+            .filter(Predicate.not(dedupColumns::contains))
+            .anyMatch(
+                rex ->
+                    !projectWithExpr
+                        .getProjects()
+                        .get(((RexInputRef) rex).getIndex())
+                        .isA(SqlKind.INPUT_REF))) {
       // TODO fallback to the approach of Collapse search
       // | eval new_age = age + 1 | fields gender, new_age | dedup 1 gender
       if (LOG.isDebugEnabled()) {
