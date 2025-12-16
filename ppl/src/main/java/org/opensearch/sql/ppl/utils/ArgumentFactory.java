@@ -308,7 +308,39 @@ public class ArgumentFactory {
     return arguments;
   }
 
-  /**
+    public static List<Argument> getArgumentList(
+            OpenSearchPPLParser.TransposeCommandContext transposeCommandContext) {
+        List<Argument> arguments = new ArrayList<>();
+        for (OpenSearchPPLParser.TransposeParameterContext ctx : transposeCommandContext.transposeParameter()) {
+
+            if (ctx.COLUMN_NAME() != null) {
+                Literal columnName = getArgumentValue(ctx.stringLiteral());
+                arguments.add(new Argument("columnName", columnName));
+            } else if (ctx.HEADER_FIELD() != null) {
+                Literal headerField = getArgumentValue(ctx.stringLiteral());
+                arguments.add(new Argument("headerField", headerField));
+            } else if (ctx.INCLUDE_EMPTY() != null) {
+                Literal includeEmpty;
+                if (ctx.booleanLiteral() != null) {
+                    includeEmpty = getArgumentValue(ctx.booleanLiteral());
+                }else {
+                    throw new IllegalArgumentException("value for includeEmpty must be a boolean");
+                }
+                arguments.add(new Argument("includeEmpty", includeEmpty));
+            }  else if (ctx.number !=null ) {
+
+                arguments.add(new Argument("number",getArgumentValue(ctx.number)));
+            }else {
+                throw new IllegalArgumentException(
+                        String.format(
+                                "A parameter of transpose must be a int limit, column_name, header_field, or include_empty, got %s",
+                                ctx));
+            }
+        }
+        return arguments;
+    }
+
+    /**
    * Get list of {@link Argument}.
    *
    * @param ctx RareCommandContext instance

@@ -85,6 +85,7 @@ commands
    | regexCommand
    | chartCommand
    | timechartCommand
+   | transposeCommand
    | rexCommand
    | appendPipeCommand
    | replaceCommand
@@ -327,6 +328,18 @@ columnSplit
 timechartCommand
    : TIMECHART timechartParameter* statsAggTerm (BY fieldExpression)? timechartParameter*
    ;
+
+transposeCommand
+   : TRANSPOSE transposeParameter*
+   ;
+
+transposeParameter
+   : number = integerLiteral
+   | COLUMN_NAME EQUAL stringLiteral
+   | HEADER_FIELD EQUAL stringLiteral
+   | INCLUDE_EMPTY EQUAL booleanLiteral
+   ;
+
 
 timechartParameter
    : LIMIT EQUAL integerLiteral
@@ -1657,5 +1670,9 @@ searchableKeyWord
    | FIELDNAME
    | ROW
    | COL
+   | TRANSPOSE
+   | COLUMN_NAME
+   | HEADER_FIELD
+   | INCLUDE_EMPTY
    ;
 
