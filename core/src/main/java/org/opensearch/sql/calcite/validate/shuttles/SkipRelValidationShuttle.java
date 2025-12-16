@@ -11,6 +11,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
@@ -25,6 +26,7 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
  *   <li>Binning on datetime types, which is only executable after pushdown.
  *   <li>Aggregates with multiple complex CASE statements, which cause field reference issues during
  *       the SQL-to-Rel conversion.
+ *   <li>LogicalValues is used to populate empty row values
  * </ul>
  *
  * <b>Group by multiple CASE statements</b>
@@ -54,6 +56,28 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
  *
  * <p>When Calcite converts this SQL back to RelNode, it processes GROUP BY expressions
  * sequentially, making field references in the second CASE expression invalid.
+ *
+ * <p><b>Generate empty row with LogicalValues</b>
+ *
+ * <p>Types in the rows generated with {@code VALUES} will not be preserved, causing validation
+ * issues when converting SQL back to a logical plan.
+ *
+ * <p>For example, in {@code CalcitePPLAggregationIT.testSumEmpty}, the query {@code
+ * source=opensearch-sql_test_index_bank_with_null_values | where 1=2 | stats sum(balance)} will be
+ * converted to the following SQL:
+ *
+ * <pre>{@code
+ * SELECT SUM(CAST(`balance` AS DECIMAL(38, 19))) AS `sum(balance)`
+ * FROM (VALUES (NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)) AS `t` (`account_number`, `firstname`, `address`, `balance`, `gender`, `age`, `lastname`, `_id`, `_index`, `_score`, `_maxscore`, `_sort`, `_routing`)
+ * WHERE 1 = 0
+ * }</pre>
+ *
+ * When converted back to logical plan, {@code CAST(`balance` AS DECIMAL(38, 19))} will fail because
+ * the type of balance is lost.
+ *
+ * <p><b>Note for developers</b>: when validations fail during developing new features, please try
+ * to solve the root cause instead of adding skipping rules here. Under rare cases when you have to
+ * skip validation, please document the exact reason.
  */
 public class SkipRelValidationShuttle extends RelShuttleImpl {
   private boolean shouldSkip = false;
@@ -64,6 +88,9 @@ public class SkipRelValidationShuttle extends RelShuttleImpl {
 
   /** Predicates about logical aggregates that should not be validated */
   public static final List<Predicate<LogicalAggregate>> SKIP_AGGREGATES;
+
+  /** Predicates about logical values that should not be validated */
+  public static final List<Predicate<LogicalValues>> SKIP_VALUES;
 
   static {
     Predicate<RexCall> binOnTimestamp =
@@ -78,16 +105,18 @@ public class SkipRelValidationShuttle extends RelShuttleImpl {
         };
     Predicate<LogicalAggregate> groupByMultipleCases =
         aggregate -> {
-          if (aggregate.getGroupCount() >= 2
+          if (aggregate.getGroupCount() > 1
               && aggregate.getInput() instanceof LogicalProject project) {
             long nGroupByCase =
                 project.getProjects().stream().filter(p -> p.isA(SqlKind.CASE)).count();
-            return nGroupByCase >= 2;
+            return nGroupByCase > 1;
           }
           return false;
         };
+    Predicate<LogicalValues> createEmptyRow = values -> values.getTuples().isEmpty();
     SKIP_CALLS = List.of(binOnTimestamp);
     SKIP_AGGREGATES = List.of(groupByMultipleCases);
+    SKIP_VALUES = List.of(createEmptyRow);
   }
 
   @Override
@@ -99,6 +128,17 @@ public class SkipRelValidationShuttle extends RelShuttleImpl {
       }
     }
     return super.visit(aggregate);
+  }
+
+  @Override
+  public RelNode visit(LogicalValues values) {
+    for (Predicate<LogicalValues> skipValues : SKIP_VALUES) {
+      if (skipValues.test(values)) {
+        shouldSkip = true;
+        return values;
+      }
+    }
+    return super.visit(values);
   }
 
   public SkipRelValidationShuttle() {
