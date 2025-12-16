@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.opensearch.planner.rules;
 
+import com.google.common.collect.Streams;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -26,7 +27,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.immutables.value.Value;
-import org.opensearch.ml.repackage.com.google.common.collect.Streams;
 import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
@@ -93,7 +93,9 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
                         .findFirst()
                         .get())
             .toList();
-
+    if (dedupColumnIndices.size() != dedupColumnNames.size()) {
+      return;
+    }
     // must be row_number <= number
     assert numOfDedupFilter.getCondition().isA(SqlKind.LESS_THAN_OR_EQUAL);
     RexLiteral literal =

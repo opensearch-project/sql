@@ -29,7 +29,7 @@ public class CalciteFieldScriptLeafFactory implements FieldScript.LeafFactory {
 
   /**
    * Stores the parameter names to the actual indices in SOURCES. Generate it in advance in factory
-   * to save the process for each document*
+   * to save the process for each document.
    */
   private final Map<String, Integer> parametersToIndex;
 

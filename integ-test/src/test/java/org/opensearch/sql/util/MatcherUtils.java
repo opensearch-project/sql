@@ -447,7 +447,16 @@ public class MatcherUtils {
     assertYamlEquals(cleanUpYaml(expectedYaml), cleanUpYaml(actualYaml));
   }
 
-  /** Due to the implementation of DSL, may both expected YAML files are correct. */
+  /**
+   * Compare actual YAML with two expected YAML strings, using the second as a fallback. This is
+   * useful when the DSL implementation can produce multiple valid plan variants. If the first
+   * comparison fails, attempts the second comparison instead.
+   *
+   * @param expectedYaml1 the primary expected YAML string
+   * @param expectedYaml2 the fallback expected YAML string
+   * @param actualYaml the actual YAML string to compare
+   * @throws AssertionError if both comparisons fail (reports only the second failure)
+   */
   public static void assertYamlEqualsIgnoreId(
       String expectedYaml1, String expectedYaml2, String actualYaml) {
     try {

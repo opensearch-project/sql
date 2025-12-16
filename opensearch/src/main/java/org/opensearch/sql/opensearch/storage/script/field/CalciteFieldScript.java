@@ -26,6 +26,15 @@ public class CalciteFieldScript extends FieldScript {
 
   private final Map<String, Integer> parametersToIndex;
 
+  /**
+   * Creates a new CalciteFieldScript.
+   *
+   * @param function the Calcite function to execute
+   * @param lookup the search lookup for document access
+   * @param context the leaf reader context
+   * @param params the script parameters
+   * @param parametersToIndex mapping from parameter names to indices
+   */
   public CalciteFieldScript(
       Function1<DataContext, Object[]> function,
       SearchLookup lookup,
@@ -40,6 +49,11 @@ public class CalciteFieldScript extends FieldScript {
 
   @Override
   public Object execute() {
-    return calciteScript.execute(this.getDoc(), this.sourceLookup, this.parametersToIndex)[0];
+    Object[] results =
+        calciteScript.execute(this.getDoc(), this.sourceLookup, this.parametersToIndex);
+    if (results == null || results.length == 0) {
+      return null;
+    }
+    return results[0];
   }
 }
