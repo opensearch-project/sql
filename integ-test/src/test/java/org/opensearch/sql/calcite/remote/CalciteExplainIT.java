@@ -2101,8 +2101,8 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testRenameDedupThenSortExpr() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
-    String expected = loadExpectedPlan("explain_dedup_expr_complex.yaml");
-    String alternative = loadExpectedPlan("explain_dedup_expr_complex_alternative.yaml");
+    String expected = loadExpectedPlan("explain_dedup_expr_complex1.yaml");
+    String alternative = loadExpectedPlan("explain_dedup_expr_complex1_alternative.yaml");
     assertYamlEqualsIgnoreId(
         expected,
         alternative,
@@ -2111,6 +2111,53 @@ public class CalciteExplainIT extends ExplainIT {
                 + " eval tmp_gender = lower(gender) | eval tmp_state = lower(state) | rename"
                 + " tmp_gender as new_gender | rename tmp_state as new_state | sort new_gender,"
                 + " -new_state | dedup 2 new_gender, new_state"));
+    expected = loadExpectedPlan("explain_dedup_expr_complex2.yaml");
+    alternative = loadExpectedPlan("explain_dedup_expr_complex2_alternative.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        alternative,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | fields account_number, gender, age, state |"
+                + " eval tmp_gender = lower(gender) | eval tmp_state = lower(state) | rename"
+                + " tmp_gender as new_gender | rename tmp_state as new_state | dedup 2 new_gender,"
+                + " new_state | sort new_gender, -new_state"));
+  }
+
+  @Test
+  public void testDedupWithExpr() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_dedup_with_expr1.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | eval new_gender = lower(gender) | dedup 1"
+                + " age"));
+    expected = loadExpectedPlan("explain_dedup_with_expr2.yaml");
+    String alternative = loadExpectedPlan("explain_dedup_with_expr2_alternative.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        alternative,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | fields account_number, gender, age, state |"
+                + " eval new_gender = lower(gender), new_state = lower(state) | dedup 1 age,"
+                + " new_state"));
+    expected = loadExpectedPlan("explain_dedup_with_expr3.yaml");
+    alternative = loadExpectedPlan("explain_dedup_with_expr3_alternative.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        alternative,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | eval new_gender = lower(gender) | eval"
+                + " new_state = lower(state) | dedup 2 age, account_number"));
+    expected = loadExpectedPlan("explain_dedup_with_expr4.yaml");
+    alternative = loadExpectedPlan("explain_dedup_with_expr4_alternative.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        alternative,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account | fields account_number, gender, age, state |"
+                + " eval new_gender = lower(gender) | eval new_state = lower(state) | sort gender,"
+                + " -state | dedup 2 gender, state"));
   }
 
   @Test
