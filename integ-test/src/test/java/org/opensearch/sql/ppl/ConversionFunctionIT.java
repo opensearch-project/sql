@@ -15,6 +15,8 @@ import org.junit.Test;
 public class ConversionFunctionIT extends PPLIntegTestCase {
   @Override
   public void init() throws Exception {
+    super.init();
+    enableCalcite();
     loadIndex(Index.ACCOUNT);
   }
 
