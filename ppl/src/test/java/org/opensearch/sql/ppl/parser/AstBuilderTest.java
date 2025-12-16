@@ -1614,4 +1614,33 @@ public class AstBuilderTest {
             .contains(
                 "Span length [2.5y] is invalid: floating-point time intervals are not supported."));
   }
+
+  @Test
+  public void testMvmapWithLambdaSecondArgThrowsException() {
+    assertEquals(
+        "mvmap does not accept lambda expression as second argument",
+        assertThrows(
+                SyntaxCheckException.class,
+                () -> plan("source=t | eval result = mvmap(arr, x -> x * 10)"))
+            .getMessage());
+  }
+
+  @Test
+  public void testMvmapWithWrongNumberOfArgsThrowsException() {
+    // Grammar enforces exactly 2 arguments, so parser throws syntax error
+    assertThrows(SyntaxCheckException.class, () -> plan("source=t | eval result = mvmap(arr)"));
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> plan("source=t | eval result = mvmap(arr, arr * 10, extra)"));
+  }
+
+  @Test
+  public void testMvmapWithNonFieldFirstArgThrowsException() {
+    assertEquals(
+        "mvmap first argument must be a field or field expression",
+        assertThrows(
+                SyntaxCheckException.class,
+                () -> plan("source=t | eval result = mvmap(123, 123 * 10)"))
+            .getMessage());
+  }
 }

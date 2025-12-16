@@ -64,12 +64,30 @@ public class QualifiedNameResolver {
       QualifiedName nameNode, CalcitePlanContext context) {
     log.debug("resolveInNonJoinCondition() called with nameNode={}", nameNode);
 
-    return resolveLambdaVariable(nameNode, context)
-        .or(() -> resolveFieldDirectly(nameNode, context, 1))
-        .or(() -> resolveFieldWithAlias(nameNode, context, 1))
-        .or(() -> resolveFieldWithoutAlias(nameNode, context, 1))
-        .or(() -> resolveRenamedField(nameNode, context))
-        .or(() -> resolveCorrelationField(nameNode, context))
+    // First try to resolve as lambda variable
+    Optional<RexNode> lambdaVar = resolveLambdaVariable(nameNode, context);
+    if (lambdaVar.isPresent()) {
+      return lambdaVar.get();
+    }
+
+    // Try to resolve as regular field
+    Optional<RexNode> fieldRef =
+        resolveFieldDirectly(nameNode, context, 1)
+            .or(() -> resolveFieldWithAlias(nameNode, context, 1))
+            .or(() -> resolveFieldWithoutAlias(nameNode, context, 1))
+            .or(() -> resolveRenamedField(nameNode, context));
+
+    if (fieldRef.isPresent()) {
+      // If we're in a lambda context and this is not a lambda variable,
+      // we need to capture it as an external variable
+      if (context.isInLambdaContext()) {
+        log.debug("Capturing external field {} in lambda context", nameNode);
+        return context.captureVariable(fieldRef.get(), nameNode.toString());
+      }
+      return fieldRef.get();
+    }
+
+    return resolveCorrelationField(nameNode, context)
         .or(() -> replaceWithNullLiteralInCoalesce(context))
         .orElseThrow(() -> getNotFoundException(nameNode));
   }

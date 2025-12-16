@@ -78,6 +78,7 @@ public enum BuiltinFunctionName {
   MVZIP(FunctionName.of("mvzip")),
   SPLIT(FunctionName.of("split")),
   MVDEDUP(FunctionName.of("mvdedup")),
+  MVMAP(FunctionName.of("mvmap")),
   FORALL(FunctionName.of("forall")),
   EXISTS(FunctionName.of("exists")),
   FILTER(FunctionName.of("filter")),
