@@ -21,7 +21,7 @@ public class UnifiedQueryCompilerTest extends UnifiedQueryTestBase implements Re
   @Before
   public void setUp() {
     super.setUp();
-    compiler = UnifiedQueryCompiler.builder().context(context).build();
+    compiler = new UnifiedQueryCompiler(context);
   }
 
   @Test
