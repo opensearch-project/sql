@@ -200,10 +200,9 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
   public void testLog() {
     RelNode root = getRelNode("source=EMP | eval LOG = log(2) | fields LOG");
     String expectedLogical =
-        "LogicalProject(LOG=[LOG(2, 2.718281828459045E0:DOUBLE)])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(LOG=[LOG(2)])\n" + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedSparkSql = "SELECT LOG(2, 2.718281828459045E0) `LOG`\nFROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT LOG(2) `LOG`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 

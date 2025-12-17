@@ -43,11 +43,9 @@ public class UnifiedQueryTranspilerTest extends UnifiedQueryTestBase {
     UnifiedQueryTranspiler customTranspiler =
         UnifiedQueryTranspiler.builder().dialect(OpenSearchSparkSqlDialect.DEFAULT).build();
     String actualSql = customTranspiler.toSql(plan);
-    String expectedSql =
-        normalize(
-            "SELECT *\nFROM `catalog`.`employees`\nWHERE TRY_CAST(`name` AS DOUBLE) = 1.230E2");
+    String expectedSql = normalize("SELECT *\nFROM `catalog`.`employees`\nWHERE `name` = 123");
     assertEquals(
-        "Transpiled query using OpenSearchSparkSqlDialect should translate SAFE_CAST to TRY_CAST",
+        "Numeric types can be implicitly coerced to string with OpenSearchSparkSqlDialect",
         expectedSql,
         actualSql);
   }
