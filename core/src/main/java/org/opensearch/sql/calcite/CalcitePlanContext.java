@@ -9,6 +9,7 @@ import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTOR
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,6 +72,16 @@ public class CalcitePlanContext {
   @Getter public Map<String, RexLambdaRef> rexLambdaRefMap;
 
   /**
+   * List of captured variables from outer scope for lambda functions. When a lambda body references
+   * a field that is not a lambda parameter, it gets captured and stored here. The captured
+   * variables are passed as additional arguments to the transform function.
+   */
+  @Getter private List<RexNode> capturedVariables;
+
+  /** Whether we're currently inside a lambda context. */
+  @Getter @Setter private boolean inLambdaContext = false;
+
+  /**
    * -- SETTER -- Sets the SQL operator table provider. This must be called during initialization by
    * the opensearch module.
    *
@@ -90,6 +101,24 @@ public class CalcitePlanContext {
     this.rexBuilder = new ExtendedRexBuilder(relBuilder.getRexBuilder());
     this.functionProperties = new FunctionProperties(QueryType.PPL);
     this.rexLambdaRefMap = new HashMap<>();
+    this.capturedVariables = new ArrayList<>();
+  }
+
+  /**
+   * Private constructor for creating a context that shares relBuilder with parent. Used by clone()
+   * to create lambda contexts that can resolve fields from the parent context.
+   */
+  private CalcitePlanContext(CalcitePlanContext parent) {
+    this.config = parent.config;
+    this.sysLimit = parent.sysLimit;
+    this.queryType = parent.queryType;
+    this.connection = parent.connection;
+    this.relBuilder = parent.relBuilder; // Share the same relBuilder
+    this.rexBuilder = parent.rexBuilder; // Share the same rexBuilder
+    this.functionProperties = parent.functionProperties;
+    this.rexLambdaRefMap = new HashMap<>(); // New map for lambda variables
+    this.capturedVariables = new ArrayList<>(); // New list for captured variables
+    this.inLambdaContext = true; // Mark that we're inside a lambda
   }
 
   /**
@@ -157,8 +186,13 @@ public class CalcitePlanContext {
     }
   }
 
+  /**
+   * Creates a clone of this context that shares the relBuilder with the parent. This allows lambda
+   * expressions to reference fields from the current row while having their own lambda variable
+   * mappings.
+   */
   public CalcitePlanContext clone() {
-    return new CalcitePlanContext(config, sysLimit, queryType);
+    return new CalcitePlanContext(this);
   }
 
   public static CalcitePlanContext create(
@@ -189,5 +223,43 @@ public class CalcitePlanContext {
 
   public void putRexLambdaRefMap(Map<String, RexLambdaRef> candidateMap) {
     this.rexLambdaRefMap.putAll(candidateMap);
+  }
+
+  /**
+   * Captures an external variable for use inside a lambda. Returns a RexLambdaRef that references
+   * the captured variable by its index in the captured variables list. The actual RexNode value is
+   * stored in capturedVariables and will be passed as additional arguments to the transform
+   * function.
+   *
+   * @param fieldRef The RexInputRef representing the external field
+   * @param fieldName The name of the field being captured
+   * @return A RexLambdaRef that can be used inside the lambda to reference the captured value
+   */
+  public RexLambdaRef captureVariable(RexNode fieldRef, String fieldName) {
+    // Check if this variable is already captured
+    for (int i = 0; i < capturedVariables.size(); i++) {
+      if (capturedVariables.get(i).equals(fieldRef)) {
+        // Return existing reference - offset by number of lambda params (1 for array element)
+        return rexLambdaRefMap.get("__captured_" + i);
+      }
+    }
+
+    // Add to captured variables list
+    int captureIndex = capturedVariables.size();
+    capturedVariables.add(fieldRef);
+
+    // Create a lambda ref for this captured variable
+    // The index is offset by the number of lambda parameters (1 for single-param lambda)
+    // Count only actual lambda parameters, not captured variables
+    int lambdaParamCount =
+        (int)
+            rexLambdaRefMap.keySet().stream().filter(key -> !key.startsWith("__captured_")).count();
+    RexLambdaRef lambdaRef =
+        new RexLambdaRef(lambdaParamCount + captureIndex, fieldName, fieldRef.getType());
+
+    // Store it so we can find it again if the same field is referenced multiple times
+    rexLambdaRefMap.put("__captured_" + captureIndex, lambdaRef);
+
+    return lambdaRef;
   }
 }

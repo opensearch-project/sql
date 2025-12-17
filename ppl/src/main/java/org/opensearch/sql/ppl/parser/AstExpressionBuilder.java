@@ -22,6 +22,8 @@ import java.util.stream.Stream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.*;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
@@ -448,11 +450,76 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return buildFunction(mappedName, ctx.functionArgs().functionArg());
   }
 
+  /** Mvmap function with implicit lambda binding. */
+  @Override
+  public UnresolvedExpression visitMvmapFunctionCall(
+      OpenSearchPPLParser.MvmapFunctionCallContext ctx) {
+    List<OpenSearchPPLParser.FunctionArgContext> args = ctx.functionArg();
+
+    UnresolvedExpression firstArg = visitFunctionArg(args.get(0));
+    UnresolvedExpression secondArg = visitFunctionArg(args.get(1));
+
+    if (secondArg instanceof LambdaFunction) {
+      throw new SyntaxCheckException("mvmap does not accept lambda expression as second argument");
+    }
+
+    QualifiedName fieldName = extractFieldName(firstArg);
+    if (fieldName == null) {
+      throw new SyntaxCheckException("mvmap first argument must be a field or field expression");
+    }
+
+    LambdaFunction lambda = new LambdaFunction(secondArg, Collections.singletonList(fieldName));
+    return new Function("mvmap", Arrays.asList(firstArg, lambda));
+  }
+
   private Function buildFunction(
       String functionName, List<OpenSearchPPLParser.FunctionArgContext> args) {
     return new Function(
         functionName, args.stream().map(this::visitFunctionArg).collect(Collectors.toList()));
   }
+
+  /**
+   * Extracts the field name from the first argument for implicit lambda binding. The second
+   * argument must reference this same field. E.g., {@code mvmap(mvindex(arr, 1, 2), arr * 10)}
+   * extracts 'arr' and creates {@code arr -> arr * 10}.
+   */
+  private QualifiedName extractFieldName(UnresolvedExpression expr) {
+    return expr.accept(FIELD_NAME_EXTRACTOR, null);
+  }
+
+  /**
+   * Visitor for extracting field names from expressions. Used for mvmap's implicit lambda binding.
+   */
+  private static final AbstractNodeVisitor<QualifiedName, Void> FIELD_NAME_EXTRACTOR =
+      new AbstractNodeVisitor<>() {
+        @Override
+        public QualifiedName visitField(Field node, Void context) {
+          return node.getField().accept(this, context);
+        }
+
+        @Override
+        public QualifiedName visitQualifiedName(QualifiedName node, Void context) {
+          return node;
+        }
+
+        @Override
+        public QualifiedName visitFunction(Function node, Void context) {
+          // Visit each funcArg and return on first non-null (qualified name found)
+          for (UnresolvedExpression arg : node.getFuncArgs()) {
+            QualifiedName result = arg.accept(this, context);
+            if (result != null) {
+              return result;
+            }
+          }
+          return null;
+        }
+
+        @Override
+        public QualifiedName visitChildren(Node node, Void context) {
+          // Default behavior: return null for unknown expression types
+          return null;
+        }
+      };
 
   /** Cast function. */
   @Override

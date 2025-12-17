@@ -216,6 +216,91 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testMvfindWithMatch() {
+    String ppl =
+        "source=EMP | eval arr = array('apple', 'banana', 'apricot'), result = mvfind(arr,"
+            + " 'ban.*') | head 1 | fields result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "result=1\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT MVFIND(ARRAY('apple', 'banana', 'apricot'), 'ban.*') `result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMvfindWithNoMatch() {
+    String ppl =
+        "source=EMP | eval arr = array('cat', 'dog', 'bird'), result = mvfind(arr, 'fish') | head"
+            + " 1 | fields result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "result=null\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT MVFIND(ARRAY('cat', 'dog', 'bird'), 'fish') `result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMvfindWithFirstMatch() {
+    String ppl =
+        "source=EMP | eval arr = array('error123', 'info', 'error456'), result = mvfind(arr,"
+            + " 'err.*') | head 1 | fields result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "result=0\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT MVFIND(ARRAY('error123', 'info', 'error456'), 'err.*') `result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMvfindWithMultipleMatches() {
+    String ppl =
+        "source=EMP | eval arr = array('test1', 'test2', 'test3'), result = mvfind(arr, 'test.*')"
+            + " | head 1 | fields result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "result=0\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT MVFIND(ARRAY('test1', 'test2', 'test3'), 'test.*') `result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMvfindWithComplexRegex() {
+    String ppl =
+        "source=EMP | eval arr = array('abc123', 'def456', 'ghi789'), result = mvfind(arr,"
+            + " 'def\\d+') | head 1 | fields result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "result=1\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT MVFIND(ARRAY('abc123', 'def456', 'ghi789'), 'def\\d+') `result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
   public void testMvdedupWithDuplicates() {
     String ppl =
         "source=EMP | eval arr = array(1, 2, 2, 3, 1, 4), result = mvdedup(arr) | head 1 |"
@@ -500,6 +585,79 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT CASE WHEN '' = '' THEN REGEXP_EXTRACT_ALL('abcd', '.') "
             + "ELSE SPLIT('abcd', '') END `result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMvmapBasic() {
+    String ppl =
+        "source=EMP | eval arr = array(1, 2, 3), result = mvmap(arr, arr * 10) | head 1 |"
+            + " fields result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(result=[$9])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[array(1, 2, 3)],"
+            + " result=[transform(array(1, 2, 3), (arr) -> *(arr, 10))])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT TRANSFORM(ARRAY(1, 2, 3), `arr` -> `arr` * 10) `result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMvmapWithAddition() {
+    String ppl =
+        "source=EMP | eval arr = array(1, 2, 3), result = mvmap(arr, arr + 5) | head 1 |"
+            + " fields result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(result=[$9])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[array(1, 2, 3)],"
+            + " result=[transform(array(1, 2, 3), (arr) -> +(arr, 5))])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT TRANSFORM(ARRAY(1, 2, 3), `arr` -> `arr` + 5) `result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMvmapWithNestedFunction() {
+    // Test mvmap with mvindex as first argument - extracts field name from nested function
+    // The lambda binds 'arr' and iterates over mvindex output
+    String ppl =
+        "source=EMP | eval arr = array(1, 2, 3, 4, 5), result = mvmap(mvindex(arr, 1, 3), arr * 10)"
+            + " | head 1 | fields result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(result=[$9])\n"
+            + "  LogicalSort(fetch=[1])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[array(1, 2, 3, 4, 5)],"
+            + " result=[transform(ARRAY_SLICE(array(1, 2, 3, 4, 5), 1, +(-(3, 1), 1)), (arr) ->"
+            + " *(arr, 10))])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT TRANSFORM(ARRAY_SLICE(ARRAY(1, 2, 3, 4, 5), 1, 3 - 1 + 1), `arr` -> `arr` * 10)"
+            + " `result`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);

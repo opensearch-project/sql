@@ -849,13 +849,18 @@ evalExpression
     ;
 
 functionCall
-   : evalFunctionCall
+   : mvmapFunctionCall
+   | evalFunctionCall
    | dataTypeFunctionCall
    | positionFunctionCall
    | caseFunctionCall
    | timestampFunctionCall
    | extractFunctionCall
    | getFormatFunctionCall
+   ;
+
+mvmapFunctionCall
+   : MVMAP LT_PRTHS functionArg COMMA functionArg RT_PRTHS
    ;
 
 positionFunctionCall
@@ -1124,6 +1129,7 @@ collectionFunctionName
     | MVAPPEND
     | MVJOIN
     | MVINDEX
+    | MVFIND
     | MVDEDUP
     | MVZIP
     | SPLIT

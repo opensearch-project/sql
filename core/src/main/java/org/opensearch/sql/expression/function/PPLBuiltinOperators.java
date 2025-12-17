@@ -56,6 +56,7 @@ import org.opensearch.sql.expression.function.CollectionUDF.ExistsFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.FilterFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.ForallFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.MVAppendFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.MVFindFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.MVZipFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.MapAppendFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.MapRemoveFunctionImpl;
@@ -402,6 +403,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlFunction MAP_REMOVE = new MapRemoveFunctionImpl().toUDF("MAP_REMOVE");
   public static final SqlFunction MVAPPEND = new MVAppendFunctionImpl().toUDF("mvappend");
   public static final SqlFunction MVZIP = new MVZipFunctionImpl().toUDF("mvzip");
+  public static final SqlFunction MVFIND = new MVFindFunctionImpl().toUDF("mvfind");
   public static final SqlFunction FILTER = new FilterFunctionImpl().toUDF("filter");
   public static final SqlFunction TRANSFORM = new TransformFunctionImpl().toUDF("transform");
   public static final SqlFunction REDUCE = new ReduceFunctionImpl().toUDF("reduce");
