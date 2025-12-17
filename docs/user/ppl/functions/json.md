@@ -52,12 +52,12 @@ fetched rows / total rows = 4/4
 
 ### Description  
 
-Version: 3.1.0
-Limitation: Only works when plugins.calcite.enabled=true
-Usage: `json_valid(value)` Evaluates whether a string uses valid JSON syntax. Returns TRUE if valid, FALSE if invalid. NULL input returns NULL.
-Argument type: STRING
-Return type: BOOLEAN
-Example
+Version: 3.1.0  
+Limitation: Only works when plugins.calcite.enabled=true  
+Usage: `json_valid(value)` Evaluates whether a string uses valid JSON syntax. Returns TRUE if valid, FALSE if invalid. NULL input returns NULL.  
+Argument type: STRING  
+Return type: BOOLEAN  
+Example  
   
 ```ppl
 source=people

@@ -42,6 +42,7 @@ import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Interval;
+import org.opensearch.sql.ast.expression.LambdaFunction;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
@@ -59,6 +60,8 @@ import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
+import org.opensearch.sql.ast.tree.AddColTotals;
+import org.opensearch.sql.ast.tree.AddTotals;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
@@ -781,6 +784,41 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     return builder.toString();
   }
 
+  public void appendAddTotalsOptionParameters(
+      List<Field> fieldList, java.util.Map<String, Literal> options, StringBuilder builder) {
+
+    if (!fieldList.isEmpty()) {
+      builder.append(visitExpressionList(fieldList, " "));
+    }
+    if (!options.isEmpty()) {
+      for (String key : options.keySet()) {
+        String value = options.get(key).toString();
+        if (value.matches(".*\\s.*")) {
+          value = StringUtils.format("'%s'", value);
+        }
+        builder.append(" ").append(key).append("=").append(value);
+      }
+    }
+  }
+
+  @Override
+  public String visitAddTotals(AddTotals node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    StringBuilder builder = new StringBuilder();
+    builder.append(child).append(" | addtotals");
+    appendAddTotalsOptionParameters(node.getFieldList(), node.getOptions(), builder);
+    return builder.toString();
+  }
+
+  @Override
+  public String visitAddColTotals(AddColTotals node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    StringBuilder builder = new StringBuilder();
+    builder.append(child).append(" | addcoltotals");
+    appendAddTotalsOptionParameters(node.getFieldList(), node.getOptions(), builder);
+    return builder.toString();
+  }
+
   @Override
   public String visitPatterns(Patterns node, String context) {
     String child = node.getChild().get(0).accept(this, context);
@@ -877,11 +915,31 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
     @Override
     public String visitFunction(Function node, String context) {
+      // For mvmap, unwrap the implicit lambda to show original format
+      if ("mvmap".equalsIgnoreCase(node.getFuncName())
+          && node.getFuncArgs().size() == 2
+          && node.getFuncArgs().get(1) instanceof LambdaFunction) {
+        String firstArg = analyze(node.getFuncArgs().get(0), context);
+        LambdaFunction lambda = (LambdaFunction) node.getFuncArgs().get(1);
+        String lambdaBody = analyze(lambda.getFunction(), context);
+        return StringUtils.format("%s(%s,%s)", node.getFuncName(), firstArg, lambdaBody);
+      }
+
       String arguments =
           node.getFuncArgs().stream()
               .map(unresolvedExpression -> analyze(unresolvedExpression, context))
               .collect(Collectors.joining(","));
       return StringUtils.format("%s(%s)", node.getFuncName(), arguments);
+    }
+
+    @Override
+    public String visitLambdaFunction(LambdaFunction node, String context) {
+      String args =
+          node.getFuncArgs().stream()
+              .map(arg -> maskField(arg.toString()))
+              .collect(Collectors.joining(","));
+      String function = analyze(node.getFunction(), context);
+      return StringUtils.format("%s -> %s", args, function);
     }
 
     @Override
