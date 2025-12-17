@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.validate;
 
 import java.nio.charset.Charset;
+import java.util.List;
 import lombok.experimental.UtilityClass;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -86,9 +87,11 @@ public class ValidationUtils {
   /**
    * Special handling for nested window functions that fail validation due to a Calcite bug.
    *
-   * <p>This method provides a workaround for a known issue in Calcite v1.41 where nested window
-   * functions within CASE expressions fail validation incorrectly. Only {@code
-   * CalcitePPLEventstatsIT#testMultipleEventstatsWithNullBucket} should be caught by this check.
+   * <p>This method provides a workaround for 2 issues in Calcite v1.41
+   *
+   * <p>1. where nested window functions within CASE expressions fail validation incorrectly. Only
+   * {@code CalcitePPLEventstatsIT#testMultipleEventstatsWithNullBucket} should be caught by this
+   * case.
    *
    * <p><b>Calcite Bug (v1.41):</b> The {@code SqlImplementor.Result#containsOver()} method at
    * SqlImplementor.java:L2145 only checks {@code SqlBasicCall} nodes for window functions, missing
@@ -109,14 +112,54 @@ public class ValidationUtils {
    * SUM(CASE WHEN ... THEN (SUM(age) OVER (...)) END) OVER (...)
    * </pre>
    *
-   * <p><b>TODO:</b> Remove this workaround when upgrading to a Calcite version that fixes the bug.
+   * 2. Projections containing OVER as function operands are not moved down to subqueries. This
+   * should catch test case {@code CalciteExplainIT.noPushDownForAggOnWindow}
+   *
+   * <p>The check {@code needNewSubquery} at {@link
+   * org.apache.calcite.rel.rel2sql.SqlImplementor}#L1930 should return true for the following plan
+   * as it contains window functions nested inside a function call, which should be in an inner
+   * query if further aggregation is performed on top of it.
+   *
+   * <pre>
+   * LogicalProject(age_str=[WIDTH_BUCKET(SAFE_CAST($8), 3, -(MAX(SAFE_CAST($8)) OVER (), MIN(SAFE_CAST($8)) OVER ()), MAX(SAFE_CAST($8)) OVER ())])
+   *   CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+   * </pre>
+   *
+   * As a result, it creates a SQL where window functions are in group-by:
+   *
+   * <pre>
+   * GROUP BY WIDTH_BUCKET(...MAX(...) OVER ()...)
+   * </pre>
+   *
+   * Ideally, it should have created a SQL like the following for test case noPushDownForAggOnWindow
+   *
+   * <pre>
+   *   SELECT COUNT(*) AS `count()`, `age_str`
+   *   FROM (
+   *     SELECT WIDTH_BUCKET(
+   *       SAFE_CAST(`age` AS STRING),
+   *       3,
+   *       (MAX(SAFE_CAST(`age` AS STRING)) OVER (...)) - (MIN(SAFE_CAST(`age` AS STRING)) OVER (...)),
+   *       MAX(SAFE_CAST(`age` AS STRING)) OVER (...)
+   *     ) AS `age_str`
+   *     FROM `OpenSearch`.`opensearch-sql_test_index_account`
+   *   ) subquery
+   *   GROUP BY `age_str`
+   *   ORDER BY 2
+   * </pre>
+   *
+   * <p><b>TODO:</b> Remove this workaround when upgrading to a Calcite version that fixes the bugs.
    *
    * @param e the exception to check
    * @return {@code true} if the exception should be tolerated as a known Calcite bug, {@code false}
    *     otherwise
    */
   public static boolean tolerantValidationException(Exception e) {
+    List<String> acceptableErrorMessages =
+        List.of(
+            "Aggregate expressions cannot be nested",
+            "Windowed aggregate expression is illegal in GROUP BY clause");
     return e.getMessage() != null
-        && e.getMessage().contains("Aggregate expressions cannot be nested");
+        && acceptableErrorMessages.stream().anyMatch(e.getMessage()::contains);
   }
 }
