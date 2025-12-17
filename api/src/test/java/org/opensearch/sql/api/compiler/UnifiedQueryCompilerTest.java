@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.api.runtime;
+package org.opensearch.sql.api.compiler;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
