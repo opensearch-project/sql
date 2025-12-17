@@ -42,6 +42,7 @@ import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Interval;
+import org.opensearch.sql.ast.expression.LambdaFunction;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
@@ -922,11 +923,31 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
     @Override
     public String visitFunction(Function node, String context) {
+      // For mvmap, unwrap the implicit lambda to show original format
+      if ("mvmap".equalsIgnoreCase(node.getFuncName())
+          && node.getFuncArgs().size() == 2
+          && node.getFuncArgs().get(1) instanceof LambdaFunction) {
+        String firstArg = analyze(node.getFuncArgs().get(0), context);
+        LambdaFunction lambda = (LambdaFunction) node.getFuncArgs().get(1);
+        String lambdaBody = analyze(lambda.getFunction(), context);
+        return StringUtils.format("%s(%s,%s)", node.getFuncName(), firstArg, lambdaBody);
+      }
+
       String arguments =
           node.getFuncArgs().stream()
               .map(unresolvedExpression -> analyze(unresolvedExpression, context))
               .collect(Collectors.joining(","));
       return StringUtils.format("%s(%s)", node.getFuncName(), arguments);
+    }
+
+    @Override
+    public String visitLambdaFunction(LambdaFunction node, String context) {
+      String args =
+          node.getFuncArgs().stream()
+              .map(arg -> maskField(arg.toString()))
+              .collect(Collectors.joining(","));
+      String function = analyze(node.getFunction(), context);
+      return StringUtils.format("%s -> %s", args, function);
     }
 
     @Override
