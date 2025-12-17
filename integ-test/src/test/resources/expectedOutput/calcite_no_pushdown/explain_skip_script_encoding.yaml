@@ -1,0 +1,10 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(firstname=[$1], age=[$8])
+        LogicalFilter(condition=[AND(=(CHAR_LENGTH($1), 5), =(ABS($8), 32), =($3, 39225))])
+          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..16=[{inputs}], expr#17=[CHAR_LENGTH($t1)], expr#18=[5], expr#19=[=($t17, $t18)], expr#20=[ABS($t8)], expr#21=[32:BIGINT], expr#22=[=($t20, $t21)], expr#23=[39225:BIGINT], expr#24=[=($t3, $t23)], expr#25=[AND($t19, $t22, $t24)], firstname=[$t1], age=[$t8], $condition=[$t25])
+        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])

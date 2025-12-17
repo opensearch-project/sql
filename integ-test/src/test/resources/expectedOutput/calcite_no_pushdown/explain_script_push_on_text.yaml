@@ -1,0 +1,12 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(account_number=[$0], gender=[$1], age=[$2])
+        LogicalFilter(condition=[OR(IS NULL($1), <=($3, 1))])
+          LogicalProject(account_number=[$0], gender=[$4], age=[$8], _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $4)])
+            CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..17=[{inputs}], expr#18=[IS NULL($t4)], expr#19=[1:BIGINT], expr#20=[<=($t17, $t19)], expr#21=[OR($t18, $t20)], account_number=[$t0], gender=[$t4], age=[$t8], $condition=[$t21])
+        EnumerableWindow(window#0=[window(partition {4} rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
+          CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])

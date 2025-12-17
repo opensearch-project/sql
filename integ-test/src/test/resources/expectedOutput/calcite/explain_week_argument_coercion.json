@@ -1,6 +1,0 @@
-{
-  "calcite": {
-    "logical": "LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])\n  LogicalProject(w=[WEEK(TIMESTAMP('2024-12-10':VARCHAR))])\n    CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
-    "physical": "EnumerableCalc(expr#0..16=[{inputs}], expr#17=['2024-12-10':VARCHAR], expr#18=[TIMESTAMP($t17)], expr#19=[WEEK($t18)], w=[$t19])\n  CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\"}, requestedTotalSize=10000, pageSize=null, startFrom=0)])\n"
-  }
-}

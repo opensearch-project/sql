@@ -1,7 +1,7 @@
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalProject(variablesSet=[[$cor0]], name=[$0], count_dept=[$SCALAR_QUERY({
+      LogicalProject(name=[$0], count_dept=[$SCALAR_QUERY({
     LogicalAggregate(group=[{}], count(name)=[COUNT($0)])
       LogicalProject(name=[$0])
         LogicalFilter(condition=[IS NOT NULL($0)])

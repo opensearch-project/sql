@@ -1,16 +1,16 @@
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], avg_age=[$18])
-        LogicalSort(sort0=[$17], dir0=[ASC])
-          LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], _id=[$11], _index=[$12], _score=[$13], _maxscore=[$14], _sort=[$15], _routing=[$16], __stream_seq__=[$17], avg_age=[CASE(IS NOT NULL($4), /(SUM($8) OVER (PARTITION BY $4 ROWS UNBOUNDED PRECEDING), CAST(COUNT($8) OVER (PARTITION BY $4 ROWS UNBOUNDED PRECEDING)):DOUBLE NOT NULL), null:DOUBLE)])
+      LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], avg_age=[$11])
+        LogicalSort(sort0=[$12], dir0=[ASC])
+          LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], avg_age=[CASE(IS NOT NULL($4), /(CASE(>(COUNT($8) OVER (PARTITION BY $4 ROWS UNBOUNDED PRECEDING), 0), SUM($8) OVER (PARTITION BY $4 ROWS UNBOUNDED PRECEDING), null:BIGINT), CAST(COUNT($8) OVER (PARTITION BY $4 ROWS UNBOUNDED PRECEDING)):DOUBLE NOT NULL), null:DOUBLE)], __stream_seq__=[$17])
             LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], _id=[$11], _index=[$12], _score=[$13], _maxscore=[$14], _sort=[$15], _routing=[$16], __stream_seq__=[ROW_NUMBER() OVER ()])
               CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
-    EnumerableCalc(expr#0..14=[{inputs}], expr#15=[CAST($t14):DOUBLE NOT NULL], expr#16=[/($t13, $t15)], expr#17=[null:DOUBLE], expr#18=[CASE($t12, $t16, $t17)], proj#0..10=[{exprs}], avg_age=[$t18])
+    EnumerableCalc(expr#0..14=[{inputs}], expr#15=[0:BIGINT], expr#16=[>($t13, $t15)], expr#17=[null:BIGINT], expr#18=[CASE($t16, $t14, $t17)], expr#19=[CAST($t13):DOUBLE NOT NULL], expr#20=[/($t18, $t19)], expr#21=[null:DOUBLE], expr#22=[CASE($t12, $t20, $t21)], proj#0..10=[{exprs}], avg_age=[$t22])
       EnumerableLimit(fetch=[10000])
         EnumerableSort(sort0=[$11], dir0=[ASC])
-          EnumerableWindow(window#0=[window(partition {4} rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [$SUM0($8), COUNT($8)])])
+          EnumerableWindow(window#0=[window(partition {4} rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [COUNT($8), $SUM0($8)])])
             EnumerableCalc(expr#0..17=[{inputs}], expr#18=[IS NOT NULL($t4)], proj#0..10=[{exprs}], __stream_seq__=[$t17], $12=[$t18])
               EnumerableWindow(window#0=[window(rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
                 CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])

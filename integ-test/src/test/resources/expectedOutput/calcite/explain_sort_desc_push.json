@@ -1,6 +1,0 @@
-{
-  "calcite": {
-    "logical": "LogicalSystemLimit(sort0=[$0], sort1=[$1], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first], fetch=[10000], type=[QUERY_SIZE_LIMIT])\n  LogicalProject(age=[$8], firstname=[$1])\n    LogicalSort(sort0=[$8], sort1=[$1], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])\n      CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
-    "physical": "CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[firstname, age], SORT->[{\n  \"age\" : {\n    \"order\" : \"desc\",\n    \"missing\" : \"_last\"\n  }\n}, {\n  \"firstname.keyword\" : {\n    \"order\" : \"asc\",\n    \"missing\" : \"_first\"\n  }\n}], PROJECT->[age, firstname], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"age\",\"firstname\"],\"excludes\":[]},\"sort\":[{\"age\":{\"order\":\"desc\",\"missing\":\"_last\"}},{\"firstname.keyword\":{\"order\":\"asc\",\"missing\":\"_first\"}}]}, requestedTotalSize=10000, pageSize=null, startFrom=0)])\n"
-  }
-}

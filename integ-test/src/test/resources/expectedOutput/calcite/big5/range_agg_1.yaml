@@ -3,7 +3,7 @@ calcite:
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalProject(count()=[$1], range_bucket=[$0])
         LogicalAggregate(group=[{0}], count()=[COUNT()])
-          LogicalProject(range_bucket=[CASE(<($28, -10), 'range_1':VARCHAR, SEARCH($28, Sarg[[-10..10)]), 'range_2':VARCHAR, SEARCH($28, Sarg[[10..100)]), 'range_3':VARCHAR, SEARCH($28, Sarg[[100..1000)]), 'range_4':VARCHAR, SEARCH($28, Sarg[[1000..2000)]), 'range_5':VARCHAR, >=($28, 2000), 'range_6':VARCHAR, null:NULL)])
+          LogicalProject(range_bucket=[CASE(<($28, -10), 'range_1':VARCHAR, SEARCH($28, Sarg[[-10L:BIGINT..10L:BIGINT)]:BIGINT), 'range_2':VARCHAR, SEARCH($28, Sarg[[10L:BIGINT..100L:BIGINT)]:BIGINT), 'range_3':VARCHAR, SEARCH($28, Sarg[[100L:BIGINT..1000L:BIGINT)]:BIGINT), 'range_4':VARCHAR, SEARCH($28, Sarg[[1000L:BIGINT..2000L:BIGINT)]:BIGINT), 'range_5':VARCHAR, >=($28, 2000), 'range_6':VARCHAR, null:VARCHAR)])
             CalciteLogicalIndexScan(table=[[OpenSearch, big5]])
   physical: |
     EnumerableLimit(fetch=[10000])

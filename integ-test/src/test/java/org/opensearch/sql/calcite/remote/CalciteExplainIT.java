@@ -66,9 +66,9 @@ public class CalciteExplainIT extends ExplainIT {
     String query =
         "source=opensearch-sql_test_index_account | where (age > 20 and age < 28) or (age > 25 and"
             + " age < 30) or (age >= 1 and age <= 10) or age = 0  | fields age";
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_sarg_filter_push_multi_range.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_sarg_filter_push_multi_range.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   // Only for Calcite
@@ -339,10 +339,10 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testExplainIsNullOrOthers() throws IOException {
     // pushdown should work
-    String expected = loadExpectedPlan("explain_isnull_or_others.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_isnull_or_others.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account | where isnull(firstname) or gender = 'M'"));
   }
 
@@ -370,9 +370,9 @@ public class CalciteExplainIT extends ExplainIT {
             Locale.ROOT,
             "source=%s | where isnull(address) and name='david'",
             TEST_INDEX_NESTED_SIMPLE);
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_partial_filter_isnull.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_partial_filter_isnull.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   @Test
@@ -381,9 +381,9 @@ public class CalciteExplainIT extends ExplainIT {
     String query =
         "source=opensearch-sql_test_index_account | where address = '671 Bristol Street' and age -"
             + " 2 = 30 | fields firstname, age, address";
-    var result = explainQueryToString(query, true);
-    String expected = loadFromFile("expectedOutput/calcite/explain_skip_script_encoding.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_skip_script_encoding.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   // Only for Calcite, as v2 gets unstable serialized string for function
@@ -441,42 +441,42 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainTimechartPerSecond() throws IOException {
-    var result = explainQueryToString("source=events | timechart span=2m per_second(cpu_usage)");
+    var result = explainQueryYaml("source=events | timechart span=2m per_second(cpu_usage)");
     assertTrue(
         result.contains(
-            "per_second(cpu_usage)=[DIVIDE(*($1, 1000.0E0), TIMESTAMPDIFF('MILLISECOND':VARCHAR,"
-                + " $0, TIMESTAMPADD('MINUTE':VARCHAR, 2, $0)))]"));
-    assertTrue(result.contains("per_second(cpu_usage)=[SUM($0)]"));
+            "per_second(cpu_usage)=[DIVIDE(*($1, 1000.0E0), TIMESTAMPDIFF('MILLISECOND', $0,"
+                + " TIMESTAMPADD('MINUTE', 2, $0)))]"));
+    assertTrue(result.contains("per_second(cpu_usage)=[SUM($1)]"));
   }
 
   @Test
   public void testExplainTimechartPerMinute() throws IOException {
-    var result = explainQueryToString("source=events | timechart span=2m per_minute(cpu_usage)");
+    var result = explainQueryYaml("source=events | timechart span=2m per_minute(cpu_usage)");
     assertTrue(
         result.contains(
-            "per_minute(cpu_usage)=[DIVIDE(*($1, 60000.0E0), TIMESTAMPDIFF('MILLISECOND':VARCHAR,"
-                + " $0, TIMESTAMPADD('MINUTE':VARCHAR, 2, $0)))]"));
-    assertTrue(result.contains("per_minute(cpu_usage)=[SUM($0)]"));
+            "per_minute(cpu_usage)=[DIVIDE(*($1, 60000.0E0), TIMESTAMPDIFF('MILLISECOND', $0,"
+                + " TIMESTAMPADD('MINUTE', 2, $0)))]"));
+    assertTrue(result.contains("per_minute(cpu_usage)=[SUM($1)]"));
   }
 
   @Test
   public void testExplainTimechartPerHour() throws IOException {
-    var result = explainQueryToString("source=events | timechart span=2m per_hour(cpu_usage)");
+    var result = explainQueryYaml("source=events | timechart span=2m per_hour(cpu_usage)");
     assertTrue(
         result.contains(
-            "per_hour(cpu_usage)=[DIVIDE(*($1, 3600000.0E0), TIMESTAMPDIFF('MILLISECOND':VARCHAR,"
-                + " $0, TIMESTAMPADD('MINUTE':VARCHAR, 2, $0)))]"));
-    assertTrue(result.contains("per_hour(cpu_usage)=[SUM($0)]"));
+            "per_hour(cpu_usage)=[DIVIDE(*($1, 3600000.0E0), TIMESTAMPDIFF('MILLISECOND', $0,"
+                + " TIMESTAMPADD('MINUTE', 2, $0)))]"));
+    assertTrue(result.contains("per_hour(cpu_usage)=[SUM($1)]"));
   }
 
   @Test
   public void testExplainTimechartPerDay() throws IOException {
-    var result = explainQueryToString("source=events | timechart span=2m per_day(cpu_usage)");
+    var result = explainQueryYaml("source=events | timechart span=2m per_day(cpu_usage)");
     assertTrue(
         result.contains(
-            "per_day(cpu_usage)=[DIVIDE(*($1, 8.64E7), TIMESTAMPDIFF('MILLISECOND':VARCHAR, $0,"
-                + " TIMESTAMPADD('MINUTE':VARCHAR, 2, $0)))]"));
-    assertTrue(result.contains("per_day(cpu_usage)=[SUM($0)]"));
+            "per_day(cpu_usage)=[DIVIDE(*($1, 8.64E7), TIMESTAMPDIFF('MILLISECOND', $0,"
+                + " TIMESTAMPADD('MINUTE', 2, $0)))]"));
+    assertTrue(result.contains("per_day(cpu_usage)=[SUM($1)]"));
   }
 
   @Test
@@ -504,10 +504,10 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainBinWithBins() throws IOException {
-    String expected = loadExpectedPlan("explain_bin_bins.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_bin_bins.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString("source=opensearch-sql_test_index_account | bin age bins=3 | head 5"));
+        explainQueryYaml("source=opensearch-sql_test_index_account | bin age bins=3 | head 5"));
   }
 
   @Test
@@ -554,19 +554,18 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainBinWithMinspan() throws IOException {
-    String expected = loadExpectedPlan("explain_bin_minspan.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_bin_minspan.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_account | bin age minspan=5 | head 5"));
+        explainQueryYaml("source=opensearch-sql_test_index_account | bin age minspan=5 | head 5"));
   }
 
   @Test
   public void testExplainBinWithStartEnd() throws IOException {
-    String expected = loadExpectedPlan("explain_bin_start_end.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_bin_start_end.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account | bin balance start=0 end=100001 | head 5"));
   }
 
@@ -584,9 +583,9 @@ public class CalciteExplainIT extends ExplainIT {
   public void testExplainCountEval() throws IOException {
     String query =
         "source=opensearch-sql_test_index_bank | stats count(eval(age > 30)) as mature_count";
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_count_eval_push.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_count_eval_push.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   @Test
@@ -594,9 +593,9 @@ public class CalciteExplainIT extends ExplainIT {
     String query =
         "source=opensearch-sql_test_index_bank | stats count(eval(age > 30 and age < 50)) as"
             + " mature_count";
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_count_eval_complex_push.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_count_eval_complex_push.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   @Test
@@ -762,9 +761,8 @@ public class CalciteExplainIT extends ExplainIT {
         String.format(
             "source=%s |eval has_hello = regexp_match(name, 'hello') | fields has_hello",
             TEST_INDEX_STRINGS);
-    var result = explainQueryToString(query);
-    String expected = loadFromFile("expectedOutput/calcite/explain_regexp_match_in_eval.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    var result = explainQueryYaml(query);
+    assertYamlEqualsIgnoreId(loadExpectedPlan("explain_regexp_match_in_eval.yaml"), result);
   }
 
   // Only for Calcite
@@ -1076,10 +1074,10 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainAppendPipeCommand() throws IOException {
-    String expected = loadExpectedPlan("explain_appendpipe_command.json");
-    assertJsonEqualsIgnoreId(
+    String expected = loadExpectedPlan("explain_appendpipe_command.yaml");
+    assertYamlEqualsIgnoreId(
         expected,
-        explainQueryToString(
+        explainQueryYaml(
             String.format(
                 Locale.ROOT,
                 "source=%s | appendpipe [ stats count(balance) as cnt by gender  ]",
@@ -1091,9 +1089,7 @@ public class CalciteExplainIT extends ExplainIT {
     String query =
         "source=opensearch-sql_test_index_account | eval result = mvjoin(array('a', 'b', 'c'), ',')"
             + " | fields result | head 1";
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_mvjoin.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    assertYamlEqualsIgnoreId(loadExpectedPlan("explain_mvjoin.yaml"), explainQueryYaml(query));
   }
 
   @Test
@@ -1110,50 +1106,43 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testPushdownLimitIntoAggregation() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
-    String expected = loadExpectedPlan("explain_limit_agg_pushdown.json");
-    assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString("source=opensearch-sql_test_index_account | stats count() by state"));
-
-    expected = loadExpectedPlan("explain_limit_agg_pushdown2.yaml");
     assertYamlEqualsIgnoreId(
-        expected,
+        loadExpectedPlan("explain_limit_agg_pushdown.yaml"),
+        explainQueryYaml("source=opensearch-sql_test_index_account | stats count() by state"));
+
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("explain_limit_agg_pushdown2.yaml"),
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | stats count() by state | head 100"));
 
-    expected = loadExpectedPlan("explain_limit_agg_pushdown3.json");
-    assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("explain_limit_agg_pushdown3.yaml"),
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account | stats count() by state | head 100 | head 10"
                 + " from 10 "));
 
-    expected = loadExpectedPlan("explain_limit_agg_pushdown4.yaml");
     assertYamlEqualsIgnoreId(
-        expected,
+        loadExpectedPlan("explain_limit_agg_pushdown4.yaml"),
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | stats count() by state | sort state | head"
                 + " 100 | head 10 from 10 "));
 
-    expected = loadExpectedPlan("explain_limit_agg_pushdown_bucket_nullable1.yaml");
     assertYamlEqualsIgnoreId(
-        expected,
+        loadExpectedPlan("explain_limit_agg_pushdown_bucket_nullable1.yaml"),
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() by"
                 + " state | head 100 | head 10 from 10 "));
 
-    expected = loadExpectedPlan("explain_limit_agg_pushdown_bucket_nullable2.yaml");
     assertYamlEqualsIgnoreId(
-        expected,
+        loadExpectedPlan("explain_limit_agg_pushdown_bucket_nullable2.yaml"),
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | stats bucket_nullable=false count() by"
                 + " state | sort state | head 100 | head 10 from 10 "));
 
-    // Don't pushdown the combination of limit and sort
-    expected = loadExpectedPlan("explain_limit_agg_pushdown5.json");
-    assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(
+    // Don't push down the combination of limit and sort
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("explain_limit_agg_pushdown5.yaml"),
+        explainQueryYaml(
             "source=opensearch-sql_test_index_account | stats count() by state | sort `count()` |"
                 + " head 100 | head 10 from 10 "));
   }
@@ -1626,9 +1615,9 @@ public class CalciteExplainIT extends ExplainIT {
     String query =
         "source=opensearch-sql_test_index_account | eval formatted_date = strftime(1521467703,"
             + " '%Y-%m-%d') | fields formatted_date | head 1";
-    var result = explainQueryToString(query);
-    String expected = loadExpectedPlan("explain_strftime_function.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_strftime_function.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   // Script generation is not stable in v2
@@ -1817,6 +1806,7 @@ public class CalciteExplainIT extends ExplainIT {
             String.format(
                 "source=%s | chart limit=0 avg(balance) over state by gender", TEST_INDEX_BANK)));
 
+    // TODO: Fix -- now it gets away from push-down
     assertYamlEqualsIgnoreId(
         loadExpectedPlan("chart_use_other.yaml"),
         explainQueryYaml(
@@ -2145,13 +2135,12 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testRexStandardizationForScript() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
-    assertJsonEqualsIgnoreId(
-        loadExpectedPlan("explain_extended_for_standardization.json"),
-        explainQueryToString(
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("explain_extended_for_standardization.yaml"),
+        explainQueryYaml(
             String.format(
                 "source=%s | eval age_range = case(age < 30, 'u30', age >= 30 and age <= 40, 'u40'"
                     + " else 'u100') | stats avg(age) as avg_age by age_range",
-                TEST_INDEX_BANK),
-            true));
+                TEST_INDEX_BANK)));
   }
 }

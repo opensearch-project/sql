@@ -3,11 +3,11 @@ calcite:
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalProject(count()=[$1], info.city=[$0])
         LogicalAggregate(group=[{0}], count()=[COUNT()])
-          LogicalProject(info.city=[ITEM(GEOIP('my-datasource':VARCHAR, $0), 'city')])
+          LogicalProject(info.city=[ITEM(GEOIP('my-datasource', $0), 'city')])
             CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_weblogs]])
   physical: |
     EnumerableLimit(fetch=[10000])
       EnumerableCalc(expr#0..1=[{inputs}], count()=[$t1], info.city=[$t0])
         EnumerableAggregate(group=[{0}], count()=[COUNT()])
-          EnumerableCalc(expr#0..11=[{inputs}], expr#12=['my-datasource':VARCHAR], expr#13=[GEOIP($t12, $t0)], expr#14=['city'], expr#15=[ITEM($t13, $t14)], info.city=[$t15])
+          EnumerableCalc(expr#0..11=[{inputs}], expr#12=['my-datasource'], expr#13=[GEOIP($t12, $t0)], expr#14=['city'], expr#15=[ITEM($t13, $t14)], info.city=[$t15])
             CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_weblogs]])
