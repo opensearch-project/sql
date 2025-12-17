@@ -35,7 +35,7 @@ class CalciteFilterScriptLeafFactory implements FilterScript.LeafFactory {
   private final Map<String, Integer> parametersToIndex;
 
   /**
-   * Creates a new CalciteFieldScriptLeafFactory.
+   * Creates a new CalciteFilterScriptLeafFactory.
    *
    * @param function the Calcite function to execute
    * @param params the script parameters including SOURCES

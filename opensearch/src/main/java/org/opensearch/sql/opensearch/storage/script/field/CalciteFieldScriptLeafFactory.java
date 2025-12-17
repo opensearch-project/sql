@@ -33,6 +33,13 @@ public class CalciteFieldScriptLeafFactory implements FieldScript.LeafFactory {
    */
   private final Map<String, Integer> parametersToIndex;
 
+  /**
+   * Creates a new CalciteFieldScriptLeafFactory.
+   *
+   * @param function the Calcite function to execute
+   * @param params the script parameters including SOURCES
+   * @param lookup the search lookup for document access
+   */
   public CalciteFieldScriptLeafFactory(
       Function1<DataContext, Object[]> function, Map<String, Object> params, SearchLookup lookup) {
     this.function = function;
