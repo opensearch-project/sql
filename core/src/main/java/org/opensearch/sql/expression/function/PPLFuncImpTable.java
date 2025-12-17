@@ -246,13 +246,12 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEARWEE
 
 import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -283,7 +282,6 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
-import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.CollectionUDF.MVIndexFunctionImp;
 
@@ -355,7 +353,7 @@ public class PPLFuncImpTable {
    * implementations are independent of any specific data storage, should be registered here
    * internally.
    */
-  private final ImmutableMap<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>>
+  private final ImmutableMap<BuiltinFunctionName, Pair<CalciteFuncSignature, FunctionImp>>
       functionRegistry;
 
   /**
@@ -363,7 +361,7 @@ public class PPLFuncImpTable {
    * engine should be registered here. This reduces coupling between the core module and particular
    * storage backends.
    */
-  private final Map<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>>
+  private final Map<BuiltinFunctionName, Pair<CalciteFuncSignature, FunctionImp>>
       externalFunctionRegistry;
 
   /**
@@ -383,15 +381,15 @@ public class PPLFuncImpTable {
       aggExternalFunctionRegistry;
 
   private PPLFuncImpTable(Builder builder, AggBuilder aggBuilder) {
-    final ImmutableMap.Builder<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>>
+    final ImmutableMap.Builder<BuiltinFunctionName, Pair<CalciteFuncSignature, FunctionImp>>
         mapBuilder = ImmutableMap.builder();
-    builder.map.forEach((k, v) -> mapBuilder.put(k, List.copyOf(v)));
+    mapBuilder.putAll(builder.map);
     this.functionRegistry = ImmutableMap.copyOf(mapBuilder.build());
     this.externalFunctionRegistry = new ConcurrentHashMap<>();
 
     final ImmutableMap.Builder<BuiltinFunctionName, Pair<CalciteFuncSignature, AggHandler>>
         aggMapBuilder = ImmutableMap.builder();
-    aggBuilder.map.forEach(aggMapBuilder::put);
+    aggMapBuilder.putAll(aggBuilder.map);
     this.aggFunctionRegistry = ImmutableMap.copyOf(aggMapBuilder.build());
     this.aggExternalFunctionRegistry = new ConcurrentHashMap<>();
   }
@@ -405,14 +403,12 @@ public class PPLFuncImpTable {
   public void registerExternalOperator(BuiltinFunctionName functionName, SqlOperator operator) {
     CalciteFuncSignature signature =
         new CalciteFuncSignature(functionName.getName(), operator.getOperandTypeChecker());
-    externalFunctionRegistry.compute(
-        functionName,
-        (name, existingList) -> {
-          List<Pair<CalciteFuncSignature, FunctionImp>> list =
-              existingList == null ? new ArrayList<>() : new ArrayList<>(existingList);
-          list.add(Pair.of(signature, (builder, args) -> builder.makeCall(operator, args)));
-          return list;
-        });
+    if (externalFunctionRegistry.containsKey(functionName)) {
+      logger.warn(
+          String.format(Locale.ROOT, "Function %s is registered multiple times", functionName));
+    }
+    externalFunctionRegistry.put(
+        functionName, Pair.of(signature, (builder, args) -> builder.makeCall(operator, args)));
   }
 
   /**
@@ -424,6 +420,11 @@ public class PPLFuncImpTable {
    */
   public void registerExternalAggOperator(
       BuiltinFunctionName functionName, SqlUserDefinedAggFunction aggFunction) {
+    if (aggExternalFunctionRegistry.containsKey(functionName)) {
+      logger.warn(
+          String.format(
+              Locale.ROOT, "Aggregate function %s is registered multiple times", functionName));
+    }
     CalciteFuncSignature signature =
         new CalciteFuncSignature(functionName.getName(), aggFunction.getOperandTypeChecker());
     AggHandler handler =
@@ -433,15 +434,6 @@ public class PPLFuncImpTable {
     aggExternalFunctionRegistry.put(functionName, Pair.of(signature, handler));
   }
 
-  public List<RexNode> validateAggFunctionSignature(
-      BuiltinFunctionName functionName,
-      RexNode field,
-      List<RexNode> argList,
-      RexBuilder rexBuilder) {
-    var implementation = getImplementation(functionName);
-    return validateFunctionArgs(implementation, functionName, field, argList, rexBuilder);
-  }
-
   public RelBuilder.AggCall resolveAgg(
       BuiltinFunctionName functionName,
       boolean distinct,
@@ -449,62 +441,8 @@ public class PPLFuncImpTable {
       List<RexNode> argList,
       CalcitePlanContext context) {
     var implementation = getImplementation(functionName);
-
-    // Validation is done based on original argument types to generate error from user perspective.
-    List<RexNode> nodes =
-        validateFunctionArgs(implementation, functionName, field, argList, context.rexBuilder);
-
     var handler = implementation.getValue();
-    return nodes != null
-        ? handler.apply(distinct, nodes.getFirst(), nodes.subList(1, nodes.size()), context)
-        : handler.apply(distinct, field, argList, context);
-  }
-
-  static List<RexNode> validateFunctionArgs(
-      Pair<CalciteFuncSignature, AggHandler> implementation,
-      BuiltinFunctionName functionName,
-      RexNode field,
-      List<RexNode> argList,
-      RexBuilder rexBuilder) {
-    CalciteFuncSignature signature = implementation.getKey();
-
-    List<RelDataType> argTypes = new ArrayList<>();
-    if (field != null) {
-      argTypes.add(field.getType());
-    }
-
-    // Currently only PERCENTILE_APPROX, TAKE, EARLIEST, and LATEST have additional arguments.
-    // Their additional arguments will always come as a map of <argName, value>
-    List<RelDataType> additionalArgTypes =
-        argList.stream().map(PlanUtils::derefMapCall).map(RexNode::getType).toList();
-    argTypes.addAll(additionalArgTypes);
-    List<RexNode> coercionNodes = null;
-    if (!signature.match(functionName.getName(), argTypes)) {
-      List<RexNode> fields = new ArrayList<>();
-      fields.add(field);
-      fields.addAll(argList);
-      if (CoercionUtils.hasString(fields)) {
-        // TODO: Fix this logic
-        // coercionNodes = CoercionUtils.castArguments(rexBuilder, signature.typeChecker(), fields);
-        coercionNodes = null;
-      }
-      if (coercionNodes == null) {
-        String errorMessagePattern =
-            argTypes.size() <= 1
-                ? "Aggregation function %s expects field type {%s}, but got %s"
-                : "Aggregation function %s expects field type and additional arguments {%s}, but"
-                    + " got %s";
-        throw new ExpressionEvaluationException(
-            String.format(
-                errorMessagePattern,
-                functionName,
-                // TODO: Fix this
-                // signature.typeChecker().getAllowedSignatures(),
-                "TODO: FIX ME",
-                PlanUtils.getActualSignature(argTypes)));
-      }
-    }
-    return coercionNodes;
+    return handler.apply(distinct, field, argList, context);
   }
 
   private Pair<CalciteFuncSignature, AggHandler> getImplementation(
@@ -531,13 +469,12 @@ public class PPLFuncImpTable {
       final RexBuilder builder, final BuiltinFunctionName functionName, RexNode... args) {
     // Check the external function registry first. This allows the data-storage-dependent
     // function implementations to override the internal ones with the same name.
-    List<Pair<CalciteFuncSignature, FunctionImp>> implementList =
-        externalFunctionRegistry.get(functionName);
-    // If the function is not part of the external registry, check the internal registry.
-    if (implementList == null) {
-      implementList = functionRegistry.get(functionName);
-    }
-    if (implementList == null || implementList.isEmpty()) {
+    //  If the function is not part of the external registry, check the internal registry.
+    Pair<CalciteFuncSignature, FunctionImp> implementation =
+        externalFunctionRegistry.get(functionName) != null
+            ? externalFunctionRegistry.get(functionName)
+            : functionRegistry.get(functionName);
+    if (implementation == null) {
       throw new IllegalStateException(String.format("Cannot resolve function: %s", functionName));
     }
 
@@ -545,47 +482,7 @@ public class PPLFuncImpTable {
     // For example, the REDUCE function requires the second argument to be cast to the
     // return type of the lambda function.
     compulsoryCast(builder, functionName, args);
-    // TODO: How to deal with multiple overrides?
-    if (true) return implementList.getFirst().getValue().resolve(builder, args);
-
-    List<RelDataType> argTypes = Arrays.stream(args).map(RexNode::getType).toList();
-    try {
-      for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
-        if (implement.getKey().match(functionName.getName(), argTypes)) {
-          return implement.getValue().resolve(builder, args);
-        }
-        //        // TODO: How to deal with multiple overrides?
-        //        //  A temporary implementation to return once name matches
-        //        if (implement.getKey().functionName().equals(functionName.getName())){
-        //          return implement.getValue().resolve(builder, args);
-        //        }
-      }
-
-      // If no implementation found with exact match, try to cast arguments to match the
-      // signatures.
-      RexNode coerced = null; // resolveWithCoercion(builder, functionName, implementList, args);
-      if (coerced != null) {
-        return coerced;
-      }
-    } catch (Exception e) {
-      throw new ExpressionEvaluationException(
-          String.format(
-              "Cannot resolve function: %s, arguments: %s, caused by: %s",
-              functionName, PlanUtils.getActualSignature(argTypes), e.getMessage()),
-          e);
-    }
-    StringJoiner allowedSignatures = new StringJoiner(",");
-    for (var implement : implementList) {
-      // TODO: FIX
-      String signature = "FIX ME"; // implement.getKey().typeChecker().getAllowedSignatures();
-      if (!signature.isEmpty()) {
-        allowedSignatures.add(signature);
-      }
-    }
-    throw new ExpressionEvaluationException(
-        String.format(
-            "%s function expects {%s}, but got %s",
-            functionName, allowedSignatures, PlanUtils.getActualSignature(argTypes)));
+    return implementation.getValue().resolve(builder, args);
   }
 
   /**
@@ -608,45 +505,6 @@ public class PPLFuncImpTable {
     }
   }
 
-  //  private @Nullable RexNode resolveWithCoercion(
-  //      final RexBuilder builder,
-  //      final BuiltinFunctionName functionName,
-  //      List<Pair<CalciteFuncSignature, FunctionImp>> implementList,
-  //      RexNode... args) {
-  //    if (BuiltinFunctionName.COMPARATORS.contains(functionName)) {
-  //      for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
-  //        var widenedArgs = CoercionUtils.widenArguments(builder, List.of(args));
-  //        if (widenedArgs != null) {
-  //          boolean matchSignature =
-  //              implement
-  //                  .getKey()
-  //                  .typeChecker()
-  //                  .checkOperandTypes(widenedArgs.stream().map(RexNode::getType).toList());
-  //          if (matchSignature) {
-  //            return implement.getValue().resolve(builder, widenedArgs.toArray(new RexNode[0]));
-  //          }
-  //        }
-  //      }
-  //    } else {
-  //      for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
-  //        var signature = implement.getKey();
-  //        var castedArgs =
-  //            CoercionUtils.castArguments(builder, signature.typeChecker(), List.of(args));
-  //        if (castedArgs != null) {
-  //          // If compatible function is found, replace the original RexNode with cast node
-  //          // TODO: check - this is a return-once-found implementation, rest possible
-  // combinations
-  //          //  will be skipped.
-  //          //  Maybe can be improved to return the best match? E.g. convert to timestamp when
-  // date,
-  //          //  time, and timestamp are all possible.
-  //          return implement.getValue().resolve(builder, castedArgs.toArray(new RexNode[0]));
-  //        }
-  //      }
-  //    }
-  //    return null;
-  //  }
-
   @SuppressWarnings({"UnusedReturnValue", "SameParameterValue"})
   private abstract static class AbstractBuilder {
 
@@ -665,19 +523,17 @@ public class PPLFuncImpTable {
      * whose type checker accepts the arguments will be used to execute the function.
      *
      * @param functionName the built-in function name under which to register the operators
-     * @param operators the operators to associate with this function name, tried in sequence until
+     * @param operator the operators to associate with this function name, tried in sequence until
      *     one matches the argument types during resolution
      */
-    protected void registerOperator(BuiltinFunctionName functionName, SqlOperator... operators) {
-      for (SqlOperator operator : operators) {
-        SqlOperandTypeChecker typeChecker;
-        if (operator instanceof SqlUserDefinedFunction udfOperator) {
-          typeChecker = extractTypeCheckerFromUDF(udfOperator);
-        } else {
-          typeChecker = operator.getOperandTypeChecker();
-        }
-        registerOperator(functionName, operator, typeChecker);
+    protected void registerOperator(BuiltinFunctionName functionName, SqlOperator operator) {
+      SqlOperandTypeChecker typeChecker;
+      if (operator instanceof SqlUserDefinedFunction udfOperator) {
+        typeChecker = extractTypeCheckerFromUDF(udfOperator);
+      } else {
+        typeChecker = operator.getOperandTypeChecker();
       }
+      registerOperator(functionName, operator, typeChecker);
     }
 
     /**
@@ -724,12 +580,12 @@ public class PPLFuncImpTable {
       registerOperator(OR, SqlStdOperatorTable.OR);
       registerOperator(NOT, SqlStdOperatorTable.NOT);
       registerOperator(SUBTRACTFUNCTION, SqlStdOperatorTable.MINUS, OperandTypes.NUMERIC_NUMERIC);
-      registerOperator(SUBTRACT, SqlStdOperatorTable.MINUS, OperandTypes.NUMERIC_NUMERIC);
       // Add DATETIME-DATETIME variant for timestamp binning support
       registerOperator(
           SUBTRACT,
           SqlStdOperatorTable.MINUS,
-          OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME));
+          OperandTypes.NUMERIC_NUMERIC.or(
+              OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME)));
       registerOperator(MULTIPLY, SqlStdOperatorTable.MULTIPLY);
       registerOperator(MULTIPLYFUNCTION, SqlStdOperatorTable.MULTIPLY);
       registerOperator(TRUNCATE, SqlStdOperatorTable.TRUNCATE);
@@ -835,7 +691,6 @@ public class PPLFuncImpTable {
       registerOperator(REGEXP, PPLBuiltinOperators.REGEXP);
       registerOperator(REGEXP_MATCH, SqlLibraryOperators.REGEXP_CONTAINS);
       registerOperator(CONCAT, SqlLibraryOperators.CONCAT_FUNCTION);
-      registerOperator(CONCAT_WS, SqlLibraryOperators.CONCAT_WS);
       registerOperator(CONCAT_WS, SqlLibraryOperators.CONCAT_WS);
       registerOperator(REVERSE, SqlLibraryOperators.REVERSE);
       registerOperator(RIGHT, SqlLibraryOperators.RIGHT);
@@ -960,13 +815,17 @@ public class PPLFuncImpTable {
 
       registerOperator(INTERNAL_PATTERN_PARSER, PPLBuiltinOperators.PATTERN_PARSER);
       registerOperator(TONUMBER, PPLBuiltinOperators.TONUMBER);
-      registerOperator(TOSTRING, PPLBuiltinOperators.TOSTRING);
       register(
           TOSTRING,
-          (FunctionImp1)
-              (builder, source) ->
-                  builder.makeCast(TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, true), source),
-          OperandTypes.family(SqlTypeFamily.ANY));
+          (builder, args) -> {
+            if (args.length == 1) {
+              return builder.makeCast(
+                  TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, true), args[0]);
+            }
+            return builder.makeCall(PPLBuiltinOperators.TOSTRING, args);
+          },
+          OperandTypes.family(SqlTypeFamily.ANY)
+              .or(OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER)));
 
       // Register MVJOIN to use Calcite's ARRAY_JOIN
       register(
@@ -1071,8 +930,7 @@ public class PPLFuncImpTable {
       register(ADDFUNCTION, add, SqlStdOperatorTable.PLUS.getOperandTypeChecker());
       // Replace with a custom CompositeOperandTypeChecker to check both operands as
       // SqlStdOperatorTable.ITEM.getOperandTypeChecker() checks only the first
-      // operand instead
-      // of all operands.
+      // operand instead of all operands.
       registerOperator(
           INTERNAL_ITEM,
           SqlStdOperatorTable.ITEM,
@@ -1131,18 +989,13 @@ public class PPLFuncImpTable {
                       builder.makeLiteral(" "),
                       arg),
           OperandTypes.family(SqlTypeFamily.CHARACTER));
-      registerOperator(
-          ATAN,
-          SqlStdOperatorTable.ATAN2,
-          OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));
       register(
           STRCMP,
           (FunctionImp2)
               (builder, arg1, arg2) -> builder.makeCall(SqlLibraryOperators.STRCMP, arg2, arg1),
           OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER));
       // SqlStdOperatorTable.SUBSTRING.getOperandTypeChecker is null. We manually
-      // create a type
-      // checker for it.
+      // create a type checker for it.
       register(
           SUBSTRING,
           (RexBuilder builder, RexNode... args) ->
@@ -1232,7 +1085,7 @@ public class PPLFuncImpTable {
   }
 
   private static class Builder extends AbstractBuilder {
-    private final Map<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>> map =
+    private final Map<BuiltinFunctionName, Pair<CalciteFuncSignature, FunctionImp>> map =
         new HashMap<>();
 
     @Override
@@ -1243,10 +1096,13 @@ public class PPLFuncImpTable {
       CalciteFuncSignature signature =
           new CalciteFuncSignature(functionName.getName(), typeChecker);
       if (map.containsKey(functionName)) {
-        map.get(functionName).add(Pair.of(signature, implement));
-      } else {
-        map.put(functionName, new ArrayList<>(List.of(Pair.of(signature, implement))));
+        throw new IllegalStateException(
+            String.format(
+                Locale.ROOT,
+                "Each function can only be registered with one operator: %s",
+                functionName));
       }
+      map.put(functionName, Pair.of(signature, implement));
     }
   }
 
