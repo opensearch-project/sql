@@ -925,7 +925,7 @@ public class PPLFuncImpTable {
       FunctionImp add =
           (builder, args) -> {
             SqlOperator op =
-                (Stream.of(args).map(RexNode::getType).anyMatch(OpenSearchTypeFactory::isCharacter))
+                (Stream.of(args).map(RexNode::getType).allMatch(OpenSearchTypeFactory::isCharacter))
                     ? SqlStdOperatorTable.CONCAT
                     : SqlStdOperatorTable.PLUS;
             return builder.makeCall(op, args);
