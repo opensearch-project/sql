@@ -297,6 +297,20 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                               TYPE_FACTORY.createSqlType(SqlTypeName.ANY))))
               .collect(Collectors.toList());
       RexNode body = node.getFunction().accept(this, context);
+
+      // Add captured variables as additional lambda parameters
+      // They are stored with keys like "__captured_0", "__captured_1", etc.
+      List<RexNode> capturedVars = context.getCapturedVariables();
+      if (capturedVars != null && !capturedVars.isEmpty()) {
+        args = new ArrayList<>(args);
+        for (int i = 0; i < capturedVars.size(); i++) {
+          RexLambdaRef capturedRef = context.getRexLambdaRefMap().get("__captured_" + i);
+          if (capturedRef != null) {
+            args.add(capturedRef);
+          }
+        }
+      }
+
       RexNode lambdaNode = context.rexBuilder.makeLambdaCall(body, args);
       return lambdaNode;
     } catch (Exception e) {
@@ -390,6 +404,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       context.setInCoalesceFunction(true);
     }
 
+    List<RexNode> capturedVars = null;
     try {
       for (UnresolvedExpression arg : args) {
         if (arg instanceof LambdaFunction) {
@@ -408,6 +423,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
             lambdaNode = analyze(arg, lambdaContext);
           }
           arguments.add(lambdaNode);
+          // Capture any external variables that were referenced in the lambda
+          capturedVars = lambdaContext.getCapturedVariables();
         } else {
           arguments.add(analyze(arg, context));
         }
@@ -416,6 +433,24 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       if (isCoalesce) {
         context.setInCoalesceFunction(false);
       }
+    }
+
+    // For transform/mvmap functions with captured variables, add them as additional arguments
+    if (capturedVars != null && !capturedVars.isEmpty()) {
+      if (node.getFuncName().equalsIgnoreCase("mvmap")
+          || node.getFuncName().equalsIgnoreCase("transform")) {
+        arguments = new ArrayList<>(arguments);
+        arguments.addAll(capturedVars);
+      }
+    }
+
+    if ("LIKE".equalsIgnoreCase(node.getFuncName()) && arguments.size() == 2) {
+      RexNode defaultCaseSensitive =
+          CalcitePlanContext.isLegacyPreferred()
+              ? context.rexBuilder.makeLiteral(false)
+              : context.rexBuilder.makeLiteral(true);
+      arguments = new ArrayList<>(arguments);
+      arguments.add(defaultCaseSensitive);
     }
 
     RexNode resolvedNode =

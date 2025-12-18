@@ -29,6 +29,7 @@ import java.net.URL;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.reflect.FieldUtils;
@@ -434,7 +435,7 @@ class OpenSearchRestClientTest {
   @SneakyThrows
   void cleanup_pit_request() {
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             new SearchSourceBuilder(),
             factory,
@@ -452,7 +453,7 @@ class OpenSearchRestClientTest {
   void cleanup_pit_request_throw_exception() {
     when(restClient.deletePit(any(), any())).thenThrow(new IOException());
     OpenSearchQueryRequest request =
-        new OpenSearchQueryRequest(
+        OpenSearchQueryRequest.pitOf(
             new OpenSearchRequest.IndexName("test"),
             new SearchSourceBuilder(),
             factory,
@@ -527,7 +528,7 @@ class OpenSearchRestClientTest {
 
   @Test
   void ml_with_exception() {
-    assertThrows(UnsupportedOperationException.class, () -> client.getNodeClient());
+    assertEquals(Optional.empty(), client.getNodeClient());
   }
 
   private Map<String, MappingMetadata> mockFieldMappings(String indexName, String mappings)

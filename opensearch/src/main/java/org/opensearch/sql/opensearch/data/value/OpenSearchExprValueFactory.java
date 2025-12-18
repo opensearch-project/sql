@@ -72,6 +72,7 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 
 /** Construct ExprValue from OpenSearch response. */
 public class OpenSearchExprValueFactory {
+
   /** The Mapping of Field and ExprType. */
   private final Map<String, OpenSearchDataType> typeMapping;
 
@@ -79,13 +80,20 @@ public class OpenSearchExprValueFactory {
   private final boolean fieldTypeTolerance;
 
   /**
-   * Extend existing mapping by new data without overwrite. Called from aggregation only {@see
-   * AggregationQueryBuilder#buildTypeMapping}.
+   * Extend existing mapping by new data. Overwrite only when the ExprCoreType of them are
+   * different. Called from aggregation only {@see AggregationQueryBuilder#buildTypeMapping}.
    *
    * @param typeMapping A data type mapping produced by aggregation.
    */
   public void extendTypeMapping(Map<String, OpenSearchDataType> typeMapping) {
-    this.typeMapping.putAll(typeMapping);
+    typeMapping.forEach(
+        (groupKey, extendedType) -> {
+          OpenSearchDataType existedType = this.typeMapping.get(groupKey);
+          if (existedType == null
+              || !existedType.getExprCoreType().equals(extendedType.getExprCoreType())) {
+            this.typeMapping.put(groupKey, extendedType);
+          }
+        });
   }
 
   @Getter @Setter private OpenSearchAggregationResponseParser parser;
@@ -252,7 +260,7 @@ public class OpenSearchExprValueFactory {
    * value. For example, {"empty_field": []}.
    */
   private Optional<ExprType> type(String field) {
-    return Optional.ofNullable(typeMapping.get(field));
+    return Optional.ofNullable(typeMapping.get(field)).map(ExprType::getOriginalType);
   }
 
   /**
@@ -309,6 +317,11 @@ public class OpenSearchExprValueFactory {
   }
 
   private static ExprValue createOpenSearchDateType(Content value, ExprType type) {
+    return createOpenSearchDateType(value, type, false);
+  }
+
+  private static ExprValue createOpenSearchDateType(
+      Content value, ExprType type, Boolean supportArrays) {
     OpenSearchDateType dt = (OpenSearchDateType) type;
     ExprCoreType returnFormat = dt.getExprCoreType();
     if (value.isNumber()) { // isNumber
@@ -361,16 +374,56 @@ public class OpenSearchExprValueFactory {
     content
         .map()
         .forEachRemaining(
-            entry ->
+            entry -> {
+              String fieldKey = entry.getKey();
+              String fullFieldPath = makeField(prefix, fieldKey);
+              // Check for malformed field names before creating JsonPath.
+              // See isFieldNameMalformed() for details on what constitutes a malformed field name.
+              if (isFieldNameMalformed(fieldKey)) {
+                result.tupleValue().put(fieldKey, ExprNullValue.of());
+              } else {
                 populateValueRecursive(
                     result,
-                    new JsonPath(entry.getKey()),
-                    parse(
-                        entry.getValue(),
-                        makeField(prefix, entry.getKey()),
-                        type(makeField(prefix, entry.getKey())),
-                        supportArrays)));
+                    new JsonPath(fieldKey),
+                    parse(entry.getValue(), fullFieldPath, type(fullFieldPath), supportArrays));
+              }
+            });
     return result;
+  }
+
+  /**
+   * Check if a field name is malformed and cannot be processed by JsonPath.
+   *
+   * <p>A field name is malformed if it contains dot patterns that would cause String.split("\\.")
+   * to produce empty strings. This includes:
+   *
+   * <ul>
+   *   <li>Dot-only field names: ".", "..", "..."
+   *   <li>Leading dots: ".a", "..a"
+   *   <li>Trailing dots: "a.", "a.."
+   *   <li>Consecutive dots: "a..b", "a...b"
+   * </ul>
+   *
+   * <p>Such field names can occur in disabled object fields (enabled: false) which bypass
+   * OpenSearch's field name validation. Normal OpenSearch indices reject these field names.
+   *
+   * @param fieldName The field name to check.
+   * @return true if the field name is malformed, false otherwise.
+   */
+  static boolean isFieldNameMalformed(String fieldName) {
+    // Use -1 limit to preserve trailing empty strings (e.g., "a." -> ["a", ""])
+    String[] parts = fieldName.split("\\.", -1);
+    // Dot-only field names produce empty array
+    if (parts.length == 0) {
+      return true;
+    }
+    // Check for empty parts which indicate leading, trailing, or consecutive dots
+    for (String part : parts) {
+      if (part.isEmpty()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**

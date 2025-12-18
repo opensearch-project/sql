@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.executor;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nullable;
@@ -16,11 +14,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.tools.FrameworkConfig;
@@ -52,6 +54,9 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 @AllArgsConstructor
 @Log4j2
 public class QueryService {
+  private static final HepProgram FILTER_MERGE_PROGRAM =
+      new HepProgramBuilder().addRuleInstance(FilterMergeRule.Config.DEFAULT.toRule()).build();
+
   private final Analyzer analyzer;
   private final ExecutionEngine executionEngine;
   private final Planner planner;
@@ -93,18 +98,14 @@ public class QueryService {
     CalcitePlanContext.run(
         () -> {
           try {
-            AccessController.doPrivileged(
-                (PrivilegedAction<Void>)
-                    () -> {
-                      CalcitePlanContext context =
-                          CalcitePlanContext.create(
-                              buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
-                      RelNode relNode = analyze(plan, context);
-                      RelNode optimized = optimize(relNode, context);
-                      RelNode calcitePlan = convertToCalcitePlan(optimized);
-                      executionEngine.execute(calcitePlan, context, listener);
-                      return null;
-                    });
+            CalcitePlanContext context =
+                CalcitePlanContext.create(
+                    buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
+            RelNode relNode = analyze(plan, context);
+            relNode = mergeAdjacentFilters(relNode);
+            RelNode optimized = optimize(relNode, context);
+            RelNode calcitePlan = convertToCalcitePlan(optimized);
+            executionEngine.execute(calcitePlan, context, listener);
           } catch (Throwable t) {
             if (isCalciteFallbackAllowed(t) && !(t instanceof NonFallbackCalciteException)) {
               log.warn("Fallback to V2 query engine since got exception", t);
@@ -136,22 +137,18 @@ public class QueryService {
     CalcitePlanContext.run(
         () -> {
           try {
-            AccessController.doPrivileged(
-                (PrivilegedAction<Void>)
-                    () -> {
-                      CalcitePlanContext context =
-                          CalcitePlanContext.create(
-                              buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
-                      context.run(
-                          () -> {
-                            RelNode relNode = analyze(plan, context);
-                            RelNode optimized = optimize(relNode, context);
-                            RelNode calcitePlan = convertToCalcitePlan(optimized);
-                            executionEngine.explain(calcitePlan, format, context, listener);
-                          },
-                          settings);
-                      return null;
-                    });
+            CalcitePlanContext context =
+                CalcitePlanContext.create(
+                    buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
+            context.run(
+                () -> {
+                  RelNode relNode = analyze(plan, context);
+                  relNode = mergeAdjacentFilters(relNode);
+                  RelNode optimized = optimize(relNode, context);
+                  RelNode calcitePlan = convertToCalcitePlan(optimized);
+                  executionEngine.explain(calcitePlan, format, context, listener);
+                },
+                settings);
           } catch (Throwable t) {
             if (isCalciteFallbackAllowed(t)) {
               log.warn("Fallback to V2 query engine since got exception", t);
@@ -257,6 +254,16 @@ public class QueryService {
 
   public RelNode analyze(UnresolvedPlan plan, CalcitePlanContext context) {
     return getRelNodeVisitor().analyze(plan, context);
+  }
+
+  /**
+   * Run Calcite FILTER_MERGE once so adjacent filters created during analysis can collapse before
+   * the rest of optimization.
+   */
+  private RelNode mergeAdjacentFilters(RelNode relNode) {
+    HepPlanner planner = new HepPlanner(FILTER_MERGE_PROGRAM);
+    planner.setRoot(relNode);
+    return planner.findBestExp();
   }
 
   /** Analyze {@link UnresolvedPlan}. */

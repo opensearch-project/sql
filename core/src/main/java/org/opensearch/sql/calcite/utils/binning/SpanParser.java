@@ -52,6 +52,7 @@ public class SpanParser {
             Map.entry("months", "months"),
             Map.entry("month", "months"),
             Map.entry("mon", "months"),
+            Map.entry("M", "months"), // Uppercase M for months (case-sensitive)
             // Milliseconds
             Map.entry("ms", "ms"),
             // Microseconds
@@ -63,7 +64,16 @@ public class SpanParser {
 
     // Build direct lookup map for efficient unit detection
     for (String unit : NORMALIZED_UNITS.keySet()) {
-      UNIT_LOOKUP.put(unit.toLowerCase(Locale.ROOT), unit);
+      // Preserve case for case-sensitive units: M (month), m (minute), us, cs, ds
+      if (unit.equals("M")
+          || unit.equals("m")
+          || unit.equals("us")
+          || unit.equals("cs")
+          || unit.equals("ds")) {
+        UNIT_LOOKUP.put(unit, unit);
+      } else {
+        UNIT_LOOKUP.put(unit.toLowerCase(Locale.ROOT), unit);
+      }
     }
   }
 
@@ -135,15 +145,27 @@ public class SpanParser {
 
   /** Extracts time unit from span string (returns original matched unit, not normalized). */
   public static String extractTimeUnit(String spanStr) {
-    String lowerSpanStr = spanStr.toLowerCase(Locale.ROOT);
     String longestMatch = null;
 
     // Find the longest unit that matches as a suffix
     for (String unit : UNIT_LOOKUP.keySet()) {
-      if (lowerSpanStr.endsWith(unit)) {
+      // For case-sensitive units (M, m, us, cs, ds), match case-sensitively
+      boolean matches;
+      if (unit.equals("M")
+          || unit.equals("m")
+          || unit.equals("us")
+          || unit.equals("cs")
+          || unit.equals("ds")) {
+        matches = spanStr.endsWith(unit);
+      } else {
+        // For other units, match case-insensitively
+        matches = spanStr.toLowerCase(Locale.ROOT).endsWith(unit.toLowerCase(Locale.ROOT));
+      }
+
+      if (matches) {
         // Ensure this is a word boundary (not part of a larger word)
-        int unitStartPos = lowerSpanStr.length() - unit.length();
-        if (unitStartPos == 0 || !Character.isLetter(lowerSpanStr.charAt(unitStartPos - 1))) {
+        int unitStartPos = spanStr.length() - unit.length();
+        if (unitStartPos == 0 || !Character.isLetter(spanStr.charAt(unitStartPos - 1))) {
           // Keep the longest match
           if (longestMatch == null || unit.length() > longestMatch.length()) {
             longestMatch = unit;

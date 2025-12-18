@@ -7,7 +7,6 @@ package org.opensearch.sql.opensearch.planner.rules;
 
 import java.util.Objects;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rex.RexLiteral;
@@ -22,14 +21,14 @@ import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
  * down to {@link CalciteLogicalIndexScan}
  */
 @Value.Enclosing
-public class LimitIndexScanRule extends RelRule<LimitIndexScanRule.Config> {
+public class LimitIndexScanRule extends InterruptibleRelRule<LimitIndexScanRule.Config> {
 
   protected LimitIndexScanRule(Config config) {
     super(config);
   }
 
   @Override
-  public void onMatch(RelOptRuleCall call) {
+  protected void onMatchImpl(RelOptRuleCall call) {
     final LogicalSort sort = call.rel(0);
     final CalciteLogicalIndexScan scan = call.rel(1);
 
@@ -50,7 +49,7 @@ public class LimitIndexScanRule extends RelRule<LimitIndexScanRule.Config> {
     }
   }
 
-  private static Integer extractLimitValue(RexNode fetch) {
+  public static Integer extractLimitValue(RexNode fetch) {
     // fetch is always a integer literal (specified in our PPL/SQL syntax)
     if (fetch instanceof RexLiteral) {
       return ((RexLiteral) fetch).getValueAs(Integer.class);
@@ -71,7 +70,7 @@ public class LimitIndexScanRule extends RelRule<LimitIndexScanRule.Config> {
    * @param offset The <code>RexNode</code> representing the offset.
    * @return The extracted offset value, or <code>null</code> if it cannot be determined.
    */
-  private static Integer extractOffsetValue(RexNode offset) {
+  public static Integer extractOffsetValue(RexNode offset) {
     if (Objects.isNull(offset)) {
       return 0;
     }

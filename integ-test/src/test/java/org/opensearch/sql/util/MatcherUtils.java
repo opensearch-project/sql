@@ -411,13 +411,17 @@ public class MatcherUtils {
         JsonParser.parseString(eliminatePid(actual)));
   }
 
-  /** Compare two JSON string are equals with ignoring the RelNode id in the Calcite plan. */
+  /**
+   * Compare two JSON string are equals with ignoring the RelNode id in the Calcite plan.
+   * Deprecated, use {@link #assertYamlEqualsIgnoreId(String, String)}
+   */
+  @Deprecated
   public static void assertJsonEqualsIgnoreId(String expected, String actual) {
     assertJsonEquals(cleanUpId(expected), cleanUpId(actual));
   }
 
   private static String cleanUpId(String s) {
-    return eliminateTimeStamp(eliminatePid(eliminateRelId(s)));
+    return eliminateTimeStamp(eliminatePid(eliminateRelId(eliminateRequestOptions(s))));
   }
 
   private static String eliminateTimeStamp(String s) {
@@ -425,16 +429,22 @@ public class MatcherUtils {
   }
 
   private static String eliminateRelId(String s) {
-    return s.replaceAll("rel#\\d+", "rel#").replaceAll("RelSubset#\\d+", "RelSubset#");
+    return s.replaceAll("rel#\\d+", "rel#")
+        .replaceAll("RelSubset#\\d+", "RelSubset#")
+        .replaceAll("LogicalProject#\\d+", "LogicalProject#");
+  }
+
+  private static String eliminateRequestOptions(String s) {
+    return s.replaceAll(" needClean=true,", "").replaceAll(" searchDone=false,", "");
   }
 
   private static String eliminatePid(String s) {
     return s.replaceAll("pitId=[^,]+,", "pitId=*,");
   }
 
+  /** Compare two YAML strings are equals with ignoring the RelNode id in the Calcite plan. */
   public static void assertYamlEqualsIgnoreId(String expectedYaml, String actualYaml) {
-    String cleanedYaml = cleanUpYaml(actualYaml);
-    assertYamlEquals(expectedYaml, cleanedYaml);
+    assertYamlEquals(cleanUpYaml(expectedYaml), cleanUpYaml(actualYaml));
   }
 
   public static void assertYamlEquals(String expected, String actual) {
@@ -452,7 +462,10 @@ public class MatcherUtils {
     return s.replaceAll("\"utcTimestamp\":\\d+", "\"utcTimestamp\": 0")
         .replaceAll("rel#\\d+", "rel#")
         .replaceAll("RelSubset#\\d+", "RelSubset#")
-        .replaceAll("pitId=[^,]+,", "pitId=*,");
+        .replaceAll("LogicalProject#\\d+", "LogicalProject#")
+        .replaceAll("pitId=[^,]+,", "pitId=*,")
+        .replaceAll(" needClean=true,", "")
+        .replaceAll(" searchDone=false,", "");
   }
 
   private static String jsonToYaml(String json) {

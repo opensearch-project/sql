@@ -22,6 +22,8 @@ import java.util.stream.Stream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.*;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
@@ -72,6 +74,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceContex
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WcFieldExpressionContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
+import org.opensearch.sql.ppl.utils.UnresolvedPlanHelper;
 import org.opensearch.sql.utils.DateTimeUtils;
 
 /** Class of building AST Expression nodes. */
@@ -79,13 +82,15 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   private static final int DEFAULT_TAKE_FUNCTION_SIZE_VALUE = 10;
 
-  /** The function name mapping between fronted and core engine. */
-  private static final Map<String, String> FUNCTION_NAME_MAPPING =
+  /** The eval function name mapping between fronted and core engine. */
+  private static final Map<String, String> EVAL_FUNCTION_NAME_MAPPING =
       new ImmutableMap.Builder<String, String>()
           .put("isnull", IS_NULL.getName().getFunctionName())
           .put("isnotnull", IS_NOT_NULL.getName().getFunctionName())
           .put("regex_match", REGEXP_MATCH.getName().getFunctionName()) // compatible with old one
           .put("regexp_replace", REPLACE.getName().getFunctionName())
+          .put("max", SCALAR_MAX.getName().getFunctionName()) // this is scalar max
+          .put("min", SCALAR_MIN.getName().getFunctionName()) // this is scalar min
           .build();
 
   private final AstBuilder astBuilder;
@@ -160,9 +165,16 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     String operator = ctx.comparisonOperator().getText();
     if ("==".equals(operator)) {
       operator = EQUAL.getName().getFunctionName();
-    } else if (LIKE.getName().getFunctionName().equalsIgnoreCase(operator)) {
-      operator = LIKE.getName().getFunctionName();
+    } else if (LIKE.getName().getFunctionName().equalsIgnoreCase(operator)
+        && UnresolvedPlanHelper.isCalciteEnabled(astBuilder.getSettings())) {
+      operator =
+          UnresolvedPlanHelper.legacyPreferred(astBuilder.getSettings())
+              ? ILIKE.getName().getFunctionName()
+              : LIKE.getName().getFunctionName();
+    } else if (ILIKE.getName().getFunctionName().equalsIgnoreCase(operator)) {
+      operator = ILIKE.getName().getFunctionName();
     }
+
     return new Compare(operator, visit(ctx.left), visit(ctx.right));
   }
 
@@ -429,7 +441,8 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   public UnresolvedExpression visitEvalFunctionCall(EvalFunctionCallContext ctx) {
     final String functionName = ctx.evalFunctionName().getText();
     final String mappedName =
-        FUNCTION_NAME_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), functionName);
+        EVAL_FUNCTION_NAME_MAPPING.getOrDefault(
+            functionName.toLowerCase(Locale.ROOT), functionName);
 
     // Rewrite sum and avg functions to arithmetic expressions
     if (SUM.getName().getFunctionName().equalsIgnoreCase(mappedName)
@@ -440,11 +453,76 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return buildFunction(mappedName, ctx.functionArgs().functionArg());
   }
 
+  /** Mvmap function with implicit lambda binding. */
+  @Override
+  public UnresolvedExpression visitMvmapFunctionCall(
+      OpenSearchPPLParser.MvmapFunctionCallContext ctx) {
+    List<OpenSearchPPLParser.FunctionArgContext> args = ctx.functionArg();
+
+    UnresolvedExpression firstArg = visitFunctionArg(args.get(0));
+    UnresolvedExpression secondArg = visitFunctionArg(args.get(1));
+
+    if (secondArg instanceof LambdaFunction) {
+      throw new SyntaxCheckException("mvmap does not accept lambda expression as second argument");
+    }
+
+    QualifiedName fieldName = extractFieldName(firstArg);
+    if (fieldName == null) {
+      throw new SyntaxCheckException("mvmap first argument must be a field or field expression");
+    }
+
+    LambdaFunction lambda = new LambdaFunction(secondArg, Collections.singletonList(fieldName));
+    return new Function("mvmap", Arrays.asList(firstArg, lambda));
+  }
+
   private Function buildFunction(
       String functionName, List<OpenSearchPPLParser.FunctionArgContext> args) {
     return new Function(
         functionName, args.stream().map(this::visitFunctionArg).collect(Collectors.toList()));
   }
+
+  /**
+   * Extracts the field name from the first argument for implicit lambda binding. The second
+   * argument must reference this same field. E.g., {@code mvmap(mvindex(arr, 1, 2), arr * 10)}
+   * extracts 'arr' and creates {@code arr -> arr * 10}.
+   */
+  private QualifiedName extractFieldName(UnresolvedExpression expr) {
+    return expr.accept(FIELD_NAME_EXTRACTOR, null);
+  }
+
+  /**
+   * Visitor for extracting field names from expressions. Used for mvmap's implicit lambda binding.
+   */
+  private static final AbstractNodeVisitor<QualifiedName, Void> FIELD_NAME_EXTRACTOR =
+      new AbstractNodeVisitor<>() {
+        @Override
+        public QualifiedName visitField(Field node, Void context) {
+          return node.getField().accept(this, context);
+        }
+
+        @Override
+        public QualifiedName visitQualifiedName(QualifiedName node, Void context) {
+          return node;
+        }
+
+        @Override
+        public QualifiedName visitFunction(Function node, Void context) {
+          // Visit each funcArg and return on first non-null (qualified name found)
+          for (UnresolvedExpression arg : node.getFuncArgs()) {
+            QualifiedName result = arg.accept(this, context);
+            if (result != null) {
+              return result;
+            }
+          }
+          return null;
+        }
+
+        @Override
+        public QualifiedName visitChildren(Node node, Void context) {
+          // Default behavior: return null for unknown expression types
+          return null;
+        }
+      };
 
   /** Cast function. */
   @Override
@@ -749,7 +827,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return new Argument("max", (Literal) this.visit(ctx.integerLiteral()));
   }
 
-  private QualifiedName visitIdentifiers(List<? extends ParserRuleContext> ctx) {
+  public QualifiedName visitIdentifiers(List<? extends ParserRuleContext> ctx) {
     return new QualifiedName(
         ctx.stream()
             .map(RuleContext::getText)
@@ -985,47 +1063,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
       osDateMathExpression = DateTimeUtils.resolveTimeModifier(pplTimeModifier);
     }
     return AstDSL.stringLiteral(osDateMathExpression);
-  }
-
-  @Override
-  public UnresolvedExpression visitTimechartParameter(
-      OpenSearchPPLParser.TimechartParameterContext ctx) {
-    UnresolvedExpression timechartParameter;
-    if (ctx.SPAN() != null) {
-      // Convert span=1h to span(@timestamp, 1h)
-      Literal spanLiteral = (Literal) visit(ctx.spanLiteral());
-      timechartParameter =
-          AstDSL.spanFromSpanLengthLiteral(AstDSL.implicitTimestampField(), spanLiteral);
-    } else if (ctx.LIMIT() != null) {
-      Literal limit = (Literal) visit(ctx.integerLiteral());
-      if ((Integer) limit.getValue() < 0) {
-        throw new IllegalArgumentException("Limit must be a non-negative number");
-      }
-      timechartParameter = limit;
-    } else if (ctx.USEOTHER() != null) {
-      UnresolvedExpression useOther;
-      if (ctx.booleanLiteral() != null) {
-        useOther = visit(ctx.booleanLiteral());
-      } else if (ctx.ident() != null) {
-        QualifiedName ident = visitIdentifiers(List.of(ctx.ident()));
-        String useOtherValue = ident.toString();
-        if ("true".equalsIgnoreCase(useOtherValue) || "t".equalsIgnoreCase(useOtherValue)) {
-          useOther = AstDSL.booleanLiteral(true);
-        } else if ("false".equalsIgnoreCase(useOtherValue) || "f".equalsIgnoreCase(useOtherValue)) {
-          useOther = AstDSL.booleanLiteral(false);
-        } else {
-          throw new IllegalArgumentException(
-              "Invalid useOther value: " + ctx.ident().getText() + ". Expected true/false or t/f");
-        }
-      } else {
-        throw new IllegalArgumentException("value for useOther must be a boolean or identifier");
-      }
-      timechartParameter = useOther;
-    } else {
-      throw new IllegalArgumentException(
-          String.format("A parameter of timechart must be a span, limit or useOther, got %s", ctx));
-    }
-    return timechartParameter;
   }
 
   /**

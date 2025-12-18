@@ -4,22 +4,94 @@ This module provides a high-level integration layer for the Calcite-based query 
 
 ## Overview
 
-The `UnifiedQueryPlanner` serves as the primary entry point for external consumers. It accepts PPL (Piped Processing Language) queries and returns Calcite `RelNode` logical plans as intermediate representation.
+This module provides two primary components:
+
+- **`UnifiedQueryPlanner`**: Accepts PPL (Piped Processing Language) queries and returns Calcite `RelNode` logical plans as intermediate representation.
+- **`UnifiedQueryTranspiler`**: Converts Calcite logical plans (`RelNode`) into SQL strings for various target databases using different SQL dialects.
+
+Together, these components enable a complete workflow: parse PPL queries into logical plans, then transpile those plans into target database SQL.
+
+### Experimental API Design
+
+**This API is currently experimental.** The design intentionally exposes Calcite abstractions (`Schema` for catalogs, `RelNode` as IR, `SqlDialect` for dialects) rather than creating custom wrapper interfaces. This is to avoid overdesign by leveraging the flexible Calcite interface in the short term. If a more abstracted API becomes necessary in the future, breaking changes may be introduced with the new abstraction layer.
 
 ## Usage
 
-Use the declarative, fluent builder API to initialize the `UnifiedQueryPlanner`.
+### UnifiedQueryContext
+
+`UnifiedQueryContext` is a reusable abstraction shared across unified query components (planner, compiler, etc.). It bundles `CalcitePlanContext` and `Settings` into a single object, centralizing configuration for all unified query operations.
+
+Create a context with catalog configuration, query type, and optional settings:
 
 ```java
-UnifiedQueryPlanner planner = UnifiedQueryPlanner.builder()
+UnifiedQueryContext context = UnifiedQueryContext.builder()
     .language(QueryType.PPL)
-    .catalog("opensearch", schema)
+    .catalog("opensearch", opensearchSchema)
+    .catalog("spark_catalog", sparkSchema)
     .defaultNamespace("opensearch")
     .cacheMetadata(true)
+    .setting("plugins.query.size_limit", 200)
+    .build();
+```
+
+### UnifiedQueryPlanner
+
+Use `UnifiedQueryPlanner` to parse and analyze PPL queries into Calcite logical plans. The planner accepts a `UnifiedQueryContext` and can be reused for multiple queries.
+
+```java
+// Create planner with context
+UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
+
+// Plan multiple queries (context is reused)
+RelNode plan1 = planner.plan("source = logs | where status = 200");
+RelNode plan2 = planner.plan("source = metrics | stats avg(cpu)");
+```
+
+### UnifiedQueryTranspiler
+
+Use `UnifiedQueryTranspiler` to convert Calcite logical plans into SQL strings for target databases. The transpiler supports various SQL dialects through Calcite's `SqlDialect` interface.
+
+```java
+UnifiedQueryTranspiler transpiler = UnifiedQueryTranspiler.builder()
+    .dialect(SparkSqlDialect.DEFAULT)
     .build();
 
-RelNode plan = planner.plan("source = opensearch.test");
+String sql = transpiler.toSql(plan);
 ```
+
+### Complete Workflow Example
+
+Combining all components to transpile PPL queries into target database SQL:
+
+```java
+// Step 1: Create reusable context (shared across components)
+UnifiedQueryContext context = UnifiedQueryContext.builder()
+    .language(QueryType.PPL)
+    .catalog("catalog", schema)
+    .defaultNamespace("catalog")
+    .build();
+
+// Step 2: Create planner with context
+UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
+
+// Step 3: Plan PPL query into logical plan
+RelNode plan = planner.plan("source = employees | where age > 30");
+
+// Step 4: Create transpiler with target dialect
+UnifiedQueryTranspiler transpiler = UnifiedQueryTranspiler.builder()
+    .dialect(SparkSqlDialect.DEFAULT)
+    .build();
+
+// Step 5: Transpile to target SQL
+String sparkSql = transpiler.toSql(plan);
+// Result: SELECT * FROM `catalog`.`employees` WHERE `age` > 30
+```
+
+Supported SQL dialects include:
+- `SparkSqlDialect.DEFAULT` - Apache Spark SQL
+- `PostgresqlSqlDialect.DEFAULT` - PostgreSQL
+- `MysqlSqlDialect.DEFAULT` - MySQL
+- And other Calcite-supported dialects
 
 ## Development & Testing
 

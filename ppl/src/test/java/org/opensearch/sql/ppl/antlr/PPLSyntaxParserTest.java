@@ -712,11 +712,11 @@ public class PPLSyntaxParserTest {
         new PPLSyntaxParser()
             .parse(
                 """
-                    // test is a new line comment \
-                    search source=t a=1 b=2 // test is a line comment at the end of ppl command \
-                    | fields a,b // this is line comment inner ppl command\
-                    ////this is a new line comment
-                    """));
+                // test is a new line comment \
+                search source=t a=1 b=2 // test is a line comment at the end of ppl command \
+                | fields a,b // this is line comment inner ppl command\
+                ////this is a new line comment
+                """));
   }
 
   @Test
@@ -727,20 +727,20 @@ public class PPLSyntaxParserTest {
         new PPLSyntaxParser()
             .parse(
                 """
-                    /*
+                /*
+                This is a\
+                    multiple\
+                line\
+                block\
+                    comment */\
+                search /* block comment */ source=t /* block comment */ a=1 b=2
+                |/*
                     This is a\
                         multiple\
                     line\
                     block\
-                        comment */\
-                    search /* block comment */ source=t /* block comment */ a=1 b=2
-                    |/*
-                        This is a\
-                            multiple\
-                        line\
-                        block\
-                            comment */ fields a,b /* block comment */ \
-                    """));
+                        comment */ fields a,b /* block comment */ \
+                """));
   }
 
   @Test
@@ -913,5 +913,37 @@ public class PPLSyntaxParserTest {
             .parse(
                 "SOURCE=test | WHERE query_string(['field1', 'field2' ^ 3.2], 'test query',"
                     + " analyzer='keyword')"));
+  }
+
+  @Test
+  public void testAddTotalsCommandShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("source=t | addtotals");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testAddTotalsCommandWithFieldsShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("source=t | addtotals price, quantity");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testAddTotalsCommandWithLabelShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("source=t | addtotals label='Grand Total'");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testAddTotalsCommandWithLabelFieldShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("source=t | addtotals labelfield='category'");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testAddTotalsCommandWithAllOptionsShouldPass() {
+    ParseTree tree =
+        new PPLSyntaxParser()
+            .parse("source=t | addtotals price, quantity label='Total' labelfield='type'");
+    assertNotEquals(null, tree);
   }
 }

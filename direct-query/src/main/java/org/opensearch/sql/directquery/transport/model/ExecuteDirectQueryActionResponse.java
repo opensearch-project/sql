@@ -8,8 +8,6 @@ package org.opensearch.sql.directquery.transport.model;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.Getter;
@@ -64,20 +62,15 @@ public class ExecuteDirectQueryActionResponse extends ActionResponse {
       String dataSourceType = in.readString();
       String resultJson = in.readString();
 
-      // Create appropriate DataSourceResult based on type - using privileged action
+      // Create appropriate DataSourceResult based on type
       DataSourceResult result;
       switch (dataSourceType) {
         case "prometheus":
-          result =
-              AccessController.doPrivileged(
-                  (PrivilegedAction<PrometheusResult>)
-                      () -> {
-                        try {
-                          return OBJECT_MAPPER.readValue(resultJson, PrometheusResult.class);
-                        } catch (IOException e) {
-                          throw new RuntimeException("Failed to deserialize Prometheus result", e);
-                        }
-                      });
+          try {
+            result = OBJECT_MAPPER.readValue(resultJson, PrometheusResult.class);
+          } catch (IOException e) {
+            throw new RuntimeException("Failed to deserialize Prometheus result", e);
+          }
           break;
           // Add cases for other data source types as they're implemented
         default:
@@ -110,17 +103,13 @@ public class ExecuteDirectQueryActionResponse extends ActionResponse {
         throw new IOException("Unsupported DataSourceResult type: " + result.getClass().getName());
       }
 
-      // Serialize the data source result to JSON - using privileged action
-      final String serializedResult =
-          AccessController.doPrivileged(
-              (PrivilegedAction<String>)
-                  () -> {
-                    try {
-                      return OBJECT_MAPPER.writeValueAsString(result);
-                    } catch (IOException e) {
-                      throw new RuntimeException("Failed to serialize result", e);
-                    }
-                  });
+      // Serialize the data source result to JSON
+      final String serializedResult;
+      try {
+        serializedResult = OBJECT_MAPPER.writeValueAsString(result);
+      } catch (IOException e) {
+        throw new RuntimeException("Failed to serialize result", e);
+      }
       streamOutput.writeString(serializedResult);
     }
 
@@ -150,25 +139,16 @@ public class ExecuteDirectQueryActionResponse extends ActionResponse {
         resultWithType = rawResult;
       }
 
-      // Use AccessController.doPrivileged() to handle reflection security restrictions
-      DataSourceResult result =
-          AccessController.doPrivileged(
-              (PrivilegedAction<DataSourceResult>)
-                  () -> {
-                    try {
-                      // Parse based on the determined data source type
-                      switch (dataSourceType.toLowerCase()) {
-                        case "prometheus":
-                          return OBJECT_MAPPER.readValue(resultWithType, PrometheusResult.class);
-                          // Add cases for other data source types as they're implemented
-                        default:
-                          throw new IOException("Unsupported data source type: " + dataSourceType);
-                      }
-                    } catch (IOException e) {
-                      throw new RuntimeException(
-                          "Failed to parse result for data source type: " + dataSourceType, e);
-                    }
-                  });
+      DataSourceResult result;
+      // Parse based on the determined data source type
+      switch (dataSourceType.toLowerCase()) {
+        case "prometheus":
+          result = OBJECT_MAPPER.readValue(resultWithType, PrometheusResult.class);
+          break;
+          // Add cases for other data source types as they're implemented
+        default:
+          throw new IOException("Unsupported data source type: " + dataSourceType);
+      }
 
       parsedResults.put(dataSourceName, result);
     } catch (RuntimeException e) {

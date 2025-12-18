@@ -30,7 +30,6 @@ import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
-import org.opensearch.sql.opensearch.security.SecurityAccess;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
 import org.opensearch.sql.ppl.PPLService;
@@ -105,8 +104,7 @@ public class TransportPPLQueryAction
 
     QueryContext.addRequestId();
 
-    PPLService pplService =
-        SecurityAccess.doPrivileged(() -> injector.getInstance(PPLService.class));
+    PPLService pplService = injector.getInstance(PPLService.class);
     TransportPPLQueryRequest transportRequest = TransportPPLQueryRequest.fromActionRequest(request);
     // in order to use PPL service, we need to convert TransportPPLQueryRequest to PPLQueryRequest
     PPLQueryRequest transformedRequest = transportRequest.toPPLQueryRequest();

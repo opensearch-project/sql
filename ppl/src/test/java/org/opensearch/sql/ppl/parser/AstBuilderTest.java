@@ -1249,10 +1249,7 @@ public class AstBuilderTest {
                     alias("@timestamp", span(field("@timestamp"), intLiteral(1), SpanUnit.of("m"))))
                 .columnSplit(null)
                 .aggregationFunction(alias("per_second(a)", aggregate("sum", field("a"))))
-                .arguments(
-                    exprList(
-                        argument("limit", intLiteral(10)),
-                        argument("useother", booleanLiteral(true))))
+                .arguments(exprList())
                 .build(),
             let(
                 field("per_second(a)"),
@@ -1281,10 +1278,7 @@ public class AstBuilderTest {
                     alias("@timestamp", span(field("@timestamp"), intLiteral(1), SpanUnit.of("m"))))
                 .columnSplit(null)
                 .aggregationFunction(alias("per_minute(a)", aggregate("sum", field("a"))))
-                .arguments(
-                    exprList(
-                        argument("limit", intLiteral(10)),
-                        argument("useother", booleanLiteral(true))))
+                .arguments(exprList())
                 .build(),
             let(
                 field("per_minute(a)"),
@@ -1313,10 +1307,7 @@ public class AstBuilderTest {
                     alias("@timestamp", span(field("@timestamp"), intLiteral(1), SpanUnit.of("m"))))
                 .columnSplit(null)
                 .aggregationFunction(alias("per_hour(a)", aggregate("sum", field("a"))))
-                .arguments(
-                    exprList(
-                        argument("limit", intLiteral(10)),
-                        argument("useother", booleanLiteral(true))))
+                .arguments(exprList())
                 .build(),
             let(
                 field("per_hour(a)"),
@@ -1345,10 +1336,7 @@ public class AstBuilderTest {
                     alias("@timestamp", span(field("@timestamp"), intLiteral(1), SpanUnit.of("m"))))
                 .columnSplit(null)
                 .aggregationFunction(alias("per_day(a)", aggregate("sum", field("a"))))
-                .arguments(
-                    exprList(
-                        argument("limit", intLiteral(10)),
-                        argument("useother", booleanLiteral(true))))
+                .arguments(exprList())
                 .build(),
             let(
                 field("per_day(a)"),
@@ -1625,5 +1613,34 @@ public class AstBuilderTest {
         t2.getMessage()
             .contains(
                 "Span length [2.5y] is invalid: floating-point time intervals are not supported."));
+  }
+
+  @Test
+  public void testMvmapWithLambdaSecondArgThrowsException() {
+    assertEquals(
+        "mvmap does not accept lambda expression as second argument",
+        assertThrows(
+                SyntaxCheckException.class,
+                () -> plan("source=t | eval result = mvmap(arr, x -> x * 10)"))
+            .getMessage());
+  }
+
+  @Test
+  public void testMvmapWithWrongNumberOfArgsThrowsException() {
+    // Grammar enforces exactly 2 arguments, so parser throws syntax error
+    assertThrows(SyntaxCheckException.class, () -> plan("source=t | eval result = mvmap(arr)"));
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> plan("source=t | eval result = mvmap(arr, arr * 10, extra)"));
+  }
+
+  @Test
+  public void testMvmapWithNonFieldFirstArgThrowsException() {
+    assertEquals(
+        "mvmap first argument must be a field or field expression",
+        assertThrows(
+                SyntaxCheckException.class,
+                () -> plan("source=t | eval result = mvmap(123, 123 * 10)"))
+            .getMessage());
   }
 }

@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.opensearch.storage.script.core;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
 import org.apache.calcite.DataContext;
@@ -40,9 +38,11 @@ public class CalciteScript {
    * @param sourceLookup source look up
    * @return expr value
    */
-  public Object[] execute(Map<String, ScriptDocValues<?>> docProvider, SourceLookup sourceLookup) {
-    return AccessController.doPrivileged(
-        (PrivilegedAction<Object[]>)
-            () -> function.apply(new ScriptDataContext(docProvider, sourceLookup, params)));
+  public Object[] execute(
+      Map<String, ScriptDocValues<?>> docProvider,
+      SourceLookup sourceLookup,
+      Map<String, Integer> parametersToIndex) {
+    return function.apply(
+        new ScriptDataContext(docProvider, sourceLookup, params, parametersToIndex));
   }
 }

@@ -33,7 +33,7 @@ public class PPLQueryDataAnonymizerTest {
 
   @Test
   public void testSearchCommand() {
-    assertEquals("source=table a:***", anonymize("search source=t a=1"));
+    assertEquals("source=table identifier = ***", anonymize("search source=t a=1"));
   }
 
   @Test
@@ -51,6 +51,19 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testWhereCommand() {
     assertEquals("source=table | where identifier = ***", anonymize("search source=t | where a=1"));
+  }
+
+  @Test
+  public void testLikeFunction() {
+    assertEquals(
+        "source=table | where like(identifier,***)",
+        anonymize("search source=t | where like(a, '%llo%')"));
+    assertEquals(
+        "source=table | where like(identifier,***,***)",
+        anonymize("search source=t | where like(a, '%llo%', true)"));
+    assertEquals(
+        "source=table | where like(identifier,***,***)",
+        anonymize("search source=t | where like(a, '%llo%', false)"));
   }
 
   // Fields and Table Command Tests
@@ -255,9 +268,12 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testTimechartCommand() {
     assertEquals(
-        "source=table | timechart limit=*** useother=*** count() by span(identifier, *** m)"
-            + " identifier",
+        "source=table | timechart count() by identifier",
         anonymize("source=t | timechart count() by host"));
+
+    assertEquals(
+        "source=table | timechart timefield=time_identifier max(identifier)",
+        anonymize("source=t | timechart timefield=month max(revenue)"));
   }
 
   @Test
@@ -389,6 +405,13 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testAndExpressionWithMetaData() {
+    assertEquals(
+        "source=table | where meta_identifier = *** and identifier = ***",
+        anonymize("source=t | where _id=1 and b=2"));
+  }
+
+  @Test
   public void testOrExpression() {
     assertEquals(
         "source=table | where identifier = *** or identifier = ***",
@@ -477,6 +500,23 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=table | appendcol override=false [ where identifier = *** ]",
         anonymize("source=t | appendcol override=false [ where a = 1 ]"));
+  }
+
+  @Test
+  public void testAddTotals() {
+    assertEquals(
+        "source=table | addtotals row=true col=true label=identifier labelfield=identifier"
+            + " fieldname=identifier",
+        anonymize(
+            "source=table | addtotals row=true col=true label='identifier' labelfield='identifier'"
+                + " fieldname='identifier'"));
+  }
+
+  @Test
+  public void testAddColTotals() {
+    assertEquals(
+        "source=table | addcoltotals label=identifier labelfield=identifier",
+        anonymize("source=table | addcoltotals label='identifier' labelfield='identifier'"));
   }
 
   @Test
@@ -823,6 +863,49 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testMvzip() {
+    // Test mvzip with custom delimiter
+    assertEquals(
+        "source=table | eval identifier=mvzip(array(***,***),array(***,***),***) | fields +"
+            + " identifier",
+        anonymize(
+            "source=t | eval result=mvzip(array('a', 'b'), array('x', 'y'), '|') | fields result"));
+  }
+
+  @Test
+  public void testSplit() {
+    // Test split with delimiter
+    assertEquals(
+        "source=table | eval identifier=split(***,***) | fields + identifier",
+        anonymize("source=t | eval result=split('a;b;c', ';') | fields result"));
+    // Test split with field reference
+    assertEquals(
+        "source=table | eval identifier=split(identifier,***) | fields + identifier",
+        anonymize("source=t | eval result=split(text, ',') | fields result"));
+    // Test split with empty delimiter (splits into characters)
+    assertEquals(
+        "source=table | eval identifier=split(***,***) | fields + identifier",
+        anonymize("source=t | eval result=split('abcd', '') | fields result"));
+  }
+
+  @Test
+  public void testMvdedup() {
+    // Test mvdedup with array containing duplicates
+    assertEquals(
+        "source=table | eval identifier=mvdedup(array(***,***,***,***,***,***)) | fields +"
+            + " identifier",
+        anonymize("source=t | eval result=mvdedup(array(1, 2, 2, 3, 1, 4)) | fields result"));
+  }
+
+  @Test
+  public void testMvmap() {
+    assertEquals(
+        "source=table | eval identifier=mvmap(identifier,*(identifier,***)) | fields +"
+            + " identifier",
+        anonymize("source=t | eval result=mvmap(arr, arr * 10) | fields result"));
+  }
+
+  @Test
   public void testRexWithOffsetField() {
     when(settings.getSettingValue(Key.PPL_REX_MAX_MATCH_LIMIT)).thenReturn(10);
 
@@ -879,8 +962,35 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testSearchWithAbsoluteTimeRange() {
     assertEquals(
-        "source=table (@timestamp:*** AND (@timestamp:***",
+        "source=table (time_identifier >= ***) AND (time_identifier <= ***)",
         anonymize("search source=t earliest='2012-12-10 15:00:00' latest=now"));
+  }
+
+  @Test
+  public void testSearchWithIn() {
+    assertEquals("source=table identifier IN ***", anonymize("search source=t balance in (2000)"));
+  }
+
+  @Test
+  public void testSearchWithNot() {
+    assertEquals(
+        "source=table NOT(identifier = ***)", anonymize("search NOT balance=2000 source=t"));
+  }
+
+  @Test
+  public void testSearchWithGroup() {
+    assertEquals(
+        "source=table ((identifier = *** OR identifier = ***) AND identifier > ***)",
+        anonymize(
+            "search (severityText=\"ERROR\" OR severityText=\"WARN\") AND severityNumber>10"
+                + " source=t"));
+  }
+
+  @Test
+  public void testSearchWithOr() {
+    assertEquals(
+        "source=table (time_identifier >= *** OR time_identifier <= ***)",
+        anonymize("search source=t earliest='2012-12-10 15:00:00' or latest=now"));
   }
 
   @Test
@@ -890,5 +1000,14 @@ public class PPLQueryDataAnonymizerTest {
             + " identifier,identifier",
         anonymize(
             "search source=t | spath input=json_attr output=out path=foo.bar | fields id, out"));
+  }
+
+  @Test
+  public void testMvfind() {
+    assertEquals(
+        "source=table | eval identifier=mvfind(array(***,***,***),***) | fields + identifier",
+        anonymize(
+            "source=t | eval result=mvfind(array('apple', 'banana', 'apricot'), 'ban.*') | fields"
+                + " result"));
   }
 }

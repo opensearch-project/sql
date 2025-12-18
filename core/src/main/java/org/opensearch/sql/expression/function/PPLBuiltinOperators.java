@@ -47,6 +47,8 @@ import org.opensearch.sql.expression.function.CollectionUDF.ExistsFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.FilterFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.ForallFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.MVAppendFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.MVFindFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.MVZipFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.MapAppendFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.MapRemoveFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.ReduceFunctionImpl;
@@ -67,6 +69,7 @@ import org.opensearch.sql.expression.function.udf.RexExtractFunction;
 import org.opensearch.sql.expression.function.udf.RexExtractMultiFunction;
 import org.opensearch.sql.expression.function.udf.RexOffsetFunction;
 import org.opensearch.sql.expression.function.udf.SpanFunction;
+import org.opensearch.sql.expression.function.udf.ToNumberFunction;
 import org.opensearch.sql.expression.function.udf.ToStringFunction;
 import org.opensearch.sql.expression.function.udf.condition.EarliestFunction;
 import org.opensearch.sql.expression.function.udf.condition.EnhancedCoalesceFunction;
@@ -391,6 +394,8 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator MAP_APPEND = new MapAppendFunctionImpl().toUDF("map_append");
   public static final SqlOperator MAP_REMOVE = new MapRemoveFunctionImpl().toUDF("MAP_REMOVE");
   public static final SqlOperator MVAPPEND = new MVAppendFunctionImpl().toUDF("mvappend");
+  public static final SqlOperator MVZIP = new MVZipFunctionImpl().toUDF("mvzip");
+  public static final SqlOperator MVFIND = new MVFindFunctionImpl().toUDF("mvfind");
   public static final SqlOperator FILTER = new FilterFunctionImpl().toUDF("filter");
   public static final SqlOperator TRANSFORM = new TransformFunctionImpl().toUDF("transform");
   public static final SqlOperator REDUCE = new ReduceFunctionImpl().toUDF("reduce");
@@ -412,6 +417,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("multi_match", false);
   public static final SqlOperator NUMBER_TO_STRING =
       new NumberToStringFunction().toUDF("NUMBER_TO_STRING");
+  public static final SqlOperator TONUMBER = new ToNumberFunction().toUDF("TONUMBER");
   public static final SqlOperator TOSTRING = new ToStringFunction().toUDF("TOSTRING");
   public static final SqlOperator WIDTH_BUCKET =
       new org.opensearch.sql.expression.function.udf.binning.WidthBucketFunction()

@@ -28,6 +28,11 @@ public class SearchOr extends SearchExpression {
   }
 
   @Override
+  public String toAnonymizedString() {
+    return left.toAnonymizedString() + " OR " + right.toAnonymizedString();
+  }
+
+  @Override
   public List<? extends UnresolvedExpression> getChild() {
     return Arrays.asList(left, right);
   }

@@ -43,7 +43,7 @@ teardown:
         Content-Type: 'application/json'
       ppl:
         body:
-          query: 'source=logs | lookup region_info regionId'
+          query: 'source=logs | lookup region_info regionId | sort regionId'
   - match: {"total": 1}
   - match: {"schema": [{"name": "action", "type": "string"}, {"name": "regionId", "type": "string"}, {"name": "timestamp", "type": "timestamp"},  {"name": "regionName", "type": "string"}]}
   - match: {"datarows": [["login_attempt", "1", "2024-04-29 10:00:00", "us-east-1"]]}

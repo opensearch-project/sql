@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.response.agg;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -84,9 +85,11 @@ public class BucketAggregationParser implements OpenSearchAggregationResponsePar
   }
 
   private List<Map<String, Object>> parseLeafAgg(Aggregations aggregations, long docCount) {
-    Map<String, Object> resultMap = metricsParser.parse(aggregations);
-    countAggNameList.forEach(countAggName -> resultMap.put(countAggName, docCount));
-    return List.of(resultMap);
+    List<Map<String, Object>> resultMapList = metricsParser.parse(aggregations);
+    List<Map<String, Object>> maps =
+        resultMapList.isEmpty() ? List.of(new HashMap<>()) : resultMapList;
+    countAggNameList.forEach(countAggName -> maps.forEach(map -> map.put(countAggName, docCount)));
+    return maps;
   }
 
   @Override

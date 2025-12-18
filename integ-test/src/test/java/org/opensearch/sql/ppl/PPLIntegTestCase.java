@@ -59,6 +59,8 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     return getResponseBody(response, true);
   }
 
+  /** Deprecated, use {@link #explainQueryYaml(String)} */
+  @Deprecated
   protected String explainQueryToString(String query) throws IOException {
     return explainQueryToString(query, false);
   }
@@ -319,6 +321,10 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
 
   protected void enabledOnlyWhenPushdownIsEnabled() throws IOException {
     Assume.assumeTrue("This test is only for when push down is enabled", !isPushdownDisabled());
+  }
+
+  protected void enabledOnlyWhenPushdownIsDisabled() throws IOException {
+    Assume.assumeTrue("This test is only for when push down is disabled", isPushdownDisabled());
   }
 
   public void updatePushdownSettings() throws IOException {

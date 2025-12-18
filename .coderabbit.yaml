@@ -1,0 +1,189 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+# CodeRabbit Configuration for OpenSearch SQL Project
+# This configuration uses .rules/REVIEW_GUIDELINES.md for code review standards
+
+language: "en-US"
+early_access: false
+
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  high_level_summary_in_walkthrough: true
+  poem: false  # Keep reviews professional and concise
+  review_status: true
+  collapse_walkthrough: true
+  
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    drafts: false  # Don't review draft PRs
+    ignore_title_keywords:
+      - "WIP"
+      - "DO NOT MERGE"
+      - "DRAFT"
+
+  # General review instructions (applied to all reviews)
+  instructions:
+    # Architectural Decision Prompts
+    - "For new features: Check if similar functionality exists that could be enhanced instead"
+    - "Question whether new code is needed vs reusing/extending existing code"
+    - "Identify opportunities for code reuse across the codebase"
+  
+  # Path-specific review instructions
+  path_instructions:
+    # Grammar Files - Architectural Decision Prompts
+    - path: "**/*.g4"
+      instructions: |
+        - Check if modifying unrelated grammar files (scope creep)
+        - Verify grammar rule placement follows project patterns
+        - Question if new rule needed vs reusing existing rules
+        - Ensure changes are relevant to the PR's stated purpose
+    
+    - path: "ppl/src/main/antlr/OpenSearchPPLParser.g4"
+      instructions: |
+        - Identify code reuse opportunities with existing commands
+        - Validate command follows PPL naming and structure patterns
+        - Check if command should be alias vs separate implementation
+
+    # Java Files - Code Organization and Quality
+    - path: "**/*.java"
+      instructions: |
+        - Flag methods >50 lines as potentially too complex - suggest refactoring
+        - Flag classes >500 lines as needing organization review
+        - Check for dead code, unused imports, and unused variables
+        - Identify code reuse opportunities across similar implementations
+        - Assess holistic maintainability - is code easy to understand and modify?
+        - Flag code that appears AI-generated without sufficient human review
+        - Verify Java naming conventions (PascalCase for classes, camelCase for methods/variables)
+        - Check for proper JavaDoc on public classes and methods
+        - Flag redundant comments that restate obvious code
+        - Ensure proper error handling with specific exception types
+        - Check for Optional<T> usage instead of null returns
+        - Validate proper use of try-with-resources for resource management
+    
+    # Core Java - Project-Specific Patterns
+    - path: "core/src/main/java/**/*.java"
+      instructions: |
+        - New functions MUST have unit tests in the same commit
+        - Public methods MUST have JavaDoc with @param, @return, and @throws
+        - Follow existing function implementation patterns in the same package
+        - New expression functions should follow ExpressionFunction interface patterns
+        - Validate function naming follows project conventions (camelCase)
+    
+    - path: "core/src/main/java/org/opensearch/sql/expression/**/*.java"
+      instructions: |
+        - New expression implementations must follow existing patterns
+        - Type handling must be consistent with project type system
+        - Error handling must use appropriate exception types
+        - Null handling must be explicit and documented
+    
+    - path: "core/src/main/java/org/opensearch/sql/ast/**/*.java"
+      instructions: |
+        - AST nodes must be immutable where possible
+        - Follow visitor pattern for AST traversal
+        - Ensure proper toString() implementation for debugging
+    
+    # Test Files - Enhanced Coverage Validation
+    - path: "**/test/**/*.java"
+      instructions: |
+        - Verify NULL input tests for all new functions
+        - Check boundary condition tests (min/max values, empty inputs)
+        - Validate error condition tests (invalid inputs, exceptions)
+        - Ensure multi-document tests for per-document operations
+        - Flag smoke tests without meaningful assertions
+        - Check test naming follows pattern: test<Functionality><Condition>
+        - Verify test data is realistic and covers edge cases
+        - Verify test coverage for new business logic
+        - Ensure tests are independent and don't rely on execution order
+        - Validate meaningful test data that reflects real-world scenarios
+        - Check for proper cleanup of test resources
+    
+    # Integration Tests
+    - path: "integ-test/**/*IT.java"
+      instructions: |
+        - Integration tests MUST use valid test data from resources
+        - Verify test data files exist in integ-test/src/test/resources/
+        - Check test assertions are meaningful and specific
+        - Validate tests clean up resources after execution
+        - Ensure tests are independent and can run in any order
+        - Flag tests that reference non-existent indices (e.g., EMP)
+        - Verify integration tests are in correct module (integ-test/)
+        - Check tests can be run with ./gradlew :integ-test:integTest
+        - Ensure proper test data setup and teardown
+        - Validate end-to-end scenario coverage
+    
+    - path: "integ-test/src/test/resources/**/*"
+      instructions: |
+        - Verify test data is realistic and representative
+        - Check data format matches expected schema
+        - Ensure test data covers edge cases and boundary conditions
+    
+    # PPL-specific
+    - path: "**/ppl/**/*.java"
+      instructions: |
+        - For PPL parser changes, verify grammar tests with positive/negative cases
+        - Check AST generation for new syntax
+        - Ensure corresponding AST builder classes are updated
+        - Validate edge cases and boundary conditions
+    
+    # Calcite Integration
+    - path: "**/calcite/**/*.java"
+      instructions: |
+        - Follow existing Calcite integration patterns
+        - Verify RelNode visitor implementations are complete
+        - Check RexNode handling follows project conventions
+        - Validate SQL generation is correct and optimized
+        - Ensure Calcite version compatibility
+        - Follow existing patterns in CalciteRelNodeVisitor and CalciteRexNodeVisitor
+        - Document any Calcite-specific workarounds
+        - Test compatibility with Calcite version constraints
+    
+    - path: "core/src/main/java/org/opensearch/sql/calcite/CalciteRelNodeVisitor.java"
+      instructions: |
+        - Flag methods >50 lines - this file is known to be hard to read
+        - Suggest extracting complex logic into helper methods
+        - Check for code organization and logical grouping
+        - Validate all RelNode types are handled
+    
+    # Documentation
+    - path: "docs/**/*.rst"
+      instructions: |
+        - Verify examples use valid test data and indices
+        - Check documentation follows existing patterns and structure
+        - Validate syntax examples are complete and correct
+        - Ensure code examples are tested and working
+        - Check for consistent formatting and style
+
+chat:
+  auto_reply: false # require explicit tagging 
+  art: false # disable ASCII / Emoji art
+
+# Knowledge base configuration
+knowledge_base:
+  # Don't opt out - use knowledge base features
+  opt_out: false
+  
+  # Code guidelines - reference our custom review guidelines
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      # Reference our custom review guidelines
+      - ".rules/REVIEW_GUIDELINES.md"
+  
+  # Enable web search for additional context
+  web_search:
+    enabled: true
+  
+  # Use repository-specific learnings for this project
+  learnings:
+    scope: "local"
+  
+  # Use repository-specific issues
+  issues:
+    scope: "local"
+  
+  # Use repository-specific pull requests for context
+  pull_requests:
+    scope: "local"

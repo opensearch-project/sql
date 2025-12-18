@@ -26,12 +26,14 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ChartCommandConte
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DefaultSortFieldContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EventstatsCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PrefixSortFieldContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StreamstatsCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SuffixSortFieldContext;
+import org.opensearch.sql.ppl.parser.AstExpressionBuilder;
 
 /** Util class to get all arguments as a list from the PPL command. */
 public class ArgumentFactory {
@@ -77,7 +79,9 @@ public class ArgumentFactory {
                         getArgumentValue(ctx1.bucketNullableArg(0).bucket_nullable))
                     : new Argument(
                         Argument.BUCKET_NULLABLE,
-                        legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE)));
+                        UnresolvedPlanHelper.legacyPreferred(settings)
+                            ? Literal.TRUE
+                            : Literal.FALSE)));
     if (ctx2 != null) {
       list.add(new Argument("dedupsplit", getArgumentValue(ctx2.dedupsplit)));
     } else {
@@ -86,19 +90,13 @@ public class ArgumentFactory {
     return list;
   }
 
-  private static boolean legacyPreferred(Settings settings) {
-    return settings == null
-        || settings.getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED) == null
-        || Boolean.TRUE.equals(settings.getSettingValue(Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED));
-  }
-
   /**
    * Get list of {@link Argument}.
    *
    * @param ctx StreamstatsCommandContext instance
    * @return the list of arguments fetched from the streamstats command
    */
-  public static List<Argument> getArgumentList(StreamstatsCommandContext ctx) {
+  public static List<Argument> getArgumentList(StreamstatsCommandContext ctx, Settings settings) {
     return Arrays.asList(
         ctx.streamstatsArgs().currentArg() != null && !ctx.streamstatsArgs().currentArg().isEmpty()
             ? new Argument("current", getArgumentValue(ctx.streamstatsArgs().currentArg(0).current))
@@ -108,7 +106,31 @@ public class ArgumentFactory {
             : new Argument("window", new Literal(0, DataType.INTEGER)),
         ctx.streamstatsArgs().globalArg() != null && !ctx.streamstatsArgs().globalArg().isEmpty()
             ? new Argument("global", getArgumentValue(ctx.streamstatsArgs().globalArg(0).global))
-            : new Argument("global", new Literal(true, DataType.BOOLEAN)));
+            : new Argument("global", new Literal(true, DataType.BOOLEAN)),
+        ctx.streamstatsArgs().bucketNullableArg() != null
+                && !ctx.streamstatsArgs().bucketNullableArg().isEmpty()
+            ? new Argument(
+                Argument.BUCKET_NULLABLE,
+                getArgumentValue(ctx.streamstatsArgs().bucketNullableArg(0).bucket_nullable))
+            : new Argument(
+                Argument.BUCKET_NULLABLE,
+                UnresolvedPlanHelper.legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE));
+  }
+
+  /**
+   * Get list of {@link Argument}.
+   *
+   * @param ctx EventstatsCommandContext instance
+   * @return the list of arguments fetched from the eventstats command
+   */
+  public static List<Argument> getArgumentList(EventstatsCommandContext ctx, Settings settings) {
+    return Collections.singletonList(
+        ctx.bucketNullableArg() != null && !ctx.bucketNullableArg().isEmpty()
+            ? new Argument(
+                Argument.BUCKET_NULLABLE, getArgumentValue(ctx.bucketNullableArg().bucket_nullable))
+            : new Argument(
+                Argument.BUCKET_NULLABLE,
+                UnresolvedPlanHelper.legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE));
   }
 
   /**
@@ -232,6 +254,60 @@ public class ArgumentFactory {
     return arguments;
   }
 
+  public static List<Argument> getArgumentList(
+      OpenSearchPPLParser.TimechartCommandContext timechartCtx,
+      AstExpressionBuilder expressionBuilder) {
+    List<Argument> arguments = new ArrayList<>();
+    for (OpenSearchPPLParser.TimechartParameterContext ctx : timechartCtx.timechartParameter()) {
+      if (ctx.SPAN() != null) {
+        arguments.add(
+            new Argument("spanliteral", (Literal) expressionBuilder.visit(ctx.spanLiteral())));
+      } else if (ctx.LIMIT() != null) {
+        Literal limit = getArgumentValue(ctx.integerLiteral());
+        if ((Integer) limit.getValue() < 0) {
+          throw new IllegalArgumentException("Limit must be a non-negative number");
+        }
+        arguments.add(new Argument("limit", limit));
+      } else if (ctx.USEOTHER() != null) {
+        Literal useOther;
+        if (ctx.booleanLiteral() != null) {
+          useOther = getArgumentValue(ctx.booleanLiteral());
+        } else if (ctx.ident() != null) {
+          String identLiteral = expressionBuilder.visitIdentifiers(List.of(ctx.ident())).toString();
+          if ("true".equalsIgnoreCase(identLiteral) || "t".equalsIgnoreCase(identLiteral)) {
+            useOther = AstDSL.booleanLiteral(true);
+          } else if ("false".equalsIgnoreCase(identLiteral) || "f".equalsIgnoreCase(identLiteral)) {
+            useOther = AstDSL.booleanLiteral(false);
+          } else {
+            throw new IllegalArgumentException(
+                "Invalid useOther value: "
+                    + ctx.ident().getText()
+                    + ". Expected true/false or t/f");
+          }
+        } else {
+          throw new IllegalArgumentException("value for useOther must be a boolean or identifier");
+        }
+        arguments.add(new Argument("useother", useOther));
+      } else if (ctx.TIMEFIELD() != null) {
+        Literal timeField;
+        if (ctx.ident() != null) {
+          timeField =
+              AstDSL.stringLiteral(
+                  expressionBuilder.visitIdentifiers(List.of(ctx.ident())).toString());
+        } else {
+          timeField = getArgumentValue(ctx.stringLiteral());
+        }
+        arguments.add(new Argument("timefield", timeField));
+      } else {
+        throw new IllegalArgumentException(
+            String.format(
+                "A parameter of timechart must be a span, limit, useother, or timefield, got %s",
+                ctx));
+      }
+    }
+    return arguments;
+  }
+
   /**
    * Get list of {@link Argument}.
    *
@@ -261,7 +337,7 @@ public class ArgumentFactory {
             RareTopN.Option.useNull.name(),
             opt.isPresent()
                 ? getArgumentValue(opt.get().useNull)
-                : legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE));
+                : UnresolvedPlanHelper.legacyPreferred(settings) ? Literal.TRUE : Literal.FALSE));
     return list;
   }
 

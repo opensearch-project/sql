@@ -6,12 +6,11 @@ root:
   children:
     - name: FilterOperator
       description:
-        conditions: "like(address, \"%Holmes%\")"
+        conditions: "like(address, \"%Holmes%\", true)"
       children:
         - name: OpenSearchIndexScan
           description:
             request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account,\
-              \ sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\"}, needClean=true,\
-              \ searchDone=false, pitId=*,\
+              \ sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\"}, pitId=*,\
               \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
           children: []

@@ -71,6 +71,12 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
   }
 
   @Override
+  public AbstractCalciteIndexScan copy() {
+    return new CalciteEnumerableIndexScan(
+        getCluster(), traitSet, hints, table, osIndex, schema, pushDownContext.clone());
+  }
+
+  @Override
   public void register(RelOptPlanner planner) {
     for (RelOptRule rule : OpenSearchRules.OPEN_SEARCH_OPT_RULES) {
       planner.addRule(rule);
@@ -112,45 +118,16 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
     return new AbstractEnumerable<>() {
       @Override
       public Enumerator<Object> enumerator() {
-        OpenSearchRequestBuilder requestBuilder = getOrCreateRequestBuilder();
+        OpenSearchRequestBuilder requestBuilder = pushDownContext.createRequestBuilder();
         return new OpenSearchIndexEnumerator(
             osIndex.getClient(),
-            getFieldPath(),
+            getRowType().getFieldNames(),
             requestBuilder.getMaxResponseSize(),
             requestBuilder.getMaxResultWindow(),
+            osIndex.getQueryBucketSize(),
             osIndex.buildRequest(requestBuilder),
             osIndex.createOpenSearchResourceMonitor());
       }
     };
-  }
-
-  private List<String> getFieldPath() {
-    return getRowType().getFieldNames().stream()
-        .map(f -> osIndex.getAliasMapping().getOrDefault(f, f))
-        .toList();
-  }
-
-  /**
-   * In some edge cases where the digests of more than one scan are the same, and then the Calcite
-   * planner will reuse the same scan along with the same PushDownContext inner it. However, the
-   * `OpenSearchRequestBuilder` inner `PushDownContext` is not reusable since it has status changed
-   * in the search process.
-   *
-   * <p>To avoid this issue and try to construct `OpenSearchRequestBuilder` as less as possible,
-   * this method will get and reuse the `OpenSearchRequestBuilder` in PushDownContext for the first
-   * time, and then construct new ones for the following invoking.
-   *
-   * @return OpenSearchRequestBuilder to be used by enumerator
-   */
-  private volatile boolean isRequestBuilderUsedByEnumerator = false;
-
-  private OpenSearchRequestBuilder getOrCreateRequestBuilder() {
-    synchronized (this.pushDownContext) {
-      if (isRequestBuilderUsedByEnumerator) {
-        return this.pushDownContext.createRequestBuilder();
-      }
-      isRequestBuilderUsedByEnumerator = true;
-      return this.pushDownContext.getRequestBuilder();
-    }
   }
 }

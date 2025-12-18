@@ -10,8 +10,6 @@ package org.opensearch.sql.prometheus.request.system;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 
 import java.io.IOException;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,31 +34,27 @@ public class PrometheusListMetricsRequest implements PrometheusSystemRequest {
 
   @Override
   public List<ExprValue> search() {
-    return AccessController.doPrivileged(
-        (PrivilegedAction<List<ExprValue>>)
-            () -> {
-              try {
-                Map<String, List<MetricMetadata>> result = prometheusClient.getAllMetrics();
-                return result.keySet().stream()
-                    .map(
-                        x -> {
-                          MetricMetadata metricMetadata = result.get(x).get(0);
-                          return row(
-                              x,
-                              metricMetadata.getType(),
-                              metricMetadata.getUnit(),
-                              metricMetadata.getHelp());
-                        })
-                    .collect(Collectors.toList());
-              } catch (IOException e) {
-                LOG.error(
-                    "Error while fetching metric list for from prometheus: {}", e.getMessage());
-                throw new RuntimeException(
-                    String.format(
-                        "Error while fetching metric list " + "for from prometheus: %s",
-                        e.getMessage()));
-              }
-            });
+    try {
+      Map<String, List<MetricMetadata>> result = prometheusClient.getAllMetrics();
+      return result.keySet().stream()
+          .map(
+              x -> {
+                MetricMetadata metricMetadata = result.get(x).get(0);
+                return row(
+                    x,
+                    metricMetadata.getType(),
+                    metricMetadata.getUnit(),
+                    metricMetadata.getHelp());
+              })
+          .collect(Collectors.toList());
+    } catch (IOException e) {
+      LOG.error(
+          "Error while fetching metric list for from prometheus: {}", e.getMessage());
+      throw new RuntimeException(
+          String.format(
+              "Error while fetching metric list " + "for from prometheus: %s",
+              e.getMessage()));
+    }
   }
 
   private ExprTupleValue row(String metricName, String tableType, String unit, String help) {

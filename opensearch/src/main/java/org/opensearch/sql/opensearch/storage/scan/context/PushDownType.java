@@ -12,10 +12,10 @@ public enum PushDownType {
   AGGREGATION,
   SORT,
   LIMIT,
-  SCRIPT,
-  COLLAPSE,
+  SCRIPT, // script in predicate
   SORT_AGG_METRICS, // convert composite aggregate to terms or multi-terms bucket aggregate
   RARE_TOP, // convert composite aggregate to nested aggregate
+  SORT_EXPR
   // HIGHLIGHT,
   // NESTED
 }

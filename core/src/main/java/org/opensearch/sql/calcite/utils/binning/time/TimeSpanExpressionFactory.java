@@ -34,14 +34,9 @@ public class TimeSpanExpressionFactory {
     TimeUnitRegistry.validateSubSecondSpan(config, intervalValue);
 
     return switch (config) {
-      case MICROSECONDS,
-          MILLISECONDS,
-          CENTISECONDS,
-          DECISECONDS,
-          SECONDS,
-          MINUTES,
-          HOURS -> standardHandler.createExpression(
-          fieldExpr, intervalValue, config, alignmentOffsetMillis, context);
+      case MICROSECONDS, MILLISECONDS, CENTISECONDS, DECISECONDS, SECONDS, MINUTES, HOURS ->
+          standardHandler.createExpression(
+              fieldExpr, intervalValue, config, alignmentOffsetMillis, context);
       case DAYS -> dayHandler.createExpression(fieldExpr, intervalValue, context);
       case MONTHS -> monthHandler.createExpression(fieldExpr, intervalValue, context);
     };

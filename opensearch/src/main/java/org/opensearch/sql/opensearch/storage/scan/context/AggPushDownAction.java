@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.opensearch.storage.scan.context;
 
+import static org.opensearch.search.aggregations.MultiBucketConsumerService.DEFAULT_MAX_BUCKETS;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -43,8 +45,6 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 @Getter
 @EqualsAndHashCode
 public class AggPushDownAction implements OSRequestBuilderAction {
-  private static final int MAX_BUCKET_SIZE = 65535;
-
   private Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> builderAndParser;
   private final Map<String, OpenSearchDataType> extendedTypeMapping;
   private final long scriptCount;
@@ -111,11 +111,12 @@ public class AggPushDownAction implements OSRequestBuilderAction {
       List<RelFieldCollation> collations, List<String> fieldNames) {
     if (builderAndParser.getLeft().isEmpty()) return;
     if (builderAndParser.getLeft().getFirst() instanceof CompositeAggregationBuilder composite) {
+      boolean asc = collations.get(0).getDirection() == RelFieldCollation.Direction.ASCENDING;
       String path = getAggregationPath(collations, fieldNames, composite);
       BucketOrder bucketOrder =
-          collations.get(0).getDirection() == RelFieldCollation.Direction.ASCENDING
-              ? BucketOrder.aggregation(path, true)
-              : BucketOrder.aggregation(path, false);
+          composite.getSubAggregations().isEmpty()
+              ? BucketOrder.count(asc)
+              : BucketOrder.aggregation(path, asc);
       AggregationBuilder aggregationBuilder = null;
       if (composite.sources().size() == 1) {
         if (composite.sources().get(0) instanceof TermsValuesSourceBuilder terms
@@ -185,13 +186,13 @@ public class AggPushDownAction implements OSRequestBuilderAction {
           for (int i = 0; i < composite.sources().size(); i++) {
             TermsValuesSourceBuilder terms = (TermsValuesSourceBuilder) composite.sources().get(i);
             if (i == 0) { // first
-              aggregationBuilder = buildTermsAggregationBuilder(terms, null, MAX_BUCKET_SIZE);
+              aggregationBuilder = buildTermsAggregationBuilder(terms, null, DEFAULT_MAX_BUCKETS);
             } else if (i == composite.sources().size() - 1) { // last
               aggregationBuilder.subAggregation(
                   buildTermsAggregationBuilder(terms, bucketOrder, digest.number()));
             } else {
               aggregationBuilder.subAggregation(
-                  buildTermsAggregationBuilder(terms, null, MAX_BUCKET_SIZE));
+                  buildTermsAggregationBuilder(terms, null, DEFAULT_MAX_BUCKETS));
             }
           }
         } else {
@@ -310,17 +311,15 @@ public class AggPushDownAction implements OSRequestBuilderAction {
       Collection<AggregationBuilder> subAggregations,
       String path,
       AggregationBuilder aggregationBuilder) {
-    AggregatorFactories.Builder metricBuilder = new AggregatorFactories.Builder();
-    if (subAggregations.isEmpty()) {
-      metricBuilder.addAggregator(AggregationBuilders.count(path).field("_index"));
-    } else {
+    if (!subAggregations.isEmpty()) {
+      AggregatorFactories.Builder metricBuilder = new AggregatorFactories.Builder();
       subAggregations.forEach(metricBuilder::addAggregator);
       // the count aggregator may be eliminated by doc_count optimization, add it back
       if (subAggregations.stream().noneMatch(sub -> sub.getName().equals(path))) {
         metricBuilder.addAggregator(AggregationBuilders.count(path).field("_index"));
       }
+      aggregationBuilder.subAggregations(metricBuilder);
     }
-    aggregationBuilder.subAggregations(metricBuilder);
     return aggregationBuilder;
   }
 
@@ -389,6 +388,11 @@ public class AggPushDownAction implements OSRequestBuilderAction {
       termsAggBuilder.order(BucketOrder.key(!collations.getFirst().getDirection().isDescending()));
     }
     // TODO for MultiTermsAggregationBuilder
+  }
+
+  public boolean isCompositeAggregation() {
+    return builderAndParser.getLeft().stream()
+        .anyMatch(builder -> builder instanceof CompositeAggregationBuilder);
   }
 
   /**

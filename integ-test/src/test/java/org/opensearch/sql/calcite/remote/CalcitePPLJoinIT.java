@@ -956,4 +956,73 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
     verifyNumOfRows(actual, 15);
   }
+
+  @Test
+  public void testSimpleSortPushDownForSMJ() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | join left=a right=b on a.age + 3 = b.age - 2 %s | fields name, age,"
+                    + " b.name, b.age",
+                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        actual,
+        schema("name", "string"),
+        schema("age", "int"),
+        schema("b.name", "string"),
+        schema("b.age", "int"));
+    verifyDataRows(actual, rows("Jane", 20, "John", 25), rows("John", 25, "Hello", 30));
+  }
+
+  @Test
+  public void testComplexSortPushDownForSMJ() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval name2=substring(name, 2, 1) | join left=a right=b on a.name2 ="
+                    + " b.state2 [ source=%s | eval state2=substring(state, 2, 1) ] | fields name,"
+                    + " name2, b.name, b.state, state2",
+                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        actual,
+        schema("name", "string"),
+        schema("name2", "string"),
+        schema("b.name", "string"),
+        schema("b.state", "string"),
+        schema("state2", "string"));
+    verifyDataRows(
+        actual,
+        rows("Jake", "a", "Jake", "California", "a"),
+        rows("Jake", "a", "David", "Washington", "a"),
+        rows("Jane", "a", "Jake", "California", "a"),
+        rows("Jane", "a", "David", "Washington", "a"),
+        rows("David", "a", "Jake", "California", "a"),
+        rows("David", "a", "David", "Washington", "a"),
+        rows("Hello", "e", "Hello", "New York", "e"),
+        rows("Peter", "e", "Hello", "New York", "e"));
+  }
+
+  @Test
+  public void testComplexSortPushDownForSMJWithMaxOptionAndFieldList() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval name2=substring(name, 2, 1) | join max=1 name2,age [ source=%s |"
+                    + " eval name2=substring(state, 2, 1) ]",
+                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        actual,
+        schema("name", "string"),
+        schema("country", "string"),
+        schema("state", "string"),
+        schema("month", "int"),
+        schema("year", "int"),
+        schema("age", "int"),
+        schema("name2", "string"));
+    verifyDataRows(
+        actual,
+        rows("David", "USA", "Washington", 4, 2023, 40, "a"),
+        rows("Jake", "USA", "California", 4, 2023, 70, "a"),
+        rows("Hello", "USA", "New York", 4, 2023, 30, "e"));
+  }
 }

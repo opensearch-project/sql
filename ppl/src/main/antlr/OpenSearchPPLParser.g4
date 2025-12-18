@@ -76,6 +76,8 @@ commands
    | fillnullCommand
    | trendlineCommand
    | appendcolCommand
+   | addtotalsCommand
+   | addcoltotalsCommand
    | appendCommand
    | expandCommand
    | flattenCommand
@@ -122,6 +124,8 @@ commandName
    | EXPLAIN
    | REVERSE
    | REGEX
+   | ADDTOTALS
+   | ADDCOLTOTALS
    | APPEND
    | MULTISEARCH
    | REX
@@ -255,7 +259,7 @@ dedupSplitArg
    ;
 
 eventstatsCommand
-   : EVENTSTATS eventstatsAggTerm (COMMA eventstatsAggTerm)* (statsByClause)?
+   : EVENTSTATS (bucketNullableArg)? eventstatsAggTerm (COMMA eventstatsAggTerm)* (statsByClause)?
    ;
 
 streamstatsCommand
@@ -263,7 +267,7 @@ streamstatsCommand
    ;
 
 streamstatsArgs
-   : (currentArg | windowArg | globalArg | resetBeforeArg | resetAfterArg)*
+   : (currentArg | windowArg | globalArg | resetBeforeArg | resetAfterArg | bucketNullableArg)*
    ;
 
 currentArg
@@ -328,6 +332,7 @@ timechartParameter
    : LIMIT EQUAL integerLiteral
    | SPAN EQUAL spanLiteral
    | USEOTHER EQUAL (booleanLiteral | ident)
+   | TIMEFIELD EQUAL (ident | stringLiteral)
    ;
 
 spanLiteral
@@ -404,6 +409,7 @@ spathParameter
 
 indexablePath
    : pathElement (DOT pathElement)*
+   | stringLiteral
    ;
 
 pathElement
@@ -576,6 +582,29 @@ mlCommand
 
 mlArg
    : (argName = ident EQUAL argValue = literalValue)
+   ;
+
+addtotalsCommand
+   : ADDTOTALS (fieldList)? addtotalsOption*
+   | ADDTOTALS addtotalsOption* (fieldList)?
+   ;
+
+addtotalsOption
+   : (LABEL EQUAL stringLiteral)
+   | (LABELFIELD EQUAL stringLiteral)
+   | (FIELDNAME EQUAL stringLiteral)
+   | (ROW EQUAL booleanLiteral)
+   | (COL EQUAL booleanLiteral)
+   ;
+
+addcoltotalsCommand
+   : ADDCOLTOTALS (fieldList)? addcoltotalsOption*
+   | ADDCOLTOTALS addcoltotalsOption* (fieldList)?
+   ;
+
+addcoltotalsOption
+   : (LABEL EQUAL stringLiteral)
+   | (LABELFIELD EQUAL stringLiteral)
    ;
 
 // clauses
@@ -820,13 +849,18 @@ evalExpression
     ;
 
 functionCall
-   : evalFunctionCall
+   : mvmapFunctionCall
+   | evalFunctionCall
    | dataTypeFunctionCall
    | positionFunctionCall
    | caseFunctionCall
    | timestampFunctionCall
    | extractFunctionCall
    | getFormatFunctionCall
+   ;
+
+mvmapFunctionCall
+   : MVMAP LT_PRTHS functionArg COMMA functionArg RT_PRTHS
    ;
 
 positionFunctionCall
@@ -1095,6 +1129,10 @@ collectionFunctionName
     | MVAPPEND
     | MVJOIN
     | MVINDEX
+    | MVFIND
+    | MVDEDUP
+    | MVZIP
+    | SPLIT
     | FORALL
     | EXISTS
     | FILTER
@@ -1265,6 +1303,7 @@ timestampFunctionName
 // condition function return boolean value
 conditionFunctionName
    : LIKE
+   | ILIKE
    | ISNULL
    | ISNOTNULL
    | CIDRMATCH
@@ -1308,6 +1347,7 @@ textFunctionName
    | LOCATE
    | REPLACE
    | REVERSE
+   | TONUMBER
    | REGEXP_REPLACE
    ;
 
@@ -1326,6 +1366,7 @@ positionFunctionName
    | NOT_GREATER
    | REGEXP
    | LIKE
+   | ILIKE
    ;
 
 singleFieldRelevanceFunctionName
@@ -1513,6 +1554,7 @@ searchableKeyWord
    | USING
    | VALUE
    | CAST
+   | TONUMBER
    | TOSTRING
    | GET_FORMAT
    | EXTRACT
@@ -1566,6 +1608,7 @@ searchableKeyWord
    | SED
    | MAX_MATCH
    | OFFSET_FIELD
+   | TIMEFIELD
    | patternMethod
    | patternMode
    // AGGREGATIONS AND WINDOW
@@ -1607,4 +1650,12 @@ searchableKeyWord
    | LEFT_HINT
    | RIGHT_HINT
    | PERCENTILE_SHORTCUT
+   | ADDTOTALS
+   | ADDCOLTOTALS
+   | LABEL
+   | LABELFIELD
+   | FIELDNAME
+   | ROW
+   | COL
    ;
+

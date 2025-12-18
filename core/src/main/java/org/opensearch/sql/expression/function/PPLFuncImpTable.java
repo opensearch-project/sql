@@ -79,6 +79,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.HOUR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.HOUR_OF_DAY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IFNULL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ILIKE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_GROK;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_ITEM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PARSE;
@@ -150,8 +151,12 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPL
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLYFUNCTION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTI_MATCH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVAPPEND;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVDEDUP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVFIND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVINDEX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVJOIN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVMAP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVZIP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOTEQUAL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOW;
@@ -181,6 +186,8 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.RIGHT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RINT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ROUND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RTRIM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SCALAR_MAX;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SCALAR_MIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SECOND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SECOND_OF_MINUTE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SEC_TO_TIME;
@@ -193,6 +200,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SINH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SPAN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SPAN_BUCKET;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SPLIT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SQRT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_POP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STDDEV_SAMP;
@@ -215,6 +223,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTA
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMPDIFF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME_FORMAT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME_TO_SEC;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TONUMBER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TOSTRING;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TO_DAYS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TO_SECONDS;
@@ -323,6 +332,18 @@ public class PPLFuncImpTable {
         throw new IllegalArgumentException("This function requires exactly 2 arguments");
       }
       return resolve(builder, args[0], args[1]);
+    }
+  }
+
+  public interface FunctionImp3 extends FunctionImp {
+    RexNode resolve(RexBuilder builder, RexNode arg1, RexNode arg2, RexNode arg3);
+
+    @Override
+    default RexNode resolve(RexBuilder builder, RexNode... args) {
+      if (args.length != 3) {
+        throw new IllegalArgumentException("This function requires exactly 3 arguments");
+      }
+      return resolve(builder, args[0], args[1], args[2]);
     }
   }
 
@@ -849,9 +870,9 @@ public class PPLFuncImpTable {
       registerOperator(INTERNAL_REGEXP_REPLACE_5, SqlLibraryOperators.REGEXP_REPLACE_5);
       registerOperator(INTERNAL_TRANSLATE3, SqlLibraryOperators.TRANSLATE3);
 
-      // Register eval functions for PPL max() and min() calls
-      registerOperator(MAX, PPLBuiltinOperators.SCALAR_MAX);
-      registerOperator(MIN, PPLBuiltinOperators.SCALAR_MIN);
+      // Register eval functions for PPL scalar max() and min() calls
+      registerOperator(SCALAR_MAX, PPLBuiltinOperators.SCALAR_MAX);
+      registerOperator(SCALAR_MIN, PPLBuiltinOperators.SCALAR_MIN);
 
       // Register PPL UDF operator
       registerOperator(COSH, PPLBuiltinOperators.COSH);
@@ -959,6 +980,7 @@ public class PPLFuncImpTable {
       registerOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK);
 
       registerOperator(INTERNAL_PATTERN_PARSER, PPLBuiltinOperators.PATTERN_PARSER);
+      registerOperator(TONUMBER, PPLBuiltinOperators.TONUMBER);
       registerOperator(TOSTRING, PPLBuiltinOperators.TOSTRING);
       register(
           TOSTRING,
@@ -975,6 +997,34 @@ public class PPLFuncImpTable {
                   builder.makeCall(SqlLibraryOperators.ARRAY_JOIN, array, delimiter),
           PPLTypeChecker.family(SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER));
 
+      // Register SPLIT with custom logic for empty delimiter
+      // Case 1: Delimiter is not empty string, use SPLIT
+      // Case 2: Delimiter is empty string, use REGEXP_EXTRACT_ALL with '.' pattern
+      register(
+          SPLIT,
+          (FunctionImp2)
+              (builder, str, delimiter) -> {
+                // Create condition: delimiter = ''
+                RexNode emptyString = builder.makeLiteral("");
+                RexNode isEmptyDelimiter =
+                    builder.makeCall(SqlStdOperatorTable.EQUALS, delimiter, emptyString);
+
+                // For empty delimiter: split into characters using REGEXP_EXTRACT_ALL with '.'
+                // pattern This matches each individual character
+                RexNode dotPattern = builder.makeLiteral(".");
+                RexNode splitChars =
+                    builder.makeCall(SqlLibraryOperators.REGEXP_EXTRACT_ALL, str, dotPattern);
+
+                // For non-empty delimiter: use standard SPLIT
+                RexNode normalSplit = builder.makeCall(SqlLibraryOperators.SPLIT, str, delimiter);
+
+                // Use CASE to choose between the two approaches
+                // CASE WHEN isEmptyDelimiter THEN splitChars ELSE normalSplit END
+                return builder.makeCall(
+                    SqlStdOperatorTable.CASE, isEmptyDelimiter, splitChars, normalSplit);
+              },
+          PPLTypeChecker.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER));
+
       // Register MVINDEX to use Calcite's ITEM/ARRAY_SLICE with index normalization
       register(
           MVINDEX,
@@ -989,6 +1039,10 @@ public class PPLFuncImpTable {
 
       registerOperator(ARRAY, PPLBuiltinOperators.ARRAY);
       registerOperator(MVAPPEND, PPLBuiltinOperators.MVAPPEND);
+      registerOperator(MVDEDUP, SqlLibraryOperators.ARRAY_DISTINCT);
+      registerOperator(MVFIND, PPLBuiltinOperators.MVFIND);
+      registerOperator(MVZIP, PPLBuiltinOperators.MVZIP);
+      registerOperator(MVMAP, PPLBuiltinOperators.TRANSFORM);
       registerOperator(MAP_APPEND, PPLBuiltinOperators.MAP_APPEND);
       registerOperator(MAP_CONCAT, SqlLibraryOperators.MAP_CONCAT);
       registerOperator(MAP_REMOVE, PPLBuiltinOperators.MAP_REMOVE);
@@ -1147,7 +1201,6 @@ public class PPLFuncImpTable {
                               SqlTypeFamily.INTEGER,
                               SqlTypeFamily.INTEGER)),
               false));
-
       register(
           LOG,
           (FunctionImp2)
@@ -1214,17 +1267,22 @@ public class PPLFuncImpTable {
                               arg))),
           PPLTypeChecker.family(SqlTypeFamily.ANY));
       register(
-          LIKE,
+          ILIKE,
           (FunctionImp2)
               (builder, arg1, arg2) ->
                   builder.makeCall(
-                      SqlLibraryOperators.ILIKE,
-                      arg1,
-                      arg2,
-                      // TODO: Figure out escaping solution. '\\' is used for JSON input but is not
-                      // necessary for SQL function input
-                      builder.makeLiteral("\\")),
+                      SqlLibraryOperators.ILIKE, arg1, arg2, builder.makeLiteral("\\")),
           PPLTypeChecker.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING));
+      register(
+          LIKE,
+          (FunctionImp3)
+              (builder, arg1, arg2, arg3) ->
+                  ((RexLiteral) arg3).getValueAs(Boolean.class)
+                      ? builder.makeCall(
+                          SqlStdOperatorTable.LIKE, arg1, arg2, builder.makeLiteral("\\"))
+                      : builder.makeCall(
+                          SqlLibraryOperators.ILIKE, arg1, arg2, builder.makeLiteral("\\")),
+          PPLTypeChecker.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.BOOLEAN));
     }
   }
 
