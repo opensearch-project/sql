@@ -67,6 +67,10 @@ public class CalcitePPLBig5IT extends PPLBig5IT {
     timing(summary, "script_engine_like_pattern_with_aggregation", ppl);
   }
 
+  /**
+   * Tests LIKE pattern matching with sorting and result limiting.
+   * Validates filtering by message content with timestamp ordering.
+   */
   @Test
   public void script_engine_like_pattern_with_sort() throws IOException {
     String ppl = sanitize(loadExpectedQuery("script_engine_like_pattern_with_sort.ppl"));
