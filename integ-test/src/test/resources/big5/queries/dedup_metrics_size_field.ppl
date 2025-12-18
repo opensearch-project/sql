@@ -2,7 +2,7 @@
 {
   "name": "dedup_metrics_size_field",
   "operation-type": "search",
-  "index": "{{index_name | default('custom-big5')}}",
+  "index": "{{index_name | default('big5')}}",
   "body": {
     "query": {
       "exists": {
