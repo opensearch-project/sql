@@ -25,7 +25,7 @@ public class SqlRewriteShuttle extends SqlShuttle {
     if (id.names.size() == 2 && OpenSearchSchema.OPEN_SEARCH_SCHEMA_NAME.equals(id.names.get(0))) {
       return new SqlIdentifier(Collections.singletonList(id.names.get(1)), id.getParserPosition());
     }
-    return id;
+    return super.visit(id);
   }
 
   @Override

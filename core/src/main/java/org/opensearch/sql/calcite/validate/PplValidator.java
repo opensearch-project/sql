@@ -18,6 +18,8 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.server.CalciteServerStatement;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.type.ArraySqlType;
@@ -115,6 +117,21 @@ public class PplValidator extends SqlValidatorImpl {
   public @Nullable RelDataType getValidatedNodeTypeIfKnown(SqlNode node) {
     RelDataType type = super.getValidatedNodeTypeIfKnown(node);
     return sqlTypeToUserDefinedType(type);
+  }
+
+  /**
+   * Disable nullary call to not confuse with field reference.
+   *
+   * <p>It was originally designed for function calls that have no arguments and require no
+   * parentheses (for example "CURRENT_USER"). However, PPL does not have such use cases. Besides,
+   * as nullary calls are resolved before field reference, this will make field references with name
+   * like USER, LOCALTIME to function calls in an unwanted but subtle way.
+   *
+   * @see SqlValidatorImpl.Expander#visit(SqlIdentifier)
+   */
+  @Override
+  public @Nullable SqlCall makeNullaryCall(SqlIdentifier id) {
+    return null;
   }
 
   private RelDataType userDefinedTypeToSqlType(RelDataType type) {
