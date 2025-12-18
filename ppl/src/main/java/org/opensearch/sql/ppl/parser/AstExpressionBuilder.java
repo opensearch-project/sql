@@ -82,13 +82,15 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   private static final int DEFAULT_TAKE_FUNCTION_SIZE_VALUE = 10;
 
-  /** The function name mapping between fronted and core engine. */
-  private static Map<String, String> FUNCTION_NAME_MAPPING =
+  /** The eval function name mapping between fronted and core engine. */
+  private static final Map<String, String> EVAL_FUNCTION_NAME_MAPPING =
       new ImmutableMap.Builder<String, String>()
           .put("isnull", IS_NULL.getName().getFunctionName())
           .put("isnotnull", IS_NOT_NULL.getName().getFunctionName())
           .put("regex_match", REGEXP_MATCH.getName().getFunctionName()) // compatible with old one
           .put("regexp_replace", REPLACE.getName().getFunctionName())
+          .put("max", SCALAR_MAX.getName().getFunctionName()) // this is scalar max
+          .put("min", SCALAR_MIN.getName().getFunctionName()) // this is scalar min
           .build();
 
   private final AstBuilder astBuilder;
@@ -439,7 +441,8 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   public UnresolvedExpression visitEvalFunctionCall(EvalFunctionCallContext ctx) {
     final String functionName = ctx.evalFunctionName().getText();
     final String mappedName =
-        FUNCTION_NAME_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), functionName);
+        EVAL_FUNCTION_NAME_MAPPING.getOrDefault(
+            functionName.toLowerCase(Locale.ROOT), functionName);
 
     // Rewrite sum and avg functions to arithmetic expressions
     if (SUM.getName().getFunctionName().equalsIgnoreCase(mappedName)
