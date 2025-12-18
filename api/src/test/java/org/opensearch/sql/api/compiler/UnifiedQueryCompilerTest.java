@@ -5,6 +5,10 @@
 
 package org.opensearch.sql.api.compiler;
 
+import static java.sql.Types.BIGINT;
+import static java.sql.Types.INTEGER;
+import static java.sql.Types.VARCHAR;
+
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import org.apache.calcite.rel.RelNode;
@@ -12,6 +16,7 @@ import org.apache.calcite.rel.RelShuttle;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.opensearch.sql.api.ResultSetAssertion;
 import org.opensearch.sql.api.UnifiedQueryTestBase;
 
 public class UnifiedQueryCompilerTest extends UnifiedQueryTestBase implements ResultSetAssertion {
@@ -31,7 +36,11 @@ public class UnifiedQueryCompilerTest extends UnifiedQueryTestBase implements Re
       ResultSet resultSet = statement.executeQuery();
 
       verify(resultSet)
-          .expectSchema(col("id"), col("name"), col("age"), col("department"))
+          .expectSchema(
+              col("id", INTEGER),
+              col("name", VARCHAR),
+              col("age", INTEGER),
+              col("department", VARCHAR))
           .expectData(row(2, "Bob", 35, "Sales"), row(3, "Charlie", 45, "Engineering"));
     }
   }
@@ -43,7 +52,7 @@ public class UnifiedQueryCompilerTest extends UnifiedQueryTestBase implements Re
       ResultSet resultSet = statement.executeQuery();
 
       verify(resultSet)
-          .expectSchema(col("count()"), col("department"))
+          .expectSchema(col("count()", BIGINT), col("department", VARCHAR))
           .expectData(row(2L, "Engineering"), row(1L, "Sales"), row(1L, "Marketing"));
     }
   }

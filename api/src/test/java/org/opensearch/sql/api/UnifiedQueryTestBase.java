@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.api;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import lombok.Builder;
@@ -30,6 +29,9 @@ import org.opensearch.sql.executor.QueryType;
 /** Base class for unified query tests providing common test schema and utilities. */
 public abstract class UnifiedQueryTestBase {
 
+  /** Default catalog name */
+  protected static final String DEFAULT_CATALOG = "catalog";
+
   /** Test schema containing sample tables for testing */
   protected AbstractSchema testSchema;
 
@@ -52,21 +54,18 @@ public abstract class UnifiedQueryTestBase {
     context =
         UnifiedQueryContext.builder()
             .language(QueryType.PPL)
-            .catalog("catalog", testSchema)
+            .catalog(DEFAULT_CATALOG, testSchema)
             .build();
     planner = new UnifiedQueryPlanner(context);
   }
 
   /** Creates employees table with sample data for testing */
   protected Table createEmployeesTable() {
-    Map<String, SqlTypeName> schema = new java.util.LinkedHashMap<>();
-    schema.put("id", SqlTypeName.INTEGER);
-    schema.put("name", SqlTypeName.VARCHAR);
-    schema.put("age", SqlTypeName.INTEGER);
-    schema.put("department", SqlTypeName.VARCHAR);
-
     return SimpleTable.builder()
-        .schema(schema)
+        .col("id", SqlTypeName.INTEGER)
+        .col("name", SqlTypeName.VARCHAR)
+        .col("age", SqlTypeName.INTEGER)
+        .col("department", SqlTypeName.VARCHAR)
         .row(new Object[] {1, "Alice", 25, "Engineering"})
         .row(new Object[] {2, "Bob", 35, "Sales"})
         .row(new Object[] {3, "Charlie", 45, "Engineering"})
@@ -77,19 +76,16 @@ public abstract class UnifiedQueryTestBase {
   /** Reusable scannable table with builder pattern for easy table creation */
   @Builder
   protected static class SimpleTable implements ScannableTable {
+    @Singular("col")
     private final Map<String, SqlTypeName> schema;
 
     @Singular private final List<Object[]> rows;
 
     @Override
     public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-      List<RelDataType> types = new ArrayList<>();
-      List<String> names = new ArrayList<>();
-      for (Map.Entry<String, SqlTypeName> entry : schema.entrySet()) {
-        names.add(entry.getKey());
-        types.add(typeFactory.createSqlType(entry.getValue()));
-      }
-      return typeFactory.createStructType(types, names);
+      RelDataTypeFactory.Builder builder = typeFactory.builder();
+      schema.forEach(builder::add);
+      return builder.build();
     }
 
     @Override

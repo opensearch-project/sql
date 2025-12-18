@@ -32,9 +32,6 @@ public class UnifiedQueryCompiler {
   /**
    * Compiles a Calcite logical plan into an executable PreparedStatement.
    *
-   * <p>The returned PreparedStatement can be executed multiple times and should be closed when
-   * done. Results are returned as standard JDBC ResultSet.
-   *
    * @param plan the logical plan to compile (must not be null)
    * @return a compiled PreparedStatement ready for execution
    * @throws IllegalStateException if compilation fails
