@@ -18,5 +18,5 @@
 }
 */
 source = big5
-| dedup `metrics.size`
-| sort - `@timestamp`
+| dedup metrics.size
+| sort - @timestamp

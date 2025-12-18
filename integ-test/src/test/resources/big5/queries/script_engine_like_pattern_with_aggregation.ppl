@@ -44,4 +44,4 @@
 */
 source = big5
 | where like(`message`, '%sshd%')
-| stats count() by `metrics.size`
+| stats count() by metrics.size

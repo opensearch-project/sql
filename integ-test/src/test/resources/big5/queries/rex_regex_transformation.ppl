@@ -1,6 +1,6 @@
 /*
 {
-  "name": "parse_regex_with_cast_transformation",
+  "name": "rex_regex_transformation",
   "operation-type": "search",
   "index": "{{index_name | default('big5')}}",
   "body": {
@@ -23,7 +23,7 @@
 }
 */
 source = big5
-| parse `log.file.path` '/var/log/(?<logType>\\w+)/(?<filename>\\w+)'
+| rex field=log.file.path '/var/log/(?<logType>\\w+)/(?<filename>\\w+)'
 | eval filename_len = length(filename)
-| fields `log.file.path`, logType, filename, filename_len, `@timestamp`
-| sort - `@timestamp`
+| fields log.file.path, logType, filename, filename_len, @timestamp
+| sort - @timestamp

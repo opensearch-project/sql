@@ -16,6 +16,7 @@
         "boost": 1.0
       }
     },
+    "size": 10,
     "_source": {
       "includes": ["agent", "process", "log", "message", "tags", "cloud", "input", "@timestamp", "ecs", "data_stream", "meta", "host", "metrics", "aws", "event"],
       "excludes": []
@@ -33,5 +34,5 @@
 */
 source = big5
 | where like(`message`, '%sshd%')
-| sort - `@timestamp`
+| sort - @timestamp
 | head 10

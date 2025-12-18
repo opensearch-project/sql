@@ -54,10 +54,10 @@ public class CalcitePPLBig5IT extends PPLBig5IT {
   }
 
   @Test
-  public void parse_regex_with_cast_transformation() throws IOException {
-    String ppl = sanitize(loadExpectedQuery("parse_regex_with_cast_transformation.ppl"));
-    timing(summary, "parse_regex_with_cast_transformation", ppl);
-    String expected = loadExpectedPlan("parse_regex_with_cast_transformation.yaml");
+  public void rex_regex_transformation() throws IOException {
+    String ppl = sanitize(loadExpectedQuery("rex_regex_transformation.ppl"));
+    timing(summary, "rex_regex_transformation", ppl);
+    String expected = loadExpectedPlan("rex_regex_transformation.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
