@@ -15,7 +15,7 @@ This module provides components organized into two main areas aligned with the [
 
 - **`UnifiedQueryCompiler`**: Compiles Calcite logical plans (`RelNode`) into executable JDBC `PreparedStatement` objects for separation of compilation and execution.
 
-Together, these components enable complete workflows: parse PPL queries into logical plans, transpile those plans into target database SQL, or compile and execute queries directly using standard JDBC for testing and conformance validation.
+Together, these components enable complete workflows: parse PPL queries into logical plans, transpile those plans into target database SQL, or compile and execute queries directly for testing and conformance validation.
 
 ### Experimental API Design
 
@@ -73,18 +73,11 @@ Supported SQL dialects include:
 
 ### UnifiedQueryCompiler
 
-Use `UnifiedQueryCompiler` to compile Calcite logical plans into executable JDBC statements. This follows the PartiQL compiler pattern, separating compilation from execution and returning standard JDBC types.
+Use `UnifiedQueryCompiler` to compile Calcite logical plans into executable JDBC statements. This separates compilation from execution and returns standard JDBC types.
 
 ```java
-// Create compiler with context
-UnifiedQueryCompiler compiler = UnifiedQueryCompiler.builder()
-    .context(context)
-    .build();
+UnifiedQueryCompiler compiler = new UnifiedQueryCompiler(context);
 
-// Parse query into logical plan
-RelNode plan = planner.plan("source = employees | fields name, age");
-
-// Compile and execute with standard JDBC
 try (PreparedStatement statement = compiler.compile(plan)) {
     ResultSet rs = statement.executeQuery();
     while (rs.next()) {
@@ -119,9 +112,7 @@ String sparkSql = transpiler.toSql(plan);
 // Result: SELECT * FROM `catalog`.`employees` WHERE `age` > 30
 
 // Option B: Compile and execute directly
-UnifiedQueryCompiler compiler = UnifiedQueryCompiler.builder()
-    .context(context)
-    .build();
+UnifiedQueryCompiler compiler = new UnifiedQueryCompiler(context);
 try (PreparedStatement statement = compiler.compile(plan)) {
     ResultSet rs = statement.executeQuery();
     while (rs.next()) {

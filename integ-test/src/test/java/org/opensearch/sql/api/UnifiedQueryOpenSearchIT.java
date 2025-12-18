@@ -9,15 +9,12 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.junit.Test;
-import org.opensearch.client.RestClient;
-import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.api.compiler.UnifiedQueryCompiler;
 import org.opensearch.sql.executor.QueryType;
@@ -25,6 +22,7 @@ import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.client.OpenSearchRestClient;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.InternalRestHighLevelClient;
 
 /**
  * Integration test demonstrating the integration and usage of the Unified Query API with OpenSearch
@@ -62,7 +60,6 @@ public class UnifiedQueryOpenSearchIT extends PPLIntegTestCase implements Result
 
   @Test
   public void testSimplePPLQueryWithUnifiedAPI() throws Exception {
-    // Parse PPL query to logical plan
     String pplQuery =
         String.format(
             "source = opensearch.%s | fields firstname, age | where age > 30 | head 3",
@@ -91,23 +88,15 @@ public class UnifiedQueryOpenSearchIT extends PPLIntegTestCase implements Result
       protected Map<String, Table> getTableMap() {
         return new HashMap<>() {
           @Override
-          public Table get(Object indexName) {
-            if (!super.containsKey(indexName)) {
-              super.put(
-                  (String) indexName,
-                  new OpenSearchIndex(osClient, context.getSettings(), (String) indexName));
+          public Table get(Object key) {
+            if (!super.containsKey(key)) {
+              String indexName = (String) key;
+              super.put(indexName, new OpenSearchIndex(osClient, context.getSettings(), indexName));
             }
-            return super.get(indexName);
+            return super.get(key);
           }
         };
       }
     };
-  }
-
-  /** Internal RestHighLevelClient only for testing purpose. */
-  static class InternalRestHighLevelClient extends RestHighLevelClient {
-    public InternalRestHighLevelClient(RestClient restClient) {
-      super(restClient, RestClient::close, Collections.emptyList());
-    }
   }
 }
