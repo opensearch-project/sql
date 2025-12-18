@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
@@ -655,8 +656,8 @@ public interface PlanUtils {
    *
    * <p>1. It's the root RelNode of the current RuleCall. Or,
    *
-   * <p>2. It only has one parent and its parent is pruned. TODO: To be more precisely, we can prune
-   * a RelNode whose parents are all pruned, but `prunedNodes` in VolcanoPlanner is not available.
+   * <p>2. It's logical RelNode and it only has one parent which is pruned.
+   * TODO: To be more precisely, we can prun a RelNode whose parents are all pruned, but `prunedNodes` in VolcanoPlanner is not available.
    *
    * @param call the RuleCall to prune
    */
@@ -665,8 +666,9 @@ public interface PlanUtils {
       Arrays.stream(call.rels)
           .takeWhile(
               rel ->
-                  rel == call.rels[0]
-                      || volcanoPlanner.getSubsetNonNull(rel).getParentRels().size() == 1)
+                  // Don't prune the physical RelNode as it may prevent sort expr push down
+                  rel.getConvention() == Convention.NONE &&
+                      (rel == call.rels[0] || volcanoPlanner.getSubsetNonNull(rel).getParentRels().size() == 1))
           .forEach(volcanoPlanner::prune);
     }
   }

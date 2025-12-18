@@ -9,7 +9,6 @@ import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
-import org.apache.calcite.rel.rules.SubstitutionRule;
 import org.immutables.value.Value;
 import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
 import org.opensearch.sql.calcite.utils.PlanUtils;
@@ -17,8 +16,7 @@ import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
 @Value.Enclosing
-public class SortAggregateMeasureRule extends InterruptibleRelRule<SortAggregateMeasureRule.Config>
-    implements SubstitutionRule {
+public class SortAggregateMeasureRule extends InterruptibleRelRule<SortAggregateMeasureRule.Config> {
 
   protected SortAggregateMeasureRule(Config config) {
     super(config);

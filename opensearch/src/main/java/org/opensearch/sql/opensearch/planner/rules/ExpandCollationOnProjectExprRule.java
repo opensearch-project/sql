@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.opensearch.planner.rules;
 
+import static org.opensearch.sql.calcite.utils.PlanUtils.tryPruneRelNodes;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -20,6 +22,7 @@ import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.rules.SubstitutionRule;
 import org.apache.commons.lang3.tuple.Pair;
 import org.immutables.value.Value;
 import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
@@ -154,6 +157,7 @@ public class ExpandCollationOnProjectExprRule
       Project newProject =
           project.copy(toTraits, project.getInput(), project.getProjects(), project.getRowType());
       call.transformTo(newProject);
+      tryPruneRelNodes(call);
     }
   }
 
