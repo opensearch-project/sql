@@ -57,6 +57,10 @@ public class CalcitePPLBig5IT extends PPLBig5IT {
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
+  /**
+   * Tests regex-based field extraction and transformation using rex command.
+   * Validates that the Calcite plan correctly handles regex patterns.
+   */
   @Test
   public void rex_regex_transformation() throws IOException {
     String ppl = sanitize(loadExpectedQuery("rex_regex_transformation.ppl"));
