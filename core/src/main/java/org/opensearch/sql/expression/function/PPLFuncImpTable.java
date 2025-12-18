@@ -185,6 +185,8 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.RIGHT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RINT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ROUND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RTRIM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SCALAR_MAX;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SCALAR_MIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SECOND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SECOND_OF_MINUTE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SEC_TO_TIME;
@@ -876,9 +878,9 @@ public class PPLFuncImpTable {
       registerOperator(INTERNAL_REGEXP_REPLACE_5, SqlLibraryOperators.REGEXP_REPLACE_5);
       registerOperator(INTERNAL_TRANSLATE3, SqlLibraryOperators.TRANSLATE3);
 
-      // Register eval functions for PPL max() and min() calls
-      registerOperator(MAX, PPLBuiltinOperators.SCALAR_MAX);
-      registerOperator(MIN, PPLBuiltinOperators.SCALAR_MIN);
+      // Register eval functions for PPL scalar max() and min() calls
+      registerOperator(SCALAR_MAX, PPLBuiltinOperators.SCALAR_MAX);
+      registerOperator(SCALAR_MIN, PPLBuiltinOperators.SCALAR_MIN);
 
       // Register PPL UDF operator
       registerOperator(COSH, PPLBuiltinOperators.COSH);
