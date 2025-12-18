@@ -26,7 +26,7 @@ public class UnifiedQueryTranspilerTest extends UnifiedQueryTestBase {
 
   @Test
   public void testToSql() {
-    String pplQuery = "source = employees";
+    String pplQuery = "source = catalog.employees";
     RelNode plan = planner.plan(pplQuery);
 
     String actualSql = transpiler.toSql(plan);
@@ -37,7 +37,7 @@ public class UnifiedQueryTranspilerTest extends UnifiedQueryTestBase {
 
   @Test
   public void testToSqlWithCustomDialect() {
-    String pplQuery = "source = employees | where name = 123";
+    String pplQuery = "source = catalog.employees | where name = 123";
     RelNode plan = planner.plan(pplQuery);
 
     UnifiedQueryTranspiler customTranspiler =
