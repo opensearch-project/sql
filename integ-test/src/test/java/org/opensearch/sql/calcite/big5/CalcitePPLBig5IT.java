@@ -61,6 +61,10 @@ public class CalcitePPLBig5IT extends PPLBig5IT {
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
+  /**
+   * Tests LIKE pattern matching with aggregation using script engine.
+   * Validates filtering by message content and grouping results.
+   */
   @Test
   public void script_engine_like_pattern_with_aggregation() throws IOException {
     String ppl = sanitize(loadExpectedQuery("script_engine_like_pattern_with_aggregation.ppl"));
