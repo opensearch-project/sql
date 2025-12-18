@@ -68,6 +68,8 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFrame;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.AD;
+import org.opensearch.sql.ast.tree.AddColTotals;
+import org.opensearch.sql.ast.tree.AddTotals;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
@@ -1418,5 +1420,44 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       }
     }
     return false;
+  }
+
+  @Override
+  public UnresolvedPlan visitAddtotalsCommand(OpenSearchPPLParser.AddtotalsCommandContext ctx) {
+
+    List<Field> fieldList = new ArrayList<>();
+    if (ctx.fieldList() != null) {
+      fieldList = getFieldList(ctx.fieldList());
+    }
+    ImmutableMap.Builder<String, Literal> cmdOptionsBuilder = ImmutableMap.builder();
+    ctx.addtotalsOption()
+        .forEach(
+            option -> {
+              String argName = option.children.get(0).toString();
+              Literal value = (Literal) internalVisitExpression(option.children.get(2));
+              cmdOptionsBuilder.put(argName, value);
+            });
+    java.util.Map<String, Literal> options = cmdOptionsBuilder.build();
+    return new AddTotals(fieldList, options);
+  }
+
+  @Override
+  public UnresolvedPlan visitAddcoltotalsCommand(
+      OpenSearchPPLParser.AddcoltotalsCommandContext ctx) {
+
+    List<Field> fieldList = new ArrayList<>();
+    if (ctx.fieldList() != null) {
+      fieldList = getFieldList(ctx.fieldList());
+    }
+    ImmutableMap.Builder<String, Literal> cmdOptionsBuilder = ImmutableMap.builder();
+    ctx.addcoltotalsOption()
+        .forEach(
+            option -> {
+              String argName = option.children.get(0).toString();
+              Literal value = (Literal) internalVisitExpression(option.children.get(2));
+              cmdOptionsBuilder.put(argName, value);
+            });
+    java.util.Map<String, Literal> options = cmdOptionsBuilder.build();
+    return new AddColTotals(fieldList, options);
   }
 }

@@ -87,8 +87,6 @@ public class CalciteExplainIT extends ExplainIT {
   // Only for Calcite
   @Test
   public void testJoinWithCriteriaAndMaxOption() throws IOException {
-    // TODO could be optimized with https://github.com/opensearch-project/OpenSearch/issues/3725
-    enabledOnlyWhenPushdownIsEnabled();
     String query =
         "source=opensearch-sql_test_index_bank | join max=1 left=l right=r on"
             + " l.account_number=r.account_number opensearch-sql_test_index_bank";
@@ -100,8 +98,6 @@ public class CalciteExplainIT extends ExplainIT {
   // Only for Calcite
   @Test
   public void testJoinWithFieldListAndMaxOption() throws IOException {
-    // TODO could be optimized with https://github.com/opensearch-project/OpenSearch/issues/3725
-    enabledOnlyWhenPushdownIsEnabled();
     String query =
         "source=opensearch-sql_test_index_bank | join type=inner max=1 account_number"
             + " opensearch-sql_test_index_bank";
@@ -2010,6 +2006,30 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testaddTotalsExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_add_totals.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account"
+                + "| head 5 "
+                + "| addtotals  balance age label='ColTotal' "
+                + " fieldname='CustomSum' labelfield='all_emp_total' row=true col=true"));
+  }
+
+  @Test
+  public void testaddColTotalsExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_add_col_totals.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account"
+                + "| head 5 "
+                + "|  addcoltotals balance age label='GrandTotal'"));
+  }
+
   public void testComplexDedup() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_dedup_complex1.yaml");
@@ -2129,5 +2149,18 @@ public class CalciteExplainIT extends ExplainIT {
             String.format(
                 "source=%s | fields alias_col | where alias_col > 10 | stats avg(alias_col)",
                 TEST_INDEX_ALIAS)));
+  }
+
+  @Test
+  public void testRexStandardizationForScript() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    assertJsonEqualsIgnoreId(
+        loadExpectedPlan("explain_extended_for_standardization.json"),
+        explainQueryToString(
+            String.format(
+                "source=%s | eval age_range = case(age < 30, 'u30', age >= 30 and age <= 40, 'u40'"
+                    + " else 'u100') | stats avg(age) as avg_age by age_range",
+                TEST_INDEX_BANK),
+            true));
   }
 }

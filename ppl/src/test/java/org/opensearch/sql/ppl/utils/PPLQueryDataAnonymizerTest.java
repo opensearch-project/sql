@@ -503,6 +503,23 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testAddTotals() {
+    assertEquals(
+        "source=table | addtotals row=true col=true label=identifier labelfield=identifier"
+            + " fieldname=identifier",
+        anonymize(
+            "source=table | addtotals row=true col=true label='identifier' labelfield='identifier'"
+                + " fieldname='identifier'"));
+  }
+
+  @Test
+  public void testAddColTotals() {
+    assertEquals(
+        "source=table | addcoltotals label=identifier labelfield=identifier",
+        anonymize("source=table | addcoltotals label='identifier' labelfield='identifier'"));
+  }
+
+  @Test
   public void testAppend() {
     assertEquals(
         "source=table | stats count() by identifier | append [ | stats sum(identifier) by"
@@ -883,6 +900,14 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testMvmap() {
+    assertEquals(
+        "source=table | eval identifier=mvmap(identifier,*(identifier,***)) | fields +"
+            + " identifier",
+        anonymize("source=t | eval result=mvmap(arr, arr * 10) | fields result"));
+  }
+
+  @Test
   public void testRexWithOffsetField() {
     when(settings.getSettingValue(Key.PPL_REX_MAX_MATCH_LIMIT)).thenReturn(10);
 
@@ -977,5 +1002,14 @@ public class PPLQueryDataAnonymizerTest {
             + " identifier,identifier",
         anonymize(
             "search source=t | spath input=json_attr output=out path=foo.bar | fields id, out"));
+  }
+
+  @Test
+  public void testMvfind() {
+    assertEquals(
+        "source=table | eval identifier=mvfind(array(***,***,***),***) | fields + identifier",
+        anonymize(
+            "source=t | eval result=mvfind(array('apple', 'banana', 'apricot'), 'ban.*') | fields"
+                + " result"));
   }
 }

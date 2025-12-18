@@ -491,6 +491,194 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testMvfindWithMatch() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('apple', 'banana', 'apricot'), result = mvfind(arr,"
+                    + " 'ban.*') | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "int"));
+    verifyDataRows(actual, rows(1));
+  }
+
+  @Test
+  public void testMvfindWithNoMatch() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('cat', 'dog', 'bird'), result = mvfind(arr, 'fish') |"
+                    + " head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "int"));
+    verifyDataRows(actual, rows((Object) null));
+  }
+
+  @Test
+  public void testMvfindWithFirstMatch() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('error123', 'info', 'error456'), result ="
+                    + " mvfind(arr, 'err.*') | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "int"));
+    verifyDataRows(actual, rows(0));
+  }
+
+  @Test
+  public void testMvfindWithMultipleMatches() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('test1', 'test2', 'test3'), result = mvfind(arr,"
+                    + " 'test.*') | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "int"));
+    verifyDataRows(actual, rows(0)); // Returns first match at index 0
+  }
+
+  @Test
+  public void testMvfindWithComplexRegex() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('abc123', 'def456', 'ghi789'), result = mvfind(arr,"
+                    + " 'def\\\\d+') | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "int"));
+    verifyDataRows(actual, rows(1));
+  }
+
+  @Test
+  public void testMvfindWithCaseInsensitive() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('Apple', 'Banana', 'Cherry'), result = mvfind(arr,"
+                    + " '(?i)banana') | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "int"));
+    verifyDataRows(actual, rows(1));
+  }
+
+  @Test
+  public void testMvfindWithNumericArray() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array(100, 200, 300), result = mvfind(arr, '200') | head 1"
+                    + " | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "int"));
+    verifyDataRows(actual, rows(1));
+  }
+
+  @Test
+  public void testMvfindWithEmptyArray() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array(), result = mvfind(arr, 'test') | head 1 | fields"
+                    + " result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "int"));
+    verifyDataRows(actual, rows((Object) null));
+  }
+
+  @Test
+  public void testMvfindWithDynamicRegex() throws IOException {
+    // Test non-literal regex pattern (computed at runtime via concat)
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('apple', 'banana', 'apricot'), pattern ="
+                    + " concat('ban', '.*'), result = mvfind(arr, pattern) | head 1 | fields"
+                    + " result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "int"));
+    verifyDataRows(actual, rows(1));
+  }
+
+  @Test
+  public void testMvzipBasic() throws IOException {
+    // Basic example from spec: eval nserver=mvzip(hosts,ports)
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval hosts = array('host1', 'host2'), ports = array(80, 443), nserver"
+                    + " = mvzip(hosts, ports) | head 1 | fields nserver",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("nserver", "array"));
+    verifyDataRows(actual, rows(List.of("host1,80", "host2,443")));
+  }
+
+  @Test
+  public void testMvzipWithCustomDelimiter() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr1 = array('a', 'b', 'c'), arr2 = array('x', 'y', 'z'), result"
+                    + " = mvzip(arr1, arr2, '|') | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of("a|x", "b|y", "c|z")));
+  }
+
+  @Test
+  public void testMvzipNested() throws IOException {
+    // Example from spec: mvzip(mvzip(field1,field2,"|"),field3,"|")
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval field1 = array('a', 'b'), field2 = array('c', 'd'), field3 ="
+                    + " array('e', 'f'), result = mvzip(mvzip(field1, field2, '|'), field3, '|') |"
+                    + " head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of("a|c|e", "b|d|f")));
+  }
+
+  @Test
+  public void testMvzipWithEmptyArray() throws IOException {
+    // When one array is empty, result should be empty array (not null)
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = mvzip(array(), array('a', 'b')) | head 1 | fields"
+                    + " result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of()));
+  }
+
+  @Test
+  public void testMvzipWithBothEmptyArrays() throws IOException {
+    // When both arrays are empty, result should be empty array (not null)
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = mvzip(array(), array()) | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of()));
+  }
+
+  @Test
   public void testMvdedupWithDuplicates() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -605,5 +793,78 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     verifySchema(actual, schema("result", "array"));
     // Empty delimiter splits into individual characters
     verifyDataRows(actual, rows(List.of("a", "b", "c", "d")));
+  }
+
+  @Test
+  public void testMvmap() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array(1, 2, 3), result = mvmap(arr, arr * 10) | head 1 |"
+                    + " fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of(10, 20, 30)));
+  }
+
+  @Test
+  public void testMvmapWithAddition() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array(1, 2, 3), result = mvmap(arr, arr + 5) | head 1 |"
+                    + " fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of(6, 7, 8)));
+  }
+
+  @Test
+  public void testMvmapWithNestedFunction() throws IOException {
+    // Test mvmap with mvindex as first argument - extracts field name from nested function
+    // Equivalent to Splunk: mvmap(mvindex(arr, 1, 3), arr * 10)
+    // The lambda binds 'arr' and iterates over mvindex output (values at indices 1-3)
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array(10, 20, 30, 40, 50), result = mvmap(mvindex(arr, 1,"
+                    + " 3), arr * 2) | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    // mvindex(arr, 1, 3) returns [20, 30, 40], then mvmap multiplies each by 2
+    verifyDataRows(actual, rows(List.of(40, 60, 80)));
+  }
+
+  @Test
+  public void testMvmapWithOtherFieldReference() throws IOException {
+    // Test mvmap with reference to another field in the expression
+    // The first record in bank has age=32, so array(1,2,3) * 32 = [32, 64, 96]
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array(1, 2, 3), result = mvmap(arr, arr * age) | head 1 |"
+                    + " fields age, result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("age", "int"), schema("result", "array"));
+    verifyDataRows(actual, rows(32, List.of(32, 64, 96)));
+  }
+
+  @Test
+  public void testMvmapWithEvalFieldReference() throws IOException {
+    // Test mvmap with reference to another field created by eval
+    // array(1,2,3) * 10 = [10, 20, 30]
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array(1, 2, 3), multiplier = 10, result = mvmap(arr, arr *"
+                    + " multiplier) | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of(10, 20, 30)));
   }
 }

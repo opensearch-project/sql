@@ -58,6 +58,8 @@ public enum BuiltinFunctionName {
   SIN(FunctionName.of("sin")),
   TAN(FunctionName.of("tan")),
   SPAN(FunctionName.of("span")),
+  SCALAR_MAX(FunctionName.of("scalar_max")),
+  SCALAR_MIN(FunctionName.of("scalar_min")),
 
   /** Binning Functions. */
   SPAN_BUCKET(FunctionName.of("span_bucket")),
@@ -75,8 +77,11 @@ public enum BuiltinFunctionName {
   MVAPPEND(FunctionName.of("mvappend")),
   MVJOIN(FunctionName.of("mvjoin")),
   MVINDEX(FunctionName.of("mvindex")),
+  MVFIND(FunctionName.of("mvfind")),
+  MVZIP(FunctionName.of("mvzip")),
   SPLIT(FunctionName.of("split")),
   MVDEDUP(FunctionName.of("mvdedup")),
+  MVMAP(FunctionName.of("mvmap")),
   FORALL(FunctionName.of("forall")),
   EXISTS(FunctionName.of("exists")),
   FILTER(FunctionName.of("filter")),
@@ -160,6 +165,7 @@ public enum BuiltinFunctionName {
 
   /** Text Functions. */
   TOSTRING(FunctionName.of("tostring")),
+  TONUMBER(FunctionName.of("tonumber")),
 
   /** IP Functions. */
   CIDRMATCH(FunctionName.of("cidrmatch")),
