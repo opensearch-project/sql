@@ -2905,7 +2905,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
    */
   private AggCall buildAggCall(RelBuilder relBuilder, String aggFunctionName, RexNode node) {
     BuiltinFunctionName aggFunction =
-        BuiltinFunctionName.of(aggFunctionName)
+        BuiltinFunctionName.ofAggregation(aggFunctionName)
             .orElseThrow(
                 () ->
                     new IllegalArgumentException(
