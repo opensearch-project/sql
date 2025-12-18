@@ -45,6 +45,10 @@ public class CalcitePPLBig5IT extends PPLBig5IT {
     timing(summary, "coalesce_nonexistent_field_fallback", ppl);
   }
 
+  /**
+   * Tests deduplication by metrics.size field with sorting by timestamp.
+   * Validates that the Calcite plan correctly handles dedup operations.
+   */
   @Test
   public void dedup_metrics_size_field() throws IOException {
     String ppl = sanitize(loadExpectedQuery("dedup_metrics_size_field.ppl"));
