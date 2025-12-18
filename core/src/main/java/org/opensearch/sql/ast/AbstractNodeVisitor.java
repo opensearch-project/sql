@@ -44,50 +44,7 @@ import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
-import org.opensearch.sql.ast.tree.AD;
-import org.opensearch.sql.ast.tree.Aggregation;
-import org.opensearch.sql.ast.tree.Append;
-import org.opensearch.sql.ast.tree.AppendCol;
-import org.opensearch.sql.ast.tree.AppendPipe;
-import org.opensearch.sql.ast.tree.Bin;
-import org.opensearch.sql.ast.tree.Chart;
-import org.opensearch.sql.ast.tree.CloseCursor;
-import org.opensearch.sql.ast.tree.Dedupe;
-import org.opensearch.sql.ast.tree.Eval;
-import org.opensearch.sql.ast.tree.Expand;
-import org.opensearch.sql.ast.tree.FetchCursor;
-import org.opensearch.sql.ast.tree.FillNull;
-import org.opensearch.sql.ast.tree.Filter;
-import org.opensearch.sql.ast.tree.Flatten;
-import org.opensearch.sql.ast.tree.Head;
-import org.opensearch.sql.ast.tree.Join;
-import org.opensearch.sql.ast.tree.Kmeans;
-import org.opensearch.sql.ast.tree.Limit;
-import org.opensearch.sql.ast.tree.Lookup;
-import org.opensearch.sql.ast.tree.ML;
-import org.opensearch.sql.ast.tree.Multisearch;
-import org.opensearch.sql.ast.tree.MvExpand;
-import org.opensearch.sql.ast.tree.Paginate;
-import org.opensearch.sql.ast.tree.Parse;
-import org.opensearch.sql.ast.tree.Patterns;
-import org.opensearch.sql.ast.tree.Project;
-import org.opensearch.sql.ast.tree.RareTopN;
-import org.opensearch.sql.ast.tree.Regex;
-import org.opensearch.sql.ast.tree.Relation;
-import org.opensearch.sql.ast.tree.RelationSubquery;
-import org.opensearch.sql.ast.tree.Rename;
-import org.opensearch.sql.ast.tree.Replace;
-import org.opensearch.sql.ast.tree.Reverse;
-import org.opensearch.sql.ast.tree.Rex;
-import org.opensearch.sql.ast.tree.SPath;
-import org.opensearch.sql.ast.tree.Search;
-import org.opensearch.sql.ast.tree.Sort;
-import org.opensearch.sql.ast.tree.StreamWindow;
-import org.opensearch.sql.ast.tree.SubqueryAlias;
-import org.opensearch.sql.ast.tree.TableFunction;
-import org.opensearch.sql.ast.tree.Trendline;
-import org.opensearch.sql.ast.tree.Values;
-import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.ast.tree.*;
 
 /** AST nodes visitor Defines the traverse path. */
 public abstract class AbstractNodeVisitor<T, C> {
@@ -450,6 +407,14 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitMultisearch(Multisearch node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitAddTotals(AddTotals node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitAddColTotals(AddColTotals node, C context) {
     return visitChildren(node, context);
   }
 
