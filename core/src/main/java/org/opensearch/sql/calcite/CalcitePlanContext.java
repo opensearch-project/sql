@@ -145,7 +145,12 @@ public class CalcitePlanContext {
               // Use lenient conformance for PPL compatibility
               .withConformance(OpenSearchSparkSqlDialect.DEFAULT.getConformance())
               // Use Spark SQL's NULL collation (NULLs sorted LOW/FIRST)
-              .withDefaultNullCollation(NullCollation.LOW);
+              .withDefaultNullCollation(NullCollation.LOW)
+              // This ensures that coerced arguments are replaced with cast version in sql select
+              // list because coercion is performed during select list expansion during sql
+              // validation. Affects 4356.yml
+              // See SqlValidatorImpl#validateSelectList and AggConverter#translateAgg
+              .withIdentifierExpansion(true);
       validator =
           PplValidator.create(
               statement,
