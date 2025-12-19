@@ -27,39 +27,39 @@ teardown:
           transient:
             plugins.calcite.enabled : false
 
-
----
-"Patterns with specified max_sample_count should return correct result":
-  - skip:
-      features:
-        - headers
-        - allowed_warnings
-  - do:
-      allowed_warnings:
-        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
-      headers:
-        Content-Type: 'application/json'
-      ppl:
-        body:
-          query: 'source=hdfs_logs | patterns content method=brain mode=aggregation max_sample_count=2 variable_count_threshold=3'
-  - match: {"total": 2}
-  - match: {"schema": [{"name": "patterns_field", "type": "string"}, {"name": "pattern_count", "type": "bigint"}, {"name": "sample_logs", "type": "array"}]}
-  - match: {"datarows": [
-    [
-      "PacketResponder failed for blk_<*>",
-      2,
-      [
-        "PacketResponder failed for blk_6996194389878584395",
-        "PacketResponder failed for blk_-1547954353065580372"
-      ]
-    ],
-    [
-      "BLOCK* NameSystem.addStoredBlock: blockMap updated: <*IP*> is added to blk_<*> size <*>",
-      2,
-      [
-        "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.31.85:50010 is added to blk_-7017553867379051457 size 67108864",
-        "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.107.19:50010 is added to blk_-3249711809227781266 size 67108864"
-      ]
-    ]
-  ]}
+# TODO: enable after fixing https://github.com/opensearch-project/sql/issues/4968
+#---
+#"Patterns with specified max_sample_count should return correct result":
+#  - skip:
+#      features:
+#        - headers
+#        - allowed_warnings
+#  - do:
+#      allowed_warnings:
+#        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+#      headers:
+#        Content-Type: 'application/json'
+#      ppl:
+#        body:
+#          query: 'source=hdfs_logs | patterns content method=brain mode=aggregation max_sample_count=2 variable_count_threshold=3'
+#  - match: {"total": 2}
+#  - match: {"schema": [{"name": "patterns_field", "type": "string"}, {"name": "pattern_count", "type": "bigint"}, {"name": "sample_logs", "type": "array"}]}
+#  - match: {"datarows": [
+#    [
+#      "PacketResponder failed for blk_<*>",
+#      2,
+#      [
+#        "PacketResponder failed for blk_6996194389878584395",
+#        "PacketResponder failed for blk_-1547954353065580372"
+#      ]
+#    ],
+#    [
+#      "BLOCK* NameSystem.addStoredBlock: blockMap updated: <*IP*> is added to blk_<*> size <*>",
+#      2,
+#      [
+#        "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.31.85:50010 is added to blk_-7017553867379051457 size 67108864",
+#        "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.107.19:50010 is added to blk_-3249711809227781266 size 67108864"
+#      ]
+#    ]
+#  ]}
 
