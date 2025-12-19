@@ -369,7 +369,8 @@ public class CalciteToolsHelper {
               "The 'bins' parameter on timestamp fields requires: (1) pushdown to be enabled"
                   + " (controlled by plugins.calcite.pushdown.enabled, enabled by default), and"
                   + " (2) the timestamp field to be used as an aggregation bucket (e.g., 'stats"
-                  + " count() by @timestamp').");
+                  + " count() by @timestamp').",
+              e);
         }
         throw Util.throwAsRuntime(e);
       }
