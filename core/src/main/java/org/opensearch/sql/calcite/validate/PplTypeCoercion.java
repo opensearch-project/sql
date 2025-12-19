@@ -15,8 +15,9 @@ import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlDynamicParam;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeMappingRule;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -170,6 +171,11 @@ public class PplTypeCoercion extends TypeCoercionImpl {
     RelDataType targetType1 = ValidationUtils.syncAttributes(factory, operandType, targetType);
     SqlNode desired = castTo(operand, targetType1);
     call.setOperand(index, desired);
+    // SAFE_CAST always results in nullable return type. See
+    // SqlCastFunction#createTypeWithNullabilityFromExpr
+    if (SqlKind.SAFE_CAST.equals(desired.getKind())) {
+      targetType1 = factory.createTypeWithNullability(targetType1, true);
+    }
     updateInferredType(desired, targetType1);
     return true;
   }
@@ -188,7 +194,8 @@ public class PplTypeCoercion extends TypeCoercionImpl {
         default -> throw new UnsupportedOperationException("Unsupported type: " + exprType);
       };
     }
-    return SqlStdOperatorTable.CAST.createCall(
+    // Use SAFE_CAST instead of CAST to avoid throwing errors when numbers are malformatted
+    return SqlLibraryOperators.SAFE_CAST.createCall(
         node.getParserPosition(),
         node,
         SqlTypeUtil.convertTypeToSpec(type).withNullable(type.isNullable()));
