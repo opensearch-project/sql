@@ -34,13 +34,25 @@ import org.opensearch.sql.executor.QueryType;
  * enabling consistent behavior across all unified query operations.
  */
 @Value
-public class UnifiedQueryContext {
+public class UnifiedQueryContext implements AutoCloseable {
 
   /** CalcitePlanContext containing Calcite framework configuration and query type. */
   CalcitePlanContext planContext;
 
   /** Settings containing execution limits and feature flags used by parsers and planners. */
   Settings settings;
+
+  /**
+   * Closes the underlying resource managed by this context.
+   *
+   * @throws Exception if an error occurs while closing the connection
+   */
+  @Override
+  public void close() throws Exception {
+    if (planContext != null && planContext.connection != null) {
+      planContext.connection.close();
+    }
+  }
 
   /** Creates a new builder for UnifiedQueryContext. */
   public static Builder builder() {

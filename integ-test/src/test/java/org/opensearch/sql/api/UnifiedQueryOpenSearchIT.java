@@ -14,6 +14,7 @@ import java.util.Map;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
+import org.junit.After;
 import org.junit.Test;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.api.compiler.UnifiedQueryCompiler;
@@ -58,8 +59,15 @@ public class UnifiedQueryOpenSearchIT extends PPLIntegTestCase implements Result
     compiler = new UnifiedQueryCompiler(context);
   }
 
+  @After
+  public void cleanup() throws Exception {
+    if (context != null) {
+      context.close();
+    }
+  }
+
   @Test
-  public void testSimplePPLQueryWithUnifiedAPI() throws Exception {
+  public void testSimplePPLQueryExecution() throws Exception {
     String pplQuery =
         String.format(
             "source = opensearch.%s | fields firstname, age | where age > 30 | head 3",
@@ -72,6 +80,25 @@ public class UnifiedQueryOpenSearchIT extends PPLIntegTestCase implements Result
       verify(resultSet)
           .expectSchema(col("firstname", java.sql.Types.VARCHAR), col("age", java.sql.Types.BIGINT))
           .expectData(row("Amber", 32L), row("Hattie", 36L), row("Dale", 33L));
+    }
+  }
+
+  @Test
+  public void testMultiplePPLQueryExecutionWithSameContext() throws Exception {
+    String[] queries = {
+      "source = opensearch.%s | fields firstname, age | where age > 30 | head 2",
+      "source = opensearch.%s | fields lastname, age | where age < 30 | head 3",
+      "source = opensearch.%s | fields state, age | where age > 25 | head 5"
+    };
+
+    for (String query : queries) {
+      RelNode plan = planner.plan(String.format(query, TEST_INDEX_ACCOUNT));
+
+      try (PreparedStatement stmt = compiler.compile(plan)) {
+        ResultSet rs = stmt.executeQuery();
+        assertNotNull(rs);
+        assertTrue("Expected at least one row for query: " + query, rs.next());
+      }
     }
   }
 

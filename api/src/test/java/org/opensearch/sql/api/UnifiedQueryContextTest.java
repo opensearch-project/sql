@@ -6,7 +6,9 @@
 package org.opensearch.sql.api;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.opensearch.sql.common.setting.Settings.Key.*;
 
 import org.junit.Test;
@@ -78,5 +80,12 @@ public class UnifiedQueryContextTest extends UnifiedQueryTestBase {
         .catalog("opensearch", testSchema)
         .defaultNamespace("nonexistent")
         .build();
+  }
+
+  @Test
+  public void testContextClose() throws Exception {
+    assertFalse(context.getPlanContext().connection.isClosed());
+    context.close();
+    assertTrue(context.getPlanContext().connection.isClosed());
   }
 }

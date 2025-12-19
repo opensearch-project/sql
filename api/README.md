@@ -92,32 +92,33 @@ Combining all components for a complete PPL query workflow:
 
 ```java
 // Step 1: Create reusable context (shared across all components)
-UnifiedQueryContext context = UnifiedQueryContext.builder()
+try (UnifiedQueryContext context = UnifiedQueryContext.builder()
     .language(QueryType.PPL)
     .catalog("catalog", schema)
     .defaultNamespace("catalog")
-    .build();
+    .build()) {
 
-// Step 2: Create planner with context
-UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
+  // Step 2: Create planner with context
+  UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
 
-// Step 3: Plan PPL query into logical plan
-RelNode plan = planner.plan("source = employees | where age > 30");
+  // Step 3: Plan PPL query into logical plan
+  RelNode plan = planner.plan("source = employees | where age > 30");
 
-// Option A: Transpile to target SQL
-UnifiedQueryTranspiler transpiler = UnifiedQueryTranspiler.builder()
-    .dialect(SparkSqlDialect.DEFAULT)
-    .build();
-String sparkSql = transpiler.toSql(plan);
-// Result: SELECT * FROM `catalog`.`employees` WHERE `age` > 30
+  // Option A: Transpile to target SQL
+  UnifiedQueryTranspiler transpiler = UnifiedQueryTranspiler.builder()
+      .dialect(SparkSqlDialect.DEFAULT)
+      .build();
+  String sparkSql = transpiler.toSql(plan);
+  // Result: SELECT * FROM `catalog`.`employees` WHERE `age` > 30
 
-// Option B: Compile and execute directly
-UnifiedQueryCompiler compiler = new UnifiedQueryCompiler(context);
-try (PreparedStatement statement = compiler.compile(plan)) {
-    ResultSet rs = statement.executeQuery();
-    while (rs.next()) {
-        // Process results with standard JDBC
-    }
+  // Option B: Compile and execute directly
+  UnifiedQueryCompiler compiler = new UnifiedQueryCompiler(context);
+  try (PreparedStatement statement = compiler.compile(plan)) {
+      ResultSet rs = statement.executeQuery();
+      while (rs.next()) {
+          // Process results with standard JDBC
+      }
+  }
 }
 ```
 
