@@ -84,8 +84,16 @@ public class UnifiedQueryContextTest extends UnifiedQueryTestBase {
 
   @Test
   public void testContextClose() throws Exception {
-    assertFalse(context.getPlanContext().connection.isClosed());
-    context.close();
-    assertTrue(context.getPlanContext().connection.isClosed());
+    // Create a separate context for this test to avoid affecting other tests
+    UnifiedQueryContext testContext =
+        UnifiedQueryContext.builder()
+            .language(QueryType.PPL)
+            .catalog("opensearch", testSchema)
+            .defaultNamespace("opensearch")
+            .build();
+
+    assertFalse(testContext.getPlanContext().connection.isClosed());
+    testContext.close();
+    assertTrue(testContext.getPlanContext().connection.isClosed());
   }
 }
