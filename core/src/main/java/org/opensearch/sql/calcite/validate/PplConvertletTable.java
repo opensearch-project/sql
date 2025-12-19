@@ -19,7 +19,7 @@ import org.apache.calcite.sql2rel.SqlRexConvertlet;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeUtil;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
 public class PplConvertletTable extends ReflectiveConvertletTable {
@@ -66,7 +66,7 @@ public class PplConvertletTable extends ReflectiveConvertletTable {
       final RexCall e = (RexCall) StandardConvertletTable.INSTANCE.convertCall(cx, call);
       RelDataType type1 = e.getOperands().get(0).getType();
       RelDataType type2 = e.getOperands().get(1).getType();
-      if (OpenSearchTypeFactory.isIp(type1) || OpenSearchTypeFactory.isIp(type2)) {
+      if (OpenSearchTypeUtil.isIp(type1) || OpenSearchTypeUtil.isIp(type2)) {
         return StandardConvertletTable.INSTANCE.convertFunction(cx, substitute, call);
       }
       return e;

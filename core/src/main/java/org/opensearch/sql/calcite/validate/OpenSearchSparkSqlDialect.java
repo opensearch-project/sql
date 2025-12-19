@@ -18,7 +18,7 @@ import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeUtil;
 
 /**
  * Custom Spark SQL dialect that extends Calcite's SparkSqlDialect to handle OpenSearch-specific
@@ -63,7 +63,7 @@ public class OpenSearchSparkSqlDialect extends SparkSqlDialect {
   @Override
   public @Nullable SqlNode getCastSpec(RelDataType type) {
     // ExprIPType has sql type name OTHER, which can not be handled by spark dialect
-    if (OpenSearchTypeFactory.isIp(type)) {
+    if (OpenSearchTypeUtil.isIp(type)) {
       return new SqlDataTypeSpec(
           // It will use SqlTypeName.OTHER by type.getSqlTypeName() as OTHER is "borrowed" to
           // represent IP type (see also: PplTypeCoercionRule.java)

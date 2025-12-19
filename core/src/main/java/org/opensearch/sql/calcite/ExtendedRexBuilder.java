@@ -26,6 +26,7 @@ import org.apache.calcite.sql.validate.implicit.TypeCoercionImpl;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeUtil;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -150,7 +151,7 @@ public class ExtendedRexBuilder extends RexBuilder {
         //            SqlStdOperatorTable.NOT_EQUALS,
         //            ImmutableList.of(exp, makeZeroLiteral(sourceType)));
       }
-    } else if (OpenSearchTypeFactory.isUserDefinedType(type)) {
+    } else if (OpenSearchTypeUtil.isUserDefinedType(type)) {
       if (RexLiteral.isNullLiteral(exp)) {
         return super.makeCast(pos, type, exp, matchNullability, safe, format);
       }
@@ -210,10 +211,9 @@ public class ExtendedRexBuilder extends RexBuilder {
     if (op.getKind().belongsTo(SqlKind.BINARY_ARITHMETIC) && exprs.size() == 2) {
       final RelDataType type1 = exprs.get(0).getType();
       final RelDataType type2 = exprs.get(1).getType();
-      if (OpenSearchTypeFactory.isNumericType(type1) && OpenSearchTypeFactory.isCharacter(type2)) {
+      if (SqlTypeUtil.isNumeric(type1) && OpenSearchTypeUtil.isCharacter(type2)) {
         return type1;
-      } else if (OpenSearchTypeFactory.isCharacter(type1)
-          && OpenSearchTypeFactory.isNumericType(type2)) {
+      } else if (OpenSearchTypeUtil.isCharacter(type1) && SqlTypeUtil.isNumeric(type2)) {
         return type2;
       }
     }

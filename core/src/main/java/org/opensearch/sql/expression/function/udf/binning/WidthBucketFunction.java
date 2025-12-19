@@ -16,7 +16,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeUtil;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.binning.BinConstants;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -50,7 +50,7 @@ public class WidthBucketFunction extends ImplementorUDF {
     return (opBinding) -> {
       RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
       RelDataType arg0Type = opBinding.getOperandType(0);
-      return OpenSearchTypeFactory.isDatetime(arg0Type)
+      return OpenSearchTypeUtil.isDatetime(arg0Type)
           ? arg0Type
           : typeFactory.createTypeWithNullability(
               typeFactory.createSqlType(SqlTypeName.VARCHAR, 2000), true);

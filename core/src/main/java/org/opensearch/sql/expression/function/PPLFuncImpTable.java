@@ -280,7 +280,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeUtil;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -925,7 +925,7 @@ public class PPLFuncImpTable {
       FunctionImp add =
           (builder, args) -> {
             SqlOperator op =
-                (Stream.of(args).map(RexNode::getType).allMatch(OpenSearchTypeFactory::isCharacter))
+                (Stream.of(args).map(RexNode::getType).allMatch(OpenSearchTypeUtil::isCharacter))
                     ? SqlStdOperatorTable.CONCAT
                     : SqlStdOperatorTable.PLUS;
             return builder.makeCall(op, args);

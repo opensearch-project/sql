@@ -318,7 +318,7 @@ public class QueryService {
     SqlNode rewritten = root.accept(new SqlRewriteShuttle());
     SqlValidator validator = context.getValidator();
     try {
-        validator.validate(Objects.requireNonNull(rewritten));
+      validator.validate(Objects.requireNonNull(rewritten));
     } catch (CalciteContextException e) {
       if (ValidationUtils.tolerantValidationException(e)) {
         return relNode;

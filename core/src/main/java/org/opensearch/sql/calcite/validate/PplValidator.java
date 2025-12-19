@@ -35,6 +35,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeUtil;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -138,7 +139,7 @@ public class PplValidator extends SqlValidatorImpl {
     return convertType(
         type,
         t -> {
-          if (OpenSearchTypeFactory.isUserDefinedType(t)) {
+          if (OpenSearchTypeUtil.isUserDefinedType(t)) {
             AbstractExprRelDataType<?> exprType = (AbstractExprRelDataType<?>) t;
             ExprType udtType = exprType.getExprType();
             OpenSearchTypeFactory typeFactory = (OpenSearchTypeFactory) this.getTypeFactory();

@@ -28,6 +28,7 @@ import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.sql.validate.implicit.TypeCoercionImpl;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeUtil;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
@@ -61,7 +62,7 @@ public class PplTypeCoercion extends TypeCoercionImpl {
     RelDataType casted = super.implicitCast(in, expected);
     if (casted == null) {
       // String -> DATETIME is converted to String -> TIMESTAMP
-      if (OpenSearchTypeFactory.isCharacter(in) && expected == SqlTypeFamily.DATETIME) {
+      if (OpenSearchTypeUtil.isCharacter(in) && expected == SqlTypeFamily.DATETIME) {
         return createUDTWithAttributes(factory, in, OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP);
       }
       return null;
@@ -82,8 +83,7 @@ public class PplTypeCoercion extends TypeCoercionImpl {
       SqlValidatorScope scope, SqlNode node, RelDataType toType, SqlTypeMappingRule mappingRule) {
     boolean need = super.needToCast(scope, node, toType, mappingRule);
     RelDataType fromType = validator.deriveType(scope, node);
-    if (OpenSearchTypeFactory.isUserDefinedType(toType)
-        && OpenSearchTypeFactory.isCharacter(fromType)) {
+    if (OpenSearchTypeUtil.isUserDefinedType(toType) && OpenSearchTypeUtil.isCharacter(fromType)) {
       need = true;
     }
     return need;
@@ -92,17 +92,17 @@ public class PplTypeCoercion extends TypeCoercionImpl {
   @Override
   protected boolean dateTimeStringEquality(
       SqlCallBinding binding, RelDataType left, RelDataType right) {
-    if (OpenSearchTypeFactory.isCharacter(left) && OpenSearchTypeFactory.isDatetime(right)) {
+    if (OpenSearchTypeUtil.isCharacter(left) && OpenSearchTypeUtil.isDatetime(right)) {
       // Use user-defined types in place of inbuilt datetime types
       RelDataType r =
-          OpenSearchTypeFactory.isUserDefinedType(right)
+          OpenSearchTypeUtil.isUserDefinedType(right)
               ? right
               : ValidationUtils.createUDTWithAttributes(factory, right, right.getSqlTypeName());
       return coerceOperandType(binding.getScope(), binding.getCall(), 0, r);
     }
-    if (OpenSearchTypeFactory.isCharacter(right) && OpenSearchTypeFactory.isDatetime(left)) {
+    if (OpenSearchTypeUtil.isCharacter(right) && OpenSearchTypeUtil.isDatetime(left)) {
       RelDataType l =
-          OpenSearchTypeFactory.isUserDefinedType(left)
+          OpenSearchTypeUtil.isUserDefinedType(left)
               ? left
               : ValidationUtils.createUDTWithAttributes(factory, left, left.getSqlTypeName());
       return coerceOperandType(binding.getScope(), binding.getCall(), 1, l);
@@ -119,21 +119,21 @@ public class PplTypeCoercion extends TypeCoercionImpl {
     // - (ip, string) -> ip
     if (type1 != null & type2 != null) {
       boolean anyNullable = type1.isNullable() || type2.isNullable();
-      if ((SqlTypeUtil.isDate(type1) && OpenSearchTypeFactory.isTime(type2))
-          || (OpenSearchTypeFactory.isTime(type1) && SqlTypeUtil.isDate(type2))) {
+      if ((SqlTypeUtil.isDate(type1) && OpenSearchTypeUtil.isTime(type2))
+          || (OpenSearchTypeUtil.isTime(type1) && SqlTypeUtil.isDate(type2))) {
         return factory.createTypeWithNullability(
             factory.createSqlType(SqlTypeName.TIMESTAMP), anyNullable);
       }
-      if (OpenSearchTypeFactory.isTime(type1) && SqlTypeUtil.isTimestamp(type2)) {
+      if (OpenSearchTypeUtil.isTime(type1) && SqlTypeUtil.isTimestamp(type2)) {
         return factory.createTypeWithNullability(type2, anyNullable);
       }
-      if (SqlTypeUtil.isTimestamp(type1) && OpenSearchTypeFactory.isTime(type2)) {
+      if (SqlTypeUtil.isTimestamp(type1) && OpenSearchTypeUtil.isTime(type2)) {
         return factory.createTypeWithNullability(type1, anyNullable);
       }
-      if (OpenSearchTypeFactory.isIp(type1) && OpenSearchTypeFactory.isCharacter(type2)) {
+      if (OpenSearchTypeUtil.isIp(type1) && OpenSearchTypeUtil.isCharacter(type2)) {
         return factory.createTypeWithNullability(type1, anyNullable);
       }
-      if (OpenSearchTypeFactory.isCharacter(type1) && OpenSearchTypeFactory.isIp(type2)) {
+      if (OpenSearchTypeUtil.isCharacter(type1) && OpenSearchTypeUtil.isIp(type2)) {
         return factory.createTypeWithNullability(type2, anyNullable);
       }
     }
@@ -181,7 +181,7 @@ public class PplTypeCoercion extends TypeCoercionImpl {
   }
 
   private static SqlNode castTo(SqlNode node, RelDataType type) {
-    if (OpenSearchTypeFactory.isDatetime(type) || OpenSearchTypeFactory.isIp(type)) {
+    if (OpenSearchTypeUtil.isDatetime(type) || OpenSearchTypeUtil.isIp(type)) {
       ExprType exprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(type);
       return switch (exprType) {
         case ExprCoreType.DATE ->

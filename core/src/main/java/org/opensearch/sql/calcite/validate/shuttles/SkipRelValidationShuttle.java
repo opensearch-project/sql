@@ -16,7 +16,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.sql.SqlKind;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeUtil;
 
 /**
  * A RelShuttle that detects if validation should be skipped for certain operations. Currently, it
@@ -103,7 +103,7 @@ public class SkipRelValidationShuttle extends RelShuttleImpl {
           if ("WIDTH_BUCKET".equalsIgnoreCase(call.getOperator().getName())) {
             if (!call.getOperands().isEmpty()) {
               RexNode firstOperand = call.getOperands().get(0);
-              return OpenSearchTypeFactory.isDatetime(firstOperand.getType());
+              return OpenSearchTypeUtil.isDatetime(firstOperand.getType());
             }
           }
           return false;

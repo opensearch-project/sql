@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.opensearch.planner.rules;
 
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.isDatetime;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeUtil.isDatetime;
 import static org.opensearch.sql.expression.function.PPLBuiltinOperators.WIDTH_BUCKET;
 
 import java.util.List;
@@ -31,7 +31,7 @@ import org.apache.calcite.tools.RelBuilder;
 import org.immutables.value.Value;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeUtil;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
@@ -306,8 +306,7 @@ public class AggregateIndexScanRule extends InterruptibleRelRule<AggregateIndexS
               expr ->
                   expr instanceof RexCall rexCall
                       && rexCall.getOperator().equals(WIDTH_BUCKET)
-                      && OpenSearchTypeFactory.isDatetime(
-                          rexCall.getOperands().getFirst().getType()));
+                      && OpenSearchTypeUtil.isDatetime(rexCall.getOperands().getFirst().getType()));
     }
   }
 }
