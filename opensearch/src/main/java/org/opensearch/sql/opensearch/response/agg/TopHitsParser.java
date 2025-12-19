@@ -90,9 +90,9 @@ public class TopHitsParser implements MetricParser {
       //   LinkedHashMap["name" -> "A", "category" -> "Y"]
       // ]
       return Arrays.stream(hits)
-          .<Map<String, Object>>map(
+          .map(
               hit -> {
-                Map map = new LinkedHashMap<>(hit.getSourceAsMap());
+                Map<String, Object> map = new LinkedHashMap<>(hit.getSourceAsMap());
                 hit.getFields().values().forEach(f -> map.put(f.getName(), f.getValue()));
                 return map;
               })

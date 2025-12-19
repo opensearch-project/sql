@@ -337,8 +337,7 @@ public class AggregateAnalyzer {
 
     for (int i = 0; i < aggCalls.size(); i++) {
       AggregateCall aggCall = aggCalls.get(i);
-      List<org.apache.calcite.util.Pair<RexNode, String>> args =
-          convertAggArgThroughProject(aggCall, project);
+      List<Pair<RexNode, String>> args = convertAggArgThroughProject(aggCall, project);
       String aggFieldName = aggFieldNames.get(i);
 
       Pair<AggregationBuilder, MetricParser> builderAndParser =
@@ -359,20 +358,24 @@ public class AggregateAnalyzer {
    * @param project the project
    * @return the converted Pair<RexNode, String> list
    */
-  private static List<org.apache.calcite.util.Pair<RexNode, String>> convertAggArgThroughProject(
+  private static List<Pair<RexNode, String>> convertAggArgThroughProject(
       AggregateCall aggCall, Project project) {
     return project == null
         ? List.of()
         : PlanUtils.getObjectFromLiteralAgg(aggCall) != null
             ? project.getNamedProjects().stream()
                 .filter(rex -> !rex.getKey().isA(SqlKind.ROW_NUMBER))
+                .map(p -> Pair.of(p.getKey(), p.getValue()))
                 .toList()
-            : aggCall.getArgList().stream().map(project.getNamedProjects()::get).toList();
+            : aggCall.getArgList().stream()
+                .map(project.getNamedProjects()::get)
+                .map(p -> Pair.of(p.getKey(), p.getValue()))
+                .toList();
   }
 
   private static Pair<AggregationBuilder, MetricParser> createAggregationBuilderAndParser(
       AggregateCall aggCall,
-      List<org.apache.calcite.util.Pair<RexNode, String>> args,
+      List<Pair<RexNode, String>> args,
       String aggFieldName,
       AggregateAnalyzer.AggregateBuilderHelper helper) {
     if (aggCall.isDistinct()) {
@@ -384,7 +387,7 @@ public class AggregateAnalyzer {
 
   private static Pair<AggregationBuilder, MetricParser> createDistinctAggregation(
       AggregateCall aggCall,
-      List<org.apache.calcite.util.Pair<RexNode, String>> args,
+      List<Pair<RexNode, String>> args,
       String aggFieldName,
       AggregateBuilderHelper helper) {
 
@@ -403,7 +406,7 @@ public class AggregateAnalyzer {
 
   private static Pair<AggregationBuilder, MetricParser> createRegularAggregation(
       AggregateCall aggCall,
-      List<org.apache.calcite.util.Pair<RexNode, String>> args,
+      List<Pair<RexNode, String>> args,
       String aggFieldName,
       AggregateBuilderHelper helper) {
 
