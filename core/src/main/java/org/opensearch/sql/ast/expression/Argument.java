@@ -21,6 +21,7 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 @EqualsAndHashCode(callSuper = false)
 public class Argument extends UnresolvedExpression {
   public static final String BUCKET_NULLABLE = "bucket_nullable";
+  public static final String NESTED = "nested";
 
   private final String argName;
   private final Literal value;

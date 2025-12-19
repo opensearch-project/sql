@@ -28,6 +28,8 @@
 package org.opensearch.sql.opensearch.request;
 
 import static java.util.Objects.requireNonNull;
+import static org.opensearch.sql.calcite.plan.OpenSearchConstants.METADATA_FIELD_INDEX;
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
@@ -43,6 +45,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import javax.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.core.Aggregate;
@@ -54,6 +57,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.script.Script;
 import org.opensearch.search.aggregations.AggregationBuilder;
@@ -326,7 +330,7 @@ public class AggregateAnalyzer {
   }
 
   private static Pair<Builder, List<MetricParser>> processAggregateCalls(
-      List<String> aggFieldNames,
+      List<String> aggNames,
       List<AggregateCall> aggCalls,
       Project project,
       AggregateAnalyzer.AggregateBuilderHelper helper)
@@ -338,15 +342,38 @@ public class AggregateAnalyzer {
     for (int i = 0; i < aggCalls.size(); i++) {
       AggregateCall aggCall = aggCalls.get(i);
       List<Pair<RexNode, String>> args = convertAggArgThroughProject(aggCall, project);
-      String aggFieldName = aggFieldNames.get(i);
+      String aggName = aggNames.get(i);
 
       Pair<AggregationBuilder, MetricParser> builderAndParser =
-          createAggregationBuilderAndParser(aggCall, args, aggFieldName, helper);
-      builderAndParser = aggFilterAnalyzer.analyze(builderAndParser, aggCall, aggFieldName);
-      metricBuilder.addAggregator(builderAndParser.getLeft());
+          createAggregationBuilderAndParser(aggCall, args, aggName, helper);
+      builderAndParser = aggFilterAnalyzer.analyze(builderAndParser, aggCall, aggName);
+      // Nested aggregation (https://docs.opensearch.org/docs/latest/aggregations/bucket/nested/)
+      String root = StringUtils.substringBefore(getAggFieldName(aggCall, project), ".");
+      if (root != null && helper.fieldTypes.get(root) == ARRAY) {
+        metricBuilder.addAggregator(
+            AggregationBuilders.nested(String.format("nested_%s", aggCall.getName()), root)
+                .subAggregation(builderAndParser.getLeft()));
+      } else {
+        metricBuilder.addAggregator(builderAndParser.getLeft());
+      }
       metricParserList.add(builderAndParser.getRight());
     }
     return Pair.of(metricBuilder, metricParserList);
+  }
+
+  /**
+   * Return the field name of aggregate call. For example, min(a.b) returns a.b; count() returns
+   * _index; literal_agg(1) return null;
+   */
+  private static @Nullable String getAggFieldName(AggregateCall aggCall, Project project) {
+    if (aggCall.getArgList().isEmpty()) {
+      if (aggCall.getAggregation().kind == SqlKind.COUNT) {
+        return METADATA_FIELD_INDEX;
+      } else {
+        return null;
+      }
+    }
+    return project.getRowType().getFieldNames().get(aggCall.getArgList().get(0));
   }
 
   /**

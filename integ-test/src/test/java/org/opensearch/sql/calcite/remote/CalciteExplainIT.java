@@ -19,11 +19,13 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORKER;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORK_INFORMATION;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 import static org.opensearch.sql.util.MatcherUtils.assertYamlEqualsIgnoreId;
+import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 
 import java.io.IOException;
 import java.util.Locale;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.ExplainIT;
 
@@ -2214,5 +2216,34 @@ public class CalciteExplainIT extends ExplainIT {
                     + " else 'u100') | stats avg(age) as avg_age by age_range",
                 TEST_INDEX_BANK),
             true));
+  }
+
+  @Test
+  public void testNestedAggPushDownExplain() throws Exception {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_nested_agg_push.yaml");
+
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_nested_simple | stats count(address.area) as"
+                + " count_area, min(address.area) as min_area, max(address.area) as max_area,"
+                + " avg(address.area) as avg_area, avg(age) as avg_age by name"));
+  }
+
+  @Test
+  public void testNestedAggExplainWhenPushdownNotApplied() throws Exception {
+    enabledOnlyWhenPushdownIsEnabled();
+    Exception e =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                explainQueryYaml(
+                    "source=opensearch-sql_test_index_nested_simple | head 10000 | stats"
+                        + " count(address.area) as count_area, min(address.area) as min_area,"
+                        + " max(address.area) as max_area, avg(address.area) as avg_area, avg(age)"
+                        + " as avg_age by name"));
+    verifyErrorMessageContains(
+        e, "Nested aggregate is unsupported when pushdown cannot be applied");
   }
 }
