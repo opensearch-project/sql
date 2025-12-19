@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.api;
 
+import static org.apache.calcite.sql.type.SqlTypeName.INTEGER;
+import static org.apache.calcite.sql.type.SqlTypeName.VARCHAR;
+
 import java.util.List;
 import java.util.Map;
 import lombok.Builder;
@@ -23,6 +26,7 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.junit.After;
 import org.junit.Before;
 import org.opensearch.sql.executor.QueryType;
 
@@ -59,13 +63,20 @@ public abstract class UnifiedQueryTestBase {
     planner = new UnifiedQueryPlanner(context);
   }
 
+  @After
+  public void tearDown() throws Exception {
+    if (context != null) {
+      context.close();
+    }
+  }
+
   /** Creates employees table with sample data for testing */
   protected Table createEmployeesTable() {
     return SimpleTable.builder()
-        .col("id", SqlTypeName.INTEGER)
-        .col("name", SqlTypeName.VARCHAR)
-        .col("age", SqlTypeName.INTEGER)
-        .col("department", SqlTypeName.VARCHAR)
+        .col("id", INTEGER)
+        .col("name", VARCHAR)
+        .col("age", INTEGER)
+        .col("department", VARCHAR)
         .row(new Object[] {1, "Alice", 25, "Engineering"})
         .row(new Object[] {2, "Bob", 35, "Sales"})
         .row(new Object[] {3, "Charlie", 45, "Engineering"})

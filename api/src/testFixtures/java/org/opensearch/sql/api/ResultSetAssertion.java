@@ -6,7 +6,8 @@
 package org.opensearch.sql.api;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -78,33 +79,19 @@ public interface ResultSetAssertion {
     public final ResultSetVerifier expectSchema(Matcher<ColumnInfo>... matchers)
         throws SQLException {
       ResultSetMetaData metaData = resultSet.getMetaData();
-      assertEquals("Column count mismatch", matchers.length, metaData.getColumnCount());
-
-      for (int i = 0; i < matchers.length; i++) {
-        int columnIndex = i + 1; // JDBC is 1-based
-        ColumnInfo columnInfo =
-            new ColumnInfo(
-                metaData.getColumnName(columnIndex), metaData.getColumnType(columnIndex));
-        assertThat("Column " + columnIndex + " mismatch", columnInfo, matchers[i]);
+      List<ColumnInfo> actualColumns = new ArrayList<>();
+      for (int i = 1; i <= metaData.getColumnCount(); i++) {
+        actualColumns.add(new ColumnInfo(metaData.getColumnName(i), metaData.getColumnType(i)));
       }
+
+      assertThat("Schema mismatch", actualColumns, contains(matchers));
       return this;
     }
 
     @SafeVarargs
     public final ResultSetVerifier expectData(Matcher<Object[]>... matchers) throws SQLException {
-      List<Object[]> actualRows = readAllRows();
-      assertEquals("Row count mismatch", matchers.length, actualRows.size());
-
-      for (int i = 0; i < matchers.length; i++) {
-        assertThat("Row " + i + " mismatch", actualRows.get(i), matchers[i]);
-      }
-      return this;
-    }
-
-    private List<Object[]> readAllRows() throws SQLException {
       List<Object[]> rows = new ArrayList<>();
       int columnCount = resultSet.getMetaData().getColumnCount();
-
       while (resultSet.next()) {
         Object[] rowValues = new Object[columnCount];
         for (int i = 0; i < columnCount; i++) {
@@ -112,7 +99,9 @@ public interface ResultSetAssertion {
         }
         rows.add(rowValues);
       }
-      return rows;
+
+      assertThat("Row data mismatch", rows, containsInAnyOrder(matchers));
+      return this;
     }
   }
 }

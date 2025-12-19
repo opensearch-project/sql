@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.api;
 
+import static java.sql.Types.BIGINT;
+import static java.sql.Types.VARCHAR;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 
 import java.sql.PreparedStatement;
@@ -44,7 +46,7 @@ public class UnifiedQueryOpenSearchIT extends PPLIntegTestCase implements Result
     context =
         UnifiedQueryContext.builder()
             .language(QueryType.PPL)
-            .catalog(catalogName, createDynamicSchema())
+            .catalog(catalogName, createOpenSearchSchema())
             .defaultNamespace(catalogName)
             .setting("plugins.query.size_limit", 200)
             .setting("plugins.query.buckets", 1000)
@@ -60,7 +62,7 @@ public class UnifiedQueryOpenSearchIT extends PPLIntegTestCase implements Result
   }
 
   @After
-  public void cleanup() throws Exception {
+  public void cleanUp() throws Exception {
     if (context != null) {
       context.close();
     }
@@ -78,7 +80,7 @@ public class UnifiedQueryOpenSearchIT extends PPLIntegTestCase implements Result
       ResultSet resultSet = statement.executeQuery();
 
       verify(resultSet)
-          .expectSchema(col("firstname", java.sql.Types.VARCHAR), col("age", java.sql.Types.BIGINT))
+          .expectSchema(col("firstname", VARCHAR), col("age", BIGINT))
           .expectData(row("Amber", 32L), row("Hattie", 36L), row("Dale", 33L));
     }
   }
@@ -106,7 +108,7 @@ public class UnifiedQueryOpenSearchIT extends PPLIntegTestCase implements Result
    * Creates a dynamic schema that creates OpenSearchIndex on-demand for any table name. This allows
    * querying any index without pre-registering it.
    */
-  private AbstractSchema createDynamicSchema() {
+  private AbstractSchema createOpenSearchSchema() {
     return new AbstractSchema() {
       private final OpenSearchClient osClient =
           new OpenSearchRestClient(new InternalRestHighLevelClient(client()));
