@@ -115,6 +115,7 @@ public class CalciteStatsCommandIT extends StatsCommandIT {
 
   @Test
   public void testNestedAggregation() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
     JSONObject actual =
         executeQuery(
             String.format(
@@ -134,6 +135,7 @@ public class CalciteStatsCommandIT extends StatsCommandIT {
 
   @Test
   public void testNestedAggregationBy() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
     JSONObject actual =
         executeQuery(
             String.format(

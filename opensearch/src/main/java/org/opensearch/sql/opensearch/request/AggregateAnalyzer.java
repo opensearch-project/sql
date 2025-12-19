@@ -373,6 +373,7 @@ public class AggregateAnalyzer {
         return null;
       }
     }
+    if (project == null) return null;
     return project.getRowType().getFieldNames().get(aggCall.getArgList().get(0));
   }
 
