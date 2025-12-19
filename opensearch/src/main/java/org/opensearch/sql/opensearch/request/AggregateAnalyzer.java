@@ -340,7 +340,7 @@ public class AggregateAnalyzer {
 
     for (int i = 0; i < aggCalls.size(); i++) {
       AggregateCall aggCall = aggCalls.get(i);
-      List<RexNode> args = convertAggArgThroughProject(aggCall, project);
+      List<Pair<RexNode, String>> args = convertAggArgThroughProject(aggCall, project);
       String aggFieldName = aggFieldNames.get(i);
 
       Pair<AggregationBuilder, MetricParser> builderAndParser =
@@ -359,19 +359,26 @@ public class AggregateAnalyzer {
    *
    * @param aggCall the aggregate call
    * @param project the project
-   * @return the converted RexNode list
+   * @return the converted Pair<RexNode, String> list
    */
-  private static List<RexNode> convertAggArgThroughProject(AggregateCall aggCall, Project project) {
+  private static List<Pair<RexNode, String>> convertAggArgThroughProject(
+      AggregateCall aggCall, Project project) {
     return project == null
         ? List.of()
         : PlanUtils.getObjectFromLiteralAgg(aggCall) != null
-            ? project.getProjects().stream().filter(rex -> !rex.isA(SqlKind.ROW_NUMBER)).collect(Collectors.toList())
-            : aggCall.getArgList().stream().map(project.getProjects()::get).collect(Collectors.toList());
+            ? project.getNamedProjects().stream()
+                .filter(rex -> !rex.getKey().isA(SqlKind.ROW_NUMBER))
+                .map(p -> Pair.of(p.getKey(), p.getValue()))
+                .collect(Collectors.toList())
+            : aggCall.getArgList().stream()
+                .map(project.getNamedProjects()::get)
+                .map(p -> Pair.of(p.getKey(), p.getValue()))
+                .collect(Collectors.toList());
   }
 
   private static Pair<AggregationBuilder, MetricParser> createAggregationBuilderAndParser(
       AggregateCall aggCall,
-      List<RexNode> args,
+      List<Pair<RexNode, String>> args,
       String aggFieldName,
       AggregateAnalyzer.AggregateBuilderHelper helper) {
     if (aggCall.isDistinct()) {
@@ -383,14 +390,14 @@ public class AggregateAnalyzer {
 
   private static Pair<AggregationBuilder, MetricParser> createDistinctAggregation(
       AggregateCall aggCall,
-      List<RexNode> args,
+      List<Pair<RexNode, String>> args,
       String aggFieldName,
       AggregateBuilderHelper helper) {
     switch (aggCall.getAggregation().kind) {
       case COUNT:
         return Pair.of(
                 helper.build(
-              !args.isEmpty() ? args.get(0) : null,
+              !args.isEmpty() ? args.get(0).getKey() : null,
               AggregationBuilders.cardinality(aggFieldName)),
                 new SingleValueParser(aggFieldName));
       default:
@@ -401,98 +408,98 @@ public class AggregateAnalyzer {
 
   private static Pair<AggregationBuilder, MetricParser> createRegularAggregation(
       AggregateCall aggCall,
-      List<RexNode> args,
+      List<Pair<RexNode, String>> args,
       String aggFieldName,
       AggregateBuilderHelper helper) {
 
     switch (aggCall.getAggregation().kind) {
       case AVG:
         return Pair.of(
-                helper.build(args.get(0), AggregationBuilders.avg(aggFieldName)),
+                helper.build(args.get(0).getKey(), AggregationBuilders.avg(aggFieldName)),
                 new SingleValueParser(aggFieldName));
       case SUM:
         // 1. Only case SUM, skip SUM0 / COUNT since calling avg() in DSL should be faster.
         // 2. To align with databases, SUM0 is not preferred now.
         return Pair.of(
-                helper.build(args.get(0), AggregationBuilders.sum(aggFieldName)),
+                helper.build(args.get(0).getKey(), AggregationBuilders.sum(aggFieldName)),
                 new SingleValueParser(aggFieldName));
       case COUNT:
         return Pair.of(
                 helper.build(
-                        !args.isEmpty() ? args.get(0) : null, AggregationBuilders.count(aggFieldName)),
+                        !args.isEmpty() ? args.get(0).getKey() : null, AggregationBuilders.count(aggFieldName)),
                 new SingleValueParser(aggFieldName));
       case MIN: {
         ExprType fieldType =
-                OpenSearchTypeFactory.convertRelDataTypeToExprType(args.get(0).getType());
+                OpenSearchTypeFactory.convertRelDataTypeToExprType(args.get(0).getKey().getType());
         if (supportsMaxMinAggregation(fieldType)) {
           return Pair.of(
-                  helper.build(args.get(0), AggregationBuilders.min(aggFieldName)),
+                  helper.build(args.get(0).getKey(), AggregationBuilders.min(aggFieldName)),
                   new SingleValueParser(aggFieldName));
         } else {
           return Pair.of(
               AggregationBuilders.topHits(aggFieldName)
-                  .fetchField(helper.inferNamedField(args.get(0)).getReferenceForTermQuery())
+                  .fetchField(helper.inferNamedField(args.get(0).getKey()).getReferenceForTermQuery())
                   .size(1)
                   .from(0)
                   .sort(
-                      helper.inferNamedField(args.get(0)).getReferenceForTermQuery(),
+                      helper.inferNamedField(args.get(0).getKey()).getReferenceForTermQuery(),
                       SortOrder.ASC),
               new TopHitsParser(aggFieldName, true, false));
         }
       }
       case MAX: {
         ExprType fieldType =
-                OpenSearchTypeFactory.convertRelDataTypeToExprType(args.get(0).getType());
+                OpenSearchTypeFactory.convertRelDataTypeToExprType(args.get(0).getKey().getType());
         if (supportsMaxMinAggregation(fieldType)) {
           return Pair.of(
-                  helper.build(args.get(0), AggregationBuilders.max(aggFieldName)),
+                  helper.build(args.get(0).getKey(), AggregationBuilders.max(aggFieldName)),
                   new SingleValueParser(aggFieldName));
         } else {
           return Pair.of(
               AggregationBuilders.topHits(aggFieldName)
-                  .fetchField(helper.inferNamedField(args.get(0)).getReferenceForTermQuery())
+                  .fetchField(helper.inferNamedField(args.get(0).getKey()).getReferenceForTermQuery())
                   .size(1)
                   .from(0)
                   .sort(
-                      helper.inferNamedField(args.get(0)).getReferenceForTermQuery(),
+                      helper.inferNamedField(args.get(0).getKey()).getReferenceForTermQuery(),
                       SortOrder.DESC),
               new TopHitsParser(aggFieldName, true, false));
         }
       }
       case VAR_SAMP:
         return Pair.of(
-                helper.build(args.get(0), AggregationBuilders.extendedStats(aggFieldName)),
+                helper.build(args.get(0).getKey(), AggregationBuilders.extendedStats(aggFieldName)),
                 new StatsParser(ExtendedStats::getVarianceSampling, aggFieldName));
       case VAR_POP:
         return Pair.of(
-                helper.build(args.get(0), AggregationBuilders.extendedStats(aggFieldName)),
+                helper.build(args.get(0).getKey(), AggregationBuilders.extendedStats(aggFieldName)),
                 new StatsParser(ExtendedStats::getVariancePopulation, aggFieldName));
       case STDDEV_SAMP:
         return Pair.of(
-                helper.build(args.get(0), AggregationBuilders.extendedStats(aggFieldName)),
+                helper.build(args.get(0).getKey(), AggregationBuilders.extendedStats(aggFieldName)),
                 new StatsParser(ExtendedStats::getStdDeviationSampling, aggFieldName));
       case STDDEV_POP:
         return Pair.of(
-                helper.build(args.get(0), AggregationBuilders.extendedStats(aggFieldName)),
+                helper.build(args.get(0).getKey(), AggregationBuilders.extendedStats(aggFieldName)),
                 new StatsParser(ExtendedStats::getStdDeviationPopulation, aggFieldName));
       case ARG_MAX:
         return Pair.of(
                 AggregationBuilders.topHits(aggFieldName)
-                        .fetchField(helper.inferNamedField(args.get(0)).getReferenceForTermQuery())
+                        .fetchField(helper.inferNamedField(args.get(0).getKey()).getReferenceForTermQuery())
                         .size(1)
                         .from(0)
                         .sort(
-                                helper.inferNamedField(args.get(1)).getRootName(),
+                                helper.inferNamedField(args.get(1).getKey()).getRootName(),
                                 org.opensearch.search.sort.SortOrder.DESC),
                 new ArgMaxMinParser(aggFieldName));
       case ARG_MIN:
         return Pair.of(
                 AggregationBuilders.topHits(aggFieldName)
-                        .fetchField(helper.inferNamedField(args.get(0)).getReferenceForTermQuery())
+                        .fetchField(helper.inferNamedField(args.get(0).getKey()).getReferenceForTermQuery())
                         .size(1)
                         .from(0)
                         .sort(
-                                helper.inferNamedField(args.get(1)).getRootName(),
+                                helper.inferNamedField(args.get(1).getKey()).getRootName(),
                                 org.opensearch.search.sort.SortOrder.ASC),
                 new ArgMaxMinParser(aggFieldName));
       case OTHER_FUNCTION:
@@ -502,8 +509,8 @@ public class AggregateAnalyzer {
           case TAKE:
             return Pair.of(
                     AggregationBuilders.topHits(aggFieldName)
-                            .fetchField(helper.inferNamedField(args.get(0)).getReferenceForTermQuery())
-                            .size(helper.inferValue(args.get(1), Integer.class))
+                            .fetchField(helper.inferNamedField(args.get(0).getKey()).getReferenceForTermQuery())
+                            .size(helper.inferValue(args.get(1).getKey(), Integer.class))
                             .from(0),
                     new TopHitsParser(aggFieldName, false, true));
           case FIRST:
@@ -511,7 +518,7 @@ public class AggregateAnalyzer {
                     AggregationBuilders.topHits(aggFieldName).size(1).from(0);
             if (!args.isEmpty()) {
                 firstBuilder.fetchField(
-                        helper.inferNamedField(args.get(0)).getReferenceForTermQuery());            }
+                        helper.inferNamedField(args.get(0).getKey()).getReferenceForTermQuery());            }
             return Pair.of(firstBuilder, new TopHitsParser(aggFieldName, true, false));
           case LAST:
             TopHitsAggregationBuilder lastBuilder =
@@ -521,22 +528,22 @@ public class AggregateAnalyzer {
                             .sort("_doc", org.opensearch.search.sort.SortOrder.DESC);
             if (!args.isEmpty()) {
                 lastBuilder.fetchField(
-                        helper.inferNamedField(args.get(0)).getReferenceForTermQuery());            }
+                        helper.inferNamedField(args.get(0).getKey()).getReferenceForTermQuery());            }
             return Pair.of(lastBuilder, new TopHitsParser(aggFieldName, true, false));
           case PERCENTILE_APPROX:
             PercentilesAggregationBuilder aggBuilder =
                     helper
-                            .build(args.get(0), AggregationBuilders.percentiles(aggFieldName))
-                            .percentiles(helper.inferValue(args.get(1), Double.class));
+                            .build(args.get(0).getKey(), AggregationBuilders.percentiles(aggFieldName))
+                            .percentiles(helper.inferValue(args.get(1).getKey(), Double.class));
             /* See {@link PercentileApproxFunction}, PERCENTILE_APPROX accepts args of [FIELD, PERCENTILE, TYPE, COMPRESSION(optional)] */
             if (args.size() > 3) {
-              aggBuilder.compression(helper.inferValue(args.get(3), Double.class));
+              aggBuilder.compression(helper.inferValue(args.get(3).getKey(), Double.class));
             }
             return Pair.of(aggBuilder, new SinglePercentileParser(aggFieldName));
           case DISTINCT_COUNT_APPROX:
             return Pair.of(
                     helper.build(
-                            !args.isEmpty() ? args.get(0) : null,
+                            !args.isEmpty() ? args.get(0).getKey() : null,
                             AggregationBuilders.cardinality(aggFieldName)),
                     new SingleValueParser(aggFieldName));
           default:
@@ -557,17 +564,17 @@ public class AggregateAnalyzer {
         List<SearchSourceBuilder.ScriptField> scripts = new ArrayList<>();
         args.forEach(
             rex -> {
-              if (rex instanceof RexInputRef) {
-                sources.add(helper.inferNamedField(rex).getReference());
-              } else if (rex instanceof RexCall || rex instanceof RexLiteral) {
+              if (rex.getKey() instanceof RexInputRef) {
+                sources.add(helper.inferNamedField(rex.getKey()).getReference());
+              } else if (rex.getKey() instanceof RexCall || rex.getKey() instanceof RexLiteral) {
                 scripts.add(
                     new SearchSourceBuilder.ScriptField(
-                        rex.toString(), helper.inferScript(rex).getScript(), false));
+                        rex.getValue(), helper.inferScript(rex.getKey()).getScript(), false));
               } else {
                 throw new AggregateAnalyzer.AggregateAnalyzerException(
                     String.format(
                         "Unsupported push-down aggregator %s due to rex type is %s",
-                        aggCall.getAggregation(), rex.getKind()));
+                        aggCall.getAggregation(), rex.getKey().getKind()));
               }
             });
         topHitsAggregationBuilder.fetchSource(
