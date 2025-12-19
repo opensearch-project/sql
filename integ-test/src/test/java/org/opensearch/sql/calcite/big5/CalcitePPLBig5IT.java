@@ -46,8 +46,8 @@ public class CalcitePPLBig5IT extends PPLBig5IT {
   }
 
   /**
-   * Tests deduplication by metrics.size field with sorting by timestamp.
-   * Validates that the Calcite plan correctly handles dedup operations.
+   * Tests deduplication by metrics.size field with sorting by timestamp. Validates that the Calcite
+   * plan correctly handles dedup operations.
    */
   @Test
   public void dedup_metrics_size_field() throws IOException {
@@ -58,8 +58,8 @@ public class CalcitePPLBig5IT extends PPLBig5IT {
   }
 
   /**
-   * Tests regex-based field extraction and transformation using rex command.
-   * Validates that the Calcite plan correctly handles regex patterns.
+   * Tests regex-based field extraction and transformation using rex command. Validates that the
+   * Calcite plan correctly handles regex patterns.
    */
   @Test
   public void rex_regex_transformation() throws IOException {
@@ -70,8 +70,8 @@ public class CalcitePPLBig5IT extends PPLBig5IT {
   }
 
   /**
-   * Tests LIKE pattern matching with aggregation using script engine.
-   * Validates filtering by message content and grouping results.
+   * Tests LIKE pattern matching with aggregation using script engine. Validates filtering by
+   * message content and grouping results.
    */
   @Test
   public void script_engine_like_pattern_with_aggregation() throws IOException {
@@ -80,8 +80,8 @@ public class CalcitePPLBig5IT extends PPLBig5IT {
   }
 
   /**
-   * Tests LIKE pattern matching with sorting and result limiting.
-   * Validates filtering by message content with timestamp ordering.
+   * Tests LIKE pattern matching with sorting and result limiting. Validates filtering by message
+   * content with timestamp ordering.
    */
   @Test
   public void script_engine_like_pattern_with_sort() throws IOException {
