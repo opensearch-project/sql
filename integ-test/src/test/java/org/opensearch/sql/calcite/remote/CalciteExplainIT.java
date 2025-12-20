@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.util.Locale;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.ExplainIT;
 
@@ -2234,9 +2233,9 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testNestedAggExplainWhenPushdownNotApplied() throws Exception {
     enabledOnlyWhenPushdownIsEnabled();
-    Exception e =
-        assertThrows(
-            ResponseException.class,
+    Throwable e =
+        assertThrowsWithReplace(
+            UnsupportedOperationException.class,
             () ->
                 explainQueryYaml(
                     "source=opensearch-sql_test_index_nested_simple | head 10000 | stats"
