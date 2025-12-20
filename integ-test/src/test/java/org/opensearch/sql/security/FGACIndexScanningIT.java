@@ -19,7 +19,6 @@ import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
-import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 /**
  * Integration tests for Fine-Grained Access Control (FGAC) with background-io scanning.
@@ -28,7 +27,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
  * index? 2. Column-level (Field-level): Can users see specific fields? 3. Row-level
  * (Document-level): Can users see specific documents?
  */
-public class FGACIndexScanningIT extends PPLIntegTestCase {
+public class FGACIndexScanningIT extends SecurityTestBase {
   private static final String PUBLIC_USER = "public_user";
   private static final String PUBLIC_ROLE = "public_role";
   private static final String LIMITED_USER = "limited_user";
@@ -39,7 +38,6 @@ public class FGACIndexScanningIT extends PPLIntegTestCase {
   private static final String MANAGER_ROLE = "manager_role";
   private static final String HR_USER = "hr_user";
   private static final String HR_ROLE = "hr_role";
-  private static final String STRONG_PASSWORD = "correcthorsebatterystaple";
   private static final String[] RECORDS_INDEX_COLUMNS = {
     "name", "department", "salary", "email", "employee_id"
   };
@@ -355,197 +353,13 @@ public class FGACIndexScanningIT extends PPLIntegTestCase {
    * visible.
    */
   private void createRoleWithDocumentLevelSecurity() throws IOException {
-    Request request = new Request("PUT", "/_plugins/_security/api/roles/" + LIMITED_ROLE);
-    request.setJsonEntity(
-        String.format(
-            Locale.ROOT,
-            """
-            {
-              "cluster_permissions": [
-                "cluster:admin/opensearch/ppl"
-              ],
-              "index_permissions": [{
-                "index_patterns": [
-                  "%s"
-                ],
-                "allowed_actions": [
-                  "indices:data/read/search*",
-                  "indices:admin/mappings/get",
-                  "indices:monitor/settings/get",
-                  "indices:data/read/point_in_time/create",
-                  "indices:data/read/point_in_time/delete"
-                ],
-                "dls": "{\\"match\\":{\\"security_level\\":\\"public\\"}}"
-              }]
-            }
-            """,
-            SECURE_LOGS));
-
-    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
-    restOptionsBuilder.addHeader("Content-Type", "application/json");
-    request.setOptions(restOptionsBuilder);
-
-    Response response = client().performRequest(request);
-    assertTrue(
-        response.getStatusLine().getStatusCode() == 200
-            || response.getStatusLine().getStatusCode() == 201);
+    createRoleWithDLS(
+        LIMITED_ROLE, SECURE_LOGS, "{\\\"match\\\":{\\\"security_level\\\":\\\"public\\\"}}");
   }
 
   /** Creates a role with field-level security (FLS) - only specific fields are accessible. */
   private void createRoleWithFieldLevelSecurity() throws IOException {
-    // Build the allowed fields array for the JSON
-    StringBuilder fieldsJson = new StringBuilder();
-    for (int i = 0; i < RECORDS_INDEX_COLUMNS.length; i++) {
-      if (i > 0) fieldsJson.append(", ");
-      fieldsJson.append("\"").append(RECORDS_INDEX_COLUMNS[i]).append("\"");
-    }
-
-    Request request =
-        new Request("PUT", "/_plugins/_security/api/roles/" + FGACIndexScanningIT.MANAGER_ROLE);
-    request.setJsonEntity(
-        String.format(
-            Locale.ROOT,
-            """
-            {
-              "cluster_permissions": [
-                "cluster:admin/opensearch/ppl"
-              ],
-              "index_permissions": [{
-                "index_patterns": [
-                  "%s"
-                ],
-                "allowed_actions": [
-                  "indices:data/read/search*",
-                  "indices:admin/mappings/get",
-                  "indices:monitor/settings/get",
-                  "indices:data/read/point_in_time/create",
-                  "indices:data/read/point_in_time/delete"
-                ],
-                "fls": [%s]
-              }]
-            }
-            """,
-            FGACIndexScanningIT.EMPLOYEE_RECORDS,
-            fieldsJson));
-
-    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
-    restOptionsBuilder.addHeader("Content-Type", "application/json");
-    request.setOptions(restOptionsBuilder);
-
-    Response response = client().performRequest(request);
-    assertTrue(
-        response.getStatusLine().getStatusCode() == 200
-            || response.getStatusLine().getStatusCode() == 201);
-  }
-
-  /** Creates a role with access to a specific index pattern. */
-  private void createRoleWithIndexAccess(String roleName, String indexPattern) throws IOException {
-    Request request = new Request("PUT", "/_plugins/_security/api/roles/" + roleName);
-    request.setJsonEntity(
-        String.format(
-            Locale.ROOT,
-            """
-            {
-              "cluster_permissions": [
-                "cluster:admin/opensearch/ppl"
-              ],
-              "index_permissions": [{
-                "index_patterns": [
-                  "%s"
-                ],
-                "allowed_actions": [
-                  "indices:data/read/search*",
-                  "indices:admin/mappings/get",
-                  "indices:monitor/settings/get",
-                  "indices:data/read/point_in_time/create",
-                  "indices:data/read/point_in_time/delete"
-                ]
-              }]
-            }
-            """,
-            indexPattern));
-
-    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
-    restOptionsBuilder.addHeader("Content-Type", "application/json");
-    request.setOptions(restOptionsBuilder);
-
-    Response response = client().performRequest(request);
-    assertTrue(
-        response.getStatusLine().getStatusCode() == 200
-            || response.getStatusLine().getStatusCode() == 201);
-  }
-
-  private void createUser(String username, String roleName) throws IOException {
-    // Create user with password
-    Request userRequest = new Request("PUT", "/_plugins/_security/api/internalusers/" + username);
-    userRequest.setJsonEntity(
-        String.format(
-            Locale.ROOT,
-            """
-            {
-              "password": "%s",
-              "backend_roles": [],
-              "attributes": {}
-            }
-            """,
-            STRONG_PASSWORD));
-
-    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
-    restOptionsBuilder.addHeader("Content-Type", "application/json");
-    userRequest.setOptions(restOptionsBuilder);
-
-    Response userResponse = client().performRequest(userRequest);
-    assertTrue(
-        userResponse.getStatusLine().getStatusCode() == 200
-            || userResponse.getStatusLine().getStatusCode() == 201);
-
-    // Map user to role
-    Request mappingRequest = new Request("PUT", "/_plugins/_security/api/rolesmapping/" + roleName);
-    mappingRequest.setJsonEntity(
-        String.format(
-            Locale.ROOT,
-            """
-            {
-              "backend_roles": [],
-              "hosts": [],
-              "users": ["%s"]
-            }
-            """,
-            username));
-
-    mappingRequest.setOptions(restOptionsBuilder);
-
-    Response mappingResponse = client().performRequest(mappingRequest);
-    assertTrue(
-        mappingResponse.getStatusLine().getStatusCode() == 200
-            || mappingResponse.getStatusLine().getStatusCode() == 201);
-  }
-
-  /** Executes a PPL query as a specific user with basic authentication. */
-  private JSONObject executeQueryAsUser(String query, String username) throws IOException {
-    Request request = new Request("POST", "/_plugins/_ppl");
-    request.setJsonEntity(
-        String.format(
-            Locale.ROOT,
-            """
-            {
-              "query": "%s"
-            }\
-            """,
-            query));
-
-    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
-    restOptionsBuilder.addHeader("Content-Type", "application/json");
-    restOptionsBuilder.addHeader(
-        "Authorization",
-        "Basic "
-            + java.util.Base64.getEncoder()
-                .encodeToString((username + ":" + STRONG_PASSWORD).getBytes()));
-    request.setOptions(restOptionsBuilder);
-
-    Response response = client().performRequest(request);
-    assertEquals(200, response.getStatusLine().getStatusCode());
-    return new JSONObject(org.opensearch.sql.legacy.TestUtils.getResponseBody(response, true));
+    createRoleWithFLS(MANAGER_ROLE, EMPLOYEE_RECORDS, RECORDS_INDEX_COLUMNS);
   }
 
   @Test
