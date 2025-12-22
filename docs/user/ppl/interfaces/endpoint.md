@@ -183,3 +183,8 @@ Expected output (trimmed):
    }
 }
 ```
+
+### Notes
+
+- Profile output is only returned when the query finishes successfully.
+- Profiling runs only when Calcite is enabled.

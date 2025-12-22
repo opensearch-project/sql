@@ -255,6 +255,8 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
           new OpenSearchResponse(
               SearchHits.empty(), exprValueFactory, includes, isCountAggRequest());
     } else {
+      ProfileMetric metric = QueryProfiling.current().getOrCreateMetric(MetricName.OPENSEARCH_TIME);
+      long engineStartTime = System.nanoTime();
       this.sourceBuilder.pointInTimeBuilder(new PointInTimeBuilder(this.pitId));
       this.sourceBuilder.timeout(cursorKeepAlive);
       // check for search after
@@ -297,6 +299,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
           LOG.debug(sourceBuilder);
         }
       }
+      metric.add(System.nanoTime() - engineStartTime);
     }
     return openSearchResponse;
   }
