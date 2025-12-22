@@ -54,8 +54,8 @@ fetched rows / total rows = 2/2
   
 ## Example 3: Pattern Matching with LIKE  
 
-Pattern Matching with Underscore (_)
-The example demonstrates using LIKE with underscore (_) to match a single character.
+Pattern Matching with Underscore (\_)
+The example demonstrates using LIKE with underscore (\_) to match a single character.
   
 ```ppl
 source=accounts

@@ -152,8 +152,11 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPL
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTI_MATCH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVAPPEND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVDEDUP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVFIND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVINDEX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVJOIN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVMAP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVZIP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOTEQUAL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOW;
@@ -183,6 +186,8 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.RIGHT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RINT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ROUND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RTRIM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SCALAR_MAX;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SCALAR_MIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SECOND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SECOND_OF_MINUTE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SEC_TO_TIME;
@@ -865,9 +870,9 @@ public class PPLFuncImpTable {
       registerOperator(INTERNAL_REGEXP_REPLACE_5, SqlLibraryOperators.REGEXP_REPLACE_5);
       registerOperator(INTERNAL_TRANSLATE3, SqlLibraryOperators.TRANSLATE3);
 
-      // Register eval functions for PPL max() and min() calls
-      registerOperator(MAX, PPLBuiltinOperators.SCALAR_MAX);
-      registerOperator(MIN, PPLBuiltinOperators.SCALAR_MIN);
+      // Register eval functions for PPL scalar max() and min() calls
+      registerOperator(SCALAR_MAX, PPLBuiltinOperators.SCALAR_MAX);
+      registerOperator(SCALAR_MIN, PPLBuiltinOperators.SCALAR_MIN);
 
       // Register PPL UDF operator
       registerOperator(COSH, PPLBuiltinOperators.COSH);
@@ -1035,6 +1040,9 @@ public class PPLFuncImpTable {
       registerOperator(ARRAY, PPLBuiltinOperators.ARRAY);
       registerOperator(MVAPPEND, PPLBuiltinOperators.MVAPPEND);
       registerOperator(MVDEDUP, SqlLibraryOperators.ARRAY_DISTINCT);
+      registerOperator(MVFIND, PPLBuiltinOperators.MVFIND);
+      registerOperator(MVZIP, PPLBuiltinOperators.MVZIP);
+      registerOperator(MVMAP, PPLBuiltinOperators.TRANSFORM);
       registerOperator(MAP_APPEND, PPLBuiltinOperators.MAP_APPEND);
       registerOperator(MAP_CONCAT, SqlLibraryOperators.MAP_CONCAT);
       registerOperator(MAP_REMOVE, PPLBuiltinOperators.MAP_REMOVE);
