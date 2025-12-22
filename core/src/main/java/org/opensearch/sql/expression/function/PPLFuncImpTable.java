@@ -539,8 +539,9 @@ public class PPLFuncImpTable {
     }
 
     /**
-     * Registers an operator for a built-in function name with a specified {@link PPLTypeChecker}.
-     * This allows custom type checking logic to be associated with the operator.
+     * Registers an operator for a built-in function name with a specified {@link
+     * SqlOperandTypeChecker}. This allows custom type checking logic to be associated with the
+     * operator.
      *
      * @param functionName the built-in function name
      * @param operator the SQL operator to register
