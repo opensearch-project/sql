@@ -107,7 +107,7 @@ public class BackgroundSearchScanner {
       ProfileContext ctx = QueryProfiling.current();
       nextBatchFuture =
           CompletableFuture.supplyAsync(
-              () -> QueryProfiling.withContext(ctx, () -> client.search(request)),
+              () -> QueryProfiling.withCurrentContext(ctx, () -> client.search(request)),
               backgroundExecutor);
     }
   }

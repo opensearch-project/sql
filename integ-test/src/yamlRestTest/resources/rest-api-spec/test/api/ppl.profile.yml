@@ -51,6 +51,7 @@ teardown:
           profile: true
   - gt: {profile.total_ms: 0.0}
   - gt: {profile.metrics.ANALYZE_TIME_MS: 0.0}
+  - gt: {profile.metrics.OPENSEARCH_TIME_MS: 0.0}
 
 ---
 "Profile ignored for explain api":

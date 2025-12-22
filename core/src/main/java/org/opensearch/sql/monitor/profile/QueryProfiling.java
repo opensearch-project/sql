@@ -52,25 +52,24 @@ public final class QueryProfiling {
     return CURRENT.get();
   }
 
+  /** Clear any profiling context bound to the current thread. */
+  public static void clear() {
+    CURRENT.remove();
+  }
+
   /**
    * Run a supplier with the provided profiling context bound to the current thread, restoring the
    * previous context afterward.
    *
-   * @param ctx context to activate
    * @param action supplier to execute
    * @return supplier result
    */
-  public static <T> T withContext(ProfileContext ctx, Supplier<T> action) {
-    ProfileContext previous = CURRENT.get();
+  public static <T> T withCurrentContext(ProfileContext ctx, Supplier<T> action) {
     CURRENT.set(Objects.requireNonNull(ctx, "ctx"));
     try {
       return action.get();
     } finally {
-      if (previous == null) {
-        CURRENT.remove();
-      } else {
-        CURRENT.set(previous);
-      }
+      clear();
     }
   }
 }
