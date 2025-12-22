@@ -9,6 +9,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import lombok.Getter;
@@ -59,6 +60,7 @@ import org.opensearch.sql.opensearch.storage.scan.context.AggregationBuilderActi
 import org.opensearch.sql.opensearch.storage.scan.context.FilterDigest;
 import org.opensearch.sql.opensearch.storage.scan.context.LimitDigest;
 import org.opensearch.sql.opensearch.storage.scan.context.OSRequestBuilderAction;
+import org.opensearch.sql.opensearch.storage.scan.context.ProjectDigest;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownType;
 import org.opensearch.sql.opensearch.storage.scan.context.RareTopDigest;
@@ -265,7 +267,10 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               requestBuilder ->
                   requestBuilder.pushDownProjectStream(newSchema.getFieldNames().stream());
     }
-    newScan.pushDownContext.add(PushDownType.PROJECT, newSchema.getFieldNames(), action);
+    newScan.pushDownContext.add(
+        PushDownType.PROJECT,
+        new ProjectDigest(newSchema.getFieldNames(), selectedColumns),
+        action);
     return newScan;
   }
 
@@ -347,8 +352,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               table,
               osIndex,
               aggregate.getRowType(),
-              // Aggregation will eliminate all collations.
-              pushDownContext.cloneWithoutSort());
+              pushDownContext.cloneForAggregate(aggregate, project));
       List<String> schema = this.getRowType().getFieldNames();
       Map<String, ExprType> fieldTypes =
           this.osIndex.getAllFieldTypes().entrySet().stream()
@@ -395,10 +399,29 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
   public AbstractRelNode pushDownLimit(LogicalSort sort, Integer limit, Integer offset) {
     try {
       if (pushDownContext.isAggregatePushed()) {
+        int totalSize = limit + offset;
+        // Since the AggPushDownAction is shared among different PushDownContext, its size() may be
+        // inaccurate(<= the actual size).
+        // So take the previous limit into account to decide whether it can update the context.
+        boolean canReduceEstimatedRowsCount = true;
+        if (pushDownContext.isLimitPushed()) {
+          Optional<Integer> previousRowCount =
+              pushDownContext.getQueue().reversed().stream()
+                  .takeWhile(operation -> operation.type() != PushDownType.AGGREGATION)
+                  .filter(operation -> operation.type() == PushDownType.LIMIT)
+                  .findFirst()
+                  .map(operation -> (LimitDigest) operation.digest())
+                  .map(limitDigest -> limitDigest.offset() + limitDigest.limit());
+          if (previousRowCount.isPresent()) {
+            canReduceEstimatedRowsCount = totalSize < previousRowCount.get();
+          }
+        }
+
         // Push down the limit into the aggregation bucket in advance to detect whether the limit
         // can update the aggregation builder
         boolean canUpdate =
-            pushDownContext.getAggPushDownAction().pushDownLimitIntoBucketSize(limit + offset);
+            canReduceEstimatedRowsCount
+                || pushDownContext.getAggPushDownAction().pushDownLimitIntoBucketSize(totalSize);
         if (!canUpdate && offset > 0) return null;
         CalciteLogicalIndexScan newScan = this.copyWithNewSchema(getRowType());
         if (canUpdate) {

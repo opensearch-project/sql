@@ -16,7 +16,8 @@ import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
 @Value.Enclosing
-public class SortAggregateMeasureRule extends InterruptibleRelRule<SortAggregateMeasureRule.Config> {
+public class SortAggregateMeasureRule
+    extends InterruptibleRelRule<SortAggregateMeasureRule.Config> {
 
   protected SortAggregateMeasureRule(Config config) {
     super(config);
