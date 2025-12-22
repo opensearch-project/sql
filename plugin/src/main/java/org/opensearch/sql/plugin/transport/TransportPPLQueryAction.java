@@ -108,6 +108,7 @@ public class TransportPPLQueryAction
     TransportPPLQueryRequest transportRequest = TransportPPLQueryRequest.fromActionRequest(request);
     // in order to use PPL service, we need to convert TransportPPLQueryRequest to PPLQueryRequest
     PPLQueryRequest transformedRequest = transportRequest.toPPLQueryRequest();
+    QueryContext.setProfile(transformedRequest.profile());
 
     if (transformedRequest.isExplainRequest()) {
       pplService.explain(
