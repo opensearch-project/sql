@@ -340,6 +340,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       int timeCount = 0;
       int ipCount = 0;
       int binaryCount = 0;
+      int otherCount = 0;
       for (RelDataType t : types) {
         if (t.isNullable()) {
           nullableCount++;
@@ -348,6 +349,9 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
           nullCount++;
         } else if (t.getSqlTypeName() == SqlTypeName.ANY) {
           anyCount++;
+        }
+        if (t.getSqlTypeName() == SqlTypeName.OTHER) {
+          otherCount++;
         }
         if (OpenSearchTypeUtil.isDate(t)) {
           dateCount++;
@@ -365,7 +369,10 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
           udt = createUDT(ExprUDT.EXPR_DATE, nullableCount > 0);
         } else if (timeCount == types.size()) {
           udt = createUDT(ExprUDT.EXPR_TIME, nullableCount > 0);
-        } else if (ipCount == types.size()) {
+        }
+        // There are cases where UDT IP interleaves with its intermediate SQL type for validation
+        // OTHER, we check otherCount to patch such cases
+        else if (ipCount == types.size() || otherCount == types.size()) {
           udt = createUDT(ExprUDT.EXPR_IP, nullableCount > 0);
         } else if (binaryCount == types.size()) {
           udt = createUDT(ExprUDT.EXPR_BINARY, nullableCount > 0);
