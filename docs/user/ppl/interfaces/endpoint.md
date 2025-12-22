@@ -171,17 +171,15 @@ Expected output (trimmed):
 
 ```json
 {
-  "profile": {
-    "total_ms": 822.79,
-    "metrics": {
-      "PARSE_TIME_MS": 0.0,
-      "ANALYZE_TIME_MS": 557.71,
-      "OPTIMIZE_TIME_MS": 198.87,
-      "OPENSEARCH_TIME_MS": 40.54,
-      "POST_EXEC_TIME_MS": 2.09,
-      "FORMAT_TIME_MS": 0.0
-    }
-  },
-  ...
+   "profile": {
+      "total_ms": 25.77,
+      "metrics": {
+         "ANALYZE_TIME_MS": 5.77,
+         "OPTIMIZE_TIME_MS": 13.51,
+         "OPENSEARCH_TIME_MS": 4.31,
+         "POST_EXEC_TIME_MS": 0.77,
+         "FORMAT_TIME_MS": 0.04
+      }
+   }
 }
 ```

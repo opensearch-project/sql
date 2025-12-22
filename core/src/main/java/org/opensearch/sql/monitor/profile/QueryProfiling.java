@@ -58,8 +58,7 @@ public final class QueryProfiling {
   }
 
   /**
-   * Run a supplier with the provided profiling context bound to the current thread, restoring the
-   * previous context afterward.
+   * Run a supplier with the provided profiling context bound to the current thread.
    *
    * @param action supplier to execute
    * @return supplier result
