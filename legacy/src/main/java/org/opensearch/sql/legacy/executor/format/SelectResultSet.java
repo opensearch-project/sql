@@ -175,8 +175,9 @@ public class SelectResultSet extends ResultSet {
     Map<String, Map<String, FieldMappingMetadata>> mappings = response.mappings();
     if (mappings.size() != 1) {
       throw new IllegalArgumentException(
-              String.format("Expected exactly one index mapping for %s, but found %d",
-                      indexName, mappings.size()));
+          String.format(
+              "Expected exactly one index mapping for %s, but found %d",
+              indexName, mappings.size()));
     }
     Map<String, FieldMappingMetadata> typeMappings = mappings.values().iterator().next();
 
