@@ -46,6 +46,7 @@ import org.opensearch.sql.calcite.OpenSearchSchema;
 import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
+import org.opensearch.sql.calcite.utils.PPLHintStrategyTable;
 import org.opensearch.sql.calcite.validate.OpenSearchSparkSqlDialect;
 import org.opensearch.sql.calcite.validate.PplConvertletTable;
 import org.opensearch.sql.calcite.validate.ValidationUtils;
@@ -328,12 +329,15 @@ public class QueryService {
 
     // 1. Do not remove sort in subqueries so that the orders for queries like `... | sort a |
     // fields b` is preserved
-    // 2. Disable automatic JSON_TYPE_OPERATOR wrapping for nested JSON functions
-    // (See CALCITE-4989: Calcite wraps nested JSON functions with JSON_TYPE by default)
+    // 2. Disable automatic JSON_TYPE_OPERATOR wrapping for nested JSON functions.
+    // See CALCITE-4989: Calcite wraps nested JSON functions with JSON_TYPE by default
+    // 3. Set hint strategy so that hints can be properly propagated.
+    // See SqlToRelConverter.java#convertSelectImpl
     SqlToRelConverter.Config sql2relConfig =
         SqlToRelConverter.config()
             .withRemoveSortInSubQuery(false)
-            .withAddJsonTypeOperatorEnabled(false);
+            .withAddJsonTypeOperatorEnabled(false)
+            .withHintStrategyTable(PPLHintStrategyTable.getHintStrategyTable());
     SqlToRelConverter sql2rel =
         new PplSqlToRelConverter(
             context.config.getViewExpander(),

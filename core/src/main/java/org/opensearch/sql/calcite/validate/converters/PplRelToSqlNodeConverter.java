@@ -5,16 +5,26 @@
 
 package org.opensearch.sql.calcite.validate.converters;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlHint;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.parser.SqlParserPos;
 
 /**
  * An extension of {@link RelToSqlConverter} to convert a relation algebra tree, translated from a
@@ -106,5 +116,57 @@ public class PplRelToSqlNodeConverter extends RelToSqlConverter {
             sqlCondition);
 
     return result(join, leftResult, rightResult);
+  }
+
+  @Override
+  public Result visit(Aggregate e) {
+    Result r = super.visit(e);
+    if (!e.getHints().isEmpty()) {
+      List<SqlNode> hints =
+          e.getHints().stream()
+              .map(relHint -> (SqlNode) toSqlHint(relHint, POS))
+              .collect(Collectors.toCollection(ArrayList::new));
+      r.asSelect().setHints(SqlNodeList.of(POS, hints));
+    }
+    return r;
+  }
+
+  /**
+   * Converts a RelHint to a SqlHint.
+   *
+   * <p>Copied from {@link RelToSqlConverter#toSqlHint(RelHint, SqlParserPos)} (as Calcite 1.41) as
+   * it is private there
+   */
+  private static SqlHint toSqlHint(RelHint hint, SqlParserPos pos) {
+    if (hint.kvOptions != null) {
+      return new SqlHint(
+          pos,
+          new SqlIdentifier(hint.hintName, pos),
+          SqlNodeList.of(
+              pos,
+              hint.kvOptions.entrySet().stream()
+                  .flatMap(
+                      e ->
+                          Stream.of(
+                              new SqlIdentifier(e.getKey(), pos),
+                              SqlLiteral.createCharString(e.getValue(), pos)))
+                  .collect(Collectors.toList())),
+          SqlHint.HintOptionFormat.KV_LIST);
+    } else if (hint.listOptions != null) {
+      return new SqlHint(
+          pos,
+          new SqlIdentifier(hint.hintName, pos),
+          SqlNodeList.of(
+              pos,
+              hint.listOptions.stream()
+                  .map(e -> SqlLiteral.createCharString(e, pos))
+                  .collect(Collectors.toList())),
+          SqlHint.HintOptionFormat.LITERAL_LIST);
+    }
+    return new SqlHint(
+        pos,
+        new SqlIdentifier(hint.hintName, pos),
+        SqlNodeList.EMPTY,
+        SqlHint.HintOptionFormat.EMPTY);
   }
 }
