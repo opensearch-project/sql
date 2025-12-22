@@ -8,7 +8,4 @@ calcite:
               LogicalFilter(condition=[IS NOT NULL($68)])
                 CalciteLogicalIndexScan(table=[[OpenSearch, hits]])
   physical: |
-    EnumerableLimit(fetch=[10000])
-      EnumerableLimit(fetch=[10])
-        EnumerableSort(sort0=[$0], dir0=[DESC-nulls-last])
-          CalciteEnumerableIndexScan(table=[[OpenSearch, hits]], PushDownContext=[[FILTER->IS NOT NULL($68), AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0},u=COUNT(DISTINCT $1)), PROJECT->[u, RegionID]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","query":{"exists":{"field":"RegionID","boost":1.0}},"aggregations":{"composite_buckets":{"composite":{"size":10000,"sources":[{"RegionID":{"terms":{"field":"RegionID","missing_bucket":true,"missing_order":"first","order":"asc"}}}]},"aggregations":{"u":{"cardinality":{"field":"UserID"}}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+    CalciteEnumerableIndexScan(table=[[OpenSearch, hits]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0},u=COUNT(DISTINCT $1)), PROJECT->[u, RegionID], SORT_AGG_METRICS->[0 DESC LAST], LIMIT->10, LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"RegionID":{"terms":{"field":"RegionID","size":10,"min_doc_count":1,"shard_min_doc_count":0,"show_term_doc_count_error":false,"order":[{"u":"desc"},{"_key":"asc"}]},"aggregations":{"u":{"cardinality":{"field":"UserID"}}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
