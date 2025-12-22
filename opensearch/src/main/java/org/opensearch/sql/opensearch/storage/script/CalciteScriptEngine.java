@@ -71,6 +71,7 @@ import org.apache.calcite.util.Util;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.index.fielddata.ScriptDocValues;
 import org.opensearch.script.AggregationScript;
+import org.opensearch.script.FieldScript;
 import org.opensearch.script.FilterScript;
 import org.opensearch.script.NumberSortScript;
 import org.opensearch.script.ScriptContext;
@@ -79,6 +80,7 @@ import org.opensearch.script.StringSortScript;
 import org.opensearch.search.lookup.SourceLookup;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.opensearch.storage.script.aggregation.CalciteAggregationScriptFactory;
+import org.opensearch.sql.opensearch.storage.script.field.CalciteFieldScriptFactory;
 import org.opensearch.sql.opensearch.storage.script.filter.CalciteFilterScriptFactory;
 import org.opensearch.sql.opensearch.storage.script.sort.CalciteNumberSortScriptFactory;
 import org.opensearch.sql.opensearch.storage.script.sort.CalciteStringSortScriptFactory;
@@ -111,6 +113,7 @@ public class CalciteScriptEngine implements ScriptEngine {
               .put(AggregationScript.CONTEXT, CalciteAggregationScriptFactory::new)
               .put(NumberSortScript.CONTEXT, CalciteNumberSortScriptFactory::new)
               .put(StringSortScript.CONTEXT, CalciteStringSortScriptFactory::new)
+              .put(FieldScript.CONTEXT, CalciteFieldScriptFactory::new)
               .build();
 
   @Override
