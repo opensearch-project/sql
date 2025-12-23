@@ -139,6 +139,11 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
     return this.stream().anyMatch(action -> action.digest().equals(digest));
   }
 
+  // TODO check on adding
+  public boolean containsDigestOnTop(Object digest) {
+    return this.queue.peekLast() != null && this.queue.peekLast().digest().equals(digest);
+  }
+
   /**
    * Get the digest of the first operation of a specific type.
    *
