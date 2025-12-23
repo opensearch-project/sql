@@ -141,6 +141,15 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
         rows("Mcgee", "Mooney", 18612L));
   }
 
+  /**
+   * Verifies multisearch correctly interleaves timestamped results from two time-series indices.
+   *
+   * The test runs a multisearch across two time-indexed test indices with category filters,
+   * limits the output to the first 10 rows, and asserts the resulting schema and ordered rows
+   * contain both indices' timestamped records interleaved by time.
+   *
+   * @throws IOException if query execution or response parsing fails
+   */
   @Test
   public void testMultisearchWithTimestampInterleaving() throws IOException {
     JSONObject result =
@@ -152,10 +161,10 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
 
     verifySchema(
         result,
-        schema("@timestamp", null, "string"),
+        schema("@timestamp", null, "timestamp"),
         schema("category", null, "string"),
         schema("value", null, "int"),
-        schema("timestamp", null, "string"));
+        schema("timestamp", null, "timestamp"));
 
     verifyDataRows(
         result,

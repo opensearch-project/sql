@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
+import static org.opensearch.sql.util.MatcherUtils.assertYamlEqualsIgnoreId;
 
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
@@ -31,17 +32,28 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
     client().performRequest(request3);
   }
 
+  /**
+   * Verifies that the YAML explain plan for a PPL query with a filter and selected fields
+   * matches the expected plan defined in "explain_filter.yaml".
+   *
+   * @throws IOException if executing the explain query or loading the expected plan fails
+   */
   @Test
   public void testExplainCommand() throws IOException {
-    var result = explainQueryToString("source=test | where age = 20 | fields name, age");
-    String expected =
-        !isPushdownDisabled()
-            ? loadFromFile("expectedOutput/calcite/explain_filter_w_pushdown.json")
-            : loadFromFile("expectedOutput/calcite/explain_filter_wo_pushdown.json");
-
-    assertJsonEquals(expected, result);
+    var result = explainQueryYaml("source=test | where age = 20 | fields name, age");
+    String expected = loadExpectedPlan("explain_filter.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
+  /**
+   * Verifies that an extended EXPLAIN with code generation emits a Java binding method for Calcite's
+   * DataContext.
+   *
+   * Executes an extended EXPLAIN on a PPL query that includes a join and asserts the generated
+   * explanation contains the expected `bind(org.apache.calcite.DataContext)` method signature.
+   *
+   * @throws IOException if executing the PPL query or reading/normalizing the result fails
+   */
   @Test
   public void testExplainCommandExtendedWithCodegen() throws IOException {
     var result =

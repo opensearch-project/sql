@@ -25,6 +25,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.runtime.JsonFunctions;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
@@ -39,9 +40,14 @@ public class JsonExtractFunctionImpl extends ImplementorUDF {
     return STRING_FORCE_NULLABLE;
   }
 
+  /**
+   * Provide operand metadata indicating the function accepts a variadic number of operands.
+   *
+   * @return the UDF operand metadata specifying variadic operands
+   */
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return null;
+    return UDFOperandMetadata.wrap(OperandTypes.VARIADIC);
   }
 
   public static class JsonExtractImplementor implements NotNullImplementor {

@@ -6,6 +6,7 @@
 package org.opensearch.sql.executor;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import javax.annotation.Nullable;
 import lombok.AllArgsConstructor;
@@ -17,14 +18,21 @@ import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
+import org.apache.calcite.rel.rel2sql.SqlImplementor;
 import org.apache.calcite.rel.rules.FilterMergeRule;
+import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
@@ -38,10 +46,20 @@ import org.opensearch.sql.calcite.OpenSearchSchema;
 import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
+import org.opensearch.sql.calcite.utils.PPLHintStrategyTable;
+import org.opensearch.sql.calcite.validate.OpenSearchSparkSqlDialect;
+import org.opensearch.sql.calcite.validate.PplConvertletTable;
+import org.opensearch.sql.calcite.validate.ValidationUtils;
+import org.opensearch.sql.calcite.validate.converters.PplRelToSqlNodeConverter;
+import org.opensearch.sql.calcite.validate.converters.PplSqlToRelConverter;
+import org.opensearch.sql.calcite.validate.shuttles.PplRelToSqlRelShuttle;
+import org.opensearch.sql.calcite.validate.shuttles.SkipRelValidationShuttle;
+import org.opensearch.sql.calcite.validate.shuttles.SqlRewriteShuttle;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.NonFallbackCalciteException;
 import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.Planner;
@@ -91,6 +109,17 @@ public class QueryService {
     }
   }
 
+  /**
+   * Execute an UnresolvedPlan using the Calcite planning and execution path, optionally falling back to the legacy engine on supported failures.
+   *
+   * This method runs the full Calcite pipeline (analysis, validation, optimization, conversion) and delegates execution to the ExecutionEngine.
+   * If a Calcite failure occurs and fallback is allowed (and the exception is not a NonFallbackCalciteException), the legacy execution path is invoked and the original Calcite failure is propagated to the legacy handler.
+   * Virtual machine errors (e.g., OutOfMemoryError) are rethrown and not reported to the listener.
+   *
+   * @param plan the unresolved query plan to execute
+   * @param queryType the type of the query (used to configure Calcite context)
+   * @param listener callback to receive the query response or failures
+   */
   public void executeWithCalcite(
       UnresolvedPlan plan,
       QueryType queryType,
@@ -103,7 +132,8 @@ public class QueryService {
                     buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
             RelNode relNode = analyze(plan, context);
             relNode = mergeAdjacentFilters(relNode);
-            RelNode optimized = optimize(relNode, context);
+            RelNode validated = validate(relNode, context);
+            RelNode optimized = optimize(validated, context);
             RelNode calcitePlan = convertToCalcitePlan(optimized);
             executionEngine.execute(calcitePlan, context, listener);
           } catch (Throwable t) {
@@ -129,6 +159,19 @@ public class QueryService {
         settings);
   }
 
+  /**
+   * Explains the given unresolved query using the Calcite-based planning and execution path.
+   *
+   * <p>If Calcite-based explanation fails and fallback is allowed by configuration or by the
+   * exception type, the method delegates to the legacy explain path and forwards the original
+   * Calcite failure. Otherwise the listener is notified of the failure (Calcite errors are wrapped
+   * as {@code CalciteUnsupportedException} for {@code Error} instances).
+   *
+   * @param plan the unresolved query plan to explain
+   * @param queryType the type of the query (used to select planning behavior)
+   * @param listener listener to receive the explain response or failure
+   * @param format the desired explain output format
+   */
   public void explainWithCalcite(
       UnresolvedPlan plan,
       QueryType queryType,
@@ -144,7 +187,8 @@ public class QueryService {
                 () -> {
                   RelNode relNode = analyze(plan, context);
                   relNode = mergeAdjacentFilters(relNode);
-                  RelNode optimized = optimize(relNode, context);
+                  RelNode validated = validate(relNode, context);
+                  RelNode optimized = optimize(validated, context);
                   RelNode calcitePlan = convertToCalcitePlan(optimized);
                   executionEngine.explain(calcitePlan, format, context, listener);
                 },
@@ -266,9 +310,78 @@ public class QueryService {
     return planner.findBestExp();
   }
 
-  /** Analyze {@link UnresolvedPlan}. */
+  /**
+   * Converts an UnresolvedPlan into a LogicalPlan using the provided query type.
+   *
+   * @param plan the unresolved query plan to analyze
+   * @param queryType the type of the query which influences analysis rules
+   * @return the analyzed LogicalPlan
+   */
   public LogicalPlan analyze(UnresolvedPlan plan, QueryType queryType) {
     return analyzer.analyze(plan, new AnalysisContext(queryType));
+  }
+
+  /**
+   * Perform Calcite validation on a relational expression and return a relational expression
+   * that reflects any type coercions or other adjustments introduced by validation.
+   *
+   * <p>This enables Calcite's type validation and implicit casting behavior for PPL queries.
+   *
+   * @param relNode the relational expression to validate; may be returned unchanged if validation is skipped
+   *                 or if tolerant validation detects issues that should not be escalated
+   * @param context the Calcite plan context supplying the validator, relBuilder, and conversion/configuration
+   *                used during validation
+   * @return a RelNode that incorporates any validation-driven modifications (or the original relNode when
+   *         validation is skipped or tolerated)
+   */
+  private RelNode validate(RelNode relNode, CalcitePlanContext context) {
+    SkipRelValidationShuttle skipShuttle = new SkipRelValidationShuttle();
+    relNode.accept(skipShuttle);
+    if (skipShuttle.shouldSkipValidation()) {
+      return relNode;
+    }
+    // Fix interval literals before conversion to SQL
+    RelNode sqlRelNode = relNode.accept(new PplRelToSqlRelShuttle(context.rexBuilder, true));
+
+    // Convert RelNode to SqlNode for validation
+    RelToSqlConverter rel2sql = new PplRelToSqlNodeConverter(OpenSearchSparkSqlDialect.DEFAULT);
+    SqlImplementor.Result result = rel2sql.visitRoot(sqlRelNode);
+    SqlNode root = result.asStatement();
+
+    // Rewrite SqlNode to remove database qualifiers
+    SqlNode rewritten = root.accept(new SqlRewriteShuttle());
+    SqlValidator validator = context.getValidator();
+    try {
+      validator.validate(Objects.requireNonNull(rewritten));
+    } catch (CalciteContextException e) {
+      if (ValidationUtils.tolerantValidationException(e)) {
+        return relNode;
+      }
+      throw new ExpressionEvaluationException(e.getMessage(), e);
+    }
+
+    SqlToRelConverter.Config sql2relConfig =
+        SqlToRelConverter.config()
+            // Do not remove sort in subqueries so that the orders for queries like `... | sort a
+            // | fields b` is preserved
+            .withRemoveSortInSubQuery(false)
+            // Disable automatic JSON_TYPE_OPERATOR wrapping for nested JSON functions.
+            // See CALCITE-4989: Calcite wraps nested JSON functions with JSON_TYPE by default
+            .withAddJsonTypeOperatorEnabled(false)
+            // Set hint strategy so that hints can be properly propagated.
+            // See SqlToRelConverter.java#convertSelectImpl
+            .withHintStrategyTable(PPLHintStrategyTable.getHintStrategyTable());
+    SqlToRelConverter sql2rel =
+        new PplSqlToRelConverter(
+            context.config.getViewExpander(),
+            validator,
+            validator.getCatalogReader().unwrap(CalciteCatalogReader.class),
+            context.relBuilder.getCluster(),
+            PplConvertletTable.INSTANCE,
+            sql2relConfig);
+    // Convert the validated SqlNode back to RelNode
+    RelNode validatedRel = sql2rel.convertQuery(rewritten, false, true).project();
+    return validatedRel.accept(new PplRelToSqlRelShuttle(context.rexBuilder, false));
   }
 
   /** Translate {@link LogicalPlan} to {@link PhysicalPlan}. */

@@ -18,10 +18,10 @@ import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
-import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.BuiltInMethod;
 import org.opensearch.sql.calcite.type.ExprSqlType;
@@ -56,21 +56,49 @@ public class SpanFunction extends ImplementorUDF {
     };
   }
 
+  /**
+   * Describe valid operand-type combinations accepted by the SPAN UDF.
+   *
+   * <p>Accepted signatures:
+   * <ul>
+   *   <li>(CHARACTER, NUMERIC, CHARACTER)</li>
+   *   <li>(DATETIME, NUMERIC, CHARACTER)</li>
+   *   <li>(NUMERIC, NUMERIC, ANY)</li>
+   * </ul>
+   *
+   * @return a {@link UDFOperandMetadata} that enforces the above operand families for the SPAN function
+   */
   @Override
   public UDFOperandMetadata getOperandMetadata() {
     return UDFOperandMetadata.wrap(
-        (CompositeOperandTypeChecker)
-            OperandTypes.family(
-                    SqlTypeFamily.CHARACTER, SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER)
-                .or(
-                    OperandTypes.family(
-                        SqlTypeFamily.DATETIME, SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER))
-                .or(
-                    OperandTypes.family(
-                        SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC, SqlTypeFamily.ANY)));
+        OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER)
+            .or(
+                OperandTypes.family(
+                    SqlTypeFamily.DATETIME, SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER))
+            .or(
+                OperandTypes.family(
+                    SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC, SqlTypeFamily.ANY)));
   }
 
   public static class SpanImplementor implements NotNullImplementor {
+    /**
+     * Translates a SPAN RexCall into an executable expression for code generation.
+     *
+     * <p>Behavior:
+     * - If the interval type is decimal, the interval operand is converted to double.
+     * - If the unit operand is null or has SQL type ANY, returns a numeric rounding expression:
+     *   integral SQL return types use (field / interval) * interval; other numeric types use
+     *   floor(field / interval) * interval.
+     * - If the field type is an ExprSqlType, delegates to the appropriate eval method
+     *   (evalDate, evalTime, evalTimestamp) and returns that implementation's expression.
+     * - Otherwise, throws IllegalArgumentException for unsupported field expression types.
+     *
+     * @param translator the RexToLixTranslator used to build expressions
+     * @param call the original RexCall for the SPAN invocation
+     * @param translatedOperands the already-translated operand expressions (expected size 3)
+     * @return an Expression that evaluates the SPAN operation
+     * @throws IllegalArgumentException if the field expression type is unsupported or cannot be handled
+     */
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
@@ -86,7 +114,7 @@ public class SpanFunction extends ImplementorUDF {
       if (SqlTypeUtil.isDecimal(intervalType)) {
         interval = Expressions.call(interval, "doubleValue");
       }
-      if (SqlTypeUtil.isNull(unitType)) {
+      if (SqlTypeUtil.isNull(unitType) || SqlTypeName.ANY.equals(unitType.getSqlTypeName())) {
         return switch (call.getType().getSqlTypeName()) {
           case BIGINT, INTEGER, SMALLINT, TINYINT ->
               Expressions.multiply(Expressions.divide(field, interval), interval);

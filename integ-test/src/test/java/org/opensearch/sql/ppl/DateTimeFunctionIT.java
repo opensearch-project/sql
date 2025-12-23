@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 import java.util.TimeZone;
 import org.json.JSONObject;
 import org.junit.After;
@@ -26,7 +27,6 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
-import org.opensearch.sql.common.utils.StringUtils;
 
 @SuppressWarnings("unchecked")
 public class DateTimeFunctionIT extends PPLIntegTestCase {
@@ -1136,12 +1136,27 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySome(result.getJSONArray("datarows"), rows(738049));
   }
 
+  /**
+   * Runs a PPL query that computes week(date, mode) for the given date and asserts the result.
+   *
+   * Executes a query selecting the week number for the provided date string using the specified
+   * mode, verifies the returned column has integer schema, and asserts the computed week equals
+   * expectedResult.
+   *
+   * @param date            the date string to pass to the `date(...)` call in the query
+   * @param mode            the week mode value used by the `week` function
+   * @param expectedResult  the expected week number to verify in the query result
+   * @throws IOException if executing the query or fetching results fails
+   */
   private void week(String date, int mode, int expectedResult) throws IOException {
     JSONObject result =
         executeQuery(
-            StringUtils.format(
+            String.format(
+                Locale.ROOT,
                 "source=%s | eval f = week(date('%s'), %d) | fields f",
-                TEST_INDEX_DATE, date, mode));
+                TEST_INDEX_DATE,
+                date,
+                mode));
     verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(expectedResult));
   }

@@ -237,6 +237,14 @@ public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
             .contains("Unable to process column 'sum' due to incompatible types:"));
   }
 
+  /**
+   * Verifies that appending the BANK source to the ACCOUNT source merges their schemas and preserves `birthdate` as a timestamp UDT.
+   *
+   * Asserts the merged schema contains `account_number` (bigint), `firstname` (string), `age` (int), and `birthdate` (timestamp),
+   * and that the query returns the expected row filtered by a non-null `birthdate` and `account_number > 30`.
+   *
+   * @throws IOException if query execution fails
+   */
   @Test
   public void testAppendSchemaMergeWithTimestampUDT() throws IOException {
     JSONObject actual =
@@ -253,7 +261,7 @@ public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
         schema("account_number", "bigint"),
         schema("firstname", "string"),
         schema("age", "int"),
-        schema("birthdate", "string"));
+        schema("birthdate", "timestamp"));
     verifyDataRows(actual, rows(32, null, 34, "2018-08-11 00:00:00"));
   }
 

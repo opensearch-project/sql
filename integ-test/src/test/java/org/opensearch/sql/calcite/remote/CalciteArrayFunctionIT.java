@@ -51,6 +51,12 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     verifyDataRows(actual, rows(List.of("1", "demo")));
   }
 
+  /**
+   * Verifies that creating an array with incompatible element types fails with the expected error.
+   *
+   * Asserts that executing the query `array(1, true)` raises an exception and that the exception
+   * message contains "Cannot infer return type for array; operand types: [INTEGER, BOOLEAN]".
+   */
   @Test
   public void testArrayWithMix() {
     Class<? extends Exception> expectedException =
@@ -65,9 +71,7 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
                         TEST_INDEX_BANK)));
 
     verifyErrorMessageContains(
-        e,
-        "Cannot resolve function: ARRAY, arguments: [INTEGER,BOOLEAN], caused by: fail to create"
-            + " array with fixed type");
+        e, "Cannot infer return type for array; operand types: [INTEGER, BOOLEAN]");
   }
 
   @Test

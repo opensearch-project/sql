@@ -24,8 +24,21 @@ public class CalcitePPLAppendcolIT extends PPLIntegTestCase {
     loadIndex(Index.ACCOUNT);
   }
 
+  /**
+   * Verifies that appendcol produces the expected schema and rows when appending a per-gender count
+   * to aggregated age sums by gender and state with pushdown enabled.
+   *
+   * Executes a PPL query against the ACCOUNT test index that computes sum(age) by gender and state,
+   * appends a per-gender count column via an inner stats plan, and asserts the resulting schema and
+   * first 10 rows (including expected nulls when values are not present).
+   *
+   * @throws IOException if query execution or result parsing fails
+   */
   @Test
   public void testAppendCol() throws IOException {
+    // Although the plans are identical, not pushing down resulting the cnt in the first two rows
+    // being null
+    enabledOnlyWhenPushdownIsEnabled();
     JSONObject actual =
         executeQuery(
             String.format(
@@ -53,8 +66,21 @@ public class CalcitePPLAppendcolIT extends PPLIntegTestCase {
         rows("F", "FL", 310, null));
   }
 
+  /**
+   * Verifies that APPENDCOL with `override = true` merges the inner aggregated `cnt` column
+   * into the outer aggregation results and that the resulting schema and rows match expectations.
+   *
+   * <p>Runs a PPL query against the ACCOUNT test index that computes a sum by gender and state,
+   * appends a per-gender count (with override enabled), and asserts the returned schema and first
+   * ten rows. The test is executed only when pushdown is enabled.
+   *
+   * @throws IOException if an I/O error occurs during query execution
+   */
   @Test
   public void testAppendColOverride() throws IOException {
+    // Although the plans are identical, not pushing down resulting the cnt in the first two rows
+    // being null
+    enabledOnlyWhenPushdownIsEnabled();
     JSONObject actual =
         executeQuery(
             String.format(

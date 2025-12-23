@@ -43,9 +43,12 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
+import lombok.NonNull;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.ViewExpanders;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -55,10 +58,14 @@ import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -1678,6 +1685,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
   }
 
+  /**
+   * Builds a Calcite relational plan that implements the streaming window operation defined by the given AST node.
+   *
+   * The produced plan handles reset-before/reset-after semantics, global sliding windows, grouped windows, and
+   * per-window function expressions; it also embeds existing plan collations into window OVER clauses and
+   * adds any required helper columns (sequence/segment/reset flags) used by the stream-window logic.
+   *
+   * @param node the StreamWindow AST node describing window type, grouping, window size, reset options and functions
+   * @param context the planning context containing the RelBuilder, visitors, and planner state
+   * @return a RelNode representing the compiled stream window operation ready for integration into the surrounding plan
+   */
   @Override
   public RelNode visitStreamWindow(StreamWindow node, CalcitePlanContext context) {
     visitChildren(node, context);
@@ -1740,6 +1758,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Default: first get rawExpr
     List<RexNode> overExpressions =
         node.getWindowFunctionList().stream().map(w -> rexVisitor.analyze(w, context)).toList();
+    overExpressions = embedExistingCollationsIntoOver(overExpressions, context);
 
     if (hasGroup) {
       // only build sequence when there is by condition
@@ -1781,6 +1800,101 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
+  /**
+   * Embed the current plan's collation into any RexOver window expressions.
+   *
+   * <p>Window frames such as ROWS n PRECEDING require an ORDER BY to define row order; this method
+   * adds the RelBuilder's existing collation as the OVER clause's ORDER BY for each encountered
+   * RexOver.
+   *
+   * @param overExpressions window function expressions that may contain nested {@link RexOver}
+   * @param context plan context used to obtain the current RelBuilder and RexBuilder
+   * @return a list of expressions where each {@link RexOver} has its ORDER BY populated from the
+   *     current plan collation (unchanged expressions are returned as-is)
+   */
+  private List<RexNode> embedExistingCollationsIntoOver(
+      List<RexNode> overExpressions, CalcitePlanContext context) {
+    RelCollation existingCollation = context.relBuilder.peek().getTraitSet().getCollation();
+    List<@NonNull RelFieldCollation> relCollations =
+        existingCollation == null ? List.of() : existingCollation.getFieldCollations();
+    ImmutableList<@NonNull RexFieldCollation> rexCollations =
+        relCollations.stream()
+            .map(f -> relCollationToRexCollation(f, context.relBuilder))
+            .collect(ImmutableList.toImmutableList());
+    return overExpressions.stream()
+        .map(
+            n ->
+                n.accept(
+                    new RexShuttle() {
+                      /**
+                       * Rewrite the given windowed aggregation to attach the visitor's collected collations.
+                       *
+                       * @param over the original RexOver node to be rewritten
+                       * @return a RexNode representing the same windowed aggregation with the visitor's
+                       *         accumulated RexFieldCollation ordering embedded into its OVER specification
+                       */
+                      @Override
+                      public RexNode visitOver(RexOver over) {
+                        RexWindow window = over.getWindow();
+                        return context.rexBuilder.makeOver(
+                            over.getType(),
+                            over.getAggOperator(),
+                            over.getOperands(),
+                            window.partitionKeys,
+                            rexCollations,
+                            window.getLowerBound(),
+                            window.getUpperBound(),
+                            window.isRows(),
+                            true,
+                            false,
+                            over.isDistinct(),
+                            over.ignoreNulls());
+                      }
+                    }))
+        .toList();
+  }
+
+  /**
+   * Create a RexFieldCollation that mirrors the given RelFieldCollation by referencing
+   * the corresponding field through the provided RelBuilder.
+   *
+   * @param relCollation the source RelFieldCollation whose field index, direction,
+   *                     and null ordering will be translated
+   * @param builder      RelBuilder used to produce a RexNode referencing the field
+   * @return             a RexFieldCollation with equivalent sort direction and null-ordering flags
+   */
+  private static RexFieldCollation relCollationToRexCollation(
+      RelFieldCollation relCollation, RelBuilder builder) {
+    RexNode fieldRef = builder.field(relCollation.getFieldIndex());
+
+    // Convert direction flags to SqlKind set
+    Set<SqlKind> flags = new HashSet<>();
+    if (relCollation.direction == RelFieldCollation.Direction.DESCENDING
+        || relCollation.direction == RelFieldCollation.Direction.STRICTLY_DESCENDING) {
+      flags.add(SqlKind.DESCENDING);
+    }
+    if (relCollation.nullDirection == RelFieldCollation.NullDirection.FIRST) {
+      flags.add(SqlKind.NULLS_FIRST);
+    } else if (relCollation.nullDirection == RelFieldCollation.NullDirection.LAST) {
+      flags.add(SqlKind.NULLS_LAST);
+    }
+
+    return new RexFieldCollation(fieldRef, flags);
+  }
+
+  /**
+   * Wraps each window expression in a CASE that yields NULL when the provided group-not-null
+   * predicate is false, preserving any explicit alias on the original expression.
+   *
+   * <p>Each expression is transformed to: CASE groupNotNull WHEN TRUE THEN <original> ELSE NULL END.
+   *
+   * @param overExpressions list of window expressions to wrap; if an expression is of the form
+   *                        `expr AS alias` the alias is preserved on the wrapped expression
+   * @param groupNotNull    predicate used as the CASE condition to determine non-null groups
+   * @param context         plan context providing RexBuilder/RelBuilder utilities
+   * @return a new list of `RexNode` where each input expression has been wrapped with the CASE
+   *         nulling logic and retains its original alias when present
+   */
   private List<RexNode> wrapWindowFunctionsWithGroupNotNull(
       List<RexNode> overExpressions, RexNode groupNotNull, CalcitePlanContext context) {
     List<RexNode> wrappedOverExprs = new ArrayList<>(overExpressions.size());

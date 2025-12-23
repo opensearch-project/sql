@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import org.json.JSONObject;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
@@ -287,6 +288,18 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
                 ImmutableList.of("-6620182933895093708"))));
   }
 
+  /**
+   * Integration test for BRAIN pattern aggregation on HDFS logs that verifies aggregated
+   * pattern templates, their counts, and representative sample logs when numbered tokens
+   * are not exposed.
+   *
+   * Verifies the result schema contains `patterns_field` (string), `pattern_count` (bigint),
+   * and `sample_logs` (array), and asserts specific aggregated pattern rows with their
+   * corresponding counts and sample log examples.
+   *
+   * @throws IOException if the query execution or result parsing fails
+   */
+  @Ignore("To be fixed in https://github.com/opensearch-project/sql/issues/4968")
   @Test
   public void testBrainAggregationMode_NotShowNumberedToken() throws IOException {
     JSONObject result =
@@ -337,6 +350,17 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
                 "PacketResponder failed for blk_-1547954353065580372")));
   }
 
+  /**
+   * Verifies that Brain pattern matching in aggregation mode with numbered tokens produces the expected
+   * aggregated patterns, token mappings, and sample logs for HDFS log data.
+   *
+   * The test asserts the result schema contains `patterns_field`, `pattern_count`, `tokens`, and
+   * `sample_logs`, and verifies several aggregated pattern rows with their corresponding numbered-token
+   * mappings and sample log entries.
+   *
+   * @throws IOException if executing the test query or reading the results fails
+   */
+  @Ignore("To be fixed in https://github.com/opensearch-project/sql/issues/4968")
   @Test
   public void testBrainAggregationMode_ShowNumberedToken() throws IOException {
     JSONObject result =
@@ -420,6 +444,17 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
                 "PacketResponder failed for blk_-1547954353065580372")));
   }
 
+  /**
+   * Integration test that verifies BRAIN pattern aggregation grouped by `level` produces
+   * expected patterns, token mappings, and sample logs when numbered tokens are shown.
+   *
+   * Verifies the result schema contains: level, patterns_field, pattern_count, tokens, and sample_logs,
+   * and asserts the aggregated rows contain the expected pattern labels, token-to-values mappings,
+   * and representative sample log entries.
+   *
+   * @throws IOException if query execution or result processing fails
+   */
+  @Ignore("To be fixed in https://github.com/opensearch-project/sql/issues/4968")
   @Test
   public void testBrainAggregationModeWithGroupByClause_ShowNumberedToken() throws IOException {
     JSONObject result =

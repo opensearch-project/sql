@@ -15,6 +15,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -37,10 +38,30 @@ public class DivideFunction extends ImplementorUDF {
    */
   public static final int MAX_NUMERIC_SCALE = 19;
 
+  /**
+   * Creates a DivideFunction configured with the divide implementor and a null policy that propagates nulls.
+   *
+   * Constructs a DivideFunction using DivideImplementor and NullPolicy.ANY so that any null operand yields a null result.
+   */
   public DivideFunction() {
     super(new DivideImplementor(), NullPolicy.ANY);
   }
 
+  /**
+   * Indicates that this UDF represents the SQL DIVIDE operator.
+   *
+   * @return the SQL kind for the divide operator (SqlKind.DIVIDE)
+   */
+  @Override
+  public SqlKind getKind() {
+    return SqlKind.DIVIDE;
+  }
+
+  /**
+   * Infers the SQL return type as the numeric quotient and marks the result as nullable.
+   *
+   * @return the return-type inference representing a quotient with forced nullability
+   */
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
     return ReturnTypes.QUOTIENT_FORCE_NULLABLE;

@@ -14,6 +14,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -31,11 +32,31 @@ public class ModFunction extends ImplementorUDF {
     super(new ModImplementor(), NullPolicy.ANY);
   }
 
+  /**
+   * Provide return type inference that selects the least-restrictive operand type and forces the result to be nullable.
+   *
+   * @return a {@link SqlReturnTypeInference} that first determines the least-restrictive type among operands and then applies a transform to make the resulting type nullable
+   */
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
     return ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.FORCE_NULLABLE);
   }
 
+  /**
+   * Identifies the SQL operator kind as MOD.
+   *
+   * @return the SQL kind {@link SqlKind#MOD}
+   */
+  @Override
+  public SqlKind getKind() {
+    return SqlKind.MOD;
+  }
+
+  /**
+   * Specifies that this UDF accepts two numeric operands.
+   *
+   * @return operand metadata indicating both operands must be numeric
+   */
   @Override
   public UDFOperandMetadata getOperandMetadata() {
     return PPLOperandTypes.NUMERIC_NUMERIC;

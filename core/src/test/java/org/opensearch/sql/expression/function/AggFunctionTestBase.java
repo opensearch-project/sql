@@ -15,23 +15,31 @@ import org.opensearch.sql.expression.function.PPLFuncImpTable.AggHandler;
 
 public abstract class AggFunctionTestBase {
 
+  /**
+   * Retrieve the aggregate function registry from the PPLFuncImpTable singleton.
+   *
+   * @return the map that associates each BuiltinFunctionName with its AggHandler
+   * @throws RuntimeException if the registry field cannot be accessed or read via reflection
+   */
   @SuppressWarnings("unchecked")
-  protected Map<BuiltinFunctionName, org.apache.commons.lang3.tuple.Pair<?, AggHandler>>
-      getAggFunctionRegistry() {
+  protected Map<BuiltinFunctionName, AggHandler> getAggFunctionRegistry() {
     try {
       PPLFuncImpTable funcTable = PPLFuncImpTable.INSTANCE;
       Field field = PPLFuncImpTable.class.getDeclaredField("aggFunctionRegistry");
       field.setAccessible(true);
-      return (Map<BuiltinFunctionName, org.apache.commons.lang3.tuple.Pair<?, AggHandler>>)
-          field.get(funcTable);
+      return (Map<BuiltinFunctionName, AggHandler>) field.get(funcTable);
     } catch (Exception e) {
       throw new RuntimeException("Failed to access aggFunctionRegistry", e);
     }
   }
 
+  /**
+   * Assert that the specified aggregate function is present in the registry and its handler is not null.
+   *
+   * @param functionName the builtin aggregate function enum to verify
+   */
   protected void assertFunctionIsRegistered(BuiltinFunctionName functionName) {
-    Map<BuiltinFunctionName, org.apache.commons.lang3.tuple.Pair<?, AggHandler>> registry =
-        getAggFunctionRegistry();
+    Map<BuiltinFunctionName, AggHandler> registry = getAggFunctionRegistry();
     assertTrue(
         registry.containsKey(functionName),
         functionName.getName().getFunctionName()
@@ -41,43 +49,50 @@ public abstract class AggFunctionTestBase {
         functionName.getName().getFunctionName() + " function handler should not be null");
   }
 
+  /**
+   * Assert that each provided aggregate function is registered and has a non-null handler.
+   *
+   * @param functionNames one or more BuiltinFunctionName values to validate in the registry
+   */
   protected void assertFunctionsAreRegistered(BuiltinFunctionName... functionNames) {
     for (BuiltinFunctionName functionName : functionNames) {
       assertFunctionIsRegistered(functionName);
     }
   }
 
+  /**
+   * Asserts that each provided aggregate function has a registered, non-null handler.
+   *
+   * @param functionNames one or more BuiltinFunctionName values to verify; each must have a non-null handler in the registry
+   */
   protected void assertFunctionHandlerTypes(BuiltinFunctionName... functionNames) {
-    Map<BuiltinFunctionName, org.apache.commons.lang3.tuple.Pair<?, AggHandler>> registry =
-        getAggFunctionRegistry();
+    Map<BuiltinFunctionName, AggHandler> registry = getAggFunctionRegistry();
     for (BuiltinFunctionName functionName : functionNames) {
-      org.apache.commons.lang3.tuple.Pair<?, AggHandler> registryEntry = registry.get(functionName);
-      assertNotNull(
-          registryEntry, functionName.getName().getFunctionName() + " should be registered");
-
-      // Extract the AggHandler from the pair
-      AggHandler handler = registryEntry.getRight();
-
+      AggHandler handler = registry.get(functionName);
       assertNotNull(
           handler, functionName.getName().getFunctionName() + " handler should not be null");
-      assertTrue(
-          handler instanceof AggHandler,
-          functionName.getName().getFunctionName()
-              + " handler should implement AggHandler interface");
     }
   }
 
+  /**
+   * Verifies the aggregate function registry contains at least the specified number of entries.
+   *
+   * @param expectedMinimumSize the minimum number of aggregate functions expected in the registry
+   */
   protected void assertRegistryMinimumSize(int expectedMinimumSize) {
-    Map<BuiltinFunctionName, org.apache.commons.lang3.tuple.Pair<?, AggHandler>> registry =
-        getAggFunctionRegistry();
+    Map<BuiltinFunctionName, AggHandler> registry = getAggFunctionRegistry();
     assertTrue(
         registry.size() >= expectedMinimumSize,
         "Registry should contain at least " + expectedMinimumSize + " aggregate functions");
   }
 
+  /**
+   * Verifies that at least the provided built-in aggregate functions are present in the registry.
+   *
+   * @param knownFunctions the set of BuiltinFunctionName values expected to be present in the aggregate function registry
+   */
   protected void assertKnownFunctionsPresent(Set<BuiltinFunctionName> knownFunctions) {
-    Map<BuiltinFunctionName, org.apache.commons.lang3.tuple.Pair<?, AggHandler>> registry =
-        getAggFunctionRegistry();
+    Map<BuiltinFunctionName, AggHandler> registry = getAggFunctionRegistry();
     long foundFunctions = registry.keySet().stream().filter(knownFunctions::contains).count();
 
     assertTrue(

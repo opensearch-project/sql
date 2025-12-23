@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -17,13 +18,21 @@ import java.util.Stack;
 import java.util.function.BiFunction;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.server.CalciteServerStatement;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.RelBuilder;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
+import org.opensearch.sql.calcite.validate.OpenSearchSparkSqlDialect;
+import org.opensearch.sql.calcite.validate.PplTypeCoercion;
+import org.opensearch.sql.calcite.validate.PplTypeCoercionRule;
+import org.opensearch.sql.calcite.validate.PplValidator;
+import org.opensearch.sql.calcite.validate.SqlOperatorTableProvider;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.FunctionProperties;
@@ -72,6 +81,25 @@ public class CalcitePlanContext {
   /** Whether we're currently inside a lambda context. */
   @Getter @Setter private boolean inLambdaContext = false;
 
+  /**
+   * -- SETTER -- Sets the SQL operator table provider. This must be called during initialization by
+   * the opensearch module.
+   *
+   * @param provider the provider to use for obtaining operator tables
+   */
+  @Setter private static SqlOperatorTableProvider operatorTableProvider;
+
+  /** Cached SqlValidator instance (lazy initialized). */
+  private SqlValidator validator;
+
+  /**
+   * Initialize a new CalcitePlanContext and set up Calcite connection, builders, function
+   * properties, and lambda/capture state.
+   *
+   * @param config   the Calcite FrameworkConfig to use for planning
+   * @param sysLimit system limits governing planning behaviour
+   * @param queryType the QueryType for this planning context
+   */
   private CalcitePlanContext(FrameworkConfig config, SysLimit sysLimit, QueryType queryType) {
     this.config = config;
     this.sysLimit = sysLimit;
@@ -85,8 +113,11 @@ public class CalcitePlanContext {
   }
 
   /**
-   * Private constructor for creating a context that shares relBuilder with parent. Used by clone()
-   * to create lambda contexts that can resolve fields from the parent context.
+   * Creates a child CalcitePlanContext that shares relational builders with the given parent while isolating lambda-specific state.
+   *
+   * <p>The child context reuses the parent's relBuilder and rexBuilder so it can resolve fields against the parent, but it initializes independent maps/lists for lambda references and captured variables and marks the context as a lambda context.</p>
+   *
+   * @param parent the parent context whose builders and configuration are reused
    */
   private CalcitePlanContext(CalcitePlanContext parent) {
     this.config = parent.config;
@@ -101,6 +132,59 @@ public class CalcitePlanContext {
     this.inLambdaContext = true; // Mark that we're inside a lambda
   }
 
+  /**
+   * Provides the lazily initialized SqlValidator configured for PPL within this context.
+   *
+   * @return the SqlValidator configured with PPL type coercion rules, Spark SQL conformance,
+   *         Spark NULL collation, and identifier expansion
+   * @throws IllegalStateException if the global SqlOperatorTableProvider has not been set
+   * @throws RuntimeException if creating or unwrapping the underlying Calcite statement fails
+   */
+  public SqlValidator getValidator() {
+    if (validator == null) {
+      final CalciteServerStatement statement;
+      try {
+        statement = connection.createStatement().unwrap(CalciteServerStatement.class);
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
+      if (operatorTableProvider == null) {
+        throw new IllegalStateException(
+            "SqlOperatorTableProvider must be set before creating CalcitePlanContext");
+      }
+      SqlValidator.Config validatorConfig =
+          SqlValidator.Config.DEFAULT
+              .withTypeCoercionRules(PplTypeCoercionRule.instance())
+              .withTypeCoercionFactory(PplTypeCoercion::create)
+              // Use lenient conformance for PPL compatibility
+              .withConformance(OpenSearchSparkSqlDialect.DEFAULT.getConformance())
+              // Use Spark SQL's NULL collation (NULLs sorted LOW/FIRST)
+              .withDefaultNullCollation(NullCollation.LOW)
+              // This ensures that coerced arguments are replaced with cast version in sql select
+              // list because coercion is performed during select list expansion during sql
+              // validation. Affects 4356.yml
+              // See SqlValidatorImpl#validateSelectList and AggConverter#translateAgg
+              .withIdentifierExpansion(true);
+      validator =
+          PplValidator.create(
+              statement,
+              config,
+              operatorTableProvider.getOperatorTable(),
+              TYPE_FACTORY,
+              validatorConfig);
+    }
+    return validator;
+  }
+
+  /**
+   * Temporarily marks the context as resolving a join condition and applies a transformation to the given unresolved expression.
+   *
+   * <p>The context flag indicating join-condition resolution is set to true before invoking the transform and reset to false afterwards.
+   *
+   * @param expr the unresolved expression representing the join condition
+   * @param transformFunction a function that converts the unresolved expression into a {@code RexNode} using this context
+   * @return the {@code RexNode} produced by applying {@code transformFunction} to {@code expr}
+   */
   public RexNode resolveJoinCondition(
       UnresolvedExpression expr,
       BiFunction<UnresolvedExpression, CalcitePlanContext, RexNode> transformFunction) {

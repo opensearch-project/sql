@@ -10,6 +10,7 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
+import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -17,7 +18,6 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.ResponseException;
-import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLBasicIT extends PPLIntegTestCase {
@@ -443,6 +443,13 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
     verifyDataRows(actual, rows("Hattie", 36), rows("Elinor", 36));
   }
 
+  /**
+   * Verifies that a BETWEEN filter with mixed numeric bounds (integer field with integer lower and decimal upper) matches the expected integer rows.
+   *
+   * Runs a PPL query filtering rows where age between 35 and 38.5, and asserts the result schema contains firstname (string) and age (int) and that the expected rows are returned.
+   *
+   * @throws IOException if an I/O error occurs while executing the query
+   */
   @Test
   public void testBetweenWithDifferentTypes2() throws IOException {
     JSONObject actual =
@@ -454,17 +461,44 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
     verifyDataRows(actual, rows("Hattie", 36), rows("Elinor", 36));
   }
 
+  /**
+   * Verifies that BETWEEN handles mixed-type bounds where one bound is a string and the other is numeric.
+   *
+   * Executes a PPL query filtering rows with age between '35' and 38 and asserts that the returned
+   * rows contain the expected first names and ages ("Hattie", 36) and ("Elinor", 36).
+   *
+   * @throws IOException if executing the query or reading the response fails
+   */
   @Test
-  public void testBetweenWithIncompatibleTypes() {
-    Throwable e =
-        assertThrowsWithReplace(
-            SemanticCheckException.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        "source=%s | where age between '35' and 38.5 | fields firstname, age",
-                        TEST_INDEX_BANK)));
-    verifyErrorMessageContains(e, "BETWEEN expression types are incompatible");
+  public void testBetweenWithMixedTypes() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where age between '35' and 38 | fields firstname, age",
+                TEST_INDEX_BANK));
+    verifyDataRows(actual, rows("Hattie", 36), rows("Elinor", 36));
+  }
+
+  /**
+   * Verifies that a BETWEEN expression mixing a string and a decimal produces no matching rows.
+   *
+   * <p>Executes a query with age between '35' and 38.5 against the bank test index and asserts
+   * that the returned schema contains firstname (string) and age (int) and that the result set is empty.
+   *
+   * @throws IOException if executing the query or reading the response fails
+   */
+  @Test
+  public void testBetweenWithIncompatibleTypes() throws IOException {
+    // Plan: SAFE_CAST(NUMBER_TO_STRING(38.5:DECIMAL(3, 1))). The least restrictive type between
+    // int, decimal, and varchar is resolved to varchar. between '35' and '38.5' is then optimized
+    // to empty rows
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where age between '35' and 38.5 | fields firstname, age",
+                TEST_INDEX_BANK));
+    verifySchema(actual, schema("firstname", "string"), schema("age", "int"));
+    verifyNumOfRows(actual, 0);
   }
 
   @Test

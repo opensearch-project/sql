@@ -14,6 +14,7 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.data.utils.MixedTypeComparator;
@@ -35,9 +36,14 @@ public class ScalarMinFunction extends ImplementorUDF {
     return opBinding -> opBinding.getTypeFactory().createSqlType(SqlTypeName.ANY);
   }
 
+  /**
+   * Declares that this UDF accepts a variadic number of operands.
+   *
+   * @return metadata describing that the function accepts variadic operands (any types allowed per operand rules)
+   */
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return null;
+    return UDFOperandMetadata.wrap(OperandTypes.VARIADIC);
   }
 
   public static class MinImplementor implements NotNullImplementor {

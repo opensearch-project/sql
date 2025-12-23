@@ -13,6 +13,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
@@ -52,7 +53,17 @@ public class PPLClickBenchIT extends PPLIntegTestCase {
     System.out.println();
   }
 
-  /** Ignore queries that are not supported. */
+  /**
+   * Determine which benchmark query indices to skip based on runtime capabilities.
+   *
+   * Adds indices for queries that are unsupported or require special runtime conditions:
+   * - 29 when Calcite is disabled (regexp_replace not supported in v2),
+   * - 30 when GCedMemoryUsage is not initialized (to avoid ResourceMonitor restrictions from script pushdown),
+   * - 41 when Calcite is enabled (requires special handling).
+   *
+   * @return a set of query indices to ignore
+   * @throws IOException if an I/O error occurs while checking runtime state
+   */
   protected Set<Integer> ignored() throws IOException {
     Set ignored = new HashSet();
     if (!isCalciteEnabled()) {
@@ -64,9 +75,22 @@ public class PPLClickBenchIT extends PPLIntegTestCase {
       // because of too much script push down, which will cause ResourceMonitor restriction.
       ignored.add(30);
     }
+    if (isCalciteEnabled()) {
+      // Ignore q41 as it needs special handling
+      ignored.add(41);
+    }
     return ignored;
   }
 
+  /**
+   * Executes ClickBench PPL queries 1–43, validates explain plans when Calcite is enabled, and records timing.
+   *
+   * Skips indices returned by ignored(), loads and sanitizes each query from clickbench/queries/q{i}.ppl,
+   * compares the actual explain-plan YAML to clickbench/q{i}.yaml while ignoring generated IDs when Calcite is enabled,
+   * and records per-query timing in the shared summary.
+   *
+   * @throws IOException if a query or expected-plan file cannot be read
+   */
   @Test
   public void test() throws IOException {
     for (int i = 1; i <= 43; i++) {
@@ -82,5 +106,24 @@ public class PPLClickBenchIT extends PPLIntegTestCase {
       }
       timing(summary, "q" + i, ppl);
     }
+  }
+
+  /**
+   * Executes ClickBench query 41, verifies the produced explain-plan YAML matches either the primary
+   * or alternative expected plan, and records the query timing.
+   *
+   * <p>The test is skipped when Calcite is not enabled.
+   *
+   * @throws IOException if reading the query or expected plan files fails
+   */
+  @Test
+  public void testQ41() throws IOException {
+    Assume.assumeTrue(isCalciteEnabled());
+    logger.info("Running Query 41");
+    String ppl = sanitize(loadFromFile("clickbench/queries/q41.ppl"));
+    String expected = loadExpectedPlan("clickbench/q41.yaml");
+    String alternative = loadExpectedPlan("clickbench/q41_alternative.yaml");
+    assertYamlEqualsIgnoreId(expected, alternative, explainQueryYaml(ppl));
+    timing(summary, "q" + 41, ppl);
   }
 }

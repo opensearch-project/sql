@@ -5,13 +5,10 @@
 
 package org.opensearch.sql.expression.function.CollectionUDF;
 
-import static org.opensearch.sql.expression.function.CollectionUDF.LambdaUtils.inferReturnTypeFromLambda;
 import static org.opensearch.sql.expression.function.CollectionUDF.LambdaUtils.transferLambdaOutputToTargetType;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -19,14 +16,19 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCallBinding;
-import org.apache.calcite.rex.RexLambda;
-import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.type.ArraySqlType;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlLambda;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
@@ -40,38 +42,75 @@ public class ReduceFunctionImpl extends ImplementorUDF {
     super(new ReduceImplementor(), NullPolicy.ANY);
   }
 
+  /**
+   * Creates a SqlReturnTypeInference that derives the UDF's return type from the operator binding and any provided lambda operands.
+   *
+   * <p>For a RexCallBinding, the inference is the type of the last operand. For a SqlCallBinding, the inference:
+   * derives element and accumulator types from the array and base operands, re-evaluates the first reduce lambda to
+   * obtain its result type, and if a second (final) lambda is supplied, derives the final return type from that lambda.
+   *
+   * @return a SqlReturnTypeInference that returns the resolved RelDataType according to the binding and lambda operands
+   * @throws IllegalStateException if the provided SqlOperatorBinding is neither a RexCallBinding nor a SqlCallBinding
+   */
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
     return sqlOperatorBinding -> {
-      RelDataTypeFactory typeFactory = sqlOperatorBinding.getTypeFactory();
-      RexCallBinding rexCallBinding = (RexCallBinding) sqlOperatorBinding;
-      List<RexNode> rexNodes = rexCallBinding.operands();
-      ArraySqlType listType = (ArraySqlType) rexNodes.get(0).getType();
-      RelDataType elementType = listType.getComponentType();
-      RelDataType baseType = rexNodes.get(1).getType();
-      Map<String, RelDataType> map = new HashMap<>();
-      RexLambda mergeLambda = (RexLambda) rexNodes.get(2);
-      map.put(mergeLambda.getParameters().get(0).getName(), baseType);
-      map.put(mergeLambda.getParameters().get(1).getName(), elementType);
-      RelDataType mergedReturnType =
-          inferReturnTypeFromLambda((RexLambda) rexNodes.get(2), map, typeFactory);
-      if (mergedReturnType != baseType) { // For different acc, we need to recalculate
-        map.put(mergeLambda.getParameters().get(0).getName(), mergedReturnType);
-        mergedReturnType = inferReturnTypeFromLambda((RexLambda) rexNodes.get(2), map, typeFactory);
+      if (sqlOperatorBinding instanceof RexCallBinding) {
+        return sqlOperatorBinding.getOperandType(sqlOperatorBinding.getOperandCount() - 1);
+      } else if (sqlOperatorBinding instanceof SqlCallBinding callBinding) {
+        RelDataType elementType = callBinding.getOperandType(0).getComponentType();
+        RelDataType baseType = callBinding.getOperandType(1);
+        SqlLambda reduce1 = callBinding.getCall().operand(2);
+        SqlNode function1 = reduce1.getExpression();
+        SqlValidator validator = callBinding.getValidator();
+        // The saved types are ANY because the lambda function is defined as (ANY, ..) -> ANY
+        // Force it to derive types again by removing existing saved types
+        validator.removeValidatedNodeType(function1);
+        if (function1 instanceof SqlCall call) {
+          List<SqlNode> operands = call.getOperandList();
+          // The first argument is base (accumulator), while the second is from the array
+          if (!operands.isEmpty()) validator.setValidatedNodeType(operands.get(0), baseType);
+          if (operands.size() > 1 && elementType != null)
+            validator.setValidatedNodeType(operands.get(1), elementType);
+        }
+        RelDataType returnType = SqlTypeUtil.deriveType(callBinding, function1);
+        if (callBinding.getOperandCount() > 3) {
+          SqlLambda reduce2 = callBinding.getCall().operand(3);
+          SqlNode function2 = reduce2.getExpression();
+          validator.removeValidatedNodeType(function2);
+          if (function2 instanceof SqlCall call) {
+            List<SqlNode> operands = call.getOperandList();
+            if (!operands.isEmpty()) validator.setValidatedNodeType(operands.get(0), returnType);
+          }
+          returnType = SqlTypeUtil.deriveType(callBinding, function2);
+        }
+        return returnType;
       }
-      RelDataType finalReturnType;
-      if (rexNodes.size() > 3) {
-        finalReturnType = inferReturnTypeFromLambda((RexLambda) rexNodes.get(3), map, typeFactory);
-      } else {
-        finalReturnType = mergedReturnType;
-      }
-      return finalReturnType;
+      throw new IllegalStateException(
+          StringUtils.format(
+              "sqlOperatorBinding can only be either RexCallBinding or SqlCallBinding, but got %s",
+              sqlOperatorBinding.getClass()));
     };
   }
 
+  /**
+   * Describes the expected operand signature for the reducer UDF.
+   *
+   * <p>Accepts either three operands: (ARRAY, ANY, FUNCTION) or four operands:
+   * (ARRAY, ANY, FUNCTION, FUNCTION).
+   *
+   * @return a UDFOperandMetadata describing the allowed operand families for this function
+   */
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return null;
+    return UDFOperandMetadata.wrap(
+        OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.ANY, SqlTypeFamily.FUNCTION)
+            .or(
+                OperandTypes.family(
+                    SqlTypeFamily.ARRAY,
+                    SqlTypeFamily.ANY,
+                    SqlTypeFamily.FUNCTION,
+                    SqlTypeFamily.FUNCTION)));
   }
 
   public static class ReduceImplementor implements NotNullImplementor {

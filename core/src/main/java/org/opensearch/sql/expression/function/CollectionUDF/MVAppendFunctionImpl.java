@@ -18,6 +18,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -48,11 +49,26 @@ public class MVAppendFunctionImpl extends ImplementorUDF {
     };
   }
 
+  /**
+   * Indicates that this UDF accepts a variadic (variable number of) operands.
+   *
+   * @return UDFOperandMetadata describing that the function accepts a variable number of operands
+   */
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return null;
+    return UDFOperandMetadata.wrap(OperandTypes.VARIADIC);
   }
 
+  /**
+   * Determines the element type to use for the function result by inspecting all operand types.
+   *
+   * <p>Examines each operand's component type and yields the most general common element type
+   * across operands. If no element type can be determined, returns the SQL `NULL` type.
+   *
+   * @param sqlOperatorBinding provides access to the function call's operand types
+   * @param typeFactory used to construct the SQL `NULL` type when no element type is found
+   * @return the most general element {@link RelDataType} among operands, or a SQL `NULL` {@link RelDataType} if none
+   */
   private static RelDataType determineElementType(
       SqlOperatorBinding sqlOperatorBinding, RelDataTypeFactory typeFactory) {
     RelDataType mostGeneralType = null;

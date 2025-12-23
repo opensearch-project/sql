@@ -462,6 +462,14 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     throw new IllegalArgumentException("Unsupported operator: " + node.getFuncName());
   }
 
+  /**
+   * Translates a window function expression into a Calcite RexNode representing an OVER() window call.
+   *
+   * @param node the window function expression to translate
+   * @param context the planning context used for resolving arguments, partitions, and frame
+   * @return a RexNode for the windowed function call (an OVER expression)
+   * @throws UnsupportedOperationException if the function name is not a supported window function
+   */
   @Override
   public RexNode visitWindowFunction(WindowFunction node, CalcitePlanContext context) {
     Function windowFunction = (Function) node.getFunction();
@@ -480,26 +488,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                   (arguments.isEmpty() || arguments.size() == 1)
                       ? Collections.emptyList()
                       : arguments.subList(1, arguments.size());
-              List<RexNode> nodes =
-                  PPLFuncImpTable.INSTANCE.validateAggFunctionSignature(
-                      functionName, field, args, context.rexBuilder);
-              return nodes != null
-                  ? PlanUtils.makeOver(
-                      context,
-                      functionName,
-                      nodes.getFirst(),
-                      nodes.size() <= 1 ? Collections.emptyList() : nodes.subList(1, nodes.size()),
-                      partitions,
-                      List.of(),
-                      node.getWindowFrame())
-                  : PlanUtils.makeOver(
-                      context,
-                      functionName,
-                      field,
-                      args,
-                      partitions,
-                      List.of(),
-                      node.getWindowFrame());
+              return PlanUtils.makeOver(
+                  context, functionName, field, args, partitions, List.of(), node.getWindowFrame());
             })
         .orElseThrow(
             () ->

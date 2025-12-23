@@ -14,14 +14,19 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.implicit.TypeCoercionImpl;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeUtil;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -117,6 +122,27 @@ public class ExtendedRexBuilder extends RexBuilder {
     return new SqlIntervalQualifier(timeUnit, timeUnit, SqlParserPos.ZERO);
   }
 
+  /**
+   * Casts the given expression to the requested SQL type, applying framework-specific conversions
+   * and special-case rules for booleans, user-defined types, and number-to-character casts.
+   *
+   * <p>Behavior highlights:
+   * - Converts character literal "1"/"0" to boolean `true`/`false`; converts exact numeric to boolean
+   *   by comparing against zero.
+   * - For user-defined types (UDT), delegates conversion to corresponding PPL builtin operators
+   *   (DATE, TIME, TIMESTAMP, IP) when applicable; preserves IP values and converts STRING to IP.
+   * - Converts floating point/decimal numbers to character using the `NUMBER_TO_STRING` operator.
+   *
+   * @param pos the parser position associated with this cast
+   * @param type the target relational data type to cast to
+   * @param exp the expression to be cast
+   * @param matchNullability whether the resulting type's nullability should match the target
+   * @param safe whether the cast should be performed in a "safe" mode (no runtime errors)
+   * @param format optional literal specifying a target format (may be null)
+   * @return a RexNode representing the cast or an equivalent expression implementing the conversion
+   * @throws ExpressionEvaluationException if converting to IP from an unsupported argument type
+   * @throws SemanticCheckException if casting to a user-defined type is unsupported for the argument
+   */
   @Override
   public RexNode makeCast(
       SqlParserPos pos,
@@ -146,7 +172,7 @@ public class ExtendedRexBuilder extends RexBuilder {
         //            SqlStdOperatorTable.NOT_EQUALS,
         //            ImmutableList.of(exp, makeZeroLiteral(sourceType)));
       }
-    } else if (OpenSearchTypeFactory.isUserDefinedType(type)) {
+    } else if (OpenSearchTypeUtil.isUserDefinedType(type)) {
       if (RexLiteral.isNullLiteral(exp)) {
         return super.makeCast(pos, type, exp, matchNullability, safe, format);
       }
@@ -184,5 +210,30 @@ public class ExtendedRexBuilder extends RexBuilder {
       return makeCall(type, PPLBuiltinOperators.NUMBER_TO_STRING, List.of(exp));
     }
     return super.makeCast(pos, type, exp, matchNullability, safe, format);
+  }
+
+  /**
+   * Infers the result type for a call to the given operator.
+   *
+   * <p>When the operator is a binary arithmetic and one operand is numeric while the other is a
+   * character type, returns the numeric operand's type. For all other cases, delegates to the
+   * superclass implementation.
+   *
+   * @param op the operator being called
+   * @param exprs the actual operand expressions
+   * @return the inferred relational data type for the operator call
+   */
+  @Override
+  public RelDataType deriveReturnType(SqlOperator op, List<? extends RexNode> exprs) {
+    if (op.getKind().belongsTo(SqlKind.BINARY_ARITHMETIC) && exprs.size() == 2) {
+      final RelDataType type1 = exprs.get(0).getType();
+      final RelDataType type2 = exprs.get(1).getType();
+      if (SqlTypeUtil.isNumeric(type1) && OpenSearchTypeUtil.isCharacter(type2)) {
+        return type1;
+      } else if (OpenSearchTypeUtil.isCharacter(type1) && SqlTypeUtil.isNumeric(type2)) {
+        return type2;
+      }
+    }
+    return super.deriveReturnType(op, exprs);
   }
 }

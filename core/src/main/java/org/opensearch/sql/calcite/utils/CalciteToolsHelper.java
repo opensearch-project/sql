@@ -236,11 +236,19 @@ public class CalciteToolsHelper {
     }
 
     /**
-     * Customize CalcitePreparingStmt. Override {@link CalcitePrepareImpl#getPreparingStmt} and
-     * return {@link OpenSearchCalcitePreparingStmt}
+     * Create an OpenSearch-specific CalcitePreparingStmt configured for the provided prepare context.
+     *
+     * <p>The returned preparing statement is constructed to match the requested element type and planner,
+     * selecting an appropriate element preference and result convention.
+     *
+     * @param context the prepare context containing type factory and root schema
+     * @param elementType the expected element Java type for result rows (e.g., Object[].class for arrays)
+     * @param catalogReader the catalog reader for resolving schemas and objects
+     * @param planner the relational optimizer planner used to create the execution cluster
+     * @return an OpenSearchCalcitePreparingStmt configured for the given context, element type, catalog reader, and planner
      */
     @Override
-    protected CalcitePrepareImpl.CalcitePreparingStmt getPreparingStmt(
+    public CalcitePrepareImpl.CalcitePreparingStmt getPreparingStmt(
         CalcitePrepare.Context context,
         Type elementType,
         CalciteCatalogReader catalogReader,
@@ -336,8 +344,13 @@ public class CalciteToolsHelper {
 
   public static class OpenSearchRelRunners {
     /**
-     * Runs a relational expression by existing connection. This class copied from {@link
-     * org.apache.calcite.tools.RelRunners#run(RelNode)}
+     * Prepare a JDBC PreparedStatement for the given relational expression using the connection from the provided CalcitePlanContext.
+     *
+     * @param context holds the JDBC Connection used to create the PreparedStatement; its connection is unwrapped to a RelRunner
+     * @param rel the relational expression to prepare; table scans may be rewritten to BindableTableScan before preparation
+     * @return a PreparedStatement that executes the prepared relational expression
+     * @throws UnsupportedOperationException if preparation fails due to WIDTH_BUCKET usage on timestamp fields (indicates an unsupported bins-on-timestamp case)
+     * @throws RuntimeException if a SQLException occurs during preparation and is rethrown as an unchecked exception
      */
     public static PreparedStatement run(CalcitePlanContext context, RelNode rel) {
       final RelShuttle shuttle =
@@ -369,7 +382,8 @@ public class CalciteToolsHelper {
               "The 'bins' parameter on timestamp fields requires: (1) pushdown to be enabled"
                   + " (controlled by plugins.calcite.pushdown.enabled, enabled by default), and"
                   + " (2) the timestamp field to be used as an aggregation bucket (e.g., 'stats"
-                  + " count() by @timestamp').");
+                  + " count() by @timestamp').",
+              e);
         }
         throw Util.throwAsRuntime(e);
       }
