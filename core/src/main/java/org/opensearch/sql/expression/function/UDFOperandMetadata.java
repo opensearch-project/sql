@@ -89,6 +89,9 @@ public interface UDFOperandMetadata extends SqlOperandMetadata {
 
     @Override
     public SqlOperandCountRange getOperandCountRange() {
+      if (allowedParamTypes == null || allowedParamTypes.isEmpty()) {
+        return SqlOperandCountRanges.between(0, 0);
+      }
       int max = Integer.MIN_VALUE;
       int min = Integer.MAX_VALUE;
       for (List<ExprType> paramTypes : allowedParamTypes) {

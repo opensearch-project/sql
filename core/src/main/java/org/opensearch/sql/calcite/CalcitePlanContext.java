@@ -90,7 +90,7 @@ public class CalcitePlanContext {
   @Setter private static SqlOperatorTableProvider operatorTableProvider;
 
   /** Cached SqlValidator instance (lazy initialized). */
-  private SqlValidator validator;
+  private volatile SqlValidator validator;
 
   private CalcitePlanContext(FrameworkConfig config, SysLimit sysLimit, QueryType queryType) {
     this.config = config;
@@ -128,36 +128,41 @@ public class CalcitePlanContext {
    */
   public SqlValidator getValidator() {
     if (validator == null) {
-      final CalciteServerStatement statement;
-      try {
-        statement = connection.createStatement().unwrap(CalciteServerStatement.class);
-      } catch (SQLException e) {
-        throw new RuntimeException(e);
+      synchronized (this) {
+        //  Double-Checked Locking for thread-safety
+        if (validator == null) {
+          final CalciteServerStatement statement;
+          try {
+            statement = connection.createStatement().unwrap(CalciteServerStatement.class);
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+          if (operatorTableProvider == null) {
+            throw new IllegalStateException(
+                "SqlOperatorTableProvider must be set before creating CalcitePlanContext");
+          }
+          SqlValidator.Config validatorConfig =
+              SqlValidator.Config.DEFAULT
+                  .withTypeCoercionRules(PplTypeCoercionRule.instance())
+                  .withTypeCoercionFactory(PplTypeCoercion::create)
+                  // Use lenient conformance for PPL compatibility
+                  .withConformance(OpenSearchSparkSqlDialect.DEFAULT.getConformance())
+                  // Use Spark SQL's NULL collation (NULLs sorted LOW/FIRST)
+                  .withDefaultNullCollation(NullCollation.LOW)
+                  // This ensures that coerced arguments are replaced with cast version in sql
+                  // select list because coercion is performed during select list expansion during
+                  // sql validation. Affects 4356.yml
+                  // See SqlValidatorImpl#validateSelectList and AggConverter#translateAgg
+                  .withIdentifierExpansion(true);
+          validator =
+              PplValidator.create(
+                  statement,
+                  config,
+                  operatorTableProvider.getOperatorTable(),
+                  TYPE_FACTORY,
+                  validatorConfig);
+        }
       }
-      if (operatorTableProvider == null) {
-        throw new IllegalStateException(
-            "SqlOperatorTableProvider must be set before creating CalcitePlanContext");
-      }
-      SqlValidator.Config validatorConfig =
-          SqlValidator.Config.DEFAULT
-              .withTypeCoercionRules(PplTypeCoercionRule.instance())
-              .withTypeCoercionFactory(PplTypeCoercion::create)
-              // Use lenient conformance for PPL compatibility
-              .withConformance(OpenSearchSparkSqlDialect.DEFAULT.getConformance())
-              // Use Spark SQL's NULL collation (NULLs sorted LOW/FIRST)
-              .withDefaultNullCollation(NullCollation.LOW)
-              // This ensures that coerced arguments are replaced with cast version in sql select
-              // list because coercion is performed during select list expansion during sql
-              // validation. Affects 4356.yml
-              // See SqlValidatorImpl#validateSelectList and AggConverter#translateAgg
-              .withIdentifierExpansion(true);
-      validator =
-          PplValidator.create(
-              statement,
-              config,
-              operatorTableProvider.getOperatorTable(),
-              TYPE_FACTORY,
-              validatorConfig);
     }
     return validator;
   }

@@ -135,7 +135,9 @@ public class TransformFunctionImpl extends ImplementorUDF {
             }
             return IntStream.range(0, 2)
                 .allMatch(
-                    i -> checkSingleOperandType(callBinding, callBinding.operand(i), i, false));
+                    i ->
+                        checkSingleOperandType(
+                            callBinding, callBinding.operand(i), i, throwOnFailure));
           }
 
           @Override
