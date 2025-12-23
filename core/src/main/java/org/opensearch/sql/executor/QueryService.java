@@ -327,16 +327,16 @@ public class QueryService {
       throw new ExpressionEvaluationException(e.getMessage(), e);
     }
 
-    // 1. Do not remove sort in subqueries so that the orders for queries like `... | sort a |
-    // fields b` is preserved
-    // 2. Disable automatic JSON_TYPE_OPERATOR wrapping for nested JSON functions.
-    // See CALCITE-4989: Calcite wraps nested JSON functions with JSON_TYPE by default
-    // 3. Set hint strategy so that hints can be properly propagated.
-    // See SqlToRelConverter.java#convertSelectImpl
     SqlToRelConverter.Config sql2relConfig =
         SqlToRelConverter.config()
+            // Do not remove sort in subqueries so that the orders for queries like `... | sort a
+            // | fields b` is preserved
             .withRemoveSortInSubQuery(false)
+            // Disable automatic JSON_TYPE_OPERATOR wrapping for nested JSON functions.
+            // See CALCITE-4989: Calcite wraps nested JSON functions with JSON_TYPE by default
             .withAddJsonTypeOperatorEnabled(false)
+            // Set hint strategy so that hints can be properly propagated.
+            // See SqlToRelConverter.java#convertSelectImpl
             .withHintStrategyTable(PPLHintStrategyTable.getHintStrategyTable());
     SqlToRelConverter sql2rel =
         new PplSqlToRelConverter(

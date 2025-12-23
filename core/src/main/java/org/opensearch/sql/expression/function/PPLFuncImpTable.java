@@ -278,7 +278,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.calcite.CalcitePlanContext;
@@ -357,42 +356,38 @@ public class PPLFuncImpTable {
    * implementations are independent of any specific data storage, should be registered here
    * internally.
    */
-  private final ImmutableMap<BuiltinFunctionName, Pair<CalciteFuncSignature, FunctionImp>>
-      functionRegistry;
+  private final ImmutableMap<BuiltinFunctionName, FunctionImp> functionRegistry;
 
   /**
    * The external function registry. Functions whose implementations depend on a specific data
    * engine should be registered here. This reduces coupling between the core module and particular
    * storage backends.
    */
-  private final Map<BuiltinFunctionName, Pair<CalciteFuncSignature, FunctionImp>>
-      externalFunctionRegistry;
+  private final Map<BuiltinFunctionName, FunctionImp> externalFunctionRegistry;
 
   /**
    * The registry for built-in agg functions. Agg Functions defined by the PPL specification, whose
    * implementations are independent of any specific data storage, should be registered here
    * internally.
    */
-  private final ImmutableMap<BuiltinFunctionName, Pair<CalciteFuncSignature, AggHandler>>
-      aggFunctionRegistry;
+  private final ImmutableMap<BuiltinFunctionName, AggHandler> aggFunctionRegistry;
 
   /**
    * The external agg function registry. Agg Functions whose implementations depend on a specific
    * data engine should be registered here. This reduces coupling between the core module and
    * particular storage backends.
    */
-  private final Map<BuiltinFunctionName, Pair<CalciteFuncSignature, AggHandler>>
-      aggExternalFunctionRegistry;
+  private final Map<BuiltinFunctionName, AggHandler> aggExternalFunctionRegistry;
 
   private PPLFuncImpTable(Builder builder, AggBuilder aggBuilder) {
-    final ImmutableMap.Builder<BuiltinFunctionName, Pair<CalciteFuncSignature, FunctionImp>>
-        mapBuilder = ImmutableMap.builder();
+    final ImmutableMap.Builder<BuiltinFunctionName, FunctionImp> mapBuilder =
+        ImmutableMap.builder();
     mapBuilder.putAll(builder.map);
     this.functionRegistry = ImmutableMap.copyOf(mapBuilder.build());
     this.externalFunctionRegistry = new ConcurrentHashMap<>();
 
-    final ImmutableMap.Builder<BuiltinFunctionName, Pair<CalciteFuncSignature, AggHandler>>
-        aggMapBuilder = ImmutableMap.builder();
+    final ImmutableMap.Builder<BuiltinFunctionName, AggHandler> aggMapBuilder =
+        ImmutableMap.builder();
     aggMapBuilder.putAll(aggBuilder.map);
     this.aggFunctionRegistry = ImmutableMap.copyOf(aggMapBuilder.build());
     this.aggExternalFunctionRegistry = new ConcurrentHashMap<>();
@@ -405,14 +400,11 @@ public class PPLFuncImpTable {
    * @param operator a SqlOperator representing an externally implemented function
    */
   public void registerExternalOperator(BuiltinFunctionName functionName, SqlOperator operator) {
-    CalciteFuncSignature signature =
-        new CalciteFuncSignature(functionName.getName(), operator.getOperandTypeChecker());
     if (externalFunctionRegistry.containsKey(functionName)) {
       logger.warn(
           String.format(Locale.ROOT, "Function %s is registered multiple times", functionName));
     }
-    externalFunctionRegistry.put(
-        functionName, Pair.of(signature, (builder, args) -> builder.makeCall(operator, args)));
+    externalFunctionRegistry.put(functionName, (builder, args) -> builder.makeCall(operator, args));
   }
 
   /**
@@ -429,13 +421,11 @@ public class PPLFuncImpTable {
           String.format(
               Locale.ROOT, "Aggregate function %s is registered multiple times", functionName));
     }
-    CalciteFuncSignature signature =
-        new CalciteFuncSignature(functionName.getName(), aggFunction.getOperandTypeChecker());
     AggHandler handler =
         (distinct, field, argList, ctx) ->
             UserDefinedFunctionUtils.makeAggregateCall(
                 aggFunction, List.of(field), argList, ctx.relBuilder);
-    aggExternalFunctionRegistry.put(functionName, Pair.of(signature, handler));
+    aggExternalFunctionRegistry.put(functionName, handler);
   }
 
   public RelBuilder.AggCall resolveAgg(
@@ -445,12 +435,10 @@ public class PPLFuncImpTable {
       List<RexNode> argList,
       CalcitePlanContext context) {
     var implementation = getImplementation(functionName);
-    var handler = implementation.getValue();
-    return handler.apply(distinct, field, argList, context);
+    return implementation.apply(distinct, field, argList, context);
   }
 
-  private Pair<CalciteFuncSignature, AggHandler> getImplementation(
-      BuiltinFunctionName functionName) {
+  private AggHandler getImplementation(BuiltinFunctionName functionName) {
     var implementation = aggExternalFunctionRegistry.get(functionName);
     if (implementation == null) {
       implementation = aggFunctionRegistry.get(functionName);
@@ -474,7 +462,7 @@ public class PPLFuncImpTable {
     // Check the external function registry first. This allows the data-storage-dependent
     // function implementations to override the internal ones with the same name.
     //  If the function is not part of the external registry, check the internal registry.
-    Pair<CalciteFuncSignature, FunctionImp> implementation =
+    FunctionImp implementation =
         externalFunctionRegistry.get(functionName) != null
             ? externalFunctionRegistry.get(functionName)
             : functionRegistry.get(functionName);
@@ -486,7 +474,7 @@ public class PPLFuncImpTable {
     // For example, the REDUCE function requires the second argument to be cast to the
     // return type of the lambda function.
     compulsoryCast(builder, functionName, args);
-    return implementation.getValue().resolve(builder, args);
+    return implementation.resolve(builder, args);
   }
 
   /**
@@ -1092,16 +1080,13 @@ public class PPLFuncImpTable {
   }
 
   private static class Builder extends AbstractBuilder {
-    private final Map<BuiltinFunctionName, Pair<CalciteFuncSignature, FunctionImp>> map =
-        new HashMap<>();
+    private final Map<BuiltinFunctionName, FunctionImp> map = new HashMap<>();
 
     @Override
     void register(
         BuiltinFunctionName functionName,
         FunctionImp implement,
         SqlOperandTypeChecker typeChecker) {
-      CalciteFuncSignature signature =
-          new CalciteFuncSignature(functionName.getName(), typeChecker);
       if (map.containsKey(functionName)) {
         throw new IllegalStateException(
             String.format(
@@ -1109,22 +1094,19 @@ public class PPLFuncImpTable {
                 "Each function can only be registered with one operator: %s",
                 functionName));
       }
-      map.put(functionName, Pair.of(signature, implement));
+      map.put(functionName, implement);
     }
   }
 
   private static class AggBuilder {
     private static final double MEDIAN_PERCENTILE = 50.0;
-    private final Map<BuiltinFunctionName, Pair<CalciteFuncSignature, AggHandler>> map =
-        new HashMap<>();
+    private final Map<BuiltinFunctionName, AggHandler> map = new HashMap<>();
 
     void register(
         BuiltinFunctionName functionName,
         AggHandler aggHandler,
         SqlOperandTypeChecker typeChecker) {
-      CalciteFuncSignature signature =
-          new CalciteFuncSignature(functionName.getName(), typeChecker);
-      map.put(functionName, Pair.of(signature, aggHandler));
+      map.put(functionName, aggHandler);
     }
 
     void registerOperator(BuiltinFunctionName functionName, SqlAggFunction aggFunction) {

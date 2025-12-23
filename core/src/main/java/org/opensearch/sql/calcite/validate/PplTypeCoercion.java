@@ -117,7 +117,7 @@ public class PplTypeCoercion extends TypeCoercionImpl {
     // - (date, time) -> timestamp
     // - (time, timestamp) -> timestamp
     // - (ip, string) -> ip
-    if (type1 != null & type2 != null) {
+    if (type1 != null && type2 != null) {
       boolean anyNullable = type1.isNullable() || type2.isNullable();
       if ((SqlTypeUtil.isDate(type1) && OpenSearchTypeUtil.isTime(type2))
           || (OpenSearchTypeUtil.isTime(type1) && SqlTypeUtil.isDate(type2))) {
