@@ -77,8 +77,7 @@ public class OpenSearchTypeUtil {
           || udtType == ExprCoreType.TIME;
     }
 
-    // Fallback check if type string contains EXPR_TIMESTAMP
-    return fieldType.toString().contains("EXPR_TIMESTAMP");
+    return false;
   }
 
   /**
