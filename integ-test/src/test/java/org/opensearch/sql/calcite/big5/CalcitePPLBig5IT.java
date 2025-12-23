@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.calcite.big5;
 
+import static org.opensearch.sql.util.MatcherUtils.assertYamlEqualsIgnoreId;
+
 import java.io.IOException;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -41,5 +43,14 @@ public class CalcitePPLBig5IT extends PPLBig5IT {
   public void coalesce_nonexistent_field_fallback() throws IOException {
     String ppl = sanitize(loadExpectedQuery("coalesce_nonexistent_field_fallback.ppl"));
     timing(summary, "coalesce_nonexistent_field_fallback", ppl);
+  }
+
+  /** Tests deduplication by metrics.size field with sorting by timestamp. */
+  @Test
+  public void dedup_metrics_size_field() throws IOException {
+    String ppl = sanitize(loadExpectedQuery("dedup_metrics_size_field.ppl"));
+    timing(summary, "dedup_metrics_size_field", ppl);
+    String expected = loadExpectedPlan("big5/dedup_metrics_size_field.yaml");
+    assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 }
