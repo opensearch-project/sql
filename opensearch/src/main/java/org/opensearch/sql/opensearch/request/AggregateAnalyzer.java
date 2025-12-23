@@ -382,9 +382,11 @@ public class AggregateAnalyzer {
       AggregateCall aggCall, Project project, AggregateAnalyzer.AggregateBuilderHelper helper) {
     return project == null
         ? aggCall.getArgList().stream()
-            .map(i -> Pair.of(
-                (RexNode) RexInputRef.of(i, helper.rowType),
-                helper.rowType.getFieldNames().get(i)))
+            .map(
+                i ->
+                    Pair.of(
+                        (RexNode) RexInputRef.of(i, helper.rowType),
+                        helper.rowType.getFieldNames().get(i)))
             .toList()
         : PlanUtils.getObjectFromLiteralAgg(aggCall) != null
             ? project.getNamedProjects().stream()

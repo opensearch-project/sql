@@ -8,12 +8,8 @@ package org.opensearch.sql.opensearch.planner.rules;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
-import javax.annotation.Nullable;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
@@ -31,7 +27,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.immutables.value.Value;
 import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
-import org.opensearch.sql.calcite.utils.CalciteUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
@@ -93,9 +88,14 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
     List<Pair<RexNode, String>> targetProjections = new ArrayList<>();
     for (RexNode dedupColumn : dedupColumns) {
       if (projectWithWindow.getProjects().contains(dedupColumn)) {
-        targetProjections.add(projectWithWindow.getNamedProjects().get(projectWithWindow.getProjects().indexOf(dedupColumn)));
+        targetProjections.add(
+            projectWithWindow
+                .getNamedProjects()
+                .get(projectWithWindow.getProjects().indexOf(dedupColumn)));
       } else if (dedupColumn instanceof RexInputRef ref) {
-        targetProjections.add(Pair.of(dedupColumn, relBuilder.peek().getRowType().getFieldNames().get(ref.getIndex())));
+        targetProjections.add(
+            Pair.of(
+                dedupColumn, relBuilder.peek().getRowType().getFieldNames().get(ref.getIndex())));
       } else {
         LOG.warn("The dedup column {} is illegal.", dedupColumn);
         return;
@@ -109,8 +109,7 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
 
     relBuilder.project(
         targetProjections.stream().map(Pair::getKey).toList(),
-        targetProjections.stream().map(Pair::getValue).toList()
-    );
+        targetProjections.stream().map(Pair::getValue).toList());
     LogicalProject targetChildProject = (LogicalProject) relBuilder.peek();
 
     // 2 Push an Aggregate
@@ -120,16 +119,16 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
     // (LITERAL_AGG is used in optimization normally, see {@link SqlKind#LITERAL_AGG})
     List<Integer> newGroupByList = IntStream.range(0, dedupColumns.size()).boxed().toList();
     relBuilder.aggregate(
-        relBuilder.groupKey(relBuilder.fields(newGroupByList)),
-        relBuilder.literalAgg(dedupNumer));
+        relBuilder.groupKey(relBuilder.fields(newGroupByList)), relBuilder.literalAgg(dedupNumer));
 
     // add bucket_nullable = false hint
     PlanUtils.addIgnoreNullBucketHintToAggregate(relBuilder);
     // peek the aggregate after hint being added
     LogicalAggregate aggregate = (LogicalAggregate) relBuilder.build();
-    // assert aggregate.getInput().getRowType().getFieldCount() == groupByList.size() : String.format("The input's field size should be trimmed to equal to group list size %d, but got %d", groupByList.size(), aggregate.getInput().getRowType().getFieldCount());
+    // assert aggregate.getInput().getRowType().getFieldCount() == groupByList.size() :
+    // String.format("The input's field size should be trimmed to equal to group list size %d, but
+    // got %d", groupByList.size(), aggregate.getInput().getRowType().getFieldCount());
     assert aggregate.getGroupSet().asList().equals(newGroupByList);
-
 
     CalciteLogicalIndexScan newScan =
         (CalciteLogicalIndexScan) scan.pushDownAggregate(aggregate, targetChildProject);
@@ -139,7 +138,6 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
       PlanUtils.tryPruneRelNodes(call);
     }
   }
-
 
   @Value.Immutable
   public interface Config extends OpenSearchRuleConfig {
