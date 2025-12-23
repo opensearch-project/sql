@@ -153,8 +153,26 @@ public class OpenSearchTypeUtil {
    * @return true if the type is an IP address type, false otherwise
    */
   public static boolean isIp(RelDataType type) {
+    return isIp(type, false);
+  }
+
+  /**
+   * Checks whether a {@link RelDataType} represents an IP address type. If {@code acceptOther} is
+   * set, {@link SqlTypeName#OTHER} is also accepted as an IP type.
+   *
+   * <p>{@link SqlTypeName#OTHER} is "borrowed" to represent IP type during validation because
+   * <i>SqlTypeName.IP</i> does not exist
+   *
+   * @param type the type to check
+   * @param acceptOther whether to accept OTHER as a valid IP type
+   * @return true if the type is an IP address type, false otherwise
+   */
+  public static boolean isIp(RelDataType type, boolean acceptOther) {
     if (isUserDefinedType(type)) {
       return ((AbstractExprRelDataType<?>) type).getUdt() == OpenSearchTypeFactory.ExprUDT.EXPR_IP;
+    }
+    if (acceptOther) {
+      return type.getSqlTypeName() == SqlTypeName.OTHER;
     }
     return false;
   }
@@ -174,5 +192,34 @@ public class OpenSearchTypeUtil {
           == OpenSearchTypeFactory.ExprUDT.EXPR_BINARY;
     }
     return SqlTypeName.BINARY_TYPES.contains(type.getSqlTypeName());
+  }
+
+  /**
+   * Checks whether a {@link RelDataType} represents a scalar type.
+   *
+   * <p>Scalar types include all primitive and atomic types such as numeric types (INTEGER, BIGINT,
+   * FLOAT, DOUBLE, DECIMAL), string types (VARCHAR, CHAR), boolean, temporal types (DATE, TIME,
+   * TIMESTAMP), and special scalar types (IP, BINARY, UUID).
+   *
+   * <p>This method returns false for composite types including:
+   *
+   * <ul>
+   *   <li>STRUCT types (structured records with named fields)
+   *   <li>MAP types (key-value pairs)
+   *   <li>ARRAY and MULTISET types (collections)
+   *   <li>ROW types (tuples)
+   * </ul>
+   *
+   * @param type the type to check; may be null
+   * @return true if the type is a scalar type, false if it is a composite type or null
+   */
+  public static boolean isScalar(RelDataType type) {
+    if (type == null) {
+      return false;
+    }
+    return !type.isStruct()
+        && !SqlTypeUtil.isMap(type)
+        && !SqlTypeUtil.isCollection(type)
+        && !SqlTypeUtil.isRow(type);
   }
 }

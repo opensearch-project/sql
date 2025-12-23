@@ -5,18 +5,15 @@
 
 package org.opensearch.sql.expression.function;
 
-import java.util.Collections;
 import java.util.List;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
-import org.opensearch.sql.data.type.ExprType;
 
 /**
  * This class is created for the compatibility with {@link SqlUserDefinedFunction} constructors when
@@ -35,14 +32,16 @@ public interface UDFOperandMetadata extends SqlOperandMetadata {
 
       @Override
       public List<RelDataType> paramTypes(RelDataTypeFactory typeFactory) {
-        // This function is not used in the current context, so we return an empty list.
-        return Collections.emptyList();
+        // This function is not used in the current context
+        throw new UnsupportedOperationException(
+            "paramTypes of UDFOperandMetadata is not implemented and should not be called");
       }
 
       @Override
       public List<String> paramNames() {
-        // This function is not used in the current context, so we return an empty list.
-        return Collections.emptyList();
+        // This function is not used in the current context
+        throw new UnsupportedOperationException(
+            "paramNames of UDFOperandMetadata is not implemented and should not be called");
       }
 
       @Override
@@ -60,50 +59,5 @@ public interface UDFOperandMetadata extends SqlOperandMetadata {
         return typeChecker.getAllowedSignatures(op, opName);
       }
     };
-  }
-
-  static UDFOperandMetadata wrapUDT(List<List<ExprType>> allowSignatures) {
-    return new UDTOperandMetadata(allowSignatures);
-  }
-
-  record UDTOperandMetadata(List<List<ExprType>> allowedParamTypes) implements UDFOperandMetadata {
-    @Override
-    public SqlOperandTypeChecker getInnerTypeChecker() {
-      return this;
-    }
-
-    @Override
-    public List<RelDataType> paramTypes(RelDataTypeFactory typeFactory) {
-      return List.of();
-    }
-
-    @Override
-    public List<String> paramNames() {
-      return List.of();
-    }
-
-    @Override
-    public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
-      return false;
-    }
-
-    @Override
-    public SqlOperandCountRange getOperandCountRange() {
-      if (allowedParamTypes == null || allowedParamTypes.isEmpty()) {
-        return SqlOperandCountRanges.between(0, 0);
-      }
-      int max = Integer.MIN_VALUE;
-      int min = Integer.MAX_VALUE;
-      for (List<ExprType> paramTypes : allowedParamTypes) {
-        max = Math.max(max, paramTypes.size());
-        min = Math.min(min, paramTypes.size());
-      }
-      return SqlOperandCountRanges.between(min, max);
-    }
-
-    @Override
-    public String getAllowedSignatures(SqlOperator op, String opName) {
-      return "";
-    }
   }
 }

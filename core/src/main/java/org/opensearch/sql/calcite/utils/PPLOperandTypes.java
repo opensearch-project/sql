@@ -5,11 +5,17 @@
 
 package org.opensearch.sql.calcite.utils;
 
+import java.util.Locale;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlOperandCountRange;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
@@ -21,48 +27,7 @@ public class PPLOperandTypes {
   // This class is not meant to be instantiated.
   private PPLOperandTypes() {}
 
-  /** List of all scalar type signatures (single parameter each) */
-  private static final java.util.List<java.util.List<org.opensearch.sql.data.type.ExprType>>
-      SCALAR_TYPES =
-          java.util.List.of(
-              // Numeric types
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.BYTE),
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.SHORT),
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.INTEGER),
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.LONG),
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.FLOAT),
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.DOUBLE),
-              // String type
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.STRING),
-              // Boolean type
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.BOOLEAN),
-              // Temporal types
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.DATE),
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.TIME),
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP),
-              // Special scalar types
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.IP),
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.BINARY));
-
-  /** Helper method to create scalar types with optional integer parameter */
-  private static java.util.List<java.util.List<org.opensearch.sql.data.type.ExprType>>
-      createScalarWithOptionalInteger() {
-    java.util.List<java.util.List<org.opensearch.sql.data.type.ExprType>> result =
-        new java.util.ArrayList<>(SCALAR_TYPES);
-
-    // Add scalar + integer combinations
-    SCALAR_TYPES.forEach(
-        scalarType ->
-            result.add(
-                java.util.List.of(
-                    scalarType.get(0), org.opensearch.sql.data.type.ExprCoreType.INTEGER)));
-
-    return result;
-  }
-
   public static final UDFOperandMetadata NONE = UDFOperandMetadata.wrap(OperandTypes.family());
-  public static final UDFOperandMetadata OPTIONAL_ANY =
-      UDFOperandMetadata.wrap(OperandTypes.family(SqlTypeFamily.ANY).or(OperandTypes.family()));
 
   public static final UDFOperandMetadata OPTIONAL_INTEGER =
       UDFOperandMetadata.wrap(OperandTypes.INTEGER.or(OperandTypes.family()));
@@ -78,8 +43,6 @@ public class PPLOperandTypes {
   public static final UDFOperandMetadata ANY_OPTIONAL_INTEGER =
       UDFOperandMetadata.wrap(
           OperandTypes.ANY.or(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.INTEGER)));
-  public static final SqlOperandTypeChecker ANY_OPTIONAL_TIMESTAMP =
-      OperandTypes.ANY.or(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.TIMESTAMP));
   public static final UDFOperandMetadata INTEGER_INTEGER =
       UDFOperandMetadata.wrap(OperandTypes.INTEGER_INTEGER);
   public static final UDFOperandMetadata STRING_STRING =
@@ -137,7 +100,6 @@ public class PPLOperandTypes {
 
   public static final UDFOperandMetadata WIDTH_BUCKET_OPERAND =
       UDFOperandMetadata.wrap(
-
           // 1. Numeric fields: bin age span=10
           OperandTypes.family(
                   SqlTypeFamily.NUMERIC,
@@ -227,11 +189,6 @@ public class PPLOperandTypes {
       UDFOperandMetadata.wrap(
           OperandTypes.DATETIME.or(
               OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER)));
-  public static final UDFOperandMetadata ANY_DATETIME_OR_STRING =
-      UDFOperandMetadata.wrap(
-          OperandTypes.family(SqlTypeFamily.ANY)
-              .or(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.DATETIME))
-              .or(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.STRING)));
 
   public static final UDFOperandMetadata DATETIME_DATETIME =
       UDFOperandMetadata.wrap(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME));
@@ -239,12 +196,6 @@ public class PPLOperandTypes {
       UDFOperandMetadata.wrap(
           OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.CHARACTER)
               .or(OperandTypes.CHARACTER_CHARACTER));
-  public static final UDFOperandMetadata DATETIME_OR_STRING_DATETIME_OR_STRING =
-      UDFOperandMetadata.wrap(
-          OperandTypes.CHARACTER_CHARACTER
-              .or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME))
-              .or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.CHARACTER))
-              .or(OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME)));
   public static final UDFOperandMetadata STRING_TIMESTAMP =
       UDFOperandMetadata.wrap(
           OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.TIMESTAMP));
@@ -288,12 +239,56 @@ public class PPLOperandTypes {
    * booleans, datetime types, and special scalar types like IP and BINARY. Excludes complex types
    * like arrays, structs, and maps.
    */
-  public static final UDFOperandMetadata ANY_SCALAR = UDFOperandMetadata.wrapUDT(SCALAR_TYPES);
+  public static final UDFOperandMetadata SCALAR =
+      UDFOperandMetadata.wrap(
+          new SqlOperandTypeChecker() {
+            @Override
+            public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+              if (!getOperandCountRange().isValidCount(callBinding.getOperandCount())) {
+                return false;
+              }
+              return OpenSearchTypeUtil.isScalar(callBinding.getOperandType(0));
+            }
+
+            @Override
+            public SqlOperandCountRange getOperandCountRange() {
+              return SqlOperandCountRanges.of(1);
+            }
+
+            @Override
+            public String getAllowedSignatures(SqlOperator op, String opName) {
+              return String.format(Locale.ROOT, "%s(<SCALAR>)", opName);
+            }
+          });
 
   /**
    * Operand type checker that accepts any scalar type with an optional integer argument. This is
    * used for aggregation functions that take a field and an optional limit/size parameter.
    */
-  public static final UDFOperandMetadata ANY_SCALAR_OPTIONAL_INTEGER =
-      UDFOperandMetadata.wrapUDT(createScalarWithOptionalInteger());
+  public static final UDFOperandMetadata SCALAR_OPTIONAL_INTEGER =
+      UDFOperandMetadata.wrap(
+          new SqlOperandTypeChecker() {
+            @Override
+            public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+              if (!getOperandCountRange().isValidCount(callBinding.getOperandCount())) {
+                return false;
+              }
+              boolean valid = OpenSearchTypeUtil.isScalar(callBinding.getOperandType(0));
+              if (callBinding.getOperandCount() == 2) {
+                valid = valid && SqlTypeUtil.isIntType(callBinding.getOperandType(1));
+              }
+              return valid;
+            }
+
+            @Override
+            public SqlOperandCountRange getOperandCountRange() {
+              return SqlOperandCountRanges.between(1, 2);
+            }
+
+            @Override
+            public String getAllowedSignatures(SqlOperator op, String opName) {
+              return String.format(
+                  Locale.ROOT, "%s(<SCALAR>), %s(<SCALAR>, <INTEGER>)", opName, opName);
+            }
+          });
 }

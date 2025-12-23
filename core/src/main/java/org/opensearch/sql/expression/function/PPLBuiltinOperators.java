@@ -481,13 +481,13 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               OperandTypes.VARIADIC)); // operand types of patterns are very flexible
   public static final SqlAggFunction LIST =
       createUserDefinedAggFunction(
-          ListAggFunction.class, "LIST", PPLReturnTypes.STRING_ARRAY, PPLOperandTypes.ANY_SCALAR);
+          ListAggFunction.class, "LIST", PPLReturnTypes.STRING_ARRAY, PPLOperandTypes.SCALAR);
   public static final SqlAggFunction VALUES =
       createUserDefinedAggFunction(
           ValuesAggFunction.class,
           "VALUES",
           PPLReturnTypes.STRING_ARRAY,
-          PPLOperandTypes.ANY_SCALAR_OPTIONAL_INTEGER);
+          PPLOperandTypes.SCALAR_OPTIONAL_INTEGER);
 
   public static final SqlFunction ATAN =
       new SqlFunction(
