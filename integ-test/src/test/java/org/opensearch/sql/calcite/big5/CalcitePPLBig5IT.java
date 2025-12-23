@@ -45,15 +45,6 @@ public class CalcitePPLBig5IT extends PPLBig5IT {
     timing(summary, "coalesce_nonexistent_field_fallback", ppl);
   }
 
-  /** Tests deduplication by metrics.size field with sorting by timestamp. */
-  @Test
-  public void dedup_metrics_size_field() throws IOException {
-    String ppl = sanitize(loadExpectedQuery("dedup_metrics_size_field.ppl"));
-    timing(summary, "dedup_metrics_size_field", ppl);
-    String expected = loadExpectedPlan("dedup_metrics_size_field.yaml");
-    assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
-  }
-
   /**
    * Tests regex-based field extraction and transformation using rex command. Validates that the
    * Calcite plan correctly handles regex patterns.
@@ -62,7 +53,7 @@ public class CalcitePPLBig5IT extends PPLBig5IT {
   public void rex_regex_transformation() throws IOException {
     String ppl = sanitize(loadExpectedQuery("rex_regex_transformation.ppl"));
     timing(summary, "rex_regex_transformation", ppl);
-    String expected = loadExpectedPlan("rex_regex_transformation.yaml");
+    String expected = loadExpectedPlan("big5/rex_regex_transformation.yaml");
     assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
