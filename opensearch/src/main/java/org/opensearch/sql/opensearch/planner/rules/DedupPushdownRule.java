@@ -91,7 +91,7 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
                         .filter(pair -> ((RexInputRef) pair.getKey()).getIndex() == i)
                         .map(Pair::getValue)
                         .findFirst()
-                        .get())
+                        .orElse(projectWithWindow.getInput().getRowType().getFieldNames().get(i)))
             .toList();
     if (dedupColumnIndices.size() != dedupColumnNames.size()) {
       return;
