@@ -99,6 +99,8 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
                   return ref;
                 })
             .toList();
+    // Stop processing if there is no converted agg call args
+    if (convertedAggCallArgs.isEmpty()) return;
     relBuilder.project(newChildProjects);
     RelNode newInput = relBuilder.peek();
 
