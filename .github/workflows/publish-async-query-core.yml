@@ -5,8 +5,8 @@ on:
   push:
     branches:
       - main
-      - 1.*
-      - 2.*
+      - '[0-9]+.[0-9]+'
+      - '[0-9]+.x'
     paths:
       - 'async-query-core/**'
       - '.github/workflows/publish-async-query-core.yml'
@@ -18,7 +18,6 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  SNAPSHOT_REPO_URL: https://central.sonatype.com/repository/maven-snapshots/
   COMMIT_MAP_FILENAME: commit-history-async-query-core.json
 
 jobs:
@@ -36,7 +35,7 @@ jobs:
       - uses: actions/setup-java@v3
         with:
           distribution: temurin
-          java-version: 21
+          java-version: 17
 
       - uses: actions/checkout@v3
 
@@ -47,8 +46,19 @@ jobs:
           export-env: true
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          SONATYPE_USERNAME: op://opensearch-infra-secrets/maven-central-portal-credentials/username
-          SONATYPE_PASSWORD: op://opensearch-infra-secrets/maven-central-portal-credentials/password
+          MAVEN_SNAPSHOTS_S3_REPO: op://opensearch-infra-secrets/maven-snapshots-s3/repo
+          MAVEN_SNAPSHOTS_S3_ROLE: op://opensearch-infra-secrets/maven-snapshots-s3/role
+
+      - name: Export SNAPSHOT_REPO_URL
+        run: |
+          snapshot_repo_url=${{ env.MAVEN_SNAPSHOTS_S3_REPO }}
+          echo "SNAPSHOT_REPO_URL=$snapshot_repo_url" >> $GITHUB_ENV
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ env.MAVEN_SNAPSHOTS_S3_ROLE }}
+          aws-region: us-east-1
 
       - name: Set commit ID
         id: set_commit
