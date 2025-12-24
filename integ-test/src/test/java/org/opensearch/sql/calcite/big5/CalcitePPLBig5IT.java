@@ -76,7 +76,7 @@ public class CalcitePPLBig5IT extends PPLBig5IT {
     String ppl = sanitize(loadExpectedQuery("script_engine_like_pattern_with_sort.ppl"));
     timing(summary, "script_engine_like_pattern_with_sort", ppl);
   }
-  
+
   /** Tests deduplication by metrics.size field with sorting by timestamp. */
   @Test
   public void dedup_metrics_size_field() throws IOException {
