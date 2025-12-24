@@ -697,6 +697,7 @@ public interface PlanUtils {
       @Nullable Project project,
       @Nullable List<Integer> otherMapping) {
     boolean ignoreNullBucket = aggIgnoreNullBucket.test(aggregate);
+    if (!ignoreNullBucket && project == null) return false;
     List<Integer> groupRefList = aggregate.getGroupSet().asList();
     if (project != null) {
       groupRefList =
