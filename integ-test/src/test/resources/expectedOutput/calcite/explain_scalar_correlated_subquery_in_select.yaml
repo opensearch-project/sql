@@ -1,12 +1,13 @@
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalProject(variablesSet=[[$cor0]], id=[$2], name=[$0], count_dept=[$SCALAR_QUERY({
+      LogicalProject(variablesSet=[[$cor1]], id=[$2], name=[$0], count_dept=[$SCALAR_QUERY({
     LogicalAggregate(group=[{}], count(name)=[COUNT($0)])
       LogicalProject(name=[$0])
         LogicalFilter(condition=[IS NOT NULL($0)])
-          LogicalFilter(condition=[=($cor0.id, $1)])
-            CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_work_information]])
+          LogicalProject(name=[$0], uid=[$1], occupation=[$2], department=[$3], _id=[$4], _index=[$5], _score=[$6], _maxscore=[$7], _sort=[$8], _routing=[$9])
+            LogicalFilter(condition=[=($cor1.id, $1)])
+              CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_work_information]])
     })])
         CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_worker]])
   physical: |
@@ -14,7 +15,7 @@ calcite:
       EnumerableLimit(fetch=[10000])
         EnumerableNestedLoopJoin(condition=[IS NOT DISTINCT FROM($1, $2)], joinType=[left])
           CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_worker]], PushDownContext=[[PROJECT->[name, id]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","_source":{"includes":["name","id"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NOT NULL($t2)], expr#4=[0], expr#5=[CASE($t3, $t2, $t4)], uid=[$t0], count(name)=[$t5])
+          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NOT NULL($t2)], expr#4=[0], expr#5=[CASE($t3, $t2, $t4)], uid10=[$t0], count(name)=[$t5])
             EnumerableNestedLoopJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])
               CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_worker]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0})], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"id":{"terms":{"field":"id","missing_bucket":true,"missing_order":"first","order":"asc"}}}]}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
-              CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_work_information]], PushDownContext=[[PROJECT->[name, uid], FILTER->AND(IS NOT NULL($1), IS NOT NULL($0)), AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0},count(name)=COUNT($1))], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","query":{"bool":{"must":[{"exists":{"field":"uid","boost":1.0}},{"exists":{"field":"name","boost":1.0}}],"adjust_pure_negative":true,"boost":1.0}},"_source":{"includes":["name","uid"],"excludes":[]},"aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"uid":{"terms":{"field":"uid","missing_bucket":true,"missing_order":"first","order":"asc"}}}]},"aggregations":{"count(name)":{"value_count":{"field":"name"}}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+              CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_work_information]], PushDownContext=[[PROJECT->[name, uid], FILTER->AND(IS NOT NULL($1), IS NOT NULL($0)), AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0},count(name)=COUNT($1))], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","query":{"bool":{"must":[{"exists":{"field":"uid","boost":1.0}},{"exists":{"field":"name","boost":1.0}}],"adjust_pure_negative":true,"boost":1.0}},"_source":{"includes":["name","uid"],"excludes":[]},"aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"uid10":{"terms":{"field":"uid","missing_bucket":true,"missing_order":"first","order":"asc"}}}]},"aggregations":{"count(name)":{"value_count":{"field":"name"}}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

@@ -20,14 +20,8 @@ import lombok.Getter;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.externalize.RelJson;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.SqlOperatorTable;
-import org.apache.calcite.sql.fun.SqlLibrary;
-import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.util.JsonBuilder;
 import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.opensearch.executor.OpenSearchExecutionEngine.OperatorTable;
 
 /**
@@ -45,7 +39,6 @@ public class RelJsonSerializer {
   private static final ObjectMapper mapper = new ObjectMapper();
   private static final TypeReference<LinkedHashMap<String, Object>> TYPE_REF =
       new TypeReference<>() {};
-  private static volatile SqlOperatorTable pplSqlOperatorTable;
 
   static {
     mapper.configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true);
@@ -53,27 +46,6 @@ public class RelJsonSerializer {
 
   public RelJsonSerializer(RelOptCluster cluster) {
     this.cluster = cluster;
-  }
-
-  private static SqlOperatorTable getPplSqlOperatorTable() {
-    if (pplSqlOperatorTable == null) {
-      synchronized (RelJsonSerializer.class) {
-        if (pplSqlOperatorTable == null) {
-          pplSqlOperatorTable =
-              SqlOperatorTables.chain(
-                  PPLBuiltinOperators.instance(),
-                  SqlStdOperatorTable.instance(),
-                  OperatorTable.instance(),
-                  // Add a list of necessary SqlLibrary if needed
-                  SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
-                      SqlLibrary.MYSQL,
-                      SqlLibrary.BIG_QUERY,
-                      SqlLibrary.SPARK,
-                      SqlLibrary.POSTGRESQL));
-        }
-      }
-    }
-    return pplSqlOperatorTable;
   }
 
   /**
@@ -127,7 +99,7 @@ public class RelJsonSerializer {
       relJson =
           relJson
               .withInputTranslator(ExtendedRelJson::translateInput)
-              .withOperatorTable(getPplSqlOperatorTable());
+              .withOperatorTable(OperatorTable.getChainedOperatorTable());
       Map<String, Object> exprMap = mapper.readValue(exprStr, TYPE_REF);
       return relJson.toRex(cluster, exprMap);
     } catch (Exception e) {

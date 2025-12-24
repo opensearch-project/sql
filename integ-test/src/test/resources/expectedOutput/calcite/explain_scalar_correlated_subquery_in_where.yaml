@@ -5,9 +5,9 @@ calcite:
         LogicalFilter(condition=[=($2, $SCALAR_QUERY({
     LogicalAggregate(group=[{}], max(uid)=[MAX($0)])
       LogicalProject(uid=[$1])
-        LogicalFilter(condition=[=($cor0.id, $1)])
+        LogicalFilter(condition=[=($cor1.id, $1)])
           CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_work_information]])
-    }))], variablesSet=[[$cor0]])
+    }))], variablesSet=[[$cor1]])
           CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_worker]])
   physical: |
     EnumerableLimit(fetch=[10000])

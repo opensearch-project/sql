@@ -240,7 +240,7 @@ public class CalciteToolsHelper {
      * return {@link OpenSearchCalcitePreparingStmt}
      */
     @Override
-    protected CalcitePrepareImpl.CalcitePreparingStmt getPreparingStmt(
+    public CalcitePrepareImpl.CalcitePreparingStmt getPreparingStmt(
         CalcitePrepare.Context context,
         Type elementType,
         CalciteCatalogReader catalogReader,
@@ -369,7 +369,8 @@ public class CalciteToolsHelper {
               "The 'bins' parameter on timestamp fields requires: (1) pushdown to be enabled"
                   + " (controlled by plugins.calcite.pushdown.enabled, enabled by default), and"
                   + " (2) the timestamp field to be used as an aggregation bucket (e.g., 'stats"
-                  + " count() by @timestamp').");
+                  + " count() by @timestamp').",
+              e);
         }
         throw Util.throwAsRuntime(e);
       }

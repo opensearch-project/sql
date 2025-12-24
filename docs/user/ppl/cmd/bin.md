@@ -450,9 +450,11 @@ fetched rows / total rows = 3/3
 +-----------+----------------+
 ```
   
-## Example 20: Binning with string fields  
-  
-```ppl
+## Example 20: Binning with string fields
+
+<!-- TODO: Enable after fixing https://github.com/opensearch-project/sql/issues/4973 -->
+
+```ppl ignore
 source=accounts
 | eval age_str = CAST(age AS STRING)
 | bin age_str bins=3

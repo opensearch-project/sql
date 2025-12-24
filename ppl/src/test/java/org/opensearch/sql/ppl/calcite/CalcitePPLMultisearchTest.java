@@ -290,9 +290,9 @@ public class CalcitePPLMultisearchTest extends CalcitePPLAbstractTest {
         "LogicalSort(sort0=[$3], dir0=[DESC-nulls-last])\n"
             + "  LogicalSort(sort0=[$3], dir0=[DESC])\n"
             + "    LogicalUnion(all=[true])\n"
-            + "      LogicalFilter(condition=[>($3, TIMESTAMP('2025-07-31 23:00:00':VARCHAR))])\n"
+            + "      LogicalFilter(condition=[>($3, '2025-07-31 23:00:00':VARCHAR)])\n"
             + "        LogicalTableScan(table=[[scott, TIME_DATA1]])\n"
-            + "      LogicalFilter(condition=[>($3, TIMESTAMP('2025-07-31 23:00:00':VARCHAR))])\n"
+            + "      LogicalFilter(condition=[>($3, '2025-07-31 23:00:00':VARCHAR)])\n"
             + "        LogicalTableScan(table=[[scott, TIME_DATA2]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -301,11 +301,11 @@ public class CalcitePPLMultisearchTest extends CalcitePPLAbstractTest {
             + "FROM (SELECT `timestamp`, `value`, `category`, `@timestamp`\n"
             + "FROM (SELECT *\n"
             + "FROM `scott`.`TIME_DATA1`\n"
-            + "WHERE `@timestamp` > TIMESTAMP('2025-07-31 23:00:00')\n"
+            + "WHERE `@timestamp` > '2025-07-31 23:00:00'\n"
             + "UNION ALL\n"
             + "SELECT *\n"
             + "FROM `scott`.`TIME_DATA2`\n"
-            + "WHERE `@timestamp` > TIMESTAMP('2025-07-31 23:00:00'))\n"
+            + "WHERE `@timestamp` > '2025-07-31 23:00:00')\n"
             + "ORDER BY `@timestamp` DESC NULLS FIRST) `t2`\n"
             + "ORDER BY `@timestamp` DESC";
     verifyPPLToSparkSQL(root, expectedSparkSql);
