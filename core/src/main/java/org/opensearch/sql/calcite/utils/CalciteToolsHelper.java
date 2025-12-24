@@ -52,7 +52,6 @@ import org.apache.calcite.jdbc.CalciteJdbc41Factory;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.Driver;
-import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.Convention;
@@ -175,8 +174,11 @@ public class CalciteToolsHelper {
     }
 
     @Override
-    protected Function0<CalcitePrepare> createPrepareFactory() {
-      return OpenSearchPrepareImpl::new;
+    public CalcitePrepare createPrepare() {
+      if (prepareFactory != null) {
+        return prepareFactory.get();
+      }
+      return new OpenSearchPrepareImpl();
     }
   }
 
@@ -298,10 +300,10 @@ public class CalciteToolsHelper {
 
     @Override
     protected PreparedResult implement(RelRoot root) {
-      Hook.PLAN_BEFORE_IMPLEMENTATION.run(root);
-      RelDataType resultType = root.rel.getRowType();
-      boolean isDml = root.kind.belongsTo(SqlKind.DML);
       if (root.rel instanceof Scannable scannable) {
+        Hook.PLAN_BEFORE_IMPLEMENTATION.run(root);
+        RelDataType resultType = root.rel.getRowType();
+        boolean isDml = root.kind.belongsTo(SqlKind.DML);
         final Bindable bindable = dataContext -> scannable.scan();
 
         return new PreparedResultImpl(

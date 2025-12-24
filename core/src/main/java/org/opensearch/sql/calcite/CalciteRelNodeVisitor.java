@@ -1047,7 +1047,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     //           \- Scan t
     List<RexInputRef> trimmedRefs = new ArrayList<>();
     trimmedRefs.addAll(PlanUtils.getInputRefs(resolvedGroupByList)); // group-by keys first
-    trimmedRefs.addAll(PlanUtils.getInputRefsFromAggCall(resolvedAggCallList));
+    List<RexInputRef> aggCallRefs = PlanUtils.getInputRefsFromAggCall(resolvedAggCallList);
+    trimmedRefs.addAll(aggCallRefs);
+    List<Boolean> nestedList = isNestedAggregation(context.relBuilder, aggCallRefs);
     context.relBuilder.project(trimmedRefs);
 
     // Re-resolve all attributes based on adding trimmed Project.
@@ -1060,12 +1062,27 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.aggregate(
         context.relBuilder.groupKey(reResolved.getLeft()), reResolved.getRight());
     if (hintBucketNonNull) PlanUtils.addIgnoreNullBucketHintToAggregate(context.relBuilder);
+    if (nestedList.stream().anyMatch(b -> b)) {
+      PlanUtils.addNestedHintToAggregate(context.relBuilder, nestedList);
+    }
     // During aggregation, Calcite projects both input dependencies and output group-by fields.
     // When names conflict, Calcite adds numeric suffixes (e.g., "value0").
     // Apply explicit renaming to restore the intended aliases.
     context.relBuilder.rename(intendedGroupKeyAliases);
 
     return Pair.of(reResolved.getLeft(), reResolved.getRight());
+  }
+
+  /**
+   * Return a list of the neste aggregation flag. For example: aggCalls: [count(), count(a.b),
+   * avg(a.c)] -> aggCallRefs [1, 2] -> nestedList [true, true]
+   */
+  private List<Boolean> isNestedAggregation(RelBuilder relBuilder, List<RexInputRef> aggCallRefs) {
+    return aggCallRefs.stream()
+        .map(r -> relBuilder.peek().getRowType().getFieldNames().get(r.getIndex()))
+        .map(name -> org.apache.commons.lang3.StringUtils.substringBefore(name, "."))
+        .map(root -> relBuilder.field(root).getType().getSqlTypeName() == SqlTypeName.ARRAY)
+        .toList();
   }
 
   /**

@@ -26,6 +26,8 @@ import org.opensearch.search.aggregations.bucket.histogram.DateHistogramAggregat
 import org.opensearch.search.aggregations.bucket.histogram.HistogramAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.histogram.ParsedDateHistogram;
 import org.opensearch.search.aggregations.bucket.histogram.ParsedHistogram;
+import org.opensearch.search.aggregations.bucket.nested.NestedAggregationBuilder;
+import org.opensearch.search.aggregations.bucket.nested.ParsedNested;
 import org.opensearch.search.aggregations.bucket.terms.DoubleTerms;
 import org.opensearch.search.aggregations.bucket.terms.LongTerms;
 import org.opensearch.search.aggregations.bucket.terms.ParsedDoubleTerms;
@@ -87,6 +89,8 @@ public class AggregationResponseUtils {
               .put(
                   TopHitsAggregationBuilder.NAME,
                   (p, c) -> ParsedTopHits.fromXContent(p, (String) c))
+              .put(
+                  NestedAggregationBuilder.NAME, (p, c) -> ParsedNested.fromXContent(p, (String) c))
               .build()
               .entrySet()
               .stream()

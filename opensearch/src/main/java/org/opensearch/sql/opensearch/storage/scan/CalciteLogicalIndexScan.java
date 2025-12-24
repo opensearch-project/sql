@@ -45,7 +45,6 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
-import org.opensearch.sql.opensearch.planner.rules.EnumerableIndexScanRule;
 import org.opensearch.sql.opensearch.planner.rules.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
@@ -124,15 +123,13 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
   @Override
   public void register(RelOptPlanner planner) {
     super.register(planner);
-    planner.addRule(EnumerableIndexScanRule.DEFAULT_CONFIG.toRule());
+    for (RelOptRule rule : OpenSearchIndexRules.OPEN_SEARCH_NON_PUSHDOWN_RULES) {
+      planner.addRule(rule);
+    }
     if ((Boolean) osIndex.getSettings().getSettingValue(Settings.Key.CALCITE_PUSHDOWN_ENABLED)) {
-      // When pushdown is enabled, use normal rules (they handle everything including relevance
-      // functions)
-      for (RelOptRule rule : OpenSearchIndexRules.OPEN_SEARCH_INDEX_SCAN_RULES) {
+      for (RelOptRule rule : OpenSearchIndexRules.OPEN_SEARCH_PUSHDOWN_RULES) {
         planner.addRule(rule);
       }
-    } else {
-      planner.addRule(OpenSearchIndexRules.RELEVANCE_FUNCTION_PUSHDOWN);
     }
   }
 
@@ -358,7 +355,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       boolean bucketNullable =
           Boolean.parseBoolean(
               aggregate.getHints().stream()
-                  .filter(hits -> hits.hintName.equals("stats_args"))
+                  .filter(hits -> hits.hintName.equals("agg_args"))
                   .map(hint -> hint.kvOptions.getOrDefault(Argument.BUCKET_NULLABLE, "true"))
                   .findFirst()
                   .orElseGet(() -> "true"));

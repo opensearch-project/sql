@@ -203,8 +203,10 @@ public class AggregateIndexScanRule extends InterruptibleRelRule<AggregateIndexS
             agg.getHints().stream()
                 .anyMatch(
                     hint ->
-                        hint.hintName.equals("stats_args")
-                            && hint.kvOptions.get(Argument.BUCKET_NULLABLE).equals("false"));
+                        hint.hintName.equals("agg_args")
+                            && hint.kvOptions
+                                .getOrDefault(Argument.BUCKET_NULLABLE, "true")
+                                .equals("false"));
     Predicate<Aggregate> maybeTimeSpanAgg =
         agg ->
             agg.getGroupSet().stream()

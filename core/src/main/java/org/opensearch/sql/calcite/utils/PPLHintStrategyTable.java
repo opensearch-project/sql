@@ -19,7 +19,12 @@ public class PPLHintStrategyTable {
           () ->
               HintStrategyTable.builder()
                   .hintStrategy(
-                      "stats_args",
+                      "agg_args",
+                      (hint, rel) -> {
+                        return rel instanceof LogicalAggregate;
+                      })
+                  .hintStrategy(
+                      "nested_agg",
                       (hint, rel) -> {
                         return rel instanceof LogicalAggregate;
                       })
