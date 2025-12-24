@@ -1,9 +1,7 @@
+/* Filter messages containing 'sshd' and aggregate count by metrics.size */
 /*
-Filter messages containing 'sshd' and aggregate count by metrics.size
-
 {
   "name": "script_engine_like_pattern_with_aggregation",
-  "description": "Filter messages containing 'sshd' and aggregate count by metrics.size",
   "operation-type": "search",
   "index": "{{index_name | default('custom-big5')}}",
   "body": {

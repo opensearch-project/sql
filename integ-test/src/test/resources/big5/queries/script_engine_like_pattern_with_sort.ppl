@@ -1,9 +1,7 @@
+/* Filter messages containing 'sshd', sort by timestamp, and return top 10 results */
 /*
-Filter messages containing 'sshd', sort by timestamp, and return top 10 results
-
 {
   "name": "script_engine_like_pattern_with_sort",
-  "description": "Filter messages containing 'sshd', sort by timestamp, and return top 10 results",
   "operation-type": "search",
   "index": "{{index_name | default('big5')}}",
   "body": {
