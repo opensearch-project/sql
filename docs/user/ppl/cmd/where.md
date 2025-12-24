@@ -1,16 +1,23 @@
 # where
 
-
-The `where` command filters the search results. The `where` command only returns the result when the bool-expression evaluates to true.
+The `where` command filters the search results. It only returns results that match the specified conditions.
 
 ## Syntax
 
-Use the following syntax:
+The `where` command has the following syntax:
 
-`where <boolean-expression>`  
-* `bool-expression`: optional. Any expression which could be evaluated to boolean value.  
+```sql
+where <boolean-expression>
+```
+
+## Parameters
+
+The `where` command supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<boolean-expression>` | Required | The condition used to filter the results. Only rows in which this condition evaluates to `true` are returned. |
   
-
 ## Example 1: Filter search results with condition  
 
 The following example PPL query shows how to use `where` to fetch all the documents from the accounts index where account_number is 1 or gender is "F".
@@ -32,77 +39,10 @@ fetched rows / total rows = 2/2
 | 13             | F      |
 +----------------+--------+
 ```
-  
 
-## Example 2: Basic field Comparison  
+## Example 2: Filter using combined criteria
 
-The following example PPL query shows how to use `where` to filter accounts with balance greater than 30000.
-  
-```ppl
-source=accounts
-| where balance > 30000
-| fields account_number, balance
-```
-  
-Expected output:
-  
-```text
-fetched rows / total rows = 2/2
-+----------------+---------+
-| account_number | balance |
-|----------------+---------|
-| 1              | 39225   |
-| 13             | 32838   |
-+----------------+---------+
-```
-  
-
-## Example 3: Pattern matching with LIKE  
-
-Pattern Matching with Underscore (\_)
-The following example PPL query demonstrates using LIKE with underscore (\_) to match a single character.
-  
-```ppl
-source=accounts
-| where LIKE(state, 'M_')
-| fields account_number, state
-```
-  
-Expected output:
-  
-```text
-fetched rows / total rows = 1/1
-+----------------+-------+
-| account_number | state |
-|----------------+-------|
-| 18             | MD    |
-+----------------+-------+
-```
-  
-Pattern Matching with Percent (%)
-The following example PPL query demonstrates using LIKE with percent (%) to match multiple characters.
-  
-```ppl
-source=accounts
-| where LIKE(state, 'V%')
-| fields account_number, state
-```
-  
-Expected output:
-  
-```text
-fetched rows / total rows = 1/1
-+----------------+-------+
-| account_number | state |
-|----------------+-------|
-| 13             | VA    |
-+----------------+-------+
-```
-  
-
-## Example 4: Multiple conditions  
-
-The following example PPL query shows how to combine multiple conditions using AND operator.
+The following query combines multiple conditions using an `AND` operator:
   
 ```ppl
 source=accounts
@@ -110,7 +50,7 @@ source=accounts
 | fields account_number, age, gender
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -122,86 +62,86 @@ fetched rows / total rows = 3/3
 | 18             | 33  | M      |
 +----------------+-----+--------+
 ```
-  
 
-## Example 5: Using IN operator  
+## Example 3: Filter with multiple possible values
 
-The following example PPL query demonstrates using IN operator to match multiple values.
+The following query fetches all the documents from the `accounts` index in which `account_number` is `1` or `gender` is `F`:
   
 ```ppl
 source=accounts
-| where state IN ('IL', 'VA')
-| fields account_number, state
+| where account_number=1 or gender="F"
+| fields account_number, gender
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
++----------------+--------+
+| account_number | gender |
+|----------------+--------|
+| 1              | M      |
+| 13             | F      |
++----------------+--------+
+```
+
+## Example 4: Filter by text patterns 
+
+The `LIKE` operator enables pattern matching on string fields using wildcards.
+
+### Matching a single character
+
+The following query uses an underscore (`_`) to match a single character:
+  
+```ppl
+source=accounts
+| where LIKE(state, 'M_')
+| fields account_number, state
+```
+  
+The query returns the following results:
+  
+```text
+fetched rows / total rows = 1/1
 +----------------+-------+
 | account_number | state |
 |----------------+-------|
-| 1              | IL    |
+| 18             | MD    |
++----------------+-------+
+```
+
+### Matching multiple characters
+
+The following query uses a percent sign (`%`) to match multiple characters:
+  
+```ppl
+source=accounts
+| where LIKE(state, 'V%')
+| fields account_number, state
+```
+  
+The query returns the following results:
+  
+```text
+fetched rows / total rows = 1/1
++----------------+-------+
+| account_number | state |
+|----------------+-------|
 | 13             | VA    |
 +----------------+-------+
 ```
-  
 
-## Example 6: NULL Checks  
+## Example 5: Filter by excluding specific values  
 
-The following example PPL query shows how to filter records with NULL values.
-  
-```ppl
-source=accounts
-| where ISNULL(employer)
-| fields account_number, employer
-```
-  
-Expected output:
-  
-```text
-fetched rows / total rows = 1/1
-+----------------+----------+
-| account_number | employer |
-|----------------+----------|
-| 18             | null     |
-+----------------+----------+
-```
-  
+The following query uses a `NOT` operator to exclude matching records:
 
-## Example 7: Complex conditions  
-
-The following example PPL query demonstrates combining multiple conditions with parentheses and logical operators.
-  
-```ppl
-source=accounts
-| where (balance > 40000 OR age > 35) AND gender = 'M'
-| fields account_number, balance, age, gender
-```
-  
-Expected output:
-  
-```text
-fetched rows / total rows = 1/1
-+----------------+---------+-----+--------+
-| account_number | balance | age | gender |
-|----------------+---------+-----+--------|
-| 6              | 5686    | 36  | M      |
-+----------------+---------+-----+--------+
-```
-  
-
-## Example 8: NOT conditions  
-
-The following example PPL query shows how to use NOT operator to exclude matching records.
-  
 ```ppl
 source=accounts
 | where NOT state = 'CA'
 | fields account_number, state
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -214,4 +154,71 @@ fetched rows / total rows = 4/4
 | 18             | MD    |
 +----------------+-------+
 ```
+
+## Example 6: Filter using value lists  
+
+The following query uses an `IN` operator to match multiple values:
+  
+```ppl
+source=accounts
+| where state IN ('IL', 'VA')
+| fields account_number, state
+```
+  
+The query returns the following results:
+  
+```text
+fetched rows / total rows = 2/2
++----------------+-------+
+| account_number | state |
+|----------------+-------|
+| 1              | IL    |
+| 13             | VA    |
++----------------+-------+
+```
+  
+
+## Example 7: Filter records with missing data  
+
+The following query returns records in which the `employer` field is `null`:
+  
+```ppl
+source=accounts
+| where ISNULL(employer)
+| fields account_number, employer
+```
+  
+The query returns the following results:
+  
+```text
+fetched rows / total rows = 1/1
++----------------+----------+
+| account_number | employer |
+|----------------+----------|
+| 18             | null     |
++----------------+----------+
+```
+  
+
+## Example 8: Filter using grouped conditions  
+
+The following query combines multiple conditions using parentheses and logical operators:
+  
+```ppl
+source=accounts
+| where (balance > 40000 OR age > 35) AND gender = 'M'
+| fields account_number, balance, age, gender
+```
+  
+The query returns the following results:
+  
+```text
+fetched rows / total rows = 1/1
++----------------+---------+-----+--------+
+| account_number | balance | age | gender |
+|----------------+---------+-----+--------|
+| 6              | 5686    | 36  | M      |
++----------------+---------+-----+--------+
+```
+
   

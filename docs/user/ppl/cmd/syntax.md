@@ -1,40 +1,59 @@
 # PPL syntax
 
-Every PPL query starts with the `search` command. It specifies the index to search and retrieve documents from.
+## Parameters
 
-`PPL` supports exactly one `search` command per PPL query, and it is always the first command. The word `search` can be omitted.
+The `search` command supports the following parameters.
 
-Subsequent commands can follow in any order.
-
-
-## Syntax
-
-```ppl ignore
-search source=<index> [boolean-expression]
-source=<index> [boolean-expression]
-```
-  
-
-Field | Description | Required
-:--- | :--- |:---
-`index` | Specifies the index to query. | No
-`bool-expression` | Specifies an expression that evaluates to a Boolean value. | No
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<index>` | Optional | Specifies the index to query. |
+| `<boolean-expression>` | Optional | Specifies an expression that evaluates to a Boolean value. |
 
 
-### Required arguments  
+## Syntax notation conventions
 
-Required arguments are shown in angle brackets `< >`.  
+PPL command syntax uses the following notation conventions.
 
-### Optional arguments  
+### Placeholders
 
-Optional arguments are enclosed in square brackets `[ ]`.
+Placeholders are shown in angle brackets (`< >`). These must be replaced with actual values.
+
+**Example**: `<field>` means you must specify an actual field name like `age` or `firstname`.
+
+### Optional elements
+
+Optional elements are enclosed in square brackets (`[ ]`). These can be omitted from the command.
+
+**Examples**:
+- `[+|-]` means the plus or minus signs are optional.
+- `[<alias>]` means the alias placeholder is optional.
+
+### Required choices
+
+Required choices between alternatives are shown in parentheses and are delimited with pipe separators (`(option1 | option2)`). You must choose exactly one of the specified options.
+
+**Example**: `(on | where)` means you must use either `on` or `where`, but not both.
+
+### Optional choices
+
+Optional choices between alternatives are shown in square brackets with pipe separators (`[option1 | option2]`). You can choose one of the options or omit them entirely.
+
+**Example**: `[asc | desc]` means you can specify `asc`, `desc`, or neither.
+
+### Repetition
+
+An ellipsis (`...`) indicates that the preceding element can be repeated multiple times.
+
+**Examples**:
+- `<field>...` means one or more fields without commas: `field1 field2 field3`
+- `<field>, ...` means comma-separated repetition: `field1, field2, field3`
   
 
 ## Examples
 
 **Example 1: Search through accounts index**
 
-In the following example, the `search` command refers to an `accounts` index as the source and uses `fields` and `where` commands for the conditions:
+In the following query, the `search` command refers to an `accounts` index as the source and uses the `fields` and `where` commands for the conditions:
 
 ```ppl ignore
 search source=accounts

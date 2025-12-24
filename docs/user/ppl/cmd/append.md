@@ -1,32 +1,34 @@
 # append
 
+The `append` command appends the results of a subsearch as additional rows to the end of the input search results (the main search).
 
-The `append` command appends the result of a sub-search and attaches it as additional rows to the bottom of the input search results (the main search).
-
-The command aligns columns with the same field names and types. For different column fields between the main search and sub-search, NULL values are filled in the respective rows.
+The command aligns columns that have the same field names and types. For columns that exist in only the main search or subsearch, `NULL` values are inserted into the missing fields for the respective rows.
 
 ## Syntax
 
-Use the following syntax:
+The `append` command has the following syntax:
 
-`append <sub-search>`
-* `sub-search`: mandatory. Executes PPL commands as a secondary search.  
-  
+```sql
+append <subsearch>
+```
 
-## Limitations  
+## Parameters
 
-* **Schema Compatibility**: When fields with the same name exist between the main search and sub-search but have incompatible types, the query will fail with an error. To avoid type conflicts, ensure that fields with the same name have the same data type, or use different field names (e.g., by renaming with `eval` or using `fields` to select non-conflicting columns).  
-  
+The `append` command supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<subsearch>` | Required | Executes PPL commands as a secondary search. |  
 
 ## Example 1: Append rows from a count aggregation to existing search results
 
-The following example appends rows from "count by gender" to "sum by gender, state".
+The following query appends rows from `count by gender` to `sum by gender, state`:
   
 ```ppl
 source=accounts | stats sum(age) by gender, state | sort -`sum(age)` | head 5 | append [ source=accounts | stats count(age) by gender ]
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 6/6
@@ -45,13 +47,13 @@ fetched rows / total rows = 6/6
 
 ## Example 2: Append rows with merged column names
 
-The following example appends rows from "sum by gender" to "sum by gender, state" with merged column of same field name and type.
+The following query appends rows from `sum by gender` to `sum by gender, state`, merging columns that have the same field name and type:
   
 ```ppl
 source=accounts | stats sum(age) as sum by gender, state | sort -sum | head 5 | append [ source=accounts | stats sum(age) as sum by gender ]
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 6/6
@@ -66,4 +68,9 @@ fetched rows / total rows = 6/6
 | 101 | M      | null  |
 +-----+--------+-------+
 ```
-  
+
+## Limitations
+
+The `append` command has the following limitations:
+
+* **Schema compatibility**: When fields with the same name exist in both the main search and the subsearch but have incompatible types, the query fails with an error. To avoid type conflicts, ensure that fields with the same name share the same data type. Alternatively, use different field names. You can rename the conflicting fields using `eval` or select non-conflicting columns using `fields`.

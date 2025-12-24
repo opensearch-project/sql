@@ -1,20 +1,31 @@
 # head
 
+The `head` command returns the first N lines from a search result.
 
-The `head` command returns the first N number of lines from a search result.
+The `head` command is not rewritten to [query domain-specific language (DSL)](https://opensearch.org/docs/latest/query-dsl/index/). It is only executed on the coordinating node.
+{: .note}
 
 ## Syntax
 
-Use the following syntax:
+The `head` command has the following syntax:
 
-`head [<size>] [from <offset>]`
-* `size`: optional integer. The number of results you want to return. **Default:** 10  
-* `offset`: optional integer after `from`. Number of results to skip. **Default:** 0  
+```sql
+head [<size>] [from <offset>]
+```
+
+## Parameters
+
+The `head` command supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<size>` | Optional | The number of results to return. Must be an integer. Default is `10`. |
+| `<offset>` | Optional | The number of results to skip (used with the `from` keyword). Must be an integer. Default is `0`. |
   
 
-## Example 1: Get the first 10 results 
+## Example 1: Retrieve the first set of results using the default size
 
-The following example PPL query shows how to use `head` to return the first 10 search results:
+The following query returns the default number of search results (10):
   
 ```ppl
 source=accounts
@@ -22,7 +33,7 @@ source=accounts
 | head
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -37,9 +48,9 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 2: Get first N results  
+## Example 2: Retrieve a specified number of results
 
-The following example PPL query shows how to use `head` to get a specified number of search results. In this example, N is equal to 3: 
+The following query returns the first 3 search results:
   
 ```ppl
 source=accounts
@@ -47,7 +58,7 @@ source=accounts
 | head 3
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -61,9 +72,9 @@ fetched rows / total rows = 3/3
 ```
   
 
-## Example 3: Get the first N results after offset M  
+## Example 3: Retrieve the first N results after an offset M
 
-The following example PPL query example shows getting the first 3 results after offset 1 from the `accounts` index.
+The following query demonstrates how to retrieve the first 3 results starting with the second result from the `accounts` index:
   
 ```ppl
 source=accounts
@@ -71,7 +82,7 @@ source=accounts
 | head 3 from 1
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -83,8 +94,3 @@ fetched rows / total rows = 3/3
 | Dale      | 33  |
 +-----------+-----+
 ```
-  
-
-## Limitations  
-
-The `head` command is not rewritten to [query domain-specific language (DSL)](https://opensearch.org/docs/latest/query-dsl/index/). It is only run on the coordinating node.

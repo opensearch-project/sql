@@ -1,24 +1,32 @@
 # trendline
 
-
 The `trendline` command calculates moving averages of fields.
 
 ## Syntax
 
-Use the following syntax:
+The `trendline` command has the following syntax:
 
-`trendline [sort <[+|-] sort-field>] [sma|wma](number-of-datapoints, field) [as <alias>] [[sma|wma](number-of-datapoints, field) [as <alias>]]...`
-* `[+|-]`: optional. The plus [+] stands for ascending order and NULL/MISSING first and a minus [-] stands for descending order and NULL/MISSING last. **Default:** ascending order and NULL/MISSING first.  
-* `sort-field`: mandatory when sorting is used. The field used to sort.  
-* `sma|wma`: mandatory. Simple Moving Average (sma) applies equal weighting to all values, Weighted Moving Average (wma) applies greater weight to more recent values.  
-* `number-of-datapoints`: mandatory. The number of datapoints to calculate the moving average (must be greater than zero).  
-* `field`: mandatory. The name of the field the moving average should be calculated for.  
-* `alias`: optional. The name of the resulting column containing the moving average. **Default:** field name with "_trendline".  
+```sql
+trendline [sort [+|-] <sort-field>] (sma | wma)(<number-of-datapoints>, <field>) [as <alias>] [(sma | wma)(<number-of-datapoints>, <field>) [as <alias>]]...
+```
+
+## Parameters
+
+The `trendline` command supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `[+|-]` | Optional | The sort order for the data. `+` specifies ascending order with `NULL`/`MISSING` first, `-` specifies descending order with `NULL`/`MISSING` last. Default is `+`. |
+| `<sort-field>` | Required | The field used to sort the data. |
+| `(sma | wma)` | Required | The type of moving average to calculate. `sma` calculates the simple moving average with equal weighting for all values, `wma` calculates the weighted moving average with more weight given to recent values. |
+| `number-of-datapoints` | Required | The number of data points used to calculate the moving average. Must be greater than zero. |
+| `<field>` | Required | The field for which the moving average is calculated. |
+| `<alias>` | Optional | The name of the resulting column containing the moving average. Default is the `<field>` name with `_trendline` appended. |
   
 
-## Example 1: Calculate the simple moving average on one field
+## Example 1: Calculate the simple moving average for one field
 
-The following example PPL query shows how to use `trendline` to calculate the simple moving average on one field.
+The following query calculates the simple moving average for one field:
   
 ```ppl
 source=accounts
@@ -26,7 +34,7 @@ source=accounts
 | fields an
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -41,9 +49,9 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 2: Calculate the simple moving average on multiple fields
+## Example 2: Calculate the simple moving average for multiple fields
 
-The following example PPL query shows how to use `trendline` to calculate the simple moving average on multiple fields.
+The following query calculates the simple moving average for multiple fields:
   
 ```ppl
 source=accounts
@@ -51,7 +59,7 @@ source=accounts
 | fields an, age_trend
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -65,10 +73,9 @@ fetched rows / total rows = 4/4
 +------+-----------+
 ```
   
+## Example 3: Calculate the simple moving average for one field without specifying an alias
 
-## Example 3: Calculate the simple moving average on one field without specifying an alias
-
-The following example PPL query shows how to use `trendline` to calculate the simple moving average on one field.
+The following query calculates the simple moving average for one field without specifying an alias:
   
 ```ppl
 source=accounts
@@ -76,7 +83,7 @@ source=accounts
 | fields account_number_trendline
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -91,9 +98,9 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 4: Calculate the weighted moving average on one field
+## Example 4: Calculate the weighted moving average for one field
 
-The following example PPL query shows how to use `trendline` to calculate the weighted moving average on one field.
+The following query calculates the weighted moving average for one field:
   
 ```ppl
 source=accounts
@@ -101,7 +108,7 @@ source=accounts
 | fields account_number_trendline
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -118,4 +125,6 @@ fetched rows / total rows = 4/4
 
 ## Limitations  
 
-The `trendline` command requires all values in the specified `field` to be non-null. Any rows with null values present in the calculation field will be automatically excluded from the command's output.
+The `trendline` command has the following limitations:
+
+* The `trendline` command requires all values in the specified `<field>` parameter to be non-null. Any rows with `null` values in this field are automatically excluded from the command's output.

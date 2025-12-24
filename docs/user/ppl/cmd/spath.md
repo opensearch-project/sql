@@ -1,25 +1,34 @@
 # spath
 
+The `spath` command extracts fields from structured text data by allowing you to select JSON values using JSON paths.
 
-The `spath` command extracts fields from structured text data. It currently allows selecting from JSON data with JSON paths.
+The `spath` command is not executed on OpenSearch data nodes. It extracts fields from data after it has been returned to the coordinator node, which is slow on large datasets. We recommend indexing fields needed for filtering directly instead of using `spath` to filter nested fields.
+{: .note}
 
 ## Syntax
 
-Use the following syntax:
+The `spath` command has the following syntax:
 
-`spath input=<field> [output=<field>] [path=]<path>`
-* `input`: mandatory. The field to scan for JSON data.  
-* `output`: optional. The destination field that the data will be loaded to. **Default:** value of `path`.  
-* `path`: mandatory. The path of the data to load for the object. For more information about path syntax, see [json_extract](../functions/json.md#json_extract).  
+```sql
+spath input=<field> [output=<field>] [path=]<path>
+```
+
+## Parameters
+
+The `spath` command supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `input` | Required | The field containing JSON data to parse. |
+| `output` | Optional | The destination field in which the extracted data is stored. Default is the value of `<path>`. |
+| `<path>` | Required | The JSON path that identifies the data to extract. |  
+
+For more information about path syntax, see [json_extract]({{site.url}}{{site.baseurl}}/sql-and-ppl/ppl/functions/json#json_extract).
   
 
-## Note  
+## Example 1: Basic field extraction
 
-The `spath` command currently does not support pushdown behavior for extraction. It will be slow on large datasets. It's generally better to index fields needed for filtering directly instead of using `spath` to filter nested fields.
-
-## Example 1: Simple field Extraction  
-
-The simplest spath is to extract a single field. This example extracts `n` from the `doc` field of type `text`.
+The basic use of `spath` extracts a single field from JSON data. The following query extracts the `n` field from JSON objects in the `doc_n` field:
   
 ```ppl
 source=structured
@@ -27,7 +36,7 @@ source=structured
 | fields doc_n n
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -43,7 +52,7 @@ fetched rows / total rows = 3/3
 
 ## Example 2: Lists and nesting  
 
-The following example PPL query demonstrates more JSON path uses, like traversing nested fields and extracting list elements.
+The following query shows how to traverse nested fields and extract list elements:
   
 ```ppl
 source=structured
@@ -53,7 +62,7 @@ source=structured
 | fields doc_list first_element all_elements nested
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -69,7 +78,7 @@ fetched rows / total rows = 3/3
 
 ## Example 3: Sum of inner elements  
 
-The following example PPL query shows how to use `spath` to extract an inner field and do statistics on it, using the docs from example 1. It also demonstrates that `spath` always returns strings for inner types.
+The following query shows how to use `spath` to extract the `n` field from JSON data and calculate the sum of all extracted values: 
   
 ```ppl
 source=structured
@@ -79,7 +88,7 @@ source=structured
 | fields `sum(n)`
 ```
   
-Expected output:
+The query returns the following results. The `spath` command always returns inner values as strings:
   
 ```text
 fetched rows / total rows = 1/1
@@ -89,11 +98,11 @@ fetched rows / total rows = 1/1
 | 6      |
 +--------+
 ```
-  
+
 
 ## Example 4: Escaped paths  
 
-`spath` can escape paths with strings to accept any path that `json_extract` does. This includes escaping complex field names as array components.
+Use quoted string syntax to access JSON field names that contain spaces, dots, or other special characters:
   
 ```ppl
 source=structured
@@ -102,7 +111,7 @@ source=structured
 | fields a b
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3

@@ -1,27 +1,40 @@
 # fillnull
 
+The `fillnull` command replaces `null` values in one or more fields of the search results with a specified value.
 
-The `fillnull` command fills null values with the provided value in one or more fields in the search results.
+The `fillnull` command is not rewritten to [query domain-specific language (DSL)]({{site.url}}{{site.baseurl}}/query-dsl/). It is only executed on the coordinating node.
+{: .note}
 
 ## Syntax
 
-Use one of the following syntax options:
+The `fillnull` command has the following syntax:
 
-`fillnull with <replacement> [in <field-list>]`  
-`fillnull using <field> = <replacement> [, <field> = <replacement>]`  
-`fillnull value=<replacement> [<field-list>]`  
-* `replacement`: mandatory. The value used to replace null values.  
-* `field-list`: optional. List of fields to apply the replacement to. It can be comma-delimited (with `with` or `using` syntax) or space-delimited (with `value=` syntax). **Default:** all fields.  
-* `field`: mandatory when using `using` syntax. Individual field name to assign a specific replacement value.  
-* **Syntax variations**  
-  * `with <replacement> in <field-list>` - Apply same value to specified fields  
-  * `using <field>=<replacement>, ...` - Apply different values to different fields  
-  * `value=<replacement> [<field-list>]` - Alternative syntax with optional space-delimited field list  
+```sql
+fillnull with <replacement> [in <field-list>]
+fillnull using <field> = <replacement> [, <field> = <replacement>]
+fillnull value=<replacement> [<field-list>]
+```
+
+The following syntax variations are available:
+
+* `with <replacement> in <field-list>` -- Apply the same value to specified fields.
+* `using <field>=<replacement>, ...` -- Apply different values to different fields.
+* `value=<replacement> [<field-list>]` -- Alternative syntax with an optional space-delimited field list.
+
+## Parameters
+
+The `fillnull` command supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<replacement>` | Required | The value that replaces null values. |
+| `<field>` | Required (with `using` syntax) | The name of the field to which a specific replacement value is applied. |
+| `<field-list>` | Optional | A list of fields in which null values are replaced. You can specify the list as comma-delimited (using `with` or `using` syntax) or space-delimited (using `value=` syntax). By default, all fields are processed. |
   
 
-## Example 1: Replace null values with a specified value on one field  
+## Example 1: Replace null values in a single field with a specified value
 
-The following example PPL query shows how to use `fillnull` to replace null values in the email field with '\<not found\>'.
+The following query replaces null values in the `email` field with `\<not found\>`:
   
 ```ppl
 source=accounts
@@ -29,7 +42,7 @@ source=accounts
 | fillnull with '<not found>' in email
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -44,9 +57,9 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 2: Replace null values with a specified value on multiple fields  
+## Example 2: Replace null values in multiple fields with a specified value
 
-The following example PPL query shows how to use `fillnull` to replace null values in both email and employer fields with the same replacement value '\<not found\>'.
+The following query replaces null values in both the `email` and `employer` fields with `\<not found\>`:
   
 ```ppl
 source=accounts
@@ -54,7 +67,7 @@ source=accounts
 | fillnull with '<not found>' in email, employer
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -67,11 +80,10 @@ fetched rows / total rows = 4/4
 | daleadams@boink.com   | <not found> |
 +-----------------------+-------------+
 ```
-  
 
-## Example 3: Replace null values with a specified value on all fields  
+## Example 3: Replace null values in all fields with a specified value
 
-The following example PPL query shows how to use `fillnull` to replace null values in all fields when no field list is specified.
+The following query replaces null values in all fields when no `field-list` is specified:
   
 ```ppl
 source=accounts
@@ -79,7 +91,7 @@ source=accounts
 | fillnull with '<not found>'
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -94,9 +106,9 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 4: Replace null values with multiple specified values on multiple fields  
+## Example 4: Replace null values in multiple fields with different specified values
 
-The following example PPL query shows how to use `fillnull` with different replacement values for different fields using the 'using' syntax.
+The following query shows how to use the `fillnull` command with different replacement values for multiple fields using the `using` syntax:
   
 ```ppl
 source=accounts
@@ -104,7 +116,7 @@ source=accounts
 | fillnull using email = '<not found>', employer = '<no employer>'
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -119,9 +131,9 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 5: Replace null with specified value on specific fields (value= syntax)  
+## Example 5: Replace null values in specific fields using the value= syntax
 
-The following example PPL query shows how to use `fillnull` with the alternative 'value=' syntax to replace null values in specific fields.
+The following query shows how to use the `fillnull` command with the `value=` syntax to replace null values in specific fields:
   
 ```ppl
 source=accounts
@@ -129,7 +141,7 @@ source=accounts
 | fillnull value="<not found>" email employer
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -144,9 +156,9 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 6: Replace null with specified value on all fields (value= syntax)  
+## Example 6: Replace null values in all fields using the value= syntax
 
-When no field list is specified, the replacement applies to all fields in the result.
+When no `field-list` is specified, the replacement applies to all fields in the result:
   
 ```ppl
 source=accounts
@@ -154,7 +166,7 @@ source=accounts
 | fillnull value='<not found>'
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -171,15 +183,14 @@ fetched rows / total rows = 4/4
 
 ## Limitations  
 
-* The `fillnull` command is not rewritten to [query domain-specific language (DSL)](https://opensearch.org/docs/latest/query-dsl/index/). It is only run on the coordinating node.  
-* When applying the same value to all fields without specifying field names, all fields must be the same type. For mixed types, use separate fillnull commands or explicitly specify fields.  
-* The replacement value type must match ALL field types in the field list. When applying the same value to multiple fields, all fields must be the same type (all strings or all numeric).  
+The `fillnull` command has the following limitations:
+
+* When applying the same value to all fields without specifying field names, all fields must be of the same type. For mixed types, use separate `fillnull` commands or explicitly specify fields.
+* The replacement value type must match all field types in the field list. When applying the same value to multiple fields, all fields must be of the same type (all strings or all numeric). The following query shows the error that occurs when this rule is violated: 
   
-  **Example:**
-  
-```sql ignore
-  # This FAILS - same value for mixed-type fields
-  source=accounts | fillnull value=0 firstname, age
-  # ERROR: fillnull failed: replacement value type INTEGER is not compatible with field 'firstname' (type: VARCHAR). The replacement value type must match the field type.
-```
+    ```sql ignore
+      # This FAILS - same value for mixed-type fields
+      source=accounts | fillnull value=0 firstname, age
+      # ERROR: fillnull failed: replacement value type INTEGER is not compatible with field 'firstname' (type: VARCHAR). The replacement value type must match the field type.
+    ```
   

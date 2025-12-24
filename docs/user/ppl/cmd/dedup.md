@@ -1,22 +1,30 @@
 # dedup
 
-
 The `dedup` command removes duplicate documents defined by specified fields from the search result.
 
 ## Syntax
 
-Use the following syntax:
+The `dedup` command has the following syntax:
 
-`dedup [int] <field-list> [keepempty=<bool>] [consecutive=<bool>]`
-* `int`: optional. The `dedup` command retains multiple events for each combination when you specify `<int>`. The number for `<int>` must be greater than 0. All other duplicates are removed from the results. **Default:** 1  
-* `keepempty`: optional. If set to true, keep the document if any field in the field-list has NULL value or field is MISSING. **Default:** false.  
-* `consecutive`: optional. If set to true, removes only events with duplicate combinations of values that are consecutive. **Default:** false.  
-* `field-list`: mandatory. The comma-delimited field list. At least one field is required.  
-  
+```sql
+dedup [int] <field-list> [keepempty=<bool>] [consecutive=<bool>]
+```
 
-## Example 1: Dedup by one field  
+## Parameters
 
-The following example PPL query shows how to use `dedup` to remove duplicate documents based on the `gender` field:
+The `dedup` command supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<field-list>` | Required | A comma-delimited list of fields to use for deduplication. At least one field is required. |
+| `<int>` | Optional | The number of duplicate documents to retain for each combination. Must be greater than `0`. Default is `1`. |
+| `keepempty` | Optional | When set to `true`, keeps documents in which any field in the field list has a `NULL` value or is missing. Default is `false`. |
+| `consecutive` | Optional | When set to `true`, removes only consecutive duplicate documents. Default is `false`. Requires the legacy SQL engine (`plugins.calcite.enabled=false`). |
+
+
+## Example 1: Remove duplicates based on a single field
+
+The following query deduplicates documents based on the `gender` field:
   
 ```ppl
 source=accounts
@@ -25,7 +33,7 @@ source=accounts
 | sort account_number
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -38,9 +46,9 @@ fetched rows / total rows = 2/2
 ```
   
 
-## Example 2: Keep two duplicates documents  
+## Example 2: Retain multiple duplicate documents
 
-The following example PPL query shows how to use `dedup` to remove duplicate documents based on the `gender` field while keeping two duplicates:
+The following query removes duplicate documents based on the `gender` field while keeping two duplicate documents:
   
 ```ppl
 source=accounts
@@ -49,7 +57,7 @@ source=accounts
 | sort account_number
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -63,9 +71,9 @@ fetched rows / total rows = 3/3
 ```
   
 
-## Example 3: Keep or ignore empty fields by default  
+## Example 3: Handle documents with empty field values
 
-The following example PPL query shows how to use `dedup` to remove duplicate documents while keeping documents with null values in the specified field:
+The following query removes duplicate documents while keeping documents with `null` values in the specified field:
   
 ```ppl
 source=accounts
@@ -74,7 +82,7 @@ source=accounts
 | sort account_number
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -88,7 +96,7 @@ fetched rows / total rows = 4/4
 +----------------+-----------------------+
 ```
   
-The following example PPL query shows how to use `dedup` to remove duplicate documents while ignoring documents with empty values in the specified field:
+The following query removes duplicate documents while ignoring documents with empty values in the specified field:
   
 ```ppl
 source=accounts
@@ -97,7 +105,7 @@ source=accounts
 | sort account_number
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -111,9 +119,9 @@ fetched rows / total rows = 3/3
 ```
   
 
-## Example 4: Dedup in consecutive document  
+## Example 4: Deduplicate consecutive documents
 
-The following example PPL query shows how to use `dedup` to remove duplicate consecutive documents:
+The following query removes duplicate consecutive documents:
   
 ```ppl
 source=accounts
@@ -122,7 +130,7 @@ source=accounts
 | sort account_number
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -134,8 +142,4 @@ fetched rows / total rows = 3/3
 | 18             | M      |
 +----------------+--------+
 ```
-  
 
-## Limitations  
-
-The `dedup` with `consecutive=true` command can only work with `plugins.calcite.enabled=false`.

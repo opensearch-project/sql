@@ -1,20 +1,31 @@
 # eval
 
+The `eval` command evaluates the specified expression and appends the result of the evaluation to the search results.
 
-The `eval` command evaluates the expression and appends the result to the search result.
+The `eval` command is not rewritten to [query domain-specific language (DSL)]({{site.url}}{{site.baseurl}}/query-dsl/). It is only executed on the coordinating node.
+{: .note}
 
 ## Syntax
 
-Use the following syntax:
+The `eval` command has the following syntax:
 
-`eval <field>=<expression> ["," <field>=<expression> ]...`
-* `field`: mandatory. If the field name does not exist, a new field is added. If the field name already exists, it will be overridden.  
-* expression: mandatory. Any expression supported by the system.  
-  
+```sql
+eval <field>=<expression> ["," <field>=<expression> ]...
+```
+
+## Parameters
+
+The `eval` command supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<field>` | Required | The name of the field to create or update. If the field does not exist, a new field is added. If it already exists, its value is overwritten. |
+| `<expression>` | Required | The expression to evaluate. |  
+
 
 ## Example 1: Create a new field  
 
-The following example PPL query shows how to use `eval` to create a new field for each document. In this example, the new field is `doubleAge`.
+The following query creates a new `doubleAge` field for each document:
   
 ```ppl
 source=accounts
@@ -22,7 +33,7 @@ source=accounts
 | fields age, doubleAge
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -39,7 +50,7 @@ fetched rows / total rows = 4/4
 
 ## Example 2: Override an existing field  
 
-The following example PPL query shows how to use `eval` to override an existing field. In this example, the existing field `age` is overridden by the `age` field plus 1.
+The following query overrides the `age` field by adding `1` to its value:
   
 ```ppl
 source=accounts
@@ -47,7 +58,7 @@ source=accounts
 | fields age
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -62,9 +73,9 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 3: Create a new field with field defined in eval  
+## Example 3: Create a new field using a field defined in eval
 
-The following example PPL query shows how to use `eval` to create a new field based on the fields defined in the `eval` expression. In this example, the new field `ddAge` is the evaluation result of the `doubleAge` field multiplied by 2. `doubleAge` is defined in the `eval` command.
+The following query creates a new field based on another field defined in the same `eval` expression. In this example, the new `ddAge` field is calculated by multiplying the `doubleAge` field by `2`. The `doubleAge` field itself is defined earlier in the `eval` command:
   
 ```ppl
 source=accounts
@@ -72,7 +83,7 @@ source=accounts
 | fields age, doubleAge, ddAge
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -89,7 +100,7 @@ fetched rows / total rows = 4/4
 
 ## Example 4: String concatenation  
 
-The following example PPL query shows using the `+` operator for string concatenation. You can concatenate string literals and field values.
+The following query uses the `+` operator for string concatenation. You can concatenate string literals and field values as follows:
   
 ```ppl
 source=accounts 
@@ -97,7 +108,7 @@ source=accounts
 | fields firstname, greeting
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -114,13 +125,13 @@ fetched rows / total rows = 4/4
 
 ## Example 5: Multiple string concatenation with type casting  
 
-The following example PPL query shows multiple concatenations with type casting from numeric to string.
+The following query performs multiple concatenation operations, including type casting from numeric values to strings:
   
 ```ppl
 source=accounts | eval full_info = 'Name: ' + firstname + ', Age: ' + CAST(age AS STRING) | fields firstname, age, full_info
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -133,8 +144,4 @@ fetched rows / total rows = 4/4
 | Dale      | 33  | Name: Dale, Age: 33    |
 +-----------+-----+------------------------+
 ```
-  
 
-## Limitations  
-
-The `eval` command is not rewritten to [query domain-specific language (DSL)](https://opensearch.org/docs/latest/query-dsl/index/). It is only run on the coordinating node.

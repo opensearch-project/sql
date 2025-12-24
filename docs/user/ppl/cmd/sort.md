@@ -1,26 +1,41 @@
 # sort
 
-
-The `sort` command sorts all the search results by the specified fields.
+The `sort` command sorts the search results by the specified fields.
 
 ## Syntax
 
-Use the following syntax:
+The `sort` command supports two syntax notations. You must use one notation consistently within a single `sort` command.
 
-`sort [count] <[+|-] sort-field | sort-field [asc|a|desc|d]>...`
-* `count`: optional. The number of results to return. Specifying a count of 0 or less than 0 returns all results. **Default:** 0.  
-* `[+|-]`: optional. The plus [+] stands for ascending order and NULL/MISSING first and a minus [-] stands for descending order and NULL/MISSING last. **Default:** ascending order and NULL/MISSING first.  
-* `[asc|a|desc|d]`: optional. asc/a stands for ascending order and NULL/MISSING first. desc/d stands for descending order and NULL/MISSING last. **Default:** ascending order and NULL/MISSING first.  
-* `sort-field`: mandatory. The field used to sort. Can use `auto(field)`, `str(field)`, `ip(field)`, or `num(field)` to specify how to interpret field values.  
-  
-> **Note:**
-> You cannot mix +/- and asc/desc in the same sort command. Choose one approach for all fields in a single sort command.
->
->
+### Prefix notation
 
-## Example 1: Sort by one field  
+The `sort` command has the following syntax in prefix notation:
 
-The following example PPL query shows how to use `sort` to sort all documents by age field in ascending order.
+```sql
+sort [<count>] [+|-] <field> [, [+|-] <field>]...
+```
+
+### Suffix notation
+
+The `sort` command has the following syntax in suffix notation:
+
+```sql
+sort [<count>] <field> [asc|desc|a|d] [, <field> [asc|desc|a|d]]...
+```
+
+## Parameters
+
+The `sort` command supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<field>` | Required | The field used to sort. Use `auto(field)`, `str(field)`, `ip(field)`, or `num(field)` to specify how to interpret field values. Multiple fields can be specified as a comma-separated list. |
+| `<count>` | Optional | The number of results to return. A value of `0` or less returns all results. Default is `0`. |
+| `[+|-]` | Optional | **Prefix notation only.** The plus sign (`+`) specifies ascending order, and the minus sign (`-`) specifies descending order. Default is ascending order. |
+| `[asc|desc|a|d]` | Optional | **Suffix notation only.** Specifies the sort order: `asc`/`a` for ascending, `desc`/`d` for descending. Default is ascending order. |
+
+## Example 1: Sort by one field
+
+The following query sorts all documents by the `age` field in ascending order. By default, the sort command returns all results, which is equivalent to specifying `sort 0 age`:
   
 ```ppl
 source=accounts
@@ -28,7 +43,7 @@ source=accounts
 | fields account_number, age
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -43,59 +58,17 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 2: Sort by one field return all the result  
+## Example 2: Sort by one field in descending order
 
-The following example PPL query shows how to use `sort` to sort all documents by age field in ascending order and return all results.
-  
-```ppl
-source=accounts
-| sort 0 age
-| fields account_number, age
-```
-  
-Expected output:
-  
-```text
-fetched rows / total rows = 4/4
-+----------------+-----+
-| account_number | age |
-|----------------+-----|
-| 13             | 28  |
-| 1              | 32  |
-| 18             | 33  |
-| 6              | 36  |
-+----------------+-----+
-```
-  
-
-## Example 3: Sort by one field in descending order (using -)  
-
-The following example PPL query shows how to use `sort` to sort all documents by age field in descending order.
+The following query sorts all documents by the `age` field in descending order. You can use either prefix notation (`- age`) or suffix notation (`age desc`):
   
 ```ppl
 source=accounts
 | sort - age
 | fields account_number, age
 ```
-  
-Expected output:
-  
-```text
-fetched rows / total rows = 4/4
-+----------------+-----+
-| account_number | age |
-|----------------+-----|
-| 6              | 36  |
-| 18             | 33  |
-| 1              | 32  |
-| 13             | 28  |
-+----------------+-----+
-```
-  
 
-## Example 4: Sort by one field in descending order (using desc)  
-
-The following example PPL query shows how to use `sort` to sort all documents by the age field in descending order using the desc keyword.
+This query is equivalent to the following query:
   
 ```ppl
 source=accounts
@@ -103,7 +76,7 @@ source=accounts
 | fields account_number, age
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -118,9 +91,9 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 5: Sort by multiple fields (using +/-)  
+## Example 3: Sort by multiple fields in prefix notation
 
-The following example PPL query shows how to use `sort` to sort all documents by gender field in ascending order and age field in descending order using +/- operators.
+The following query uses prefix notation to sort all documents by the `gender` field in ascending order and the `age` field in descending order:
   
 ```ppl
 source=accounts
@@ -128,7 +101,7 @@ source=accounts
 | fields account_number, gender, age
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -143,9 +116,9 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 6: Sort by multiple fields (using asc/desc)  
+## Example 4: Sort by multiple fields in suffix notation
 
-The following example PPL query shows how to use `sort` to sort all documents by the gender field in ascending order and age field in descending order using asc/desc keywords.
+The following query uses suffix notation to sort all documents by the `gender` field in ascending order and the `age` field in descending order:
   
 ```ppl
 source=accounts
@@ -153,7 +126,7 @@ source=accounts
 | fields account_number, gender, age
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -168,9 +141,9 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 7: Sort by field include null value  
+## Example 5: Sort fields with null values
 
-The following example PPL query shows how to use `sort` to sort employer field by default option (ascending order and null first). The result shows that null value is in the first row.
+The default ascending order lists null values first. The following query sorts the `employer` field in the default order:
   
 ```ppl
 source=accounts
@@ -178,7 +151,7 @@ source=accounts
 | fields employer
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -193,9 +166,9 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 8: Specify the number of sorted documents to return  
+## Example 6: Specify the number of sorted documents to return  
 
-The following example PPL query shows how to use `sort` to sort all documents and return 2 documents.
+The following query sorts all documents and returns two documents:
   
 ```ppl
 source=accounts
@@ -203,7 +176,7 @@ source=accounts
 | fields account_number, age
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -215,35 +188,9 @@ fetched rows / total rows = 2/2
 +----------------+-----+
 ```
   
+## Example 7: Sort by specifying field type
 
-## Example 9: Sort with desc modifier  
-
-The following example PPL query shows how to use `sort` to sort with the desc modifier to reverse sort order.
-  
-```ppl
-source=accounts
-| sort age desc
-| fields account_number, age
-```
-  
-Expected output:
-  
-```text
-fetched rows / total rows = 4/4
-+----------------+-----+
-| account_number | age |
-|----------------+-----|
-| 6              | 36  |
-| 18             | 33  |
-| 1              | 32  |
-| 13             | 28  |
-+----------------+-----+
-```
-  
-
-## Example 10: Sort with specifying field type  
-
-The following example PPL query shows how to use `sort` to sort with str() to sort numeric values lexicographically.
+The following query uses the `sort` command with `str()` to sort numeric values lexicographically:
   
 ```ppl
 source=accounts
@@ -251,7 +198,7 @@ source=accounts
 | fields account_number
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4

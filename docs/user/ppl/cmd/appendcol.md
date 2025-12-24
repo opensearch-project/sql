@@ -1,20 +1,28 @@
 # appendcol
 
-
-The `appendcol` command appends the result of a sub-search and attaches it alongside the input search results (the main search).
+The `appendcol` command appends the result of a subsearch as additional columns to the input search results (the main search).
 
 ## Syntax
 
-Use the following syntax:
+The `appendcol` command has the following syntax:
 
-`appendcol [override=<boolean>] <sub-search>`
-* override=<boolean>: optional. Boolean field to specify should result from main-result be overwritten in the case of column name conflict. **Default:** false.  
-* `sub-search`: mandatory. Executes PPL commands as a secondary search. The sub-search uses the same data specified in the source clause of the main search results as its input.  
-  
+```sql
+appendcol [override=<boolean>] <subsearch>
+```
+
+## Parameters
+
+The `appendcol` command supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<subsearch>` | Required | Executes PPL commands as a secondary search. The `subsearch` uses the data specified in the `source` clause of the main search results as its input. |
+| `override` | Optional | Specifies whether the results of the main search should be overwritten when column names conflict. Default is `false`. |
+
 
 ## Example 1: Append a count aggregation to existing search results  
 
-This example appends "count by gender" to "sum by gender, state".
+This example appends `count by gender` to `sum by gender, state`:
   
 ```ppl
 source=accounts
@@ -23,7 +31,7 @@ source=accounts
 | head 10
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 10/10
@@ -44,9 +52,9 @@ fetched rows / total rows = 10/10
 ```
   
 
-## Example 2: Append a count aggregation to existing search results with override option  
+## Example 2: Append a count aggregation to existing search results, overriding the main search results
 
-This example appends "count by gender" to "sum by gender, state" with override option.
+This example appends `count by gender` to `sum by gender, state` and overrides the main search results:
   
 ```ppl
 source=accounts
@@ -55,7 +63,7 @@ source=accounts
 | head 10
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 10/10
@@ -76,9 +84,9 @@ fetched rows / total rows = 10/10
 ```
   
 
-## Example 3: Append multiple sub-search results  
+## Example 3: Append multiple subsearch results
 
-The following example PPL query shows how to use `appendcol` to chain multiple appendcol commands to add columns from different sub-searches.
+The following query chains multiple `appendcol` commands to add columns from different subsearches:
   
 ```ppl
 source=employees
@@ -87,7 +95,7 @@ source=employees
 | appendcol [ stats max(age) as max_age ]
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 9/9
@@ -107,9 +115,9 @@ fetched rows / total rows = 9/9
 ```
   
 
-## Example 4: Override case of column name conflict  
+## Example 4: OResolve column name conflicts using the override parameter
 
-The following example PPL query demonstrates how to use `appendcol` with the override option when column names conflict between main search and sub-search.
+The following query shows how to use `appendcol` with the `override` option when column names in the main search and subsearch conflict:
   
 ```ppl
 source=employees
@@ -117,7 +125,7 @@ source=employees
 | appendcol override=true [ stats max(age) as agg by dept ]
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3

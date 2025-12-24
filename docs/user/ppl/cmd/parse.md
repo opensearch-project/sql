@@ -1,23 +1,35 @@
 # parse
 
+The `parse` command extracts information from a text field using a regular expression and adds the extracted information to the search results. It uses Java regex patterns. For more information, see the [Java regular expression documentation](https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html).
 
-The `parse` command extracts information from a text field using a regular expression and adds it to the search result.
+## The rex and parse commands compared
+
+The `rex` and `parse` commands both extract information from text fields using Java regular expressions with named capture groups. To compare the capabilities of the `rex` and `parse` commands, see the [`rex` command documentation](rex.md).
 
 ## Syntax
 
-Use the following syntax:
+The `parse` command has the following syntax:
 
-`parse <field> <pattern>`
-* `field`: mandatory. The field must be a text field.  
-* `pattern`: mandatory. The regular expression pattern used to extract new fields from the given text field. If a new field name already exists, it will replace the original field.  
-  
+```sql
+parse <field> <pattern>
+```
+
+## Parameters
+
+The `parse` command supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<field>` | Required | The text field to parse. |
+| `<pattern>` | Required | The regular expression pattern used to extract new fields from the specified text field. If a field with the same name already exists, its values are replaced. |
 
 ## Regular expression
-The regular expression pattern is used to match the whole text field of each document with Java regex engine. Each named capture group in the expression will become a new `STRING` field.  
+
+The regular expression pattern is used to match the whole text field of each document based on the [Java regular expression syntax](https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html). Each named capture group in the expression becomes a new `STRING` field.  
 
 ## Example 1: Create a new field  
 
-The following example PPL query shows how to create new field `host` for each document. `host` becomes the hostname after the @ symbol in the `email` field. Parsing a null field returns an empty string.
+The following query extracts the hostname from email addresses. The regex pattern `.+@(?<host>.+)` captures all characters after the `@` symbol and creates a new `host` field. When parsing a null field, the result is an empty string:
   
 ```ppl
 source=accounts
@@ -25,7 +37,7 @@ source=accounts
 | fields email, host
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -42,7 +54,7 @@ fetched rows / total rows = 4/4
 
 ## Example 2: Override an existing field  
 
-The following example PPL query shows how to override the existing `address` field while excluding the street number:
+The following query replaces the `address` field with only the street name, removing the street number. The regex pattern `\d+ (?<address>.+)` matches digits followed by a space, then captures the remaining text as the new `address` value:
   
 ```ppl
 source=accounts
@@ -50,7 +62,7 @@ source=accounts
 | fields address
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -65,9 +77,9 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 3: Filter and sort by casted parsed field  
+## Example 3: Parse, filter, and sort address components
 
-The following example PPL query shows how to sort street numbers that are higher than 500 in the `address` field.
+The following query extracts street numbers and names from addresses, then filters for street numbers greater than 500 and sorts them numerically. The regex pattern `(?<streetNumber>\d+) (?<street>.+)` captures the numeric part as `streetNumber` and the remaining text as `street`:
   
 ```ppl
 source=accounts
@@ -77,7 +89,7 @@ source=accounts
 | fields streetNumber, street
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -93,47 +105,34 @@ fetched rows / total rows = 3/3
 
 ## Limitations  
 
-There are a few limitations with parse command:
-- Fields defined by parse cannot be parsed again.  
-  
-The following command will not work
-  
-```
-source=accounts | parse address '\d+ (?<street>.+)' | parse street '\w+ (?<road>\w+)' ;
-```
-  
-- Fields defined by parse cannot be overridden with other commands.  
-  
-`where` will not match any documents since `street` cannot be overridden  
-  
-```
-source=accounts | parse address '\d+ (?<street>.+)' | eval street='1' | where street='1' ;
-```
-  
-- The text field used by parse cannot be overridden.  
-  
-`street` will not be successfully parsed since `address` is overridden  
-  
-```
-source=accounts | parse address '\d+ (?<street>.+)' | eval address='1' ;
-```
-  
-- Fields defined by parse cannot be filtered/sorted after using them in `stats` command.  
-  
-`where` in the following command will not work  
-  
-```
-source=accounts | parse email '.+@(?<host>.+)' | stats avg(age) by host | where host=pyrami.com ;
-```
-  
-- Fields defined by parse will not appear in the final result unless the original source field is included in the `fields` command.  
-  
-For example, the following query will not display the parsed fields `host` unless the source field `email` is also explicitly included  
-  
-```
-source=accounts | parse email '.+@(?<host>.+)' | fields email, host ;
-```
-  
-- Named capture group must start with a letter and contain only letters and digits.  
-  
-  For detailed Java regex pattern syntax and usage, refer to the [official Java Pattern documentation](https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html)
+The `parse` command has the following limitations:
+
+- Fields created by the `parse` command cannot be parsed again. For example, the following command does not function as intended:
+
+    ```sql
+    source=accounts | parse address '\d+ (?<street>.+)' | parse street '\w+ (?<road>\w+)'
+    ```
+
+- Fields created by the `parse` command cannot be overridden by other commands. For example, in the following query, the `where` clause does not match any documents because `street` cannot be overridden:
+
+    ```sql
+    source=accounts | parse address '\d+ (?<street>.+)' | eval street='1' | where street='1'
+    ```
+
+- The source text field used by the `parse` command cannot be overridden. For example, in the following query, the `street` field is not parsed correctly because `address` is overridden:
+
+    ```sql
+    source=accounts | parse address '\d+ (?<street>.+)' | eval address='1'
+    ```
+
+- Fields created by the `parse` command cannot be filtered or sorted after they are used in the `stats` command. For example, in the following query, the `where` clause does not function as intended:
+
+    ```sql
+    source=accounts | parse email '.+@(?<host>.+)' | stats avg(age) by host | where host=pyrami.com
+    ```
+
+- Fields created by the `parse` command do not appear in the final results unless the original source field is included in the `fields` command. For example, the following query does not return the parsed field `host` unless the source field `email` is explicitly included:
+
+    ```sql
+    source=accounts | parse email '.+@(?<host>.+)' | fields email, host
+    ```

@@ -1,90 +1,36 @@
 # subquery
 
+The `subquery` command allows you to embed one PPL query within another, enabling advanced filtering and data retrieval. A subquery is executed first, and its results are used by the outer query for filtering, comparison, or joining.
 
-The `subquery` command embeds one PPL query inside another, enabling complex filtering and data retrieval operations. A subquery is a nested query that executes first and returns results that are used by the outer query for filtering, comparison, or joining operations.
-Subqueries are useful for:
-1. Filtering data based on results from another query  
-2. Checking for the existence of related data  
-3. Performing calculations that depend on aggregated values from other tables  
-4. Creating complex joins with dynamic conditions  
-  
+Common use cases for subqueries include:
+
+* Filtering data based on the results of another query.
+* Checking for the existence of related data.
+* Performing calculations that rely on aggregated values from other tables.
+* Creating complex joins with dynamic conditions.
 
 ## Syntax
 
-Use the following syntax:
+The `subquery` command has the following syntax:
 
 `subquery: [ source=... | ... | ... ]`  
 
-Subqueries use the same syntax as regular PPL queries but must be enclosed in square brackets. There are four main types of subqueries:  
+Subqueries use the same syntax as regular PPL queries but must be enclosed in square brackets. There are four main subquery types:
 
-**IN Subquery**
+- [`IN`](#in-subquery)
+- [`EXISTS`](#exists-subquery)
+- [Scalar](#scalar-subquery)
+- [Relation](#relation-subquery)
+
+### IN subquery
+
 Tests whether a field value exists in the results of a subquery:
   
 ```ppl ignore
 where <field> [not] in [ source=... | ... | ... ]
 ```
-  
-**EXISTS Subquery**
-Tests whether a subquery returns any results:
-  
-```ppl ignore
-where [not] exists [ source=... | ... | ... ]
-```  
-  
-**Scalar Subquery**
-Returns a single value that can be used in comparisons or calculations   
-  
-```ppl ignore
-where <field> = [ source=... | ... | ... ]
-```
-  
-**Relation Subquery**
-Used in join operations to provide dynamic right-side data  
-  
-```ppl ignore
-| join ON condition [ source=... | ... | ... ]
-```
-  
+The following are examples of the `IN` subquery syntax:
 
-## Configuration
-
-The following settings configure the `subquery` command behavior.
-
-### plugins.ppl.subsearch.maxout  
-
-The size configures the maximum of rows to return from subsearch. The default value is: `10000`. A value of `0` indicates that the restriction is unlimited.  
-
-Change the subsearch.maxout to unlimited:  
-  
-```bash ignore  
-curl -sS -H 'Content-Type: application/json' \
--X PUT localhost:9200/_plugins/_query/settings \
--d '{"persistent" : {"plugins.ppl.subsearch.maxout" : "0"}}'
-```
-
-Expected output:
-
-```json
-{
-  "acknowledged": true,
-  "persistent": {
-    "plugins": {
-      "ppl": {
-        "subsearch": {
-          "maxout": "-1"
-        }
-      }
-    }
-  },
-  "transient": {}
-}
-```
-  
-
-## Usage  
-
-InSubquery:
-  
 ```ppl ignore
 source = outer | where a in [ source = inner | fields b ]
 source = outer | where (a) in [ source = inner | fields b ]
@@ -98,8 +44,16 @@ source = outer | where a in [ source = inner1 | where b not in [ source = inner2
 source = table1 | inner join left = l right = r on l.a = r.a AND r.a in [ source = inner | fields d ] | fields l.a, r.a, b, c //as join filter
 ```
   
-ExistsSubquery: 
+### EXISTS subquery
+
+Tests whether a subquery returns any results:
   
+```ppl ignore
+where [not] exists [ source=... | ... | ... ]
+``` 
+
+The following are examples of the `EXISTS` subquery syntax:
+
 ```ppl ignore
 // Assumptions: `a`, `b` are fields of table outer, `c`, `d` are fields of table inner,  `e`, `f` are fields of table nested
 source = outer | where exists [ source = inner | where a = c ]
@@ -116,8 +70,16 @@ source = outer | where not exists [ source = inner | where c > 10 ] //uncorrelat
 source = outer | where exists [ source = inner ] | eval l = "nonEmpty" | fields l //special uncorrelated exists
 ```
   
-ScalarSubquery:
+### Scalar subquery
+
+Returns a single value that can be used in comparisons or calculations:   
   
+```ppl ignore
+where <field> = [ source=... | ... | ... ]
+```
+
+The following are examples of the scalar subquery syntax:
+
 ```ppl ignore
 //Uncorrelated scalar subquery in Select
 source = outer | eval m = [ source = inner | stats max(c) ] | fields m, a
@@ -140,9 +102,38 @@ source = outer [ source = inner | where outer.b = inner.d OR inner.d = 1 | stats
 //Nested scalar subquery
 source = outer | where a = [ source = inner | stats max(c) | sort c ] OR b = [ source = inner | where c = 1 | stats min(d) | sort d ]
 source = outer | where a = [ source = inner | where c =  [ source = nested | stats max(e) by f | sort f ] | stats max(d) by c | sort c | head 1 ]
-RelationSubquery
+```
+  
+### Relation subquery
+
+Used in `join` operations to provide dynamic right-side data: 
+  
+```ppl ignore
+| join ON condition [ source=... | ... | ... ]
+```
+
+The following are examples of the relation subquery syntax:
+
+```ppl ignore
 source = table1 | join left = l right = r on condition [ source = table2 | where d > 10 | head 5 ] //subquery in join right side
 source = [ source = table1 | join left = l right = r [ source = table2 | where d > 10 | head 5 ] | stats count(a) by b ] as outer | head 1
+```
+  
+
+
+## Configuration
+
+The `subquery` command behavior is configured using the `plugins.ppl.subsearch.maxout` setting, which specifies the maximum number of rows to return from the subsearch. Default is `10000`. A value of `0` indicates that the restriction is unlimited.
+
+To update the setting, send the following request:
+
+```json
+PUT /_plugins/_query/settings
+{
+  "persistent": {
+    "plugins.ppl.subsearch.maxout": "0"
+  }
+}
 ```
   
 

@@ -1,48 +1,72 @@
 # bin
 
-
-The `bin` command groups numeric values into buckets of equal intervals, making it useful for creating histograms and analyzing data distribution. It takes a numeric or time-based field and generates a new field with values that represent the lower bound of each bucket.
+The `bin` command groups numeric values into buckets of equal intervals, which is useful for creating histograms and analyzing data distribution. It accepts a numeric or time-based field and generates a new field containing values that represent the lower bound of each bucket.
 
 ## Syntax
 
-Use the following syntax:
 
-`bin <field> [span=<interval>] [minspan=<interval>] [bins=<count>] [aligntime=(earliest | latest | <time-specifier>)] [start=<value>] [end=<value>]`
-* `field`: mandatory. The field to bin. Accepts numeric or time-based fields.  
-* `span`: optional. The interval size for each bin. Cannot be used with bins or minspan parameters.  
-  * Supports numeric (e.g., `1000`), logarithmic (e.g., `log10`, `2log10`), and time intervals  
-  * Available time units:  
-    * microsecond (us)  
-    * millisecond (ms)  
-    * centisecond (cs)  
-    * decisecond (ds)  
-    * second (s, sec, secs, second, seconds)  
-    * minute (m, min, mins, minute, minutes)  
-    * hour (h, hr, hrs, hour, hours)  
-    * day (d, day, days)  
-    * month (M, mon, month, months)  
-* `minspan`: optional. The minimum interval size for automatic span calculation. Cannot be used with span or bins parameters.  
-* `bins`: optional. The maximum number of equal-width bins to create. Cannot be used with span or minspan parameters. The bins parameter must be between 2 and 50000 (inclusive).
+The `bin` command has the following syntax:
 
-  **Limitation**: The bins parameter on timestamp fields has the following requirements:
+```sql
+bin <field> [span=<interval>] [minspan=<interval>] [bins=<count>] [aligntime=(earliest | latest | <time-specifier>)] [start=<value>] [end=<value>]
+```
 
-  1. **Pushdown must be enabled**: Controlled by ``plugins.calcite.pushdown.enabled`` (enabled by default). When pushdown is disabled, use the ``span`` parameter instead (e.g., ``bin @timestamp span=5m``).
-  2. **Timestamp field must be used as an aggregation bucket**: The binned timestamp field must be used in a ``stats`` aggregation (e.g., ``source=events | bin @timestamp bins=3 | stats count() by @timestamp``). Using bins on timestamp fields outside of aggregation buckets is not supported.  
-* `aligntime`: optional. Align the bin times for time-based fields. Valid only for time-based discretization. Options:  
-  * earliest: Align bins to the earliest timestamp in the data  
-  * latest: Align bins to the latest timestamp in the data  
-  * \<time-specifier\>: Align bins to a specific epoch time value or time modifier expression  
-* `start`: optional. The starting value for binning range. **Default:** minimum field value.  
-* `end`: optional. The ending value for binning range. **Default:** maximum field value.  
-  
-**Parameter Behavior**
-When multiple parameters are specified, priority order is: span > minspan > bins > start/end > default.
-**Special Behaviors:**
-* Logarithmic span (`log10`, `2log10`, etc.) creates logarithmic bin boundaries instead of linear  
-* Daily/monthly spans automatically align to calendar boundaries and return date strings (YYYY-MM-DD) instead of timestamps  
-* aligntime parameter only applies to time spans excluding days/months  
-* start/end parameters expand the range (never shrink) and affect bin width calculation  
-  
+## Parameters
+
+The `bin` command supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<field>` | Required | The field to group into buckets. Accepts numeric or time-based fields. |
+| `span` | Optional | The interval size for each bin. Cannot be used with the `bins` or `minspan` parameters. Supports numeric, logarithmic (`log10`, `2log10`), and time intervals. See [Time units](#time-units).|
+| `minspan` | Optional | The minimum interval size for automatic span calculation. Cannot be used with the `span` or `bins` parameters. |
+| `bins` | Optional | The maximum number of equal-width bins to create. Must be between `2` and `50000` (inclusive). Cannot be used with the `span` or `minspan` parameters. See [The bins parameter for timestamp fields](#the-bins-parameter-for-timestamp-fields).|
+| `aligntime` | Optional | Align the bin times for time-based fields. Valid only for time-based discretization. Valid values are `earliest`, `latest`, or a specific time. See [Align options](#align-time-options).|
+| `start` | Optional | The starting value of the interval range. Default is the minimum value of the field. |
+| `end` | Optional | The ending value of the interval range. Default is the maximum value of the field. |
+
+### The bins parameter for timestamp fields
+
+The `bins` parameter for timestamp fields has the following requirements:
+
+- **Pushdown must be enabled**: Enable pushdown by setting `plugins.calcite.pushdown.enabled` to `true` (enabled by default). If pushdown is disabled, use the `span` parameter instead (for example, `bin @timestamp span=5m`).
+- **The timestamp field must be used as an aggregation bucket**: The binned timestamp field must be included in a `stats` aggregation (for example, `source=events | bin @timestamp bins=3 | stats count() by @timestamp`). Using `bins` on timestamp fields outside of aggregation buckets is not supported.
+
+
+### Time units
+
+The following time units are available for the `span` parameter:
+
+* Microseconds (`us`)
+* Milliseconds (`ms`)
+* Centiseconds (`cs`)
+* Deciseconds (`ds`)
+* Seconds (`s`, `sec`, `secs`, `second`, or `seconds`)
+* Minutes (`m`, `min`, `mins`, `minute`, or `minutes`)
+* Hours (`h`, `hr`, `hrs`, `hour`, or `hours`)
+* Days (`d`, `day`, or `days`)
+* Months (`M`, `mon`, `month`, or `months`)
+
+### Align time options
+
+The following options are available for the `aligntime` parameter:
+
+* `earliest` -- Align bins to the earliest timestamp in the data.
+* `latest` -- Align bins to the latest timestamp in the data.
+* `<time-specifier>` -- Align bins to a specific epoch time value or time modifier expression.
+
+### Parameter behavior
+
+When multiple parameters are specified, the priority order is: `span` > `minspan` > `bins` > `start`/`end` > default.
+
+### Special parameter types
+
+The `bin` command has the following special handling for certain parameter types:
+
+* Logarithmic spans (for example, `log10` or `2log10`) create logarithmic bin boundaries instead of linear ones.
+* Daily or monthly spans automatically align to calendar boundaries and return date strings (`YYYY-MM-DD`) instead of timestamps.
+* The `aligntime` parameter applies only to time spans shorter than a day (excluding daily or monthly spans).
+* The `start` and `end` parameters expand the range (they never reduce it) and affect bin width calculations.
 
 ## Example 1: Basic numeric span  
   
@@ -53,7 +77,7 @@ source=accounts
 | head 3
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -76,7 +100,7 @@ source=accounts
 | head 2
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -98,7 +122,7 @@ source=accounts
 | head 2
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -120,7 +144,7 @@ source=accounts
 | head 3
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -143,7 +167,7 @@ source=time_test
 | head 3
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -166,7 +190,7 @@ source=accounts
 | head 1
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -187,7 +211,7 @@ source=accounts
 | head 3
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -210,7 +234,7 @@ source=accounts
 | head 3
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -233,7 +257,7 @@ source=accounts
 | head 1
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -254,7 +278,7 @@ source=accounts
 | head 1
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -275,7 +299,7 @@ source=accounts
 | head 1
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -296,7 +320,7 @@ source=accounts
 | head 6
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -320,7 +344,7 @@ source=time_test
 | head 3
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -343,7 +367,7 @@ source=time_test
 | head 3
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -366,7 +390,7 @@ source=time_test
 | head 3
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -389,7 +413,7 @@ source=time_test
 | head 3
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -412,7 +436,7 @@ source=time_test
 | head 3
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -435,7 +459,7 @@ source=time_test
 | head 3
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -458,7 +482,7 @@ source=accounts
 | head 3
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -482,7 +506,7 @@ source=accounts
 | sort age_str
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
