@@ -125,10 +125,8 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
     PlanUtils.addIgnoreNullBucketHintToAggregate(relBuilder);
     // peek the aggregate after hint being added
     LogicalAggregate aggregate = (LogicalAggregate) relBuilder.build();
-    // assert aggregate.getInput().getRowType().getFieldCount() == groupByList.size() :
-    // String.format("The input's field size should be trimmed to equal to group list size %d, but
-    // got %d", groupByList.size(), aggregate.getInput().getRowType().getFieldCount());
-    assert aggregate.getGroupSet().asList().equals(newGroupByList);
+    assert aggregate.getGroupSet().asList().equals(newGroupByList)
+        : "The group set of aggregate should be exactly the same as the generated group list";
 
     CalciteLogicalIndexScan newScan =
         (CalciteLogicalIndexScan) scan.pushDownAggregate(aggregate, targetChildProject);
