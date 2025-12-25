@@ -11,6 +11,7 @@ import static org.opensearch.sql.expression.function.CollectionUDF.LambdaUtils.t
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.IntStream;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -22,6 +23,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlLambda;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
@@ -29,11 +31,14 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
+import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlSingleOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SqlLambdaScope;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
@@ -55,6 +60,35 @@ public class TransformFunctionImpl extends ImplementorUDF {
       RelDataType lambdaReturnType = sqlOperatorBinding.getOperandType(1);
       return createArrayType(
           typeFactory, typeFactory.createTypeWithNullability(lambdaReturnType, true), true);
+    };
+  }
+
+  @Override
+  public SqlOperandTypeInference getOperandTypeInference() {
+    // Pass the element type of TRANSFORM's first argument as the type of the first argument of the
+    // lambda function.
+    return (callBinding, returnType, operandTypes) -> {
+      RelDataType arrayType = callBinding.getOperandType(0);
+      operandTypes[0] = arrayType;
+      if (callBinding.operand(1) instanceof SqlLambda lambdaNode) {
+        SqlValidator validator = callBinding.getValidator();
+        if (validator.getLambdaScope(lambdaNode) instanceof SqlLambdaScope lambdaScope) {
+          RelDataType elementType = arrayType.getComponentType();
+          Map<String, RelDataType> paramTypes = lambdaScope.getParameterTypes();
+          List<SqlNode> params = lambdaNode.getParameters();
+          // First parameter: array element type. Leave it as is (typically ANY) if element type is
+          // null
+          if (!params.isEmpty() && elementType != null) {
+            paramTypes.put(params.get(0).toString(), elementType);
+          }
+          // Second parameter (if exists): INTEGER (for index)
+          if (params.size() > 1) {
+            RelDataType intType = callBinding.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+            paramTypes.put(params.get(1).toString(), intType);
+          }
+          operandTypes[1] = SqlTypeUtil.deriveType(callBinding, lambdaNode);
+        }
+      }
     };
   }
 
