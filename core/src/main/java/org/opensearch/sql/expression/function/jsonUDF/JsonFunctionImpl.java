@@ -15,6 +15,7 @@ import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.runtime.JsonFunctions;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -36,7 +37,7 @@ public class JsonFunctionImpl extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return null;
+    return UDFOperandMetadata.wrap(OperandTypes.ANY);
   }
 
   public static class JsonImplementor implements NotNullImplementor {

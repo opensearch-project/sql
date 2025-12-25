@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -17,13 +18,21 @@ import java.util.Stack;
 import java.util.function.BiFunction;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.server.CalciteServerStatement;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.RelBuilder;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
+import org.opensearch.sql.calcite.validate.OpenSearchSparkSqlDialect;
+import org.opensearch.sql.calcite.validate.PplTypeCoercion;
+import org.opensearch.sql.calcite.validate.PplTypeCoercionRule;
+import org.opensearch.sql.calcite.validate.PplValidator;
+import org.opensearch.sql.calcite.validate.SqlOperatorTableProvider;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.FunctionProperties;
@@ -72,6 +81,17 @@ public class CalcitePlanContext {
   /** Whether we're currently inside a lambda context. */
   @Getter @Setter private boolean inLambdaContext = false;
 
+  /**
+   * -- SETTER -- Sets the SQL operator table provider. This must be called during initialization by
+   * the opensearch module.
+   *
+   * @param provider the provider to use for obtaining operator tables
+   */
+  @Setter private static SqlOperatorTableProvider operatorTableProvider;
+
+  /** Cached SqlValidator instance (lazy initialized). */
+  private volatile SqlValidator validator;
+
   private CalcitePlanContext(FrameworkConfig config, SysLimit sysLimit, QueryType queryType) {
     this.config = config;
     this.sysLimit = sysLimit;
@@ -99,6 +119,52 @@ public class CalcitePlanContext {
     this.rexLambdaRefMap = new HashMap<>(); // New map for lambda variables
     this.capturedVariables = new ArrayList<>(); // New list for captured variables
     this.inLambdaContext = true; // Mark that we're inside a lambda
+  }
+
+  /**
+   * Gets the SqlValidator instance (singleton per CalcitePlanContext).
+   *
+   * @return cached SqlValidator instance
+   */
+  public SqlValidator getValidator() {
+    if (validator == null) {
+      synchronized (this) {
+        //  Double-Checked Locking for thread-safety
+        if (validator == null) {
+          final CalciteServerStatement statement;
+          try {
+            statement = connection.createStatement().unwrap(CalciteServerStatement.class);
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+          if (operatorTableProvider == null) {
+            throw new IllegalStateException(
+                "SqlOperatorTableProvider must be set before creating CalcitePlanContext");
+          }
+          SqlValidator.Config validatorConfig =
+              SqlValidator.Config.DEFAULT
+                  .withTypeCoercionRules(PplTypeCoercionRule.instance())
+                  .withTypeCoercionFactory(PplTypeCoercion::create)
+                  // Use lenient conformance for PPL compatibility
+                  .withConformance(OpenSearchSparkSqlDialect.DEFAULT.getConformance())
+                  // Use Spark SQL's NULL collation (NULLs sorted LOW/FIRST)
+                  .withDefaultNullCollation(NullCollation.LOW)
+                  // This ensures that coerced arguments are replaced with cast version in sql
+                  // select list because coercion is performed during select list expansion during
+                  // sql validation. Affects 4356.yml
+                  // See SqlValidatorImpl#validateSelectList and AggConverter#translateAgg
+                  .withIdentifierExpansion(true);
+          validator =
+              PplValidator.create(
+                  statement,
+                  config,
+                  operatorTableProvider.getOperatorTable(),
+                  TYPE_FACTORY,
+                  validatorConfig);
+        }
+      }
+    }
+    return validator;
   }
 
   public RexNode resolveJoinCondition(

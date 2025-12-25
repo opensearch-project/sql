@@ -162,7 +162,7 @@ Usage: `transform(array, function)` transform the element of array one by one us
 Argument type: array:ARRAY, function:LAMBDA
 Return type: ARRAY
 Example
-  
+
 ```ppl
 source=people
 | eval array = array(1, -2, 3), result = transform(array, x -> x + 2)
@@ -180,7 +180,7 @@ fetched rows / total rows = 1/1
 | [3,0,5] |
 +---------+
 ```
-  
+
 ```ppl
 source=people
 | eval array = array(1, -2, 3), result = transform(array, (x, i) -> x + i)

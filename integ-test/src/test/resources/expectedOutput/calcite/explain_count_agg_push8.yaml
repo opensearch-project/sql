@@ -5,4 +5,4 @@ calcite:
         LogicalProject(lastname=[$10])
           CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
-    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={},c1=COUNT(),c2=COUNT($0)), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"c1":{"value_count":{"field":"_index"}},"c2":{"value_count":{"field":"lastname.keyword"}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[AGGREGATION->rel#1169:LogicalAggregate.NONE.[](input=RelSubset#1168,group={},c1=COUNT(),c2=COUNT($0)), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"c1":{"value_count":{"field":"_index"}},"c2":{"value_count":{"field":"lastname.keyword"}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

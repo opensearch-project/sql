@@ -9,8 +9,10 @@ import java.util.Collections;
 import org.apache.calcite.schema.ImplementableFunction;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.InferTypes;
+import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 
@@ -32,6 +34,20 @@ public interface UserDefinedFunctionBuilder {
 
   UDFOperandMetadata getOperandMetadata();
 
+  default SqlKind getKind() {
+    return SqlKind.OTHER_FUNCTION;
+  }
+
+  /**
+   * Define the strategy to infer unknown types of the operands of an operator call.
+   *
+   * @return SqlOperandTypeInference the specified operand type inference. Default to {@link
+   *     InferTypes#ANY_NULLABLE}
+   */
+  default SqlOperandTypeInference getOperandTypeInference() {
+    return InferTypes.ANY_NULLABLE;
+  }
+
   default SqlUserDefinedFunction toUDF(String functionName) {
     return toUDF(functionName, true);
   }
@@ -50,9 +66,9 @@ public interface UserDefinedFunctionBuilder {
         new SqlIdentifier(Collections.singletonList(functionName), null, SqlParserPos.ZERO, null);
     return new SqlUserDefinedFunction(
         udfLtrimIdentifier,
-        SqlKind.OTHER_FUNCTION,
+        getKind(),
         getReturnTypeInference(),
-        InferTypes.ANY_NULLABLE,
+        getOperandTypeInference(),
         getOperandMetadata(),
         getFunction()) {
       @Override
@@ -65,6 +81,11 @@ public interface UserDefinedFunctionBuilder {
         // to avoid convert to sql dialog as identifier, use keyword instead
         // check the code SqlUtil.unparseFunctionSyntax()
         return null;
+      }
+
+      @Override
+      public SqlOperandCountRange getOperandCountRange() {
+        return getOperandMetadata().getOperandCountRange();
       }
     };
   }

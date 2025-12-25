@@ -4,4 +4,4 @@ calcite:
       LogicalAggregate(group=[{}], cnt=[COUNT()])
         CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
-    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={},cnt=COUNT()), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","track_total_hits":2147483647}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[AGGREGATION->rel#494:LogicalAggregate.NONE.[](input=RelSubset#493,group={},cnt=COUNT()), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","track_total_hits":2147483647}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

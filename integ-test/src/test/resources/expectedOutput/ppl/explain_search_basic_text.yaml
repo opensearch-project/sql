@@ -1,0 +1,20 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[spanId, traceId, @timestamp, instrumentationScope, severityText, resource,\
+      \ flags, attributes, droppedAttributesCount, severityNumber, time, body]"
+  children:
+    - name: OpenSearchIndexScan
+      description:
+        request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_otel_logs,\
+          \ sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"query\"\
+          :{\"query_string\":{\"query\":\"ERROR\",\"fields\":[],\"type\":\"best_fields\"\
+          ,\"default_operator\":\"or\",\"max_determinized_states\":10000,\"enable_position_increments\"\
+          :true,\"fuzziness\":\"AUTO\",\"fuzzy_prefix_length\":0,\"fuzzy_max_expansions\"\
+          :50,\"phrase_slop\":0,\"escape\":false,\"auto_generate_synonyms_phrase_query\"\
+          :true,\"fuzzy_transpositions\":true,\"boost\":1.0}},\"_source\":{\"includes\"\
+          :[\"spanId\",\"traceId\",\"@timestamp\",\"instrumentationScope\",\"severityText\"\
+          ,\"resource\",\"flags\",\"attributes\",\"droppedAttributesCount\",\"severityNumber\"\
+          ,\"time\",\"body\"],\"excludes\":[]}}, pitId=*,\
+          \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
+      children: []

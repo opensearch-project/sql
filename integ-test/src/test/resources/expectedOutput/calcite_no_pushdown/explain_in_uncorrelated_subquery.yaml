@@ -1,18 +1,18 @@
 calcite:
   logical: |
     LogicalSystemLimit(sort0=[$2], dir0=[DESC-nulls-last], fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalProject(id=[$2], name=[$0], salary=[$4])
-        LogicalSort(sort0=[$4], dir0=[DESC-nulls-last])
+      LogicalSort(sort0=[$2], dir0=[DESC-nulls-last])
+        LogicalProject(id=[$2], name=[$0], salary=[$4])
           LogicalFilter(condition=[IN($2, {
-    LogicalSystemLimit(fetch=[10000], type=[SUBSEARCH_MAXOUT])
+    LogicalSort(fetch=[10000])
       LogicalProject(uid=[$1])
         CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_work_information]])
-    })], variablesSet=[[$cor0]])
+    })])
             CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_worker]])
   physical: |
     EnumerableLimit(fetch=[10000])
-      EnumerableCalc(expr#0..2=[{inputs}], id=[$t1], name=[$t0], salary=[$t2])
-        EnumerableSort(sort0=[$2], dir0=[DESC-nulls-last])
+      EnumerableSort(sort0=[$2], dir0=[DESC-nulls-last])
+        EnumerableCalc(expr#0..2=[{inputs}], id=[$t1], name=[$t0], salary=[$t2])
           EnumerableHashJoin(condition=[=($1, $4)], joinType=[semi])
             EnumerableCalc(expr#0..10=[{inputs}], name=[$t0], id=[$t2], salary=[$t4])
               CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_worker]])

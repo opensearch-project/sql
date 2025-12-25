@@ -1,9 +1,9 @@
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalProject(agent=[$0], process=[$6], log=[$8], message=[$11], tags=[$12], cloud=[$13], input=[$15], @timestamp=[$17], ecs=[$18], data_stream=[$20], meta=[$24], host=[$26], metrics=[$27], aws=[$30], event=[$35])
-        LogicalSort(fetch=[10])
-          LogicalFilter(condition=[AND(>=($17, TIMESTAMP('2023-01-01 00:00:00':VARCHAR)), <($17, TIMESTAMP('2023-01-03 00:00:00':VARCHAR)))])
+      LogicalSort(fetch=[10])
+        LogicalProject(agent=[$0], process=[$6], log=[$8], message=[$11], tags=[$12], cloud=[$13], input=[$15], @timestamp=[$17], ecs=[$18], data_stream=[$20], meta=[$24], host=[$26], metrics=[$27], aws=[$30], event=[$35])
+          LogicalFilter(condition=[AND(>=($17, TIMESTAMP('2023-01-01 00:00:00')), <($17, TIMESTAMP('2023-01-03 00:00:00')))])
             CalciteLogicalIndexScan(table=[[OpenSearch, big5]])
   physical: |
-    CalciteEnumerableIndexScan(table=[[OpenSearch, big5]], PushDownContext=[[PROJECT->[agent, process, log, message, tags, cloud, input, @timestamp, ecs, data_stream, meta, host, metrics, aws, event], FILTER->SEARCH($7, Sarg[['2023-01-01 00:00:00':VARCHAR..'2023-01-03 00:00:00':VARCHAR)]:VARCHAR), LIMIT->10, LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10,"timeout":"1m","query":{"range":{"@timestamp":{"from":"2023-01-01T00:00:00.000Z","to":"2023-01-03T00:00:00.000Z","include_lower":true,"include_upper":false,"format":"date_time","boost":1.0}}},"_source":{"includes":["agent","process","log","message","tags","cloud","input","@timestamp","ecs","data_stream","meta","host","metrics","aws","event"],"excludes":[]}}, requestedTotalSize=10, pageSize=null, startFrom=0)])
+    CalciteEnumerableIndexScan(table=[[OpenSearch, big5]], PushDownContext=[[PROJECT->[agent, process, log, message, tags, cloud, input, @timestamp, ecs, data_stream, meta, host, metrics, aws, event], FILTER->SEARCH($7, Sarg[['2023-01-01 00:00:00':EXPR_TIMESTAMP VARCHAR..'2023-01-03 00:00:00':EXPR_TIMESTAMP VARCHAR)]:EXPR_TIMESTAMP VARCHAR), LIMIT->10, LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10,"timeout":"1m","query":{"range":{"@timestamp":{"from":"2023-01-01T00:00:00.000Z","to":"2023-01-03T00:00:00.000Z","include_lower":true,"include_upper":false,"format":"date_time","boost":1.0}}},"_source":{"includes":["agent","process","log","message","tags","cloud","input","@timestamp","ecs","data_stream","meta","host","metrics","aws","event"],"excludes":[]}}, requestedTotalSize=10, pageSize=null, startFrom=0)])

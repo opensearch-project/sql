@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
+import static org.opensearch.sql.util.MatcherUtils.assertYamlEqualsIgnoreId;
 
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
@@ -33,13 +34,9 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testExplainCommand() throws IOException {
-    var result = explainQueryToString("source=test | where age = 20 | fields name, age");
-    String expected =
-        !isPushdownDisabled()
-            ? loadFromFile("expectedOutput/calcite/explain_filter_w_pushdown.json")
-            : loadFromFile("expectedOutput/calcite/explain_filter_wo_pushdown.json");
-
-    assertJsonEquals(expected, result);
+    var result = explainQueryYaml("source=test | where age = 20 | fields name, age");
+    String expected = loadExpectedPlan("explain_filter.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   @Test

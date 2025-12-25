@@ -1,12 +1,13 @@
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalProject(variablesSet=[[$cor0]], id=[$2], name=[$0], count_dept=[$SCALAR_QUERY({
+      LogicalProject(variablesSet=[[$cor1]], id=[$2], name=[$0], count_dept=[$SCALAR_QUERY({
     LogicalAggregate(group=[{}], count(name)=[COUNT($0)])
       LogicalProject(name=[$0])
         LogicalFilter(condition=[IS NOT NULL($0)])
-          LogicalFilter(condition=[=($cor0.id, $1)])
-            CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_work_information]])
+          LogicalProject(name=[$0], uid=[$1], occupation=[$2], department=[$3], _id=[$4], _index=[$5], _score=[$6], _maxscore=[$7], _sort=[$8], _routing=[$9])
+            LogicalFilter(condition=[=($cor1.id, $1)])
+              CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_work_information]])
     })])
         CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_worker]])
   physical: |
@@ -15,7 +16,7 @@ calcite:
         EnumerableNestedLoopJoin(condition=[IS NOT DISTINCT FROM($1, $2)], joinType=[left])
           EnumerableCalc(expr#0..10=[{inputs}], name=[$t0], id=[$t2])
             CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_worker]])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NOT NULL($t2)], expr#4=[0], expr#5=[CASE($t3, $t2, $t4)], uid=[$t0], count(name)=[$t5])
+          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NOT NULL($t2)], expr#4=[0], expr#5=[CASE($t3, $t2, $t4)], uid10=[$t0], count(name)=[$t5])
             EnumerableNestedLoopJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])
               EnumerableAggregate(group=[{2}])
                 CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_worker]])

@@ -253,7 +253,7 @@ public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
         schema("account_number", "bigint"),
         schema("firstname", "string"),
         schema("age", "int"),
-        schema("birthdate", "string"));
+        schema("birthdate", "timestamp"));
     verifyDataRows(actual, rows(32, null, 34, "2018-08-11 00:00:00"));
   }
 

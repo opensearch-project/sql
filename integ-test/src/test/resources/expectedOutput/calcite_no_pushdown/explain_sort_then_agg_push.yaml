@@ -1,0 +1,14 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(avg(balance)=[$1], state=[$0])
+        LogicalAggregate(group=[{0}], avg(balance)=[AVG($1)])
+          LogicalProject(state=[$0], balance=[$1])
+            LogicalSort(sort0=[$1], sort1=[$2], dir0=[ASC-nulls-first], dir1=[ASC-nulls-first])
+              LogicalProject(state=[$7], balance=[$3], age=[$8])
+                CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[0], expr#4=[=($t2, $t3)], expr#5=[null:BIGINT], expr#6=[CASE($t4, $t5, $t1)], expr#7=[CAST($t6):DOUBLE], expr#8=[/($t7, $t2)], avg(balance)=[$t8], state=[$t0])
+        EnumerableAggregate(group=[{7}], agg#0=[$SUM0($3)], agg#1=[COUNT($3)])
+          CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
