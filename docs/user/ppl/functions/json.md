@@ -23,9 +23,9 @@ Notes:
 ### Description  
 
 Usage: `json(value)` Evaluates whether a string can be parsed as a json-encoded string. Returns the value if valid, null otherwise.
-Argument type: STRING
-Return type: STRING
-Example
+**Argument type:** `STRING`
+**Return type:** `STRING`
+### Example
   
 ```ppl
 source=json_test
@@ -53,10 +53,10 @@ fetched rows / total rows = 4/4
 ### Description  
 
 Version: 3.1.0  
-Limitation: Only works when plugins.calcite.enabled=true  
+Limitation: Only works when `plugins.calcite.enabled=true`  
 Usage: `json_valid(value)` Evaluates whether a string uses valid JSON syntax. Returns TRUE if valid, FALSE if invalid. NULL input returns NULL.  
-Argument type: STRING  
-Return type: BOOLEAN  
+**Argument type:** `STRING  `
+**Return type:** `BOOLEAN  `
 Example  
   
 ```ppl
@@ -82,9 +82,9 @@ fetched rows / total rows = 1/1
 ### Description  
 
 Usage: `json_object(key1, value1, key2, value2...)` create a json object string with key value pairs. The key must be string.
-Argument type: key1: STRING, value1: ANY, key2: STRING, value2: ANY ...
-Return type: STRING
-Example
+**Argument type:** `key1: STRING, value1: ANY, key2: STRING, value2: ANY ...`
+**Return type:** `STRING`
+### Example
   
 ```ppl
 source=json_test
@@ -109,9 +109,9 @@ fetched rows / total rows = 1/1
 ### Description  
 
 Usage: `json_array(element1, element2, ...)` create a json array string with elements.
-Argument type: element1: ANY, element2: ANY ...
-Return type: STRING
-Example
+**Argument type:** `element1: ANY, element2: ANY ...`
+**Return type:** `STRING`
+### Example
   
 ```ppl
 source=json_test
@@ -136,9 +136,9 @@ fetched rows / total rows = 1/1
 ### Description  
 
 Usage: `json_array_length(value)` parse the string to json array and return size,, null is returned in case of any other valid JSON string, null or an invalid JSON.
-Argument type: value: A JSON STRING
-Return type: INTEGER
-Example
+**Argument type:** `value: A JSON STRING`
+**Return type:** `INTEGER`
+### Example
   
 ```ppl
 source=json_test
@@ -181,9 +181,9 @@ fetched rows / total rows = 1/1
 ### Description  
 
 Usage: `json_extract(json_string, path1, path2, ...)` Extracts values using the specified JSON paths. If only one path is provided, it returns a single value. If multiple paths are provided, it returns a JSON Array in the order of the paths. If one path cannot find value, return null as the result for this path. The path use "{<index>}" to represent index for array, "{}" means "{*}".
-Argument type: json_string: STRING, path1: STRING, path2: STRING ...
-Return type: STRING
-Example
+**Argument type:** `json_string: STRING, path1: STRING, path2: STRING ...`
+**Return type:** `STRING`
+### Example
   
 ```ppl
 source=json_test
@@ -226,9 +226,9 @@ fetched rows / total rows = 1/1
 ### Description  
 
 Usage: `json_delete(json_string, path1, path2, ...)` Delete values using the specified JSON paths. Return the json string after deleting. If one path cannot find value, do nothing.
-Argument type: json_string: STRING, path1: STRING, path2: STRING ...
-Return type: STRING
-Example
+**Argument type:** `json_string: STRING, path1: STRING, path2: STRING ...`
+**Return type:** `STRING`
+### Example
   
 ```ppl
 source=json_test
@@ -289,9 +289,9 @@ fetched rows / total rows = 1/1
 ### Description  
 
 Usage: `json_set(json_string, path1, value1,  path2, value2...)` Set values to corresponding paths using the specified JSON paths. If one path's parent node is not a json object, skip the path. Return the json string after setting.
-Argument type: json_string: STRING, path1: STRING, value1: ANY, path2: STRING, value2: ANY ...
-Return type: STRING
-Example
+**Argument type:** `json_string: STRING, path1: STRING, value1: ANY, path2: STRING, value2: ANY ...`
+**Return type:** `STRING`
+### Example
   
 ```ppl
 source=json_test
@@ -334,9 +334,9 @@ fetched rows / total rows = 1/1
 ### Description  
 
 Usage: `json_append(json_string, path1, value1,  path2, value2...)` Append values to corresponding paths using the specified JSON paths. If one path's target node is not an array, skip the path. Return the json string after setting.
-Argument type: json_string: STRING, path1: STRING, value1: ANY, path2: STRING, value2: ANY ...
-Return type: STRING
-Example
+**Argument type:** `json_string: STRING, path1: STRING, value1: ANY, path2: STRING, value2: ANY ...`
+**Return type:** `STRING`
+### Example
   
 ```ppl
 source=json_test
@@ -397,9 +397,9 @@ fetched rows / total rows = 1/1
 ### Description  
 
 Usage: `json_extend(json_string, path1, value1,  path2, value2...)` Extend values to corresponding paths using the specified JSON paths. If one path's target node is not an array, skip the path. The function will try to parse the value as an array. If it can be parsed, extend it to the target array. Otherwise, regard the value a single one. Return the json string after setting.
-Argument type: json_string: STRING, path1: STRING, value1: ANY, path2: STRING, value2: ANY ...
-Return type: STRING
-Example
+**Argument type:** `json_string: STRING, path1: STRING, value1: ANY, path2: STRING, value2: ANY ...`
+**Return type:** `STRING`
+### Example
   
 ```ppl
 source=json_test
@@ -460,9 +460,9 @@ fetched rows / total rows = 1/1
 ### Description  
 
 Usage: `json_keys(json_string)` Return the key list of the Json object as a Json array. Otherwise, return null.
-Argument type: json_string: A JSON STRING
-Return type: STRING
-Example
+**Argument type:** `json_string: A JSON STRING`
+**Return type:** `STRING`
+### Example
   
 ```ppl
 source=json_test
