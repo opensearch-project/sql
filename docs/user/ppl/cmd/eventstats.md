@@ -1,10 +1,9 @@
-# eventstats  
+# eventstats
 
-## Description  
 
 The `eventstats` command enriches your event data with calculated summary statistics. It operates by analyzing specified fields within your events, computing various statistical measures, and then appending these results as new fields to each original event.
 Key aspects of `eventstats`:
-1. It performs calculations across the entire result set or within defined groups.  
+1. It performs calculations across the entire search results or within defined groups.  
 2. The original events remain intact, with new fields added to contain the statistical results.  
 3. The command is particularly useful for comparative analysis, identifying outliers, or providing additional context to individual events.  
   
@@ -14,21 +13,24 @@ The `stats` and `eventstats` commands are both used for calculating statistics, 
   * `stats`: Produces a summary table with only the calculated statistics.  
   * `eventstats`: Adds the calculated statistics as new fields to the existing events, preserving the original data.  
 * Event Retention  
-  * `stats`: Reduces the result set to only the statistical summary, discarding individual events.  
+  * `stats`: Reduces the search results to only the statistical summary, discarding individual events.  
   * `eventstats`: Retains all original events and adds new fields with the calculated statistics.  
 * Use Cases  
   * `stats`: Best for creating summary reports or dashboards. Often used as a final command to summarize results.  
   * `eventstats`: Useful when you need to enrich events with statistical context for further analysis or filtering. It can be used mid-search to add statistics that can be used in subsequent commands.  
   
-## Syntax  
 
-eventstats [bucket_nullable=bool] \<function\>... [by-clause]
-* function: mandatory. An aggregation function or window function.  
-* bucket_nullable: optional. Controls whether the eventstats command consider null buckets as a valid group in group-by aggregations. When set to `false`, it will not treat null group-by values as a distinct group during aggregation. **Default:** Determined by `plugins.ppl.syntax.legacy.preferred`.  
+## Syntax
+
+Use the following syntax:
+
+`eventstats [bucket_nullable=bool] <function>... [by-clause]`
+* `function`: mandatory. An aggregation function or window function.  
+* `bucket_nullable`: optional. Controls whether the eventstats command consider null buckets as a valid group in group-by aggregations. When set to `false`, it will not treat null group-by values as a distinct group during aggregation. **Default:** Determined by `plugins.ppl.syntax.legacy.preferred`.  
  * When `plugins.ppl.syntax.legacy.preferred=true`, `bucket_nullable` defaults to `true`  
  * When `plugins.ppl.syntax.legacy.preferred=false`, `bucket_nullable` defaults to `false`  
-* by-clause: optional. Groups results by specified fields or expressions. Syntax: by [span-expression,] [field,]... **Default:** aggregation over the entire result set.  
-* span-expression: optional, at most one. Splits field into buckets by intervals. Syntax: span(field_expr, interval_expr). For example, `span(age, 10)` creates 10-year age buckets, `span(timestamp, 1h)` creates hourly buckets.  
+* `by-clause`: optional. Groups results by specified fields or expressions. Syntax: by [span-expression,] [field,]... **Default:** aggregation over the entire search results.  
+* `span-expression`: optional, at most one. Splits field into buckets by intervals. Syntax: span(field_expr, interval_expr). For example, `span(age, 10)` creates 10-year age buckets, `span(timestamp, 1h)` creates hourly buckets.  
   * Available time units:  
     * millisecond (ms)  
     * second (s)  
@@ -40,23 +42,24 @@ eventstats [bucket_nullable=bool] \<function\>... [by-clause]
     * quarter (q)  
     * year (y)  
 
-## Aggregation Functions  
+## Aggregation functions  
 
 The eventstats command supports the following aggregation functions:  
-* COUNT: Count of values  
-* SUM: Sum of numeric values  
-* AVG: Average of numeric values  
-* MAX: Maximum value  
-* MIN: Minimum value  
-* VAR_SAMP: Sample variance  
-* VAR_POP: Population variance  
-* STDDEV_SAMP: Sample standard deviation  
-* STDDEV_POP: Population standard deviation  
+* `COUNT`: Count of values  
+* `SUM`: Sum of numeric values  
+* `AVG`: Average of numeric values  
+* `MAX`: Maximum value  
+* `MIN`: Minimum value  
+* `VAR_SAMP`: Sample variance  
+* `VAR_POP`: Population variance  
+* `STDDEV_SAMP`: Sample standard deviation  
+* `STDDEV_POP`: Population standard deviation  
 * DISTINCT_COUNT/DC: Distinct count of values  
-* EARLIEST: Earliest value by timestamp  
-* LATEST: Latest value by timestamp  
+* `EARLIEST`: Earliest value by timestamp  
+* `LATEST`: Latest value by timestamp  
 
 For detailed documentation of each function, see [Aggregation Functions](../functions/aggregations.md).
+
 ## Usage  
 
 Eventstats
@@ -70,9 +73,10 @@ source = table | eventstats dc(field) as distinct_count
 source = table | eventstats distinct_count(category) by region
 ```
   
+
 ## Example 1: Calculate the average, sum and count of a field by group  
 
-This example shows calculating the average age, sum of age, and count of events for all accounts grouped by gender.
+The following example PPL query shows how to use `eventstats` to calculate the average age, sum of age, and count of events for all accounts grouped by gender.
   
 ```ppl
 source=accounts
@@ -95,9 +99,10 @@ fetched rows / total rows = 4/4
 +----------------+--------+-----+--------------------+----------+---------+
 ```
   
+
 ## Example 2: Calculate the count by a gender and span  
 
-This example shows counting events by age intervals of 5 years, grouped by gender.
+The following example PPL query shows how to use `eventstats` to count events by age intervals of 5 years, grouped by gender.
   
 ```ppl
 source=accounts
@@ -120,6 +125,7 @@ fetched rows / total rows = 4/4
 +----------------+--------+-----+-----+
 ```
   
+
 ## Example 3: Null buckets handling  
   
 ```ppl

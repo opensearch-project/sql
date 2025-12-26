@@ -1,16 +1,19 @@
-# search  
+# search
 
-## Description  
 
-The `search` command retrieves document from the index. The `search` command can only be used as the first command in the PPL query.
-## Syntax  
+The `search` command retrieves documents from the index. The `search` command can only be used as the first command in the PPL query.
 
-search source=[\<remote-cluster\>:]\<index\> [search-expression]
-* search: search keyword, which could be ignored.  
-* index: mandatory. search command must specify which index to query from. The index name can be prefixed by "\<cluster name\>:" for cross-cluster search.  
-* search-expression: optional. Search expression that gets converted to OpenSearch [query_string](https://docs.opensearch.org/latest/query-dsl/full-text/query-string/) function which uses [Lucene Query Syntax](https://lucene.apache.org/core/2_9_4/queryparsersyntax.html).  
+## Syntax
+
+Use the following syntax:
+
+`search source=[<remote-cluster>:]<index> [search-expression]`  
+* `search`: search keyword, which could be ignored.  
+* `index`: mandatory. search command must specify which index to query from. The index name can be prefixed by "\<cluster name\>:" for cross-cluster search.  
+* `search-expression`: optional. Search expression that gets converted to OpenSearch [query_string](https://docs.opensearch.org/latest/query-dsl/full-text/query-string/) function which uses [Lucene Query Syntax](https://lucene.apache.org/core/2_9_4/queryparsersyntax.html).  
   
-## Search Expression  
+
+## Search expression  
 
 The search expression syntax supports:
 * **Full text search**: `error` or `"error message"` - Searches the default field configured by the `index.query.default_field` setting (defaults to `*` which searches all fields)  
@@ -22,12 +25,12 @@ The search expression syntax supports:
 * **Wildcards**: `*` (zero or more characters), `?` (exactly one character)  
   
 **Full Text Search**: Unlike other PPL commands, search supports both quoted and unquoted strings. Unquoted terms are limited to alphanumeric characters, hyphens, underscores, and wildcards. Any other characters require double quotes.
-* Unquoted: `search error`, `search user-123`, `search log_*`  
-* Quoted: `search "error message"`, `search "user@example.com"`  
+* `Unquoted`: `search error`, `search user-123`, `search log_*`  
+* `Quoted`: `search "error message"`, `search "user@example.com"`  
   
 **Field Values**: Follow the same quoting rules as search text.
-* Unquoted: `status=active`, `code=ERR-401`  
-* Quoted: `email="user@example.com"`, `message="server error"`  
+* `Unquoted`: `status=active`, `code=ERR-401`  
+* `Quoted`: `email="user@example.com"`, `message="server error"`  
   
 **Time Modifiers**: Filter search results by time range using the implicit `@timestamp` field. [Time modifiers support the same formats as the EARLIEST and LATEST condition functions.](https://github.com/opensearch-project/sql/blob/main/docs/user/ppl/functions/condition.md#earliest):
 1. **Current time**: `now` or `now()` - the current time  
@@ -53,7 +56,8 @@ Read more details on time modifiers in the [PPL relative_timestamp documentation
 * **Column name conflicts**: If your data contains columns named "earliest" or "latest", use backticks to access them as regular fields (e.g., `` `earliest`="value"``) to avoid conflicts with time modifier syntax.  
 * **Time snap syntax**: Time modifiers with chained time offsets must be wrapped in quotes (e.g., `latest='+1d@month-10h'`) for proper query parsing.  
   
-## Default Field Configuration  
+
+## Default field configuration  
 
 When you search without specifying a field, it searches the default field configured by the `index.query.default_field` index setting (defaults to `*` which searches all fields).
 You can check or modify the default field setting
@@ -62,40 +66,43 @@ You can check or modify the default field setting
     {
       "index.query.default_field": "firstname,lastname,email"
     }
-## Field Types and Search Behavior  
+
+## Field types and search behavior  
 
 **Text Fields**: Full-text search, phrase search
 * `search message="error occurred" source=logs`  
-* Limitations: Wildcards apply to terms after analysis, not entire field value.  
+* `Limitations`: Wildcards apply to terms after analysis, not entire field value.  
   
 **Keyword Fields**: Exact matching, wildcard patterns
 * `search status="ACTIVE" source=logs`  
-* Limitations: No text analysis, case-sensitive matching  
+* `Limitations`: No text analysis, case-sensitive matching  
   
 **Numeric Fields**: Range queries, exact matching, IN operator
 * `search age>=18 AND balance<50000 source=accounts`  
-* Limitations: No wildcard or text search support  
+* `Limitations`: No wildcard or text search support  
   
 **Date Fields**: Range queries, exact matching, IN operator
 * `search timestamp>="2024-01-01" source=logs`  
-* Limitations: Must use index mapping date format, no wildcards  
+* `Limitations`: Must use index mapping date format, no wildcards  
   
 **Boolean Fields**: true/false values only, exact matching, IN operator
 * `search active=true source=users`  
-* Limitations: No wildcards or range queries  
+* `Limitations`: No wildcards or range queries  
   
 **IP Fields**: Exact matching, CIDR notation
 * `search client_ip="192.168.1.0/24" source=logs`  
-* Limitations: No wildcards for partial IP matching. For wildcard search use multi field with keyword: `search ip_address.keyword='1*' source=logs` or WHERE clause: `source=logs | where cast(ip_address as string) like '1%'`  
+* `Limitations`: No wildcards for partial IP matching. For wildcard search use multi field with keyword: `search ip_address.keyword='1*' source=logs` or WHERE clause: `source=logs | where cast(ip_address as string) like '1%'`  
   
 **Field Type Performance Tips**:
    * Each field type has specific search capabilities and limitations. Using the wrong field type during ingestion impacts performance and accuracy  
    * For wildcard searches on non-keyword fields: Add a keyword field copy for better performance. Example: If you need wildcards on a text field, create `message.keyword` alongside `message`  
   
-## Cross-Cluster Search  
+
+## Cross-cluster search  
 
 Cross-cluster search lets any node in a cluster execute search requests against other clusters. Refer to [Cross-Cluster Search](../admin/cross_cluster_search.md) for configuration.
-## Example 1: Text Search  
+
+## Example 1: Text search  
 
 **Basic Text Search** (unquoted single term)
   
@@ -174,7 +181,7 @@ fetched rows / total rows = 1/1
 +--------------------------------------------------------------------------------------------------------------------+
 ```
   
-### Mixed Phrase and Boolean
+### Mixed phrase and boolean
   
 ```ppl
 search "User authentication" OR OAuth2 source=otellogs
@@ -194,9 +201,12 @@ fetched rows / total rows = 1/1
 +----------------------------------------------------------------------------------------------------------+
 ```
   
-## Example 2: Boolean Logic and Operator Precedence  
 
-### Boolean Operators
+## Example 2: Boolean logic and operator precedence  
+
+The following examples demonstrate boolean operators and precedence.
+
+### Boolean operators
   
 ```ppl
 search severityText="ERROR" OR severityText="FATAL" source=otellogs
@@ -256,8 +266,9 @@ fetched rows / total rows = 2/2
 +--------------+----------------+
 ```
   
-The above evaluates as `(severityText="ERROR" OR severityText="WARN") AND severityNumber>15`
-## Example 3: NOT vs != Semantics  
+The preceding expression evaluates as `(severityText="ERROR" OR severityText="WARN") AND severityNumber>15`
+
+## Example 3: NOT compared to != Semantics  
 
 **!= operator** (field must exist and not equal the value)
   
@@ -298,9 +309,12 @@ fetched rows / total rows = 3/3
   
 **Key difference**: `!=` excludes null values, `NOT` includes them.
 Dale Adams (account 18) has `employer=null`. He appears in `NOT employer="Quility"` but not in `employer!="Quility"`.
+
 ## Example 4: Wildcards  
 
-### Wildcard Patterns
+The following examples demonstrate wildcard pattern matching.
+
+### Wildcard patterns
   
 ```ppl
 search severityText=ERR* source=otellogs
@@ -367,7 +381,8 @@ fetched rows / total rows = 3/3
 +--------------+
 ```
   
-## Example 5: Range Queries  
+
+## Example 5: Range queries  
 
 Use comparison operators (>, <, >=, <=) to filter numeric and date fields within specific ranges. Range queries are particularly useful for filtering by age, price, timestamps, or any numeric metrics.
   
@@ -407,7 +422,8 @@ fetched rows / total rows = 1/1
 +---------------------------------------------------------+
 ```
   
-## Example 6: Field Search with Wildcards  
+
+## Example 6: Field search with Wildcards  
 
 When searching in text or keyword fields, wildcards enable partial matching. This is particularly useful for finding records where you only know part of the value. Note that wildcards work best with keyword fields, while text fields may produce unexpected results due to tokenization.
 **Partial Search in Keyword Fields**
@@ -428,7 +444,7 @@ fetched rows / total rows = 1/1
 +-----------+----------+
 ```
   
-### Combining Wildcards with Field Comparisons
+### Combining wildcards with field comparisons
   
 ```ppl
 search firstname=A* AND age>30 source=accounts
@@ -452,7 +468,8 @@ fetched rows / total rows = 1/1
 * **Performance**: Leading wildcards (e.g., `*@example.com`) are slower than trailing wildcards  
 * **Case sensitivity**: Keyword field wildcards are case-sensitive unless normalized during indexing  
   
-## Example 7: IN Operator and Field Comparisons  
+
+## Example 7: IN operator and field comparisons  
 
 The IN operator efficiently checks if a field matches any value from a list. This is cleaner and more performant than chaining multiple OR conditions for the same field.
 **IN Operator**
@@ -477,7 +494,7 @@ fetched rows / total rows = 3/3
 +--------------+
 ```
   
-### Field Comparison Examples
+### Field comparison examples
   
 ```ppl
 search severityNumber=17 source=otellogs
@@ -513,7 +530,8 @@ fetched rows / total rows = 1/1
 +---------------------------------------------------------+
 ```
   
-## Example 8: Complex Expressions  
+
+## Example 8: Complex expressions  
 
 Combine multiple conditions using boolean operators and parentheses to create sophisticated search queries.
   
@@ -553,7 +571,8 @@ fetched rows / total rows = 1/1
 +---------------------------------------------------------+
 ```
   
-## Example 9: Time Modifiers  
+
+## Example 9: Time modifiers  
 
 Time modifiers filter search results by time range using the implicit `@timestamp` field. They support various time formats for precise temporal filtering.
 **Absolute Time Filtering**
@@ -621,7 +640,7 @@ fetched rows / total rows = 2/2
 +-------------------------------+--------------+
 ```
   
-### Unix Timestamp Filtering
+### Unix timestamp filtering
   
 ```ppl
 search earliest=1705314600 latest=1705314605 source=otellogs
@@ -643,7 +662,8 @@ fetched rows / total rows = 5/5
 +-------------------------------+--------------+
 ```
   
-## Example 10: Special Characters and Escaping  
+
+## Example 10: Special characters and Escaping  
 
 Understand when and how to escape special characters in your search queries. There are two categories of characters that need escaping:
 **Characters that must be escaped**:
@@ -655,7 +675,7 @@ Understand when and how to escape special characters in your search queries. The
 * **Question mark (?)**: Use as-is for wildcard, escape as `\\?` to search for literal question mark  
   
 
-| Intent | PPL Syntax | Result |
+| Intent | PPL syntax | Result |
 |--------|------------|--------|
 | Wildcard search | `field=user*` | Matches "user", "user123", "userABC" |
 | Literal "user*" | `field="user\\*"` | Matches only "user*" |
@@ -721,7 +741,8 @@ fetched rows / total rows = 1/1
 +--------------------------------------------------------------------------------------------------------------------------------------------------------+
 ```
   
-## Example 11: Fetch All Data  
+
+## Example 11: Fetch all Data  
 
 Retrieve all documents from an index by specifying only the source without any search conditions. This is useful for exploring small datasets or verifying data ingestion.
   

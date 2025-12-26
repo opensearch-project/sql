@@ -1,11 +1,12 @@
-# AddColTotals
+# addcoltotals
   
 
-# Description
 
-The `addcoltotals` command computes the sum of each column and add a summary event at the end to show the total of each column. This command works the same way `addtotals` command works with row=false and col=true option. This is useful for creating summary reports with subtotals or grand totals. The `addcoltotals` command only sums numeric fields (integers, floats, doubles). Non-numeric fields in the field list are ignored even if its specified in field-list or in the case of no field-list specified.
+The `addcoltotals` command computes the sum of each column and adds a summary event at the end to show the total of each column. This command works the same way `addtotals` command works with row=false and col=true option. This is useful for creating summary reports with subtotals or grand totals. The `addcoltotals` command only sums numeric fields (integers, floats, doubles). Non-numeric fields in the field list are ignored even if its specified in field-list or in the case of no field-list specified.
 
-# Syntax
+## Syntax
+
+Use the following syntax:
 
 `addcoltotals [field-list] [label=<string>] [labelfield=<field>]`
 
@@ -13,9 +14,9 @@ The `addcoltotals` command computes the sum of each column and add a summary eve
 - `labelfield=<field>`: Optional. Field name to place the label. If it  specifies a non-existing field, adds the field and shows label at the summary event row at this field.
 - `label=<string>`: Optional. Custom text for the totals row labelfield\'s label. Default is \"Total\".
 
-# Example 1: Basic Example
+# Example 1: Basic example
 
-The example shows placing the label in an existing field.
+The following example PPL query shows how to use `addcoltotals` to place the label in an existing field.
 
 ```ppl
 source=accounts 
@@ -38,9 +39,9 @@ fetched rows / total rows = 4/4
 +-----------+---------+
 ```
 
-# Example 2: Adding column totals and adding a summary event with label specified.
+# Example 2: Adding column totals and adding a summary event with label specified
 
-The example shows adding totals after a stats command where final summary event label is \'Sum\' and row=true value was used by default when not specified. It also added new field specified by labelfield as it did not match existing field.
+The following example PPL query shows how to use `addcoltotals` to add totals after a stats command where final summary event label is \'Sum\' and row=true value was used by default when not specified. It also added new field specified by labelfield as it did not match existing field.
 
 ```ppl
 source=accounts 
@@ -63,7 +64,7 @@ fetched rows / total rows = 3/3
 
 # Example 3: With all options
 
-The example shows using addcoltotals with all options set.
+The following example PPL query shows how to use `addcoltotals` with all options set.
 
 ```ppl
 source=accounts 

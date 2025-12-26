@@ -1,17 +1,20 @@
-# eval  
+# eval
 
-## Description  
 
 The `eval` command evaluates the expression and appends the result to the search result.
-## Syntax  
 
-eval \<field\>=\<expression\> ["," \<field\>=\<expression\> ]...
-* field: mandatory. If the field name does not exist, a new field is added. If the field name already exists, it will be overridden.  
+## Syntax
+
+Use the following syntax:
+
+`eval <field>=<expression> ["," <field>=<expression> ]...`
+* `field`: mandatory. If the field name does not exist, a new field is added. If the field name already exists, it will be overridden.  
 * expression: mandatory. Any expression supported by the system.  
   
+
 ## Example 1: Create a new field  
 
-This example shows creating a new field doubleAge for each document. The new doubleAge field is the result of multiplying age by 2.
+The following example PPL query shows how to use `eval` to create a new field for each document. In this example, the new field is `doubleAge`.
   
 ```ppl
 source=accounts
@@ -33,9 +36,10 @@ fetched rows / total rows = 4/4
 +-----+-----------+
 ```
   
+
 ## Example 2: Override an existing field  
 
-This example shows overriding the existing age field by adding 1 to it.
+The following example PPL query shows how to use `eval` to override an existing field. In this example, the existing field `age` is overridden by the `age` field plus 1.
   
 ```ppl
 source=accounts
@@ -57,9 +61,10 @@ fetched rows / total rows = 4/4
 +-----+
 ```
   
+
 ## Example 3: Create a new field with field defined in eval  
 
-This example shows creating a new field ddAge using a field defined in the same eval command. The new field ddAge is the result of multiplying doubleAge by 2, where doubleAge is defined in the same eval command.
+The following example PPL query shows how to use `eval` to create a new field based on the fields defined in the `eval` expression. In this example, the new field `ddAge` is the evaluation result of the `doubleAge` field multiplied by 2. `doubleAge` is defined in the `eval` command.
   
 ```ppl
 source=accounts
@@ -81,9 +86,10 @@ fetched rows / total rows = 4/4
 +-----+-----------+-------+
 ```
   
+
 ## Example 4: String concatenation  
 
-This example shows using the + operator for string concatenation. You can concatenate string literals and field values.
+The following example PPL query shows using the `+` operator for string concatenation. You can concatenate string literals and field values.
   
 ```ppl
 source=accounts 
@@ -105,9 +111,10 @@ fetched rows / total rows = 4/4
 +-----------+---------------+
 ```
   
+
 ## Example 5: Multiple string concatenation with type casting  
 
-This example shows multiple concatenations with type casting from numeric to string.
+The following example PPL query shows multiple concatenations with type casting from numeric to string.
   
 ```ppl
 source=accounts | eval full_info = 'Name: ' + firstname + ', Age: ' + CAST(age AS STRING) | fields firstname, age, full_info
@@ -127,6 +134,7 @@ fetched rows / total rows = 4/4
 +-----------+-----+------------------------+
 ```
   
+
 ## Limitations  
 
-The `eval` command is not rewritten to OpenSearch DSL, it is only executed on the coordination node.
+The `eval` command is not rewritten to [query domain-specific language (DSL)](https://opensearch.org/docs/latest/query-dsl/index/). It is only run on the coordinating node.

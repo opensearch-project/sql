@@ -1,8 +1,7 @@
-# streamstats  
+# streamstats
 
-## Description  
 
-The `streamstats` command is used to calculate cumulative or rolling statistics as events are processed in order. Unlike `stats` or `eventstats` which operate on the entire dataset at once, it computes values incrementally on a per-event basis, often respecting the order of events in the search results. It allows you to generate running totals, moving averages, and other statistics that evolve with the stream of events.
+The `streamstats` command calculates cumulative or rolling statistics as events are processed in order. Unlike `stats` or `eventstats` which operate on the entire dataset at once, it computes values incrementally on a per-event basis, often respecting the order of events in the search results. It allows you to generate running totals, moving averages, and other statistics that evolve with the stream of events.
 Key aspects of `streamstats`:
 1. It computes statistics incrementally as each event is processed, making it suitable for time-series and sequence-based analysis.  
 2. Supports arguments such as window (for sliding window calculations) and current (to control whether the current event included in calculation).  
@@ -28,20 +27,23 @@ All of these commands can be used to generate aggregations such as average, sum,
   * `eventstats`: When aggregated statistics are needed alongside original event data.  
   * `streamstats`: When a running total or cumulative statistic is needed across event streams.  
   
-## Syntax  
 
-streamstats [bucket_nullable=bool] [current=\<bool\>] [window=\<int\>] [global=\<bool\>] [reset_before="("\<eval-expression\>")"] [reset_after="("\<eval-expression\>")"] \<function\>... [by-clause]
-* function: mandatory. A aggregation function or window function.  
-* bucket_nullable: optional. Controls whether the streamstats command consider null buckets as a valid group in group-by aggregations. When set to `false`, it will not treat null group-by values as a distinct group during aggregation. **Default:** Determined by `plugins.ppl.syntax.legacy.preferred`.  
+## Syntax
+
+Use the following syntax:
+
+`streamstats [bucket_nullable=bool] [current=<bool>] [window=<int>] [global=<bool>] [reset_before="("<eval-expression>")"] [reset_after="("<eval-expression>")"] <function>... [by-clause]`
+* `function`: mandatory. A aggregation function or window function.  
+* `bucket_nullable`: optional. Controls whether the streamstats command consider null buckets as a valid group in group-by aggregations. When set to `false`, it will not treat null group-by values as a distinct group during aggregation. **Default:** Determined by `plugins.ppl.syntax.legacy.preferred`.  
  * When `plugins.ppl.syntax.legacy.preferred=true`, `bucket_nullable` defaults to `true`  
  * When `plugins.ppl.syntax.legacy.preferred=false`, `bucket_nullable` defaults to `false`  
-* current: optional. If true, the search includes the given, or current, event in the summary calculations. If false, the search uses the field value from the previous event. Syntax: current=\<boolean\>. **Default:** true.  
-* window: optional. Specifies the number of events to use when computing the statistics. Syntax: window=\<integer\>. **Default:** 0, which means that all previous and current events are used.  
-* global: optional. Used only when the window argument is set. Defines whether to use a single window, global=true, or to use separate windows based on the by clause. If global=false and window is set to a non-zero value, a separate window is used for each group of values of the field specified in the by clause. Syntax: global=\<boolean\>. **Default:** true.  
-* reset_before: optional. Before streamstats calculates for an event, reset_before resets all accumulated statistics when the eval-expression evaluates to true. If used with window, the window is also reset. Syntax: reset_before="("\<eval-expression\>")". **Default:** false.  
-* reset_after: optional. After streamstats calculations for an event, reset_after resets all accumulated statistics when the eval-expression evaluates to true. This expression can reference fields returned by streamstats. If used with window, the window is also reset. Syntax: reset_after="("\<eval-expression\>")". **Default:** false.  
-* by-clause: optional. The by clause could be the fields and expressions like scalar functions and aggregation functions. Besides, the span clause can be used to split specific field into buckets in the same interval, the stats then does the aggregation by these span buckets. Syntax: by [span-expression,] [field,]... **Default:** If no \<by-clause\> is specified, all events are processed as a single group and running statistics are computed across the entire event stream.  
-* span-expression: optional, at most one. Splits field into buckets by intervals. Syntax: span(field_expr, interval_expr). For example, `span(age, 10)` creates 10-year age buckets, `span(timestamp, 1h)` creates hourly buckets.  
+* `current`: optional. If true, the search includes the given, or current, event in the summary calculations. If false, the search uses the field value from the previous event. Syntax: current=\<boolean\>. **Default:** true.  
+* `window`: optional. Specifies the number of events to use when computing the statistics. Syntax: window=\<integer\>. **Default:** 0, which means that all previous and current events are used.  
+* `global`: optional. Used only when the window argument is set. Defines whether to use a single window, global=true, or to use separate windows based on the by clause. If global=false and window is set to a non-zero value, a separate window is used for each group of values of the field specified in the by clause. Syntax: global=\<boolean\>. **Default:** true.  
+* `reset_before`: optional. Before streamstats calculates for an event, reset_before resets all accumulated statistics when the eval-expression evaluates to true. If used with window, the window is also reset. Syntax: reset_before="("\<eval-expression\>")". **Default:** false.  
+* `reset_after`: optional. After streamstats calculations for an event, reset_after resets all accumulated statistics when the eval-expression evaluates to true. This expression can reference fields returned by streamstats. If used with window, the window is also reset. Syntax: reset_after="("\<eval-expression\>")". **Default:** false.  
+* `by-clause`: optional. The by clause could be the fields and expressions like scalar functions and aggregation functions. Besides, the span clause can be used to split specific field into buckets in the same interval, the stats then does the aggregation by these span buckets. Syntax: by [span-expression,] [field,]... **Default:** If no \<by-clause\> is specified, all events are processed as a single group and running statistics are computed across the entire event stream.  
+* `span-expression`: optional, at most one. Splits field into buckets by intervals. Syntax: span(field_expr, interval_expr). For example, `span(age, 10)` creates 10-year age buckets, `span(timestamp, 1h)` creates hourly buckets.  
   * Available time units  
     * millisecond (ms)  
     * second (s)  
@@ -53,28 +55,30 @@ streamstats [bucket_nullable=bool] [current=\<bool\>] [window=\<int\>] [global=\
     * quarter (q)  
     * year (y)  
   
-## Aggregation Functions  
+
+## Aggregation functions  
 
 The streamstats command supports the following aggregation functions:
-* COUNT: Count of values  
-* SUM: Sum of numeric values  
-* AVG: Average of numeric values  
-* MAX: Maximum value  
-* MIN: Minimum value  
-* VAR_SAMP: Sample variance  
-* VAR_POP: Population variance  
-* STDDEV_SAMP: Sample standard deviation  
-* STDDEV_POP: Population standard deviation  
+* `COUNT`: Count of values  
+* `SUM`: Sum of numeric values  
+* `AVG`: Average of numeric values  
+* `MAX`: Maximum value  
+* `MIN`: Minimum value  
+* `VAR_SAMP`: Sample variance  
+* `VAR_POP`: Population variance  
+* `STDDEV_SAMP`: Sample standard deviation  
+* `STDDEV_POP`: Population standard deviation  
 * DISTINCT_COUNT/DC: Distinct count of values  
-* EARLIEST: Earliest value by timestamp  
-* LATEST: Latest value by timestamp  
+* `EARLIEST`: Earliest value by timestamp  
+* `LATEST`: Latest value by timestamp  
   
 For detailed documentation of each function, see [Aggregation Functions](../functions/aggregations.md).
+
 ## Usage  
 
 Streamstats
   
-```
+```ppl ignore
 source = table | streamstats avg(a)
 source = table | streamstats current = false avg(a)
 source = table | streamstats window = 5 sum(b)
@@ -89,6 +93,7 @@ source = table | streamstats window=2 reset_before=a>31 avg(b)
 source = table | streamstats current=false reset_after=a>31 avg(b) by c
 ```
   
+
 ## Example 1: Calculate the running average, sum, and count of a field by group  
 
 This example calculates the running average age, running sum of age, and running count of events for all the accounts, grouped by gender.
@@ -112,6 +117,7 @@ fetched rows / total rows = 4/4
 +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+-------------+---------------+
 ```
   
+
 ## Example 2: Running maximum age over a 2-row window  
 
 This example calculates the running maximum age over a 2-row window, excluding the current event.
@@ -139,28 +145,31 @@ fetched rows / total rows = 8/8
 +-------+---------+------------+-------+------+-----+--------------+
 ```
   
+
 ## Example 3: Use the global argument to calculate running statistics  
 
 The global argument is only applicable when a window argument is set. It defines how the window is applied in relation to the grouping fields:
 * global=true: a global window is applied across all rows, but the calculations inside the window still respect the by groups.  
 * global=false: the window itself is created per group, meaning each group gets its own independent window.  
   
-This example shows how to calculate the running average of age across accounts by country, using global argument.
-original data
-    +-------+---------+------------+-------+------+-----+
-    | name  | country | state      | month | year | age |
-  
-    |-------+---------+------------+-------+------+-----+
-    | Jake  | USA     | California | 4     | 2023 | 70  |
-    | Hello | USA     | New York   | 4     | 2023 | 30  |
-    | John  | Canada  | Ontario    | 4     | 2023 | 25  |
-    | Jane  | Canada  | Quebec     | 4     | 2023 | 20  |
-    | Jim   | Canada  | B.C        | 4     | 2023 | 27  |
-    | Peter | Canada  | B.C        | 4     | 2023 | 57  |
-    | Rick  | Canada  | B.C        | 4     | 2023 | 70  |
-    | David | USA     | Washington | 4     | 2023 | 40  |
-  
-    +-------+---------+------------+-------+------+-----+
+The following example PPL query shows how to use `streamstats` to calculate the running average of age across accounts by country, using global argument.  
+Original data:  
+```text
++-------+---------+------------+-------+------+-----+
+| name  | country | state      | month | year | age |
+
+|-------+---------+------------+-------+------+-----+
+| Jake  | USA     | California | 4     | 2023 | 70  |
+| Hello | USA     | New York   | 4     | 2023 | 30  |
+| John  | Canada  | Ontario    | 4     | 2023 | 25  |
+| Jane  | Canada  | Quebec     | 4     | 2023 | 20  |
+| Jim   | Canada  | B.C        | 4     | 2023 | 27  |
+| Peter | Canada  | B.C        | 4     | 2023 | 57  |
+| Rick  | Canada  | B.C        | 4     | 2023 | 70  |
+| David | USA     | Washington | 4     | 2023 | 40  |
+
++-------+---------+------------+-------+------+-----+
+```
 * global=true: The window slides across all rows globally (following their input order), but inside each window, aggregation is still computed by country. So we process the data stream row by row to build the sliding window with size 2. We can see that David and Rick are in a window.  
 * global=false: Each by group (country) forms its own independent stream and window (size 2). So David and Hello are in one window for USA. This time we get running_avg 35 for David, rather than 40 when global is set true.  
   
@@ -210,6 +219,7 @@ fetched rows / total rows = 8/8
 +-------+---------+------------+-------+------+-----+-------------+
 ```
   
+
 ## Example 4: Use the reset_before and reset_after arguments to reset statistics  
 
 This example calculates the running average of age across accounts by country, with resets applied.
@@ -237,6 +247,7 @@ fetched rows / total rows = 8/8
 +-------+---------+------------+-------+------+-----+---------+
 ```
   
+
 ## Example 5: Null buckets handling  
   
 ```ppl

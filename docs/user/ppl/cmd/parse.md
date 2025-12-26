@@ -1,20 +1,23 @@
-# parse  
+# parse
 
-## Description  
 
-The `parse` command parses a text field with a regular expression and appends the result to the search result.
-## Syntax  
+The `parse` command extracts information from a text field using a regular expression and adds it to the search result.
 
-parse \<field> \<pattern>
-* field: mandatory. The field must be a text field.  
-* pattern: mandatory. The regular expression pattern used to extract new fields from the given text field. If a new field name already exists, it will replace the original field.  
+## Syntax
+
+Use the following syntax:
+
+`parse <field> <pattern>`
+* `field`: mandatory. The field must be a text field.  
+* `pattern`: mandatory. The regular expression pattern used to extract new fields from the given text field. If a new field name already exists, it will replace the original field.  
   
-## Regular Expression  
 
-The regular expression pattern is used to match the whole text field of each document with Java regex engine. Each named capture group in the expression will become a new `STRING` field.
+## Regular expression
+The regular expression pattern is used to match the whole text field of each document with Java regex engine. Each named capture group in the expression will become a new `STRING` field.  
+
 ## Example 1: Create a new field  
 
-This example shows how to create a new field `host` for each document. `host` will be the host name after `@` in `email` field. Parsing a null field will return an empty string.
+The following example PPL query shows how to create new field `host` for each document. `host` becomes the hostname after the @ symbol in the `email` field. Parsing a null field returns an empty string.
   
 ```ppl
 source=accounts
@@ -36,9 +39,10 @@ fetched rows / total rows = 4/4
 +-----------------------+------------+
 ```
   
+
 ## Example 2: Override an existing field  
 
-This example shows how to override the existing `address` field with street number removed.
+The following example PPL query shows how to override the existing `address` field while excluding the street number:
   
 ```ppl
 source=accounts
@@ -60,9 +64,10 @@ fetched rows / total rows = 4/4
 +------------------+
 ```
   
+
 ## Example 3: Filter and sort by casted parsed field  
 
-This example shows how to sort street numbers that are higher than 500 in `address` field.
+The following example PPL query shows how to sort street numbers that are higher than 500 in the `address` field.
   
 ```ppl
 source=accounts
@@ -85,6 +90,7 @@ fetched rows / total rows = 3/3
 +--------------+----------------+
 ```
   
+
 ## Limitations  
 
 There are a few limitations with parse command:

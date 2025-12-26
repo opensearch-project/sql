@@ -4,11 +4,12 @@
 
 ### Description  
 
-Usage: typeof(expr) function returns name of the data type of the value that is passed to it. This can be helpful for troubleshooting or dynamically constructing SQL queries.
-Argument type: ANY
-Return type: STRING  
+Usage: `typeof(expr)` function returns name of the data type of the value that is passed to it. This can be helpful for troubleshooting or dynamically constructing SQL queries.
 
-Example  
+**Argument type:** `ANY`  
+**Return type:** `STRING`  
+
+### Example  
   
 ```ppl
 source=people

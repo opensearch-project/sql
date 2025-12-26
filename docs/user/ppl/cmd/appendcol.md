@@ -1,15 +1,18 @@
-# appendcol  
+# appendcol
 
-## Description  
 
-The `appendcol` command appends the result of a sub-search and attaches it alongside with the input search results (The main search).
-## Syntax  
+The `appendcol` command appends the result of a sub-search and attaches it alongside the input search results (the main search).
 
-appendcol [override=\<boolean\>] \<sub-search\>
+## Syntax
+
+Use the following syntax:
+
+`appendcol [override=<boolean>] <sub-search>`
 * override=<boolean>: optional. Boolean field to specify should result from main-result be overwritten in the case of column name conflict. **Default:** false.  
-* sub-search: mandatory. Executes PPL commands as a secondary search. The sub-search uses the same data specified in the source clause of the main search results as its input.  
+* `sub-search`: mandatory. Executes PPL commands as a secondary search. The sub-search uses the same data specified in the source clause of the main search results as its input.  
   
-## Example 1: Append a count aggregation to existing search result  
+
+## Example 1: Append a count aggregation to existing search results  
 
 This example appends "count by gender" to "sum by gender, state".
   
@@ -40,7 +43,8 @@ fetched rows / total rows = 10/10
 +--------+-------+----------+------------+
 ```
   
-## Example 2: Append a count aggregation to existing search result with override option  
+
+## Example 2: Append a count aggregation to existing search results with override option  
 
 This example appends "count by gender" to "sum by gender, state" with override option.
   
@@ -71,9 +75,10 @@ fetched rows / total rows = 10/10
 +--------+-------+----------+------------+
 ```
   
+
 ## Example 3: Append multiple sub-search results  
 
-This example shows how to chain multiple appendcol commands to add columns from different sub-searches.
+The following example PPL query shows how to use `appendcol` to chain multiple appendcol commands to add columns from different sub-searches.
   
 ```ppl
 source=employees
@@ -101,9 +106,10 @@ fetched rows / total rows = 9/9
 +------+-------------+-----+------------------+---------+
 ```
   
+
 ## Example 4: Override case of column name conflict  
 
-This example demonstrates the override option when column names conflict between main search and sub-search.
+The following example PPL query demonstrates how to use `appendcol` with the override option when column names conflict between main search and sub-search.
   
 ```ppl
 source=employees
