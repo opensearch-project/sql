@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.rules.SubstitutionRule;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexLiteral;
@@ -25,7 +26,8 @@ import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.context.RareTopDigest;
 
 @Value.Enclosing
-public class RareTopPushdownRule extends InterruptibleRelRule<RareTopPushdownRule.Config> {
+public class RareTopPushdownRule extends InterruptibleRelRule<RareTopPushdownRule.Config>
+    implements SubstitutionRule {
 
   protected RareTopPushdownRule(Config config) {
     super(config);
@@ -71,6 +73,7 @@ public class RareTopPushdownRule extends InterruptibleRelRule<RareTopPushdownRul
     CalciteLogicalIndexScan newScan = scan.pushDownRareTop(project, digest);
     if (newScan != null) {
       call.transformTo(newScan);
+      PlanUtils.tryPruneRelNodes(call);
     }
   }
 

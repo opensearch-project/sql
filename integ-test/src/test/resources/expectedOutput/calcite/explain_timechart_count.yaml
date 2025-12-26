@@ -32,5 +32,5 @@ calcite:
               EnumerableSort(sort0=[$0], dir0=[ASC])
                 EnumerableCalc(expr#0..2=[{inputs}], host=[$t0], $1=[$t2])
                   EnumerableWindow(window#0=[window(order by [1 DESC-nulls-last] rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
-                    EnumerableAggregate(group=[{1}], __grand_total__=[COUNT()])
-                      CalciteEnumerableIndexScan(table=[[OpenSearch, events]], PushDownContext=[[PROJECT->[@timestamp, host], FILTER->IS NOT NULL($0), FILTER->IS NOT NULL($1)], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","query":{"bool":{"filter":[{"exists":{"field":"@timestamp","boost":1.0}},{"exists":{"field":"host","boost":1.0}}],"adjust_pure_negative":true,"boost":1.0}},"_source":{"includes":["@timestamp","host"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+                    EnumerableAggregate(group=[{0}], __grand_total__=[COUNT()])
+                      CalciteEnumerableIndexScan(table=[[OpenSearch, events]], PushDownContext=[[PROJECT->[@timestamp, host], FILTER->IS NOT NULL($0), PROJECT->[host, @timestamp], FILTER->IS NOT NULL($0)], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","query":{"bool":{"filter":[{"exists":{"field":"@timestamp","boost":1.0}},{"exists":{"field":"host","boost":1.0}}],"adjust_pure_negative":true,"boost":1.0}},"_source":{"includes":["host","@timestamp"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

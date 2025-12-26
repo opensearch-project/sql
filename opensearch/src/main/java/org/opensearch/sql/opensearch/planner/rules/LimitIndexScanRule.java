@@ -45,6 +45,7 @@ public class LimitIndexScanRule extends InterruptibleRelRule<LimitIndexScanRule.
       AbstractRelNode newOperator = scan.pushDownLimit(sort, limitValue, offsetValue);
       if (newOperator != null) {
         call.transformTo(newOperator);
+        PlanUtils.tryPruneRelNodes(call);
       }
     }
   }

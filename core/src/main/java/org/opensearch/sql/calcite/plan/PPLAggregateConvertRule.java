@@ -17,6 +17,7 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.rules.SubstitutionRule;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
@@ -28,6 +29,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.commons.lang3.tuple.Pair;
 import org.immutables.value.Value;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 
 /**
  * Planner rule that converts specific aggCall to a more efficient expressions, which includes:
@@ -45,8 +47,8 @@ import org.immutables.value.Value;
  * <p>- AVG/MAX/MIN(FIELD [+|-|*|+|/] NUMBER) -> AVG/MAX/MIN(FIELD) [+|-|*|+|/] NUMBER
  */
 @Value.Enclosing
-public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Config> {
-
+public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Config>
+    implements SubstitutionRule {
   /** Creates a OpenSearchAggregateConvertRule. */
   protected PPLAggregateConvertRule(Config config) {
     super(config);
@@ -97,6 +99,8 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
                   return ref;
                 })
             .collect(Collectors.toList());
+    // Stop processing if there is no converted agg call args
+    if (convertedAggCallArgs.isEmpty()) return;
     relBuilder.project(newChildProjects);
     RelNode newInput = relBuilder.peek();
 
@@ -194,6 +198,7 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
                 aliasMaybe(relBuilder, constructor.apply(relBuilder.peek()), name)));
     relBuilder.project(parentProjects);
     call.transformTo(relBuilder.build());
+    PlanUtils.tryPruneRelNodes(call);
   }
 
   interface OperatorConstructor {
