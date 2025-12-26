@@ -436,10 +436,15 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         newScan.pushDownContext.add(PushDownType.LIMIT, new LimitDigest(limit, offset), action);
         return offset > 0 ? sort.copy(sort.getTraitSet(), List.of(newScan)) : newScan;
       } else {
+        LimitDigest digest = new LimitDigest(limit, offset);
+        if (pushDownContext.containsDigestOnTop(digest)) {
+          // avoid stack overflow
+          return null;
+        }
         CalciteLogicalIndexScan newScan = this.copyWithNewSchema(getRowType());
         newScan.pushDownContext.add(
             PushDownType.LIMIT,
-            new LimitDigest(limit, offset),
+            digest,
             (OSRequestBuilderAction) requestBuilder -> requestBuilder.pushDownLimit(limit, offset));
         return newScan;
       }
