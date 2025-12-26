@@ -20,8 +20,9 @@ import org.opensearch.sql.opensearch.planner.physical.CalciteEnumerableTopK;
  * CalciteEnumerableTopK}.
  */
 @Value.Enclosing
-public class EnumerableTopKRule extends InterruptibleRelRule<EnumerableTopKRule.Config> {
-  protected EnumerableTopKRule(EnumerableTopKRule.Config config) {
+public class EnumerableTopKConverterRule
+    extends InterruptibleRelRule<EnumerableTopKConverterRule.Config> {
+  protected EnumerableTopKConverterRule(EnumerableTopKConverterRule.Config config) {
     super(config);
   }
 
@@ -44,8 +45,8 @@ public class EnumerableTopKRule extends InterruptibleRelRule<EnumerableTopKRule.
   /** Rule configuration. */
   @Value.Immutable
   public interface Config extends OpenSearchRuleConfig {
-    EnumerableTopKRule.Config DEFAULT =
-        ImmutableEnumerableTopKRule.Config.builder()
+    EnumerableTopKConverterRule.Config DEFAULT =
+        ImmutableEnumerableTopKConverterRule.Config.builder()
             .build()
             .withDescription("EnumerableTopK")
             .withOperandSupplier(
@@ -58,8 +59,8 @@ public class EnumerableTopKRule extends InterruptibleRelRule<EnumerableTopKRule.
                         .anyInputs());
 
     @Override
-    default EnumerableTopKRule toRule() {
-      return new EnumerableTopKRule(this);
+    default EnumerableTopKConverterRule toRule() {
+      return new EnumerableTopKConverterRule(this);
     }
   }
 }
