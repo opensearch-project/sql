@@ -31,6 +31,7 @@ import org.apache.calcite.tools.Programs;
 import org.opensearch.sql.analysis.AnalysisContext;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.ast.statement.Explain;
+import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
@@ -71,10 +72,33 @@ public class QueryService {
       UnresolvedPlan plan,
       QueryType queryType,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
+    execute(plan, queryType, listener, 0, 0);
+  }
+
+  /**
+   * Execute the {@link UnresolvedPlan} with pagination support.
+   *
+   * @param plan the unresolved plan
+   * @param queryType the query type
+   * @param listener the response listener
+   * @param pageSize page size (0 = no pagination)
+   * @param offset pagination offset (0-based)
+   */
+  public void execute(
+      UnresolvedPlan plan,
+      QueryType queryType,
+      ResponseListener<ExecutionEngine.QueryResponse> listener,
+      int pageSize,
+      int offset) {
     if (shouldUseCalcite(queryType)) {
-      executeWithCalcite(plan, queryType, listener);
+      executeWithCalcite(plan, queryType, listener, pageSize, offset);
     } else {
-      executeWithLegacy(plan, queryType, listener, Optional.empty());
+      // For legacy path (SQL), wrap with Paginate when pagination is enabled
+      if (pageSize > 0) {
+        executeWithLegacy(new Paginate(pageSize, plan), queryType, listener, Optional.empty());
+      } else {
+        executeWithLegacy(plan, queryType, listener, Optional.empty());
+      }
     }
   }
 
@@ -91,16 +115,71 @@ public class QueryService {
     }
   }
 
+  /**
+   * Explain with pagination support.
+   *
+   * @param plan the unresolved plan
+   * @param queryType the query type
+   * @param listener the response listener
+   * @param format the explain format
+   * @param pageSize page size for pagination
+   * @param offset pagination offset (0-based)
+   */
+  public void explain(
+      UnresolvedPlan plan,
+      QueryType queryType,
+      ResponseListener<ExecutionEngine.ExplainResponse> listener,
+      Explain.ExplainFormat format,
+      int pageSize,
+      int offset) {
+    if (shouldUseCalcite(queryType)) {
+      explainWithCalcite(plan, queryType, listener, format, pageSize, offset);
+    } else {
+      // For legacy path (SQL), wrap with Paginate when pagination is enabled
+      if (pageSize > 0) {
+        explainWithLegacy(
+            new Paginate(pageSize, plan), queryType, listener, format, Optional.empty());
+      } else {
+        explainWithLegacy(plan, queryType, listener, format, Optional.empty());
+      }
+    }
+  }
+
   public void executeWithCalcite(
       UnresolvedPlan plan,
       QueryType queryType,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
+    executeWithCalcite(plan, queryType, listener, 0, 0);
+  }
+
+  /**
+   * Execute with Calcite engine and pagination support.
+   *
+   * @param plan the unresolved plan
+   * @param queryType the query type
+   * @param listener the response listener
+   * @param pageSize page size (0 = no pagination)
+   * @param offset pagination offset (0-based)
+   */
+  public void executeWithCalcite(
+      UnresolvedPlan plan,
+      QueryType queryType,
+      ResponseListener<ExecutionEngine.QueryResponse> listener,
+      int pageSize,
+      int offset) {
     CalcitePlanContext.run(
         () -> {
           try {
             CalcitePlanContext context =
                 CalcitePlanContext.create(
                     buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
+
+            // Set pagination parameters if enabled
+            if (pageSize > 0) {
+              context.setPaginationSize(pageSize);
+              context.setPaginationOffset(offset);
+            }
+
             RelNode relNode = analyze(plan, context);
             relNode = mergeAdjacentFilters(relNode);
             RelNode optimized = optimize(relNode, context);
@@ -134,12 +213,39 @@ public class QueryService {
       QueryType queryType,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
       Explain.ExplainFormat format) {
+    explainWithCalcite(plan, queryType, listener, format, 0, 0);
+  }
+
+  /**
+   * Explain with Calcite engine and pagination support.
+   *
+   * @param plan the unresolved plan
+   * @param queryType the query type
+   * @param listener the response listener
+   * @param format the explain format
+   * @param pageSize page size (0 = no pagination)
+   * @param offset pagination offset (0-based)
+   */
+  public void explainWithCalcite(
+      UnresolvedPlan plan,
+      QueryType queryType,
+      ResponseListener<ExecutionEngine.ExplainResponse> listener,
+      Explain.ExplainFormat format,
+      int pageSize,
+      int offset) {
     CalcitePlanContext.run(
         () -> {
           try {
             CalcitePlanContext context =
                 CalcitePlanContext.create(
                     buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
+
+            // Set pagination parameters if enabled
+            if (pageSize > 0) {
+              context.setPaginationSize(pageSize);
+              context.setPaginationOffset(offset);
+            }
+
             context.run(
                 () -> {
                   RelNode relNode = analyze(plan, context);
@@ -277,14 +383,28 @@ public class QueryService {
   }
 
   /**
-   * Try to optimize the plan by appending a limit operator for QUERY_SIZE_LIMIT Don't add for
-   * `EXPLAIN` to avoid changing its output plan.
+   * Try to optimize the plan by appending a limit operator for pagination or QUERY_SIZE_LIMIT. When
+   * pagination is enabled, use pagination LIMIT/OFFSET instead of system limit.
+   *
+   * <p>Pagination is applied AFTER the user's query executes completely. This ensures that
+   * user-specified commands like 'head X from Y' are respected first, and pagination only slices
+   * the final result.
    */
   public RelNode optimize(RelNode plan, CalcitePlanContext context) {
-    return LogicalSystemLimit.create(
-        SystemLimitType.QUERY_SIZE_LIMIT,
-        plan,
-        context.relBuilder.literal(context.sysLimit.querySizeLimit()));
+    if (context.isPaginationEnabled()) {
+      // Apply pagination LIMIT/OFFSET on top of user's complete query result
+      return LogicalSystemLimit.create(
+          SystemLimitType.PAGINATION,
+          plan,
+          context.relBuilder.literal(context.getPaginationOffset()),
+          context.relBuilder.literal(context.getPaginationSize()));
+    } else {
+      // Apply system query size limit
+      return LogicalSystemLimit.create(
+          SystemLimitType.QUERY_SIZE_LIMIT,
+          plan,
+          context.relBuilder.literal(context.sysLimit.querySizeLimit()));
+    }
   }
 
   private boolean isCalciteFallbackAllowed(@Nullable Throwable t) {

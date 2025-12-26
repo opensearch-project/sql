@@ -72,6 +72,24 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     return responseBody;
   }
 
+  /**
+   * Explain a PPL query with pagination parameters.
+   *
+   * @param query the PPL query
+   * @param pageSize the page size (0 = no pagination)
+   * @param offset the offset (0-based)
+   * @return the YAML explain output
+   */
+  protected String explainQueryYamlWithPagination(String query, int pageSize, int offset)
+      throws IOException {
+    Response response =
+        client()
+            .performRequest(
+                buildRequestWithPagination(query, YAML_EXPLAIN_API_ENDPOINT, pageSize, offset));
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    return getResponseBody(response, true);
+  }
+
   protected String explainQueryToString(String query, boolean extended) throws IOException {
     Response response =
         client()
@@ -133,6 +151,29 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   protected Request buildRequest(String query, String endpoint) {
     Request request = new Request("POST", endpoint);
     request.setJsonEntity(String.format(Locale.ROOT, "{\n" + "  \"query\": \"%s\"\n" + "}", query));
+
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+    return request;
+  }
+
+  protected Request buildRequestWithPagination(
+      String query, String endpoint, int pageSize, int offset) {
+    Request request = new Request("POST", endpoint);
+    String jsonEntity;
+    if (pageSize > 0) {
+      jsonEntity =
+          String.format(
+              Locale.ROOT,
+              "{\n  \"query\": \"%s\",\n  \"pageSize\": %d,\n  \"offset\": %d\n}",
+              query,
+              pageSize,
+              offset);
+    } else {
+      jsonEntity = String.format(Locale.ROOT, "{\n  \"query\": \"%s\"\n}", query);
+    }
+    request.setJsonEntity(jsonEntity);
 
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");
