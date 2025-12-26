@@ -6,8 +6,8 @@ calcite:
           LogicalSort(sort0=[$3], dir0=[ASC-nulls-first], fetch=[5])
             CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
-    EnumerableLimit(fetch=[10000])
-      EnumerableCalc(expr#0..1=[{inputs}], age=[$t1])
+    EnumerableCalc(expr#0..1=[{inputs}], age=[$t1])
+      EnumerableLimit(fetch=[10000])
         EnumerableSort(sort0=[$1], dir0=[ASC-nulls-first])
           CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[balance, age], SORT->[{
       "balance" : {

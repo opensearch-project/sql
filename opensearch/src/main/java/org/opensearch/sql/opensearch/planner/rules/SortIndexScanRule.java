@@ -32,6 +32,7 @@ public class SortIndexScanRule extends InterruptibleRelRule<SortIndexScanRule.Co
     AbstractCalciteIndexScan newScan = scan.pushDownSort(collations);
     if (newScan != null) {
       call.transformTo(newScan);
+      PlanUtils.tryPruneRelNodes(call);
     }
   }
 
