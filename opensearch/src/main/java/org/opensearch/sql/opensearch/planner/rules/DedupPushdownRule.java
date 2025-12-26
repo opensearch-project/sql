@@ -8,6 +8,7 @@ package org.opensearch.sql.opensearch.planner.rules;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -74,7 +75,7 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
     // must be row_number <= number
     assert numOfDedupFilter.getCondition().isA(SqlKind.LESS_THAN_OR_EQUAL);
     RexLiteral literal =
-        (RexLiteral) ((RexCall) numOfDedupFilter.getCondition()).getOperands().getLast();
+        (RexLiteral) ((RexCall) numOfDedupFilter.getCondition()).getOperands().get(1);
     Integer dedupNumer = literal.getValueAs(Integer.class);
 
     RelBuilder relBuilder = call.builder();
@@ -92,10 +93,10 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
             projectWithWindow
                 .getNamedProjects()
                 .get(projectWithWindow.getProjects().indexOf(dedupColumn)));
-      } else if (dedupColumn instanceof RexInputRef ref) {
+      } else if (dedupColumn instanceof RexInputRef) {
         targetProjections.add(
             Pair.of(
-                dedupColumn, relBuilder.peek().getRowType().getFieldNames().get(ref.getIndex())));
+                dedupColumn, relBuilder.peek().getRowType().getFieldNames().get(((RexInputRef)dedupColumn).getIndex())));
       } else {
         LOG.warn("The dedup column {} is illegal.", dedupColumn);
         return;
@@ -108,8 +109,8 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
     }
 
     relBuilder.project(
-        targetProjections.stream().map(Pair::getKey).toList(),
-        targetProjections.stream().map(Pair::getValue).toList());
+        targetProjections.stream().map(Pair::getKey).collect(Collectors.toList()),
+        targetProjections.stream().map(Pair::getValue).collect(Collectors.toList()));
     LogicalProject targetChildProject = (LogicalProject) relBuilder.peek();
 
     // 2 Push an Aggregate
@@ -117,7 +118,7 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
     // (1) Pass the dedupNumer to AggregateAnalyzer.processAggregateCalls()
     // (2) Distinguish it from an optimization operator and user defined aggregator.
     // (LITERAL_AGG is used in optimization normally, see {@link SqlKind#LITERAL_AGG})
-    List<Integer> newGroupByList = IntStream.range(0, dedupColumns.size()).boxed().toList();
+    List<Integer> newGroupByList = IntStream.range(0, dedupColumns.size()).boxed().collect(Collectors.toList());
     relBuilder.aggregate(
         relBuilder.groupKey(relBuilder.fields(newGroupByList)), relBuilder.literalAgg(dedupNumer));
 

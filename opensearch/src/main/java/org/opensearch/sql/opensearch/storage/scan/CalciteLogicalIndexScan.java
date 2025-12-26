@@ -9,7 +9,10 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import lombok.Getter;
 import org.apache.calcite.plan.Convention;
@@ -404,13 +407,14 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
         // So take the previous limit into account to decide whether it can update the context.
         boolean canReduceEstimatedRowsCount =
             !pushDownContext.isLimitPushed()
-                || pushDownContext.getQueue().reversed().stream()
-                    .takeWhile(op -> op.type() != PushDownType.AGGREGATION)
-                    .filter(op -> op.type() == PushDownType.LIMIT)
-                    .findFirst()
-                    .map(op -> (LimitDigest) op.digest())
-                    .map(d -> totalSize < d.offset() + d.limit())
-                    .orElse(true);
+                || StreamSupport.stream(Spliterators.spliteratorUnknownSize(
+                    pushDownContext.getQueue().descendingIterator(), Spliterator.ORDERED),false)
+                .takeWhile(op -> op.type() != PushDownType.AGGREGATION)
+                .filter(op -> op.type() == PushDownType.LIMIT)
+                .findFirst()
+                .map(op -> (LimitDigest) op.digest())
+                .map(d -> totalSize < d.offset() + d.limit())
+                .orElse(true);
 
         // Push down the limit into the aggregation bucket in advance to detect whether the limit
         // can update the aggregation builder

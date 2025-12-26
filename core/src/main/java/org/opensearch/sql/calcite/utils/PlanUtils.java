@@ -700,12 +700,12 @@ public interface PlanUtils {
                           agg.getInput().getRowType().getFieldList().get(group).getType()));
 
   static boolean isTimeSpan(RexNode rex) {
-    return rex instanceof RexCall rexCall
-        && rexCall.getKind() == SqlKind.OTHER_FUNCTION
-        && rexCall.getOperator().getName().equalsIgnoreCase(BuiltinFunctionName.SPAN.name())
-        && rexCall.getOperands().size() == 3
-        && rexCall.getOperands().get(2) instanceof RexLiteral unitLiteral
-        && unitLiteral.getTypeName() != SqlTypeName.NULL;
+    return rex instanceof RexCall
+        && rex.getKind() == SqlKind.OTHER_FUNCTION
+        && ((RexCall)rex).getOperator().getName().equalsIgnoreCase(BuiltinFunctionName.SPAN.name())
+        && ((RexCall)rex).getOperands().size() == 3
+        && ((RexCall)rex).getOperands().get(2) instanceof RexLiteral
+        && ((RexLiteral)((RexCall)rex).getOperands().get(2)).getTypeName() != SqlTypeName.NULL;
   }
 
   /**
@@ -734,22 +734,22 @@ public interface PlanUtils {
               .filter(rex -> ignoreNullBucket || isTimeSpan(rex))
               .flatMap(expr -> PlanUtils.getInputRefs(expr).stream())
               .map(RexSlot::getIndex)
-              .toList();
+              .collect(Collectors.toList());
     }
     if (otherMapping != null) {
-      groupRefList = groupRefList.stream().map(otherMapping::get).toList();
+      groupRefList = groupRefList.stream().map(otherMapping::get).collect(Collectors.toList());
     }
     List<Integer> finalGroupRefList = groupRefList;
     Function<RexNode, Boolean> isNotNullFromAgg =
         rex ->
-            rex instanceof RexCall rexCall
-                && rexCall.isA(SqlKind.IS_NOT_NULL)
-                && rexCall.getOperands().get(0) instanceof RexInputRef ref
-                && finalGroupRefList.contains(ref.getIndex());
+            rex instanceof RexCall
+                && rex.isA(SqlKind.IS_NOT_NULL)
+                && ((RexCall)rex).getOperands().get(0) instanceof RexInputRef
+                && finalGroupRefList.contains(((RexInputRef)((RexCall)rex).getOperands().get(0)).getIndex());
     return isNotNullFromAgg.apply(condition)
-        || (condition instanceof RexCall rexCall
-            && rexCall.getOperator() == SqlStdOperatorTable.AND
-            && rexCall.getOperands().stream().allMatch(isNotNullFromAgg::apply));
+        || (condition instanceof RexCall
+            && ((RexCall)condition).getOperator() == SqlStdOperatorTable.AND
+            && ((RexCall)condition).getOperands().stream().allMatch(isNotNullFromAgg::apply));
   }
 
   /**
@@ -764,7 +764,8 @@ public interface PlanUtils {
    * @param call the RuleCall to prune
    */
   static void tryPruneRelNodes(RelOptRuleCall call) {
-    if (call.getPlanner() instanceof VolcanoPlanner volcanoPlanner) {
+    if (call.getPlanner() instanceof VolcanoPlanner) {
+      VolcanoPlanner volcanoPlanner = (VolcanoPlanner) call.getPlanner();
       Arrays.stream(call.rels)
           .takeWhile(
               rel ->

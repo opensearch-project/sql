@@ -6,9 +6,23 @@
 package org.opensearch.sql.opensearch.storage.scan.context;
 
 import java.util.List;
+import lombok.EqualsAndHashCode;
+import lombok.RequiredArgsConstructor;
 
-public record ProjectDigest(List<String> names, List<Integer> selectedColumns) {
-  @Override
+@EqualsAndHashCode
+@RequiredArgsConstructor
+public class ProjectDigest {
+  private final List<String> names;
+  private final List<Integer> selectedColumns;
+
+  public List<String> names() {
+    return names;
+  }
+
+  public List<Integer> selectedColumns() {
+    return selectedColumns;
+  }
+
   public String toString() {
     return names.toString();
   }
