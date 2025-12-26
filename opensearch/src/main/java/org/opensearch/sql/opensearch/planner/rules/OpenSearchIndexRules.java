@@ -39,8 +39,6 @@ public class OpenSearchIndexRules {
       RareTopPushdownRule.Config.DEFAULT.toRule();
   private static final SortExprIndexScanRule SORT_EXPR_INDEX_SCAN =
       SortExprIndexScanRule.Config.DEFAULT.toRule();
-  private static final EnumerableTopKConverterRule ENUMERABLE_TOP_K_RULE =
-      EnumerableTopKConverterRule.Config.DEFAULT.toRule();
   private static final EnumerableTopKMergeRule ENUMERABLE_TOP_K_MERGE_RULE =
       EnumerableTopKMergeRule.Config.DEFAULT.toRule();
 
@@ -62,7 +60,6 @@ public class OpenSearchIndexRules {
           SORT_PROJECT_EXPR_TRANSPOSE,
           SORT_AGGREGATION_METRICS_RULE,
           RARE_TOP_PUSH_DOWN,
-          ENUMERABLE_TOP_K_RULE,
           ENUMERABLE_TOP_K_MERGE_RULE,
           EXPAND_COLLATION_ON_PROJECT_EXPR,
           SORT_EXPR_INDEX_SCAN);
