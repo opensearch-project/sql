@@ -17,6 +17,8 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.NonFallbackCalciteException;
+import org.opensearch.sql.monitor.profile.ProfileContext;
+import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
@@ -102,8 +104,11 @@ public class BackgroundSearchScanner {
    */
   public void startScanning(OpenSearchRequest request) {
     if (isAsync()) {
+      ProfileContext ctx = QueryProfiling.current();
       nextBatchFuture =
-          CompletableFuture.supplyAsync(() -> client.search(request), backgroundExecutor);
+          CompletableFuture.supplyAsync(
+              () -> QueryProfiling.withCurrentContext(ctx, () -> client.search(request)),
+              backgroundExecutor);
     }
   }
 
