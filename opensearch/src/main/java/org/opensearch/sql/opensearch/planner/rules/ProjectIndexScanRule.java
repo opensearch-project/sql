@@ -21,6 +21,7 @@ import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
 import org.immutables.value.Value;
 import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
@@ -79,6 +80,7 @@ public class ProjectIndexScanRule extends InterruptibleRelRule<ProjectIndexScanR
         } else {
           call.transformTo(call.builder().push(newScan).project(newProjectRexNodes).build());
         }
+        PlanUtils.tryPruneRelNodes(call);
       }
     }
   }

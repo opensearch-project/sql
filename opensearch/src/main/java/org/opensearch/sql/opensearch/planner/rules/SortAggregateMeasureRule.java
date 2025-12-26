@@ -30,6 +30,7 @@ public class SortAggregateMeasureRule
     CalciteLogicalIndexScan newScan = scan.pushDownSortAggregateMeasure(sort);
     if (newScan != null) {
       call.transformTo(newScan);
+      PlanUtils.tryPruneRelNodes(call);
     }
   }
 
