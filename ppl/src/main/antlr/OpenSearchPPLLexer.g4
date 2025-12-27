@@ -71,6 +71,7 @@ LABEL:                              'LABEL';
 SHOW_NUMBERED_TOKEN:                'SHOW_NUMBERED_TOKEN';
 AGGREGATION:                        'AGGREGATION';
 APPENDPIPE:                         'APPENDPIPE';
+COLUMN_NAME:                        'COLUMN_NAME';
 
 //Native JOIN KEYWORDS
 JOIN:                               'JOIN';
@@ -157,9 +158,6 @@ TIMEFIELD:                          'TIMEFIELD';
 INPUT:                              'INPUT';
 OUTPUT:                             'OUTPUT';
 PATH:                               'PATH';
-COLUMN_NAME:                        'COLUMN_NAME';
-HEADER_FIELD:                       'HEADER_FIELD';
-INCLUDE_EMPTY:                      'INCLUDE_EMPTY';
 
 
 // COMPARISON FUNCTION KEYWORDS

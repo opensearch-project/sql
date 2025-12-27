@@ -334,10 +334,8 @@ transposeCommand
    ;
 
 transposeParameter
-   : number = integerLiteral
-   | COLUMN_NAME EQUAL stringLiteral
-   | HEADER_FIELD EQUAL stringLiteral
-   | INCLUDE_EMPTY EQUAL booleanLiteral
+   : (number = integerLiteral)
+   | (COLUMN_NAME EQUAL stringLiteral)
    ;
 
 
@@ -1672,7 +1670,6 @@ searchableKeyWord
    | COL
    | TRANSPOSE
    | COLUMN_NAME
-   | HEADER_FIELD
-   | INCLUDE_EMPTY
+   | NUMBER
    ;
 
