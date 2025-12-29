@@ -18,23 +18,23 @@ import org.opensearch.sql.ast.expression.Argument;
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
 public class Transpose extends UnresolvedPlan {
-  private final java.util.Map<String, Argument>  arguments;
+  private final java.util.Map<String, Argument> arguments;
   private UnresolvedPlan child;
 
-  public Integer getMaxRows(){
-      Integer maxRows= 5;
-      if (arguments.containsKey("number")) {
-          maxRows = Integer.parseInt(arguments.get("number").getValue().toString());
-      }
-      return maxRows;
+  public Integer getMaxRows() {
+    Integer maxRows = 5;
+    if (arguments.containsKey("number")) {
+      maxRows = Integer.parseInt(arguments.get("number").getValue().toString());
+    }
+    return maxRows;
   }
 
   public String getColumnName() {
-      String columnName = "column";
-      if (arguments.containsKey("columnName")) {
-          columnName = arguments.get("columnName").getValue().toString();
-      }
-      return columnName;
+    String columnName = "column";
+    if (arguments.containsKey("columnName")) {
+      columnName = arguments.get("columnName").getValue().toString();
+    }
+    return columnName;
   }
 
   @Override

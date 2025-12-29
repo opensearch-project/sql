@@ -8,10 +8,10 @@ package org.opensearch.sql.ppl.utils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Argument;
@@ -312,14 +312,14 @@ public class ArgumentFactory {
 
   public static Map<String, Argument> getArgumentList(
       OpenSearchPPLParser.TransposeCommandContext transposeCommandContext) {
-      Map<String, Argument> arguments = new HashMap<>();
+    Map<String, Argument> arguments = new HashMap<>();
     for (OpenSearchPPLParser.TransposeParameterContext ctx :
         transposeCommandContext.transposeParameter()) {
 
       if (ctx.COLUMN_NAME() != null) {
         Literal columnName = getArgumentValue(ctx.stringLiteral());
         arguments.put("columnName", new Argument("columnName", columnName));
-      }  else if (ctx.number != null) {
+      } else if (ctx.number != null) {
 
         arguments.put("number", new Argument("number", getArgumentValue(ctx.number)));
       } else {

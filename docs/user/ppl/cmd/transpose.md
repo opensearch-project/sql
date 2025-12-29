@@ -27,14 +27,14 @@ Expected output:
   
 ```text
 fetched rows / total rows = 4/4
-+----------------+-------+-------+-------+-------+-------+
-| column         | row 1 | row 2 | row 3 | row 4 | row 5 |
-|----------------|-------+-------+-------+-------+-------+
-| account_number |       |       |       |       |       |
-| firstname      |       |       |       |       |       |
-| lastname       |       |       |       |       |       |
-| balance        |       |       |       |       |       |
-+----------------+-------+-------+-------+-------+-------+
++----------------+-------+--------+---------+-------+-------+
+| column         | row 1 | row 2  | row 3   | row 4 | row 5 |
+|----------------+-------+--------+---------+-------+-------|
+| account_number | 1     | 6      | 13      | 18    | null  |
+| firstname      | Amber | Hattie | Nanette | Dale  | null  |
+| balance        | 39225 | 5686   | 32838   | 4180  | null  |
+| lastname       | Duke  | Bond   | Bates   | Adams | null  |
++----------------+-------+--------+---------+-------+-------+
 ```
   
 ## Example 2: Tranpose results up to a provided number of rows.  
@@ -52,17 +52,17 @@ Expected output:
   
 ```text
 fetched rows / total rows = 4/4
-+----------------+-------+-------+-------+-------+
-| column         | row 1 | row 2 | row 3 | row 4 |
-|----------------|-------+-------+-------+-------+
-| account_number |       |       |       |       |
-| firstname      |       |       |       |       |
-| lastname       |       |       |       |       |
-| balance        |       |       |       |       |
-+----------------+-------+-------+-------+-------+
++----------------+-------+--------+---------+-------+
+| column         | row 1 | row 2  | row 3   | row 4 |
+|----------------+-------+--------+---------+-------|
+| account_number | 1     | 6      | 13      | 18    |
+| firstname      | Amber | Hattie | Nanette | Dale  |
+| balance        | 39225 | 5686   | 32838   | 4180  |
+| lastname       | Duke  | Bond   | Bates   | Adams |
++----------------+-------+--------+---------+-------+
 ```
 
-## Example 2: Tranpose results up to a provided number of rows.
+## Example 2: Tranpose results up to a provided number of rows and first column with specified column name.
 
 This example shows transposing wihtout any parameters. It transforms 4 rows into columns as default is 5.
 
@@ -70,21 +70,21 @@ This example shows transposing wihtout any parameters. It transforms 4 rows into
 source=accounts
 | head 5 
 | fields  account_number, firstname,  lastname, balance 
-| transpose 4
+| transpose 4 column_name='column_names'
 ```
 
 Expected output:
 
 ```text
 fetched rows / total rows = 4/4
-+----------------+-------+-------+-------+-------+
-| column         | row 1 | row 2 | row 3 | row 4 |
-|----------------|-------+-------+-------+-------+
-| account_number |       |       |       |       |
-| firstname      |       |       |       |       |
-| lastname       |       |       |       |       |
-| balance        |       |       |       |       |
-+----------------+-------+-------+-------+-------+
++----------------+-------+--------+---------+-------+
+| column_names   | row 1 | row 2  | row 3   | row 4 |
+|----------------+-------+--------+---------+-------|
+| account_number | 1     | 6      | 13      | 18    |
+| firstname      | Amber | Hattie | Nanette | Dale  |
+| balance        | 39225 | 5686   | 32838   | 4180  |
+| lastname       | Duke  | Bond   | Bates   | Adams |
++----------------+-------+--------+---------+-------+
 ```
   
 ## Limitations  
