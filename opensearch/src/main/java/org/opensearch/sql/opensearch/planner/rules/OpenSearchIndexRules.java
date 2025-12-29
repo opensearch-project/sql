@@ -10,11 +10,21 @@ import java.util.List;
 import org.apache.calcite.plan.RelOptRule;
 
 public class OpenSearchIndexRules {
+
   private static final RelOptRule INDEX_SCAN_RULE = EnumerableIndexScanRule.DEFAULT_CONFIG.toRule();
   private static final RelOptRule SYSTEM_INDEX_SCAN_RULE =
       EnumerableSystemIndexScanRule.DEFAULT_CONFIG.toRule();
   private static final RelOptRule NESTED_AGGREGATE_RULE =
       EnumerableNestedAggregateRule.DEFAULT_CONFIG.toRule();
+  // Rule that always pushes down relevance functions regardless of pushdown settings
+  private static final RelevanceFunctionPushdownRule RELEVANCE_FUNCTION_RULE =
+      RelevanceFunctionPushdownRule.Config.DEFAULT.toRule();
+
+  /** The rules will apply whatever the pushdown setting is. */
+  public static final List<RelOptRule> OPEN_SEARCH_NON_PUSHDOWN_RULES =
+      ImmutableList.of(
+          INDEX_SCAN_RULE, SYSTEM_INDEX_SCAN_RULE, NESTED_AGGREGATE_RULE, RELEVANCE_FUNCTION_RULE);
+
   private static final ProjectIndexScanRule PROJECT_INDEX_SCAN =
       ProjectIndexScanRule.Config.DEFAULT.toRule();
   private static final FilterIndexScanRule FILTER_INDEX_SCAN =
@@ -44,14 +54,8 @@ public class OpenSearchIndexRules {
       RareTopPushdownRule.Config.DEFAULT.toRule();
   private static final SortExprIndexScanRule SORT_EXPR_INDEX_SCAN =
       SortExprIndexScanRule.Config.DEFAULT.toRule();
-  // Rule that always pushes down relevance functions regardless of pushdown settings
-  private static final RelevanceFunctionPushdownRule RELEVANCE_FUNCTION_RULE =
-      RelevanceFunctionPushdownRule.Config.DEFAULT.toRule();
-
-  /** The rules will apply whatever the pushdown setting is. */
-  public static final List<RelOptRule> OPEN_SEARCH_NON_PUSHDOWN_RULES =
-      ImmutableList.of(
-          INDEX_SCAN_RULE, SYSTEM_INDEX_SCAN_RULE, NESTED_AGGREGATE_RULE, RELEVANCE_FUNCTION_RULE);
+  private static final EnumerableTopKMergeRule ENUMERABLE_TOP_K_MERGE_RULE =
+      EnumerableTopKMergeRule.Config.DEFAULT.toRule();
 
   /** The rules will apply only when the pushdown is enabled. */
   public static final List<RelOptRule> OPEN_SEARCH_PUSHDOWN_RULES =
@@ -68,6 +72,7 @@ public class OpenSearchIndexRules {
           SORT_PROJECT_EXPR_TRANSPOSE,
           SORT_AGGREGATION_METRICS_RULE,
           RARE_TOP_PUSH_DOWN,
+          ENUMERABLE_TOP_K_MERGE_RULE,
           EXPAND_COLLATION_ON_PROJECT_EXPR,
           SORT_EXPR_INDEX_SCAN);
 
