@@ -740,7 +740,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   /** Transpose command. */
   @Override
   public UnresolvedPlan visitTransposeCommand(OpenSearchPPLParser.TransposeCommandContext ctx) {
-    java.util.Map<String, Argument>  arguments = ArgumentFactory.getArgumentList(ctx);
+    java.util.Map<String, Argument> arguments = ArgumentFactory.getArgumentList(ctx);
     return new Transpose(arguments);
   }
 

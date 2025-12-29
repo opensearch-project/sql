@@ -2029,6 +2029,18 @@ public class CalciteExplainIT extends ExplainIT {
                 + "|  addcoltotals balance age label='GrandTotal'"));
   }
 
+  @Test
+  public void testTransposeExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_transpose.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account"
+                + "| head 5 "
+                + "|  transpose 4 column_name='column_names'"));
+  }
+
   public void testComplexDedup() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String expected = loadExpectedPlan("explain_dedup_complex1.yaml");

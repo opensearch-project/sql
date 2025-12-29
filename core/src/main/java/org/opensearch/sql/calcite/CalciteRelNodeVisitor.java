@@ -29,10 +29,6 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
-import java.math.BigDecimal;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -74,8 +70,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
-import org.apache.calcite.tools.RelRunner;
-import org.apache.calcite.tools.RelRunners;
 import org.apache.calcite.util.Holder;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -178,7 +172,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   private final CalciteAggCallVisitor aggVisitor;
   private final DataSourceService dataSourceService;
 
-    public CalciteRelNodeVisitor(DataSourceService dataSourceService) {
+  public CalciteRelNodeVisitor(DataSourceService dataSourceService) {
     this.rexVisitor = new CalciteRexNodeVisitor(this);
     this.aggVisitor = new CalciteAggCallVisitor(rexVisitor);
     this.dataSourceService = dataSourceService;
@@ -686,152 +680,149 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-    @Override
-    public RelNode visitTranspose(
-            org.opensearch.sql.ast.tree.Transpose node, CalcitePlanContext context) {
-        visitChildren(node, context);
-        java.util.Map<String, Argument>  arguments   = node.getArguments();
-        Integer maxRows= node.getMaxRows();
+  @Override
+  public RelNode visitTranspose(
+      org.opensearch.sql.ast.tree.Transpose node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    java.util.Map<String, Argument> arguments = node.getArguments();
+    Integer maxRows = node.getMaxRows();
 
-        String columnName = node.getColumnName();
+    String columnName = node.getColumnName();
 
-        // Get the current schema to transpose
-        RelNode currentNode = context.relBuilder.peek();
-        List<String> fieldNames = currentNode.getRowType().getFieldNames();
-        List<RelDataTypeField> fields = currentNode.getRowType().getFieldList();
+    // Get the current schema to transpose
+    RelNode currentNode = context.relBuilder.peek();
+    List<String> fieldNames = currentNode.getRowType().getFieldNames();
+    List<RelDataTypeField> fields = currentNode.getRowType().getFieldList();
 
-        if (fieldNames.isEmpty()) {
-            return currentNode;
-        }
-
-        // Step 1: Add row numbers to identify each row uniquely
-        RexNode rowNumber =
-                context
-                        .relBuilder
-                        .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
-                        .over()
-                        .rowsTo(RexWindowBounds.CURRENT_ROW)
-                        .as("__row_id__");
-        context.relBuilder.projectPlus(rowNumber);
-
-        // Step 2: Unpivot the data - convert columns to rows
-        // Each field becomes a row with: row_id, column, value
-        List<String> measureColumns = ImmutableList.of("value");
-        List<String> axisColumns = ImmutableList.of(columnName);
-
-        // Create the unpivot value mappings
-        List<Map.Entry<List<RexLiteral>, List<RexNode>>> valueMappings = new ArrayList<>();
-        RelDataType varcharType =
-                context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
-
-        for (String fieldName : fieldNames) {
-            if (fieldName.equals("__row_id__")) {
-                continue; // Skip the row number column
-            }
-
-            // Create the axis value (column name as literal)
-            RexLiteral columnNameLiteral = context.rexBuilder.makeLiteral(fieldName);
-            List<RexLiteral> axisValues = ImmutableList.of(columnNameLiteral);
-
-            // Create the measure value (field expression cast to VARCHAR)
-            RexNode fieldValue = context.relBuilder.field(fieldName);
-            RexNode castValue = context.rexBuilder.makeCast(varcharType, fieldValue, true);
-            List<RexNode> measureValues = ImmutableList.of(castValue);
-
-            // Create the mapping entry
-            valueMappings.add(new AbstractMap.SimpleEntry<>(axisValues, measureValues));
-        }
-
-        // Apply the unpivot operation
-        context.relBuilder.unpivot(
-                false, // includeNulls = false
-                measureColumns, // measure column names: ["value"]
-                axisColumns, // axis column names: ["column"]
-                valueMappings // field mappings
-        );
-
-        // Step 3: Pivot the data to transpose rows as columns
-        // Pivot on __row_id__ with column as the grouping key
-        // This creates: column, row1, row2, row3, ...
-
-        // Get unique row IDs to create column names
-        RelNode unpivotedData = context.relBuilder.build();
-
-        // Create aggregation calls for each row - we'll use MAX since we know each cell has only one
-        // value
-        List<String> pivotColumns = new ArrayList<>();
-        List<RexNode> pivotValues = new ArrayList<>();
-
-        // We need to determine how many rows we have to create the proper pivot structure
-        // For now, we'll use a different approach - use conditional aggregation
-
-        // Get the unpivoted data back on stack
-        context.relBuilder.push(unpivotedData);
-
-        // Create conditional aggregations for each row position
-        // We'll use ROW_NUMBER to determine the row positions dynamically
-        RexNode rowPos =
-                context
-                        .relBuilder
-                        .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
-                        .over()
-                        .partitionBy(context.relBuilder.field(columnName))
-                        .orderBy(context.relBuilder.field("__row_id__"))
-                        .rowsTo(RexWindowBounds.CURRENT_ROW)
-                        .as("__row_pos__");
-        context.relBuilder.projectPlus(rowPos);
-
-        // Now we'll use a different strategy - collect all values per column and then split them
-        // Group by column and collect all values in order
-        List<RexNode> groupByKeys = ImmutableList.of(context.relBuilder.field(columnName));
-
-        // For simplicity, we'll use a direct approach with conditional aggregations
-        // instead of STRING_AGG which may not be available
-
-        // For simplicity, let's use a manual approach that works with the available Calcite operations
-        // We'll create a query that manually builds the transposed result
-
-        // Reset and try a simpler approach
-        context.relBuilder.push(unpivotedData);
-
-        // Let's manually build the pivot by creating conditional aggregations
-        // First, get distinct row IDs
-        context.relBuilder.aggregate(
-                context.relBuilder.groupKey(),
-                context.relBuilder.max(context.relBuilder.field("__row_id__")).as("max_row_id"));
-
-
-
-        // Go back to unpivoted data and create the pivot manually
-        context.relBuilder.clear();
-        context.relBuilder.push(unpivotedData);
-
-        // Create aggregation calls for each possible row position
-        List<AggCall> pivotAggCalls = new ArrayList<>();
-
-        for (int i = 1; i <= maxRows; i++) {
-            // Create CASE WHEN __row_id__ = i THEN value END for each row position
-            RexNode caseExpr =
-                    context.relBuilder.call(
-                            SqlStdOperatorTable.CASE,
-                            context.relBuilder.equals(
-                                    context.relBuilder.field("__row_id__"), context.relBuilder.literal(i)),
-                            context.relBuilder.field("value"),
-                            context.relBuilder.literal(null));
-
-            AggCall maxCase = context.relBuilder.max(caseExpr).as("row " + i);
-            pivotAggCalls.add(maxCase);
-        }
-
-        // Group by column and apply the conditional aggregations
-        context.relBuilder.aggregate(
-                context.relBuilder.groupKey(context.relBuilder.field(columnName)), pivotAggCalls);
-
-        return context.relBuilder.peek();
+    if (fieldNames.isEmpty()) {
+      return currentNode;
     }
 
+    // Step 1: Add row numbers to identify each row uniquely
+    RexNode rowNumber =
+        context
+            .relBuilder
+            .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+            .over()
+            .rowsTo(RexWindowBounds.CURRENT_ROW)
+            .as("__row_id__");
+    context.relBuilder.projectPlus(rowNumber);
 
-    @Override
+    // Step 2: Unpivot the data - convert columns to rows
+    // Each field becomes a row with: row_id, column, value
+    List<String> measureColumns = ImmutableList.of("value");
+    List<String> axisColumns = ImmutableList.of(columnName);
+
+    // Create the unpivot value mappings
+    List<Map.Entry<List<RexLiteral>, List<RexNode>>> valueMappings = new ArrayList<>();
+    RelDataType varcharType =
+        context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+
+    for (String fieldName : fieldNames) {
+      if (fieldName.equals("__row_id__")) {
+        continue; // Skip the row number column
+      }
+
+      // Create the axis value (column name as literal)
+      RexLiteral columnNameLiteral = context.rexBuilder.makeLiteral(fieldName);
+      List<RexLiteral> axisValues = ImmutableList.of(columnNameLiteral);
+
+      // Create the measure value (field expression cast to VARCHAR)
+      RexNode fieldValue = context.relBuilder.field(fieldName);
+      RexNode castValue = context.rexBuilder.makeCast(varcharType, fieldValue, true);
+      List<RexNode> measureValues = ImmutableList.of(castValue);
+
+      // Create the mapping entry
+      valueMappings.add(new AbstractMap.SimpleEntry<>(axisValues, measureValues));
+    }
+
+    // Apply the unpivot operation
+    context.relBuilder.unpivot(
+        false, // includeNulls = false
+        measureColumns, // measure column names: ["value"]
+        axisColumns, // axis column names: ["column"]
+        valueMappings // field mappings
+        );
+
+    // Step 3: Pivot the data to transpose rows as columns
+    // Pivot on __row_id__ with column as the grouping key
+    // This creates: column, row1, row2, row3, ...
+
+    // Get unique row IDs to create column names
+    RelNode unpivotedData = context.relBuilder.build();
+
+    // Create aggregation calls for each row - we'll use MAX since we know each cell has only one
+    // value
+    List<String> pivotColumns = new ArrayList<>();
+    List<RexNode> pivotValues = new ArrayList<>();
+
+    // We need to determine how many rows we have to create the proper pivot structure
+    // For now, we'll use a different approach - use conditional aggregation
+
+    // Get the unpivoted data back on stack
+    context.relBuilder.push(unpivotedData);
+
+    // Create conditional aggregations for each row position
+    // We'll use ROW_NUMBER to determine the row positions dynamically
+    RexNode rowPos =
+        context
+            .relBuilder
+            .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+            .over()
+            .partitionBy(context.relBuilder.field(columnName))
+            .orderBy(context.relBuilder.field("__row_id__"))
+            .rowsTo(RexWindowBounds.CURRENT_ROW)
+            .as("__row_pos__");
+    context.relBuilder.projectPlus(rowPos);
+
+    // Now we'll use a different strategy - collect all values per column and then split them
+    // Group by column and collect all values in order
+    List<RexNode> groupByKeys = ImmutableList.of(context.relBuilder.field(columnName));
+
+    // For simplicity, we'll use a direct approach with conditional aggregations
+    // instead of STRING_AGG which may not be available
+
+    // For simplicity, let's use a manual approach that works with the available Calcite operations
+    // We'll create a query that manually builds the transposed result
+
+    // Reset and try a simpler approach
+    context.relBuilder.push(unpivotedData);
+
+    // Let's manually build the pivot by creating conditional aggregations
+    // First, get distinct row IDs
+    context.relBuilder.aggregate(
+        context.relBuilder.groupKey(),
+        context.relBuilder.max(context.relBuilder.field("__row_id__")).as("max_row_id"));
+
+    // Go back to unpivoted data and create the pivot manually
+    context.relBuilder.clear();
+    context.relBuilder.push(unpivotedData);
+
+    // Create aggregation calls for each possible row position
+    List<AggCall> pivotAggCalls = new ArrayList<>();
+
+    for (int i = 1; i <= maxRows; i++) {
+      // Create CASE WHEN __row_id__ = i THEN value END for each row position
+      RexNode caseExpr =
+          context.relBuilder.call(
+              SqlStdOperatorTable.CASE,
+              context.relBuilder.equals(
+                  context.relBuilder.field("__row_id__"), context.relBuilder.literal(i)),
+              context.relBuilder.field("value"),
+              context.relBuilder.literal(null));
+
+      AggCall maxCase = context.relBuilder.max(caseExpr).as("row " + i);
+      pivotAggCalls.add(maxCase);
+    }
+
+    // Group by column and apply the conditional aggregations
+    context.relBuilder.aggregate(
+        context.relBuilder.groupKey(context.relBuilder.field(columnName)), pivotAggCalls);
+
+    return context.relBuilder.peek();
+  }
+
+  @Override
   public RelNode visitBin(Bin node, CalcitePlanContext context) {
     visitChildren(node, context);
 

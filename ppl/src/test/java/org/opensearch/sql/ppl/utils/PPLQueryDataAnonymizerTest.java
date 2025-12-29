@@ -248,6 +248,13 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testTransposeCommand() {
+    assertEquals(
+        "source=table | transpose 5 column_name=***",
+        anonymize("source=t | transpose 5 column_name='column_names'"));
+  }
+
+  @Test
   public void testTrendlineCommand() {
     assertEquals(
         "source=table | trendline sma(2, identifier) as identifier sma(3, identifier) as"
