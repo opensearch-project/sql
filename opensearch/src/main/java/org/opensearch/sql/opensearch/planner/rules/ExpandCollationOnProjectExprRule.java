@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.opensearch.planner.rules;
 
+import static org.opensearch.sql.calcite.utils.PlanUtils.tryPruneRelNodes;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -154,6 +156,7 @@ public class ExpandCollationOnProjectExprRule
       Project newProject =
           project.copy(toTraits, project.getInput(), project.getProjects(), project.getRowType());
       call.transformTo(newProject);
+      tryPruneRelNodes(call);
     }
   }
 
