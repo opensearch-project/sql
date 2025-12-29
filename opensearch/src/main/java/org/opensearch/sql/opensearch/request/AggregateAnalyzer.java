@@ -43,6 +43,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import javax.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.core.Aggregate;
@@ -182,18 +184,28 @@ public class AggregateAnalyzer {
       }
       throw new IllegalStateException(String.format("Cannot infer value from RexNode %s", node));
     }
+
+    RexNode inferRexNodeFromIndex(int index, Project project) {
+      return project == null ? RexInputRef.of(index, rowType) : project.getProjects().get(index);
+    }
+
+    String inferFieldNameFromIndex(int index, Project project) {
+      return project == null
+          ? rowType.getFieldNames().get(index)
+          : project.getRowType().getFieldNames().get(index);
+    }
   }
 
   // TODO: should we support filter aggregation? For PPL, we don't have filter in stats command
   public static Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> analyze(
       Aggregate aggregate,
-      Project project,
-      List<String> outputFields,
+      @Nullable Project project,
+      final List<String> outputFields,
       AggregateBuilderHelper helper)
       throws ExpressionNotAnalyzableException {
     requireNonNull(aggregate, "aggregate");
     try {
-      List<Integer> groupList = aggregate.getGroupSet().asList();
+      final List<Integer> groupList = aggregate.getGroupSet().asList();
       List<String> aggFieldNames = outputFields.subList(groupList.size(), outputFields.size());
       // Process all aggregate calls
       Pair<Builder, List<MetricParser>> builderAndParser =
@@ -227,12 +239,19 @@ public class AggregateAnalyzer {
         // Used to track the current sub-builder as analysis progresses
         Builder subBuilder = newMetricBuilder;
         // Push auto date span & case in group-by list into nested aggregations
+        List<Pair<String, Integer>> groupNameAndIndexList =
+            IntStream.range(0, groupList.size())
+                .mapToObj(i -> Pair.of(outputFields.get(i), groupList.get(i)))
+                .collect(Collectors.toList());
         Pair<Set<Integer>, AggregationBuilder> aggPushedAndAggBuilder =
-            createNestedAggregation(groupList, project, subBuilder, helper);
+            createNestedAggregation(groupNameAndIndexList, project, subBuilder, helper);
         Set<Integer> aggPushed = aggPushedAndAggBuilder.getLeft();
         AggregationBuilder pushedAggBuilder = aggPushedAndAggBuilder.getRight();
         // The group-by list after removing pushed aggregations
-        groupList = groupList.stream().filter(i -> !aggPushed.contains(i)).collect(Collectors.toList());
+        groupNameAndIndexList =
+            groupNameAndIndexList.stream()
+                .filter(pair -> !aggPushed.contains(pair.getRight()))
+                .collect(Collectors.toList());
         if (pushedAggBuilder != null) {
           subBuilder = new Builder().addAggregator(pushedAggBuilder);
         }
@@ -244,7 +263,7 @@ public class AggregateAnalyzer {
         //   - stats count() by ...auto_date_spans, ...range_fields
         // [AutoDateHistogram | RangeAgg]+
         //   Metric
-        if (groupList.isEmpty()) {
+        if (groupNameAndIndexList.isEmpty()) {
           return Pair.of(
               ImmutableList.copyOf(subBuilder.getAggregatorFactories()),
               new BucketAggregationParser(metricParsers, countAggNames));
@@ -259,8 +278,8 @@ public class AggregateAnalyzer {
         //     Metric
         else {
           List<CompositeValuesSourceBuilder<?>> buckets =
-              createCompositeBuckets(groupList, project, helper);
-          if (buckets.size() != groupList.size()) {
+              createCompositeBuckets(groupNameAndIndexList, project, helper);
+          if (buckets.size() != groupNameAndIndexList.size()) {
             throw new UnsupportedOperationException(
                 "Not all the left aggregations can be converted to value sources of composite"
                     + " aggregation");
@@ -340,7 +359,7 @@ public class AggregateAnalyzer {
 
     for (int i = 0; i < aggCalls.size(); i++) {
       AggregateCall aggCall = aggCalls.get(i);
-      List<Pair<RexNode, String>> args = convertAggArgThroughProject(aggCall, project);
+      List<Pair<RexNode, String>> args = convertAggArgThroughProject(aggCall, project, helper);
       String aggFieldName = aggFieldNames.get(i);
 
       Pair<AggregationBuilder, MetricParser> builderAndParser =
@@ -359,12 +378,19 @@ public class AggregateAnalyzer {
    *
    * @param aggCall the aggregate call
    * @param project the project
+   * @param helper the AggregateBuilderHelper
    * @return the converted Pair<RexNode, String> list
    */
   private static List<Pair<RexNode, String>> convertAggArgThroughProject(
-      AggregateCall aggCall, Project project) {
+      AggregateCall aggCall, Project project, AggregateAnalyzer.AggregateBuilderHelper helper) {
     return project == null
-        ? List.of()
+        ? aggCall.getArgList().stream()
+            .map(
+                i ->
+                    Pair.of(
+                        (RexNode) RexInputRef.of(i, helper.rowType),
+                        helper.rowType.getFieldNames().get(i)))
+            .collect(Collectors.toList())
         : PlanUtils.getObjectFromLiteralAgg(aggCall) != null
             ? project.getNamedProjects().stream()
                 .filter(rex -> !rex.getKey().isA(SqlKind.ROW_NUMBER))
@@ -601,10 +627,15 @@ public class AggregateAnalyzer {
   }
 
   private static List<CompositeValuesSourceBuilder<?>> createCompositeBuckets(
-      List<Integer> groupList, Project project, AggregateAnalyzer.AggregateBuilderHelper helper) {
+      List<Pair<String, Integer>> groupNameAndIndexList,
+      @Nullable Project project,
+      AggregateAnalyzer.AggregateBuilderHelper helper) {
     ImmutableList.Builder<CompositeValuesSourceBuilder<?>> resultBuilder = ImmutableList.builder();
-    groupList.forEach(
-        groupIndex -> resultBuilder.add(createCompositeBucket(groupIndex, project, helper)));
+    groupNameAndIndexList.forEach(
+        nameAndIndex ->
+            resultBuilder.add(
+                createCompositeBucket(
+                    nameAndIndex.getLeft(), nameAndIndex.getRight(), project, helper)));
     return resultBuilder.build();
   }
 
@@ -625,7 +656,7 @@ public class AggregateAnalyzer {
    *           └── Metric Aggregation (at the bottom)
    * </pre>
    *
-   * @param groupList the list of group by field indices from the query
+   * @param groupNameAndIndexList the list of group by field names and indices from the query
    * @param project the projection containing the expressions to analyze
    * @param metricBuilder the metric aggregation builder to be placed at the bottom of the hierarchy
    * @param helper the aggregation builder helper containing row type and utility methods
@@ -637,20 +668,20 @@ public class AggregateAnalyzer {
    *     </ul>
    */
   private static Pair<Set<Integer>, AggregationBuilder> createNestedAggregation(
-      List<Integer> groupList,
-      Project project,
+      List<Pair<String, Integer>> groupNameAndIndexList,
+      @Nullable Project project,
       Builder metricBuilder,
       AggregateAnalyzer.AggregateBuilderHelper helper) {
     AggregationBuilder rootAggBuilder = null;
     AggregationBuilder tailAggBuilder = null;
 
     Set<Integer> aggPushed = new HashSet<>();
-    for (Integer i : groupList) {
-      RexNode agg = project.getProjects().get(i);
-      String name = project.getNamedProjects().get(i).getValue();
+    for (Pair<String, Integer> nameAndIndex : groupNameAndIndexList) {
+      RexNode agg = helper.inferRexNodeFromIndex(nameAndIndex.getRight(), project);
+      String name = nameAndIndex.getLeft();
       AggregationBuilder aggBuilder = createCompositeIncompatibleAggregation(agg, name, helper);
       if (aggBuilder != null) {
-        aggPushed.add(i);
+        aggPushed.add(nameAndIndex.getRight());
         if (rootAggBuilder == null) {
           rootAggBuilder = aggBuilder;
         } else {
@@ -728,9 +759,11 @@ public class AggregateAnalyzer {
   }
 
   private static CompositeValuesSourceBuilder<?> createCompositeBucket(
-      Integer groupIndex, Project project, AggregateAnalyzer.AggregateBuilderHelper helper) {
-    RexNode rex = project.getProjects().get(groupIndex);
-    String bucketName = project.getRowType().getFieldNames().get(groupIndex);
+      String bucketName,
+      Integer groupIndex,
+      @Nullable Project project,
+      AggregateAnalyzer.AggregateBuilderHelper helper) {
+    RexNode rex = helper.inferRexNodeFromIndex(groupIndex, project);
     if (rex instanceof RexCall) {
       RexCall rexCall = (RexCall) rex;
       if (rexCall.getKind() == SqlKind.OTHER_FUNCTION
