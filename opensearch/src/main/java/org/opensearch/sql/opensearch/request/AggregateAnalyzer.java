@@ -242,7 +242,7 @@ public class AggregateAnalyzer {
         List<Pair<String, Integer>> groupNameAndIndexList =
             IntStream.range(0, groupList.size())
                 .mapToObj(i -> Pair.of(outputFields.get(i), groupList.get(i)))
-                .toList();
+                .collect(Collectors.toList());
         Pair<Set<Integer>, AggregationBuilder> aggPushedAndAggBuilder =
             createNestedAggregation(groupNameAndIndexList, project, subBuilder, helper);
         Set<Integer> aggPushed = aggPushedAndAggBuilder.getLeft();
@@ -390,7 +390,7 @@ public class AggregateAnalyzer {
                     Pair.of(
                         (RexNode) RexInputRef.of(i, helper.rowType),
                         helper.rowType.getFieldNames().get(i)))
-            .toList()
+            .collect(Collectors.toList())
         : PlanUtils.getObjectFromLiteralAgg(aggCall) != null
             ? project.getNamedProjects().stream()
                 .filter(rex -> !rex.getKey().isA(SqlKind.ROW_NUMBER))

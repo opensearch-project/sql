@@ -9,6 +9,7 @@ import java.util.AbstractCollection;
 import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import lombok.Getter;
 import org.apache.calcite.rel.core.Aggregate;
@@ -95,7 +96,7 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
           currentColumns =
               currentColumns == null
                   ? selectedColumns
-                  : selectedColumns.stream().map(currentColumns::get).toList();
+                  : selectedColumns.stream().map(currentColumns::get).collect(Collectors.toList());
         }
         // Check if filter is derived from aggregate. Ensure there is no other push down operations
         // left between them.
