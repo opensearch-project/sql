@@ -1,12 +1,11 @@
 calcite:
   logical: |
     LogicalSystemLimit(sort0=[$10], dir0=[ASC-nulls-first], fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12], age2=[$19], balance2=[$20])
-        LogicalSort(sort0=[$10], dir0=[ASC-nulls-first])
-          LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12], _id=[$13], _index=[$14], _score=[$15], _maxscore=[$16], _sort=[$17], _routing=[$18], age2=[$19], balance2=[ABS($7)])
-            LogicalSort(sort0=[$19], sort1=[$10], dir0=[ASC-nulls-first], dir1=[ASC-nulls-first])
-              LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12], _id=[$13], _index=[$14], _score=[$15], _maxscore=[$16], _sort=[$17], _routing=[$18], age2=[+($10, $7)])
-                CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
+      LogicalSort(sort0=[$10], dir0=[ASC-nulls-first])
+        LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12], age2=[$19], balance2=[ABS($7)])
+          LogicalSort(sort0=[$19], sort1=[$10], dir0=[ASC-nulls-first], dir1=[ASC-nulls-first])
+            LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12], _id=[$13], _index=[$14], _score=[$15], _maxscore=[$16], _sort=[$17], _routing=[$18], age2=[+($10, $7)])
+              CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
   physical: |
     EnumerableLimit(fetch=[10000])
       EnumerableCalc(expr#0..13=[{inputs}], expr#14=[ABS($t7)], proj#0..14=[{exprs}])

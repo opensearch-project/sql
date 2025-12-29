@@ -65,9 +65,7 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
                         TEST_INDEX_BANK)));
 
     verifyErrorMessageContains(
-        e,
-        "Cannot resolve function: ARRAY, arguments: [INTEGER,BOOLEAN], caused by: fail to create"
-            + " array with fixed type");
+        e, "Cannot infer return type for array; operand types: [INTEGER, BOOLEAN]");
   }
 
   @Test

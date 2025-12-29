@@ -42,13 +42,12 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(fetch=[3])\n"
-            + "  LogicalProject(EMPNO=[$0], COMM=[$6], result=[COALESCE($6, $0,"
-            + " 'fallback':VARCHAR)])\n"
+            + "  LogicalProject(EMPNO=[$0], COMM=[$6], result=[COALESCE($6, $0)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, `COMM`, COALESCE(`COMM`, `EMPNO`, 'fallback') `result`\n"
+        "SELECT `EMPNO`, `COMM`, COALESCE(`COMM`, `EMPNO`) `result`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 3";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -61,14 +60,12 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(fetch=[1])\n"
-            + "  LogicalProject(EMPNO=[$0], result=[COALESCE($6, 123, 'unknown':VARCHAR)])\n"
+            + "  LogicalProject(EMPNO=[$0], result=[COALESCE($6, 123)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, COALESCE(`COMM`, 123, 'unknown') `result`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "LIMIT 1";
+        "SELECT `EMPNO`, COALESCE(`COMM`, 123) `result`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -118,13 +115,13 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalSort(fetch=[2])\n"
             + "  LogicalProject(EMPNO=[$0], COMM=[$6], SAL=[$5], result1=[COALESCE($6, 0)],"
-            + " result2=[COALESCE(COALESCE($6, 0), $5)])\n"
+            + " result2=[COALESCE($6, 0)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, `COMM`, `SAL`, COALESCE(`COMM`, 0) `result1`, COALESCE(COALESCE(`COMM`,"
-            + " 0), `SAL`) `result2`\n"
+        "SELECT `EMPNO`, `COMM`, `SAL`, COALESCE(`COMM`, 0) `result1`, COALESCE(`COMM`, 0)"
+            + " `result2`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -138,12 +135,12 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(fetch=[2])\n"
-            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:VARCHAR, $1)])\n"
+            + "  LogicalProject(EMPNO=[$0], result=[$1])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, COALESCE(NULL, `ENAME`) `result`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
+        "SELECT `EMPNO`, `ENAME` `result`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -155,13 +152,12 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(fetch=[1])\n"
-            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:VARCHAR, null:VARCHAR, $1,"
-            + " 'fallback':VARCHAR)])\n"
+            + "  LogicalProject(EMPNO=[$0], result=[COALESCE($1, 'fallback':VARCHAR)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, COALESCE(NULL, NULL, `ENAME`, 'fallback') `result`\n"
+        "SELECT `EMPNO`, COALESCE(`ENAME`, 'fallback') `result`\n"
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -175,15 +171,12 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(fetch=[1])\n"
-            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(null:VARCHAR, null:VARCHAR,"
-            + " null:VARCHAR)])\n"
+            + "  LogicalProject(EMPNO=[$0], result=[null:VARCHAR])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, COALESCE(NULL, NULL, NULL) `result`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "LIMIT 1";
+        "SELECT `EMPNO`, CAST(NULL AS STRING) `result`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -193,12 +186,11 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(fetch=[1])\n"
-            + "  LogicalProject(EMPNO=[$0], result=[COALESCE('':VARCHAR, $1)])\n"
+            + "  LogicalProject(EMPNO=[$0], result=['':VARCHAR])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
-    String expectedSparkSql =
-        "SELECT `EMPNO`, COALESCE('', `ENAME`) `result`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    String expectedSparkSql = "SELECT `EMPNO`, '' `result`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -208,12 +200,11 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalSort(fetch=[1])\n"
-            + "  LogicalProject(EMPNO=[$0], result=[COALESCE(' ', $1)])\n"
+            + "  LogicalProject(EMPNO=[$0], result=[' '])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
-    String expectedSparkSql =
-        "SELECT `EMPNO`, COALESCE(' ', `ENAME`) `result`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    String expectedSparkSql = "SELECT `EMPNO`, ' ' `result`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 

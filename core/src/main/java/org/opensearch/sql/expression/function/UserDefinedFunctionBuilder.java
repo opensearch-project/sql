@@ -9,6 +9,7 @@ import java.util.Collections;
 import org.apache.calcite.schema.ImplementableFunction;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -32,6 +33,10 @@ public interface UserDefinedFunctionBuilder {
 
   UDFOperandMetadata getOperandMetadata();
 
+  default SqlKind getKind() {
+    return SqlKind.OTHER_FUNCTION;
+  }
+
   default SqlUserDefinedFunction toUDF(String functionName) {
     return toUDF(functionName, true);
   }
@@ -50,7 +55,7 @@ public interface UserDefinedFunctionBuilder {
         new SqlIdentifier(Collections.singletonList(functionName), null, SqlParserPos.ZERO, null);
     return new SqlUserDefinedFunction(
         udfLtrimIdentifier,
-        SqlKind.OTHER_FUNCTION,
+        getKind(),
         getReturnTypeInference(),
         InferTypes.ANY_NULLABLE,
         getOperandMetadata(),
@@ -65,6 +70,11 @@ public interface UserDefinedFunctionBuilder {
         // to avoid convert to sql dialog as identifier, use keyword instead
         // check the code SqlUtil.unparseFunctionSyntax()
         return null;
+      }
+
+      @Override
+      public SqlOperandCountRange getOperandCountRange() {
+        return getOperandMetadata().getOperandCountRange();
       }
     };
   }
