@@ -2,14 +2,13 @@ calcite:
   logical: |
     LogicalSystemLimit(sort0=[$0], dir0=[DESC], fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalSort(sort0=[$0], dir0=[DESC], fetch=[5])
-        LogicalProject(@timestamp=[$0], category=[$1], value=[$2], timestamp=[$3])
-          LogicalUnion(all=[true])
-            LogicalProject(@timestamp=[$0], category=[$1], value=[$2], timestamp=[$3])
-              LogicalFilter(condition=[OR(=($1, 'A'), =($1, 'B'))])
-                CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_time_data]])
-            LogicalProject(@timestamp=[$0], category=[$1], value=[$2], timestamp=[$3])
-              LogicalFilter(condition=[OR(=($1, 'E'), =($1, 'F'))])
-                CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_time_data2]])
+        LogicalUnion(all=[true])
+          LogicalProject(@timestamp=[$0], category=[$1], value=[$2], timestamp=[$3])
+            LogicalFilter(condition=[SEARCH($1, Sarg['A':VARCHAR, 'B':VARCHAR]:VARCHAR)])
+              CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_time_data]])
+          LogicalProject(@timestamp=[$0], category=[$1], value=[$2], timestamp=[$3])
+            LogicalFilter(condition=[SEARCH($1, Sarg['E':VARCHAR, 'F':VARCHAR]:VARCHAR)])
+              CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_time_data2]])
   physical: |
     EnumerableLimit(fetch=[10000])
       EnumerableLimit(fetch=[5])
@@ -19,10 +18,10 @@ calcite:
         "order" : "desc",
         "missing" : "_first"
       }
-    }], LIMIT->5, LIMIT->5], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":5,"timeout":"1m","query":{"terms":{"category":["A","B"],"boost":1.0}},"_source":{"includes":["@timestamp","category","value","timestamp"],"excludes":[]},"sort":[{"@timestamp":{"order":"desc","missing":"_first"}}]}, requestedTotalSize=5, pageSize=null, startFrom=0)])
+    }], LIMIT->5], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":5,"timeout":"1m","query":{"terms":{"category":["A","B"],"boost":1.0}},"_source":{"includes":["@timestamp","category","value","timestamp"],"excludes":[]},"sort":[{"@timestamp":{"order":"desc","missing":"_first"}}]}, requestedTotalSize=5, pageSize=null, startFrom=0)])
           CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_time_data2]], PushDownContext=[[PROJECT->[@timestamp, category, value, timestamp], FILTER->SEARCH($1, Sarg['E':VARCHAR, 'F':VARCHAR]:VARCHAR), SORT->[{
       "@timestamp" : {
         "order" : "desc",
         "missing" : "_first"
       }
-    }], LIMIT->5, LIMIT->5], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":5,"timeout":"1m","query":{"terms":{"category":["E","F"],"boost":1.0}},"_source":{"includes":["@timestamp","category","value","timestamp"],"excludes":[]},"sort":[{"@timestamp":{"order":"desc","missing":"_first"}}]}, requestedTotalSize=5, pageSize=null, startFrom=0)])
+    }], LIMIT->5], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":5,"timeout":"1m","query":{"terms":{"category":["E","F"],"boost":1.0}},"_source":{"includes":["@timestamp","category","value","timestamp"],"excludes":[]},"sort":[{"@timestamp":{"order":"desc","missing":"_first"}}]}, requestedTotalSize=5, pageSize=null, startFrom=0)])
