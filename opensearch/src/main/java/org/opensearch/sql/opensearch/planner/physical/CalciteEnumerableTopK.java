@@ -15,7 +15,6 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 /** The different between this and {@link EnumerableLimitSort} is the cost. */
 public class CalciteEnumerableTopK extends EnumerableLimitSort {
@@ -25,13 +24,13 @@ public class CalciteEnumerableTopK extends EnumerableLimitSort {
       RelTraitSet traitSet,
       RelNode input,
       RelCollation collation,
-      @Nullable RexNode offset,
-      @Nullable RexNode fetch) {
+      RexNode offset,
+      RexNode fetch) {
     super(cluster, traitSet, input, collation, offset, fetch);
   }
 
   @Override
-  public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+  public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
     RelOptCost original = super.computeSelfCost(planner, mq);
     if (original == null) {
       return null;
@@ -44,8 +43,19 @@ public class CalciteEnumerableTopK extends EnumerableLimitSort {
         .makeCost(original.getRows() * 2 * 0.99, original.getCpu(), original.getIo());
   }
 
+  @Override
+  public CalciteEnumerableTopK copy(
+      RelTraitSet traitSet,
+      RelNode newInput,
+      RelCollation newCollation,
+      RexNode offset,
+      RexNode fetch) {
+    return new CalciteEnumerableTopK(
+        this.getCluster(), traitSet, newInput, newCollation, offset, fetch);
+  }
+
   public static CalciteEnumerableTopK create(
-      RelNode input, RelCollation collation, @Nullable RexNode offset, @Nullable RexNode fetch) {
+      RelNode input, RelCollation collation, RexNode offset, RexNode fetch) {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet =
         cluster.traitSetOf(EnumerableConvention.INSTANCE).replace(collation);

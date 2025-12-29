@@ -19,7 +19,7 @@ calcite:
                           LogicalFilter(condition=[AND(IS NOT NULL($3), IS NOT NULL($2))])
                             CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_time_data]])
   physical: |
-    EnumerableLimitSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC], fetch=[10000])
+    CalciteEnumerableTopK(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC], fetch=[10000])
       EnumerableAggregate(group=[{0, 1}], max(value)=[MAX($2)])
         EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NULL($t1)], expr#6=['NULL'], expr#7=[10], expr#8=[<=($t4, $t7)], expr#9=['OTHER'], expr#10=[CASE($t5, $t6, $t8, $t1, $t9)], timestamp=[$t0], category=[$t10], max(value)=[$t2])
           EnumerableMergeJoin(condition=[=($1, $3)], joinType=[left])

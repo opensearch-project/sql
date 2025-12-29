@@ -15,7 +15,7 @@ calcite:
                       CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
     EnumerableCalc(expr#0..16=[{inputs}], proj#0..10=[{exprs}], avg_age=[$t16])
-      EnumerableLimitSort(sort0=[$11], dir0=[ASC], fetch=[10000])
+      CalciteEnumerableTopK(sort0=[$11], dir0=[ASC], fetch=[10000])
         EnumerableMergeJoin(condition=[AND(=($4, $13), =($11, $14), =($12, $15))], joinType=[left])
           EnumerableSort(sort0=[$4], sort1=[$11], sort2=[$12], dir0=[ASC], dir1=[ASC], dir2=[ASC])
             EnumerableCalc(expr#0..15=[{inputs}], expr#16=[0], expr#17=[COALESCE($t15, $t16)], expr#18=[+($t14, $t17)], proj#0..11=[{exprs}], __seg_id__=[$t18])
