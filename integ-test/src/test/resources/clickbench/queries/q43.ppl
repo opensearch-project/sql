@@ -9,5 +9,5 @@ LIMIT 10 OFFSET 1000;
 source=hits
 | where CounterID = 62 and EventDate >= '2013-07-01 00:00:00' and EventDate <= '2013-07-15 00:00:00' and IsRefresh = 0 and DontCountHits = 0
 | stats bucket_nullable=false count() as PageViews by span(EventTime, 1m) as M
-| sort -M
+| sort M
 | head 10 from 1000
