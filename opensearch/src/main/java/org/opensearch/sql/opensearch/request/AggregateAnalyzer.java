@@ -28,8 +28,6 @@
 package org.opensearch.sql.opensearch.request;
 
 import static java.util.Objects.requireNonNull;
-import static org.opensearch.sql.calcite.plan.OpenSearchConstants.METADATA_FIELD_INDEX;
-import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
@@ -42,6 +40,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -58,7 +57,6 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.script.Script;
 import org.opensearch.search.aggregations.AggregationBuilder;
@@ -100,6 +98,7 @@ import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
 import org.opensearch.sql.opensearch.response.agg.StatsParser;
 import org.opensearch.sql.opensearch.response.agg.TopHitsParser;
 import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.CompositeAggregationBuilder;
+import org.opensearch.sql.utils.Utils;
 
 /**
  * Aggregate analyzer. Convert aggregate to AggregationBuilder {@link AggregationBuilder} and its
@@ -239,13 +238,13 @@ public class AggregateAnalyzer {
       } else {
         // Used to track the current sub-builder as analysis progresses
         Builder subBuilder = newMetricBuilder;
-        // Push auto date span & case in group-by list into nested aggregations
+        // Push auto date span & case in group-by list into structured aggregations
         List<Pair<String, Integer>> groupNameAndIndexList =
             IntStream.range(0, groupList.size())
                 .mapToObj(i -> Pair.of(outputFields.get(i), groupList.get(i)))
                 .toList();
         Pair<Set<Integer>, AggregationBuilder> aggPushedAndAggBuilder =
-            createNestedAggregation(groupNameAndIndexList, project, subBuilder, helper);
+            createStructuredAggregation(groupNameAndIndexList, project, subBuilder, helper);
         Set<Integer> aggPushed = aggPushedAndAggBuilder.getLeft();
         AggregationBuilder pushedAggBuilder = aggPushedAndAggBuilder.getRight();
         // The group-by list after removing pushed aggregations
@@ -258,7 +257,7 @@ public class AggregateAnalyzer {
         }
 
         // No composite aggregation at top-level -- auto date span & case in group-by list are
-        // pushed into nested aggregations:
+        // pushed into structured aggregations:
         //   - stats avg() by range_field
         //   - stats count() by auto_date_span
         //   - stats count() by ...auto_date_spans, ...range_fields
@@ -290,6 +289,23 @@ public class AggregateAnalyzer {
                   .size(helper.queryBucketSize);
           if (subBuilder != null) {
             compositeBuilder.subAggregations(subBuilder);
+          }
+          List<String> nestedPathFromBuckets =
+              groupNameAndIndexList.stream()
+                  .map(b -> Utils.resolveNestedPath(b.getLeft(), helper.fieldTypes))
+                  .toList();
+          boolean validNestedAgg =
+              nestedPathFromBuckets.stream().noneMatch(Objects::isNull)
+                  && nestedPathFromBuckets.stream().distinct().count() == 1;
+          if (validNestedAgg) {
+            String nestedPath = nestedPathFromBuckets.getFirst();
+            AggregationBuilder nestedAggBuilder =
+                AggregationBuilders.nested(
+                        String.format("nested_%s", compositeBuilder.getName()), nestedPath)
+                    .subAggregation(compositeBuilder);
+            return Pair.of(
+                Collections.singletonList(nestedAggBuilder),
+                new BucketAggregationParser(metricParsers, countAggNames));
           }
           return Pair.of(
               Collections.singletonList(compositeBuilder),
@@ -366,10 +382,13 @@ public class AggregateAnalyzer {
           createAggregationBuilderAndParser(aggCall, args, aggName, helper);
       builderAndParser = aggFilterAnalyzer.analyze(builderAndParser, aggCall, aggName);
       // Nested aggregation (https://docs.opensearch.org/docs/latest/aggregations/bucket/nested/)
-      String root = StringUtils.substringBefore(getAggFieldName(aggCall, project), ".");
-      if (root != null && helper.fieldTypes.get(root) == ARRAY) {
+      String nestedPath =
+          args.isEmpty()
+              ? null
+              : Utils.resolveNestedPath(args.getFirst().getRight(), helper.fieldTypes);
+      if (nestedPath != null) {
         metricBuilder.addAggregator(
-            AggregationBuilders.nested(String.format("nested_%s", aggCall.getName()), root)
+            AggregationBuilders.nested(String.format("nested_%s", aggCall.getName()), nestedPath)
                 .subAggregation(builderAndParser.getLeft()));
       } else {
         metricBuilder.addAggregator(builderAndParser.getLeft());
@@ -377,22 +396,6 @@ public class AggregateAnalyzer {
       metricParserList.add(builderAndParser.getRight());
     }
     return Pair.of(metricBuilder, metricParserList);
-  }
-
-  /**
-   * Return the field name of aggregate call. For example, min(a.b) returns a.b; count() returns
-   * _index; literal_agg(1) return null;
-   */
-  private static @Nullable String getAggFieldName(AggregateCall aggCall, Project project) {
-    if (aggCall.getArgList().isEmpty()) {
-      if (aggCall.getAggregation().kind == SqlKind.COUNT) {
-        return METADATA_FIELD_INDEX;
-      } else {
-        return null;
-      }
-    }
-    if (project == null) return null;
-    return project.getRowType().getFieldNames().get(aggCall.getArgList().get(0));
   }
 
   /**
@@ -429,19 +432,19 @@ public class AggregateAnalyzer {
   private static Pair<AggregationBuilder, MetricParser> createAggregationBuilderAndParser(
       AggregateCall aggCall,
       List<Pair<RexNode, String>> args,
-      String aggFieldName,
+      String aggName,
       AggregateAnalyzer.AggregateBuilderHelper helper) {
     if (aggCall.isDistinct()) {
-      return createDistinctAggregation(aggCall, args, aggFieldName, helper);
+      return createDistinctAggregation(aggCall, args, aggName, helper);
     } else {
-      return createRegularAggregation(aggCall, args, aggFieldName, helper);
+      return createRegularAggregation(aggCall, args, aggName, helper);
     }
   }
 
   private static Pair<AggregationBuilder, MetricParser> createDistinctAggregation(
       AggregateCall aggCall,
       List<Pair<RexNode, String>> args,
-      String aggFieldName,
+      String aggName,
       AggregateBuilderHelper helper) {
 
     return switch (aggCall.getAggregation().kind) {
@@ -449,8 +452,8 @@ public class AggregateAnalyzer {
           Pair.of(
               helper.build(
                   !args.isEmpty() ? args.getFirst().getKey() : null,
-                  AggregationBuilders.cardinality(aggFieldName)),
-              new SingleValueParser(aggFieldName));
+                  AggregationBuilders.cardinality(aggName)),
+              new SingleValueParser(aggName));
       default ->
           throw new AggregateAnalyzer.AggregateAnalyzerException(
               String.format("unsupported distinct aggregator %s", aggCall.getAggregation()));
@@ -460,36 +463,36 @@ public class AggregateAnalyzer {
   private static Pair<AggregationBuilder, MetricParser> createRegularAggregation(
       AggregateCall aggCall,
       List<Pair<RexNode, String>> args,
-      String aggFieldName,
+      String aggName,
       AggregateBuilderHelper helper) {
 
     return switch (aggCall.getAggregation().kind) {
       case AVG ->
           Pair.of(
-              helper.build(args.getFirst().getKey(), AggregationBuilders.avg(aggFieldName)),
-              new SingleValueParser(aggFieldName));
+              helper.build(args.getFirst().getKey(), AggregationBuilders.avg(aggName)),
+              new SingleValueParser(aggName));
       // 1. Only case SUM, skip SUM0 / COUNT since calling avg() in DSL should be faster.
       // 2. To align with databases, SUM0 is not preferred now.
       case SUM ->
           Pair.of(
-              helper.build(args.getFirst().getKey(), AggregationBuilders.sum(aggFieldName)),
-              new SingleValueParser(aggFieldName));
+              helper.build(args.getFirst().getKey(), AggregationBuilders.sum(aggName)),
+              new SingleValueParser(aggName));
       case COUNT ->
           Pair.of(
               helper.build(
                   !args.isEmpty() ? args.getFirst().getKey() : null,
-                  AggregationBuilders.count(aggFieldName)),
-              new SingleValueParser(aggFieldName));
+                  AggregationBuilders.count(aggName)),
+              new SingleValueParser(aggName));
       case MIN -> {
         ExprType fieldType =
             OpenSearchTypeFactory.convertRelDataTypeToExprType(args.getFirst().getKey().getType());
         if (supportsMaxMinAggregation(fieldType)) {
           yield Pair.of(
-              helper.build(args.getFirst().getKey(), AggregationBuilders.min(aggFieldName)),
-              new SingleValueParser(aggFieldName));
+              helper.build(args.getFirst().getKey(), AggregationBuilders.min(aggName)),
+              new SingleValueParser(aggName));
         } else {
           yield Pair.of(
-              AggregationBuilders.topHits(aggFieldName)
+              AggregationBuilders.topHits(aggName)
                   .fetchField(
                       helper.inferNamedField(args.getFirst().getKey()).getReferenceForTermQuery())
                   .size(1)
@@ -497,7 +500,7 @@ public class AggregateAnalyzer {
                   .sort(
                       helper.inferNamedField(args.getFirst().getKey()).getReferenceForTermQuery(),
                       SortOrder.ASC),
-              new TopHitsParser(aggFieldName, true, false));
+              new TopHitsParser(aggName, true, false));
         }
       }
       case MAX -> {
@@ -505,11 +508,11 @@ public class AggregateAnalyzer {
             OpenSearchTypeFactory.convertRelDataTypeToExprType(args.getFirst().getKey().getType());
         if (supportsMaxMinAggregation(fieldType)) {
           yield Pair.of(
-              helper.build(args.getFirst().getKey(), AggregationBuilders.max(aggFieldName)),
-              new SingleValueParser(aggFieldName));
+              helper.build(args.getFirst().getKey(), AggregationBuilders.max(aggName)),
+              new SingleValueParser(aggName));
         } else {
           yield Pair.of(
-              AggregationBuilders.topHits(aggFieldName)
+              AggregationBuilders.topHits(aggName)
                   .fetchField(
                       helper.inferNamedField(args.getFirst().getKey()).getReferenceForTermQuery())
                   .size(1)
@@ -517,32 +520,28 @@ public class AggregateAnalyzer {
                   .sort(
                       helper.inferNamedField(args.getFirst().getKey()).getReferenceForTermQuery(),
                       SortOrder.DESC),
-              new TopHitsParser(aggFieldName, true, false));
+              new TopHitsParser(aggName, true, false));
         }
       }
       case VAR_SAMP ->
           Pair.of(
-              helper.build(
-                  args.getFirst().getKey(), AggregationBuilders.extendedStats(aggFieldName)),
-              new StatsParser(ExtendedStats::getVarianceSampling, aggFieldName));
+              helper.build(args.getFirst().getKey(), AggregationBuilders.extendedStats(aggName)),
+              new StatsParser(ExtendedStats::getVarianceSampling, aggName));
       case VAR_POP ->
           Pair.of(
-              helper.build(
-                  args.getFirst().getKey(), AggregationBuilders.extendedStats(aggFieldName)),
-              new StatsParser(ExtendedStats::getVariancePopulation, aggFieldName));
+              helper.build(args.getFirst().getKey(), AggregationBuilders.extendedStats(aggName)),
+              new StatsParser(ExtendedStats::getVariancePopulation, aggName));
       case STDDEV_SAMP ->
           Pair.of(
-              helper.build(
-                  args.getFirst().getKey(), AggregationBuilders.extendedStats(aggFieldName)),
-              new StatsParser(ExtendedStats::getStdDeviationSampling, aggFieldName));
+              helper.build(args.getFirst().getKey(), AggregationBuilders.extendedStats(aggName)),
+              new StatsParser(ExtendedStats::getStdDeviationSampling, aggName));
       case STDDEV_POP ->
           Pair.of(
-              helper.build(
-                  args.getFirst().getKey(), AggregationBuilders.extendedStats(aggFieldName)),
-              new StatsParser(ExtendedStats::getStdDeviationPopulation, aggFieldName));
+              helper.build(args.getFirst().getKey(), AggregationBuilders.extendedStats(aggName)),
+              new StatsParser(ExtendedStats::getStdDeviationPopulation, aggName));
       case ARG_MAX ->
           Pair.of(
-              AggregationBuilders.topHits(aggFieldName)
+              AggregationBuilders.topHits(aggName)
                   .fetchField(
                       helper.inferNamedField(args.getFirst().getKey()).getReferenceForTermQuery())
                   .size(1)
@@ -550,10 +549,10 @@ public class AggregateAnalyzer {
                   .sort(
                       helper.inferNamedField(args.get(1).getKey()).getReferenceForTermQuery(),
                       org.opensearch.search.sort.SortOrder.DESC),
-              new ArgMaxMinParser(aggFieldName));
+              new ArgMaxMinParser(aggName));
       case ARG_MIN ->
           Pair.of(
-              AggregationBuilders.topHits(aggFieldName)
+              AggregationBuilders.topHits(aggName)
                   .fetchField(
                       helper.inferNamedField(args.getFirst().getKey()).getReferenceForTermQuery())
                   .size(1)
@@ -561,33 +560,33 @@ public class AggregateAnalyzer {
                   .sort(
                       helper.inferNamedField(args.get(1).getKey()).getReferenceForTermQuery(),
                       org.opensearch.search.sort.SortOrder.ASC),
-              new ArgMaxMinParser(aggFieldName));
+              new ArgMaxMinParser(aggName));
       case OTHER_FUNCTION -> {
         BuiltinFunctionName functionName =
             BuiltinFunctionName.ofAggregation(aggCall.getAggregation().getName()).get();
         yield switch (functionName) {
           case TAKE ->
               Pair.of(
-                  AggregationBuilders.topHits(aggFieldName)
+                  AggregationBuilders.topHits(aggName)
                       .fetchField(
                           helper
                               .inferNamedField(args.getFirst().getKey())
                               .getReferenceForTermQuery())
                       .size(helper.inferValue(args.getLast().getKey(), Integer.class))
                       .from(0),
-                  new TopHitsParser(aggFieldName, false, true));
+                  new TopHitsParser(aggName, false, true));
           case FIRST -> {
             TopHitsAggregationBuilder firstBuilder =
-                AggregationBuilders.topHits(aggFieldName).size(1).from(0);
+                AggregationBuilders.topHits(aggName).size(1).from(0);
             if (!args.isEmpty()) {
               firstBuilder.fetchField(
                   helper.inferNamedField(args.getFirst().getKey()).getReferenceForTermQuery());
             }
-            yield Pair.of(firstBuilder, new TopHitsParser(aggFieldName, true, false));
+            yield Pair.of(firstBuilder, new TopHitsParser(aggName, true, false));
           }
           case LAST -> {
             TopHitsAggregationBuilder lastBuilder =
-                AggregationBuilders.topHits(aggFieldName)
+                AggregationBuilders.topHits(aggName)
                     .size(1)
                     .from(0)
                     .sort("_doc", org.opensearch.search.sort.SortOrder.DESC);
@@ -595,25 +594,25 @@ public class AggregateAnalyzer {
               lastBuilder.fetchField(
                   helper.inferNamedField(args.getFirst().getKey()).getReferenceForTermQuery());
             }
-            yield Pair.of(lastBuilder, new TopHitsParser(aggFieldName, true, false));
+            yield Pair.of(lastBuilder, new TopHitsParser(aggName, true, false));
           }
           case PERCENTILE_APPROX -> {
             PercentilesAggregationBuilder aggBuilder =
                 helper
-                    .build(args.getFirst().getKey(), AggregationBuilders.percentiles(aggFieldName))
+                    .build(args.getFirst().getKey(), AggregationBuilders.percentiles(aggName))
                     .percentiles(helper.inferValue(args.get(1).getKey(), Double.class));
             /* See {@link PercentileApproxFunction}, PERCENTILE_APPROX accepts args of [FIELD, PERCENTILE, TYPE, COMPRESSION(optional)] */
             if (args.size() > 3) {
               aggBuilder.compression(helper.inferValue(args.getLast().getKey(), Double.class));
             }
-            yield Pair.of(aggBuilder, new SinglePercentileParser(aggFieldName));
+            yield Pair.of(aggBuilder, new SinglePercentileParser(aggName));
           }
           case DISTINCT_COUNT_APPROX ->
               Pair.of(
                   helper.build(
                       !args.isEmpty() ? args.getFirst().getKey() : null,
-                      AggregationBuilders.cardinality(aggFieldName)),
-                  new SingleValueParser(aggFieldName));
+                      AggregationBuilders.cardinality(aggName)),
+                  new SingleValueParser(aggName));
           default ->
               throw new AggregateAnalyzer.AggregateAnalyzerException(
                   String.format("Unsupported push-down aggregator %s", aggCall.getAggregation()));
@@ -628,7 +627,7 @@ public class AggregateAnalyzer {
         Integer dedupNumber = literal.getValueAs(Integer.class);
         // Disable fetchSource since TopHitsParser only parses fetchField currently.
         TopHitsAggregationBuilder topHitsAggregationBuilder =
-            AggregationBuilders.topHits(aggFieldName).from(0).size(dedupNumber);
+            AggregationBuilders.topHits(aggName).from(0).size(dedupNumber);
         List<String> sources = new ArrayList<>();
         List<SearchSourceBuilder.ScriptField> scripts = new ArrayList<>();
         args.forEach(
@@ -649,7 +648,7 @@ public class AggregateAnalyzer {
         topHitsAggregationBuilder.fetchSource(
             sources.stream().distinct().toArray(String[]::new), new String[0]);
         topHitsAggregationBuilder.scriptFields(scripts);
-        yield Pair.of(topHitsAggregationBuilder, new TopHitsParser(aggFieldName, false, false));
+        yield Pair.of(topHitsAggregationBuilder, new TopHitsParser(aggName, false, false));
       }
       default ->
           throw new AggregateAnalyzer.AggregateAnalyzerException(
@@ -683,8 +682,8 @@ public class AggregateAnalyzer {
   }
 
   /**
-   * Creates nested bucket aggregations for expressions that are not qualified as value sources for
-   * composite aggregations.
+   * Creates structured bucket aggregations for expressions that are not qualified as value sources
+   * for composite aggregations.
    *
    * <p>This method processes a list of group by expressions and identifies those that cannot be
    * used as value sources in composite aggregations but can be pushed down as sub-aggregations,
@@ -694,7 +693,7 @@ public class AggregateAnalyzer {
    *
    * <pre>
    * AutoDateHistogram | RangeAggregation
-   *   └── AutoDateHistogram | RangeAggregation (nested)
+   *   └── AutoDateHistogram | RangeAggregation (structured)
    *       └── ... (more composite-incompatible aggregations)
    *           └── Metric Aggregation (at the bottom)
    * </pre>
@@ -710,7 +709,7 @@ public class AggregateAnalyzer {
    *       <li>The root aggregation builder, or null if no such expressions were found
    *     </ul>
    */
-  private static Pair<Set<Integer>, AggregationBuilder> createNestedAggregation(
+  private static Pair<Set<Integer>, AggregationBuilder> createStructuredAggregation(
       List<Pair<String, Integer>> groupNameAndIndexList,
       @Nullable Project project,
       Builder metricBuilder,

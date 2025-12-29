@@ -1190,8 +1190,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     groupExprList.addAll(node.getGroupExprList());
 
-    // Add stats hint to LogicalAggregation.
-    boolean toAddHintsOnAggregate =
+    // Add a hint to LogicalAggregation when bucket_nullable=false.
+    boolean hintBucketNotNull =
         !groupExprList.isEmpty()
             // This checks if all group-bys should be nonnull
             && nonNullGroupMask.nextClearBit(0) >= groupExprList.size();
@@ -1211,14 +1211,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .filter(nonNullGroupMask::get)
             .mapToObj(nonNullCandidates::get)
             .toList();
-    context.relBuilder.filter(
-        PlanUtils.getSelectColumns(nonNullFields).stream()
-            .map(context.relBuilder::field)
-            .map(context.relBuilder::isNotNull)
-            .toList());
+    if (!nonNullFields.isEmpty()) {
+      context.relBuilder.filter(
+          PlanUtils.getSelectColumns(nonNullFields).stream()
+              .map(context.relBuilder::field)
+              .map(context.relBuilder::isNotNull)
+              .toList());
+    }
 
     Pair<List<RexNode>, List<AggCall>> aggregationAttributes =
-        aggregateWithTrimming(groupExprList, aggExprList, context, toAddHintsOnAggregate);
+        aggregateWithTrimming(groupExprList, aggExprList, context, hintBucketNotNull);
 
     // schema reordering
     List<RexNode> outputFields = context.relBuilder.fields();
@@ -2346,9 +2348,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // if usenull=false, add a isNotNull before Aggregate and the hint to this Aggregate
     Boolean bucketNullable = (Boolean) argumentMap.get(RareTopN.Option.useNull.name()).getValue();
-    boolean toAddHintsOnAggregate = false;
+    boolean hintBucketNotNull = false;
     if (!bucketNullable && !groupExprList.isEmpty()) {
-      toAddHintsOnAggregate = true;
+      hintBucketNotNull = true;
       // add isNotNull filter before aggregation to filter out null bucket
       List<RexNode> groupByList =
           groupExprList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
@@ -2358,7 +2360,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               .map(context.relBuilder::isNotNull)
               .toList());
     }
-    aggregateWithTrimming(groupExprList, aggExprList, context, toAddHintsOnAggregate);
+    aggregateWithTrimming(groupExprList, aggExprList, context, hintBucketNotNull);
 
     // 2. add count() column with sort direction
     List<RexNode> partitionKeys = rexVisitor.analyze(node.getGroupExprList(), context);

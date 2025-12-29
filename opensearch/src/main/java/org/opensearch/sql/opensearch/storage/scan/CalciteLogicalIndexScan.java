@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -62,6 +63,7 @@ import org.opensearch.sql.opensearch.storage.scan.context.ProjectDigest;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownType;
 import org.opensearch.sql.opensearch.storage.scan.context.RareTopDigest;
+import org.opensearch.sql.utils.Utils;
 
 /** The logical relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
@@ -138,7 +140,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
   public AbstractRelNode pushDownFilter(Filter filter) {
     try {
       RelDataType rowType = this.getRowType();
-      List<String> schema = this.getRowType().getFieldNames();
+      List<String> schema = buildSchema();
       Map<String, ExprType> fieldTypes =
           this.osIndex.getAllFieldTypes().entrySet().stream()
               .filter(entry -> schema.contains(entry.getKey()))
@@ -174,6 +176,25 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       }
     }
     return null;
+  }
+
+  /**
+   * Build schema for the current scan. Schema is the combination of all index fields and nested
+   * fields in index fields.
+   *
+   * @return All current outputs fields plus nested paths.
+   */
+  private List<String> buildSchema() {
+    List<String> schema = new ArrayList<>(this.getRowType().getFieldNames());
+    // Add nested paths to schema if it has
+    List<String> nestedPaths =
+        schema.stream()
+            .map(field -> Utils.resolveNestedPath(field, this.osIndex.getAllFieldTypes()))
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
+    schema.addAll(nestedPaths);
+    return schema;
   }
 
   private static RexNode constructCondition(List<RexNode> conditions, RexBuilder rexBuilder) {
@@ -349,7 +370,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               osIndex,
               aggregate.getRowType(),
               pushDownContext.cloneForAggregate(aggregate, project));
-      List<String> schema = this.getRowType().getFieldNames();
+      List<String> schema = buildSchema();
       Map<String, ExprType> fieldTypes =
           this.osIndex.getAllFieldTypes().entrySet().stream()
               .filter(entry -> schema.contains(entry.getKey()))

@@ -680,7 +680,7 @@ public interface PlanUtils {
           agg.getHints().stream()
               .anyMatch(
                   hint ->
-                      hint.hintName.equals("stats_args")
+                      hint.hintName.equals("agg_args")
                           && hint.kvOptions
                               .getOrDefault(Argument.BUCKET_NULLABLE, "true")
                               .equals("false"));

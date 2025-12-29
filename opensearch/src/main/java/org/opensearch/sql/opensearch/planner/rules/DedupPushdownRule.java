@@ -30,6 +30,7 @@ import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
+import org.opensearch.sql.utils.Utils;
 
 @Value.Enclosing
 public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Config>
@@ -66,9 +67,12 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
     List<RexNode> dedupColumns = windows.get(0).partitionKeys;
     if (dedupColumns.stream()
         .filter(rex -> rex.isA(SqlKind.INPUT_REF))
-        .anyMatch(rex -> rex.getType().getSqlTypeName() == SqlTypeName.MAP)) {
-      LOG.debug("Cannot pushdown the dedup since the dedup fields contains MAP type");
-      // TODO https://github.com/opensearch-project/sql/issues/4564
+        .anyMatch(
+            rex ->
+                rex.getType().getSqlTypeName() == SqlTypeName.MAP
+                    || rex.getType().getSqlTypeName() == SqlTypeName.ARRAY)) {
+      LOG.debug("Cannot pushdown the dedup since the dedup fields contains MAP/ARRAY type");
+      // fallback to non-pushdown
       return;
     }
     // must be row_number <= number
@@ -100,6 +104,14 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
         LOG.warn("The dedup column {} is illegal.", dedupColumn);
         return;
       }
+    }
+    if (targetProjections.stream()
+        .anyMatch(
+            pair ->
+                Utils.resolveNestedPath(pair.getValue(), scan.getOsIndex().getFieldTypes())
+                    != null)) {
+      // fallback to non-pushdown if the dedup columns contain nested fields.
+      return;
     }
     for (Pair<RexNode, String> project : projectWithWindow.getNamedProjects()) {
       if (!project.getKey().isA(SqlKind.ROW_NUMBER) && !targetProjections.contains(project)) {

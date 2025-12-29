@@ -170,4 +170,23 @@ public class CalciteStatsCommandIT extends StatsCommandIT {
                     + " avg(age) as avg_age by span(age, 10)",
                 TEST_INDEX_NESTED_SIMPLE));
   }
+
+  @Test
+  public void testNestedAggregationByNestedPath() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats count(address.city), count(address.ares)",
+                TEST_INDEX_NESTED_SIMPLE));
+    System.out.println(actual);
+    verifyDataRows(actual, rows(11, 9));
+    actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats count(), min(age), min(address.area) by address.city",
+                TEST_INDEX_NESTED_SIMPLE));
+    System.out.println(actual);
+    verifyDataRows(actual, rows(5, 19, 9.99, null));
+  }
 }

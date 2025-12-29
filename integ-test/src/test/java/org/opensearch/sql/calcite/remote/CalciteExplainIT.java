@@ -2231,6 +2231,69 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testNestedSingleCountPushDownExplain() throws Exception {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_nested_agg_single_count_push.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_nested_simple | stats count(address.area)"));
+  }
+
+  @Test
+  public void testNestedAggPushDownSortExplain() throws Exception {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_nested_agg_sort_push.yaml");
+
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_nested_simple | stats count() by address.city | sort"
+                + " -address.city"));
+  }
+
+  @Test
+  public void testNestedAggByPushDownExplain() throws Exception {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_nested_agg_by_push.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_nested_simple | stats min(address.area) by"
+                + " address.city"));
+    // Whatever bucket_nullable=false or bucket_nullable=true is, the plans should be the same.
+    // The filter(is_not_null) can be safe removed since nested agg only works when pushdown is
+    // applied.
+    expected = loadExpectedPlan("explain_nested_agg_by_bucket_nullable_push.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_nested_simple | stats bucket_nullable=false"
+                + " min(address.area) by address.city"));
+  }
+
+  @Test
+  public void testNestedAggTop() throws Exception {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_nested_agg_top_push.yaml");
+
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_nested_simple | top usenull=false address.city"));
+  }
+
+  @Test
+  public void testNestedAggDedupNotPushed() throws Exception {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_nested_agg_dedup_not_push.yaml");
+
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml("source=opensearch-sql_test_index_nested_simple | dedup address.city"));
+  }
+
+  @Test
   public void testNestedAggExplainWhenPushdownNotApplied() throws Exception {
     enabledOnlyWhenPushdownIsEnabled();
     Throwable e =
