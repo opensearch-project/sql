@@ -1,0 +1,30 @@
+/* Extract log type and filename from file paths, calculate filename length, and sort by timestamp */
+/*
+{
+  "name": "rex_regex_transformation",
+  "operation-type": "search",
+  "index": "{{index_name | default('big5')}}",
+  "body": {
+    "query": {
+      "match_all": {}
+    },
+    "_source": {
+      "includes": ["log.file.path", "@timestamp"],
+      "excludes": []
+    },
+    "sort": [
+      {
+        "@timestamp": {
+          "order": "desc",
+          "missing": "_last"
+        }
+      }
+    ]
+  }
+}
+*/
+source = big5
+| rex field=log.file.path '/var/log/(?<logType>\\w+)/(?<filename>\\w+)'
+| eval filename_len = length(filename)
+| fields log.file.path, logType, filename, filename_len, @timestamp
+| sort - @timestamp
