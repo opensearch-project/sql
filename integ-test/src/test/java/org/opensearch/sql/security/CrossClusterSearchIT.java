@@ -282,9 +282,11 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
                     + " firstname='Dale'|sort firstname desc |fields firstname,age,balance |"
                     + " transpose 3 column_name='column_names'",
                 TEST_INDEX_BANK_REMOTE));
-    System.out.println(result.toString());
     verifyDataRows(
-        result, rows("Hattie", 36, 5686), rows("Nanette", 28, 32838), rows(null, 64, 38524));
+        result,
+        rows("firstname", "Nanette", "Hattie", "Dale"),
+        rows("balance  ", "32838", "5686", "4180"),
+        rows("age      ", "28", "36", "33"));
   }
 
   @Test
