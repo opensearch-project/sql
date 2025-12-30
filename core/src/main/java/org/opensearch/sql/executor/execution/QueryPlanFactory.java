@@ -107,17 +107,30 @@ public class QueryPlanFactory
           context) {
     requireNonNull(context.getLeft(), "[BUG] query listener must be not null");
     if (node.getFetchSize() > 0) {
-      if (canConvertToCursor(node.getPlan())) {
+      if (node.getQueryType() == QueryType.PPL) {
+        // PPL pagination - use pageSize and offset (Calcite path)
         return new QueryPlan(
             QueryId.queryId(),
             node.getQueryType(),
             node.getPlan(),
             node.getFetchSize(),
+            node.getPaginationOffset(),
             queryService,
             context.getLeft());
       } else {
-        // This should be picked up by the legacy engine.
-        throw new UnsupportedCursorRequestException();
+        // SQL pagination - use legacy cursor-based pagination
+        if (canConvertToCursor(node.getPlan())) {
+          return new QueryPlan(
+              QueryId.queryId(),
+              node.getQueryType(),
+              node.getPlan(),
+              node.getFetchSize(),
+              queryService,
+              context.getLeft());
+        } else {
+          // This should be picked up by the legacy engine.
+          throw new UnsupportedCursorRequestException();
+        }
       }
     } else {
       return new QueryPlan(
