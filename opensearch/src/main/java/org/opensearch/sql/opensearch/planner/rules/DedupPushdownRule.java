@@ -72,6 +72,7 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
             rex ->
                 rex.getType().getSqlTypeName() == SqlTypeName.MAP
                     || rex.getType().getSqlTypeName() == SqlTypeName.ARRAY)) {
+      // TODO https://github.com/opensearch-project/sql/issues/5006
       LOG.debug("Cannot pushdown the dedup since the dedup fields contains MAP/ARRAY type");
       // fallback to non-pushdown
       return;

@@ -381,6 +381,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
           .map(b -> fieldTypes.get(b))
           .filter(Objects::nonNull)
           .anyMatch(expr -> expr.getOriginalType() == ExprCoreType.ARRAY)) {
+        // TODO https://github.com/opensearch-project/sql/issues/5006
         if (LOG.isDebugEnabled()) {
           LOG.debug("Cannot pushdown the aggregate due to bucket contains array (nested) type");
         }

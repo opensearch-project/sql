@@ -152,7 +152,6 @@ public class CalcitePPLNestedAggregationIT extends PPLIntegTestCase {
     enabledOnlyWhenPushdownIsEnabled();
     JSONObject actual =
         executeQuery(String.format("source=%s | top address", TEST_INDEX_NESTED_SIMPLE));
-    System.out.println(actual);
     verifySchemaInOrder(actual, schema("address", null, "array"), schema("count", null, "bigint"));
     verifyNumOfRows(actual, 5);
   }
@@ -162,7 +161,6 @@ public class CalcitePPLNestedAggregationIT extends PPLIntegTestCase {
     enabledOnlyWhenPushdownIsEnabled();
     JSONObject actual =
         executeQuery(String.format("source=%s | dedup address", TEST_INDEX_NESTED_SIMPLE));
-    System.out.println(actual);
     verifySchemaInOrder(
         actual,
         schema("name", null, "string"),
