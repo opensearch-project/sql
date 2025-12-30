@@ -40,8 +40,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationBuilder;
-import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.PPLHintUtils;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -376,14 +376,18 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               .filter(entry -> schema.contains(entry.getKey()))
               .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
       List<String> outputFields = aggregate.getRowType().getFieldNames();
+      List<String> bucketNames = outputFields.subList(0, aggregate.getGroupSet().cardinality());
+      if (bucketNames.stream()
+          .map(b -> fieldTypes.get(b))
+          .filter(Objects::nonNull)
+          .anyMatch(expr -> expr.getOriginalType() == ExprCoreType.ARRAY)) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Cannot pushdown the aggregate due to bucket contains array (nested) type");
+        }
+        return null;
+      }
       int queryBucketSize = osIndex.getQueryBucketSize();
-      boolean bucketNullable =
-          Boolean.parseBoolean(
-              aggregate.getHints().stream()
-                  .filter(hits -> hits.hintName.equals("agg_args"))
-                  .map(hint -> hint.kvOptions.getOrDefault(Argument.BUCKET_NULLABLE, "true"))
-                  .findFirst()
-                  .orElseGet(() -> "true"));
+      boolean bucketNullable = !PPLHintUtils.ignoreNullBucket(aggregate);
       AggregateAnalyzer.AggregateBuilderHelper helper =
           new AggregateAnalyzer.AggregateBuilderHelper(
               getRowType(), fieldTypes, getCluster(), bucketNullable, queryBucketSize);
@@ -399,10 +403,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
                               OpenSearchTypeFactory.convertRelDataTypeToExprType(
                                   field.getType()))));
       AggPushDownAction action =
-          new AggPushDownAction(
-              builderAndParser,
-              extendedTypeMapping,
-              outputFields.subList(0, aggregate.getGroupSet().cardinality()));
+          new AggPushDownAction(builderAndParser, extendedTypeMapping, bucketNames);
       newScan.pushDownContext.add(PushDownType.AGGREGATION, aggregate, action);
       return newScan;
     } catch (Exception e) {

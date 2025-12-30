@@ -36,8 +36,6 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
-import org.apache.calcite.rel.hint.RelHint;
-import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
@@ -62,7 +60,6 @@ import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
-import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.IntervalUnit;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.WindowBound;
@@ -72,7 +69,6 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
-import org.opensearch.sql.utils.Utils;
 
 public interface PlanUtils {
 
@@ -611,34 +607,6 @@ public interface PlanUtils {
     }
   }
 
-  static void addIgnoreNullBucketHintToAggregate(RelBuilder relBuilder) {
-    assert relBuilder.peek() instanceof LogicalAggregate
-        : "Stats hits should be added to LogicalAggregate";
-    final RelHint statHint =
-        RelHint.builder("agg_args").hintOption(Argument.BUCKET_NULLABLE, "false").build();
-    relBuilder.hints(statHint);
-    relBuilder.getCluster().setHintStrategies(PPLHintStrategyTable.getHintStrategyTable());
-  }
-
-  static void addNestedHintToAggregate(RelBuilder relBuilder, List<Boolean> nestedList) {
-    assert relBuilder.peek() instanceof LogicalAggregate
-        : "Stats hits should be added to LogicalAggregate";
-    LogicalAggregate aggregate = (LogicalAggregate) relBuilder.peek();
-    List<Integer> indicesWithArgList =
-        Utils.zipWithIndex(aggregate.getAggCallList()).stream()
-            .filter(p -> !p.getKey().getArgList().isEmpty())
-            .map(org.apache.commons.lang3.tuple.Pair::getValue)
-            .toList();
-    assert indicesWithArgList.size() == nestedList.size();
-    RelHint.Builder builder = RelHint.builder("nested_agg");
-    for (int i = 0; i < indicesWithArgList.size(); i++) {
-      builder.hintOption(indicesWithArgList.get(i).toString(), nestedList.get(i).toString());
-    }
-    final RelHint statHint = builder.build();
-    relBuilder.hints(statHint);
-    relBuilder.getCluster().setHintStrategies(PPLHintStrategyTable.getHintStrategyTable());
-  }
-
   /** Extract the RexLiteral from the aggregate call if the aggregate call is a LITERAL_AGG. */
   static @Nullable RexLiteral getObjectFromLiteralAgg(AggregateCall aggCall) {
     if (aggCall.getAggregation().kind == SqlKind.LITERAL_AGG) {
@@ -675,15 +643,7 @@ public interface PlanUtils {
         && rexCall.getOperands().get(0) instanceof RexInputRef;
   }
 
-  Predicate<Aggregate> aggIgnoreNullBucket =
-      agg ->
-          agg.getHints().stream()
-              .anyMatch(
-                  hint ->
-                      hint.hintName.equals("agg_args")
-                          && hint.kvOptions
-                              .getOrDefault(Argument.BUCKET_NULLABLE, "true")
-                              .equals("false"));
+  Predicate<Aggregate> aggIgnoreNullBucket = PPLHintUtils::ignoreNullBucket;
 
   Predicate<Aggregate> maybeTimeSpanAgg =
       agg ->

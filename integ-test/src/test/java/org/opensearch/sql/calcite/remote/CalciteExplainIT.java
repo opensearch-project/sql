@@ -2305,7 +2305,6 @@ public class CalciteExplainIT extends ExplainIT {
                         + " count(address.area) as count_area, min(address.area) as min_area,"
                         + " max(address.area) as max_area, avg(address.area) as avg_area, avg(age)"
                         + " as avg_age by name"));
-    verifyErrorMessageContains(
-        e, "Nested aggregate is unsupported when pushdown cannot be applied");
+    verifyErrorMessageContains(e, "Cannot execute nested aggregation on");
   }
 }

@@ -28,9 +28,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * The enumerable aggregate physical implementation for OpenSearch nested aggregation.
  * https://docs.opensearch.org/latest/aggregations/bucket/nested/
  */
-public class EnumerableNestedAggregate extends EnumerableAggregateBase implements EnumerableRel {
+public class CalciteEnumerableNestedAggregate extends EnumerableAggregateBase
+    implements EnumerableRel {
 
-  public EnumerableNestedAggregate(
+  public CalciteEnumerableNestedAggregate(
       RelOptCluster cluster,
       RelTraitSet traitSet,
       List<RelHint> hints,
@@ -57,14 +58,14 @@ public class EnumerableNestedAggregate extends EnumerableAggregateBase implement
   }
 
   @Override
-  public EnumerableNestedAggregate copy(
+  public CalciteEnumerableNestedAggregate copy(
       RelTraitSet traitSet,
       RelNode input,
       ImmutableBitSet groupSet,
       @Nullable List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
     try {
-      return new EnumerableNestedAggregate(
+      return new CalciteEnumerableNestedAggregate(
           getCluster(), traitSet, getHints(), input, groupSet, groupSets, aggCalls);
     } catch (InvalidRelException e) {
       // Semantic error not possible. Must be a bug. Convert to
@@ -76,17 +77,9 @@ public class EnumerableNestedAggregate extends EnumerableAggregateBase implement
   @Override
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     // TODO implement an enumerable nested aggregate
-    List<Integer> nestedAggIndices =
-        getHints().stream()
-            .filter(hint -> hint.hintName.equals("nested_agg"))
-            .flatMap(hint -> hint.kvOptions.entrySet().stream())
-            .filter(entry -> entry.getValue().equals("true"))
-            .map(entry -> Integer.parseInt(entry.getKey()))
-            .toList();
     throw new UnsupportedOperationException(
         String.format(
-            "Nested aggregate is unsupported when pushdown cannot be applied for %s.",
-            nestedAggIndices.stream().map(aggCalls::get).toList()));
+            "Cannot execute nested aggregation on %s since pushdown cannot be applied.", aggCalls));
   }
 
   @Override

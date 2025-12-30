@@ -39,7 +39,6 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
         schema("age", "bigint"),
         schema("id", "bigint"),
         schema("address", "struct"));
-    System.out.println(response);
     verifyDataRows(
         response,
         rows(

@@ -151,6 +151,7 @@ import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.BinUtils;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
+import org.opensearch.sql.calcite.utils.PPLHintUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.WildcardUtils;
@@ -949,13 +950,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
    * @param groupExprList group by expression list
    * @param aggExprList aggregate expression list
    * @param context CalcitePlanContext
+   * @param hintIgnoreNullBucket true if bucket_nullable=false
    * @return Pair of (group-by list, field list, aggregate list)
    */
   private Pair<List<RexNode>, List<AggCall>> aggregateWithTrimming(
       List<UnresolvedExpression> groupExprList,
       List<UnresolvedExpression> aggExprList,
       CalcitePlanContext context,
-      boolean hintBucketNonNull) {
+      boolean hintIgnoreNullBucket) {
     Pair<List<RexNode>, List<AggCall>> resolved =
         resolveAttributesForAggregation(groupExprList, aggExprList, context);
     List<RexNode> resolvedGroupByList = resolved.getLeft();
@@ -1048,8 +1050,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<RexInputRef> trimmedRefs = new ArrayList<>();
     trimmedRefs.addAll(PlanUtils.getInputRefs(resolvedGroupByList)); // group-by keys first
     List<RexInputRef> aggCallRefs = PlanUtils.getInputRefsFromAggCall(resolvedAggCallList);
+    boolean hintNestedAgg = containsNestedAggregator(context.relBuilder, aggCallRefs);
     trimmedRefs.addAll(aggCallRefs);
-    List<Boolean> nestedList = isNestedAggregation(context.relBuilder, aggCallRefs);
     context.relBuilder.project(trimmedRefs);
 
     // Re-resolve all attributes based on adding trimmed Project.
@@ -1061,10 +1063,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<String> intendedGroupKeyAliases = getGroupKeyNamesAfterAggregation(reResolved.getLeft());
     context.relBuilder.aggregate(
         context.relBuilder.groupKey(reResolved.getLeft()), reResolved.getRight());
-    if (hintBucketNonNull) PlanUtils.addIgnoreNullBucketHintToAggregate(context.relBuilder);
-    if (nestedList.stream().anyMatch(b -> b)) {
-      PlanUtils.addNestedHintToAggregate(context.relBuilder, nestedList);
-    }
+    if (hintIgnoreNullBucket) PPLHintUtils.addIgnoreNullBucketHintToAggregate(context.relBuilder);
+    if (hintNestedAgg) PPLHintUtils.addNestedAggCallHintToAggregate(context.relBuilder);
     // During aggregation, Calcite projects both input dependencies and output group-by fields.
     // When names conflict, Calcite adds numeric suffixes (e.g., "value0").
     // Apply explicit renaming to restore the intended aliases.
@@ -1074,15 +1074,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   /**
-   * Return a list of the neste aggregation flag. For example: aggCalls: [count(), count(a.b),
-   * avg(a.c)] -> aggCallRefs [1, 2] -> nestedList [true, true]
+   * Return true if the aggCalls contains a nested field. For example: aggCalls: [count(),
+   * count(a.b)] returns true.
    */
-  private List<Boolean> isNestedAggregation(RelBuilder relBuilder, List<RexInputRef> aggCallRefs) {
+  private boolean containsNestedAggregator(RelBuilder relBuilder, List<RexInputRef> aggCallRefs) {
     return aggCallRefs.stream()
         .map(r -> relBuilder.peek().getRowType().getFieldNames().get(r.getIndex()))
         .map(name -> org.apache.commons.lang3.StringUtils.substringBefore(name, "."))
-        .map(root -> relBuilder.field(root).getType().getSqlTypeName() == SqlTypeName.ARRAY)
-        .toList();
+        .anyMatch(root -> relBuilder.field(root).getType().getSqlTypeName() == SqlTypeName.ARRAY);
   }
 
   /**
@@ -1191,7 +1190,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     groupExprList.addAll(node.getGroupExprList());
 
     // Add a hint to LogicalAggregation when bucket_nullable=false.
-    boolean hintBucketNotNull =
+    boolean hintIgnoreNullBucket =
         !groupExprList.isEmpty()
             // This checks if all group-bys should be nonnull
             && nonNullGroupMask.nextClearBit(0) >= groupExprList.size();
@@ -1220,7 +1219,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     Pair<List<RexNode>, List<AggCall>> aggregationAttributes =
-        aggregateWithTrimming(groupExprList, aggExprList, context, hintBucketNotNull);
+        aggregateWithTrimming(groupExprList, aggExprList, context, hintIgnoreNullBucket);
 
     // schema reordering
     List<RexNode> outputFields = context.relBuilder.fields();
@@ -2348,9 +2347,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // if usenull=false, add a isNotNull before Aggregate and the hint to this Aggregate
     Boolean bucketNullable = (Boolean) argumentMap.get(RareTopN.Option.useNull.name()).getValue();
-    boolean hintBucketNotNull = false;
+    boolean hintIgnoreNullBucket = false;
     if (!bucketNullable && !groupExprList.isEmpty()) {
-      hintBucketNotNull = true;
+      hintIgnoreNullBucket = true;
       // add isNotNull filter before aggregation to filter out null bucket
       List<RexNode> groupByList =
           groupExprList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
@@ -2360,7 +2359,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               .map(context.relBuilder::isNotNull)
               .toList());
     }
-    aggregateWithTrimming(groupExprList, aggExprList, context, hintBucketNotNull);
+    aggregateWithTrimming(groupExprList, aggExprList, context, hintIgnoreNullBucket);
 
     // 2. add count() column with sort direction
     List<RexNode> partitionKeys = rexVisitor.analyze(node.getGroupExprList(), context);

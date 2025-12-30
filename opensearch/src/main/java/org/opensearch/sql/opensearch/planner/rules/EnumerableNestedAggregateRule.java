@@ -16,9 +16,10 @@ import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.opensearch.sql.opensearch.planner.physical.EnumerableNestedAggregate;
+import org.opensearch.sql.calcite.utils.PPLHintUtils;
+import org.opensearch.sql.opensearch.planner.physical.CalciteEnumerableNestedAggregate;
 
-/** Rule to convert {@link LogicalAggregate} to {@link EnumerableNestedAggregate}. */
+/** Rule to convert {@link LogicalAggregate} to {@link CalciteEnumerableNestedAggregate}. */
 public class EnumerableNestedAggregateRule extends ConverterRule {
   private static final Logger LOG = LogManager.getLogger();
 
@@ -40,28 +41,25 @@ public class EnumerableNestedAggregateRule extends ConverterRule {
   @Override
   public @Nullable RelNode convert(RelNode rel) {
     final Aggregate agg = (Aggregate) rel;
-    if (agg.getHints().stream()
-        .noneMatch(
-            hint ->
-                hint.hintName.equals("nested_agg")
-                    && hint.kvOptions.values().stream().anyMatch(v -> v.equals("true")))) {
-      return null;
-    }
-    final RelTraitSet traitSet = rel.getCluster().traitSet().replace(EnumerableConvention.INSTANCE);
-    try {
-      return new EnumerableNestedAggregate(
-          rel.getCluster(),
-          traitSet,
-          agg.getHints(),
-          convert(agg.getInput(), traitSet),
-          agg.getGroupSet(),
-          agg.getGroupSets(),
-          agg.getAggCallList());
-    } catch (InvalidRelException e) {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug(e.toString());
+    if (PPLHintUtils.hasNestedAggCall(agg)) {
+      final RelTraitSet traitSet =
+          rel.getCluster().traitSet().replace(EnumerableConvention.INSTANCE);
+      try {
+        return new CalciteEnumerableNestedAggregate(
+            rel.getCluster(),
+            traitSet,
+            agg.getHints(),
+            convert(agg.getInput(), traitSet),
+            agg.getGroupSet(),
+            agg.getGroupSets(),
+            agg.getAggCallList());
+      } catch (InvalidRelException e) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(e.toString());
+        }
+        return null;
       }
-      return null;
     }
+    return null;
   }
 }
