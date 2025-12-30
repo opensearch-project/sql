@@ -48,8 +48,6 @@ public class FGACIndexScanningIT extends SecurityTestBase {
   private static final String SECURE_LOGS = "secure_logs_fgac";
   private static final String EMPLOYEE_RECORDS = "employee_records_fgac";
 
-  // Minimum docs to trigger background scanning (maxResultWindow default is ~10000)
-  // Use 2000 to ensure we exceed typical result windows and trigger async fetching
   private static final int LARGE_DATASET_SIZE = 2000;
 
   private static boolean initialized = false;
