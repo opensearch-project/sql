@@ -1670,6 +1670,5 @@ searchableKeyWord
    | COL
    | TRANSPOSE
    | COLUMN_NAME
-   | NUMBER
    ;
 
