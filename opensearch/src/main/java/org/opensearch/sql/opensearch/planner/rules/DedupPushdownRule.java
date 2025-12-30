@@ -26,7 +26,8 @@ import org.apache.calcite.util.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.immutables.value.Value;
-import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
+import org.opensearch.sql.calcite.plan.rel.LogicalDedup;
+import org.opensearch.sql.calcite.plan.rule.OpenSearchRuleConfig;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.storage.scan.AbstractCalciteIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
@@ -42,13 +43,76 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
 
   @Override
   protected void onMatchImpl(RelOptRuleCall call) {
-    final LogicalProject finalProject = call.rel(0);
-    // TODO Used when number of duplication is more than 1
-    final LogicalFilter numOfDedupFilter = call.rel(1);
-    final LogicalProject projectWithWindow = call.rel(2);
-    final LogicalProject projectWithExpr = call.rel(4);
-    final CalciteLogicalIndexScan scan = call.rel(5);
-    apply(call, finalProject, numOfDedupFilter, projectWithWindow, projectWithExpr, scan);
+    final LogicalDedup logicalDedup = call.rel(0);
+    final LogicalProject projectWithExpr = call.rel(1);
+    final CalciteLogicalIndexScan scan = call.rel(2);
+    apply(call, logicalDedup, projectWithExpr, scan);
+  }
+
+  protected void apply(
+      RelOptRuleCall call,
+      LogicalDedup dedup,
+      LogicalProject project,
+      CalciteLogicalIndexScan scan) {
+
+    List<RexNode> dedupColumns = dedup.getDedupeFields();
+    if (dedupColumns.stream()
+        .filter(rex -> rex.isA(SqlKind.INPUT_REF))
+        .anyMatch(rex -> rex.getType().getSqlTypeName() == SqlTypeName.MAP)) {
+      LOG.debug("Cannot pushdown the dedup since the dedup fields contains MAP type");
+      // TODO https://github.com/opensearch-project/sql/issues/4564
+      return;
+    }
+
+    RelBuilder relBuilder = call.builder();
+    relBuilder.push(project);
+
+    List<Pair<RexNode, String>> targetProjections = new ArrayList<>();
+    for (RexNode dedupColumn : dedupColumns) {
+      if (dedupColumn instanceof RexInputRef ref) {
+        targetProjections.add(
+            Pair.of(
+                dedupColumn, relBuilder.peek().getRowType().getFieldNames().get(ref.getIndex())));
+      } else {
+        LOG.warn("The dedup column {} is illegal.", dedupColumn);
+        return;
+      }
+    }
+    for (Pair<RexNode, String> namedProject : project.getNamedProjects()) {
+      if (!targetProjections.contains(namedProject)) {
+        targetProjections.add(namedProject);
+      }
+    }
+
+    relBuilder.project(
+        targetProjections.stream().map(Pair::getKey).toList(),
+        targetProjections.stream().map(Pair::getValue).toList());
+    LogicalProject targetChildProject = (LogicalProject) relBuilder.peek();
+
+    // 2 Push an Aggregate
+    // We push down a LITERAL_AGG with dedupNumer for converting the dedup command to aggregate:
+    // (1) Pass the dedupNumer to AggregateAnalyzer.processAggregateCalls()
+    // (2) Distinguish it from an optimization operator and user defined aggregator.
+    // (LITERAL_AGG is used in optimization normally, see {@link SqlKind#LITERAL_AGG})
+    List<Integer> newGroupByList = IntStream.range(0, dedupColumns.size()).boxed().toList();
+    relBuilder.aggregate(
+        relBuilder.groupKey(relBuilder.fields(newGroupByList)),
+        relBuilder.literalAgg(dedup.getAllowedDuplication()));
+
+    // add bucket_nullable = false hint
+    PlanUtils.addIgnoreNullBucketHintToAggregate(relBuilder);
+    // peek the aggregate after hint being added
+    LogicalAggregate aggregate = (LogicalAggregate) relBuilder.build();
+    assert aggregate.getGroupSet().asList().equals(newGroupByList)
+        : "The group set of aggregate should be exactly the same as the generated group list";
+
+    CalciteLogicalIndexScan newScan =
+        (CalciteLogicalIndexScan) scan.pushDownAggregate(aggregate, targetChildProject);
+    if (newScan != null) {
+      // Back to original project order
+      call.transformTo(newScan.copyWithNewSchema(dedup.getRowType()));
+      PlanUtils.tryPruneRelNodes(call);
+    }
   }
 
   protected void apply(
@@ -139,46 +203,24 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
 
   @Value.Immutable
   public interface Config extends OpenSearchRuleConfig {
-    // +- LogicalProject(no _row_number_dedup_)
-    //    +- LogicalFilter(condition contains _row_number_dedup_)
-    //       +- LogicalProject(contains _row_number_dedup_)
-    //          +- LogicalFilter(condition IS NOT NULL(dedupColumn))
-    //             +- LogicalProject(dedupColumn is call or ref)
-    //                +- CalciteLogicalIndexScan
+    // +- LogicalDedup
+    //    +- LogicalProject
+    //       +- CalciteLogicalIndexScan
     Config DEFAULT =
         ImmutableDedupPushdownRule.Config.builder()
             .build()
-            .withDescription("DedupWithExpression-to-Aggregate")
+            .withDescription("Dedup-to-Aggregate")
             .withOperandSupplier(
                 b0 ->
-                    b0.operand(LogicalProject.class)
-                        .predicate(Predicate.not(PlanUtils::containsRowNumberDedup))
+                    b0.operand(LogicalDedup.class)
                         .oneInput(
                             b1 ->
-                                b1.operand(LogicalFilter.class)
-                                    .predicate(Config::validDedupNumberChecker)
+                                b1.operand(LogicalProject.class)
                                     .oneInput(
                                         b2 ->
-                                            b2.operand(LogicalProject.class)
-                                                .predicate(PlanUtils::containsRowNumberDedup)
-                                                .oneInput(
-                                                    b3 ->
-                                                        b3.operand(LogicalFilter.class)
-                                                            .predicate(
-                                                                PlanUtils
-                                                                    ::mayBeFilterFromBucketNonNull)
-                                                            .oneInput(
-                                                                b4 ->
-                                                                    b4.operand(LogicalProject.class)
-                                                                        .oneInput(
-                                                                            b5 ->
-                                                                                b5.operand(
-                                                                                        CalciteLogicalIndexScan
-                                                                                            .class)
-                                                                                    .predicate(
-                                                                                        Config
-                                                                                            ::tableScanChecker)
-                                                                                    .noInputs()))))));
+                                            b2.operand(CalciteLogicalIndexScan.class)
+                                                .predicate(Config::tableScanChecker)
+                                                .noInputs())));
 
     /**
      * Project must be not pushed since the name of expression would lose after project pushed. E.g.
@@ -193,11 +235,6 @@ public class DedupPushdownRule extends InterruptibleRelRule<DedupPushdownRule.Co
     @Override
     default DedupPushdownRule toRule() {
       return new DedupPushdownRule(this);
-    }
-
-    private static boolean validDedupNumberChecker(LogicalFilter filter) {
-      return filter.getCondition().isA(SqlKind.LESS_THAN_OR_EQUAL)
-          && PlanUtils.containsRowNumberDedup(filter);
     }
   }
 }

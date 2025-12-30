@@ -41,8 +41,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.sql.calcite.plan.OpenSearchRules;
-import org.opensearch.sql.calcite.plan.PPLAggGroupMergeRule;
+import org.opensearch.sql.calcite.plan.rule.OpenSearchRules;
+import org.opensearch.sql.calcite.plan.rule.PPLAggGroupMergeRule;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelBuilder;
 
 @ExtendWith(MockitoExtension.class)

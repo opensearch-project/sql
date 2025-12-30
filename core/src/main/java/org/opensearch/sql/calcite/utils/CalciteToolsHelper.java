@@ -35,6 +35,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.Instant;
+import java.util.List;
 import java.util.Properties;
 import java.util.function.Consumer;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
@@ -88,8 +89,9 @@ import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Util;
 import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.calcite.plan.OpenSearchRules;
 import org.opensearch.sql.calcite.plan.Scannable;
+import org.opensearch.sql.calcite.plan.rel.LogicalDedup;
+import org.opensearch.sql.calcite.plan.rule.OpenSearchRules;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
 /**
@@ -104,7 +106,7 @@ public class CalciteToolsHelper {
   }
 
   /** Create a RelBuilder with typeFactory */
-  public static RelBuilder create(
+  public static OpenSearchRelBuilder create(
       FrameworkConfig config, JavaTypeFactory typeFactory, Connection connection) {
     return withPrepare(
         config,
@@ -200,6 +202,17 @@ public class CalciteToolsHelper {
           alias,
           ImmutableList.of(),
           ImmutableList.of(operand));
+    }
+
+    public OpenSearchRelBuilder dedup(
+        List<RexNode> dedupFields,
+        Integer allowedDuplication,
+        Boolean keepEmpty,
+        Boolean consecutive) {
+      this.push(
+          LogicalDedup.create(
+              this.build(), dedupFields, allowedDuplication, keepEmpty, consecutive));
+      return this;
     }
   }
 
