@@ -1,8 +1,7 @@
-# multisearch  
+# multisearch
 
-## Description  
 
-Use the `multisearch` command to run multiple search subsearches and merge their results together. The command allows you to combine data from different queries on the same or different sources, and optionally apply subsequent processing to the combined result set.
+The `multisearch` command runs multiple search subsearches and merges their results together. The command allows you to combine data from different queries on the same or different sources, and optionally apply subsequent processing to the combined search results.
 Key aspects of `multisearch`:
 1. Combines results from multiple search operations into a single result set.  
 2. Each subsearch can have different filtering criteria, data transformations, and field selections.  
@@ -12,17 +11,21 @@ Key aspects of `multisearch`:
   
 Use Cases:
 * **Comparative Analysis**: Compare metrics across different segments, regions, or time periods  
-* **Success Rate Monitoring**: Calculate success rates by comparing successful vs. total operations  
-* **Multi-source Data Combination**: Merge data from different indices or apply different filters to the same source  
+* **Success Rate Monitoring**: Calculate success rates by comparing successful compared to total operations  
+* **Multi-source Data Combination**: Merge data from different indexes or apply different filters to the same source  
 * **A/B Testing Analysis**: Combine results from different test groups for comparison  
 * **Time-series Data Merging**: Interleave events from multiple sources based on timestamps  
   
-## Syntax  
 
-multisearch \<subsearch1\> \<subsearch2\> \<subsearch3\> ...
+## Syntax
+
+Use the following syntax:
+
+`multisearch <subsearch1> <subsearch2> <subsearch3> ...`
 * subsearch1, subsearch2, ...: mandatory. At least two subsearches required. Each subsearch must be enclosed in square brackets and start with the `search` keyword. Format: `[search source=index | commands...]`. All PPL commands are supported within subsearches.  
-* result-processing: optional. Commands applied to the merged results after the multisearch operation, such as `stats`, `sort`, `head`, etc.  
+* `result-processing`: optional. Commands applied to the merged results after the multisearch operation, such as `stats`, `sort`, `head`, etc.  
   
+
 ## Usage  
 
 Basic multisearch
@@ -33,7 +36,8 @@ Basic multisearch
 | multisearch [search source=table | where status="success"] [search source=table | where status="error"]
 ```
   
-## Example 1: Basic Age Group Analysis  
+
+## Example 1: Basic age group analysis  
 
 This example combines young and adult customers into a single result set for further analysis.
   
@@ -62,7 +66,8 @@ fetched rows / total rows = 4/4
 +-----------+-----+-----------+
 ```
   
-## Example 2: Success Rate Pattern  
+
+## Example 2: Success rate Pattern  
 
 This example combines high-balance and all valid accounts for comparison analysis.
   
@@ -91,7 +96,8 @@ fetched rows / total rows = 4/4
 +-----------+---------+--------------+
 ```
   
-## Example 3: Timestamp Interleaving  
+
+## Example 3: Timestamp interleaving  
 
 This example combines time-series data from multiple sources with automatic timestamp-based ordering.
   
@@ -118,9 +124,10 @@ fetched rows / total rows = 5/5
 +---------------------+----------+-------+---------------------+
 ```
   
-## Example 4: Type Compatibility - Missing Fields  
 
-This example demonstrates how missing fields are handled with NULL insertion.
+## Example 4: Type compatibility - missing fields  
+
+The following example PPL query demonstrates how missing fields are handled with NULL insertion.
   
 ```ppl
 | multisearch [search source=accounts
@@ -146,6 +153,7 @@ fetched rows / total rows = 4/4
 +-----------+-----+------------+
 ```
   
+
 ## Limitations  
 
 * **Minimum Subsearches**: At least two subsearches must be specified  

@@ -1,30 +1,32 @@
-# patterns  
+# patterns
 
-## Description  
 
-The `patterns` command extracts log patterns from a text field and appends the results to the search result. Grouping logs by their patterns makes it easier to aggregate stats from large volumes of log data for analysis and troubleshooting.  
+The `patterns` command extracts log patterns from a text field and appends the results to the search results. Grouping logs by their patterns makes it easier to aggregate stats from large volumes of log data for analysis and troubleshooting.
 `patterns` command allows users to select different log parsing algorithms to get high log pattern grouping accuracy. Two pattern methods are supported: `simple_pattern` and `brain`.  
-`simple_pattern` algorithm is basically a regex parsing method vs `brain` algorithm is an automatic log grouping algorithm with high grouping accuracy and keeps semantic meaning.  
+`simple_pattern` algorithm is basically a regex parsing method compared to `brain` algorithm is an automatic log grouping algorithm with high grouping accuracy and keeps semantic meaning.  
 `patterns` command supports two modes: `label` and `aggregation`. `label` mode returns individual pattern labels. `aggregation` mode returns aggregated results on target field.  
 Calcite engine by default labels the variables with '\<*\>' placeholder. If `show_numbered_token` option is turned on, Calcite engine's `label` mode not only labels pattern of text but also labels variable tokens in map. In `aggregation` mode, it will also output labeled pattern as well as variable tokens per pattern. The variable placeholder is in the format of '<token%d>' instead of '<\*>'.  
 
-## Syntax  
+## Syntax
 
-patterns \<field\> [by byClause...] [method=simple_pattern \| brain] [mode=label \| aggregation] [max_sample_count=integer] [buffer_limit=integer] [show_numbered_token=boolean] [new_field=\<new-field-name\>] (algorithm parameters...)
-* field: mandatory. The text field to analyze for patterns.  
-* byClause: optional. Fields or scalar functions used to group logs for labeling/aggregation.  
-* method: optional. Algorithm choice: `simple_pattern` or `brain`. **Default:** `simple_pattern`.  
-* mode: optional. Output mode: `label` or `aggregation`. **Default:** `label`.  
-* max_sample_count: optional. Max sample logs returned per pattern in aggregation mode. **Default:** 10.  
-* buffer_limit: optional. Safeguard parameter for `brain` algorithm to limit internal temporary buffer size (min: 50,000). **Default:** 100,000.  
-* show_numbered_token: optional. The flag to turn on numbered token output format. **Default:** false.  
-* new_field: optional. Alias of the output pattern field. **Default:** "patterns_field".  
+Use the following syntax:
+
+`patterns <field> [by byClause...] [method=simple_pattern | brain] [mode=label | aggregation] [max_sample_count=integer] [buffer_limit=integer] [show_numbered_token=boolean] [new_field=<new-field-name>] (algorithm parameters...)`
+* `field`: mandatory. The text field to analyze for patterns.  
+* `byClause`: optional. Fields or scalar functions used to group logs for labeling/aggregation.  
+* `method`: optional. Algorithm choice: `simple_pattern` or `brain`. **Default:** `simple_pattern`.  
+* `mode`: optional. Output mode: `label` or `aggregation`. **Default:** `label`.  
+* `max_sample_count`: optional. Max sample logs returned per pattern in aggregation mode. **Default:** 10.  
+* `buffer_limit`: optional. Safeguard parameter for `brain` algorithm to limit internal temporary buffer size (min: 50,000). **Default:** 100,000.  
+* `show_numbered_token`: optional. The flag to turn on numbered token output format. **Default:** false.  
+* `new_field`: optional. Alias of the output pattern field. **Default:** "patterns_field".  
 * algorithm parameters: optional. Algorithm-specific tuning:  
-  * `simple_pattern`: Define regex via "pattern".  
+  * `simple_pattern`: Define regex through "pattern".  
   * `brain`: Adjust sensitivity with variable_count_threshold and frequency_threshold_percentage.  
     * `variable_count_threshold`: optional integer. Words are split by space. Algorithm counts how many distinct words are at specific position in initial log groups. Adjusting this threshold can determine the sensitivity of constant words. **Default:** 5.  
     * `frequency_threshold_percentage`: optional double. Brain's log pattern is selected based on longest word combination. This sets the lower bound of frequency to ignore low frequency words. **Default:** 0.3.  
   
+
 ## Change the default pattern method  
 
 To override default pattern parameters, users can run following command
@@ -42,9 +44,10 @@ To override default pattern parameters, users can run following command
   }
 ```
   
-## Simple Pattern Example 1: Create the new field  
 
-This example shows how to extract patterns in `email` for each document. Parsing a null field will return an empty string.
+## Simple pattern example 1: Create the new field  
+
+The following example PPL query shows how to use `patterns` to extract patterns in `email` for each document. Parsing a null field will return an empty string.
   
 ```ppl
 source=accounts
@@ -66,9 +69,10 @@ fetched rows / total rows = 4/4
 +-----------------------+----------------+
 ```
   
-## Simple Pattern Example 2: Extract log patterns  
 
-This example shows how to extract patterns from a raw log field using the default patterns.
+## Simple pattern example 2: Extract log patterns  
+
+The following example PPL query shows how to use `patterns` to extract patterns from a raw log field using the default patterns.
   
 ```ppl
 source=apache
@@ -90,9 +94,10 @@ fetched rows / total rows = 4/4
 +-----------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------+
 ```
   
-## Simple Pattern Example 3: Extract log patterns with custom regex pattern  
 
-This example shows how to extract patterns from a raw log field using user defined patterns.
+## Simple pattern example 3: Extract log patterns with custom regex pattern  
+
+The following example PPL query shows how to use `patterns` to extract patterns from a raw log field using user defined patterns.
   
 ```ppl
 source=apache
@@ -114,9 +119,10 @@ fetched rows / total rows = 4/4
 +-----------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 ```
   
-## Simple Pattern Example 4: Return log patterns aggregation result  
 
-This example shows how to get aggregated results from a raw log field.
+## Simple pattern example 4: Return log patterns aggregation result  
+
+The following example PPL query shows how to use `patterns` to get aggregated results from a raw log field.
   
 ```ppl
 source=apache
@@ -138,9 +144,11 @@ fetched rows / total rows = 4/4
 +---------------------------------------------------------------------------------------------------+---------------+-------------------------------------------------------------------------------------------------------------------------------+
 ```
   
-## Simple Pattern Example 5: Return log patterns aggregation result with detected variable tokens  
 
-This example shows how to get aggregated results with detected variable tokens.
+## Simple pattern example 5: Return log patterns aggregation result with detected variable tokens  
+
+The following example PPL query shows how to use `patterns` to get aggregated results with detected variable tokens.
+
 ## Configuration  
 
 With option `show_numbered_token` enabled, the output can detect numbered variable tokens from the pattern field.
@@ -163,9 +171,10 @@ fetched rows / total rows = 1/1
 +--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 ```
   
+
 ## Brain Example 1: Extract log patterns  
 
-This example shows how to extract semantic meaningful log patterns from a raw log field using the brain algorithm. The default variable count threshold is 5.
+The following example PPL query shows how to use `patterns` to extract semantic meaningful log patterns from a raw log field using the brain algorithm. The default variable count threshold is 5.
   
 ```ppl
 source=apache
@@ -187,9 +196,10 @@ fetched rows / total rows = 4/4
 +-----------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------+
 ```
   
+
 ## Brain Example 2: Extract log patterns with custom parameters  
 
-This example shows how to extract semantic meaningful log patterns from a raw log field using custom parameters of the brain algorithm.
+The following example PPL query shows how to use `patterns` to extract semantic meaningful log patterns from a raw log field using custom parameters of the brain algorithm.
   
 ```ppl
 source=apache
@@ -211,9 +221,10 @@ fetched rows / total rows = 4/4
 +-----------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------+
 ```
   
+
 ## Brain Example 3: Return log patterns aggregation result  
 
-This example shows how to get aggregated results from a raw log field using the brain algorithm.
+The following example PPL query shows how to use `patterns` to get aggregated results from a raw log field using the brain algorithm.
   
 ```ppl
 source=apache
@@ -232,9 +243,10 @@ fetched rows / total rows = 1/1
 +----------------------------------------------------------------------+---------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 ```
   
+
 ## Brain Example 4: Return log patterns aggregation result with detected variable tokens  
 
-This example shows how to get aggregated results with detected variable tokens using the brain algorithm.
+The following example PPL query shows how to use `patterns` to get aggregated results with detected variable tokens using the brain algorithm.
 
 With option `show_numbered_token` enabled, the output can detect numbered variable tokens from the pattern field.
   
@@ -255,6 +267,7 @@ fetched rows / total rows = 1/1
 +----------------------------------------------------------------------------------------------------------------------------------------+---------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 ```
   
+
 ## Limitations  
 
 - Patterns command is not pushed down to OpenSearch data node for now. It will only group log patterns on log messages returned to coordinator node.  

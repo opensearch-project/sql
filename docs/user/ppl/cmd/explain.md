@@ -1,18 +1,21 @@
-# explain  
+# explain
 
-## Description  
 
-The `explain` command explains the plan of query which is often used for query translation and troubleshooting. The `explain` command can only be used as the first command in the PPL query.
-## Syntax  
+The `explain` command displays the execution plan of a query, which is often used for query translation and troubleshooting. The `explain` command can only be used as the first command in the PPL query.
 
-explain <mode> queryStatement
-* mode: optional. There are 4 explain modes: "simple", "standard", "cost", "extended". **Default:** standard.  
+## Syntax
+
+Use the following syntax:
+
+`explain <mode> queryStatement`
+* `mode`: optional. There are 4 explain modes: "simple", "standard", "cost", "extended". **Default:** standard.  
   * standard: The default mode. Display logical and physical plan with pushdown information (DSL).  
   * simple: Display the logical plan tree without attributes.  
   * cost: Display the standard information plus plan cost attributes.  
   * extended: Display the standard information plus generated code.  
-* queryStatement: mandatory. A PPL query to explain.  
+* `queryStatement`: mandatory. A PPL query to explain.  
   
+
 ## Example 1: Explain a PPL query in v2 engine  
 
 When Calcite is disabled (plugins.calcite.enabled=false), explaining a PPL query will get its physical plan of v2 engine and pushdown information.  
@@ -45,9 +48,10 @@ Explain:
 }
 ```
   
+
 ## Example 2: Explain a PPL query in v3 engine  
 
-When Calcite is enabled (plugins.calcite.enabled=true), explaining a PPL query will get its logical and physical plan of v3 engine and pushdown information.  
+When Calcite is enabled (`plugins.calcite.enabled=true`), explaining a PPL query will get its logical and physical plan of v3 engine and pushdown information.  
   
 ```ppl
 explain source=state_country
@@ -72,9 +76,10 @@ Explain
 }
 ```
   
+
 ## Example 3: Explain a PPL query with simple mode  
 
-When Calcite is enabled (plugins.calcite.enabled=true), you can explain a PPL query with the "simple" mode. 
+When Calcite is enabled (`plugins.calcite.enabled=true`), you can explain a PPL query with the "simple" mode. 
   
 ```ppl
 explain simple source=state_country
@@ -84,7 +89,7 @@ explain simple source=state_country
   
 Explain 
   
-```
+```json
 {
   "calcite": {
     "logical": """LogicalProject
@@ -96,9 +101,10 @@ Explain
 }
 ```
   
+
 ## Example 4: Explain a PPL query with cost mode  
 
-When Calcite is enabled (plugins.calcite.enabled=true), you can explain a PPL query with the "cost" mode.
+When Calcite is enabled (`plugins.calcite.enabled=true`), you can explain a PPL query with the "cost" mode.
   
 ```ppl
 explain cost source=state_country
@@ -123,6 +129,7 @@ Explain
 }
 ```
   
+
 ## Example 5: Explain a PPL query with extended mode  
   
 ```ppl

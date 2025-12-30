@@ -1,13 +1,15 @@
-# bin  
+# bin
 
-## Description  
 
 The `bin` command groups numeric values into buckets of equal intervals, making it useful for creating histograms and analyzing data distribution. It takes a numeric or time-based field and generates a new field with values that represent the lower bound of each bucket.
-## Syntax  
 
-bin \<field\> [span=\<interval\>] [minspan=\<interval\>] [bins=\<count\>] [aligntime=(earliest \| latest \| \<time-specifier\>)] [start=\<value\>] [end=\<value\>]
-* field: mandatory. The field to bin. Accepts numeric or time-based fields.  
-* span: optional. The interval size for each bin. Cannot be used with bins or minspan parameters.  
+## Syntax
+
+Use the following syntax:
+
+`bin <field> [span=<interval>] [minspan=<interval>] [bins=<count>] [aligntime=(earliest | latest | <time-specifier>)] [start=<value>] [end=<value>]`
+* `field`: mandatory. The field to bin. Accepts numeric or time-based fields.  
+* `span`: optional. The interval size for each bin. Cannot be used with bins or minspan parameters.  
   * Supports numeric (e.g., `1000`), logarithmic (e.g., `log10`, `2log10`), and time intervals  
   * Available time units:  
     * microsecond (us)  
@@ -19,19 +21,19 @@ bin \<field\> [span=\<interval\>] [minspan=\<interval\>] [bins=\<count\>] [align
     * hour (h, hr, hrs, hour, hours)  
     * day (d, day, days)  
     * month (M, mon, month, months)  
-* minspan: optional. The minimum interval size for automatic span calculation. Cannot be used with span or bins parameters.  
-* bins: optional. The maximum number of equal-width bins to create. Cannot be used with span or minspan parameters. The bins parameter must be between 2 and 50000 (inclusive).
+* `minspan`: optional. The minimum interval size for automatic span calculation. Cannot be used with span or bins parameters.  
+* `bins`: optional. The maximum number of equal-width bins to create. Cannot be used with span or minspan parameters. The bins parameter must be between 2 and 50000 (inclusive).
 
   **Limitation**: The bins parameter on timestamp fields has the following requirements:
 
   1. **Pushdown must be enabled**: Controlled by ``plugins.calcite.pushdown.enabled`` (enabled by default). When pushdown is disabled, use the ``span`` parameter instead (e.g., ``bin @timestamp span=5m``).
   2. **Timestamp field must be used as an aggregation bucket**: The binned timestamp field must be used in a ``stats`` aggregation (e.g., ``source=events | bin @timestamp bins=3 | stats count() by @timestamp``). Using bins on timestamp fields outside of aggregation buckets is not supported.  
-* aligntime: optional. Align the bin times for time-based fields. Valid only for time-based discretization. Options:  
+* `aligntime`: optional. Align the bin times for time-based fields. Valid only for time-based discretization. Options:  
   * earliest: Align bins to the earliest timestamp in the data  
   * latest: Align bins to the latest timestamp in the data  
   * \<time-specifier\>: Align bins to a specific epoch time value or time modifier expression  
-* start: optional. The starting value for binning range. **Default:** minimum field value.  
-* end: optional. The ending value for binning range. **Default:** maximum field value.  
+* `start`: optional. The starting value for binning range. **Default:** minimum field value.  
+* `end`: optional. The ending value for binning range. **Default:** maximum field value.  
   
 **Parameter Behavior**
 When multiple parameters are specified, priority order is: span > minspan > bins > start/end > default.
@@ -41,6 +43,7 @@ When multiple parameters are specified, priority order is: span > minspan > bins
 * aligntime parameter only applies to time spans excluding days/months  
 * start/end parameters expand the range (never shrink) and affect bin width calculation  
   
+
 ## Example 1: Basic numeric span  
   
 ```ppl
@@ -63,6 +66,7 @@ fetched rows / total rows = 3/3
 +-------+----------------+
 ```
   
+
 ## Example 2: Large numeric span  
   
 ```ppl
@@ -84,6 +88,7 @@ fetched rows / total rows = 2/2
 +-------------+
 ```
   
+
 ## Example 3: Logarithmic span (log10)  
   
 ```ppl
@@ -105,6 +110,7 @@ fetched rows / total rows = 2/2
 +------------------+
 ```
   
+
 ## Example 4: Logarithmic span with coefficient  
   
 ```ppl
@@ -127,6 +133,7 @@ fetched rows / total rows = 3/3
 +------------------+
 ```
   
+
 ## Example 5: Basic bins parameter  
   
 ```ppl
@@ -149,6 +156,7 @@ fetched rows / total rows = 3/3
 +------------+
 ```
   
+
 ## Example 6: Low bin count  
   
 ```ppl
@@ -169,6 +177,7 @@ fetched rows / total rows = 1/1
 +-------+
 ```
   
+
 ## Example 7: High bin count  
   
 ```ppl
@@ -191,6 +200,7 @@ fetched rows / total rows = 3/3
 +-------+----------------+
 ```
   
+
 ## Example 8: Basic minspan  
   
 ```ppl
@@ -213,6 +223,7 @@ fetched rows / total rows = 3/3
 +-------+----------------+
 ```
   
+
 ## Example 9: Large minspan  
   
 ```ppl
@@ -233,6 +244,7 @@ fetched rows / total rows = 1/1
 +--------+
 ```
   
+
 ## Example 10: Start and end range  
   
 ```ppl
@@ -253,6 +265,7 @@ fetched rows / total rows = 1/1
 +-------+
 ```
   
+
 ## Example 11: Large end range  
   
 ```ppl
@@ -273,6 +286,7 @@ fetched rows / total rows = 1/1
 +----------+
 ```
   
+
 ## Example 12: Span with start/end  
   
 ```ppl
@@ -296,6 +310,7 @@ fetched rows / total rows = 4/4
 +-------+
 ```
   
+
 ## Example 13: Hour span  
   
 ```ppl
@@ -318,6 +333,7 @@ fetched rows / total rows = 3/3
 +---------------------+-------+
 ```
   
+
 ## Example 14: Minute span  
   
 ```ppl
@@ -340,6 +356,7 @@ fetched rows / total rows = 3/3
 +---------------------+-------+
 ```
   
+
 ## Example 15: Second span  
   
 ```ppl
@@ -362,6 +379,7 @@ fetched rows / total rows = 3/3
 +---------------------+-------+
 ```
   
+
 ## Example 16: Daily span  
   
 ```ppl
@@ -384,6 +402,7 @@ fetched rows / total rows = 3/3
 +---------------------+-------+
 ```
   
+
 ## Example 17: Aligntime with time modifier  
   
 ```ppl
@@ -406,6 +425,7 @@ fetched rows / total rows = 3/3
 +---------------------+-------+
 ```
   
+
 ## Example 18: Aligntime with epoch timestamp  
   
 ```ppl
@@ -428,6 +448,7 @@ fetched rows / total rows = 3/3
 +---------------------+-------+
 ```
   
+
 ## Example 19: Default behavior (no parameters)  
   
 ```ppl
@@ -450,6 +471,7 @@ fetched rows / total rows = 3/3
 +-----------+----------------+
 ```
   
+
 ## Example 20: Binning with string fields  
   
 ```ppl
