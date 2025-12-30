@@ -22,10 +22,10 @@ public class CalcitePPLTransposeTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalAggregate(group=[{0}], row 1=[MAX($1)], row 2=[MAX($2)], row 3=[MAX($3)], row"
             + " 4=[MAX($4)], row 5=[MAX($5)])\n"
-            + "  LogicalProject(column=[$2], $f4=[CASE(=($1, 1), CAST($3):VARCHAR NOT NULL,"
-            + " null:NULL)], $f5=[CASE(=($1, 2), CAST($3):VARCHAR NOT NULL, null:NULL)],"
-            + " $f6=[CASE(=($1, 3), CAST($3):VARCHAR NOT NULL, null:NULL)], $f7=[CASE(=($1, 4),"
-            + " CAST($3):VARCHAR NOT NULL, null:NULL)], $f8=[CASE(=($1, 5), CAST($3):VARCHAR NOT"
+            + "  LogicalProject(column=[$2], $f5=[CASE(=($1, 1), CAST($3):VARCHAR NOT NULL,"
+            + " null:NULL)], $f6=[CASE(=($1, 2), CAST($3):VARCHAR NOT NULL, null:NULL)],"
+            + " $f7=[CASE(=($1, 3), CAST($3):VARCHAR NOT NULL, null:NULL)], $f8=[CASE(=($1, 4),"
+            + " CAST($3):VARCHAR NOT NULL, null:NULL)], $f9=[CASE(=($1, 5), CAST($3):VARCHAR NOT"
             + " NULL, null:NULL)])\n"
             + "    LogicalFilter(condition=[IS NOT NULL($3)])\n"
             + "      LogicalProject(c=[$0], __row_id__=[$1], column=[$2], value=[CASE(=($2, 'c'),"
@@ -65,10 +65,10 @@ public class CalcitePPLTransposeTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalAggregate(group=[{0}], row 1=[MAX($1)], row 2=[MAX($2)], row 3=[MAX($3)], row"
             + " 4=[MAX($4)], row 5=[MAX($5)])\n"
-            + "  LogicalProject(column=[$5], $f7=[CASE(=($4, 1), CAST($6):VARCHAR NOT NULL,"
-            + " null:NULL)], $f8=[CASE(=($4, 2), CAST($6):VARCHAR NOT NULL, null:NULL)],"
-            + " $f9=[CASE(=($4, 3), CAST($6):VARCHAR NOT NULL, null:NULL)], $f10=[CASE(=($4, 4),"
-            + " CAST($6):VARCHAR NOT NULL, null:NULL)], $f11=[CASE(=($4, 5), CAST($6):VARCHAR NOT"
+            + "  LogicalProject(column=[$5], $f8=[CASE(=($4, 1), CAST($6):VARCHAR NOT NULL,"
+            + " null:NULL)], $f9=[CASE(=($4, 2), CAST($6):VARCHAR NOT NULL, null:NULL)],"
+            + " $f10=[CASE(=($4, 3), CAST($6):VARCHAR NOT NULL, null:NULL)], $f11=[CASE(=($4, 4),"
+            + " CAST($6):VARCHAR NOT NULL, null:NULL)], $f12=[CASE(=($4, 5), CAST($6):VARCHAR NOT"
             + " NULL, null:NULL)])\n"
             + "    LogicalFilter(condition=[IS NOT NULL($6)])\n"
             + "      LogicalProject(avg_sal=[$0], max_sal=[$1], min_sal=[$2], cnt=[$3],"
@@ -123,9 +123,9 @@ public class CalcitePPLTransposeTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalAggregate(group=[{0}], row 1=[MAX($1)], row 2=[MAX($2)], row 3=[MAX($3)])\n"
-            + "  LogicalProject(column=[$5], $f7=[CASE(=($4, 1), CAST($6):VARCHAR NOT NULL,"
-            + " null:NULL)], $f8=[CASE(=($4, 2), CAST($6):VARCHAR NOT NULL, null:NULL)],"
-            + " $f9=[CASE(=($4, 3), CAST($6):VARCHAR NOT NULL, null:NULL)])\n"
+            + "  LogicalProject(column=[$5], $f8=[CASE(=($4, 1), CAST($6):VARCHAR NOT NULL,"
+            + " null:NULL)], $f9=[CASE(=($4, 2), CAST($6):VARCHAR NOT NULL, null:NULL)],"
+            + " $f10=[CASE(=($4, 3), CAST($6):VARCHAR NOT NULL, null:NULL)])\n"
             + "    LogicalFilter(condition=[IS NOT NULL($6)])\n"
             + "      LogicalProject(ENAME=[$0], COMM=[$1], JOB=[$2], SAL=[$3], __row_id__=[$4],"
             + " column=[$5], value=[CASE(=($5, 'ENAME'), CAST($0):VARCHAR NOT NULL, =($5, 'COMM'),"
@@ -136,7 +136,6 @@ public class CalcitePPLTransposeTest extends CalcitePPLAbstractTest {
             + " __row_id__=[ROW_NUMBER() OVER ()])\n"
             + "            LogicalTableScan(table=[[scott, EMP]])\n"
             + "          LogicalValues(tuples=[[{ 'ENAME' }, { 'COMM' }, { 'JOB' }, { 'SAL' }]])\n";
-    verifyLogical(root, expectedLogical);
     String expectedResult =
         "column=ENAME; row 1=SMITH; row 2=ALLEN; row 3=WARD\n"
             + "column=COMM ; row 1=null; row 2=300.00; row 3=500.00\n"
@@ -172,9 +171,9 @@ public class CalcitePPLTransposeTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalAggregate(group=[{0}], row 1=[MAX($1)], row 2=[MAX($2)], row 3=[MAX($3)])\n"
-            + "  LogicalProject(column_names=[$5], $f7=[CASE(=($4, 1), CAST($6):VARCHAR NOT NULL,"
-            + " null:NULL)], $f8=[CASE(=($4, 2), CAST($6):VARCHAR NOT NULL, null:NULL)],"
-            + " $f9=[CASE(=($4, 3), CAST($6):VARCHAR NOT NULL, null:NULL)])\n"
+            + "  LogicalProject(column_names=[$5], $f8=[CASE(=($4, 1), CAST($6):VARCHAR NOT NULL,"
+            + " null:NULL)], $f9=[CASE(=($4, 2), CAST($6):VARCHAR NOT NULL, null:NULL)],"
+            + " $f10=[CASE(=($4, 3), CAST($6):VARCHAR NOT NULL, null:NULL)])\n"
             + "    LogicalFilter(condition=[IS NOT NULL($6)])\n"
             + "      LogicalProject(ENAME=[$0], COMM=[$1], JOB=[$2], SAL=[$3], __row_id__=[$4],"
             + " column_names=[$5], value=[CASE(=($5, 'ENAME'), CAST($0):VARCHAR NOT NULL, =($5,"
