@@ -684,7 +684,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitTranspose(
       org.opensearch.sql.ast.tree.Transpose node, CalcitePlanContext context) {
     visitChildren(node, context);
-    java.util.Map<String, Argument> arguments = node.getArguments();
+
     Integer maxRows = node.getMaxRows();
 
     String columnName = node.getColumnName();
@@ -698,7 +698,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       return currentNode;
     }
 
-    // Step 1: Add row numbers to identify each row uniquely
+    //  Add row numbers to identify each row uniquely
     RexNode rowNumber =
         context
             .relBuilder
@@ -708,7 +708,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .as("__row_id__");
     context.relBuilder.projectPlus(rowNumber);
 
-    // Step 2: Unpivot the data - convert columns to rows
+    //  Unpivot the data - convert columns to rows
     // Each field becomes a row with: row_id, column, value
     List<String> measureColumns = ImmutableList.of("value");
     List<String> axisColumns = ImmutableList.of(columnName);
@@ -744,23 +744,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         valueMappings // field mappings
         );
 
-    // Step 3: Pivot the data to transpose rows as columns
+    //  Pivot the data to transpose rows as columns
     // Pivot on __row_id__ with column as the grouping key
     // This creates: column, row1, row2, row3, ...
 
     // Get unique row IDs to create column names
-    RelNode unpivotedData = context.relBuilder.build();
-
-    // Create aggregation calls for each row - we'll use MAX since we know each cell has only one
-    // value
-    List<String> pivotColumns = new ArrayList<>();
-    List<RexNode> pivotValues = new ArrayList<>();
-
-    // We need to determine how many rows we have to create the proper pivot structure
-    // For now, we'll use a different approach - use conditional aggregation
-
+    //   RelNode unpivotedData = context.relBuilder.build();
     // Get the unpivoted data back on stack
-    context.relBuilder.push(unpivotedData);
+    //   context.relBuilder.push(unpivotedData);
 
     // Create conditional aggregations for each row position
     // We'll use ROW_NUMBER to determine the row positions dynamically
@@ -775,29 +766,23 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .as("__row_pos__");
     context.relBuilder.projectPlus(rowPos);
 
+    /*
     // Now we'll use a different strategy - collect all values per column and then split them
     // Group by column and collect all values in order
     List<RexNode> groupByKeys = ImmutableList.of(context.relBuilder.field(columnName));
-
-    // For simplicity, we'll use a direct approach with conditional aggregations
-    // instead of STRING_AGG which may not be available
-
-    // For simplicity, let's use a manual approach that works with the available Calcite operations
     // We'll create a query that manually builds the transposed result
-
-    // Reset and try a simpler approach
     context.relBuilder.push(unpivotedData);
-
-    // Let's manually build the pivot by creating conditional aggregations
+    // build the pivot by creating conditional aggregations
     // First, get distinct row IDs
-    context.relBuilder.aggregate(
+     without distict row id , check if it works
+      context.relBuilder.aggregate(
         context.relBuilder.groupKey(),
         context.relBuilder.max(context.relBuilder.field("__row_id__")).as("max_row_id"));
 
     // Go back to unpivoted data and create the pivot manually
     context.relBuilder.clear();
     context.relBuilder.push(unpivotedData);
-
+    */
     // Create aggregation calls for each possible row position
     List<AggCall> pivotAggCalls = new ArrayList<>();
 
