@@ -329,9 +329,6 @@ public class FGACIndexScanningIT extends SecurityTestBase {
     createUser(SENSITIVE_USER, SENSITIVE_ROLE);
 
     // Role for limited_user: can access SECURE_LOGS but with document-level filtering
-    // Note: DLS requires specific configuration in OpenSearch Security Plugin
-    // For now, we create a role with full access to test the BROKEN behavior
-    createRoleWithIndexAccess(LIMITED_ROLE, SECURE_LOGS);
     // Only allow documents with security_level="public"
     createRoleWithDocumentLevelSecurity();
     createUser(LIMITED_USER, LIMITED_ROLE);
