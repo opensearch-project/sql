@@ -8,8 +8,7 @@ calcite:
               CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
     EnumerableCalc(expr#0..12=[{inputs}], proj#0..10=[{exprs}], distinct_states=[$t12])
-      EnumerableLimit(fetch=[10000])
-        EnumerableSort(sort0=[$11], dir0=[ASC])
-          EnumerableWindow(window#0=[window(partition {4} rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [DISTINCT_COUNT_APPROX($7)])])
-            EnumerableWindow(window#0=[window(rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
-              CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[account_number, firstname, address, balance, gender, city, employer, state, age, email, lastname]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","_source":{"includes":["account_number","firstname","address","balance","gender","city","employer","state","age","email","lastname"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+      CalciteEnumerableTopK(sort0=[$11], dir0=[ASC], fetch=[10000])
+        EnumerableWindow(window#0=[window(partition {4} rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [DISTINCT_COUNT_APPROX($7)])])
+          EnumerableWindow(window#0=[window(rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
+            CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[account_number, firstname, address, balance, gender, city, employer, state, age, email, lastname]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","_source":{"includes":["account_number","firstname","address","balance","gender","city","employer","state","age","email","lastname"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

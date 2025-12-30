@@ -58,6 +58,8 @@ public enum BuiltinFunctionName {
   SIN(FunctionName.of("sin")),
   TAN(FunctionName.of("tan")),
   SPAN(FunctionName.of("span")),
+  SCALAR_MAX(FunctionName.of("scalar_max")),
+  SCALAR_MIN(FunctionName.of("scalar_min")),
 
   /** Binning Functions. */
   SPAN_BUCKET(FunctionName.of("span_bucket")),

@@ -8,6 +8,5 @@ calcite:
               LogicalFilter(condition=[AND(IS NOT NULL($8), IS NOT NULL($7))])
                 CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
-    EnumerableLimit(fetch=[10000])
-      EnumerableSort(sort0=[$0], dir0=[ASC-nulls-first])
-        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0, 2},c=COUNT(),s=SUM($1)), PROJECT->[c, s, span(age,5), state]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"state":{"terms":{"field":"state.keyword","missing_bucket":false,"order":"asc"}}},{"span(age,5)":{"histogram":{"field":"age","missing_bucket":false,"order":"asc","interval":5.0}}}]},"aggregations":{"s":{"sum":{"field":"balance"}}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+    CalciteEnumerableTopK(sort0=[$0], dir0=[ASC-nulls-first], fetch=[10000])
+      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0, 2},c=COUNT(),s=SUM($1)), PROJECT->[c, s, span(age,5), state]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"state":{"terms":{"field":"state.keyword","missing_bucket":false,"order":"asc"}}},{"span(age,5)":{"histogram":{"field":"age","missing_bucket":false,"order":"asc","interval":5.0}}}]},"aggregations":{"s":{"sum":{"field":"balance"}}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

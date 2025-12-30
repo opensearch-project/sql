@@ -8,8 +8,7 @@ calcite:
               CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_logs]])
   physical: |
     EnumerableCalc(expr#0..7=[{inputs}], proj#0..4=[{exprs}], earliest_message=[$t6], latest_message=[$t7])
-      EnumerableLimit(fetch=[10000])
-        EnumerableSort(sort0=[$5], dir0=[ASC])
-          EnumerableWindow(window#0=[window(partition {4} rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ARG_MIN($3, $0), ARG_MAX($3, $0)])])
-            EnumerableWindow(window#0=[window(rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
-              CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_logs]], PushDownContext=[[PROJECT->[created_at, server, @timestamp, message, level]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","_source":{"includes":["created_at","server","@timestamp","message","level"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+      CalciteEnumerableTopK(sort0=[$5], dir0=[ASC], fetch=[10000])
+        EnumerableWindow(window#0=[window(partition {4} rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ARG_MIN($3, $0), ARG_MAX($3, $0)])])
+          EnumerableWindow(window#0=[window(rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
+            CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_logs]], PushDownContext=[[PROJECT->[created_at, server, @timestamp, message, level]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","_source":{"includes":["created_at","server","@timestamp","message","level"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

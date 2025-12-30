@@ -10,21 +10,28 @@ import static org.apache.calcite.rex.RexWindowBounds.UNBOUNDED_FOLLOWING;
 import static org.apache.calcite.rex.RexWindowBounds.UNBOUNDED_PRECEDING;
 import static org.apache.calcite.rex.RexWindowBounds.following;
 import static org.apache.calcite.rex.RexWindowBounds.preceding;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.isTimeBasedType;
 
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
@@ -41,6 +48,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.rex.RexSlot;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
@@ -645,5 +653,98 @@ public interface PlanUtils {
     return rex instanceof RexCall rexCall
         && rexCall.isA(SqlKind.IS_NOT_NULL)
         && rexCall.getOperands().get(0) instanceof RexInputRef;
+  }
+
+  Predicate<Aggregate> aggIgnoreNullBucket =
+      agg ->
+          agg.getHints().stream()
+              .anyMatch(
+                  hint ->
+                      hint.hintName.equals("stats_args")
+                          && hint.kvOptions.get(Argument.BUCKET_NULLABLE).equals("false"));
+
+  Predicate<Aggregate> maybeTimeSpanAgg =
+      agg ->
+          agg.getGroupSet().stream()
+              .allMatch(
+                  group ->
+                      isTimeBasedType(
+                          agg.getInput().getRowType().getFieldList().get(group).getType()));
+
+  static boolean isTimeSpan(RexNode rex) {
+    return rex instanceof RexCall rexCall
+        && rexCall.getKind() == SqlKind.OTHER_FUNCTION
+        && rexCall.getOperator().getName().equalsIgnoreCase(BuiltinFunctionName.SPAN.name())
+        && rexCall.getOperands().size() == 3
+        && rexCall.getOperands().get(2) instanceof RexLiteral unitLiteral
+        && unitLiteral.getTypeName() != SqlTypeName.NULL;
+  }
+
+  /**
+   * Check if the condition is NOT NULL derived from an aggregate.
+   *
+   * @param condition the condition to check, composite of single or multiple NOT NULL conditions
+   * @param aggregate the aggregate where the condition is derived from
+   * @param project the project between the aggregate and the filter
+   * @param otherMapping the other mapping generated from ProjectIndexScanRule when applied on the
+   *     above project with non-ref expressions.
+   * @return true if the condition is single or multiple NOT NULL derived from an aggregate, false
+   *     otherwise
+   */
+  static boolean isNotNullDerivedFromAgg(
+      RexNode condition,
+      Aggregate aggregate,
+      @Nullable Project project,
+      @Nullable List<Integer> otherMapping) {
+    boolean ignoreNullBucket = aggIgnoreNullBucket.test(aggregate);
+    if (!ignoreNullBucket && project == null) return false;
+    List<Integer> groupRefList = aggregate.getGroupSet().asList();
+    if (project != null) {
+      groupRefList =
+          groupRefList.stream()
+              .map(project.getProjects()::get)
+              .filter(rex -> ignoreNullBucket || isTimeSpan(rex))
+              .flatMap(expr -> PlanUtils.getInputRefs(expr).stream())
+              .map(RexSlot::getIndex)
+              .toList();
+    }
+    if (otherMapping != null) {
+      groupRefList = groupRefList.stream().map(otherMapping::get).toList();
+    }
+    List<Integer> finalGroupRefList = groupRefList;
+    Function<RexNode, Boolean> isNotNullFromAgg =
+        rex ->
+            rex instanceof RexCall rexCall
+                && rexCall.isA(SqlKind.IS_NOT_NULL)
+                && rexCall.getOperands().get(0) instanceof RexInputRef ref
+                && finalGroupRefList.contains(ref.getIndex());
+    return isNotNullFromAgg.apply(condition)
+        || (condition instanceof RexCall rexCall
+            && rexCall.getOperator() == SqlStdOperatorTable.AND
+            && rexCall.getOperands().stream().allMatch(isNotNullFromAgg::apply));
+  }
+
+  /**
+   * Try to prune all RelNodes in the RuleCall from top to down. We can prune a RelNode if:
+   *
+   * <p>1. It's the root RelNode of the current RuleCall. Or,
+   *
+   * <p>2. It's logical RelNode and it only has one parent which is pruned. TODO: To be more
+   * precisely, we can prun a RelNode whose parents are all pruned, but `prunedNodes` in
+   * VolcanoPlanner is not available.
+   *
+   * @param call the RuleCall to prune
+   */
+  static void tryPruneRelNodes(RelOptRuleCall call) {
+    if (call.getPlanner() instanceof VolcanoPlanner volcanoPlanner) {
+      Arrays.stream(call.rels)
+          .takeWhile(
+              rel ->
+                  // Don't prune the physical RelNode as it may prevent sort expr push down
+                  rel.getConvention() == Convention.NONE
+                      && (rel == call.rels[0]
+                          || volcanoPlanner.getSubsetNonNull(rel).getParentRels().size() == 1))
+          .forEach(volcanoPlanner::prune);
+    }
   }
 }
