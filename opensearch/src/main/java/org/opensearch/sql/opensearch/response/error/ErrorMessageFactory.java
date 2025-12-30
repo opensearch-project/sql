@@ -25,7 +25,7 @@ public class ErrorMessageFactory {
       OpenSearchException exception = (OpenSearchException) cause;
       return new OpenSearchErrorMessage(exception, exception.status().getStatus());
     }
-    return new ErrorMessage(e, status);
+    return new ErrorMessage(cause, status);
   }
 
   protected static Throwable unwrapCause(Throwable t) {
@@ -34,6 +34,9 @@ public class ErrorMessageFactory {
       return result;
     }
     if (result.getCause() == null) {
+      if (result.getSuppressed().length > 0) {
+        return result.getSuppressed()[0];
+      }
       return result;
     }
     result = unwrapCause(result.getCause());
