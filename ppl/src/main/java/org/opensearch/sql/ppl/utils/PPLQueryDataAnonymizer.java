@@ -459,6 +459,25 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   }
 
   @Override
+  public String visitConvert(org.opensearch.sql.ast.tree.Convert node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    String conversions =
+        node.getConvertFunctions().stream()
+            .map(
+                convertFunc -> {
+                  String functionName = convertFunc.getFunctionName().toLowerCase(Locale.ROOT);
+                  String fields =
+                      convertFunc.getFieldList().stream()
+                          .map(f -> MASK_COLUMN)
+                          .collect(Collectors.joining(","));
+                  String asClause = convertFunc.getAsField() != null ? " AS " + MASK_COLUMN : "";
+                  return StringUtils.format("%s(%s)%s", functionName, fields, asClause);
+                })
+            .collect(Collectors.joining(","));
+    return StringUtils.format("%s | convert %s", child, conversions);
+  }
+
+  @Override
   public String visitExpand(Expand node, String context) {
     String child = node.getChild().getFirst().accept(this, context);
     String field = visitExpression(node.getField());

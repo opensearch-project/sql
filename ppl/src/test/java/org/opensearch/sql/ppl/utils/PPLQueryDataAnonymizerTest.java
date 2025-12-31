@@ -1042,4 +1042,19 @@ public class PPLQueryDataAnonymizerTest {
   public void testNoMvCommand() {
     assertEquals("source=table | nomv identifier", anonymize("source=t | nomv firstname"));
   }
+
+  @Test
+  public void testConvertCommand() {
+    assertEquals(
+        "source=table | convert auto(identifier)", anonymize("source=t | convert auto(salary)"));
+    assertEquals(
+        "source=table | convert auto(identifier) AS identifier",
+        anonymize("source=t | convert auto(salary) AS salary_num"));
+    assertEquals(
+        "source=table | convert auto(identifier),num(identifier)",
+        anonymize("source=t | convert auto(salary), num(commission)"));
+    assertEquals(
+        "source=table | convert rmcomma(identifier),rmunit(identifier),none(identifier)",
+        anonymize("source=t | convert rmcomma(name), rmunit(revenue), none(id)"));
+  }
 }

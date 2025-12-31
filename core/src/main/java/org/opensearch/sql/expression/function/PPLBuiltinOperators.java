@@ -62,12 +62,17 @@ import org.opensearch.sql.expression.function.jsonUDF.JsonExtractFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonKeysFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonSetFunctionImpl;
+import org.opensearch.sql.expression.function.udf.AutoConvertFunction;
 import org.opensearch.sql.expression.function.udf.CryptographicFunction;
+import org.opensearch.sql.expression.function.udf.NoneConvertFunction;
+import org.opensearch.sql.expression.function.udf.NumConvertFunction;
 import org.opensearch.sql.expression.function.udf.ParseFunction;
 import org.opensearch.sql.expression.function.udf.RelevanceQueryFunction;
 import org.opensearch.sql.expression.function.udf.RexExtractFunction;
 import org.opensearch.sql.expression.function.udf.RexExtractMultiFunction;
 import org.opensearch.sql.expression.function.udf.RexOffsetFunction;
+import org.opensearch.sql.expression.function.udf.RmcommaConvertFunction;
+import org.opensearch.sql.expression.function.udf.RmunitConvertFunction;
 import org.opensearch.sql.expression.function.udf.SpanFunction;
 import org.opensearch.sql.expression.function.udf.ToNumberFunction;
 import org.opensearch.sql.expression.function.udf.ToStringFunction;
@@ -419,6 +424,14 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       new NumberToStringFunction().toUDF("NUMBER_TO_STRING");
   public static final SqlOperator TONUMBER = new ToNumberFunction().toUDF("TONUMBER");
   public static final SqlOperator TOSTRING = new ToStringFunction().toUDF("TOSTRING");
+
+  // PPL Convert command functions
+  public static final SqlOperator AUTO = new AutoConvertFunction().toUDF("AUTO");
+  public static final SqlOperator NUM = new NumConvertFunction().toUDF("NUM");
+  public static final SqlOperator RMCOMMA = new RmcommaConvertFunction().toUDF("RMCOMMA");
+  public static final SqlOperator RMUNIT = new RmunitConvertFunction().toUDF("RMUNIT");
+  public static final SqlOperator NONE = new NoneConvertFunction().toUDF("NONE");
+
   public static final SqlOperator WIDTH_BUCKET =
       new org.opensearch.sql.expression.function.udf.binning.WidthBucketFunction()
           .toUDF("WIDTH_BUCKET");

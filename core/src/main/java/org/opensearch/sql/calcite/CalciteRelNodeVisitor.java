@@ -974,6 +974,63 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
+  @Override
+  public RelNode visitConvert(
+      org.opensearch.sql.ast.tree.Convert node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    // Build maps to track conversions
+    java.util.Map<String, RexNode> replacements =
+        new java.util.HashMap<>(); // field -> converted (no alias)
+    List<Pair<String, RexNode>> additions = new ArrayList<>(); // new fields to add (with alias)
+
+    for (org.opensearch.sql.ast.tree.ConvertFunction convertFunc : node.getConvertFunctions()) {
+      String functionName = convertFunc.getFunctionName();
+      List<String> fieldList = convertFunc.getFieldList();
+      String asField = convertFunc.getAsField();
+
+      // Process each field in the field list
+      for (String fieldName : fieldList) {
+        RexNode field = context.relBuilder.field(fieldName);
+
+        // Create the conversion function call
+        RexNode convertCall =
+            PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, functionName, field);
+
+        if (asField != null) {
+          // With alias: add as new field at the end
+          additions.add(Pair.of(asField, context.relBuilder.alias(convertCall, asField)));
+        } else {
+          // Without alias: replace original field in-place
+          replacements.put(fieldName, context.relBuilder.alias(convertCall, fieldName));
+        }
+      }
+    }
+
+    // Build projection maintaining original field order, then add new fields
+    List<String> originalFields = context.relBuilder.peek().getRowType().getFieldNames();
+    List<RexNode> projectList = new ArrayList<>();
+
+    // First, project all original fields (with replacements where applicable)
+    for (String fieldName : originalFields) {
+      if (replacements.containsKey(fieldName)) {
+        // Use the converted expression for this field
+        projectList.add(replacements.get(fieldName));
+      } else {
+        // Keep the original field
+        projectList.add(context.relBuilder.field(fieldName));
+      }
+    }
+
+    // Then add new aliased fields at the end
+    for (Pair<String, RexNode> addition : additions) {
+      projectList.add(addition.getRight());
+    }
+
+    context.relBuilder.project(projectList);
+    return context.relBuilder.peek();
+  }
+
   private void projectPlusOverriding(
       List<RexNode> newFields, List<String> newNames, CalcitePlanContext context) {
     List<String> originalFieldNames = context.relBuilder.peek().getRowType().getFieldNames();

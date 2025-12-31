@@ -8,6 +8,7 @@ package org.opensearch.sql.planner;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalCloseCursor;
+import org.opensearch.sql.planner.logical.LogicalConvert;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
 import org.opensearch.sql.planner.logical.LogicalEval;
 import org.opensearch.sql.planner.logical.LogicalFetchCursor;
@@ -27,6 +28,7 @@ import org.opensearch.sql.planner.logical.LogicalTrendline;
 import org.opensearch.sql.planner.logical.LogicalValues;
 import org.opensearch.sql.planner.logical.LogicalWindow;
 import org.opensearch.sql.planner.physical.AggregationOperator;
+import org.opensearch.sql.planner.physical.ConvertOperator;
 import org.opensearch.sql.planner.physical.CursorCloseOperator;
 import org.opensearch.sql.planner.physical.DedupeOperator;
 import org.opensearch.sql.planner.physical.EvalOperator;
@@ -97,6 +99,12 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
   @Override
   public PhysicalPlan visitEval(LogicalEval node, C context) {
     return new EvalOperator(visitChild(node, context), node.getExpressions());
+  }
+
+  @Override
+  public PhysicalPlan visitConvert(LogicalConvert node, C context) {
+    return new ConvertOperator(
+        visitChild(node, context), node.getConversions(), node.getTimeformat());
   }
 
   @Override
