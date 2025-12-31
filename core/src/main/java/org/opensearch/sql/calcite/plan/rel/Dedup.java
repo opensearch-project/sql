@@ -65,6 +65,16 @@ public abstract class Dedup extends SingleRel {
       Boolean keepEmpty,
       Boolean consecutive);
 
+  public Dedup copy(RelNode input, List<RexNode> dedupeFields) {
+    return this.copy(
+        this.getTraitSet(),
+        input,
+        dedupeFields,
+        this.allowedDuplication,
+        this.keepEmpty,
+        this.consecutive);
+  }
+
   @Override
   public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
