@@ -21,11 +21,12 @@ import org.opensearch.sql.legacy.cursor.DefaultCursor;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.QueryActionElasticExecutor;
 import org.opensearch.sql.legacy.executor.RestExecutor;
+import org.opensearch.sql.legacy.metrics.MetricName;
+import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.pit.PointInTimeHandler;
 import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.query.DefaultQueryAction;
 import org.opensearch.sql.legacy.query.QueryAction;
-import org.opensearch.sql.legacy.query.SqlOpenSearchRequestBuilder;
 import org.opensearch.sql.legacy.query.join.BackOffRetryStrategy;
 import org.opensearch.transport.client.Client;
 
@@ -91,41 +92,75 @@ public class PrettyFormatRestExecutor implements RestExecutor {
    * QueryActionElasticExecutor.executeAnyAction() returns SearchHits inside SearchResponse. In
    * order to get scroll ID if any, we need to execute DefaultQueryAction ourselves for
    * SearchResponse.
+   *
+   * <p>This method conditionally creates PIT only when pagination is requested (fetch_size > 0) and
+   * ensures proper cleanup of PIT resources when they are not used for cursor-based pagination.
    */
   private Protocol buildProtocolForDefaultQuery(Client client, DefaultQueryAction queryAction)
       throws SqlParseException {
 
     PointInTimeHandler pit = null;
     SearchResponse response;
-    SqlOpenSearchRequestBuilder sqlOpenSearchRequestBuilder = queryAction.explain();
-
-    pit = new PointInTimeHandlerImpl(client, queryAction.getSelect().getIndexArr());
-    pit.create();
-    SearchRequestBuilder searchRequest = queryAction.getRequestBuilder();
-    searchRequest.setPointInTime(new PointInTimeBuilder(pit.getPitId()));
-    response = searchRequest.get();
-
     Protocol protocol;
-    if (isDefaultCursor(response, queryAction)) {
-      DefaultCursor defaultCursor = new DefaultCursor();
-      defaultCursor.setLimit(queryAction.getSelect().getRowCount());
-      defaultCursor.setFetchSize(queryAction.getSqlRequest().fetchSize());
+    boolean cursorCreated = false;
 
-      defaultCursor.setPitId(pit.getPitId());
-      defaultCursor.setSearchSourceBuilder(queryAction.getRequestBuilder().request().source());
-      defaultCursor.setSortFields(
-          response.getHits().getAt(response.getHits().getHits().length - 1).getSortValues());
+    queryAction.explain();
 
-      protocol = new Protocol(client, queryAction, response.getHits(), format, defaultCursor);
-    } else {
-      protocol = new Protocol(client, queryAction, response.getHits(), format, Cursor.NULL_CURSOR);
+    int fetchSize = queryAction.getSqlRequest().fetchSize();
+    if (fetchSize > 0) {
+      pit = new PointInTimeHandlerImpl(client, queryAction.getSelect().getIndexArr());
+      pit.create();
+    }
+
+    try {
+      SearchRequestBuilder searchRequest = queryAction.getRequestBuilder();
+      if (pit != null) {
+        searchRequest.setPointInTime(new PointInTimeBuilder(pit.getPitId()));
+      }
+      response = searchRequest.get();
+
+      if (pit != null && isDefaultCursor(response, queryAction)) {
+        DefaultCursor defaultCursor = new DefaultCursor();
+        defaultCursor.setLimit(queryAction.getSelect().getRowCount());
+        defaultCursor.setFetchSize(fetchSize);
+        defaultCursor.setPitId(pit.getPitId());
+        defaultCursor.setSearchSourceBuilder(queryAction.getRequestBuilder().request().source());
+        defaultCursor.setSortFields(
+            response.getHits().getAt(response.getHits().getHits().length - 1).getSortValues());
+
+        protocol = new Protocol(client, queryAction, response.getHits(), format, defaultCursor);
+        cursorCreated = true;
+      } else {
+        protocol =
+            new Protocol(client, queryAction, response.getHits(), format, Cursor.NULL_CURSOR);
+      }
+    } catch (Exception e) {
+      if (pit != null) {
+        try {
+          pit.delete();
+        } catch (RuntimeException cleanupException) {
+          LOG.error("Failed to delete PIT during exception handling", cleanupException);
+          Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
+        }
+      }
+      throw e;
+    } finally {
+      // Cursor owns PIT lifecycle when created; otherwise clean up here
+      if (pit != null && !cursorCreated) {
+        try {
+          pit.delete();
+        } catch (RuntimeException e) {
+          LOG.error("Failed to delete PIT in finally block", e);
+          Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
+        }
+      }
     }
 
     return protocol;
   }
 
   protected boolean isDefaultCursor(SearchResponse searchResponse, DefaultQueryAction queryAction) {
-    return queryAction.getSqlRequest().fetchSize() != 0
+    return queryAction.getSqlRequest().fetchSize() > 0
         && Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value()
             >= queryAction.getSqlRequest().fetchSize();
   }
