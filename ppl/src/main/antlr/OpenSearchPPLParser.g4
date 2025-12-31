@@ -74,6 +74,7 @@ commands
    | adCommand
    | mlCommand
    | fillnullCommand
+   | convertCommand
    | trendlineCommand
    | appendcolCommand
    | addtotalsCommand
@@ -117,6 +118,7 @@ commandName
    | AD
    | ML
    | FILLNULL
+   | CONVERT
    | EXPAND
    | FLATTEN
    | TRENDLINE
@@ -512,6 +514,14 @@ fillNullUsing
 
 replacementPair
    : fieldExpression EQUAL replacement = valueExpression
+   ;
+
+convertCommand
+   : CONVERT (TIMEFORMAT EQUAL timeformatValue = stringLiteral)? convertFunction (COMMA convertFunction)*
+   ;
+
+convertFunction
+   : functionName = ident LT_PRTHS wcFieldList RT_PRTHS (AS alias = wcFieldExpression)?
    ;
 
 trendlineCommand
@@ -1658,4 +1668,3 @@ searchableKeyWord
    | ROW
    | COL
    ;
-

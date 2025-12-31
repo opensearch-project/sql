@@ -22,6 +22,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASCII;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ATAN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ATAN2;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.AUTO;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.AVG;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CBRT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CEIL;
@@ -157,10 +158,12 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVINDEX
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVJOIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVMAP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVZIP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.NONE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOTEQUAL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOW;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NULLIF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.NUM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.OR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.PERCENTILE_APPROX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.PERIOD_ADD;
@@ -184,6 +187,8 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.REX_EXT
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REX_OFFSET;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RIGHT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RINT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RMCOMMA;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.RMUNIT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ROUND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RTRIM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SCALAR_MAX;
@@ -982,6 +987,14 @@ public class PPLFuncImpTable {
       registerOperator(INTERNAL_PATTERN_PARSER, PPLBuiltinOperators.PATTERN_PARSER);
       registerOperator(TONUMBER, PPLBuiltinOperators.TONUMBER);
       registerOperator(TOSTRING, PPLBuiltinOperators.TOSTRING);
+
+      // Register PPL Convert command functions
+      registerOperator(AUTO, PPLBuiltinOperators.AUTO);
+      registerOperator(NUM, PPLBuiltinOperators.NUM);
+      registerOperator(RMCOMMA, PPLBuiltinOperators.RMCOMMA);
+      registerOperator(RMUNIT, PPLBuiltinOperators.RMUNIT);
+      registerOperator(NONE, PPLBuiltinOperators.NONE);
+
       register(
           TOSTRING,
           (FunctionImp1)
