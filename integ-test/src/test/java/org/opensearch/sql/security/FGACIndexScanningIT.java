@@ -23,7 +23,7 @@ import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 
 /**
- * Integration tests for Fine-Grained Access Control (FGAC) with background-io scanning.
+ * Integration tests for Fine-Grained Access Control (FGAC) across indices.
  *
  * <p>These tests verify all three levels of access control: 1. Index-level: Can users access the
  * index? 2. Column-level (Field-level): Can users see specific fields? 3. Row-level
@@ -56,7 +56,7 @@ public class FGACIndexScanningIT extends SecurityTestBase {
   @SneakyThrows
   @BeforeAll
   public void initialize() {
-    setUpIndices(); // Initialize client if needed
+    setUpIndices();
     setupTestIndices();
     createSecurityRolesAndUsers();
   }
@@ -64,21 +64,14 @@ public class FGACIndexScanningIT extends SecurityTestBase {
   @Override
   protected void init() throws Exception {
     super.init();
-    // Enable Calcite engine to test background scanning behavior
     enableCalcite();
     allowCalciteFallback();
   }
 
-  /** Sets up test indices with large datasets to trigger background scanning. */
   private void setupTestIndices() throws IOException {
-    // Create index for Scenario 1: Index-level security
     createPublicLogsIndex();
     createSensitiveLogsIndex();
-
-    // Create index for Scenario 2: Column-level (field-level) security
     createEmployeeRecordsIndex();
-
-    // Create index for Scenario 3: Row-level security
     createSecureLogsIndex();
   }
 
@@ -103,7 +96,6 @@ public class FGACIndexScanningIT extends SecurityTestBase {
         """);
     client().performRequest(request);
 
-    // Bulk insert 2000+ documents to trigger background scanning
     bulkInsertDocs(PUBLIC_LOGS, "public");
   }
 
@@ -128,7 +120,6 @@ public class FGACIndexScanningIT extends SecurityTestBase {
         """);
     client().performRequest(request);
 
-    // Bulk insert 2000+ documents
     bulkInsertDocs(SENSITIVE_LOGS, "sensitive");
   }
 
@@ -159,7 +150,6 @@ public class FGACIndexScanningIT extends SecurityTestBase {
         """);
     client().performRequest(request);
 
-    // Insert 2000+ employee records
     bulkInsertEmployeeRecords();
   }
 
@@ -356,17 +346,17 @@ public class FGACIndexScanningIT extends SecurityTestBase {
   }
 
   @Test
-  public void testIndexLevelSecurity() throws IOException {
-    // Test that public_user can access public_logs but not sensitive_logs
-    // This should PASS even before the fix because index-level security is enforced at planning
-
-    // 1. public_user can access public_logs (large dataset triggers background scanning)
+  public void testPublicUserCanAccessPublicLogs() throws IOException {
+    // public_user can access public_logs (large dataset triggers background scanning)
     JSONObject result =
         executeQueryAsUser(
             String.format("search source=%s | fields message | head 10", PUBLIC_LOGS), PUBLIC_USER);
     verifyColumn(result, columnName("message"));
+  }
 
-    // 2. public_user cannot access sensitive_logs (should fail at planning stage)
+  @Test
+  public void testPublicUserCannotAccessSensitiveLogs() throws IOException {
+    // public_user cannot access sensitive_logs (should fail at planning stage)
     try {
       executeQueryAsUser(
           String.format("search source=%s | fields message", SENSITIVE_LOGS), PUBLIC_USER);
@@ -378,14 +368,21 @@ public class FGACIndexScanningIT extends SecurityTestBase {
           "Response should contain permission error",
           responseBody.contains("no permissions") || responseBody.contains("Forbidden"));
     }
+  }
 
-    // 3. sensitive_user can access sensitive_logs but not public_logs
-    JSONObject result2 =
+  @Test
+  public void testSensitiveUserCanAccessSensitiveLogs() throws IOException {
+    // sensitive_user can access sensitive_logs
+    JSONObject result =
         executeQueryAsUser(
             String.format("search source=%s | fields message | head 10", SENSITIVE_LOGS),
             SENSITIVE_USER);
-    verifyColumn(result2, columnName("message"));
+    verifyColumn(result, columnName("message"));
+  }
 
+  @Test
+  public void testSensitiveUserCannotAccessPublicLogs() throws IOException {
+    // sensitive_user cannot access public_logs
     try {
       executeQueryAsUser(
           String.format("search source=%s | fields message", PUBLIC_LOGS), SENSITIVE_USER);
@@ -400,16 +397,13 @@ public class FGACIndexScanningIT extends SecurityTestBase {
   }
 
   @Test
-  public void testColumnLevelSecurity() throws IOException {
-    // This test verifies that field-level security (FLS) works correctly with background scanning
-
-    // Test 1: hr_user can see ALL fields including sensitive ssn
+  public void testHrUserCanSeeAllFieldsIncludingSensitiveData() throws IOException {
+    // hr_user can see ALL fields including sensitive ssn
     String queryAllFields =
         String.format(
             "search source=%s | fields name, department, salary, ssn | head 10", EMPLOYEE_RECORDS);
     JSONObject hrResult = executeQueryAsUser(queryAllFields, HR_USER);
 
-    // Verify hr_user can see all fields
     var hrSchema = hrResult.getJSONArray("schema");
     boolean hrHasName = false, hrHasSalary = false, hrHasSSN = false, hrHasDepartment = false;
 
@@ -425,9 +419,11 @@ public class FGACIndexScanningIT extends SecurityTestBase {
     assertTrue("hr_user should see 'salary' field", hrHasSalary);
     assertTrue("hr_user should see 'ssn' field (sensitive)", hrHasSSN);
     assertTrue("hr_user should see 'department' field", hrHasDepartment);
+  }
 
-    // Test 2: manager_user can see most fields but NOT ssn
-    // Query only fields that manager_user has access to
+  @Test
+  public void testManagerUserCannotSeeSensitiveFields() throws IOException {
+    // manager_user can see most fields but NOT ssn
     String queryAllowedFields =
         String.format(
             "search source=%s | fields name, department, salary | head 10", EMPLOYEE_RECORDS);
@@ -454,8 +450,11 @@ public class FGACIndexScanningIT extends SecurityTestBase {
         "SECURITY VIOLATION: manager_user should NOT see 'ssn' field. "
             + "Field-level security should hide this sensitive field.",
         managerHasSSN);
+  }
 
-    // Test 3: Verify manager_user cannot even reference ssn in query (field is invisible)
+  @Test
+  public void testManagerUserCannotQueryRestrictedField() throws IOException {
+    // Verify manager_user cannot even reference ssn in query (field is invisible)
     try {
       String queryWithSSN =
           String.format("search source=%s | fields ssn | head 10", EMPLOYEE_RECORDS);
@@ -470,8 +469,11 @@ public class FGACIndexScanningIT extends SecurityTestBase {
           "Error should indicate field not found",
           responseBody.contains("Field [ssn] not found") || responseBody.contains("ssn"));
     }
+  }
 
-    // Test 4: Verify with large result set (background scanning)
+  @Test
+  public void testFieldLevelSecurityEnforcedWithLargeDataset() throws IOException {
+    // Verify with large result set that FLS is still enforced
     String queryLargeDataset =
         String.format(
             "search source=%s | fields name, salary, department | stats count()", EMPLOYEE_RECORDS);
@@ -599,13 +601,13 @@ public class FGACIndexScanningIT extends SecurityTestBase {
 
     assertFalse(
         "[V3] SECURITY VIOLATION: limited_user should NOT see 'confidential' documents. "
-            + "This indicates ThreadContext is not being copied to background-io threads in V3, "
+            + "This indicates ThreadContext is not being properly copied to search threads in V3, "
             + "causing queries to run with admin permissions and bypass row-level security.",
         sawConfidential);
 
     assertFalse(
         "[V3] SECURITY VIOLATION: limited_user should NOT see 'internal' documents. "
-            + "This indicates ThreadContext is not being copied to background-io threads in V3, "
+            + "This indicates ThreadContext is not being properly copied to search threads in V3, "
             + "causing queries to run with admin permissions and bypass row-level security.",
         sawInternal);
 
