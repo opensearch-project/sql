@@ -1143,6 +1143,42 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return FillNull.ofSameValue(internalVisitExpression(ctx.replacement), List.of(), true);
   }
 
+  /** convert command. */
+  @Override
+  public UnresolvedPlan visitConvertCommand(OpenSearchPPLParser.ConvertCommandContext ctx) {
+    // Extract optional timeformat parameter
+    String timeformat = null;
+    if (ctx.timeformatValue != null) {
+      timeformat = ((Literal) internalVisitExpression(ctx.timeformatValue)).toString();
+    }
+
+    // Parse each convert function
+    List<org.opensearch.sql.ast.tree.ConvertFunction> convertFunctions = new ArrayList<>();
+    for (OpenSearchPPLParser.ConvertFunctionContext funcCtx : ctx.convertFunction()) {
+      String functionName = funcCtx.functionName.getText();
+
+      // Extract field list
+      List<String> fieldList = new ArrayList<>();
+      if (funcCtx.wcFieldList() != null) {
+        for (OpenSearchPPLParser.SelectFieldExpressionContext fieldExpr :
+            funcCtx.wcFieldList().selectFieldExpression()) {
+          fieldList.add(getTextInQuery(fieldExpr));
+        }
+      }
+
+      // Extract optional AS alias
+      String asField = null;
+      if (funcCtx.alias != null) {
+        asField = getTextInQuery(funcCtx.alias);
+      }
+
+      convertFunctions.add(
+          new org.opensearch.sql.ast.tree.ConvertFunction(functionName, fieldList, asField));
+    }
+
+    return new org.opensearch.sql.ast.tree.Convert(timeformat, convertFunctions);
+  }
+
   @Override
   public UnresolvedPlan visitFlattenCommand(OpenSearchPPLParser.FlattenCommandContext ctx) {
     Field field = (Field) internalVisitExpression(ctx.fieldExpression());
