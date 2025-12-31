@@ -13,8 +13,10 @@ import java.util.Locale;
 import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
@@ -27,6 +29,7 @@ import org.opensearch.client.ResponseException;
  * index? 2. Column-level (Field-level): Can users see specific fields? 3. Row-level
  * (Document-level): Can users see specific documents?
  */
+@TestInstance(Lifecycle.PER_CLASS)
 public class FGACIndexScanningIT extends SecurityTestBase {
   private static final String PUBLIC_USER = "public_user";
   private static final String PUBLIC_ROLE = "public_role";
@@ -50,17 +53,12 @@ public class FGACIndexScanningIT extends SecurityTestBase {
 
   private static final int LARGE_DATASET_SIZE = 2000;
 
-  private static boolean initialized = false;
-
   @SneakyThrows
-  @BeforeEach
+  @BeforeAll
   public void initialize() {
-    if (!initialized) {
-      setUpIndices(); // Initialize client if needed
-      setupTestIndices();
-      createSecurityRolesAndUsers();
-      initialized = true;
-    }
+    setUpIndices(); // Initialize client if needed
+    setupTestIndices();
+    createSecurityRolesAndUsers();
   }
 
   @Override
