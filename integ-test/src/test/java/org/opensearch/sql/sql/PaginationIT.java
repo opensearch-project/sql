@@ -277,6 +277,15 @@ public class PaginationIT extends SQLIntegTestCase {
     assertEquals(directResponse.getInt("size"), aliasQueryResponse.getInt("size"));
     assertTrue(
         directResponse.getJSONArray("schema").similar(aliasQueryResponse.getJSONArray("schema")));
+
+    // Clean up alias
+    String deleteAliasQuery =
+        String.format(
+            "{ \"actions\": [ { \"remove\": { \"index\": \"%s\", \"alias\": \"%s\" } } ] }",
+            indexName, aliasName);
+    Request deleteAliasRequest = new Request("POST", "/_aliases");
+    deleteAliasRequest.setJsonEntity(deleteAliasQuery);
+    executeRequest(deleteAliasRequest);
   }
 
   private String executeFetchQuery(String query, int fetchSize, String requestType, String filter)
