@@ -702,6 +702,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       org.opensearch.sql.ast.tree.Transpose node, CalcitePlanContext context) {
     visitChildren(node, context);
     Integer maxRows = node.getMaxRows();
+    if (maxRows == null || maxRows <= 0) {
+        throw new IllegalArgumentException("maxRows must be a positive integer");
+    }
     String columnName = node.getColumnName();
     // Get the current schema to transpose
     RelNode currentNode = context.relBuilder.peek();
@@ -783,7 +786,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           context.relBuilder.call(
               SqlStdOperatorTable.CASE,
               context.relBuilder.equals(
-                  context.relBuilder.field("__row_id__"), context.relBuilder.literal(i)),
+                  context.relBuilder.field("__row_pos__"), context.relBuilder.literal(i)),
               context.relBuilder.field("value"),
               context.relBuilder.literal(null));
 
