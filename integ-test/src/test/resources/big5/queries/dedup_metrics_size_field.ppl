@@ -1,0 +1,22 @@
+/*
+{
+  "name": "dedup_metrics_size_field",
+  "operation-type": "search",
+  "index": "{{index_name | default('big5')}}",
+  "body": {
+    "query": {
+      "exists": {
+        "field": "metrics.size",
+        "boost": 1.0
+      }
+    },
+    "_source": {
+      "includes": ["agent", "process", "log", "message", "tags", "cloud", "input", "@timestamp", "ecs", "data_stream", "meta", "host", "metrics", "metrics.size", "aws", "event"],
+      "excludes": []
+    }
+  }
+}
+*/
+source = big5
+| dedup metrics.size
+| sort - @timestamp

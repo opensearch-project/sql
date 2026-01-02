@@ -6,4 +6,4 @@ calcite:
           LogicalFilter(condition=[IS NOT NULL($14)])
             CalciteLogicalIndexScan(table=[[OpenSearch, big5]])
   physical: |
-    CalciteEnumerableIndexScan(table=[[OpenSearch, big5]], PushDownContext=[[FILTER->IS NOT NULL($14), AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={},dc(`cloud.region`)=COUNT(DISTINCT $0)), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","query":{"exists":{"field":"cloud.region","boost":1.0}},"aggregations":{"dc(`cloud.region`)":{"cardinality":{"field":"cloud.region"}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+    CalciteEnumerableIndexScan(table=[[OpenSearch, big5]], PushDownContext=[[FILTER->IS NOT NULL($0), AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={},dc(`cloud.region`)=COUNT(DISTINCT $0)), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","query":{"exists":{"field":"cloud.region","boost":1.0}},"aggregations":{"dc(`cloud.region`)":{"cardinality":{"field":"cloud.region"}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

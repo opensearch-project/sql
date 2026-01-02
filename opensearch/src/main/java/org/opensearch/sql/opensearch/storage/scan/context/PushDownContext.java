@@ -8,8 +8,13 @@ package org.opensearch.sql.opensearch.storage.scan.context;
 import java.util.AbstractCollection;
 import java.util.ArrayDeque;
 import java.util.Iterator;
+import java.util.List;
+import javax.annotation.Nullable;
 import lombok.Getter;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Project;
 import org.jetbrains.annotations.NotNull;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder.PushDownUnSupportedException;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
@@ -59,6 +64,51 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
       if (action.type() != PushDownType.SORT && action.type() != PushDownType.SORT_EXPR) {
         newContext.add(action);
       }
+    }
+    return newContext;
+  }
+
+  /**
+   * Aggregation will eliminate all collations, thus we need to remove sort. Will also remove
+   * project as sources is useless for aggregation, and remove filter if it's derived from the
+   * aggregate.
+   */
+  public PushDownContext cloneForAggregate(Aggregate aggregate, @Nullable Project project) {
+    PushDownContext newContext = new PushDownContext(osIndex);
+    ArrayDeque<PushDownOperation> tempQueue = new ArrayDeque<>(this.queue);
+    while (!tempQueue.isEmpty()) {
+      PushDownOperation operation = tempQueue.pollFirst();
+      if (operation.type() == PushDownType.SORT
+          || operation.type() == PushDownType.SORT_EXPR
+          || operation.type() == PushDownType.PROJECT) {
+        continue;
+      }
+      if (operation.type() == PushDownType.FILTER) {
+        List<Integer> currentColumns = null;
+        // If project push down happens between this aggregate push down and previous filter push
+        // down,
+        // there is a single project left in the queue. That project will affect the mapping between
+        // them.
+        while (!tempQueue.isEmpty() && tempQueue.peekFirst().type() == PushDownType.PROJECT) {
+          ProjectDigest projectDigest = (ProjectDigest) tempQueue.pollFirst().digest();
+          List<Integer> selectedColumns = projectDigest.selectedColumns();
+          currentColumns =
+              currentColumns == null
+                  ? selectedColumns
+                  : selectedColumns.stream().map(currentColumns::get).toList();
+        }
+        // Check if filter is derived from aggregate. Ensure there is no other push down operations
+        // left between them.
+        if (tempQueue.isEmpty()
+            && PlanUtils.isNotNullDerivedFromAgg(
+                ((FilterDigest) operation.digest()).condition(),
+                aggregate,
+                project,
+                currentColumns)) {
+          continue;
+        }
+      }
+      newContext.add(operation);
     }
     return newContext;
   }
@@ -137,6 +187,11 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
 
   public boolean containsDigest(Object digest) {
     return this.stream().anyMatch(action -> action.digest().equals(digest));
+  }
+
+  // TODO check on adding
+  public boolean containsDigestOnTop(Object digest) {
+    return this.queue.peekLast() != null && this.queue.peekLast().digest().equals(digest);
   }
 
   /**
