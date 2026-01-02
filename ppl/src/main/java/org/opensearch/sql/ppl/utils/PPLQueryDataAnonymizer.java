@@ -640,17 +640,17 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   @Override
   public String visitTranspose(Transpose node, String context) {
     if (node.getChild().isEmpty()) {
-        return "source=*** | transpose";
+      return "source=*** | transpose";
     }
     String child = node.getChild().get(0).accept(this, context);
     StringBuilder anonymized = new StringBuilder(StringUtils.format("%s | transpose", child));
     java.util.Map<String, Argument> arguments = node.getArguments();
 
     if (arguments.containsKey("number")) {
-        Argument numberArg = arguments.get("number");
-        if (numberArg != null) {
-            anonymized.append(StringUtils.format(" %s", numberArg.getValue()));
-        }
+      Argument numberArg = arguments.get("number");
+      if (numberArg != null) {
+        anonymized.append(StringUtils.format(" %s", numberArg.getValue()));
+      }
     }
     if (arguments.containsKey("columnName")) {
       anonymized.append(StringUtils.format(" %s=***", "column_name"));
