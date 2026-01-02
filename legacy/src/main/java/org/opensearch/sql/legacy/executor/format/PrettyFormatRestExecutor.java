@@ -106,8 +106,8 @@ public class PrettyFormatRestExecutor implements RestExecutor {
 
     queryAction.explain();
 
-    int fetchSize = queryAction.getSqlRequest().fetchSize();
-    if (fetchSize > 0) {
+    Integer fetchSize = queryAction.getSqlRequest().fetchSize();
+    if (fetchSize != null && fetchSize > 0) {
       pit = new PointInTimeHandlerImpl(client, queryAction.getSelect().getIndexArr());
       pit.create();
     }
@@ -138,6 +138,7 @@ public class PrettyFormatRestExecutor implements RestExecutor {
       if (pit != null) {
         try {
           pit.delete();
+          pit = null; // Prevent double deletion in finally
         } catch (RuntimeException cleanupException) {
           LOG.error("Failed to delete PIT during exception handling", cleanupException);
           Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
@@ -160,8 +161,9 @@ public class PrettyFormatRestExecutor implements RestExecutor {
   }
 
   protected boolean isDefaultCursor(SearchResponse searchResponse, DefaultQueryAction queryAction) {
-    return queryAction.getSqlRequest().fetchSize() > 0
-        && Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value()
-            >= queryAction.getSqlRequest().fetchSize();
+    Integer fetchSize = queryAction.getSqlRequest().fetchSize();
+    return fetchSize != null
+        && fetchSize > 0
+        && Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value() >= fetchSize;
   }
 }

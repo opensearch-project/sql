@@ -98,7 +98,7 @@ public class PrettyFormatRestExecutorPitTest {
 
   @Test
   public void testNoPitCreatedWhenFetchSizeNotSpecified() throws Exception {
-    when(sqlRequest.fetchSize()).thenReturn(0);
+    when(sqlRequest.fetchSize()).thenReturn(null); // Simulates fetch_size not in request
 
     executor.execute(client, params, queryAction);
 
@@ -128,7 +128,9 @@ public class PrettyFormatRestExecutorPitTest {
             new SearchHit[] {searchHit}, new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0F);
     when(searchResponse.getHits()).thenReturn(hits);
 
-    executor.execute(client, params, queryAction);
+    String result = executor.execute(client, params, queryAction);
+
+    org.junit.Assert.assertNotNull("Query should execute successfully", result);
   }
 
   /**
@@ -153,7 +155,9 @@ public class PrettyFormatRestExecutorPitTest {
             new SearchHit[] {searchHit}, new TotalHits(10, TotalHits.Relation.EQUAL_TO), 1.0F);
     when(searchResponse.getHits()).thenReturn(hits);
 
-    executor.execute(client, params, queryAction);
+    String result = executor.execute(client, params, queryAction);
+
+    org.junit.Assert.assertNotNull("Query should execute successfully", result);
   }
 
   /**

@@ -147,6 +147,9 @@ public class PointInTimeLeakIT extends SQLIntegTestCase {
         String.format(
             "With proper cursor management: Baseline=%d, Final=%d",
             baselinePitCount, finalPitCount));
+
+    assertThat(
+        "PIT should be cleaned up after cursor close", finalPitCount, equalTo(baselinePitCount));
   }
 
   /**
@@ -179,6 +182,9 @@ public class PointInTimeLeakIT extends SQLIntegTestCase {
 
     assertTrue("V1 should return results", v1Response.has("datarows"));
     assertTrue("V2 should return results", v2Response.has("datarows"));
+
+    // Both engines should not leak PITs for non-paginated queries
+    assertThat("V1 Legacy SQL should not leak PITs", v1Leaked, equalTo(0));
   }
 
   private JSONObject executeQueryWithoutFetchSize(String query) throws IOException {
