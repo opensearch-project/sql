@@ -251,6 +251,34 @@ public class PaginationIT extends SQLIntegTestCase {
     assertEquals(aliasFilteredResponse.getInt("size"), 4);
   }
 
+  @Test
+  public void testAliasResultConsistency() throws Exception {
+    String indexName = Index.ONLINE.getName();
+    String aliasName = "alias_ONLINE_consistency";
+
+    // Create an alias
+    String createAliasQuery =
+        String.format(
+            "{ \"actions\": [ { \"add\": { \"index\": \"%s\", \"alias\": \"%s\" } } ] }",
+            indexName, aliasName);
+    Request createAliasRequest = new Request("POST", "/_aliases");
+    createAliasRequest.setJsonEntity(createAliasQuery);
+    JSONObject aliasResponse = new JSONObject(executeRequest(createAliasRequest));
+    assertTrue(aliasResponse.getBoolean("acknowledged"));
+
+    // Query using direct index
+    String directQuery = String.format("SELECT * FROM %s", TEST_INDEX_ONLINE);
+    JSONObject directResponse = new JSONObject(executeFetchQuery(directQuery, 10, "jdbc"));
+
+    // Query using alias
+    String aliasQuery = String.format("SELECT * FROM %s", aliasName);
+    JSONObject aliasQueryResponse = new JSONObject(executeFetchQuery(aliasQuery, 10, "jdbc"));
+
+    assertEquals(directResponse.getInt("size"), aliasQueryResponse.getInt("size"));
+    assertTrue(
+        directResponse.getJSONArray("schema").similar(aliasQueryResponse.getJSONArray("schema")));
+  }
+
   private String executeFetchQuery(String query, int fetchSize, String requestType, String filter)
       throws IOException {
     String endpoint = "/_plugins/_sql?format=" + requestType;
