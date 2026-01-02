@@ -317,6 +317,9 @@ public class ArgumentFactory {
         transposeCommandContext.transposeParameter()) {
 
       if (ctx.COLUMN_NAME() != null) {
+        if (ctx.stringLiteral() == null) {
+            throw new IllegalArgumentException("COLUMN_NAME requires a string literal value");
+        }
         Literal columnName = getArgumentValue(ctx.stringLiteral());
         arguments.put("columnName", new Argument("columnName", columnName));
       } else if (ctx.number != null) {
@@ -325,8 +328,7 @@ public class ArgumentFactory {
       } else {
         throw new IllegalArgumentException(
             String.format(
-                "A parameter of transpose must be a int limit, column_name, header_field, or"
-                    + " include_empty, got %s",
+                "A parameter of transpose must be a int limit, column_name , got %s",
                 ctx));
       }
     }

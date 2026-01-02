@@ -18,13 +18,19 @@ import org.opensearch.sql.ast.expression.Argument;
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
 public class Transpose extends UnresolvedPlan {
-  private final java.util.Map<String, Argument> arguments;
+  private final  @NonNull java.util.Map<String, Argument> arguments;
   private UnresolvedPlan child;
 
   public Integer getMaxRows() {
     Integer maxRows = 5;
     if (arguments.containsKey("number")) {
-      maxRows = Integer.parseInt(arguments.get("number").getValue().toString());
+        try {
+            maxRows = Integer.parseInt(arguments.get("number").getValue().toString());
+        } catch (NumberFormatException e) {
+            // log warning and use default
+            maxRows = 5;
+        }
+
     }
     return maxRows;
   }
