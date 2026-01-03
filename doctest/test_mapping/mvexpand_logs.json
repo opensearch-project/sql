@@ -1,0 +1,24 @@
+{
+  "mappings": {
+    "properties": {
+      "case": {
+        "type": "keyword"
+      },
+      "tags": {
+        "type": "nested",
+        "properties": {
+          "value": { "type": "keyword" }
+        }
+      },
+      "ids": {
+        "type": "nested",
+        "properties": {
+          "value": { "type": "integer" }
+        }
+      },
+      "other": {
+        "type": "keyword"
+      }
+    }
+  }
+}

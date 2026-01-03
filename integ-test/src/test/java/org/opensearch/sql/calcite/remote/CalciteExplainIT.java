@@ -43,6 +43,7 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.WORKER);
     loadIndex(Index.WORK_INFORMATION);
     loadIndex(Index.WEBLOG);
+    loadIndex(Index.MVEXPAND_EDGE_CASES);
     loadIndex(Index.DATA_TYPE_ALIAS);
   }
 
@@ -311,6 +312,14 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryYaml(query);
     String expected = loadExpectedPlan("explain_multisearch_timestamp.yaml");
     assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testMvexpandExplain() throws IOException {
+    // mvexpand explain plan validation
+    String expected = loadExpectedPlan("explain_mvexpand.yaml");
+    explainQueryYaml(
+        "source=mvexpand_edge_cases | eval skills_arr = array(1, 2, 3) | mvexpand skills_arr");
   }
 
   // Only for Calcite
