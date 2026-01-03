@@ -198,30 +198,6 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
             .contains("Cannot expand field 'skills': expected ARRAY type but found VARCHAR"));
   }
 
-  //  @Test
-  //  public void testMvexpandOnNonArrayFieldMapping() throws Exception {
-  //    final String idx =
-  //        createTempIndexWithMapping(
-  //            INDEX + "_not_array",
-  //            "{ \"mappings\": { \"properties\": { "
-  //                + "\"username\": { \"type\": \"keyword\" },"
-  //                + "\"skills\": { \"type\": \"keyword\" }"
-  //                + "} } }");
-  //
-  //    bulkInsert(idx, "{\"username\":\"u1\",\"skills\":\"scala\"}");
-  //    refreshIndex(idx);
-  //
-  //    String query =
-  //        String.format(
-  //            "source=%s | mvexpand skills | where username='u1' | fields username, skills", idx);
-  //
-  //    ResponseException ex = assertThrows(ResponseException.class, () -> executeQuery(query));
-  //    String msg = ex.getMessage();
-  //    Assertions.assertTrue(
-  //        msg.contains("Cannot expand field 'skills': expected ARRAY type but found VARCHAR"),
-  //        "Expected SemanticCheckException about non-array field, got: " + msg);
-  //  }
-
   @Test
   public void testMvexpandMissingFieldReturnsEmpty() throws Exception {
     String idx = Index.MVEXPAND_MISSING_FIELD.getName();
@@ -237,27 +213,6 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
     JSONObject result = executeQuery(query);
     verifyDataRows(result);
   }
-
-  //  @Test
-  //  public void testMvexpandMissingFieldReturnsEmpty() throws Exception {
-  //    final String idx =
-  //        createTempIndexWithMapping(
-  //            INDEX + "_missing_field",
-  //            "{ \"mappings\": { \"properties\": { \"username\": { \"type\": \"keyword\" } } }
-  // }");
-  //
-  //    bulkInsert(idx, "{\"username\":\"u_missing\"}");
-  //    refreshIndex(idx);
-  //
-  //    String query =
-  //        String.format(
-  //            "source=%s | mvexpand skills | where username='u_missing' | fields username,
-  // skills",
-  //            idx);
-  //
-  //    JSONObject result = executeQuery(query);
-  //    verifyDataRows(result);
-  //  }
 
   @Test
   public void testMvexpandLimitParameter() throws Exception {
@@ -338,40 +293,6 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
         ex.getMessage().contains("Cannot expand field") || ex.getMessage().contains("Semantic"),
         "Expected semantic error for non-array field, got: " + ex.getMessage());
   }
-
-  //  @Test
-  //  public void testMvexpandOnIntegerFieldMappingThrowsSemantic() throws Exception {
-  //    // Verify mvexpand raises a semantic error when the target field is mapped as a non-array
-  //    // numeric type (e.g. integer). This exercises the code branch that checks the resolved
-  //    // RexInputRef against the current row type and throws SemanticCheckException.
-  //    final String idx =
-  //        createTempIndexWithMapping(
-  //            INDEX + "_int_field",
-  //            "{ \"mappings\": { \"properties\": { "
-  //                + "\"username\": { \"type\": \"keyword\" },"
-  //                + "\"skills\": { \"type\": \"integer\" }"
-  //                + "} } }");
-  //    bulkInsert(idx, "{\"username\":\"u_int\",\"skills\":5}");
-  //    refreshIndex(idx);
-  //
-  //    String query =
-  //        String.format(
-  //            "source=%s | mvexpand skills | where username='u_int' | fields username, skills",
-  // idx);
-  //
-  //    ResponseException ex = assertThrows(ResponseException.class, () -> executeQuery(query));
-  //    String msg = ex.getMessage();
-  //    Assertions.assertTrue(
-  //        msg.contains("Cannot expand field 'skills': expected ARRAY type but found INTEGER"),
-  //        "Expected SemanticCheckException about non-array integer field, got: " + msg);
-  //  }
-
-  //  private static String createTempIndexWithMapping(String baseName, String mappingJson)
-  //      throws IOException {
-  //    deleteIndexIfExists(baseName);
-  //    createIndex(baseName, mappingJson);
-  //    return baseName;
-  //  }
 
   private static void createIndex(String index, String mappingJson) throws IOException {
     Request request = new Request("PUT", "/" + index);
