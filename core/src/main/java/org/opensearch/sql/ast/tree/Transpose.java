@@ -25,7 +25,7 @@ public class Transpose extends UnresolvedPlan {
 
   public Integer getMaxRows() {
     Integer maxRows = 5;
-    if (arguments.containsKey("number")) {
+    if (arguments.containsKey("number") && arguments.get("number").getValue() != null) {
       try {
         maxRows = Integer.parseInt(arguments.get("number").getValue().toString());
       } catch (NumberFormatException e) {
@@ -42,7 +42,7 @@ public class Transpose extends UnresolvedPlan {
 
   public String getColumnName() {
     String columnName = "column";
-    if (arguments.containsKey("columnName")) {
+    if (arguments.containsKey("columnName") && arguments.get("columnName").getValue() != null) {
       columnName = arguments.get("columnName").getValue().toString();
     }
     return columnName;
