@@ -3128,10 +3128,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     final RexInputRef arrayFieldRex;
     try {
       arrayFieldRex = (RexInputRef) rexVisitor.analyze(field, context);
-    } catch (IllegalArgumentException e) {
-      // Missing field -> EMPTY results
+    } catch (RuntimeException e) {
       if (isMissingFieldException(e)) {
-        // Preserve schema by projecting NULL ARRAY column with the expected name
         final RelDataTypeFactory typeFactory = relBuilder.getTypeFactory();
         final RelDataType arrayAny =
             typeFactory.createArrayType(typeFactory.createSqlType(SqlTypeName.ANY), -1);
@@ -3140,7 +3138,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             List.of(
                 relBuilder.alias(relBuilder.getRexBuilder().makeNullLiteral(arrayAny), fieldName)));
 
-        // Force empty relation (no rows), preserving schema
         relBuilder.filter(relBuilder.literal(false));
         return relBuilder.peek();
       }
@@ -3160,9 +3157,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return relBuilder.peek();
   }
 
-  private static boolean isMissingFieldException(IllegalArgumentException e) {
-    final String msg = e.getMessage();
-    return msg != null && msg.contains("Field [") && msg.contains("] not found");
+  private static boolean isMissingFieldException(RuntimeException e) {
+    Throwable t = e;
+    while (t != null) {
+      final String msg = t.getMessage();
+      if (msg != null && msg.matches("Field \\[.+\\] not found\\.?")) {
+        return true;
+      }
+      t = t.getCause();
+    }
+    return false;
   }
 
   @Override
