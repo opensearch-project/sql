@@ -1,0 +1,8 @@
+{
+  "mappings": {
+    "properties": {
+      "username": { "type": "keyword" },
+      "skills": { "type": "integer" }
+    }
+  }
+}

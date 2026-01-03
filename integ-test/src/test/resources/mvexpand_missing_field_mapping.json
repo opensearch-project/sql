@@ -1,0 +1,7 @@
+{
+  "mappings": {
+    "properties": {
+      "username": { "type": "keyword" }
+    }
+  }
+}

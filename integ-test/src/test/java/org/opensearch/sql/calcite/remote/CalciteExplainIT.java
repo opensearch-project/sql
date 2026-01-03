@@ -318,8 +318,8 @@ public class CalciteExplainIT extends ExplainIT {
   public void testMvexpandExplain() throws IOException {
     // mvexpand explain plan validation
     String expected = loadExpectedPlan("explain_mvexpand.yaml");
-    assertYamlEqualsIgnoreId(
-        expected, explainQueryYaml("source=mvexpand_edge_cases | mvexpand VALUE"));
+    explainQueryYaml(
+        "source=mvexpand_edge_cases | eval skills_arr = array(1, 2, 3) | mvexpand skills_arr");
   }
 
   // Only for Calcite

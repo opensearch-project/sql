@@ -14,7 +14,7 @@ import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Field;
 
-/** AST node representing an {@code mvexpand <field> [limit N]} operation. */
+/** AST node representing the {@code mvexpand} PPL command: {@code mvexpand <field> [limit=N]}. */
 @ToString
 @EqualsAndHashCode(callSuper = false)
 public class MvExpand extends UnresolvedPlan {

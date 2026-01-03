@@ -51,6 +51,7 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
@@ -78,26 +79,9 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.EmptySourcePropagateVisitor;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.dsl.AstDSL;
-import org.opensearch.sql.ast.expression.AggregateFunction;
-import org.opensearch.sql.ast.expression.Alias;
-import org.opensearch.sql.ast.expression.AllFields;
-import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
-import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.*;
 import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
-import org.opensearch.sql.ast.expression.Field;
-import org.opensearch.sql.ast.expression.Function;
-import org.opensearch.sql.ast.expression.Let;
-import org.opensearch.sql.ast.expression.Literal;
-import org.opensearch.sql.ast.expression.ParseMethod;
-import org.opensearch.sql.ast.expression.PatternMethod;
-import org.opensearch.sql.ast.expression.PatternMode;
-import org.opensearch.sql.ast.expression.QualifiedName;
-import org.opensearch.sql.ast.expression.Span;
-import org.opensearch.sql.ast.expression.SpanUnit;
-import org.opensearch.sql.ast.expression.UnresolvedExpression;
-import org.opensearch.sql.ast.expression.WindowFrame;
 import org.opensearch.sql.ast.expression.WindowFrame.FrameType;
-import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.AddColTotals;
@@ -3118,68 +3102,116 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
    */
   @Override
   public RelNode visitMvExpand(MvExpand mvExpand, CalcitePlanContext context) {
-    // 1. Visit children
     visitChildren(mvExpand, context);
 
-    RelBuilder relBuilder = context.relBuilder;
-    RelDataType rowType = relBuilder.peek().getRowType();
+    final RelBuilder relBuilder = context.relBuilder;
+    final Field field = mvExpand.getField();
 
-    Field field = mvExpand.getField();
+    final String fieldName = field.getField().toString();
 
-    String fieldName = extractFieldName(field);
+    final RexInputRef arrayFieldRex;
+    try {
+      arrayFieldRex = (RexInputRef) rexVisitor.analyze(field, context);
+    } catch (IllegalArgumentException e) {
+      // Missing field -> EMPTY results
+      if (isMissingFieldException(e)) {
+        // Preserve schema by projecting NULL ARRAY column with the expected name
+        final RelDataTypeFactory typeFactory = relBuilder.getTypeFactory();
+        final RelDataType arrayAny =
+            typeFactory.createArrayType(typeFactory.createSqlType(SqlTypeName.ANY), -1);
 
-    // 2. Lookup field
-    RelDataTypeField matched = rowType.getField(fieldName, false, false);
+        relBuilder.projectPlus(
+            List.of(
+                relBuilder.alias(relBuilder.getRexBuilder().makeNullLiteral(arrayAny), fieldName)));
 
-    // 2A. Missing field → true EMPTY relation (no schema, no rows)
-    if (matched == null) {
-      // Schema must include the missing field, even if no rows returned.
-      List<RelDataTypeField> fields = rowType.getFieldList();
-      List<RexNode> projects = new ArrayList<>();
-      List<String> names = new ArrayList<>();
-
-      // Keep existing fields
-      for (RelDataTypeField f : fields) {
-        projects.add(relBuilder.field(f.getIndex()));
-        names.add(f.getName());
+        // Force empty relation (no rows), preserving schema
+        relBuilder.filter(relBuilder.literal(false));
+        return relBuilder.peek();
       }
-
-      // Add NULL for missing field
-      projects.add(relBuilder.literal(null));
-      names.add(fieldName);
-
-      relBuilder.project(projects, names);
-
-      // Now return 0 rows
-      relBuilder.filter(relBuilder.literal(false));
-
-      return relBuilder.peek();
+      throw e;
     }
 
-    // 2B. Non-array → SemanticCheckException (return immediately)
-    RelDataType type = matched.getType();
-    SqlTypeName sqlType = type.getSqlTypeName();
-
-    if (sqlType != SqlTypeName.ARRAY) {
+    // enforce ARRAY type before UNNEST so we return SemanticCheckException
+    final SqlTypeName actual = arrayFieldRex.getType().getSqlTypeName();
+    if (actual != SqlTypeName.ARRAY) {
       throw new SemanticCheckException(
           String.format(
-              "Cannot expand field '%s': expected ARRAY type but found %s",
-              fieldName, sqlType.getName()));
+              "Cannot expand field '%s': expected ARRAY type but found %s", fieldName, actual));
     }
 
-    // 2C. Valid array → expand (with optional per-document limit)
-    int index = matched.getIndex();
-    RexInputRef fieldRef = context.rexBuilder.makeInputRef(type, index);
-
-    Integer limit = mvExpand.getLimit();
-    if (limit != null && limit <= 0) {
-      throw new SemanticCheckException(
-          String.format("mvexpand limit must be positive, but got %d", limit));
-    }
-    buildExpandRelNode(fieldRef, fieldName, fieldName, limit, context);
+    buildExpandRelNode(arrayFieldRex, fieldName, fieldName, mvExpand.getLimit(), context);
 
     return relBuilder.peek();
   }
+
+  private static boolean isMissingFieldException(IllegalArgumentException e) {
+    final String msg = e.getMessage();
+    return msg != null && msg.contains("Field [") && msg.contains("] not found");
+  }
+
+  //  public RelNode visitMvExpand(MvExpand mvExpand, CalcitePlanContext context) {
+  //    // 1. Visit children
+  //    visitChildren(mvExpand, context);
+  //
+  //    RelBuilder relBuilder = context.relBuilder;
+  //    RelDataType rowType = relBuilder.peek().getRowType();
+  //
+  //    Field field = mvExpand.getField();
+  //
+  //    String fieldName = extractFieldName(field);
+  //
+  //    // 2. Lookup field
+  //    RelDataTypeField matched = rowType.getField(fieldName, false, false);
+  //
+  //    // 2A. Missing field → true EMPTY relation (no schema, no rows)
+  //    if (matched == null) {
+  //      // Schema must include the missing field, even if no rows returned.
+  //      List<RelDataTypeField> fields = rowType.getFieldList();
+  //      List<RexNode> projects = new ArrayList<>();
+  //      List<String> names = new ArrayList<>();
+  //
+  //      // Keep existing fields
+  //      for (RelDataTypeField f : fields) {
+  //        projects.add(relBuilder.field(f.getIndex()));
+  //        names.add(f.getName());
+  //      }
+  //
+  //      // Add NULL for missing field
+  //      projects.add(relBuilder.literal(null));
+  //      names.add(fieldName);
+  //
+  //      relBuilder.project(projects, names);
+  //
+  //      // Now return 0 rows
+  //      relBuilder.filter(relBuilder.literal(false));
+  //
+  //      return relBuilder.peek();
+  //    }
+  //
+  //    // 2B. Non-array → SemanticCheckException (return immediately)
+  //    RelDataType type = matched.getType();
+  //    SqlTypeName sqlType = type.getSqlTypeName();
+  //
+  //    if (sqlType != SqlTypeName.ARRAY) {
+  //      throw new SemanticCheckException(
+  //          String.format(
+  //              "Cannot expand field '%s': expected ARRAY type but found %s",
+  //              fieldName, sqlType.getName()));
+  //    }
+  //
+  //    // 2C. Valid array → expand (with optional per-document limit)
+  //    int index = matched.getIndex();
+  //    RexInputRef fieldRef = context.rexBuilder.makeInputRef(type, index);
+  //
+  //    Integer limit = mvExpand.getLimit();
+  //    if (limit != null && limit <= 0) {
+  //      throw new SemanticCheckException(
+  //          String.format("mvexpand limit must be positive, but got %d", limit));
+  //    }
+  //    buildExpandRelNode(fieldRef, fieldName, fieldName, limit, context);
+  //
+  //    return relBuilder.peek();
+  //  }
 
   private String extractFieldName(Field f) {
     UnresolvedExpression inner = f.getField();
