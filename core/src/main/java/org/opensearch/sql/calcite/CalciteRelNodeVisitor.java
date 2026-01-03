@@ -3128,7 +3128,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     final RexInputRef arrayFieldRex;
     try {
       arrayFieldRex = (RexInputRef) rexVisitor.analyze(field, context);
-    } catch (RuntimeException e) {
+    } catch (IllegalArgumentException e) {
       if (isMissingFieldException(e)) {
         final RelDataTypeFactory typeFactory = relBuilder.getTypeFactory();
         final RelDataType arrayAny =
