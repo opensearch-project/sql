@@ -6,12 +6,7 @@
 package org.opensearch.sql.monitor.profile;
 
 /** Context for collecting profiling metrics during query execution. */
-public interface ProfileContext extends AutoCloseable {
-  /**
-   * @return true when profiling is enabled.
-   */
-  boolean isEnabled();
-
+public interface ProfileContext {
   /**
    * Obtain or create a metric with the provided name.
    *
@@ -26,9 +21,4 @@ public interface ProfileContext extends AutoCloseable {
    * @return immutable query profile snapshot
    */
   QueryProfile finish();
-
-  @Override
-  default void close() {
-    finish();
-  }
 }

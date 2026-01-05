@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.monitor.profile;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Objects;
 
 /** Disabled profiling context. */
@@ -18,12 +16,6 @@ public final class NoopProfileContext implements ProfileContext {
 
   /** {@inheritDoc} */
   @Override
-  public boolean isEnabled() {
-    return false;
-  }
-
-  /** {@inheritDoc} */
-  @Override
   public ProfileMetric getOrCreateMetric(MetricName name) {
     Objects.requireNonNull(name, "name");
     return NoopProfileMetric.INSTANCE;
@@ -32,10 +24,6 @@ public final class NoopProfileContext implements ProfileContext {
   /** {@inheritDoc} */
   @Override
   public QueryProfile finish() {
-    Map<MetricName, Double> metrics = new LinkedHashMap<>();
-    for (MetricName metricName : MetricName.values()) {
-      metrics.put(metricName, 0d);
-    }
-    return new QueryProfile(0d, metrics);
+    return null;
   }
 }

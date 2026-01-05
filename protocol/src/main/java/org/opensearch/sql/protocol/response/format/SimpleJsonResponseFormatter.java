@@ -11,7 +11,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Singular;
 import org.opensearch.sql.monitor.profile.MetricName;
-import org.opensearch.sql.monitor.profile.ProfileContext;
 import org.opensearch.sql.monitor.profile.ProfileMetric;
 import org.opensearch.sql.monitor.profile.QueryProfile;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
@@ -57,13 +56,7 @@ public class SimpleJsonResponseFormatter extends JsonResponseFormatter<QueryResu
     json.datarows(fetchDataRows(response));
     formatMetric.set(System.nanoTime() - formatTime);
 
-    ProfileContext profileContext = QueryProfiling.current();
-    if (profileContext.isEnabled()) {
-      QueryProfile finish = profileContext.finish();
-      json.profile(finish);
-    } else {
-      json.profile(null);
-    }
+    json.profile(QueryProfiling.current().finish());
     return json.build();
   }
 

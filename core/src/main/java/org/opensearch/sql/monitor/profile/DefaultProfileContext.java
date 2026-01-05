@@ -23,12 +23,6 @@ public class DefaultProfileContext implements ProfileContext {
 
   /** {@inheritDoc} */
   @Override
-  public boolean isEnabled() {
-    return true;
-  }
-
-  /** {@inheritDoc} */
-  @Override
   public ProfileMetric getOrCreateMetric(MetricName name) {
     Objects.requireNonNull(name, "name");
     return metrics.computeIfAbsent(name, key -> new DefaultMetricImpl(key.name()));
