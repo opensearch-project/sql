@@ -48,6 +48,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
             null,
             24,
             new JSONObject()
+                .put("area", 300.13)
                 .put("city", "New york city")
                 .put("state", "NY")
                 .put("moveInDate", new JSONObject().put("dateAndTime", "1984-04-12 09:07:42"))),
@@ -56,6 +57,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
             null,
             24,
             new JSONObject()
+                .put("area", 400.99)
                 .put("city", "bellevue")
                 .put("state", "WA")
                 .put(
@@ -68,6 +70,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
             null,
             24,
             new JSONObject()
+                .put("area", 127.4)
                 .put("city", "seattle")
                 .put("state", "WA")
                 .put("moveInDate", new JSONObject().put("dateAndTime", "1966-03-19 03:04:55"))),
@@ -76,6 +79,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
             null,
             24,
             new JSONObject()
+                .put("area", 10.24)
                 .put("city", "chicago")
                 .put("state", "IL")
                 .put("moveInDate", new JSONObject().put("dateAndTime", "2011-06-01 01:01:42"))),
@@ -84,6 +88,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
             null,
             32,
             new JSONObject()
+                .put("area", 1000.99)
                 .put("city", "Miami")
                 .put("state", "Florida")
                 .put("moveInDate", new JSONObject().put("dateAndTime", "1901-08-11 04:03:33"))),
@@ -92,6 +97,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
             null,
             32,
             new JSONObject()
+                .put("area", 9.99)
                 .put("city", "los angeles")
                 .put("state", "CA")
                 .put("moveInDate", new JSONObject().put("dateAndTime", "2023-05-03 08:07:42"))),
@@ -100,6 +106,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
             null,
             26,
             new JSONObject()
+                .put("area", 231.01)
                 .put("city", "san diego")
                 .put("state", "CA")
                 .put("moveInDate", new JSONObject().put("dateAndTime", "2001-11-11 04:07:44"))),
@@ -108,6 +115,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
             null,
             26,
             new JSONObject()
+                .put("area", 429.79)
                 .put("city", "austin")
                 .put("state", "TX")
                 .put("moveInDate", new JSONObject().put("dateAndTime", "1977-07-13 09:04:41"))),
@@ -124,6 +132,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
             null,
             25,
             new JSONObject()
+                .put("area", 190.5)
                 .put("city", "raleigh")
                 .put("state", "NC")
                 .put("moveInDate", new JSONObject().put("dateAndTime", "1909-06-17 01:04:21"))),
@@ -162,6 +171,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
         schema("age", "bigint"),
         schema("id", "bigint"),
         schema("addr", "struct"));
+    System.out.println(response);
     verifyDataRows(
         response,
         rows(
@@ -169,6 +179,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
             null,
             24,
             new JSONObject()
+                .put("area", 300.13)
                 .put("city", "New york city")
                 .put("state", "NY")
                 .put("moveInDate", new JSONObject().put("dateAndTime", "1984-04-12 09:07:42"))),
@@ -177,6 +188,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
             null,
             24,
             new JSONObject()
+                .put("area", 400.99)
                 .put("city", "bellevue")
                 .put("state", "WA")
                 .put(
@@ -189,6 +201,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
             null,
             24,
             new JSONObject()
+                .put("area", 127.4)
                 .put("city", "seattle")
                 .put("state", "WA")
                 .put("moveInDate", new JSONObject().put("dateAndTime", "1966-03-19 03:04:55"))),
@@ -197,6 +210,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
             null,
             24,
             new JSONObject()
+                .put("area", 10.24)
                 .put("city", "chicago")
                 .put("state", "IL")
                 .put("moveInDate", new JSONObject().put("dateAndTime", "2011-06-01 01:01:42"))),
@@ -205,6 +219,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
             null,
             32,
             new JSONObject()
+                .put("area", 1000.99)
                 .put("city", "Miami")
                 .put("state", "Florida")
                 .put("moveInDate", new JSONObject().put("dateAndTime", "1901-08-11 04:03:33"))),
@@ -213,6 +228,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
             null,
             32,
             new JSONObject()
+                .put("area", 9.99)
                 .put("city", "los angeles")
                 .put("state", "CA")
                 .put("moveInDate", new JSONObject().put("dateAndTime", "2023-05-03 08:07:42"))),
@@ -221,6 +237,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
             null,
             26,
             new JSONObject()
+                .put("area", 231.01)
                 .put("city", "san diego")
                 .put("state", "CA")
                 .put("moveInDate", new JSONObject().put("dateAndTime", "2001-11-11 04:07:44"))),
@@ -229,6 +246,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
             null,
             26,
             new JSONObject()
+                .put("area", 429.79)
                 .put("city", "austin")
                 .put("state", "TX")
                 .put("moveInDate", new JSONObject().put("dateAndTime", "1977-07-13 09:04:41"))),
@@ -245,6 +263,7 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
             null,
             25,
             new JSONObject()
+                .put("area", 190.5)
                 .put("city", "raleigh")
                 .put("state", "NC")
                 .put("moveInDate", new JSONObject().put("dateAndTime", "1909-06-17 01:04:21"))),

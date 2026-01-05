@@ -29,6 +29,7 @@ import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuil
 import org.opensearch.search.aggregations.bucket.histogram.DateHistogramAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.histogram.HistogramAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
+import org.opensearch.search.aggregations.bucket.nested.NestedAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.MultiTermsAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.opensearch.search.aggregations.support.MultiTermsValuesSourceConfig;
@@ -63,6 +64,9 @@ public class AggPushDownAction implements OSRequestBuilderAction {
   }
 
   private static int getScriptCount(AggregationBuilder aggBuilder) {
+    if (aggBuilder instanceof NestedAggregationBuilder) {
+      aggBuilder = aggBuilder.getSubAggregations().iterator().next();
+    }
     if (aggBuilder instanceof ValuesSourceAggregationBuilder<?>
         && ((ValuesSourceAggregationBuilder<?>) aggBuilder).script() != null) return 1;
     if (aggBuilder instanceof CompositeAggregationBuilder) {
@@ -110,7 +114,13 @@ public class AggPushDownAction implements OSRequestBuilderAction {
   public void rePushDownSortAggMeasure(
       List<RelFieldCollation> collations, List<String> fieldNames) {
     if (builderAndParser.getLeft().isEmpty()) return;
-    AggregationBuilder builder = builderAndParser.getLeft().get(0);
+    AggregationBuilder original = builderAndParser.getLeft().get(0);
+    AggregationBuilder builder;
+    if (original instanceof NestedAggregationBuilder) {
+      builder = original.getSubAggregations().iterator().next();
+    } else {
+      builder = original;
+    }
     if (builder instanceof CompositeAggregationBuilder) {
       boolean asc = collations.get(0).getDirection() == RelFieldCollation.Direction.ASCENDING;
       CompositeAggregationBuilder composite = (CompositeAggregationBuilder) builder;
@@ -155,6 +165,12 @@ public class AggPushDownAction implements OSRequestBuilderAction {
               "Cannot pushdown sort aggregate measure");
         }
       }
+      if (original instanceof NestedAggregationBuilder) {
+        NestedAggregationBuilder nested = (NestedAggregationBuilder) original;
+        aggregationBuilder =
+            AggregationBuilders.nested(nested.getName(), nested.path())
+                .subAggregation(aggregationBuilder);
+      }
       builderAndParser =
           Pair.of(
               Collections.singletonList(aggregationBuilder),
@@ -165,7 +181,13 @@ public class AggPushDownAction implements OSRequestBuilderAction {
   /** Re-pushdown a nested aggregation for rare/top to replace the pushed composite aggregation */
   public void rePushDownRareTop(RareTopDigest digest) {
     if (builderAndParser.getLeft().isEmpty()) return;
-    AggregationBuilder builder = builderAndParser.getLeft().get(0);
+    AggregationBuilder original = builderAndParser.getLeft().get(0);
+    AggregationBuilder builder;
+    if (original instanceof NestedAggregationBuilder) {
+      builder = original.getSubAggregations().iterator().next();
+    } else {
+      builder = original;
+    }
     if (builder instanceof CompositeAggregationBuilder) {
       CompositeAggregationBuilder composite = (CompositeAggregationBuilder) builder;
       BucketOrder bucketOrder =
@@ -221,6 +243,12 @@ public class AggPushDownAction implements OSRequestBuilderAction {
           throw new OpenSearchRequestBuilder.PushDownUnSupportedException(
               "Cannot pushdown " + digest);
         }
+      }
+      if (aggregationBuilder != null && original instanceof NestedAggregationBuilder) {
+        NestedAggregationBuilder nested = (NestedAggregationBuilder) original;
+        aggregationBuilder =
+            AggregationBuilders.nested(nested.getName(), nested.path())
+                .subAggregation(aggregationBuilder);
       }
       builderAndParser =
           Pair.of(
@@ -349,7 +377,13 @@ public class AggPushDownAction implements OSRequestBuilderAction {
       List<RelFieldCollation> collations, List<String> fieldNames) {
     // aggregationBuilder.getLeft() could be empty when count agg optimization works
     if (builderAndParser.getLeft().isEmpty()) return;
-    AggregationBuilder builder = builderAndParser.getLeft().get(0);
+    AggregationBuilder original = builderAndParser.getLeft().get(0);
+    AggregationBuilder builder;
+    if (original instanceof NestedAggregationBuilder) {
+      builder = original.getSubAggregations().iterator().next();
+    } else {
+      builder = original;
+    }
     List<String> selected = new ArrayList<>(collations.size());
     if (builder instanceof CompositeAggregationBuilder) {
       CompositeAggregationBuilder compositeAggBuilder = (CompositeAggregationBuilder) builder;
@@ -403,13 +437,18 @@ public class AggPushDownAction implements OSRequestBuilderAction {
               });
       AggregatorFactories.Builder newAggBuilder = new AggregatorFactories.Builder();
       compositeAggBuilder.getSubAggregations().forEach(newAggBuilder::addAggregator);
+      AggregationBuilder finalBuilder =
+          AggregationBuilders.composite("composite_buckets", newBuckets)
+              .subAggregations(newAggBuilder)
+              .size(compositeAggBuilder.size());
+      if (original instanceof NestedAggregationBuilder) {
+        NestedAggregationBuilder nested = (NestedAggregationBuilder) original;
+        finalBuilder =
+            AggregationBuilders.nested(nested.getName(), nested.path())
+                .subAggregation(finalBuilder);
+      }
       builderAndParser =
-          Pair.of(
-              Collections.singletonList(
-                  AggregationBuilders.composite("composite_buckets", newBuckets)
-                      .subAggregations(newAggBuilder)
-                      .size(compositeAggBuilder.size())),
-              builderAndParser.getRight());
+          Pair.of(Collections.singletonList(finalBuilder), builderAndParser.getRight());
       bucketNames = newBucketNames;
     }
     if (builder instanceof TermsAggregationBuilder) {
@@ -421,7 +460,12 @@ public class AggPushDownAction implements OSRequestBuilderAction {
 
   public boolean isCompositeAggregation() {
     return builderAndParser.getLeft().stream()
-        .anyMatch(builder -> builder instanceof CompositeAggregationBuilder);
+        .anyMatch(
+            builder ->
+                builder instanceof CompositeAggregationBuilder
+                    || (builder instanceof NestedAggregationBuilder
+                        && builder.getSubAggregations().iterator().next()
+                            instanceof CompositeAggregationBuilder));
   }
 
   /**
@@ -432,6 +476,9 @@ public class AggPushDownAction implements OSRequestBuilderAction {
     // aggregationBuilder.getLeft() could be empty when count agg optimization works
     if (builderAndParser.getLeft().isEmpty()) return false;
     AggregationBuilder builder = builderAndParser.getLeft().get(0);
+    if (builder instanceof NestedAggregationBuilder) {
+      builder = builder.getSubAggregations().iterator().next();
+    }
     if (builder instanceof CompositeAggregationBuilder) {
       CompositeAggregationBuilder compositeAggBuilder = (CompositeAggregationBuilder) builder;
       if (size < compositeAggBuilder.size()) {

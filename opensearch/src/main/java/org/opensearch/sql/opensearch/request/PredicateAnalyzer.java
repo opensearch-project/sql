@@ -33,6 +33,7 @@ import static java.util.Objects.requireNonNull;
 import static org.opensearch.index.query.QueryBuilders.boolQuery;
 import static org.opensearch.index.query.QueryBuilders.existsQuery;
 import static org.opensearch.index.query.QueryBuilders.matchQuery;
+import static org.opensearch.index.query.QueryBuilders.nestedQuery;
 import static org.opensearch.index.query.QueryBuilders.rangeQuery;
 import static org.opensearch.index.query.QueryBuilders.regexpQuery;
 import static org.opensearch.index.query.QueryBuilders.termQuery;
@@ -57,6 +58,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import lombok.Getter;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.RelNode;
@@ -78,6 +80,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.RangeSets;
 import org.apache.calcite.util.Sarg;
+import org.apache.lucene.search.join.ScoreMode;
 import org.opensearch.index.mapper.DateFieldMapper;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
@@ -108,6 +111,7 @@ import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.Simp
 import org.opensearch.sql.opensearch.storage.serde.RelJsonSerializer;
 import org.opensearch.sql.opensearch.storage.serde.ScriptParameterHelper;
 import org.opensearch.sql.opensearch.storage.serde.SerializationWrapper;
+import org.opensearch.sql.utils.Utils;
 
 /**
  * Query predicate analyzer. Uses visitor pattern to traverse existing expression and convert it to
@@ -1215,6 +1219,9 @@ public class PredicateAnalyzer {
       if (builder == null) {
         throw new IllegalStateException("Builder was not initialized");
       }
+      if (rel != null && rel.nestedPath != null) {
+        return nestedQuery(rel.nestedPath, builder, ScoreMode.None);
+      }
       return builder;
     }
 
@@ -1584,21 +1591,19 @@ public class PredicateAnalyzer {
 
     private final String name;
     private final ExprType type;
+    private final String nestedPath;
 
     public NamedFieldExpression(
         int refIndex, List<String> schema, Map<String, ExprType> filedTypes) {
       this.name = refIndex >= schema.size() ? null : schema.get(refIndex);
       this.type = filedTypes.get(name);
-    }
-
-    public NamedFieldExpression(String name, ExprType type) {
-      this.name = name;
-      this.type = type;
+      this.nestedPath = Utils.resolveNestedPath(this.name, filedTypes);
     }
 
     private NamedFieldExpression() {
       this.name = null;
       this.type = null;
+      this.nestedPath = null;
     }
 
     private NamedFieldExpression(
@@ -1606,11 +1611,17 @@ public class PredicateAnalyzer {
       this.name =
           (ref == null || ref.getIndex() >= schema.size()) ? null : schema.get(ref.getIndex());
       this.type = filedTypes.get(name);
+      this.nestedPath = Utils.resolveNestedPath(this.name, filedTypes);
     }
 
     private NamedFieldExpression(RexLiteral literal) {
       this.name = literal == null ? null : RexLiteral.stringValue(literal);
       this.type = null;
+      this.nestedPath = null;
+    }
+
+    public @Nullable String getNestedPath() {
+      return nestedPath;
     }
 
     public String getRootName() {
