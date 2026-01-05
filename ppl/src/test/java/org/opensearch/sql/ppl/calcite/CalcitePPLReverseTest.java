@@ -400,16 +400,15 @@ public class CalcitePPLReverseTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testReverseAfterMultipleFiltersWithSort() {
-    // Multiple filters don't destroy collation
+    // Multiple filters don't destroy collation (Calcite merges consecutive filters)
     String ppl = "source=EMP | sort SAL | where DEPTNO = 10 | where SAL > 1000 | reverse";
     RelNode root = getRelNode(ppl);
-    // Reversed sort is added on top of the filters
+    // Reversed sort is added on top of the merged filter
     String expectedLogical =
         "LogicalSort(sort0=[$5], dir0=[DESC-nulls-last])\n"
-            + "  LogicalFilter(condition=[>($5, 1000)])\n"
-            + "    LogicalFilter(condition=[=($7, 10)])\n"
-            + "      LogicalSort(sort0=[$5], dir0=[ASC-nulls-first])\n"
-            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+            + "  LogicalFilter(condition=[AND(=($7, 10), >($5, 1000))])\n"
+            + "    LogicalSort(sort0=[$5], dir0=[ASC-nulls-first])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
   }
 
