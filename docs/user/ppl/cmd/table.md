@@ -1,6 +1,6 @@
 # table
 
-The `table` command is an alias for the [`fields`]({{site.url}}{{site.baseurl}}/sql-and-ppl/ppl/commands/fields/) command and provides the same field selection capabilities. It allows you to keep or remove fields from the search results using enhanced syntax options.
+The `table` command is an alias for the [`fields`](fields.md) command and provides the same field selection capabilities. It allows you to keep or remove fields from the search results using enhanced syntax options.
 
 ## Syntax
 

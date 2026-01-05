@@ -23,7 +23,7 @@ The `spath` command supports the following parameters.
 | `output` | Optional | The destination field in which the extracted data is stored. Default is the value of `<path>`. |
 | `<path>` | Required | The JSON path that identifies the data to extract. |  
 
-For more information about path syntax, see [json_extract]({{site.url}}{{site.baseurl}}/sql-and-ppl/ppl/functions/json#json_extract).
+For more information about path syntax, see [json_extract](../functions/json.md#json_extract).
   
 
 ## Example 1: Basic field extraction

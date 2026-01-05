@@ -10,7 +10,7 @@ The `eventstats` command operates in the following way:
 
 ## Comparing stats and eventstats
 
-For a comprehensive comparison of `stats`, `eventstats`, and `streamstats` commands, including their differences in transformation behavior, output format, aggregation scope, and use cases, see [Comparing stats, eventstats, and streamstats](../streamstats/#comparing-stats-eventstats-and-streamstats).
+For a comprehensive comparison of `stats`, `eventstats`, and `streamstats` commands, including their differences in transformation behavior, output format, aggregation scope, and use cases, see [Comparing stats, eventstats, and streamstats](streamstats.md/#comparing-stats-eventstats-and-streamstats).
   
 
 ## Syntax

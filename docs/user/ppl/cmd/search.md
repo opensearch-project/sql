@@ -17,7 +17,7 @@ The `search` command supports the following parameters.
 | Parameter | Required/Optional | Description |
 | --- | --- | --- |
 | `<index>` | Required | The index to query. The index name can be prefixed with `<remote-cluster>:` (the remote cluster name) for cross-cluster search. |
-| `<search-expression>` | Optional | A search expression that is converted to an OpenSearch [query string]({{site.url}}{{site.baseurl}}/query-dsl/full-text/query-string/) query. |
+| `<search-expression>` | Optional | A search expression that is converted to an OpenSearch [query string](https://opensearch.org/docs/latest/query-dsl/full-text/query-string/) query. |
 
 
 ## Search expression  

@@ -5,7 +5,7 @@ The `rare` command identifies the least common combination of values across all 
 The command returns up to 10 results for each distinct combination of values in the group-by fields.
 {: .note}
 
-The `rare` command is not rewritten to [query domain-specific language (DSL)]({{site.url}}{{site.baseurl}}/query-dsl/). It is only executed on the coordinating node.
+The `rare` command is not rewritten to [query domain-specific language (DSL)](https://opensearch.org/docs/latest/query-dsl/). It is only executed on the coordinating node.
 {: .note}
 
 ## Syntax
