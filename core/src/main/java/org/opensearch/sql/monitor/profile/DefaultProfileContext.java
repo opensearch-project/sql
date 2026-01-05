@@ -14,7 +14,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class DefaultProfileContext implements ProfileContext {
 
   private final long startNanos = System.nanoTime();
-  private long endNanos;
   private boolean finished;
   private final Map<MetricName, DefaultMetricImpl> metrics = new ConcurrentHashMap<>();
   private QueryProfile profile;
@@ -35,7 +34,7 @@ public class DefaultProfileContext implements ProfileContext {
       return profile;
     }
     finished = true;
-    endNanos = System.nanoTime();
+    long endNanos = System.nanoTime();
     Map<MetricName, Double> snapshot = new LinkedHashMap<>(MetricName.values().length);
     for (MetricName metricName : MetricName.values()) {
       DefaultMetricImpl metric = metrics.get(metricName);
