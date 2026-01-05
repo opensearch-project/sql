@@ -18,11 +18,21 @@ import org.immutables.value.Value;
 import org.opensearch.sql.calcite.plan.rel.LogicalDedup;
 
 /**
- * Planner rule that converts a logical dedup into equivalent composite of logical operators, e.g. |
- * dedup 2 a, b keepempty=true -> LogicalDedup(dedupeFields=[a, b], allowedDuplication=2,
- * keepempty=true) -> LogicalProject(...) +- LogicalFilter(condition=[OR(IS NULL(a), IS NULL(b),
- * <=(_row_number_dedup_, 1))]) +- LogicalProject(..., _row_number_dedup_=[ROW_NUMBER() OVER
- * (PARTITION BY a, b ORDER BY a, b)])
+ * Planner rule that converts a logical dedup into equivalent composite of logical operators, e.g.
+ *
+ * <pre>
+ * | dedup 2 a, b keepempty=true
+ *
+ * becomes:
+ *
+ * LogicalDedup(dedupeFields=[a, b], allowedDuplication=2, keepempty=true)
+ *
+ * which is then converted to:
+ *
+ * LogicalProject(...)
+ * +- LogicalFilter(condition=[OR(IS NULL(a), IS NULL(b), <=(_row_number_dedup_, 1))])
+ *    +- LogicalProject(..., _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY a, b ORDER BY a, b)])
+ * </pre>
  */
 @Value.Enclosing
 public class PPLDedupConvertRule extends RelRule<PPLDedupConvertRule.Config> {
@@ -44,7 +54,7 @@ public class PPLDedupConvertRule extends RelRule<PPLDedupConvertRule.Config> {
     call.transformTo(relBuilder.build());
   }
 
-  private static void buildDedupOrNull(
+  public static void buildDedupOrNull(
       RelBuilder relBuilder, List<RexNode> dedupeFields, Integer allowedDuplication) {
     /*
      * | dedup 2 a, b keepempty=true
@@ -72,7 +82,7 @@ public class PPLDedupConvertRule extends RelRule<PPLDedupConvertRule.Config> {
     relBuilder.projectExcept(_row_number_dedup_);
   }
 
-  private static void buildDedupNotNull(
+  public static void buildDedupNotNull(
       RelBuilder relBuilder, List<RexNode> dedupeFields, Integer allowedDuplication) {
     /*
      * | dedup 2 a, b keepempty=false
