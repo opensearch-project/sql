@@ -21,6 +21,7 @@ import org.opensearch.search.aggregations.Aggregations;
 import org.opensearch.search.aggregations.bucket.MultiBucketsAggregation;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregation;
 import org.opensearch.search.aggregations.bucket.histogram.InternalAutoDateHistogram;
+import org.opensearch.search.aggregations.bucket.nested.InternalNested;
 import org.opensearch.search.aggregations.bucket.range.Range;
 import org.opensearch.search.aggregations.bucket.terms.InternalMultiTerms;
 
@@ -50,7 +51,12 @@ public class BucketAggregationParser implements OpenSearchAggregationResponsePar
 
   @Override
   public List<Map<String, Object>> parse(Aggregations aggregations) {
-    Aggregation agg = aggregations.asList().getFirst();
+    Aggregation agg;
+    if (aggregations.asList().getFirst() instanceof InternalNested) {
+      agg = ((InternalNested) aggregations.asList().getFirst()).getAggregations().iterator().next();
+    } else {
+      agg = aggregations.asList().getFirst();
+    }
     return ((MultiBucketsAggregation) agg)
         .getBuckets().stream()
             .map(b -> parseBucket(b, agg.getName()))

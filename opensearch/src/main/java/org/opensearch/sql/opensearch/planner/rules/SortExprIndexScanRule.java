@@ -116,6 +116,7 @@ public class SortExprIndexScanRule extends InterruptibleRelRule<SortExprIndexSca
       Project newProject =
           project.copy(sort.getTraitSet(), newScan, project.getProjects(), project.getRowType());
       call.transformTo(newProject);
+      PlanUtils.tryPruneRelNodes(call);
     }
   }
 

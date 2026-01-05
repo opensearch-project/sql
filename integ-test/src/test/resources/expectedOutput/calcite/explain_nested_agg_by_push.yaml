@@ -1,0 +1,9 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(min(address.area)=[$1], address.city=[$0])
+        LogicalAggregate(group=[{0}], min(address.area)=[MIN($1)])
+          LogicalProject(address.city=[$3], address.area=[$2])
+            CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_nested_simple]])
+  physical: |
+    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_nested_simple]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0},min(address.area)=MIN($1)), PROJECT->[min(address.area), address.city], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"nested_composite_buckets":{"nested":{"path":"address"},"aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"address.city":{"terms":{"field":"address.city.keyword","missing_bucket":true,"missing_order":"first","order":"asc"}}}]},"aggregations":{"nested_min(address.area)":{"nested":{"path":"address"},"aggregations":{"min(address.area)":{"min":{"field":"address.area"}}}}}}}}}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])

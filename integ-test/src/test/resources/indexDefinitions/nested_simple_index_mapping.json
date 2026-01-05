@@ -29,6 +29,9 @@
                 "format": "basic_date_time"
               }
             }
+          },
+          "area" : {
+            "type": "double"
           }
         }
       },
