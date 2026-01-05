@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.calcite.plan.rel;
 
+import static org.opensearch.sql.calcite.plan.rule.PPLDedupConvertRule.DEDUP_CONVERT_RULE;
+
 import java.util.List;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
@@ -52,5 +54,7 @@ public class LogicalDedup extends Dedup {
   }
 
   @Override
-  public void register(RelOptPlanner planner) {}
+  public void register(RelOptPlanner planner) {
+    planner.addRule(DEDUP_CONVERT_RULE);
+  }
 }

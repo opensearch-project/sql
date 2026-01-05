@@ -188,14 +188,6 @@ public class CalciteToolsHelper {
       }
       return new OpenSearchPrepareImpl();
     }
-
-    @Override
-    public CalcitePrepare createPrepare() {
-      if (prepareFactory != null) {
-        return prepareFactory.get();
-      }
-      return new OpenSearchPrepareImpl();
-    }
   }
 
   /** do nothing, just extend for a public construct for new */

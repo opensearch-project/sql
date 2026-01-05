@@ -5,8 +5,10 @@
 
 package org.opensearch.sql.calcite.utils;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -34,8 +36,14 @@ public class OpenSearchRelFieldTrimmer extends RelFieldTrimmer {
     final int fieldCount = rowType.getFieldCount();
     final List<RexNode> dedupFields = dedup.getDedupeFields();
     RelNode input = dedup.getInput();
+
+    final Set<RelDataTypeField> inputExtraFields = new LinkedHashSet<>(extraFields);
+    RelOptUtil.InputFinder inputFinder = new RelOptUtil.InputFinder(inputExtraFields, fieldsUsed);
+    inputFinder.visitEach(dedup.getDedupeFields());
+    final ImmutableBitSet inputFieldsUsed = inputFinder.build();
+
     // Create input with trimmed columns.
-    TrimResult trimResult = trimChild(dedup, input, fieldsUsed, extraFields);
+    TrimResult trimResult = trimChild(dedup, input, inputFieldsUsed, inputExtraFields);
     RelNode newInput = trimResult.left;
     final Mapping inputMapping = trimResult.right;
 
