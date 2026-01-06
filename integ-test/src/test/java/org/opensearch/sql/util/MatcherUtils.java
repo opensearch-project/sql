@@ -459,7 +459,8 @@ public class MatcherUtils {
         .replaceAll("pitId=[^,]+,", "pitId=*,")
         .replaceAll("\\$t?\\d+", "\\$FIELD_INDEX")
         .replaceAll(" needClean=true,", "")
-        .replaceAll(" searchDone=false,", "");
+        .replaceAll(" searchDone=false,", "")
+        .replaceAll("\\?\\?\\?", "\\?");
   }
 
   private static String jsonToYaml(String json) {
