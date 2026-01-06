@@ -5,15 +5,19 @@
 
 package org.opensearch.sql.opensearch.planner.physical;
 
-import java.util.ArrayList;
+import static org.opensearch.sql.utils.MLCommonsConstants.CATEGORY_FIELD;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.ml.common.dataframe.DataFrame;
 import org.opensearch.ml.common.dataframe.Row;
@@ -42,28 +46,40 @@ public class MLOperator extends MLCommonsOperatorActions {
   @Override
   public void open() {
     super.open();
-    DataFrame inputDataFrame = generateInputDataset(input);
     Map<String, Object> args = processArgs(arguments);
 
-    MLOutput mlOutput = getMLOutput(inputDataFrame, args, nodeClient);
-    final Iterator<Row> inputRowIter = inputDataFrame.iterator();
+    // Check if category_field is provided
+    String categoryField =
+        arguments.containsKey(CATEGORY_FIELD)
+            ? (String) arguments.get(CATEGORY_FIELD).getValue()
+            : null;
+
     // Only need to check train here, as action should be already checked in ml client.
     final boolean isPrediction = ((String) args.get("action")).equals("train") ? false : true;
-    // For train, only one row to return.
-    final Iterator<String> trainIter =
-        new ArrayList<String>() {
-          {
-            add("train");
-          }
-        }.iterator();
-    final Iterator<Row> resultRowIter =
-        isPrediction ? ((MLPredictionOutput) mlOutput).getPredictionResult().iterator() : null;
+    final Iterator<String> trainIter = Collections.singletonList("train").iterator();
+
+    // For prediction mode, handle both categorized and non-categorized cases
+    List<Pair<DataFrame, DataFrame>> inputDataFrames =
+        generateCategorizedInputDataset(input, categoryField);
+    List<MLOutput> mlOutputs =
+        inputDataFrames.stream()
+            .map(pair -> getMLOutput(pair.getRight(), args, nodeClient))
+            .collect(Collectors.toList());
+    Iterator<Pair<DataFrame, DataFrame>> inputDataFramesIter = inputDataFrames.iterator();
+    Iterator<MLOutput> mlOutputIter = mlOutputs.iterator();
+
     iterator =
-        new Iterator<ExprValue>() {
+        new Iterator<>() {
+          private DataFrame inputDataFrame = null;
+          private Iterator<Row> inputRowIter = null;
+          private MLOutput mlOutput = null;
+          private Iterator<Row> resultRowIter = null;
+
           @Override
           public boolean hasNext() {
             if (isPrediction) {
-              return inputRowIter.hasNext();
+              return (inputRowIter != null && inputRowIter.hasNext())
+                  || inputDataFramesIter.hasNext();
             } else {
               boolean res = trainIter.hasNext();
               if (res) {
@@ -75,8 +91,19 @@ public class MLOperator extends MLCommonsOperatorActions {
 
           @Override
           public ExprValue next() {
-            return buildPPLResult(
-                isPrediction, inputRowIter, inputDataFrame, mlOutput, resultRowIter);
+            if (isPrediction) {
+              if (inputRowIter == null || !inputRowIter.hasNext()) {
+                Pair<DataFrame, DataFrame> pair = inputDataFramesIter.next();
+                inputDataFrame = pair.getLeft();
+                inputRowIter = inputDataFrame.iterator();
+                mlOutput = mlOutputIter.next();
+                resultRowIter = ((MLPredictionOutput) mlOutput).getPredictionResult().iterator();
+              }
+              return buildPPLResult(true, inputRowIter, inputDataFrame, mlOutput, resultRowIter);
+            } else {
+              // train case
+              return buildPPLResult(false, null, null, mlOutputs.get(0), null);
+            }
           }
         };
   }
