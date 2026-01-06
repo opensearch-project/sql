@@ -600,8 +600,8 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
         schema("floatLiteral", "float"));
     verifyDataRows(
         result,
-        rows("hello", 20, 0.05, 0.049999999999999996, 0.05),
-        rows("world", 30, 0.05, 0.049999999999999996, 0.05));
+        rows("hello", 20, 0.05, 0.049999999999999996, 0.049999999999999996),
+        rows("world", 30, 0.05, 0.049999999999999996, 0.049999999999999996));
   }
 
   @Test
