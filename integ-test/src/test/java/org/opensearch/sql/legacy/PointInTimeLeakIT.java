@@ -19,19 +19,7 @@ import org.opensearch.client.ResponseException;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
 /**
- * Integration test to verify Point-in-Time (PIT) context leak fix in Legacy SQL engine.
- *
- * <p>Fix: When queries are executed without fetch_size (non-paginated), the Legacy SQL engine now
- * conditionally creates PIT contexts only when pagination is requested (fetch_size > 0) and
- * properly cleans them up when not used for cursor-based pagination.
- *
- * <p>This test verifies that:
- *
- * <ul>
- *   <li>Non-paginated queries (fetch_size=0) do not create PITs
- *   <li>Paginated queries (fetch_size>0) properly manage PIT lifecycle through cursors
- *   <li>No PIT contexts leak after query execution
- * </ul>
+ * Integration test verifying PIT contexts are created only when needed and properly cleaned up.
  *
  * @see <a href="https://github.com/opensearch-project/sql/issues/5002">Issue #5002</a>
  */
@@ -46,7 +34,6 @@ public class PointInTimeLeakIT extends SQLIntegTestCase {
     try {
       executeRequest(new Request("DELETE", "/" + TEST_INDEX));
     } catch (ResponseException e) {
-      // Ignore 404 - index doesn't exist, which is expected in clean state
       if (e.getResponse().getStatusLine().getStatusCode() != 404) {
         throw e;
       }
@@ -71,22 +58,9 @@ public class PointInTimeLeakIT extends SQLIntegTestCase {
     executeRequest(bulkRequest);
   }
 
-  /**
-   * Test verifying that PIT leak is fixed when executing queries without fetch_size.
-   *
-   * <p>This test:
-   *
-   * <ul>
-   *   <li>Records baseline PIT count
-   *   <li>Executes multiple SQL queries WITHOUT fetch_size parameter
-   *   <li>Verifies that NO PIT contexts are created or leaked
-   *   <li>Confirms the fix prevents resource leaks
-   * </ul>
-   */
   @Test
   public void testNoPitLeakWithoutFetchSize() throws IOException, InterruptedException {
     int baselinePitCount = getCurrentPitCount();
-    System.out.println("Baseline PIT count: " + baselinePitCount);
 
     int numQueries = 10;
 
@@ -101,30 +75,14 @@ public class PointInTimeLeakIT extends SQLIntegTestCase {
       JSONArray dataRows = response.getJSONArray("datarows");
       assertThat("Should return results", dataRows.length(), greaterThan(0));
       assertFalse("Should not have cursor for non-paginated query", response.has("cursor"));
-
-      System.out.println(
-          String.format(
-              "[%d/%d] Query executed, returned %d rows", i + 1, numQueries, dataRows.length()));
     }
 
     int currentPitCount = getCurrentPitCount();
     int leakedPits = currentPitCount - baselinePitCount;
 
-    System.out.println(
-        String.format(
-            "After %d queries: Current PIT count = %d, Leaked PITs = %d",
-            numQueries, currentPitCount, leakedPits));
-
     assertThat("No PITs should leak after fix", leakedPits, equalTo(0));
-
-    System.out.println("✓ FIX VERIFIED: No PIT contexts leaked!");
   }
 
-  /**
-   * Test showing expected behavior: queries with fetch_size properly manage PITs.
-   *
-   * <p>When fetch_size is specified, PITs are properly managed through cursor lifecycle.
-   */
   @Test
   public void testPitManagedProperlyWithFetchSize() throws IOException {
     int baselinePitCount = getCurrentPitCount();
@@ -143,19 +101,10 @@ public class PointInTimeLeakIT extends SQLIntegTestCase {
 
     int finalPitCount = getCurrentPitCount();
 
-    System.out.println(
-        String.format(
-            "With proper cursor management: Baseline=%d, Final=%d",
-            baselinePitCount, finalPitCount));
-
     assertThat(
         "PIT should be cleaned up after cursor close", finalPitCount, equalTo(baselinePitCount));
   }
 
-  /**
-   * Test comparing Legacy SQL vs V2 SQL engine behavior. V2 engine may create PITs internally but
-   * cleans them up properly.
-   */
   @Test
   public void testCompareV1AndV2EnginePitBehavior() throws IOException {
     int baselinePitCount = getCurrentPitCount();
@@ -168,23 +117,19 @@ public class PointInTimeLeakIT extends SQLIntegTestCase {
     int afterV1PitCount = getCurrentPitCount();
     int v1Leaked = afterV1PitCount - baselinePitCount;
 
-    System.out.println(String.format("V1 Legacy SQL: PITs leaked = %d", v1Leaked));
-
     String v2Query =
         StringUtils.format(
             "SELECT * FROM `%s` WHERE action LIKE 'login%%' ORDER BY timestamp ASC", TEST_INDEX);
 
     JSONObject v2Response = executeQueryWithoutFetchSize(v2Query);
     int afterV2PitCount = getCurrentPitCount();
-
-    System.out.println(
-        String.format("After V1 and V2 queries: Total PIT count = %d", afterV2PitCount));
+    int v2Leaked = afterV2PitCount - afterV1PitCount;
 
     assertTrue("V1 should return results", v1Response.has("datarows"));
     assertTrue("V2 should return results", v2Response.has("datarows"));
 
-    // Both engines should not leak PITs for non-paginated queries
     assertThat("V1 Legacy SQL should not leak PITs", v1Leaked, equalTo(0));
+    assertThat("V2 SQL should not leak PITs", v2Leaked, equalTo(0));
   }
 
   private JSONObject executeQueryWithoutFetchSize(String query) throws IOException {

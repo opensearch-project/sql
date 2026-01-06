@@ -40,7 +40,6 @@ public class PrettyFormatRestExecutor implements RestExecutor {
     this.format = format.toLowerCase();
   }
 
-  /** Execute the QueryAction and return the REST response using the channel. */
   @Override
   public void execute(
       Client client, Map<String, String> params, QueryAction queryAction, RestChannel channel) {
@@ -89,79 +88,77 @@ public class PrettyFormatRestExecutor implements RestExecutor {
   }
 
   /**
-   * QueryActionElasticExecutor.executeAnyAction() returns SearchHits inside SearchResponse. In
-   * order to get scroll ID if any, we need to execute DefaultQueryAction ourselves for
-   * SearchResponse.
+   * Builds protocol for default query execution.
    *
-   * <p>This method conditionally creates PIT only when pagination is requested (fetch_size > 0) and
-   * ensures proper cleanup of PIT resources when they are not used for cursor-based pagination.
+   * <p>Routes to pagination or non-pagination execution based on fetch_size parameter.
    */
   private Protocol buildProtocolForDefaultQuery(Client client, DefaultQueryAction queryAction)
       throws SqlParseException {
-
-    PointInTimeHandler pit = null;
-    SearchResponse response;
-    Protocol protocol;
-    boolean cursorCreated = false;
 
     queryAction.explain();
 
     Integer fetchSize = queryAction.getSqlRequest().fetchSize();
     if (fetchSize != null && fetchSize > 0) {
-      pit = new PointInTimeHandlerImpl(client, queryAction.getSelect().getIndexArr());
-      pit.create();
+      return buildProtocolWithPagination(client, queryAction, fetchSize);
+    } else {
+      return buildProtocolWithoutPagination(client, queryAction);
     }
+  }
+
+  /** Executes query with pagination support using Point-in-Time (PIT). */
+  private Protocol buildProtocolWithPagination(
+      Client client, DefaultQueryAction queryAction, Integer fetchSize) {
+
+    PointInTimeHandler pit =
+        new PointInTimeHandlerImpl(client, queryAction.getSelect().getIndexArr());
+    pit.create();
 
     try {
       SearchRequestBuilder searchRequest = queryAction.getRequestBuilder();
-      if (pit != null) {
-        searchRequest.setPointInTime(new PointInTimeBuilder(pit.getPitId()));
-      }
-      response = searchRequest.get();
+      searchRequest.setPointInTime(new PointInTimeBuilder(pit.getPitId()));
+      SearchResponse response = searchRequest.get();
 
-      if (pit != null && isDefaultCursor(response, queryAction)) {
-        DefaultCursor defaultCursor = new DefaultCursor();
-        defaultCursor.setLimit(queryAction.getSelect().getRowCount());
-        defaultCursor.setFetchSize(fetchSize);
-        defaultCursor.setPitId(pit.getPitId());
-        defaultCursor.setSearchSourceBuilder(queryAction.getRequestBuilder().request().source());
-        defaultCursor.setSortFields(
-            response.getHits().getAt(response.getHits().getHits().length - 1).getSortValues());
-
-        protocol = new Protocol(client, queryAction, response.getHits(), format, defaultCursor);
-        cursorCreated = true;
+      if (shouldCreateCursor(response, queryAction, fetchSize)) {
+        DefaultCursor cursor = createCursorWithPit(pit, response, queryAction, fetchSize);
+        return new Protocol(client, queryAction, response.getHits(), format, cursor);
       } else {
-        protocol =
-            new Protocol(client, queryAction, response.getHits(), format, Cursor.NULL_CURSOR);
+        pit.delete();
+        return new Protocol(client, queryAction, response.getHits(), format, Cursor.NULL_CURSOR);
       }
-    } catch (Exception e) {
-      if (pit != null) {
-        try {
-          pit.delete();
-          pit = null; // Prevent double deletion in finally
-        } catch (RuntimeException cleanupException) {
-          LOG.error("Failed to delete PIT during exception handling", cleanupException);
-          Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-        }
+    } catch (RuntimeException e) {
+      try {
+        pit.delete();
+      } catch (RuntimeException deleteException) {
+        LOG.error("Failed to delete PIT", deleteException);
+        Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
       }
       throw e;
-    } finally {
-      // Cursor owns PIT lifecycle when created; otherwise clean up here
-      if (pit != null && !cursorCreated) {
-        try {
-          pit.delete();
-        } catch (RuntimeException e) {
-          LOG.error("Failed to delete PIT in finally block", e);
-          Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-        }
-      }
     }
-
-    return protocol;
   }
 
-  protected boolean isDefaultCursor(SearchResponse searchResponse, DefaultQueryAction queryAction) {
-    Integer fetchSize = queryAction.getSqlRequest().fetchSize();
+  private Protocol buildProtocolWithoutPagination(Client client, DefaultQueryAction queryAction) {
+    SearchRequestBuilder searchRequest = queryAction.getRequestBuilder();
+    SearchResponse response = searchRequest.get();
+    return new Protocol(client, queryAction, response.getHits(), format, Cursor.NULL_CURSOR);
+  }
+
+  private DefaultCursor createCursorWithPit(
+      PointInTimeHandler pit,
+      SearchResponse response,
+      DefaultQueryAction queryAction,
+      Integer fetchSize) {
+    DefaultCursor cursor = new DefaultCursor();
+    cursor.setLimit(queryAction.getSelect().getRowCount());
+    cursor.setFetchSize(fetchSize);
+    cursor.setPitId(pit.getPitId());
+    cursor.setSearchSourceBuilder(queryAction.getRequestBuilder().request().source());
+    cursor.setSortFields(
+        response.getHits().getAt(response.getHits().getHits().length - 1).getSortValues());
+    return cursor;
+  }
+
+  protected boolean shouldCreateCursor(
+      SearchResponse searchResponse, DefaultQueryAction queryAction, Integer fetchSize) {
     return fetchSize != null
         && fetchSize > 0
         && Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value() >= fetchSize;

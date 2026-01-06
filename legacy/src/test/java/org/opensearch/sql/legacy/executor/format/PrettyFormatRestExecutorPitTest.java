@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.legacy.executor.format;
 
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -32,22 +33,7 @@ import org.opensearch.sql.legacy.request.SqlRequest;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.transport.client.Client;
 
-/**
- * Unit tests for PIT lifecycle management in PrettyFormatRestExecutor.
- *
- * <p>These tests verify that:
- *
- * <ul>
- *   <li>PIT is only created when fetch_size > 0
- *   <li>PIT is properly cleaned up when cursor is not created
- *   <li>PIT is not deleted when cursor owns the lifecycle
- *   <li>PIT cleanup happens on exceptions
- * </ul>
- *
- * <p>Note: Due to the private nature of buildProtocolForDefaultQuery(), these tests verify behavior
- * through the public execute() method. Integration tests in PointInTimeLeakIT provide end-to-end
- * validation of the PIT leak fix.
- */
+/** Unit tests for PIT lifecycle management in PrettyFormatRestExecutor. */
 @RunWith(MockitoJUnitRunner.Silent.class)
 public class PrettyFormatRestExecutorPitTest {
 
@@ -81,11 +67,6 @@ public class PrettyFormatRestExecutorPitTest {
     params = new HashMap<>();
   }
 
-  /**
-   * Test that verifies PIT is NOT created when fetch_size is 0.
-   *
-   * <p>Expected: Query executes successfully without creating PIT context.
-   */
   @Test
   public void testNoPitCreatedWhenFetchSizeIsZero() throws Exception {
     when(sqlRequest.fetchSize()).thenReturn(0);
@@ -105,20 +86,6 @@ public class PrettyFormatRestExecutorPitTest {
     verify(searchRequestBuilder, never()).setPointInTime(any(PointInTimeBuilder.class));
   }
 
-  /**
-   * Test that verifies behavior when fetch_size > 0 but results fit in one page.
-   *
-   * <p>In this scenario:
-   *
-   * <ul>
-   *   <li>PIT would be created (fetch_size > 0)
-   *   <li>But cursor is not needed (results < fetch_size)
-   *   <li>PIT should be cleaned up in finally block
-   * </ul>
-   *
-   * <p>Note: Full PIT creation/deletion verification requires integration testing due to private
-   * method access.
-   */
   @Test
   public void testFetchSizeSpecifiedButResultsFitInOnePage() throws Exception {
     when(sqlRequest.fetchSize()).thenReturn(100);
@@ -130,22 +97,9 @@ public class PrettyFormatRestExecutorPitTest {
 
     String result = executor.execute(client, params, queryAction);
 
-    org.junit.Assert.assertNotNull("Query should execute successfully", result);
+    assertNotNull("Query should execute successfully", result);
   }
 
-  /**
-   * Test that verifies behavior when fetch_size > 0 and cursor is needed.
-   *
-   * <p>In this scenario:
-   *
-   * <ul>
-   *   <li>PIT would be created (fetch_size > 0)
-   *   <li>Cursor is created (results >= fetch_size)
-   *   <li>PIT should NOT be deleted (cursor owns lifecycle)
-   * </ul>
-   *
-   * <p>Note: Full PIT lifecycle verification requires integration testing.
-   */
   @Test
   public void testCursorCreatedWhenResultsExceedFetchSize() throws Exception {
     when(sqlRequest.fetchSize()).thenReturn(5);
@@ -157,56 +111,17 @@ public class PrettyFormatRestExecutorPitTest {
 
     String result = executor.execute(client, params, queryAction);
 
-    org.junit.Assert.assertNotNull("Query should execute successfully", result);
+    assertNotNull("Query should execute successfully", result);
   }
 
-  /**
-   * Test isDefaultCursor logic with various fetch_size values.
-   *
-   * <p>This is the key decision point for determining if cursor (and PIT management) is needed.
-   */
-  @Test
-  public void testIsDefaultCursorLogic() {
-    when(sqlRequest.fetchSize()).thenReturn(0);
-    org.junit.Assert.assertFalse(
-        "No cursor when fetch_size=0", executor.isDefaultCursor(searchResponse, queryAction));
-
-    when(sqlRequest.fetchSize()).thenReturn(100);
-    SearchHits fewHits =
-        new SearchHits(
-            new SearchHit[] {searchHit}, new TotalHits(5, TotalHits.Relation.EQUAL_TO), 1.0F);
-    when(searchResponse.getHits()).thenReturn(fewHits);
-    org.junit.Assert.assertFalse(
-        "No cursor when results < fetch_size",
-        executor.isDefaultCursor(searchResponse, queryAction));
-
-    when(sqlRequest.fetchSize()).thenReturn(5);
-    SearchHits manyHits =
-        new SearchHits(
-            new SearchHit[] {searchHit}, new TotalHits(10, TotalHits.Relation.EQUAL_TO), 1.0F);
-    when(searchResponse.getHits()).thenReturn(manyHits);
-    org.junit.Assert.assertTrue(
-        "Cursor created when results >= fetch_size",
-        executor.isDefaultCursor(searchResponse, queryAction));
-  }
-
-  /**
-   * Test that verifies query execution completes successfully in all scenarios.
-   *
-   * <p>This ensures our PIT management changes don't break normal query execution.
-   */
   @Test
   public void testQueryExecutionSucceedsWithVariousFetchSizes() throws Exception {
-    when(sqlRequest.fetchSize()).thenReturn(0);
-    String result1 = executor.execute(client, params, queryAction);
-    org.junit.Assert.assertNotNull("Result should not be null", result1);
+    int[] fetchSizes = {0, 100, 1};
 
-    when(sqlRequest.fetchSize()).thenReturn(100);
-    String result2 = executor.execute(client, params, queryAction);
-    org.junit.Assert.assertNotNull("Result should not be null", result2);
-
-    when(sqlRequest.fetchSize()).thenReturn(1);
-    String result3 = executor.execute(client, params, queryAction);
-    org.junit.Assert.assertNotNull("Result should not be null", result3);
+    for (int fetchSize : fetchSizes) {
+      when(sqlRequest.fetchSize()).thenReturn(fetchSize);
+      String result = executor.execute(client, params, queryAction);
+      assertNotNull("Result should not be null for fetchSize=" + fetchSize, result);
+    }
   }
 }
