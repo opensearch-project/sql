@@ -4,5 +4,5 @@ calcite:
       LogicalProject(state=[REGEXP_REPLACE($7, '^\Q\E(.*?)\QL\E$':VARCHAR, 'STATE_IL':VARCHAR)])
         CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['^\Q\E(.*?)\QL\E$':VARCHAR], expr#2=['STATE_IL':VARCHAR], expr#3=[REGEXP_REPLACE($t0, $t1, $t2)], $f0=[$t3])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['^\Q\E(.*?)\QL\E$':VARCHAR], expr#2=['STATE_IL':VARCHAR], expr#3=[REGEXP_REPLACE($t0, $t1, $t2)], state=[$t3])
       CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[state], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10000,"timeout":"1m","_source":{"includes":["state"],"excludes":[]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])
