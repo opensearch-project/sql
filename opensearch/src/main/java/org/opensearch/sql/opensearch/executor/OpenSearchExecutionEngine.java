@@ -6,11 +6,13 @@
 package org.opensearch.sql.opensearch.executor;
 
 import com.google.common.base.Suppliers;
+import java.lang.reflect.Method;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +20,8 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import org.apache.calcite.avatica.AvaticaResultSet;
+import org.apache.calcite.avatica.util.Cursor;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
@@ -34,6 +38,7 @@ import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.locationtech.jts.geom.Point;
 import org.opensearch.sql.ast.statement.Explain.ExplainFormat;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
@@ -42,6 +47,7 @@ import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.executor.ExecutionContext;
@@ -52,10 +58,10 @@ import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.data.value.OpenSearchExprGeoPointValue;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
 import org.opensearch.sql.opensearch.functions.DistinctCountApproxAggFunction;
 import org.opensearch.sql.opensearch.functions.GeoIpFunction;
-import org.opensearch.sql.opensearch.util.JdbcOpenSearchDataTypeConvertor;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.TableScanOperator;
 import org.opensearch.transport.client.node.NodeClient;
@@ -212,6 +218,61 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
         });
   }
 
+  /**
+   * Retrieves column accessors from AvaticaResultSet using reflection. This method accesses the
+   * private getAccessor method to obtain direct access to column data.
+   *
+   * @param rs the ResultSet to get accessors from
+   * @param columnCount the number of columns in the ResultSet
+   * @return list of Cursor.Accessor objects for each column
+   * @throws SQLException if reflection fails or column access is invalid
+   */
+  private List<Cursor.Accessor> getAccessors(ResultSet rs, int columnCount) throws SQLException {
+    List<Cursor.Accessor> accessorList = new ArrayList<>();
+    try {
+      Method method = AvaticaResultSet.class.getDeclaredMethod("getAccessor", int.class);
+      method.setAccessible(true);
+      for (int i = 1; i <= columnCount; i++) {
+        accessorList.add((Cursor.Accessor) method.invoke(rs, i));
+      }
+    } catch (Exception e) {
+      throw new SQLException("Unable to get accessors", e);
+    }
+    return accessorList;
+  }
+
+  /**
+   * Process values recursively, handling geo points and nested maps. Geo points are converted to
+   * OpenSearchExprGeoPointValue. Maps are recursively processed to handle nested structures.
+   */
+  private static Object processValue(Object value) {
+    if (value == null) {
+      return null;
+    }
+    if (value instanceof Point) {
+      Point point = (Point) value;
+      return new OpenSearchExprGeoPointValue(point.getY(), point.getX());
+    }
+    if (value instanceof Map) {
+      Map<String, Object> map = (Map<String, Object>) value;
+      Map<String, Object> convertedMap = new HashMap<>();
+      for (Map.Entry<String, Object> entry : map.entrySet()) {
+        convertedMap.put(entry.getKey(), processValue(entry.getValue()));
+      }
+      return convertedMap;
+    }
+    if (value instanceof List) {
+      List<Object> list = (List<Object>) value;
+      List<Object> convertedList = new ArrayList<>();
+      for (Object item : list) {
+        convertedList.add(processValue(item));
+      }
+      return convertedList;
+    }
+    // For other types, return as-is
+    return value;
+  }
+
   private void buildResultSet(
       ResultSet resultSet,
       RelDataType rowTypes,
@@ -221,6 +282,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     // Get the ResultSet metadata to know about columns
     ResultSetMetaData metaData = resultSet.getMetaData();
     int columnCount = metaData.getColumnCount();
+    List<Cursor.Accessor> accessorList = getAccessors(resultSet, columnCount);
     List<RelDataType> fieldTypes =
         rowTypes.getFieldList().stream().map(RelDataTypeField::getType).toList();
     List<ExprValue> values = new ArrayList<>();
@@ -230,11 +292,9 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       // Loop through each column
       for (int i = 1; i <= columnCount; i++) {
         String columnName = metaData.getColumnName(i);
-        int sqlType = metaData.getColumnType(i);
-        RelDataType fieldType = fieldTypes.get(i - 1);
-        ExprValue exprValue =
-            JdbcOpenSearchDataTypeConvertor.getExprValueFromSqlType(
-                resultSet, i, sqlType, fieldType, columnName);
+        Object value = accessorList.get(i - 1).getObject();
+        Object converted = processValue(value);
+        ExprValue exprValue = ExprValueUtils.fromObjectValue(converted);
         row.put(columnName, exprValue);
       }
       values.add(ExprTupleValue.fromExprValueMap(row));
