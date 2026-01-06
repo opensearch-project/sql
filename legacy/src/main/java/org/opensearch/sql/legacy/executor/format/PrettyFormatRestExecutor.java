@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.legacy.executor.format;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.logging.log4j.LogManager;
@@ -37,9 +38,10 @@ public class PrettyFormatRestExecutor implements RestExecutor {
   private final String format;
 
   public PrettyFormatRestExecutor(String format) {
-    this.format = format.toLowerCase();
+    this.format = Objects.requireNonNull(format, "Format cannot be null").toLowerCase(Locale.ROOT);
   }
 
+  /** Execute the QueryAction and return the REST response using the channel. */
   @Override
   public void execute(
       Client client, Map<String, String> params, QueryAction queryAction, RestChannel channel) {
@@ -72,15 +74,14 @@ public class PrettyFormatRestExecutor implements RestExecutor {
         Object queryResult = QueryActionElasticExecutor.executeAnyAction(client, queryAction);
         protocol = new Protocol(client, queryAction, queryResult, format, Cursor.NULL_CURSOR);
       }
+    } catch (SqlParseException e) {
+      LOG.warn("SQL parsing error: {}", e.getMessage(), e);
+      protocol = new Protocol(e);
+    } catch (OpenSearchException e) {
+      LOG.warn("An error occurred in OpenSearch engine: {}", e.getDetailedMessage(), e);
+      protocol = new Protocol(e);
     } catch (Exception e) {
-      if (e instanceof OpenSearchException) {
-        LOG.warn(
-            "An error occurred in OpenSearch engine: "
-                + ((OpenSearchException) e).getDetailedMessage(),
-            e);
-      } else {
-        LOG.warn("Error happened in pretty formatter", e);
-      }
+      LOG.warn("Error happened in pretty formatter", e);
       protocol = new Protocol(e);
     }
 
@@ -152,15 +153,19 @@ public class PrettyFormatRestExecutor implements RestExecutor {
     cursor.setFetchSize(fetchSize);
     cursor.setPitId(pit.getPitId());
     cursor.setSearchSourceBuilder(queryAction.getRequestBuilder().request().source());
-    cursor.setSortFields(
-        response.getHits().getAt(response.getHits().getHits().length - 1).getSortValues());
+
+    if (response.getHits().getHits().length > 0) {
+      cursor.setSortFields(
+          response.getHits().getAt(response.getHits().getHits().length - 1).getSortValues());
+    }
+
     return cursor;
   }
 
   protected boolean shouldCreateCursor(
       SearchResponse searchResponse, DefaultQueryAction queryAction, Integer fetchSize) {
     return fetchSize != null
-        && fetchSize > 0
+        && searchResponse.getHits() != null
         && Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value() >= fetchSize;
   }
 }

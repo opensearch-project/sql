@@ -154,20 +154,17 @@ public class PointInTimeLeakIT extends SQLIntegTestCase {
     Response response = client().performRequest(statsRequest);
     JSONObject stats = new JSONObject(TestUtils.getResponseBody(response));
 
+    if (!stats.has("nodes")) {
+      return 0;
+    }
+
     int totalPits = 0;
-    if (stats.has("nodes")) {
-      JSONObject nodes = stats.getJSONObject("nodes");
-      for (String nodeId : nodes.keySet()) {
-        JSONObject node = nodes.getJSONObject(nodeId);
-        if (node.has("indices")) {
-          JSONObject indices = node.getJSONObject("indices");
-          if (indices.has("search")) {
-            JSONObject search = indices.getJSONObject("search");
-            if (search.has("point_in_time_current")) {
-              totalPits += search.getInt("point_in_time_current");
-            }
-          }
-        }
+    JSONObject nodes = stats.getJSONObject("nodes");
+    for (String nodeId : nodes.keySet()) {
+      Object pitValue =
+          stats.optQuery("/nodes/" + nodeId + "/indices/search/point_in_time_current");
+      if (pitValue instanceof Number) {
+        totalPits += ((Number) pitValue).intValue();
       }
     }
 
