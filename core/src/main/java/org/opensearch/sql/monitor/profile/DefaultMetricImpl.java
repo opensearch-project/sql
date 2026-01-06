@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.LongAdder;
 final class DefaultMetricImpl implements ProfileMetric {
 
   private final String name;
-  private final LongAdder value = new LongAdder();
+  private long value = 0;
 
   /**
    * Construct a metric with the provided name.
@@ -29,17 +29,17 @@ final class DefaultMetricImpl implements ProfileMetric {
 
   @Override
   public long value() {
-    return value.sum();
+    return value;
   }
 
   @Override
   public void add(long delta) {
-    value.add(delta);
+    value += delta;
   }
 
   @Override
   public void set(long value) {
-    this.value.reset();
-    this.value.add(value);
+    this.value = 0;
+    add(value);
   }
 }
