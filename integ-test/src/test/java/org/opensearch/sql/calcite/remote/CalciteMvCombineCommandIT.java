@@ -19,17 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-/**
- * mvcombine integration tests using existing SQLIntegTestCase Index.MVCOMBINE mapping + dataset.
- *
- * <p>IMPORTANT: - Do NOT filter by a field named "case" (parser keyword risk + dataset mismatch
- * risk). - Prefer stable keys: ip/bytes/tags. - Use single quotes in query strings; executeQuery
- * wraps the query in JSON.
- *
- * <p>NOTE ON nomv/delim: - Some builds may not support nomv and/or delim yet, or may validate their
- * ordering strictly. - These tests are written to: - Validate behavior when the feature is
- * supported - Tolerate a 400 syntax rejection when not supported
- */
+
 public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
 
   private static final String INDEX = Index.MVCOMBINE.getName();
