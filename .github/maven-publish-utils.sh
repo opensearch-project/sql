@@ -323,59 +323,6 @@ prepare_maven_structure() {
   echo "${MAVEN_LOCAL_PATH}"
 }
 
-# Main function for grammar files publishing workflow
-publish_grammar_files() {
-  local version="$1"
-  local commit_id="$2"
-
-  echo "Starting grammar files publishing workflow"
-
-  # Define constants
-  ARTIFACT_ID="language-grammar"
-  GROUP_ID="org.opensearch"
-
-  # Package grammar files
-  echo "Packaging grammar files..."
-  mkdir -p grammar_files
-  find ./language-grammar/src/main/antlr4 -name "*.g4" -type f -exec cp {} grammar_files/ \;
-
-  echo "Files to be included in the zip:"
-  ls -la grammar_files/
-
-  cd grammar_files
-  zip -r ../grammar.zip ./*
-  cd ..
-
-  ls -la grammar.zip
-
-  # Prepare for Maven publishing
-  echo "Preparing for Maven publishing..."
-  MAVEN_LOCAL_PATH=$(prepare_maven_structure "$GROUP_ID" "$ARTIFACT_ID" "$version")
-
-  # Copy the zip file to Maven directory with proper naming
-  MAVEN_ZIP_NAME="${ARTIFACT_ID}-${version}.zip"
-  cp grammar.zip "${MAVEN_LOCAL_PATH}/${MAVEN_ZIP_NAME}"
-
-  # Generate POM file
-  create_pom_file "$GROUP_ID" "$ARTIFACT_ID" "$version" "zip" "OpenSearch Language Grammar Files" "${MAVEN_LOCAL_PATH}/${ARTIFACT_ID}-${version}.pom"
-
-  echo "Grammar files prepared for Maven publishing as version ${version}"
-
-  # Generate checksums
-  generate_checksums
-
-  # Publish to Maven
-  publish_to_maven
-
-  # Update metadata with commit ID
-  update_version_metadata "$ARTIFACT_ID" "$version" "$commit_id"
-
-  # Update commit mapping
-  update_commit_mapping "$commit_id" "$version" "$ARTIFACT_ID" "zip"
-
-  echo "Grammar files publishing workflow completed"
-}
-
 # Main function for async-query-core publishing workflow
 publish_async_query_core() {
   local version="$1"
