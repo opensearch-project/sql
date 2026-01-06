@@ -10,7 +10,7 @@ explain <mode> queryStatement
   * standard: The default mode. Display logical and physical plan with pushdown information (DSL).  
   * simple: Display the logical plan tree without attributes.  
   * cost: Display the standard information plus plan cost attributes.  
-  * extended: Display the standard information plus generated code.  
+  * extended: Display the standard information plus generated code, if the whole plan is able to pushdown, it equals to standard mode.
 * queryStatement: mandatory. A PPL query to explain.  
   
 ## Example 1: Explain a PPL query in v2 engine  

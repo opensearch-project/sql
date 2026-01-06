@@ -36,8 +36,6 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
-import org.apache.calcite.rel.hint.RelHint;
-import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
@@ -62,7 +60,6 @@ import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
-import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.IntervalUnit;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.WindowBound;
@@ -610,15 +607,6 @@ public interface PlanUtils {
     }
   }
 
-  static void addIgnoreNullBucketHintToAggregate(RelBuilder relBuilder) {
-    final RelHint statHits =
-        RelHint.builder("stats_args").hintOption(Argument.BUCKET_NULLABLE, "false").build();
-    assert relBuilder.peek() instanceof LogicalAggregate
-        : "Stats hits should be added to LogicalAggregate";
-    relBuilder.hints(statHits);
-    relBuilder.getCluster().setHintStrategies(PPLHintStrategyTable.getHintStrategyTable());
-  }
-
   /** Extract the RexLiteral from the aggregate call if the aggregate call is a LITERAL_AGG. */
   static @Nullable RexLiteral getObjectFromLiteralAgg(AggregateCall aggCall) {
     if (aggCall.getAggregation().kind == SqlKind.LITERAL_AGG) {
@@ -655,13 +643,7 @@ public interface PlanUtils {
         && rexCall.getOperands().get(0) instanceof RexInputRef;
   }
 
-  Predicate<Aggregate> aggIgnoreNullBucket =
-      agg ->
-          agg.getHints().stream()
-              .anyMatch(
-                  hint ->
-                      hint.hintName.equals("stats_args")
-                          && hint.kvOptions.get(Argument.BUCKET_NULLABLE).equals("false"));
+  Predicate<Aggregate> aggIgnoreNullBucket = PPLHintUtils::ignoreNullBucket;
 
   Predicate<Aggregate> maybeTimeSpanAgg =
       agg ->

@@ -448,8 +448,8 @@ public class CastFunctionIT extends PPLIntegTestCase {
                         TEST_INDEX_WEBLOGS)));
     verifyErrorMessageContains(
         t,
-        "IP address string 'invalid_ip' is not valid. Error details: invalid_ip IP Address error:"
-            + " validation options do not allow you to specify a non-segmented single value");
+        "invalid_ip IP Address error: validation options do not allow you to specify a"
+            + " non-segmented single value");
   }
 
   @Test
