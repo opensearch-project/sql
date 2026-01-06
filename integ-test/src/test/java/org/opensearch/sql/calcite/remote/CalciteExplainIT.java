@@ -2307,4 +2307,15 @@ public class CalciteExplainIT extends ExplainIT {
                         + " as avg_age by name"));
     verifyErrorMessageContains(e, "Cannot execute nested aggregation on");
   }
+
+  @Test
+  public void testNotBetweenPushDownExplain() throws Exception {
+    // test for issue https://github.com/opensearch-project/sql/issues/4903
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_not_between_push.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_bank | where age not between 30 and 39"));
+  }
 }
