@@ -88,6 +88,7 @@ commands
    | rexCommand
    | appendPipeCommand
    | replaceCommand
+   | mvcombineCommand
    ;
 
 commandName
@@ -530,6 +531,13 @@ trendlineType
 expandCommand
     : EXPAND fieldExpression (AS alias = qualifiedName)?
     ;
+
+mvcombineCommand
+  : MVCOMBINE fieldExpression
+    (DELIM EQUAL stringLiteral)?
+    (NOMV EQUAL booleanLiteral)?
+  ;
+
 
 flattenCommand
    : FLATTEN fieldExpression (AS aliases = identifierSeq)?
@@ -1574,6 +1582,7 @@ searchableKeyWord
    | PARTITIONS
    | ALLNUM
    | DELIM
+   | NOMV
    | CURRENT
    | WINDOW
    | GLOBAL

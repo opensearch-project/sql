@@ -80,6 +80,7 @@ import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Multisearch;
+import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
@@ -531,6 +532,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitAddColTotals(AddColTotals node, AnalysisContext context) {
     throw getOnlyForCalciteException("addcoltotals");
+  }
+
+  @Override
+  public LogicalPlan visitMvCombine(MvCombine node, AnalysisContext context) {
+    throw getOnlyForCalciteException("mvcombine");
   }
 
   /** Build {@link ParseExpression} to context and skip to child nodes. */

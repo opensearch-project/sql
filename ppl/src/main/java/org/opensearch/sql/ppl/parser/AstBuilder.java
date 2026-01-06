@@ -91,6 +91,7 @@ import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.Multisearch;
+import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
@@ -868,6 +869,26 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return new Expand(fieldExpression, alias);
   }
 
+  /** mvcombine command. */
+  /** mvcombine command. */
+  @Override
+  public UnresolvedPlan visitMvcombineCommand(OpenSearchPPLParser.MvcombineCommandContext ctx) {
+    Field field = (Field) internalVisitExpression(ctx.fieldExpression());
+
+    String delim = null;
+    if (ctx.DELIM() != null) {
+      delim = unquoteStringLiteral(ctx.stringLiteral().getText());
+    }
+
+    boolean nomv = false;
+    if (ctx.NOMV() != null) {
+      // booleanLiteral rule is TRUE | FALSE
+      nomv = ctx.booleanLiteral().TRUE() != null;
+    }
+
+    return new MvCombine(field, delim, nomv);
+  }
+
   @Override
   public UnresolvedPlan visitGrokCommand(OpenSearchPPLParser.GrokCommandContext ctx) {
     UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
@@ -1287,6 +1308,20 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Token start = ctx.getStart();
     Token stop = ctx.getStop();
     return query.substring(start.getStartIndex(), stop.getStopIndex() + 1);
+  }
+
+  private static String unquoteStringLiteral(String text) {
+    if (text == null || text.length() < 2) {
+      return text;
+    }
+    char first = text.charAt(0);
+    char last = text.charAt(text.length() - 1);
+    if ((first == '"' && last == '"')
+        || (first == '\'' && last == '\'')
+        || (first == '`' && last == '`')) {
+      return text.substring(1, text.length() - 1);
+    }
+    return text;
   }
 
   /**

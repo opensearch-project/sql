@@ -53,13 +53,7 @@ import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexCorrelVariable;
-import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexVisitorImpl;
-import org.apache.calcite.rex.RexWindowBounds;
+import org.apache.calcite.rex.*;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ArraySqlType;
@@ -122,6 +116,7 @@ import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Lookup.OutputStrategy;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Multisearch;
+import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
@@ -3114,6 +3109,109 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     buildExpandRelNode(arrayFieldRex, arrayField.getField().toString(), alias, context);
 
     return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitMvCombine(MvCombine node, CalcitePlanContext context) {
+    // 1) Lower child first
+    visitChildren(node, context);
+
+    final RelBuilder relBuilder = context.relBuilder;
+    final RexBuilder rexBuilder = context.rexBuilder;
+
+    final RelNode input = relBuilder.peek();
+    final List<String> inputFieldNames = input.getRowType().getFieldNames();
+
+    // 2) Splunk parity: accept delim (default is single space).
+    // NOTE: delim only affects single-value rendering when nomv=true.
+    final String delim = (node.getDelim() != null) ? node.getDelim() : " ";
+
+    // 3) Resolve target field to an input ref (must be a direct field reference)
+    final Field targetField = node.getField();
+    final RexNode targetRex = rexVisitor.analyze(targetField, context);
+    if (!(targetRex instanceof RexInputRef)) {
+      throw new SemanticCheckException(
+          "mvcombine target must be a direct field reference, but got: " + targetField);
+    }
+    final int targetIndex = ((RexInputRef) targetRex).getIndex();
+    final String targetName = inputFieldNames.get(targetIndex);
+
+    // 4) Group key = all fields except target
+    final List<RexNode> groupExprs = new ArrayList<>();
+    for (int i = 0; i < inputFieldNames.size(); i++) {
+      if (i == targetIndex) continue;
+      groupExprs.add(relBuilder.field(i));
+    }
+
+    // 5) Aggregate target values: COLLECT => MULTISET
+    final RelBuilder.AggCall aggCall =
+        relBuilder
+            .aggregateCall(SqlStdOperatorTable.COLLECT, relBuilder.field(targetIndex))
+            .as(targetName);
+
+    relBuilder.aggregate(relBuilder.groupKey(groupExprs), aggCall);
+
+    // 6) Restore original output column order AND cast MULTISET -> ARRAY using RexBuilder
+    // After aggregate => [group fields..., targetAgg(multiset)]
+    final int aggPos = groupExprs.size();
+
+    final RelDataType elemType = input.getRowType().getFieldList().get(targetIndex).getType();
+    final RelDataType arrayType = relBuilder.getTypeFactory().createArrayType(elemType, -1);
+
+    final List<RexNode> projections = new ArrayList<>(inputFieldNames.size());
+    final List<String> projNames = new ArrayList<>(inputFieldNames.size());
+
+    int groupPos = 0;
+    for (int i = 0; i < inputFieldNames.size(); i++) {
+      projNames.add(inputFieldNames.get(i));
+      if (i == targetIndex) {
+        final RexNode multisetRef = relBuilder.field(aggPos); // MULTISET
+        projections.add(rexBuilder.makeCast(arrayType, multisetRef)); // ARRAY
+      } else {
+        projections.add(relBuilder.field(groupPos));
+        groupPos++;
+      }
+    }
+    relBuilder.project(projections, projNames, /* force= */ true);
+
+    // 7) Splunk parity: nomv=true converts multivalue output to a single delimited string.
+    // arrayToString in this engine supports only String/ByteString, so cast elements to STRING
+    // first.
+    if (node.isNomv()) {
+      final List<RexNode> nomvProjections = new ArrayList<>(inputFieldNames.size());
+      final List<String> nomvNames = new ArrayList<>(inputFieldNames.size());
+
+      // Build ARRAY<VARCHAR> type once
+      final RelDataType stringType =
+          relBuilder
+              .getTypeFactory()
+              .createSqlType(org.apache.calcite.sql.type.SqlTypeName.VARCHAR);
+      final RelDataType stringArrayType =
+          relBuilder.getTypeFactory().createArrayType(stringType, -1);
+
+      for (int i = 0; i < inputFieldNames.size(); i++) {
+        final String name = inputFieldNames.get(i);
+        nomvNames.add(name);
+
+        if (i == targetIndex) {
+          // At this point relBuilder.field(i) is ARRAY<elemType>. Cast to ARRAY<VARCHAR> so
+          // ARRAY_TO_STRING works.
+          final RexNode stringArray = rexBuilder.makeCast(stringArrayType, relBuilder.field(i));
+
+          nomvProjections.add(
+              relBuilder.call(
+                  org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_TO_STRING,
+                  stringArray,
+                  relBuilder.literal(delim)));
+        } else {
+          nomvProjections.add(relBuilder.field(i));
+        }
+      }
+
+      relBuilder.project(nomvProjections, nomvNames, /* force= */ true);
+    }
+
+    return relBuilder.peek();
   }
 
   @Override

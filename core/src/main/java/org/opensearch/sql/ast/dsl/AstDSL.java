@@ -62,6 +62,7 @@ import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.MinSpanBin;
+import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
@@ -466,6 +467,18 @@ public class AstDSL {
         argument("number", intLiteral(1)),
         argument("keepempty", booleanLiteral(false)),
         argument("consecutive", booleanLiteral(false)));
+  }
+
+  public static MvCombine mvcombine(Field field) {
+    return new MvCombine(field, null, false);
+  }
+
+  public static MvCombine mvcombine(Field field, String delim) {
+    return new MvCombine(field, delim, false);
+  }
+
+  public static MvCombine mvcombine(Field field, String delim, boolean nomv) {
+    return new MvCombine(field, delim, nomv);
   }
 
   public static List<Argument> sortOptions() {
