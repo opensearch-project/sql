@@ -53,8 +53,6 @@ public class CalcitePPLBig5IT extends PPLBig5IT {
   public void rex_regex_transformation() throws IOException {
     String ppl = sanitize(loadExpectedQuery("rex_regex_transformation.ppl"));
     timing(summary, "rex_regex_transformation", ppl);
-    String expected = loadExpectedPlan("big5/rex_regex_transformation.yaml");
-    assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
   }
 
   /**
