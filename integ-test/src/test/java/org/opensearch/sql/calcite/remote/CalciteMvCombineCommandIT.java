@@ -47,7 +47,6 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testMvCombine_basicGroupCollapsesToOneRow() throws IOException {
-    // Dataset: ip=10.0.0.1 bytes=100 tags=t1 packets_str in [10,20,30]
     String q =
         "source="
             + INDEX
@@ -71,7 +70,6 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testMvCombine_singleRowGroupStaysSingleRow() throws IOException {
-    // Dataset: ip=10.0.0.2 bytes=200 tags=t2 packets_str=7
     String q =
         "source="
             + INDEX
@@ -92,10 +90,6 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
   @Test
   public void testMvCombine_missingTargetWithinGroup_collapses_nonNullPreserved()
       throws IOException {
-    // Dataset: ip=10.0.0.3 bytes=300 tags=t3 has:
-    // - one doc with packets_str=5
-    // - one doc missing packets_str
-    // - one doc with letters only
     String q =
         "source="
             + INDEX
@@ -109,9 +103,6 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
     JSONArray row = result.getJSONArray("datarows").getJSONArray(0);
     List<String> mv = toStringListKeepNulls(row.get(3));
 
-    // Requirements we can enforce safely:
-    // - collapse happens into 1 row
-    // - non-null value is preserved
     Assertions.assertTrue(mv.contains("5"), "Expected packets_str to include 5, got " + mv);
   }
 
@@ -121,16 +112,12 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testMvCombine_multipleGroups_producesOneRowPerGroupKey() throws IOException {
-    // Dataset has:
-    // ip=10.0.0.7 bytes=700 tags=t7 packets_str=[1,2]
-    // ip=10.0.0.8 bytes=700 tags=t7 packets_str=[9]
     String base =
         "source="
             + INDEX
             + " | where (ip='10.0.0.7' or ip='10.0.0.8') and bytes=700 and tags='t7'"
             + " | fields ip, bytes, tags, packets_str";
 
-    // precondition (should exist; if someone edits the dataset, fail with a crisp message)
     JSONObject before = executeQuery(base);
     int beforeRows = before.getJSONArray("datarows").length();
     Assertions.assertTrue(beforeRows >= 1, "Expected dataset rows for multi-group test, got 0");
@@ -140,7 +127,6 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
     Assertions.assertEquals(
         2, outRows, "Expected 2 groups (10.0.0.7 and 10.0.0.8), got " + outRows);
 
-    // Spot-check values without assuming ordering within MV arrays
     JSONArray r0 = result.getJSONArray("datarows").getJSONArray(0);
     JSONArray r1 = result.getJSONArray("datarows").getJSONArray(1);
 
@@ -167,20 +153,17 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
   }
 
   // ---------------------------
-  // delim/nomv: happy paths + edge tolerance
+  // delim/nomv: happy paths + edge case
   // ---------------------------
 
   @Test
   public void testMvCombine_nomv_defaultDelim_ifSupported_elseSyntaxRejected() throws Exception {
-    // Uses ip=10.0.0.9 bytes=900 tags=t9 packets_str=[1,2,3]
     String base =
         "source="
             + INDEX
             + " | where ip='10.0.0.9' and bytes=900 and tags='t9'"
             + " | fields ip, bytes, tags, packets_str";
 
-    // If supported: should return a scalar string containing 1,2,3 in some delimiter format.
-    // If unsupported: expected 400 syntax rejection.
     String q = base + " | mvcombine packets_str nomv";
 
     try {
@@ -204,14 +187,12 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testMvCombine_nomvWithCustomDelim_ifSupported_elseSyntaxRejected() throws Exception {
-    // IMPORTANT: single quotes in query
     String base =
         "source="
             + INDEX
             + " | where ip='10.0.0.9' and bytes=900 and tags='t9'"
             + " | fields ip, bytes, tags, packets_str";
 
-    // Test both parameter orders
     String q1 = base + " | mvcombine packets_str nomv delim='|'";
     String q2 = base + " | mvcombine packets_str delim='|' nomv";
 
@@ -231,7 +212,6 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
       }
     }
 
-    // Supported -> validate scalar string output and delimiter presence
     verifyNumOfRows(result, 1);
     Object cell = result.getJSONArray("datarows").getJSONArray(0).get(3);
     Assertions.assertTrue(
@@ -247,9 +227,6 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
   @Test
   public void testMvCombine_delimWithoutNomv_shouldNotChangeMvShape_ifSupported_elseSyntaxRejected()
       throws Exception {
-    // If delim is only meaningful with nomv, then:
-    // - supported behavior should still return multivalue (JSONArray) for the field
-    // - or it may reject delim when nomv absent (400)
     String base =
         "source="
             + INDEX
@@ -275,7 +252,7 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
   }
 
   // ---------------------------
-  // Edge / error semantics
+  // Edge case / error semantics
   // ---------------------------
 
   @Test
@@ -302,7 +279,6 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
     String msg = e.getMessage();
     if (msg == null) return false;
 
-    // Keep it broad: different layers throw different messages
     return msg.contains("SyntaxCheckException")
         || msg.contains("Invalid Query")
         || msg.contains("parsing_exception")
