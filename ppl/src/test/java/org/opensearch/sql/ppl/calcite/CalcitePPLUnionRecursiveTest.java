@@ -5,7 +5,11 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.junit.Assert.assertTrue;
+
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.rel2sql.OpenSearchRelToSqlConverter;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Assert;
 import org.junit.Test;
@@ -40,5 +44,18 @@ public class CalcitePPLUnionRecursiveTest extends CalcitePPLAbstractTest {
             + " [ source=emp_hierarchy | fields EMPNO ]";
     Throwable t = Assert.assertThrows(SemanticCheckException.class, () -> getRelNode(ppl));
     Assert.assertTrue(t.getMessage().contains("UNION RECURSIVE schema mismatch"));
+  }
+
+  @Test
+  public void testUnionRecursiveSparkSqlIncludesCte() {
+    String ppl =
+        "source=EMP | fields EMPNO, MGR | union recursive name=emp_hierarchy max_depth=1"
+            + " [ source=emp_hierarchy | fields EMPNO, MGR ]";
+    RelNode root = getRelNode(ppl);
+    OpenSearchRelToSqlConverter converter =
+        new OpenSearchRelToSqlConverter(OpenSearchSparkSqlDialect.DEFAULT);
+    SqlNode sqlNode = converter.toSqlNode(root);
+    String sql = sqlNode.toSqlString(OpenSearchSparkSqlDialect.DEFAULT).getSql();
+    assertTrue(sql.contains("WITH RECURSIVE"));
   }
 }

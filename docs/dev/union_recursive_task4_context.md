@@ -11,6 +11,9 @@
   - Applies `LogicalSystemLimit` when `max_rows` is set.
 - Added Calcite planner tests:
   - `ppl/src/test/java/org/opensearch/sql/ppl/calcite/CalcitePPLUnionRecursiveTest.java`.
+- Added SQL generation support for recursive CTEs:
+  - `ppl/src/main/java/org/apache/calcite/rel/rel2sql/OpenSearchRelToSqlConverter.java`.
+  - SQL test in `ppl/src/test/java/org/opensearch/sql/ppl/calcite/CalcitePPLUnionRecursiveTest.java`.
 
 ## Notes/decisions
 - `RepeatUnion` is built by pushing anchor then recursive nodes and calling
@@ -22,10 +25,12 @@
 
 ## Tests run
 - `./gradlew :ppl:test --tests org.opensearch.sql.ppl.parser.AstBuilderTest --tests org.opensearch.sql.ppl.utils.PPLQueryDataAnonymizerTest --tests org.opensearch.sql.ppl.calcite.CalcitePPLUnionRecursiveTest --tests org.opensearch.sql.ppl.antlr.PPLSyntaxParserTest`
+- `./gradlew :ppl:test --tests org.opensearch.sql.ppl.calcite.CalcitePPLUnionRecursiveTest`
 
 ## Files touched
 - `core/src/main/java/org/opensearch/sql/calcite/CalcitePlanContext.java`
 - `core/src/main/java/org/opensearch/sql/calcite/CalciteRelNodeVisitor.java`
+- `ppl/src/main/java/org/apache/calcite/rel/rel2sql/OpenSearchRelToSqlConverter.java`
 - `ppl/src/test/java/org/opensearch/sql/ppl/calcite/CalcitePPLUnionRecursiveTest.java`
 
 ## Next task pointer
