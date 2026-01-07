@@ -863,6 +863,16 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testMvzip() {
+    // Test mvzip with custom delimiter
+    assertEquals(
+        "source=table | eval identifier=mvzip(array(***,***),array(***,***),***) | fields +"
+            + " identifier",
+        anonymize(
+            "source=t | eval result=mvzip(array('a', 'b'), array('x', 'y'), '|') | fields result"));
+  }
+
+  @Test
   public void testMvexpandCommand() {
     assertEquals("source=table | mvexpand identifier", anonymize("source=t | mvexpand skills"));
   }
