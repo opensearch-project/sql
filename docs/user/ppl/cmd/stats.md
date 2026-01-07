@@ -532,7 +532,6 @@ source=hits
 | head 10
 ```
 
-
 This query is translated into a `terms` aggregation in OpenSearch with `"order": { "_count": "desc" }`. For fields with high cardinality, some buckets may be discarded, so the results may only be approximate.
 
 ### Sorting by doc_count in ascending order may produce inaccurate results
@@ -547,6 +546,5 @@ source=hits
 | sort + c
 | head 10
 ```
-
 
 A globally rare term might not appear as rare on every shard or could be entirely absent from some shard results. Conversely, a term that is infrequent on one shard might be common on another. In both cases, shard-level approximations can cause rare terms to be missed, leading to inaccurate overall results.

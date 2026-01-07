@@ -767,7 +767,6 @@ search `attributes.error.type`="C:\\\\Users\\\\admin" source=otellogs
 | fields `attributes.error.type`
 ```
 
-
 The query returns the following results:
 
 ```text
@@ -791,7 +790,6 @@ search body="\"exact phrase\"" source=otellogs
 | fields body
 | head 1
 ```
-
 
 The query returns the following results:
 

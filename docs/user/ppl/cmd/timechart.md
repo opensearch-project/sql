@@ -227,7 +227,6 @@ source=events
 | timechart span=1m limit=2 count() by host
 ```
 
-  
 The query returns the following results:
   
 ```text
