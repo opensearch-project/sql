@@ -59,7 +59,7 @@ source=accounts
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 1/1
+fetched rows / total rows = 2/2
 +--------+
 | gender |
 |--------|
@@ -101,7 +101,7 @@ source=accounts
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 2/2
+fetched rows / total rows = 1/1
 +--------+
 | gender |
 |--------|

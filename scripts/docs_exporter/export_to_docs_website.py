@@ -102,6 +102,8 @@ def convert_sql_table_to_markdown(table_text: str) -> str:
         # Data/header row
         if line.strip().startswith('|') and line.strip().endswith('|'):
             cells = [c.strip() for c in line.strip().strip('|').split('|')]
+            # Escape angle brackets for Jekyll in converted tables (results tables)
+            cells = [c.replace('<', '\\<').replace('>', '\\>').replace('*', '\\*') for c in cells]
             result.append('| ' + ' | '.join(cells) + ' |')
             if not header_done:
                 result.append('|' + '|'.join([' --- ' for _ in cells]) + '|')
