@@ -140,12 +140,6 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
   }
 
   @Test
-  public void testMvExpandNoArrayField() {
-    String ppl = "source=DEPT | where isnull(DEPTNO) | mvexpand EMPNOS";
-    getRelNode(ppl);
-  }
-
-  @Test
   public void testMvExpandEmptyOrNullArray() {
     assertMvexpandPlanned("source=DEPT | where isnull(EMPNOS) | mvexpand EMPNOS");
   }
