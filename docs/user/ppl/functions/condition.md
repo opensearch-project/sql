@@ -214,7 +214,7 @@ fetched rows / total rows = 4/4
 ### Nested IFNULL Pattern  
 
 For OpenSearch versions prior to 3.1, COALESCE-like functionality can be achieved using nested IFNULL statements. This pattern is particularly useful in observability use cases where field names may vary across different data sources.
-Usage: `ifnull(field1, ifnull`(field2, ifnull(field3, default_value)))
+Usage: `ifnull(field1, ifnull(field2, ifnull(field3, default_value)))`
 ### Example
   
 ```ppl
