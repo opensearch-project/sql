@@ -68,6 +68,7 @@ source=accounts
 | [spath command](cmd/spath.md) | 3.3 | experimental (since 3.3) | Extract fields from structured text data. |
 | [patterns command](cmd/patterns.md) | 2.4 | stable (since 2.4) | Extract log patterns from a text field and append the results to the search result. |
 | [join command](cmd/join.md) | 3.0 | stable (since 3.0) | Combine two datasets together. |
+| [union recursive command](cmd/union_recursive.md) | 3.5 | experimental (since 3.5) | Recursively union results from an anchor pipeline and a recursive subsearch. |
 | [append command](cmd/append.md) | 3.3 | experimental (since 3.3) | Append the result of a sub-search to the bottom of the input search results. |
 | [appendcol command](cmd/appendcol.md) | 3.1 | experimental (since 3.1) | Append the result of a sub-search and attach it alongside the input search results. |
 | [lookup command](cmd/lookup.md) | 3.0 | experimental (since 3.0) | Add or replace data from a lookup index. |

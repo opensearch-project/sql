@@ -1,0 +1,61 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+  - do:
+      indices.create:
+        index: edges
+        body:
+          mappings:
+            properties:
+              parent:
+                type: keyword
+              child:
+                type: keyword
+  - do:
+      bulk:
+        index: edges
+        refresh: true
+        body:
+          - '{"index": {"_id": "1"}}'
+          - '{"parent": "A", "child": "B"}'
+          - '{"index": {"_id": "2"}}'
+          - '{"parent": "B", "child": "C"}'
+          - '{"index": {"_id": "3"}}'
+          - '{"parent": "B", "child": "D"}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"union recursive basic":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: |
+            source=edges as e
+            | where parent = "A"
+            | fields parent, child
+            | union recursive name=rel max_depth=1 [
+                source=edges as e
+                | join right = r on e.parent = r.child rel as r
+                | fields e.parent as parent, e.child as child
+              ]
+            | sort parent, child
+
+  - match: { total: 3 }
+  - match: { "schema": [ { "name": "parent", "type": "string" }, { "name": "child", "type": "string" } ] }
+  - match: { "datarows": [["A", "B"], ["B", "C"], ["B", "D"]] }
