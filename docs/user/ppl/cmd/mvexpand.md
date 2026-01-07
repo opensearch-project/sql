@@ -1,7 +1,7 @@
 # mvexpand
 
 ## Description
-The `mvexpand` command expands each value in a multivalue (array) field into a separate row, similar to Splunk's `mvexpand` command. For each document, every element in the specified array field is returned as a new row.
+The `mvexpand` command expands each value in a multivalue (array) field into a separate row. For each document, every element in the specified array field is returned as a new row.
 
 
 ## Syntax
@@ -11,10 +11,6 @@ mvexpand <field> [limit=<int>]
 
 - `<field>`: The multivalue (array) field to expand. (Required)
 - `limit`: Maximum number of values per document to expand. (Optional)
-
-## Notes about these doctests
-- The examples below generate deterministic multivalue fields using `eval` + `array()` so doctests are stable.
-- All examples run against a single source index (`people`) and use `head 1` to keep output predictable.
 
 
 ### Output field naming
@@ -141,3 +137,7 @@ fetched rows / total rows = 0/0
 |------|
 +------+
 ```
+
+## Notes about these doctests
+- The examples below generate deterministic multivalue fields using `eval` + `array()` so doctests are stable.
+- All examples run against a single source index (`people`) and use `head 1` to keep output predictable.
