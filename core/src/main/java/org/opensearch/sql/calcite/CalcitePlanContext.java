@@ -8,7 +8,9 @@ package org.opensearch.sql.calcite;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
 import java.sql.Connection;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +19,7 @@ import java.util.Stack;
 import java.util.function.BiFunction;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
@@ -59,6 +62,7 @@ public class CalcitePlanContext {
 
   private final Stack<RexCorrelVariable> correlVar = new Stack<>();
   private final Stack<List<RexNode>> windowPartitions = new Stack<>();
+  private final Deque<RecursiveRelationInfo> recursiveRelations = new ArrayDeque<>();
 
   @Getter public Map<String, RexLambdaRef> rexLambdaRefMap;
 
@@ -99,6 +103,7 @@ public class CalcitePlanContext {
     this.rexLambdaRefMap = new HashMap<>(); // New map for lambda variables
     this.capturedVariables = new ArrayList<>(); // New list for captured variables
     this.inLambdaContext = true; // Mark that we're inside a lambda
+    this.recursiveRelations.addAll(parent.recursiveRelations);
   }
 
   public RexNode resolveJoinCondition(
@@ -127,6 +132,29 @@ public class CalcitePlanContext {
       return Optional.of(correlVar.peek());
     } else {
       return Optional.empty();
+    }
+  }
+
+  public void pushRecursiveRelation(String relationName, RelDataType rowType) {
+    recursiveRelations.push(new RecursiveRelationInfo(relationName, rowType));
+  }
+
+  public Optional<RecursiveRelationInfo> findRecursiveRelation(String relationName) {
+    if (relationName == null) {
+      return Optional.empty();
+    }
+    String relationNameLower = relationName.toLowerCase(java.util.Locale.ROOT);
+    for (RecursiveRelationInfo info : recursiveRelations) {
+      if (info.nameLower.equals(relationNameLower)) {
+        return Optional.of(info);
+      }
+    }
+    return Optional.empty();
+  }
+
+  public void popRecursiveRelation() {
+    if (!recursiveRelations.isEmpty()) {
+      recursiveRelations.pop();
     }
   }
 
@@ -205,5 +233,18 @@ public class CalcitePlanContext {
     rexLambdaRefMap.put("__captured_" + captureIndex, lambdaRef);
 
     return lambdaRef;
+  }
+
+  @Getter
+  public static final class RecursiveRelationInfo {
+    private final String name;
+    private final String nameLower;
+    private final RelDataType rowType;
+
+    private RecursiveRelationInfo(String name, RelDataType rowType) {
+      this.name = name;
+      this.nameLower = name.toLowerCase(java.util.Locale.ROOT);
+      this.rowType = rowType;
+    }
   }
 }

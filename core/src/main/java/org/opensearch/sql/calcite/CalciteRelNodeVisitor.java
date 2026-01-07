@@ -91,6 +91,7 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
 import org.opensearch.sql.ast.expression.PatternMode;
+import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
@@ -142,6 +143,7 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Trendline.TrendlineType;
+import org.opensearch.sql.ast.tree.UnionRecursive;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
@@ -184,6 +186,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitRelation(Relation node, CalcitePlanContext context) {
+    Optional<CalcitePlanContext.RecursiveRelationInfo> recursiveRelation =
+        findRecursiveRelation(node, context);
+    if (recursiveRelation.isPresent()) {
+      CalcitePlanContext.RecursiveRelationInfo relationInfo = recursiveRelation.get();
+      context.relBuilder.transientScan(relationInfo.getName(), relationInfo.getRowType());
+      return context.relBuilder.peek();
+    }
     DataSourceSchemaIdentifierNameResolver nameResolver =
         new DataSourceSchemaIdentifierNameResolver(
             dataSourceService, node.getTableQualifiedName().getParts());
@@ -205,6 +214,19 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       return ((AliasFieldsWrappable) scan).wrapProjectForAliasFields(context.relBuilder);
     }
     return scan;
+  }
+
+  private Optional<CalcitePlanContext.RecursiveRelationInfo> findRecursiveRelation(
+      Relation node, CalcitePlanContext context) {
+    List<QualifiedName> qualifiedNames = node.getQualifiedNames();
+    if (qualifiedNames.size() != 1) {
+      return Optional.empty();
+    }
+    QualifiedName qualifiedName = qualifiedNames.get(0);
+    if (qualifiedName.getParts().size() != 1) {
+      return Optional.empty();
+    }
+    return context.findRecursiveRelation(qualifiedName.getParts().get(0));
   }
 
   // This is a tool method to add an existed RelOptTable to builder stack, not used for now
@@ -2227,6 +2249,78 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RelNode subsearchNode = context.relBuilder.build();
     RelNode mainNode = context.relBuilder.build();
     return mergeTableAndResolveColumnConflict(mainNode, subsearchNode, context);
+  }
+
+  @Override
+  public RelNode visitUnionRecursive(UnionRecursive node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    RelNode anchorNode = context.relBuilder.build();
+    RelDataType anchorRowType = anchorNode.getRowType();
+
+    context.pushRecursiveRelation(node.getRelationName(), anchorRowType);
+    try {
+      UnresolvedPlan prunedSubSearch =
+          node.getRecursiveSubsearch().accept(new EmptySourcePropagateVisitor(), null);
+      prunedSubSearch.accept(this, context);
+    } finally {
+      context.popRecursiveRelation();
+    }
+
+    RelNode recursiveNode = context.relBuilder.build();
+    validateUnionRecursiveSchema(anchorRowType, recursiveNode.getRowType(), node.getRelationName());
+
+    context.relBuilder.push(anchorNode);
+    context.relBuilder.push(recursiveNode);
+    int iterationLimit = node.getMaxDepth() == null ? -1 : node.getMaxDepth();
+    context.relBuilder.repeatUnion(node.getRelationName(), true, iterationLimit);
+
+    if (node.getMaxRows() != null) {
+      PlanUtils.replaceTop(
+          context.relBuilder,
+          LogicalSystemLimit.create(
+              SystemLimitType.QUERY_SIZE_LIMIT,
+              context.relBuilder.peek(),
+              context.relBuilder.literal(node.getMaxRows())));
+    }
+
+    return context.relBuilder.peek();
+  }
+
+  private void validateUnionRecursiveSchema(
+      RelDataType anchorRowType, RelDataType recursiveRowType, String relationName) {
+    List<RelDataTypeField> anchorFields = anchorRowType.getFieldList();
+    List<RelDataTypeField> recursiveFields = recursiveRowType.getFieldList();
+
+    if (anchorFields.size() != recursiveFields.size()) {
+      throw new SemanticCheckException(
+          "UNION RECURSIVE schema mismatch for relation "
+              + relationName
+              + ": anchor field count "
+              + anchorFields.size()
+              + " does not match recursive field count "
+              + recursiveFields.size());
+    }
+
+    for (int i = 0; i < anchorFields.size(); i++) {
+      RelDataTypeField anchorField = anchorFields.get(i);
+      RelDataTypeField recursiveField = recursiveFields.get(i);
+      if (!anchorField.getName().equalsIgnoreCase(recursiveField.getName())) {
+        throw new SemanticCheckException(
+            "UNION RECURSIVE schema mismatch for relation "
+                + relationName
+                + ": anchor field name "
+                + anchorField.getName()
+                + " does not match recursive field name "
+                + recursiveField.getName());
+      }
+      if (!SqlTypeUtil.equalSansNullability(anchorField.getType(), recursiveField.getType())) {
+        throw new SemanticCheckException(
+            "UNION RECURSIVE schema mismatch for relation "
+                + relationName
+                + ": field type mismatch for "
+                + anchorField.getName());
+      }
+    }
   }
 
   private RelNode mergeTableAndResolveColumnConflict(
