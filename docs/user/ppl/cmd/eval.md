@@ -3,8 +3,7 @@
 
 The `eval` command evaluates the specified expression and appends the result of the evaluation to the search results.
 
-The `eval` command is not rewritten to [query domain-specific language (DSL)](https://docs.opensearch.org/latest/query-dsl/). It is only executed on the coordinating node.
-{: .note}
+> **Note**: The `eval` command is not rewritten to [query domain-specific language (DSL)](https://docs.opensearch.org/latest/query-dsl/). It is only executed on the coordinating node.
 
 ## Syntax
 

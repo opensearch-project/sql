@@ -3,8 +3,7 @@
 
 The `reverse` command reverses the display order of the search results. It returns the same results but in the opposite order.
 
-The `reverse` command processes the entire dataset. If applied directly to millions of records, it consumes significant coordinating node memory resources. Only apply the `reverse` command to smaller datasets, typically after aggregation operations.
-{: .note}
+> **Note**: The `reverse` command processes the entire dataset. If applied directly to millions of records, it consumes significant coordinating node memory resources. Only apply the `reverse` command to smaller datasets, typically after aggregation operations.
 
 ## Syntax
 

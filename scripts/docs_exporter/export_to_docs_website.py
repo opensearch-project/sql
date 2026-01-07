@@ -200,8 +200,8 @@ def fix_link(match, current_file_path=None):
     if link.startswith("http"):
         return match.group(0)
 
-    # Remove .md extension
-    link = link.replace(".md", "")
+    # Remove .md and .rst extensions
+    link = link.replace(".md", "").replace(".rst", "")
 
     # Resolve path based on link type
     if (
@@ -277,6 +277,15 @@ def process_content(content: str, current_file_path=None) -> str:
 
     for source_dir, target_dir in DIR_PATH_MAPPINGS.items():
         content = content.replace(f'/{source_dir}/', f'/{target_dir}/')
+
+    # Handle specific admin/settings link
+    content = content.replace('](../../admin/settings.rst)', ']({{site.url}}{{site.baseurl}}/sql-and-ppl/settings/)')
+    content = content.replace('](../../admin/settings.md)', ']({{site.url}}{{site.baseurl}}/sql-and-ppl/settings/)')
+
+    # Convert markdown blockquotes to Jekyll attribute syntax
+    content = re.sub(r'^> \*\*Note\*\*:?\s*(.*?)$', r'\1\n{: .note}', content, flags=re.MULTILINE)
+    content = re.sub(r'^> \*\*Warning\*\*:?\s*(.*?)$', r'\1\n{: .warning}', content, flags=re.MULTILINE)
+    content = re.sub(r'^> \*\*Important\*\*:?\s*(.*?)$', r'\1\n{: .important}', content, flags=re.MULTILINE)
 
     return content
 

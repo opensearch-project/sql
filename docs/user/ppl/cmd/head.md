@@ -3,8 +3,7 @@
 
 The `head` command returns the first N lines from a search result.
 
-The `head` command is not rewritten to [query domain-specific language (DSL)](https://docs.opensearch.org/latest/query-dsl/index/). It is only executed on the coordinating node.
-{: .note}
+> **Note**: The `head` command is not rewritten to [query domain-specific language (DSL)](https://docs.opensearch.org/latest/query-dsl/index/). It is only executed on the coordinating node.
 
 ## Syntax
 

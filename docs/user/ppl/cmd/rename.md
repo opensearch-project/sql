@@ -9,8 +9,7 @@ The `rename` command handles non-existent fields as follows:
 * **Renaming a non-existent field to an existing field**: The existing target field is removed from the search results.
 * **Renaming an existing field to an existing field**: The existing target field is removed and the source field is renamed to the target.
 
-The `rename` command is not rewritten to [query domain-specific language (DSL)](https://docs.opensearch.org/latest/query-dsl/). It is only executed on the coordinating node.
-{: .note} 
+> **Note**: The `rename` command is not rewritten to [query domain-specific language (DSL)](https://docs.opensearch.org/latest/query-dsl/). It is only executed on the coordinating node.
 
 ## Syntax
 

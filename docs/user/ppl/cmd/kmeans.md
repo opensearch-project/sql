@@ -1,13 +1,11 @@
 
 # kmeans (Deprecated)
 
-The `kmeans` command is deprecated in favor of the [`ml` command](ml.md).
-{: .warning}
+> **Warning**: The `kmeans` command is deprecated in favor of the [`ml` command](ml.md).
 
 The `kmeans` command applies the k-means algorithm in the ML Commons plugin on the search results returned by a PPL command.
 
-To use the `kmeans` command, `plugins.calcite.enabled` must be set to `false`.
-{: .note}
+> **Note**: To use the `kmeans` command, `plugins.calcite.enabled` must be set to `false`.
 
 ## Syntax
 

@@ -3,11 +3,9 @@
 
 The `rare` command identifies the least common combination of values across all fields specified in the field list.
 
-The command returns up to 10 results for each distinct combination of values in the group-by fields.
-{: .note}
+> **Note**: The command returns up to 10 results for each distinct combination of values in the group-by fields.
 
-The `rare` command is not rewritten to [query domain-specific language (DSL)](https://docs.opensearch.org/latest/query-dsl/). It is only executed on the coordinating node.
-{: .note}
+> **Note**: The `rare` command is not rewritten to [query domain-specific language (DSL)](https://docs.opensearch.org/latest/query-dsl/). It is only executed on the coordinating node.
 
 ## Syntax
 

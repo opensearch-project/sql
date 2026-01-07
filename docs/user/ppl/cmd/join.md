@@ -13,8 +13,7 @@ The `join` command supports basic and extended syntax options.
 [joinType] join [left = <leftAlias>] [right = <rightAlias>] (on | where) <joinCriteria> <right-dataset>
 ```
 
-When using aliases, `left` must appear before `right`.
-{: .note}
+> **Note**: When using aliases, `left` must appear before `right`.
 
 The following are examples of the basic `join` command syntax:
 

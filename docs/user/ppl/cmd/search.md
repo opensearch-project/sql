@@ -209,8 +209,7 @@ fetched rows / total rows = 1/1
 +--------------------------------------------------------------------------------------------------------------------+
 ```
   
-`search user email` is equivalent to `search user AND email`. 
-{: .note}
+> **Note**: `search user email` is equivalent to `search user AND email`. 
 
 Enclose terms containing special characters in double quotation marks:
   
@@ -491,8 +490,7 @@ fetched rows / total rows = 3/3
 
 When searching in text or keyword fields, wildcards enable partial matching, which is useful when you only know part of a value. Wildcards work best on keyword fields, for which they match the exact value using patterns. Using wildcards on text fields may produce unexpected results because they apply to individual tokens after analysis, not the entire field value. Wildcards in keyword fields are case sensitive unless normalized at indexing.
 
-Leading wildcards (for example, `*@example.com`) can decrease query speed compared to trailing wildcards.
-{: .note}
+> **Note**: Leading wildcards (for example, `*@example.com`) can decrease query speed compared to trailing wildcards.
 
 Find records for which you only know the beginning of a field value:
 
@@ -781,8 +779,7 @@ fetched rows / total rows = 1/1
 +-----------------------+
 ```
 
-When using the REST API with JSON, additional JSON escaping is required.
-{: .note}
+> **Note**: When using the REST API with JSON, additional JSON escaping is required.
 
 ### Quotation marks within strings
 

@@ -3,8 +3,7 @@
 
 The `fillnull` command replaces `null` values in one or more fields of the search results with a specified value.
 
-The `fillnull` command is not rewritten to [query domain-specific language (DSL)](https://docs.opensearch.org/latest/query-dsl/). It is only executed on the coordinating node.
-{: .note}
+> **Note**: The `fillnull` command is not rewritten to [query domain-specific language (DSL)](https://docs.opensearch.org/latest/query-dsl/). It is only executed on the coordinating node.
 
 ## Syntax
 

@@ -3,8 +3,7 @@
 
 The `top` command finds the most common combination of values across all fields specified in the field list.
 
-The `top` command is not rewritten to [query domain-specific language (DSL)](https://docs.opensearch.org/latest/query-dsl/). It is only executed on the coordinating node.
-{: .note}
+> **Note**: The `top` command is not rewritten to [query domain-specific language (DSL)](https://docs.opensearch.org/latest/query-dsl/). It is only executed on the coordinating node.
 
 ## Syntax
 

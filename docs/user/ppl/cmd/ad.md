@@ -1,16 +1,14 @@
 
 # ad (Deprecated)
 
-The `ad` command is deprecated in favor of the [`ml` command](./ml.md).
-{: .warning}
+> **Warning**: The `ad` command is deprecated in favor of the [`ml` command](./ml.md).
 
 The `ad` command applies the Random Cut Forest (RCF) algorithm in the ML Commons plugin to the search results returned by a PPL command. The command provides two anomaly detection approaches:
 
 - [Anomaly detection for time-series data](#anomaly-detection-for-time-series-data) using the fixed-in-time RCF algorithm
 - [Anomaly detection for non-time-series data](#anomaly-detection-for-non-time-series-data) using the batch RCF algorithm
 
-To use the `ad` command, `plugins.calcite.enabled` must be set to `false`.
-{: .note}
+> **Note**: To use the `ad` command, `plugins.calcite.enabled` must be set to `false`.
 
 ## Syntax
 
