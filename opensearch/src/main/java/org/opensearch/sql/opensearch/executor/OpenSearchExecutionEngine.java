@@ -6,7 +6,6 @@
 package org.opensearch.sql.opensearch.executor;
 
 import com.google.common.base.Suppliers;
-import java.lang.reflect.Method;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -20,8 +19,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
-import org.apache.calcite.avatica.AvaticaResultSet;
-import org.apache.calcite.avatica.util.Cursor;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
@@ -219,29 +216,6 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
   }
 
   /**
-   * Retrieves column accessors from AvaticaResultSet using reflection. This method accesses the
-   * private getAccessor method to obtain direct access to column data.
-   *
-   * @param rs the ResultSet to get accessors from
-   * @param columnCount the number of columns in the ResultSet
-   * @return list of Cursor.Accessor objects for each column
-   * @throws SQLException if reflection fails or column access is invalid
-   */
-  private List<Cursor.Accessor> getAccessors(ResultSet rs, int columnCount) throws SQLException {
-    List<Cursor.Accessor> accessorList = new ArrayList<>();
-    try {
-      Method method = AvaticaResultSet.class.getDeclaredMethod("getAccessor", int.class);
-      method.setAccessible(true);
-      for (int i = 1; i <= columnCount; i++) {
-        accessorList.add((Cursor.Accessor) method.invoke(rs, i));
-      }
-    } catch (Exception e) {
-      throw new SQLException("Unable to get accessors", e);
-    }
-    return accessorList;
-  }
-
-  /**
    * Process values recursively, handling geo points and nested maps. Geo points are converted to
    * OpenSearchExprGeoPointValue. Maps are recursively processed to handle nested structures.
    */
@@ -282,7 +256,6 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     // Get the ResultSet metadata to know about columns
     ResultSetMetaData metaData = resultSet.getMetaData();
     int columnCount = metaData.getColumnCount();
-    List<Cursor.Accessor> accessorList = getAccessors(resultSet, columnCount);
     List<RelDataType> fieldTypes =
         rowTypes.getFieldList().stream().map(RelDataTypeField::getType).toList();
     List<ExprValue> values = new ArrayList<>();
@@ -292,7 +265,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       // Loop through each column
       for (int i = 1; i <= columnCount; i++) {
         String columnName = metaData.getColumnName(i);
-        Object value = accessorList.get(i - 1).getObject();
+        Object value = resultSet.getObject(columnName);
         Object converted = processValue(value);
         ExprValue exprValue = ExprValueUtils.fromObjectValue(converted);
         row.put(columnName, exprValue);

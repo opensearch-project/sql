@@ -29,11 +29,19 @@ setup:
                   child_num:
                     type: integer
   - do:
+      bulk:
+        index: array-test
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"array_text": ["Jane Smith","hello world"],"array_keyword": [ "c++", "java" ],"array_num": [1, 2],"array_boolean": [true, false],"array_date": ["2023-01-02T22:03:34.000Z","2023-01-02T22:03:35.000Z"],"num" : 10,"parent": {"child_array_num": [1.1, 2.2], "child_array_keyword":["a a a", "b b b"], "child_num": 100}}'
+          - '{"index": {}}'
+          - '{"array_text": "OpenSearch PPL","array_keyword": "python","array_num": 3,"array_boolean": true,"array_date": "2023-01-02T22:03:36.000Z","num" : 11,"parent": {"child_array_num": 3.3, "child_array_keyword":"c c c", "child_num": 101}}'
+  - do:
       query.settings:
         body:
           transient:
             plugins.calcite.enabled : true
-
 ---
 teardown:
   - do:
@@ -48,15 +56,6 @@ teardown:
       features:
         - headers
         - allowed_warnings
-  - do:
-      bulk:
-        index: array-test
-        refresh: true
-        body:
-          - '{"index": {}}'
-          - '{"array_text": ["Jane Smith","hello world"],"array_keyword": [ "c++", "java" ],"array_num": [1, 2],"array_boolean": [true, false],"array_date": ["2023-01-02T22:03:34.000Z","2023-01-02T22:03:35.000Z"],"num" : 10,"parent": {"child_array_num": [1.1, 2.2], "child_array_keyword":["a a a", "b b b"], "child_num": 100}}'
-          - '{"index": {}}'
-          - '{"array_text": "OpenSearch PPL","array_keyword": "python","array_num": 3,"array_boolean": true,"array_date": "2023-01-02T22:03:36.000Z","num" : 11,"parent": {"child_array_num": 3.3, "child_array_keyword":"c c c", "child_num": 101}}'
   - do:
       allowed_warnings:
         - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
