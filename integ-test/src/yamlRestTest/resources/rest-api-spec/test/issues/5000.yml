@@ -6,25 +6,37 @@ setup:
             plugins.calcite.enabled: true
   - do:
       indices.create:
-        index: edges
+        index: bom
         body:
           mappings:
             properties:
               parent:
                 type: keyword
-              child:
+              component:
                 type: keyword
+              quantity:
+                type: integer
   - do:
       bulk:
-        index: edges
+        index: bom
         refresh: true
         body:
-          - '{"index": {"_id": "1"}}'
-          - '{"parent": "A", "child": "B"}'
-          - '{"index": {"_id": "2"}}'
-          - '{"parent": "B", "child": "C"}'
-          - '{"index": {"_id": "3"}}'
-          - '{"parent": "B", "child": "D"}'
+          - '{"index": {}}'
+          - '{"parent": "Bike", "component": "Frame", "quantity": 1}'
+          - '{"index": {}}'
+          - '{"parent": "Bike", "component": "Wheels", "quantity": 2}'
+          - '{"index": {}}'
+          - '{"parent": "Bike", "component": "Drivetrain", "quantity": 1}'
+          - '{"index": {}}'
+          - '{"parent": "Wheels", "component": "Spokes", "quantity": 32}'
+          - '{"index": {}}'
+          - '{"parent": "Wheels", "component": "Tire", "quantity": 1}'
+          - '{"index": {}}'
+          - '{"parent": "Drivetrain", "component": "Crankset", "quantity": 1}'
+          - '{"index": {}}'
+          - '{"parent": "Drivetrain", "component": "Chain", "quantity": 1}'
+          - '{"index": {}}'
+          - '{"parent": "Crankset", "component": "Pedal", "quantity": 2}'
 
 ---
 teardown:
@@ -35,7 +47,7 @@ teardown:
             plugins.calcite.enabled : false
 
 ---
-"union recursive basic":
+"union recursive bom quantities":
   - skip:
       features:
         - headers
@@ -46,16 +58,24 @@ teardown:
       ppl:
         body:
           query: |
-            source=edges as e
-            | where parent = "A"
-            | fields parent, child
-            | union recursive name=rel max_depth=1 [
-                source=edges as e
-                | join right = r on e.parent = r.child rel as r
-                | fields e.parent as parent, e.child as child
+            source=bom
+            | where parent='Bike'
+            | fields component, quantity
+            | union recursive name=bom_qty [
+                source=bom
+                | join left=b right=t on b.parent = t.component bom_qty
+                | eval quantity=b.quantity * t.quantity
+                | fields component, quantity
               ]
-            | sort parent, child
+            | where component not in [source=bom | fields parent]
 
-  - match: { total: 3 }
-  - match: { "schema": [ { "name": "parent", "type": "string" }, { "name": "child", "type": "string" } ] }
-  - match: { "datarows": [["A", "B"], ["B", "C"], ["B", "D"]] }
+  - match: { total: 5 }
+  - match: { size: 5 }
+  - match: { "schema": [ { "name": "component", "type": "string" }, { "name": "quantity", "type": "int" } ] }
+  - match:
+      "datarows":
+        - ["Chain", 1]
+        - ["Frame", 1]
+        - ["Pedal", 2]
+        - ["Spokes", 64]
+        - ["Tire", 2]
