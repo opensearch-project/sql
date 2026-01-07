@@ -75,7 +75,6 @@ public interface PlanUtils {
   /** this is only for dedup command, do not reuse it in other command */
   String ROW_NUMBER_COLUMN_FOR_DEDUP = "_row_number_dedup_";
 
-  String ROW_NUMBER_COLUMN_FOR_JOIN_MAX_DEDUP = "_row_number_join_max_dedup_";
   String ROW_NUMBER_COLUMN_FOR_RARE_TOP = "_row_number_rare_top_";
   String ROW_NUMBER_COLUMN_FOR_MAIN = "_row_number_main_";
   String ROW_NUMBER_COLUMN_FOR_SUBSEARCH = "_row_number_subsearch_";

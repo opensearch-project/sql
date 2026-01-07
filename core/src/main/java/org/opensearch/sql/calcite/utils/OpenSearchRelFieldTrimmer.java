@@ -24,6 +24,11 @@ import org.apache.calcite.util.mapping.Mappings;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.plan.rel.Dedup;
 
+/**
+ * Trims fields from a relational expression.
+ *
+ * <p>This class extends Calcite's RelFieldTrimmer to support trimming customized operators.
+ */
 public class OpenSearchRelFieldTrimmer extends RelFieldTrimmer {
 
   public OpenSearchRelFieldTrimmer(@Nullable SqlValidator validator, RelBuilder relBuilder) {

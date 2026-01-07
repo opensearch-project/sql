@@ -17,7 +17,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.UnaryOperator;
 import lombok.Getter;
@@ -193,9 +192,12 @@ public class CalcitePPLAbstractTest {
     assertThat(sql, is(normalized));
   }
 
+  /**
+   * Applies PPL-specific conversion rules (e.g., dedup conversion) to the basic RelNode. This
+   * transformation is needed before generating Spark SQL or Substrate from PPL logical plans.
+   */
   private RelNode convertCustomizedRelNode(RelNode rel) {
-    List<RelOptRule> rules = new ArrayList<>();
-    rules.add(PPLDedupConvertRule.DEDUP_CONVERT_RULE);
+    List<RelOptRule> rules = List.of(PPLDedupConvertRule.DEDUP_CONVERT_RULE);
     HepPlanner hepPlanner = new HepPlanner(HepProgram.builder().addRuleCollection(rules).build());
     hepPlanner.setRoot(rel);
     return hepPlanner.findBestExp();
