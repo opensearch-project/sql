@@ -3134,35 +3134,42 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
    * @param context CalcitePlanContext containing the RelBuilder and other context
    * @return RelNode representing records with the expanded multi-value field
    */
+  /**
+   * MVExpand command visitor.
+   *
+   * <p>For Calcite remote planning, mvexpand reuses the same expansion mechanics as {@link Expand}:
+   * it unnests the target multivalue field and joins back to the original relation.
+   * mvexpand-specific semantics (such as an optional per-document limit) are carried by the {@link
+   * MvExpand} AST node and applied via the limit parameter passed into the shared expansion
+   * builder.
+   *
+   * <p>Missing-field behavior: if the target field does not exist in the input schema, mvexpand
+   * produces no rows while keeping the output schema stable.
+   *
+   * @param mvExpand MVExpand command to be visited
+   * @param context CalcitePlanContext containing the RelBuilder and other context
+   * @return RelNode representing records with the expanded multi-value field
+   */
   @Override
   public RelNode visitMvExpand(MvExpand mvExpand, CalcitePlanContext context) {
     visitChildren(mvExpand, context);
 
     final RelBuilder relBuilder = context.relBuilder;
     final Field field = mvExpand.getField();
-
     final String fieldName = field.getField().toString();
 
-    final RexInputRef arrayFieldRex;
-    try {
-      arrayFieldRex = (RexInputRef) rexVisitor.analyze(field, context);
-    } catch (IllegalArgumentException e) {
-      if (isMissingFieldException(e)) {
-        final RelDataTypeFactory typeFactory = relBuilder.getTypeFactory();
-        final RelDataType arrayAny =
-            typeFactory.createArrayType(typeFactory.createSqlType(SqlTypeName.ANY), -1);
-
-        relBuilder.projectPlus(
-            List.of(
-                relBuilder.alias(relBuilder.getRexBuilder().makeNullLiteral(arrayAny), fieldName)));
-
-        relBuilder.filter(relBuilder.literal(false));
-        return relBuilder.peek();
-      }
-      throw e;
+    // Missing-field: produce no rows (but keep schema stable).
+    final RelDataType inputType = relBuilder.peek().getRowType();
+    final RelDataTypeField inputField =
+        inputType.getField(fieldName, /*caseSensitive*/ false, /*elideRecord*/ false);
+    if (inputField == null) {
+      return buildEmptyResultWithStableSchema(relBuilder, fieldName);
     }
 
-    // enforce ARRAY type before UNNEST so we return SemanticCheckException
+    // Resolve field ref using rexVisitor for consistent semantics (same as expand).
+    final RexInputRef arrayFieldRex = (RexInputRef) rexVisitor.analyze(field, context);
+
+    // Enforce ARRAY type before UNNEST so we return SemanticCheckException.
     final SqlTypeName actual = arrayFieldRex.getType().getSqlTypeName();
     if (actual != SqlTypeName.ARRAY) {
       throw new SemanticCheckException(
@@ -3171,20 +3178,19 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     buildExpandRelNode(arrayFieldRex, fieldName, fieldName, mvExpand.getLimit(), context);
-
     return relBuilder.peek();
   }
 
-  private static boolean isMissingFieldException(RuntimeException e) {
-    Throwable t = e;
-    while (t != null) {
-      final String msg = t.getMessage();
-      if (msg != null && msg.matches("Field \\[.+\\] not found\\.?")) {
-        return true;
-      }
-      t = t.getCause();
-    }
-    return false;
+  private static RelNode buildEmptyResultWithStableSchema(RelBuilder relBuilder, String fieldName) {
+    final RelDataTypeFactory typeFactory = relBuilder.getTypeFactory();
+    final RelDataType arrayAny =
+        typeFactory.createArrayType(typeFactory.createSqlType(SqlTypeName.ANY), -1);
+
+    relBuilder.projectPlus(
+        List.of(relBuilder.alias(relBuilder.getRexBuilder().makeNullLiteral(arrayAny), fieldName)));
+
+    relBuilder.filter(relBuilder.literal(false));
+    return relBuilder.peek();
   }
 
   @Override
