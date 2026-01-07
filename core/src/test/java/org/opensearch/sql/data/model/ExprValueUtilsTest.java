@@ -221,10 +221,8 @@ public class ExprValueUtilsTest {
     Exception exception =
         assertThrows(
             ExpressionEvaluationException.class,
-            () -> ExprValueUtils.fromObjectValue(integerValue(1)));
-    assertEquals(
-        "unsupported object " + "class org.opensearch.sql.data.model.ExprIntegerValue",
-        exception.getMessage());
+            () -> ExprValueUtils.fromObjectValue(new Object()));
+    assertEquals("unsupported object class java.lang.Object", exception.getMessage());
   }
 
   @Test
