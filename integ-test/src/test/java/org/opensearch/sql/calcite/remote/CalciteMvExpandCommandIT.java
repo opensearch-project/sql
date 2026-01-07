@@ -13,7 +13,6 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import org.json.JSONObject;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -30,13 +29,19 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
     enableCalcite();
     deleteIndexIfExists(INDEX);
 
-    final String nestedMapping =
+    // Single shared mapping for ALL cases (no extra indices)
+    // - skills: nested (mvexpand target)
+    // - skills_not_array: keyword (semantic error test)
+    // - skills_int: integer (semantic error test)
+    final String mapping =
         "{ \"mappings\": { \"properties\": { "
             + "\"username\": { \"type\": \"keyword\" },"
-            + "\"skills\": { \"type\": \"nested\" }"
+            + "\"skills\": { \"type\": \"nested\" },"
+            + "\"skills_not_array\": { \"type\": \"keyword\" },"
+            + "\"skills_int\": { \"type\": \"integer\" }"
             + "} } }";
 
-    createIndex(INDEX, nestedMapping);
+    createIndex(INDEX, mapping);
 
     bulkInsert(
         INDEX,
@@ -53,20 +58,15 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
             + "{\"name\":\"s1\"},{\"name\":\"s2\"},{\"name\":\"s3\"},{\"name\":\"s4\"},{\"name\":\"s5\"},"
             + "{\"name\":\"s6\"},{\"name\":\"s7\"},{\"name\":\"s8\"},{\"name\":\"s9\"},{\"name\":\"s10\"}"
             + "]}",
-        "{\"username\":\"hetero_types\",\"skills\":[{\"level\":\"senior\"},{\"level\":3}]}");
+        // keep as-is: heterogeneous subfield values; test expects "3" string output
+        "{\"username\":\"hetero_types\",\"skills\":[{\"level\":\"senior\"},{\"level\":3}]}",
+        // non-array and int-field semantic tests in SAME index
+        "{\"username\":\"u1\",\"skills_not_array\":\"scala\"}",
+        "{\"username\":\"u_int\",\"skills_int\":5}",
+        // limit test doc in SAME index
+        "{\"username\":\"limituser\",\"skills\":[{\"name\":\"a\"},{\"name\":\"b\"},{\"name\":\"c\"},{\"name\":\"d\"},{\"name\":\"e\"}]}");
 
     refreshIndex(INDEX);
-  }
-
-  @AfterEach
-  public void cleanupAfterEach() throws Exception {
-    try {
-      deleteIndexIfExists(INDEX + "_not_array");
-      deleteIndexIfExists(INDEX + "_missing_field");
-      deleteIndexIfExists(INDEX + "_limit_test");
-      deleteIndexIfExists(INDEX + "_int_field");
-    } catch (Exception ignored) {
-    }
   }
 
   @Test
@@ -183,32 +183,26 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testMvexpandOnNonArrayFieldMapping() throws Exception {
-    String idx = Index.MVEXPAND_NOT_ARRAY.getName();
-
-    bulkInsert(idx, "{\"username\":\"u1\",\"skills\":\"scala\"}");
-    refreshIndex(idx);
-
     String query =
         String.format(
-            "source=%s | mvexpand skills | where username='u1' | fields username, skills", idx);
+            "source=%s | mvexpand skills_not_array | where username='u1' | fields username,"
+                + " skills_not_array",
+            INDEX);
 
     ResponseException ex = assertThrows(ResponseException.class, () -> executeQuery(query));
     Assertions.assertTrue(
         ex.getMessage()
-            .contains("Cannot expand field 'skills': expected ARRAY type but found VARCHAR"));
+            .contains(
+                "Cannot expand field 'skills_not_array': expected ARRAY type but found VARCHAR"));
   }
 
   @Test
   public void testMvexpandMissingFieldReturnsEmpty() throws Exception {
-    String idx = Index.MVEXPAND_MISSING_FIELD.getName();
-
-    bulkInsert(idx, "{\"username\":\"u_missing\"}");
-    refreshIndex(idx);
-
+    // single-index version: username='noskills' doc has no "skills" field at all
     String query =
         String.format(
-            "source=%s | mvexpand skills | where username='u_missing' | fields username, skills",
-            idx);
+            "source=%s | mvexpand skills | where username='noskills' | fields username, skills",
+            INDEX);
 
     JSONObject result = executeQuery(query);
     verifyDataRows(result);
@@ -216,25 +210,11 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testMvexpandLimitParameter() throws Exception {
-    final String idx = INDEX + "_limit_test";
-    deleteIndexIfExists(idx);
-    createIndex(
-        idx,
-        "{ \"mappings\": { \"properties\": { \"username\": { \"type\": \"keyword\" },"
-            + "\"skills\": { \"type\": \"nested\" } } } }");
-
-    bulkInsert(
-        idx,
-        "{\"username\":\"limituser\",\"skills\":["
-            + "{\"name\":\"a\"},{\"name\":\"b\"},{\"name\":\"c\"},{\"name\":\"d\"},{\"name\":\"e\"}"
-            + "]}");
-    refreshIndex(idx);
-
     String query =
         String.format(
             "source=%s | mvexpand skills limit=3 | where username='limituser' | fields username,"
                 + " skills.name",
-            idx);
+            INDEX);
     JSONObject result = executeQuery(query);
     verifyNumOfRows(result, 3);
     verifyDataRows(result, rows("limituser", "a"), rows("limituser", "b"), rows("limituser", "c"));
@@ -279,14 +259,11 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testMvexpandOnIntegerFieldMappingThrowsSemantic() throws Exception {
-    String idx = Index.MVEXPAND_INT_FIELD.getName();
-
-    bulkInsert(idx, "{\"username\":\"u_int\",\"skills\":5}");
-    refreshIndex(idx);
-
     String query =
         String.format(
-            "source=%s | mvexpand skills | where username='u_int' | fields username, skills", idx);
+            "source=%s | mvexpand skills_int | where username='u_int' | fields username,"
+                + " skills_int",
+            INDEX);
 
     ResponseException ex = assertThrows(ResponseException.class, () -> executeQuery(query));
     Assertions.assertTrue(

@@ -704,23 +704,6 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "mvexpand_edge_cases",
         getMappingFile("mvexpand_edge_cases_mapping.json"),
         "src/test/resources/mvexpand_edge_cases.json"),
-    MVEXPAND_NOT_ARRAY(
-        "mvexpand_not_array",
-        "mvexpand_not_array",
-        getMappingFile("mvexpand_not_array_mapping.json"),
-        null),
-
-    MVEXPAND_INT_FIELD(
-        "mvexpand_int_field",
-        "mvexpand_int_field",
-        getMappingFile("mvexpand_int_mapping.json"),
-        null),
-
-    MVEXPAND_MISSING_FIELD(
-        "mvexpand_missing_field",
-        "mvexpand_missing_field",
-        getMappingFile("mvexpand_missing_field_mapping.json"),
-        null),
     DEEP_NESTED(
         TestsConstants.TEST_INDEX_DEEP_NESTED,
         "_doc",

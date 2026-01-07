@@ -659,7 +659,6 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   public String visitMvExpand(MvExpand node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     String field = MASK_COLUMN; // Always anonymize field names
-    // Optionally handle limit if needed (e.g., | mvexpand identifier limit=***)
     if (node.getLimit() != null) {
       return StringUtils.format("%s | mvexpand %s limit=%s", child, field, MASK_LITERAL);
     }

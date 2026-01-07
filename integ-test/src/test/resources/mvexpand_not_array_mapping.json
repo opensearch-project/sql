@@ -1,8 +1,0 @@
-{
-  "mappings": {
-    "properties": {
-      "username": { "type": "keyword" },
-      "skills": { "type": "keyword" }
-    }
-  }
-}
