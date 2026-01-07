@@ -45,6 +45,36 @@ public class CalcitePPLBig5IT extends PPLBig5IT {
     timing(summary, "coalesce_nonexistent_field_fallback", ppl);
   }
 
+  /**
+   * Tests regex-based field extraction and transformation using rex command. Validates that the
+   * Calcite plan correctly handles regex patterns.
+   */
+  @Test
+  public void rex_regex_transformation() throws IOException {
+    String ppl = sanitize(loadExpectedQuery("rex_regex_transformation.ppl"));
+    timing(summary, "rex_regex_transformation", ppl);
+  }
+
+  /**
+   * Tests LIKE pattern matching with aggregation using script engine. Validates filtering by
+   * message content and grouping results.
+   */
+  @Test
+  public void script_engine_like_pattern_with_aggregation() throws IOException {
+    String ppl = sanitize(loadExpectedQuery("script_engine_like_pattern_with_aggregation.ppl"));
+    timing(summary, "script_engine_like_pattern_with_aggregation", ppl);
+  }
+
+  /**
+   * Tests LIKE pattern matching with sorting and result limiting. Validates filtering by message
+   * content with timestamp ordering.
+   */
+  @Test
+  public void script_engine_like_pattern_with_sort() throws IOException {
+    String ppl = sanitize(loadExpectedQuery("script_engine_like_pattern_with_sort.ppl"));
+    timing(summary, "script_engine_like_pattern_with_sort", ppl);
+  }
+
   /** Tests deduplication by metrics.size field with sorting by timestamp. */
   @Test
   public void dedup_metrics_size_field() throws IOException {

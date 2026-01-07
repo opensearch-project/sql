@@ -11,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +35,7 @@ import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.locationtech.jts.geom.Point;
 import org.opensearch.sql.ast.statement.Explain.ExplainFormat;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
@@ -42,6 +44,7 @@ import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.executor.ExecutionContext;
@@ -52,10 +55,10 @@ import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.data.value.OpenSearchExprGeoPointValue;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
 import org.opensearch.sql.opensearch.functions.DistinctCountApproxAggFunction;
 import org.opensearch.sql.opensearch.functions.GeoIpFunction;
-import org.opensearch.sql.opensearch.util.JdbcOpenSearchDataTypeConvertor;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.TableScanOperator;
 import org.opensearch.transport.client.node.NodeClient;
@@ -212,6 +215,38 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
         });
   }
 
+  /**
+   * Process values recursively, handling geo points and nested maps. Geo points are converted to
+   * OpenSearchExprGeoPointValue. Maps are recursively processed to handle nested structures.
+   */
+  private static Object processValue(Object value) {
+    if (value == null) {
+      return null;
+    }
+    if (value instanceof Point) {
+      Point point = (Point) value;
+      return new OpenSearchExprGeoPointValue(point.getY(), point.getX());
+    }
+    if (value instanceof Map) {
+      Map<String, Object> map = (Map<String, Object>) value;
+      Map<String, Object> convertedMap = new HashMap<>();
+      for (Map.Entry<String, Object> entry : map.entrySet()) {
+        convertedMap.put(entry.getKey(), processValue(entry.getValue()));
+      }
+      return convertedMap;
+    }
+    if (value instanceof List) {
+      List<Object> list = (List<Object>) value;
+      List<Object> convertedList = new ArrayList<>();
+      for (Object item : list) {
+        convertedList.add(processValue(item));
+      }
+      return convertedList;
+    }
+    // For other types, return as-is
+    return value;
+  }
+
   private void buildResultSet(
       ResultSet resultSet,
       RelDataType rowTypes,
@@ -230,11 +265,9 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       // Loop through each column
       for (int i = 1; i <= columnCount; i++) {
         String columnName = metaData.getColumnName(i);
-        int sqlType = metaData.getColumnType(i);
-        RelDataType fieldType = fieldTypes.get(i - 1);
-        ExprValue exprValue =
-            JdbcOpenSearchDataTypeConvertor.getExprValueFromSqlType(
-                resultSet, i, sqlType, fieldType, columnName);
+        Object value = resultSet.getObject(columnName);
+        Object converted = processValue(value);
+        ExprValue exprValue = ExprValueUtils.fromObjectValue(converted);
         row.put(columnName, exprValue);
       }
       values.add(ExprTupleValue.fromExprValueMap(row));
