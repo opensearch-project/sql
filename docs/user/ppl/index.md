@@ -46,6 +46,7 @@ source=accounts
 | [replace command](cmd/replace.md) | 3.4 | experimental (since 3.4) | Replace text in one or more fields in the search result |
 | [fillnull command](cmd/fillnull.md) | 3.0 | experimental (since 3.0) | Fill null with provided value in one or more fields in the search result. |
 | [expand command](cmd/expand.md) | 3.1 | experimental (since 3.1) | Transform a single document into multiple documents by expanding a nested array field. |
+| [mvexpand command](cmd/mvexpand.md) | 3.4 | experimental (since 3.4) | Expand a multi-valued field into separate documents (one per value). |
 | [flatten command](cmd/flatten.md) | 3.1 | experimental (since 3.1) | Flatten a struct or an object field into separate fields in a document. |
 | [table command](cmd/table.md) | 3.3 | experimental (since 3.3) | Keep or remove fields from the search result using enhanced syntax options. |
 | [stats command](cmd/stats.md) | 1.0 | stable (since 1.0) | Calculate aggregation from search results. |
@@ -80,7 +81,6 @@ source=accounts
 | [show datasources command](cmd/showdatasources.md) | 2.4 | stable (since 2.4) | Query datasources configured in the PPL engine. |
 | [addtotals command](cmd/addtotals.md) | 3.4 | stable (since 3.4) | Adds row and column values and appends a totals column and row. | 
 | [addcoltotals command](cmd/addcoltotals.md) | 3.4 | stable (since 3.4) | Adds column values and appends a totals row. |
-| [mvexpand command](cmd/mvexpand.md) | 3.4 | experimental (since 3.4) | Expand a multi-valued field into separate documents (one per value). |
  
 
   - [Syntax](cmd/syntax.md) - PPL query structure and command syntax formatting  

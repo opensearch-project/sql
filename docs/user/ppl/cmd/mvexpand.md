@@ -74,8 +74,8 @@ fetched rows / total rows = 3/3
 +-----+
 ```
 
-### Example 3: Empty and Null Arrays
-Empty array (case "empty"):
+### Example 3: Empty Expansion
+This example demonstrates that mvexpand produces no rows when there are no matching input rows.
 
 PPL query:
 ```ppl
@@ -95,29 +95,6 @@ fetched rows / total rows = 0/0
 | tags |
 |------|
 +------+
-```
-
-Null array (case "null"):
-
-PPL query:
-```ppl
-source=people
-| eval tags = array('dummy')
-| fields tags
-| head 1
-| mvexpand tags
-| where false
-| fields tags
-```
-
-Expected output:
-```text
-fetched rows / total rows = 0/0
-+------+
-| tags |
-|------|
-+------+
-
 ```
 
 ### Example 4: Single-value array (case "single")
