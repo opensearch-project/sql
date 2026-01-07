@@ -1,3 +1,4 @@
+
 # regex
 
 The `regex` command filters search results by matching field values against a regular expression pattern. Only documents in which the specified field matches the pattern are included in the results.
@@ -6,7 +7,7 @@ The `regex` command filters search results by matching field values against a re
 
 The `regex` command has the following syntax:
 
-```sql
+```syntax
 regex <field> = <pattern>
 regex <field> != <pattern>
 ```
@@ -60,24 +61,23 @@ fetched rows / total rows = 4/4
 ## Example 2: Negative matching
 
 The following query excludes documents in which the `lastname` field ends with `ms`:
-  
+
 ```ppl
 source=accounts
-| regex lastname!=".*son$"
+| regex lastname!=".*ms$"
 | fields account_number, lastname
 ```
-
+  
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
+fetched rows / total rows = 3/3
 +----------------+----------+
 | account_number | lastname |
 |----------------+----------|
 | 1              | Duke     |
 | 6              | Bond     |
 | 13             | Bates    |
-| 18             | Adams    |
 +----------------+----------+
 ```
   
@@ -137,7 +137,7 @@ source=accounts
 | fields account_number, state
 ```
   
-Expected output:
+The query returns no results because the regex pattern `va` (lowercase) does not match any state values in the data.
   
 ```text
 fetched rows / total rows = 0/0
@@ -147,10 +147,8 @@ fetched rows / total rows = 0/0
 +----------------+-------+
 ```
 
-The query returns no results because the regex pattern `va` (lowercase) does not match any state values in the data.
-
 The following query searches for the uppercase state name `VA`:
-  
+
 ```ppl
 source=accounts
 | regex state="VA"
@@ -169,7 +167,7 @@ fetched rows / total rows = 1/1
 ```
   
 
-## Limitations  
+## Limitations
 
 The `regex` command has the following limitations:
 

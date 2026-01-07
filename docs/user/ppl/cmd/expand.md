@@ -1,3 +1,4 @@
+
 # expand
 
 The `expand` command transforms a single document with a nested array field into multiple documents, each containing one element of the array. All other fields in the original document are duplicated across the resulting documents.
@@ -13,7 +14,7 @@ The `expand` command operates in the following way:
 
 The `expand` command has the following syntax:
 
-```sql
+```syntax
 expand <field> [as alias]
 ```
 
@@ -27,17 +28,16 @@ The `expand` command supports the following parameters.
 | `<alias>` | Optional | The name to use in place of the original field name. |  
   
 
-## Example 1: Expand address field with an alias  
+## Example: Expand an address field using an alias  
 
-The following query expands the `address` field and renames it to `addr`:
+Given a `migration` dataset with the following data:
   
 ```json
 {"name":"abbas","age":24,"address":[{"city":"New york city","state":"NY","moveInDate":{"dateAndTime":"19840412T090742.000Z"}}]}
 {"name":"chen","age":32,"address":[{"city":"Miami","state":"Florida","moveInDate":{"dateAndTime":"19010811T040333.000Z"}},{"city":"los angeles","state":"CA","moveInDate":{"dateAndTime":"20230503T080742.000Z"}}]}
-
 ```
   
-The following query expand the address field and rename it to addr:
+The following query expands the `address` field and renames it to `addr`:
   
 ```ppl
 source=migration
@@ -58,7 +58,7 @@ fetched rows / total rows = 3/3
 ```
   
 
-## Limitations  
+## Limitations
 
 The `expand` command has the following limitations:
 

@@ -1,3 +1,4 @@
+
 # ad (Deprecated)
 
 The `ad` command is deprecated in favor of the [`ml` command](./ml.md).
@@ -21,7 +22,7 @@ Use this syntax to detect anomalies in time-series data. This method uses the fi
 
 The fixed-in-time RCF `ad` command has the following syntax:
 
-```sql
+```syntax
 ad [number_of_trees] [shingle_size] [sample_size] [output_after] [time_decay] [anomaly_rate] <time_field> [date_format] [time_zone] [category_field]
 ```
 
@@ -40,7 +41,7 @@ The fixed-in-time RCF algorithm supports the following parameters.
 | `anomaly_rate` | Optional | The anomaly rate. Default is `0.005`. |
 | `date_format` | Optional | The format used for the `time_field` field. Default is `yyyy-MM-dd HH:mm:ss`. |
 | `time_zone` | Optional | The time zone for the `time_field` field. Default is `UTC`. |
-| `category_field` | Optional | The category field used to group input values. The predict operation is applied to each category independently. |   
+| `category_field` | Optional | The category field used to group input values. The predict operation is applied to each category independently. |  
   
 
 ### Anomaly detection for non-time-series data
@@ -49,7 +50,7 @@ Use this syntax to detect anomalies in data where the order doesn't matter. This
 
 The batch RCF `ad` command has the following syntax:
 
-```sql
+```syntax
 ad [number_of_trees] [sample_size] [output_after] [training_data_size] [anomaly_score_threshold] [category_field]
 ```
 
@@ -64,10 +65,10 @@ The batch RCF algorithm supports the following parameters.
 | `output_after` | Optional | The number of points required by the stream samplers before results are returned. Default is `32`. |
 | `training_data_size` | Optional | The size of the training dataset. Default is the full dataset size. |
 | `anomaly_score_threshold` | Optional | The anomaly score threshold. Default is `1.0`. |
-| `category_field` | Optional | The category field used to group input values. The predict operation is applied to each category independently. |   
+| `category_field` | Optional | The category field used to group input values. The predict operation is applied to each category independently. |  
   
 
-## Example 1: Example 1: Detecting events in New York City taxi ridership time-series data
+## Example 1: Detecting events in New York City taxi ridership time-series data
 
 The following examples use the `nyc_taxi` dataset, which contains New York City taxi ridership data with fields including `value` (number of rides), `timestamp` (time of measurement), and `category` (time period classifications such as 'day' and 'night').
 
@@ -92,7 +93,7 @@ fetched rows / total rows = 1/1
 ```
   
 
-## Example 2: Detecting events in New York City taxi ridership time-series data by category 
+## Example 2: Detecting events in New York City taxi ridership time-series data by category
 
 This example trains an RCF model and uses it to detect anomalies in time-series ridership data across multiple category values:
   
@@ -161,4 +162,5 @@ fetched rows / total rows = 2/2
 | day      | 6526.0  | 0.0   | False     |
 +----------+---------+-------+-----------+
 ```
+  
 

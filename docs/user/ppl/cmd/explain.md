@@ -1,3 +1,4 @@
+
 # explain
 
 The `explain` command displays the execution plan of a query, which is often used for query translation and troubleshooting. The `explain` command can only be used as the first command in the PPL query.
@@ -6,7 +7,7 @@ The `explain` command displays the execution plan of a query, which is often use
 
 The `explain` command has the following syntax:
 
-```sql
+```syntax
 explain <mode> queryStatement
 ```
 
@@ -55,7 +56,7 @@ The query returns the following results:
 
 ## Example 2: Explain a PPL query in the v3 engine  
 
-When Apache Calcite is enabled (`plugins.calcite.enabled` is set to `true`), `explain` obtains its logical and physical plan and pushdown information from the v3 engine:
+When Apache Calcite is enabled (`plugins.calcite.enabled` is set to `true`), `explain` obtains its logical and physical plan and pushdown information from the v3 engine:  
   
 ```ppl
 explain source=state_country
@@ -64,7 +65,7 @@ explain source=state_country
 ```
   
 The query returns the following results:
-  
+
 ```json
 {
   "calcite": {
@@ -81,9 +82,9 @@ The query returns the following results:
 ```
   
 
-## Example 3: Explain a PPL query in the simple mode
+## Example 3: Explain a PPL query in the simple mode  
 
-The following query uses the `explain` command in the `simple` mode to show a simplified logical plan tree:
+The following query uses the `explain` command in the `simple` mode to show a simplified logical plan tree: 
   
 ```ppl
 explain simple source=state_country
@@ -91,7 +92,7 @@ explain simple source=state_country
 | stats count() by country
 ```
   
-The query returns the following results:
+The query returns the following results: 
   
 ```json
 {
@@ -106,7 +107,7 @@ The query returns the following results:
 ```
   
 
-## Example 4: Explain a PPL query in the cost mode
+## Example 4: Explain a PPL query in the cost mode  
 
 The following query uses the `explain` command in the `cost` mode to show plan cost attributes:
   
@@ -117,7 +118,7 @@ explain cost source=state_country
 ```
   
 The query returns the following results:
-  
+
 ```json
 {
   "calcite": {
@@ -135,7 +136,9 @@ The query returns the following results:
   
 
 ## Example 5: Explain a PPL query in the extended mode
-  
+
+The following query uses the `explain` command in the `extended` mode to show the generated code:
+
 ```ppl
 explain extended source=state_country
 | where country = 'USA' OR country = 'England'
@@ -143,7 +146,7 @@ explain extended source=state_country
 ```
   
 The query returns the following results:
-  
+
 ```json
 {
   "calcite": {

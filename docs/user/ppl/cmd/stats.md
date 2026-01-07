@@ -1,3 +1,4 @@
+
 # stats
 
 The `stats` command calculates aggregations on the search results.
@@ -10,7 +11,7 @@ For a comprehensive comparison of `stats`, `eventstats`, and `streamstats` comma
 
 The `stats` command has the following syntax:
 
-```sql
+```syntax
 stats [bucket_nullable=bool] <aggregation>... [by-clause]
 ```
 
@@ -82,8 +83,8 @@ source=accounts
 | stats avg(age)
 ```
   
-Expected output:
-  
+The query returns the following results:
+
 ```text
 fetched rows / total rows = 1/1
 +----------+
@@ -270,7 +271,7 @@ fetched rows / total rows = 3/3
 ## Example 10: Count and retrieve an email list by gender and age span
 
 The following query calculates the count of `age` values grouped into 5-year intervals as well as by `gender` and also returns a list of up to 5 emails for each group:
-  
+
 ```ppl
 source=accounts
 | stats count() as cnt, take(email, 5) by span(age, 5) as age_span, gender
@@ -379,7 +380,7 @@ fetched rows / total rows = 1/1
 ## Example 15: Ignore a null bucket
 
 The following query excludes null values from grouping by setting `bucket_nullable=false`:
-  
+
 ```ppl
 source=accounts
 | stats bucket_nullable=false count() as cnt by email
@@ -436,7 +437,7 @@ The following example uses this sample index data:
 ```
 
 The following query groups data by yearly spans of the `birthday` field, automatically excluding null values:
-  
+
 ```ppl ignore
 source=example
 | stats count() as cnt by span(birthday, 1y) as year
@@ -475,7 +476,7 @@ fetched rows / total rows = 3/3
 ```
 
 Use `bucket_nullable=false` to exclude null `DEPTNO` values from the grouping:
-  
+
 ```ppl ignore
 source=example
 | stats bucket_nullable=false count() as cnt by span(birthday, 1y) as year, DEPTNO
@@ -518,7 +519,6 @@ fetched rows / total rows = 1/1
 
 The following limitations apply to the `stats` command.
 
-
 ### Bucket aggregation results may be approximate for high-cardinality fields
 
 In OpenSearch, `doc_count` values for a `terms` bucket aggregation can be approximate. Thus, any aggregations (such as `sum` or `avg`) performed on those buckets may also be approximate.
@@ -531,6 +531,7 @@ source=hits
 | sort - c
 | head 10
 ```
+
 
 This query is translated into a `terms` aggregation in OpenSearch with `"order": { "_count": "desc" }`. For fields with high cardinality, some buckets may be discarded, so the results may only be approximate.
 
@@ -547,5 +548,5 @@ source=hits
 | head 10
 ```
 
+
 A globally rare term might not appear as rare on every shard or could be entirely absent from some shard results. Conversely, a term that is infrequent on one shard might be common on another. In both cases, shard-level approximations can cause rare terms to be missed, leading to inaccurate overall results.
-  

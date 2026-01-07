@@ -1,3 +1,4 @@
+
 # chart
 
 The `chart` command transforms search results by applying a statistical aggregation function and optionally grouping the data by one or two fields. When grouped by two fields, the results are suitable for two-dimensional chart visualizations, with unique values in the second group key pivoted into column names.
@@ -6,7 +7,7 @@ The `chart` command transforms search results by applying a statistical aggregat
 
 The `chart` command has the following syntax:
 
-```sql
+```syntax
 chart [limit=(top|bottom) <number>] [useother=<boolean>] [usenull=<boolean>] [nullstr=<string>] [otherstr=<string>] <aggregation_function> [ by <row_split> <column_split> ] | [over <row_split> ] [ by <column_split>]
 ```
 
@@ -24,6 +25,7 @@ The `chart` command supports the following parameters.
 | `usenull` | Optional | Controls whether to group documents that have null values in the column split field into a separate `NULL` category. This parameter only applies to column split. Documents with null values in the row split field are ignored; only documents with non-null values in the row split field are included in the results. When `usenull=false`, documents with null values in the column split field are excluded from the results. When `usenull=true`, documents with null values in the column split field are grouped into a separate `NULL` category. | `true` |
 | `nullstr` | Optional | Specifies the category name for documents that have null values in the column split field. This parameter only applies when `usenull` is `true`. | `"NULL"` |
 | `otherstr` | Optional | Specifies the category name for the `OTHER` category. This parameter only applies when `useother` is `true` and there are values beyond the `limit`. | `OTHER` |
+
 
 ## Notes
 
@@ -54,7 +56,7 @@ fetched rows / total rows = 1/1
 ```
   
 
-## Example 2: Group by single field  
+## Example 2: Group by a single field  
 
 This example calculates the count of accounts grouped by gender:
   
@@ -76,7 +78,7 @@ fetched rows / total rows = 2/2
 ```
   
 
-## Example 3: Using over [] by [] to group by multiple fields
+## Example 3: Using over [] by [] to group by multiple fields  
 
 The following query calculates average balance grouped by both the `gender` and `age` fields:
   
@@ -85,7 +87,7 @@ source=accounts
 | chart avg(balance) over gender by age
 ```
   
-The query returns the following results:
+The query returns the following results. The `age` column in the result is converted to the string type:
   
 ```text
 fetched rows / total rows = 4/4
@@ -102,14 +104,14 @@ fetched rows / total rows = 4/4
 
 ## Example 4: Using basic limit functionality  
 
-This example limits the results to show only the single top age group:
+This example limits the results to show only the single top age group: 
   
 ```ppl
 source=accounts
 | chart limit=1 count() over gender by age
 ```
   
-The query returns the following results:
+The query returns the following results. The `age` column in the result is converted to the string type:
   
 ```text
 fetched rows / total rows = 3/3
@@ -171,7 +173,7 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 7: Using span
+## Example 7: Using span  
 
 The following query uses the `chart` command with `span` for grouping age ranges:
   
@@ -180,7 +182,7 @@ source=accounts
 | chart max(balance) by age span=10, gender
 ```
   
-The query returns the following results:s
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2

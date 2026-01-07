@@ -1,3 +1,4 @@
+
 # replace
 
 The `replace` command replaces text in one or more fields in the search results. It supports literal string replacement and wildcard patterns using `*`.
@@ -6,7 +7,7 @@ The `replace` command replaces text in one or more fields in the search results.
 
 The `replace` command has the following syntax:
 
-```sql
+```syntax
 replace '<pattern>' WITH '<replacement>' [, '<pattern>' WITH '<replacement>']... IN <field-name>[, <field-name>]...
 ```
 
@@ -202,7 +203,7 @@ source=accounts
 | replace "* Lane" WITH "Lane *" IN address
 | fields address
 ```
-
+  
 The query returns the following results:
   
 ```text
@@ -292,37 +293,10 @@ fetched rows / total rows = 4/4
 | DISCOUNTED |
 +------------+
 ```
-  
 
 ## Example 12: Replace text with literal asterisk symbols  
 
 The following query shows how to insert literal asterisk symbols into text while using wildcards to preserve other parts of the pattern:
-  
-```ppl
-source=accounts
-| eval test = 'prefix-value-suffix'
-| replace 'prefix-*-suffix' WITH 'MATCHED' IN test
-| fields test
-```
-  
-Expected output:
-  
-```text
-fetched rows / total rows = 4/4
-+---------+
-| test    |
-|---------|
-| MATCHED |
-| MATCHED |
-| MATCHED |
-| MATCHED |
-+---------+
-```
-  
-
-## Example 13: Escaped asterisks with wildcards  
-
-Combine escaped asterisks (literal) with wildcards for complex patterns.
   
 ```ppl
 source=accounts
@@ -346,7 +320,7 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Limitations  
+## Limitations
 
 The `replace` command has the following limitations:
 

@@ -1,3 +1,4 @@
+
 # spath
 
 The `spath` command extracts fields from structured text data by allowing you to select JSON values using JSON paths.
@@ -9,7 +10,7 @@ The `spath` command is not executed on OpenSearch data nodes. It extracts fields
 
 The `spath` command has the following syntax:
 
-```sql
+```syntax
 spath input=<field> [output=<field>] [path=]<path>
 ```
 
@@ -24,7 +25,6 @@ The `spath` command supports the following parameters.
 | `<path>` | Required | The JSON path that identifies the data to extract. |  
 
 For more information about path syntax, see [json_extract](../functions/json.md#json_extract).
-  
 
 ## Example 1: Basic field extraction
 
@@ -98,7 +98,7 @@ fetched rows / total rows = 1/1
 | 6      |
 +--------+
 ```
-
+  
 
 ## Example 4: Escaped paths  
 

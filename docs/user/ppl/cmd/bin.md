@@ -1,13 +1,13 @@
+
 # bin
 
 The `bin` command groups numeric values into buckets of equal intervals, which is useful for creating histograms and analyzing data distribution. It accepts a numeric or time-based field and generates a new field containing values that represent the lower bound of each bucket.
 
 ## Syntax
 
-
 The `bin` command has the following syntax:
 
-```sql
+```syntax
 bin <field> [span=<interval>] [minspan=<interval>] [bins=<count>] [aligntime=(earliest | latest | <time-specifier>)] [start=<value>] [end=<value>]
 ```
 
@@ -54,7 +54,7 @@ The following options are available for the `aligntime` parameter:
 * `earliest` -- Align bins to the earliest timestamp in the data.
 * `latest` -- Align bins to the latest timestamp in the data.
 * `<time-specifier>` -- Align bins to a specific epoch time value or time modifier expression.
-
+  
 ### Parameter behavior
 
 When multiple parameters are specified, the priority order is: `span` > `minspan` > `bins` > `start`/`end` > default.
@@ -69,7 +69,7 @@ The `bin` command has the following special handling for certain parameter types
 * The `start` and `end` parameters expand the range (they never reduce it) and affect bin width calculations.
 
 ## Example 1: Basic numeric span  
-  
+
 ```ppl
 source=accounts
 | bin age span=10
@@ -92,7 +92,7 @@ fetched rows / total rows = 3/3
   
 
 ## Example 2: Large numeric span  
-  
+
 ```ppl
 source=accounts
 | bin balance span=25000
@@ -114,7 +114,7 @@ fetched rows / total rows = 2/2
   
 
 ## Example 3: Logarithmic span (log10)  
-  
+
 ```ppl
 source=accounts
 | bin balance span=log10
@@ -136,7 +136,7 @@ fetched rows / total rows = 2/2
   
 
 ## Example 4: Logarithmic span with coefficient  
-  
+
 ```ppl
 source=accounts
 | bin balance span=2log10
@@ -159,7 +159,7 @@ fetched rows / total rows = 3/3
   
 
 ## Example 5: Basic bins parameter  
-  
+
 ```ppl
 source=time_test
 | bin value bins=5
@@ -182,7 +182,7 @@ fetched rows / total rows = 3/3
   
 
 ## Example 6: Low bin count  
-  
+
 ```ppl
 source=accounts
 | bin age bins=2
@@ -203,7 +203,7 @@ fetched rows / total rows = 1/1
   
 
 ## Example 7: High bin count  
-  
+
 ```ppl
 source=accounts
 | bin age bins=21
@@ -226,7 +226,7 @@ fetched rows / total rows = 3/3
   
 
 ## Example 8: Basic minspan  
-  
+
 ```ppl
 source=accounts
 | bin age minspan=5
@@ -249,7 +249,7 @@ fetched rows / total rows = 3/3
   
 
 ## Example 9: Large minspan  
-  
+
 ```ppl
 source=accounts
 | bin age minspan=101
@@ -270,7 +270,7 @@ fetched rows / total rows = 1/1
   
 
 ## Example 10: Start and end range  
-  
+
 ```ppl
 source=accounts
 | bin age start=0 end=101
@@ -291,7 +291,7 @@ fetched rows / total rows = 1/1
   
 
 ## Example 11: Large end range  
-  
+
 ```ppl
 source=accounts
 | bin balance start=0 end=100001
@@ -312,7 +312,7 @@ fetched rows / total rows = 1/1
   
 
 ## Example 12: Span with start/end  
-  
+
 ```ppl
 source=accounts
 | bin age span=1 start=25 end=35
@@ -336,7 +336,7 @@ fetched rows / total rows = 4/4
   
 
 ## Example 13: Hour span  
-  
+
 ```ppl
 source=time_test
 | bin @timestamp span=1h
@@ -359,7 +359,7 @@ fetched rows / total rows = 3/3
   
 
 ## Example 14: Minute span  
-  
+
 ```ppl
 source=time_test
 | bin @timestamp span=45minute
@@ -382,7 +382,7 @@ fetched rows / total rows = 3/3
   
 
 ## Example 15: Second span  
-  
+
 ```ppl
 source=time_test
 | bin @timestamp span=30seconds
@@ -405,7 +405,7 @@ fetched rows / total rows = 3/3
   
 
 ## Example 16: Daily span  
-  
+
 ```ppl
 source=time_test
 | bin @timestamp span=7day
@@ -428,7 +428,7 @@ fetched rows / total rows = 3/3
   
 
 ## Example 17: Aligntime with time modifier  
-  
+
 ```ppl
 source=time_test
 | bin @timestamp span=2h aligntime='@d+3h'
@@ -451,7 +451,7 @@ fetched rows / total rows = 3/3
   
 
 ## Example 18: Aligntime with epoch timestamp  
-  
+
 ```ppl
 source=time_test
 | bin @timestamp span=2h aligntime=1500000000
@@ -474,7 +474,7 @@ fetched rows / total rows = 3/3
   
 
 ## Example 19: Default behavior (no parameters)  
-  
+
 ```ppl
 source=accounts
 | bin age
@@ -497,7 +497,7 @@ fetched rows / total rows = 3/3
   
 
 ## Example 20: Binning with string fields  
-  
+
 ```ppl
 source=accounts
 | eval age_str = CAST(age AS STRING)
@@ -517,4 +517,3 @@ fetched rows / total rows = 2/2
 | 3       | 30-40   |
 +---------+---------+
 ```
-  

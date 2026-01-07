@@ -1,3 +1,4 @@
+
 # addtotals
 
 The `addtotals` command computes the sum of numeric fields and can create both column totals (summary row) and row totals (new field). This command is useful for creating summary reports with subtotals or grand totals.
@@ -9,7 +10,7 @@ The command only processes numeric fields (integers, floats, doubles). Non-numer
 
 The `addtotals` command has the following syntax:
 
-```sql
+```syntax
 addtotals [field-list] [label=<string>] [labelfield=<field>] [row=<boolean>] [col=<boolean>] [fieldname=<field>]
 ```
 
@@ -33,7 +34,7 @@ The following query places the label in an existing field:
 ```ppl
 source=accounts 
 | head 3
-|fields firstname, balance 
+| fields firstname, balance 
 | addtotals col=true labelfield='firstname' label='Total'
 ```
 
@@ -54,6 +55,7 @@ fetched rows / total rows = 4/4
 ## Example 2: Adding column totals with a custom summary label
 
 The following query adds totals after a `stats` command, with the final summary event labeled `Sum`. It also creates a new field specified by `labelfield` because the field does not exist in the data:
+
 
 ```ppl
 source=accounts

@@ -1,3 +1,4 @@
+
 # timechart
 
 The `timechart` command creates a time-based aggregation of data. It groups data by time intervals and, optionally, by a field, and then applies an aggregation function to each group. The results are returned in an unpivoted format, with separate rows for each time-field combination.
@@ -6,7 +7,7 @@ The `timechart` command creates a time-based aggregation of data. It groups data
 
 The `timechart` command has the following syntax:
 
-```sql
+```syntax
 timechart [timefield=<field_name>] [span=<time_interval>] [limit=<number>] [useother=<boolean>] [usenull=<boolean>] [nullstr=<string>] <aggregation_function> [by <field>]
 ```
 
@@ -85,7 +86,7 @@ The `timechart` command provides specialized rate-based aggregation functions th
 **Calculation formula**: `per_day(field) = sum(field) * 86400 / span_in_seconds`, where `span_in_seconds` is the span interval in seconds.
 
 **Return type**: DOUBLE
-
+  
 ## Example 1: Count events by hour  
 
 The following query counts events in each hourly interval and groups the results by `host`:
@@ -144,7 +145,7 @@ The following query calculates the average number of packets per minute without 
 source=events
 | timechart span=1m avg(packets)
 ```
-
+  
 The query returns the following results:
   
 ```text
@@ -213,7 +214,6 @@ fetched rows / total rows = 2/2
 +---------------------+----------+---------+
 ```
   
-
 ## Example 6: Using the limit parameter with count()
 
 This example uses the `events` dataset with fewer hosts for simplicity.
@@ -221,11 +221,12 @@ This example uses the `events` dataset with fewer hosts for simplicity.
 When there are many distinct values in the `by` field, the `timechart` command displays only the top values according to the `limit` parameter and groups the remaining values into an `OTHER` category.
 
 The following query displays the top `2` hosts with the highest event counts and groups all remaining hosts into an `OTHER` category:
-  
+
 ```ppl
 source=events
 | timechart span=1m limit=2 count() by host
 ```
+
   
 The query returns the following results:
   
@@ -245,7 +246,6 @@ fetched rows / total rows = 8/8
 +---------------------+---------+---------+
 ```
   
-
 
 ## Example 7: Use limit=0 with count() to show all values  
 
@@ -278,8 +278,6 @@ fetched rows / total rows = 11/11
 | 2024-07-01 00:00:00 | web-11 | 1       |
 +---------------------+--------+---------+
 ```
-  
-This shows all 11 hosts as separate rows without an "OTHER" category.
 
 ## Example 8: Use useother=false with the count() function  
 
@@ -335,7 +333,7 @@ fetched rows / total rows = 4/4
 ```
   
 The following query displays the top 3 hosts based on average `cpu_usage` per hour without creating an `OTHER` category by setting `useother=false`:
-  
+
 ```ppl
 source=events_many_hosts
 | timechart span=1h limit=3 useother=false avg(cpu_usage) by host
@@ -358,7 +356,7 @@ fetched rows / total rows = 3/3
 ## Example 10: Handling null values in the by field
 
 The following query demonstrates how null values in the `by` field are treated as a separate category:
-  
+
 ```ppl
 source=events_null
 | timechart span=1h count() by host
@@ -403,7 +401,7 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Limitations  
+## Limitations
 
 The `timechart` command has the following limitations:
 

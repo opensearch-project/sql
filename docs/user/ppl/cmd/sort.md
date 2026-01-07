@@ -1,3 +1,4 @@
+
 # sort
 
 The `sort` command sorts the search results by the specified fields.
@@ -10,7 +11,7 @@ The `sort` command supports two syntax notations. You must use one notation cons
 
 The `sort` command has the following syntax in prefix notation:
 
-```sql
+```syntax
 sort [<count>] [+|-] <field> [, [+|-] <field>]...
 ```
 
@@ -18,7 +19,7 @@ sort [<count>] [+|-] <field> [, [+|-] <field>]...
 
 The `sort` command has the following syntax in suffix notation:
 
-```sql
+```syntax
 sort [<count>] <field> [asc|desc|a|d] [, <field> [asc|desc|a|d]]...
 ```
 
@@ -36,15 +37,15 @@ The `sort` command supports the following parameters.
 ## Example 1: Sort by one field
 
 The following query sorts all documents by the `age` field in ascending order. By default, the sort command returns all results, which is equivalent to specifying `sort 0 age`:
-  
+
 ```ppl
 source=accounts
 | sort age
 | fields account_number, age
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
 fetched rows / total rows = 4/4
 +----------------+-----+
@@ -56,12 +57,12 @@ fetched rows / total rows = 4/4
 | 6              | 36  |
 +----------------+-----+
 ```
-  
+
 
 ## Example 2: Sort by one field in descending order
 
 The following query sorts all documents by the `age` field in descending order. You can use either prefix notation (`- age`) or suffix notation (`age desc`):
-  
+
 ```ppl
 source=accounts
 | sort - age
@@ -69,15 +70,15 @@ source=accounts
 ```
 
 This query is equivalent to the following query:
-  
+
 ```ppl
 source=accounts
 | sort age desc
 | fields account_number, age
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
 fetched rows / total rows = 4/4
 +----------------+-----+
@@ -89,7 +90,7 @@ fetched rows / total rows = 4/4
 | 13             | 28  |
 +----------------+-----+
 ```
-  
+
 
 ## Example 3: Sort by multiple fields in prefix notation
 
@@ -188,10 +189,11 @@ fetched rows / total rows = 2/2
 +----------------+-----+
 ```
   
+
 ## Example 7: Sort by specifying field type
 
 The following query uses the `sort` command with `str()` to sort numeric values lexicographically:
-  
+
 ```ppl
 source=accounts
 | sort str(account_number)

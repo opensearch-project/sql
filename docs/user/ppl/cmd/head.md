@@ -1,15 +1,16 @@
+
 # head
 
 The `head` command returns the first N lines from a search result.
 
-The `head` command is not rewritten to [query domain-specific language (DSL)](https://opensearch.org/docs/latest/query-dsl/index/). It is only executed on the coordinating node.
+The `head` command is not rewritten to [query domain-specific language (DSL)](https://docs.opensearch.org/latest/query-dsl/index/). It is only executed on the coordinating node.
 {: .note}
 
 ## Syntax
 
 The `head` command has the following syntax:
 
-```sql
+```syntax
 head [<size>] [from <offset>]
 ```
 
@@ -23,7 +24,7 @@ The `head` command supports the following parameters.
 | `<offset>` | Optional | The number of results to skip (used with the `from` keyword). Must be an integer. Default is `0`. |
   
 
-## Example 1: Retrieve the first set of results using the default size
+## Example 1: Retrieve the first set of results using the default size 
 
 The following query returns the default number of search results (10):
   
@@ -48,7 +49,7 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 2: Retrieve a specified number of results
+## Example 2: Retrieve a specified number of results  
 
 The following query returns the first 3 search results:
   
@@ -94,3 +95,5 @@ fetched rows / total rows = 3/3
 | Dale      | 33  |
 +-----------+-----+
 ```
+  
+

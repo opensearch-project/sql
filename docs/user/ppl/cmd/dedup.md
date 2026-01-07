@@ -1,3 +1,4 @@
+
 # dedup
 
 The `dedup` command removes duplicate documents defined by specified fields from the search result.
@@ -6,7 +7,7 @@ The `dedup` command removes duplicate documents defined by specified fields from
 
 The `dedup` command has the following syntax:
 
-```sql
+```syntax
 dedup [int] <field-list> [keepempty=<bool>] [consecutive=<bool>]
 ```
 
@@ -20,9 +21,9 @@ The `dedup` command supports the following parameters.
 | `<int>` | Optional | The number of duplicate documents to retain for each combination. Must be greater than `0`. Default is `1`. |
 | `keepempty` | Optional | When set to `true`, keeps documents in which any field in the field list has a `NULL` value or is missing. Default is `false`. |
 | `consecutive` | Optional | When set to `true`, removes only consecutive duplicate documents. Default is `false`. Requires the legacy SQL engine (`plugins.calcite.enabled=false`). |
+  
 
-
-## Example 1: Remove duplicates based on a single field
+## Example 1: Remove duplicates based on a single field  
 
 The following query deduplicates documents based on the `gender` field:
   
@@ -46,7 +47,7 @@ fetched rows / total rows = 2/2
 ```
   
 
-## Example 2: Retain multiple duplicate documents
+## Example 2: Retain multiple duplicate documents  
 
 The following query removes duplicate documents based on the `gender` field while keeping two duplicate documents:
   
@@ -71,7 +72,7 @@ fetched rows / total rows = 3/3
 ```
   
 
-## Example 3: Handle documents with empty field values
+## Example 3: Handle documents with empty field values  
 
 The following query removes duplicate documents while keeping documents with `null` values in the specified field:
   
@@ -119,7 +120,7 @@ fetched rows / total rows = 3/3
 ```
   
 
-## Example 4: Deduplicate consecutive documents
+## Example 4: Deduplicate consecutive documents  
 
 The following query removes duplicate consecutive documents:
   
@@ -142,4 +143,5 @@ fetched rows / total rows = 3/3
 | 18             | M      |
 +----------------+--------+
 ```
+  
 

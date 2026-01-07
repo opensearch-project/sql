@@ -1,3 +1,4 @@
+
 # search
 
 The `search` command retrieves documents from the index. The `search` command can only be used as the first command in a PPL query.
@@ -6,7 +7,7 @@ The `search` command retrieves documents from the index. The `search` command ca
 
 The `search` command has the following syntax:
 
-```sql
+```syntax
 search source=[<remote-cluster>:]<index> [<search-expression>]
 ```
 
@@ -17,8 +18,8 @@ The `search` command supports the following parameters.
 | Parameter | Required/Optional | Description |
 | --- | --- | --- |
 | `<index>` | Required | The index to query. The index name can be prefixed with `<remote-cluster>:` (the remote cluster name) for cross-cluster search. |
-| `<search-expression>` | Optional | A search expression that is converted to an OpenSearch [query string](https://opensearch.org/docs/latest/query-dsl/full-text/query-string/) query. |
-
+| `<search-expression>` | Optional | A search expression that is converted to an OpenSearch [query string](https://docs.opensearch.org/latest/query-dsl/full-text/query-string/) query. |
+  
 
 ## Search expression  
 
@@ -30,7 +31,7 @@ The search expression syntax supports:
 * **Grouping using parentheses**: `(expression)`.  
 * **The `IN` operator for multiple values**: `field IN (value1, value2, value3)`.  
 * **Wildcards**: `*` (zero or more characters), `?` (exactly one character).  
-
+  
 ### Full-text search
 
 Unlike other PPL commands, the `search` command supports both quoted and unquoted strings. Unquoted terms are limited to alphanumeric characters, hyphens, underscores, and wildcards. Any other characters require double quotation marks.
@@ -39,7 +40,7 @@ The following queries show both syntax types:
 
 * **Unquoted**: `search error`, `search user-123`, `search log_*`
 * **Quoted**: `search "error message"`, `search "user@example.com"`
-
+  
 ### Field values
 
 Field values follow the same quoting rules as search text.
@@ -48,7 +49,7 @@ Examples of field value syntax:
 
 * **Unquoted**: `status=active`, `code=ERR-401`
 * **Quoted**: `email="user@example.com"`, `message="server error"`  
-
+  
 ### Time modifiers
 
 Time modifiers filter search results by a time range using the implicit `@timestamp` field. Time modifiers support the following formats.
@@ -69,7 +70,7 @@ Relative time modifiers use multiple components that can be combined. The follow
 | Time offset | `+` or `-` | Direction: `+` (future) or `-` (past) | `+7d`, `-1h` |
 | Amount of time | `<time_integer><time_unit>` | Numeric value + time unit | `7d`, `1h`, `30m` |
 | Round to unit | `@<round_to_unit>` | Round to nearest unit | `@d` (day), `@h` (hour), `@m` (minute) | 
-
+  
 The following are examples of common time modifier patterns:
 
 * `earliest=now` -- Start from the current time.
@@ -90,13 +91,13 @@ When a search is performed without specifying a field, it uses the default field
 
 To retrieve the default field setting, use the following request:
 
-```json
+```bash ignore
 GET /accounts/_settings/index.query.default_field
 ```
 
 To modify the default field setting, use the following request:
 
-```json
+```bash ignore
 PUT /accounts/_settings
 {
   "index.query.default_field": "firstname,lastname,email"
@@ -122,18 +123,19 @@ Consider the following performance optimizations when working with different fie
 * For wildcard searches on non-keyword fields, create a `keyword` subfield to improve performance. For example, for wildcard searches on a `message` field of type `text`, add a `message.keyword` field.
 
 ## Cross-cluster search  
-Cross-cluster search lets any node in a cluster execute search requests against other clusters. Refer to [Cross-Cluster Search]({{site.url}}{{site.baseurl}}/sql-and-ppl/ppl/admin/cross_cluster_search/) for configuration.
+
+Cross-cluster search lets any node in a cluster execute search requests against other clusters. Refer to [Cross-Cluster Search](../admin/cross_cluster_search.md/) for configuration.
 
 ## Example 1: Fetching all data
 
 Retrieve all documents from an index by specifying only the source without any search conditions. This is useful for exploring small datasets or verifying data ingestion:
-  
+
 ```ppl
 source=accounts
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
 fetched rows / total rows = 4/4
 +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+
@@ -145,6 +147,7 @@ fetched rows / total rows = 4/4
 | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    |
 +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+
 ```
+
 
 ## Example 2: Text search
 
@@ -194,7 +197,7 @@ search user email source=otellogs
 | fields body
 | head 1
 ```
-
+  
 The query returns the following results:
   
 ```text
@@ -215,7 +218,7 @@ Enclose terms containing special characters in double quotation marks:
 search "john.doe+newsletter@company.com" source=otellogs
 | fields body
 ```
-
+  
 The query returns the following results:
   
 ```text
@@ -226,11 +229,11 @@ fetched rows / total rows = 1/1
 | Email notification sent to john.doe+newsletter@company.com with subject: 'Welcome! Your order #12345 is confirmed' |
 +--------------------------------------------------------------------------------------------------------------------+
 ```
-
+  
 ### Combined phrase and Boolean search
 
 Combine quoted phrases with Boolean operators for more precise searches:
-  
+
 ```ppl
 search "User authentication" OR OAuth2 source=otellogs
 | sort @timestamp
@@ -257,7 +260,7 @@ The following queries demonstrate Boolean operators and precedence.
 ### Boolean operators
 
 Use `OR` to match documents containing any of the specified conditions:
-  
+
 ```ppl
 search severityText="ERROR" OR severityText="FATAL" source=otellogs
 | sort @timestamp
@@ -279,11 +282,11 @@ fetched rows / total rows = 3/3
 ```
 
 Combine conditions with `AND` to require all criteria to match:
-  
+
 ```ppl
-search severityText="INFO" AND `resource.attributes.service.name`="cart-service" source=otellogs 
-| fields body 
-| head 1;
+search severityText="INFO" AND `resource.attributes.service.name`="cart-service" source=otellogs
+| fields body
+| head 1
 ```
   
 The query returns the following results:
@@ -306,7 +309,7 @@ Parentheses > NOT > OR > AND
 ```
 
 The following query demonstrates operator precedence:
-  
+
 ```ppl
 search severityText="ERROR" OR severityText="WARN" AND severityNumber>15 source=otellogs
 | sort @timestamp
@@ -333,7 +336,7 @@ Both `!=` and `NOT` operators find documents in which the field value is not equ
 **!= operator**
 
 Find all accounts for which the `employer` field exists and is not `Quility`:
-  
+
 ```ppl
 search employer!="Quility" source=accounts
 ```
@@ -353,7 +356,7 @@ fetched rows / total rows = 2/2
 **`NOT` operator** 
 
 Find all accounts that do not specify `Quility` as the employer (including those with null employer values):
-  
+
 ```ppl
 search NOT employer="Quility" source=accounts
 ```
@@ -370,23 +373,20 @@ fetched rows / total rows = 3/3
 | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    |
 +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+
 ```
-  
-**Key difference**: `!=` excludes null values, `NOT` includes them.
-Dale Adams (account 18) has `employer=null`. He appears in `NOT employer="Quility"` but not in `employer!="Quility"`.
 
 ## Example 5: Range queries
 
 Use comparison operators (`>,` `<,` `>=` and `<=`) to filter numeric and date fields within specific ranges. Range queries are particularly useful for filtering by age, price, timestamps, or any numeric metrics:
-  
+
 ```ppl
 search severityNumber>15 AND severityNumber<=20 source=otellogs
 | sort @timestamp
 | fields severityNumber
 | head 3
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
 fetched rows / total rows = 3/3
 +----------------+
@@ -399,14 +399,14 @@ fetched rows / total rows = 3/3
 ```
 
 The following query filters by decimal values within a specific range:
-  
+
 ```ppl
-search `attributes.payment.amount`>=1000.0 AND `attributes.payment.amount`<=2000.0 source=otellogs 
-| fields body;
+search `attributes.payment.amount`>=1000.0 AND `attributes.payment.amount`<=2000.0 source=otellogs
+| fields body
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
 fetched rows / total rows = 1/1
 +---------------------------------------------------------+
@@ -416,21 +416,22 @@ fetched rows / total rows = 1/1
 +---------------------------------------------------------+
 ```
 
+
 ## Example 6: Wildcards
 
 The following queries demonstrate wildcard pattern matching. In wildcard patterns, `*` matches zero or more characters, while `?` matches exactly one character.
 
 Use `*` to match any number of characters at the end of a term:
-  
+
 ```ppl
 search severityText=ERR* source=otellogs
 | sort @timestamp
 | fields severityText
 | head 3
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
 fetched rows / total rows = 3/3
 +--------------+
@@ -443,16 +444,16 @@ fetched rows / total rows = 3/3
 ```
 
 Wildcard searches also work within text fields to find partial matches:
-  
+
 ```ppl
-search body=user* source=otellogs 
-| sort @timestamp 
-| fields body 
-| head 2;
+search body=user* source=otellogs
+| sort @timestamp
+| fields body
+| head 2
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
 fetched rows / total rows = 2/2
 +----------------------------------------------------------------------------------+
@@ -464,16 +465,16 @@ fetched rows / total rows = 2/2
 ```
 
 Use `?` to match exactly one character in specific positions:
-  
+
 ```ppl
 search severityText="INFO?" source=otellogs
 | sort @timestamp
 | fields severityText
 | head 3
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
 fetched rows / total rows = 3/3
 +--------------+
@@ -494,7 +495,7 @@ Leading wildcards (for example, `*@example.com`) can decrease query speed compar
 {: .note}
 
 Find records for which you only know the beginning of a field value:
-  
+
 ```ppl
 search employer=Py* source=accounts
 | fields firstname, employer
@@ -510,9 +511,9 @@ fetched rows / total rows = 1/1
 | Amber     | Pyrami   |
 +-----------+----------+
 ```
-  
+
 Combine wildcard patterns with other conditions for more precise filtering:
-  
+
 ```ppl
 search firstname=A* AND age>30 source=accounts
 | fields firstname, age, city
@@ -524,20 +525,17 @@ The query returns the following results:
 fetched rows / total rows = 1/1
 +-----------+-----+--------+
 | firstname | age | city   |
-|-----------+-----+--------|
-| Amber     | 32  | Brogan |
-+-----------+-----+--------+
+|-----------+-----+--------|  
+| Amber     | 32  | Brogan | 
++-----------+-----+--------+ 
 ```
-  
+
 ## Example 8: Field value matching  
 
 The `IN` operator efficiently checks whether a field matches any value in a list, providing a more concise and more performant alternative to chaining multiple `OR` conditions on the same field.
 
 Check whether a field matches any value from a predefined list:
 
-The IN operator efficiently checks if a field matches any value from a list. This is cleaner and more performant than chaining multiple OR conditions for the same field.
-**IN Operator**
-  
 ```ppl
 search severityText IN ("ERROR", "WARN", "FATAL") source=otellogs
 | sort @timestamp
@@ -557,9 +555,10 @@ fetched rows / total rows = 3/3
 | FATAL        |
 +--------------+
 ```
-  
+
+
 Filter logs by `severityNumber` to find errors with a specific numeric severity level:
-  
+
 ```ppl
 search severityNumber=17 source=otellogs
 | sort @timestamp
@@ -579,12 +578,12 @@ fetched rows / total rows = 1/1
 ```
 
 Search for logs containing a specific user email address in the attributes:
-  
-```ppl
-search `attributes.user.email`="user@example.com" source=otellogs 
-| fields body;
-```
 
+```ppl
+search `attributes.user.email`="user@example.com" source=otellogs
+| fields body
+```
+  
 The query returns the following results:
   
 ```text
@@ -596,6 +595,7 @@ fetched rows / total rows = 1/1
 +---------------------------------------------------------+
 ```
   
+
 ## Example 9: Complex expressions  
 
 To create sophisticated search queries, combine multiple conditions using Boolean operators and parentheses:
@@ -621,12 +621,12 @@ fetched rows / total rows = 3/3
 ```
 
 Combine multiple conditions with `OR` and `AND` operators to search for logs matching either a specific user or high-severity fund errors:
-  
-```ppl
-search `attributes.user.email`="user@example.com" OR (`attributes.error.code`="INSUFFICIENT_FUNDS" AND severityNumber>15) source=otellogs 
-| fields body;
-```
 
+```ppl
+search `attributes.user.email`="user@example.com" OR (`attributes.error.code`="INSUFFICIENT_FUNDS" AND severityNumber>15) source=otellogs
+| fields body
+```
+  
 The query returns the following results:
   
 ```
@@ -646,7 +646,7 @@ Time modifiers filter search results by time range using the implicit `@timestam
 ### Absolute time filtering
 
 Filter logs within a specific time window using absolute timestamps:
-  
+
 ```ppl
 search earliest='2024-01-15 10:30:05' latest='2024-01-15 10:30:10' source=otellogs
 | fields @timestamp, severityText
@@ -671,14 +671,14 @@ fetched rows / total rows = 6/6
 ### Relative time filtering
 
 Filter logs using relative time expressions, such as those that occurred before 30 seconds ago:
-  
+
 ```ppl
 search latest=-30s source=otellogs
 | sort @timestamp
 | fields @timestamp, severityText
 | head 3
 ```
-
+  
 The query returns the following results:
   
 ```text
@@ -695,7 +695,7 @@ fetched rows / total rows = 3/3
 ### Time rounding
 
 Use time rounding expressions to filter events relative to time boundaries, such as those before the start of the current minute:
-  
+
 ```ppl
 search latest='@m' source=otellogs
 | fields @timestamp, severityText
@@ -717,7 +717,7 @@ fetched rows / total rows = 2/2
 ### Unix timestamp filtering
 
 Filter logs using Unix epoch timestamps for precise time ranges:
-  
+
 ```ppl
 search earliest=1705314600 latest=1705314605 source=otellogs
 | fields @timestamp, severityText
@@ -760,18 +760,18 @@ The following table compares wildcard and literal character matching.
 | Wildcard search | `field=log?` | Matches `log1`, `logA`, `logs` |
 | Literal `log?` | `field="log\\?"`  | Matches only `log?`|
 
-
 ### Escaping backslash characters
 
 Each backslash in the search value must be escaped with another backslash. For example, the following query searches for Windows file paths by properly escaping backslashes:
-  
+
 ```ppl
 search `attributes.error.type`="C:\\\\Users\\\\admin" source=otellogs
 | fields `attributes.error.type`
 ```
-  
+
+
 The query returns the following results:
-  
+
 ```text
 fetched rows / total rows = 1/1
 +-----------------------+
@@ -780,44 +780,45 @@ fetched rows / total rows = 1/1
 | C:\Users\admin        |
 +-----------------------+
 ```
-  
+
 When using the REST API with JSON, additional JSON escaping is required.
 {: .note}
 
 ### Quotation marks within strings
 
 Search for text containing quotation marks by escaping them with backslashes:
-  
+
 ```ppl
 search body="\"exact phrase\"" source=otellogs
 | sort @timestamp
 | fields body
 | head 1
 ```
-  
+
+
 The query returns the following results:
-  
+
 ```text
 fetched rows / total rows = 1/1
 +--------------------------------------------------------------------------------------------------------------------------------------------------------+
-| body                                                                                                                                                   |
+| body                                                                                                                                                   | 
 |--------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Query contains Lucene special characters: +field:value -excluded AND (grouped OR terms) NOT "exact phrase" wildcard* fuzzy~2 /regex/ [range TO search] |
 +--------------------------------------------------------------------------------------------------------------------------------------------------------+
 ```
-  
+
 ### Text containing special characters
 
 Search for literal text containing wildcard characters by escaping them:
-  
+
 ```ppl
 search "wildcard\\* fuzzy~2" source=otellogs
 | fields body
 | head 1
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
 fetched rows / total rows = 1/1
 +--------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -826,5 +827,3 @@ fetched rows / total rows = 1/1
 | Query contains Lucene special characters: +field:value -excluded AND (grouped OR terms) NOT "exact phrase" wildcard* fuzzy~2 /regex/ [range TO search] |
 +--------------------------------------------------------------------------------------------------------------------------------------------------------+
 ```
-
-  

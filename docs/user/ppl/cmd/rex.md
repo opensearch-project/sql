@@ -1,3 +1,4 @@
+
 # rex
 
 The `rex` command extracts fields from a raw text field using regular expression named capture groups. It uses Java regex patterns. For more information, see the [Java regular expression documentation](https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html).
@@ -20,7 +21,7 @@ The `rex` and [`parse`](parse.md) commands both extract information from text fi
 
 The `rex` command has the following syntax:
 
-```sql
+```syntax
 rex [mode=<mode>] field=<field> <pattern> [max_match=<int>] [offset_field=<string>]
 ```
 
@@ -38,9 +39,9 @@ The `rex` command supports the following parameters.
 
 <p id="note"></p>
 
-You can set the `max_match` limit in the `plugins.ppl.rex.max_match.limit` cluster setting. For more information, see [SQL settings]({{site.url}}{{site.baseurl}}/sql-and-ppl/settings/). Setting this limit to a large value is not recommended because it can lead to excessive memory consumption, especially with patterns that match empty strings (for example, `\d*` or `\w*`).
+You can set the `max_match` limit in the `plugins.ppl.rex.max_match.limit` cluster setting. For more information, see [SQL settings](../../admin/settings.rst). Setting this limit to a large value is not recommended because it can lead to excessive memory consumption, especially with patterns that match empty strings (for example, `\d*` or `\w*`).
 {: .note}
-  
+
 
 ## Example 1: Basic text extraction  
 
@@ -198,7 +199,7 @@ source=accounts
 | fields firstname, lastname, firstinitial, lastinitial
 | head 3
 ```
-
+  
 The query returns the following results:
   
 ```text
@@ -231,7 +232,7 @@ The query returns the following results:
 {'reason': 'Invalid Query', 'details': "Invalid capture group name 'user_name'. Java regex group names must start with a letter and contain only letters and digits.", 'type': 'IllegalArgumentException'}
 Error: Query returned no data
 ```
-  
+
 **Correct PPL query without underscores**:
   
 ```ppl
@@ -278,7 +279,7 @@ fetched rows / total rows = 1/1
 | 880 Holmes Lane | 10          |
 +-----------------+-------------+
 ```
-  
+
 **A PPL query exceeding the configured limit results in an error**:
   
 ```ppl
@@ -287,12 +288,12 @@ source=accounts
 | fields address, digit
 | head 1
 ```
-
+  
 The query returns the following results:
   
 ```text
 {'reason': 'Invalid Query', 'details': 'Rex command max_match value (100) exceeds the configured limit (10). Consider using a smaller max_match value or adjust the plugins.ppl.rex.max_match.limit setting.', 'type': 'IllegalArgumentException'}
 Error: Query returned no data
 ```
-  
+
 For detailed Java regex pattern syntax and usage, refer to the [official Java Pattern documentation](https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html).

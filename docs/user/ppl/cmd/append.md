@@ -1,3 +1,4 @@
+
 # append
 
 The `append` command appends the results of a subsearch as additional rows to the end of the input search results (the main search).
@@ -8,7 +9,7 @@ The command aligns columns that have the same field names and types. For columns
 
 The `append` command has the following syntax:
 
-```sql
+```syntax
 append <subsearch>
 ```
 

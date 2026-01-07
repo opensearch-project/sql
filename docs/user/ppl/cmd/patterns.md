@@ -1,3 +1,4 @@
+
 # patterns
 
 The `patterns` command extracts log patterns from a text field and appends the results to the search results. Grouping logs by pattern simplifies aggregating statistics from large volumes of log data for analysis and troubleshooting. You can choose from the following log parsing methods to achieve high pattern-grouping accuracy:
@@ -23,7 +24,7 @@ The `patterns` command supports the following syntax options.
 
 The `patterns` command with a `simple_pattern` method has the following syntax:
 
-```sql
+```syntax
 patterns <field> [by <byClause>] [method=simple_pattern] [mode=label | aggregation] [max_sample_count=integer] [show_numbered_token=boolean] [new_field=<new-field-name>] [pattern=<regex-pattern>]
 ```
 
@@ -31,7 +32,7 @@ patterns <field> [by <byClause>] [method=simple_pattern] [mode=label | aggregati
 
 The `patterns` command with a `brain` method has the following syntax:
 
-```sql
+```syntax
 patterns <field> [by <byClause>] [method=brain] [mode=label | aggregation] [max_sample_count=integer] [buffer_limit=integer] [show_numbered_token=boolean] [new_field=<new-field-name>] [variable_count_threshold=integer] [frequency_threshold_percentage=decimal]
 ```
 
@@ -66,13 +67,12 @@ The `brain` method accepts the following parameters.
 ## Placeholder behavior
 
 By default, the Apache Calcite engine labels variables using the `<*>` placeholder. If the `show_numbered_token` option is enabled, the Calcite engine's `label` mode not only labels the text pattern but also assigns numbered placeholders to variable tokens. In `aggregation` mode, it outputs both the labeled pattern and the variable tokens for each pattern. In this case, variable placeholders use the format `<token%d>` instead of `<*>`.
-  
 
 ## Changing the default pattern method  
 
 To override default pattern parameters, run the following command:
-  
-```json
+
+```bash ignore
 PUT _cluster/settings
 {
   "persistent": {
@@ -84,7 +84,7 @@ PUT _cluster/settings
   }
 }
 ```
-
+  
 ## Simple pattern examples
 
 The following are examples of using the `simple_pattern` method.
@@ -192,6 +192,7 @@ fetched rows / total rows = 4/4
 ### Example 5: Return aggregated log patterns with detected variable tokens
 
 The following query returns aggregated results with detected variable tokens. When the `show_numbered_token` option is enabled, the pattern output uses numbered placeholders (for example, `<token1>`, `<token2>`) and returns a mapping of each placeholder to the values that it represents:
+
   
 ```ppl
 source=apache
@@ -210,6 +211,7 @@ fetched rows / total rows = 1/1
 | <token1>.<token2>.<token3>.<token4> - - [<token5>/<token6>/<token7>:<token8>:<token9>:<token10> -<token11>] "<token12> /<token13> <token14>/<token15>.<token16>" <token17> <token18> | 1             | {'<token14>': ['HTTP'], '<token13>': ['users'], '<token16>': ['1'], '<token15>': ['1'], '<token18>': ['9481'], '<token17>': ['301'], '<token5>': ['28'], '<token4>': ['104'], '<token7>': ['2022'], '<token6>': ['Sep'], '<token9>': ['15'], '<token8>': ['10'], '<token10>': ['57'], '<token1>': ['210'], '<token12>': ['POST'], '<token3>': ['15'], '<token11>': ['0700'], '<token2>': ['204']} |
 +--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 ```
+
 
 ## Brain pattern examples
 
@@ -249,7 +251,7 @@ source=apache
 | patterns message method=brain variable_count_threshold=2
 | fields message, patterns_field
 ```
-
+  
 The query returns the following results:
   
 ```text
@@ -307,5 +309,6 @@ fetched rows / total rows = 1/1
 | <token1> - <token2> [<token3>/Sep/<token4>:<token5>:<token6>:<token7> <token8>] <token9> <token10> HTTP/<token11>" <token12> <token13> | 4             | {'<token13>': ['19927', '28722', '27439', '9481'], '<token5>': ['10', '10', '10', '10'], '<token4>': ['2022', '2022', '2022', '2022'], '<token7>': ['57', '57', '57', '57'], '<token6>': ['15', '15', '15', '15'], '<token9>': ['"HEAD', '"GET', '"PATCH', '"POST'], '<token8>': ['-0700', '-0700', '-0700', '-0700'], '<token10>': ['/e-business/mindshare', '/architectures/convergence/niches/mindshare', '/strategize/out-of-the-box', '/users'], '<token1>': ['177.95.8.74', '127.45.152.6', '118.223.210.10... |
 +----------------------------------------------------------------------------------------------------------------------------------------+---------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 ```
+  
 
-
+  

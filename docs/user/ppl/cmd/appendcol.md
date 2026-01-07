@@ -1,3 +1,4 @@
+
 # appendcol
 
 The `appendcol` command appends the result of a subsearch as additional columns to the input search results (the main search).
@@ -6,7 +7,7 @@ The `appendcol` command appends the result of a subsearch as additional columns 
 
 The `appendcol` command has the following syntax:
 
-```sql
+```syntax
 appendcol [override=<boolean>] <subsearch>
 ```
 
@@ -18,7 +19,8 @@ The `appendcol` command supports the following parameters.
 | --- | --- | --- |
 | `<subsearch>` | Required | Executes PPL commands as a secondary search. The `subsearch` uses the data specified in the `source` clause of the main search results as its input. |
 | `override` | Optional | Specifies whether the results of the main search should be overwritten when column names conflict. Default is `false`. |
-
+  
+  
 
 ## Example 1: Append a count aggregation to existing search results  
 
@@ -52,7 +54,7 @@ fetched rows / total rows = 10/10
 ```
   
 
-## Example 2: Append a count aggregation to existing search results, overriding the main search results
+## Example 2: Append a count aggregation to existing search results, overriding the main search results  
 
 This example appends `count by gender` to `sum by gender, state` and overrides the main search results:
   
@@ -84,7 +86,7 @@ fetched rows / total rows = 10/10
 ```
   
 
-## Example 3: Append multiple subsearch results
+## Example 3: Append multiple subsearch results  
 
 The following query chains multiple `appendcol` commands to add columns from different subsearches:
   
@@ -115,7 +117,7 @@ fetched rows / total rows = 9/9
 ```
   
 
-## Example 4: OResolve column name conflicts using the override parameter
+## Example 4: Resolve column name conflicts using the override parameter
 
 The following query shows how to use `appendcol` with the `override` option when column names in the main search and subsearch conflict:
   

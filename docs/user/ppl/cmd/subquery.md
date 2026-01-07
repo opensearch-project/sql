@@ -1,3 +1,4 @@
+
 # subquery
 
 The `subquery` command allows you to embed one PPL query within another, enabling advanced filtering and data retrieval. A subquery is executed first, and its results are used by the outer query for filtering, comparison, or joining.
@@ -29,6 +30,7 @@ Tests whether a field value exists in the results of a subquery:
 ```ppl ignore
 where <field> [not] in [ source=... | ... | ... ]
 ```
+
 The following are examples of the `IN` subquery syntax:
 
 ```ppl ignore
@@ -39,7 +41,7 @@ source = outer | where a not in [ source = inner | fields b ]
 source = outer | where (a) not in [ source = inner | fields b ]
 source = outer | where (a,b,c) not in [ source = inner | fields d,e,f ]
 source = outer a in [ source = inner | fields b ] // search filtering with subquery
-source = outer a not in [ source = inner | fields b ] // search filtering with subquery)
+source = outer a not in [ source = inner | fields b ] // search filtering with subquery
 source = outer | where a in [ source = inner1 | where b not in [ source = inner2 | fields c ] | fields b ] // nested
 source = table1 | inner join left = l right = r on l.a = r.a AND r.a in [ source = inner | fields d ] | fields l.a, r.a, b, c //as join filter
 ```
@@ -50,7 +52,7 @@ Tests whether a subquery returns any results:
   
 ```ppl ignore
 where [not] exists [ source=... | ... | ... ]
-``` 
+```
 
 The following are examples of the `EXISTS` subquery syntax:
 
@@ -61,7 +63,7 @@ source = outer | where not exists [ source = inner | where a = c ]
 source = outer | where exists [ source = inner | where a = c and b = d ]
 source = outer | where not exists [ source = inner | where a = c and b = d ]
 source = outer exists [ source = inner | where a = c ] // search filtering with subquery
-source = outer not exists [ source = inner | where a = c ] //search filtering with subquery
+source = outer not exists [ source = inner | where a = c ] // search filtering with subquery
 source = table as t1 exists [ source = table as t2 | where t1.a = t2.a ] //table alias is useful in exists subquery
 source = outer | where exists [ source = inner1 | where a = c and exists [ source = nested | where c = e ] ] //nested
 source = outer | where exists [ source = inner1 | where a = c | where exists [ source = nested | where c = e ] ] //nested
@@ -106,7 +108,7 @@ source = outer | where a = [ source = inner | where c =  [ source = nested | sta
   
 ### Relation subquery
 
-Used in `join` operations to provide dynamic right-side data: 
+Used in `join` operations to provide dynamic right-side data:  
   
 ```ppl ignore
 | join ON condition [ source=... | ... | ... ]
@@ -118,8 +120,6 @@ The following are examples of the relation subquery syntax:
 source = table1 | join left = l right = r on condition [ source = table2 | where d > 10 | head 5 ] //subquery in join right side
 source = [ source = table1 | join left = l right = r [ source = table2 | where d > 10 | head 5 ] | stats count(a) by b ] as outer | head 1
 ```
-  
-
 
 ## Configuration
 
@@ -127,7 +127,7 @@ The `subquery` command behavior is configured using the `plugins.ppl.subsearch.m
 
 To update the setting, send the following request:
 
-```json
+```bash ignore
 PUT /_plugins/_query/settings
 {
   "persistent": {
@@ -137,65 +137,57 @@ PUT /_plugins/_query/settings
 ```
   
 
-## Example 1: TPC-H q20  
+## Example 1: TPC-H q20
 
-The following example PPL query shows a complex TPC-H query 20 implementation using nested subqueries.  
-  
-```bash ignore  
-curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_ppl -d '{
-  "query" : """
-          source = supplier
-          | join ON s_nationkey = n_nationkey nation
-          | where n_name = 'CANADA'
-            and s_suppkey in [
-              source = partsupp
-              | where ps_partkey in [
-                  source = part
-                  | where like(p_name, 'forest%')
-                  | fields p_partkey
-                ]
-                and ps_availqty > [
-                  source = lineitem
-                  | where l_partkey = ps_partkey
-                    and l_suppkey = ps_suppkey
-                    and l_shipdate >= date('1994-01-01')
-                    and l_shipdate < date_add(date('1994-01-01'), interval 1 year)
-                  | stats sum(l_quantity) as sum_l_quantity
-                  | eval half_sum_l_quantity = 0.5 * sum_l_quantity // Stats and Eval commands can combine when issues/819 resolved
-                  | fields half_sum_l_quantity
-                ]
-              | fields ps_suppkey
-        ]
-  """
-}'
+The following query demonstrates a complex TPC-H query 20 implementation using nested subqueries:
+
+```ppl ignore  
+source = supplier
+| join ON s_nationkey = n_nationkey nation
+| where n_name = 'CANADA'
+  and s_suppkey in [
+    source = partsupp
+    | where ps_partkey in [
+        source = part
+        | where like(p_name, 'forest%')
+        | fields p_partkey
+      ]
+      and ps_availqty > [
+        source = lineitem
+        | where l_partkey = ps_partkey
+          and l_suppkey = ps_suppkey
+          and l_shipdate >= date('1994-01-01')
+          and l_shipdate < date_add(date('1994-01-01'), interval 1 year)
+        | stats sum(l_quantity) as sum_l_quantity
+        | eval half_sum_l_quantity = 0.5 * sum_l_quantity // Stats and Eval commands can combine when issues/819 resolved
+        | fields half_sum_l_quantity
+      ]
+    | fields ps_suppkey
+  ]
 ```
   
 
-## Example 2: TPC-H q22  
+## Example 2: TPC-H q22
 
-The following example PPL query shows a TPC-H query 22 implementation using EXISTS and scalar subqueries.  
-  
-```bash ignore
-curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_ppl -d '{
-  "query" : """
-        source = [
+The following query demonstrates a TPC-H query 22 implementation using `EXISTS` and scalar subqueries:
+
+```ppl ignore
+source = [
+  source = customer
+    | where substring(c_phone, 1, 2) in ('13', '31', '23', '29', '30', '18', '17')
+      and c_acctbal > [
           source = customer
-            | where substring(c_phone, 1, 2) in ('13', '31', '23', '29', '30', '18', '17')
-              and c_acctbal > [
-                  source = customer
-                  | where c_acctbal > 0.00
-                    and substring(c_phone, 1, 2) in ('13', '31', '23', '29', '30', '18', '17')
-                  | stats avg(c_acctbal)
-                ]
-              and not exists [
-                  source = orders
-                  | where o_custkey = c_custkey
-                ]
-            | eval cntrycode = substring(c_phone, 1, 2)
-            | fields cntrycode, c_acctbal
-          ] as custsale
-        | stats count() as numcust, sum(c_acctbal) as totacctbal by cntrycode
-        | sort cntrycode
-  """
-}'
+          | where c_acctbal > 0.00
+            and substring(c_phone, 1, 2) in ('13', '31', '23', '29', '30', '18', '17')
+          | stats avg(c_acctbal)
+        ]
+      and not exists [
+          source = orders
+          | where o_custkey = c_custkey
+        ]
+    | eval cntrycode = substring(c_phone, 1, 2)
+    | fields cntrycode, c_acctbal
+  ] as custsale
+| stats count() as numcust, sum(c_acctbal) as totacctbal by cntrycode
+| sort cntrycode
 ```

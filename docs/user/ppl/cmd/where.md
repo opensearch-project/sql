@@ -1,3 +1,4 @@
+
 # where
 
 The `where` command filters the search results. It only returns results that match the specified conditions.
@@ -6,7 +7,7 @@ The `where` command filters the search results. It only returns results that mat
 
 The `where` command has the following syntax:
 
-```sql
+```syntax
 where <boolean-expression>
 ```
 
@@ -17,41 +18,41 @@ The `where` command supports the following parameters.
 | Parameter | Required/Optional | Description |
 | --- | --- | --- |
 | `<boolean-expression>` | Required | The condition used to filter the results. Only rows in which this condition evaluates to `true` are returned. |
-  
-## Example 1: Filter search results with condition  
 
-The following example PPL query shows how to use `where` to fetch all the documents from the accounts index where account_number is 1 or gender is "F".
-  
+## Example 1: Filter by numeric values
+
+The following query returns accounts in which `balance` is greater than `30000`:
+
 ```ppl
 source=accounts
-| where account_number=1 or gender="F"
-| fields account_number, gender
+| where balance > 30000
+| fields account_number, balance
 ```
-  
-Expected output:
-  
+
+The query returns the following results:
+
 ```text
 fetched rows / total rows = 2/2
-+----------------+--------+
-| account_number | gender |
-|----------------+--------|
-| 1              | M      |
-| 13             | F      |
-+----------------+--------+
++----------------+---------+
+| account_number | balance |
+|----------------+---------|
+| 1              | 39225   |
+| 13             | 32838   |
++----------------+---------+
 ```
 
 ## Example 2: Filter using combined criteria
 
 The following query combines multiple conditions using an `AND` operator:
-  
+
 ```ppl
 source=accounts
 | where age > 30 AND gender = 'M'
 | fields account_number, age, gender
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
 fetched rows / total rows = 3/3
 +----------------+-----+--------+
@@ -63,18 +64,19 @@ fetched rows / total rows = 3/3
 +----------------+-----+--------+
 ```
 
+
 ## Example 3: Filter with multiple possible values
 
 The following query fetches all the documents from the `accounts` index in which `account_number` is `1` or `gender` is `F`:
-  
+
 ```ppl
 source=accounts
 | where account_number=1 or gender="F"
 | fields account_number, gender
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
 fetched rows / total rows = 2/2
 +----------------+--------+
@@ -84,6 +86,7 @@ fetched rows / total rows = 2/2
 | 13             | F      |
 +----------------+--------+
 ```
+  
 
 ## Example 4: Filter by text patterns 
 
@@ -92,15 +95,15 @@ The `LIKE` operator enables pattern matching on string fields using wildcards.
 ### Matching a single character
 
 The following query uses an underscore (`_`) to match a single character:
-  
+
 ```ppl
 source=accounts
 | where LIKE(state, 'M_')
 | fields account_number, state
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
 fetched rows / total rows = 1/1
 +----------------+-------+
@@ -113,15 +116,15 @@ fetched rows / total rows = 1/1
 ### Matching multiple characters
 
 The following query uses a percent sign (`%`) to match multiple characters:
-  
+
 ```ppl
 source=accounts
 | where LIKE(state, 'V%')
 | fields account_number, state
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
 fetched rows / total rows = 1/1
 +----------------+-------+
@@ -134,7 +137,7 @@ fetched rows / total rows = 1/1
 ## Example 5: Filter by excluding specific values  
 
 The following query uses a `NOT` operator to exclude matching records:
-
+  
 ```ppl
 source=accounts
 | where NOT state = 'CA'
@@ -154,6 +157,7 @@ fetched rows / total rows = 4/4
 | 18             | MD    |
 +----------------+-------+
 ```
+  
 
 ## Example 6: Filter using value lists  
 
@@ -220,5 +224,4 @@ fetched rows / total rows = 1/1
 | 6              | 5686    | 36  | M      |
 +----------------+---------+-----+--------+
 ```
-
   

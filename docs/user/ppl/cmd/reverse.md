@@ -1,3 +1,4 @@
+
 # reverse
 
 The `reverse` command reverses the display order of the search results. It returns the same results but in the opposite order.
@@ -9,7 +10,7 @@ The `reverse` command processes the entire dataset. If applied directly to milli
 
 The `reverse` command has the following syntax:
 
-```sql
+```syntax
 reverse
 ```
 
@@ -88,7 +89,7 @@ fetched rows / total rows = 2/2
 | 18             | 33  |
 +----------------+-----+
 ```
-
+  
 
 ## Example 4: Double reverse  
 
@@ -126,7 +127,7 @@ source=accounts
 | fields account_number, age
 | reverse
 ```
-
+  
 The query returns the following results:
   
 ```text
@@ -139,4 +140,4 @@ fetched rows / total rows = 3/3
 | 1              | 32  |
 +----------------+-----+
 ```
-  
+

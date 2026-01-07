@@ -1,8 +1,5 @@
+
 # join
-
-The `join` command combines two datasets together. The left side could be an index or results from a piped commands, the right side could be either an index or a subsearch.
-
-## Syntax
 
 The `join` command combines two datasets. The left side can be an index or the results of piped commands, while the right side can be either an index or a subsearch.
 
@@ -12,7 +9,7 @@ The `join` command supports basic and extended syntax options.
 
 ### Basic syntax
 
-```sql
+```syntax
 [joinType] join [left = <leftAlias>] [right = <rightAlias>] (on | where) <joinCriteria> <right-dataset>
 ```
 
@@ -21,7 +18,7 @@ When using aliases, `left` must appear before `right`.
 
 The following are examples of the basic `join` command syntax:
 
-```sql
+```syntax
 source = table1 | inner join left = l right = r on l.a = r.a table2 | fields l.a, r.a, b, c
 source = table1 | inner join left = l right = r where l.a = r.a table2 | fields l.a, r.a, b, c
 source = table1 | left join left = l right = r on l.a = r.a table2 | fields l.a, r.a, b, c
@@ -52,13 +49,13 @@ The basic `join` syntax supports the following parameters.
 
 ### Extended syntax
 
-```sql
+```syntax
 join [type=<joinType>] [overwrite=<bool>] [max=n] (<join-field-list> | [left = <leftAlias>] [right = <rightAlias>] (on | where) <joinCriteria>) <right-dataset>
 ```
 
 The following are examples of the extended `join` command syntax:
 
-```sql
+```syntax
 source = table1 | join type=outer left = l right = r on l.a = r.a table2 | fields l.a, r.a, b, c
 source = table1 | join type=left left = l right = r where l.a = r.a table2 | fields l.a, r.a, b, c
 source = table1 | join type=inner max=1 left = l right = r where l.a = r.a table2 | fields l.a, r.a, b, c
@@ -91,7 +88,7 @@ The `join` command behavior is configured using the `plugins.ppl.join.subsearch_
 
 To update the setting, send the following request:
   
-```json
+```bash ignore
 PUT /_plugins/_query/settings
 {
   "persistent": {
@@ -100,7 +97,7 @@ PUT /_plugins/_query/settings
 }
 ```
 
-## Example 1: Join two indexes
+## Example 1: Join two indexes  
 
 The following query uses the basic `join` syntax to join two indexes:
   
@@ -126,7 +123,7 @@ fetched rows / total rows = 5/5
 ```
   
 
-## Example 2: Join with a subsearch
+## Example 2: Join with a subsearch  
 
 The following query combines a dataset with a subsearch using the basic `join` syntax:
   
@@ -155,7 +152,7 @@ fetched rows / total rows = 3/3
 ```
   
 
-## Example 3: Join using a field list
+## Example 3: Join using a field list  
 
 The following query uses the extended syntax and specifies a list of fields for the join criteria:
   
@@ -184,7 +181,7 @@ fetched rows / total rows = 3/3
 ```
   
 
-## Example 4: Join with additional options
+## Example 4: Join with additional options  
 
 The following query uses the extended syntax and optional parameters for more control over the join operation:
   
@@ -209,7 +206,7 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Limitations  
+## Limitations
 
 The `join` command has the following limitations:
 

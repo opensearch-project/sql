@@ -1,3 +1,4 @@
+
 # multisearch
 
 
@@ -12,20 +13,20 @@ Use multisearch for:
 * **Multi-source data combination**: Merge data from different indexes or apply different filters to the same source.
 * **A/B testing analysis**: Combine results from different test groups for comparison.
 * **Time-series data merging**: Interleave events from multiple sources based on timestamps.
+ 
   
-
 
 ## Syntax
 
 The `multisearch` command has the following syntax:
 
-```sql
+```syntax
 multisearch <subsearch1> <subsearch2> [<subsearch3> ...]
 ```
 
 The following are examples of the `multisearch` command syntax:
 
-```sql
+```syntax
 | multisearch [search source=table | where condition1] [search source=table | where condition2]
 | multisearch [search source=index1 | fields field1, field2] [search source=index2 | fields field1, field2]
 | multisearch [search source=table | where status="success"] [search source=table | where status="error"]
@@ -157,7 +158,7 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Limitations  
+## Limitations
 
 The `multisearch` command has the following limitations:
 

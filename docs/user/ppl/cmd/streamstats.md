@@ -1,9 +1,10 @@
+
 # streamstats
 
 The `streamstats` command calculates cumulative or rolling statistics as events that are processed in order. Unlike `stats` or `eventstats`, which operate on the entire dataset at once, `streamstats` processes events incrementally, making it suitable for time-series and sequence-based analysis.
 
 Key features include support for the `window` (sliding window calculations) and `current` (whether to include the current event in calculations) parameters and specialized use cases such as identifying trends or detecting changes over sequences of events.  
-
+  
 ## Comparing stats, eventstats, and streamstats
 
 The `stats`, `eventstats`, and `streamstats` commands can all generate aggregations such as average, sum, and maximum. However, they differ in how they operate and the results they produce. The following table summarizes these differences.
@@ -14,19 +15,19 @@ The `stats`, `eventstats`, and `streamstats` commands can all generate aggregati
 | Output format | Output contains only aggregated values. Original raw events are not preserved | Original events remain, with extra fields containing summary statistics | Original events remain, with extra fields containing running totals or cumulative statistics |
 | Aggregation scope | Based on all events in the search (or groups defined by the `by` clause) | Based on all relevant events, then the result is added back to each event in the group | Calculations occur progressively as each event is processed; can be scoped by window |
 | Use cases | When only aggregated results are needed (for example, counts, averages, sums) | When aggregated statistics are needed alongside original event data | When a running total or cumulative statistic is needed across event streams |  
-
+  
 
 ## Syntax
 
 The `streamstats` command has the following syntax:
 
-```sql
+```syntax
 streamstats [bucket_nullable=bool] [current=<bool>] [window=<int>] [global=<bool>] [reset_before="("<eval-expression>")"] [reset_after="("<eval-expression>")"] <function>... [by-clause]
 ```
 
 The following are examples of the `streamstats` command syntax:
 
-```sql
+```ppl ignore
 source = table | streamstats avg(a)
 source = table | streamstats current = false avg(a)
 source = table | streamstats window = 5 sum(b)
@@ -40,7 +41,6 @@ source = table | streamstats current=false window=2 global=false avg(a) by b
 source = table | streamstats window=2 reset_before=a>31 avg(b)
 source = table | streamstats current=false reset_after=a>31 avg(b) by c
 ```
-{% include copy.html %}
 
 ## Parameters
 
@@ -129,13 +129,14 @@ fetched rows / total rows = 8/8
 +-------+---------+------------+-------+------+-----+--------------+
 ```
   
+
 ## Example 3: Global compared to group-specific windows  
 
 The `global` parameter takes the following values:
 
 * `true`: A global window is applied across all rows, but the calculations inside the window still respect the `by` groups.
 * `false`: The window itself is created per group, meaning each group receives an independent window. 
-
+  
 The following example uses a sample index containing the following data:
 
 ```text
@@ -181,12 +182,12 @@ fetched rows / total rows = 8/8
 | David | USA     | Washington | 4     | 2023 | 40  | 40.0        |
 +-------+---------+------------+-------+------+-----+-------------+
 ```
-
-In contrast, when `global=false`, each `by` group forms an independent stream and window:
   
+In contrast, when `global=false`, each `by` group forms an independent stream and window:
+
 ```ppl
-source=state_country 
-| streamstats window=2 global=false avg(age) as running_avg by country ;
+source=state_country
+| streamstats window=2 global=false avg(age) as running_avg by country
 ```
   
 `David` and `Hello` form a window for the `USA` group. As a result, for `David`, the `running_avg` is `35.0` instead of `40.0` in the previous case:
@@ -239,7 +240,7 @@ fetched rows / total rows = 8/8
 ## Example 5: Null bucket behavior
 
 When `bucket_nullable=false`, null values are excluded from group-by aggregations:
-  
+
 ```ppl
 source=accounts
 | streamstats bucket_nullable=false count() as cnt by employer
@@ -259,9 +260,9 @@ fetched rows / total rows = 4/4
 | 18             | Dale      | null     | null |
 +----------------+-----------+----------+------+
 ```
-
-When `bucket_nullable=true`, null values are treated as a valid group:
   
+When `bucket_nullable=true`, null values are treated as a valid group:
+
 ```ppl
 source=accounts
 | streamstats bucket_nullable=true count() as cnt by employer

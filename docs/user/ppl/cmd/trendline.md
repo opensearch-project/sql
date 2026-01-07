@@ -1,3 +1,4 @@
+
 # trendline
 
 The `trendline` command calculates moving averages of fields.
@@ -6,7 +7,7 @@ The `trendline` command calculates moving averages of fields.
 
 The `trendline` command has the following syntax:
 
-```sql
+```syntax
 trendline [sort [+|-] <sort-field>] (sma | wma)(<number-of-datapoints>, <field>) [as <alias>] [(sma | wma)(<number-of-datapoints>, <field>) [as <alias>]]...
 ```
 
@@ -22,7 +23,6 @@ The `trendline` command supports the following parameters.
 | `number-of-datapoints` | Required | The number of data points used to calculate the moving average. Must be greater than zero. |
 | `<field>` | Required | The field for which the moving average is calculated. |
 | `<alias>` | Optional | The name of the resulting column containing the moving average. Default is the `<field>` name with `_trendline` appended. |
-  
 
 ## Example 1: Calculate the simple moving average for one field
 
@@ -73,6 +73,7 @@ fetched rows / total rows = 4/4
 +------+-----------+
 ```
   
+
 ## Example 3: Calculate the simple moving average for one field without specifying an alias
 
 The following query calculates the simple moving average for one field without specifying an alias:
@@ -123,7 +124,7 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Limitations  
+## Limitations
 
 The `trendline` command has the following limitations:
 

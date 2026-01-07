@@ -1,3 +1,4 @@
+
 # ml
 
 The `ml` command applies machine learning (ML) algorithms from the ML Commons plugin to the search results returned by a PPL command. It supports various ML operations, including anomaly detection and clustering. The command can perform train, predict, or combined train-and-predict operations, depending on the algorithm and specified action.
@@ -19,7 +20,7 @@ The `ml` command supports different syntax options, depending on the algorithm.
 
 Use this syntax to detect anomalies in time-series data. This method uses the RCF algorithm optimized for sequential data patterns:
 
-```sql
+```syntax
 ml action='train' algorithm='rcf' <number_of_trees> <shingle_size> <sample_size> <output_after> <time_decay> <anomaly_rate> <time_field> <date_format> <time_zone>
 ```
 
@@ -44,7 +45,7 @@ The fixed-in-time RCF algorithm supports the following parameters.
 
 Use this syntax to detect anomalies in data where the order doesn't matter. This method uses the RCF algorithm optimized for independent data points:
 
-```sql
+```syntax
 ml action='train' algorithm='rcf' <number_of_trees> <sample_size> <output_after> <training_data_size> <anomaly_score_threshold>
 ```
 
@@ -60,13 +61,13 @@ The batch RCF algorithm supports the following parameters.
 | `training_data_size` | Optional | The size of the training dataset. Default is the full dataset size. |
 | `anomaly_score_threshold` | Optional | The anomaly score threshold. Default is `1.0`. |
 | `category_field` | Optional | The category field used to group input values. The predict operation is applied to each category independently. |  
-
+  
 
 ### K-means clustering
 
 Use this syntax to group data points into clusters based on similarity:
 
-```sql
+```syntax
 ml action='train' algorithm='kmeans' <centroids> <iterations> <distance_type>
 ```
 
@@ -151,7 +152,7 @@ fetched rows / total rows = 1/1
 ```
   
 
-## Example 4: Non-time-series anomaly detection by category 
+## Example 4: Non-time-series anomaly detection by category
 
 This example trains an RCF model and uses it to detect anomalies in non-time-series ridership data across multiple category values:
   
@@ -175,7 +176,7 @@ fetched rows / total rows = 2/2
 ```
   
 
-## Example 5: K-means clustering of the Iris dataset
+## Example 5: K-means clustering of the Iris dataset  
 
 This example uses k-means clustering to classify three Iris species (Iris setosa, Iris virginica, and Iris versicolor) based on the combination of four features measured from each sample (the lengths and widths of sepals and petals):
   
@@ -196,3 +197,5 @@ The query returns the following results:
 | 6.7                | 2.5               | 5.8                | 1.8               | 2         |
 +--------------------+-------------------+--------------------+-------------------+-----------+
 ```
+  
+

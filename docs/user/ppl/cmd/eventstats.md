@@ -1,3 +1,4 @@
+
 # eventstats
 
 The `eventstats` command enriches your event data with calculated summary statistics. It analyzes the specified fields within your events, computes various statistical measures, and then appends these results as new fields to each original event.
@@ -11,19 +12,18 @@ The `eventstats` command operates in the following way:
 ## Comparing stats and eventstats
 
 For a comprehensive comparison of `stats`, `eventstats`, and `streamstats` commands, including their differences in transformation behavior, output format, aggregation scope, and use cases, see [Comparing stats, eventstats, and streamstats](streamstats.md/#comparing-stats-eventstats-and-streamstats).
-  
 
 ## Syntax
 
 The `eventstats` command has the following syntax:
 
-```sql
+```syntax
 eventstats [bucket_nullable=bool] <function>... [by-clause]
 ```
 
 The following are examples of the `eventstats` command syntax:
 
-```sql
+```syntax
 source = table | eventstats avg(a)
 source = table | where a < 50 | eventstats count(c)
 source = table | eventstats min(c), max(c) by b
@@ -75,9 +75,8 @@ The `eventstats` command supports the following aggregation functions:
 * `LATEST` -- Latest value by timestamp  
 
 For detailed documentation of each function, see [Functions](../functions/aggregations.md).  
-  
 
-## Calculate the average, sum, and count of a field by group
+## Example 1: Calculate the average, sum, and count of a field by group  
 
 The following query calculates the average age, sum of age, and count of events for all accounts grouped by gender:
   
@@ -103,7 +102,7 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 2: Calculate the count by a gender and span
+## Example 2: Calculate the count by a gender and span  
 
 The following query counts events by age intervals of 5 years, grouped by gender:
   
@@ -132,7 +131,7 @@ fetched rows / total rows = 4/4
 ## Example 3: Null bucket handling
 
 The following query uses the `eventstats` command with `bucket_nullable=false` to exclude null values from the group-by aggregation:
-  
+
 ```ppl
 source=accounts
 | eventstats bucket_nullable=false count() as cnt by employer
@@ -155,7 +154,7 @@ fetched rows / total rows = 4/4
 ```
 
 The following query uses the `eventstats` command with `bucket_nullable=true` to include null values in the group-by aggregation:
-  
+
 ```ppl
 source=accounts
 | eventstats bucket_nullable=true count() as cnt by employer

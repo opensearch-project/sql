@@ -1,3 +1,4 @@
+
 # addcoltotals
 
 The `addcoltotals` command computes the sum of each column and adds a summary row showing the total for each column. This command is equivalent to using `addtotals` with `row=false` and `col=true`, making it useful for creating summary reports with column totals.
@@ -9,7 +10,7 @@ The command only processes numeric fields (integers, floats, doubles). Non-numer
 
 The `addcoltotals` command has the following syntax:
 
-```sql
+```syntax
 addcoltotals [field-list] [label=<string>] [labelfield=<field>]
 ```
 
@@ -23,7 +24,7 @@ The `addcoltotals` command supports the following parameters.
 | `labelfield` | Optional | The field in which the label is placed. If the field does not exist, it is created and the label is shown in the summary row (last row) of the new field. |
 | `label` | Optional | The text that appears in the summary row (last row) to identify the computed totals. When used with `labelfield`, this text is placed in the specified field in the summary row. Default is `Total`. |
 
-# Example 1: Basic example
+### Example 1: Basic example
 
 The following query places the label in an existing field:
 
@@ -48,7 +49,7 @@ fetched rows / total rows = 4/4
 +-----------+---------+
 ```
 
-# Example 2: Adding column totals with a custom summary label
+## Example 2: Adding column totals with a custom summary label
 
 The following query adds totals after a `stats` command where the final summary event label is `Sum`. It also creates a new field specified by `labelfield` because this field does not exist in the data:
 
@@ -71,7 +72,7 @@ fetched rows / total rows = 3/3
 +---------+--------+-------+
 ```
 
-# Example 3: Using all options
+## Example 3: Using all options
 
 The following query uses the `addcoltotals` command with all options set:
 

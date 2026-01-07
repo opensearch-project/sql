@@ -1,3 +1,4 @@
+
 # appendpipe
 
 The `appendpipe` command appends the results of a subpipeline to the search results. Unlike a subsearch, the subpipeline is not executed first; it runs only when the search reaches the `appendpipe` command.
@@ -8,7 +9,7 @@ The command aligns columns that have the same field names and types. For columns
 
 The `appendpipe` command has the following syntax:
 
-```sql
+```syntax
 appendpipe [<subpipeline>]
 ```
 
@@ -19,7 +20,7 @@ The `appendpipe` command supports the following parameters.
 | Parameter | Required/Optional | Description |
 | --- | --- | --- |
 | `<subpipeline>` | Required | A list of commands applied to the search results produced by the commands that precede the `appendpipe` command. |
-
+  
 
 ## Example 1: Append rows from a total count to existing search results  
 
@@ -79,7 +80,7 @@ fetched rows / total rows = 6/6
 ```
   
 
-## Limitations  
+## Limitations
 
 The `appendpipe` command has the following limitations:
 

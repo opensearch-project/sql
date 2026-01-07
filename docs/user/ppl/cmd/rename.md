@@ -1,3 +1,4 @@
+
 # rename
 
 The `rename` command renames one or more fields in the search results.
@@ -8,14 +9,14 @@ The `rename` command handles non-existent fields as follows:
 * **Renaming a non-existent field to an existing field**: The existing target field is removed from the search results.
 * **Renaming an existing field to an existing field**: The existing target field is removed and the source field is renamed to the target.
 
-The `rename` command is not rewritten to [query domain-specific language (DSL)](https://opensearch.org/docs/latest/query-dsl/). It is only executed on the coordinating node.
+The `rename` command is not rewritten to [query domain-specific language (DSL)](https://docs.opensearch.org/latest/query-dsl/). It is only executed on the coordinating node.
 {: .note} 
 
 ## Syntax
 
 The `rename` command has the following syntax:
 
-```sql
+```syntax
 rename <source-field> AS <target-field>["," <source-field> AS <target-field>]...
 ```
 
@@ -28,7 +29,7 @@ The `rename` command supports the following parameters.
 | `<source-field>` | Required | The name of the field you want to rename. Supports wildcard patterns using `*`. |
 | `<target-field>` | Required | The name you want to rename to. Must contain the same number of wildcards as the source. |
 
-## Example 1: Rename one field  
+## Example 1: Rename a field  
 
 The following query renames one field:
   
@@ -51,7 +52,7 @@ fetched rows / total rows = 4/4
 | 18 |
 +----+
 ```
-
+  
 
 ## Example 2: Rename multiple fields  
 
@@ -138,7 +139,7 @@ source=accounts
 | fields age
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -153,7 +154,7 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Limitations  
+## Limitations
 
 The `rename` command has the following limitations:
 

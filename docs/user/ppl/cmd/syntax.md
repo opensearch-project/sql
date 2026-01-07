@@ -1,4 +1,19 @@
+
 # PPL syntax
+
+Every PPL query starts with the `search` command. It specifies the index to search and retrieve documents from.
+
+`PPL` supports exactly one `search` command per PPL query, and it is always the first command. The word `search` can be omitted.
+
+Subsequent commands can follow in any order.
+
+
+## Syntax
+
+```sql
+search source=<index> [boolean-expression]
+source=<index> [boolean-expression]
+```
 
 ## Parameters
 

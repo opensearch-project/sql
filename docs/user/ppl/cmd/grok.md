@@ -1,3 +1,4 @@
+
 # grok
 
 The `grok` command parses a text field using a Grok pattern and appends the extracted results to the search results.
@@ -6,7 +7,7 @@ The `grok` command parses a text field using a Grok pattern and appends the extr
 
 The `grok` command has the following syntax:
 
-```sql
+```syntax
 grok <field> <pattern>
 ```
 
@@ -95,7 +96,7 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Limitations  
+## Limitations
 
 The `grok` command has the following limitations:
 

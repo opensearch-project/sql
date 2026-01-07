@@ -57,10 +57,33 @@ CUSTOM_REDIRECTS = {
     ],
 }
 
+# Directory name mappings for export (source_dir -> target_dir)
+DIR_PATH_MAPPINGS = {
+    "cmd": "commands",
+}
+
+# Command title overrides (filename -> custom title)
+CMD_TITLE_OVERRIDES = {
+    "showdatasources": "show datasources",
+    "syntax": "PPL syntax",
+}
+
 
 def get_heading_for_dir(dir_name: str) -> str:
     """Get heading for directory name, using mapped value or fallback to title-case."""
     return DIR_NAMES_TO_HEADINGS_MAP.get(dir_name, dir_name.replace("-", " ").title())
+
+
+def map_directory_path(rel_path: Path) -> Path:
+    """Map directory paths from source to target naming conventions."""
+    parts = list(rel_path.parts)
+
+    # Apply directory mappings
+    for i, part in enumerate(parts[:-1]):  # Don't map the filename itself
+        if part in DIR_PATH_MAPPINGS:
+            parts[i] = DIR_PATH_MAPPINGS[part]
+
+    return Path(*parts)
 
 
 def convert_sql_table_to_markdown(table_text: str) -> str:
@@ -68,7 +91,8 @@ def convert_sql_table_to_markdown(table_text: str) -> str:
     lines = table_text.strip().split('\n')
     result = []
     header_done = False
-    
+    data_row_count = 0
+
     for line in lines:
         # Skip border lines (+---+---+), separator lines (|---+---|), and fetched rows line
         if re.match(r'^\+[-+]+\+$', line.strip()) or re.match(r'^\|[-+|]+\|$', line.strip()):
@@ -82,7 +106,13 @@ def convert_sql_table_to_markdown(table_text: str) -> str:
             if not header_done:
                 result.append('|' + '|'.join([' --- ' for _ in cells]) + '|')
                 header_done = True
-    
+            else:
+                data_row_count += 1
+
+    # Return empty string if table has no data rows (only header)
+    if data_row_count == 0:
+        return ''
+
     return '\n'.join(result)
 
 
@@ -94,8 +124,21 @@ def convert_tables_in_code_blocks(content: str) -> str:
         if re.search(r'^\+[-+]+\+$', block_content, re.MULTILINE):
             return convert_sql_table_to_markdown(block_content)
         return match.group(0)
-    
-    # Match any code block containing tables (language specifier can have spaces like 'ppl ignore')
+
+    # First, remove empty tables with their trailing blank line
+    def replace_empty_table(match):
+        block_content = match.group(1)
+        # Check if table is empty
+        if re.search(r'^\+[-+]+\+$', block_content, re.MULTILINE):
+            converted_table = convert_sql_table_to_markdown(block_content)
+            if converted_table == '':
+                return ''  # Remove entire match (table + blank line)
+        return match.group(0)  # Keep original if not empty table
+
+    # Remove empty tables and their surrounding blank lines
+    content = re.sub(r'\n```[^\n]*\n(.*?)```\n', replace_empty_table, content, flags=re.DOTALL)
+
+    # Then convert remaining tables normally
     return re.sub(r'```[^\n]*\n(.*?)```', replace_table, content, flags=re.DOTALL)
 
 
@@ -181,9 +224,9 @@ def fix_link(match, current_file_path=None):
     # Clean up malformed paths
     resolved_path = re.sub(r"[,\s]+", "-", resolved_path.strip())
 
-    # Normalize anchor for Jekyll (remove dots and dashes)
+    # Normalize anchor for Jekyll (remove dots)
     if anchor:
-        anchor = re.sub(r"[.-]", "", anchor.lower())
+        anchor = re.sub(r"[.]", "", anchor.lower())
 
     # Add trailing slash for directories (but not with anchors)
     if resolved_path and not resolved_path.endswith((".html", ".htm")) and not anchor:
@@ -200,10 +243,18 @@ def process_content(content: str, current_file_path=None) -> str:
     # Convert PPL code fences to SQL
     content = re.sub(r'^```ppl\b.*$', '```sql', content, flags=re.MULTILINE)
 
-    # Add copy buttons after code fences
-    content = re.sub(r'^```(bash|sh|sql)\b.*?\n(.*?)^```$', 
-                     r'```\1\n\2```\n{% include copy.html %}', 
+    # Convert bash ignore blocks to JSON with copy-curl buttons
+    content = re.sub(r'^```bash ignore\b.*?\n(.*?)^```$',
+                     r'```json\n\1```\n{% include copy-curl.html %}',
                      content, flags=re.MULTILINE | re.DOTALL)
+
+    # Add copy buttons after code fences
+    content = re.sub(r'^```(bash|sh|sql)\b.*?\n(.*?)^```$',
+                     r'```\1\n\2```\n{% include copy.html %}',
+                     content, flags=re.MULTILINE | re.DOTALL)
+
+    # Convert syntax code fences to SQL (for syntax definitions, no copy buttons)
+    content = re.sub(r'^```syntax\b.*$', '```sql', content, flags=re.MULTILINE)
 
     # Convert relative links with current file context
     def fix_link_with_context(match):
@@ -221,6 +272,9 @@ def process_content(content: str, current_file_path=None) -> str:
     content = re.sub(
         r"\]\(https://docs\.opensearch\.org/[^/]+(.*?)\)", fix_opensearch_link, content
     )
+
+    for source_dir, target_dir in DIR_PATH_MAPPINGS.items():
+        content = content.replace(f'/{source_dir}/', f'/{target_dir}/')
 
     return content
 
@@ -283,6 +337,8 @@ def export_docs(
     # Sort files within each directory alphabetically for proper nav_order
     for dir_name in files_by_dir:
         files_by_dir[dir_name].sort(key=lambda f: f.name)
+        if dir_name == "cmd" and any(f.name == "syntax.md" for f in files_by_dir[dir_name]):
+            files_by_dir[dir_name].sort(key=lambda f: (f.name != "syntax.md", f.name))
 
     for _, files in files_by_dir.items():
         for i, md_file in enumerate(files, 1):
@@ -312,7 +368,8 @@ def export_docs(
                 # Update rel_path for parent/grand_parent logic
                 rel_path = Path(parent_dir) / new_filename
             else:
-                target_file = target_dir / rel_path
+                mapped_path = map_directory_path(rel_path)
+                target_file = target_dir / mapped_path
 
             # Determine parent and grand_parent based on directory structure
             if rel_path.parent == Path("."):
@@ -342,8 +399,12 @@ def export_docs(
                 # For index files, use the directory heading as title
                 title = get_heading_for_dir(rel_path.parent.name) if rel_path.parent != Path(".") else DOCS_PARENT_BASE_TITLE
             elif len(rel_path.parts) >= 2 and rel_path.parts[0] == "cmd":
-                # For command files, use filename as ground truth (lowercase)
-                title = md_file.stem.replace("-", " ")
+                # For command files, check for custom title override first
+                if md_file.stem in CMD_TITLE_OVERRIDES:
+                    title = CMD_TITLE_OVERRIDES[md_file.stem]
+                else:
+                    # Use filename as ground truth
+                    title = md_file.stem.replace("-", " ")
             else:
                 title = (
                     extract_title(md_file.read_text(encoding="utf-8"))

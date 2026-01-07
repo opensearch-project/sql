@@ -1,3 +1,4 @@
+
 # parse
 
 The `parse` command extracts information from a text field using a regular expression and adds the extracted information to the search results. It uses Java regex patterns. For more information, see the [Java regular expression documentation](https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html).
@@ -10,7 +11,7 @@ The `rex` and `parse` commands both extract information from text fields using J
 
 The `parse` command has the following syntax:
 
-```sql
+```syntax
 parse <field> <pattern>
 ```
 
@@ -103,7 +104,7 @@ fetched rows / total rows = 3/3
 ```
   
 
-## Limitations  
+## Limitations
 
 The `parse` command has the following limitations:
 
@@ -136,3 +137,5 @@ The `parse` command has the following limitations:
     ```sql
     source=accounts | parse email '.+@(?<host>.+)' | fields email, host
     ```
+
+

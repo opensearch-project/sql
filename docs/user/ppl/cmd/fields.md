@@ -1,3 +1,4 @@
+
 # fields
 
 The `fields` command specifies the fields that should be included in or excluded from the search results.
@@ -6,7 +7,7 @@ The `fields` command specifies the fields that should be included in or excluded
 
 The `fields` command has the following syntax:
 
-```sql
+```syntax
 fields [+|-] <field-list>
 ```
 
@@ -29,7 +30,7 @@ source=accounts
 | fields account_number, firstname, lastname
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -141,7 +142,7 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 6: Contains wildcard pattern  
+## Example 6: Wildcard pattern matching  
 
 The following query selects fields containing a pattern using `contains` wildcards:
   
@@ -257,4 +258,4 @@ fetched rows / total rows = 4/4
 
 ## Related documentation 
 
-- [table](table.md) -- Alias command with identical functionality  
+- [`table`](table.md) -- An alias command with identical functionality  

@@ -1,15 +1,16 @@
+
 # eval
 
 The `eval` command evaluates the specified expression and appends the result of the evaluation to the search results.
 
-The `eval` command is not rewritten to [query domain-specific language (DSL)](https://opensearch.org/docs/latest/query-dsl/). It is only executed on the coordinating node.
+The `eval` command is not rewritten to [query domain-specific language (DSL)](https://docs.opensearch.org/latest/query-dsl/). It is only executed on the coordinating node.
 {: .note}
 
 ## Syntax
 
 The `eval` command has the following syntax:
 
-```sql
+```syntax
 eval <field>=<expression> ["," <field>=<expression> ]...
 ```
 
@@ -21,7 +22,7 @@ The `eval` command supports the following parameters.
 | --- | --- | --- |
 | `<field>` | Required | The name of the field to create or update. If the field does not exist, a new field is added. If it already exists, its value is overwritten. |
 | `<expression>` | Required | The expression to evaluate. |  
-
+  
 
 ## Example 1: Create a new field  
 
@@ -144,4 +145,5 @@ fetched rows / total rows = 4/4
 | Dale      | 33  | Name: Dale, Age: 33    |
 +-----------+-----+------------------------+
 ```
+  
 

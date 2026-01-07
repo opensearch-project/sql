@@ -1,3 +1,4 @@
+
 # describe
 
 The `describe` command queries index metadata. The `describe` command can only be used as the first command in the PPL query.
@@ -6,9 +7,9 @@ The `describe` command queries index metadata. The `describe` command can only b
 
 The `describe` command has the following syntax. The argument to the command is a dot-separated path to the table consisting of an optional data source, optional schema, and required table name:
 
-```sql
+```syntax
 describe [<data-source>.][<schema>.]<table-name>
-``` 
+```
 
 ## Parameters
 
@@ -50,7 +51,7 @@ fetched rows / total rows = 11/11
 ```
   
 
-## Example 2: Fetch metadata with a condition and filter
+## Example 2: Fetch metadata with a condition and filter  
 
 This example retrieves columns of the type `bigint` from the `accounts` index:
   
