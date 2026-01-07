@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-
 public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
 
   private static final String INDEX = Index.MVCOMBINE.getName();
