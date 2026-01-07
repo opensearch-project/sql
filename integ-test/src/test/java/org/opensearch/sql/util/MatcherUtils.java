@@ -460,7 +460,7 @@ public class MatcherUtils {
         .replaceAll("\\$t?\\d+", "\\$FIELD_INDEX")
         .replaceAll(" needClean=true,", "")
         .replaceAll(" searchDone=false,", "")
-        .replaceAll("\\?\\?\\?", "\\?");
+        .replaceAll("∞", "?");
   }
 
   private static String jsonToYaml(String json) {
