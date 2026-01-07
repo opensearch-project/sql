@@ -58,12 +58,9 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
             + "{\"name\":\"s1\"},{\"name\":\"s2\"},{\"name\":\"s3\"},{\"name\":\"s4\"},{\"name\":\"s5\"},"
             + "{\"name\":\"s6\"},{\"name\":\"s7\"},{\"name\":\"s8\"},{\"name\":\"s9\"},{\"name\":\"s10\"}"
             + "]}",
-        // keep as-is: heterogeneous subfield values; test expects "3" string output
         "{\"username\":\"hetero_types\",\"skills\":[{\"level\":\"senior\"},{\"level\":3}]}",
-        // non-array and int-field semantic tests in SAME index
         "{\"username\":\"u1\",\"skills_not_array\":\"scala\"}",
         "{\"username\":\"u_int\",\"skills_int\":5}",
-        // limit test doc in SAME index
         "{\"username\":\"limituser\",\"skills\":[{\"name\":\"a\"},{\"name\":\"b\"},{\"name\":\"c\"},{\"name\":\"d\"},{\"name\":\"e\"}]}");
 
     refreshIndex(INDEX);
