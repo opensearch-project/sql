@@ -1438,14 +1438,18 @@ public class PredicateAnalyzer {
       Object upperBound =
           range.hasUpperBound() ? convertEndpointValue(range.upperEndpoint(), isTimeStamp) : null;
       RangeQueryBuilder rangeQueryBuilder = rangeQuery(getFieldReference());
-      rangeQueryBuilder =
-          range.lowerBoundType() == BoundType.CLOSED
-              ? rangeQueryBuilder.gte(lowerBound)
-              : rangeQueryBuilder.gt(lowerBound);
-      rangeQueryBuilder =
-          range.upperBoundType() == BoundType.CLOSED
-              ? rangeQueryBuilder.lte(upperBound)
-              : rangeQueryBuilder.lt(upperBound);
+      if (lowerBound != null) {
+        rangeQueryBuilder =
+            range.lowerBoundType() == BoundType.CLOSED
+                ? rangeQueryBuilder.gte(lowerBound)
+                : rangeQueryBuilder.gt(lowerBound);
+      }
+      if (upperBound != null) {
+        rangeQueryBuilder =
+            range.upperBoundType() == BoundType.CLOSED
+                ? rangeQueryBuilder.lte(upperBound)
+                : rangeQueryBuilder.lt(upperBound);
+      }
       if (isTimeStamp) rangeQueryBuilder.format("date_time");
       builder = rangeQueryBuilder;
       return this;
