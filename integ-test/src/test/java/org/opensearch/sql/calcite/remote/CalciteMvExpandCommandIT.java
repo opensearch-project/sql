@@ -69,14 +69,59 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
     refreshIndex(INDEX);
   }
 
+  //  @Test
+  //  public void testMvexpandSingleElement() throws Exception {
+  //    String query =
+  //        String.format(
+  //            "source=%s | mvexpand skills | where username='single' | fields username,
+  // skills.name",
+  //
+  //                INDEX);
+  //    JSONObject result = executeQuery(query);
+  //    verifyDataRows(result, rows("single", "go"));
+  //  }
+
   @Test
   public void testMvexpandSingleElement() throws Exception {
-    String query =
+    String q1 =
+        String.format(
+            "source=%s | mvexpand skills | where username='single' | fields username, skills",
+            INDEX);
+    JSONObject r1 = executeQuery(q1);
+
+    assertSingleRowNestedFieldEquals(r1, "skills", "name", "go");
+
+    String q2 =
         String.format(
             "source=%s | mvexpand skills | where username='single' | fields username, skills.name",
             INDEX);
-    JSONObject result = executeQuery(query);
-    verifyDataRows(result, rows("single", "go"));
+    JSONObject r2 = executeQuery(q2);
+    verifyDataRows(r2, rows("single", "go"));
+  }
+
+  /**
+   * Asserts the result has exactly one row and that the given column is a MAP/object containing
+   * nestedKey=nestedValue.
+   */
+  private static void assertSingleRowNestedFieldEquals(
+      JSONObject result, String mapColumn, String nestedKey, String expectedValue) {
+    var dataRows = result.getJSONArray("datarows");
+    Assertions.assertEquals(1, dataRows.length(), "Expected exactly one row");
+
+    var schema = result.getJSONArray("schema");
+
+    int mapIdx = -1;
+    for (int i = 0; i < schema.length(); i++) {
+      if (mapColumn.equals(schema.getJSONObject(i).getString("name"))) {
+        mapIdx = i;
+        break;
+      }
+    }
+    Assertions.assertTrue(mapIdx >= 0, "Column not found in schema: " + mapColumn);
+
+    var row0 = dataRows.getJSONArray(0);
+    var skillsObj = row0.getJSONObject(mapIdx); // this is the MAP/object
+    Assertions.assertEquals(expectedValue, skillsObj.optString(nestedKey, null));
   }
 
   @Test
