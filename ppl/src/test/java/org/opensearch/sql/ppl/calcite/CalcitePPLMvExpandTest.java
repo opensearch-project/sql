@@ -27,6 +27,7 @@ import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
@@ -117,21 +118,25 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
   @Test
   public void testMvExpandWithLimitParameter() {
     String ppl = "source=DEPT | mvexpand EMPNOS limit=2";
-    // Smoke test: planning should succeed with mvexpand limit parameter.
-    getRelNode(ppl);
+    RelNode root = getRelNode(ppl);
+    String plan = root.explain();
+    Assert.assertTrue("Expected Uncollect in plan but got:\n" + plan, plan.contains("Uncollect"));
+    Assert.assertTrue(
+        "Expected limit-related operator in plan but got:\n" + plan,
+        plan.contains("fetch=")
+            || plan.contains("LIMIT")
+            || plan.contains("RowNumber")
+            || plan.contains("Window"));
   }
 
   @Test
   public void testMvExpandProjectNested() {
     String ppl = "source=DEPT | mvexpand EMPNOS | fields DEPTNO, EMPNOS";
-    // Smoke test: projection after mvexpand should plan cleanly.
-    getRelNode(ppl);
-  }
-
-  @Test
-  public void testMvExpandEmptyOrNullArray() {
-    String ppl = "source=DEPT | where isnull(EMPNOS) | mvexpand EMPNOS";
-    getRelNode(ppl);
+    RelNode root = getRelNode(ppl);
+    String plan = root.explain();
+    Assert.assertTrue("Expected Uncollect in plan but got:\n" + plan, plan.contains("Uncollect"));
+    Assert.assertTrue(
+        "Expected LogicalProject in plan but got:\n" + plan, plan.contains("LogicalProject"));
   }
 
   @Test
@@ -141,24 +146,29 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testMvExpandEmptyOrNullArray() {
+    assertMvexpandPlanned("source=DEPT | where isnull(EMPNOS) | mvexpand EMPNOS");
+  }
+
+  @Test
   public void testMvExpandWithDuplicates() {
-    // Duplicates are a runtime concern; planner just needs to handle mvexpand in presence of
-    // filters.
-    String ppl = "source=DEPT | where DEPTNO in (10, 10, 20) | mvexpand EMPNOS";
-    getRelNode(ppl);
+    assertMvexpandPlanned("source=DEPT | where DEPTNO in (10, 10, 20) | mvexpand EMPNOS");
   }
 
   @Test
   public void testMvExpandLargeArray() {
-    // Large-array scenario is represented via predicate only; no actual data needed for planning.
-    String ppl = "source=DEPT | where DEPTNO = 999 | mvexpand EMPNOS";
-    getRelNode(ppl);
+    assertMvexpandPlanned("source=DEPT | where DEPTNO = 999 | mvexpand EMPNOS");
   }
 
   @Test
   public void testMvExpandPrimitiveArray() {
-    // EMPNOS is already an array of primitives (INTEGER), so this is the primitive-array case.
-    String ppl = "source=DEPT | mvexpand EMPNOS";
-    getRelNode(ppl);
+    assertMvexpandPlanned("source=DEPT | mvexpand EMPNOS");
+  }
+
+  private void assertMvexpandPlanned(String ppl) {
+    RelNode root = getRelNode(ppl);
+    String plan = root.explain();
+    // mvexpand should translate into an Uncollect (or equivalent) in the logical plan.
+    Assert.assertTrue("Expected Uncollect in plan but got:\n" + plan, plan.contains("Uncollect"));
   }
 }
