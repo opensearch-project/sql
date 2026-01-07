@@ -3122,7 +3122,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     final RelNode input = relBuilder.peek();
     final List<String> inputFieldNames = input.getRowType().getFieldNames();
 
-    // 2) Splunk parity: accept delim (default is single space).
+    // 2) Accept delim (default is single space).
     // NOTE: delim only affects single-value rendering when nomv=true.
     final String delim = (node.getDelim() != null) ? node.getDelim() : " ";
 
@@ -3174,7 +3174,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     relBuilder.project(projections, projNames, /* force= */ true);
 
-    // 7) Splunk parity: nomv=true converts multivalue output to a single delimited string.
+    // 7) nomv=true converts multivalue output to a single delimited string.
     // arrayToString in this engine supports only String/ByteString, so cast elements to STRING
     // first.
     if (node.isNomv()) {
