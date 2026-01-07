@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -39,14 +40,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationBuilder;
-import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.PPLHintUtils;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
-import org.opensearch.sql.opensearch.planner.rules.EnumerableIndexScanRule;
 import org.opensearch.sql.opensearch.planner.rules.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
@@ -63,6 +63,7 @@ import org.opensearch.sql.opensearch.storage.scan.context.ProjectDigest;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownType;
 import org.opensearch.sql.opensearch.storage.scan.context.RareTopDigest;
+import org.opensearch.sql.utils.Utils;
 
 /** The logical relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
@@ -126,22 +127,20 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
   @Override
   public void register(RelOptPlanner planner) {
     super.register(planner);
-    planner.addRule(EnumerableIndexScanRule.DEFAULT_CONFIG.toRule());
+    for (RelOptRule rule : OpenSearchIndexRules.OPEN_SEARCH_NON_PUSHDOWN_RULES) {
+      planner.addRule(rule);
+    }
     if ((Boolean) osIndex.getSettings().getSettingValue(Settings.Key.CALCITE_PUSHDOWN_ENABLED)) {
-      // When pushdown is enabled, use normal rules (they handle everything including relevance
-      // functions)
-      for (RelOptRule rule : OpenSearchIndexRules.OPEN_SEARCH_INDEX_SCAN_RULES) {
+      for (RelOptRule rule : OpenSearchIndexRules.OPEN_SEARCH_PUSHDOWN_RULES) {
         planner.addRule(rule);
       }
-    } else {
-      planner.addRule(OpenSearchIndexRules.RELEVANCE_FUNCTION_PUSHDOWN);
     }
   }
 
   public AbstractRelNode pushDownFilter(Filter filter) {
     try {
       RelDataType rowType = this.getRowType();
-      List<String> schema = this.getRowType().getFieldNames();
+      List<String> schema = buildSchema();
       Map<String, ExprType> fieldTypes =
           this.osIndex.getAllFieldTypes().entrySet().stream()
               .filter(entry -> schema.contains(entry.getKey()))
@@ -177,6 +176,25 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
       }
     }
     return null;
+  }
+
+  /**
+   * Build schema for the current scan. Schema is the combination of all index fields and nested
+   * fields in index fields.
+   *
+   * @return All current outputs fields plus nested paths.
+   */
+  private List<String> buildSchema() {
+    List<String> schema = new ArrayList<>(this.getRowType().getFieldNames());
+    // Add nested paths to schema if it has
+    List<String> nestedPaths =
+        schema.stream()
+            .map(field -> Utils.resolveNestedPath(field, this.osIndex.getAllFieldTypes()))
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
+    schema.addAll(nestedPaths);
+    return schema;
   }
 
   private static RexNode constructCondition(List<RexNode> conditions, RexBuilder rexBuilder) {
@@ -352,20 +370,25 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               osIndex,
               aggregate.getRowType(),
               pushDownContext.cloneForAggregate(aggregate, project));
-      List<String> schema = this.getRowType().getFieldNames();
+      List<String> schema = buildSchema();
       Map<String, ExprType> fieldTypes =
           this.osIndex.getAllFieldTypes().entrySet().stream()
               .filter(entry -> schema.contains(entry.getKey()))
               .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
       List<String> outputFields = aggregate.getRowType().getFieldNames();
+      List<String> bucketNames = outputFields.subList(0, aggregate.getGroupSet().cardinality());
+      if (bucketNames.stream()
+          .map(b -> fieldTypes.get(b))
+          .filter(Objects::nonNull)
+          .anyMatch(expr -> expr.getOriginalType() == ExprCoreType.ARRAY)) {
+        // TODO https://github.com/opensearch-project/sql/issues/5006
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Cannot pushdown the aggregate due to bucket contains array (nested) type");
+        }
+        return null;
+      }
       int queryBucketSize = osIndex.getQueryBucketSize();
-      boolean bucketNullable =
-          Boolean.parseBoolean(
-              aggregate.getHints().stream()
-                  .filter(hits -> hits.hintName.equals("stats_args"))
-                  .map(hint -> hint.kvOptions.getOrDefault(Argument.BUCKET_NULLABLE, "true"))
-                  .findFirst()
-                  .orElseGet(() -> "true"));
+      boolean bucketNullable = !PPLHintUtils.ignoreNullBucket(aggregate);
       AggregateAnalyzer.AggregateBuilderHelper helper =
           new AggregateAnalyzer.AggregateBuilderHelper(
               getRowType(), fieldTypes, getCluster(), bucketNullable, queryBucketSize);
@@ -381,10 +404,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
                               OpenSearchTypeFactory.convertRelDataTypeToExprType(
                                   field.getType()))));
       AggPushDownAction action =
-          new AggPushDownAction(
-              builderAndParser,
-              extendedTypeMapping,
-              outputFields.subList(0, aggregate.getGroupSet().cardinality()));
+          new AggPushDownAction(builderAndParser, extendedTypeMapping, bucketNames);
       newScan.pushDownContext.add(PushDownType.AGGREGATION, aggregate, action);
       return newScan;
     } catch (Exception e) {

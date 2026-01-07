@@ -19,6 +19,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORKER;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORK_INFORMATION;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 import static org.opensearch.sql.util.MatcherUtils.assertYamlEqualsIgnoreId;
+import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -2214,5 +2215,107 @@ public class CalciteExplainIT extends ExplainIT {
                     + " else 'u100') | stats avg(age) as avg_age by age_range",
                 TEST_INDEX_BANK),
             true));
+  }
+
+  @Test
+  public void testNestedAggPushDownExplain() throws Exception {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_nested_agg_push.yaml");
+
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_nested_simple | stats count(address.area) as"
+                + " count_area, min(address.area) as min_area, max(address.area) as max_area,"
+                + " avg(address.area) as avg_area, avg(age) as avg_age by name"));
+  }
+
+  @Test
+  public void testNestedSingleCountPushDownExplain() throws Exception {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_nested_agg_single_count_push.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_nested_simple | stats count(address.area)"));
+  }
+
+  @Test
+  public void testNestedAggPushDownSortExplain() throws Exception {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_nested_agg_sort_push.yaml");
+
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_nested_simple | stats count() by address.city | sort"
+                + " -address.city"));
+  }
+
+  @Test
+  public void testNestedAggByPushDownExplain() throws Exception {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_nested_agg_by_push.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_nested_simple | stats min(address.area) by"
+                + " address.city"));
+    // Whatever bucket_nullable=false or bucket_nullable=true is, the plans should be the same.
+    // The filter(is_not_null) can be safe removed since nested agg only works when pushdown is
+    // applied.
+    expected = loadExpectedPlan("explain_nested_agg_by_bucket_nullable_push.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_nested_simple | stats bucket_nullable=false"
+                + " min(address.area) by address.city"));
+  }
+
+  @Test
+  public void testNestedAggTop() throws Exception {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_nested_agg_top_push.yaml");
+
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_nested_simple | top usenull=false address.city"));
+  }
+
+  @Test
+  public void testNestedAggDedupNotPushed() throws Exception {
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_nested_agg_dedup_not_push.yaml");
+
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml("source=opensearch-sql_test_index_nested_simple | dedup address.city"));
+  }
+
+  @Test
+  public void testNestedAggExplainWhenPushdownNotApplied() throws Exception {
+    enabledOnlyWhenPushdownIsEnabled();
+    Throwable e =
+        assertThrowsWithReplace(
+            UnsupportedOperationException.class,
+            () ->
+                explainQueryYaml(
+                    "source=opensearch-sql_test_index_nested_simple | head 10000 | stats"
+                        + " count(address.area) as count_area, min(address.area) as min_area,"
+                        + " max(address.area) as max_area, avg(address.area) as avg_area, avg(age)"
+                        + " as avg_age by name"));
+    verifyErrorMessageContains(e, "Cannot execute nested aggregation on");
+  }
+
+  @Test
+  public void testNotBetweenPushDownExplain() throws Exception {
+    // test for issue https://github.com/opensearch-project/sql/issues/4903
+    enabledOnlyWhenPushdownIsEnabled();
+    String expected = loadExpectedPlan("explain_not_between_push.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_bank | where age not between 30 and 39"));
   }
 }

@@ -96,7 +96,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
   public void testIsNotNullWithStruct() throws IOException {
     JSONObject actual = executeQuery("source=big5 | where isnotnull(aws) | fields aws");
     verifySchema(actual, schema("aws", "struct"));
-    verifyNumOfRows(actual, 1);
+    verifyNumOfRows(actual, 3);
   }
 
   @Test
