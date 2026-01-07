@@ -73,8 +73,13 @@ Example: https://github.com/opensearch-project/documentation-website/pull/11688
 
 - Injects Jekyll front-matter (title, parent, nav_order, etc.)
 - Converts SQL CLI table output to markdown tables
+- Removes empty tables and their surrounding whitespace
+- Escapes angle brackets and asterisks in table cells for Jekyll compatibility
 - Converts `docs.opensearch.org` links to Jekyll site variables
 - Fixes relative links to use `{{site.url}}{{site.baseurl}}`
+- Handles anchor normalization (removes dots)
 - Converts `ppl` code fences to `sql`
+- Converts `bash ignore` code blocks to `json` with curl copy buttons
 - Adds copy buttons to code blocks
+- Converts markdown emphasis (**Note**, **Warning**, **Important**) to Jekyll attribute syntax
 - Rolls up third-level directories to avoid Jekyll rendering limitations
