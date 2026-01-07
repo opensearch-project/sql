@@ -131,6 +131,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LookupPairContext
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsByClauseContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
+import org.opensearch.sql.ppl.utils.UnionRecursiveValidator;
 
 /** Class of building the AST. Refines the visit path and build the AST nodes */
 public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
@@ -1243,6 +1244,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     }
 
     UnresolvedPlan recursiveSubsearch = visitSubSearch(ctx.recursiveSubPipeline().subSearch());
+    UnionRecursiveValidator.validate(recursiveSubsearch, relationName);
     return new UnionRecursive(relationName, maxDepth, maxRows, recursiveSubsearch);
   }
 

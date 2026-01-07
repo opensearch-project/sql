@@ -554,7 +554,7 @@ public class PPLQueryDataAnonymizerTest {
             + "max_rows=*** [source=table | where identifier = *** | fields + identifier ]",
         anonymize(
             "source=t | fields a | union recursive name=bom max_depth=3 max_rows=100"
-                + " [ source=b | where a = 1 | fields a ]"));
+                + " [ source=bom | where a = 1 | fields a ]"));
   }
 
   @Test

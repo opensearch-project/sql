@@ -1021,14 +1021,48 @@ public class AstBuilderTest {
   @Test
   public void testUnionRecursive() {
     assertEqual(
-        "source=t | fields a | union recursive name=rel max_depth=2 max_rows=5 [ source=t |"
+        "source=t | fields a | union recursive name=rel max_depth=2 max_rows=5 [ source=rel |"
             + " fields a ]",
         unionRecursive(
             projectWithArg(relation("t"), defaultFieldsArgs(), field("a")),
             "rel",
             2,
             5,
-            projectWithArg(relation("t"), defaultFieldsArgs(), field("a"))));
+            projectWithArg(relation("rel"), defaultFieldsArgs(), field("a"))));
+  }
+
+  @Test
+  public void testUnionRecursiveRequiresRecursiveReference() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () -> plan("source=t | union recursive name=rel [ source=t | fields a ]"));
+    assertTrue(
+        exception
+            .getMessage()
+            .contains("UNION RECURSIVE subsearch must reference recursive relation"));
+  }
+
+  @Test
+  public void testUnionRecursiveAliasConflict() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () -> plan("source=t | union recursive name=rel [ source=s as rel | fields a ]"));
+    assertTrue(
+        exception.getMessage().contains("UNION RECURSIVE relation name conflicts with alias"));
+  }
+
+  @Test
+  public void testUnionRecursiveMixedRelationReference() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () -> plan("source=t | union recursive name=rel [ source=rel,other | fields a ]"));
+    assertTrue(
+        exception
+            .getMessage()
+            .contains("UNION RECURSIVE relation name cannot be combined with other sources"));
   }
 
   public void testTrendline() {
