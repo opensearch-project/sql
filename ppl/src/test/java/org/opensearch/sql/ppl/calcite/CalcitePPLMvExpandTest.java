@@ -6,6 +6,7 @@
 package org.opensearch.sql.ppl.calcite;
 
 import com.google.common.collect.ImmutableList;
+import java.util.Arrays;
 import java.util.List;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.plan.RelTraitDef;
@@ -107,6 +108,7 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
             + "      LogicalProject(EMPNOS=[$cor0.EMPNOS])\n"
             + "        LogicalValues(tuples=[[{ 0 }]])\n";
     verifyLogical(root, expectedLogical);
+
     String expectedSparkSql =
         "SELECT `$cor0`.`DEPTNO`, `t00`.`EMPNOS`\n"
             + "FROM `scott`.`DEPT` `$cor0`,\n"
@@ -119,50 +121,65 @@ public class CalcitePPLMvExpandTest extends CalcitePPLAbstractTest {
   public void testMvExpandWithLimitParameter() {
     String ppl = "source=DEPT | mvexpand EMPNOS limit=2";
     RelNode root = getRelNode(ppl);
-    String plan = root.explain();
-    Assert.assertTrue("Expected Uncollect in plan but got:\n" + plan, plan.contains("Uncollect"));
-    Assert.assertTrue(
-        "Expected limit-related operator in plan but got:\n" + plan,
-        plan.contains("fetch=")
-            || plan.contains("LIMIT")
-            || plan.contains("RowNumber")
-            || plan.contains("Window"));
+
+    assertContains(root, "LogicalCorrelate");
+    assertContains(root, "Uncollect");
+
+    assertAnyContains(root, "fetch=", "LIMIT", "RowNumber", "Window");
   }
 
   @Test
   public void testMvExpandProjectNested() {
     String ppl = "source=DEPT | mvexpand EMPNOS | fields DEPTNO, EMPNOS";
     RelNode root = getRelNode(ppl);
-    String plan = root.explain();
-    Assert.assertTrue("Expected Uncollect in plan but got:\n" + plan, plan.contains("Uncollect"));
-    Assert.assertTrue(
-        "Expected LogicalProject in plan but got:\n" + plan, plan.contains("LogicalProject"));
+
+    assertContains(root, "LogicalCorrelate");
+    assertContains(root, "Uncollect");
+    assertContains(root, "LogicalProject");
   }
 
   @Test
   public void testMvExpandEmptyOrNullArray() {
-    assertMvexpandPlanned("source=DEPT | where isnull(EMPNOS) | mvexpand EMPNOS");
+    RelNode root = getRelNode("source=DEPT | where isnull(EMPNOS) | mvexpand EMPNOS");
+    assertContains(root, "LogicalCorrelate");
+    assertContains(root, "Uncollect");
   }
 
   @Test
   public void testMvExpandWithDuplicates() {
-    assertMvexpandPlanned("source=DEPT | where DEPTNO in (10, 10, 20) | mvexpand EMPNOS");
+    RelNode root = getRelNode("source=DEPT | where DEPTNO in (10, 10, 20) | mvexpand EMPNOS");
+    assertContains(root, "LogicalCorrelate");
+    assertContains(root, "Uncollect");
   }
 
   @Test
   public void testMvExpandLargeArray() {
-    assertMvexpandPlanned("source=DEPT | where DEPTNO = 999 | mvexpand EMPNOS");
+    RelNode root = getRelNode("source=DEPT | where DEPTNO = 999 | mvexpand EMPNOS");
+    assertContains(root, "LogicalCorrelate");
+    assertContains(root, "Uncollect");
   }
 
   @Test
   public void testMvExpandPrimitiveArray() {
-    assertMvexpandPlanned("source=DEPT | mvexpand EMPNOS");
+    RelNode root = getRelNode("source=DEPT | mvexpand EMPNOS");
+    assertContains(root, "LogicalCorrelate");
+    assertContains(root, "Uncollect");
   }
 
-  private void assertMvexpandPlanned(String ppl) {
-    RelNode root = getRelNode(ppl);
+  private static void assertContains(RelNode root, String token) {
     String plan = root.explain();
-    // mvexpand should translate into an Uncollect (or equivalent) in the logical plan.
-    Assert.assertTrue("Expected Uncollect in plan but got:\n" + plan, plan.contains("Uncollect"));
+    Assert.assertTrue(
+        "Expected plan to contain [" + token + "] but got:\n" + plan, plan.contains(token));
+  }
+
+  private static void assertAnyContains(RelNode root, String... tokens) {
+    String plan = root.explain();
+    for (String token : tokens) {
+      if (plan.contains(token)) {
+        return;
+      }
+    }
+    Assert.fail(
+        "Expected plan to contain one of " + Arrays.toString(tokens) + " but got:\n" + plan);
   }
 }
