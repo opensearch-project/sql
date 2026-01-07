@@ -51,6 +51,8 @@ TIMECHART:                          'TIMECHART';
 APPENDCOL:                          'APPENDCOL';
 ADDTOTALS:                          'ADDTOTALS';
 ADDCOLTOTALS:                       'ADDCOLTOTALS';
+UNION:                              'UNION';
+RECURSIVE:                          'RECURSIVE';
 ROW:                                'ROW';
 COL:                                'COL';
 EXPAND:                             'EXPAND';

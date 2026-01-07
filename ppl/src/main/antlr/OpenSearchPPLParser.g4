@@ -42,6 +42,10 @@ subSearch
    : searchCommand (PIPE commands)*
    ;
 
+recursiveSubPipeline
+   : PIPE? subSearch
+   ;
+
 // commands
 pplCommands
    : describeCommand
@@ -79,6 +83,7 @@ commands
    | addtotalsCommand
    | addcoltotalsCommand
    | appendCommand
+   | unionRecursiveCommand
    | expandCommand
    | flattenCommand
    | reverseCommand
@@ -131,6 +136,7 @@ commandName
    | REX
    | APPENDPIPE
    | REPLACE
+   | UNION
    ;
 
 searchCommand
@@ -541,6 +547,18 @@ appendcolCommand
 
 appendCommand
    : APPEND LT_SQR_PRTHS searchCommand? (PIPE commands)* RT_SQR_PRTHS
+   ;
+
+unionRecursiveCommand
+   : UNION RECURSIVE unionRecursiveNameArg unionRecursiveOption* LT_SQR_PRTHS recursiveSubPipeline RT_SQR_PRTHS
+   ;
+
+unionRecursiveNameArg
+   : ident EQUAL ident
+   ;
+
+unionRecursiveOption
+   : ident EQUAL integerLiteral
    ;
 
 multisearchCommand
@@ -1523,6 +1541,7 @@ searchableKeyWord
    | singleFieldRelevanceFunctionName
    | multiFieldRelevanceFunctionName
    | commandName
+   | RECURSIVE
    | collectionFunctionName
    | REGEX
    | explainMode
@@ -1658,4 +1677,3 @@ searchableKeyWord
    | ROW
    | COL
    ;
-

@@ -96,6 +96,30 @@ public class PPLSyntaxParserTest {
   }
 
   @Test
+  public void testUnionRecursiveCommandShouldPass() {
+    ParseTree tree =
+        new PPLSyntaxParser()
+            .parse(
+                "source=bill_of_materials | fields component, quantity"
+                    + " | union recursive name=bom_qty max_depth=10 max_rows=100"
+                    + " [ | search source=bill_of_materials | fields component, quantity ]"
+                    + " | fields component, quantity");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testUnionRecursiveCommandWithoutNameShouldFail() {
+    exceptionRule.expect(SyntaxCheckException.class);
+    new PPLSyntaxParser().parse("source=t | union recursive max_depth=10 [ | search source=t ]");
+  }
+
+  @Test
+  public void testUnionRecursiveCommandWithoutSubpipelineShouldFail() {
+    exceptionRule.expect(SyntaxCheckException.class);
+    new PPLSyntaxParser().parse("source=t | union recursive name=foo");
+  }
+
+  @Test
   public void testPerSecondFunctionInTimechartShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("source=t | timechart per_second(a)");
     assertNotEquals(null, tree);
