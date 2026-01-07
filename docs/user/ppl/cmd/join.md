@@ -215,10 +215,10 @@ The `join` command has the following limitations:
 
   | Query | Output |
   | --- | --- |
-  | `source=table1 | join left=t1 right=t2 on t1.id=t2.id table2 | eval a = 1` | `t1.id, t2.id, a` |
-  | `source=table1 | join on table1.id=table2.id table2 | eval a = 1` | `table1.id, table2.id, a` |
-  | `source=table1 | join on table1.id=t2.id table2 as t2 | eval a = 1` | `table1.id, t2.id, a` |
-  | `source=table1 | join right=tt on table1.id=t2.id [ source=table2 as t2 | eval b = id ] | eval a = 1` | `table1.id, tt.id, tt.b, a` |
+  | `source=table1 \| join left=t1 right=t2 on t1.id=t2.id table2 \| eval a = 1` | `t1.id, t2.id, a` |
+  | `source=table1 \| join on table1.id=table2.id table2 \| eval a = 1` | `table1.id, table2.id, a` |
+  | `source=table1 \| join on table1.id=t2.id table2 as t2 \| eval a = 1` | `table1.id, t2.id, a` |
+  | `source=table1 \| join right=tt on table1.id=t2.id [ source=table2 as t2 \| eval b = id ] \| eval a = 1` | `table1.id, tt.id, tt.b, a` |
 
 * **Field deduplication in extended syntax** – When using the extended syntax with a field list, duplicate field names in the output are deduplicated according to the `overwrite` option.
 
