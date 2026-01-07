@@ -36,6 +36,7 @@
     "user/ppl/cmd/sort.md",
     "user/ppl/cmd/spath.md",
     "user/ppl/cmd/stats.md",
+    "user/ppl/cmd/mvcombine.md",
     "user/ppl/cmd/streamstats.md",
     "user/ppl/cmd/subquery.md",
     "user/ppl/cmd/syntax.md",
