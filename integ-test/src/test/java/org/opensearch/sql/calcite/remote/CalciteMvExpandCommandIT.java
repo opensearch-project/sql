@@ -66,18 +66,6 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
     refreshIndex(INDEX);
   }
 
-  //  @Test
-  //  public void testMvexpandSingleElement() throws Exception {
-  //    String query =
-  //        String.format(
-  //            "source=%s | mvexpand skills | where username='single' | fields username,
-  // skills.name",
-  //
-  //                INDEX);
-  //    JSONObject result = executeQuery(query);
-  //    verifyDataRows(result, rows("single", "go"));
-  //  }
-
   @Test
   public void testMvexpandSingleElement() throws Exception {
     String q1 =
