@@ -120,7 +120,9 @@ public class ExprValueUtils {
     if (null == o) {
       return LITERAL_NULL;
     }
-    if (o instanceof Map) {
+    if (o instanceof ExprValue) {
+      return (ExprValue) o;
+    } else if (o instanceof Map) {
       return tupleValue((Map) o);
     } else if (o instanceof List) {
       return collectionValue(((List) o));

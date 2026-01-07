@@ -1,0 +1,69 @@
+setup:
+  - do:
+      indices.create:
+        index: array-test
+        body:
+          settings:
+            number_of_shards: 1
+          mappings:
+            properties:
+              array_keyword:
+                type: keyword
+              array_text:
+                type: text
+              array_num:
+                type: long
+              array_boolean:
+                type: boolean
+              array_date:
+                type: date
+              num:
+                type: integer
+              parent:
+                type: object
+                properties:
+                  child_array_num:
+                    type: float
+                  child_array_keyword:
+                    type: keyword
+                  child_num:
+                    type: integer
+  - do:
+      bulk:
+        index: array-test
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"array_text": ["Jane Smith","hello world"],"array_keyword": [ "c++", "java" ],"array_num": [1, 2],"array_boolean": [true, false],"array_date": ["2023-01-02T22:03:34.000Z","2023-01-02T22:03:35.000Z"],"num" : 10,"parent": {"child_array_num": [1.1, 2.2], "child_array_keyword":["a a a", "b b b"], "child_num": 100}}'
+          - '{"index": {}}'
+          - '{"array_text": "OpenSearch PPL","array_keyword": "python","array_num": 3,"array_boolean": true,"array_date": "2023-01-02T22:03:36.000Z","num" : 11,"parent": {"child_array_num": 3.3, "child_array_keyword":"c c c", "child_num": 101}}'
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"Handle multiple values (array) documents":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=array-test '
+  - match: {"total": 2}
+  - match: {"schema": [{"name": "parent", "type": "struct"},{"name":"array_boolean","type":"boolean"},{"name":"array_num","type":"bigint"},{"name":"array_date","type":"timestamp"},{"name":"num","type":"int"},{"name":"array_text","type":"string"},{"name":"array_keyword","type":"string"}]}
+  - match: {"datarows": [[{"child_array_keyword":["a a a","b b b"],"child_num":100,"child_array_num":[1.1,2.2]},[true, false],[1,2],["2023-01-02 22:03:34","2023-01-02 22:03:35"],10,["Jane Smith","hello world"],["c++","java"]],[{"child_num": 101,"child_array_keyword":"c c c","child_array_num":3.3},true,3,"2023-01-02 22:03:36",11,"OpenSearch PPL","python"]]}
