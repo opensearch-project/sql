@@ -13,6 +13,7 @@ import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.UnionRecursive;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 
@@ -63,6 +64,15 @@ public class EmptySourcePropagateVisitor extends AbstractNodeVisitor<UnresolvedP
     UnresolvedPlan subSearch = node.getSubSearch().accept(this, context);
     UnresolvedPlan child = node.getChild().get(0).accept(this, context);
     return new AppendCol(node.isOverride(), subSearch).attach(child);
+  }
+
+  @Override
+  public UnresolvedPlan visitUnionRecursive(UnionRecursive node, Void context) {
+    UnresolvedPlan recursiveSubsearch = node.getRecursiveSubsearch().accept(this, context);
+    UnresolvedPlan child = node.getChild().get(0).accept(this, context);
+    return new UnionRecursive(
+            node.getRelationName(), node.getMaxDepth(), node.getMaxRows(), recursiveSubsearch)
+        .attach(child);
   }
 
   // TODO: Revisit lookup logic here but for now we don't see use case yet

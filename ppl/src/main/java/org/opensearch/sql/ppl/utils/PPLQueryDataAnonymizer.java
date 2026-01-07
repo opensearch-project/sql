@@ -101,6 +101,7 @@ import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.ast.tree.UnionRecursive;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
@@ -652,6 +653,21 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String child = node.getChild().get(0).accept(this, context);
     String subsearch = anonymizeData(node.getSubSearch());
     return StringUtils.format("%s | append [%s ]", child, subsearch);
+  }
+
+  @Override
+  public String visitUnionRecursive(UnionRecursive node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    String subsearch = anonymizeData(node.getRecursiveSubsearch());
+    StringBuilder options = new StringBuilder();
+    options.append("name=").append(maskField(node.getRelationName()));
+    if (node.getMaxDepth() != null) {
+      options.append(" max_depth=").append(MASK_LITERAL);
+    }
+    if (node.getMaxRows() != null) {
+      options.append(" max_rows=").append(MASK_LITERAL);
+    }
+    return StringUtils.format("%s | union recursive %s [%s ]", child, options, subsearch);
   }
 
   @Override

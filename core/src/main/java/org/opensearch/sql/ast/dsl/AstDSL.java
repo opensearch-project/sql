@@ -79,6 +79,7 @@ import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.ast.tree.UnionRecursive;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
@@ -567,6 +568,15 @@ public class AstDSL {
   public static AppendPipe appendPipe(UnresolvedPlan input, UnresolvedPlan subquery) {
 
     return new AppendPipe(subquery).attach(input);
+  }
+
+  public static UnionRecursive unionRecursive(
+      UnresolvedPlan input,
+      String relationName,
+      Integer maxDepth,
+      Integer maxRows,
+      UnresolvedPlan recursiveSubsearch) {
+    return new UnionRecursive(relationName, maxDepth, maxRows, recursiveSubsearch).attach(input);
   }
 
   public static Trendline.TrendlineComputation computation(

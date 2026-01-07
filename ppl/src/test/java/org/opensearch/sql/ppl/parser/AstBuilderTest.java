@@ -50,6 +50,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.spath;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.tableFunction;
 import static org.opensearch.sql.ast.dsl.AstDSL.trendline;
+import static org.opensearch.sql.ast.dsl.AstDSL.unionRecursive;
 import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
 import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
@@ -1015,6 +1016,19 @@ public class AstBuilderTest {
                 emptyList(),
                 emptyList(),
                 defaultStatsArgs())));
+  }
+
+  @Test
+  public void testUnionRecursive() {
+    assertEqual(
+        "source=t | fields a | union recursive name=rel max_depth=2 max_rows=5 [ source=t |"
+            + " fields a ]",
+        unionRecursive(
+            projectWithArg(relation("t"), defaultFieldsArgs(), field("a")),
+            "rel",
+            2,
+            5,
+            projectWithArg(relation("t"), defaultFieldsArgs(), field("a"))));
   }
 
   public void testTrendline() {

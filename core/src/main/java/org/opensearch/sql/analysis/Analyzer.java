@@ -100,6 +100,7 @@ import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.ast.tree.UnionRecursive;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
@@ -853,6 +854,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitMultisearch(Multisearch node, AnalysisContext context) {
     throw getOnlyForCalciteException("Multisearch");
+  }
+
+  @Override
+  public LogicalPlan visitUnionRecursive(UnionRecursive node, AnalysisContext context) {
+    throw getOnlyForCalciteException("UnionRecursive");
   }
 
   private LogicalSort buildSort(

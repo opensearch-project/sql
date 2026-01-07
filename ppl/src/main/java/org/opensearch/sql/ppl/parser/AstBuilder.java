@@ -112,6 +112,7 @@ import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.ast.tree.UnionRecursive;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
@@ -1206,6 +1207,43 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             .reduce(searchCommandInSubSearch, (r, e) -> e.attach(r));
 
     return new Append(subsearch);
+  }
+
+  @Override
+  public UnresolvedPlan visitUnionRecursiveCommand(
+      OpenSearchPPLParser.UnionRecursiveCommandContext ctx) {
+    String nameKey = StringUtils.unquoteIdentifier(ctx.unionRecursiveNameArg().ident(0).getText());
+    String relationName =
+        StringUtils.unquoteIdentifier(ctx.unionRecursiveNameArg().ident(1).getText());
+    if (!"name".equalsIgnoreCase(nameKey)) {
+      throw new SemanticCheckException("UNION RECURSIVE requires name=<identifier>");
+    }
+
+    Integer maxDepth = null;
+    Integer maxRows = null;
+    for (OpenSearchPPLParser.UnionRecursiveOptionContext optionCtx : ctx.unionRecursiveOption()) {
+      String optionName = StringUtils.unquoteIdentifier(optionCtx.ident().getText());
+      int value = Integer.parseInt(optionCtx.integerLiteral().getText());
+      switch (optionName.toLowerCase(Locale.ROOT)) {
+        case "max_depth":
+          if (maxDepth != null) {
+            throw new SemanticCheckException("max_depth specified more than once");
+          }
+          maxDepth = value;
+          break;
+        case "max_rows":
+          if (maxRows != null) {
+            throw new SemanticCheckException("max_rows specified more than once");
+          }
+          maxRows = value;
+          break;
+        default:
+          throw new SemanticCheckException("invalid UNION RECURSIVE option: " + optionName);
+      }
+    }
+
+    UnresolvedPlan recursiveSubsearch = visitSubSearch(ctx.recursiveSubPipeline().subSearch());
+    return new UnionRecursive(relationName, maxDepth, maxRows, recursiveSubsearch);
   }
 
   @Override

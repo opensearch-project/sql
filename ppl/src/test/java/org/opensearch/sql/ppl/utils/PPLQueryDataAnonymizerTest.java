@@ -548,6 +548,16 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testUnionRecursive() {
+    assertEquals(
+        "source=table | fields + identifier | union recursive name=identifier max_depth=*** "
+            + "max_rows=*** [source=table | where identifier = *** | fields + identifier ]",
+        anonymize(
+            "source=t | fields a | union recursive name=bom max_depth=3 max_rows=100"
+                + " [ source=b | where a = 1 | fields a ]"));
+  }
+
+  @Test
   // Same as SQL, select * from a as b -> SELECT * FROM table AS identifier
   public void testSubqueryAlias() {
     assertEquals("source=table as identifier", anonymize("source=t as t1"));
