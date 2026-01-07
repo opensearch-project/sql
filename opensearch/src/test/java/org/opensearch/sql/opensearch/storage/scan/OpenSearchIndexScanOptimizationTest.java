@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -103,6 +104,9 @@ class OpenSearchIndexScanOptimizationTest {
   void setUp() {
     indexScanBuilder = new OpenSearchIndexScanBuilder(requestBuilder, requestBuilder -> indexScan);
     when(table.createScanBuilder()).thenReturn(indexScanBuilder);
+    lenient()
+        .when(requestBuilder.getQueryBucketSize())
+        .thenReturn(AggregationQueryBuilder.AGGREGATION_BUCKET_SIZE);
   }
 
   @Test
