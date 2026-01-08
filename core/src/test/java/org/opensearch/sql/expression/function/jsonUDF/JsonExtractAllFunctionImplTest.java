@@ -84,9 +84,6 @@ public class JsonExtractAllFunctionImplTest {
   }
 
   @Test
-  public void testNullInput() {}
-
-  @Test
   public void testEmptyString() {
     assertEvalNull();
     assertEvalNull((String) null);

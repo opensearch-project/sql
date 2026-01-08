@@ -256,7 +256,7 @@ public class FieldResolutionVisitorTest {
       if (fields.contains("id")) {
         assertEquals("", result.getWildcard().toString());
       } else {
-        assert (fields.contains("parent_id"));
+        assertTrue(fields.contains("parent_id"));
         assertEquals("*", result.getWildcard().toString());
       }
     }

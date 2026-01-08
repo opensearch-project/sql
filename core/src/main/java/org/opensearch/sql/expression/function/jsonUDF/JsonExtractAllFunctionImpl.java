@@ -43,7 +43,6 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
 public class JsonExtractAllFunctionImpl extends ImplementorUDF {
   private static final String ARRAY_SUFFIX = "{}";
   private static final JsonFactory JSON_FACTORY = new JsonFactory();
-  private static final String EMPTY = "";
 
   public JsonExtractAllFunctionImpl() {
     super(new JsonExtractAllImplementor(), NullPolicy.ANY);
