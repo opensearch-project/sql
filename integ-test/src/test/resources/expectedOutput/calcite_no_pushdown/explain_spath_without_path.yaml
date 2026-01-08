@@ -4,5 +4,6 @@ calcite:
       LogicalProject(test=[CAST(ITEM(JSON_EXTRACT_ALL($3), 'test')):VARCHAR NOT NULL])
         CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_logs]])
   physical: |
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[JSON_EXTRACT_ALL($t0)], expr#2=['test'], expr#3=[ITEM($t1, $t2)], expr#4=[CAST($t3):VARCHAR NOT NULL], $f0=[$t4])
-      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_logs]], PushDownContext=[[PROJECT->[message], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10000,"timeout":"1m","_source":{"includes":["message"],"excludes":[]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..10=[{inputs}], expr#11=[JSON_EXTRACT_ALL($t3)], expr#12=['test'], expr#13=[ITEM($t11, $t12)], expr#14=[CAST($t13):VARCHAR NOT NULL], test=[$t14])
+        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_logs]])
