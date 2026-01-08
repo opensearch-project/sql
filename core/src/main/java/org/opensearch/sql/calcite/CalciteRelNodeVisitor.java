@@ -3180,7 +3180,22 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       throw new SemanticCheckException(
           "mvcombine target must be a direct field reference, but got: " + targetField);
     }
-    return ((RexInputRef) targetRex).getIndex();
+
+    final int index = ((RexInputRef) targetRex).getIndex();
+
+    // Validate the target field is scalar-ish. mvcombine outputs ARRAY<T>, so target must not
+    // already be ARRAY.
+    final RelDataType fieldType =
+        context.relBuilder.peek().getRowType().getFieldList().get(index).getType();
+
+    // Prefer Calcite type inspection instead of relying on rel type name string checks.
+    if (fieldType.getSqlTypeName() == org.apache.calcite.sql.type.SqlTypeName.ARRAY
+        || fieldType.getSqlTypeName() == org.apache.calcite.sql.type.SqlTypeName.MULTISET) {
+      throw new SemanticCheckException(
+          "mvcombine target cannot be an array/multivalue type, but got: " + fieldType);
+    }
+
+    return index;
   }
 
   private List<RexNode> buildGroupExpressionsExcludingTarget(
