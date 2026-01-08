@@ -237,6 +237,16 @@ public class FieldResolutionVisitorTest {
   }
 
   @Test
+  public void testJoinWithNestedFields() {
+    assertJoinRelationFields(
+        "source=logs1 | join left=l right=r ON l.id = r.id logs2 | fields l.name, r.value, field,"
+            + " nested.field",
+        Map.of(
+            "logs1", new FieldResolutionResult(Set.of("name", "id", "field", "nested.field")),
+            "logs2", new FieldResolutionResult(Set.of("value", "id", "field", "nested.field"))));
+  }
+
+  @Test
   public void testSelfJoin() {
     UnresolvedPlan plan =
         parse("source=logs | fields id | join left=l right=r ON l.id = r.parent_id logs");
