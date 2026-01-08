@@ -20,7 +20,7 @@ root:
               :true,\"include_upper\":true,\"boost\":1.0}}},{\"range\":{\"@timestamp\"\
               :{\"from\":null,\"to\":1672894800000,\"include_lower\":true,\"include_upper\"\
               :false,\"boost\":1.0}}}],\"adjust_pure_negative\":true,\"boost\":1.0}},\"\
-              aggregations\":{\"composite_buckets\":{\"composite\":{\"size\":1000,\"\
+              aggregations\":{\"composite_buckets\":{\"composite\":{\"size\":10000,\"\
               sources\":[{\"process.name\":{\"terms\":{\"field\":\"process.name\"\
               ,\"missing_bucket\":true,\"missing_order\":\"first\",\"order\":\"asc\"\
               }}},{\"cloud.region\":{\"terms\":{\"field\":\"cloud.region\",\"missing_bucket\"\

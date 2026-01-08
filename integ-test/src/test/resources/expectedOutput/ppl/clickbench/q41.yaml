@@ -30,7 +30,7 @@ root:
               :true,\"boost\":1.0}}],\"adjust_pure_negative\":true,\"boost\":1.0}},{\"\
               term\":{\"RefererHash\":{\"value\":3594120000172545465,\"boost\":1.0}}}],\"\
               adjust_pure_negative\":true,\"boost\":1.0}},\"aggregations\":{\"composite_buckets\"\
-              :{\"composite\":{\"size\":1000,\"sources\":[{\"URLHash\":{\"terms\"\
+              :{\"composite\":{\"size\":10000,\"sources\":[{\"URLHash\":{\"terms\"\
               :{\"field\":\"URLHash\",\"missing_bucket\":false,\"order\":\"asc\"}}},{\"\
               EventDate\":{\"terms\":{\"field\":\"EventDate\",\"missing_bucket\":false,\"\
               value_type\":\"long\",\"order\":\"asc\"}}}]},\"aggregations\":{\"PageViews\"\

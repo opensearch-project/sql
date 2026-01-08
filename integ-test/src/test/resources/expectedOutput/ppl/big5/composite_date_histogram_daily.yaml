@@ -16,7 +16,7 @@ root:
               :true,\"include_upper\":true,\"boost\":1.0}}},{\"range\":{\"@timestamp\"\
               :{\"from\":null,\"to\":1673092800000,\"include_lower\":true,\"include_upper\"\
               :false,\"boost\":1.0}}}],\"adjust_pure_negative\":true,\"boost\":1.0}},\"\
-              aggregations\":{\"composite_buckets\":{\"composite\":{\"size\":1000,\"\
+              aggregations\":{\"composite_buckets\":{\"composite\":{\"size\":10000,\"\
               sources\":[{\"span(`@timestamp`,1d)\":{\"date_histogram\":{\"field\"\
               :\"@timestamp\",\"missing_bucket\":false,\"order\":\"asc\",\"fixed_interval\"\
               :\"1d\"}}}]},\"aggregations\":{\"count()\":{\"value_count\":{\"field\"\

@@ -9,7 +9,7 @@ root:
           \ sourceBuilder={\"from\":0,\"size\":0,\"timeout\":\"1m\",\"query\":{\"\
           range\":{\"age\":{\"from\":30,\"to\":null,\"include_lower\":false,\"include_upper\"\
           :true,\"boost\":1.0}}},\"aggregations\":{\"composite_buckets\":{\"composite\"\
-          :{\"size\":1000,\"sources\":[{\"state\":{\"terms\":{\"field\":\"state.keyword\"\
+          :{\"size\":10000,\"sources\":[{\"state\":{\"terms\":{\"field\":\"state.keyword\"\
           ,\"missing_bucket\":true,\"missing_order\":\"first\",\"order\":\"asc\"}}},{\"\
           city\":{\"terms\":{\"field\":\"city.keyword\",\"missing_bucket\":true,\"\
           missing_order\":\"first\",\"order\":\"asc\"}}}]},\"aggregations\":{\"avg_age\"\
