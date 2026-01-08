@@ -17,6 +17,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
+import java.util.stream.Collectors;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
@@ -25,6 +26,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
+import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -41,6 +43,7 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
 public class JsonExtractAllFunctionImpl extends ImplementorUDF {
   private static final String ARRAY_SUFFIX = "{}";
   private static final JsonFactory JSON_FACTORY = new JsonFactory();
+  private static final String EMPTY = "";
 
   public JsonExtractAllFunctionImpl() {
     super(new JsonExtractAllImplementor(), NullPolicy.ANY);
@@ -57,7 +60,9 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return UDFOperandMetadata.wrap(OperandTypes.family(SqlTypeFamily.STRING));
+    return UDFOperandMetadata.wrap(
+        (CompositeOperandTypeChecker)
+            OperandTypes.family(SqlTypeFamily.STRING).or(OperandTypes.family(SqlTypeFamily.ARRAY)));
   }
 
   public static class JsonExtractAllImplementor implements NotNullImplementor {
@@ -77,12 +82,32 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
       return null;
     }
 
-    String jsonStr = (String) args[0];
-    if (jsonStr == null || jsonStr.trim().isEmpty()) {
+    String jsonStr = getString(args[0]);
+    return jsonStr != null ? convertEmptyMapToNull(parseJson(jsonStr)) : null;
+  }
+
+  private static Map<String, Object> convertEmptyMapToNull(Map<String, Object> map) {
+    return (map == null || map.isEmpty()) ? null : map;
+  }
+
+  private static String getString(Object input) {
+    if (input instanceof String) {
+      return (String) input;
+    } else if (input instanceof List) {
+      return convertArrayToString((List<?>) input);
+    }
+    return null;
+  }
+
+  private static String convertArrayToString(List<?> array) {
+    if (array == null || array.isEmpty()) {
       return null;
     }
 
-    return parseJson(jsonStr);
+    return array.stream()
+        .filter(element -> element != null)
+        .map(Object::toString)
+        .collect(Collectors.joining());
   }
 
   private static Map<String, Object> parseJson(String jsonStr) {

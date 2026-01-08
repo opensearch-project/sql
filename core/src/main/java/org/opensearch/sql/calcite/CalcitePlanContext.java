@@ -21,7 +21,10 @@ import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.FrameworkConfig;
+import org.opensearch.sql.ast.analysis.FieldResolutionResult;
+import org.opensearch.sql.ast.analysis.FieldResolutionVisitor;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelBuilder;
 import org.opensearch.sql.common.setting.Settings;
@@ -71,6 +74,9 @@ public class CalcitePlanContext {
 
   /** Whether we're currently inside a lambda context. */
   @Getter @Setter private boolean inLambdaContext = false;
+
+  /** Root node of the AST tree. Used for field resolution */
+  @Setter private UnresolvedPlan rootNode;
 
   private CalcitePlanContext(FrameworkConfig config, SysLimit sysLimit, QueryType queryType) {
     this.config = config;
@@ -205,5 +211,14 @@ public class CalcitePlanContext {
     rexLambdaRefMap.put("__captured_" + captureIndex, lambdaRef);
 
     return lambdaRef;
+  }
+
+  public FieldResolutionResult resolveFields(UnresolvedPlan target) {
+    if (rootNode == null) {
+      throw new IllegalStateException("Root node is not set. Abort field resolution.");
+    }
+    FieldResolutionVisitor visitor = new FieldResolutionVisitor();
+    Map<UnresolvedPlan, FieldResolutionResult> result = visitor.analyze(rootNode);
+    return result.get(target);
   }
 }

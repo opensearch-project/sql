@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -71,6 +72,10 @@ public class JsonExtractAllFunctionImplTest {
     assertNotNull(testFunction, "Function should be properly initialized");
   }
 
+  private void assertEvalNull(Object... args) {
+    assertNull(JsonExtractAllFunctionImpl.eval(args));
+  }
+
   @Test
   public void testNoArguments() {
     Object result = JsonExtractAllFunctionImpl.eval();
@@ -79,31 +84,18 @@ public class JsonExtractAllFunctionImplTest {
   }
 
   @Test
-  public void testNullInput() {
-    Object result = JsonExtractAllFunctionImpl.eval((String) null);
-
-    assertNull(result);
-  }
+  public void testNullInput() {}
 
   @Test
   public void testEmptyString() {
-    Object result = JsonExtractAllFunctionImpl.eval("");
-
-    assertNull(result);
-  }
-
-  @Test
-  public void testWhitespaceString() {
-    Object result = JsonExtractAllFunctionImpl.eval("   ");
-
-    assertNull(result);
-  }
-
-  @Test
-  public void testEmptyJsonObject() {
-    Map<String, Object> map = eval("{}");
-
-    assertTrue(map.isEmpty());
+    assertEvalNull();
+    assertEvalNull((String) null);
+    assertEvalNull("");
+    assertEvalNull("", "");
+    assertEvalNull("  ");
+    assertEvalNull("{}");
+    assertEvalNull("\"just a string\"");
+    assertEvalNull("123");
   }
 
   @Test
@@ -147,20 +139,6 @@ public class JsonExtractAllFunctionImplTest {
     assertMapListValue(map, "{}.name", "John", "Jane");
     assertMapListValue(map, "{}.age", 30, 25);
     assertEquals(2, map.size());
-  }
-
-  @Test
-  public void testNonObjectJsonPrimitive() {
-    Object result = JsonExtractAllFunctionImpl.eval("\"just a string\"");
-
-    assertNull(result);
-  }
-
-  @Test
-  public void testNonObjectJsonNumber() {
-    Object result = JsonExtractAllFunctionImpl.eval("42");
-
-    assertNull(result);
   }
 
   @Test
@@ -242,10 +220,7 @@ public class JsonExtractAllFunctionImplTest {
 
   @Test
   public void testEmptyArray() {
-    Map<String, Object> map = eval("{\"empty\": []}");
-
-    Object emptyValue = map.get("empty{}");
-    assertNull(emptyValue);
+    assertEvalNull("{\"empty\": []}");
   }
 
   @Test
@@ -356,5 +331,45 @@ public class JsonExtractAllFunctionImplTest {
     assertEquals(100, map.size());
     assertEquals(0, map.get("field0"));
     assertEquals(99, map.get("field99"));
+  }
+
+  @Test
+  public void testArrayInputWithSingleJsonObject() {
+    List<String> array = Arrays.asList("{\"name\": \"John\", \"age\": 30}");
+    Object result = JsonExtractAllFunctionImpl.eval(array);
+    Map<String, Object> map = assertValidMapResult(result);
+
+    assertEquals("John", map.get("name"));
+    assertEquals(30, map.get("age"));
+    assertEquals(2, map.size());
+  }
+
+  @Test
+  public void testArrayInputWithMultipleJsonFragments() {
+    List<String> array = Arrays.asList("{\"name\": \"John\"", ", \"age\": 30}");
+    Object result = JsonExtractAllFunctionImpl.eval(array);
+    Map<String, Object> map = assertValidMapResult(result);
+
+    assertEquals("John", map.get("name"));
+    assertEquals(30, map.get("age"));
+    assertEquals(2, map.size());
+  }
+
+  @Test
+  public void testArrayInputWithNullElements() {
+    List<String> array = Arrays.asList("{\"name\": ", null, "\"John\", \"age\": 30}");
+    Object result = JsonExtractAllFunctionImpl.eval(array);
+    Map<String, Object> map = assertValidMapResult(result);
+
+    assertEquals("John", map.get("name"));
+    assertEquals(30, map.get("age"));
+    assertEquals(2, map.size());
+  }
+
+  @Test
+  public void testNullAndEmptyArray() {
+    assertEvalNull(Arrays.asList(null, null, null));
+    assertEvalNull(Arrays.asList());
+    assertEvalNull((List<?>) null);
   }
 }
