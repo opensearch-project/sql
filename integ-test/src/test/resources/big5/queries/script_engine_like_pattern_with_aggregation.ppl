@@ -1,0 +1,48 @@
+/* Filter messages containing 'sshd' and aggregate count by metrics.size */
+/*
+{
+  "name": "script_engine_like_pattern_with_aggregation",
+  "operation-type": "search",
+  "index": "{{index_name | default('custom-big5')}}",
+  "body": {
+    "query": {
+      "script": {
+        "script": {
+          "source": "{\"langType\":\"calcite\",\"script\":\"...\"}",
+          "lang": "opensearch_compounded_script",
+          "params": {
+            "utcTimestamp": "{{current_timestamp}}"
+          }
+        },
+        "boost": 1.0
+      }
+    },
+    "_source": {
+      "includes": ["message", "metrics.size"],
+      "excludes": []
+    },
+    "aggregations": {
+      "composite_buckets": {
+        "composite": {
+          "size": 10000,
+          "sources": [
+            {
+              "metrics.size": {
+                "terms": {
+                  "field": "metrics.size",
+                  "missing_bucket": true,
+                  "missing_order": "first",
+                  "order": "asc"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
+*/
+source = big5
+| where like(`message`, '%sshd%')
+| stats count() by metrics.size
