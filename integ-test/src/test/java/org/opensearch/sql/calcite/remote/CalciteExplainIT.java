@@ -2318,4 +2318,11 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryYaml(
             "source=opensearch-sql_test_index_bank | where age not between 30 and 39"));
   }
+
+  @Test
+  public void testSpathWithoutPathExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_spath_without_path.yaml");
+    assertYamlEqualsIgnoreId(
+        expected, explainQueryYaml(source(TEST_INDEX_LOGS, "spath input=message | fields test")));
+  }
 }

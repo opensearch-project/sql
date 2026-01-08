@@ -50,6 +50,8 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   }
 
   protected JSONObject executeQuery(String query) throws IOException {
+    System.out.println(query);
+    System.out.println(explainQueryYaml(query));
     return jsonify(executeQueryToString(query));
   }
 

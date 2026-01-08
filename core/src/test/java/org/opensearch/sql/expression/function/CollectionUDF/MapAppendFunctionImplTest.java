@@ -5,8 +5,8 @@
 
 package org.opensearch.sql.expression.function.CollectionUDF;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 
 import java.util.HashMap;
 import java.util.List;
@@ -21,11 +21,14 @@ class MapAppendFunctionImplTest {
 
     Map<String, Object> result = MapAppendFunctionImpl.mapAppendImpl(map1, map2);
 
-    assertEquals(4, result.size());
-    assertMapListValues(result, "a", "value1");
-    assertMapListValues(result, "b", "value2");
-    assertMapListValues(result, "c", "value3");
-    assertMapListValues(result, "d", "value4");
+    assertThat(
+        result,
+        allOf(
+            hasEntry("a", "value1"),
+            hasEntry("b", "value2"),
+            hasEntry("c", "value3"),
+            hasEntry("d", "value4"),
+            aMapWithSize(4)));
   }
 
   @Test
@@ -35,10 +38,13 @@ class MapAppendFunctionImplTest {
 
     Map<String, Object> result = MapAppendFunctionImpl.mapAppendImpl(map1, map2);
 
-    assertEquals(3, result.size());
-    assertMapListValues(result, "a", "value1");
-    assertMapListValues(result, "b", "value2", "value3");
-    assertMapListValues(result, "c", "value4");
+    assertThat(
+        result,
+        allOf(
+            aMapWithSize(3),
+            hasEntry("a", (Object) "value1"),
+            hasEntry("b", (Object) List.of("value2", "value3")),
+            hasEntry("c", (Object) "value4")));
   }
 
   @Test
@@ -48,10 +54,13 @@ class MapAppendFunctionImplTest {
 
     Map<String, Object> result = MapAppendFunctionImpl.mapAppendImpl(map1, map2);
 
-    assertEquals(3, result.size());
-    assertMapListValues(result, "a", "item1", "item2", "item3");
-    assertMapListValues(result, "b", "single");
-    assertMapListValues(result, "c", "item4", "item5");
+    assertThat(
+        result,
+        allOf(
+            aMapWithSize(3),
+            hasEntry("a", (Object) List.of("item1", "item2", "item3")),
+            hasEntry("b", (Object) "single"),
+            hasEntry("c", (Object) List.of("item4", "item5"))));
   }
 
   @Test
@@ -64,11 +73,14 @@ class MapAppendFunctionImplTest {
 
     Map<String, Object> result = MapAppendFunctionImpl.mapAppendImpl(map1, map2);
 
-    assertEquals(4, result.size());
-    assertMapListValues(result, "a", "value1");
-    assertMapListValues(result, "b", "value2");
-    assertMapListValues(result, "c", "value3");
-    assertMapListValues(result, "d", "value4");
+    assertThat(
+        result,
+        allOf(
+            hasEntry("a", "value1"),
+            hasEntry("b", "value2"),
+            hasEntry("c", "value3"),
+            hasEntry("d", "value4"),
+            aMapWithSize(4)));
   }
 
   @Test
@@ -77,9 +89,7 @@ class MapAppendFunctionImplTest {
 
     Map<String, Object> result = MapAppendFunctionImpl.mapAppendImpl(map1);
 
-    assertEquals(2, result.size());
-    assertMapListValues(result, "a", "value1");
-    assertMapListValues(result, "b", "value2");
+    assertThat(result, allOf(hasEntry("a", "value1"), hasEntry("b", "value2"), aMapWithSize(2)));
   }
 
   private Map<String, Object> getMap1() {
@@ -94,15 +104,5 @@ class MapAppendFunctionImplTest {
     map2.put("c", "value3");
     map2.put("d", "value4");
     return map2;
-  }
-
-  private void assertMapListValues(Map<String, Object> map, String key, Object... expectedValues) {
-    Object val = map.get(key);
-    assertTrue(val instanceof List);
-    List<Object> result = (List<Object>) val;
-    assertEquals(expectedValues.length, result.size());
-    for (int i = 0; i < expectedValues.length; i++) {
-      assertEquals(expectedValues[i], result.get(i));
-    }
   }
 }
