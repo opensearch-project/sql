@@ -213,6 +213,14 @@ public class CalcitePlanContext {
     return lambdaRef;
   }
 
+  /**
+   * Resolves required fields for a target node in the PPL query plan by analyzing the AST from
+   * root. Used for schema-on-read features like `spath` command.
+   *
+   * @param target the plan node to resolve field requirements for
+   * @return field resolution result with regular fields and wildcard patterns
+   * @throws IllegalStateException if root node not set via {@link #setRootNode}
+   */
   public FieldResolutionResult resolveFields(UnresolvedPlan target) {
     if (rootNode == null) {
       throw new IllegalStateException("Root node is not set. Abort field resolution.");

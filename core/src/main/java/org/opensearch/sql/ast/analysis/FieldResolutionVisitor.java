@@ -75,6 +75,13 @@ import org.opensearch.sql.expression.parse.RegexCommonUtils;
  */
 public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResolutionContext> {
 
+  /**
+   * Analyzes PPL query plan to determine required fields at each node.
+   *
+   * @param plan root node of the PPL query plan
+   * @return map of plan nodes to their field requirements (regular fields and wildcard patterns)
+   * @throws IllegalArgumentException if plan contains unsupported commands or spath with wildcards
+   */
   public Map<UnresolvedPlan, FieldResolutionResult> analyze(UnresolvedPlan plan) {
     FieldResolutionContext context = new FieldResolutionContext();
     acceptAndVerifyNodeVisited(plan, context);
