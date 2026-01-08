@@ -3118,6 +3118,139 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
+  //    /**
+  //     * mvcombine command visitor to collapse rows that are identical on all fields except the
+  // target
+  //     * field, and combine the target field values into a multivalue (array) field.
+  //     *
+  //     *
+  //     * @param node mvcombine command to be visited
+  //     * @param context CalcitePlanContext containing the RelBuilder, RexBuilder, and resolution
+  // context
+  //     * @return RelNode representing records collapsed by all non-target fields with the target
+  // field
+  //     *     combined into a multivalue array (or a delimited string when {@code nomv=true})
+  //     */
+  //  @Override
+  //  public RelNode visitMvCombine(MvCombine node, CalcitePlanContext context) {
+  //    // 1) Lower child first
+  //    visitChildren(node, context);
+  //
+  //    final RelBuilder relBuilder = context.relBuilder;
+  //    final RexBuilder rexBuilder = context.rexBuilder;
+  //
+  //    final RelNode input = relBuilder.peek();
+  //    final List<String> inputFieldNames = input.getRowType().getFieldNames();
+  //
+  //    // 2) Accept delim (default is single space).
+  //    // NOTE: delim only affects single-value rendering when nomv=true.
+  //    final String delim = node.getDelim();
+  //
+  //    // 3) Resolve target field to an input ref (must be a direct field reference)
+  //    final Field targetField = node.getField();
+  //    final RexNode targetRex = rexVisitor.analyze(targetField, context);
+  //    if (!(targetRex instanceof RexInputRef)) {
+  //      throw new SemanticCheckException(
+  //          "mvcombine target must be a direct field reference, but got: " + targetField);
+  //    }
+  //    final int targetIndex = ((RexInputRef) targetRex).getIndex();
+  //    final String targetName = inputFieldNames.get(targetIndex);
+  //
+  //    // 4) Group key = all fields except target
+  //    final List<RexNode> groupExprs = new ArrayList<>();
+  //    for (int i = 0; i < inputFieldNames.size(); i++) {
+  //      if (i == targetIndex) continue;
+  //      groupExprs.add(relBuilder.field(i));
+  //    }
+  //
+  //    // 5) Aggregate target values: COLLECT => MULTISET
+  //    final RelBuilder.AggCall aggCall =
+  //        relBuilder
+  //            .aggregateCall(SqlStdOperatorTable.COLLECT, relBuilder.field(targetIndex))
+  //            .as(targetName);
+  //
+  //    relBuilder.aggregate(relBuilder.groupKey(groupExprs), aggCall);
+  //
+  //    // 6) Restore original output column order AND cast MULTISET -> ARRAY using RexBuilder
+  //    // After aggregate => [group fields..., targetAgg(multiset)]
+  //    final int aggPos = groupExprs.size();
+  //
+  //    final RelDataType elemType = input.getRowType().getFieldList().get(targetIndex).getType();
+  //    final RelDataType arrayType = relBuilder.getTypeFactory().createArrayType(elemType, -1);
+  //
+  //    final List<RexNode> projections = new ArrayList<>(inputFieldNames.size());
+  //    final List<String> projNames = new ArrayList<>(inputFieldNames.size());
+  //
+  //    int groupPos = 0;
+  //    for (int i = 0; i < inputFieldNames.size(); i++) {
+  //      projNames.add(inputFieldNames.get(i));
+  //      if (i == targetIndex) {
+  //        final RexNode multisetRef = relBuilder.field(aggPos); // MULTISET
+  //        projections.add(rexBuilder.makeCast(arrayType, multisetRef)); // ARRAY
+  //      } else {
+  //        projections.add(relBuilder.field(groupPos));
+  //        groupPos++;
+  //      }
+  //    }
+  //    relBuilder.project(projections, projNames, /* force= */ true);
+  //
+  //    // 7) nomv=true converts multivalue output to a single delimited string.
+  //    // arrayToString in this engine supports only String/ByteString, so cast elements to STRING
+  //    // first.
+  //    if (node.isNomv()) {
+  //      final List<RexNode> nomvProjections = new ArrayList<>(inputFieldNames.size());
+  //      final List<String> nomvNames = new ArrayList<>(inputFieldNames.size());
+  //
+  //      // Build ARRAY<VARCHAR> type once
+  //      final RelDataType stringType =
+  //          relBuilder
+  //              .getTypeFactory()
+  //              .createSqlType(org.apache.calcite.sql.type.SqlTypeName.VARCHAR);
+  //      final RelDataType stringArrayType =
+  //          relBuilder.getTypeFactory().createArrayType(stringType, -1);
+  //
+  //      for (int i = 0; i < inputFieldNames.size(); i++) {
+  //        final String name = inputFieldNames.get(i);
+  //        nomvNames.add(name);
+  //
+  //        if (i == targetIndex) {
+  //          // At this point relBuilder.field(i) is ARRAY<elemType>. Cast to ARRAY<VARCHAR> so
+  //          // ARRAY_TO_STRING works.
+  //          final RexNode stringArray = rexBuilder.makeCast(stringArrayType, relBuilder.field(i));
+  //
+  //          nomvProjections.add(
+  //              relBuilder.call(
+  //                  org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_TO_STRING,
+  //                  stringArray,
+  //                  relBuilder.literal(delim)));
+  //        } else {
+  //          nomvProjections.add(relBuilder.field(i));
+  //        }
+  //      }
+  //
+  //      relBuilder.project(nomvProjections, nomvNames, /* force= */ true);
+  //    }
+  //
+  //    return relBuilder.peek();
+  //  }
+
+  /**
+   * mvcombine command visitor to collapse rows that are identical on all fields except the target
+   * field, and combine the target field values into a multivalue (array) field.
+   *
+   * <p>Implementation notes:
+   *
+   * <p>Groups by all input fields except the target field. Aggregates target using {@code COLLECT}
+   * (MULTISET) and casts MULTISET -> ARRAY. Preserves original output column order. If {@code
+   * nomv=true}, renders target array as a scalar string via {@code ARRAY_TO_STRING} using {@code
+   * delim}. {@code delim} only affects output when {@code nomv=true}.
+   *
+   * @param node mvcombine command to be visited
+   * @param context CalcitePlanContext containing the RelBuilder, RexBuilder, and resolution context
+   * @return RelNode representing collapsed records with the target combined into a multivalue array
+   *     (or a delimited string when {@code nomv=true})
+   * @throws SemanticCheckException if the mvcombine target is not a direct field reference
+   */
   @Override
   public RelNode visitMvCombine(MvCombine node, CalcitePlanContext context) {
     // 1) Lower child first
@@ -3135,30 +3268,65 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // 3) Resolve target field to an input ref (must be a direct field reference)
     final Field targetField = node.getField();
+    final int targetIndex = resolveTargetIndex(targetField, context);
+    final String targetName = inputFieldNames.get(targetIndex);
+
+    // 4) Group key = all fields except target
+    final List<RexNode> groupExprs =
+        buildGroupExpressionsExcludingTarget(targetIndex, inputFieldNames, relBuilder);
+
+    // 5) Aggregate target values: COLLECT => MULTISET
+    performCollectAggregation(relBuilder, targetIndex, targetName, groupExprs);
+
+    // 6) Restore original output column order AND cast MULTISET -> ARRAY using RexBuilder
+    restoreColumnOrderWithArrayCast(
+        relBuilder, rexBuilder, input, inputFieldNames, targetIndex, groupExprs);
+
+    // 7) nomv=true converts multivalue output to a single delimited string.
+    if (node.isNomv()) {
+      applyNomvConversion(relBuilder, rexBuilder, inputFieldNames, targetIndex, delim);
+    }
+
+    return relBuilder.peek();
+  }
+
+  private int resolveTargetIndex(Field targetField, CalcitePlanContext context) {
     final RexNode targetRex = rexVisitor.analyze(targetField, context);
     if (!(targetRex instanceof RexInputRef)) {
       throw new SemanticCheckException(
           "mvcombine target must be a direct field reference, but got: " + targetField);
     }
-    final int targetIndex = ((RexInputRef) targetRex).getIndex();
-    final String targetName = inputFieldNames.get(targetIndex);
+    return ((RexInputRef) targetRex).getIndex();
+  }
 
-    // 4) Group key = all fields except target
+  private List<RexNode> buildGroupExpressionsExcludingTarget(
+      int targetIndex, List<String> inputFieldNames, RelBuilder relBuilder) {
     final List<RexNode> groupExprs = new ArrayList<>();
     for (int i = 0; i < inputFieldNames.size(); i++) {
       if (i == targetIndex) continue;
       groupExprs.add(relBuilder.field(i));
     }
+    return groupExprs;
+  }
 
-    // 5) Aggregate target values: COLLECT => MULTISET
+  private void performCollectAggregation(
+      RelBuilder relBuilder, int targetIndex, String targetName, List<RexNode> groupExprs) {
     final RelBuilder.AggCall aggCall =
         relBuilder
             .aggregateCall(SqlStdOperatorTable.COLLECT, relBuilder.field(targetIndex))
             .as(targetName);
 
     relBuilder.aggregate(relBuilder.groupKey(groupExprs), aggCall);
+  }
 
-    // 6) Restore original output column order AND cast MULTISET -> ARRAY using RexBuilder
+  private void restoreColumnOrderWithArrayCast(
+      RelBuilder relBuilder,
+      RexBuilder rexBuilder,
+      RelNode input,
+      List<String> inputFieldNames,
+      int targetIndex,
+      List<RexNode> groupExprs) {
+
     // After aggregate => [group fields..., targetAgg(multiset)]
     final int aggPos = groupExprs.size();
 
@@ -3179,46 +3347,45 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         groupPos++;
       }
     }
+
     relBuilder.project(projections, projNames, /* force= */ true);
+  }
 
-    // 7) nomv=true converts multivalue output to a single delimited string.
-    // arrayToString in this engine supports only String/ByteString, so cast elements to STRING
-    // first.
-    if (node.isNomv()) {
-      final List<RexNode> nomvProjections = new ArrayList<>(inputFieldNames.size());
-      final List<String> nomvNames = new ArrayList<>(inputFieldNames.size());
+  private void applyNomvConversion(
+      RelBuilder relBuilder,
+      RexBuilder rexBuilder,
+      List<String> inputFieldNames,
+      int targetIndex,
+      String delim) {
 
-      // Build ARRAY<VARCHAR> type once
-      final RelDataType stringType =
-          relBuilder
-              .getTypeFactory()
-              .createSqlType(org.apache.calcite.sql.type.SqlTypeName.VARCHAR);
-      final RelDataType stringArrayType =
-          relBuilder.getTypeFactory().createArrayType(stringType, -1);
+    final List<RexNode> nomvProjections = new ArrayList<>(inputFieldNames.size());
+    final List<String> nomvNames = new ArrayList<>(inputFieldNames.size());
 
-      for (int i = 0; i < inputFieldNames.size(); i++) {
-        final String name = inputFieldNames.get(i);
-        nomvNames.add(name);
+    // Build ARRAY<VARCHAR> type once
+    final RelDataType stringType =
+        relBuilder.getTypeFactory().createSqlType(org.apache.calcite.sql.type.SqlTypeName.VARCHAR);
+    final RelDataType stringArrayType = relBuilder.getTypeFactory().createArrayType(stringType, -1);
 
-        if (i == targetIndex) {
-          // At this point relBuilder.field(i) is ARRAY<elemType>. Cast to ARRAY<VARCHAR> so
-          // ARRAY_TO_STRING works.
-          final RexNode stringArray = rexBuilder.makeCast(stringArrayType, relBuilder.field(i));
+    for (int i = 0; i < inputFieldNames.size(); i++) {
+      final String name = inputFieldNames.get(i);
+      nomvNames.add(name);
 
-          nomvProjections.add(
-              relBuilder.call(
-                  org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_TO_STRING,
-                  stringArray,
-                  relBuilder.literal(delim)));
-        } else {
-          nomvProjections.add(relBuilder.field(i));
-        }
+      if (i == targetIndex) {
+        // At this point relBuilder.field(i) is ARRAY<elemType>. Cast to ARRAY<VARCHAR> so
+        // ARRAY_TO_STRING works.
+        final RexNode stringArray = rexBuilder.makeCast(stringArrayType, relBuilder.field(i));
+
+        nomvProjections.add(
+            relBuilder.call(
+                org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_TO_STRING,
+                stringArray,
+                relBuilder.literal(delim)));
+      } else {
+        nomvProjections.add(relBuilder.field(i));
       }
-
-      relBuilder.project(nomvProjections, nomvNames, /* force= */ true);
     }
 
-    return relBuilder.peek();
+    relBuilder.project(nomvProjections, nomvNames, /* force= */ true);
   }
 
   @Override
