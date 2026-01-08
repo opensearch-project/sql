@@ -194,6 +194,10 @@ dependencies {
     implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version:"${versions.log4j}"
     testImplementation project(':opensearch-sql-plugin')
     testImplementation project(':legacy')
+    testImplementation project(':api')
+    testImplementation(testFixtures(project(':api'))) {
+        exclude group: 'org.hamcrest', module: 'hamcrest-core'
+    }
     testImplementation('org.junit.jupiter:junit-jupiter-api:5.9.3')
     testRuntimeOnly('org.junit.jupiter:junit-jupiter-engine:5.9.3')
     testRuntimeOnly('org.junit.platform:junit-platform-launcher:1.9.3')
