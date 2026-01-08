@@ -48,7 +48,7 @@ public class LogicalDedup extends Dedup {
       Boolean keepEmpty,
       Boolean consecutive) {
     final RelOptCluster cluster = input.getCluster();
-    final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
+    RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
     return new LogicalDedup(
         cluster, traitSet, input, dedupeFields, allowedDuplication, keepEmpty, consecutive);
   }

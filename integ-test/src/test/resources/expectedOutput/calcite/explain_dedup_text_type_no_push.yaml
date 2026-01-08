@@ -2,8 +2,10 @@ calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12])
-        LogicalDedup(dedup_fields=[[$11]], allowed_dedup=[1], keepEmpty=[false], consecutive=[false])
-          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
+        LogicalFilter(condition=[<=($19, 1)])
+          LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12], _id=[$13], _index=[$14], _score=[$15], _maxscore=[$16], _sort=[$17], _routing=[$18], _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $11)])
+            LogicalFilter(condition=[IS NOT NULL($11)])
+              CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
   physical: |
     EnumerableLimit(fetch=[10000])
       EnumerableCalc(expr#0..13=[{inputs}], expr#14=[1], expr#15=[<=($t13, $t14)], proj#0..12=[{exprs}], $condition=[$t15])

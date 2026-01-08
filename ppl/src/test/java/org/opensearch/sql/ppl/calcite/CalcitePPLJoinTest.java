@@ -999,9 +999,11 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + " COMM=[$6], DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
             + "  LogicalJoin(condition=[=($7, $8)], joinType=[left])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n"
-            + "    LogicalDedup(dedup_fields=[[$0]], allowed_dedup=[1], keepEmpty=[false],"
-            + " consecutive=[false])\n"
-            + "      LogicalTableScan(table=[[scott, DEPT]])\n";
+            + "    LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2])\n"
+            + "      LogicalFilter(condition=[<=($3, 1)])\n"
+            + "        LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2],"
+            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0)])\n"
+            + "          LogicalTableScan(table=[[scott, DEPT]])\n";
     verifyLogical(root, expectedLogical);
     verifyResultCount(root, 14);
 
@@ -1026,9 +1028,11 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + " COMM=[$6], DEPTNO=[$7], r.DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
             + "  LogicalJoin(condition=[=($7, $8)], joinType=[left])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n"
-            + "    LogicalDedup(dedup_fields=[[$0]], allowed_dedup=[1], keepEmpty=[false],"
-            + " consecutive=[false])\n"
-            + "      LogicalTableScan(table=[[scott, DEPT]])\n";
+            + "    LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2])\n"
+            + "      LogicalFilter(condition=[<=($3, 1)])\n"
+            + "        LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2],"
+            + " _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0)])\n"
+            + "          LogicalTableScan(table=[[scott, DEPT]])\n";
     verifyLogical(root, expectedLogical);
     verifyResultCount(root, 14);
 

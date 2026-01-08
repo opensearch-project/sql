@@ -2,8 +2,10 @@ calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalProject(name=[$0], address=[$1], id=[$7], age=[$8])
-        LogicalDedup(dedup_fields=[[$3]], allowed_dedup=[1], keepEmpty=[false], consecutive=[false])
-          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_nested_simple]])
+        LogicalFilter(condition=[<=($15, 1)])
+          LogicalProject(name=[$0], address=[$1], address.area=[$2], address.city=[$3], address.moveInDate=[$4], address.moveInDate.dateAndTime=[$5], address.state=[$6], id=[$7], age=[$8], _id=[$9], _index=[$10], _score=[$11], _maxscore=[$12], _sort=[$13], _routing=[$14], _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $3)])
+            LogicalFilter(condition=[IS NOT NULL($3)])
+              CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_nested_simple]])
   physical: |
     EnumerableLimit(fetch=[10000])
       EnumerableCalc(expr#0..5=[{inputs}], expr#6=[1], expr#7=[<=($t5, $t6)], proj#0..1=[{exprs}], id=[$t3], age=[$t4], $condition=[$t7])

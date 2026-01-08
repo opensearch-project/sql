@@ -462,6 +462,12 @@ public interface PlanUtils {
     return rexNode;
   }
 
+  /** Check if contains dedup */
+  static boolean containsRowNumberDedup(RelNode node) {
+    return node.getRowType().getFieldNames().stream()
+        .anyMatch(name -> name.equals(ROW_NUMBER_COLUMN_FOR_DEDUP));
+  }
+
   /** Check if contains dedup for top/rare */
   static boolean containsRowNumberRareTop(RelNode node) {
     return node.getRowType().getFieldNames().stream()

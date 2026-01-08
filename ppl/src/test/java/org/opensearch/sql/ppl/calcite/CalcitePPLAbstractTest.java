@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.function.UnaryOperator;
 import lombok.Getter;
 import org.apache.calcite.plan.Contexts;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
@@ -46,7 +45,6 @@ import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.calcite.SysLimit;
-import org.opensearch.sql.calcite.plan.rule.PPLDedupConvertRule;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
@@ -186,21 +184,10 @@ public class CalcitePPLAbstractTest {
   /** Verify the generated Spark SQL of the given RelNode */
   public void verifyPPLToSparkSQL(RelNode rel, String expected) {
     String normalized = expected.replace("\n", System.lineSeparator());
-    SqlImplementor.Result result = converter.visitRoot(convertCustomizedRelNode(rel));
+    SqlImplementor.Result result = converter.visitRoot(rel);
     final SqlNode sqlNode = result.asStatement();
     final String sql = sqlNode.toSqlString(OpenSearchSparkSqlDialect.DEFAULT).getSql();
     assertThat(sql, is(normalized));
-  }
-
-  /**
-   * Applies PPL-specific conversion rules (e.g., dedup conversion) to the basic RelNode. This
-   * transformation is needed before generating Spark SQL or Substrate from PPL logical plans.
-   */
-  private RelNode convertCustomizedRelNode(RelNode rel) {
-    List<RelOptRule> rules = List.of(PPLDedupConvertRule.DEDUP_CONVERT_RULE);
-    HepPlanner hepPlanner = new HepPlanner(HepProgram.builder().addRuleCollection(rules).build());
-    hepPlanner.setRoot(rel);
-    return hepPlanner.findBestExp();
   }
 
   private static String getStackTrace(final Throwable throwable) {

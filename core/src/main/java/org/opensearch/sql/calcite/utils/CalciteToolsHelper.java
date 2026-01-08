@@ -58,9 +58,13 @@ import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptTable.ViewExpander;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.prepare.Prepare.CatalogReader;
@@ -70,6 +74,7 @@ import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -95,8 +100,8 @@ import org.apache.calcite.util.Util;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.plan.Scannable;
-import org.opensearch.sql.calcite.plan.rel.LogicalDedup;
 import org.opensearch.sql.calcite.plan.rule.OpenSearchRules;
+import org.opensearch.sql.calcite.plan.rule.PPLSimplifyDedupRule;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
 /**
@@ -104,7 +109,6 @@ import org.opensearch.sql.expression.function.PPLBuiltinOperators;
  * 3. RelBuilder 4. RelRunner 5. CalcitePreparingStmt. TODO delete it in future if possible.
  */
 public class CalciteToolsHelper {
-
   /** Create a RelBuilder with testing */
   public static RelBuilder create(FrameworkConfig config) {
     return RelBuilder.create(config);
@@ -210,17 +214,6 @@ public class CalciteToolsHelper {
           alias,
           ImmutableList.of(),
           ImmutableList.of(operand));
-    }
-
-    public OpenSearchRelBuilder dedup(
-        List<RexNode> dedupFields,
-        Integer allowedDuplication,
-        Boolean keepEmpty,
-        Boolean consecutive) {
-      this.push(
-          LogicalDedup.create(
-              this.build(), dedupFields, allowedDuplication, keepEmpty, consecutive));
-      return this;
     }
   }
 
@@ -399,6 +392,8 @@ public class CalciteToolsHelper {
      * org.apache.calcite.tools.RelRunners#run(RelNode)}
      */
     public static PreparedStatement run(CalcitePlanContext context, RelNode rel) {
+      // Optimize the plan by Calcite's HepPlanner before using VolcanoPlanner in prepareStatement.
+      rel = CalciteToolsHelper.optimize(rel, context);
       final RelShuttle shuttle =
           new RelHomogeneousShuttle() {
             @Override
@@ -433,5 +428,19 @@ public class CalciteToolsHelper {
         throw Util.throwAsRuntime(e);
       }
     }
+  }
+
+  /** Try to optimize the plan by using HepPlanner */
+  private static final List<RelOptRule> hepRuleList =
+      List.of(FilterMergeRule.Config.DEFAULT.toRule(), PPLSimplifyDedupRule.DEDUP_SIMPLIFY_RULE);
+
+  private static final HepProgram HEP_PROGRAM =
+      new HepProgramBuilder().addRuleCollection(hepRuleList).build();
+
+  public static RelNode optimize(RelNode plan, CalcitePlanContext context) {
+    Util.discard(context);
+    HepPlanner planner = new HepPlanner(HEP_PROGRAM);
+    planner.setRoot(plan);
+    return planner.findBestExp();
   }
 }
