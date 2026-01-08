@@ -9,6 +9,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.AstNodeUtils;
 import org.opensearch.sql.ast.Node;
@@ -269,11 +272,11 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
     String leftAlias = node.getLeftAlias().orElse(null);
     String rightAlias = node.getRightAlias().orElse(null);
 
-    Set<String> leftFields = filterFieldsByPrefix(baseRequiredFields, leftAlias);
-    leftFields.addAll(filterFieldsByPrefix(joinFields, leftAlias));
+    Set<String> leftFields = collectFieldsByAlias(baseRequiredFields, leftAlias, rightAlias);
+    leftFields.addAll(collectFieldsByAlias(joinFields, leftAlias, rightAlias));
 
-    Set<String> rightFields = filterFieldsByPrefix(baseRequiredFields, rightAlias);
-    rightFields.addAll(filterFieldsByPrefix(joinFields, rightAlias));
+    Set<String> rightFields = collectFieldsByAlias(baseRequiredFields, rightAlias, leftAlias);
+    rightFields.addAll(collectFieldsByAlias(joinFields, rightAlias, leftAlias));
 
     if (node.getLeft() != null) {
       context.pushRequirements(new FieldResolutionResult(leftFields, currentReq.getWildcard()));
@@ -290,27 +293,28 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
     return node;
   }
 
-  private Set<String> filterFieldsByPrefix(Set<String> fields, String alias) {
-    if (alias == null) {
-      return fields;
-    }
-
-    Set<String> filtered = new HashSet<>();
-    String prefix = alias + ".";
-    for (String field : fields) {
-      if (!isPrefixed(field)) {
-        filtered.add(field);
-      } else if (field.startsWith(prefix)) {
-        // Strip the prefix to get the actual field name
-        String fieldName = field.substring(prefix.length());
-        filtered.add(fieldName);
-      }
-    }
-    return filtered;
+  /**
+   * Return lambda which remove alias from the input field, do nothing if the input does not start
+   * from the alias.
+   */
+  private static UnaryOperator<String> removeAlias(String alias) {
+    return (field) -> hasAlias(field, alias) ? field.substring(alias.length() + 1) : field;
   }
 
-  private boolean isPrefixed(String field) {
-    return field.contains(".");
+  /** Return predicate to exclude the field which has the alias. */
+  private static Predicate<String> excludeAlias(String alias) {
+    return (field) -> !hasAlias(field, alias);
+  }
+
+  private Set<String> collectFieldsByAlias(Set<String> fields, String alias, String excludedAlias) {
+    return fields.stream()
+        .filter(excludeAlias(excludedAlias))
+        .map(removeAlias(alias))
+        .collect(Collectors.toSet());
+  }
+
+  private static boolean hasAlias(String field, String alias) {
+    return alias != null && field.startsWith(alias + ".");
   }
 
   @Override
