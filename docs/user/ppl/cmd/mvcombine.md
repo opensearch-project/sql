@@ -7,9 +7,9 @@ The `mvcombine` command groups events that are identical across all fields excep
 Key aspects of `mvcombine`:
 * It generates one row per group, where the group keys are all fields currently in the pipeline except the target field.
 * The target field becomes a multivalue field containing the combined values from the grouped rows.
-* If `nomv` is specified, the target field is returned as a single scalar string instead of a multivalue array.
-* If `delim` is specified, it controls the delimiter only when `nomv` is enabled.
-* If some rows are missing the target field, those rows contribute no value to the combined output for that group.
+* When `nomv` is specified, the target field is returned as a single scalar string instead of a multivalue array.
+* The `delim` parameter controls the delimiter only when `nomv` is enabled.
+* Rows missing the target field contribute no value to the combined output for that group.
 
 ## Syntax
 
