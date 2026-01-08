@@ -227,6 +227,9 @@ public class CalcitePlanContext {
     }
     FieldResolutionVisitor visitor = new FieldResolutionVisitor();
     Map<UnresolvedPlan, FieldResolutionResult> result = visitor.analyze(rootNode);
+    if (!result.containsKey(target)) {
+      throw new IllegalStateException("Failed to resolve fields for node: " + target.toString());
+    }
     return result.get(target);
   }
 }
