@@ -49,9 +49,11 @@ teardown:
         body:
           query: 'source=ppl_profile | fields message'
           profile: true
-  - gt: {profile.total_ms: 0.0}
-  - gt: {profile.metrics.ANALYZE_TIME_MS: 0.0}
-  - gt: {profile.metrics.OPENSEARCH_TIME_MS: 0.0}
+  - gt: {profile.summary.total_time_ms: 0.0}
+  - gt: {profile.phases.analyze.time_ms: 0.0}
+  - gt: {profile.phases.optimize.time_ms: 0.0}
+  - gt: {profile.phases.execute.time_ms: 0.0}
+  - gt: {profile.phases.format.time_ms: 0.0}
 
 ---
 "Profile ignored for explain api":

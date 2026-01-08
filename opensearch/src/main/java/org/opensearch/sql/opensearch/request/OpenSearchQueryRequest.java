@@ -209,8 +209,8 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
           new OpenSearchResponse(
               SearchHits.empty(), exprValueFactory, includes, isCountAggRequest());
     } else {
-      ProfileMetric metric = QueryProfiling.current().getOrCreateMetric(MetricName.OPENSEARCH_TIME);
-      long engineStartTime = System.nanoTime();
+      ProfileMetric metric = QueryProfiling.current().getOrCreateMetric(MetricName.EXECUTE);
+      long executionStartTime = System.nanoTime();
       // Set afterKey to request, null for first round (afterKey is null in the beginning).
       if (this.sourceBuilder.aggregations() != null) {
         this.sourceBuilder.aggregations().getAggregatorFactories().stream()
@@ -243,7 +243,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
         searchDone = true;
       }
       needClean = searchDone;
-      metric.set(System.nanoTime() - engineStartTime);
+      metric.add(System.nanoTime() - executionStartTime);
     }
     return openSearchResponse;
   }
@@ -255,8 +255,8 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
           new OpenSearchResponse(
               SearchHits.empty(), exprValueFactory, includes, isCountAggRequest());
     } else {
-      ProfileMetric metric = QueryProfiling.current().getOrCreateMetric(MetricName.OPENSEARCH_TIME);
-      long engineStartTime = System.nanoTime();
+      ProfileMetric metric = QueryProfiling.current().getOrCreateMetric(MetricName.EXECUTE);
+      long executionStartTime = System.nanoTime();
       this.sourceBuilder.pointInTimeBuilder(new PointInTimeBuilder(this.pitId));
       this.sourceBuilder.timeout(cursorKeepAlive);
       // check for search after
@@ -299,7 +299,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
           LOG.debug(sourceBuilder);
         }
       }
-      metric.add(System.nanoTime() - engineStartTime);
+      metric.add(System.nanoTime() - executionStartTime);
     }
     return openSearchResponse;
   }

@@ -105,7 +105,7 @@ public class QueryService {
           try {
             ProfileContext profileContext =
                 QueryProfiling.activate(QueryContext.isProfileEnabled());
-            ProfileMetric metric = profileContext.getOrCreateMetric(MetricName.ANALYZE_TIME);
+            ProfileMetric analyzeMetric = profileContext.getOrCreateMetric(MetricName.ANALYZE);
             long analyzeStart = System.nanoTime();
             CalcitePlanContext context =
                 CalcitePlanContext.create(
@@ -114,7 +114,7 @@ public class QueryService {
             relNode = mergeAdjacentFilters(relNode);
             RelNode optimized = optimize(relNode, context);
             RelNode calcitePlan = convertToCalcitePlan(optimized);
-            metric.set(System.nanoTime() - analyzeStart);
+            analyzeMetric.set(System.nanoTime() - analyzeStart);
             executionEngine.execute(calcitePlan, context, listener);
           } catch (Throwable t) {
             if (isCalciteFallbackAllowed(t) && !(t instanceof NonFallbackCalciteException)) {

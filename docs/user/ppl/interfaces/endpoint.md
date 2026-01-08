@@ -172,13 +172,14 @@ Expected output (trimmed):
 ```json
 {
    "profile": {
-      "total_ms": 25.77,
-      "metrics": {
-         "ANALYZE_TIME_MS": 5.77,
-         "OPTIMIZE_TIME_MS": 13.51,
-         "OPENSEARCH_TIME_MS": 4.31,
-         "POST_EXEC_TIME_MS": 0.77,
-         "FORMAT_TIME_MS": 0.04
+      "summary": {
+         "total_time_ms": 25.77
+      },
+      "phases": {
+         "analyze": { "time_ms": 5.77 },
+         "optimize": { "time_ms": 13.51 },
+         "execute": { "time_ms": 0.77 },
+         "format": { "time_ms": 0.04 }
       }
    }
 }

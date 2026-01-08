@@ -221,8 +221,8 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       Integer querySizeLimit,
       ResponseListener<QueryResponse> listener)
       throws SQLException {
-    ProfileMetric metric = QueryProfiling.current().getOrCreateMetric(MetricName.POST_EXEC_TIME);
-    long postExecTime = System.nanoTime();
+    ProfileMetric metric = QueryProfiling.current().getOrCreateMetric(MetricName.EXECUTE);
+    long execTime = System.nanoTime();
     // Get the ResultSet metadata to know about columns
     ResultSetMetaData metaData = resultSet.getMetaData();
     int columnCount = metaData.getColumnCount();
@@ -267,7 +267,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     }
     Schema schema = new Schema(columns);
     QueryResponse response = new QueryResponse(schema, values, null);
-    metric.set(System.nanoTime() - postExecTime);
+    metric.add(System.nanoTime() - execTime);
     listener.onResponse(response);
   }
 

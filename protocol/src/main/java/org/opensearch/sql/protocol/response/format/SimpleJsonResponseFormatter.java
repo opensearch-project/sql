@@ -44,7 +44,7 @@ public class SimpleJsonResponseFormatter extends JsonResponseFormatter<QueryResu
 
   @Override
   public Object buildJsonObject(QueryResult response) {
-    ProfileMetric formatMetric = QueryProfiling.current().getOrCreateMetric(MetricName.FORMAT_TIME);
+    ProfileMetric formatMetric = QueryProfiling.current().getOrCreateMetric(MetricName.FORMAT);
     long formatTime = System.nanoTime();
 
     JsonResponse.JsonResponseBuilder json = JsonResponse.builder();

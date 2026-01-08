@@ -6,6 +6,8 @@
 package org.opensearch.sql.monitor.profile;
 
 import com.google.gson.annotations.SerializedName;
+import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import lombok.Getter;
@@ -14,31 +16,50 @@ import lombok.Getter;
 @Getter
 public final class QueryProfile {
 
-  /** Total elapsed milliseconds for the profiled query (rounded to two decimals). */
-  @SerializedName("total_ms")
-  private final double totalMillis;
+  private final Summary summary;
 
-  /** Immutable metric values keyed by metric name in milliseconds (rounded to two decimals). */
-  private final Map<String, Double> metrics;
+  private final Map<String, Phase> phases;
 
   /**
    * Create a new query profile snapshot.
    *
-   * @param totalMillis total elapsed milliseconds for the query (rounded to two decimals)
-   * @param metrics metric values keyed by {@link MetricName}
+   * @param totalTimeMillis total elapsed milliseconds for the query (rounded to two decimals)
+   * @param phases metric values keyed by {@link MetricName}
    */
-  public QueryProfile(double totalMillis, Map<MetricName, Double> metrics) {
-    this.totalMillis = totalMillis;
-    this.metrics = buildMetrics(metrics);
+  public QueryProfile(double totalTimeMillis, Map<MetricName, Double> phases) {
+    this.summary = new Summary(totalTimeMillis);
+    this.phases = buildPhases(phases);
   }
 
-  private Map<String, Double> buildMetrics(Map<MetricName, Double> metrics) {
-    Objects.requireNonNull(metrics, "metrics");
-    Map<String, Double> ordered = new java.util.LinkedHashMap<>(metrics.size());
+  private Map<String, Phase> buildPhases(Map<MetricName, Double> phases) {
+    Objects.requireNonNull(phases, "phases");
+    Map<String, Phase> ordered = new LinkedHashMap<>(MetricName.values().length);
     for (MetricName metricName : MetricName.values()) {
-      Double value = metrics.getOrDefault(metricName, 0d);
-      ordered.put(metricName.name() + "_MS", value);
+      Double value = phases.getOrDefault(metricName, 0d);
+      ordered.put(metricName.name().toLowerCase(Locale.ROOT), new Phase(value));
     }
     return ordered;
+  }
+
+  @Getter
+  public static final class Summary {
+
+    @SerializedName("total_time_ms")
+    private final double totalTimeMillis;
+
+    private Summary(double totalTimeMillis) {
+      this.totalTimeMillis = totalTimeMillis;
+    }
+  }
+
+  @Getter
+  public static final class Phase {
+
+    @SerializedName("time_ms")
+    private final double timeMillis;
+
+    private Phase(double timeMillis) {
+      this.timeMillis = timeMillis;
+    }
   }
 }

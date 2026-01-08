@@ -28,7 +28,7 @@
 package org.opensearch.sql.calcite.utils;
 
 import static java.util.Objects.requireNonNull;
-import static org.opensearch.sql.monitor.profile.MetricName.OPTIMIZE_TIME;
+import static org.opensearch.sql.monitor.profile.MetricName.OPTIMIZE;
 
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Type;
@@ -343,7 +343,7 @@ public class CalciteToolsHelper {
      * org.apache.calcite.tools.RelRunners#run(RelNode)}
      */
     public static PreparedStatement run(CalcitePlanContext context, RelNode rel) {
-      ProfileMetric optimizeTime = QueryProfiling.current().getOrCreateMetric(OPTIMIZE_TIME);
+      ProfileMetric optimizeTime = QueryProfiling.current().getOrCreateMetric(OPTIMIZE);
       long startTime = System.nanoTime();
       final RelShuttle shuttle =
           new RelHomogeneousShuttle() {
