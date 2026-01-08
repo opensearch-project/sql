@@ -877,7 +877,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
     String delim = null;
     if (ctx.DELIM() != null) {
-      delim = unquoteStringLiteral(ctx.stringLiteral().getText());
+      delim = StringUtils.unquoteText(getTextInQuery(ctx.stringLiteral()));
     }
 
     boolean nomv = false;
@@ -1308,20 +1308,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Token start = ctx.getStart();
     Token stop = ctx.getStop();
     return query.substring(start.getStartIndex(), stop.getStopIndex() + 1);
-  }
-
-  private static String unquoteStringLiteral(String text) {
-    if (text == null || text.length() < 2) {
-      return text;
-    }
-    char first = text.charAt(0);
-    char last = text.charAt(text.length() - 1);
-    if ((first == '"' && last == '"')
-        || (first == '\'' && last == '\'')
-        || (first == '`' && last == '`')) {
-      return text.substring(1, text.length() - 1);
-    }
-    return text;
   }
 
   /**
