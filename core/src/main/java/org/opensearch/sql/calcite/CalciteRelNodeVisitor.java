@@ -14,6 +14,14 @@ import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
+import static org.opensearch.sql.calcite.utils.GraphLookupUtils.ANCHOR_FROM_ALIAS;
+import static org.opensearch.sql.calcite.utils.GraphLookupUtils.ANCHOR_TO_ALIAS;
+import static org.opensearch.sql.calcite.utils.GraphLookupUtils.DEPTH_FIELD;
+import static org.opensearch.sql.calcite.utils.GraphLookupUtils.HIER_FIELD_SUFFIX;
+import static org.opensearch.sql.calcite.utils.GraphLookupUtils.RECURSIVE_FROM_ALIAS;
+import static org.opensearch.sql.calcite.utils.GraphLookupUtils.RECURSIVE_TABLE_NAME;
+import static org.opensearch.sql.calcite.utils.GraphLookupUtils.RECURSIVE_TO_ALIAS;
+import static org.opensearch.sql.calcite.utils.GraphLookupUtils.SRC_FIELD_SUFFIX;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_DEDUP;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_JOIN_MAX_DEDUP;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_MAIN;
@@ -39,6 +47,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -115,6 +124,7 @@ import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -150,6 +160,7 @@ import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.BinUtils;
+import org.opensearch.sql.calcite.utils.GraphLookupUtils;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.PPLHintUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
@@ -2516,6 +2527,75 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<Field> fieldsToAggregate = node.getFieldList();
     return buildAddRowTotalAggregate(
         context, fieldsToAggregate, false, true, null, labelField, label);
+  }
+
+  @Override
+  public RelNode visitGraphLookup(GraphLookup node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    RelBuilder builder = context.relBuilder;
+
+    List<String> allFields =
+        builder.peek().getRowType().getFieldNames().stream()
+            .filter(Predicate.not(OpenSearchConstants.METADATAFIELD_TYPE_MAP::containsKey))
+            .toList();
+    List<String> aliases = GraphLookupUtils.createAliases(allFields);
+    Literal maxDepth = node.getMaxDepth();
+    String connectFromFieldName = node.getFrom().getField().toString();
+    String connectToFieldName = node.getTo().getField().toString();
+    RexLiteral maxDepthNode = (RexLiteral) rexVisitor.analyze(maxDepth, context);
+    int maxDepthValue = maxDepthNode.getValueAs(Integer.class);
+    maxDepthValue = maxDepthValue <= 0 ? -1 : maxDepthValue;
+    UnresolvedExpression startWith = node.getStartWith();
+    if (startWith != null) {
+      RexNode startWithNode = rexVisitor.analyze(startWith, context);
+    }
+    String outputFiledName = node.getAs().getField().toString();
+
+    // 1. build anchor query
+    RelNode self = builder.peek();
+    builder.as(ANCHOR_FROM_ALIAS);
+    builder.push(self).as(ANCHOR_TO_ALIAS);
+    builder
+        .join(
+            JoinRelType.INNER,
+            builder.equals(
+                builder.field(2, ANCHOR_FROM_ALIAS, connectFromFieldName),
+                builder.field(2, ANCHOR_TO_ALIAS, connectToFieldName)))
+        .project(GraphLookupUtils.createAnchorProjections(builder, allFields), aliases)
+        .as("anchor");
+
+    // 2. recursive query
+    builder.transientScan(RECURSIVE_TABLE_NAME).as(RECURSIVE_FROM_ALIAS);
+    builder.push(self).as(RECURSIVE_TO_ALIAS);
+    String hierConnectFromField = HIER_FIELD_SUFFIX + connectFromFieldName;
+    builder
+        .join(
+            JoinRelType.INNER,
+            builder.equals(
+                builder.field(2, RECURSIVE_FROM_ALIAS, hierConnectFromField),
+                builder.field(2, RECURSIVE_TO_ALIAS, connectToFieldName)))
+        .project(GraphLookupUtils.createRecursiveProjections(builder, allFields), aliases);
+
+    // 3. combine RepeatUnion
+    builder.repeatUnion(RECURSIVE_TABLE_NAME, true, maxDepthValue);
+
+    // 4. collect aggregation
+    List<RexNode> groupByFields = new ArrayList<>();
+    for (String field : allFields) {
+      groupByFields.add(builder.field(SRC_FIELD_SUFFIX + field));
+    }
+    List<RexNode> collectFields = new ArrayList<>();
+    for (String field : allFields) {
+      collectFields.add(builder.field(HIER_FIELD_SUFFIX + field));
+    }
+    collectFields.add(builder.field(DEPTH_FIELD));
+
+    RexNode rowExpr = builder.call(SqlStdOperatorTable.ROW, collectFields);
+    builder.aggregate(
+        builder.groupKey(groupByFields),
+        builder.aggregateCall(SqlStdOperatorTable.COLLECT, rowExpr).as(outputFiledName));
+
+    return builder.peek();
   }
 
   /**

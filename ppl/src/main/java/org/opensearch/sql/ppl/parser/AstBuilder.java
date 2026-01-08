@@ -84,6 +84,7 @@ import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -1450,5 +1451,32 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             });
     java.util.Map<String, Literal> options = cmdOptionsBuilder.build();
     return new AddColTotals(fieldList, options);
+  }
+
+  @Override
+  public UnresolvedPlan visitGraphLookupCommand(OpenSearchPPLParser.GraphLookupCommandContext ctx) {
+    Field from = null;
+    Field to = null;
+    Literal maxDepth = Literal.ZERO;
+    UnresolvedExpression startWith = null;
+    for (OpenSearchPPLParser.GraphLookupOptionContext option : ctx.graphLookupOption()) {
+      if (option.CONNECT_FROM() != null) {
+        from = (Field) internalVisitExpression(option.fieldExpression());
+      }
+      if (option.CONNECT_TO() != null) {
+        to = (Field) internalVisitExpression(option.fieldExpression());
+      }
+      if (option.MAX_DEPTH() != null) {
+        maxDepth = (Literal) internalVisitExpression(option.integerLiteral());
+      }
+      if (option.START_WITH() != null) {
+        startWith = internalVisitExpression(option.valueExpression());
+      }
+    }
+    Field as = (Field) internalVisitExpression(ctx.outputField);
+    if (from == null || to == null) {
+      throw new SemanticCheckException("connectFrom and connectTo must be specified");
+    }
+    return new GraphLookup(from, to, as, maxDepth, startWith);
   }
 }

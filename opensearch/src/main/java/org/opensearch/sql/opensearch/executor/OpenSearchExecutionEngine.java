@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import org.apache.calcite.avatica.util.StructImpl;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
@@ -234,6 +235,9 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
         convertedMap.put(entry.getKey(), processValue(entry.getValue()));
       }
       return convertedMap;
+    }
+    if (value instanceof StructImpl) {
+      return ((StructImpl) value).toString();
     }
     if (value instanceof List) {
       List<Object> list = (List<Object>) value;

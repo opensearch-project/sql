@@ -77,6 +77,7 @@ import org.opensearch.sql.ast.expression.PatternMode;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Chart;
+import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -1642,5 +1643,41 @@ public class AstBuilderTest {
                 SyntaxCheckException.class,
                 () -> plan("source=t | eval result = mvmap(123, 123 * 10)"))
             .getMessage());
+  }
+
+  @Test
+  public void testGraphLookupCommand() {
+    assertEqual(
+        "source=t | graphLookup connectFrom=name connectTo=reportTo maxDepth=3 as"
+            + " reportingHierarchy",
+        GraphLookup.builder()
+            .child(relation("t"))
+            .from(field("name"))
+            .to(field("reportTo"))
+            .as(field("reportingHierarchy"))
+            .maxDepth(intLiteral(3))
+            .startWith(null)
+            .build());
+    assertEqual(
+        "source=t | graphLookup connectFrom=name connectTo=reportTo startWith='hello' as"
+            + " reportingHierarchy",
+        GraphLookup.builder()
+            .child(relation("t"))
+            .from(field("name"))
+            .to(field("reportTo"))
+            .as(field("reportingHierarchy"))
+            .maxDepth(intLiteral(0))
+            .startWith(stringLiteral("hello"))
+            .build());
+
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> plan("| graphLookup connectTo=reportTo startWith='hello' as reportingHierarchy"));
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> plan("| graphLookup connectFrom=name connectTo=reportTo startWith='hello'"));
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> plan("| graphLookup connectFrom=name as reportingHierarchy"));
   }
 }

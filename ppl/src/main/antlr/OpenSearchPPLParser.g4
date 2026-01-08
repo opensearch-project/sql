@@ -88,6 +88,7 @@ commands
    | rexCommand
    | appendPipeCommand
    | replaceCommand
+   | graphLookupCommand
    ;
 
 commandName
@@ -131,6 +132,7 @@ commandName
    | REX
    | APPENDPIPE
    | REPLACE
+   | GRAPHLOOKUP
    ;
 
 searchCommand
@@ -605,6 +607,17 @@ addcoltotalsCommand
 addcoltotalsOption
    : (LABEL EQUAL stringLiteral)
    | (LABELFIELD EQUAL stringLiteral)
+   ;
+
+graphLookupCommand
+   : GRAPHLOOKUP graphLookupOption* AS outputField = fieldExpression
+   ;
+
+graphLookupOption
+   : (CONNECT_FROM EQUAL fieldExpression)
+   | (CONNECT_TO EQUAL fieldExpression)
+   | (MAX_DEPTH EQUAL integerLiteral)
+   | (START_WITH EQUAL valueExpression)
    ;
 
 // clauses
@@ -1657,5 +1670,8 @@ searchableKeyWord
    | FIELDNAME
    | ROW
    | COL
+   | CONNECT_FROM
+   | CONNECT_TO
+   | MAX_DEPTH
    ;
 
