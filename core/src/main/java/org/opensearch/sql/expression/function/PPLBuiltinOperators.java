@@ -392,10 +392,10 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator FORALL = new ForallFunctionImpl().toUDF("forall");
   public static final SqlOperator EXISTS = new ExistsFunctionImpl().toUDF("exists");
   public static final SqlOperator ARRAY = new ArrayFunctionImpl().toUDF("array");
-  public static final SqlOperator MAP_APPEND = new MapAppendFunctionImpl().toUDF("MAP_APPEND");
-  public static final SqlOperator MAP_REMOVE = new MapRemoveFunctionImpl().toUDF("MAP_REMOVE");
-  public static final SqlOperator MVAPPEND = new MVAppendFunctionImpl().toUDF("MVAPPEND");
-  public static final SqlOperator INTERNAL_APPEND = new AppendFunctionImpl().toUDF("APPEND");
+  public static final SqlOperator MAP_APPEND = new MapAppendFunctionImpl().toUDF("map_append");
+  public static final SqlOperator MAP_REMOVE = new MapRemoveFunctionImpl().toUDF("map_remove");
+  public static final SqlOperator MVAPPEND = new MVAppendFunctionImpl().toUDF("mvappend");
+  public static final SqlOperator INTERNAL_APPEND = new AppendFunctionImpl().toUDF("append");
   public static final SqlOperator MVZIP = new MVZipFunctionImpl().toUDF("mvzip");
   public static final SqlOperator MVFIND = new MVFindFunctionImpl().toUDF("mvfind");
   public static final SqlOperator FILTER = new FilterFunctionImpl().toUDF("filter");
