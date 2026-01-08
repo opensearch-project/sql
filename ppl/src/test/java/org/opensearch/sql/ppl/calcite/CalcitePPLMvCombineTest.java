@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.junit.Assert.assertThrows;
+
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -46,10 +48,19 @@ public class CalcitePPLMvCombineTest extends CalcitePPLAbstractTest {
 
     ImmutableList<Object[]> rows =
         ImmutableList.of(
+            // existing "basic"
             new Object[] {"basic", "A", 10},
             new Object[] {"basic", "A", 20},
             new Object[] {"basic", "B", 60},
-            new Object[] {"basic", "A", 30});
+            new Object[] {"basic", "A", 30},
+
+            // new: NULL target values case
+            new Object[] {"nulls", "A", null},
+            new Object[] {"nulls", "A", 10},
+            new Object[] {"nulls", "B", null},
+
+            // new: single-row case
+            new Object[] {"single", "Z", 5});
 
     schema.add("MVCOMBINE_DATA", new MvCombineDataTable(rows));
 
@@ -100,6 +111,84 @@ public class CalcitePPLMvCombineTest extends CalcitePPLAbstractTest {
             + " ARRAY NOT NULL):VARCHAR NOT NULL ARRAY NOT NULL, '|')])\n"
             + "    LogicalAggregate(group=[{0, 1}], packets=[COLLECT($2)])\n"
             + "      LogicalFilter(condition=[=($0, 'basic')])\n"
+            + "        LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testMvCombineWithNullTargetValues() {
+    String ppl =
+        "source=MVCOMBINE_DATA "
+            + "| where case = \"nulls\" "
+            + "| fields case, ip, packets "
+            + "| mvcombine packets "
+            + "| sort ip";
+
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalSort(sort0=[$1], dir0=[ASC-nulls-first])\n"
+            + "  LogicalProject(case=[$0], ip=[$1], packets=[CAST($2):INTEGER ARRAY NOT NULL])\n"
+            + "    LogicalAggregate(group=[{0, 1}], packets=[COLLECT($2)])\n"
+            + "      LogicalFilter(condition=[=($0, 'nulls')])\n"
+            + "        LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testMvCombineNonExistentField() {
+    String ppl =
+        "source=MVCOMBINE_DATA "
+            + "| where case = \"basic\" "
+            + "| fields case, ip, packets "
+            + "| mvcombine does_not_exist";
+
+    Exception ex = assertThrows(Exception.class, () -> getRelNode(ppl));
+
+    // Keep this loose: different layers may wrap exceptions.
+    // We just need to prove the command fails for missing target field.
+    String msg = String.valueOf(ex.getMessage());
+    org.junit.Assert.assertTrue(
+        "Expected error message to mention missing field. Actual: " + msg,
+        msg.toLowerCase().contains("does_not_exist") || msg.toLowerCase().contains("field"));
+  }
+
+  @Test
+  public void testMvCombineSingleRow() {
+    String ppl =
+        "source=MVCOMBINE_DATA "
+            + "| where case = \"single\" "
+            + "| fields case, ip, packets "
+            + "| mvcombine packets "
+            + "| sort ip";
+
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalSort(sort0=[$1], dir0=[ASC-nulls-first])\n"
+            + "  LogicalProject(case=[$0], ip=[$1], packets=[CAST($2):INTEGER ARRAY NOT NULL])\n"
+            + "    LogicalAggregate(group=[{0, 1}], packets=[COLLECT($2)])\n"
+            + "      LogicalFilter(condition=[=($0, 'single')])\n"
+            + "        LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testMvCombineEmptyResult() {
+    String ppl =
+        "source=MVCOMBINE_DATA "
+            + "| where case = \"no_such_case\" "
+            + "| fields case, ip, packets "
+            + "| mvcombine packets "
+            + "| sort ip";
+
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalSort(sort0=[$1], dir0=[ASC-nulls-first])\n"
+            + "  LogicalProject(case=[$0], ip=[$1], packets=[CAST($2):INTEGER ARRAY NOT NULL])\n"
+            + "    LogicalAggregate(group=[{0, 1}], packets=[COLLECT($2)])\n"
+            + "      LogicalFilter(condition=[=($0, 'no_such_case')])\n"
             + "        LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
     verifyLogical(root, expectedLogical);
   }

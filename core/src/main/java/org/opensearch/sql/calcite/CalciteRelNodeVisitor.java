@@ -3124,7 +3124,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // 2) Accept delim (default is single space).
     // NOTE: delim only affects single-value rendering when nomv=true.
-    final String delim = (node.getDelim() != null) ? node.getDelim() : " ";
+    final String delim = node.getDelim();
 
     // 3) Resolve target field to an input ref (must be a direct field reference)
     final Field targetField = node.getField();

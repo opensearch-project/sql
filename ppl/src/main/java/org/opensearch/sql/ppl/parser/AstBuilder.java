@@ -870,7 +870,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   /** mvcombine command. */
-  /** mvcombine command. */
   @Override
   public UnresolvedPlan visitMvcombineCommand(OpenSearchPPLParser.MvcombineCommandContext ctx) {
     Field field = (Field) internalVisitExpression(ctx.fieldExpression());

@@ -13,10 +13,12 @@ Key aspects of `mvcombine`:
 
 ## Syntax
 
-mvcombine <field> [nomv] [delim=<string>]
+mvcombine <field> [nomv=<boolean>] [delim=<string>]
+
 * field: mandatory. The field whose values are combined into a multivalue field.
 * nomv: optional. If specified, returns the combined values as a single string (not a multivalue array).
-* delim: optional. Delimiter used to join values when `nomv` is specified. Defaults to comma (`,`) when not provided.
+* delim: optional. Delimiter used to join values when `nomv` is specified. Defaults to space (` `) when not provided.
+* “When nomv is not enabled, the result is a multivalue field; in tabular output it may be displayed in bracket notation with comma-separated elements (e.g., [10,20,30]).”
 
 ## Example 1: Basic mvcombine
 
@@ -133,7 +135,7 @@ fetched rows / total rows = 1/1
 +----------+-------+------+-------------+
 ```
 
-Example 6: Error when field does not exist
+Example 5: Error when field does not exist
 
 If the specified field does not exist in the current schema, mvcombine returns an error.
 ```ppl
