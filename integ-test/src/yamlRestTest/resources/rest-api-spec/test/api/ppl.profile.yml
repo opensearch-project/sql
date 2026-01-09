@@ -1,0 +1,102 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  - do:
+      indices.create:
+        index: ppl_profile
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              message:
+                type: keyword
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "ppl_profile", "_id": 1}}'
+          - '{"message": "hello"}'
+          - '{"index": {"_index": "ppl_profile", "_id": 2}}'
+          - '{"message": "world"}'
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: ppl_profile
+        ignore_unavailable: true
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+
+---
+"Profile metrics returned for ppl query":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=ppl_profile | fields message'
+          profile: true
+  - gt: {profile.summary.total_time_ms: 0.0}
+  - gt: {profile.phases.analyze.time_ms: 0.0}
+  - gt: {profile.phases.optimize.time_ms: 0.0}
+  - gt: {profile.phases.execute.time_ms: 0.0}
+  - gt: {profile.phases.format.time_ms: 0.0}
+
+---
+"Profile ignored for explain api":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl.explain:
+        body:
+          query: 'source=ppl_profile | fields message'
+          profile: true
+  - match: {profile: null}
+
+---
+"Profile ignored for explain query":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'explain source=ppl_profile | fields message'
+          profile: true
+  - match: {profile: null}
+
+---
+"Profile ignored for viz format":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=ppl_profile | stats count()'
+          profile: true
+        format: 'viz'
+  - match: {profile: null}

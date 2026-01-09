@@ -35,16 +35,27 @@ public class PPLQueryRequest {
   @Accessors(fluent = true)
   private JsonResponseFormatter.Style style = JsonResponseFormatter.Style.COMPACT;
 
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
+  private boolean profile = false;
+
   public PPLQueryRequest(String pplQuery, JSONObject jsonContent, String path) {
     this(pplQuery, jsonContent, path, "");
   }
 
-  /** Constructor of PPLQueryRequest. */
   public PPLQueryRequest(String pplQuery, JSONObject jsonContent, String path, String format) {
+    this(pplQuery, jsonContent, path, format, false);
+  }
+
+  /** Constructor of PPLQueryRequest. */
+  public PPLQueryRequest(
+      String pplQuery, JSONObject jsonContent, String path, String format, boolean profile) {
     this.pplQuery = pplQuery;
     this.jsonContent = jsonContent;
     this.path = Optional.ofNullable(path).orElse(DEFAULT_PPL_PATH);
     this.format = format;
+    this.profile = profile;
   }
 
   public String getRequest() {
