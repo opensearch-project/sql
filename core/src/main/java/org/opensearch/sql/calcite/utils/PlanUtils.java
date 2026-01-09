@@ -462,10 +462,9 @@ public interface PlanUtils {
     return rexNode;
   }
 
-  /** Check if contains dedup */
+  /** Check if contains dedup, it should be put in the last position */
   static boolean containsRowNumberDedup(RelNode node) {
-    return node.getRowType().getFieldNames().stream()
-        .anyMatch(name -> name.equals(ROW_NUMBER_COLUMN_FOR_DEDUP));
+    return node.getRowType().getFieldNames().getLast().equals(ROW_NUMBER_COLUMN_FOR_DEDUP);
   }
 
   /** Check if contains dedup for top/rare */

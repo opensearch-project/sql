@@ -319,6 +319,7 @@ public class QueryService {
    * are some differences in the topological structures or semantics between them.
    *
    * @param osPlan Logical Plan derived from OpenSearch PPL
+   * @param context Calcite context
    */
   private static RelNode convertToCalcitePlan(RelNode osPlan, CalcitePlanContext context) {
     // Explicitly add a limit operator to enforce query size limit
