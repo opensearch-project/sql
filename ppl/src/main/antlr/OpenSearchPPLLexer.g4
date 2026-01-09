@@ -70,6 +70,8 @@ LABEL:                              'LABEL';
 SHOW_NUMBERED_TOKEN:                'SHOW_NUMBERED_TOKEN';
 AGGREGATION:                        'AGGREGATION';
 APPENDPIPE:                         'APPENDPIPE';
+MVCOMBINE:                          'MVCOMBINE';
+
 
 //Native JOIN KEYWORDS
 JOIN:                               'JOIN';

@@ -88,6 +88,7 @@ commands
    | rexCommand
    | appendPipeCommand
    | replaceCommand
+   | mvcombineCommand
    ;
 
 commandName
@@ -530,6 +531,11 @@ trendlineType
 expandCommand
     : EXPAND fieldExpression (AS alias = qualifiedName)?
     ;
+
+mvcombineCommand
+  : MVCOMBINE (DELIM EQUAL stringLiteral)? fieldExpression
+  ;
+
 
 flattenCommand
    : FLATTEN fieldExpression (AS aliases = identifierSeq)?
