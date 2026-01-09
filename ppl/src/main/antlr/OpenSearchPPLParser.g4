@@ -533,9 +533,7 @@ expandCommand
     ;
 
 mvcombineCommand
-  : MVCOMBINE fieldExpression
-    (DELIM EQUAL stringLiteral)?
-    (NOMV EQUAL booleanLiteral)?
+  : MVCOMBINE (DELIM EQUAL stringLiteral)? fieldExpression
   ;
 
 
@@ -1582,7 +1580,6 @@ searchableKeyWord
    | PARTITIONS
    | ALLNUM
    | DELIM
-   | NOMV
    | CURRENT
    | WINDOW
    | GLOBAL

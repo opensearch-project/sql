@@ -22,12 +22,10 @@ public class MvCombine extends UnresolvedPlan {
   private final Field field;
   private final String delim;
   @Nullable private UnresolvedPlan child;
-  private final boolean nomv;
 
-  public MvCombine(Field field, @Nullable String delim, boolean nomv) {
+  public MvCombine(Field field, @Nullable String delim) {
     this.field = field;
     this.delim = (delim == null) ? " " : delim;
-    this.nomv = nomv;
   }
 
   public MvCombine attach(UnresolvedPlan child) {

@@ -2,27 +2,51 @@
 
 ## Description
 
-The `mvcombine` command groups events that are identical across all fields except the target field, and combines the target field values into a multivalue (array) field. All other fields in the original events are preserved in the output.
+The `mvcombine` command groups rows that are identical across all fields except a specified target field, and combines the values of that target field into a multivalue (array) field. All other fields in the input rows are preserved as group keys in the output.
 
-Key aspects of `mvcombine`:
-* It generates one row per group, where the group keys are all fields currently in the pipeline except the target field.
-* The target field becomes a multivalue field containing the combined values from the grouped rows.
-* When `nomv` is specified, the target field is returned as a single scalar string instead of a multivalue array.
-* The `delim` parameter controls the delimiter only when `nomv` is enabled.
-* Rows missing the target field contribute no value to the combined output for that group.
+`mvcombine` is a transforming command: it consumes a set of input results and produces a new result set with reduced cardinality.
+
+### Key behaviors
+
+- Rows are grouped by **all fields currently in the pipeline except the target field**.
+- One output row is produced per group.
+- The target field becomes a **multivalue field** containing the combined values from all rows in the group.
+- Rows where the target field is missing or null do **not** contribute a value to the combined multivalue output.
+- The default output is a multivalue representation (array).
+
+Delimiter handling (`delim`) is parsed but has **no effect on the output** unless the `nomv` command is used. Since `nomv` is not yet implemented in OpenSearch, `delim` is currently inert and does not affect execution.
+
+---
 
 ## Syntax
 
-mvcombine <field> [nomv=<boolean>] [delim=<string>]
+mvcombine [delim=<string>] <field>
 
-* field: mandatory. The field whose values are combined into a multivalue field.
-* nomv: optional. If specified, returns the combined values as a single string (not a multivalue array).
-* delim: optional. Delimiter used to join values when `nomv` is specified. Defaults to space (` `) when not provided.
-* “When nomv is not enabled, the result is a multivalue field; in tabular output it may be displayed in bracket notation with comma-separated elements (e.g., [10,20,30]).”
+### Arguments
+
+- **field** (required)  
+  The name of the field whose values are combined into a multivalue field.
+
+- **delim** (optional)  
+  A string delimiter for rendering a single-value representation of the combined field.  
+  This option has no observable effect unless `nomv` is used.
+
+---
+
+## Semantics
+
+Given a set of input rows:
+
+- All rows that have identical values for every field **except** the target field are grouped together.
+- The target field must be a single-valued (scalar) field.
+- The output schema preserves the original field order.
+- The target field is returned as a multivalue (array) field.
+
+---
 
 ## Example 1: Basic mvcombine
 
-Given a dataset `mvcombine` with the following data:
+Given the following input rows:
 
 ```text
 {"ip":"10.0.0.1","bytes":100,"tags":"t1","packets_str":"10"}
@@ -78,35 +102,7 @@ fetched rows / total rows = 2/2
 +----------+-------+------+-------------+
 ```
 
-Example 3: mvcombine with nomv
-
-Given a dataset mvcombine with the following data:
-```text
-{"ip":"10.0.0.1","bytes":100,"tags":"t1","packets_str":"10"}
-{"ip":"10.0.0.1","bytes":100,"tags":"t1","packets_str":"20"}
-{"ip":"10.0.0.1","bytes":100,"tags":"t1","packets_str":"30"}
-```
-
-The following query returns packets_str as a single string instead of a multivalue array:
-```ppl
-source=mvcombine_data
-| where ip='10.0.0.1' and bytes=100 and tags='t1'
-| fields ip, bytes, tags, packets_str
-| sort packets_str
-| mvcombine packets_str nomv=true
-```
-
-Expected output:
-```text
-fetched rows / total rows = 1/1
-+----------+-------+------+-------------+
-| ip       | bytes | tags | packets_str |
-|----------+-------+------+-------------|
-| 10.0.0.1 | 100   | t1   | 10 20 30    |
-+----------+-------+------+-------------+
-```
-
-Example 4: Missing target field in some rows
+Example 3: Missing target field in some rows
 
 Rows missing the target field do not contribute a value to the combined output.
 
@@ -147,5 +143,4 @@ Expected output:
 ```text
 {'reason': 'Invalid Query', 'details': 'Field [does_not_exist] not found.', 'type': 'IllegalArgumentException'}
 Error: Query returned no data
-
 ```

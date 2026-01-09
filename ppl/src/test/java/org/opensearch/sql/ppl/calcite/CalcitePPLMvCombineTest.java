@@ -54,12 +54,12 @@ public class CalcitePPLMvCombineTest extends CalcitePPLAbstractTest {
             new Object[] {"basic", "B", 60},
             new Object[] {"basic", "A", 30},
 
-            // new: NULL target values case
+            // NULL target values case (Splunk-style: nulls do NOT contribute to mv)
             new Object[] {"nulls", "A", null},
             new Object[] {"nulls", "A", 10},
             new Object[] {"nulls", "B", null},
 
-            // new: single-row case
+            // single-row case
             new Object[] {"single", "Z", 5});
 
     schema.add("MVCOMBINE_DATA", new MvCombineDataTable(rows));
@@ -82,36 +82,16 @@ public class CalcitePPLMvCombineTest extends CalcitePPLAbstractTest {
 
     RelNode root = getRelNode(ppl);
 
-    // NOTE: Your implementation casts COLLECT result (MULTISET) to ARRAY.
+    // Calcite often lowers FILTER(condition) into:
+    //   - a LogicalProject producing $f3 = <condition>
+    //   - aggregate "FILTER $3"
     String expectedLogical =
         "LogicalSort(sort0=[$1], dir0=[ASC-nulls-first])\n"
             + "  LogicalProject(case=[$0], ip=[$1], packets=[CAST($2):INTEGER ARRAY NOT NULL])\n"
-            + "    LogicalAggregate(group=[{0, 1}], packets=[COLLECT($2)])\n"
-            + "      LogicalFilter(condition=[=($0, 'basic')])\n"
-            + "        LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
-    verifyLogical(root, expectedLogical);
-  }
-
-  @Test
-  public void testMvCombineNomvWithCustomDelim() {
-    String ppl =
-        "source=MVCOMBINE_DATA "
-            + "| where case = \"basic\" "
-            + "| fields case, ip, packets "
-            + "| mvcombine packets delim=\"|\" nomv=true "
-            + "| sort ip";
-
-    RelNode root = getRelNode(ppl);
-
-    // NOTE: Your implementation does:
-    //   COLLECT -> CAST to INTEGER ARRAY -> CAST to VARCHAR ARRAY -> ARRAY_TO_STRING(..., '|')
-    String expectedLogical =
-        "LogicalSort(sort0=[$1], dir0=[ASC-nulls-first])\n"
-            + "  LogicalProject(case=[$0], ip=[$1], packets=[ARRAY_TO_STRING(CAST(CAST($2):INTEGER"
-            + " ARRAY NOT NULL):VARCHAR NOT NULL ARRAY NOT NULL, '|')])\n"
-            + "    LogicalAggregate(group=[{0, 1}], packets=[COLLECT($2)])\n"
-            + "      LogicalFilter(condition=[=($0, 'basic')])\n"
-            + "        LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
+            + "    LogicalAggregate(group=[{0, 1}], packets=[COLLECT($2) FILTER $3])\n"
+            + "      LogicalProject(case=[$0], ip=[$1], packets=[$2], $f3=[IS NOT NULL($2)])\n"
+            + "        LogicalFilter(condition=[=($0, 'basic')])\n"
+            + "          LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
     verifyLogical(root, expectedLogical);
   }
 
@@ -129,9 +109,34 @@ public class CalcitePPLMvCombineTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalSort(sort0=[$1], dir0=[ASC-nulls-first])\n"
             + "  LogicalProject(case=[$0], ip=[$1], packets=[CAST($2):INTEGER ARRAY NOT NULL])\n"
-            + "    LogicalAggregate(group=[{0, 1}], packets=[COLLECT($2)])\n"
-            + "      LogicalFilter(condition=[=($0, 'nulls')])\n"
-            + "        LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
+            + "    LogicalAggregate(group=[{0, 1}], packets=[COLLECT($2) FILTER $3])\n"
+            + "      LogicalProject(case=[$0], ip=[$1], packets=[$2], $f3=[IS NOT NULL($2)])\n"
+            + "        LogicalFilter(condition=[=($0, 'nulls')])\n"
+            + "          LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  @Test
+  public void testMvCombineWithDelimOption_SplunkSyntaxOrder() {
+    // Splunk syntax/order: mvcombine [delim="..."] <field>
+    // NOTE: delim does NOT change the output shape (still ARRAY); it’s just an option carried on
+    // the AST.
+    String ppl =
+        "source=MVCOMBINE_DATA "
+            + "| where case = \"basic\" "
+            + "| fields case, ip, packets "
+            + "| mvcombine delim=\"|\" packets "
+            + "| sort ip";
+
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalSort(sort0=[$1], dir0=[ASC-nulls-first])\n"
+            + "  LogicalProject(case=[$0], ip=[$1], packets=[CAST($2):INTEGER ARRAY NOT NULL])\n"
+            + "    LogicalAggregate(group=[{0, 1}], packets=[COLLECT($2) FILTER $3])\n"
+            + "      LogicalProject(case=[$0], ip=[$1], packets=[$2], $f3=[IS NOT NULL($2)])\n"
+            + "        LogicalFilter(condition=[=($0, 'basic')])\n"
+            + "          LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
     verifyLogical(root, expectedLogical);
   }
 
@@ -167,9 +172,10 @@ public class CalcitePPLMvCombineTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalSort(sort0=[$1], dir0=[ASC-nulls-first])\n"
             + "  LogicalProject(case=[$0], ip=[$1], packets=[CAST($2):INTEGER ARRAY NOT NULL])\n"
-            + "    LogicalAggregate(group=[{0, 1}], packets=[COLLECT($2)])\n"
-            + "      LogicalFilter(condition=[=($0, 'single')])\n"
-            + "        LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
+            + "    LogicalAggregate(group=[{0, 1}], packets=[COLLECT($2) FILTER $3])\n"
+            + "      LogicalProject(case=[$0], ip=[$1], packets=[$2], $f3=[IS NOT NULL($2)])\n"
+            + "        LogicalFilter(condition=[=($0, 'single')])\n"
+            + "          LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
     verifyLogical(root, expectedLogical);
   }
 
@@ -187,9 +193,10 @@ public class CalcitePPLMvCombineTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalSort(sort0=[$1], dir0=[ASC-nulls-first])\n"
             + "  LogicalProject(case=[$0], ip=[$1], packets=[CAST($2):INTEGER ARRAY NOT NULL])\n"
-            + "    LogicalAggregate(group=[{0, 1}], packets=[COLLECT($2)])\n"
-            + "      LogicalFilter(condition=[=($0, 'no_such_case')])\n"
-            + "        LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
+            + "    LogicalAggregate(group=[{0, 1}], packets=[COLLECT($2) FILTER $3])\n"
+            + "      LogicalProject(case=[$0], ip=[$1], packets=[$2], $f3=[IS NOT NULL($2)])\n"
+            + "        LogicalFilter(condition=[=($0, 'no_such_case')])\n"
+            + "          LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
     verifyLogical(root, expectedLogical);
   }
 

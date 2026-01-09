@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.regex.Pattern;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Assertions;
@@ -153,79 +152,11 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
   }
 
   // ---------------------------
-  // delim/nomv: happy paths + edge case
+  // delim: Splunk-compatible command input + output shape
   // ---------------------------
 
   @Test
-  public void testMvCombine_nomv_defaultDelim_ifSupported_elseSyntaxRejected() throws Exception {
-    String base =
-        "source="
-            + INDEX
-            + " | where ip='10.0.0.9' and bytes=900 and tags='t9'"
-            + " | fields ip, bytes, tags, packets_str";
-
-    String q = base + " | mvcombine packets_str nomv";
-
-    try {
-      JSONObject result = executeQuery(q);
-      verifyNumOfRows(result, 1);
-
-      Object cell = result.getJSONArray("datarows").getJSONArray(0).get(3);
-      Assertions.assertTrue(
-          cell instanceof String, "Expected nomv output scalar string, got: " + cell);
-
-      String s = (String) cell;
-      Assertions.assertTrue(
-          Pattern.compile("1.*2.*3").matcher(s).find(),
-          "Expected nomv string to contain values 1,2,3 in order, got: " + s);
-    } catch (ResponseException e) {
-      Assertions.assertTrue(
-          isSyntaxBadRequest(e),
-          "Expected syntax rejection if nomv unsupported, got: " + e.getMessage());
-    }
-  }
-
-  @Test
-  public void testMvCombine_nomvWithCustomDelim_ifSupported_elseSyntaxRejected() throws Exception {
-    String base =
-        "source="
-            + INDEX
-            + " | where ip='10.0.0.9' and bytes=900 and tags='t9'"
-            + " | fields ip, bytes, tags, packets_str";
-
-    String q1 = base + " | mvcombine packets_str nomv delim='|'";
-    String q2 = base + " | mvcombine packets_str delim='|' nomv";
-
-    JSONObject result;
-    try {
-      result = executeQuery(q1);
-    } catch (ResponseException e1) {
-      if (!isSyntaxBadRequest(e1)) throw e1;
-
-      try {
-        result = executeQuery(q2);
-      } catch (ResponseException e2) {
-        Assertions.assertTrue(
-            isSyntaxBadRequest(e2),
-            "Expected syntax rejection for unsupported nomv/delim, got: " + e2.getMessage());
-        return; // unsupported -> acceptable
-      }
-    }
-
-    verifyNumOfRows(result, 1);
-    Object cell = result.getJSONArray("datarows").getJSONArray(0).get(3);
-    Assertions.assertTrue(
-        cell instanceof String, "Expected nomv output scalar string, got: " + cell);
-
-    String s = (String) cell;
-    Assertions.assertTrue(s.contains("|"), "Expected delimiter '|' in: " + s);
-    Assertions.assertTrue(
-        Pattern.compile("1\\|.*2\\|.*3|1.*\\|.*2.*\\|.*3|1.*2.*3").matcher(s).find(),
-        "Expected values to be present in the joined output, got: " + s);
-  }
-
-  @Test
-  public void testMvCombine_delimWithoutNomv_shouldNotChangeMvShape_ifSupported_elseSyntaxRejected()
+  public void testMvCombine_delim_shouldNotChangeMvShape_ifSupported_elseSyntaxRejected()
       throws Exception {
     String base =
         "source="
@@ -233,7 +164,8 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
             + " | where ip='10.0.0.9' and bytes=900 and tags='t9'"
             + " | fields ip, bytes, tags, packets_str";
 
-    String q = base + " | mvcombine packets_str delim='|'";
+    // Splunk-style: options before the field
+    String q = base + " | mvcombine delim='|' packets_str";
 
     try {
       JSONObject result = executeQuery(q);
@@ -242,12 +174,17 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
       Object cell = result.getJSONArray("datarows").getJSONArray(0).get(3);
       Assertions.assertTrue(
           cell instanceof JSONArray,
-          "Expected multivalue array (delim without nomv should not coerce to string), got: "
-              + cell);
+          "Expected multivalue array (delim should not coerce to string), got: " + cell);
+
+      // Optional sanity: values exist (order not guaranteed)
+      List<String> mv = toStringListDropNulls(cell);
+      Assertions.assertTrue(mv.contains("1"), "Expected MV to include 1, got: " + mv);
+      Assertions.assertTrue(mv.contains("2"), "Expected MV to include 2, got: " + mv);
+      Assertions.assertTrue(mv.contains("3"), "Expected MV to include 3, got: " + mv);
     } catch (ResponseException e) {
       Assertions.assertTrue(
           isSyntaxBadRequest(e),
-          "Expected syntax rejection if delim-only unsupported, got: " + e.getMessage());
+          "Expected syntax rejection if delim unsupported, got: " + e.getMessage());
     }
   }
 

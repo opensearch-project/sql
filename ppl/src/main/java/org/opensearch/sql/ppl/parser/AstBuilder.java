@@ -878,14 +878,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     if (ctx.DELIM() != null) {
       delim = StringUtils.unquoteText(getTextInQuery(ctx.stringLiteral()));
     }
-
-    boolean nomv = false;
-    if (ctx.NOMV() != null) {
-      // booleanLiteral rule is TRUE | FALSE
-      nomv = ctx.booleanLiteral().TRUE() != null;
-    }
-
-    return new MvCombine(field, delim, nomv);
+    return new MvCombine(field, delim);
   }
 
   @Override

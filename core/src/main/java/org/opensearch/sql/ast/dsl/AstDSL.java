@@ -470,15 +470,11 @@ public class AstDSL {
   }
 
   public static MvCombine mvcombine(Field field) {
-    return new MvCombine(field, null, false);
+    return new MvCombine(field, null);
   }
 
   public static MvCombine mvcombine(Field field, String delim) {
-    return new MvCombine(field, delim, false);
-  }
-
-  public static MvCombine mvcombine(Field field, String delim, boolean nomv) {
-    return new MvCombine(field, delim, nomv);
+    return new MvCombine(field, delim);
   }
 
   public static List<Argument> sortOptions() {
