@@ -208,7 +208,7 @@ PPL supports a wide range of built-in functions for data processing and analysis
 - [Relevance Functions](relevance.md)
   - [MATCH](relevance.md/#match)
   - [MATCH_PHRASE](relevance.md/#match_phrase)
-  - [MATCH_PHRASE_PREFIX](relevance/#match_phrase_prefix)
+  - [MATCH_PHRASE_PREFIX](relevance.md/#match_phrase_prefix)
   - [MULTI_MATCH](relevance.md/#multi_match)
   - [SIMPLE_QUERY_STRING](relevance.md/#simple_query_string)
   - [MATCH_BOOL_PREFIX](relevance.md/#match_bool_prefix)
