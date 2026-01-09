@@ -14,8 +14,8 @@ import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
-import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_DEDUP;
-import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_JOIN_MAX_DEDUP;
+import static org.opensearch.sql.calcite.plan.rule.PPLDedupConvertRule.buildDedupNotNull;
+import static org.opensearch.sql.calcite.plan.rule.PPLDedupConvertRule.buildDedupOrNull;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_MAIN;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_RARE_TOP;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_STREAMSTATS;
@@ -148,9 +148,9 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
-import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
-import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
+import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
+import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.utils.BinUtils;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.PPLHintUtils;
@@ -1332,7 +1332,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 : duplicatedFieldNames.stream()
                     .map(a -> (RexNode) context.relBuilder.field(a))
                     .toList();
-        buildDedupNotNull(context, dedupeFields, allowedDuplication, true);
+        buildDedupNotNull(context.relBuilder, dedupeFields, allowedDuplication);
       }
       // add LogicalSystemLimit after dedup
       addSysLimitForJoinSubsearch(context);
@@ -1390,7 +1390,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         List<RexNode> dedupeFields =
             getRightColumnsInJoinCriteria(context.relBuilder, joinCondition);
 
-        buildDedupNotNull(context, dedupeFields, allowedDuplication, true);
+        buildDedupNotNull(context.relBuilder, dedupeFields, allowedDuplication);
       }
       // add LogicalSystemLimit after dedup
       addSysLimitForJoinSubsearch(context);
@@ -1567,79 +1567,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<RexNode> dedupeFields =
         node.getFields().stream().map(f -> rexVisitor.analyze(f, context)).toList();
     if (keepEmpty) {
-      buildDedupOrNull(context, dedupeFields, allowedDuplication);
+      buildDedupOrNull(context.relBuilder, dedupeFields, allowedDuplication);
     } else {
-      buildDedupNotNull(context, dedupeFields, allowedDuplication, false);
+      buildDedupNotNull(context.relBuilder, dedupeFields, allowedDuplication);
     }
     return context.relBuilder.peek();
-  }
-
-  private static void buildDedupOrNull(
-      CalcitePlanContext context, List<RexNode> dedupeFields, Integer allowedDuplication) {
-    /*
-     * | dedup 2 a, b keepempty=true
-     * LogicalProject(...)
-     * +- LogicalFilter(condition=[OR(IS NULL(a), IS NULL(b), <=(_row_number_dedup_, 1))])
-     *    +- LogicalProject(..., _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY a, b ORDER BY a, b)])
-     *        +- ...
-     */
-    RexNode rowNumber =
-        context
-            .relBuilder
-            .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
-            .over()
-            .partitionBy(dedupeFields)
-            .rowsTo(RexWindowBounds.CURRENT_ROW)
-            .as(ROW_NUMBER_COLUMN_FOR_DEDUP);
-    context.relBuilder.projectPlus(rowNumber);
-    RexNode _row_number_dedup_ = context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_DEDUP);
-    // Filter (isnull('a) OR isnull('b) OR '_row_number_dedup_ <= n)
-    context.relBuilder.filter(
-        context.relBuilder.or(
-            context.relBuilder.or(dedupeFields.stream().map(context.relBuilder::isNull).toList()),
-            context.relBuilder.lessThanOrEqual(
-                _row_number_dedup_, context.relBuilder.literal(allowedDuplication))));
-    // DropColumns('_row_number_dedup_)
-    context.relBuilder.projectExcept(_row_number_dedup_);
-  }
-
-  private static void buildDedupNotNull(
-      CalcitePlanContext context,
-      List<RexNode> dedupeFields,
-      Integer allowedDuplication,
-      boolean fromJoinMaxOption) {
-    /*
-     * | dedup 2 a, b keepempty=false
-     * LogicalProject(...)
-     * +- LogicalFilter(condition=[<=(_row_number_dedup_, n)]))
-     *    +- LogicalProject(..., _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY a, b ORDER BY a, b)])
-     *        +- LogicalFilter(condition=[AND(IS NOT NULL(a), IS NOT NULL(b))])
-     *           +- ...
-     */
-    // Filter (isnotnull('a) AND isnotnull('b))
-    String rowNumberAlias =
-        fromJoinMaxOption ? ROW_NUMBER_COLUMN_FOR_JOIN_MAX_DEDUP : ROW_NUMBER_COLUMN_FOR_DEDUP;
-    context.relBuilder.filter(
-        context.relBuilder.and(dedupeFields.stream().map(context.relBuilder::isNotNull).toList()));
-    // Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST,
-    // specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_dedup_], ['a, 'b], ['a ASC
-    // NULLS FIRST, 'b ASC NULLS FIRST]
-    RexNode rowNumber =
-        context
-            .relBuilder
-            .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
-            .over()
-            .partitionBy(dedupeFields)
-            .rowsTo(RexWindowBounds.CURRENT_ROW)
-            .as(rowNumberAlias);
-    context.relBuilder.projectPlus(rowNumber);
-    RexNode rowNumberField = context.relBuilder.field(rowNumberAlias);
-    // Filter ('_row_number_dedup_ <= n)
-    context.relBuilder.filter(
-        context.relBuilder.lessThanOrEqual(
-            rowNumberField, context.relBuilder.literal(allowedDuplication)));
-    // DropColumns('_row_number_dedup_)
-    context.relBuilder.projectExcept(rowNumberField);
   }
 
   @Override

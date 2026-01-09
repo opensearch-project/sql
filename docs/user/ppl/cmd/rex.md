@@ -1,27 +1,50 @@
-# rex  
 
-## Description  
+# rex
 
-The `rex` command extracts fields from a raw text field using regular expression named capture groups.
-## Syntax  
+The `rex` command extracts fields from a raw text field using regular expression named capture groups. It uses Java regex patterns. For more information, see the [Java regular expression documentation](https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html).
 
-rex [mode=\<mode\>] field=\<field\> \<pattern\> [max_match=\<int\>] [offset_field=\<string\>]
-* field: mandatory. The field must be a string field to extract data from.  
-* pattern: mandatory string. The regular expression pattern with named capture groups used to extract new fields. Pattern must contain at least one named capture group using `(?<name>pattern)` syntax.  
-* mode: optional. Either `extract` or `sed`. **Default:** extract  
-  * **extract mode** (default): Creates new fields from regular expression named capture groups. This is the standard field extraction behavior.  
-  * **sed mode**: Performs text substitution on the field using sed-style patterns  
-    * `s/pattern/replacement/` - Replace first occurrence  
-    * `s/pattern/replacement/g` - Replace all occurrences (global)  
-    * `s/pattern/replacement/n` - Replace only the nth occurrence (where n is a number)  
-    * `y/from_chars/to_chars/` - Character-by-character transliteration  
-    * Backreferences: `\1`, `\2`, etc. reference captured groups in replacement  
-* max_match: optional integer (default=1). Maximum number of matches to extract. If greater than 1, extracted fields become arrays. The value 0 means unlimited matches, but is automatically capped to the configured limit (default: 10, configurable via `plugins.ppl.rex.max_match.limit`).  
-* offset_field: optional string. Field name to store the character offset positions of matches. Only available in extract mode.  
-  
-## Example 1: Basic Field Extraction  
+## The rex and parse commands compared
 
-This example shows extracting username and domain from email addresses using named capture groups. Both extracted fields are returned as string type.
+The `rex` and [`parse`](parse.md) commands both extract information from text fields using Java regular expressions with named capture groups. The following table compares the capabilities of the `rex` and `parse` commands. 
+
+| Feature | `rex` | `parse` |
+| --- | --- | --- |
+| Pattern type | Java regex | Java regex |
+| Named groups required | Yes | Yes |
+| Multiple named groups | Yes | No |
+| Multiple matches | Yes | No |
+| Text substitution | Yes | No |
+| Offset tracking | Yes | No |
+| Special characters in group names | No | No |
+
+## Syntax
+
+The `rex` command has the following syntax:
+
+```syntax
+rex [mode=<mode>] field=<field> <pattern> [max_match=<int>] [offset_field=<string>]
+```
+
+## Parameters
+
+The `rex` command supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `field` | Required | The field to extract data from. The field must be a string. |
+| `<pattern>` | Required | The regular expression pattern with named capture groups used to extract new fields. The pattern must contain at least one named capture group using the `(?<name>pattern)` syntax. Group names must start with a letter and contain only letters and digits. |
+| `mode` | Optional | The pattern-matching mode. Valid values are `extract` and `sed`. The `extract` mode creates new fields from regular expression named capture groups. The `sed` mode performs text substitution using sed-style patterns (supports `s/pattern/replacement/` with flags, `y/from_chars/to_chars/` transliteration, and backreferences). |
+| `max_match` | Optional | The maximum number of matches to extract. If the value is greater than `1`, the extracted fields are returned as arrays. A value of `0` indicates unlimited matches; however, the effective number of matches is automatically limited by the configured maximum. The default maximum is `10` and can be configured using `plugins.ppl.rex.max_match.limit` (see the [note](rex.md/#note)). Default is `1`. |
+| `offset_field` | Optional | Valid in `extract` mode only. The name of the field in which to store the character offset positions of the matches. |
+
+<p id="note"></p>
+
+> **Note**: You can set the `max_match` limit in the `plugins.ppl.rex.max_match.limit` cluster setting. For more information, see [SQL settings](../../admin/settings.rst). Setting this limit to a large value is not recommended because it can lead to excessive memory consumption, especially with patterns that match empty strings (for example, `\d*` or `\w*`).
+
+
+## Example 1: Basic text extraction  
+
+The following query extracts the username and domain from email addresses using named capture groups. Both extracted fields are returned as strings:
   
 ```ppl
 source=accounts
@@ -30,7 +53,7 @@ source=accounts
 | head 2
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -42,9 +65,10 @@ fetched rows / total rows = 2/2
 +-----------------------+------------+--------+
 ```
   
-## Example 2: Handling Non-matching Patterns  
 
-This example shows the rex command returning all events, setting extracted fields to null for non-matching patterns. Extracted fields would be string type when matches are found.
+## Example 2: Handle non-matching patterns  
+
+The following query shows that the rex command returns all events, setting extracted fields to null for non-matching patterns. When matches are found, the extracted fields are returned as strings:
   
 ```ppl
 source=accounts
@@ -53,7 +77,7 @@ source=accounts
 | head 2
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -65,9 +89,10 @@ fetched rows / total rows = 2/2
 +-----------------------+------+--------+
 ```
   
-## Example 3: Multiple Matches with max_match  
 
-This example shows extracting multiple words from address field using max_match parameter. The extracted field is returned as an array type containing string elements.
+## Example 3: Extract multiple words using max_match  
+
+The following query uses the `rex` command with the `max_match` parameter to extract multiple words from the `address` field. The extracted field is returned as an array of strings:
   
 ```ppl
 source=accounts
@@ -76,7 +101,7 @@ source=accounts
 | head 3
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -89,9 +114,10 @@ fetched rows / total rows = 3/3
 +--------------------+------------------+
 ```
   
-## Example 4: Text Replacement with mode=sed  
 
-This example shows replacing email domains using sed mode for text substitution. The extracted field is returned as string type.
+## Example 4: Replace text using sed mode  
+
+The following query uses the `rex` command in `sed` mode to replace email domains through text substitution. The extracted field is returned as a string:
   
 ```ppl
 source=accounts
@@ -100,7 +126,7 @@ source=accounts
 | head 2
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -112,9 +138,10 @@ fetched rows / total rows = 2/2
 +------------------------+
 ```
   
-## Example 5: Using offset_field  
 
-This example shows tracking the character positions where matches occur. Extracted fields are string type, and the offset_field is also string type.
+## Example 5: Track match positions using offset_field  
+
+The following query tracks the character positions where matches occur. The extracted fields are returned as strings, and the `offset_field` is also returned as a string:
   
 ```ppl
 source=accounts
@@ -123,7 +150,7 @@ source=accounts
 | head 2
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -135,9 +162,10 @@ fetched rows / total rows = 2/2
 +-----------------------+------------+--------+---------------------------+
 ```
   
-## Example 6: Complex Email Pattern  
 
-This example shows extracting comprehensive email components including top-level domain. All extracted fields are returned as string type.
+## Example 6: Extract a complex email pattern  
+
+The following query extracts complete email components, including the top-level domain. All extracted fields are returned as strings:
   
 ```ppl
 source=accounts
@@ -146,7 +174,7 @@ source=accounts
 | head 2
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -158,9 +186,10 @@ fetched rows / total rows = 2/2
 +-----------------------+------------+--------+-----+
 ```
   
-## Example 7: Chaining Multiple rex Commands  
 
-This example shows extracting initial letters from both first and last names. All extracted fields are returned as string type.
+## Example 7: Chain multiple rex commands  
+
+The following query extracts initial letters from both first and last names. All extracted fields are returned as strings:
   
 ```ppl
 source=accounts
@@ -170,7 +199,7 @@ source=accounts
 | head 3
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -183,10 +212,12 @@ fetched rows / total rows = 3/3
 +-----------+----------+--------------+-------------+
 ```
   
-## Example 8: Named Capture Group Limitations  
 
-This example demonstrates naming restrictions for capture groups. Group names cannot contain underscores due to Java regex limitations.
-Invalid PPL query with underscores
+## Example 8: Capture group naming restrictions  
+
+The following query shows naming restrictions for capture groups. Group names cannot contain underscores because of [Java regex](https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html) limitations.
+
+**Invalid PPL query with underscores**:
   
 ```ppl
 source=accounts
@@ -194,14 +225,14 @@ source=accounts
 | fields email, user_name, email_domain
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 {'reason': 'Invalid Query', 'details': "Invalid capture group name 'user_name'. Java regex group names must start with a letter and contain only letters and digits.", 'type': 'IllegalArgumentException'}
 Error: Query returned no data
 ```
-  
-Correct PPL query without underscores
+
+**Correct PPL query without underscores**:
   
 ```ppl
 source=accounts
@@ -210,7 +241,7 @@ source=accounts
 | head 2
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -222,10 +253,12 @@ fetched rows / total rows = 2/2
 +-----------------------+------------+-------------+
 ```
   
-## Example 9: Max Match Limit Protection  
 
-This example demonstrates the max_match limit protection mechanism. When max_match=0 (unlimited) is specified, the system automatically caps it to prevent memory exhaustion.
-PPL query with max_match=0 automatically capped to default limit of 10
+## Example 9: max_match limit enforcement  
+
+The following query shows the `max_match` limit protection mechanism. When `max_match` is set to `0` (unlimited), the system automatically enforces a maximum limit on the number of matches to prevent memory exhaustion.
+
+**PPL query with `max_match=0` automatically limited to the default of 10**:
   
 ```ppl
 source=accounts
@@ -235,7 +268,7 @@ source=accounts
 | head 1
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -245,8 +278,8 @@ fetched rows / total rows = 1/1
 | 880 Holmes Lane | 10          |
 +-----------------+-------------+
 ```
-  
-PPL query exceeding the configured limit results in an error
+
+**A PPL query exceeding the configured limit results in an error**:
   
 ```ppl
 source=accounts
@@ -255,37 +288,11 @@ source=accounts
 | head 1
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 {'reason': 'Invalid Query', 'details': 'Rex command max_match value (100) exceeds the configured limit (10). Consider using a smaller max_match value or adjust the plugins.ppl.rex.max_match.limit setting.', 'type': 'IllegalArgumentException'}
 Error: Query returned no data
 ```
-  
-## Comparison with Related Commands  
-  
-| Feature | rex | parse |
-| --- | --- | --- |
-| Pattern Type | Java Regex | Java Regex |
-| Named Groups Required | Yes | Yes |
-| Multiple Named Groups | Yes | No |
-| Multiple Matches | Yes | No |
-| Text Substitution | Yes | No |
-| Offset Tracking | Yes | No |
-| Special Characters in Group Names | No | No |
-  
-## Limitations  
 
-**Named Capture Group Naming:**
-* Group names must start with a letter and contain only letters and digits  
-* For detailed Java regex pattern syntax and usage, refer to the [official Java Pattern documentation](https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html)  
-  
-**Pattern Requirements:**
-* Pattern must contain at least one named capture group  
-* Regular capture groups `(...)` without names are not allowed  
-  
-**Max Match Limit:**
-* The `max_match` parameter is subject to a configurable system limit to prevent memory exhaustion  
-* When `max_match=0` (unlimited) is specified, it is automatically capped at the configured limit (default: 10)  
-* User-specified values exceeding the configured limit will result in an error  
-* Users can adjust the limit via the `plugins.ppl.rex.max_match.limit` cluster setting. Setting this limit to a large value is not recommended as it can lead to excessive memory consumption, especially with patterns that match empty strings (e.g., `\d*`, `\w*`)  
+For detailed Java regex pattern syntax and usage, refer to the [official Java Pattern documentation](https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html).
