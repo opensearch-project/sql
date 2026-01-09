@@ -41,7 +41,7 @@ import org.opensearch.sql.calcite.utils.PlanUtils;
  */
 @Value.Enclosing
 public class PPLSimplifyDedupRule extends RelRule<PPLSimplifyDedupRule.Config> {
-  /** Creates a PPLDedupConvertRule. */
+  /** Creates a PPLSimplifyDedupRule. */
   protected PPLSimplifyDedupRule(Config config) {
     super(config);
   }
