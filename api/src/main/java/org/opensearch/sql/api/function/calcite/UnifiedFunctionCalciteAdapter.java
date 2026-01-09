@@ -67,14 +67,22 @@ public class UnifiedFunctionCalciteAdapter implements UnifiedFunction {
    *
    * @param functionName PPL function name (e.g., "UPPER", "CONCAT", "ABS")
    * @param rexBuilder RexBuilder for creating expressions
-   * @param rexNodes function arguments as RexNodes
+   * @param inputTypeNames function argument types as SQL type names (e.g., "VARCHAR", "INTEGER")
    * @return configured adapter instance
    */
   public static UnifiedFunctionCalciteAdapter create(
-      String functionName, RexBuilder rexBuilder, List<RexNode> rexNodes) {
+      String functionName, RexBuilder rexBuilder, List<String> inputTypeNames) {
     Objects.requireNonNull(functionName, "functionName must not be null");
     Objects.requireNonNull(rexBuilder, "rexBuilder must not be null");
-    Objects.requireNonNull(rexNodes, "rexNodes must not be null");
+    Objects.requireNonNull(inputTypeNames, "inputTypeNames must not be null");
+
+    // Convert input type names to RexNodes
+    List<RexNode> rexNodes = new ArrayList<>();
+    for (int i = 0; i < inputTypeNames.size(); i++) {
+      RelDataType relDataType =
+          CalciteTypeConverter.toCalciteType(inputTypeNames.get(i), rexBuilder.getTypeFactory());
+      rexNodes.add(rexBuilder.makeInputRef(relDataType, i));
+    }
 
     // Resolve the PPL function with actual argument types
     RexNode rexNode =
@@ -82,7 +90,6 @@ public class UnifiedFunctionCalciteAdapter implements UnifiedFunction {
             rexBuilder, functionName, rexNodes.toArray(new RexNode[0]));
 
     // Build input row type from the original rexNodes (not the resolved function)
-    // This represents the structure of input data that will be provided at evaluation time
     RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
     List<RelDataType> inputTypes = new ArrayList<>();
     List<String> inputNames = new ArrayList<>();
@@ -96,11 +103,6 @@ public class UnifiedFunctionCalciteAdapter implements UnifiedFunction {
     RexExecutable result =
         RexExecutorImpl.getExecutable(rexBuilder, List.of(rexNode), inputRowType);
 
-    // Extract input types from rexNodes and convert to SQL type name strings
-    List<String> inputTypeNames = new ArrayList<>();
-    for (RexNode node : rexNodes) {
-      inputTypeNames.add(CalciteTypeConverter.relDataTypeToSqlTypeName(node.getType()));
-    }
     String returnTypeName = CalciteTypeConverter.relDataTypeToSqlTypeName(rexNode.getType());
     boolean isNullable = rexNode.getType().isNullable();
 

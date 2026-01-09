@@ -10,8 +10,6 @@ import static org.junit.Assert.assertNotNull;
 
 import java.util.List;
 import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.junit.Before;
 import org.junit.Test;
 import org.opensearch.sql.api.UnifiedQueryTestBase;
@@ -31,11 +29,8 @@ public class UnifiedFunctionCalciteAdapterTest extends UnifiedQueryTestBase {
 
   @Test
   public void testCreateUpperFunction() {
-    RexNode input =
-        rexBuilder.makeInputRef(rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), 0);
-
     UnifiedFunction upperFunc =
-        UnifiedFunctionCalciteAdapter.create("UPPER", rexBuilder, List.of(input));
+        UnifiedFunctionCalciteAdapter.create("UPPER", rexBuilder, List.of("VARCHAR"));
 
     assertNotNull(upperFunc);
     assertEquals("UPPER", upperFunc.getFunctionName());
@@ -45,11 +40,8 @@ public class UnifiedFunctionCalciteAdapterTest extends UnifiedQueryTestBase {
 
   @Test
   public void testEvaluateUpperFunction() {
-    RexNode input =
-        rexBuilder.makeInputRef(rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), 0);
-
     UnifiedFunction upperFunc =
-        UnifiedFunctionCalciteAdapter.create("UPPER", rexBuilder, List.of(input));
+        UnifiedFunctionCalciteAdapter.create("UPPER", rexBuilder, List.of("VARCHAR"));
 
     Object result = upperFunc.eval(List.of("hello"));
 
@@ -58,18 +50,13 @@ public class UnifiedFunctionCalciteAdapterTest extends UnifiedQueryTestBase {
 
   @Test(expected = IllegalArgumentException.class)
   public void testCreateWithInvalidFunctionName() {
-    RexNode input =
-        rexBuilder.makeInputRef(rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), 0);
-
-    UnifiedFunctionCalciteAdapter.create("INVALID_FUNCTION", rexBuilder, List.of(input));
+    UnifiedFunctionCalciteAdapter.create("INVALID_FUNCTION", rexBuilder, List.of("VARCHAR"));
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testEvaluateWithWrongNumberOfArguments() {
-    RexNode input =
-        rexBuilder.makeInputRef(rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), 0);
     UnifiedFunction upperFunc =
-        UnifiedFunctionCalciteAdapter.create("UPPER", rexBuilder, List.of(input));
+        UnifiedFunctionCalciteAdapter.create("UPPER", rexBuilder, List.of("VARCHAR"));
 
     upperFunc.eval(List.of("hello", "world"));
   }
