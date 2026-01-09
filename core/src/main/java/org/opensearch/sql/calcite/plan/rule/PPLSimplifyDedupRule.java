@@ -55,6 +55,15 @@ public class PPLSimplifyDedupRule extends RelRule<PPLSimplifyDedupRule.Config> {
     apply(call, finalProject, numOfDedupFilter, projectWithWindow, bucketNonNullFilter);
   }
 
+  /**
+   * Applies the simplification rule to transform a composite pattern into a LogicalDedup.
+   *
+   * @param call the rule call context
+   * @param finalProject the outer projection
+   * @param numOfDedupFilter the filter containing the row number condition
+   * @param projectWithWindow the projection containing the ROW_NUMBER window function
+   * @param bucketNonNullFilter the filter for non-null partition keys
+   */
   protected void apply(
       RelOptRuleCall call,
       LogicalProject finalProject,
@@ -78,9 +87,23 @@ public class PPLSimplifyDedupRule extends RelRule<PPLSimplifyDedupRule.Config> {
 
     // must be row_number <= number.
     // Since we cannot push down dedup with keepEmpty=true, we don't simplify that pattern
-    RexLiteral literal =
-        (RexLiteral) ((RexCall) numOfDedupFilter.getCondition()).getOperands().getLast();
+    RexNode condition = numOfDedupFilter.getCondition();
+    if (!(condition instanceof RexCall)) {
+      return;
+    }
+    List<RexNode> operands = ((RexCall) condition).getOperands();
+    if (operands.isEmpty()) {
+      return;
+    }
+    RexNode lastOperand = operands.get(operands.size() - 1);
+    if (!(lastOperand instanceof RexLiteral)) {
+      return;
+    }
+    RexLiteral literal = (RexLiteral) lastOperand;
     Integer dedupNumber = literal.getValueAs(Integer.class);
+    if (dedupNumber == null) {
+      return;
+    }
 
     RelBuilder relBuilder = call.builder();
     relBuilder.push(bucketNonNullFilter.getInput());
