@@ -38,7 +38,7 @@ import java.util.List;
  *
  * <ul>
  *   <li>Validate that input values match the declared input types
- *   <li>Handle null inputs according to the {@link #isNullable()} specification
+ *   <li>Handle null inputs appropriately
  *   <li>Return results that match the declared return type
  *   <li>Throw appropriate exceptions for invalid inputs or evaluation errors
  * </ul>
@@ -52,7 +52,6 @@ import java.util.List;
  * String name = upperFunc.getFunctionName();  // "UPPER"
  * List<String> inputTypes = upperFunc.getInputTypes();  // ["VARCHAR"]
  * String returnType = upperFunc.getReturnType();  // "VARCHAR"
- * boolean nullable = upperFunc.isNullable();  // true
  *
  * // Evaluate function
  * Object result = upperFunc.eval(Arrays.asList("hello"));  // "HELLO"
@@ -110,20 +109,6 @@ public interface UnifiedFunction extends Serializable {
   String getReturnType();
 
   /**
-   * Returns whether this function can return null values.
-   *
-   * <p>If true, the function may return null for certain inputs (typically when any input is null).
-   * If false, the function guarantees to never return null and may throw an exception if given null
-   * inputs.
-   *
-   * <p>This information can be used by query optimizers to eliminate unnecessary null checks or to
-   * validate query plans.
-   *
-   * @return true if the function can return null, false otherwise
-   */
-  boolean isNullable();
-
-  /**
    * Evaluates the function with the provided input values.
    *
    * <p>The inputs are already-evaluated argument values provided by the caller. The number and
@@ -134,7 +119,7 @@ public interface UnifiedFunction extends Serializable {
    * <ul>
    *   <li>Validate input count matches {@link #getInputTypes()} size
    *   <li>Validate input types match declared types (or can be coerced)
-   *   <li>Handle null inputs according to {@link #isNullable()} specification
+   *   <li>Handle null inputs appropriately
    *   <li>Return a result matching the declared {@link #getReturnType()}
    * </ul>
    *
@@ -147,9 +132,8 @@ public interface UnifiedFunction extends Serializable {
    * }</pre>
    *
    * @param inputs argument values evaluated by the caller, never null but may contain null elements
-   * @return the evaluated result, may be null if {@link #isNullable()} returns true
+   * @return the evaluated result, may be null depending on the function implementation
    * @throws IllegalArgumentException if input count or types don't match expectations
-   * @throws NullPointerException if a null input is provided and the function is not nullable
    * @throws RuntimeException if evaluation fails for any other reason
    */
   Object eval(List<Object> inputs);

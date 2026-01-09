@@ -8,6 +8,10 @@ package org.opensearch.sql.api.function.calcite;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.List;
 import org.apache.calcite.rex.RexBuilder;
 import org.junit.Before;
@@ -59,5 +63,38 @@ public class UnifiedFunctionCalciteAdapterTest extends UnifiedQueryTestBase {
         UnifiedFunctionCalciteAdapter.create("UPPER", rexBuilder, List.of("VARCHAR"));
 
     upperFunc.eval(List.of("hello", "world"));
+  }
+
+  @Test
+  public void testSerializeAndDeserialize() throws Exception {
+    UnifiedFunctionCalciteAdapter originalFunc =
+        UnifiedFunctionCalciteAdapter.create("UPPER", rexBuilder, List.of("VARCHAR"));
+
+    // Serialize
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+      oos.writeObject(originalFunc);
+    }
+
+    // Deserialize
+    ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+    UnifiedFunctionCalciteAdapter deserializedFunc;
+    try (ObjectInputStream ois = new ObjectInputStream(bais)) {
+      deserializedFunc = (UnifiedFunctionCalciteAdapter) ois.readObject();
+    }
+
+    // Verify metadata is preserved
+    assertNotNull(deserializedFunc);
+    assertEquals(originalFunc.getFunctionName(), deserializedFunc.getFunctionName());
+    assertEquals(originalFunc.getInputTypes(), deserializedFunc.getInputTypes());
+    assertEquals(originalFunc.getReturnType(), deserializedFunc.getReturnType());
+
+    // Verify RexExecutable is recreated (not null after deserialization)
+    assertNotNull(
+        "RexExecutable should be recreated during deserialization", deserializedFunc.toString());
+
+    // Verify functionality is preserved - this proves RexExecutable works
+    Object result = deserializedFunc.eval(List.of("hello"));
+    assertEquals("HELLO", result);
   }
 }

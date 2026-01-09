@@ -25,6 +25,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexExecutable;
 import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.api.function.UnifiedFunction;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
@@ -45,21 +46,16 @@ public class UnifiedFunctionCalciteAdapter implements UnifiedFunction {
   private String serializedCode;
   @EqualsAndHashCode.Include private final String returnTypeName;
   @EqualsAndHashCode.Include private final List<String> inputTypeNames;
-  @EqualsAndHashCode.Include private final boolean isNullable;
 
   private UnifiedFunctionCalciteAdapter(
       @NonNull String functionName,
       @NonNull RexExecutable rexExecutor,
-      @NonNull String serializedCode,
       @NonNull String returnTypeName,
-      @NonNull List<String> inputTypeNames,
-      boolean isNullable) {
+      @NonNull List<String> inputTypeNames) {
     this.functionName = functionName;
     this.rexExecutor = rexExecutor;
-    this.serializedCode = serializedCode;
     this.returnTypeName = returnTypeName;
     this.inputTypeNames = inputTypeNames;
-    this.isNullable = isNullable;
   }
 
   /**
@@ -77,10 +73,11 @@ public class UnifiedFunctionCalciteAdapter implements UnifiedFunction {
     Objects.requireNonNull(inputTypeNames, "inputTypeNames must not be null");
 
     // Convert input type names to RexNodes
+    RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
     List<RexNode> rexNodes = new ArrayList<>();
     for (int i = 0; i < inputTypeNames.size(); i++) {
-      RelDataType relDataType =
-          CalciteTypeConverter.toCalciteType(inputTypeNames.get(i), rexBuilder.getTypeFactory());
+      SqlTypeName sqlTypeName = SqlTypeName.valueOf(inputTypeNames.get(i));
+      RelDataType relDataType = typeFactory.createSqlType(sqlTypeName);
       rexNodes.add(rexBuilder.makeInputRef(relDataType, i));
     }
 
@@ -90,7 +87,6 @@ public class UnifiedFunctionCalciteAdapter implements UnifiedFunction {
             rexBuilder, functionName, rexNodes.toArray(new RexNode[0]));
 
     // Build input row type from the original rexNodes (not the resolved function)
-    RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
     List<RelDataType> inputTypes = new ArrayList<>();
     List<String> inputNames = new ArrayList<>();
     for (int i = 0; i < rexNodes.size(); i++) {
@@ -103,11 +99,9 @@ public class UnifiedFunctionCalciteAdapter implements UnifiedFunction {
     RexExecutable result =
         RexExecutorImpl.getExecutable(rexBuilder, List.of(rexNode), inputRowType);
 
-    String returnTypeName = CalciteTypeConverter.relDataTypeToSqlTypeName(rexNode.getType());
-    boolean isNullable = rexNode.getType().isNullable();
+    String returnTypeName = rexNode.getType().getSqlTypeName().toString();
 
-    return new UnifiedFunctionCalciteAdapter(
-        functionName, result, result.getSource(), returnTypeName, inputTypeNames, isNullable);
+    return new UnifiedFunctionCalciteAdapter(functionName, result, returnTypeName, inputTypeNames);
   }
 
   @Override
@@ -123,11 +117,6 @@ public class UnifiedFunctionCalciteAdapter implements UnifiedFunction {
   @Override
   public String getReturnType() {
     return returnTypeName;
-  }
-
-  @Override
-  public boolean isNullable() {
-    return isNullable;
   }
 
   @Override
@@ -164,6 +153,8 @@ public class UnifiedFunctionCalciteAdapter implements UnifiedFunction {
 
   @Serial
   private void writeObject(ObjectOutputStream out) throws IOException {
+    // Serialize the generated code from RexExecutable
+    serializedCode = rexExecutor.getSource();
     out.defaultWriteObject();
   }
 
