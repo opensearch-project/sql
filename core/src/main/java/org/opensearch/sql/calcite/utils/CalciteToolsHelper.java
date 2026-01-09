@@ -28,6 +28,7 @@
 package org.opensearch.sql.calcite.utils;
 
 import static java.util.Objects.requireNonNull;
+import static org.opensearch.sql.monitor.profile.MetricName.OPTIMIZE;
 
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Type;
@@ -90,6 +91,8 @@ import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.plan.OpenSearchRules;
 import org.opensearch.sql.calcite.plan.Scannable;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+import org.opensearch.sql.monitor.profile.ProfileMetric;
+import org.opensearch.sql.monitor.profile.QueryProfiling;
 
 /**
  * Calcite Tools Helper. This class is used to create customized: 1. Connection 2. JavaTypeFactory
@@ -342,6 +345,8 @@ public class CalciteToolsHelper {
      * org.apache.calcite.tools.RelRunners#run(RelNode)}
      */
     public static PreparedStatement run(CalcitePlanContext context, RelNode rel) {
+      ProfileMetric optimizeTime = QueryProfiling.current().getOrCreateMetric(OPTIMIZE);
+      long startTime = System.nanoTime();
       final RelShuttle shuttle =
           new RelHomogeneousShuttle() {
             @Override
@@ -360,7 +365,9 @@ public class CalciteToolsHelper {
       // the line we changed here
       try (Connection connection = context.connection) {
         final RelRunner runner = connection.unwrap(RelRunner.class);
-        return runner.prepareStatement(rel);
+        PreparedStatement preparedStatement = runner.prepareStatement(rel);
+        optimizeTime.set(System.nanoTime() - startTime);
+        return preparedStatement;
       } catch (SQLException e) {
         // Detect if error is due to window functions in unsupported context (bins on time fields)
         String errorMsg = e.getMessage();

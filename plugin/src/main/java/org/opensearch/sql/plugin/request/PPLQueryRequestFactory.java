@@ -23,6 +23,7 @@ public class PPLQueryRequestFactory {
   private static final String DEFAULT_RESPONSE_FORMAT = "jdbc";
   private static final String DEFAULT_EXPLAIN_FORMAT = "standard";
   private static final String QUERY_PARAMS_PRETTY = "pretty";
+  private static final String QUERY_PARAMS_PROFILE = "profile";
 
   /**
    * Build {@link PPLQueryRequest} from {@link RestRequest}.
@@ -59,24 +60,29 @@ public class PPLQueryRequestFactory {
     boolean pretty = getPrettyOption(restRequest.params());
     try {
       jsonContent = new JSONObject(content);
+      boolean profileRequested = jsonContent.optBoolean(QUERY_PARAMS_PROFILE, false);
+      String queryString = jsonContent.optString(PPL_FIELD_NAME, "");
+      boolean enableProfile =
+          profileRequested && isProfileSupported(restRequest.path(), format, queryString);
+      PPLQueryRequest pplRequest =
+          new PPLQueryRequest(
+              jsonContent.getString(PPL_FIELD_NAME),
+              jsonContent,
+              restRequest.path(),
+              format.getFormatName(),
+              enableProfile);
+      // set sanitize option if csv format
+      if (format.equals(Format.CSV)) {
+        pplRequest.sanitize(getSanitizeOption(restRequest.params()));
+      }
+      // set pretty option
+      if (pretty) {
+        pplRequest.style(JsonResponseFormatter.Style.PRETTY);
+      }
+      return pplRequest;
     } catch (JSONException e) {
       throw new IllegalArgumentException("Failed to parse request payload", e);
     }
-    PPLQueryRequest pplRequest =
-        new PPLQueryRequest(
-            jsonContent.getString(PPL_FIELD_NAME),
-            jsonContent,
-            restRequest.path(),
-            format.getFormatName());
-    // set sanitize option if csv format
-    if (format.equals(Format.CSV)) {
-      pplRequest.sanitize(getSanitizeOption(restRequest.params()));
-    }
-    // set pretty option
-    if (pretty) {
-      pplRequest.style(JsonResponseFormatter.Style.PRETTY);
-    }
-    return pplRequest;
   }
 
   private static Format getFormat(Map<String, String> requestParams, String path) {
@@ -114,5 +120,13 @@ public class PPLQueryRequestFactory {
       return Boolean.parseBoolean(prettyValue);
     }
     return false;
+  }
+
+  private static boolean isProfileSupported(String path, Format format, String query) {
+    boolean explainPath = isExplainRequest(path);
+    boolean explainQuery = query != null && query.trim().toLowerCase().startsWith("explain");
+    boolean isJdbcFormat =
+        format != null && DEFAULT_RESPONSE_FORMAT.equalsIgnoreCase(format.getFormatName());
+    return !explainPath && !explainQuery && isJdbcFormat;
   }
 }

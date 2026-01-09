@@ -151,4 +151,41 @@ calcite:
   physical: |
     CalciteEnumerableIndexScan(table=[[OpenSearch, state_country]], PushDownContext=[[PROJECT->[name, country, state, month, year, age], FILTER->>($5, 30), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10000,"timeout":"1m","query":{"range":{"age":{"from":30,"to":null,"include_lower":false,"include_upper":true,"boost":1.0}}},"_source":{"includes":["name","country","state","month","year","age"],"excludes":[]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])
 ```
-  
+
+## Profile (Experimental)
+
+You can enable profiling on the PPL endpoint to capture per-stage timings in milliseconds. Profiling is returned only for regular query execution (not explain) and only when using the default `format=jdbc`.
+
+### Example
+
+```bash ppl ignore
+curl -sS -H 'Content-Type: application/json' \
+  -X POST localhost:9200/_plugins/_ppl \
+  -d '{
+        "profile": true,
+        "query" : "source=accounts | fields firstname, lastname"
+      }'
+```
+
+Expected output (trimmed):
+
+```json
+{
+   "profile": {
+      "summary": {
+         "total_time_ms": 33.34
+      },
+      "phases": {
+         "analyze": { "time_ms": 8.68 },
+         "optimize": { "time_ms": 18.2 },
+         "execute": { "time_ms": 4.87 },
+         "format": { "time_ms": 0.05 }
+      }
+   }
+}
+```
+
+### Notes
+
+- Profile output is only returned when the query finishes successfully.
+- Profiling runs only when Calcite is enabled.

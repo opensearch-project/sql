@@ -57,6 +57,9 @@ import org.opensearch.sql.executor.ExecutionEngine.Schema.Column;
 import org.opensearch.sql.executor.Explain;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
+import org.opensearch.sql.monitor.profile.MetricName;
+import org.opensearch.sql.monitor.profile.ProfileMetric;
+import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprGeoPointValue;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
@@ -272,6 +275,8 @@ public OpenSearchExecutionEngine(
       Integer querySizeLimit,
       ResponseListener<QueryResponse> listener)
       throws SQLException {
+    ProfileMetric metric = QueryProfiling.current().getOrCreateMetric(MetricName.EXECUTE);
+    long execTime = System.nanoTime();
     // Get the ResultSet metadata to know about columns
     ResultSetMetaData metaData = resultSet.getMetaData();
     int columnCount = metaData.getColumnCount();
@@ -314,6 +319,7 @@ public OpenSearchExecutionEngine(
     }
     Schema schema = new Schema(columns);
     QueryResponse response = new QueryResponse(schema, values, null);
+    metric.add(System.nanoTime() - execTime);
     listener.onResponse(response);
   }
 
