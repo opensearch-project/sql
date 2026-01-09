@@ -105,13 +105,13 @@ public class QueryService {
     CalcitePlanContext.run(
         () -> {
           try {
-            ProfileContext profileContext =
-                QueryProfiling.activate(QueryContext.isProfileEnabled());
-            ProfileMetric analyzeMetric = profileContext.getOrCreateMetric(MetricName.ANALYZE);
-            long analyzeStart = System.nanoTime();
             AccessController.doPrivileged(
                 (PrivilegedAction<Void>)
                     () -> {
+                      ProfileContext profileContext =
+                          QueryProfiling.activate(QueryContext.isProfileEnabled());
+                      ProfileMetric analyzeMetric = profileContext.getOrCreateMetric(MetricName.ANALYZE);
+                      long analyzeStart = System.nanoTime();
                       CalcitePlanContext context =
                           CalcitePlanContext.create(
                               buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
