@@ -19,6 +19,7 @@ import lombok.NonNull;
 import lombok.ToString;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.DataContexts;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexExecutable;
@@ -83,14 +84,13 @@ public class UnifiedFunctionCalciteAdapter implements UnifiedFunction {
     // Build input row type from the original rexNodes (not the resolved function)
     // This represents the structure of input data that will be provided at evaluation time
     RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
-    List<org.apache.calcite.rel.type.RelDataType> inputTypes = new ArrayList<>();
+    List<RelDataType> inputTypes = new ArrayList<>();
     List<String> inputNames = new ArrayList<>();
     for (int i = 0; i < rexNodes.size(); i++) {
       inputTypes.add(rexNodes.get(i).getType());
       inputNames.add("_" + i);
     }
-    org.apache.calcite.rel.type.RelDataType inputRowType =
-        typeFactory.createStructType(inputTypes, inputNames);
+    RelDataType inputRowType = typeFactory.createStructType(inputTypes, inputNames);
 
     // Use Calcite's built-in RexExecutorImpl to compile the expression
     RexExecutable result =

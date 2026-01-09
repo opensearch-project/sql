@@ -7,15 +7,14 @@ package org.opensearch.sql.api.function;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 import lombok.NonNull;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
+import org.opensearch.sql.api.UnifiedQueryContext;
 import org.opensearch.sql.api.function.calcite.CalciteTypeConverter;
 import org.opensearch.sql.api.function.calcite.UnifiedFunctionCalciteAdapter;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
@@ -24,20 +23,29 @@ import org.opensearch.sql.expression.function.PPLBuiltinOperators;
  * Repository for discovering and loading PPL functions as {@link UnifiedFunction} instances.
  *
  * <p>Inspects {@link PPLBuiltinOperators} and creates function descriptors for external execution
- * engines (Spark, Flink, etc.).
+ * engines (Spark, Flink, etc.). Engines use the builder to construct functions with specific input
+ * types, then convert to engine-specific representations.
  *
- * <p>Example:
+ * <p>Example for Spark integration:
  *
  * <pre>{@code
- * UnifiedQueryContext context = UnifiedQueryContext.builder()
- *     .language(QueryType.PPL)
- *     .catalog("opensearch", schema)
- *     .build();
  * UnifiedFunctionRepository repository = new UnifiedFunctionRepository(context);
  * List<FunctionDescriptor> functions = repository.loadFunctions();
  * for (FunctionDescriptor desc : functions) {
- *   UnifiedFunction func = desc.getBuilder().apply(List.of("VARCHAR"));
- *   externalEngine.registerFunction(desc.getIdentifier(), func);
+ *   // Build function with specific input types
+ *   UnifiedFunction func = desc.getBuilder().build(List.of("VARCHAR"));
+ *
+ *   // Convert to Spark-specific types
+ *   FunctionIdentifier id = new FunctionIdentifier(desc.getFunctionName());
+ *   ExpressionInfo info = new ExpressionInfo(
+ *     func.getClass().getName(),
+ *     desc.getFunctionName(),
+ *     "usage info"
+ *   );
+ *   FunctionBuilder sparkBuilder = (exprs) -> convertToSparkExpression(func, exprs);
+ *
+ *   // Register with Spark
+ *   sparkSession.sessionState.functionRegistry.registerFunction(id, info, sparkBuilder);
  * }
  * }</pre>
  */
@@ -47,27 +55,29 @@ public class UnifiedFunctionRepository {
   /** RexBuilder from the unified query context for creating Rex expressions. */
   private final RexBuilder rexBuilder;
 
-  /** Type factory from the unified query context for type conversions. */
-  private final RelDataTypeFactory typeFactory;
+  /** Cached list of all operators from PPLBuiltinOperators. */
+  private final List<SqlOperator> allOperators;
 
   /**
    * Constructs a UnifiedFunctionRepository with a unified query context.
    *
    * @param context the unified query context containing CalcitePlanContext
    */
-  public UnifiedFunctionRepository(org.opensearch.sql.api.UnifiedQueryContext context) {
+  public UnifiedFunctionRepository(UnifiedQueryContext context) {
     this.rexBuilder = context.getPlanContext().rexBuilder;
-    this.typeFactory = rexBuilder.getTypeFactory();
+    this.allOperators = PPLBuiltinOperators.instance().getOperatorList();
   }
 
   /**
-   * Function descriptor with metadata and builder for creating {@link UnifiedFunction} instances.
+   * Function descriptor with name and builder for creating {@link UnifiedFunction} instances.
+   *
+   * <p>Execution engines use the function name and builder to construct engine-specific
+   * representations (e.g., Spark's FunctionIdentifier, ExpressionInfo, FunctionBuilder).
    */
   @Value
   public static class FunctionDescriptor {
-    @NonNull String identifier;
-    @NonNull String expressionInfo;
-    @NonNull Function<List<String>, UnifiedFunction> builder;
+    @NonNull String functionName;
+    @NonNull UnifiedFunctionBuilder builder;
   }
 
   /**
@@ -80,8 +90,6 @@ public class UnifiedFunctionRepository {
     List<FunctionDescriptor> descriptors = new ArrayList<>();
 
     try {
-      List<SqlOperator> allOperators = PPLBuiltinOperators.instance().getOperatorList();
-
       for (SqlOperator operator : allOperators) {
         if (operator instanceof SqlUserDefinedFunction) {
           descriptors.add(createDescriptor(operator));
@@ -104,11 +112,7 @@ public class UnifiedFunctionRepository {
    * @throws IllegalArgumentException if the function is not found
    */
   public FunctionDescriptor loadFunction(String functionName) {
-    String normalizedName = functionName.toLowerCase();
-
     try {
-      List<SqlOperator> allOperators = PPLBuiltinOperators.instance().getOperatorList();
-
       for (SqlOperator operator : allOperators) {
         if (operator instanceof SqlUserDefinedFunction
             && operator.getName().equalsIgnoreCase(functionName)) {
@@ -126,28 +130,18 @@ public class UnifiedFunctionRepository {
 
   private FunctionDescriptor createDescriptor(SqlOperator operator) {
     String functionName = operator.getName();
-    String identifier = functionName.toLowerCase();
-    String expressionInfo = buildExpressionInfo(operator, functionName);
-    Function<List<String>, UnifiedFunction> builder = createFunctionBuilder(functionName);
+    UnifiedFunctionBuilder builder = createFunctionBuilder(functionName);
 
-    log.debug("Registered function: {}", identifier);
-    return new FunctionDescriptor(identifier, expressionInfo, builder);
+    log.debug("Registered function: {}", functionName);
+    return new FunctionDescriptor(functionName, builder);
   }
 
-  private static String buildExpressionInfo(SqlOperator operator, String functionName) {
-    String operands =
-        operator.getOperandTypeChecker() != null
-            ? operator.getOperandTypeChecker().getAllowedSignatures(operator, functionName)
-            : "...";
-    String returnType = operator.getReturnTypeInference() != null ? "DYNAMIC" : "UNKNOWN";
-    return String.format("%s(%s) -> %s", functionName, operands, returnType);
-  }
-
-  private Function<List<String>, UnifiedFunction> createFunctionBuilder(String functionName) {
+  private UnifiedFunctionBuilder createFunctionBuilder(String functionName) {
     return inputTypeNames -> {
       List<RexNode> rexNodes = new ArrayList<>();
       for (int i = 0; i < inputTypeNames.size(); i++) {
-        var relDataType = CalciteTypeConverter.toCalciteType(inputTypeNames.get(i), typeFactory);
+        var relDataType =
+            CalciteTypeConverter.toCalciteType(inputTypeNames.get(i), rexBuilder.getTypeFactory());
         rexNodes.add(rexBuilder.makeInputRef(relDataType, i));
       }
 

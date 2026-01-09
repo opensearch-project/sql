@@ -40,29 +40,38 @@ public class UnifiedFunctionRepositoryTest extends UnifiedQueryTestBase {
     List<FunctionDescriptor> functions = repository.loadFunctions();
 
     for (FunctionDescriptor descriptor : functions) {
-      assertNotNull("Identifier should not be null", descriptor.getIdentifier());
-      assertFalse("Identifier should not be empty", descriptor.getIdentifier().isEmpty());
-      assertNotNull("Expression info should not be null", descriptor.getExpressionInfo());
+      assertNotNull("Function name should not be null", descriptor.getFunctionName());
+      assertFalse("Function name should not be empty", descriptor.getFunctionName().isEmpty());
       assertNotNull("Builder should not be null", descriptor.getBuilder());
     }
   }
 
   @Test
-  public void testBuilderWithSingleInputType() {
+  public void testLoadSpecificFunction() {
     FunctionDescriptor jsonFunc = repository.loadFunction("json");
 
-    assertEquals("json", jsonFunc.getIdentifier());
-    assertEquals("JSON(...) -> DYNAMIC", jsonFunc.getExpressionInfo());
+    assertEquals("JSON", jsonFunc.getFunctionName());
     assertNotNull("Builder should be present", jsonFunc.getBuilder());
   }
 
   @Test
-  public void testBuilderWithMultipleInputTypes() {
-    FunctionDescriptor modFunc = repository.loadFunction("mod");
+  public void testLoadSpecificFunctionCaseInsensitive() {
+    FunctionDescriptor modFunc = repository.loadFunction("MOD");
 
-    assertEquals("mod", modFunc.getIdentifier());
-    assertEquals("MOD('MOD(<NUMERIC>, <NUMERIC>)') -> DYNAMIC", modFunc.getExpressionInfo());
+    assertEquals("MOD", modFunc.getFunctionName());
     assertNotNull("Builder should be present", modFunc.getBuilder());
+  }
+
+  @Test
+  public void testBuilderCreatesValidFunction() {
+    FunctionDescriptor descriptor = repository.loadFunction("json");
+
+    UnifiedFunction jsonFunc = descriptor.getBuilder().build(List.of("VARCHAR"));
+
+    assertNotNull("Function should be created", jsonFunc);
+    assertEquals("JSON", jsonFunc.getFunctionName());
+    assertEquals(List.of("VARCHAR"), jsonFunc.getInputTypes());
+    assertEquals("VARCHAR", jsonFunc.getReturnType());
   }
 
   @Test(expected = IllegalArgumentException.class)
