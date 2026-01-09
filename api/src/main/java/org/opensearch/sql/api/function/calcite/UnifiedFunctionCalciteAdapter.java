@@ -10,12 +10,10 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serial;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import lombok.EqualsAndHashCode;
-import lombok.NonNull;
 import lombok.ToString;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.DataContexts;
@@ -41,17 +39,24 @@ public class UnifiedFunctionCalciteAdapter implements UnifiedFunction {
 
   @Serial private static final long serialVersionUID = 1L;
 
+  /**
+   * Key used by RexExecutorImpl's InputGetter to retrieve input values from DataContext. This is a
+   * Calcite internal convention.
+   */
+  private static final String INPUT_RECORD_KEY = "inputRecord";
+
   @EqualsAndHashCode.Include private final String functionName;
-  private transient RexExecutable rexExecutor;
-  private String serializedCode;
   @EqualsAndHashCode.Include private final String returnTypeName;
   @EqualsAndHashCode.Include private final List<String> inputTypeNames;
 
+  private transient RexExecutable rexExecutor;
+  private String serializedCode;
+
   private UnifiedFunctionCalciteAdapter(
-      @NonNull String functionName,
-      @NonNull RexExecutable rexExecutor,
-      @NonNull String returnTypeName,
-      @NonNull List<String> inputTypeNames) {
+      String functionName,
+      RexExecutable rexExecutor,
+      String returnTypeName,
+      List<String> inputTypeNames) {
     this.functionName = functionName;
     this.rexExecutor = rexExecutor;
     this.returnTypeName = returnTypeName;
@@ -72,36 +77,49 @@ public class UnifiedFunctionCalciteAdapter implements UnifiedFunction {
     Objects.requireNonNull(rexBuilder, "rexBuilder must not be null");
     Objects.requireNonNull(inputTypeNames, "inputTypeNames must not be null");
 
-    // Convert input type names to RexNodes
     RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
-    List<RexNode> rexNodes = new ArrayList<>();
+
+    // Convert input type names to RexNode input references
+    List<RexNode> inputRefs = buildInputReferences(inputTypeNames, typeFactory, rexBuilder);
+
+    // Resolve the PPL function with actual argument types
+    RexNode resolvedFunction =
+        PPLFuncImpTable.INSTANCE.resolve(
+            rexBuilder, functionName, inputRefs.toArray(new RexNode[0]));
+
+    // Build input row type for the executor
+    RelDataType inputRowType = buildInputRowType(inputRefs, typeFactory);
+
+    // Compile the expression using Calcite's RexExecutorImpl
+    RexExecutable executable =
+        RexExecutorImpl.getExecutable(rexBuilder, List.of(resolvedFunction), inputRowType);
+
+    String returnTypeName = resolvedFunction.getType().getSqlTypeName().toString();
+
+    return new UnifiedFunctionCalciteAdapter(
+        functionName, executable, returnTypeName, inputTypeNames);
+  }
+
+  private static List<RexNode> buildInputReferences(
+      List<String> inputTypeNames, RelDataTypeFactory typeFactory, RexBuilder rexBuilder) {
+    List<RexNode> inputRefs = new ArrayList<>(inputTypeNames.size());
     for (int i = 0; i < inputTypeNames.size(); i++) {
       SqlTypeName sqlTypeName = SqlTypeName.valueOf(inputTypeNames.get(i));
       RelDataType relDataType = typeFactory.createSqlType(sqlTypeName);
-      rexNodes.add(rexBuilder.makeInputRef(relDataType, i));
+      inputRefs.add(rexBuilder.makeInputRef(relDataType, i));
     }
+    return inputRefs;
+  }
 
-    // Resolve the PPL function with actual argument types
-    RexNode rexNode =
-        PPLFuncImpTable.INSTANCE.resolve(
-            rexBuilder, functionName, rexNodes.toArray(new RexNode[0]));
-
-    // Build input row type from the original rexNodes (not the resolved function)
-    List<RelDataType> inputTypes = new ArrayList<>();
-    List<String> inputNames = new ArrayList<>();
-    for (int i = 0; i < rexNodes.size(); i++) {
-      inputTypes.add(rexNodes.get(i).getType());
+  private static RelDataType buildInputRowType(
+      List<RexNode> inputRefs, RelDataTypeFactory typeFactory) {
+    List<RelDataType> inputTypes = new ArrayList<>(inputRefs.size());
+    List<String> inputNames = new ArrayList<>(inputRefs.size());
+    for (int i = 0; i < inputRefs.size(); i++) {
+      inputTypes.add(inputRefs.get(i).getType());
       inputNames.add("_" + i);
     }
-    RelDataType inputRowType = typeFactory.createStructType(inputTypes, inputNames);
-
-    // Use Calcite's built-in RexExecutorImpl to compile the expression
-    RexExecutable result =
-        RexExecutorImpl.getExecutable(rexBuilder, List.of(rexNode), inputRowType);
-
-    String returnTypeName = rexNode.getType().getSqlTypeName().toString();
-
-    return new UnifiedFunctionCalciteAdapter(functionName, result, returnTypeName, inputTypeNames);
+    return typeFactory.createStructType(inputTypes, inputNames);
   }
 
   @Override
@@ -123,7 +141,6 @@ public class UnifiedFunctionCalciteAdapter implements UnifiedFunction {
   public Object eval(List<Object> inputs) {
     Objects.requireNonNull(inputs, "inputs must not be null");
 
-    // Validate input count
     if (inputs.size() != inputTypeNames.size()) {
       throw new IllegalArgumentException(
           String.format(
@@ -131,19 +148,13 @@ public class UnifiedFunctionCalciteAdapter implements UnifiedFunction {
               functionName, inputTypeNames.size(), inputs.size()));
     }
 
-    // Create DataContext with input values as an array
-    // RexExecutorImpl's default InputGetter expects "inputRecord" to be an Object[]
-    Object[] inputArray = inputs.toArray();
-    Map<String, Object> fieldMap = new HashMap<>();
-    fieldMap.put("inputRecord", inputArray);
-
-    DataContext dataContext = DataContexts.of(fieldMap);
+    // Create DataContext with input values
+    // RexExecutorImpl's InputGetter expects the key "inputRecord" with an Object[] value
+    DataContext dataContext = DataContexts.of(Map.of(INPUT_RECORD_KEY, inputs.toArray()));
     rexExecutor.setDataContext(dataContext);
 
-    // Execute the function
     try {
       Object[] results = rexExecutor.execute();
-      // The result is an array with one element (the function result)
       return (results == null || results.length == 0) ? null : results[0];
     } catch (Exception e) {
       throw new RuntimeException(
