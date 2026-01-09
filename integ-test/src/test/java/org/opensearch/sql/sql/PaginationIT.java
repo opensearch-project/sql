@@ -271,7 +271,8 @@ public class PaginationIT extends SQLIntegTestCase {
     assertTrue(aliasResponse.getBoolean("acknowledged"));
 
     // Query both indices directly (same indices the alias points to)
-    String directQuery = String.format("SELECT * FROM %s, %s", Index.DOG.getName(), Index.DOGS2.getName());
+    String directQuery =
+        String.format("SELECT * FROM %s, %s", Index.DOG.getName(), Index.DOGS2.getName());
     JSONObject directResponse = new JSONObject(executeFetchQuery(directQuery, 10, "jdbc"));
 
     // Query using alias (which points to the same two indices)
