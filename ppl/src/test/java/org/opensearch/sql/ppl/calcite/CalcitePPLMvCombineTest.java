@@ -82,9 +82,6 @@ public class CalcitePPLMvCombineTest extends CalcitePPLAbstractTest {
 
     RelNode root = getRelNode(ppl);
 
-    // Calcite often lowers FILTER(condition) into:
-    //   - a LogicalProject producing $f3 = <condition>
-    //   - aggregate "FILTER $3"
     String expectedLogical =
         "LogicalSort(sort0=[$1], dir0=[ASC-nulls-first])\n"
             + "  LogicalProject(case=[$0], ip=[$1], packets=[CAST($2):INTEGER ARRAY NOT NULL])\n"
@@ -118,9 +115,6 @@ public class CalcitePPLMvCombineTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testMvCombineWithDelimOption_SplunkSyntaxOrder() {
-    // Splunk syntax/order: mvcombine [delim="..."] <field>
-    // NOTE: delim does NOT change the output shape (still ARRAY); it’s just an option carried on
-    // the AST.
     String ppl =
         "source=MVCOMBINE_DATA "
             + "| where case = \"basic\" "
@@ -150,8 +144,6 @@ public class CalcitePPLMvCombineTest extends CalcitePPLAbstractTest {
 
     Exception ex = assertThrows(Exception.class, () -> getRelNode(ppl));
 
-    // Keep this loose: different layers may wrap exceptions.
-    // We just need to prove the command fails for missing target field.
     String msg = String.valueOf(ex.getMessage());
     org.junit.Assert.assertTrue(
         "Expected error message to mention missing field. Actual: " + msg,
