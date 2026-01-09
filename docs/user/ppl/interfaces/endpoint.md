@@ -173,13 +173,13 @@ Expected output (trimmed):
 {
    "profile": {
       "summary": {
-         "total_time_ms": 25.77
+         "total_time_ms": 33.34
       },
       "phases": {
-         "analyze": { "time_ms": 5.77 },
-         "optimize": { "time_ms": 13.51 },
-         "execute": { "time_ms": 0.77 },
-         "format": { "time_ms": 0.04 }
+         "analyze": { "time_ms": 8.68 },
+         "optimize": { "time_ms": 18.2 },
+         "execute": { "time_ms": 4.87 },
+         "format": { "time_ms": 0.05 }
       }
    }
 }
