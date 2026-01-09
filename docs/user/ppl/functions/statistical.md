@@ -4,11 +4,14 @@
 
 ### Description  
 
-Usage: max(x, y, ...) returns the maximum value from all provided arguments. Strings are treated as greater than numbers, so if provided both strings and numbers, it will return the maximum string value (lexicographically ordered)
+Usage: `max(x, y, ...)` returns the maximum value from all provided arguments. Strings are treated as greater than numbers, so if provided both strings and numbers, it will return the maximum string value (lexicographically ordered).
+
 Note: This function is only available in the eval command context.
-Argument type: Variable number of INTEGER/LONG/FLOAT/DOUBLE/STRING arguments
-Return type: Type of the selected argument
-Example
+
+**Argument type:** Variable number of `INTEGER`/`LONG`/`FLOAT`/`DOUBLE`/`STRING` arguments  
+**Return type:** Type of the selected argument  
+
+### Example
   
 ```ppl
 source=accounts
@@ -74,11 +77,14 @@ fetched rows / total rows = 4/4
 
 ### Description  
 
-Usage: min(x, y, ...) returns the minimum value from all provided arguments. Strings are treated as greater than numbers, so if provided both strings and numbers, it will return the minimum numeric value.
+Usage: `min(x, y, ...)` returns the minimum value from all provided arguments. Strings are treated as greater than numbers, so if provided both strings and numbers, it will return the minimum numeric value.
+
 Note: This function is only available in the eval command context.
-Argument type: Variable number of INTEGER/LONG/FLOAT/DOUBLE/STRING arguments
-Return type: Type of the selected argument
-Example
+
+**Argument type:** Variable number of `INTEGER`/`LONG`/`FLOAT`/`DOUBLE`/`STRING` arguments  
+**Return type:** Type of the selected argument  
+
+### Example
   
 ```ppl
 source=accounts
