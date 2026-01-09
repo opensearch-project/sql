@@ -301,6 +301,10 @@ public class MatcherUtils {
     };
   }
 
+  public static JSONArray array(Object... objects) {
+    return new JSONArray(objects);
+  }
+
   public static TypeSafeMatcher<JSONArray> closeTo(Object... values) {
     final double error = 1e-10;
     return new TypeSafeMatcher<JSONArray>() {
