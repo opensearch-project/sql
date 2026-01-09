@@ -19,6 +19,10 @@ When OpenSearch bootstraps, SQL plugin will register a few settings in OpenSearc
 plugins.sql.enabled
 ======================
 
+Version
+-------
+1.0
+
 Description
 -----------
 
@@ -81,6 +85,10 @@ Result set::
 plugins.sql.slowlog
 ============================
 
+Version
+-------
+1.0
+
 Description
 -----------
 
@@ -120,6 +128,10 @@ Result set::
 
 plugins.sql.cursor.keep_alive
 ================================
+
+Version
+-------
+1.0
 
 Description
 -----------
@@ -163,6 +175,10 @@ Result set::
 plugins.query.size_limit
 ========================
 
+Version
+-------
+1.0
+
 Description
 -----------
 
@@ -193,7 +209,7 @@ plugins.query.buckets
 
 Version
 -------
-3.4.0
+3.4
 
 Description
 -----------
@@ -228,6 +244,10 @@ The number of aggregation buckets is fixed to ``1000`` in v2. ``plugins.query.bu
 plugins.query.memory_limit
 ==========================
 
+Version
+-------
+1.0
+
 Description
 -----------
 
@@ -256,6 +276,10 @@ Result set::
 Thread Pool Settings
 ====================
 
+Version
+-------
+3.4
+
 The SQL plugin is integrated with the `OpenSearch Thread Pool Settings <https://docs.opensearch.org/latest/install-and-configure/configuring-opensearch/thread-pool-settings/>`_.
 There are two thread pools which can be configured on cluster setup via `settings.yml`::
 
@@ -276,6 +300,10 @@ A ``sql-worker`` thread may spawn multiple background threads.
 
 plugins.query.executionengine.spark.session.limit
 ==================================================
+
+Version
+-------
+2.12
 
 Description
 -----------
@@ -314,6 +342,10 @@ SQL query::
 plugins.query.executionengine.spark.refresh_job.limit
 =====================================================
 
+Version
+-------
+2.12
+
 Description
 -----------
 
@@ -351,6 +383,10 @@ SQL query::
 plugins.query.datasources.limit
 ===============================
 
+Version
+-------
+2.12
+
 Description
 -----------
 
@@ -383,6 +419,10 @@ SQL query::
 
 plugins.query.executionengine.spark.session_inactivity_timeout_millis
 =====================================================================
+
+Version
+-------
+2.12
 
 Description
 -----------
@@ -420,6 +460,10 @@ SQL query::
 plugins.query.executionengine.spark.auto_index_management.enabled
 =================================================================
 
+Version
+-------
+2.12
+
 Description
 -----------
 This setting controls the automatic management of request and result indices for each data source. When enabled, it
@@ -455,6 +499,10 @@ SQL query::
 
 plugins.query.executionengine.spark.session.index.ttl
 =====================================================
+
+Version
+-------
+2.12
 
 Description
 -----------
@@ -493,6 +541,10 @@ SQL query::
 plugins.query.executionengine.spark.result.index.ttl
 ====================================================
 
+Version
+-------
+2.12
+
 Description
 -----------
 This setting specifies the TTL for result indices when plugins.query.executionengine.spark.auto_index_management.enabled
@@ -529,6 +581,10 @@ SQL query::
 plugins.query.executionengine.async_query.enabled
 =================================================
 
+Version
+-------
+2.12
+
 Description
 -----------
 You can disable submit async query to reject all coming requests.
@@ -559,6 +615,10 @@ Request::
 
 plugins.query.executionengine.async_query.external_scheduler.enabled
 =====================================================================
+
+Version
+-------
+2.17
 
 Description
 -----------
@@ -595,6 +655,10 @@ Request ::
 plugins.query.executionengine.async_query.external_scheduler.interval
 =====================================================================
 
+Version
+-------
+2.17
+
 Description
 -----------
 This setting defines the interval at which the external scheduler applies for auto refresh queries. It optimizes Spark applications by allowing them to automatically decide whether to use the Spark scheduler or the external scheduler.
@@ -628,6 +692,10 @@ Request ::
 
 plugins.query.executionengine.spark.streamingjobs.housekeeper.interval
 ======================================================================
+
+Version
+-------
+2.13
 
 Description
 -----------
@@ -664,6 +732,10 @@ Request ::
 
 plugins.query.datasources.enabled
 =================================
+
+Version
+-------
+2.16
 
 Description
 -----------
@@ -745,6 +817,10 @@ To Re-enable Data Sources:::
 plugins.query.field_type_tolerance
 ==================================
 
+Version
+-------
+2.19
+
 Description
 -----------
 
@@ -804,6 +880,10 @@ first element of an array is returned, preserving the default behavior.
 plugins.calcite.enabled
 =======================
 
+Version
+-------
+3.0
+
 Description
 -----------
 
@@ -820,6 +900,10 @@ Check `join doc <../../ppl/cmd/join.rst>`_ for example.
 plugins.calcite.fallback.allowed
 ================================
 
+Version
+-------
+3.1
+
 Description
 -----------
 
@@ -831,6 +915,10 @@ If Calcite is enabled, you can use this setting to decide whether to allow fallb
 
 plugins.calcite.pushdown.enabled
 ================================
+
+Version
+-------
+3.1
 
 Description
 -----------
@@ -844,6 +932,10 @@ If Calcite is enabled, you can use this setting to decide whether to enable the 
 plugins.calcite.pushdown.rowcount.estimation.factor
 ===================================================
 
+Version
+-------
+3.1
+
 Description
 -----------
 
@@ -855,6 +947,10 @@ If Calcite pushdown optimization is enabled, this setting is used to estimate th
 
 plugins.calcite.all_join_types.allowed
 ======================================
+
+Version
+-------
+3.3
 
 Description
 -----------
