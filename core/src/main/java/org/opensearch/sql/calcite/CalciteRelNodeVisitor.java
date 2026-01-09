@@ -61,7 +61,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindowBounds;
-import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ArraySqlType;
@@ -3080,7 +3079,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     final int targetIndex = resolveTargetIndex(targetField, context);
     final String targetName = inputFieldNames.get(targetIndex);
 
-      // 3) Group by all fields except the target.
+    // 3) Group by all fields except the target.
     final List<RexNode> groupExprs =
         buildGroupExpressionsExcludingTarget(targetIndex, inputFieldNames, relBuilder);
 
