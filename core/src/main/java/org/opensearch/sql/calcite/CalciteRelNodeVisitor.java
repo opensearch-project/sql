@@ -3083,7 +3083,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     final List<RexNode> groupExprs =
         buildGroupExpressionsExcludingTarget(targetIndex, inputFieldNames, relBuilder);
 
-    // 4) Aggregate target values using COLLECT, filtering out NULLs (Splunk-like behavior).
+    // 4) Aggregate target values using COLLECT, filtering out NULLs.
     performCollectAggregation(relBuilder, targetIndex, targetName, groupExprs);
 
     // 5) Restore original output column order, and cast COLLECT's MULTISET output to ARRAY<T>.
