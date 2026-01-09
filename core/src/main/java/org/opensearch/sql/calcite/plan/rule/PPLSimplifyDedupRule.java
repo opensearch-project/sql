@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.plan.rule;
 
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.logical.LogicalFilter;
@@ -31,7 +32,7 @@ import org.opensearch.sql.calcite.utils.PlanUtils;
  *
  * becomes:
  * LogicalProject(...)
- * +- LogicalFilter(condition=[OR(IS NULL(a), IS NULL(b), <=(_row_number_dedup_, 1))])
+ * +- LogicalFilter(condition=[OR(IS NULL(a), IS NULL(b), <=(_row_number_dedup_, 2))])
  *    +- LogicalProject(..., _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY a, b ORDER BY a, b)])
  *
  * which is simplified to:
@@ -110,10 +111,10 @@ public class PPLSimplifyDedupRule extends RelRule<PPLSimplifyDedupRule.Config> {
     List<Pair<RexNode, String>> targetProjections =
         projectWithWindow.getNamedProjects().stream()
             .filter(p -> !p.getKey().isA(SqlKind.ROW_NUMBER))
-            .toList();
+            .collect(Collectors.toList());
     relBuilder.project(
-        targetProjections.stream().map(Pair::getKey).toList(),
-        targetProjections.stream().map(Pair::getValue).toList());
+        targetProjections.stream().map(Pair::getKey).collect(Collectors.toList()),
+        targetProjections.stream().map(Pair::getValue).collect(Collectors.toList()));
 
     LogicalDedup dedup =
         LogicalDedup.create(relBuilder.build(), dedupColumns, dedupNumber, false, false);

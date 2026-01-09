@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.plan.rule;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_DEDUP;
 
 import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rex.RexNode;
@@ -30,7 +31,7 @@ import org.opensearch.sql.calcite.plan.rel.LogicalDedup;
  * which is then converted to:
  *
  * LogicalProject(...)
- * +- LogicalFilter(condition=[OR(IS NULL(a), IS NULL(b), <=(_row_number_dedup_, 1))])
+ * +- LogicalFilter(condition=[OR(IS NULL(a), IS NULL(b), <=(_row_number_dedup_, 2))])
  *    +- LogicalProject(..., _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY a, b ORDER BY a, b)])
  * </pre>
  */
@@ -75,7 +76,8 @@ public class PPLDedupConvertRule extends RelRule<PPLDedupConvertRule.Config> {
     // Filter (isnull('a) OR isnull('b) OR '_row_number_dedup_ <= n)
     relBuilder.filter(
         relBuilder.or(
-            relBuilder.or(dedupeFields.stream().map(relBuilder::isNull).toList()),
+            relBuilder.or(
+                dedupeFields.stream().map(relBuilder::isNull).collect(Collectors.toList())),
             relBuilder.lessThanOrEqual(
                 _row_number_dedup_, relBuilder.literal(allowedDuplication))));
     // DropColumns('_row_number_dedup_)
@@ -94,7 +96,9 @@ public class PPLDedupConvertRule extends RelRule<PPLDedupConvertRule.Config> {
      */
     // Filter (isnotnull('a) AND isnotnull('b))
     String rowNumberAlias = ROW_NUMBER_COLUMN_FOR_DEDUP;
-    relBuilder.filter(relBuilder.and(dedupeFields.stream().map(relBuilder::isNotNull).toList()));
+    relBuilder.filter(
+        relBuilder.and(
+            dedupeFields.stream().map(relBuilder::isNotNull).collect(Collectors.toList())));
     // Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST,
     // specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_dedup_], ['a, 'b], ['a ASC
     // NULLS FIRST, 'b ASC NULLS FIRST]
