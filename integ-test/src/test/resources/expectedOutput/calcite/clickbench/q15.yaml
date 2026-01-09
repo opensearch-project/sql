@@ -5,7 +5,8 @@ calcite:
         LogicalProject(c=[$2], SearchEngineID=[$0], SearchPhrase=[$1])
           LogicalAggregate(group=[{0, 1}], c=[COUNT()])
             LogicalProject(SearchEngineID=[$65], SearchPhrase=[$63])
-              LogicalFilter(condition=[AND(<>($63, ''), IS NOT NULL($65))])
-                CalciteLogicalIndexScan(table=[[OpenSearch, hits]])
+              LogicalFilter(condition=[AND(IS NOT NULL($65), IS NOT NULL($63))])
+                LogicalFilter(condition=[<>($63, '')])
+                  CalciteLogicalIndexScan(table=[[OpenSearch, hits]])
   physical: |
     CalciteEnumerableIndexScan(table=[[OpenSearch, hits]], PushDownContext=[[FILTER->AND(<>($0, ''), IS NOT NULL($1)), AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0, 1},c=COUNT()), SORT_AGG_METRICS->[2 DESC LAST], PROJECT->[c, SearchEngineID, SearchPhrase], LIMIT->10, LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","query":{"bool":{"must":[{"bool":{"must":[{"exists":{"field":"SearchPhrase","boost":1.0}}],"must_not":[{"term":{"SearchPhrase":{"value":"","boost":1.0}}}],"adjust_pure_negative":true,"boost":1.0}},{"exists":{"field":"SearchEngineID","boost":1.0}}],"adjust_pure_negative":true,"boost":1.0}},"aggregations":{"SearchPhrase|SearchEngineID":{"multi_terms":{"terms":[{"field":"SearchPhrase"},{"field":"SearchEngineID"}],"size":10,"min_doc_count":1,"shard_min_doc_count":0,"show_term_doc_count_error":false,"order":[{"_count":"desc"},{"_key":"asc"}]}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

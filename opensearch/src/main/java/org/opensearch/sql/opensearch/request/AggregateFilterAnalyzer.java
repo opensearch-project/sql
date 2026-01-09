@@ -31,13 +31,13 @@ public class AggregateFilterAnalyzer {
    *
    * @param aggResult the base aggregation and parser to potentially wrap with filter
    * @param aggCall the aggregate call which may contain filter information
-   * @param aggFieldName name for the filtered aggregation
+   * @param aggName name for the filtered aggregation
    * @return wrapped aggregation with filter if present, otherwise the original result
    * @throws PredicateAnalyzer.ExpressionNotAnalyzableException if filter condition cannot be
    *     analyzed
    */
   public Pair<AggregationBuilder, MetricParser> analyze(
-      Pair<AggregationBuilder, MetricParser> aggResult, AggregateCall aggCall, String aggFieldName)
+      Pair<AggregationBuilder, MetricParser> aggResult, AggregateCall aggCall, String aggName)
       throws PredicateAnalyzer.ExpressionNotAnalyzableException {
     if (project == null || !aggCall.hasFilter()) {
       return aggResult;
@@ -45,8 +45,8 @@ public class AggregateFilterAnalyzer {
 
     QueryExpression queryExpression = analyzeAggregateFilter(aggCall);
     return Pair.of(
-        buildFilterAggregation(aggResult.getLeft(), aggFieldName, queryExpression),
-        buildFilterParser(aggResult.getRight(), aggFieldName));
+        buildFilterAggregation(aggResult.getLeft(), aggName, queryExpression),
+        buildFilterParser(aggResult.getRight(), aggName));
   }
 
   private QueryExpression analyzeAggregateFilter(AggregateCall aggCall)
@@ -61,12 +61,12 @@ public class AggregateFilterAnalyzer {
   }
 
   private AggregationBuilder buildFilterAggregation(
-      AggregationBuilder aggBuilder, String aggFieldName, QueryExpression queryExpression) {
-    return AggregationBuilders.filter(aggFieldName, queryExpression.builder())
+      AggregationBuilder aggBuilder, String aggName, QueryExpression queryExpression) {
+    return AggregationBuilders.filter(aggName, queryExpression.builder())
         .subAggregation(aggBuilder);
   }
 
-  private MetricParser buildFilterParser(MetricParser aggParser, String aggFieldName) {
-    return FilterParser.builder().name(aggFieldName).metricsParser(aggParser).build();
+  private MetricParser buildFilterParser(MetricParser aggParser, String aggName) {
+    return FilterParser.builder().name(aggName).metricsParser(aggParser).build();
   }
 }

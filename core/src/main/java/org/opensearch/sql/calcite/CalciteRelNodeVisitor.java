@@ -14,8 +14,8 @@ import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
-import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_DEDUP;
-import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_JOIN_MAX_DEDUP;
+import static org.opensearch.sql.calcite.plan.rule.PPLDedupConvertRule.buildDedupNotNull;
+import static org.opensearch.sql.calcite.plan.rule.PPLDedupConvertRule.buildDedupOrNull;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_MAIN;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_RARE_TOP;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_STREAMSTATS;
@@ -153,11 +153,12 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
-import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
-import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
+import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
+import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.utils.BinUtils;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
+import org.opensearch.sql.calcite.utils.PPLHintUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.WildcardUtils;
@@ -956,13 +957,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
    * @param groupExprList group by expression list
    * @param aggExprList aggregate expression list
    * @param context CalcitePlanContext
+   * @param hintIgnoreNullBucket true if bucket_nullable=false
    * @return Pair of (group-by list, field list, aggregate list)
    */
   private Pair<List<RexNode>, List<AggCall>> aggregateWithTrimming(
       List<UnresolvedExpression> groupExprList,
       List<UnresolvedExpression> aggExprList,
       CalcitePlanContext context,
-      boolean hintBucketNonNull) {
+      boolean hintIgnoreNullBucket) {
     Pair<List<RexNode>, List<AggCall>> resolved =
         resolveAttributesForAggregation(groupExprList, aggExprList, context);
     List<RexNode> resolvedGroupByList = resolved.getLeft();
@@ -1054,7 +1056,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     //           \- Scan t
     List<RexInputRef> trimmedRefs = new ArrayList<>();
     trimmedRefs.addAll(PlanUtils.getInputRefs(resolvedGroupByList)); // group-by keys first
-    trimmedRefs.addAll(PlanUtils.getInputRefsFromAggCall(resolvedAggCallList));
+    List<RexInputRef> aggCallRefs = PlanUtils.getInputRefsFromAggCall(resolvedAggCallList);
+    boolean hintNestedAgg = containsNestedAggregator(context.relBuilder, aggCallRefs);
+    trimmedRefs.addAll(aggCallRefs);
     context.relBuilder.project(trimmedRefs);
 
     // Re-resolve all attributes based on adding trimmed Project.
@@ -1066,13 +1070,25 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<String> intendedGroupKeyAliases = getGroupKeyNamesAfterAggregation(reResolved.getLeft());
     context.relBuilder.aggregate(
         context.relBuilder.groupKey(reResolved.getLeft()), reResolved.getRight());
-    if (hintBucketNonNull) PlanUtils.addIgnoreNullBucketHintToAggregate(context.relBuilder);
+    if (hintIgnoreNullBucket) PPLHintUtils.addIgnoreNullBucketHintToAggregate(context.relBuilder);
+    if (hintNestedAgg) PPLHintUtils.addNestedAggCallHintToAggregate(context.relBuilder);
     // During aggregation, Calcite projects both input dependencies and output group-by fields.
     // When names conflict, Calcite adds numeric suffixes (e.g., "value0").
     // Apply explicit renaming to restore the intended aliases.
     context.relBuilder.rename(intendedGroupKeyAliases);
 
     return Pair.of(reResolved.getLeft(), reResolved.getRight());
+  }
+
+  /**
+   * Return true if the aggCalls contains a nested field. For example: aggCalls: [count(),
+   * count(a.b)] returns true.
+   */
+  private boolean containsNestedAggregator(RelBuilder relBuilder, List<RexInputRef> aggCallRefs) {
+    return aggCallRefs.stream()
+        .map(r -> relBuilder.peek().getRowType().getFieldNames().get(r.getIndex()))
+        .map(name -> org.apache.commons.lang3.StringUtils.substringBefore(name, "."))
+        .anyMatch(root -> relBuilder.field(root).getType().getSqlTypeName() == SqlTypeName.ARRAY);
   }
 
   /**
@@ -1180,8 +1196,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     groupExprList.addAll(node.getGroupExprList());
 
-    // Add stats hint to LogicalAggregation.
-    boolean toAddHintsOnAggregate =
+    // Add a hint to LogicalAggregation when bucket_nullable=false.
+    boolean hintIgnoreNullBucket =
         !groupExprList.isEmpty()
             // This checks if all group-bys should be nonnull
             && nonNullGroupMask.nextClearBit(0) >= groupExprList.size();
@@ -1201,14 +1217,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .filter(nonNullGroupMask::get)
             .mapToObj(nonNullCandidates::get)
             .toList();
-    context.relBuilder.filter(
-        PlanUtils.getSelectColumns(nonNullFields).stream()
-            .map(context.relBuilder::field)
-            .map(context.relBuilder::isNotNull)
-            .toList());
+    if (!nonNullFields.isEmpty()) {
+      context.relBuilder.filter(
+          PlanUtils.getSelectColumns(nonNullFields).stream()
+              .map(context.relBuilder::field)
+              .map(context.relBuilder::isNotNull)
+              .toList());
+    }
 
     Pair<List<RexNode>, List<AggCall>> aggregationAttributes =
-        aggregateWithTrimming(groupExprList, aggExprList, context, toAddHintsOnAggregate);
+        aggregateWithTrimming(groupExprList, aggExprList, context, hintIgnoreNullBucket);
 
     // schema reordering
     List<RexNode> outputFields = context.relBuilder.fields();
@@ -1319,7 +1337,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 : duplicatedFieldNames.stream()
                     .map(a -> (RexNode) context.relBuilder.field(a))
                     .toList();
-        buildDedupNotNull(context, dedupeFields, allowedDuplication, true);
+        buildDedupNotNull(context.relBuilder, dedupeFields, allowedDuplication);
       }
       // add LogicalSystemLimit after dedup
       addSysLimitForJoinSubsearch(context);
@@ -1377,7 +1395,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         List<RexNode> dedupeFields =
             getRightColumnsInJoinCriteria(context.relBuilder, joinCondition);
 
-        buildDedupNotNull(context, dedupeFields, allowedDuplication, true);
+        buildDedupNotNull(context.relBuilder, dedupeFields, allowedDuplication);
       }
       // add LogicalSystemLimit after dedup
       addSysLimitForJoinSubsearch(context);
@@ -1554,79 +1572,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<RexNode> dedupeFields =
         node.getFields().stream().map(f -> rexVisitor.analyze(f, context)).toList();
     if (keepEmpty) {
-      buildDedupOrNull(context, dedupeFields, allowedDuplication);
+      buildDedupOrNull(context.relBuilder, dedupeFields, allowedDuplication);
     } else {
-      buildDedupNotNull(context, dedupeFields, allowedDuplication, false);
+      buildDedupNotNull(context.relBuilder, dedupeFields, allowedDuplication);
     }
     return context.relBuilder.peek();
-  }
-
-  private static void buildDedupOrNull(
-      CalcitePlanContext context, List<RexNode> dedupeFields, Integer allowedDuplication) {
-    /*
-     * | dedup 2 a, b keepempty=true
-     * LogicalProject(...)
-     * +- LogicalFilter(condition=[OR(IS NULL(a), IS NULL(b), <=(_row_number_dedup_, 1))])
-     *    +- LogicalProject(..., _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY a, b ORDER BY a, b)])
-     *        +- ...
-     */
-    RexNode rowNumber =
-        context
-            .relBuilder
-            .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
-            .over()
-            .partitionBy(dedupeFields)
-            .rowsTo(RexWindowBounds.CURRENT_ROW)
-            .as(ROW_NUMBER_COLUMN_FOR_DEDUP);
-    context.relBuilder.projectPlus(rowNumber);
-    RexNode _row_number_dedup_ = context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_DEDUP);
-    // Filter (isnull('a) OR isnull('b) OR '_row_number_dedup_ <= n)
-    context.relBuilder.filter(
-        context.relBuilder.or(
-            context.relBuilder.or(dedupeFields.stream().map(context.relBuilder::isNull).toList()),
-            context.relBuilder.lessThanOrEqual(
-                _row_number_dedup_, context.relBuilder.literal(allowedDuplication))));
-    // DropColumns('_row_number_dedup_)
-    context.relBuilder.projectExcept(_row_number_dedup_);
-  }
-
-  private static void buildDedupNotNull(
-      CalcitePlanContext context,
-      List<RexNode> dedupeFields,
-      Integer allowedDuplication,
-      boolean fromJoinMaxOption) {
-    /*
-     * | dedup 2 a, b keepempty=false
-     * LogicalProject(...)
-     * +- LogicalFilter(condition=[<=(_row_number_dedup_, n)]))
-     *    +- LogicalProject(..., _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY a, b ORDER BY a, b)])
-     *        +- LogicalFilter(condition=[AND(IS NOT NULL(a), IS NOT NULL(b))])
-     *           +- ...
-     */
-    // Filter (isnotnull('a) AND isnotnull('b))
-    String rowNumberAlias =
-        fromJoinMaxOption ? ROW_NUMBER_COLUMN_FOR_JOIN_MAX_DEDUP : ROW_NUMBER_COLUMN_FOR_DEDUP;
-    context.relBuilder.filter(
-        context.relBuilder.and(dedupeFields.stream().map(context.relBuilder::isNotNull).toList()));
-    // Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST,
-    // specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_dedup_], ['a, 'b], ['a ASC
-    // NULLS FIRST, 'b ASC NULLS FIRST]
-    RexNode rowNumber =
-        context
-            .relBuilder
-            .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
-            .over()
-            .partitionBy(dedupeFields)
-            .rowsTo(RexWindowBounds.CURRENT_ROW)
-            .as(rowNumberAlias);
-    context.relBuilder.projectPlus(rowNumber);
-    RexNode rowNumberField = context.relBuilder.field(rowNumberAlias);
-    // Filter ('_row_number_dedup_ <= n)
-    context.relBuilder.filter(
-        context.relBuilder.lessThanOrEqual(
-            rowNumberField, context.relBuilder.literal(allowedDuplication)));
-    // DropColumns('_row_number_dedup_)
-    context.relBuilder.projectExcept(rowNumberField);
   }
 
   @Override
@@ -2415,9 +2365,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // if usenull=false, add a isNotNull before Aggregate and the hint to this Aggregate
     Boolean bucketNullable = (Boolean) argumentMap.get(RareTopN.Option.useNull.name()).getValue();
-    boolean toAddHintsOnAggregate = false;
+    boolean hintIgnoreNullBucket = false;
     if (!bucketNullable && !groupExprList.isEmpty()) {
-      toAddHintsOnAggregate = true;
+      hintIgnoreNullBucket = true;
       // add isNotNull filter before aggregation to filter out null bucket
       List<RexNode> groupByList =
           groupExprList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
@@ -2427,7 +2377,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
               .map(context.relBuilder::isNotNull)
               .toList());
     }
-    aggregateWithTrimming(groupExprList, aggExprList, context, toAddHintsOnAggregate);
+    aggregateWithTrimming(groupExprList, aggExprList, context, hintIgnoreNullBucket);
 
     // 2. add count() column with sort direction
     List<RexNode> partitionKeys = rexVisitor.analyze(node.getGroupExprList(), context);

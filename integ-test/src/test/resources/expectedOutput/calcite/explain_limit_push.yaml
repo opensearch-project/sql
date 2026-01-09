@@ -5,5 +5,5 @@ calcite:
         LogicalProject(ageMinus=[-($8, 30)])
           CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=[-($t0, $t1)], $f0=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=[-($t0, $t1)], ageMinus=[$t2])
       CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[age], LIMIT->5, LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":5,"timeout":"1m","_source":{"includes":["age"],"excludes":[]}}, requestedTotalSize=5, pageSize=null, startFrom=0)])

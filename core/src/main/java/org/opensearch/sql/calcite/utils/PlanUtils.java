@@ -35,8 +35,6 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
-import org.apache.calcite.rel.hint.RelHint;
-import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
@@ -61,7 +59,6 @@ import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
-import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.IntervalUnit;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.WindowBound;
@@ -77,7 +74,6 @@ public interface PlanUtils {
   /** this is only for dedup command, do not reuse it in other command */
   String ROW_NUMBER_COLUMN_FOR_DEDUP = "_row_number_dedup_";
 
-  String ROW_NUMBER_COLUMN_FOR_JOIN_MAX_DEDUP = "_row_number_join_max_dedup_";
   String ROW_NUMBER_COLUMN_FOR_RARE_TOP = "_row_number_rare_top_";
   String ROW_NUMBER_COLUMN_FOR_MAIN = "_row_number_main_";
   String ROW_NUMBER_COLUMN_FOR_SUBSEARCH = "_row_number_subsearch_";
@@ -465,13 +461,10 @@ public interface PlanUtils {
     return rexNode;
   }
 
-  /** Check if contains dedup */
+  /** Check if contains dedup, it should be put in the last position */
   static boolean containsRowNumberDedup(RelNode node) {
-    return node.getRowType().getFieldNames().stream()
-        .anyMatch(
-            name ->
-                name.equals(ROW_NUMBER_COLUMN_FOR_DEDUP)
-                    || name.equals(ROW_NUMBER_COLUMN_FOR_JOIN_MAX_DEDUP));
+    List<String> fieldNames = node.getRowType().getFieldNames();
+    return fieldNames.get(fieldNames.size() - 1).equals(ROW_NUMBER_COLUMN_FOR_DEDUP);
   }
 
   /** Check if contains dedup for top/rare */
@@ -609,15 +602,6 @@ public interface PlanUtils {
     }
   }
 
-  static void addIgnoreNullBucketHintToAggregate(RelBuilder relBuilder) {
-    final RelHint statHits =
-        RelHint.builder("stats_args").hintOption(Argument.BUCKET_NULLABLE, "false").build();
-    assert relBuilder.peek() instanceof LogicalAggregate
-        : "Stats hits should be added to LogicalAggregate";
-    relBuilder.hints(statHits);
-    relBuilder.getCluster().setHintStrategies(PPLHintStrategyTable.getHintStrategyTable());
-  }
-
   /** Extract the RexLiteral from the aggregate call if the aggregate call is a LITERAL_AGG. */
   static @Nullable RexLiteral getObjectFromLiteralAgg(AggregateCall aggCall) {
     if (aggCall.getAggregation().kind == SqlKind.LITERAL_AGG) {
@@ -654,13 +638,7 @@ public interface PlanUtils {
         && rexCall.getOperands().get(0) instanceof RexInputRef;
   }
 
-  Predicate<Aggregate> aggIgnoreNullBucket =
-      agg ->
-          agg.getHints().stream()
-              .anyMatch(
-                  hint ->
-                      hint.hintName.equals("stats_args")
-                          && hint.kvOptions.get(Argument.BUCKET_NULLABLE).equals("false"));
+  Predicate<Aggregate> aggIgnoreNullBucket = PPLHintUtils::ignoreNullBucket;
 
   Predicate<Aggregate> maybeTimeSpanAgg =
       agg ->

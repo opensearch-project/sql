@@ -65,7 +65,9 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
                         TEST_INDEX_BANK)));
 
     verifyErrorMessageContains(
-        e, "Cannot infer return type for array; operand types: [INTEGER, BOOLEAN]");
+        e,
+        "fail to create array with fixed type: At line 0, column 0: Cannot infer return type for"
+            + " array; operand types: [INTEGER, BOOLEAN]");
   }
 
   @Test

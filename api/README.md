@@ -4,12 +4,18 @@ This module provides a high-level integration layer for the Calcite-based query 
 
 ## Overview
 
-This module provides two primary components:
+This module provides components organized into two main areas aligned with the [Unified Query API architecture](https://github.com/opensearch-project/sql/issues/4782):
+
+### Unified Language Specification
 
 - **`UnifiedQueryPlanner`**: Accepts PPL (Piped Processing Language) queries and returns Calcite `RelNode` logical plans as intermediate representation.
 - **`UnifiedQueryTranspiler`**: Converts Calcite logical plans (`RelNode`) into SQL strings for various target databases using different SQL dialects.
 
-Together, these components enable a complete workflow: parse PPL queries into logical plans, then transpile those plans into target database SQL.
+### Unified Execution Runtime
+
+- **`UnifiedQueryCompiler`**: Compiles Calcite logical plans (`RelNode`) into executable JDBC `PreparedStatement` objects for separation of compilation and execution.
+
+Together, these components enable complete workflows: parse PPL queries into logical plans, transpile those plans into target database SQL, or compile and execute queries directly for testing and conformance validation.
 
 ### Experimental API Design
 
@@ -59,39 +65,62 @@ UnifiedQueryTranspiler transpiler = UnifiedQueryTranspiler.builder()
 String sql = transpiler.toSql(plan);
 ```
 
-### Complete Workflow Example
-
-Combining all components to transpile PPL queries into target database SQL:
-
-```java
-// Step 1: Create reusable context (shared across components)
-UnifiedQueryContext context = UnifiedQueryContext.builder()
-    .language(QueryType.PPL)
-    .catalog("catalog", schema)
-    .defaultNamespace("catalog")
-    .build();
-
-// Step 2: Create planner with context
-UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
-
-// Step 3: Plan PPL query into logical plan
-RelNode plan = planner.plan("source = employees | where age > 30");
-
-// Step 4: Create transpiler with target dialect
-UnifiedQueryTranspiler transpiler = UnifiedQueryTranspiler.builder()
-    .dialect(SparkSqlDialect.DEFAULT)
-    .build();
-
-// Step 5: Transpile to target SQL
-String sparkSql = transpiler.toSql(plan);
-// Result: SELECT * FROM `catalog`.`employees` WHERE `age` > 30
-```
-
 Supported SQL dialects include:
 - `SparkSqlDialect.DEFAULT` - Apache Spark SQL
 - `PostgresqlSqlDialect.DEFAULT` - PostgreSQL
 - `MysqlSqlDialect.DEFAULT` - MySQL
 - And other Calcite-supported dialects
+
+### UnifiedQueryCompiler
+
+Use `UnifiedQueryCompiler` to compile Calcite logical plans into executable JDBC statements. This separates compilation from execution and returns standard JDBC types.
+
+```java
+UnifiedQueryCompiler compiler = new UnifiedQueryCompiler(context);
+
+try (PreparedStatement statement = compiler.compile(plan)) {
+    ResultSet rs = statement.executeQuery();
+    while (rs.next()) {
+        // Standard JDBC ResultSet access
+    }
+}
+```
+
+### Complete Workflow Examples
+
+Combining all components for a complete PPL query workflow:
+
+```java
+// Step 1: Create reusable context (shared across all components)
+try (UnifiedQueryContext context = UnifiedQueryContext.builder()
+    .language(QueryType.PPL)
+    .catalog("catalog", schema)
+    .defaultNamespace("catalog")
+    .build()) {
+
+  // Step 2: Create planner with context
+  UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
+
+  // Step 3: Plan PPL query into logical plan
+  RelNode plan = planner.plan("source = employees | where age > 30");
+
+  // Option A: Transpile to target SQL
+  UnifiedQueryTranspiler transpiler = UnifiedQueryTranspiler.builder()
+      .dialect(SparkSqlDialect.DEFAULT)
+      .build();
+  String sparkSql = transpiler.toSql(plan);
+  // Result: SELECT * FROM `catalog`.`employees` WHERE `age` > 30
+
+  // Option B: Compile and execute directly
+  UnifiedQueryCompiler compiler = new UnifiedQueryCompiler(context);
+  try (PreparedStatement statement = compiler.compile(plan)) {
+      ResultSet rs = statement.executeQuery();
+      while (rs.next()) {
+          // Process results with standard JDBC
+      }
+  }
+}
+```
 
 ## Development & Testing
 

@@ -737,7 +737,11 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   public void testSpanByImplicitTimestamp() throws IOException {
     JSONObject result = executeQuery("source=big5 | stats count() by span(1d) as span");
     verifySchema(result, schema("count()", "bigint"), schema("span", "timestamp"));
-    verifyDataRows(result, rows(1, "2023-01-02 00:00:00"));
+    verifyDataRows(
+        result,
+        rows(1, "2023-01-02 00:00:00"),
+        rows(1, "2023-03-01 00:00:00"),
+        rows(1, "2023-05-01 00:00:00"));
 
     Throwable t =
         assertThrowsWithReplace(

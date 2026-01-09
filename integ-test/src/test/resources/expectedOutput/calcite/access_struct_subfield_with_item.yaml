@@ -1,8 +1,8 @@
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalProject(host=[$0], info=[GEOIP('dummy-datasource', $0)], info.dummy_sub_field=[ITEM(GEOIP('dummy-datasource', $0), 'dummy_sub_field')])
+      LogicalProject(host=[$0], info=[GEOIP('dummy-datasource':VARCHAR, $0)], info.dummy_sub_field=[ITEM(GEOIP('dummy-datasource':VARCHAR, $0), 'dummy_sub_field')])
         CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_weblogs]])
   physical: |
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['dummy-datasource'], expr#2=[GEOIP($t1, $t0)], expr#3=['dummy_sub_field'], expr#4=[ITEM($t2, $t3)], host=[$t0], $f1=[$t2], $f2=[$t4])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['dummy-datasource':VARCHAR], expr#2=[GEOIP($t1, $t0)], expr#3=['dummy_sub_field'], expr#4=[ITEM($t2, $t3)], host=[$t0], info=[$t2], info.dummy_sub_field=[$t4])
       CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_weblogs]], PushDownContext=[[PROJECT->[host], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10000,"timeout":"1m","_source":{"includes":["host"],"excludes":[]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])

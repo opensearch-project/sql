@@ -1,0 +1,9 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalAggregate(group=[{}], count(address.area)=[COUNT($0)])
+        LogicalProject(address.area=[$2])
+          LogicalFilter(condition=[IS NOT NULL($2)])
+            CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_nested_simple]])
+  physical: |
+    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_nested_simple]], PushDownContext=[[FILTER->IS NOT NULL($0), AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={},count(address.area)=COUNT($0)), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","query":{"nested":{"query":{"exists":{"field":"address.area","boost":1.0}},"path":"address","ignore_unmapped":false,"score_mode":"none","boost":1.0}},"aggregations":{"nested_count(address.area)":{"nested":{"path":"address"},"aggregations":{"count(address.area)":{"value_count":{"field":"address.area"}}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

@@ -25,9 +25,9 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.tools.FrameworkConfig;
-import org.apache.calcite.tools.RelBuilder;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
+import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelBuilder;
 import org.opensearch.sql.calcite.validate.OpenSearchSparkSqlDialect;
 import org.opensearch.sql.calcite.validate.PplTypeCoercion;
 import org.opensearch.sql.calcite.validate.PplTypeCoercionRule;
@@ -41,7 +41,7 @@ public class CalcitePlanContext {
 
   public FrameworkConfig config;
   public final Connection connection;
-  public final RelBuilder relBuilder;
+  public final OpenSearchRelBuilder relBuilder;
   public final ExtendedRexBuilder rexBuilder;
   public final FunctionProperties functionProperties;
   public final QueryType queryType;

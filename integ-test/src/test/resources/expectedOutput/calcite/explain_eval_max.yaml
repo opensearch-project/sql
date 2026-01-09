@@ -1,8 +1,8 @@
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], new=[SCALAR_MAX(1, 2, 3, $8, 'banana')])
+      LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], new=[SCALAR_MAX(1, 2, 3, $8, 'banana':VARCHAR)])
         CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
-    EnumerableCalc(expr#0..10=[{inputs}], expr#11=[1], expr#12=[2], expr#13=[3], expr#14=['banana'], expr#15=[SCALAR_MAX($t11, $t12, $t13, $t8, $t14)], proj#0..10=[{exprs}], $f11=[$t15])
+    EnumerableCalc(expr#0..10=[{inputs}], expr#11=[1], expr#12=[2], expr#13=[3], expr#14=['banana':VARCHAR], expr#15=[SCALAR_MAX($t11, $t12, $t13, $t8, $t14)], proj#0..10=[{exprs}], new=[$t15])
       CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[account_number, firstname, address, balance, gender, city, employer, state, age, email, lastname], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10000,"timeout":"1m","_source":{"includes":["account_number","firstname","address","balance","gender","city","employer","state","age","email","lastname"],"excludes":[]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])

@@ -15,9 +15,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelTraitDef;
-import org.apache.calcite.plan.hep.HepPlanner;
-import org.apache.calcite.plan.hep.HepProgram;
-import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
@@ -26,7 +23,6 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
 import org.apache.calcite.rel.rel2sql.SqlImplementor;
-import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
@@ -44,9 +40,8 @@ import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.calcite.OpenSearchSchema;
 import org.opensearch.sql.calcite.SysLimit;
-import org.opensearch.sql.calcite.plan.LogicalSystemLimit;
-import org.opensearch.sql.calcite.plan.LogicalSystemLimit.SystemLimitType;
-import org.opensearch.sql.calcite.utils.PPLHintStrategyTable;
+import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
+import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.validate.OpenSearchSparkSqlDialect;
 import org.opensearch.sql.calcite.validate.PplConvertletTable;
 import org.opensearch.sql.calcite.validate.ValidationUtils;
@@ -57,10 +52,15 @@ import org.opensearch.sql.calcite.validate.shuttles.SkipRelValidationShuttle;
 import org.opensearch.sql.calcite.validate.shuttles.SqlRewriteShuttle;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.NonFallbackCalciteException;
+import org.opensearch.sql.monitor.profile.MetricName;
+import org.opensearch.sql.monitor.profile.ProfileContext;
+import org.opensearch.sql.monitor.profile.ProfileMetric;
+import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.Planner;
 import org.opensearch.sql.planner.logical.LogicalPaginate;
@@ -72,9 +72,6 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 @AllArgsConstructor
 @Log4j2
 public class QueryService {
-  private static final HepProgram FILTER_MERGE_PROGRAM =
-      new HepProgramBuilder().addRuleInstance(FilterMergeRule.Config.DEFAULT.toRule()).build();
-
   private final Analyzer analyzer;
   private final ExecutionEngine executionEngine;
   private final Planner planner;
@@ -116,14 +113,17 @@ public class QueryService {
     CalcitePlanContext.run(
         () -> {
           try {
+            ProfileContext profileContext =
+                QueryProfiling.activate(QueryContext.isProfileEnabled());
+            ProfileMetric analyzeMetric = profileContext.getOrCreateMetric(MetricName.ANALYZE);
+            long analyzeStart = System.nanoTime();
             CalcitePlanContext context =
                 CalcitePlanContext.create(
                     buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
             RelNode relNode = analyze(plan, context);
-            relNode = mergeAdjacentFilters(relNode);
             RelNode validated = validate(relNode, context);
-            RelNode optimized = optimize(validated, context);
-            RelNode calcitePlan = convertToCalcitePlan(optimized);
+            RelNode calcitePlan = convertToCalcitePlan(validated, context);
+            analyzeMetric.set(System.nanoTime() - analyzeStart);
             executionEngine.execute(calcitePlan, context, listener);
           } catch (Throwable t) {
             if (isCalciteFallbackAllowed(t) && !(t instanceof NonFallbackCalciteException)) {
@@ -156,16 +156,15 @@ public class QueryService {
     CalcitePlanContext.run(
         () -> {
           try {
+            QueryProfiling.noop();
             CalcitePlanContext context =
                 CalcitePlanContext.create(
                     buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
             context.run(
                 () -> {
                   RelNode relNode = analyze(plan, context);
-                  relNode = mergeAdjacentFilters(relNode);
                   RelNode validated = validate(relNode, context);
-                  RelNode optimized = optimize(validated, context);
-                  RelNode calcitePlan = convertToCalcitePlan(optimized);
+                  RelNode calcitePlan = convertToCalcitePlan(validated, context);
                   executionEngine.explain(calcitePlan, format, context, listener);
                 },
                 settings);
@@ -276,16 +275,6 @@ public class QueryService {
     return getRelNodeVisitor().analyze(plan, context);
   }
 
-  /**
-   * Run Calcite FILTER_MERGE once so adjacent filters created during analysis can collapse before
-   * the rest of optimization.
-   */
-  private RelNode mergeAdjacentFilters(RelNode relNode) {
-    HepPlanner planner = new HepPlanner(FILTER_MERGE_PROGRAM);
-    planner.setRoot(relNode);
-    return planner.findBestExp();
-  }
-
   /** Analyze {@link UnresolvedPlan}. */
   public LogicalPlan analyze(UnresolvedPlan plan, QueryType queryType) {
     return analyzer.analyze(plan, new AnalysisContext(queryType));
@@ -337,7 +326,7 @@ public class QueryService {
             .withAddJsonTypeOperatorEnabled(false)
             // Set hint strategy so that hints can be properly propagated.
             // See SqlToRelConverter.java#convertSelectImpl
-            .withHintStrategyTable(PPLHintStrategyTable.getHintStrategyTable());
+            .withHintStrategyTable(context.relBuilder.getCluster().getHintStrategies());
     SqlToRelConverter sql2rel =
         new PplSqlToRelConverter(
             context.config.getViewExpander(),
@@ -354,17 +343,6 @@ public class QueryService {
   /** Translate {@link LogicalPlan} to {@link PhysicalPlan}. */
   public PhysicalPlan plan(LogicalPlan plan) {
     return planner.plan(plan);
-  }
-
-  /**
-   * Try to optimize the plan by appending a limit operator for QUERY_SIZE_LIMIT Don't add for
-   * `EXPLAIN` to avoid changing its output plan.
-   */
-  public RelNode optimize(RelNode plan, CalcitePlanContext context) {
-    return LogicalSystemLimit.create(
-        SystemLimitType.QUERY_SIZE_LIMIT,
-        plan,
-        context.relBuilder.literal(context.sysLimit.querySizeLimit()));
   }
 
   private boolean isCalciteFallbackAllowed(@Nullable Throwable t) {
@@ -420,9 +398,15 @@ public class QueryService {
    * are some differences in the topological structures or semantics between them.
    *
    * @param osPlan Logical Plan derived from OpenSearch PPL
+   * @param context Calcite context
    */
-  private static RelNode convertToCalcitePlan(RelNode osPlan) {
-    RelNode calcitePlan = osPlan;
+  private static RelNode convertToCalcitePlan(RelNode osPlan, CalcitePlanContext context) {
+    // Explicitly add a limit operator to enforce query size limit
+    RelNode calcitePlan =
+        LogicalSystemLimit.create(
+            SystemLimitType.QUERY_SIZE_LIMIT,
+            osPlan,
+            context.relBuilder.literal(context.sysLimit.querySizeLimit()));
     /* Calcite only ensures collation of the final result produced from the root sort operator.
      * While we expect that the collation can be preserved through the pipes over PPL, we need to
      * explicitly add a sort operator on top of the original plan
@@ -430,9 +414,9 @@ public class QueryService {
      * See logic in ${@link CalcitePrepareImpl}
      * For the redundant sort, we rely on Calcite optimizer to eliminate
      */
-    RelCollation collation = osPlan.getTraitSet().getCollation();
-    if (!(osPlan instanceof Sort) && collation != RelCollations.EMPTY) {
-      calcitePlan = LogicalSort.create(osPlan, collation, null, null);
+    RelCollation collation = calcitePlan.getTraitSet().getCollation();
+    if (!(calcitePlan instanceof Sort) && collation != RelCollations.EMPTY) {
+      calcitePlan = LogicalSort.create(calcitePlan, collation, null, null);
     }
     return calcitePlan;
   }
