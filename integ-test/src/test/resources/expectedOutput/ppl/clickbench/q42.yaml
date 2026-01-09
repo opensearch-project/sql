@@ -28,7 +28,7 @@ root:
               DontCountHits\":{\"value\":0,\"boost\":1.0}}}],\"adjust_pure_negative\"\
               :true,\"boost\":1.0}},{\"term\":{\"URLHash\":{\"value\":2868770270353813622,\"\
               boost\":1.0}}}],\"adjust_pure_negative\":true,\"boost\":1.0}},\"aggregations\"\
-              :{\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\":[{\"\
+              :{\"composite_buckets\":{\"composite\":{\"size\":10000,\"sources\":[{\"\
               WindowClientWidth\":{\"terms\":{\"field\":\"WindowClientWidth\",\"missing_bucket\"\
               :false,\"order\":\"asc\"}}},{\"WindowClientHeight\":{\"terms\":{\"field\"\
               :\"WindowClientHeight\",\"missing_bucket\":false,\"order\":\"asc\"}}}]},\"\

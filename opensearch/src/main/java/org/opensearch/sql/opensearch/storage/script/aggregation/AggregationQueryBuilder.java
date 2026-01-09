@@ -44,7 +44,7 @@ import org.opensearch.sql.opensearch.storage.serde.ExpressionSerializer;
 @RequiredArgsConstructor
 public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBuilder, Object> {
 
-  /** How many composite buckets should be returned. */
+  /** How many composite buckets should be returned (default). */
   public static final int AGGREGATION_BUCKET_SIZE = 1000;
 
   /** Composite Aggregation builder for multiple buckets. */
@@ -53,10 +53,19 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
   /** Metric Aggregation builder. */
   private final MetricAggregationBuilder metricBuilder;
 
+  /** Configured bucket size for this query. */
+  private final int queryBucketSize;
+
   /** Aggregation Query Builder Constructor. */
   public AggregationQueryBuilder(ExpressionSerializer serializer) {
+    this(serializer, AGGREGATION_BUCKET_SIZE);
+  }
+
+  /** Aggregation Query Builder Constructor with custom bucket size. */
+  public AggregationQueryBuilder(ExpressionSerializer serializer, int queryBucketSize) {
     this.compositeBuilder = new CompositeAggregationBuilder(serializer);
     this.metricBuilder = new MetricAggregationBuilder(serializer);
+    this.queryBucketSize = queryBucketSize;
   }
 
   /** Build AggregationBuilder. */
@@ -94,7 +103,7 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
                               .collect(Collectors.toList()),
                           bucketNullable))
                   .subAggregations(metrics.getLeft())
-                  .size(AGGREGATION_BUCKET_SIZE)),
+                  .size(queryBucketSize)),
           new BucketAggregationParser(metrics.getRight()));
     }
   }

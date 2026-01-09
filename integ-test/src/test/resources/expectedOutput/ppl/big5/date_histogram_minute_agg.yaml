@@ -11,9 +11,9 @@ root:
           include_upper\":true,\"boost\":1.0}}},{\"range\":{\"@timestamp\":{\"from\"\
           :null,\"to\":1672704000000,\"include_lower\":true,\"include_upper\":false,\"\
           boost\":1.0}}}],\"adjust_pure_negative\":true,\"boost\":1.0}},\"aggregations\"\
-          :{\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\":[{\"span(`@timestamp`,1m)\"\
-          :{\"date_histogram\":{\"field\":\"@timestamp\",\"missing_bucket\":false,\"\
-          order\":\"asc\",\"fixed_interval\":\"1m\"}}}]},\"aggregations\":{\"count()\"\
+          :{\"composite_buckets\":{\"composite\":{\"size\":10000,\"sources\":[{\"\
+          span(`@timestamp`,1m)\":{\"date_histogram\":{\"field\":\"@timestamp\",\"missing_bucket\"\
+          :false,\"order\":\"asc\",\"fixed_interval\":\"1m\"}}}]},\"aggregations\":{\"count()\"\
           :{\"value_count\":{\"field\":\"_index\"}}}}}}, pitId=*, cursorKeepAlive=null,\
           \ searchAfter=null, searchResponse=null)"
       children: []

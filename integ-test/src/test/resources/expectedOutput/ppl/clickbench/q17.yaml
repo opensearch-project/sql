@@ -16,7 +16,7 @@ root:
           description:
             request: "OpenSearchQueryRequest(indexName=hits, sourceBuilder={\"from\"\
               :0,\"size\":0,\"timeout\":\"1m\",\"aggregations\":{\"composite_buckets\"\
-              :{\"composite\":{\"size\":1000,\"sources\":[{\"UserID\":{\"terms\":{\"\
+              :{\"composite\":{\"size\":10000,\"sources\":[{\"UserID\":{\"terms\":{\"\
               field\":\"UserID\",\"missing_bucket\":false,\"order\":\"asc\"}}},{\"\
               SearchPhrase\":{\"terms\":{\"field\":\"SearchPhrase\",\"missing_bucket\"\
               :false,\"order\":\"asc\"}}}]},\"aggregations\":{\"count()\":{\"value_count\"\

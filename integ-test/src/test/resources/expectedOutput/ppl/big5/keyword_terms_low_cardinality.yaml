@@ -16,7 +16,7 @@ root:
           description:
             request: "OpenSearchQueryRequest(indexName=big5, sourceBuilder={\"from\"\
               :0,\"size\":0,\"timeout\":\"1m\",\"aggregations\":{\"composite_buckets\"\
-              :{\"composite\":{\"size\":1000,\"sources\":[{\"aws.cloudwatch.log_stream\"\
+              :{\"composite\":{\"size\":10000,\"sources\":[{\"aws.cloudwatch.log_stream\"\
               :{\"terms\":{\"field\":\"aws.cloudwatch.log_stream\",\"missing_bucket\"\
               :true,\"missing_order\":\"first\",\"order\":\"asc\"}}}]},\"aggregations\"\
               :{\"country\":{\"value_count\":{\"field\":\"_index\"}}}}}}, pitId=*,\

@@ -9,6 +9,7 @@ import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
 import static org.opensearch.index.query.QueryBuilders.matchAllQuery;
 import static org.opensearch.index.query.QueryBuilders.nestedQuery;
+import static org.opensearch.search.aggregations.MultiBucketConsumerService.DEFAULT_MAX_BUCKETS;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -351,6 +352,29 @@ public class OpenSearchRequestBuilder {
         .forEach(
             (path, fieldNames) ->
                 buildInnerHit(fieldNames, findNestedQueryWithSamePath(nestedQueries, path)));
+  }
+
+  /**
+   * Get the configured query bucket size, which is the minimum of the plugin setting and the
+   * cluster's max buckets limit.
+   *
+   * @return the query bucket size to use for aggregations
+   */
+  public Integer getQueryBucketSize() {
+    return Math.min(settings.getSettingValue(Settings.Key.QUERY_BUCKET_SIZE), getMaxBuckets());
+  }
+
+  /**
+   * Get the maximum number of buckets allowed by the cluster.
+   *
+   * @return the max buckets setting value, or default if not available
+   */
+  private Integer getMaxBuckets() {
+    try {
+      return settings.getSettingValue(Settings.Key.SEARCH_MAX_BUCKETS);
+    } catch (Exception e) {
+      return DEFAULT_MAX_BUCKETS;
+    }
   }
 
   /**

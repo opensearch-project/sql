@@ -7,9 +7,9 @@ root:
       description:
         request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_bank,\
           \ sourceBuilder={\"from\":0,\"size\":0,\"timeout\":\"1m\",\"aggregations\"\
-          :{\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\":[{\"span(birthdate,1M)\"\
-          :{\"date_histogram\":{\"field\":\"birthdate\",\"missing_bucket\":false,\"\
-          order\":\"asc\",\"calendar_interval\":\"1M\"}}}]},\"aggregations\":{\"count()\"\
-          :{\"value_count\":{\"field\":\"_index\"}}}}}}, pitId=*, cursorKeepAlive=null,\
-          \ searchAfter=null, searchResponse=null)"
+          :{\"composite_buckets\":{\"composite\":{\"size\":10000,\"sources\":[{\"\
+          span(birthdate,1M)\":{\"date_histogram\":{\"field\":\"birthdate\",\"missing_bucket\"\
+          :false,\"order\":\"asc\",\"calendar_interval\":\"1M\"}}}]},\"aggregations\"\
+          :{\"count()\":{\"value_count\":{\"field\":\"_index\"}}}}}}, pitId=*,\
+          \ cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
       children: []

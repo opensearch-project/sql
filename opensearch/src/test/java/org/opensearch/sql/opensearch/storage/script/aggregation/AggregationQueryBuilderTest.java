@@ -713,6 +713,42 @@ class AggregationQueryBuilderTest {
                 Arrays.asList(named(span(ref("age", INTEGER), literal(1), "invalid_unit")))));
   }
 
+  @Test
+  void should_use_custom_bucket_size() {
+    AggregationQueryBuilder customBuilder = new AggregationQueryBuilder(serializer, 500);
+    assertEquals(
+        format(
+            "{%n"
+                + "  \"composite_buckets\" : {%n"
+                + "    \"composite\" : {%n"
+                + "      \"size\" : 500,%n"
+                + "      \"sources\" : [ {%n"
+                + "        \"name\" : {%n"
+                + "          \"terms\" : {%n"
+                + "            \"field\" : \"name\",%n"
+                + "            \"missing_bucket\" : true,%n"
+                + "            \"missing_order\" : \"first\",%n"
+                + "            \"order\" : \"asc\"%n"
+                + "          }%n"
+                + "        }%n"
+                + "      } ]%n"
+                + "    },%n"
+                + "    \"aggregations\" : {%n"
+                + "      \"avg(age)\" : {%n"
+                + "        \"avg\" : {%n"
+                + "          \"field\" : \"age\"%n"
+                + "        }%n"
+                + "      }%n"
+                + "    }%n"
+                + "  }%n"
+                + "}"),
+        buildQueryWithCustomBuilder(
+            customBuilder,
+            Arrays.asList(
+                named("avg(age)", new AvgAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER))),
+            Arrays.asList(named("name", ref("name", STRING)))));
+  }
+
   @SneakyThrows
   private String buildQuery(
       List<NamedAggregator> namedAggregatorList, List<NamedExpression> groupByList) {
@@ -738,6 +774,22 @@ class AggregationQueryBuilderTest {
         .readTree(
             queryBuilder
                 .buildAggregationBuilder(namedAggregatorList, groupByList, sortList, bucketNullable)
+                .getLeft()
+                .get(0)
+                .toString())
+        .toPrettyString();
+  }
+
+  @SneakyThrows
+  private String buildQueryWithCustomBuilder(
+      AggregationQueryBuilder customBuilder,
+      List<NamedAggregator> namedAggregatorList,
+      List<NamedExpression> groupByList) {
+    ObjectMapper objectMapper = new ObjectMapper();
+    return objectMapper
+        .readTree(
+            customBuilder
+                .buildAggregationBuilder(namedAggregatorList, groupByList, null, true)
                 .getLeft()
                 .get(0)
                 .toString())
