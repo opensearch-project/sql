@@ -16,52 +16,50 @@ import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.query.DefaultQueryAction;
-import org.opensearch.sql.legacy.request.SqlRequest;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 
+/**
+ * Unit tests for shouldCreateCursor() method.
+ *
+ * <p>For PIT lifecycle tests, see {@link PrettyFormatRestExecutorPitTest}.
+ */
 @RunWith(MockitoJUnitRunner.class)
 public class PrettyFormatRestExecutorTest {
 
   @Mock private SearchResponse searchResponse;
   @Mock private SearchHit searchHit;
   @Mock private DefaultQueryAction queryAction;
-  @Mock private SqlRequest sqlRequest;
   private PrettyFormatRestExecutor executor;
 
   @Before
   public void setUp() {
     OpenSearchSettings settings = mock(OpenSearchSettings.class);
     LocalClusterState.state().setPluginSettings(settings);
-    when(queryAction.getSqlRequest()).thenReturn(sqlRequest);
     executor = new PrettyFormatRestExecutor("jdbc");
   }
 
   @Test
-  public void testIsDefaultCursor_fetchSizeZero() {
-    when(sqlRequest.fetchSize()).thenReturn(0);
-
-    assertFalse(executor.isDefaultCursor(searchResponse, queryAction));
+  public void testShouldCreateCursor_fetchSizeZero() {
+    assertFalse(executor.shouldCreateCursor(searchResponse, queryAction, 0));
   }
 
   @Test
-  public void testIsDefaultCursor_totalHitsLessThanFetchSize() {
-    when(sqlRequest.fetchSize()).thenReturn(10);
+  public void testShouldCreateCursor_totalHitsLessThanFetchSize() {
     when(searchResponse.getHits())
         .thenReturn(
             new SearchHits(
                 new SearchHit[] {searchHit}, new TotalHits(5, TotalHits.Relation.EQUAL_TO), 1.0F));
 
-    assertFalse(executor.isDefaultCursor(searchResponse, queryAction));
+    assertFalse(executor.shouldCreateCursor(searchResponse, queryAction, 10));
   }
 
   @Test
-  public void testIsDefaultCursor_totalHitsGreaterThanOrEqualToFetchSize() {
-    when(sqlRequest.fetchSize()).thenReturn(5);
+  public void testShouldCreateCursor_totalHitsGreaterThanOrEqualToFetchSize() {
     when(searchResponse.getHits())
         .thenReturn(
             new SearchHits(
                 new SearchHit[] {searchHit}, new TotalHits(5, TotalHits.Relation.EQUAL_TO), 1.0F));
 
-    assertTrue(executor.isDefaultCursor(searchResponse, queryAction));
+    assertTrue(executor.shouldCreateCursor(searchResponse, queryAction, 5));
   }
 }
