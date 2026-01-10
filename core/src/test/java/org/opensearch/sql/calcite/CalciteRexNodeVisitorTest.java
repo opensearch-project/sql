@@ -17,7 +17,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.FrameworkConfig;
-import org.apache.calcite.tools.RelBuilder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.ast.expression.LambdaFunction;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
+import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelBuilder;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.executor.QueryType;
 
@@ -52,7 +52,7 @@ public class CalciteRexNodeVisitorTest {
 
   @Mock static FrameworkConfig frameworkConfig;
   @Mock static Connection connection;
-  @Mock static RelBuilder relBuilder;
+  @Mock static OpenSearchRelBuilder relBuilder;
   @Mock static ExtendedRexBuilder rexBuilder;
   static CalcitePlanContext context;
   MockedStatic<CalciteToolsHelper> mockedStatic;

@@ -10,6 +10,10 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Singular;
+import org.opensearch.sql.monitor.profile.MetricName;
+import org.opensearch.sql.monitor.profile.ProfileMetric;
+import org.opensearch.sql.monitor.profile.QueryProfile;
+import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.protocol.response.QueryResult;
 
 /**
@@ -40,6 +44,9 @@ public class SimpleJsonResponseFormatter extends JsonResponseFormatter<QueryResu
 
   @Override
   public Object buildJsonObject(QueryResult response) {
+    ProfileMetric formatMetric = QueryProfiling.current().getOrCreateMetric(MetricName.FORMAT);
+    long formatTime = System.nanoTime();
+
     JsonResponse.JsonResponseBuilder json = JsonResponse.builder();
 
     json.total(response.size()).size(response.size());
@@ -47,6 +54,9 @@ public class SimpleJsonResponseFormatter extends JsonResponseFormatter<QueryResu
     response.columnNameTypes().forEach((name, type) -> json.column(new Column(name, type)));
 
     json.datarows(fetchDataRows(response));
+    formatMetric.set(System.nanoTime() - formatTime);
+
+    json.profile(QueryProfiling.current().finish());
     return json.build();
   }
 
@@ -63,6 +73,8 @@ public class SimpleJsonResponseFormatter extends JsonResponseFormatter<QueryResu
   @Builder
   @Getter
   public static class JsonResponse {
+    private final QueryProfile profile;
+
     @Singular("column")
     private final List<Column> schema;
 

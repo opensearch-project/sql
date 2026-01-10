@@ -1,41 +1,49 @@
-# multisearch  
 
-## Description  
+# multisearch
 
-Use the `multisearch` command to run multiple search subsearches and merge their results together. The command allows you to combine data from different queries on the same or different sources, and optionally apply subsequent processing to the combined result set.
-Key aspects of `multisearch`:
-1. Combines results from multiple search operations into a single result set.  
-2. Each subsearch can have different filtering criteria, data transformations, and field selections.  
-3. Results are merged and can be further processed with aggregations, sorting, and other PPL commands.  
-4. Particularly useful for comparative analysis, union operations, and creating comprehensive datasets from multiple search criteria.  
-5. Supports timestamp-based result interleaving when working with time-series data.  
-  
-Use Cases:
-* **Comparative Analysis**: Compare metrics across different segments, regions, or time periods  
-* **Success Rate Monitoring**: Calculate success rates by comparing successful vs. total operations  
-* **Multi-source Data Combination**: Merge data from different indices or apply different filters to the same source  
-* **A/B Testing Analysis**: Combine results from different test groups for comparison  
-* **Time-series Data Merging**: Interleave events from multiple sources based on timestamps  
-  
-## Syntax  
 
-multisearch \<subsearch1\> \<subsearch2\> \<subsearch3\> ...
-* subsearch1, subsearch2, ...: mandatory. At least two subsearches required. Each subsearch must be enclosed in square brackets and start with the `search` keyword. Format: `[search source=index | commands...]`. All PPL commands are supported within subsearches.  
-* result-processing: optional. Commands applied to the merged results after the multisearch operation, such as `stats`, `sort`, `head`, etc.  
-  
-## Usage  
+The `multisearch` command runs multiple subsearches and merges their results. It allows you to combine data from different queries on the same or different sources. You can optionally apply subsequent processing, such as aggregation or sorting, to the combined results. Each subsearch can have different filtering criteria, data transformations, and field selections. 
 
-Basic multisearch
+Multisearch is particularly useful for comparative analysis, union operations, and creating comprehensive datasets from multiple search criteria. The command supports timestamp-based result interleaving when working with time-series data.
+
+Use multisearch for:
+
+* **Comparative analysis**: Compare metrics across different segments, regions, or time periods.
+* **Success rate monitoring**: Calculate success rates by comparing successful to total operations.
+* **Multi-source data combination**: Merge data from different indexes or apply different filters to the same source.
+* **A/B testing analysis**: Combine results from different test groups for comparison.
+* **Time-series data merging**: Interleave events from multiple sources based on timestamps.
+ 
   
+
+## Syntax
+
+The `multisearch` command has the following syntax:
+
+```syntax
+multisearch <subsearch1> <subsearch2> [<subsearch3> ...]
 ```
+
+The following are examples of the `multisearch` command syntax:
+
+```syntax
 | multisearch [search source=table | where condition1] [search source=table | where condition2]
 | multisearch [search source=index1 | fields field1, field2] [search source=index2 | fields field1, field2]
 | multisearch [search source=table | where status="success"] [search source=table | where status="error"]
 ```
-  
-## Example 1: Basic Age Group Analysis  
 
-This example combines young and adult customers into a single result set for further analysis.
+## Parameters
+
+The `multisearch` command supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<subsearchN>` | Required | At least two subsearches are required. Each subsearch must be enclosed in square brackets and start with the `search` keyword (`[search source=index | <commands>]`). All PPL commands are supported within subsearches. |
+| `<result-processing>` | Optional | Commands applied to the merged results after the multisearch operation (for example, `stats`, `sort`, or `head`). |  
+
+## Example 1: Combining age groups for demographic analysis
+
+This example demonstrates how to merge customers from different age segments into a unified dataset. It combines `young` and `adult` customers into a single result set and adds categorization labels for further analysis:
   
 ```ppl
 | multisearch [search source=accounts
@@ -48,7 +56,7 @@ This example combines young and adult customers into a single result set for fur
 | sort age
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -62,9 +70,10 @@ fetched rows / total rows = 4/4
 +-----------+-----+-----------+
 ```
   
-## Example 2: Success Rate Pattern  
 
-This example combines high-balance and all valid accounts for comparison analysis.
+## Example 2: Segmenting accounts by balance tier
+
+This example demonstrates how to create account segments based on balance thresholds for comparative analysis. It separates `high_balance` accounts from `regular` accounts and labels them for easy comparison:
   
 ```ppl
 | multisearch [search source=accounts
@@ -77,7 +86,7 @@ This example combines high-balance and all valid accounts for comparison analysi
 | sort balance desc
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -91,9 +100,10 @@ fetched rows / total rows = 4/4
 +-----------+---------+--------------+
 ```
   
-## Example 3: Timestamp Interleaving  
 
-This example combines time-series data from multiple sources with automatic timestamp-based ordering.
+## Example 3: Merging time-series data from multiple sources
+
+This example demonstrates how to combine time-series data from different sources while maintaining chronological order. The results are automatically sorted by timestamp to create a unified timeline:
   
 ```ppl
 | multisearch [search source=time_data
@@ -103,7 +113,7 @@ This example combines time-series data from multiple sources with automatic time
 | head 5
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 5/5
@@ -118,9 +128,10 @@ fetched rows / total rows = 5/5
 +---------------------+----------+-------+---------------------+
 ```
   
-## Example 4: Type Compatibility - Missing Fields  
 
-This example demonstrates how missing fields are handled with NULL insertion.
+## Example 4: Handling missing fields across subsearches
+
+This example demonstrates how `multisearch` handles schema differences when subsearches return different fields. When one subsearch includes a field that others don't have, missing values are automatically filled with null values:
   
 ```ppl
 | multisearch [search source=accounts
@@ -132,7 +143,7 @@ This example demonstrates how missing fields are handled with NULL insertion.
 | sort age
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -146,7 +157,10 @@ fetched rows / total rows = 4/4
 +-----------+-----+------------+
 ```
   
-## Limitations  
 
-* **Minimum Subsearches**: At least two subsearches must be specified  
-* **Schema Compatibility**: When fields with the same name exist across subsearches but have incompatible types, the system automatically resolves conflicts by renaming the conflicting fields. The first occurrence retains the original name, while subsequent conflicting fields are renamed with a numeric suffix (e.g., `age` becomes `age0`, `age1`, etc.). This ensures all data is preserved while maintaining schema consistency.  
+## Limitations
+
+The `multisearch` command has the following limitations:
+
+* At least two subsearches must be specified.
+* When fields with the same name exist across subsearches but have incompatible types, the system automatically resolves conflicts by renaming the conflicting fields. The first occurrence retains the original name, while subsequent conflicting fields are renamed using a numeric suffix (for example, `age` becomes `age0`, `age1`, and so on). This ensures that all data is preserved while maintaining schema consistency.  

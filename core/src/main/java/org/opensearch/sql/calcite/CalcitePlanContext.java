@@ -21,9 +21,9 @@ import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.FrameworkConfig;
-import org.apache.calcite.tools.RelBuilder;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
+import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelBuilder;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.FunctionProperties;
@@ -32,7 +32,7 @@ public class CalcitePlanContext {
 
   public FrameworkConfig config;
   public final Connection connection;
-  public final RelBuilder relBuilder;
+  public final OpenSearchRelBuilder relBuilder;
   public final ExtendedRexBuilder rexBuilder;
   public final FunctionProperties functionProperties;
   public final QueryType queryType;

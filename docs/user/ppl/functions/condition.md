@@ -1,18 +1,22 @@
 # Condition Functions  
+PPL functions use the search capabilities of the OpenSearch engine. However, these functions don't execute directly within the OpenSearch plugin's memory. Instead, they facilitate the global filtering of query results based on specific conditions, such as a `WHERE` or `HAVING` clause. 
 
+The following sections describe the condition PPL functions.
 ## ISNULL  
 
 ### Description  
 
-Usage: isnull(field) returns TRUE if field is NULL, FALSE otherwise.
+Usage: `isnull(field)` returns TRUE if field is NULL, FALSE otherwise.
+
 The `isnull()` function is commonly used:
 - In `eval` expressions to create conditional fields  
 - With the `if()` function to provide default values  
 - In `where` clauses to filter null records  
   
-Argument type: all the supported data types.
-Return type: BOOLEAN
-Example
+**Argument type:** All supported data types.
+**Return type:** `BOOLEAN`  
+
+### Example
   
 ```ppl
 source=accounts
@@ -79,17 +83,19 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: isnotnull(field) returns TRUE if field is NOT NULL, FALSE otherwise.
+Usage: `isnotnull(field)` returns TRUE if field is NOT NULL, FALSE otherwise. The `isnotnull(field)` function is the opposite of `isnull(field)`. Instead of checking for null values, it checks a specific field and returns `true` if the field contains data, that is, it is not null.
+
 The `isnotnull()` function is commonly used:
 - In `eval` expressions to create boolean flags  
 - In `where` clauses to filter out null values  
 - With the `if()` function for conditional logic  
 - To validate data presence  
   
-Argument type: all the supported data types.
-Return type: BOOLEAN
-Synonyms: [ISPRESENT](#ispresent)
-Example
+**Argument type:** All supported data types.  
+**Return type:** `BOOLEAN`  
+**Synonyms:** [ISPRESENT](#ispresent)  
+
+### Example
   
 ```ppl
 source=accounts
@@ -178,10 +184,12 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: ifnull(field1, field2) returns field2 if field1 is null.
-Argument type: all the supported data types (NOTE : if two parameters have different types, you will fail semantic check).
-Return type: any
-Example
+Usage: `ifnull(field1, field2)` returns field2 if field1 is null.
+
+**Argument type:** All supported data types (NOTE: if two parameters have different types, you will fail semantic check).  
+**Return type:** `any`
+
+### Example
   
 ```ppl
 source=accounts
@@ -206,8 +214,8 @@ fetched rows / total rows = 4/4
 ### Nested IFNULL Pattern  
 
 For OpenSearch versions prior to 3.1, COALESCE-like functionality can be achieved using nested IFNULL statements. This pattern is particularly useful in observability use cases where field names may vary across different data sources.
-Usage: ifnull(field1, ifnull(field2, ifnull(field3, default_value)))
-Example
+Usage: `ifnull(field1, ifnull(field2, ifnull(field3, default_value)))`
+### Example
   
 ```ppl
 source=accounts
@@ -233,10 +241,12 @@ fetched rows / total rows = 4/4
 
 ### Description  
 
-Usage: nullif(field1, field2) returns null if two parameters are same, otherwise returns field1.
-Argument type: all the supported data types (NOTE : if two parameters have different types, you will fail semantic check).
-Return type: any
-Example
+Usage: `nullif(field1, field2)` returns null if two parameters are same, otherwise returns field1.
+
+**Argument type:** All supported data types (NOTE: if two parameters have different types, you will fail semantic check).  
+**Return type:** `any`
+
+### Example
   
 ```ppl
 source=accounts
@@ -262,10 +272,12 @@ fetched rows / total rows = 4/4
 
 ### Description  
 
-Usage: if(condition, expr1, expr2) returns expr1 if condition is true, otherwise returns expr2.
-Argument type: all the supported data types (NOTE : if expr1 and expr2 are different types, you will fail semantic check).
-Return type: any
-Example
+Usage: `if(condition, expr1, expr2)` returns expr1 if condition is true, otherwise returns expr2.
+
+**Argument type:** All supported data types (NOTE: if expr1 and expr2 are different types, you will fail semantic check).  
+**Return type:** `any`
+
+### Example
   
 ```ppl
 source=accounts
@@ -331,16 +343,18 @@ fetched rows / total rows = 4/4
 
 ### Description  
 
-Usage: case(condition1, expr1, condition2, expr2, ... conditionN, exprN else default) returns expr1 if condition1 is true, or returns expr2 if condition2 is true, ... if no condition is true, then returns the value of ELSE clause. If the ELSE clause is not defined, returns NULL.
-Argument type: all the supported data types (NOTE : there is no comma before "else").
-Return type: any
+Usage: `case(condition1, expr1, condition2, expr2, ... conditionN, exprN else default)` returns expr1 if condition1 is true, or returns expr2 if condition2 is true, ... if no condition is true, then returns the value of ELSE clause. If the ELSE clause is not defined, returns NULL.
+
+**Argument type:** All supported data types (NOTE: there is no comma before "else").  
+**Return type:** `any`
+
 ### Limitations  
 
 When each condition is a field comparison with a numeric literal and each result expression is a string literal, the query will be optimized as [range aggregations](https://docs.opensearch.org/latest/aggregations/bucket/range) if pushdown optimization is enabled. However, this optimization has the following limitations:
 - Null values will not be grouped into any bucket of a range aggregation and will be ignored  
 - The default ELSE clause will use the string literal `"null"` instead of actual NULL values  
   
-Example
+### Example
   
 ```ppl
 source=accounts
@@ -404,9 +418,10 @@ fetched rows / total rows = 2/2
 
 ### Description  
 
-Usage: coalesce(field1, field2, ...) returns the first non-null, non-missing value in the argument list.
-Argument type: all the supported data types. Supports mixed data types with automatic type coercion.
-Return type: determined by the least restrictive common type among all arguments, with fallback to string if no common type can be determined
+Usage: `coalesce(field1, field2, ...)` returns the first non-null, non-missing value in the argument list.
+
+**Argument type:** All supported data types. Supports mixed data types with automatic type coercion.  
+**Return type:** Determined by the least restrictive common type among all arguments, with fallback to string if no common type can be determined.
 Behavior:
 - Returns the first value that is not null and not missing (missing includes non-existent fields)  
 - Empty strings ("") and whitespace strings (" ") are considered valid values  
@@ -424,7 +439,7 @@ Limitations:
 - Type coercion may result in unexpected string conversions for incompatible types  
 - Performance may degrade with very large numbers of arguments  
   
-Example
+### Example
   
 ```ppl
 source=accounts
@@ -537,11 +552,13 @@ fetched rows / total rows = 4/4
 
 ### Description  
 
-Usage: ispresent(field) returns true if the field exists.
-Argument type: all the supported data types.
-Return type: BOOLEAN
-Synonyms: [ISNOTNULL](#isnotnull)
-Example
+Usage: `ispresent(field)` returns true if the field exists.
+
+**Argument type:** All supported data types.  
+**Return type:** `BOOLEAN`  
+**Synonyms:** [ISNOTNULL](#isnotnull)
+
+### Example
   
 ```ppl
 source=accounts
@@ -566,10 +583,12 @@ fetched rows / total rows = 3/3
 
 ### Description  
 
-Usage: isblank(field) returns true if the field is null, an empty string, or contains only white space.
-Argument type: all the supported data types.
-Return type: BOOLEAN
-Example
+Usage: `isblank(field)` returns true if the field is null, an empty string, or contains only white space.
+
+**Argument type:** All supported data types.  
+**Return type:** `BOOLEAN`
+
+### Example
   
 ```ppl
 source=accounts
@@ -596,10 +615,12 @@ fetched rows / total rows = 4/4
 
 ### Description  
 
-Usage: isempty(field) returns true if the field is null or is an empty string.
-Argument type: all the supported data types.
-Return type: BOOLEAN
-Example
+Usage: `isempty(field)` returns true if the field is null or is an empty string.
+
+**Argument type:** All supported data types.  
+**Return type:** `BOOLEAN`
+
+### Example
   
 ```ppl
 source=accounts
@@ -626,7 +647,7 @@ fetched rows / total rows = 4/4
 
 ### Description  
 
-Usage: earliest(relative_string, field) returns true if the value of field is after the timestamp derived from relative_string relative to the current time. Otherwise, returns false.
+Usage: `earliest(relative_string, field)` returns true if the value of field is after the timestamp derived from relative_string relative to the current time. Otherwise, returns false.
 relative_string: 
 The relative string can be one of the following formats:
 1. `"now"` or `"now()"`:  
@@ -648,9 +669,11 @@ The relative string can be one of the following formats:
    - `-3M+1y@M` → `2026-02-01 00:00:00`  
   
 Read more details [here](https://github.com/opensearch-project/opensearch-spark/blob/main/docs/ppl-lang/functions/ppl-datetime.md#relative_timestamp)
-Argument type: relative_string:STRING, field: TIMESTAMP
-Return type: BOOLEAN
-Example
+
+**Argument type:** `relative_string`: `STRING`, `field`: `TIMESTAMP`  
+**Return type:** `BOOLEAN`
+
+### Example
   
 ```ppl
 source=accounts
@@ -692,10 +715,12 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: latest(relative_string, field) returns true if the value of field is before the timestamp derived from relative_string relative to the current time. Otherwise, returns false.
-Argument type: relative_string:STRING, field: TIMESTAMP
-Return type: BOOLEAN
-Example
+Usage: `latest(relative_string, field)` returns true if the value of field is before the timestamp derived from relative_string relative to the current time. Otherwise, returns false.
+
+**Argument type:** `relative_string`: `STRING`, `field`: `TIMESTAMP`  
+**Return type:** `BOOLEAN`
+
+### Example
   
 ```ppl
 source=accounts
@@ -737,11 +762,13 @@ fetched rows / total rows = 1/1
 
 ### Description  
 
-Usage: regexp_match(string, pattern) returns true if the regular expression pattern finds a match against any substring of the string value, otherwise returns false.
+Usage: `regexp_match(string, pattern)` returns true if the regular expression pattern finds a match against any substring of the string value, otherwise returns false.
 The function uses Java regular expression syntax for the pattern.
-Argument type: STRING, STRING
-Return type: BOOLEAN
-Example
+
+**Argument type:** `STRING`, `STRING`  
+**Return type:** `BOOLEAN`
+
+### Example
   
 ``` ppl ignore
 source=logs | where regexp_match(message, 'ERROR|WARN|FATAL') | fields timestamp, message

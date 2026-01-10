@@ -8,7 +8,7 @@ package org.opensearch.sql.opensearch.planner.rules;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.opensearch.OpenSearchTimeoutException;
-import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
+import org.opensearch.sql.calcite.plan.rule.OpenSearchRuleConfig;
 
 /**
  * Base class for OpenSearch planner rules that automatically checks for thread interruption during

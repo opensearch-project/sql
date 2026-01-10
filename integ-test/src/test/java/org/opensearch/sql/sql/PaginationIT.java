@@ -28,6 +28,8 @@ public class PaginationIT extends SQLIntegTestCase {
   public void init() throws IOException {
     loadIndex(Index.CALCS);
     loadIndex(Index.ONLINE);
+    loadIndex(Index.DOG);
+    loadIndex(Index.DOGS2);
   }
 
   @Test
@@ -249,6 +251,45 @@ public class PaginationIT extends SQLIntegTestCase {
     JSONObject aliasFilteredResponse =
         new JSONObject(executeFetchQuery(aliasSelectQuery, 4, "jdbc", filterQuery));
     assertEquals(aliasFilteredResponse.getInt("size"), 4);
+  }
+
+  @Test
+  public void testAliasResultConsistency() throws Exception {
+    String aliasName = "alias_dog_consistency";
+
+    // Create an alias that maps to both DOG and DOGS2 indices
+    String createAliasQuery =
+        String.format(
+            "{ \"actions\": [ "
+                + "{ \"add\": { \"index\": \"%s\", \"alias\": \"%s\" } }, "
+                + "{ \"add\": { \"index\": \"%s\", \"alias\": \"%s\" } } "
+                + "] }",
+            Index.DOG.getName(), aliasName, Index.DOGS2.getName(), aliasName);
+    Request createAliasRequest = new Request("POST", "/_aliases");
+    createAliasRequest.setJsonEntity(createAliasQuery);
+    JSONObject aliasResponse = new JSONObject(executeRequest(createAliasRequest));
+    assertTrue(aliasResponse.getBoolean("acknowledged"));
+
+    // Query both indices directly (same indices the alias points to)
+    String directQuery =
+        String.format("SELECT * FROM %s, %s", Index.DOG.getName(), Index.DOGS2.getName());
+    JSONObject directResponse = new JSONObject(executeFetchQuery(directQuery, 10, "jdbc"));
+
+    // Query using alias (which points to the same two indices)
+    String aliasQuery = String.format("SELECT * FROM %s", aliasName);
+    JSONObject aliasQueryResponse = new JSONObject(executeFetchQuery(aliasQuery, 10, "jdbc"));
+
+    assertEquals(directResponse.getInt("size"), aliasQueryResponse.getInt("size"));
+
+    // Clean up alias
+    String deleteAliasQuery =
+        String.format(
+            "{ \"actions\": [ { \"remove\": { \"index\": \"%s\", \"alias\": \"%s\" } }, {"
+                + " \"remove\": { \"index\": \"%s\", \"alias\": \"%s\" } } ] }",
+            Index.DOG.getName(), aliasName, Index.DOGS2.getName(), aliasName);
+    Request deleteAliasRequest = new Request("POST", "/_aliases");
+    deleteAliasRequest.setJsonEntity(deleteAliasQuery);
+    executeRequest(deleteAliasRequest);
   }
 
   private String executeFetchQuery(String query, int fetchSize, String requestType, String filter)

@@ -5,8 +5,9 @@ calcite:
         LogicalProject(PageViews=[$1], URL=[$0])
           LogicalAggregate(group=[{0}], PageViews=[COUNT()])
             LogicalProject(URL=[$26])
-              LogicalFilter(condition=[AND(=($103, 62), >=($0, TIMESTAMP('2013-07-01 00:00:00':VARCHAR)), <=($0, TIMESTAMP('2013-07-31 00:00:00':VARCHAR)), =($72, 0), <>($49, 0), =($35, 0), IS NOT NULL($26))])
-                CalciteLogicalIndexScan(table=[[OpenSearch, hits]])
+              LogicalFilter(condition=[IS NOT NULL($26)])
+                LogicalFilter(condition=[AND(=($103, 62), >=($0, TIMESTAMP('2013-07-01 00:00:00':VARCHAR)), <=($0, TIMESTAMP('2013-07-31 00:00:00':VARCHAR)), =($72, 0), <>($49, 0), =($35, 0))])
+                  CalciteLogicalIndexScan(table=[[OpenSearch, hits]])
   physical: |
     EnumerableLimit(fetch=[10000])
       EnumerableLimit(offset=[1000], fetch=[10])

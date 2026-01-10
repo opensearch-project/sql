@@ -1,21 +1,32 @@
-# AddColTotals
-  
 
-# Description
+# addcoltotals
 
-The `addcoltotals` command computes the sum of each column and add a summary event at the end to show the total of each column. This command works the same way `addtotals` command works with row=false and col=true option. This is useful for creating summary reports with subtotals or grand totals. The `addcoltotals` command only sums numeric fields (integers, floats, doubles). Non-numeric fields in the field list are ignored even if its specified in field-list or in the case of no field-list specified.
+The `addcoltotals` command computes the sum of each column and adds a summary row showing the total for each column. This command is equivalent to using `addtotals` with `row=false` and `col=true`, making it useful for creating summary reports with column totals.
 
-# Syntax
+The command only processes numeric fields (integers, floats, doubles). Non-numeric fields are ignored regardless of whether they are explicitly specified in the field list.
 
-`addcoltotals [field-list] [label=<string>] [labelfield=<field>]`
 
-- `field-list`: Optional. Comma-separated list of numeric fields to sum.  If not specified, all numeric fields are summed.
-- `labelfield=<field>`: Optional. Field name to place the label. If it  specifies a non-existing field, adds the field and shows label at the summary event row at this field.
-- `label=<string>`: Optional. Custom text for the totals row labelfield\'s label. Default is \"Total\".
+## Syntax
 
-# Example 1: Basic Example
+The `addcoltotals` command has the following syntax:
 
-The example shows placing the label in an existing field.
+```syntax
+addcoltotals [field-list] [label=<string>] [labelfield=<field>]
+```
+
+## Parameters
+
+The `addcoltotals` command supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<field-list>` | Optional | A comma-separated list of numeric fields to add. By default, all numeric fields are added. |
+| `labelfield` | Optional | The field in which the label is placed. If the field does not exist, it is created and the label is shown in the summary row (last row) of the new field. |
+| `label` | Optional | The text that appears in the summary row (last row) to identify the computed totals. When used with `labelfield`, this text is placed in the specified field in the summary row. Default is `Total`. |
+
+## Example 1: Basic example
+
+The following query places the label in an existing field:
 
 ```ppl
 source=accounts 
@@ -24,7 +35,7 @@ source=accounts
 | addcoltotals labelfield='firstname'
 ```
 
-Expected output:
+The query returns the following results:
 
 ```text
 fetched rows / total rows = 4/4
@@ -38,9 +49,9 @@ fetched rows / total rows = 4/4
 +-----------+---------+
 ```
 
-# Example 2: Adding column totals and adding a summary event with label specified.
+## Example 2: Adding column totals with a custom summary label
 
-The example shows adding totals after a stats command where final summary event label is \'Sum\' and row=true value was used by default when not specified. It also added new field specified by labelfield as it did not match existing field.
+The following query adds totals after a `stats` command where the final summary event label is `Sum`. It also creates a new field specified by `labelfield` because this field does not exist in the data:
 
 ```ppl
 source=accounts 
@@ -48,7 +59,7 @@ source=accounts
 | addcoltotals `count()` label='Sum' labelfield='Total'
 ```
 
-Expected output:
+The query returns the following results:
 
 ```text
 fetched rows / total rows = 3/3
@@ -61,9 +72,9 @@ fetched rows / total rows = 3/3
 +---------+--------+-------+
 ```
 
-# Example 3: With all options
+## Example 3: Using all options
 
-The example shows using addcoltotals with all options set.
+The following query uses the `addcoltotals` command with all options set:
 
 ```ppl
 source=accounts 
@@ -73,7 +84,7 @@ source=accounts
 | addcoltotals avg_balance, count  label='Sum' labelfield='Column Total'
 ```
 
-Expected output:
+The query returns the following results:
 
 ```text
 fetched rows / total rows = 4/4

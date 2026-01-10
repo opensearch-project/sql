@@ -1,19 +1,23 @@
-# reverse  
 
-## Description  
+# reverse
 
-The `reverse` command reverses the display order of search results. The same results are returned, but in reverse order.
-## Syntax  
+The `reverse` command reverses the display order of the search results. It returns the same results but in the opposite order.
 
+> **Note**: The `reverse` command processes the entire dataset. If applied directly to millions of records, it consumes significant coordinating node memory resources. Only apply the `reverse` command to smaller datasets, typically after aggregation operations.
+
+## Syntax
+
+The `reverse` command has the following syntax:
+
+```syntax
 reverse
-* No parameters: The reverse command takes no arguments or options.  
-  
-## Note  
+```
 
-The `reverse` command processes the entire dataset. If applied directly to millions of records, it will consume significant memory resources on the coordinating node. Users should only apply the `reverse` command to smaller datasets, typically after aggregation operations.
+The `reverse` command takes no parameters.
+
 ## Example 1: Basic reverse operation  
 
-This example shows reversing the order of all documents.
+The following query reverses the order of all documents in the results:
   
 ```ppl
 source=accounts
@@ -21,7 +25,7 @@ source=accounts
 | reverse
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -35,9 +39,10 @@ fetched rows / total rows = 4/4
 +----------------+-----+
 ```
   
-## Example 2: Reverse with sort  
 
-This example shows reversing results after sorting by age in ascending order, effectively giving descending order.
+## Example 2: Use the reverse and sort commands
+
+The following query reverses results after sorting documents by age in ascending order, effectively implementing descending order:
   
 ```ppl
 source=accounts
@@ -46,7 +51,7 @@ source=accounts
 | reverse
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -60,9 +65,10 @@ fetched rows / total rows = 4/4
 +----------------+-----+
 ```
   
-## Example 3: Reverse with head  
 
-This example shows using reverse with head to get the last 2 records from the original order.
+## Example 3: Use the reverse and head commands  
+
+The following query uses the `reverse` command together with the `head` command to retrieve the last two records from the original result order:
   
 ```ppl
 source=accounts
@@ -71,7 +77,7 @@ source=accounts
 | fields account_number, age
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -83,9 +89,10 @@ fetched rows / total rows = 2/2
 +----------------+-----+
 ```
   
+
 ## Example 4: Double reverse  
 
-This example shows that applying reverse twice returns to the original order.
+The following query shows that applying `reverse` twice returns documents in the original order:
   
 ```ppl
 source=accounts
@@ -94,7 +101,7 @@ source=accounts
 | fields account_number, age
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -108,9 +115,10 @@ fetched rows / total rows = 4/4
 +----------------+-----+
 ```
   
-## Example 5: Reverse with complex pipeline  
 
-This example shows reverse working with filtering and field selection.
+## Example 5: Use the reverse command with a complex pipeline  
+
+The following query uses the `reverse` command with filtering and field selection:
   
 ```ppl
 source=accounts
@@ -119,7 +127,7 @@ source=accounts
 | reverse
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -131,4 +139,4 @@ fetched rows / total rows = 3/3
 | 1              | 32  |
 +----------------+-----+
 ```
-  
+

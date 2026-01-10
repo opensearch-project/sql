@@ -1,33 +1,44 @@
-# AddTotals
 
+# addtotals
 
-## Description
+The `addtotals` command computes the sum of numeric fields and can create both column totals (summary row) and row totals (new field). This command is useful for creating summary reports with subtotals or grand totals.
 
-The `addtotals` command computes the sum of numeric fields and appends a row with the totals to the result. The command can also add row totals and add a field to store row totals. This is useful for creating summary reports with subtotals or grand totals. The `addtotals` command only sums numeric fields (integers, floats, doubles). Non-numeric fields in the field list are ignored even if it\'s specified in field-list or in the case of no field-list specified.
+The command only processes numeric fields (integers, floats, doubles). Non-numeric fields are ignored regardless of whether they are explicitly specified in the field list.
+
 
 ## Syntax
 
-`addtotals [field-list] [label=<string>] [labelfield=<field>] [row=<boolean>] [col=<boolean>] [fieldname=<field>]`
+The `addtotals` command has the following syntax:
 
-- `field-list`: Optional. Comma-separated list of numeric fields to sum. If not specified, all numeric fields are summed.
-- `row=<boolean>`: Optional. Calculates total of each row and add a new field with the total. Default is true.
-- `col=<boolean>`: Optional. Calculates total of each column and add a new event at the end of all events with the total. Default is false.
-- `labelfield=<field>`: Optional. Field name to place the label. If it specifies a non-existing field, adds the field and shows label at the summary event row at this field. This is applicable when col=true.
-- `label=<string>`: Optional. Custom text for the totals row labelfield\'s label. Default is \"Total\". This is applicable when col=true. This does not have any effect when labelfield and fieldname parameter both have same value.
-- `fieldname=<field>`: Optional. Calculates total of each row and add a new field to store this total. This is applicable when row=true.
+```syntax
+addtotals [field-list] [label=<string>] [labelfield=<field>] [row=<boolean>] [col=<boolean>] [fieldname=<field>]
+```
 
-## Example 1: Basic Example
+## Parameters
 
-The example shows placing the label in an existing field.
+The `addtotals` command supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<field-list>` | Optional | A comma-separated list of numeric fields to add. By default, all numeric fields are added. |
+| `row` | Optional | Calculates the total of each row and adds a new field to store the row total. Default is `true`. |
+| `col` | Optional | Calculates the total of each column and adds a summary event at the end with the column totals. Default is `false`. |
+| `labelfield` | Optional | The field in which the label is placed. If the field does not exist, it is created and the label is shown in the summary row (last row) of the new field. Applicable when `col=true`. |
+| `label` | Optional | The text that appears in the summary row (last row) to identify the computed totals. When used with `labelfield`, this text is placed in the specified field in the summary row. Default is `Total`. Applicable when `col=true`. This parameter has no effect when the `labelfield` and `fieldname` parameters specify the same field name. |
+| `fieldname` | Optional | The field used to store row totals. Applicable when `row=true`. |
+
+## Example 1: Basic example
+
+The following query places the label in an existing field:
 
 ```ppl
 source=accounts 
 | head 3
-|fields firstname, balance 
+| fields firstname, balance 
 | addtotals col=true labelfield='firstname' label='Total'
 ```
 
-Expected output:
+The query returns the following results:
 
 ```text
 fetched rows / total rows = 4/4
@@ -41,9 +52,10 @@ fetched rows / total rows = 4/4
 +-----------+---------+-------+
 ```    
 
-## Example 2: Adding column totals and adding a summary event with label specified.
+## Example 2: Adding column totals with a custom summary label
 
-The example shows adding totals after a stats command where final summary event label is \'Sum\'. It also added new field specified by labelfield as it did not match existing field.
+The following query adds totals after a `stats` command, with the final summary event labeled `Sum`. It also creates a new field specified by `labelfield` because the field does not exist in the data:
+
 
 ```ppl
 source=accounts
@@ -51,7 +63,7 @@ source=accounts
 | addtotals col=true  row=false label='Sum' labelfield='Total'
 ```
 
-Expected output:
+The query returns the following results:
 
 ```text
 fetched rows / total rows = 5/5
@@ -66,7 +78,8 @@ fetched rows / total rows = 5/5
 +----------------+-----------+---------+-----+-------+
 ```
 
-if row=true in above example, there will be conflict between column added for column totals and column added for row totals being same field \'Total\', in that case the output will have final event row label null instead of \'Sum\' because the column is number type and it cannot output String in number type column. 
+If you set `row=true` in the preceding example, both row totals and column totals try to use the same field name (`Total`), creating a conflict. When this happens, the summary row label displays as `null` instead of `Sum` because the field becomes numeric (for row totals) and cannot display string values:
+
 
 ```ppl
 source=accounts
@@ -74,7 +87,7 @@ source=accounts
 | addtotals col=true  row=true label='Sum' labelfield='Total'
 ```
 
-Expected output:
+The query returns the following results:
 
 ```text
 fetched rows / total rows = 5/5
@@ -89,9 +102,9 @@ fetched rows / total rows = 5/5
 +----------------+-----------+---------+-----+-------+
 ```
 
-## Example 3: With all options
+## Example 3: Using all options
 
-The example shows using addtotals with all options set.
+The following query uses the `addtotals` command with all options set:
 
 ```ppl
 source=accounts 
@@ -101,7 +114,7 @@ source=accounts
 | addtotals avg_balance, count row=true col=true fieldname='Row Total' label='Sum' labelfield='Column Total'
 ```
 
-Expected output:
+The query returns the following results:
 
 ```text
 fetched rows / total rows = 4/4

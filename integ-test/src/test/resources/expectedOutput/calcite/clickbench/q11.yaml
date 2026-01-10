@@ -5,7 +5,8 @@ calcite:
         LogicalProject(u=[$1], MobilePhoneModel=[$0])
           LogicalAggregate(group=[{0}], u=[COUNT(DISTINCT $1)])
             LogicalProject(MobilePhoneModel=[$31], UserID=[$84])
-              LogicalFilter(condition=[<>($31, '')])
-                CalciteLogicalIndexScan(table=[[OpenSearch, hits]])
+              LogicalFilter(condition=[IS NOT NULL($31)])
+                LogicalFilter(condition=[<>($31, '')])
+                  CalciteLogicalIndexScan(table=[[OpenSearch, hits]])
   physical: |
     CalciteEnumerableIndexScan(table=[[OpenSearch, hits]], PushDownContext=[[FILTER-><>($0, ''), AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0},u=COUNT(DISTINCT $1)), SORT_AGG_METRICS->[1 DESC LAST], PROJECT->[u, MobilePhoneModel], LIMIT->10, LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","query":{"bool":{"must":[{"exists":{"field":"MobilePhoneModel","boost":1.0}}],"must_not":[{"term":{"MobilePhoneModel":{"value":"","boost":1.0}}}],"adjust_pure_negative":true,"boost":1.0}},"aggregations":{"MobilePhoneModel":{"terms":{"field":"MobilePhoneModel","size":10,"min_doc_count":1,"shard_min_doc_count":0,"show_term_doc_count_error":false,"order":[{"u":"desc"},{"_key":"asc"}]},"aggregations":{"u":{"cardinality":{"field":"UserID"}}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

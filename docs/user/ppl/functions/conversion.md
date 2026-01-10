@@ -4,7 +4,7 @@
 
 ### Description  
 
-Usage: cast(expr as dateType) cast the expr to dataType. return the value of dataType. The following conversion rules are used:
+Usage: `cast(expr as dateType)` cast the expr to dataType. return the value of dataType. The following conversion rules are used:
   
 | Src/Target | STRING | NUMBER | BOOLEAN | TIMESTAMP | DATE | TIME | IP |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -19,7 +19,8 @@ Usage: cast(expr as dateType) cast the expr to dataType. return the value of dat
 Note1: the conversion follow the JDK specification.
 Note2: IP will be converted to its canonical representation. Canonical representation
 for IPv6 is described in [RFC 5952](https://datatracker.ietf.org/doc/html/rfc5952).
-Cast to string example
+
+### Example: Cast to string
   
 ```ppl
 source=people
@@ -38,7 +39,7 @@ fetched rows / total rows = 1/1
 +-------+------+------------+
 ```
   
-Cast to number example
+### Example: Cast to number
   
 ```ppl
 source=people
@@ -57,7 +58,7 @@ fetched rows / total rows = 1/1
 +-------+---------+
 ```
   
-Cast to date example
+### Example: Cast to date
   
 ```ppl
 source=people
@@ -76,7 +77,7 @@ fetched rows / total rows = 1/1
 +------------+----------+---------------------+
 ```
   
-Cast function can be chained
+### Example: Cast function can be chained
   
 ```ppl
 source=people
@@ -101,14 +102,14 @@ Implicit conversion is automatic casting. When a function does not have an exact
 input types, the engine looks for another signature that can safely work with the values. It picks
 the option that requires the least stretching of the original types, so you can mix literals and
 fields without adding `CAST` everywhere.
+
 ### String to numeric  
 
 When a string stands in for a number we simply parse the text:
 - The value must be something like `"3.14"` or `"42"`. Anything else causes the query to fail.  
-- If a string appears next to numeric arguments, it is treated as a `DOUBLE` so the numeric  
-  
-  overload of the function can run.
-Use string in arithmetic operator example
+- If a string appears next to numeric arguments, it is treated as a `DOUBLE` so the numeric overload of the function can run.
+
+### Example: Use string in arithmetic operator
   
 ```ppl
 source=people
@@ -127,7 +128,7 @@ fetched rows / total rows = 1/1
 +--------+----------+------+-------+--------+
 ```
   
-Use string in comparison operator example
+### Example: Use string in comparison operator
   
 ```ppl
 source=people
@@ -151,11 +152,17 @@ fetched rows / total rows = 1/1
 ### Description  
 
 The following usage options are available, depending on the parameter types and the number of parameters.
-Usage with format type: tostring(ANY, [format]): Converts the value in first argument  to provided format type string in second argument. If second argument is not provided, then it converts to default string representation.
-Return type: string
-Usage for boolean parameter without format type tostring(boolean): Converts the string to 'TRUE' or 'FALSE'.
-Return type: string
-You can use this function with the eval commands and as part of eval expressions. If first argument can be any valid type , second argument is optional and if provided , it needs to be format name to convert to where first argument contains only numbers. If first argument is boolean, then second argument is not used even if its provided.
+
+Usage with format type: `tostring(ANY, [format])`: Converts the value in first argument to provided format type string in second argument. If second argument is not provided, then it converts to default string representation.
+
+**Return type:** `STRING`
+
+Usage for boolean parameter without format type `tostring(boolean)`: Converts the string to 'TRUE' or 'FALSE'.
+
+**Return type:** `STRING`
+
+You can use this function with the eval commands and as part of eval expressions. If first argument can be any valid type, second argument is optional and if provided, it needs to be format name to convert to where first argument contains only numbers. If first argument is boolean, then second argument is not used even if its provided.
+
 Format types:
 1. "binary" Converts a number to a binary value.  
 2. "hex" Converts the number to a hexadecimal value.  
@@ -164,9 +171,10 @@ Format types:
 5. "duration_millis" Converts the value in milliseconds to the readable time format HH:MM:SS.  
   
 The format argument is optional and is only used when the value argument is a number. The tostring function supports the following formats.
-Basic examples:
+
+### Example: Convert number to binary string
+
 You can use this function to convert a number to a string of its binary representation.
-Example
   
 ```ppl
 source=accounts
@@ -186,8 +194,9 @@ fetched rows / total rows = 1/1
 +-----------+------------------+---------+
 ```
   
+### Example: Convert number to hex string
+
 You can use this function to convert a number to a string of its hex representation.
-Example
   
 ```ppl
 source=accounts
@@ -207,8 +216,9 @@ fetched rows / total rows = 1/1
 +-----------+-------------+---------+
 ```
   
-The following example formats the column totalSales to display values  with commas.
-Example
+### Example: Format number with commas
+
+The following example formats the column totalSales to display values with commas.
   
 ```ppl
 source=accounts
@@ -228,8 +238,9 @@ fetched rows / total rows = 1/1
 +-----------+----------------+---------+
 ```
   
+### Example: Convert seconds to duration format
+
 The following example converts number of seconds to HH:MM:SS format representing hours, minutes and seconds.
-Example
   
 ```ppl
 source=accounts
@@ -249,8 +260,9 @@ fetched rows / total rows = 1/1
 +-----------+----------+
 ```
   
-The following example for converts boolean parameter to string.
-Example
+### Example: Convert boolean to string
+
+The following example converts boolean parameter to string.
   
 ```ppl
 source=accounts
@@ -274,66 +286,78 @@ fetched rows / total rows = 1/1
 
 ### Description
 
-The following usage options are available, depending on the parameter
-types and the number of parameters.
+Usage: `tonumber(string, [base])` converts the value in first argument.
+The second argument describes the base of first argument. If second argument is not provided, then it converts to base 10 number representation.
 
-Usage: tonumber(string, \[base\]) converts the value in first argument.
-The second argument describe the base of first argument. If second
-argument is not provided, then it converts to base 10 number
-representation.
+**Return type:** `NUMBER`
 
-Return type: Number
+You can use this function with the eval commands and as part of eval expressions. Base values can be between 2 and 36. The maximum value supported for base 10 is +(2-2^-52)·2^1023 and minimum is -(2-2^-52)·2^1023. The maximum for other supported bases is 2^63-1 (or 7FFFFFFFFFFFFFFF) and minimum is -2^63 (or -7FFFFFFFFFFFFFFF). If the tonumber function cannot parse a field value to a number, the function returns NULL. You can use this function to convert a string representation of a binary number to return the corresponding number in base 10.
 
-You can use this function with the eval commands and as part of eval
-expressions. Base values can be between 2 and 36. The maximum value
-supported for base 10 is +(2-2\^-52)·2\^1023 and minimum is
--(2-2\^-52)·2\^1023. The maximum for other supported bases is 2\^63-1
-(or 7FFFFFFFFFFFFFFF) and minimum is -2\^63 (or -7FFFFFFFFFFFFFFF). If
-the tonumber function cannot parse a field value to a number, the
-function returns NULL. You can use this function to convert a string
-representation of a binary number to return the corresponding number in
-base 10.
+### Example: Convert binary string to number
 
-Following example converts a string in binary to the number
-representation:
+```ppl
+source=people | eval int_value = tonumber('010101',2) | fields int_value | head 1
+```
 
-    os> source=people | eval int_value = tonumber('010101',2) | fields int_value | head 1
-    fetched rows / total rows = 1/1
-    +-----------+
-    | int_value |
-    |-----------|
-    | 21.0      |
-    +-----------+
+Expected output:
 
-Following example converts a string in hex to the number representation:
+```text
+fetched rows / total rows = 1/1
++-----------+
+| int_value |
+|-----------|
+| 21.0      |
++-----------+
+```
 
-    os> source=people | eval int_value = tonumber('FA34',16) | fields int_value | head 1
-    fetched rows / total rows = 1/1
-    +-----------+
-    | int_value |
-    |-----------|
-    | 64052.0   |
-    +-----------+
+### Example: Convert hex string to number
 
-Following example converts a string in decimal to the number
-representation:
+```ppl
+source=people | eval int_value = tonumber('FA34',16) | fields int_value | head 1
+```
 
-    os> source=people | eval int_value = tonumber('4598') | fields int_value | head 1
-    fetched rows / total rows = 1/1
-    +-----------+
-    | int_value |
-    |-----------|
-    | 4598.0    |
-    +-----------+
+Expected output:
 
-Following example converts a string in decimal with fraction to the
-number representation:
+```text
+fetched rows / total rows = 1/1
++-----------+
+| int_value |
+|-----------|
+| 64052.0   |
++-----------+
+```
 
-    os> source=people | eval double_value = tonumber('4598.678') | fields double_value | head 1
-    fetched rows / total rows = 1/1
-    +--------------+
-    | double_value |
-    |--------------|
-    | 4598.678     |
-    +--------------+
+### Example: Convert decimal string to number
+
+```ppl
+source=people | eval int_value = tonumber('4598') | fields int_value | head 1
+```
+
+Expected output:
+
+```text
+fetched rows / total rows = 1/1
++-----------+
+| int_value |
+|-----------|
+| 4598.0    |
++-----------+
+```
+
+### Example: Convert decimal string with fraction to number
+
+```ppl
+source=people | eval double_value = tonumber('4598.678') | fields double_value | head 1
+```
+
+Expected output:
+
+```text
+fetched rows / total rows = 1/1
++--------------+
+| double_value |
+|--------------|
+| 4598.678     |
++--------------+
+```
   

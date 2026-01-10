@@ -1,17 +1,29 @@
-# grok  
 
-## Description  
+# grok
 
-The `grok` command parses a text field with a grok pattern and appends the results to the search result.
-## Syntax  
+The `grok` command parses a text field using a Grok pattern and appends the extracted results to the search results.
 
-grok \<field\> \<pattern\>
-* field: mandatory. The field must be a text field.  
-* pattern: mandatory. The grok pattern used to extract new fields from the given text field. If a new field name already exists, it will replace the original field.  
+## Syntax
+
+The `grok` command has the following syntax:
+
+```syntax
+grok <field> <pattern>
+```
+
+## Parameters
+
+The `grok` command supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<field>` | Required | The text field to parse. |
+| `<pattern>` | Required | The Grok pattern used to extract new fields from the specified text field. If a new field name already exists, it overwrites the original field. |  
   
-## Example 1: Create the new field  
 
-This example shows how to create new field `host` for each document. `host` will be the host name after `@` in `email` field. Parsing a null field will return an empty string.
+## Example 1: Create a new field
+
+The following query shows how to use the `grok` command to create a new field, `host`, for each document. The `host` field captures the hostname following `@` in the `email` field. Parsing a null field returns an empty string:
   
 ```ppl
 source=accounts
@@ -19,7 +31,7 @@ source=accounts
 | fields email, host
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -33,9 +45,10 @@ fetched rows / total rows = 4/4
 +-----------------------+------------+
 ```
   
-## Example 2: Override the existing field  
 
-This example shows how to override the existing `address` field with street number removed.
+## Example 2: Override an existing field
+
+The following query shows how to use the `grok` command to override the existing `address` field, removing the street number:
   
 ```ppl
 source=accounts
@@ -43,7 +56,7 @@ source=accounts
 | fields address
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -57,9 +70,10 @@ fetched rows / total rows = 4/4
 +------------------+
 ```
   
+
 ## Example 3: Using grok to parse logs  
 
-This example shows how to use grok to parse raw logs.
+The following query parses raw logs:
   
 ```ppl
 source=apache
@@ -67,7 +81,7 @@ source=apache
 | fields COMMONAPACHELOG, timestamp, response, bytes
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -81,6 +95,9 @@ fetched rows / total rows = 4/4
 +-----------------------------------------------------------------------------------------------------------------------------+----------------------------+----------+-------+
 ```
   
-## Limitations  
 
-The grok command has the same limitations as the parse command, see [parse limitations](./parse.md#Limitations) for details.
+## Limitations
+
+The `grok` command has the following limitations:
+
+* The `grok` command has the same [limitations](./parse.md#limitations) as the `parse` command. 

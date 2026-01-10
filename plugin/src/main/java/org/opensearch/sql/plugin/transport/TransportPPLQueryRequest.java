@@ -45,6 +45,11 @@ public class TransportPPLQueryRequest extends ActionRequest {
   @Accessors(fluent = true)
   private JsonResponseFormatter.Style style = JsonResponseFormatter.Style.COMPACT;
 
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
+  private boolean profile = false;
+
   /** Constructor of TransportPPLQueryRequest from PPLQueryRequest. */
   public TransportPPLQueryRequest(PPLQueryRequest pplQueryRequest) {
     pplQuery = pplQueryRequest.getRequest();
@@ -53,6 +58,7 @@ public class TransportPPLQueryRequest extends ActionRequest {
     format = pplQueryRequest.getFormat();
     sanitize = pplQueryRequest.sanitize();
     style = pplQueryRequest.style();
+    profile = pplQueryRequest.profile();
   }
 
   /** Constructor of TransportPPLQueryRequest from StreamInput. */
@@ -65,6 +71,7 @@ public class TransportPPLQueryRequest extends ActionRequest {
     path = in.readOptionalString();
     sanitize = in.readBoolean();
     style = in.readEnum(JsonResponseFormatter.Style.class);
+    profile = in.readBoolean();
   }
 
   /** Re-create the object from the actionRequest. */
@@ -95,6 +102,7 @@ public class TransportPPLQueryRequest extends ActionRequest {
     out.writeOptionalString(path);
     out.writeBoolean(sanitize);
     out.writeEnum(style);
+    out.writeBoolean(profile);
   }
 
   public String getRequest() {
@@ -128,7 +136,8 @@ public class TransportPPLQueryRequest extends ActionRequest {
 
   /** Convert to PPLQueryRequest. */
   public PPLQueryRequest toPPLQueryRequest() {
-    PPLQueryRequest pplQueryRequest = new PPLQueryRequest(pplQuery, jsonContent, path, format);
+    PPLQueryRequest pplQueryRequest =
+        new PPLQueryRequest(pplQuery, jsonContent, path, format, profile);
     pplQueryRequest.sanitize(sanitize);
     pplQueryRequest.style(style);
     return pplQueryRequest;

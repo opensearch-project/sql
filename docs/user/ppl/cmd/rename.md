@@ -1,24 +1,36 @@
-# rename  
 
-## Description  
+# rename
 
-The `rename` command renames one or more fields in the search result.
-## Syntax  
+The `rename` command renames one or more fields in the search results.
 
-rename \<source-field\> AS \<target-field\>["," \<source-field\> AS \<target-field\>]...
-* source-field: mandatory. The name of the field you want to rename. Supports wildcard patterns using `*`.  
-* target-field: mandatory. The name you want to rename to. Must have same number of wildcards as the source.  
-  
-## Behavior  
+The `rename` command handles non-existent fields as follows:
 
-The rename command handles non-existent fields as follows:
-* **Renaming a non-existent field to a non-existent field**: No change occurs to the result set.  
-* **Renaming a non-existent field to an existing field**: The existing target field is removed from the result set.  
-* **Renaming an existing field to an existing field**: The existing target field is removed and the source field is renamed to the target.  
-  
-## Example 1: Rename one field  
+* **Renaming a non-existent field to a non-existent field**: No change occurs to the search results.
+* **Renaming a non-existent field to an existing field**: The existing target field is removed from the search results.
+* **Renaming an existing field to an existing field**: The existing target field is removed and the source field is renamed to the target.
 
-This example shows how to rename one field.
+> **Note**: The `rename` command is not rewritten to [query domain-specific language (DSL)](https://docs.opensearch.org/latest/query-dsl/). It is only executed on the coordinating node.
+
+## Syntax
+
+The `rename` command has the following syntax:
+
+```syntax
+rename <source-field> AS <target-field>["," <source-field> AS <target-field>]...
+```
+
+## Parameters
+
+The `rename` command supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<source-field>` | Required | The name of the field you want to rename. Supports wildcard patterns using `*`. |
+| `<target-field>` | Required | The name you want to rename to. Must contain the same number of wildcards as the source. |
+
+## Example 1: Rename a field  
+
+The following query renames one field:
   
 ```ppl
 source=accounts
@@ -26,7 +38,7 @@ source=accounts
 | fields an
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -40,9 +52,10 @@ fetched rows / total rows = 4/4
 +----+
 ```
   
+
 ## Example 2: Rename multiple fields  
 
-This example shows how to rename multiple fields.
+The following query renames multiple fields:
   
 ```ppl
 source=accounts
@@ -50,7 +63,7 @@ source=accounts
 | fields an, emp
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -64,9 +77,10 @@ fetched rows / total rows = 4/4
 +----+---------+
 ```
   
-## Example 3: Rename with wildcards  
 
-This example shows how to rename multiple fields using wildcard patterns.
+## Example 3: Rename fields using wildcards  
+
+The following query renames multiple fields using wildcard patterns:
   
 ```ppl
 source=accounts
@@ -74,7 +88,7 @@ source=accounts
 | fields first_name, last_name
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -88,9 +102,10 @@ fetched rows / total rows = 4/4
 +------------+-----------+
 ```
   
-## Example 4: Rename with multiple wildcard patterns  
 
-This example shows how to rename multiple fields using multiple wildcard patterns.
+## Example 4: Rename fields using multiple wildcard patterns  
+
+The following query renames multiple fields using multiple wildcard patterns:
   
 ```ppl
 source=accounts
@@ -98,7 +113,7 @@ source=accounts
 | fields first_name, last_name, accountnumber
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -112,9 +127,10 @@ fetched rows / total rows = 4/4
 +------------+-----------+---------------+
 ```
   
-## Example 5: Rename existing field to existing field  
 
-This example shows how to rename an existing field to an existing field. The target field gets removed and the source field is renamed to the target field.
+## Example 5: Rename an existing field to another existing field  
+
+The following query renames an existing field to another existing field. The target field is removed and the source field is renamed to the target field:
   
 ```ppl
 source=accounts
@@ -122,7 +138,7 @@ source=accounts
 | fields age
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -136,7 +152,9 @@ fetched rows / total rows = 4/4
 +---------+
 ```
   
-## Limitations  
 
-The `rename` command is not rewritten to OpenSearch DSL, it is only executed on the coordination node.
-Literal asterisk (*) characters in field names cannot be replaced as asterisk is used for wildcard matching.
+## Limitations
+
+The `rename` command has the following limitations:
+
+* Literal asterisk (`*`) characters in field names cannot be replaced because the asterisk is used for wildcard matching.

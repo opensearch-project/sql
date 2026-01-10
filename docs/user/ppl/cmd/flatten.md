@@ -1,25 +1,37 @@
-# flatten  
 
-## Description  
+# flatten
 
-The `flatten` command flattens a struct or an object field into separate fields in a document.
-The flattened fields will be ordered **lexicographically** by their original key names in the struct. For example, if the struct has keys `b`, `c` and `Z`, the flattened fields will be ordered as `Z`, `b`, `c`.
-Note that `flatten` should not be applied to arrays. Use the `expand` command to expand an array field into multiple rows instead. However, since an array can be stored in a non-array field in OpenSearch, when flattening a field storing a nested array, only the first element of the array will be flattened.
-## Syntax  
+The `flatten` command converts a struct or object field into individual fields within a document.
 
-flatten \<field\> [as (\<alias-list\>)]
-* field: mandatory. The field to be flattened. Only object and nested fields are supported.  
-* alias-list: optional. The names to use instead of the original key names. Names are separated by commas. It is advised to put the alias-list in parentheses if there is more than one alias. The length must match the number of keys in the struct field. The provided alias names **must** follow the lexicographical order of the corresponding original keys in the struct.  
+The resulting flattened fields are ordered lexicographically by their original key names. For example, if a struct contains the keys `b`, `c`, and `Z`, the flattened fields are ordered as `Z`, `b`, `c`.
+
+> **Important**: `flatten` should not be applied to arrays. To expand an array field into multiple rows, use the `expand` command. Note that arrays can be stored in non-array fields in OpenSearch; when flattening a field that contains a nested array, only the first element of the array is flattened.
+
+## Syntax
+
+The `flatten` command has the following syntax:
+
+```syntax
+flatten <field> [as (<alias-list>)]
+```
+
+## Parameters
+
+The `flatten` command supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<field>` | Required | The field to be flattened. Only object and nested fields are supported. |
+| `<alias-list>` | Optional | A list of names to use instead of the original key names, separated by commas. If specifying more than one alias, enclose the list in parentheses. The number of aliases must match the number of keys in the struct, and the aliases must follow the lexicographical order of the corresponding original keys. |  
   
-## Example: flatten an object field with aliases  
 
-This example shows flattening a message object field and using aliases to rename the flattened fields.
-Given the following index `my-index`
+## Example: Flatten an object field using aliases  
+
+Given the following index `my-index`:
   
-```text
+```json
  {"message":{"info":"a","author":"e","dayOfWeek":1},"myNum":1}
  {"message":{"info":"b","author":"f","dayOfWeek":2},"myNum":2}
-
 ```
   
 with the following mapping:
@@ -56,19 +68,16 @@ with the following mapping:
      }
    }
  }
-
-
 ```
-  
-The following query flattens the `message` field and renames the keys to
-`creator, dow, info`:
+
+The following query flattens a `message` object field and uses aliases to rename the flattened fields to `creator, dow, info`:
   
 ```ppl
 source=my-index
 | flatten message as (creator, dow, info)
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -80,14 +89,9 @@ fetched rows / total rows = 2/2
 +-----------------------------------------+--------+---------+-----+------+
 ```
   
-## Limitations  
 
-* `flatten` command may not work as expected when its flattened fields are  
-  
-  invisible.
-  For example in query
-  `source=my-index | fields message | flatten message`, the
-  `flatten message` command doesn't work since some flattened fields such as
-  `message.info` and `message.author` after command `fields message` are
-  invisible.
-  As an alternative, you can change to `source=my-index | flatten message`.
+## Limitations
+
+The `flatten` command has the following limitations:
+
+* The `flatten` command may not function as expected if the fields to be flattened are not visible. For example, in the query `source=my-index | fields message | flatten message`, the `flatten message` command fails to execute as expected because some flattened fields, such as `message.info` and `message.author`, are hidden after the `fields message` command. As an alternative, use `source=my-index | flatten message`.

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.plan;
+package org.opensearch.sql.calcite.plan.rel;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
@@ -14,6 +14,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.opensearch.sql.calcite.plan.rule.OpenSearchRules;
 
 /** Relational expression representing a scan of an OpenSearch type. */
 public abstract class OpenSearchTableScan extends TableScan implements EnumerableRel {

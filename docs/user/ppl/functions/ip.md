@@ -5,9 +5,11 @@
 ### Description  
 
 Usage: `cidrmatch(ip, cidr)` checks if `ip` is within the specified `cidr` range.
-Argument type: STRING/IP, STRING
-Return type: BOOLEAN
-Example
+
+**Argument type:** `STRING`/`IP`, `STRING`  
+**Return type:** `BOOLEAN`  
+
+### Example
   
 ```ppl
 source=weblogs
@@ -37,9 +39,11 @@ Note:
 ### Description  
 
 Usage: `geoip(dataSourceName, ipAddress[, options])` to lookup location information from given IP addresses via OpenSearch GeoSpatial plugin API.
-Argument type: STRING, STRING/IP, STRING
-Return type: OBJECT  
-Example:
+
+**Argument type:** `STRING`, `STRING`/`IP`, `STRING`  
+**Return type:** `OBJECT`  
+
+### Example:
   
 ```ppl ignore
 source=weblogs 

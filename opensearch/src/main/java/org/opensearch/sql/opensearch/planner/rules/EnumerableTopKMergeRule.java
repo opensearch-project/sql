@@ -9,7 +9,7 @@ import org.apache.calcite.adapter.enumerable.EnumerableLimit;
 import org.apache.calcite.adapter.enumerable.EnumerableSort;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.immutables.value.Value;
-import org.opensearch.sql.calcite.plan.OpenSearchRuleConfig;
+import org.opensearch.sql.calcite.plan.rule.OpenSearchRuleConfig;
 import org.opensearch.sql.opensearch.planner.physical.CalciteEnumerableTopK;
 
 /**

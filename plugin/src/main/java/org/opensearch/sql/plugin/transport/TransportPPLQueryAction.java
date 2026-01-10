@@ -30,6 +30,7 @@ import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
 import org.opensearch.sql.ppl.PPLService;
@@ -108,15 +109,17 @@ public class TransportPPLQueryAction
     TransportPPLQueryRequest transportRequest = TransportPPLQueryRequest.fromActionRequest(request);
     // in order to use PPL service, we need to convert TransportPPLQueryRequest to PPLQueryRequest
     PPLQueryRequest transformedRequest = transportRequest.toPPLQueryRequest();
+    QueryContext.setProfile(transformedRequest.profile());
+    ActionListener<TransportPPLQueryResponse> clearingListener = wrapWithProfilingClear(listener);
 
     if (transformedRequest.isExplainRequest()) {
       pplService.explain(
-          transformedRequest, createExplainResponseListener(transformedRequest, listener));
+          transformedRequest, createExplainResponseListener(transformedRequest, clearingListener));
     } else {
       pplService.execute(
           transformedRequest,
-          createListener(transformedRequest, listener),
-          createExplainResponseListener(transformedRequest, listener));
+          createListener(transformedRequest, clearingListener),
+          createExplainResponseListener(transformedRequest, clearingListener));
     }
   }
 
@@ -201,5 +204,28 @@ public class TransportPPLQueryAction
       throw new IllegalArgumentException(
           String.format(Locale.ROOT, "response in %s format is not supported.", format));
     }
+  }
+
+  private ActionListener<TransportPPLQueryResponse> wrapWithProfilingClear(
+      ActionListener<TransportPPLQueryResponse> delegate) {
+    return new ActionListener<>() {
+      @Override
+      public void onResponse(TransportPPLQueryResponse transportPPLQueryResponse) {
+        try {
+          delegate.onResponse(transportPPLQueryResponse);
+        } finally {
+          QueryProfiling.clear();
+        }
+      }
+
+      @Override
+      public void onFailure(Exception e) {
+        try {
+          delegate.onFailure(e);
+        } finally {
+          QueryProfiling.clear();
+        }
+      }
+    };
   }
 }

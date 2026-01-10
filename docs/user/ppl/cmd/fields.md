@@ -1,24 +1,36 @@
-# fields  
 
-## Description  
+# fields
 
-The `fields` command keeps or removes fields from the search result.
-## Syntax  
+The `fields` command specifies the fields that should be included in or excluded from the search results.
 
-fields [+\|-] \<field-list\>
-* +\|-: optional. If the plus (+) is used, only the fields specified in the field list will be kept. If the minus (-) is used, all the fields specified in the field list will be removed. **Default:** +.  
-* field-list: mandatory. Comma-delimited or space-delimited list of fields to keep or remove. Supports wildcard patterns.  
+## Syntax
+
+The `fields` command has the following syntax:
+
+```syntax
+fields [+|-] <field-list>
+```
+
+## Parameters
+
+The `fields` command supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<field-list>` | Required | A comma-delimited or space-delimited list of fields to keep or remove. Supports wildcard patterns. |
+| `[+|-]` | Optional | If the plus sign (`+`) is used, only the fields specified in the `field-list` are included. If the minus sign (`-`) is used, all fields specified in the `field-list` are excluded. Default is `+`. |
   
-## Example 1: Select specified fields from result  
 
-This example shows selecting account_number, firstname and lastname fields from search results.
+## Example 1: Select specified fields from the search result
+
+The following query shows how to retrieve the `account_number`, `firstname`, and `lastname` fields from the search results:
   
 ```ppl
 source=accounts
 | fields account_number, firstname, lastname
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -32,9 +44,10 @@ fetched rows / total rows = 4/4
 +----------------+-----------+----------+
 ```
   
-## Example 2: Remove specified fields from result  
 
-This example shows removing the account_number field from search results.
+## Example 2: Remove specified fields from the search results 
+
+The following query shows how to remove the `account_number` field from the search results:
   
 ```ppl
 source=accounts
@@ -42,7 +55,7 @@ source=accounts
 | fields - account_number
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -56,17 +69,17 @@ fetched rows / total rows = 4/4
 +-----------+----------+
 ```
   
+
 ## Example 3: Space-delimited field selection  
 
-Fields can be specified using spaces instead of commas, providing a more concise syntax.
-**Syntax**: `fields field1 field2 field3`
+Fields can be specified using spaces instead of commas, providing a more concise syntax:
   
 ```ppl
 source=accounts
 | fields firstname lastname age
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -80,16 +93,17 @@ fetched rows / total rows = 4/4
 +-----------+----------+-----+
 ```
   
+
 ## Example 4: Prefix wildcard pattern  
 
-Select fields starting with a pattern using prefix wildcards.
+The following query selects fields starting with a pattern using prefix wildcards:
   
 ```ppl
 source=accounts
 | fields account*
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -103,16 +117,17 @@ fetched rows / total rows = 4/4
 +----------------+
 ```
   
+
 ## Example 5: Suffix wildcard pattern  
 
-Select fields ending with a pattern using suffix wildcards.
+The following query selects fields ending with a pattern using suffix wildcards:
   
 ```ppl
 source=accounts
 | fields *name
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -126,9 +141,10 @@ fetched rows / total rows = 4/4
 +-----------+----------+
 ```
   
-## Example 6: Contains wildcard pattern  
 
-Select fields containing a pattern using contains wildcards.
+## Example 6: Wildcard pattern matching  
+
+The following query selects fields containing a pattern using `contains` wildcards:
   
 ```ppl
 source=accounts
@@ -136,7 +152,7 @@ source=accounts
 | head 1
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -147,16 +163,17 @@ fetched rows / total rows = 1/1
 +----------------+-----------+-----------------+---------+-------+-----+----------------------+----------+
 ```
   
+
 ## Example 7: Mixed delimiter syntax  
 
-Combine spaces and commas for flexible field specification.
+The following query combines spaces and commas for flexible field specification:
   
 ```ppl
 source=accounts
 | fields firstname, account* *name
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -170,16 +187,17 @@ fetched rows / total rows = 4/4
 +-----------+----------------+----------+
 ```
   
+
 ## Example 8: Field deduplication  
 
-Automatically prevents duplicate columns when wildcards expand to already specified fields.
+The following query automatically prevents duplicate columns when wildcards expand to already specified fields:
   
 ```ppl
 source=accounts
 | fields firstname, *name
 ```
   
-Expected output:
+The query returns the following results. Even though `firstname` is explicitly specified and also matches `*name`, it appears only once because of automatic deduplication:
   
 ```text
 fetched rows / total rows = 4/4
@@ -192,11 +210,10 @@ fetched rows / total rows = 4/4
 | Dale      | Adams    |
 +-----------+----------+
 ```
-  
-Note: Even though `firstname` is explicitly specified and would also match `*name`, it appears only once due to automatic deduplication.
+
 ## Example 9: Full wildcard selection  
 
-Select all available fields using `*` or `` `*` ``. This selects all fields defined in the index schema, including fields that may contain null values.
+The following query selects all available fields using `*` or `` `*` ``. This expression selects all fields defined in the index schema, including fields that may contain null values. The `*` wildcard selects fields based on the index schema, not on the data content, so fields with null values are included in the result set. Use backticks (`` `*` ``) if the plain `*` does not return all expected fields:
   
 ```ppl
 source=accounts
@@ -204,7 +221,7 @@ source=accounts
 | head 1
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -214,18 +231,17 @@ fetched rows / total rows = 1/1
 | 1              | Amber     | 880 Holmes Lane | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com | Duke     |
 +----------------+-----------+-----------------+---------+--------+--------+----------+-------+-----+----------------------+----------+
 ```
-  
-Note: The `*` wildcard selects fields based on the index schema, not on data content. Fields with null values are included in the result set. Use backticks `` `*` ` if the plain `*`` doesn't return all expected fields.
+
 ## Example 10: Wildcard exclusion  
 
-Remove fields using wildcard patterns with the minus (-) operator.
+The following query removes fields using wildcard patterns containing the minus (`-`) operator:
   
 ```ppl
 source=accounts
 | fields - *name
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -239,6 +255,7 @@ fetched rows / total rows = 4/4
 +----------------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+
 ```
   
-## See Also  
 
-- [table](table.md) - Alias command with identical functionality  
+## Related documentation 
+
+- [`table`](table.md) -- An alias command with identical functionality  
