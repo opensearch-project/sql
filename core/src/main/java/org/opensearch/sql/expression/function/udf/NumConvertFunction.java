@@ -30,7 +30,11 @@ public class NumConvertFunction extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return ReturnTypes.DOUBLE_FORCE_NULLABLE;
+    return ReturnTypes.explicit(
+        factory ->
+            factory.createTypeWithNullability(
+                factory.createSqlType(org.apache.calcite.sql.type.SqlTypeName.DECIMAL, 38, 10),
+                true));
   }
 
   @Override
@@ -43,7 +47,8 @@ public class NumConvertFunction extends ImplementorUDF {
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
       Expression fieldValue = translatedOperands.get(0);
-      return Expressions.call(ConversionUtils.class, "numConvert", fieldValue);
+      Expression result = Expressions.call(ConversionUtils.class, "numConvert", fieldValue);
+      return Expressions.convert_(result, Number.class);
     }
   }
 }

@@ -29,7 +29,7 @@ public class RmcommaConvertFunction extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return ReturnTypes.DOUBLE_FORCE_NULLABLE;
+    return ReturnTypes.VARCHAR_FORCE_NULLABLE;
   }
 
   @Override
