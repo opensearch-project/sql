@@ -2391,6 +2391,35 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testConvertCommandExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_convert_command.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_bank | convert auto(balance) | fields balance"));
+  }
+
+  @Test
+  public void testConvertWithAliasExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_convert_with_alias.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_bank | convert auto(balance) AS balance_num | fields"
+                + " balance_num"));
+  }
+
+  @Test
+  public void testConvertMultipleFunctionsExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_convert_multiple.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_bank | convert auto(balance), num(age) | fields"
+                + " balance, age"));
+  }
+
+  @Test
   public void testNotBetweenPushDownExplain() throws Exception {
     // test for issue https://github.com/opensearch-project/sql/issues/4903
     enabledOnlyWhenPushdownIsEnabled();

@@ -765,33 +765,4 @@ public class ExplainIT extends PPLIntegTestCase {
                 + "| eval age1 = age * 10, age2 = age + 10, age3 = 10"
                 + "| stats count() by age1, age2, age3, age"));
   }
-
-  @Test
-  public void testConvertCommandExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_convert_command.json");
-    assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_bank | convert auto(balance) | fields balance"));
-  }
-
-  @Test
-  public void testConvertWithAliasExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_convert_with_alias.json");
-    assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_bank | convert auto(balance) AS balance_num | fields"
-                + " balance_num"));
-  }
-
-  @Test
-  public void testConvertMultipleFunctionsExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_convert_multiple.json");
-    assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString(
-            "source=opensearch-sql_test_index_bank | convert auto(balance), num(age) | fields"
-                + " balance, age"));
-  }
 }

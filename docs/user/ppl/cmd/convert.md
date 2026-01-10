@@ -1,124 +1,107 @@
-## convert
+# Convert Command
 
-**Description**
+The `convert` command applies conversion functions to transform field values into different data types and formats.
 
-The `convert` command converts fields in the search results to different data types. This is useful for data type transformations, especially when working with string representations of numbers or removing formatting from fields.
+## Syntax
 
-**Syntax**
-
-```sql
-convert <conversion-function>(<field>) [AS <alias>] [, <conversion-function>(<field>) [AS <alias>]]...
+```
+... | convert <convert-function>(<field-list>) [AS <field>] [<convert-function>(<field-list>) [AS <field>]]...
 ```
 
-* `conversion-function`: The conversion function to apply (see below for available functions)
-* `field`: The field name to convert
-* `alias`: (Optional) An alias for the converted field
+## Conversion Functions
 
-**Conversion Functions**
+### Numeric Conversions
 
-### auto(field)
+#### `auto(field)`
+Automatically converts fields to numbers using comprehensive best-fit heuristics. Combines the functionality of `rmcomma()`, `rmunit()`, and `num()` functions:
+- Removes commas from numeric strings
+- Extracts leading numbers from mixed alphanumeric text
+- Converts clean numeric values to appropriate numeric types
 
-Automatically converts a string field to a number. This function attempts to parse the string value as a numeric type.
-
-**Example**:
+**Examples:**
 ```sql
-source=accounts | convert auto(balance) | fields balance
+source=accounts | convert auto(balance)
+```
+- `"39,225"` → `39225`
+- `"1,234 dollars"` → `1234`
+- `"45.67 kg"` → `45.67`
+
+#### `num(field)`
+Converts field values to numbers. Only works with clean numeric strings.
+
+**Example:**
+```sql
+source=accounts | convert num(age)
+```
+- `"32"` → `32`
+- `"1,234"` → `null` (fails with commas)
+
+#### `rmcomma(field)`
+Removes commas from field values, returning the cleaned string.
+
+**Example:**
+```sql
+source=accounts | convert rmcomma(balance)
+```
+- `"39,225.50"` → `"39225.50"`
+
+#### `rmunit(field)`
+Extracts leading numeric values and removes trailing text/units.
+
+**Example:**
+```sql
+source=metrics | convert rmunit(duration)
+```
+- `"212 seconds"` → `212`
+- `"45.67 kg"` → `45.67`
+
+### Utility Functions
+
+#### `none(field)`
+No-op function that preserves the original field value. Used for excluding specific fields from wildcard conversions.
+
+**Example:**
+```sql
+source=accounts | convert none(account_id)
 ```
 
-### num(field)
+## Parameters
 
-Explicitly converts a string field to a number. Similar to `auto()`, but makes the intent more explicit in the query.
+- `<convert-function>`: One of the conversion functions listed above
+- `<field-list>`: Field name(s) to convert
+- `AS <field>`: (Optional) Create new field with converted value, preserving original
 
-**Example**:
+## Examples
+
+### Basic Conversion
 ```sql
-source=accounts | convert num(revenue) | fields revenue
+source=accounts | convert auto(balance)
 ```
 
-### rmcomma(field)
-
-Removes commas from a string field. This is useful when dealing with formatted numbers like "1,000,000".
-
-**Example**:
+### Multiple Conversions
 ```sql
-source=accounts | convert rmcomma(amount) | fields amount
+source=data | convert auto(balance), num(age), rmcomma(description)
 ```
 
-### rmunit(field)
-
-Removes measurement units from a string field. This helps extract numeric values from fields containing units like "100KB" or "50ms".
-
-**Example**:
-```sql
-source=logs | convert rmunit(response_size) | fields response_size
-```
-
-### none(field)
-
-Pass-through function that doesn't perform any conversion. This can be useful for explicitly documenting that a field should not be converted.
-
-**Example**:
-```sql
-source=accounts | convert none(account_id) | fields account_id
-```
-
-**Usage Examples**
-
-### Example 1: Basic conversion
-
-Convert a balance field from string to number:
-
-```sql
-source=accounts | convert auto(balance) | fields account_number, balance
-```
-
-### Example 2: Conversion with alias
-
-Convert balance and give it a new name:
-
+### Using AS Clause
 ```sql
 source=accounts | convert auto(balance) AS balance_num | fields account_number, balance_num
 ```
 
-### Example 3: Multiple conversions
-
-Convert multiple fields at once:
-
+### Complex Example
 ```sql
-source=accounts | convert auto(balance), num(age), rmcomma(revenue) | fields balance, age, revenue
+source=sales | convert auto(revenue) AS revenue_clean, rmunit(duration) AS duration_seconds | stats sum(revenue_clean) by product
 ```
 
-### Example 4: Convert then filter
+## Notes
 
-Convert a field and then use it in a where clause:
+- Conversion functions return `null` for values that cannot be converted
+- The `auto()` function is the most comprehensive and handles mixed data formats
+- Use `AS` clause to preserve original fields while creating converted versions
+- Multiple conversions can be applied in a single command
 
-```sql
-source=accounts | convert auto(balance) | where balance > 10000 | fields account_number, balance
-```
+## Limitations
 
-### Example 5: Convert then aggregate
+The `convert` command can only work with `plugins.calcite.enabled=true`. 
 
-Convert a field before using it in aggregation:
-
-```sql
-source=accounts | convert auto(balance) | stats avg(balance), sum(balance) by state
-```
-
-### Example 6: Remove formatting before analysis
-
-Remove commas from formatted numbers:
-
-```sql
-source=sales | convert rmcomma(annual_revenue) | stats sum(annual_revenue) by region
-```
-
-**Limitations**
-
-* The `convert` command requires Calcite engine to be enabled (`plugins.calcite.enabled=true`)
-* Conversion functions only work on fields that can be logically converted to the target type
-* Failed conversions may result in null values or errors depending on the input data
-
-**Related Commands**
-
-* [eval](eval.md) - Create new fields with calculated values
-* [fields](fields.md) - Select which fields to display
-* [where](where.md) - Filter results based on conditions
+When Calcite is disabled, attempting to use convert functions will result in an "unsupported function" error.

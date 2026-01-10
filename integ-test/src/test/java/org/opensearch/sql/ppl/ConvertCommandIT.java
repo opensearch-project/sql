@@ -6,15 +6,19 @@
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
-import static org.opensearch.sql.util.MatcherUtils.schema;
-import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
-import static org.opensearch.sql.util.MatcherUtils.verifySchema;
+import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 
-import java.io.IOException;
-import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
-/** Integration tests for the PPL convert command. */
+/**
+ * Integration tests for the PPL convert command when Calcite is disabled.
+ *
+ * <p>The convert command is a Calcite-only feature and should throw an error when Calcite is
+ * disabled. These tests verify that the appropriate error messages are returned.
+ *
+ * <p>For tests of actual convert command functionality with Calcite enabled, see {@link
+ * org.opensearch.sql.calcite.remote.CalciteConvertCommandIT}.
+ */
 public class ConvertCommandIT extends PPLIntegTestCase {
   @Override
   public void init() throws Exception {
@@ -23,88 +27,66 @@ public class ConvertCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testConvertAutoFunction() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | convert auto(balance) | fields balance", TEST_INDEX_BANK));
-    verifySchema(result, schema("balance", null, "double"));
-    verifyDataRows(result);
+  public void testConvertAutoFunction() {
+    verifyQueryThrowsCalciteError("source=%s | convert auto(balance) | fields balance");
   }
 
   @Test
-  public void testConvertNumFunction() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | convert num(balance) | fields balance", TEST_INDEX_BANK));
-    verifySchema(result, schema("balance", null, "double"));
-    verifyDataRows(result);
+  public void testConvertAutoWithMixedData() {
+    verifyQueryThrowsCalciteError(
+        "source=%s | eval test_field = '42' | convert auto(test_field) | fields test_field");
   }
 
   @Test
-  public void testConvertWithAlias() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | convert auto(balance) AS balance_num | fields balance_num",
-                TEST_INDEX_BANK));
-    verifySchema(result, schema("balance_num", null, "double"));
-    verifyDataRows(result);
+  public void testConvertAutoOptimalPath() {
+    verifyQueryThrowsCalciteError(
+        "source=%s | eval simple_num = '123' | convert auto(simple_num) | fields simple_num");
   }
 
   @Test
-  public void testConvertMultipleFunctions() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | convert auto(balance), num(age) | fields balance, age",
-                TEST_INDEX_BANK));
-    verifySchema(result, schema("balance", null, "double"), schema("age", null, "double"));
-    verifyDataRows(result);
+  public void testConvertNumFunction() {
+    verifyQueryThrowsCalciteError("source=%s | convert num(balance) | fields balance");
   }
 
   @Test
-  public void testConvertRmcommaFunction() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | convert rmcomma(firstname) | fields firstname",
-                TEST_INDEX_BANK));
-    verifySchema(result, schema("firstname", "string"));
-    verifyDataRows(result);
+  public void testConvertWithAlias() {
+    verifyQueryThrowsCalciteError(
+        "source=%s | convert auto(balance) AS balance_num | fields balance_num");
   }
 
   @Test
-  public void testConvertNoneFunction() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | convert none(account_number) | fields account_number",
-                TEST_INDEX_BANK));
-    verifySchema(result, schema("account_number", null, "long"));
-    verifyDataRows(result);
+  public void testConvertMultipleFunctions() {
+    verifyQueryThrowsCalciteError(
+        "source=%s | convert auto(balance), num(age) | fields balance, age");
   }
 
   @Test
-  public void testConvertWithWhere() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | where age > 30 | convert auto(balance) | fields balance",
-                TEST_INDEX_BANK));
-    verifySchema(result, schema("balance", null, "double"));
-    verifyDataRows(result);
+  public void testConvertRmcommaFunction() {
+    verifyQueryThrowsCalciteError("source=%s | convert rmcomma(firstname) | fields firstname");
   }
 
   @Test
-  public void testConvertWithStats() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s | convert auto(balance) | stats avg(balance) by gender",
-                TEST_INDEX_BANK));
-    verifySchema(result, schema("avg(balance)", null, "double"), schema("gender", "string"));
-    verifyDataRows(result);
+  public void testConvertNoneFunction() {
+    verifyQueryThrowsCalciteError(
+        "source=%s | convert none(account_number) | fields account_number");
+  }
+
+  @Test
+  public void testConvertWithWhere() {
+    verifyQueryThrowsCalciteError(
+        "source=%s | where age > 30 | convert auto(balance) | fields balance");
+  }
+
+  @Test
+  public void testConvertWithStats() {
+    verifyQueryThrowsCalciteError(
+        "source=%s | convert auto(balance) | stats avg(balance) by gender");
+  }
+
+  private void verifyQueryThrowsCalciteError(String query) {
+    Exception e =
+        assertThrows(Exception.class, () -> executeQuery(String.format(query, TEST_INDEX_BANK)));
+    verifyErrorMessageContains(
+        e, "Convert command is supported only when plugins.calcite.enabled=true");
   }
 }
