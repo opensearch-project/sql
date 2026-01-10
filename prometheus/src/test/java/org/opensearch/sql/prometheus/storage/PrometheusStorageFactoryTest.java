@@ -130,7 +130,7 @@ public class PrometheusStorageFactoryTest {
         .thenReturn(Collections.emptyList());
     PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
     HashMap<String, String> properties = new HashMap<>();
-    properties.put("prometheus.uri", "https://test.com");
+    properties.put("prometheus.uri", "https://opensearch.org");
     properties.put("prometheus.auth.type", "random");
     properties.put("prometheus.auth.region", "us-east-1");
     properties.put("prometheus.auth.secret_key", "accessKey");
@@ -150,7 +150,7 @@ public class PrometheusStorageFactoryTest {
         .thenReturn(Collections.emptyList());
     PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
     HashMap<String, String> properties = new HashMap<>();
-    properties.put("prometheus.uri", "https://test.com");
+    properties.put("prometheus.uri", "https://opensearch.org");
     StorageEngine storageEngine = prometheusStorageFactory.getStorageEngine(properties);
     Assertions.assertTrue(storageEngine instanceof PrometheusStorageEngine);
   }
