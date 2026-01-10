@@ -287,4 +287,24 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
 
     disableCalcite();
   }
+
+  @Test
+  public void testCrossClusterConvert() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | convert auto(balance) | fields balance",
+                TEST_INDEX_BANK_REMOTE));
+    verifyColumn(result, columnName("balance"));
+  }
+
+  @Test
+  public void testCrossClusterConvertWithAlias() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | convert auto(balance) AS balance_num | fields balance_num",
+                TEST_INDEX_BANK_REMOTE));
+    verifyColumn(result, columnName("balance_num"));
+  }
 }
