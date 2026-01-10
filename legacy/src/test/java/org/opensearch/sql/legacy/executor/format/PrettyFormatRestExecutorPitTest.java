@@ -31,7 +31,7 @@ import org.opensearch.sql.legacy.query.DefaultQueryAction;
 import org.opensearch.sql.legacy.query.SqlOpenSearchRequestBuilder;
 import org.opensearch.sql.legacy.request.SqlRequest;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
-import org.opensearch.transport.client.Client;
+import org.opensearch.client.Client;
 
 /** Unit tests for PIT lifecycle management in PrettyFormatRestExecutor. */
 @RunWith(MockitoJUnitRunner.Silent.class)
