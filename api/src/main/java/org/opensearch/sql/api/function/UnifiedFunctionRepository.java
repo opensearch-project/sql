@@ -14,7 +14,6 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.opensearch.sql.api.UnifiedQueryContext;
-import org.opensearch.sql.api.function.calcite.UnifiedFunctionCalciteAdapter;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
 /** Repository for discovering and loading PPL functions as {@link UnifiedFunction} instances. */

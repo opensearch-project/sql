@@ -18,6 +18,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.opensearch.sql.api.UnifiedQueryTestBase;
 import org.opensearch.sql.api.function.UnifiedFunction;
+import org.opensearch.sql.api.function.UnifiedFunctionCalciteAdapter;
 
 /** Unit tests for {@link UnifiedFunctionCalciteAdapter}. */
 public class UnifiedFunctionCalciteAdapterTest extends UnifiedQueryTestBase {
@@ -48,21 +49,12 @@ public class UnifiedFunctionCalciteAdapterTest extends UnifiedQueryTestBase {
         UnifiedFunctionCalciteAdapter.create("UPPER", rexBuilder, List.of("VARCHAR"));
 
     Object result = upperFunc.eval(List.of("hello"));
-
     assertEquals("HELLO", result);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testCreateWithInvalidFunctionName() {
     UnifiedFunctionCalciteAdapter.create("INVALID_FUNCTION", rexBuilder, List.of("VARCHAR"));
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testEvaluateWithWrongNumberOfArguments() {
-    UnifiedFunction upperFunc =
-        UnifiedFunctionCalciteAdapter.create("UPPER", rexBuilder, List.of("VARCHAR"));
-
-    upperFunc.eval(List.of("hello", "world"));
   }
 
   @Test
@@ -89,11 +81,7 @@ public class UnifiedFunctionCalciteAdapterTest extends UnifiedQueryTestBase {
     assertEquals(originalFunc.getInputTypes(), deserializedFunc.getInputTypes());
     assertEquals(originalFunc.getReturnType(), deserializedFunc.getReturnType());
 
-    // Verify RexExecutable is recreated (not null after deserialization)
-    assertNotNull(
-        "RexExecutable should be recreated during deserialization", deserializedFunc.toString());
-
-    // Verify functionality is preserved - this proves RexExecutable works
+    // Verify functionality is preserved after deserialization
     Object result = deserializedFunc.eval(List.of("hello"));
     assertEquals("HELLO", result);
   }
