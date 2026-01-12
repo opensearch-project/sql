@@ -4,5 +4,5 @@ calcite:
       LogicalProject(balance_num=[AUTO($7)])
         CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
   physical: |
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[AUTO($t0)], $f0=[$t1])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[AUTO($t0)], balance_num=[$t1])
       CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]], PushDownContext=[[PROJECT->[balance], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10000,"timeout":"1m","_source":{"includes":["balance"],"excludes":[]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])
