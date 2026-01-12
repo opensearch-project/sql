@@ -8,7 +8,6 @@ package org.opensearch.sql.api.function.calcite;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +36,7 @@ import org.opensearch.sql.expression.function.PPLFuncImpTable;
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class UnifiedFunctionCalciteAdapter implements UnifiedFunction {
 
-  @Serial private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = 1L;
 
   /**
    * Key used by RexExecutorImpl's InputGetter to retrieve input values from DataContext. This is a
@@ -162,14 +161,12 @@ public class UnifiedFunctionCalciteAdapter implements UnifiedFunction {
     }
   }
 
-  @Serial
   private void writeObject(ObjectOutputStream out) throws IOException {
     // Serialize the generated code from RexExecutable
     serializedCode = rexExecutor.getSource();
     out.defaultWriteObject();
   }
 
-  @Serial
   private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
     this.rexExecutor = new RexExecutable(serializedCode, "deserialized Rex code");
