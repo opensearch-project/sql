@@ -14,8 +14,8 @@ This module provides components organized into two main areas aligned with the [
 ### Unified Execution Runtime
 
 - **`UnifiedQueryCompiler`**: Compiles Calcite logical plans (`RelNode`) into executable JDBC `PreparedStatement` objects for separation of compilation and execution.
-- **`UnifiedFunction`**: Engine-agnostic function interface that enables PPL functions to be evaluated across different execution engines (Spark, Flink, etc.) without engine-specific code duplication.
-- **`UnifiedFunctionRepository`**: Repository for discovering and loading PPL functions as `UnifiedFunction` instances, providing a bridge between PPL function definitions and external execution engines.
+- **`UnifiedFunction`**: Engine-agnostic function interface that enables functions to be evaluated across different execution engines without engine-specific code duplication.
+- **`UnifiedFunctionRepository`**: Repository for discovering and loading functions as `UnifiedFunction` instances, providing a bridge between function definitions and external execution engines.
 
 Together, these components enable complete workflows: parse PPL queries into logical plans, transpile those plans into target database SQL, compile and execute queries directly, or export PPL functions for use in external execution engines.
 
@@ -90,15 +90,7 @@ try (PreparedStatement statement = compiler.compile(plan)) {
 
 ### UnifiedFunction and UnifiedFunctionRepository
 
-The Unified Function API provides an engine-agnostic abstraction for PPL functions, enabling them to be evaluated across different execution engines (Spark, Flink, Calcite, etc.) without engine-specific code duplication.
-
-#### Core Concepts
-
-**UnifiedFunction**: A serializable interface representing a function that can be evaluated across different execution engines. Functions expose metadata (name, input types, return type) and an `eval()` method for execution.
-
-**UnifiedFunctionRepository**: A repository that discovers PPL functions from `PPLBuiltinOperators` and provides builders for creating `UnifiedFunction` instances with specific input types.
-
-**UnifiedFunctionBuilder**: A factory interface for constructing `UnifiedFunction` instances with specified input types, enabling type-specific function instantiation.
+The Unified Function API provides an engine-agnostic abstraction for functions, enabling them to be evaluated across different execution engines (Spark, Flink, Calcite, etc.) without engine-specific code duplication.
 
 #### Type System
 
@@ -110,7 +102,7 @@ Types are represented as SQL type name strings for engine-agnostic serialization
 
 #### Loading Functions
 
-Use `UnifiedFunctionRepository` to discover and load PPL functions:
+Use `UnifiedFunctionRepository` to discover and load unified functions:
 
 ```java
 // Create repository with context

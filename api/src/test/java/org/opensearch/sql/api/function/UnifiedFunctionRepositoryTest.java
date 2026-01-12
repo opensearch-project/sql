@@ -15,7 +15,6 @@ import org.junit.Test;
 import org.opensearch.sql.api.UnifiedQueryTestBase;
 import org.opensearch.sql.api.function.UnifiedFunctionRepository.UnifiedFunctionDescriptor;
 
-/** Unit tests for {@link UnifiedFunctionRepository}. */
 public class UnifiedFunctionRepositoryTest extends UnifiedQueryTestBase {
 
   private UnifiedFunctionRepository repository;

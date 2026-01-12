@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.api.function.calcite;
+package org.opensearch.sql.api.function;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -17,10 +17,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.junit.Before;
 import org.junit.Test;
 import org.opensearch.sql.api.UnifiedQueryTestBase;
-import org.opensearch.sql.api.function.UnifiedFunction;
-import org.opensearch.sql.api.function.UnifiedFunctionCalciteAdapter;
 
-/** Unit tests for {@link UnifiedFunctionCalciteAdapter}. */
 public class UnifiedFunctionCalciteAdapterTest extends UnifiedQueryTestBase {
 
   private RexBuilder rexBuilder;
