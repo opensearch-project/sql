@@ -31,6 +31,7 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
     putItem(4, "join1", sj("{'key': 'k1', 'left': 'l'}"));
     putItem(5, "join2", sj("{'key': 'k1', 'right': 'r1'}"));
     putItem(6, "join2", sj("{'key': 'k2', 'right': 'r2'}"));
+    putItem(7, "overwrap", sj("{'a.b': 1, 'a': {'b': 2, 'c': 3}, }"));
   }
 
   private void putItem(int id, String testCase, String json) throws Exception {
@@ -96,6 +97,25 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
                 + " 1");
     verifySchema(result, schema("a", "string"), schema("b", "string"), schema("c", "string"));
     verifyDataRows(result, rows("1", "2", "3"));
+  }
+
+  @Test
+  public void testSpathWithAbsentField() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_spath | where testCase='simple' | spath input=doc | fields a, x | head 1");
+    verifySchema(result, schema("a", "string"), schema("x", "string"));
+    verifyDataRows(result, rows("1", null));
+  }
+
+  @Test
+  public void testOverwrap() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_spath | where testCase='overwrap' | spath input=doc | fields a.b | head"
+                + " 1");
+    verifySchema(result, schema("a.b", "string"));
+    verifyDataRows(result, rows("[1, 2]"));
   }
 
   @Test

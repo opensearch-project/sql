@@ -223,7 +223,7 @@ public class CalcitePlanContext {
    */
   public FieldResolutionResult resolveFields(UnresolvedPlan target) {
     if (rootNode == null) {
-      throw new IllegalStateException("Root node is not set. Abort field resolution.");
+      throw new IllegalStateException("Failed to resolve fields. Root node is not set.");
     }
     FieldResolutionVisitor visitor = new FieldResolutionVisitor();
     Map<UnresolvedPlan, FieldResolutionResult> result = visitor.analyze(rootNode);
