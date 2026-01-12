@@ -36,6 +36,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.Instant;
+import java.util.List;
 import java.util.Properties;
 import java.util.function.Consumer;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
@@ -58,16 +59,23 @@ import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptTable.ViewExpander;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.prepare.Prepare.CatalogReader;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -79,7 +87,10 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql2rel.RelFieldTrimmer;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
@@ -87,9 +98,11 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Util;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.calcite.plan.OpenSearchRules;
 import org.opensearch.sql.calcite.plan.Scannable;
+import org.opensearch.sql.calcite.plan.rule.OpenSearchRules;
+import org.opensearch.sql.calcite.plan.rule.PPLSimplifyDedupRule;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.monitor.profile.ProfileMetric;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
@@ -99,14 +112,13 @@ import org.opensearch.sql.monitor.profile.QueryProfiling;
  * 3. RelBuilder 4. RelRunner 5. CalcitePreparingStmt. TODO delete it in future if possible.
  */
 public class CalciteToolsHelper {
-
   /** Create a RelBuilder with testing */
   public static RelBuilder create(FrameworkConfig config) {
     return RelBuilder.create(config);
   }
 
   /** Create a RelBuilder with typeFactory */
-  public static RelBuilder create(
+  public static OpenSearchRelBuilder create(
       FrameworkConfig config, JavaTypeFactory typeFactory, Connection connection) {
     return withPrepare(
         config,
@@ -279,6 +291,8 @@ public class CalciteToolsHelper {
   public static class OpenSearchCalcitePreparingStmt
       extends CalcitePrepareImpl.CalcitePreparingStmt {
 
+    protected final RelOptCluster cluster;
+
     public OpenSearchCalcitePreparingStmt(
         CalcitePrepareImpl prepare,
         CalcitePrepare.Context context,
@@ -299,6 +313,7 @@ public class CalciteToolsHelper {
           cluster,
           resultConvention,
           convertletTable);
+      this.cluster = cluster;
     }
 
     @Override
@@ -337,6 +352,41 @@ public class CalciteToolsHelper {
       }
       return super.implement(root);
     }
+
+    @Override
+    protected SqlToRelConverter getSqlToRelConverter(
+        SqlValidator validator, CatalogReader catalogReader, SqlToRelConverter.Config config) {
+      return new OpenSearchSqlToRelConverter(
+          this, validator, catalogReader, this.cluster, convertletTable, config);
+    }
+  }
+
+  public static class OpenSearchSqlToRelConverter extends SqlToRelConverter {
+    protected final RelBuilder relBuilder;
+
+    public OpenSearchSqlToRelConverter(
+        ViewExpander viewExpander,
+        @Nullable SqlValidator validator,
+        CatalogReader catalogReader,
+        RelOptCluster cluster,
+        SqlRexConvertletTable convertletTable,
+        Config config) {
+      super(viewExpander, validator, catalogReader, cluster, convertletTable, config);
+      this.relBuilder =
+          config
+              .getRelBuilderFactory()
+              .create(
+                  cluster,
+                  validator != null
+                      ? validator.getCatalogReader().unwrap(RelOptSchema.class)
+                      : null)
+              .transform(config.getRelBuilderConfigTransform());
+    }
+
+    @Override
+    protected RelFieldTrimmer newFieldTrimmer() {
+      return new OpenSearchRelFieldTrimmer(validator, this.relBuilder);
+    }
   }
 
   public static class OpenSearchRelRunners {
@@ -347,6 +397,8 @@ public class CalciteToolsHelper {
     public static PreparedStatement run(CalcitePlanContext context, RelNode rel) {
       ProfileMetric optimizeTime = QueryProfiling.current().getOrCreateMetric(OPTIMIZE);
       long startTime = System.nanoTime();
+      // Optimize the plan by Calcite's HepPlanner before using VolcanoPlanner in prepareStatement.
+      rel = CalciteToolsHelper.optimize(rel, context);
       final RelShuttle shuttle =
           new RelHomogeneousShuttle() {
             @Override
@@ -383,5 +435,19 @@ public class CalciteToolsHelper {
         throw Util.throwAsRuntime(e);
       }
     }
+  }
+
+  /** Try to optimize the plan by using HepPlanner */
+  private static final List<RelOptRule> hepRuleList =
+      List.of(FilterMergeRule.Config.DEFAULT.toRule(), PPLSimplifyDedupRule.DEDUP_SIMPLIFY_RULE);
+
+  private static final HepProgram HEP_PROGRAM =
+      new HepProgramBuilder().addRuleCollection(hepRuleList).build();
+
+  public static RelNode optimize(RelNode plan, CalcitePlanContext context) {
+    Util.discard(context);
+    HepPlanner planner = new HepPlanner(HEP_PROGRAM);
+    planner.setRoot(plan);
+    return planner.findBestExp();
   }
 }
