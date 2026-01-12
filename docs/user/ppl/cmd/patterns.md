@@ -1,50 +1,96 @@
-# patterns  
 
-## Description  
+# patterns
 
-The `patterns` command extracts log patterns from a text field and appends the results to the search result. Grouping logs by their patterns makes it easier to aggregate stats from large volumes of log data for analysis and troubleshooting.  
-`patterns` command allows users to select different log parsing algorithms to get high log pattern grouping accuracy. Two pattern methods are supported: `simple_pattern` and `brain`.  
-`simple_pattern` algorithm is basically a regex parsing method vs `brain` algorithm is an automatic log grouping algorithm with high grouping accuracy and keeps semantic meaning.  
-`patterns` command supports two modes: `label` and `aggregation`. `label` mode returns individual pattern labels. `aggregation` mode returns aggregated results on target field.  
-Calcite engine by default labels the variables with '\<*\>' placeholder. If `show_numbered_token` option is turned on, Calcite engine's `label` mode not only labels pattern of text but also labels variable tokens in map. In `aggregation` mode, it will also output labeled pattern as well as variable tokens per pattern. The variable placeholder is in the format of '<token%d>' instead of '<\*>'.  
+The `patterns` command extracts log patterns from a text field and appends the results to the search results. Grouping logs by pattern simplifies aggregating statistics from large volumes of log data for analysis and troubleshooting. You can choose from the following log parsing methods to achieve high pattern-grouping accuracy:
 
-## Syntax  
+* `simple_pattern`: A parsing method that uses [Java regular expressions](https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html).
+* `brain`: An automatic log-grouping method that provides high grouping accuracy while preserving semantic meaning.
 
-patterns \<field\> [by byClause...] [method=simple_pattern \| brain] [mode=label \| aggregation] [max_sample_count=integer] [buffer_limit=integer] [show_numbered_token=boolean] [new_field=\<new-field-name\>] (algorithm parameters...)
-* field: mandatory. The text field to analyze for patterns.  
-* byClause: optional. Fields or scalar functions used to group logs for labeling/aggregation.  
-* method: optional. Algorithm choice: `simple_pattern` or `brain`. **Default:** `simple_pattern`.  
-* mode: optional. Output mode: `label` or `aggregation`. **Default:** `label`.  
-* max_sample_count: optional. Max sample logs returned per pattern in aggregation mode. **Default:** 10.  
-* buffer_limit: optional. Safeguard parameter for `brain` algorithm to limit internal temporary buffer size (min: 50,000). **Default:** 100,000.  
-* show_numbered_token: optional. The flag to turn on numbered token output format. **Default:** false.  
-* new_field: optional. Alias of the output pattern field. **Default:** "patterns_field".  
-* algorithm parameters: optional. Algorithm-specific tuning:  
-  * `simple_pattern`: Define regex via "pattern".  
-  * `brain`: Adjust sensitivity with variable_count_threshold and frequency_threshold_percentage.  
-    * `variable_count_threshold`: optional integer. Words are split by space. Algorithm counts how many distinct words are at specific position in initial log groups. Adjusting this threshold can determine the sensitivity of constant words. **Default:** 5.  
-    * `frequency_threshold_percentage`: optional double. Brain's log pattern is selected based on longest word combination. This sets the lower bound of frequency to ignore low frequency words. **Default:** 0.3.  
-  
-## Change the default pattern method  
+The `patterns` command supports the following modes:
 
-To override default pattern parameters, users can run following command
-  
+* `label`: Returns individual pattern labels.
+* `aggregation`: Returns aggregated results for the target field.
+
+The command identifies variable parts of log messages (such as timestamps, numbers, IP addresses, and unique identifiers) and replaces them with `<*>` placeholders to create reusable patterns. For example, email addresses like `amberduke@pyrami.com` and `hattiebond@netagy.com` are replaced with the pattern `<*>@<*>.<*>`.
+
+> **Note**: The `patterns` command is not executed on OpenSearch data nodes. It only groups log patterns from log messages that have been returned to the coordinator node.
+
+## Syntax
+
+The `patterns` command supports the following syntax options.
+
+### Simple pattern method syntax
+
+The `patterns` command with a `simple_pattern` method has the following syntax:
+
+```syntax
+patterns <field> [by <byClause>] [method=simple_pattern] [mode=label | aggregation] [max_sample_count=integer] [show_numbered_token=boolean] [new_field=<new-field-name>] [pattern=<regex-pattern>]
 ```
-  PUT _cluster/settings
-  {
-    "persistent": {
-      "plugins.ppl.pattern.method": "brain",
-      "plugins.ppl.pattern.mode": "aggregation",
-      "plugins.ppl.pattern.max.sample.count": 5,
-      "plugins.ppl.pattern.buffer.limit": 50000,
-      "plugins.ppl.pattern.show.numbered.token": true
-    }
+
+### Brain method syntax
+
+The `patterns` command with a `brain` method has the following syntax:
+
+```syntax
+patterns <field> [by <byClause>] [method=brain] [mode=label | aggregation] [max_sample_count=integer] [buffer_limit=integer] [show_numbered_token=boolean] [new_field=<new-field-name>] [variable_count_threshold=integer] [frequency_threshold_percentage=decimal]
+```
+
+## Parameters
+
+The `patterns` command supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<field>` | Required | The text field that is analyzed to extract log patterns. |
+| `<byClause>` | Optional | The fields or scalar functions used to group logs before labeling or aggregation. |
+| `method` | Optional | The pattern extraction method to use. Valid values are `simple_pattern` and `brain`. Default is `simple_pattern`. |
+| `mode` | Optional | The output mode of the command. Valid values are `label` and `aggregation`. Default is `label`. |
+| `max_sample_count` | Optional | The maximum number of sample log entries returned per pattern in `aggregation` mode. Default is `10`. |
+| `buffer_limit` | Optional | A safeguard setting for the `brain` method that limits the size of its internal temporary buffer. Minimum is `50000`. Default is `100000`. |
+| `show_numbered_token` | Optional | Enables numbered token placeholders in the output instead of the default wildcard token. See [Placeholder behavior](#placeholder-behavior). Default is `false`. |
+| `<new_field>` | Optional | An alias for the output field that contains the extracted pattern. Default is `patterns_field`. |
+
+The `simple_pattern` method accepts the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<pattern>` | Optional | A custom [Java regular expression](https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html) pattern that identifies characters or sequences to replace with `<*>` placeholders. When not specified, the method uses a default pattern that automatically removes alphanumeric characters and replaces variable parts with `<*>` placeholders while preserving structural elements. |
+
+The `brain` method accepts the following parameters.
+
+| Parameter | Required/Optional | Description | 
+| --- | --- | --- | 
+| `variable_count_threshold` | Optional | Controls the algorithm sensitivity to detecting constant words by counting distinct words at specific positions in the initial log groups. Default is `5`. |
+| `frequency_threshold_percentage` | Optional | Sets the minimum word frequency percentage threshold. Words with frequencies below this value are ignored. The `brain` algorithm selects log patterns based on the longest word combination. Default is `0.3`. |
+
+## Placeholder behavior
+
+By default, the Apache Calcite engine labels variables using the `<*>` placeholder. If the `show_numbered_token` option is enabled, the Calcite engine's `label` mode not only labels the text pattern but also assigns numbered placeholders to variable tokens. In `aggregation` mode, it outputs both the labeled pattern and the variable tokens for each pattern. In this case, variable placeholders use the format `<token%d>` instead of `<*>`.
+
+## Changing the default pattern method  
+
+To override default pattern parameters, run the following command:
+
+```bash ignore
+PUT _cluster/settings
+{
+  "persistent": {
+    "plugins.ppl.pattern.method": "brain",
+    "plugins.ppl.pattern.mode": "aggregation",
+    "plugins.ppl.pattern.max.sample.count": 5,
+    "plugins.ppl.pattern.buffer.limit": 50000,
+    "plugins.ppl.pattern.show.numbered.token": true
   }
+}
 ```
   
-## Simple Pattern Example 1: Create the new field  
+## Simple pattern examples
 
-This example shows how to extract patterns in `email` for each document. Parsing a null field will return an empty string.
+The following are examples of using the `simple_pattern` method.
+
+### Example 1: Create a new field
+
+The following query extracts patterns from the `email` field for each document. If the `email` field is `null`, the command returns an empty string:
   
 ```ppl
 source=accounts
@@ -52,7 +98,7 @@ source=accounts
 | fields email, patterns_field
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -66,9 +112,10 @@ fetched rows / total rows = 4/4
 +-----------------------+----------------+
 ```
   
-## Simple Pattern Example 2: Extract log patterns  
 
-This example shows how to extract patterns from a raw log field using the default patterns.
+### Example 2: Extract log patterns
+
+The following query extracts default patterns from a raw log field:
   
 ```ppl
 source=apache
@@ -76,7 +123,7 @@ source=apache
 | fields message, patterns_field
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -90,9 +137,10 @@ fetched rows / total rows = 4/4
 +-----------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------+
 ```
   
-## Simple Pattern Example 3: Extract log patterns with custom regex pattern  
 
-This example shows how to extract patterns from a raw log field using user defined patterns.
+### Example 3: Extract log patterns using a custom regex pattern
+
+The following query extracts patterns from a raw log field using a custom pattern:
   
 ```ppl
 source=apache
@@ -100,7 +148,7 @@ source=apache
 | fields message, no_numbers
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -114,9 +162,10 @@ fetched rows / total rows = 4/4
 +-----------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 ```
   
-## Simple Pattern Example 4: Return log patterns aggregation result  
 
-This example shows how to get aggregated results from a raw log field.
+### Example 4: Return a log pattern aggregation result
+
+The following query aggregates patterns extracted from a raw log field:
   
 ```ppl
 source=apache
@@ -124,7 +173,7 @@ source=apache
 | fields patterns_field, pattern_count, sample_logs
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -138,12 +187,11 @@ fetched rows / total rows = 4/4
 +---------------------------------------------------------------------------------------------------+---------------+-------------------------------------------------------------------------------------------------------------------------------+
 ```
   
-## Simple Pattern Example 5: Return log patterns aggregation result with detected variable tokens  
 
-This example shows how to get aggregated results with detected variable tokens.
-## Configuration  
+### Example 5: Return aggregated log patterns with detected variable tokens
 
-With option `show_numbered_token` enabled, the output can detect numbered variable tokens from the pattern field.
+The following query returns aggregated results with detected variable tokens. When the `show_numbered_token` option is enabled, the pattern output uses numbered placeholders (for example, `<token1>`, `<token2>`) and returns a mapping of each placeholder to the values that it represents:
+
   
 ```ppl
 source=apache
@@ -152,7 +200,7 @@ source=apache
 | head 1
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -162,10 +210,15 @@ fetched rows / total rows = 1/1
 | <token1>.<token2>.<token3>.<token4> - - [<token5>/<token6>/<token7>:<token8>:<token9>:<token10> -<token11>] "<token12> /<token13> <token14>/<token15>.<token16>" <token17> <token18> | 1             | {'<token14>': ['HTTP'], '<token13>': ['users'], '<token16>': ['1'], '<token15>': ['1'], '<token18>': ['9481'], '<token17>': ['301'], '<token5>': ['28'], '<token4>': ['104'], '<token7>': ['2022'], '<token6>': ['Sep'], '<token9>': ['15'], '<token8>': ['10'], '<token10>': ['57'], '<token1>': ['210'], '<token12>': ['POST'], '<token3>': ['15'], '<token11>': ['0700'], '<token2>': ['204']} |
 +--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 ```
-  
-## Brain Example 1: Extract log patterns  
 
-This example shows how to extract semantic meaningful log patterns from a raw log field using the brain algorithm. The default variable count threshold is 5.
+
+## Brain pattern examples
+
+The following are examples of using the `brain` method.
+
+### Example 1: Extract log patterns
+
+The following query extracts semantically meaningful log patterns from a raw log field using the `brain` algorithm. This query uses the default `variable_count_threshold` value of `5`:
   
 ```ppl
 source=apache
@@ -173,7 +226,7 @@ source=apache
 | fields message, patterns_field
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -187,9 +240,10 @@ fetched rows / total rows = 4/4
 +-----------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------+
 ```
   
-## Brain Example 2: Extract log patterns with custom parameters  
 
-This example shows how to extract semantic meaningful log patterns from a raw log field using custom parameters of the brain algorithm.
+### Example 2: Extract log patterns using custom parameters
+
+The following query extracts semantically meaningful log patterns from a raw log field using custom parameters of the `brain` algorithm:
   
 ```ppl
 source=apache
@@ -197,7 +251,7 @@ source=apache
 | fields message, patterns_field
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -211,9 +265,11 @@ fetched rows / total rows = 4/4
 +-----------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------+
 ```
   
-## Brain Example 3: Return log patterns aggregation result  
 
-This example shows how to get aggregated results from a raw log field using the brain algorithm.
+### Example 3: Return a log pattern aggregation result
+
+The following query aggregates patterns extracted from a raw log field using the `brain` algorithm:
+
 <!-- TODO: Enbale after fixing https://github.com/opensearch-project/sql/issues/4968 -->
 ```ppl ignore
 source=apache
@@ -221,7 +277,7 @@ source=apache
 | fields patterns_field, pattern_count, sample_logs
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -232,11 +288,10 @@ fetched rows / total rows = 1/1
 +----------------------------------------------------------------------+---------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 ```
   
-## Brain Example 4: Return log patterns aggregation result with detected variable tokens  
 
-This example shows how to get aggregated results with detected variable tokens using the brain algorithm.
+### Example 4: Return aggregated log patterns with detected variable tokens
 
-With option `show_numbered_token` enabled, the output can detect numbered variable tokens from the pattern field.
+The following query returns aggregated results with detected variable tokens using the `brain` method. When the `show_numbered_token` option is enabled, the pattern output uses numbered placeholders (for example, `<token1>`, `<token2>`) and returns a mapping of each placeholder to the values that it represents:
   
 ```ppl
 source=apache
@@ -244,7 +299,7 @@ source=apache
 | fields patterns_field, pattern_count, tokens
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -255,6 +310,5 @@ fetched rows / total rows = 1/1
 +----------------------------------------------------------------------------------------------------------------------------------------+---------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 ```
   
-## Limitations  
 
-- Patterns command is not pushed down to OpenSearch data node for now. It will only group log patterns on log messages returned to coordinator node.  
+  
