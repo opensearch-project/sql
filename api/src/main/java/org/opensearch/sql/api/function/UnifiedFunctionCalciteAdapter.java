@@ -60,40 +60,6 @@ public class UnifiedFunctionCalciteAdapter implements UnifiedFunction {
    */
   private final String compiledCode;
 
-  /**
-   * Creates Calcite RexNode adapter for a unified function.
-   *
-   * <p>Note this method pre-compiles the resolved function expression and stores the generated
-   * source code as a string. This avoids serializing {@link RexNode} instances and simplifies
-   * distribution across execution engines. If performance or security concerns arise, we can change
-   * this internal implementation.
-   *
-   * @param rexBuilder RexBuilder for creating expressions
-   * @param functionName function name (e.g., "UPPER", "CONCAT", "ABS")
-   * @param inputTypeNames function argument types as SQL type names (e.g., "VARCHAR", "INTEGER")
-   * @return configured adapter instance
-   */
-  public static UnifiedFunctionCalciteAdapter create(
-      RexBuilder rexBuilder, String functionName, List<String> inputTypeNames) {
-    RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
-    RelDataTypeFactory.Builder rowTypeBuilder = typeFactory.builder();
-    RexNode[] inputRefs = new RexNode[inputTypeNames.size()];
-    for (int i = 0; i < inputTypeNames.size(); i++) {
-      SqlTypeName sqlType = SqlTypeName.valueOf(inputTypeNames.get(i));
-      RelDataType relType = typeFactory.createSqlType(sqlType);
-      rowTypeBuilder.add("_" + i, relType);
-      inputRefs[i] = rexBuilder.makeInputRef(relType, i);
-    }
-
-    RelDataType inputRowType = rowTypeBuilder.build();
-    RexNode resolved = PPLFuncImpTable.INSTANCE.resolve(rexBuilder, functionName, inputRefs);
-    RexExecutable executable =
-        RexExecutorImpl.getExecutable(rexBuilder, List.of(resolved), inputRowType);
-    String returnTypeName = resolved.getType().getSqlTypeName().getName();
-    return new UnifiedFunctionCalciteAdapter(
-        functionName, returnTypeName, List.copyOf(inputTypeNames), executable.getSource());
-  }
-
   @Override
   public Object eval(List<Object> inputs) {
     RexExecutable rexExecutor = new RexExecutable(compiledCode, functionName);
@@ -102,5 +68,51 @@ public class UnifiedFunctionCalciteAdapter implements UnifiedFunction {
 
     Object[] results = rexExecutor.execute();
     return (results == null || results.length == 0) ? null : results[0];
+  }
+
+  /**
+   * Creates Calcite RexNode adapter for a unified function.
+   *
+   * <p>Note: this method pre-compiles the resolved function expression and stores the generated
+   * source code as a string. This avoids serializing {@link RexNode} instances and simplifies
+   * distribution across execution engines. If performance or security concerns arise, we can change
+   * this internal implementation.
+   *
+   * @param rexBuilder RexBuilder for creating expressions
+   * @param functionName function name
+   * @param inputTypes function argument types
+   * @return configured adapter instance
+   */
+  public static UnifiedFunctionCalciteAdapter create(
+      RexBuilder rexBuilder, String functionName, List<String> inputTypes) {
+    RexNode[] inputRefs = makeInputRefs(rexBuilder, inputTypes);
+    RexNode resolved = PPLFuncImpTable.INSTANCE.resolve(rexBuilder, functionName, inputRefs);
+    RelDataType inputRowType = buildInputRowType(rexBuilder, inputTypes);
+    RexExecutable executable =
+        RexExecutorImpl.getExecutable(rexBuilder, List.of(resolved), inputRowType);
+    String returnType = resolved.getType().getSqlTypeName().getName();
+
+    return new UnifiedFunctionCalciteAdapter(
+        functionName, returnType, List.copyOf(inputTypes), executable.getSource());
+  }
+
+  private static RelDataType buildInputRowType(RexBuilder rexBuilder, List<String> inputTypes) {
+    RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+    RelDataTypeFactory.Builder builder = typeFactory.builder();
+    for (int i = 0; i < inputTypes.size(); i++) {
+      RelDataType relType = typeFactory.createSqlType(SqlTypeName.valueOf(inputTypes.get(i)));
+      builder.add("_" + i, relType);
+    }
+    return builder.build();
+  }
+
+  private static RexNode[] makeInputRefs(RexBuilder rexBuilder, List<String> inputTypes) {
+    RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+    RexNode[] inputRefs = new RexNode[inputTypes.size()];
+    for (int i = 0; i < inputTypes.size(); i++) {
+      RelDataType relType = typeFactory.createSqlType(SqlTypeName.valueOf(inputTypes.get(i)));
+      inputRefs[i] = rexBuilder.makeInputRef(relType, i);
+    }
+    return inputRefs;
   }
 }

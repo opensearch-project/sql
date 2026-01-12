@@ -36,9 +36,8 @@ public class UnifiedFunctionRepository {
             operator -> {
               String functionName = operator.getName();
               UnifiedFunctionBuilder builder =
-                  inputTypeNames ->
-                      UnifiedFunctionCalciteAdapter.create(
-                          rexBuilder, functionName, inputTypeNames);
+                  inputTypes ->
+                      UnifiedFunctionCalciteAdapter.create(rexBuilder, functionName, inputTypes);
               return new UnifiedFunctionDescriptor(functionName, builder);
             })
         .collect(Collectors.toList());
@@ -73,7 +72,7 @@ public class UnifiedFunctionRepository {
     /**
      * Builds a {@link UnifiedFunction} instance for the specified input types.
      *
-     * @param inputTypes SQL type names for function arguments (e.g., ["VARCHAR", "INTEGER"])
+     * @param inputTypes Unified type names for function arguments
      * @return a UnifiedFunction instance configured for the specified input types
      */
     UnifiedFunction build(List<String> inputTypes);
