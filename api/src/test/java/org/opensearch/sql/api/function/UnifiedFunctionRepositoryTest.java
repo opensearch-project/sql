@@ -27,16 +27,10 @@ public class UnifiedFunctionRepositoryTest extends UnifiedQueryTestBase {
   }
 
   @Test
-  public void testLoadFunctionsReturnsAtLeastOneFunction() {
+  public void testLoadAllFunctions() {
     List<UnifiedFunctionDescriptor> functions = repository.loadFunctions();
 
     assertTrue("Should load at least one function", functions.size() >= 1);
-  }
-
-  @Test
-  public void testLoadedFunctionDescriptorsAreValid() {
-    List<UnifiedFunctionDescriptor> functions = repository.loadFunctions();
-
     for (UnifiedFunctionDescriptor descriptor : functions) {
       assertNotNull("Function name should not be null", descriptor.getFunctionName());
       assertNotNull("Builder should not be null", descriptor.getBuilder());
@@ -52,13 +46,30 @@ public class UnifiedFunctionRepositoryTest extends UnifiedQueryTestBase {
   }
 
   @Test
-  public void testBuilderCreatesValidFunction() {
+  public void testLoadSpecificFunctionCaseInsensitive() {
+    UnifiedFunctionDescriptor upperCase = repository.loadFunction("JSON").orElseThrow();
+    UnifiedFunctionDescriptor lowerCase = repository.loadFunction("json").orElseThrow();
+    UnifiedFunctionDescriptor mixedCase = repository.loadFunction("Json").orElseThrow();
+
+    assertEquals("JSON", upperCase.getFunctionName());
+    assertEquals("JSON", lowerCase.getFunctionName());
+    assertEquals("JSON", mixedCase.getFunctionName());
+  }
+
+  @Test
+  public void testLoadNonExistentFunctionReturnsEmpty() {
+    assertTrue(
+        "Non-existent function should return empty Optional",
+        repository.loadFunction("NON_EXISTENT_FUNCTION").isEmpty());
+  }
+
+  @Test
+  public void testFunctionBuilderCreatesValidFunction() {
     UnifiedFunctionDescriptor descriptor =
         repository.loadFunctions().stream()
             .filter(d -> d.getFunctionName().equalsIgnoreCase("json"))
             .findFirst()
             .orElseThrow();
-
     UnifiedFunction jsonFunc = descriptor.getBuilder().build(List.of("VARCHAR"));
 
     assertNotNull("Function should be created", jsonFunc);

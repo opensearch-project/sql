@@ -9,31 +9,19 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 import lombok.Value;
 import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.opensearch.sql.api.UnifiedQueryContext;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
 /** Repository for discovering and loading PPL functions as {@link UnifiedFunction} instances. */
+@RequiredArgsConstructor
 public class UnifiedFunctionRepository {
 
-  /** RexBuilder from the unified query context for creating Rex expressions. */
-  private final RexBuilder rexBuilder;
-
-  /** Cached list of all operators from PPLBuiltinOperators. */
-  private final List<SqlOperator> allOperators;
-
-  /**
-   * Constructs a UnifiedFunctionRepository with a unified query context.
-   *
-   * @param context the unified query context containing CalcitePlanContext
-   */
-  public UnifiedFunctionRepository(UnifiedQueryContext context) {
-    this.rexBuilder = context.getPlanContext().rexBuilder;
-    this.allOperators = PPLBuiltinOperators.instance().getOperatorList();
-  }
+  /** Unified query context containing CalcitePlanContext for creating Rex expressions. */
+  private final UnifiedQueryContext context;
 
   /**
    * Loads all PPL functions from {@link PPLBuiltinOperators} as descriptors.
@@ -41,7 +29,8 @@ public class UnifiedFunctionRepository {
    * @return list of function descriptors
    */
   public List<UnifiedFunctionDescriptor> loadFunctions() {
-    return allOperators.stream()
+    RexBuilder rexBuilder = context.getPlanContext().rexBuilder;
+    return PPLBuiltinOperators.instance().getOperatorList().stream()
         .filter(SqlUserDefinedFunction.class::isInstance)
         .map(
             operator -> {
@@ -49,7 +38,7 @@ public class UnifiedFunctionRepository {
               UnifiedFunctionBuilder builder =
                   inputTypeNames ->
                       UnifiedFunctionCalciteAdapter.create(
-                          functionName, rexBuilder, inputTypeNames);
+                          rexBuilder, functionName, inputTypeNames);
               return new UnifiedFunctionDescriptor(functionName, builder);
             })
         .collect(Collectors.toList());
@@ -70,7 +59,10 @@ public class UnifiedFunctionRepository {
   /** Function descriptor with name and builder for creating {@link UnifiedFunction} instances. */
   @Value
   public static class UnifiedFunctionDescriptor {
+    /** The name of the function in upper case. */
     String functionName;
+
+    /** Builder for creating {@link UnifiedFunction} instances with specific input types. */
     UnifiedFunctionBuilder builder;
   }
 

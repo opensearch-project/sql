@@ -30,9 +30,9 @@ public class UnifiedFunctionCalciteAdapterTest extends UnifiedQueryTestBase {
   }
 
   @Test
-  public void testCreateUpperFunction() {
+  public void testCreateFunction() {
     UnifiedFunction upperFunc =
-        UnifiedFunctionCalciteAdapter.create("UPPER", rexBuilder, List.of("VARCHAR"));
+        UnifiedFunctionCalciteAdapter.create(rexBuilder, "UPPER", List.of("VARCHAR"));
 
     assertNotNull(upperFunc);
     assertEquals("UPPER", upperFunc.getFunctionName());
@@ -40,24 +40,24 @@ public class UnifiedFunctionCalciteAdapterTest extends UnifiedQueryTestBase {
     assertEquals("VARCHAR", upperFunc.getReturnType());
   }
 
+  @Test(expected = IllegalArgumentException.class)
+  public void testCreateWithInvalidFunctionName() {
+    UnifiedFunctionCalciteAdapter.create(rexBuilder, "INVALID_FUNCTION", List.of("VARCHAR"));
+  }
+
   @Test
-  public void testEvaluateUpperFunction() {
+  public void testEvaluateFunction() {
     UnifiedFunction upperFunc =
-        UnifiedFunctionCalciteAdapter.create("UPPER", rexBuilder, List.of("VARCHAR"));
+        UnifiedFunctionCalciteAdapter.create(rexBuilder, "UPPER", List.of("VARCHAR"));
 
     Object result = upperFunc.eval(List.of("hello"));
     assertEquals("HELLO", result);
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void testCreateWithInvalidFunctionName() {
-    UnifiedFunctionCalciteAdapter.create("INVALID_FUNCTION", rexBuilder, List.of("VARCHAR"));
-  }
-
   @Test
   public void testSerializeAndDeserialize() throws Exception {
     UnifiedFunctionCalciteAdapter originalFunc =
-        UnifiedFunctionCalciteAdapter.create("UPPER", rexBuilder, List.of("VARCHAR"));
+        UnifiedFunctionCalciteAdapter.create(rexBuilder, "UPPER", List.of("VARCHAR"));
 
     // Serialize
     ByteArrayOutputStream baos = new ByteArrayOutputStream();

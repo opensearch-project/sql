@@ -36,28 +36,45 @@ public class UnifiedFunctionCalciteAdapter implements UnifiedFunction {
    */
   private static final String INPUT_RECORD_KEY = "inputRecord";
 
-  /** PPL function name (e.g., "UPPER", "CONCAT", "ABS"). */
+  /** Unified function name. */
   @Getter private final String functionName;
 
-  /** SQL type name of the return value (e.g., "VARCHAR", "INTEGER"). */
+  /** Unified type name of the return value. */
   @Getter private final String returnType;
 
-  /** SQL type names of the input arguments. */
+  /** Unified type names of the input arguments. */
   @Getter private final List<String> inputTypes;
 
-  /** Compiled Janino code for the function expression. */
+  /**
+   * Compiled Java source for evaluating the function.
+   *
+   * <p>The generated code reads inputs from the {@code "inputRecord"} entry in {@link DataContext}.
+   * Arguments are mapped to field variables named {@code "_0"}, {@code "_1"}, etc.
+   *
+   * <pre>{@code
+   * // For UPPER(input) function:
+   * Object[] inputRecord = (Object[]) dataContext.get("inputRecord");
+   * String _0 = (String) inputRecord[0];
+   * return _0 == null ? null : _0.toUpperCase();
+   * }</pre>
+   */
   private final String compiledCode;
 
   /**
-   * Creates adapter for a PPL function using Calcite's RexExecutorImpl.
+   * Creates Calcite RexNode adapter for a unified function.
    *
-   * @param functionName PPL function name (e.g., "UPPER", "CONCAT", "ABS")
+   * <p>Note this method pre-compiles the resolved function expression and stores the generated
+   * source code as a string. This avoids serializing {@link RexNode} instances and simplifies
+   * distribution across execution engines. If performance or security concerns arise, we can change
+   * this internal implementation.
+   *
    * @param rexBuilder RexBuilder for creating expressions
+   * @param functionName function name (e.g., "UPPER", "CONCAT", "ABS")
    * @param inputTypeNames function argument types as SQL type names (e.g., "VARCHAR", "INTEGER")
    * @return configured adapter instance
    */
   public static UnifiedFunctionCalciteAdapter create(
-      String functionName, RexBuilder rexBuilder, List<String> inputTypeNames) {
+      RexBuilder rexBuilder, String functionName, List<String> inputTypeNames) {
     RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
     RelDataTypeFactory.Builder rowTypeBuilder = typeFactory.builder();
     RexNode[] inputRefs = new RexNode[inputTypeNames.size()];
