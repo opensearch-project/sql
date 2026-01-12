@@ -10,15 +10,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 
 import org.junit.jupiter.api.Test;
 
-/**
- * Integration tests for the PPL convert command when Calcite is disabled.
- *
- * <p>The convert command is a Calcite-only feature and should throw an error when Calcite is
- * disabled. These tests verify that the appropriate error messages are returned.
- *
- * <p>For tests of actual convert command functionality with Calcite enabled, see {@link
- * org.opensearch.sql.calcite.remote.CalciteConvertCommandIT}.
- */
+/** Integration tests for the PPL convert command when Calcite is disabled. */
 public class ConvertCommandIT extends PPLIntegTestCase {
   @Override
   public void init() throws Exception {
@@ -35,12 +27,6 @@ public class ConvertCommandIT extends PPLIntegTestCase {
   public void testConvertAutoWithMixedData() {
     verifyQueryThrowsCalciteError(
         "source=%s | eval test_field = '42' | convert auto(test_field) | fields test_field");
-  }
-
-  @Test
-  public void testConvertAutoOptimalPath() {
-    verifyQueryThrowsCalciteError(
-        "source=%s | eval simple_num = '123' | convert auto(simple_num) | fields simple_num");
   }
 
   @Test

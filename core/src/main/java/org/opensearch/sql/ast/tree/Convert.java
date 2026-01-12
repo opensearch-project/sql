@@ -14,26 +14,15 @@ import lombok.Setter;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 
-/**
- * AST node representing the Convert command.
- *
- * <p>Syntax: convert [timeformat="format"] function(fields) [AS alias], ...
- *
- * <p>Example: convert auto(age), num(price) AS numeric_price
- */
+/** AST node representing the Convert command. */
 @Getter
 @Setter
 @ToString
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
 public class Convert extends UnresolvedPlan {
-  /** Reserved for future time conversion functions (ctime, mktime, mstime). */
   private final String timeformat;
-
-  /** List of conversion functions to apply. */
   private final List<ConvertFunction> convertFunctions;
-
-  /** Child plan node. */
   private UnresolvedPlan child;
 
   @Override

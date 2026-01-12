@@ -18,10 +18,7 @@ import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
-/**
- * PPL num() conversion function. Converts string values to numbers using base 10, returning null on
- * failure.
- */
+/** PPL num() conversion function. */
 public class NumConvertFunction extends ImplementorUDF {
 
   public NumConvertFunction() {
@@ -47,7 +44,8 @@ public class NumConvertFunction extends ImplementorUDF {
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
       Expression fieldValue = translatedOperands.get(0);
-      Expression result = Expressions.call(ConversionUtils.class, "numConvert", fieldValue);
+      Expression result =
+          Expressions.call(ConversionUtils.class, "numConvert", Expressions.box(fieldValue));
       return Expressions.convert_(result, Number.class);
     }
   }

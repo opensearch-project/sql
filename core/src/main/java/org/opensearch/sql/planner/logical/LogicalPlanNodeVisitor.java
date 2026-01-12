@@ -72,10 +72,6 @@ public abstract class LogicalPlanNodeVisitor<R, C> {
     return visitNode(plan, context);
   }
 
-  public R visitConvert(LogicalConvert plan, C context) {
-    return visitNode(plan, context);
-  }
-
   public R visitNested(LogicalNested plan, C context) {
     return visitNode(plan, context);
   }

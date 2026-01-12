@@ -17,7 +17,7 @@ import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
-/** PPL none() conversion function. Passthrough function that returns the input value unchanged. */
+/** PPL none() conversion function. */
 public class NoneConvertFunction extends ImplementorUDF {
 
   public NoneConvertFunction() {
@@ -38,7 +38,6 @@ public class NoneConvertFunction extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
-      // Simply return the input unchanged
       return translatedOperands.get(0);
     }
   }
