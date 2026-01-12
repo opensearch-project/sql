@@ -286,8 +286,15 @@ testClusters {
 
 task startPrometheus(type: SpawnProcessTask) {
     mustRunAfter ':doctest:doctest'
+    pidLockFileName ".prom.pid.lock"
 
     doFirst {
+        // Kill any existing Prometheus processes to prevent "Server already running" error
+        exec {
+            commandLine 'sh', '-c', 'pkill -f "prometheus.*--storage.tsdb.path" || true'
+            ignoreExitValue true
+        }
+        
         download.run {
             src getPrometheusBinaryLocation()
             dest new File("$projectDir/bin", 'prometheus.tar.gz')
@@ -308,9 +315,16 @@ task startPrometheus(type: SpawnProcessTask) {
 }
 
 task stopPrometheus(type: KillProcessTask) {
+    pidLockFileName ".prom.pid.lock"
     doLast {
         file("$projectDir/bin/prometheus").deleteDir()
         file("$projectDir/bin/prometheus.tar.gz").delete()
+        
+        // Forcefully kill any remaining Prometheus processes
+        exec {
+            commandLine 'sh', '-c', 'pkill -f "prometheus.*--storage.tsdb.path" || true'
+            ignoreExitValue true
+        }
     }
 }
 
