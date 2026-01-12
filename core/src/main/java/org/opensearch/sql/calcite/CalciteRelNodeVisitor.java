@@ -111,6 +111,8 @@ import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.CloseCursor;
+import org.opensearch.sql.ast.tree.Convert;
+import org.opensearch.sql.ast.tree.ConvertFunction;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Expand;
@@ -975,54 +977,56 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   @Override
-  public RelNode visitConvert(
-      org.opensearch.sql.ast.tree.Convert node, CalcitePlanContext context) {
+  public RelNode visitConvert(Convert node, CalcitePlanContext context) {
     visitChildren(node, context);
 
-    // Build maps to track conversions
-    java.util.Map<String, RexNode> replacements =
-        new java.util.HashMap<>(); // field -> converted (no alias)
-    List<Pair<String, RexNode>> additions = new ArrayList<>(); // new fields to add (with alias)
-
-    for (org.opensearch.sql.ast.tree.ConvertFunction convertFunc : node.getConvertFunctions()) {
-      String functionName = convertFunc.getFunctionName();
-      List<String> fieldList = convertFunc.getFieldList();
-      String asField = convertFunc.getAsField();
-
-      // Process each field in the field list
-      for (String fieldName : fieldList) {
-        RexNode field = context.relBuilder.field(fieldName);
-
-        // Create the conversion function call
-        RexNode convertCall =
-            PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, functionName, field);
-
-        if (asField != null) {
-          // With alias: add as new field at the end
-          additions.add(Pair.of(asField, context.relBuilder.alias(convertCall, asField)));
-        } else {
-          // Without alias: replace original field in-place
-          replacements.put(fieldName, context.relBuilder.alias(convertCall, fieldName));
-        }
-      }
+    if (node.getConvertFunctions() == null || node.getConvertFunctions().isEmpty()) {
+      return context.relBuilder.peek();
     }
 
-    // Build projection maintaining original field order, then add new fields
+    java.util.Map<String, RexNode> replacements = new java.util.HashMap<>();
+    List<Pair<String, RexNode>> additions = new ArrayList<>();
+
+    for (ConvertFunction convertFunc : node.getConvertFunctions()) {
+      processConversionFunction(convertFunc, replacements, additions, context);
+    }
+
+    return buildProjectionWithConversions(replacements, additions, context);
+  }
+
+  private void processConversionFunction(
+      ConvertFunction convertFunc,
+      java.util.Map<String, RexNode> replacements,
+      List<Pair<String, RexNode>> additions,
+      CalcitePlanContext context) {
+    String functionName = convertFunc.getFunctionName();
+    List<String> fieldList = convertFunc.getFieldList();
+    String asField = convertFunc.getAsField();
+
+    for (String fieldName : fieldList) {
+      RexNode field = context.relBuilder.field(fieldName);
+      RexNode convertCall =
+          PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, functionName, field);
+
+      if (asField != null) {
+        additions.add(Pair.of(asField, context.relBuilder.alias(convertCall, asField)));
+      } else {
+        replacements.put(fieldName, context.relBuilder.alias(convertCall, fieldName));
+      }
+    }
+  }
+
+  private RelNode buildProjectionWithConversions(
+      java.util.Map<String, RexNode> replacements,
+      List<Pair<String, RexNode>> additions,
+      CalcitePlanContext context) {
     List<String> originalFields = context.relBuilder.peek().getRowType().getFieldNames();
     List<RexNode> projectList = new ArrayList<>();
 
-    // First, project all original fields (with replacements where applicable)
     for (String fieldName : originalFields) {
-      if (replacements.containsKey(fieldName)) {
-        // Use the converted expression for this field
-        projectList.add(replacements.get(fieldName));
-      } else {
-        // Keep the original field
-        projectList.add(context.relBuilder.field(fieldName));
-      }
+      projectList.add(replacements.getOrDefault(fieldName, context.relBuilder.field(fieldName)));
     }
 
-    // Then add new aliased fields at the end
     for (Pair<String, RexNode> addition : additions) {
       projectList.add(addition.getRight());
     }

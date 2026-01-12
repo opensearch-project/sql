@@ -17,12 +17,7 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-/**
- * Integration tests for the PPL convert command with Calcite enabled.
- *
- * <p>This test class verifies that the convert command works correctly when Calcite is enabled. The
- * convert command is a Calcite-only feature.
- */
+/** Integration tests for the PPL convert command with Calcite enabled. */
 public class CalciteConvertCommandIT extends PPLIntegTestCase {
   @Override
   public void init() throws Exception {
@@ -48,8 +43,8 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | eval test_field = '42' | convert auto(test_field) | fields"
-                    + " test_field | head 1",
+                "search source=%s | eval test_field = '42' | convert auto(test_field) |"
+                    + " fields test_field | head 1",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("test_field", null, "double"));
     verifyDataRows(result, rows(42));
@@ -94,8 +89,8 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | eval amount = '1,234,567.89' | convert rmcomma(amount) | fields"
-                    + " amount | head 1",
+                "search source=%s | eval amount = '1,234,567.89' | convert rmcomma(amount) |"
+                    + " fields amount | head 1",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("amount", "string"));
     verifyDataRows(result, rows("1234567.89"));
@@ -106,8 +101,8 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | eval distance = '100km' | convert rmunit(distance) | fields"
-                    + " distance | head 1",
+                "search source=%s | eval distance = '100km' | convert rmunit(distance) |"
+                    + " fields distance | head 1",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("distance", null, "bigint"));
     verifyDataRows(result, rows(100));

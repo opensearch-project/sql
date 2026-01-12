@@ -66,6 +66,7 @@ import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.ast.tree.CloseCursor;
+import org.opensearch.sql.ast.tree.Convert;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Expand;
@@ -532,46 +533,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     throw getOnlyForCalciteException("fieldformat");
   }
 
-  /** Build {@link org.opensearch.sql.planner.logical.LogicalConvert}. */
   @Override
-  public LogicalPlan visitConvert(
-      org.opensearch.sql.ast.tree.Convert node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().get(0).accept(this, context);
-    ImmutableList.Builder<Pair<ReferenceExpression, Expression>> conversionsBuilder =
-        new Builder<>();
-
-    for (org.opensearch.sql.ast.tree.ConvertFunction convertFunc : node.getConvertFunctions()) {
-      String functionName = convertFunc.getFunctionName();
-      List<String> fieldList = convertFunc.getFieldList();
-      String asField = convertFunc.getAsField();
-
-      // Process each field in the conversion function
-      for (String fieldName : fieldList) {
-        // Analyze the field reference
-        Expression fieldExpr = expressionAnalyzer.analyze(AstDSL.field(fieldName), context);
-
-        // Build the conversion function call
-        // For now, we'll create a simple function call - this will be expanded later
-        // to properly map conversion function names to actual implementations
-        Expression conversionExpr =
-            expressionAnalyzer.analyze(
-                new Function(functionName, Collections.singletonList(AstDSL.field(fieldName))),
-                context);
-
-        // Determine the target field name
-        String targetFieldName = (asField != null) ? asField : fieldName;
-        ReferenceExpression ref = DSL.ref(targetFieldName, conversionExpr.type());
-
-        conversionsBuilder.add(ImmutablePair.of(ref, conversionExpr));
-
-        // Define the new reference in type environment
-        TypeEnvironment typeEnvironment = context.peek();
-        typeEnvironment.define(ref);
-      }
-    }
-
-    return new org.opensearch.sql.planner.logical.LogicalConvert(
-        child, conversionsBuilder.build(), node.getTimeformat());
+  public LogicalPlan visitConvert(Convert node, AnalysisContext context) {
+    throw getOnlyForCalciteException("convert");
   }
 
   @Override

@@ -18,10 +18,7 @@ import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
-/**
- * PPL rmunit() conversion function. Extracts leading numeric values from strings and removes
- * trailing text/units.
- */
+/** PPL rmunit() conversion function. */
 public class RmunitConvertFunction extends ImplementorUDF {
 
   public RmunitConvertFunction() {
@@ -46,7 +43,8 @@ public class RmunitConvertFunction extends ImplementorUDF {
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
       Expression fieldValue = translatedOperands.get(0);
-      Expression result = Expressions.call(ConversionUtils.class, "rmunitConvert", fieldValue);
+      Expression result =
+          Expressions.call(ConversionUtils.class, "rmunitConvert", Expressions.box(fieldValue));
       return Expressions.convert_(result, Number.class);
     }
   }

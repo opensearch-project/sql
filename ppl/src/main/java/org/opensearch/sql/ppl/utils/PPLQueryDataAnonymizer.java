@@ -68,6 +68,7 @@ import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Bin;
 import org.opensearch.sql.ast.tree.Chart;
+import org.opensearch.sql.ast.tree.Convert;
 import org.opensearch.sql.ast.tree.CountBin;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.DefaultBin;
@@ -459,7 +460,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   }
 
   @Override
-  public String visitConvert(org.opensearch.sql.ast.tree.Convert node, String context) {
+  public String visitConvert(Convert node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     String conversions =
         node.getConvertFunctions().stream()

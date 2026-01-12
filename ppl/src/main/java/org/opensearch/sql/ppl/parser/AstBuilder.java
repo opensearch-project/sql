@@ -76,6 +76,8 @@ import org.opensearch.sql.ast.tree.Append;
 import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Chart;
+import org.opensearch.sql.ast.tree.Convert;
+import org.opensearch.sql.ast.tree.ConvertFunction;
 import org.opensearch.sql.ast.tree.CountBin;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.DefaultBin;
@@ -1188,27 +1190,22 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return FillNull.ofSameValue(internalVisitExpression(ctx.replacement), List.of(), true);
   }
 
-  /** convert command. */
   @Override
   public UnresolvedPlan visitConvertCommand(OpenSearchPPLParser.ConvertCommandContext ctx) {
-    // Convert command requires Calcite to be enabled
     if (settings == null
         || !Boolean.TRUE.equals(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED))) {
       throw getOnlyForCalciteException("Convert command");
     }
 
-    // Extract optional timeformat parameter
     String timeformat = null;
     if (ctx.timeformatValue != null) {
       timeformat = ((Literal) internalVisitExpression(ctx.timeformatValue)).toString();
     }
 
-    // Parse each convert function
-    List<org.opensearch.sql.ast.tree.ConvertFunction> convertFunctions = new ArrayList<>();
+    List<ConvertFunction> convertFunctions = new ArrayList<>();
     for (OpenSearchPPLParser.ConvertFunctionContext funcCtx : ctx.convertFunction()) {
       String functionName = funcCtx.functionName.getText();
 
-      // Extract field list
       List<String> fieldList = new ArrayList<>();
       if (funcCtx.wcFieldList() != null) {
         for (OpenSearchPPLParser.SelectFieldExpressionContext fieldExpr :
@@ -1217,17 +1214,15 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         }
       }
 
-      // Extract optional AS alias
       String asField = null;
       if (funcCtx.alias != null) {
         asField = getTextInQuery(funcCtx.alias);
       }
 
-      convertFunctions.add(
-          new org.opensearch.sql.ast.tree.ConvertFunction(functionName, fieldList, asField));
+      convertFunctions.add(new ConvertFunction(functionName, fieldList, asField));
     }
 
-    return new org.opensearch.sql.ast.tree.Convert(timeformat, convertFunctions);
+    return new Convert(timeformat, convertFunctions);
   }
 
   @Override

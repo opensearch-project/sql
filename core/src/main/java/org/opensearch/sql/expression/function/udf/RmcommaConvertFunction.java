@@ -18,9 +18,7 @@ import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
-/**
- * PPL rmcomma() conversion function. Removes commas from numeric strings and converts to numbers.
- */
+/** PPL rmcomma() conversion function. */
 public class RmcommaConvertFunction extends ImplementorUDF {
 
   public RmcommaConvertFunction() {
@@ -29,7 +27,7 @@ public class RmcommaConvertFunction extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return ReturnTypes.VARCHAR_FORCE_NULLABLE;
+    return ReturnTypes.VARCHAR_NULLABLE;
   }
 
   @Override
@@ -42,7 +40,7 @@ public class RmcommaConvertFunction extends ImplementorUDF {
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
       Expression fieldValue = translatedOperands.get(0);
-      return Expressions.call(ConversionUtils.class, "rmcommaConvert", fieldValue);
+      return Expressions.call(ConversionUtils.class, "rmcommaConvert", Expressions.box(fieldValue));
     }
   }
 }

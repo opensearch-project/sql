@@ -18,10 +18,7 @@ import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
-/**
- * PPL auto() conversion function. Automatically converts string values to numbers using best-fit
- * heuristics.
- */
+/** PPL auto() conversion function. */
 public class AutoConvertFunction extends ImplementorUDF {
 
   public AutoConvertFunction() {
@@ -47,7 +44,8 @@ public class AutoConvertFunction extends ImplementorUDF {
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
       Expression fieldValue = translatedOperands.get(0);
-      Expression result = Expressions.call(ConversionUtils.class, "autoConvert", fieldValue);
+      Expression result =
+          Expressions.call(ConversionUtils.class, "autoConvert", Expressions.box(fieldValue));
       return Expressions.convert_(result, Number.class);
     }
   }

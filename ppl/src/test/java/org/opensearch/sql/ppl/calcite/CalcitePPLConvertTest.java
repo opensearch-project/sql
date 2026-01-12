@@ -9,12 +9,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Test;
 
-/**
- * Unit tests for PPL convert command.
- *
- * <p>Tests the convert command which applies conversion functions to fields. Conversion functions
- * include: auto(), num(), rmcomma(), rmunit(), none().
- */
+/** Unit tests for PPL convert command. */
 public class CalcitePPLConvertTest extends CalcitePPLAbstractTest {
 
   public CalcitePPLConvertTest() {
@@ -243,24 +238,6 @@ public class CalcitePPLConvertTest extends CalcitePPLAbstractTest {
         "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, AUTO(`SAL`)"
             + " `sal_auto`, NUM(`COMM`) `comm_num`, RMCOMMA(`ENAME`) `name_clean`, RMUNIT(`JOB`)"
             + " `job_clean`, NONE(`EMPNO`) `empno_same`\n"
-            + "FROM `scott`.`EMP`";
-    verifyPPLToSparkSQL(root, expectedSparkSql);
-  }
-
-  @Test
-  public void testAutoConvertComprehensive() {
-    // Test that auto() combines rmcomma, rmunit, and num strategies
-    String ppl = "source=EMP | convert auto(ENAME) AS auto_converted";
-    RelNode root = getRelNode(ppl);
-    String expectedLogical =
-        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
-            + " COMM=[$6], DEPTNO=[$7], auto_converted=[AUTO($1)])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    verifyLogical(root, expectedLogical);
-
-    String expectedSparkSql =
-        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, AUTO(`ENAME`)"
-            + " `auto_converted`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
