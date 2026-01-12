@@ -7,7 +7,7 @@ calcite:
             LogicalFilter(condition=[query_string(MAP('query':VARCHAR, 'log.file.path:\/var\/log\/messages\/solarshark':VARCHAR))])
               CalciteLogicalIndexScan(table=[[OpenSearch, big5]])
   physical: |
-    CalciteEnumerableIndexScan(table=[[OpenSearch, big5]], PushDownContext=[[PROJECT->[agent, process, log, message, tags, cloud, input, @timestamp, ecs, data_stream, meta, host, metrics, metrics.size, aws, event], FILTER->query_string(MAP('query':VARCHAR, 'log.file.path:\/var\/log\/messages\/solarshark':VARCHAR)), SORT->[{
+    CalciteEnumerableIndexScan(table=[[OpenSearch, big5]], PushDownContext=[[PROJECT->[agent, process, log, message, tags, cloud, input, @timestamp, ecs, data_stream, meta, host, metrics, metrics.size, aws, event], FILTER->query_string(MAP('query':VARCHAR, 'log.file.path:\/var\/log\/messages\/solarshark':VARCHAR)), PROJECT->[agent, process, log, message, tags, cloud, input, @timestamp, ecs, data_stream, meta, host, metrics, aws, event, metrics.size], SORT->[{
       "metrics.size" : {
         "order" : "desc",
         "missing" : "_last"

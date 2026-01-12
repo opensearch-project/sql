@@ -76,7 +76,7 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
         "SELECT\n"
-            + "/*+ `stats_args`(`bucket_nullable` = 'false') */\n"
+            + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
             + "SPAN(`@timestamp`, 1, 'm') `@timestamp`, COUNT(*) `count()`\n"
             + "FROM `scott`.`events`\n"
             + "WHERE `@timestamp` IS NOT NULL\n"
@@ -93,7 +93,7 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
                 + " TIMESTAMPDIFF('MILLISECOND', `@timestamp`, TIMESTAMPADD('MINUTE', 1,"
                 + " `@timestamp`))) `per_second(cpu_usage)`\n"
                 + "FROM (SELECT\n"
-                + "/*+ `stats_args`(`bucket_nullable` = 'false') */\n"
+                + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
                 + "SPAN(`@timestamp`, 1, 'm') `@timestamp`, SUM(`cpu_usage`)"
                 + " `per_second(cpu_usage)`\n"
                 + "FROM `scott`.`events`\n"
@@ -110,7 +110,7 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
                 + " TIMESTAMPDIFF('MILLISECOND', `@timestamp`, TIMESTAMPADD('MINUTE', 1,"
                 + " `@timestamp`))) `per_minute(cpu_usage)`\n"
                 + "FROM (SELECT\n"
-                + "/*+ `stats_args`(`bucket_nullable` = 'false') */\n"
+                + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
                 + "SPAN(`@timestamp`, 1, 'm') `@timestamp`, SUM(`cpu_usage`)"
                 + " `per_minute(cpu_usage)`\n"
                 + "FROM `scott`.`events`\n"
@@ -127,7 +127,7 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
                 + " TIMESTAMPDIFF('MILLISECOND', `@timestamp`, TIMESTAMPADD('MINUTE', 1,"
                 + " `@timestamp`))) `per_hour(cpu_usage)`\n"
                 + "FROM (SELECT\n"
-                + "/*+ `stats_args`(`bucket_nullable` = 'false') */\n"
+                + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
                 + "SPAN(`@timestamp`, 1, 'm') `@timestamp`, SUM(`cpu_usage`)"
                 + " `per_hour(cpu_usage)`\n"
                 + "FROM `scott`.`events`\n"
@@ -144,7 +144,7 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
                 + " TIMESTAMPDIFF('MILLISECOND', `@timestamp`, TIMESTAMPADD('MINUTE', 1,"
                 + " `@timestamp`))) `per_day(cpu_usage)`\n"
                 + "FROM (SELECT\n"
-                + "/*+ `stats_args`(`bucket_nullable` = 'false') */\n"
+                + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
                 + "SPAN(`@timestamp`, 1, 'm') `@timestamp`, SUM(`cpu_usage`)"
                 + " `per_day(cpu_usage)`\n"
                 + "FROM `scott`.`events`\n"
@@ -160,7 +160,7 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
         "SELECT\n"
-            + "/*+ `stats_args`(`bucket_nullable` = 'false') */\n"
+            + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
             + "SPAN(`@timestamp`, 1, 'h') `@timestamp`, COUNT(*) `count()`\n"
             + "FROM `scott`.`events`\n"
             + "WHERE `@timestamp` IS NOT NULL\n"

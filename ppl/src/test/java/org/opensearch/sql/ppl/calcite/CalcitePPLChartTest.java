@@ -81,7 +81,7 @@ public class CalcitePPLChartTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
         "SELECT\n"
-            + "/*+ `stats_args`(`bucket_nullable` = 'false') */\n"
+            + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
             + "`gender`, AVG(`balance`) `avg(balance)`\n"
             + "FROM `scott`.`bank`\n"
             + "WHERE `gender` IS NOT NULL AND `balance` IS NOT NULL\n"
@@ -97,7 +97,7 @@ public class CalcitePPLChartTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
         "SELECT\n"
-            + "/*+ `stats_args`(`bucket_nullable` = 'false') */\n"
+            + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
             + "`gender`, AVG(`balance`) `avg(balance)`\n"
             + "FROM `scott`.`bank`\n"
             + "WHERE `gender` IS NOT NULL AND `balance` IS NOT NULL\n"
@@ -169,7 +169,7 @@ public class CalcitePPLChartTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
         "SELECT\n"
-            + "/*+ `stats_args`(`bucket_nullable` = 'false') */\n"
+            + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
             + "`gender`, AVG(`balance`) `avg(balance)`\n"
             + "FROM `scott`.`bank`\n"
             + "WHERE `gender` IS NOT NULL AND `balance` IS NOT NULL\n"
@@ -199,7 +199,7 @@ public class CalcitePPLChartTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
         "SELECT\n"
-            + "/*+ `stats_args`(`bucket_nullable` = 'false') */\n"
+            + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
             + "SPAN(`age`, 10, NULL) `age`, MAX(`balance`) `max(balance)`\n"
             + "FROM `scott`.`bank`\n"
             + "WHERE `age` IS NOT NULL AND `balance` IS NOT NULL\n"
@@ -243,7 +243,7 @@ public class CalcitePPLChartTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
         "SELECT\n"
-            + "/*+ `stats_args`(`bucket_nullable` = 'false') */\n"
+            + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
             + "`gender`, AVG(`balance`) `avg(balance)`\n"
             + "FROM `scott`.`bank`\n"
             + "WHERE `gender` IS NOT NULL AND `balance` IS NOT NULL\n"
@@ -259,7 +259,7 @@ public class CalcitePPLChartTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
         "SELECT\n"
-            + "/*+ `stats_args`(`bucket_nullable` = 'false') */\n"
+            + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
             + "`gender`, AVG(`balance`) `avg(balance)`\n"
             + "FROM `scott`.`bank`\n"
             + "WHERE `gender` IS NOT NULL AND `balance` IS NOT NULL\n"
@@ -275,7 +275,7 @@ public class CalcitePPLChartTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
         "SELECT\n"
-            + "/*+ `stats_args`(`bucket_nullable` = 'false') */\n"
+            + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
             + "`gender`, AVG(`balance`) `avg(balance)`\n"
             + "FROM `scott`.`bank`\n"
             + "WHERE `gender` IS NOT NULL AND `balance` IS NOT NULL\n"
@@ -291,7 +291,7 @@ public class CalcitePPLChartTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
         "SELECT\n"
-            + "/*+ `stats_args`(`bucket_nullable` = 'false') */\n"
+            + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
             + "`gender`, AVG(`balance`) `avg(balance)`\n"
             + "FROM `scott`.`bank`\n"
             + "WHERE `gender` IS NOT NULL AND `balance` IS NOT NULL\n"
@@ -307,7 +307,7 @@ public class CalcitePPLChartTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
         "SELECT\n"
-            + "/*+ `stats_args`(`bucket_nullable` = 'false') */\n"
+            + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
             + "`gender`, AVG(`balance`) `avg(balance)`\n"
             + "FROM `scott`.`bank`\n"
             + "WHERE `gender` IS NOT NULL AND `balance` IS NOT NULL\n"

@@ -1,10 +1,10 @@
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
-      LogicalProject(name=[$0], address=[$1], id=[$6], age=[$7])
+      LogicalProject(name=[$0], address=[$1], id=[$7], age=[$8])
         LogicalFilter(condition=[AND(IS NULL($1), =($0, 'david'))])
           CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_nested_simple]])
   physical: |
     EnumerableLimit(fetch=[10000])
-      EnumerableCalc(expr#0..13=[{inputs}], expr#14=[IS NULL($t1)], expr#15=['david':VARCHAR], expr#16=[=($t0, $t15)], expr#17=[AND($t14, $t16)], proj#0..1=[{exprs}], id=[$t6], age=[$t7], $condition=[$t17])
+      EnumerableCalc(expr#0..14=[{inputs}], expr#15=[IS NULL($t1)], expr#16=['david':VARCHAR], expr#17=[=($t0, $t16)], expr#18=[AND($t15, $t17)], proj#0..1=[{exprs}], id=[$t7], age=[$t8], $condition=[$t18])
         CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_nested_simple]])

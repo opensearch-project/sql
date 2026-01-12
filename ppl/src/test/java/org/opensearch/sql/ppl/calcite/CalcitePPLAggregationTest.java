@@ -357,7 +357,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         "SELECT\n"
-            + "/*+ `stats_args`(`bucket_nullable` = 'false') */\n"
+            + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
             + "AVG(`SAL`) `avg(SAL)`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `DEPTNO` IS NOT NULL\n"
@@ -960,7 +960,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         "SELECT\n"
-            + "/*+ `stats_args`(`bucket_nullable` = 'false') */\n"
+            + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
             + "AVG(`SAL`) `avg`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `DEPTNO` IS NOT NULL\n"
@@ -987,7 +987,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         "SELECT\n"
-            + "/*+ `stats_args`(`bucket_nullable` = 'false') */\n"
+            + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
             + "AVG(`SAL`) `avg`, SPAN(`HIREDATE`, 1, 'y') `hiredate_span`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `HIREDATE` IS NOT NULL\n"
@@ -1040,7 +1040,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT *\n"
             + "FROM (SELECT\n"
-            + "/*+ `stats_args`(`bucket_nullable` = 'false') */\n"
+            + "/*+ `AGG_ARGS`(`ignoreNullBucket` = 'true') */\n"
             + "AVG(`SAL`) `avg`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `DEPTNO` IS NOT NULL\n"

@@ -5,9 +5,9 @@ calcite:
         LogicalJoin(condition=[=($0, $13)], joinType=[inner])
           LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12])
             CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
-          LogicalSystemLimit(fetch=[50000], type=[JOIN_SUBSEARCH_MAXOUT])
+          LogicalSort(fetch=[50000])
             LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12])
-              LogicalFilter(condition=[<=($13, 1)])
+              LogicalFilter(condition=[<=($13, SAFE_CAST(1:BIGINT))])
                 LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12], _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $0)])
                   LogicalFilter(condition=[IS NOT NULL($0)])
                     LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12])
@@ -21,4 +21,8 @@ calcite:
         "missing" : "_last"
       }
     }]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","_source":{"includes":["account_number","firstname","address","birthdate","gender","city","lastname","balance","employer","state","age","email","male"],"excludes":[]},"sort":[{"account_number":{"order":"asc","missing":"_last"}}]}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
-        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=LogicalProject#,group={0},agg#0=LITERAL_AGG(1)), LIMIT->50000, SORT->[0]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"account_number":{"terms":{"field":"account_number","missing_bucket":false,"order":"asc"}}}]},"aggregations":{"$f1":{"top_hits":{"from":0,"size":1,"version":false,"seq_no_primary_term":false,"explain":false,"_source":{"includes":["account_number","firstname","address","birthdate","gender","city","lastname","balance","employer","state","age","email","male"],"excludes":[]},"script_fields":{}}}}}}}, requestedTotalSize=50000, pageSize=null, startFrom=0)])
+        EnumerableSort(sort0=[$0], dir0=[ASC])
+          EnumerableLimit(fetch=[50000])
+            EnumerableCalc(expr#0..13=[{inputs}], expr#14=[1:BIGINT], expr#15=[<=($t13, $t14)], proj#0..12=[{exprs}], $condition=[$t15])
+              EnumerableWindow(window#0=[window(partition {0} rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
+                CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]], PushDownContext=[[PROJECT->[account_number, firstname, address, birthdate, gender, city, lastname, balance, employer, state, age, email, male], FILTER->IS NOT NULL($0)], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","query":{"exists":{"field":"account_number","boost":1.0}},"_source":{"includes":["account_number","firstname","address","birthdate","gender","city","lastname","balance","employer","state","age","email","male"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
