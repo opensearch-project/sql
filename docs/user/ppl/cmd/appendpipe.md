@@ -1,17 +1,30 @@
-# appendpipe  
 
-## Description  
+# appendpipe
 
-The `appendpipe` command appends the result of the subpipeline to the search results. Unlike a subsearch, the subpipeline is not run first.The subpipeline is run when the search reaches the appendpipe command.
-The command aligns columns with the same field names and types. For different column fields between the main search and sub-search, NULL values are filled in the respective rows.
-## Syntax  
+The `appendpipe` command appends the results of a subpipeline to the search results. Unlike a subsearch, the subpipeline is not executed first; it runs only when the search reaches the `appendpipe` command.
 
-appendpipe [\<subpipeline\>]
-* subpipeline: mandatory. A list of commands that are applied to the search results from the commands that occur in the search before the `appendpipe` command.  
+The command aligns columns that have the same field names and types. For columns that exist in only the main search or subpipeline, `NULL` values are inserted into the missing fields for the respective rows.
+
+## Syntax
+
+The `appendpipe` command has the following syntax:
+
+```syntax
+appendpipe [<subpipeline>]
+```
+
+## Parameters
+
+The `appendpipe` command supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<subpipeline>` | Required | A list of commands applied to the search results produced by the commands that precede the `appendpipe` command. |
   
-## Example 1: Append rows from a total count to existing search result  
 
-This example appends rows from "total by gender" to "sum by gender, state" with merged column of same field name and type.
+## Example 1: Append rows from a total count to existing search results  
+
+This example appends rows from `total by gender` to `sum by gender, state`, merging columns that have the same field name and type:
   
 ```ppl
 source=accounts
@@ -21,7 +34,7 @@ source=accounts
 | appendpipe [ stats sum(part) as total by gender ]
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 6/6
@@ -37,9 +50,10 @@ fetched rows / total rows = 6/6
 +------+--------+-------+-------+
 ```
   
+
 ## Example 2: Append rows with merged column names  
 
-This example appends rows from "count by gender" to "sum by gender, state".
+This example appends rows from `count by gender` to `sum by gender, state`:
   
 ```ppl
 source=accounts
@@ -49,7 +63,7 @@ source=accounts
 | appendpipe [ stats sum(total) as total by gender ]
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 6/6
@@ -65,6 +79,9 @@ fetched rows / total rows = 6/6
 +----------+--------+-------+
 ```
   
-## Limitations  
 
-* **Schema Compatibility**: Same as command `append`, when fields with the same name exist between the main search and sub-search but have incompatible types, the query will fail with an error. To avoid type conflicts, ensure that fields with the same name have the same data type, or use different field names (e.g., by renaming with `eval` or using `fields` to select non-conflicting columns).  
+## Limitations
+
+The `appendpipe` command has the following limitations:
+
+* **Schema compatibility**: When fields with the same name exist in both the main search and the subpipeline but have incompatible types, the query fails with an error. To avoid type conflicts, ensure that fields with the same name share the same data type. Alternatively, use different field names. You can rename the conflicting fields using `eval` or select non-conflicting columns using `fields`.

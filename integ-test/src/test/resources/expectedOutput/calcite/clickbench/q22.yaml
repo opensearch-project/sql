@@ -5,7 +5,8 @@ calcite:
         LogicalProject(c=[$1], SearchPhrase=[$0])
           LogicalAggregate(group=[{0}], c=[COUNT()])
             LogicalProject(SearchPhrase=[$63])
-              LogicalFilter(condition=[AND(LIKE($26, '%google%', '\'), <>($63, ''))])
-                CalciteLogicalIndexScan(table=[[OpenSearch, hits]])
+              LogicalFilter(condition=[IS NOT NULL($63)])
+                LogicalFilter(condition=[AND(LIKE($26, '%google%', '\'), <>($63, ''))])
+                  CalciteLogicalIndexScan(table=[[OpenSearch, hits]])
   physical: |
     CalciteEnumerableIndexScan(table=[[OpenSearch, hits]], PushDownContext=[[FILTER->AND(LIKE($0, '%google%', '\'), <>($1, '')), AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={1},c=COUNT()), SORT_AGG_METRICS->[1 DESC LAST], PROJECT->[c, SearchPhrase], LIMIT->10, LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","query":{"bool":{"must":[{"wildcard":{"URL":{"wildcard":"*google*","boost":1.0}}},{"bool":{"must":[{"exists":{"field":"SearchPhrase","boost":1.0}}],"must_not":[{"term":{"SearchPhrase":{"value":"","boost":1.0}}}],"adjust_pure_negative":true,"boost":1.0}}],"adjust_pure_negative":true,"boost":1.0}},"aggregations":{"SearchPhrase":{"terms":{"field":"SearchPhrase","size":10,"min_doc_count":1,"shard_min_doc_count":0,"show_term_doc_count_error":false,"order":[{"_count":"desc"},{"_key":"asc"}]}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
