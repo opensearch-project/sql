@@ -18,11 +18,10 @@ public enum Format {
   CSV("csv"),
   RAW("raw"),
   VIZ("viz"),
-  // format of explain response
-  SIMPLE("simple"),
-  STANDARD("standard"),
-  EXTENDED("extended"),
-  COST("cost"),
+
+  /*----- explain output format ------*/
+  /** Returns explain output json format */
+  JSON("json"),
   /** Returns explain output in yaml format */
   YAML("yaml");
 
@@ -42,10 +41,7 @@ public enum Format {
     RESPONSE_FORMATS = builder.build();
 
     builder = new ImmutableMap.Builder<>();
-    builder.put(SIMPLE.formatName, SIMPLE);
-    builder.put(STANDARD.formatName, STANDARD);
-    builder.put(EXTENDED.formatName, EXTENDED);
-    builder.put(COST.formatName, COST);
+    builder.put(JSON.formatName, JSON);
     builder.put(YAML.formatName, YAML);
     EXPLAIN_FORMATS = builder.build();
   }
@@ -56,7 +52,7 @@ public enum Format {
   }
 
   public static Optional<Format> ofExplain(String formatName) {
-    String format = Strings.isNullOrEmpty(formatName) ? "standard" : formatName.toLowerCase();
+    String format = Strings.isNullOrEmpty(formatName) ? "json" : formatName.toLowerCase();
     return Optional.ofNullable(EXPLAIN_FORMATS.getOrDefault(format, null));
   }
 }

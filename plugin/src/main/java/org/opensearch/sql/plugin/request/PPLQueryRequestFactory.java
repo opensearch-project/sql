@@ -19,9 +19,11 @@ public class PPLQueryRequestFactory {
   private static final String PPL_URL_PARAM_KEY = "ppl";
   private static final String PPL_FIELD_NAME = "query";
   private static final String QUERY_PARAMS_FORMAT = "format";
+  private static final String QUERY_PARAMS_EXPLAIN_MODE = "mode";
   private static final String QUERY_PARAMS_SANITIZE = "sanitize";
   private static final String DEFAULT_RESPONSE_FORMAT = "jdbc";
-  private static final String DEFAULT_EXPLAIN_FORMAT = "standard";
+  private static final String DEFAULT_EXPLAIN_FORMAT = "json";
+  private static final String DEFAULT_EXPLAIN_MODE = "standard";
   private static final String QUERY_PARAMS_PRETTY = "pretty";
   private static final String QUERY_PARAMS_PROFILE = "profile";
 
@@ -57,6 +59,7 @@ public class PPLQueryRequestFactory {
     String content = restRequest.content().utf8ToString();
     JSONObject jsonContent;
     Format format = getFormat(restRequest.params(), restRequest.rawPath());
+    String explainMode = getExplainMode(restRequest.params(), restRequest.rawPath());
     boolean pretty = getPrettyOption(restRequest.params());
     try {
       jsonContent = new JSONObject(content);
@@ -70,6 +73,7 @@ public class PPLQueryRequestFactory {
               jsonContent,
               restRequest.path(),
               format.getFormatName(),
+              explainMode,
               enableProfile);
       // set sanitize option if csv format
       if (format.equals(Format.CSV)) {
@@ -128,5 +132,14 @@ public class PPLQueryRequestFactory {
     boolean isJdbcFormat =
         format != null && DEFAULT_RESPONSE_FORMAT.equalsIgnoreCase(format.getFormatName());
     return !explainPath && !explainQuery && isJdbcFormat;
+  }
+
+  private static String getExplainMode(Map<String, String> requestParams, String path) {
+    if (!isExplainRequest(path)) {
+      return null;
+    }
+    return requestParams
+        .getOrDefault(QUERY_PARAMS_EXPLAIN_MODE, DEFAULT_EXPLAIN_MODE)
+        .toLowerCase();
   }
 }

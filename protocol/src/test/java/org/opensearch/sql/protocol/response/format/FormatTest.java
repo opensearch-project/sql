@@ -44,13 +44,6 @@ public class FormatTest {
   }
 
   @Test
-  void extended() {
-    Optional<Format> format = Format.ofExplain("extended");
-    assertTrue(format.isPresent());
-    assertEquals(Format.EXTENDED, format.get());
-  }
-
-  @Test
   void yaml() {
     Optional<Format> format = Format.ofExplain("yaml");
     assertTrue(format.isPresent());
@@ -61,7 +54,7 @@ public class FormatTest {
   void defaultExplainFormat() {
     Optional<Format> format = Format.ofExplain("");
     assertTrue(format.isPresent());
-    assertEquals(Format.STANDARD, format.get());
+    assertEquals(Format.JSON, format.get());
   }
 
   @Test

@@ -484,7 +484,8 @@ public class MatcherUtils {
         .replaceAll("LogicalProject#\\d+", "LogicalProject#")
         .replaceAll("pitId=[^,]+,", "pitId=*,")
         .replaceAll(" needClean=true,", "")
-        .replaceAll(" searchDone=false,", "");
+        .replaceAll(" searchDone=false,", "")
+        .replaceAll("id = \\d+", "id = *");
   }
 
   private static String jsonToYaml(String json) {

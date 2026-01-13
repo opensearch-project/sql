@@ -34,6 +34,7 @@ public class TransportPPLQueryRequest extends ActionRequest {
   @Getter private final String path;
 
   @Getter private String format = "";
+  @Getter private String explainMode;
 
   @Setter
   @Getter
@@ -59,6 +60,7 @@ public class TransportPPLQueryRequest extends ActionRequest {
     sanitize = pplQueryRequest.sanitize();
     style = pplQueryRequest.style();
     profile = pplQueryRequest.profile();
+    explainMode = pplQueryRequest.mode().getModeName();
   }
 
   /** Constructor of TransportPPLQueryRequest from StreamInput. */
@@ -66,6 +68,7 @@ public class TransportPPLQueryRequest extends ActionRequest {
     super(in);
     pplQuery = in.readOptionalString();
     format = in.readOptionalString();
+    explainMode = in.readOptionalString();
     String jsonContentString = in.readOptionalString();
     jsonContent = jsonContentString != null ? new JSONObject(jsonContentString) : null;
     path = in.readOptionalString();
@@ -98,6 +101,7 @@ public class TransportPPLQueryRequest extends ActionRequest {
     super.writeTo(out);
     out.writeOptionalString(pplQuery);
     out.writeOptionalString(format);
+    out.writeOptionalString(explainMode);
     out.writeOptionalString(jsonContent != null ? jsonContent.toString() : null);
     out.writeOptionalString(path);
     out.writeBoolean(sanitize);
@@ -137,7 +141,7 @@ public class TransportPPLQueryRequest extends ActionRequest {
   /** Convert to PPLQueryRequest. */
   public PPLQueryRequest toPPLQueryRequest() {
     PPLQueryRequest pplQueryRequest =
-        new PPLQueryRequest(pplQuery, jsonContent, path, format, profile);
+        new PPLQueryRequest(pplQuery, jsonContent, path, format, explainMode, profile);
     pplQueryRequest.sanitize(sanitize);
     pplQueryRequest.style(style);
     return pplQueryRequest;
