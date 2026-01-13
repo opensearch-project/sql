@@ -14,10 +14,13 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeMappingRule;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -194,8 +197,13 @@ public class PplTypeCoercion extends TypeCoercionImpl {
         default -> throw new UnsupportedOperationException("Unsupported type: " + exprType);
       };
     }
-    // Use SAFE_CAST instead of CAST to avoid throwing errors when numbers are malformatted
-    return SqlLibraryOperators.SAFE_CAST.createCall(
+    // Use CAST when node is a literal AND not a string literal
+    // Use SAFE_CAST in rest cases to avoid throwing errors when the source node is malformatted
+    SqlOperator cast =
+        (node.getKind() == SqlKind.LITERAL && !(node instanceof SqlCharStringLiteral))
+            ? SqlStdOperatorTable.CAST
+            : SqlLibraryOperators.SAFE_CAST;
+    return cast.createCall(
         node.getParserPosition(),
         node,
         SqlTypeUtil.convertTypeToSpec(type).withNullable(type.isNullable()));

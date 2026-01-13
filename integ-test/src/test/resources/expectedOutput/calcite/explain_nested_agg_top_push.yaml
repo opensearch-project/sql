@@ -1,8 +1,9 @@
+
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalProject(address.city=[$0], count=[$1])
-        LogicalFilter(condition=[<=($2, SAFE_CAST(10:BIGINT))])
+        LogicalFilter(condition=[<=($2, 10)])
           LogicalProject(address.city=[$0], count=[$1], _row_number_rare_top_=[ROW_NUMBER() OVER (ORDER BY $1 DESC NULLS FIRST)])
             LogicalAggregate(group=[{0}], count=[COUNT()])
               LogicalProject(address.city=[$3])

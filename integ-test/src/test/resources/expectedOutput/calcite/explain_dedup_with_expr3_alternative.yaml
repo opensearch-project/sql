@@ -2,7 +2,7 @@ calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], new_gender=[$17], new_state=[$18])
-        LogicalFilter(condition=[<=($19, SAFE_CAST(2:BIGINT))])
+        LogicalFilter(condition=[<=($19, 2)])
           LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], _id=[$11], _index=[$12], _score=[$13], _maxscore=[$14], _sort=[$15], _routing=[$16], new_gender=[$17], new_state=[$18], _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $8, $0)])
             LogicalFilter(condition=[AND(IS NOT NULL($8), IS NOT NULL($0))])
               LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], _id=[$11], _index=[$12], _score=[$13], _maxscore=[$14], _sort=[$15], _routing=[$16], new_gender=[LOWER($4)], new_state=[LOWER($7)])

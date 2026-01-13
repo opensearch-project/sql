@@ -1,8 +1,9 @@
+
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalProject(firstname=[$1], age=[$8])
-        LogicalFilter(condition=[AND(=($1, 'Amber'), =(-($8, 2), SAFE_CAST(30:BIGINT)))])
+        LogicalFilter(condition=[AND(=($1, 'Amber'), =(-($8, 2), 30))])
           CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
     CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[firstname, age], SCRIPT->AND(=($0, 'Amber'), =(-($1, 2), 30)), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10000,"timeout":"1m","query":{"bool":{"must":[{"term":{"firstname.keyword":{"value":"Amber","boost":1.0}}},{"script":{"script":{"source":"{\"langType\":\"calcite\",\"script\":\"rO0ABXQCwnsKICAib3AiOiB7CiAgICAibmFtZSI6ICI9IiwKICAgICJraW5kIjogIkVRVUFMUyIsCiAgICAic3ludGF4IjogIkJJTkFSWSIKICB9LAogICJvcGVyYW5kcyI6IFsKICAgIHsKICAgICAgIm9wIjogewogICAgICAgICJuYW1lIjogIi0iLAogICAgICAgICJraW5kIjogIk1JTlVTIiwKICAgICAgICAic3ludGF4IjogIkJJTkFSWSIKICAgICAgfSwKICAgICAgIm9wZXJhbmRzIjogWwogICAgICAgIHsKICAgICAgICAgICJkeW5hbWljUGFyYW0iOiAwLAogICAgICAgICAgInR5cGUiOiB7CiAgICAgICAgICAgICJ0eXBlIjogIkJJR0lOVCIsCiAgICAgICAgICAgICJudWxsYWJsZSI6IHRydWUKICAgICAgICAgIH0KICAgICAgICB9LAogICAgICAgIHsKICAgICAgICAgICJkeW5hbWljUGFyYW0iOiAxLAogICAgICAgICAgInR5cGUiOiB7CiAgICAgICAgICAgICJ0eXBlIjogIkJJR0lOVCIsCiAgICAgICAgICAgICJudWxsYWJsZSI6IHRydWUKICAgICAgICAgIH0KICAgICAgICB9CiAgICAgIF0sCiAgICAgICJ0eXBlIjogewogICAgICAgICJ0eXBlIjogIkJJR0lOVCIsCiAgICAgICAgIm51bGxhYmxlIjogdHJ1ZQogICAgICB9CiAgICB9LAogICAgewogICAgICAiZHluYW1pY1BhcmFtIjogMiwKICAgICAgInR5cGUiOiB7CiAgICAgICAgInR5cGUiOiAiQklHSU5UIiwKICAgICAgICAibnVsbGFibGUiOiB0cnVlCiAgICAgIH0KICAgIH0KICBdCn0=\"}","lang":"opensearch_compounded_script","params":{"utcTimestamp": 0,"SOURCES":[0,2,2],"DIGESTS":["age",2,30]}},"boost":1.0}}],"adjust_pure_negative":true,"boost":1.0}},"_source":{"includes":["firstname","age"],"excludes":[]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])

@@ -2,13 +2,10 @@ calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalProject(account_number=[$0], gender=[$1], age=[$2], state=[$3])
-        LogicalFilter(condition=[<=($4, SAFE_CAST(2:BIGINT))])
+        LogicalFilter(condition=[<=($4, 2)])
           LogicalProject(account_number=[$0], gender=[$1], age=[$2], state=[$3], _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $1, $3)])
             LogicalFilter(condition=[AND(IS NOT NULL($1), IS NOT NULL($3))])
               LogicalProject(account_number=[$0], gender=[$4], age=[$8], state=[$7])
                 CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
-    EnumerableLimit(fetch=[10000])
-      EnumerableCalc(expr#0..4=[{inputs}], expr#5=[2:BIGINT], expr#6=[<=($t4, $t5)], proj#0..3=[{exprs}], $condition=[$t6])
-        EnumerableWindow(window#0=[window(partition {1, 3} rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
-          CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[account_number, gender, age, state], FILTER->AND(IS NOT NULL($1), IS NOT NULL($3))], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","query":{"bool":{"must":[{"exists":{"field":"gender","boost":1.0}},{"exists":{"field":"state","boost":1.0}}],"adjust_pure_negative":true,"boost":1.0}},"_source":{"includes":["account_number","gender","age","state"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=LogicalProject#,group={0, 1},agg#0=LITERAL_AGG(2)), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"gender":{"terms":{"field":"gender.keyword","missing_bucket":false,"order":"asc"}}},{"state":{"terms":{"field":"state.keyword","missing_bucket":false,"order":"asc"}}}]},"aggregations":{"$f2":{"top_hits":{"from":0,"size":2,"version":false,"seq_no_primary_term":false,"explain":false,"_source":{"includes":["gender","state","account_number","age"],"excludes":[]},"script_fields":{}}}}}}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])

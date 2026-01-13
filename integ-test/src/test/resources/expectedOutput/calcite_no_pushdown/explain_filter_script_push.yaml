@@ -1,8 +1,9 @@
+
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalProject(firstname=[$1], age=[$8])
-        LogicalFilter(condition=[AND(=($1, 'Amber'), =(-($8, 2), SAFE_CAST(30:BIGINT)))])
+        LogicalFilter(condition=[AND(=($1, 'Amber'), =(-($8, 2), 30))])
           CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
     EnumerableLimit(fetch=[10000])

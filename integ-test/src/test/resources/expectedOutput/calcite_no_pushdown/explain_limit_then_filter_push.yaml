@@ -2,7 +2,7 @@ calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalProject(age=[$8])
-        LogicalFilter(condition=[>($8, SAFE_CAST(30:BIGINT))])
+        LogicalFilter(condition=[>($8, 30)])
           LogicalSort(fetch=[5])
             LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], _id=[$11], _index=[$12], _score=[$13], _maxscore=[$14], _sort=[$15], _routing=[$16])
               CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])

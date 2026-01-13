@@ -2,7 +2,7 @@ calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalProject(gender=[$0], state=[$1], count=[$2])
-        LogicalFilter(condition=[<=($3, SAFE_CAST(2:BIGINT))])
+        LogicalFilter(condition=[<=($3, 2)])
           LogicalProject(gender=[$0], state=[$1], count=[$2], _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2 DESC NULLS FIRST)])
             LogicalAggregate(group=[{0, 1}], count=[COUNT()])
               LogicalProject(gender=[$4], state=[$7])

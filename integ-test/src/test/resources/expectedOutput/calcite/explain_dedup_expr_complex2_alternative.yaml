@@ -3,7 +3,7 @@ calcite:
     LogicalSystemLimit(sort0=[$4], sort1=[$5], dir0=[ASC-nulls-first], dir1=[DESC-nulls-last], fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalSort(sort0=[$4], sort1=[$5], dir0=[ASC-nulls-first], dir1=[DESC-nulls-last])
         LogicalProject(account_number=[$0], gender=[$1], age=[$2], state=[$3], new_gender=[$4], new_state=[$5])
-          LogicalFilter(condition=[<=($6, SAFE_CAST(2:BIGINT))])
+          LogicalFilter(condition=[<=($6, 2)])
             LogicalProject(account_number=[$0], gender=[$1], age=[$2], state=[$3], new_gender=[$4], new_state=[$5], _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $4, $5)])
               LogicalFilter(condition=[AND(IS NOT NULL($4), IS NOT NULL($5))])
                 LogicalProject(account_number=[$0], gender=[$4], age=[$8], state=[$7], new_gender=[LOWER($4)], new_state=[LOWER($7)])

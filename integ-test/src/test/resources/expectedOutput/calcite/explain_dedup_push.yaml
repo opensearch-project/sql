@@ -1,14 +1,12 @@
+
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalProject(account_number=[$0], gender=[$1], age=[$2])
-        LogicalFilter(condition=[<=($3, SAFE_CAST(1:BIGINT))])
+        LogicalFilter(condition=[<=($3, 1)])
           LogicalProject(account_number=[$0], gender=[$1], age=[$2], _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $1)])
             LogicalFilter(condition=[IS NOT NULL($1)])
               LogicalProject(account_number=[$0], gender=[$4], age=[$8])
                 CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
-    EnumerableLimit(fetch=[10000])
-      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[1:BIGINT], expr#5=[<=($t3, $t4)], proj#0..2=[{exprs}], $condition=[$t5])
-        EnumerableWindow(window#0=[window(partition {1} rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
-          CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[account_number, gender, age], FILTER->IS NOT NULL($1)], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","query":{"exists":{"field":"gender","boost":1.0}},"_source":{"includes":["account_number","gender","age"],"excludes":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
+    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=LogicalProject#,group={0},agg#0=LITERAL_AGG(1)), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"gender":{"terms":{"field":"gender.keyword","missing_bucket":false,"order":"asc"}}}]},"aggregations":{"$f1":{"top_hits":{"from":0,"size":1,"version":false,"seq_no_primary_term":false,"explain":false,"_source":{"includes":["gender","account_number","age"],"excludes":[]},"script_fields":{}}}}}}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])

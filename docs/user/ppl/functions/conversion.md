@@ -135,9 +135,9 @@ source=people
 | eval e="1000"==1000, en="1000"!=1000, ed="1000"==1000.0, edn="1000"!=1000.0, l="1000">999, ld="1000">999.9, i="malformed"==1000
 | fields e, en, ed, edn, l, ld, i
 ```
-  
+
 Expected output:
-  
+
 ```text
 fetched rows / total rows = 1/1
 +------+-------+------+-------+------+------+------+

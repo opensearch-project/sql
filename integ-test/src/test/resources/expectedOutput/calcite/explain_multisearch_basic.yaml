@@ -1,3 +1,4 @@
+
 calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
@@ -6,10 +7,10 @@ calcite:
           LogicalProject(age_group=[$11])
             LogicalUnion(all=[true])
               LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], age_group=['young'])
-                LogicalFilter(condition=[<($8, SAFE_CAST(30:BIGINT))])
+                LogicalFilter(condition=[<($8, 30)])
                   CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
               LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], age_group=['adult'])
-                LogicalFilter(condition=[>=($8, SAFE_CAST(30:BIGINT))])
+                LogicalFilter(condition=[>=($8, 30)])
                   CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
     EnumerableLimit(fetch=[10000])
