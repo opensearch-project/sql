@@ -35,9 +35,7 @@ import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
-import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
-import org.opensearch.sql.utils.SerializeUtils;
 
 public class DataSourceAPIsIT extends PPLIntegTestCase {
 

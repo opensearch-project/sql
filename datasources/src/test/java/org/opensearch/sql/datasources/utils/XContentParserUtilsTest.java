@@ -16,8 +16,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
-import org.opensearch.sql.datasource.model.DataSourceType;
-import org.opensearch.sql.utils.SerializeUtils;
 
 @ExtendWith(MockitoExtension.class)
 public class XContentParserUtilsTest {

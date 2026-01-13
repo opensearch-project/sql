@@ -7,10 +7,10 @@
 
 package org.opensearch.sql.storage;
 
+import org.opensearch.commons.ppl.serde.DataSourceType;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
-import org.opensearch.sql.datasource.model.DataSourceType;
 
 /**
  * {@link DataSourceFactory} is used to create {@link DataSource} from {@link DataSourceMetadata}.

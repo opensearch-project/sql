@@ -3,10 +3,10 @@ package org.opensearch.sql.datasources.glue;
 import java.util.Map;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.opensearch.commons.ppl.serde.DataSourceType;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
-import org.opensearch.sql.datasource.model.DataSourceType;
 
 public class SecurityLakeDataSourceFactory extends GlueDataSourceFactory {
 

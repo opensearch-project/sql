@@ -6,6 +6,7 @@
 package org.opensearch.sql.protocol.response.format;
 
 import lombok.Getter;
+import org.opensearch.commons.ppl.format.JsonResponseFormatter;
 import org.opensearch.sql.executor.execution.CommandPlan;
 import org.opensearch.sql.protocol.response.QueryResult;
 

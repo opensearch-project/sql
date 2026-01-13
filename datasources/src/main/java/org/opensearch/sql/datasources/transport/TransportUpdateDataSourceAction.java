@@ -7,18 +7,18 @@
 
 package org.opensearch.sql.datasources.transport;
 
-import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
+import static org.opensearch.commons.ppl.format.JsonResponseFormatter.Style.PRETTY;
 
 import org.opensearch.action.ActionType;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.commons.ppl.format.JsonResponseFormatter;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasources.model.transport.UpdateDataSourceActionRequest;
 import org.opensearch.sql.datasources.model.transport.UpdateDataSourceActionResponse;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
-import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 

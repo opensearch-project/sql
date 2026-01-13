@@ -6,9 +6,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
+import org.opensearch.commons.ppl.serde.DataSourceType;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
-import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.storage.DataSourceFactory;
 
 /**

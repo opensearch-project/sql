@@ -11,6 +11,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+
 import org.opensearch.sql.executor.execution.AbstractPlan;
 
 /** Default QueryManager implementation which execute {@link AbstractPlan} on caller thread. */

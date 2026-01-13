@@ -50,6 +50,8 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.8.9'
     api group: 'com.amazonaws', name: 'aws-java-sdk-emrserverless', version: "${aws_java_sdk_version}"
 
+    api "org.opensearch:common-utils:${common_utils_snapshot_version}@jar"
+
     testImplementation(platform("org.junit:junit-bom:5.9.3"))
 
     testCompileOnly('org.junit.jupiter:junit-jupiter')
