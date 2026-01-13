@@ -210,8 +210,14 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     client.schedule(
         () -> {
           try (PreparedStatement statement = OpenSearchRelRunners.run(context, rel)) {
+            ProfileMetric metric = QueryProfiling.current().getOrCreateMetric(MetricName.EXECUTE);
+            long execTime = System.nanoTime();
             ResultSet result = statement.executeQuery();
-            buildResultSet(result, rel.getRowType(), context.sysLimit.querySizeLimit(), listener);
+            QueryResponse response =
+                buildResultSet(result, rel.getRowType(), context.sysLimit.querySizeLimit());
+            metric.add(System.nanoTime() - execTime);
+            listener.onResponse(response);
+
           } catch (SQLException e) {
             throw new RuntimeException(e);
           }
@@ -250,14 +256,8 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     return value;
   }
 
-  private void buildResultSet(
-      ResultSet resultSet,
-      RelDataType rowTypes,
-      Integer querySizeLimit,
-      ResponseListener<QueryResponse> listener)
-      throws SQLException {
-    ProfileMetric metric = QueryProfiling.current().getOrCreateMetric(MetricName.EXECUTE);
-    long execTime = System.nanoTime();
+  private QueryResponse buildResultSet(
+      ResultSet resultSet, RelDataType rowTypes, Integer querySizeLimit) throws SQLException {
     // Get the ResultSet metadata to know about columns
     ResultSetMetaData metaData = resultSet.getMetaData();
     int columnCount = metaData.getColumnCount();
@@ -300,8 +300,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     }
     Schema schema = new Schema(columns);
     QueryResponse response = new QueryResponse(schema, values, null);
-    metric.add(System.nanoTime() - execTime);
-    listener.onResponse(response);
+    return response;
   }
 
   /** Registers opensearch-dependent functions */
