@@ -63,6 +63,7 @@ import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -718,9 +719,18 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                         ImmutableList.of((RexNode) rx.makeCast(varchar, b.field(f), true))))
             .collect(Collectors.toList()));
 
-    // Step 3: PIVOT
+    // Step 3: Trim spaces from columnName column before pivot
+
+    RexNode trimmedColumnName =
+        context.rexBuilder.makeCall(
+            SqlStdOperatorTable.TRIM,
+            context.rexBuilder.makeFlag(SqlTrimFunction.Flag.BOTH),
+            context.rexBuilder.makeLiteral(" "),
+            b.field(columnName));
+
+    // Step 4: PIVOT
     b.pivot(
-        b.groupKey(b.field(columnName)),
+        b.groupKey(trimmedColumnName),
         ImmutableList.of(b.max(b.field("value"))),
         ImmutableList.of(b.field(PlanUtils.ROW_NUMBER_COLUMN_FOR_TRANSPOSE)),
         IntStream.rangeClosed(1, maxRows)

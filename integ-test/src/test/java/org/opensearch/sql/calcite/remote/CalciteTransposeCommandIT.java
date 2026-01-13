@@ -53,8 +53,8 @@ public class CalciteTransposeCommandIT extends PPLIntegTestCase {
     verifyDataRows(
         result,
         rows("firstname", "Amber", "Hattie", "Nanette", "Dale", "Elinor"),
-        rows("balance  ", "39225", "5686", "32838", "4180", "16418"),
-        rows("age      ", "32", "36", "28", "33", "36"));
+        rows("balance", "39225", "5686", "32838", "4180", "16418"),
+        rows("age", "32", "36", "28", "33", "36"));
   }
 
   @Test
@@ -106,36 +106,10 @@ public class CalciteTransposeCommandIT extends PPLIntegTestCase {
             null,
             null),
         rows(
-            "balance  ",
-            "39225",
-            "5686",
-            "32838",
-            "4180",
-            "16418",
-            "40540",
-            "48086",
-            "18612",
-            "34487",
-            "29104",
-            null,
-            null,
-            null,
-            null),
+            "balance", "39225", "5686", "32838", "4180", "16418", "40540", "48086", "18612",
+            "34487", "29104", null, null, null, null),
         rows(
-            "age      ",
-            "32",
-            "36",
-            "28",
-            "33",
-            "36",
-            "39",
-            "34",
-            "39",
-            "37",
-            "23",
-            null,
-            null,
-            null,
+            "age", "32", "36", "28", "33", "36", "39", "34", "39", "37", "23", null, null, null,
             null));
   }
 
@@ -163,8 +137,8 @@ public class CalciteTransposeCommandIT extends PPLIntegTestCase {
     verifyDataRows(
         result,
         rows("firstname", "Amber", "Hattie", "Nanette", "Dale", "Elinor"),
-        rows("balance  ", "39225", "5686", "32838", "4180", "16418"),
-        rows("age      ", "32", "36", "28", "33", "36"));
+        rows("balance", "39225", "5686", "32838", "4180", "16418"),
+        rows("age", "32", "36", "28", "33", "36"));
   }
 
   @Test
@@ -193,7 +167,7 @@ public class CalciteTransposeCommandIT extends PPLIntegTestCase {
     verifyDataRows(
         result,
         rows("firstname", "Amber", "Hattie", "Nanette", "Dale", "Elinor"),
-        rows("balance  ", "39225", "5686", "32838", "4180", "16418"),
-        rows("age      ", "32", "36", "28", "33", "36"));
+        rows("balance", "39225", "5686", "32838", "4180", "16418"),
+        rows("age", "32", "36", "28", "33", "36"));
   }
 }
