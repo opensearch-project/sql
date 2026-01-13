@@ -29,7 +29,6 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -54,8 +53,8 @@ import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -681,61 +680,64 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-    @Override
-    public RelNode visitTranspose(
-            org.opensearch.sql.ast.tree.Transpose node, CalcitePlanContext context) {
+  @Override
+  public RelNode visitTranspose(
+      org.opensearch.sql.ast.tree.Transpose node, CalcitePlanContext context) {
 
-        visitChildren(node, context);
+    visitChildren(node, context);
 
-        int maxRows = Optional.ofNullable(node.getMaxRows())
-                .filter(r -> r > 0)
-                .orElseThrow(() -> new IllegalArgumentException("maxRows must be positive"));
+    int maxRows =
+        Optional.ofNullable(node.getMaxRows())
+            .filter(r -> r > 0)
+            .orElseThrow(() -> new IllegalArgumentException("maxRows must be positive"));
 
-        String columnName = node.getColumnName();
-        List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+    String columnName = node.getColumnName();
+    List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
 
+    RelBuilder b = context.relBuilder;
+    RexBuilder rx = context.rexBuilder;
+    RelDataType varchar = rx.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
 
-        RelBuilder b = context.relBuilder;
-        RexBuilder rx = context.rexBuilder;
-        RelDataType varchar = rx.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+    // Step 1: ROW_NUMBER
+    b.projectPlus(
+        b.aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+            .over()
+            .rowsTo(RexWindowBounds.CURRENT_ROW)
+            .as(PlanUtils.ROW_NUMBER_COLUMN_FOR_TRANSPOSE));
 
-        // Step 1: ROW_NUMBER
-        b.projectPlus(
-                b.aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
-                        .over()
-                        .rowsTo(RexWindowBounds.CURRENT_ROW)
-                        .as(PlanUtils.ROW_NUMBER_COLUMN_FOR_TRANSPOSE));
+    // Step 2: UNPIVOT
+    b.unpivot(
+        false,
+        ImmutableList.of("value"),
+        ImmutableList.of(columnName),
+        fieldNames.stream()
+            .map(
+                f ->
+                    Map.entry(
+                        ImmutableList.of(rx.makeLiteral(f)),
+                        ImmutableList.of((RexNode) rx.makeCast(varchar, b.field(f), true))))
+            .collect(Collectors.toList()));
 
-        // Step 2: UNPIVOT
-        b.unpivot(
-                false,
-                ImmutableList.of("value"),
-                ImmutableList.of(columnName),
-                fieldNames.stream()
-                        .map(f -> Map.entry(
-                                ImmutableList.of(rx.makeLiteral(f)),
-                                ImmutableList.of((RexNode) rx.makeCast(varchar, b.field(f), true))))
-                        .collect(Collectors.toList()));
+    // Step 3: PIVOT
+    b.pivot(
+        b.groupKey(b.field(columnName)),
+        ImmutableList.of(b.max(b.field("value"))),
+        ImmutableList.of(b.field(PlanUtils.ROW_NUMBER_COLUMN_FOR_TRANSPOSE)),
+        IntStream.rangeClosed(1, maxRows)
+            .mapToObj(i -> Map.entry("row " + i, ImmutableList.of((RexNode) b.literal(i))))
+            .collect(Collectors.toList()));
 
-        // Step 3: PIVOT
-        b.pivot(
-                b.groupKey(b.field(columnName)),
-                ImmutableList.of(b.max(b.field("value"))),
-                ImmutableList.of(b.field(PlanUtils.ROW_NUMBER_COLUMN_FOR_TRANSPOSE)),
-                IntStream.rangeClosed(1, maxRows)
-                        .mapToObj(i -> Map.entry("row " + i, ImmutableList.of((RexNode) b.literal(i))))
-                        .collect(Collectors.toList()));
-
-        // Step 4: RENAME
-        List<String> cleanNames = new ArrayList<>();
-        cleanNames.add(columnName);
-        for (int i = 1; i <= maxRows; i++) {
-            cleanNames.add("row " + i);
-        }
-        b.rename(cleanNames);
-
-        return b.peek();
+    // Step 4: RENAME
+    List<String> cleanNames = new ArrayList<>();
+    cleanNames.add(columnName);
+    for (int i = 1; i <= maxRows; i++) {
+      cleanNames.add("row " + i);
     }
+    b.rename(cleanNames);
+
+    return b.peek();
+  }
+
   @Override
   public RelNode visitBin(Bin node, CalcitePlanContext context) {
     visitChildren(node, context);
