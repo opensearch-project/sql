@@ -132,6 +132,7 @@ commandName
    | REX
    | APPENDPIPE
    | REPLACE
+   | TRANSPOSE
    ;
 
 searchCommand
@@ -1668,7 +1669,6 @@ searchableKeyWord
    | FIELDNAME
    | ROW
    | COL
-   | TRANSPOSE
    | COLUMN_NAME
    ;
 

@@ -21,7 +21,7 @@ import org.opensearch.sql.common.utils.StringUtils;
 public class Transpose extends UnresolvedPlan {
   private final @NonNull java.util.Map<String, Argument> arguments;
   private UnresolvedPlan child;
-  private static final int max_limit = 1000;
+  private static final int MAX_LIMIT_TRANSPOSE = 10000;
 
   public Integer getMaxRows() {
     Integer maxRows = 5;
@@ -33,9 +33,9 @@ public class Transpose extends UnresolvedPlan {
         maxRows = 5;
       }
     }
-    if (maxRows > max_limit) {
+    if (maxRows > MAX_LIMIT_TRANSPOSE) {
       throw new IllegalArgumentException(
-          StringUtils.format("Maximum limit to transpose is %s", max_limit));
+          StringUtils.format("Maximum limit to transpose is %s", MAX_LIMIT_TRANSPOSE));
     }
     return maxRows;
   }
