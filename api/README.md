@@ -109,15 +109,15 @@ Use `UnifiedFunctionRepository` to discover and load unified functions:
 UnifiedFunctionRepository repository = new UnifiedFunctionRepository(context);
 
 // Load all available functions
-List<FunctionDescriptor> allFunctions = repository.loadFunctions();
-for (FunctionDescriptor descriptor : allFunctions) {
+List<UnifiedFunctionDescriptor> allFunctions = repository.loadFunctions();
+for (UnifiedFunctionDescriptor descriptor : allFunctions) {
     String name = descriptor.getFunctionName();
     UnifiedFunctionBuilder builder = descriptor.getBuilder();
     // Use builder to create function instances
 }
 
 // Load a specific function by name
-FunctionDescriptor upperDescriptor = repository.loadFunction("UPPER");
+UnifiedFunctionDescriptor upperDescriptor = repository.loadFunction("UPPER").orElseThrow();
 ```
 
 #### Creating and Using Functions
@@ -126,7 +126,7 @@ Functions are created using builders with specific input types:
 
 ```java
 // Get function descriptor
-FunctionDescriptor descriptor = repository.loadFunction("UPPER");
+UnifiedFunctionDescriptor descriptor = repository.loadFunction("UPPER").orElseThrow();
 
 // Build function with specific input types
 UnifiedFunction upperFunc = descriptor.getBuilder().build(List.of("VARCHAR"));

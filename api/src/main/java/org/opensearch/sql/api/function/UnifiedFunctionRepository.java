@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.api.function;
 
-import java.io.Serializable;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -67,7 +66,7 @@ public class UnifiedFunctionRepository {
 
   /** Builder for creating {@link UnifiedFunction} instances with specific input types. */
   @FunctionalInterface
-  public interface UnifiedFunctionBuilder extends Serializable {
+  public interface UnifiedFunctionBuilder {
 
     /**
      * Builds a {@link UnifiedFunction} instance for the specified input types.
