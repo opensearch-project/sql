@@ -152,10 +152,9 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testCountAggPushDownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_count_agg_push.json");
-    assertJsonEqualsIgnoreId(
-        expected,
-        explainQueryToString("source=opensearch-sql_test_index_account | stats count() as cnt"));
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("explain_count_agg_push.yaml"),
+        explainQueryYaml("source=opensearch-sql_test_index_account | stats count() as cnt"));
   }
 
   @Test
