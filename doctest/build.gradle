@@ -24,14 +24,15 @@ def plugin_path = project(':doctest').projectDir
 task cloneSqlCli(type: Exec) {
     def repoDir = new File("${project.projectDir}/sql-cli")
     
-    if (repoDir.exists()) {
-        // Repository already exists, fetch and checkout latest
-        commandLine 'git', '-C', repoDir.absolutePath, 'fetch', 'origin', 'main'
-        commandLine 'git', '-C', repoDir.absolutePath, 'checkout', 'origin/main'
-    } else {
-        // Repository doesn't exist, clone it
-        commandLine 'git', 'clone', 'https://github.com/opensearch-project/sql-cli.git', repoDir.absolutePath
-    }
+    commandLine 'sh', '-c', """
+        if [ -d "${repoDir.absolutePath}/.git" ]; then
+            echo "Updating existing sql-cli repository..."
+            cd "${repoDir.absolutePath}" && git fetch origin main && git checkout origin/main
+        else
+            echo "Cloning sql-cli repository..."
+            git clone https://github.com/opensearch-project/sql-cli.git "${repoDir.absolutePath}"
+        fi
+    """
 }
 
 task bootstrap(type: Exec, dependsOn: ['cloneSqlCli', 'spotlessJava']) {
@@ -76,8 +77,21 @@ task startOpenSearch(type: SpawnProcessTask) {
 }
 
 task doctest(type: Exec, dependsOn: ['bootstrap']) {
-
-    commandLine "$projectDir/bin/test-docs"
+    // Check if sql-cli was installed during bootstrap by looking for opensearch-sql-cli in venv
+    def venvLibDirs = file("$projectDir/.venv/lib").listFiles()?.findAll { it.isDirectory() && it.name.startsWith("python") }
+    def sqlCliInstalled = venvLibDirs?.any { pythonDir ->
+        def sitePackages = new File(pythonDir, "site-packages")
+        sitePackages.exists() && sitePackages.listFiles()?.any { 
+            it.name.toLowerCase().contains("opensearch") && it.name.toLowerCase().contains("sql") && it.name.toLowerCase().contains("cli")
+        }
+    } ?: false
+    
+    if (sqlCliInstalled) {
+        commandLine "$projectDir/bin/test-docs"
+    } else {
+        // Skip doctest if sql-cli not available (Python < 3.12)
+        commandLine 'echo', 'Skipping doctest: opensearch-sql-cli not available (requires Python >=3.12)'
+    }
 
     doLast {
         // remove the cloned sql-cli folder

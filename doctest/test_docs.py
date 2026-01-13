@@ -13,10 +13,20 @@ import unittest
 import click
 
 from functools import partial
-from opensearch_sql_cli.opensearch_connection import OpenSearchConnection
-from opensearch_sql_cli.utils import OutputSettings
-from opensearch_sql_cli.formatter import Formatter
 from opensearchpy import OpenSearch, helpers
+
+# Try to import sql-cli components, skip tests if not available
+try:
+    from opensearch_sql_cli.opensearch_connection import OpenSearchConnection
+    from opensearch_sql_cli.utils import OutputSettings
+    from opensearch_sql_cli.formatter import Formatter
+    SQL_CLI_AVAILABLE = True
+except ImportError:
+    SQL_CLI_AVAILABLE = False
+    # Create dummy classes to prevent NameError during module loading
+    OpenSearchConnection = object
+    OutputSettings = object
+    Formatter = object
 
 ENDPOINT = "http://localhost:9200"
 ACCOUNTS = "accounts"
@@ -86,8 +96,14 @@ def pretty_print(s):
         print(s)
 
 
-sql_cmd = DocTestConnection(query_language="sql")
-ppl_cmd = DocTestConnection(query_language="ppl")
+# Only instantiate DocTestConnection if sql-cli is available
+if SQL_CLI_AVAILABLE:
+    sql_cmd = DocTestConnection(query_language="sql")
+    ppl_cmd = DocTestConnection(query_language="ppl")
+else:
+    sql_cmd = None
+    ppl_cmd = None
+
 test_data_client = OpenSearch([ENDPOINT], verify_certs=True)
 
 
@@ -204,6 +220,14 @@ def doc_suite(fn):
 
 
 def load_tests(loader, suite, ignore):
+    # Skip all tests if sql-cli is not available (requires Python >=3.12)
+    if not SQL_CLI_AVAILABLE:
+        class SkippedDocTests(unittest.TestCase):
+            @unittest.skip("opensearch-sql-cli not available (requires Python >=3.12)")
+            def test_skip_all_doctests(self):
+                pass
+        return unittest.TestSuite([SkippedDocTests('test_skip_all_doctests')])
+    
     tests = []
     # Load doctest docs by category
     with open('../docs/category.json') as json_file:
