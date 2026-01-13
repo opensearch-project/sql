@@ -22,6 +22,7 @@ import static org.opensearch.sql.util.MatcherUtils.assertYamlEqualsIgnoreId;
 import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Locale;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -2061,11 +2062,11 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | eval new_gender = lower(gender) | eval"
                 + " new_state = lower(state) | dedup 2 new_gender, new_state"));
-    expected = loadExpectedPlan("explain_dedup_expr4.yaml");
-    alternative = loadExpectedPlan("explain_dedup_expr4_alternative.yaml");
     assertYamlEqualsIgnoreId(
-        expected,
-        alternative,
+        List.of(
+            loadExpectedPlan("explain_dedup_expr4.yaml"),
+            loadExpectedPlan("explain_dedup_expr4_alternative.yaml"),
+            loadExpectedPlan("explain_dedup_expr4_alternative1.yaml")),
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | fields account_number, gender, age, state |"
                 + " eval new_gender = lower(gender) | eval new_state = lower(state) | sort gender,"
@@ -2101,11 +2102,11 @@ public class CalciteExplainIT extends ExplainIT {
             "source=opensearch-sql_test_index_account | eval tmp_gender = lower(gender) | eval"
                 + " tmp_state = lower(state) | rename tmp_gender as new_gender | rename tmp_state"
                 + " as new_state | dedup 2 new_gender, new_state"));
-    expected = loadExpectedPlan("explain_dedup_expr4.yaml");
-    alternative = loadExpectedPlan("explain_dedup_expr4_alternative.yaml");
     assertYamlEqualsIgnoreId(
-        expected,
-        alternative,
+        List.of(
+            loadExpectedPlan("explain_dedup_expr4.yaml"),
+            loadExpectedPlan("explain_dedup_expr4_alternative.yaml"),
+            loadExpectedPlan("explain_dedup_expr4_alternative1.yaml")),
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | fields account_number, gender, age, state |"
                 + " eval tmp_gender = lower(gender) | eval tmp_state = lower(state) | rename"
@@ -2164,11 +2165,12 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | eval new_gender = lower(gender) | eval"
                 + " new_state = lower(state) | dedup 2 age, account_number"));
-    expected = loadExpectedPlan("explain_dedup_with_expr4.yaml");
-    alternative = loadExpectedPlan("explain_dedup_with_expr4_alternative.yaml");
+
     assertYamlEqualsIgnoreId(
-        expected,
-        alternative,
+        List.of(
+            loadExpectedPlan("explain_dedup_with_expr4.yaml"),
+            loadExpectedPlan("explain_dedup_with_expr4_alternative.yaml"),
+            loadExpectedPlan("explain_dedup_with_expr4_alternative2.yaml")),
         explainQueryYaml(
             "source=opensearch-sql_test_index_account | fields account_number, gender, age, state |"
                 + " eval new_gender = lower(gender) | eval new_state = lower(state) | sort gender,"

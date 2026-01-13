@@ -466,6 +466,39 @@ public class MatcherUtils {
     }
   }
 
+  /**
+   * Compares actual YAML with a list of expected YAML strings, trying each in order until one
+   * matches. This is useful when the DSL implementation can produce multiple valid plan variants.
+   *
+   * <p>The method iterates through each expected YAML string and attempts a comparison with the
+   * actual YAML. If any expected YAML matches, the assertion succeeds. If none match, the method
+   * throws an {@link AssertionError} from the last failed comparison.
+   *
+   * <p>Both expected and actual YAML strings are cleaned up (ignoring RelNode IDs, timestamps,
+   * PIDs, etc.) before comparison.
+   *
+   * @param expectedYamls list of expected YAML strings to try (must not be empty)
+   * @param actualYaml the actual YAML string to compare
+   * @throws AssertionError if none of the expected YAMLs match the actual YAML (reports the last
+   *     failure)
+   * @throws IllegalArgumentException if expectedYamls is empty
+   */
+  public static void assertYamlEqualsIgnoreId(List<String> expectedYamls, String actualYaml) {
+    if (expectedYamls.isEmpty()) {
+      throw new IllegalArgumentException("expectedYamls list must not be empty");
+    }
+    AssertionError lastError = null;
+    for (String expectedYaml : expectedYamls) {
+      try {
+        assertYamlEquals(cleanUpYaml(expectedYaml), cleanUpYaml(actualYaml));
+        return;
+      } catch (AssertionError e) {
+        lastError = e;
+      }
+    }
+    throw lastError;
+  }
+
   public static void assertYamlEquals(String expected, String actual) {
     String normalizedExpected = normalizeLineBreaks(expected).trim();
     String normalizedActual = normalizeLineBreaks(actual).trim();
