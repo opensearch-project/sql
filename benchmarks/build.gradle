@@ -15,6 +15,8 @@ repositories {
 dependencies {
     implementation project(':core')
     implementation project(':opensearch')
+    implementation project(':api')
+    jmhImplementation testFixtures(project(':api'))
 
     // Dependencies required by JMH micro benchmark
     api group: 'org.openjdk.jmh', name: 'jmh-core', version: '1.36'
@@ -28,6 +30,11 @@ spotless {
             exclude '**/jmh_generated/**'
         }
     }
+}
+
+// JMH configuration passed via command line
+jmh {
+    includes = project.hasProperty('jmh.includes') ? [project.property('jmh.includes')] : []
 }
 
 compileJava.options.compilerArgs.addAll(["-processor", "org.openjdk.jmh.generators.BenchmarkProcessor"])
