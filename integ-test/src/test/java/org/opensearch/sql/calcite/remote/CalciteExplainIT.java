@@ -2322,6 +2322,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testExplainInVariousModeAndFormat() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
     String query =
         "source=opensearch-sql_test_index_account"
             + "| where age > 30 "
