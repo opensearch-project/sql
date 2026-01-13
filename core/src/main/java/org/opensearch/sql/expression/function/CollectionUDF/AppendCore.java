@@ -15,7 +15,7 @@ public class AppendCore {
 
   /**
    * Collect non-null elements from `args`. If an item is a list, it will collect non-null elements
-   * of the list. See {@ref AppendFunctionImplTest} for detailed behavior.
+   * of the list. See {@link AppendFunctionImplTest} for detailed behavior.
    */
   public static Object collectElements(Object... args) {
     List<Object> elements = collectElementsToList(args);

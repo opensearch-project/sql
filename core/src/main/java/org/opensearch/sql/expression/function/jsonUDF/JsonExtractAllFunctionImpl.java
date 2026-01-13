@@ -38,7 +38,7 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
 /**
  * UDF which extract all the fields from JSON to a MAP. Items are collected from input JSON and
  * stored with the key of their path in the JSON. This UDF is designed to be used for `spath`
- * command without path param. See {@ref JsonExtractAllFunctionImplTest} for the detailed spec.
+ * command without path param. See {@link JsonExtractAllFunctionImplTest} for the detailed spec.
  */
 public class JsonExtractAllFunctionImpl extends ImplementorUDF {
   private static final String ARRAY_SUFFIX = "{}";

@@ -25,7 +25,7 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
  * MapAppend function that merges two maps. Value for the same key will be merged into an array by
- * using {@ref: AppendCore}.
+ * using {@link: AppendCore}.
  */
 public class MapAppendFunctionImpl extends ImplementorUDF {
 

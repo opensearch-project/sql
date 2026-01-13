@@ -102,7 +102,7 @@ public class MVAppendFunctionImpl extends ImplementorUDF {
 
   /**
    * Collect non-null elements from `args`. If an item is a list, it will collect non-null elements
-   * of the list. See {@ref MVAppendFunctionImplTest} for detailed behavior.
+   * of the list. See {@link MVAppendFunctionImplTest} for detailed behavior.
    */
   public static List<Object> collectElements(Object... args) {
     List<Object> elements = AppendCore.collectElementsToList(args);
