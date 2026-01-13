@@ -8,22 +8,38 @@ package org.opensearch.sql.common.utils;
 import java.util.Collection;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-/** Utility class for debugging operations. */
+/**
+ * Utility class for debugging operations. This class is only for debugging purpose, and not
+ * intended to be used in production code.
+ */
 public class DebugUtils {
-
-  private static void print(String format, Object... args) {
-    System.out.println(String.format(format, args));
-  }
+  // Update this to true while you are debugging. (Safe guard to avoid usage in production code. )
+  private static final boolean IS_DEBUG = false;
+  private static final Logger logger = LogManager.getLogger(DebugUtils.class);
 
   public static <T> T debug(T obj, String message) {
+    verifyDebug();
     print("### %s: %s (at %s)", message, stringify(obj), getCalledFrom(1));
     return obj;
   }
 
   public static <T> T debug(T obj) {
+    verifyDebug();
     print("### %s (at %s)", stringify(obj), getCalledFrom(1));
     return obj;
+  }
+
+  private static void verifyDebug() {
+    if (!IS_DEBUG) {
+      throw new RuntimeException("DebugUtils can be used only for local debugging.");
+    }
+  }
+
+  private static void print(String format, Object... args) {
+    logger.info(String.format(format, args));
   }
 
   private static String getCalledFrom(int pos) {
