@@ -8,7 +8,7 @@ The `transpose` command outputs the requested number of rows as columns, effecti
 
 transpose [int] [column_name=<string>]
 
-* number-of-rows: optional. The number of rows to transform into columns. Default value is 5. Maximum allowed is 1000.
+* number-of-rows: optional. The number of rows to transform into columns. Default value is 5. Maximum allowed is 10000.
 * column_name: optional. The name of the first column to use when transposing rows. This column holds the field names.
 
 
@@ -89,4 +89,4 @@ fetched rows / total rows = 4/4
 
 ## Limitations
 
-The `transpose` command transforms up to a number of rows specified and if not enough rows found, it shows those transposed rows as null columns.
+The `transpose` command transforms up to a number of rows specified and if not enough rows found, it shows those transposed rows as null columns. 
