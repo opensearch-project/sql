@@ -34,7 +34,6 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
                 "search source=%s | convert auto(balance) | fields balance | head 3",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("balance", null, "double"));
-    verifyNumOfRows(result, 3);
     verifyDataRows(result, rows(39225.0), rows(5686.0), rows(32838.0));
   }
 
@@ -47,7 +46,7 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
                     + " fields test_field | head 1",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("test_field", null, "double"));
-    verifyDataRows(result, rows(42));
+    verifyDataRows(result, rows(42.0));
   }
 
   @Test
@@ -92,8 +91,8 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
                 "search source=%s | eval amount = '1,234,567.89' | convert rmcomma(amount) |"
                     + " fields amount | head 1",
                 TEST_INDEX_BANK));
-    verifySchema(result, schema("amount", "string"));
-    verifyDataRows(result, rows("1234567.89"));
+    verifySchema(result, schema("amount", null, "double"));
+    verifyDataRows(result, rows(1234567.89));
   }
 
   @Test
@@ -104,8 +103,44 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
                 "search source=%s | eval distance = '100km' | convert rmunit(distance) |"
                     + " fields distance | head 1",
                 TEST_INDEX_BANK));
-    verifySchema(result, schema("distance", null, "bigint"));
-    verifyDataRows(result, rows(100));
+    verifySchema(result, schema("distance", null, "double"));
+    verifyDataRows(result, rows(100.0));
+  }
+
+  @Test
+  public void testConvertRmunitWithNoNumbers() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | eval duration = 'no numbers' | convert rmunit(duration) |"
+                    + " fields duration | head 1",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("duration", null, "double"));
+    verifyDataRows(result, rows((Object) null));
+  }
+
+  @Test
+  public void testConvertNumWithNoNumbers() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | eval text = 'no numbers here' | convert num(text) |"
+                    + " fields text | head 1",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("text", null, "double"));
+    verifyDataRows(result, rows((Object) null));
+  }
+
+  @Test
+  public void testConvertRmcommaWithLetters() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | eval text = 'abc123' | convert rmcomma(text) |"
+                    + " fields text | head 1",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("text", null, "double"));
+    verifyDataRows(result, rows((Object) null));
   }
 
   @Test

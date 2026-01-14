@@ -13,47 +13,73 @@ The `convert` command applies conversion functions to transform field values int
 ### Numeric Conversions
 
 #### `auto(field)`
-Automatically converts fields to numbers using comprehensive best-fit heuristics. Combines the functionality of `rmcomma()`, `rmunit()`, and `num()` functions:
-- Removes commas from numeric strings
-- Extracts leading numbers from mixed alphanumeric text
-- Converts clean numeric values to appropriate numeric types
+Automatically converts fields to numbers using intelligent conversion:
+- Converts numeric strings to double precision numbers
+- Removes commas from numeric strings before conversion
+- Extracts leading numbers from strings starting with digits
+- Supports special values like `NaN`
+- Returns `null` for values that cannot be converted to a number
 
 **Examples:**
 ```sql
 source=accounts | convert auto(balance)
 ```
-- `"39,225"` → `39225`
-- `"1,234 dollars"` → `1234`
+- `"39,225"` → `39225.0`
+- `"1,,234"` → `1234.0` (handles consecutive commas)
+- `"2,12.0 sec"` → `2.0`
 - `"45.67 kg"` → `45.67`
+- `"1e5"` → `100000.0` (scientific notation)
+- `"NaN"` → `NaN`
+- `"hello"` → `null`
+- `"AAAA2.000"` → `null` (doesn't start with digit)
 
 #### `num(field)`
-Converts field values to numbers. Only works with clean numeric strings.
+Extracts leading numbers from strings. Handles commas and units intelligently:
+- For strings without letters: removes commas as thousands separators
+- For strings with letters: extracts leading number, stops at letters or commas
+- Supports special value `NaN`
+- Returns `null` for non-convertible values
 
-**Example:**
+**Examples:**
 ```sql
 source=accounts | convert num(age)
 ```
-- `"32"` → `32`
-- `"1,234"` → `null` (fails with commas)
+- `"1,234"` → `1234.0`
+- `"1,,234"` → `1234.0` (handles consecutive commas)
+- `"32"` → `32.0`
+- `"212 sec"` → `212.0`
+- `"2,12.0 sec"` → `2.0`
+- `"1e5"` → `100000.0` (scientific notation)
+- `"NaN"` → `NaN`
+- `"no numbers"` → `null`
 
 #### `rmcomma(field)`
-Removes commas from field values, returning the cleaned string.
+Removes commas from field values and attempts to convert to a number. Returns `null` if the value contains letters.
 
-**Example:**
+**Examples:**
 ```sql
 source=accounts | convert rmcomma(balance)
 ```
-- `"39,225.50"` → `"39225.50"`
+- `"1,234"` → `1234.0`
+- `"1,,234"` → `1234.0` (handles consecutive commas)
+- `"1,234.56"` → `1234.56`
+- `"34,54,45"` → `345445.0`
+- `"abc"` → `null`
+- `"AAA3454,45"` → `null`
 
 #### `rmunit(field)`
-Extracts leading numeric values and removes trailing text/units.
+Extracts leading numeric values from strings. Stops at the first non-numeric character (including commas).
 
-**Example:**
+**Examples:**
 ```sql
 source=metrics | convert rmunit(duration)
 ```
-- `"212 seconds"` → `212`
+- `"123 dollars"` → `123.0`
 - `"45.67 kg"` → `45.67`
+- `"2.000 sec"` → `2.0`
+- `"34,54,45"` → `34.0` (stops at first comma)
+- `"no numbers"` → `null`
+- `"AAAA2\\ sec"` → `null` (doesn't start with digit)
 
 ### Utility Functions
 
@@ -95,7 +121,9 @@ source=sales | convert auto(revenue) AS revenue_clean, rmunit(duration) AS durat
 
 ## Notes
 
-- Conversion functions return `null` for values that cannot be converted
+- All conversion functions (`auto()`, `num()`, `rmunit()`, `rmcomma()`) return `null` for values that cannot be converted to a number
+- All numeric conversion functions return double precision numbers to support use in aggregations like `avg()`, `sum()`, etc.
+- **Display Format**: All converted numbers display with decimal notation (e.g., `1234.0`, `1234.56`)
 - The `auto()` function is the most comprehensive and handles mixed data formats
 - Use `AS` clause to preserve original fields while creating converted versions
 - Multiple conversions can be applied in a single command
