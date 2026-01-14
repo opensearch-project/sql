@@ -435,7 +435,8 @@ public class MatcherUtils {
   private static String eliminateRelId(String s) {
     return s.replaceAll("rel#\\d+", "rel#")
         .replaceAll("RelSubset#\\d+", "RelSubset#")
-        .replaceAll("LogicalProject#\\d+", "LogicalProject#");
+        .replaceAll("LogicalProject#\\d+", "LogicalProject#")
+        .replaceAll("id = \\d+", "id = *");
   }
 
   private static String eliminateRequestOptions(String s) {
@@ -488,7 +489,8 @@ public class MatcherUtils {
         .replaceAll("LogicalProject#\\d+", "LogicalProject#")
         .replaceAll("pitId=[^,]+,", "pitId=*,")
         .replaceAll(" needClean=true,", "")
-        .replaceAll(" searchDone=false,", "");
+        .replaceAll(" searchDone=false,", "")
+        .replaceAll("id = \\d+", "id = *");
   }
 
   private static String jsonToYaml(String json) {
