@@ -45,8 +45,8 @@ import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.validate.OpenSearchSparkSqlDialect;
 import org.opensearch.sql.calcite.validate.PplConvertletTable;
 import org.opensearch.sql.calcite.validate.ValidationUtils;
-import org.opensearch.sql.calcite.validate.converters.PplRelToSqlNodeConverter;
-import org.opensearch.sql.calcite.validate.converters.PplSqlToRelConverter;
+import org.opensearch.sql.calcite.validate.converters.OpenSearchRelToSqlConverter;
+import org.opensearch.sql.calcite.validate.converters.OpenSearchSqlToRelConverter;
 import org.opensearch.sql.calcite.validate.shuttles.PplRelToSqlRelShuttle;
 import org.opensearch.sql.calcite.validate.shuttles.SkipRelValidationShuttle;
 import org.opensearch.sql.calcite.validate.shuttles.SqlRewriteShuttle;
@@ -300,7 +300,7 @@ public class QueryService {
     RelNode sqlRelNode = relNode.accept(new PplRelToSqlRelShuttle(context.rexBuilder, true));
 
     // Convert RelNode to SqlNode for validation
-    RelToSqlConverter rel2sql = new PplRelToSqlNodeConverter(OpenSearchSparkSqlDialect.DEFAULT);
+    RelToSqlConverter rel2sql = new OpenSearchRelToSqlConverter(OpenSearchSparkSqlDialect.DEFAULT);
     SqlImplementor.Result result = rel2sql.visitRoot(sqlRelNode);
     SqlNode root = result.asStatement();
 
@@ -328,7 +328,7 @@ public class QueryService {
             // See SqlToRelConverter.java#convertSelectImpl
             .withHintStrategyTable(context.relBuilder.getCluster().getHintStrategies());
     SqlToRelConverter sql2rel =
-        new PplSqlToRelConverter(
+        new OpenSearchSqlToRelConverter(
             context.config.getViewExpander(),
             validator,
             validator.getCatalogReader().unwrap(CalciteCatalogReader.class),

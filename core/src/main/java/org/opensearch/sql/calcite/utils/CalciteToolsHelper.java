@@ -62,13 +62,11 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.plan.RelOptTable.ViewExpander;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
-import org.apache.calcite.prepare.Prepare.CatalogReader;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
@@ -88,7 +86,6 @@ import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.sql2rel.RelFieldTrimmer;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.tools.FrameworkConfig;
@@ -98,11 +95,11 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Util;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.plan.Scannable;
 import org.opensearch.sql.calcite.plan.rule.OpenSearchRules;
 import org.opensearch.sql.calcite.plan.rule.PPLSimplifyDedupRule;
+import org.opensearch.sql.calcite.validate.converters.OpenSearchSqlToRelConverter;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.monitor.profile.ProfileMetric;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
@@ -358,34 +355,6 @@ public class CalciteToolsHelper {
         SqlValidator validator, CatalogReader catalogReader, SqlToRelConverter.Config config) {
       return new OpenSearchSqlToRelConverter(
           this, validator, catalogReader, this.cluster, convertletTable, config);
-    }
-  }
-
-  public static class OpenSearchSqlToRelConverter extends SqlToRelConverter {
-    protected final RelBuilder relBuilder;
-
-    public OpenSearchSqlToRelConverter(
-        ViewExpander viewExpander,
-        @Nullable SqlValidator validator,
-        CatalogReader catalogReader,
-        RelOptCluster cluster,
-        SqlRexConvertletTable convertletTable,
-        Config config) {
-      super(viewExpander, validator, catalogReader, cluster, convertletTable, config);
-      this.relBuilder =
-          config
-              .getRelBuilderFactory()
-              .create(
-                  cluster,
-                  validator != null
-                      ? validator.getCatalogReader().unwrap(RelOptSchema.class)
-                      : null)
-              .transform(config.getRelBuilderConfigTransform());
-    }
-
-    @Override
-    protected RelFieldTrimmer newFieldTrimmer() {
-      return new OpenSearchRelFieldTrimmer(validator, this.relBuilder);
     }
   }
 

@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.validate.converters;
 
 import java.util.List;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
@@ -17,12 +18,17 @@ import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql2rel.RelFieldTrimmer;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.tools.RelBuilder;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.sql.calcite.utils.OpenSearchRelFieldTrimmer;
 
-public class PplSqlToRelConverter extends SqlToRelConverter {
-  public PplSqlToRelConverter(
+public class OpenSearchSqlToRelConverter extends SqlToRelConverter {
+  protected final RelBuilder relBuilder;
+
+  public OpenSearchSqlToRelConverter(
       RelOptTable.ViewExpander viewExpander,
       @Nullable SqlValidator validator,
       Prepare.CatalogReader catalogReader,
@@ -30,6 +36,18 @@ public class PplSqlToRelConverter extends SqlToRelConverter {
       SqlRexConvertletTable convertletTable,
       Config config) {
     super(viewExpander, validator, catalogReader, cluster, convertletTable, config);
+    this.relBuilder =
+        config
+            .getRelBuilderFactory()
+            .create(
+                cluster,
+                validator != null ? validator.getCatalogReader().unwrap(RelOptSchema.class) : null)
+            .transform(config.getRelBuilderConfigTransform());
+  }
+
+  @Override
+  protected RelFieldTrimmer newFieldTrimmer() {
+    return new OpenSearchRelFieldTrimmer(validator, this.relBuilder);
   }
 
   /**
