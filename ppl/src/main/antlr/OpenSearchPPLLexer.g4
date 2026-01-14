@@ -71,6 +71,7 @@ LABEL:                              'LABEL';
 SHOW_NUMBERED_TOKEN:                'SHOW_NUMBERED_TOKEN';
 AGGREGATION:                        'AGGREGATION';
 APPENDPIPE:                         'APPENDPIPE';
+FIELDFORMAT:                        'FIELDFORMAT';
 COLUMN_NAME:                        'COLUMN_NAME';
 MVCOMBINE:                          'MVCOMBINE';
 
