@@ -36,7 +36,7 @@ The `lookup` command supports the following parameters.
 | `<sourceMappingField>` | Optional | A key from the source data (left side) used for matching, similar to a join key in the left table. Default is `lookupMappingField`. |
 | `<inputField>` | Optional | A field in the lookup index whose matched values are applied to the results (output). Specify multiple fields as a comma-separated list. If not specified, all fields except `lookupMappingField` from the lookup index are applied to the results. |
 | `<outputField>` | Optional | The name of the field in the results (output) in which matched values are placed. Specify multiple fields as a comma-separated list. If the `outputField` specifies an existing field in the source query, its values are replaced or appended with matched values from the `inputField`. If the field specified in the `outputField` is not an existing field, a new field is added to the results when using `replace`, or the operation fails when using `append`. |
-| `(replace | append | output)` | Optional | Specifies how matched values are applied to the output. `replace` overwrites existing values with matched values from the lookup index. `append` fills only missing values in the results with matched values from the lookup index. `output` is a synonym for `replace` (provided for SPL compatibility). Default is `replace`. |
+| `(replace \| append \| output)` | Optional | Specifies how matched values are applied to the output. `replace` overwrites existing values with matched values from the lookup index. `append` fills only missing values in the results with matched values from the lookup index. `output` is a synonym for `replace` (provided for SPL compatibility). Default is `replace`. |
   
 ## Example 1: Replace existing values  
 
