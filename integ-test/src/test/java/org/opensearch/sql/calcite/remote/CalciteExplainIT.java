@@ -2368,4 +2368,16 @@ public class CalciteExplainIT extends ExplainIT {
           explainQueryToStringBWC(query, format));
     }
   }
+
+  @Test
+  public void testExplainMvCombine() throws IOException {
+    String query =
+        "source=opensearch-sql_test_index_account "
+            + "| fields state, city, age "
+            + "| mvcombine age delim=','";
+
+    String actual = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_mvcombine.yaml");
+    assertYamlEqualsIgnoreId(expected, actual);
+  }
 }

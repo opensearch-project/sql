@@ -132,6 +132,7 @@ commandName
    | REX
    | APPENDPIPE
    | REPLACE
+   | MVCOMBINE
    ;
 
 searchCommand
@@ -533,7 +534,7 @@ expandCommand
     ;
 
 mvcombineCommand
-  : MVCOMBINE (DELIM EQUAL stringLiteral)? fieldExpression
+  : MVCOMBINE fieldExpression (DELIM EQUAL stringLiteral)?
   ;
 
 

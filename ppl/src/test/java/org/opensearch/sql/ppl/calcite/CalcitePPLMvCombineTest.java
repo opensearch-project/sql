@@ -90,6 +90,15 @@ public class CalcitePPLMvCombineTest extends CalcitePPLAbstractTest {
             + "        LogicalFilter(condition=[=($0, 'basic')])\n"
             + "          LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
     verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `case`, `ip`, CAST(COLLECT(`packets`) FILTER (WHERE `packets` IS NOT NULL) AS"
+            + " ARRAY< INTEGER >) `packets`\n"
+            + "FROM `scott`.`MVCOMBINE_DATA`\n"
+            + "WHERE `case` = 'basic'\n"
+            + "GROUP BY `case`, `ip`\n"
+            + "ORDER BY `ip`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
@@ -111,6 +120,15 @@ public class CalcitePPLMvCombineTest extends CalcitePPLAbstractTest {
             + "        LogicalFilter(condition=[=($0, 'nulls')])\n"
             + "          LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
     verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `case`, `ip`, CAST(COLLECT(`packets`) FILTER (WHERE `packets` IS NOT NULL) AS"
+            + " ARRAY< INTEGER >) `packets`\n"
+            + "FROM `scott`.`MVCOMBINE_DATA`\n"
+            + "WHERE `case` = 'nulls'\n"
+            + "GROUP BY `case`, `ip`\n"
+            + "ORDER BY `ip`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
@@ -119,7 +137,7 @@ public class CalcitePPLMvCombineTest extends CalcitePPLAbstractTest {
         "source=MVCOMBINE_DATA "
             + "| where case = \"basic\" "
             + "| fields case, ip, packets "
-            + "| mvcombine delim=\"|\" packets "
+            + "| mvcombine packets delim='|' "
             + "| sort ip";
 
     RelNode root = getRelNode(ppl);
@@ -132,6 +150,15 @@ public class CalcitePPLMvCombineTest extends CalcitePPLAbstractTest {
             + "        LogicalFilter(condition=[=($0, 'basic')])\n"
             + "          LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
     verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `case`, `ip`, CAST(COLLECT(`packets`) FILTER (WHERE `packets` IS NOT NULL) AS"
+            + " ARRAY< INTEGER >) `packets`\n"
+            + "FROM `scott`.`MVCOMBINE_DATA`\n"
+            + "WHERE `case` = 'basic'\n"
+            + "GROUP BY `case`, `ip`\n"
+            + "ORDER BY `ip`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test

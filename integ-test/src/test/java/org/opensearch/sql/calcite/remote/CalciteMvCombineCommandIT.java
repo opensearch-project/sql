@@ -5,7 +5,11 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.util.MatcherUtils.rows;
+import static org.opensearch.sql.util.MatcherUtils.schema;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
+import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -41,7 +45,7 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
   }
 
   // ---------------------------
-  // Happy paths (core mvcombine)
+  // Happy path (core mvcombine)
   // ---------------------------
 
   @Test
@@ -69,21 +73,23 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testMvCombine_singleRowGroupStaysSingleRow() throws IOException {
+    // NOTE: Keep output minimal + deterministic to safely verify schema + datarows
     String q =
         "source="
             + INDEX
             + " | where ip='10.0.0.2' and bytes=200 and tags='t2'"
-            + " | fields ip, bytes, tags, packets_str"
+            + " | fields ip, tags, packets_str"
             + " | mvcombine packets_str";
 
     JSONObject result = executeQuery(q);
-    verifyNumOfRows(result, 1);
 
-    JSONArray row = result.getJSONArray("datarows").getJSONArray(0);
-    List<String> mv = toStringListDropNulls(row.get(3));
+    verifySchema(
+        result,
+        schema("ip", null, "string"),
+        schema("tags", null, "string"),
+        schema("packets_str", null, "array"));
 
-    Assertions.assertEquals(1, mv.size(), "Expected single-value MV, got " + mv);
-    Assertions.assertEquals("7", mv.get(0));
+    verifyDataRows(result, rows("10.0.0.2", "t2", new JSONArray().put("7")));
   }
 
   @Test

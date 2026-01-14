@@ -82,6 +82,7 @@ import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.Multisearch;
+import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
@@ -461,6 +462,14 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String field = visitExpression(node.getField());
 
     return StringUtils.format("%s | expand %s", child, field);
+  }
+
+  @Override
+  public String visitMvCombine(MvCombine node, String context) {
+    String child = node.getChild().getFirst().accept(this, context);
+    String field = visitExpression(node.getField());
+
+    return StringUtils.format("%s | mvcombine delim=%s %s", child, MASK_LITERAL, field);
   }
 
   /** Build {@link LogicalSort}. */

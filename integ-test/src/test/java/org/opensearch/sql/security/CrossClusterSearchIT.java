@@ -287,4 +287,26 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
 
     disableCalcite();
   }
+
+  /** CrossClusterSearchIT Test for mvcombine. */
+  @Test
+  public void testCrossClusterMvcombine() throws IOException {
+    enableCalcite();
+
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | where firstname='Hattie' or firstname='Nanette' "
+                    + "| fields firstname, age | mvcombine age",
+                TEST_INDEX_BANK_REMOTE));
+
+    verifyColumn(result, columnName("firstname"), columnName("age"));
+
+    verifyDataRows(
+        result,
+        rows("Hattie", new org.json.JSONArray().put(36)),
+        rows("Nanette", new org.json.JSONArray().put(28)));
+
+    disableCalcite();
+  }
 }
