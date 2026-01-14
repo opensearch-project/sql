@@ -136,6 +136,7 @@ commandName
    | REPLACE
    | FIELDFORMAT
    | TRANSPOSE
+   | FIELDFORMAT
    ;
 
 searchCommand
