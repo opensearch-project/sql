@@ -7,6 +7,8 @@ package org.opensearch.sql.plugin.request;
 
 import java.util.Map;
 import java.util.Optional;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.opensearch.rest.RestRequest;
@@ -16,6 +18,8 @@ import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 
 /** Factory of {@link PPLQueryRequest}. */
 public class PPLQueryRequestFactory {
+  private static final Logger LOG = LogManager.getLogger(PPLQueryRequestFactory.class);
+
   private static final String PPL_URL_PARAM_KEY = "ppl";
   private static final String PPL_FIELD_NAME = "query";
   private static final String QUERY_PARAMS_FORMAT = "format";
@@ -64,6 +68,10 @@ public class PPLQueryRequestFactory {
     // accept it as well and view it as mode and use json format.
     // TODO: deprecated after 4.x
     if (Format.isExplainMode(format)) {
+      // Log deprecation warning for legacy format-based explain mode usage
+      LOG.warn(
+          "Using 'format' parameter for explain mode is deprecated. Please use 'mode' parameter"
+              + " instead. This will be removed in 4.x.");
       explainMode = format.getFormatName();
       format = Format.JSON;
     } else {
