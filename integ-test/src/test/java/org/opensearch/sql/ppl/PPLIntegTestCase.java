@@ -35,6 +35,7 @@ import org.opensearch.sql.util.RetryProcessor;
 
 /** OpenSearch Rest integration test base for PPL testing. */
 public abstract class PPLIntegTestCase extends SQLIntegTestCase {
+  private static final String BWC_EXPLAIN_API_ENDPOINT = "/_plugins/_ppl/_explain?format=%s";
   private static final String EXPLAIN_API_ENDPOINT = "/_plugins/_ppl/_explain?format=%s&mode=%s";
   private static final Logger LOG = LogManager.getLogger();
   @Rule public final RetryProcessor retryProcessor = new RetryProcessor();
@@ -82,6 +83,14 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
             .performRequest(buildRequest(query, String.format(EXPLAIN_API_ENDPOINT, format, mode)));
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
     return getResponseBody(response, true);
+  }
+
+  protected String explainQueryToStringBWC(String query, Format format) throws IOException {
+    Response response =
+        client()
+            .performRequest(buildRequest(query, String.format(BWC_EXPLAIN_API_ENDPOINT, format)));
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    return getResponseBody(response, true).replace("\\r\\n", "\\n");
   }
 
   protected String executeCsvQuery(String query, boolean sanitize) throws IOException {

@@ -59,7 +59,16 @@ public class PPLQueryRequestFactory {
     String content = restRequest.content().utf8ToString();
     JSONObject jsonContent;
     Format format = getFormat(restRequest.params(), restRequest.rawPath());
-    String explainMode = getExplainMode(restRequest.params(), restRequest.rawPath());
+    String explainMode;
+    // For backward compatible consideration, if the format=[simple, standard, extended, cost], we
+    // accept it as well and view it as mode and use json format.
+    // TODO: deprecated after 4.x
+    if (Format.isExplainMode(format)) {
+      explainMode = format.getFormatName();
+      format = Format.JSON;
+    } else {
+      explainMode = getExplainMode(restRequest.params(), restRequest.rawPath());
+    }
     boolean pretty = getPrettyOption(restRequest.params());
     try {
       jsonContent = new JSONObject(content);

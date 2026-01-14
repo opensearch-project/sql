@@ -431,7 +431,8 @@ public class MatcherUtils {
   private static String eliminateRelId(String s) {
     return s.replaceAll("rel#\\d+", "rel#")
         .replaceAll("RelSubset#\\d+", "RelSubset#")
-        .replaceAll("LogicalProject#\\d+", "LogicalProject#");
+        .replaceAll("LogicalProject#\\d+", "LogicalProject#")
+        .replaceAll("id = \\d+", "id = *");
   }
 
   private static String eliminateRequestOptions(String s) {

@@ -28,6 +28,7 @@ import org.junit.Test;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.ppl.ExplainIT;
+import org.opensearch.sql.protocol.response.format.Format;
 
 public class CalciteExplainIT extends ExplainIT {
   @Override
@@ -2344,6 +2345,27 @@ public class CalciteExplainIT extends ExplainIT {
       assertJsonEqualsIgnoreId(
           loadExpectedPlan(String.format("explain_output_%s.json", modeName)),
           explainQueryToString(query, explainMode));
+    }
+  }
+
+  @Test
+  public void testExplainBWC() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        "source=opensearch-sql_test_index_account"
+            + "| where age > 30 "
+            + "| stats avg(age) AS avg_age by state, city "
+            + "| sort state "
+            + "| fields - city "
+            + "| eval age2 = avg_age + 2 "
+            + "| dedup age2 "
+            + "| fields age2";
+    Format[] formats = new Format[] {Format.SIMPLE, Format.STANDARD, Format.EXTENDED, Format.COST};
+    for (Format format : formats) {
+      String formatName = format.getFormatName().toLowerCase(Locale.ROOT);
+      assertJsonEqualsIgnoreId(
+          loadExpectedPlan(String.format("explain_output_%s.json", formatName)),
+          explainQueryToStringBWC(query, format));
     }
   }
 }
