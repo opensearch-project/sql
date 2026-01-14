@@ -74,6 +74,7 @@ AGGREGATION:                        'AGGREGATION';
 APPENDPIPE:                         'APPENDPIPE';
 FIELDFORMAT:                        'FIELDFORMAT';
 COLUMN_NAME:                        'COLUMN_NAME';
+FIELDFORMAT:                        'FIELDFORMAT';
 MVCOMBINE:                          'MVCOMBINE';
 
 
