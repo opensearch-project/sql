@@ -8,7 +8,7 @@ The `lookup` command enriches search data by adding or replacing values from a l
 The `lookup` command has the following syntax:
 
 ```syntax
-lookup <lookupIndex> (<lookupMappingField> [as <sourceMappingField>])... [(replace | append) (<inputField> [as <outputField>])...]
+lookup <lookupIndex> (<lookupMappingField> [as <sourceMappingField>])... [(replace | append | output) (<inputField> [as <outputField>])...]
 ```
 
 The following are examples of the `lookup` command syntax:
@@ -21,6 +21,8 @@ source = table1 | lookup table2 id as cid, name replace dept as department
 source = table1 | lookup table2 id as cid, name replace dept as department, city as location
 source = table1 | lookup table2 id as cid, name append dept as department
 source = table1 | lookup table2 id as cid, name append dept as department, city as location
+source = table1 | lookup table2 id as cid, name output dept as department
+source = table1 | lookup table2 id as cid, name output dept as department, city as location
 ```
 
 ## Parameters
@@ -34,7 +36,7 @@ The `lookup` command supports the following parameters.
 | `<sourceMappingField>` | Optional | A key from the source data (left side) used for matching, similar to a join key in the left table. Default is `lookupMappingField`. |
 | `<inputField>` | Optional | A field in the lookup index whose matched values are applied to the results (output). Specify multiple fields as a comma-separated list. If not specified, all fields except `lookupMappingField` from the lookup index are applied to the results. |
 | `<outputField>` | Optional | The name of the field in the results (output) in which matched values are placed. Specify multiple fields as a comma-separated list. If the `outputField` specifies an existing field in the source query, its values are replaced or appended with matched values from the `inputField`. If the field specified in the `outputField` is not an existing field, a new field is added to the results when using `replace`, or the operation fails when using `append`. |
-| `(replace | append)` | Optional | Specifies how matched values are applied to the output. `replace` overwrites existing values with matched values from the lookup index. `append` fills only missing values in the results with matched values from the lookup index. Default is `replace`. |
+| `(replace | append | output)` | Optional | Specifies how matched values are applied to the output. `replace` overwrites existing values with matched values from the lookup index. `append` fills only missing values in the results with matched values from the lookup index. `output` is a synonym for `replace` (provided for SPL compatibility). Default is `replace`. |
   
 ## Example 1: Replace existing values  
 
@@ -121,4 +123,29 @@ The query returns the following results:
 | 1005 | Jane  | Scientist  | Canada  | 90000  | Engineer  |
 | 1002 | John  | Doctor     | Canada  | 120000 | Scientist |
 +------+-------+------------+---------+--------+-----------+
+```
+
+## Example 5: Using OUTPUT keyword
+
+The `OUTPUT` keyword is a synonym for `REPLACE`. The following query demonstrates using `OUTPUT` to overwrite existing values:
+
+```ppl ignore
+source = worker
+  | LOOKUP work_information uid AS id OUTPUT department
+  | fields id, name, occupation, country, salary, department
+```
+
+This query produces the same results as Example 1 (using `REPLACE`):
+
+```text
++------+-------+------------+---------+--------+------------+
+| id   | name  | occupation | country | salary | department |
+|------+-------+------------+---------+--------+------------|
+| 1000 | Jake  | Engineer   | England | 100000 | IT         |
+| 1001 | Hello | Artist     | USA     | 70000  | null       |
+| 1002 | John  | Doctor     | Canada  | 120000 | DATA       |
+| 1003 | David | Doctor     | null    | 120000 | HR         |
+| 1004 | David | null       | Canada  | 0      | null       |
+| 1005 | Jane  | Scientist  | Canada  | 90000  | DATA       |
++------+-------+------------+---------+--------+------------+
 ```

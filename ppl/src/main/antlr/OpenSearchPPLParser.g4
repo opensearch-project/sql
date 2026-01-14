@@ -476,7 +476,7 @@ patternMode
 
 // lookup
 lookupCommand
-   : LOOKUP tableSource lookupMappingList ((APPEND | REPLACE) outputCandidateList)?
+   : LOOKUP tableSource lookupMappingList ((APPEND | REPLACE | OUTPUT) outputCandidateList)?
    ;
 
 lookupMappingList
