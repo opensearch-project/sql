@@ -36,7 +36,7 @@ import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.locationtech.jts.geom.Point;
-import org.opensearch.sql.ast.statement.Explain.ExplainFormat;
+import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
@@ -166,26 +166,26 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
   @Override
   public void explain(
       RelNode rel,
-      ExplainFormat format,
+      ExplainMode mode,
       CalcitePlanContext context,
       ResponseListener<ExplainResponse> listener) {
     client.schedule(
         () -> {
           try {
-            if (format == ExplainFormat.SIMPLE) {
+            if (mode == ExplainMode.SIMPLE) {
               String logical = RelOptUtil.toString(rel, SqlExplainLevel.NO_ATTRIBUTES);
               listener.onResponse(
                   new ExplainResponse(new ExplainResponseNodeV2(logical, null, null)));
             } else {
               SqlExplainLevel level =
-                  format == ExplainFormat.COST
+                  mode == ExplainMode.COST
                       ? SqlExplainLevel.ALL_ATTRIBUTES
                       : SqlExplainLevel.EXPPLAN_ATTRIBUTES;
               String logical = RelOptUtil.toString(rel, level);
               AtomicReference<String> physical = new AtomicReference<>();
               AtomicReference<String> javaCode = new AtomicReference<>();
               try (Hook.Closeable closeable = getPhysicalPlanInHook(physical, level)) {
-                if (format == ExplainFormat.EXTENDED) {
+                if (mode == ExplainMode.EXTENDED) {
                   getCodegenInHook(javaCode);
                   CalcitePlanContext.skipEncoding.set(true);
                 }
