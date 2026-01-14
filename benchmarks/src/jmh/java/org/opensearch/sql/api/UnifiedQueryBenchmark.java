@@ -50,7 +50,7 @@ import org.opensearch.sql.api.transpiler.UnifiedQueryTranspiler;
 @Warmup(iterations = 2, time = 1)
 @Measurement(iterations = 5, time = 1)
 @BenchmarkMode(Mode.AverageTime)
-@OutputTimeUnit(TimeUnit.MICROSECONDS)
+@OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Thread)
 @Fork(value = 1)
 public class UnifiedQueryBenchmark extends UnifiedQueryTestBase {
