@@ -14,7 +14,12 @@ reviews:
   poem: false  # Keep reviews professional and concise
   review_status: true
   collapse_walkthrough: true
-  
+  path_filters:
+    - '**/*'
+    - '**/gen/**'
+    - '!**/test/**/gen/**'
+    - '!**/.git/**'
+    - '!**/target/**'
   auto_review:
     enabled: true
     auto_incremental_review: true
@@ -23,13 +28,6 @@ reviews:
       - "WIP"
       - "DO NOT MERGE"
       - "DRAFT"
-
-  # General review instructions (applied to all reviews)
-  instructions:
-    # Architectural Decision Prompts
-    - "For new features: Check if similar functionality exists that could be enhanced instead"
-    - "Question whether new code is needed vs reusing/extending existing code"
-    - "Identify opportunities for code reuse across the codebase"
   
   # Path-specific review instructions
   path_instructions:
@@ -55,13 +53,14 @@ reviews:
         - Check for dead code, unused imports, and unused variables
         - Identify code reuse opportunities across similar implementations
         - Assess holistic maintainability - is code easy to understand and modify?
-        - Flag code that appears AI-generated without sufficient human review
         - Verify Java naming conventions (PascalCase for classes, camelCase for methods/variables)
-        - Check for proper JavaDoc on public classes and methods
+        - Check for proper JavaDoc on public classes and methods ONLY (not test helpers or private methods)
         - Flag redundant comments that restate obvious code
         - Ensure proper error handling with specific exception types
         - Check for Optional<T> usage instead of null returns
         - Validate proper use of try-with-resources for resource management
+        - Do NOT suggest extracting helper methods unless the method exceeds 100 lines
+        - Do NOT comment on test data being "hard-coded" if it's intentionally inline for clarity
     
     # Core Java - Project-Specific Patterns
     - path: "core/src/main/java/**/*.java"
@@ -92,13 +91,15 @@ reviews:
         - Check boundary condition tests (min/max values, empty inputs)
         - Validate error condition tests (invalid inputs, exceptions)
         - Ensure multi-document tests for per-document operations
-        - Flag smoke tests without meaningful assertions
+        - Flag smoke tests without meaningful assertions ONLY if they provide no value
         - Check test naming follows pattern: test<Functionality><Condition>
         - Verify test data is realistic and covers edge cases
         - Verify test coverage for new business logic
         - Ensure tests are independent and don't rely on execution order
         - Validate meaningful test data that reflects real-world scenarios
         - Check for proper cleanup of test resources
+        - Do NOT require JavaDoc on test methods or test helper methods
+        - Do NOT suggest loading test data from files if inline data improves readability
     
     # Integration Tests
     - path: "integ-test/**/*IT.java"
@@ -108,17 +109,19 @@ reviews:
         - Check test assertions are meaningful and specific
         - Validate tests clean up resources after execution
         - Ensure tests are independent and can run in any order
-        - Flag tests that reference non-existent indices (e.g., EMP)
         - Verify integration tests are in correct module (integ-test/)
         - Check tests can be run with ./gradlew :integ-test:integTest
         - Ensure proper test data setup and teardown
         - Validate end-to-end scenario coverage
+        - Do NOT flag inline test data as problematic if it improves test clarity
+        - Do NOT suggest removing helper methods that are used multiple times in the same test class
     
     - path: "integ-test/src/test/resources/**/*"
       instructions: |
         - Verify test data is realistic and representative
         - Check data format matches expected schema
         - Ensure test data covers edge cases and boundary conditions
+        - Do NOT flag NDJSON format as invalid JSON
     
     # PPL-specific
     - path: "**/ppl/**/*.java"
@@ -147,14 +150,26 @@ reviews:
         - Check for code organization and logical grouping
         - Validate all RelNode types are handled
     
-    # Documentation
-    - path: "docs/**/*.rst"
+    - path: "docs/**/*.md"
       instructions: |
         - Verify examples use valid test data and indices
         - Check documentation follows existing patterns and structure
         - Validate syntax examples are complete and correct
         - Ensure code examples are tested and working
         - Check for consistent formatting and style
+        - Do NOT flag missing language identifiers in code blocks as critical issues
+
+  # Tone instructions to reduce noise
+  tone_instructions:
+    - "Be concise and focus on functional issues, not cosmetic ones"
+    - "Do NOT suggest minor refactorings unless the code is clearly problematic (>100 lines, deeply nested, etc.)"
+    - "Do NOT flag missing JavaDoc on test methods, test helpers, or private methods"
+    - "Do NOT suggest loading test data from files if inline data is clearer"
+    - "Do NOT flag NDJSON format as invalid JSON"
+    - "Do NOT suggest adding language identifiers to markdown code blocks unless it's a documentation file"
+    - "Prioritize: correctness > performance > maintainability > style"
+    - "When suggesting improvements, explain WHY, not just WHAT"
+    - "Do NOT repeat the same suggestion multiple times in a review"
 
 chat:
   auto_reply: false # require explicit tagging 
