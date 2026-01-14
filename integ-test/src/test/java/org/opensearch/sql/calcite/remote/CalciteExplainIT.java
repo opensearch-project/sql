@@ -29,7 +29,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.common.setting.Settings.Key;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.ExplainIT;
 import org.opensearch.sql.protocol.response.format.Format;
@@ -2430,6 +2429,7 @@ public class CalciteExplainIT extends ExplainIT {
 
   @Test
   public void testAggFilterOnNestedFields() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
     assertYamlEqualsIgnoreId(
         loadExpectedPlan("agg_filter_nested.yaml"),
         explainQueryYaml(

@@ -144,6 +144,7 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
 
   @Test
   public void testAggFilterOnNestedFields() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
     JSONObject result =
         executeQuery(
             StringUtils.format(
