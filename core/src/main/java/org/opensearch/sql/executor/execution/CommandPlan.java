@@ -8,7 +8,7 @@
 
 package org.opensearch.sql.executor.execution;
 
-import org.opensearch.sql.ast.statement.Explain;
+import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
@@ -50,7 +50,7 @@ public class CommandPlan extends AbstractPlan {
 
   @Override
   public void explain(
-      ResponseListener<ExecutionEngine.ExplainResponse> listener, Explain.ExplainFormat format) {
+      ResponseListener<ExecutionEngine.ExplainResponse> listener, ExplainMode mode) {
     throw new UnsupportedOperationException("CommandPlan does not support explain");
   }
 }

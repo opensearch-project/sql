@@ -10,7 +10,7 @@ package org.opensearch.sql.executor.execution;
 
 import java.util.Optional;
 import org.apache.commons.lang3.NotImplementedException;
-import org.opensearch.sql.ast.statement.Explain;
+import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
@@ -72,13 +72,13 @@ public class QueryPlan extends AbstractPlan {
 
   @Override
   public void explain(
-      ResponseListener<ExecutionEngine.ExplainResponse> listener, Explain.ExplainFormat format) {
+      ResponseListener<ExecutionEngine.ExplainResponse> listener, ExplainMode mode) {
     if (pageSize.isPresent()) {
       listener.onFailure(
           new NotImplementedException(
               "`explain` feature for paginated requests is not implemented yet."));
     } else {
-      queryService.explain(plan, getQueryType(), listener, format);
+      queryService.explain(plan, getQueryType(), listener, mode);
     }
   }
 }

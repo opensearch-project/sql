@@ -25,8 +25,10 @@ import java.io.IOException;
 import java.util.Locale;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.ast.statement.ExplainMode;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.ppl.ExplainIT;
+import org.opensearch.sql.protocol.response.format.Format;
 
 public class CalciteExplainIT extends ExplainIT {
   @Override
@@ -382,9 +384,9 @@ public class CalciteExplainIT extends ExplainIT {
     String query =
         "source=opensearch-sql_test_index_account | where address = '671 Bristol Street' and age -"
             + " 2 = 30 | fields firstname, age, address";
-    var result = explainQueryToString(query, true);
-    String expected = loadFromFile("expectedOutput/calcite/explain_skip_script_encoding.json");
-    assertJsonEqualsIgnoreId(expected, result);
+    var result = explainQueryYaml(query, ExplainMode.EXTENDED);
+    String expected = loadFromFile("expectedOutput/calcite/explain_skip_script_encoding.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
   }
 
   // Only for Calcite, as v2 gets unstable serialized string for function
@@ -1720,7 +1722,7 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryYaml(
             String.format("source=%s | rare 2 usenull=true state by gender", TEST_INDEX_ACCOUNT)));
     withSettings(
-        Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED,
+        Key.PPL_SYNTAX_LEGACY_PREFERRED,
         "false",
         () -> {
           try {
@@ -1747,7 +1749,7 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryYaml(
             String.format("source=%s | top 2 usenull=true state by gender", TEST_INDEX_ACCOUNT)));
     withSettings(
-        Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED,
+        Key.PPL_SYNTAX_LEGACY_PREFERRED,
         "false",
         () -> {
           try {
@@ -2207,14 +2209,14 @@ public class CalciteExplainIT extends ExplainIT {
   @Test
   public void testRexStandardizationForScript() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
-    assertJsonEqualsIgnoreId(
-        loadExpectedPlan("explain_extended_for_standardization.json"),
-        explainQueryToString(
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("explain_extended_for_standardization.yaml"),
+        explainQueryYaml(
             String.format(
                 "source=%s | eval age_range = case(age < 30, 'u30', age >= 30 and age <= 40, 'u40'"
                     + " else 'u100') | stats avg(age) as avg_age by age_range",
                 TEST_INDEX_BANK),
-            true));
+            ExplainMode.EXTENDED));
   }
 
   @Test
@@ -2317,5 +2319,53 @@ public class CalciteExplainIT extends ExplainIT {
         expected,
         explainQueryYaml(
             "source=opensearch-sql_test_index_bank | where age not between 30 and 39"));
+  }
+
+  @Test
+  public void testExplainInVariousModeAndFormat() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        "source=opensearch-sql_test_index_account"
+            + "| where age > 30 "
+            + "| stats avg(age) AS avg_age by state, city "
+            + "| sort state "
+            + "| fields - city "
+            + "| eval age2 = avg_age + 2 "
+            + "| dedup age2 "
+            + "| fields age2";
+    ExplainMode[] explainModes =
+        new ExplainMode[] {
+          ExplainMode.SIMPLE, ExplainMode.STANDARD, ExplainMode.EXTENDED, ExplainMode.COST
+        };
+    for (ExplainMode explainMode : explainModes) {
+      String modeName = explainMode.getModeName().toLowerCase(Locale.ROOT);
+      assertYamlEqualsIgnoreId(
+          loadExpectedPlan(String.format("explain_output_%s.yaml", modeName)),
+          explainQueryYaml(query, explainMode));
+      assertJsonEqualsIgnoreId(
+          loadExpectedPlan(String.format("explain_output_%s.json", modeName)),
+          explainQueryToString(query, explainMode));
+    }
+  }
+
+  @Test
+  public void testExplainBWC() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        "source=opensearch-sql_test_index_account"
+            + "| where age > 30 "
+            + "| stats avg(age) AS avg_age by state, city "
+            + "| sort state "
+            + "| fields - city "
+            + "| eval age2 = avg_age + 2 "
+            + "| dedup age2 "
+            + "| fields age2";
+    Format[] formats = new Format[] {Format.SIMPLE, Format.STANDARD, Format.EXTENDED, Format.COST};
+    for (Format format : formats) {
+      String formatName = format.getFormatName().toLowerCase(Locale.ROOT);
+      assertJsonEqualsIgnoreId(
+          loadExpectedPlan(String.format("explain_output_%s.json", formatName)),
+          explainQueryToStringBWC(query, format));
+    }
   }
 }
