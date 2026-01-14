@@ -17,6 +17,7 @@
     "user/ppl/cmd/describe.md",
     "user/ppl/cmd/eventstats.md",
     "user/ppl/cmd/eval.md",
+    "user/ppl/cmd/fieldformat.md",
     "user/ppl/cmd/fields.md",
     "user/ppl/cmd/fillnull.md",
     "user/ppl/cmd/grok.md",
