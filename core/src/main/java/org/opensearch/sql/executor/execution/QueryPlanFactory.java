@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.statement.Explain;
+import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.CloseCursor;
@@ -77,7 +78,7 @@ public class QueryPlanFactory
         new QueryPlan(
             queryId, queryType, new FetchCursor(cursor), queryService, queryResponseListener);
     return isExplain
-        ? new ExplainPlan(queryId, queryType, plan, Explain.format(format), explainListener)
+        ? new ExplainPlan(queryId, queryType, plan, ExplainMode.of(format), explainListener)
         : plan;
   }
 
@@ -137,7 +138,7 @@ public class QueryPlanFactory
         QueryId.queryId(),
         node.getQueryType(),
         create(node.getStatement(), NO_CONSUMER_RESPONSE_LISTENER, context.getRight()),
-        node.getFormat(),
+        node.getMode(),
         context.getRight());
   }
 }
