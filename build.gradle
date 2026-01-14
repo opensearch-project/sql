@@ -6,7 +6,7 @@
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.4.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.5.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
         version_tokens = opensearch_version.tokenize('-')
@@ -146,7 +146,7 @@ allprojects {
         resolutionStrategy.force "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
         resolutionStrategy.force "org.apache.httpcomponents.core5:httpcore5:${versions.httpcore5}"
         resolutionStrategy.force "org.apache.httpcomponents.core5:httpcore5-h2:${versions.httpcore5}"
-        resolutionStrategy.force "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}"
+        resolutionStrategy.force "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson_annotations}"
         resolutionStrategy.force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
         resolutionStrategy.force "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
         resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${versions.jackson}"

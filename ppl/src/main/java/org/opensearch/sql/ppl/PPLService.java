@@ -98,6 +98,7 @@ public class PPLService {
                 AstStatementBuilder.StatementBuilderContext.builder()
                     .isExplain(request.isExplainRequest())
                     .format(request.getFormat())
+                    .explainMode(request.getExplainMode())
                     .build()));
 
     log.info(
