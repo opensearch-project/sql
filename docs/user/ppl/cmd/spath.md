@@ -256,3 +256,37 @@ source=structured
 source=structured
 | spath input=doc_multi
 | fields a, b*  # ERROR: Spath command cannot extract arbitrary fields
+```
+
+## Example 10: Performance Considerations
+
+**Important**: The `spath` command processes data on the coordinator node after retrieval from data nodes. Commands placed after `spath` cannot utilize OpenSearch index capabilities, which significantly impacts performance on large datasets.
+
+### Best Practice: Filter Before spath
+
+Always place filter conditions (`where` clauses) **before** the `spath` command to leverage index pushdown:
+
+```ppl
+# Slow - filters after spath
+source=structured
+| spath input=doc_multi
+| where id=1
+| fields id, a
+
+# Fast - filters before spath
+source=structured
+| where id=1
+| spath input=doc_multi
+| fields id, a
+```
+
+### Performance Impact
+
+- **After spath**: All data is retrieved from OpenSearch, then filtered in memory on the coordinator
+- **Before spath**: Only matching documents are retrieved from OpenSearch utilizing index
+
+### Recommendations
+
+1. **Index nested fields directly** when possible instead of using `spath` for filtering
+2. **Place all filters before `spath`** to maximize index utilization
+3. **Limit result sets** with filters before applying `spath` on large datasets
