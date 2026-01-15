@@ -26,26 +26,8 @@ import org.opensearch.sql.api.compiler.UnifiedQueryCompiler;
 import org.opensearch.sql.api.transpiler.UnifiedQueryTranspiler;
 
 /**
- * JMH benchmark for measuring the overhead of unified query API components when processing PPL
- * queries. This provides baseline metrics for integration with the opensearch-spark repository.
- *
- * <p>Benchmarks cover:
- *
- * <ul>
- *   <li>{@link UnifiedQueryPlanner}: PPL parsing and Calcite logical plan generation
- *   <li>{@link UnifiedQueryTranspiler}: Logical plan to SQL string conversion
- *   <li>{@link UnifiedQueryCompiler}: Logical plan to executable statement compilation
- * </ul>
- *
- * <p>Query patterns tested:
- *
- * <ul>
- *   <li>Simple source scan
- *   <li>Filter with WHERE clause
- *   <li>Aggregation with GROUP BY
- *   <li>Sort with ORDER BY
- *   <li>Combined operations (filter + aggregation + sort)
- * </ul>
+ * JMH benchmark for measuring the overhead of unified query API components when processing queries.
+ * This provides baseline metrics and guidance for API consumers during integration.
  */
 @Warmup(iterations = 2, time = 1)
 @Measurement(iterations = 5, time = 1)
@@ -55,7 +37,7 @@ import org.opensearch.sql.api.transpiler.UnifiedQueryTranspiler;
 @Fork(value = 1)
 public class UnifiedQueryBenchmark extends UnifiedQueryTestBase {
 
-  /** Common PPL query patterns for benchmarking. */
+  /** Common query patterns for benchmarking. */
   @Param({
     "source = catalog.employees",
     "source = catalog.employees | where age > 30",
@@ -63,9 +45,12 @@ public class UnifiedQueryBenchmark extends UnifiedQueryTestBase {
     "source = catalog.employees | sort - age",
     "source = catalog.employees | where age > 25 | stats avg(age) by department | sort - department"
   })
-  private String pplQuery;
+  private String query;
 
+  /** Transpiler for converting logical plans to SQL strings. */
   private UnifiedQueryTranspiler transpiler;
+
+  /** Compiler for converting logical plans to executable statements. */
   private UnifiedQueryCompiler compiler;
 
   @Setup(Level.Trial)
@@ -80,23 +65,23 @@ public class UnifiedQueryBenchmark extends UnifiedQueryTestBase {
     super.tearDown();
   }
 
-  /** Benchmarks PPL parsing and Calcite logical plan generation. */
+  /** Benchmarks query parsing and Calcite logical plan generation. */
   @Benchmark
-  public RelNode planPplQuery() {
-    return planner.plan(pplQuery);
+  public RelNode planQuery() {
+    return planner.plan(query);
   }
 
-  /** Benchmarks the full transpilation pipeline: PPL → logical plan → SQL string. */
+  /** Benchmarks the full transpilation pipeline: Query → logical plan → SQL string. */
   @Benchmark
-  public String transpilePplToSparkSql() {
-    RelNode plan = planner.plan(pplQuery);
+  public String transpileToSql() {
+    RelNode plan = planner.plan(query);
     return transpiler.toSql(plan);
   }
 
-  /** Benchmarks the compilation pipeline: PPL → logical plan → executable statement. */
+  /** Benchmarks the compilation pipeline: Query → logical plan → executable statement. */
   @Benchmark
-  public PreparedStatement compilePplQuery() {
-    RelNode plan = planner.plan(pplQuery);
+  public PreparedStatement compileQuery() {
+    RelNode plan = planner.plan(query);
     return compiler.compile(plan);
   }
 }

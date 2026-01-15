@@ -5,8 +5,10 @@
 
 package org.opensearch.sql.api;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -45,12 +47,19 @@ import org.opensearch.sql.api.function.UnifiedFunctionRepository;
 @Fork(value = 1)
 public class UnifiedFunctionBenchmark extends UnifiedQueryTestBase {
 
+  /** Number of function evaluations per benchmark invocation. */
   private static final int OPS = 1000;
 
-  @Param public BenchmarkCase benchmarkCase;
+  /** Benchmark specification selecting which function to test. */
+  @Param public BenchmarkSpec benchmarkSpec;
 
+  /** Repository for loading unified functions. */
   private UnifiedFunctionRepository repository;
+
+  /** Pre-loaded function instance for evaluation benchmarks. */
   private UnifiedFunction function;
+
+  /** Input arguments for function evaluation. */
   private List<Object> inputs;
 
   @Setup(Level.Trial)
@@ -58,8 +67,8 @@ public class UnifiedFunctionBenchmark extends UnifiedQueryTestBase {
     super.setUp();
 
     repository = new UnifiedFunctionRepository(context);
-    function = benchmarkCase.loadFunction(repository);
-    inputs = benchmarkCase.inputs();
+    function = benchmarkSpec.loadFunction(repository);
+    inputs = benchmarkSpec.getInputs();
   }
 
   @TearDown(Level.Trial)
@@ -70,7 +79,7 @@ public class UnifiedFunctionBenchmark extends UnifiedQueryTestBase {
   /** Benchmarks function loading from repository. */
   @Benchmark
   public UnifiedFunction loadFunction() {
-    return benchmarkCase.loadFunction(repository);
+    return benchmarkSpec.loadFunction(repository);
   }
 
   /** Benchmarks function evaluation with pre-loaded function and inputs. */
@@ -84,16 +93,22 @@ public class UnifiedFunctionBenchmark extends UnifiedQueryTestBase {
 
   /** Enum defining benchmark test cases - one representative function per PPL category. */
   @RequiredArgsConstructor
-  public enum BenchmarkCase {
+  public enum BenchmarkSpec {
     JSON_EXTRACT(
-        List.of("VARCHAR", "VARCHAR"), List.of("{\"name\":\"test\",\"value\":42}", "$.name")),
-    MOD(List.of("INTEGER", "INTEGER"), List.of(17, 5)),
-    COALESCE(List.of("VARCHAR", "VARCHAR"), List.of("first_value", "default_value")),
-    ARRAY(List.of("INTEGER", "INTEGER", "INTEGER"), List.of(1, 2, 3)),
-    SHA2(List.of("VARCHAR", "INTEGER"), List.of("hello world", 256));
+        inputTypes("VARCHAR", "VARCHAR"),
+        sampleInputs("{\"name\":\"test\",\"value\":42}", "$.name")),
+    COALESCE(
+        inputTypes("VARCHAR", "VARCHAR", "VARCHAR"),
+        sampleInputs(null, "first_value", "default_value")),
+    MVFIND(
+        inputTypes("ARRAY", "VARCHAR"),
+        sampleInputs(List.of("debug", "error", "warn", "info"), "err.*")),
+    REX_EXTRACT(
+        inputTypes("VARCHAR", "VARCHAR", "INTEGER"),
+        sampleInputs("192.168.1.1 - GET /api", "(\\d+)", 1));
 
     private final List<String> inputTypes;
-    private final List<Object> inputs;
+    @Getter private final List<Object> inputs;
 
     UnifiedFunction loadFunction(UnifiedFunctionRepository repository) {
       return repository
@@ -102,8 +117,12 @@ public class UnifiedFunctionBenchmark extends UnifiedQueryTestBase {
           .orElseThrow();
     }
 
-    List<Object> inputs() {
-      return inputs;
+    private static List<String> inputTypes(String... types) {
+      return List.of(types);
+    }
+
+    private static List<Object> sampleInputs(Object... args) {
+      return Arrays.asList(args);
     }
   }
 }
