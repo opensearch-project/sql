@@ -12,6 +12,10 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class ConversionUtils {
 
+  private ConversionUtils() {
+    // Utility class - prevent instantiation
+  }
+
   private static final Pattern COMMA_PATTERN = Pattern.compile(",");
   private static final Pattern LEADING_NUMBER_WITH_UNIT_PATTERN =
       Pattern.compile("^([+-]?(?:\\d+\\.?\\d*|\\.\\d+)(?:[eE][+-]?\\d+)?)(.*)$");

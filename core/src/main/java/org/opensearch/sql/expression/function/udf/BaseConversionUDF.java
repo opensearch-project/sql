@@ -48,6 +48,13 @@ public abstract class BaseConversionUDF extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
+      if (translatedOperands.isEmpty()) {
+        return Expressions.call(
+            ConversionImplementor.class,
+            "toDoubleOrNull",
+            Expressions.constant(null, Object.class));
+      }
+
       Expression fieldValue = translatedOperands.get(0);
       Expression result =
           Expressions.call(ConversionUtils.class, methodName, Expressions.box(fieldValue));

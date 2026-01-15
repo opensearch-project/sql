@@ -153,5 +153,6 @@ public class ConversionUtilsTest {
     assertEquals(123.0, ConversionUtils.numConvert("+123"));
     assertEquals(123.45, ConversionUtils.autoConvert("+123.45"));
     assertEquals(100.0, ConversionUtils.rmunitConvert("+100km"));
+    assertEquals(1234.0, ConversionUtils.rmcommaConvert("+1,234"));
   }
 }

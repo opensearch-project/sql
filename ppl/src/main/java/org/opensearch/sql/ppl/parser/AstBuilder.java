@@ -1207,9 +1207,9 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       String functionName = funcCtx.functionName.getText();
 
       List<String> fieldList = new ArrayList<>();
-      if (funcCtx.wcFieldList() != null) {
-        for (OpenSearchPPLParser.SelectFieldExpressionContext fieldExpr :
-            funcCtx.wcFieldList().selectFieldExpression()) {
+      if (funcCtx.fieldList() != null) {
+        for (OpenSearchPPLParser.FieldExpressionContext fieldExpr :
+            funcCtx.fieldList().fieldExpression()) {
           fieldList.add(getTextInQuery(fieldExpr));
         }
       }

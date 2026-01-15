@@ -4,7 +4,7 @@ The `convert` command applies conversion functions to transform field values int
 
 ## Syntax
 
-```
+```ppl
 ... | convert <convert-function>(<field>) [AS <field>] [, <convert-function>(<field>) [AS <field>]]...
 ```
 
