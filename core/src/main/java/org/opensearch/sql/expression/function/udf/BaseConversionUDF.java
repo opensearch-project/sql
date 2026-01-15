@@ -19,22 +19,18 @@ import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
-/**
- * Base class for PPL conversion functions (auto, num, rmcomma, rmunit).
- * Eliminates code duplication across conversion function implementations.
- */
+/** Base class for PPL conversion functions (auto, num, rmcomma, rmunit). */
 public abstract class BaseConversionUDF extends ImplementorUDF {
 
-  protected BaseConversionUDF(String conversionMethodName, ConversionStrategy strategy) {
-    super(createImplementor(conversionMethodName, strategy), NullPolicy.ANY);
+  protected BaseConversionUDF(String conversionMethodName) {
+    super(new ConversionImplementor(conversionMethodName), NullPolicy.ANY);
   }
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
     return ReturnTypes.explicit(
         factory ->
-            factory.createTypeWithNullability(
-                factory.createSqlType(SqlTypeName.DOUBLE), true));
+            factory.createTypeWithNullability(factory.createSqlType(SqlTypeName.DOUBLE), true));
   }
 
   @Override
@@ -42,25 +38,10 @@ public abstract class BaseConversionUDF extends ImplementorUDF {
     return PPLOperandTypes.OPTIONAL_ANY;
   }
 
-  /** Strategy for handling conversion result to Double. */
-  protected enum ConversionStrategy {
-    /** Standard strategy: null-check conditional for num, rmcomma, rmunit. */
-    STANDARD,
-    /** Simple strategy: toDoubleOrNull helper for auto. */
-    SIMPLE
-  }
-
-  private static NotNullImplementor createImplementor(
-      String methodName, ConversionStrategy strategy) {
-    return strategy == ConversionStrategy.SIMPLE
-        ? new SimpleConversionImplementor(methodName)
-        : new StandardConversionImplementor(methodName);
-  }
-
-  public static class SimpleConversionImplementor implements NotNullImplementor {
+  public static class ConversionImplementor implements NotNullImplementor {
     private final String methodName;
 
-    public SimpleConversionImplementor(String methodName) {
+    public ConversionImplementor(String methodName) {
       this.methodName = methodName;
     }
 
@@ -70,7 +51,7 @@ public abstract class BaseConversionUDF extends ImplementorUDF {
       Expression fieldValue = translatedOperands.get(0);
       Expression result =
           Expressions.call(ConversionUtils.class, methodName, Expressions.box(fieldValue));
-      return Expressions.call(SimpleConversionImplementor.class, "toDoubleOrNull", result);
+      return Expressions.call(ConversionImplementor.class, "toDoubleOrNull", result);
     }
 
     public static Double toDoubleOrNull(Object value) {
@@ -78,27 +59,6 @@ public abstract class BaseConversionUDF extends ImplementorUDF {
         return ((Number) value).doubleValue();
       }
       return null;
-    }
-  }
-
-  public static class StandardConversionImplementor implements NotNullImplementor {
-    private final String methodName;
-
-    public StandardConversionImplementor(String methodName) {
-      this.methodName = methodName;
-    }
-
-    @Override
-    public Expression implement(
-        RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
-      Expression fieldValue = translatedOperands.get(0);
-      Expression result =
-          Expressions.call(ConversionUtils.class, methodName, Expressions.box(fieldValue));
-      return Expressions.condition(
-          Expressions.notEqual(result, Expressions.constant(null)),
-          Expressions.unbox(
-              Expressions.call(Expressions.convert_(result, Number.class), "doubleValue")),
-          Expressions.constant(null, Double.class));
     }
   }
 }

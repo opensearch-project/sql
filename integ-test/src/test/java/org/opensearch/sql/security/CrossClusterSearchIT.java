@@ -211,6 +211,47 @@ public class CrossClusterSearchIT extends CrossClusterTestBase {
   }
 
   @Test
+  public void testCrossClusterAddTotals() throws IOException {
+    // Test query_string without fields parameter on remote cluster
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s| sort 1 age | fields firstname, age | addtotals age",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows("Nanette", 28, 28));
+  }
+
+  /** CrossClusterSearchIT Test for addcoltotals. */
+  @Test
+  public void testCrossClusterAddColTotals() throws IOException {
+    // Test query_string without fields parameter on remote cluster
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | where  firstname='Hattie' or firstname ='Nanette'|fields"
+                    + " firstname,age,balance | addcoltotals age balance",
+                TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(
+        result, rows("Hattie", 36, 5686), rows("Nanette", 28, 32838), rows(null, 64, 38524));
+  }
+
+  @Test
+  public void testCrossClusterAppend() throws IOException {
+    // TODO: We should enable calcite by default in CrossClusterSearchIT?
+    enableCalcite();
+
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | stats count() as cnt by gender | append [ search source=%s |"
+                    + " stats count() as cnt ]",
+                TEST_INDEX_BANK_REMOTE, TEST_INDEX_BANK_REMOTE));
+    verifyDataRows(result, rows(3, "F"), rows(4, "M"), rows(7, null));
+
+    disableCalcite();
+  }
+
+  @Test
   public void testCrossClusterConvert() throws IOException {
     enableCalcite();
 

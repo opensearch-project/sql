@@ -9,6 +9,6 @@ package org.opensearch.sql.expression.function.udf;
 public class NumConvertFunction extends BaseConversionUDF {
 
   public NumConvertFunction() {
-    super("numConvert", ConversionStrategy.STANDARD);
+    super("numConvert");
   }
 }

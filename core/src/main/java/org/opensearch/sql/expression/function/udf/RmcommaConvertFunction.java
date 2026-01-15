@@ -9,6 +9,6 @@ package org.opensearch.sql.expression.function.udf;
 public class RmcommaConvertFunction extends BaseConversionUDF {
 
   public RmcommaConvertFunction() {
-    super("rmcommaConvert", ConversionStrategy.STANDARD);
+    super("rmcommaConvert");
   }
 }

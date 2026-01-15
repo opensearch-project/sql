@@ -9,6 +9,6 @@ package org.opensearch.sql.expression.function.udf;
 public class RmunitConvertFunction extends BaseConversionUDF {
 
   public RmunitConvertFunction() {
-    super("rmunitConvert", ConversionStrategy.STANDARD);
+    super("rmunitConvert");
   }
 }
