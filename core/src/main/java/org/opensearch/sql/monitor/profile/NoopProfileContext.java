@@ -14,12 +14,20 @@ public final class NoopProfileContext implements ProfileContext {
 
   private NoopProfileContext() {}
 
+  @Override
+  public boolean isEnabled() {
+    return false;
+  }
+
   /** {@inheritDoc} */
   @Override
   public ProfileMetric getOrCreateMetric(MetricName name) {
     Objects.requireNonNull(name, "name");
     return NoopProfileMetric.INSTANCE;
   }
+
+  @Override
+  public void setPlanRoot(ProfilePlanNode planRoot) {}
 
   /** {@inheritDoc} */
   @Override
