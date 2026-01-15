@@ -78,10 +78,16 @@ public class UnifiedQueryBenchmark extends UnifiedQueryTestBase {
     return transpiler.toSql(plan);
   }
 
-  /** Benchmarks the compilation pipeline: Query → logical plan → executable statement. */
+  /**
+   * Benchmarks the compilation pipeline: Query → logical plan → executable statement. The result
+   * includes both compile and close time; close overhead is negligible and avoids resource leaking
+   * during benchmark runs.
+   */
   @Benchmark
-  public PreparedStatement compileQuery() {
+  public void compileQuery() throws Exception {
     RelNode plan = planner.plan(query);
-    return compiler.compile(plan);
+    try (PreparedStatement stmt = compiler.compile(plan)) {
+      // Statement is auto-closed after benchmark iteration
+    }
   }
 }
