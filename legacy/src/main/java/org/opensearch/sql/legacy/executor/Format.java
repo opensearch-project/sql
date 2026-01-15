@@ -17,17 +17,11 @@ public enum Format {
   JSON("json"),
   CSV("csv"),
   RAW("raw"),
-  TABLE("table"),
-  // format of explain response
-  SIMPLE("simple"),
-  STANDARD("standard"),
-  EXTENDED("extended"),
-  COST("cost");
+  TABLE("table");
 
   @Getter private final String formatName;
 
   public static final Map<String, Format> RESPONSE_FORMATS;
-  public static final Map<String, Format> EXPLAIN_FORMATS;
 
   static {
     ImmutableMap.Builder<String, Format> builder;
@@ -38,20 +32,9 @@ public enum Format {
     builder.put(TABLE.formatName, TABLE);
     builder.put(JSON.formatName, JSON);
     RESPONSE_FORMATS = builder.build();
-
-    builder = new ImmutableMap.Builder<>();
-    builder.put(SIMPLE.formatName, SIMPLE);
-    builder.put(STANDARD.formatName, STANDARD);
-    builder.put(EXTENDED.formatName, EXTENDED);
-    builder.put(COST.formatName, COST);
-    EXPLAIN_FORMATS = builder.build();
   }
 
   public static Optional<Format> of(String formatName) {
     return Optional.ofNullable(RESPONSE_FORMATS.getOrDefault(formatName, null));
-  }
-
-  public static Optional<Format> ofExplain(String formatName) {
-    return Optional.ofNullable(EXPLAIN_FORMATS.getOrDefault(formatName, null));
   }
 }

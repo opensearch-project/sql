@@ -28,7 +28,7 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.opensearch.sql.analysis.AnalysisContext;
 import org.opensearch.sql.analysis.Analyzer;
-import org.opensearch.sql.ast.statement.Explain;
+import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
@@ -83,11 +83,11 @@ public class QueryService {
       UnresolvedPlan plan,
       QueryType queryType,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
-      Explain.ExplainFormat format) {
+      ExplainMode mode) {
     if (shouldUseCalcite(queryType)) {
-      explainWithCalcite(plan, queryType, listener, format);
+      explainWithCalcite(plan, queryType, listener, mode);
     } else {
-      explainWithLegacy(plan, queryType, listener, format, Optional.empty());
+      explainWithLegacy(plan, queryType, listener, mode, Optional.empty());
     }
   }
 
@@ -143,7 +143,7 @@ public class QueryService {
       UnresolvedPlan plan,
       QueryType queryType,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
-      Explain.ExplainFormat format) {
+      ExplainMode mode) {
     CalcitePlanContext.run(
         () -> {
           try {
@@ -160,7 +160,7 @@ public class QueryService {
 
                             RelNode calcitePlan = convertToCalcitePlan(relNode, context);
 
-                            executionEngine.explain(calcitePlan, format, context, listener);
+                            executionEngine.explain(calcitePlan, mode, context, listener);
                           },
                           settings);
                       return null;
@@ -168,7 +168,7 @@ public class QueryService {
           } catch (Throwable t) {
             if (isCalciteFallbackAllowed(t)) {
               log.warn("Fallback to V2 query engine since got exception", t);
-              explainWithLegacy(plan, queryType, listener, format, Optional.of(t));
+              explainWithLegacy(plan, queryType, listener, mode, Optional.of(t));
             } else {
               if (t instanceof Error) {
                 // Calcite may throw AssertError during query execution.
@@ -214,13 +214,12 @@ public class QueryService {
       UnresolvedPlan plan,
       QueryType queryType,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
-      Explain.ExplainFormat format,
+      ExplainMode mode,
       Optional<Throwable> calciteFailure) {
     try {
-      if (format != null
-          && (format != Explain.ExplainFormat.STANDARD && format != Explain.ExplainFormat.YAML)) {
+      if (mode != null && (mode != ExplainMode.STANDARD)) {
         throw new UnsupportedOperationException(
-            "Explain mode " + format.name() + " is not supported in v2 engine");
+            "Explain mode " + mode.name() + " is not supported in v2 engine");
       }
       executionEngine.explain(plan(analyze(plan, queryType)), listener);
     } catch (Exception e) {

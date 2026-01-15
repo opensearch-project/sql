@@ -400,7 +400,8 @@ public class MatcherUtils {
   private static String eliminateRelId(String s) {
     return s.replaceAll("rel#\\d+", "rel#")
         .replaceAll("RelSubset#\\d+", "RelSubset#")
-        .replaceAll("LogicalProject#\\d+", "LogicalProject#");
+        .replaceAll("LogicalProject#\\d+", "LogicalProject#")
+        .replaceAll("id = \\d+", "id = *");
   }
 
   private static String eliminateRequestOptions(String s) {
@@ -459,6 +460,8 @@ public class MatcherUtils {
         .replaceAll("pitId=[^,]+,", "pitId=*,")
         .replaceAll("\\$t?\\d+", "\\$FIELD_INDEX")
         .replaceAll(" needClean=true,", "")
+        .replaceAll(" searchDone=false,", "")
+        .replaceAll("id = \\d+", "id = *")
         .replaceAll(" searchDone=false,", "")
         .replaceAll("\\([^)]*\\.\\.\\d+\\)", "?")
         .replaceAll("\\(\\d+\\.\\.[^)]*\\)", "?");

@@ -23,7 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.analysis.Analyzer;
-import org.opensearch.sql.ast.statement.Explain;
+import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
@@ -62,7 +62,7 @@ class QueryServiceTest {
 
   @Mock private Split split;
 
-  private final Explain.ExplainFormat format = Explain.ExplainFormat.STANDARD;
+  private final ExplainMode mode = ExplainMode.STANDARD;
 
   @Test
   public void executeWithoutContext() {
@@ -225,7 +225,7 @@ class QueryServiceTest {
               fail();
             }
           },
-          format);
+          mode);
     }
 
     void handledByExplainOnFailure() {
@@ -243,7 +243,7 @@ class QueryServiceTest {
               assertTrue(e instanceof IllegalStateException);
             }
           },
-          format);
+          mode);
     }
   }
 }

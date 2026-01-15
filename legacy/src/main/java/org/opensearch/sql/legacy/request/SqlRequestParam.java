@@ -16,7 +16,6 @@ public class SqlRequestParam {
   public static final String QUERY_PARAMS_ESCAPE = "escape";
 
   private static final String DEFAULT_RESPONSE_FORMAT = "jdbc";
-  private static final String DEFAULT_EXPLAIN_FORMAT = "standard";
 
   /**
    * Parse the pretty params to decide whether the response should be pretty formatted.
@@ -44,19 +43,14 @@ public class SqlRequestParam {
     String formatName =
         requestParams.containsKey(QUERY_PARAMS_FORMAT)
             ? requestParams.get(QUERY_PARAMS_FORMAT).toLowerCase()
-            : isExplainRequest(path) ? DEFAULT_EXPLAIN_FORMAT : DEFAULT_RESPONSE_FORMAT;
-    Optional<Format> optionalFormat =
-        isExplainRequest(path) ? Format.ofExplain(formatName) : Format.of(formatName);
+            : DEFAULT_RESPONSE_FORMAT;
+    Optional<Format> optionalFormat = Format.of(formatName);
     if (optionalFormat.isPresent()) {
       return optionalFormat.get();
     } else {
       throw new IllegalArgumentException(
           "Failed to create executor due to unknown response format: " + formatName);
     }
-  }
-
-  private static boolean isExplainRequest(String path) {
-    return path != null && path.endsWith("/_explain");
   }
 
   public static boolean getEscapeOption(Map<String, String> requestParams) {
