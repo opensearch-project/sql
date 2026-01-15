@@ -18,6 +18,10 @@ on:
       - '.github/workflows/sql-test-and-build-workflow.yml'
   merge_group:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   Get-CI-Image-Tag:
     uses: opensearch-project/opensearch-build/.github/workflows/get-ci-image-tag.yml@main
@@ -52,11 +56,11 @@ jobs:
         run: |
           chown -R 1000:1000 `pwd`
           if [ "${{ matrix.test-type }}" = "unit" ]; then
-            su `id -un 1000` -c "./gradlew --parallel --continue build -x integTest -x yamlRestTest -x doctest"
+            su `id -un 1000` -c "./gradlew --continue build -x integTest -x yamlRestTest -x doctest"
           elif [ "${{ matrix.test-type }}" = "integration" ]; then
-            su `id -un 1000` -c "./gradlew --parallel --continue integTest yamlRestTest"
+            su `id -un 1000` -c "./gradlew --continue integTest yamlRestTest"
           else
-            su `id -un 1000` -c "./gradlew --parallel --continue doctest"
+            su `id -un 1000` -c "./gradlew --continue doctest"
           fi
 
       - name: Create Artifact Path
@@ -66,7 +70,7 @@ jobs:
           cp -r ./plugin/build/distributions/*.zip opensearch-sql-builds/
 
       - name: Upload SQL Coverage Report
-        if: ${{ always() }}
+        if: ${{ always() && matrix.java == 21 && matrix.test-type == 'unit' }}
         uses: codecov/codecov-action@v4
         continue-on-error: true
         with:
@@ -82,7 +86,7 @@ jobs:
           path: opensearch-sql-builds
 
       - name: Upload test reports
-        if: ${{ always() }}
+        if: ${{ failure() }}  # Only when tests fail
         uses: actions/upload-artifact@v4
         continue-on-error: true
         with:
@@ -130,11 +134,11 @@ jobs:
       - name: Build and Test
         run: |
           if [ "${{ matrix.test-type }}" = "unit" ]; then
-            ./gradlew --parallel --continue build -x integTest -x yamlRestTest -x doctest ${{ matrix.entry.os_build_args }}
+            ./gradlew --continue build -x integTest -x yamlRestTest -x doctest ${{ matrix.entry.os_build_args }}
           elif [ "${{ matrix.test-type }}" = "integration" ]; then
-            ./gradlew --parallel --continue integTest yamlRestTest ${{ matrix.entry.os_build_args }}
+            ./gradlew --continue integTest yamlRestTest ${{ matrix.entry.os_build_args }}
           else
-            ./gradlew --parallel --continue doctest ${{ matrix.entry.os_build_args }}
+            ./gradlew --continue doctest ${{ matrix.entry.os_build_args }}
           fi
         shell: bash
 
@@ -211,18 +215,9 @@ jobs:
         uses: actions/upload-artifact@v4
         continue-on-error: true
         with:
-          name: test-reports-ubuntu-latest-${{ matrix.java }}-bwc
+          name: test-reports-${{ matrix.java }}-bwc-tests-rolling-upgrade
           path: |
-            sql/build/reports/**
-            ppl/build/reports/**
-            core/build/reports/**
-            common/build/reports/**
-            opensearch/build/reports/**
             integ-test/build/reports/**
-            protocol/build/reports/**
-            legacy/build/reports/**
-            plugin/build/reports/**
-            doctest/build/testclusters/docTestCluster-0/logs/*
             integ-test/build/testclusters/*/logs/*
 
   bwc-tests-full-restart:
@@ -257,16 +252,7 @@ jobs:
         uses: actions/upload-artifact@v4
         continue-on-error: true
         with:
-          name: test-reports-ubuntu-latest-${{ matrix.java }}-bwc
+          name: test-reports-${{ matrix.java }}-bwc-tests-full-restart
           path: |
-            sql/build/reports/**
-            ppl/build/reports/**
-            core/build/reports/**
-            common/build/reports/**
-            opensearch/build/reports/**
             integ-test/build/reports/**
-            protocol/build/reports/**
-            legacy/build/reports/**
-            plugin/build/reports/**
-            doctest/build/testclusters/docTestCluster-0/logs/*
             integ-test/build/testclusters/*/logs/*
