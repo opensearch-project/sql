@@ -103,7 +103,9 @@ import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.plan.Scannable;
 import org.opensearch.sql.calcite.plan.rule.OpenSearchRules;
 import org.opensearch.sql.calcite.plan.rule.PPLSimplifyDedupRule;
+import org.opensearch.sql.calcite.profile.PlanProfileBuilder;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+import org.opensearch.sql.monitor.profile.ProfileContext;
 import org.opensearch.sql.monitor.profile.ProfileMetric;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
 
@@ -318,11 +320,18 @@ public class CalciteToolsHelper {
 
     @Override
     protected PreparedResult implement(RelRoot root) {
+      ProfileContext profileContext = QueryProfiling.current();
+      if (profileContext.isEnabled()) {
+        PlanProfileBuilder.ProfilePlan plan = PlanProfileBuilder.profile(root.rel);
+        profileContext.setPlanRoot(plan.planRoot());
+        root = root.withRel(plan.rel());
+      }
       if (root.rel instanceof Scannable) {
+        Scannable scannable = (Scannable) root.rel;
         Hook.PLAN_BEFORE_IMPLEMENTATION.run(root);
         RelDataType resultType = root.rel.getRowType();
         boolean isDml = root.kind.belongsTo(SqlKind.DML);
-        final Bindable bindable = dataContext -> ((Scannable) root.rel).scan();
+        final Bindable bindable = dataContext -> scannable.scan();
 
         return new PreparedResultImpl(
             resultType,
