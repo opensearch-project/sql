@@ -252,6 +252,7 @@ public class QueryService {
   }
 
   public RelNode analyze(UnresolvedPlan plan, CalcitePlanContext context) {
+    context.setRootNode(plan);
     return getRelNodeVisitor().analyze(plan, context);
   }
 
