@@ -1,0 +1,42 @@
+{
+  "mappings": {
+    "properties": {
+      "author": {
+        "type": "nested",
+        "properties": {
+          "name": {
+            "type": "keyword"
+          },
+          "books": {
+            "type": "nested",
+            "properties": {
+              "title": {
+                "type": "keyword"
+              },
+              "reviews": {
+                "type": "nested",
+                "properties": {
+                  "rating": {
+                    "type": "integer"
+                  },
+                  "comment": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "review_date": {
+                    "type": "date",
+                    "format": "yyyy-MM-dd"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

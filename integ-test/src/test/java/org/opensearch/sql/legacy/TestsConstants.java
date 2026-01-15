@@ -53,6 +53,7 @@ public class TestsConstants {
   public static final String TEST_INDEX_TIME_DATA = TEST_INDEX + "_time_data";
 
   public static final String TEST_INDEX_DEEP_NESTED = TEST_INDEX + "_deep_nested";
+  public static final String TEST_INDEX_CASCADED_NESTED = TEST_INDEX + "_cascaded_nested";
   public static final String TEST_INDEX_TELEMETRY = TEST_INDEX + "_telemetry";
   public static final String TEST_INDEX_STRINGS = TEST_INDEX + "_strings";
   public static final String TEST_INDEX_DATATYPE_NUMERIC = TEST_INDEX + "_datatypes_numeric";
