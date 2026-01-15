@@ -1512,7 +1512,7 @@ public class PredicateAnalyzer {
           PlanUtils.getInputRefs(rexNode).stream()
               .map(RexInputRef::getIndex)
               .map(rowType.getFieldNames()::get)
-              .toList();
+              .collect(Collectors.toList());
       this.fieldTypes = fieldTypes;
     }
 
