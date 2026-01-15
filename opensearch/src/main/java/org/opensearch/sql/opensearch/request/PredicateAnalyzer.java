@@ -61,6 +61,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.plan.RelOptCluster;
@@ -1613,7 +1614,7 @@ public class PredicateAnalyzer {
 
     private final String name;
     private final ExprType type;
-    @Getter private final String nestedPath;
+    @Getter @Nullable private final String nestedPath;
 
     public NamedFieldExpression(
         int refIndex, List<String> schema, Map<String, ExprType> filedTypes) {
@@ -1623,7 +1624,7 @@ public class PredicateAnalyzer {
     }
 
     private NamedFieldExpression() {
-      this(null, null, "");
+      this(null, null, (String) null);
     }
 
     private NamedFieldExpression(
@@ -1635,7 +1636,7 @@ public class PredicateAnalyzer {
     }
 
     private NamedFieldExpression(RexLiteral literal) {
-      this(literal == null ? null : RexLiteral.stringValue(literal), null, "");
+      this(literal == null ? null : RexLiteral.stringValue(literal), null, null);
     }
 
     public String getRootName() {
