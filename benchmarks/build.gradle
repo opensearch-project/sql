@@ -6,7 +6,6 @@
 plugins {
     id 'java-library'
     id "io.freefair.lombok"
-    id 'com.diffplug.spotless'
     id "me.champeau.jmh" version "0.7.3"
 }
 
@@ -29,17 +28,8 @@ spotless {
     java {
         target fileTree('.') {
             include '**/*.java'
-            exclude '**/jmh_generated/**', '**/build/**'
+            exclude '**/jmh_generated/**'
         }
-        importOrder()
-        licenseHeader("/*\n" +
-                " * Copyright OpenSearch Contributors\n" +
-                " * SPDX-License-Identifier: Apache-2.0\n" +
-                " */\n\n")
-        removeUnusedImports()
-        trimTrailingWhitespace()
-        endWithNewline()
-        googleJavaFormat('1.32.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
     }
 }
 
