@@ -5,7 +5,7 @@ The `convert` command applies conversion functions to transform field values int
 ## Syntax
 
 ```
-... | convert <convert-function>(<field-list>) [AS <field>] [<convert-function>(<field-list>) [AS <field>]]...
+... | convert <convert-function>(<field>) [AS <field>] [, <convert-function>(<field>) [AS <field>]]...
 ```
 
 ## Conversion Functions
@@ -20,6 +20,8 @@ Automatically converts fields to numbers using intelligent conversion:
 - Supports special values like `NaN`
 - Returns `null` for values that cannot be converted to a number
 
+**Roadmap:** Additional conversion formats are planned for future releases, including time duration formats (`dur2sec`), time formats (`mstime`), memory units (`memk`), and timestamp conversions (`ctime`, `mktime`). Once implemented, the `auto()` function will automatically detect and apply these conversions.
+
 **Examples:**
 ```sql
 source=accounts | convert auto(balance)
@@ -29,15 +31,14 @@ source=accounts | convert auto(balance)
 - `"2,12.0 sec"` → `2.0`
 - `"45.67 kg"` → `45.67`
 - `"1e5"` → `100000.0` (scientific notation)
-- `"NaN"` → `NaN`
 - `"hello"` → `null`
+- `"NaN"` → `null`
 - `"AAAA2.000"` → `null` (doesn't start with digit)
 
 #### `num(field)`
 Extracts leading numbers from strings. Handles commas and units intelligently:
 - For strings without letters: removes commas as thousands separators
 - For strings with letters: extracts leading number, stops at letters or commas
-- Supports special value `NaN`
 - Returns `null` for non-convertible values
 
 **Examples:**
@@ -50,8 +51,8 @@ source=accounts | convert num(age)
 - `"212 sec"` → `212.0`
 - `"2,12.0 sec"` → `2.0`
 - `"1e5"` → `100000.0` (scientific notation)
-- `"NaN"` → `NaN`
 - `"no numbers"` → `null`
+- `"NaN"` → `null`
 
 #### `rmcomma(field)`
 Removes commas from field values and attempts to convert to a number. Returns `null` if the value contains letters.
@@ -94,7 +95,7 @@ source=accounts | convert none(account_id)
 ## Parameters
 
 - `<convert-function>`: One of the conversion functions listed above
-- `<field-list>`: Field name(s) to convert
+- `<field>`: Single field name to convert, or `*` to convert all fields
 - `AS <field>`: (Optional) Create new field with converted value, preserving original
 
 ## Examples
@@ -121,6 +122,8 @@ source=sales | convert auto(revenue) AS revenue_clean, rmunit(duration) AS durat
 
 ## Notes
 
+- Each conversion function accepts a single field name or the wildcard `*` to apply to all fields
+- To convert multiple specific fields, use multiple function calls separated by commas (e.g., `convert auto(balance), num(age)`)
 - All conversion functions (`auto()`, `num()`, `rmunit()`, `rmcomma()`) return `null` for values that cannot be converted to a number
 - All numeric conversion functions return double precision numbers to support use in aggregations like `avg()`, `sum()`, etc.
 - **Display Format**: All converted numbers display with decimal notation (e.g., `1234.0`, `1234.56`)

@@ -14,12 +14,16 @@ public class ConversionUtils {
 
   private static final Pattern COMMA_PATTERN = Pattern.compile(",");
   private static final Pattern LEADING_NUMBER_WITH_UNIT_PATTERN =
-      Pattern.compile("^([+-]?\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?)(.*)$");
+      Pattern.compile("^([+-]?(?:\\d+\\.?\\d*|\\.\\d+)(?:[eE][+-]?\\d+)?)(.*)$");
   private static final Pattern CONTAINS_LETTER_PATTERN = Pattern.compile(".*[a-zA-Z].*");
-  private static final Pattern STARTS_WITH_SIGN_OR_DIGIT = Pattern.compile("^[+-]?\\d.*");
+  private static final Pattern STARTS_WITH_SIGN_OR_DIGIT = Pattern.compile("^[+-]?[\\d.].*");
 
-  private static boolean isNumericType(Object value) {
-    return value instanceof Number;
+  /** Conversion strategy for different convert functions. */
+  private enum ConversionStrategy {
+    STANDARD, // num() - fixed numeric conversion
+    COMPREHENSIVE, // auto() - extensible, will add new features later
+    COMMA_ONLY, // rmcomma() - only comma removal
+    UNIT_ONLY // rmunit() - only unit removal
   }
 
   private static String preprocessValue(Object value) {
@@ -32,11 +36,7 @@ public class ConversionUtils {
 
   private static Double tryParseDouble(String str) {
     try {
-      Double result = Double.parseDouble(str);
-      if (result.isInfinite()) {
-        return null;
-      }
-      return result;
+      return Double.parseDouble(str);
     } catch (NumberFormatException e) {
       log.debug("Failed to parse '{}' as number", str, e);
       return null;
@@ -65,15 +65,13 @@ public class ConversionUtils {
   }
 
   private static boolean isPotentiallyConvertible(String str) {
-    return STARTS_WITH_SIGN_OR_DIGIT.matcher(str).matches() || isNaN(str);
+    return STARTS_WITH_SIGN_OR_DIGIT.matcher(str).matches();
   }
 
-  private static boolean isNaN(String str) {
-    return "NaN".equals(str);
-  }
-
-  public static Object autoConvert(Object value) {
-    if (isNumericType(value)) {
+  /** Unified conversion method that applies different strategies. */
+  private static Object convert(Object value, ConversionStrategy strategy) {
+    if ((strategy == ConversionStrategy.STANDARD || strategy == ConversionStrategy.COMPREHENSIVE)
+        && value instanceof Number) {
       return ((Number) value).doubleValue();
     }
 
@@ -82,10 +80,21 @@ public class ConversionUtils {
       return null;
     }
 
-    if (isNaN(str)) {
-      return Double.NaN;
+    switch (strategy) {
+      case STANDARD:
+        return convertStandard(str);
+      case COMPREHENSIVE:
+        return convertComprehensive(str);
+      case COMMA_ONLY:
+        return convertCommaOnly(str);
+      case UNIT_ONLY:
+        return convertUnitOnly(str);
+      default:
+        return null;
     }
+  }
 
+  private static Object convertStandard(String str) {
     if (!isPotentiallyConvertible(str)) {
       return null;
     }
@@ -102,49 +111,37 @@ public class ConversionUtils {
     return tryConvertWithCommaRemoval(str);
   }
 
-  public static Object numConvert(Object value) {
-    if (isNumericType(value)) {
-      return ((Number) value).doubleValue();
-    }
+  private static Object convertComprehensive(String str) {
+    // Future: Add new conversion strategies here before delegating
+    // e.g., tryTimeConversion(str), etc
+    return convertStandard(str);
+  }
 
-    String str = preprocessValue(value);
-    if (str == null) {
+  private static Object convertCommaOnly(String str) {
+    if (CONTAINS_LETTER_PATTERN.matcher(str).matches()) {
       return null;
     }
+    return tryConvertWithCommaRemoval(str);
+  }
 
-    if (isNaN(str)) {
-      return Double.NaN;
-    }
+  private static Object convertUnitOnly(String str) {
+    String numberStr = extractLeadingNumber(str);
+    return numberStr != null ? tryParseDouble(numberStr) : null;
+  }
 
-    Double result = tryParseDouble(str);
-    if (result != null) {
-      return result;
-    }
+  public static Object autoConvert(Object value) {
+    return convert(value, ConversionStrategy.COMPREHENSIVE);
+  }
 
-    if (CONTAINS_LETTER_PATTERN.matcher(str).matches()) {
-      return tryConvertWithUnitRemoval(str);
-    }
-
-    String noCommas = COMMA_PATTERN.matcher(str).replaceAll("");
-    return tryParseDouble(noCommas);
+  public static Object numConvert(Object value) {
+    return convert(value, ConversionStrategy.STANDARD);
   }
 
   public static Object rmcommaConvert(Object value) {
-    String str = preprocessValue(value);
-    if (str == null || CONTAINS_LETTER_PATTERN.matcher(str).matches()) {
-      return null;
-    }
-    String noCommas = COMMA_PATTERN.matcher(str).replaceAll("");
-    return tryParseDouble(noCommas);
+    return convert(value, ConversionStrategy.COMMA_ONLY);
   }
 
   public static Object rmunitConvert(Object value) {
-    String str = preprocessValue(value);
-    if (str == null) {
-      return null;
-    }
-
-    String numberStr = extractLeadingNumber(str);
-    return numberStr != null ? tryParseDouble(numberStr) : null;
+    return convert(value, ConversionStrategy.UNIT_ONLY);
   }
 }
