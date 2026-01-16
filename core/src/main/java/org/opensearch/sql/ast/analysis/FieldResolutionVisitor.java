@@ -609,13 +609,27 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
 
   @Override
   public Node visitConvert(Convert node, FieldResolutionContext context) {
-    Set<String> convertFields = new HashSet<>();
+    Set<String> inputFields = new HashSet<>();
+    Set<String> outputFields = new HashSet<>();
+
     for (ConvertFunction convertFunc : node.getConvertFunctions()) {
-      for (String fieldName : convertFunc.getFieldList()) {
-        convertFields.add(fieldName);
+      List<String> fieldList = convertFunc.getFieldList();
+      inputFields.addAll(fieldList);
+
+      if (convertFunc.getAsField() != null) {
+        outputFields.add(convertFunc.getAsField());
+      } else {
+        outputFields.addAll(fieldList);
       }
     }
-    context.pushRequirements(context.getCurrentRequirements().or(convertFields));
+
+    FieldResolutionResult currentReq = context.getCurrentRequirements();
+    Set<String> upstreamRequiredFields = new HashSet<>(currentReq.getRegularFields());
+    upstreamRequiredFields.removeAll(outputFields);
+    upstreamRequiredFields.addAll(inputFields);
+
+    context.pushRequirements(
+        new FieldResolutionResult(upstreamRequiredFields, currentReq.getWildcard()));
     visitChildren(node, context);
     context.popRequirements();
     return node;
