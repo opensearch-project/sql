@@ -3095,18 +3095,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   /**
    * MVExpand command visitor.
    *
-   * <p>For Calcite remote planning, mvexpand shares the same expansion mechanics as {@link Expand}:
-   * it unnests the target multivalue field and joins back to the original relation. The additional
-   * mvexpand semantics (such as an optional per-document limit) are surfaced via the MVExpand AST
-   * node but reuse the same underlying RelBuilder pipeline as expand at this layer.
-   *
-   * @param mvExpand MVExpand command to be visited
-   * @param context CalcitePlanContext containing the RelBuilder and other context
-   * @return RelNode representing records with the expanded multi-value field
-   */
-  /**
-   * MVExpand command visitor.
-   *
    * <p>For Calcite remote planning, mvexpand reuses the same expansion mechanics as {@link Expand}:
    * it unnests the target multivalue field and joins back to the original relation.
    * mvexpand-specific semantics (such as an optional per-document limit) are carried by the {@link
@@ -3139,12 +3127,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Resolve field ref using rexVisitor for consistent semantics (same as expand).
     final RexInputRef arrayFieldRex = (RexInputRef) rexVisitor.analyze(field, context);
 
-    // Enforce ARRAY type before UNNEST so we return SemanticCheckException.
+    // If it's not an ARRAY, treat it as a single-value "multivalue" and keep results unchanged.
     final SqlTypeName actual = arrayFieldRex.getType().getSqlTypeName();
     if (actual != SqlTypeName.ARRAY) {
-      throw new SemanticCheckException(
-          String.format(
-              "Cannot expand field '%s': expected ARRAY type but found %s", fieldName, actual));
+      return relBuilder.peek();
     }
 
     buildExpandRelNode(arrayFieldRex, fieldName, fieldName, mvExpand.getLimit(), context);
