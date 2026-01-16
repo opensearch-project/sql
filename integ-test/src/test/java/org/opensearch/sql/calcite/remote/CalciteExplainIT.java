@@ -2444,8 +2444,8 @@ public class CalciteExplainIT extends ExplainIT {
                 "source=%s | stats count(eval(author.name < 'K')) as george_and_jk",
                 TEST_INDEX_CASCADED_NESTED)));
   }
-  
-    @Test
+
+  @Test
   public void testExplainMvCombine() throws IOException {
     String query =
         "source=opensearch-sql_test_index_account "
