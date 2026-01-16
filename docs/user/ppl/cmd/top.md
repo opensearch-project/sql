@@ -1,94 +1,40 @@
-# top  
 
-## Description  
+# top {#top-command}
 
-The `top` command finds the most common tuple of values of all fields in the field list.
-## Syntax  
+The `top` command finds the most common combination of values across all fields specified in the field list.
 
-top [N] [top-options] \<field-list\> [by-clause]
-* N: optional. number of results to return. **Default**: 10  
-* top-options: optional. options for the top command. Supported syntax is [countfield=\<string\>] [showcount=\<bool\>].  
-  * showcount=\<bool\>: optional. whether to create a field in output that represent a count of the tuple of values. **Default:** true.  
-  * countfield=\<string\>: optional. the name of the field that contains count. **Default:** 'count'.  
-  * usenull=\<bool\>: optional (since 3.4.0). whether to output the null value. **Default:** Determined by `plugins.ppl.syntax.legacy.preferred`.  
-    * When `plugins.ppl.syntax.legacy.preferred=true`, `usenull` defaults to `true`  
-    * When `plugins.ppl.syntax.legacy.preferred=false`, `usenull` defaults to `false`  
-* field-list: mandatory. comma-delimited list of field names.  
-* by-clause: optional. one or more fields to group the results by.  
-  
-## Example 1: Find the most common values in a field  
+> **Note**: The `top` command is not rewritten to [query domain-specific language (DSL)](https://docs.opensearch.org/latest/query-dsl/). It is only executed on the coordinating node.
 
-This example finds the most common gender of all the accounts.
-  
-```ppl
-source=accounts
-| top showcount=false gender
+## Syntax
+
+The `top` command has the following syntax:
+
+```syntax
+top [N] [top-options] <field-list> [by-clause]
 ```
-  
-Expected output:
-  
-```text
-fetched rows / total rows = 2/2
-+--------+
-| gender |
-|--------|
-| M      |
-| F      |
-+--------+
-```
-  
-## Example 2: Limit results to top N values  
 
-This example finds the most common gender and limits results to 1 value.
-  
-```ppl
-source=accounts
-| top 1 showcount=false gender
-```
-  
-Expected output:
-  
-```text
-fetched rows / total rows = 1/1
-+--------+
-| gender |
-|--------|
-| M      |
-+--------+
-```
-  
-## Example 3: Find the most common values grouped by field  
+## Parameters
 
-This example finds the most common age of all the accounts grouped by gender.
-  
-```ppl
-source=accounts
-| top 1 showcount=false age by gender
-```
-  
-Expected output:
-  
-```text
-fetched rows / total rows = 2/2
-+--------+-----+
-| gender | age |
-|--------+-----|
-| F      | 28  |
-| M      | 32  |
-+--------+-----+
-```
-  
-## Example 4: Top command with count field  
+The `top` command supports the following parameters.
 
-This example finds the most common gender of all the accounts and includes the count.
-  
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<N>` | Optional | The number of results to return. Default is `10`. |
+| `top-options` | Optional | `showcount`: Whether to create a field in the output that represents a count of the tuple of values. Default is `true`.<br>`countfield`: The name of the field that contains the count. Default is `count`.<br>`usenull`: Whether to output `null` values. Default is the value of `plugins.ppl.syntax.legacy.preferred`. |
+| `<field-list>` | Required | A comma-delimited list of field names.  |
+| `<by-clause>` | Optional | One or more fields to group the results by. |
+
+## Example 1: Display counts in the default count column
+
+The following query finds the most common gender values:
+
 ```ppl
 source=accounts
 | top gender
 ```
-  
-Expected output:
-  
+
+By default, the `top` command automatically includes a `count` column showing the frequency of each value:
+
 ```text
 fetched rows / total rows = 2/2
 +--------+-------+
@@ -98,17 +44,39 @@ fetched rows / total rows = 2/2
 | F      | 1     |
 +--------+-------+
 ```
-  
-## Example 5: Specify the count field option  
 
-This example specifies a custom name for the count field.
+
+## Example 2: Find the most common values without the count display
+
+The following query uses `showcount=false` to hide the `count` column in the results:
+
+```ppl
+source=accounts
+| top showcount=false gender
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 2/2
++--------+
+| gender |
+|--------|
+| M      |
+| F      |
++--------+
+```
+
+## Example 3: Rename the count column
+
+The following query uses the `countfield` parameter to specify a custom name (`cnt`) for the count column instead of the default `count`:
   
 ```ppl
 source=accounts
 | top countfield='cnt' gender
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -120,14 +88,58 @@ fetched rows / total rows = 2/2
 +--------+-----+
 ```
   
-## Example 5: Specify the usenull field option  
-  
+## Example 4: Limit the number of returned results
+
+The following query returns the top 1 most common gender value:
+
+```ppl
+source=accounts
+| top 1 showcount=false gender
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 1/1
++--------+
+| gender |
+|--------|
+| M      |
++--------+
+```
+
+
+## Example 5: Group the results
+
+The following query uses the `by` clause to find the most common age within each gender group and show it separately for each gender:
+
+```ppl
+source=accounts
+| top 1 showcount=false age by gender
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 2/2
++--------+-----+
+| gender | age |
+|--------+-----|
+| F      | 28  |
+| M      | 32  |
++--------+-----+
+```
+
+## Example 6: Specify null value handling
+
+The following query specifies `usenull=false` to exclude null values:
+
 ```ppl
 source=accounts
 | top usenull=false email
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -139,13 +151,15 @@ fetched rows / total rows = 3/3
 | hattiebond@netagy.com | 1     |
 +-----------------------+-------+
 ```
-  
+
+The following query specifies `usenull=true` to include null values in the results:
+
 ```ppl
 source=accounts
 | top usenull=true email
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -159,6 +173,4 @@ fetched rows / total rows = 4/4
 +-----------------------+-------+
 ```
   
-## Limitations  
 
-The `top` command is not rewritten to OpenSearch DSL, it is only executed on the coordination node.

@@ -1,17 +1,31 @@
-# head  
 
-## Description  
+# head
 
-The `head` command returns the first N number of specified results after an optional offset in search order.
-## Syntax  
+The `head` command returns the first N lines from a search result.
 
-head [\<size\>] [from \<offset\>]
-* size: optional integer. Number of results to return. **Default:** 10  
-* offset: optional integer after `from`. Number of results to skip. **Default:** 0  
+> **Note**: The `head` command is not rewritten to [query domain-specific language (DSL)](https://docs.opensearch.org/latest/query-dsl/index/). It is only executed on the coordinating node.
+
+## Syntax
+
+The `head` command has the following syntax:
+
+```syntax
+head [<size>] [from <offset>]
+```
+
+## Parameters
+
+The `head` command supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<size>` | Optional | The number of results to return. Must be an integer. Default is `10`. |
+| `<offset>` | Optional | The number of results to skip (used with the `from` keyword). Must be an integer. Default is `0`. |
   
-## Example 1: Get first 10 results  
 
-This example shows getting a maximum of 10 results from accounts index.
+## Example 1: Retrieve the first set of results using the default size 
+
+The following query returns the default number of search results (10):
   
 ```ppl
 source=accounts
@@ -19,7 +33,7 @@ source=accounts
 | head
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 4/4
@@ -33,9 +47,10 @@ fetched rows / total rows = 4/4
 +-----------+-----+
 ```
   
-## Example 2: Get first N results  
 
-This example shows getting the first 3 results from accounts index.
+## Example 2: Retrieve a specified number of results  
+
+The following query returns the first 3 search results:
   
 ```ppl
 source=accounts
@@ -43,7 +58,7 @@ source=accounts
 | head 3
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -56,9 +71,10 @@ fetched rows / total rows = 3/3
 +-----------+-----+
 ```
   
-## Example 3: Get first N results after offset M  
 
-This example shows getting the first 3 results after offset 1 from accounts index.
+## Example 3: Retrieve the first N results after an offset M
+
+The following query demonstrates how to retrieve the first 3 results starting with the second result from the `accounts` index:
   
 ```ppl
 source=accounts
@@ -66,7 +82,7 @@ source=accounts
 | head 3 from 1
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
@@ -79,6 +95,4 @@ fetched rows / total rows = 3/3
 +-----------+-----+
 ```
   
-## Limitations  
 
-The `head` command is not rewritten to OpenSearch DSL, it is only executed on the coordination node.

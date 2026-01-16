@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.plan;
+package org.opensearch.sql.calcite.plan.rule;
 
 import java.util.ArrayList;
 import java.util.Collection;

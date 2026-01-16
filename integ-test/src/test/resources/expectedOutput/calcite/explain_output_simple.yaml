@@ -1,0 +1,14 @@
+calcite:
+  logical: |
+    LogicalSystemLimit
+      LogicalProject
+        LogicalFilter
+          LogicalProject
+            LogicalFilter
+              LogicalProject
+                LogicalSort
+                  LogicalProject
+                    LogicalAggregate
+                      LogicalProject
+                        LogicalFilter
+                          CalciteLogicalIndexScan

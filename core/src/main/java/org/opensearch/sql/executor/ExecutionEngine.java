@@ -13,7 +13,7 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.apache.calcite.rel.RelNode;
-import org.opensearch.sql.ast.statement.Explain;
+import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.model.ExprValue;
@@ -53,7 +53,7 @@ public interface ExecutionEngine {
 
   default void explain(
       RelNode plan,
-      Explain.ExplainFormat format,
+      ExplainMode mode,
       CalcitePlanContext context,
       ResponseListener<ExplainResponse> listener) {}
 

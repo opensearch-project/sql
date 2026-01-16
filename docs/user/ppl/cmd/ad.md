@@ -1,37 +1,76 @@
-# ad (deprecated by ml command)  
 
-## Description  
+# ad (Deprecated)
 
-The `ad` command applies Random Cut Forest (RCF) algorithm in the ml-commons plugin on the search result returned by a PPL command. Based on the input, the command uses two types of RCF algorithms: fixed-in-time RCF for processing time-series data, batch RCF for processing non-time-series data.
-## Syntax  
+> **Warning**: The `ad` command is deprecated in favor of the [`ml` command](./ml.md).
 
-## Fixed In Time RCF For Time-series Data  
+The `ad` command applies the Random Cut Forest (RCF) algorithm in the ML Commons plugin to the search results returned by a PPL command. The command provides two anomaly detection approaches:
 
-ad [number_of_trees] [shingle_size] [sample_size] [output_after] [time_decay] [anomaly_rate] \<time_field\> [date_format] [time_zone] [category_field]
-* number_of_trees: optional. Number of trees in the forest. **Default:** 30.  
-* shingle_size: optional. A shingle is a consecutive sequence of the most recent records. **Default:** 8.  
-* sample_size: optional. The sample size used by stream samplers in this forest. **Default:** 256.  
-* output_after: optional. The number of points required by stream samplers before results are returned. **Default:** 32.  
-* time_decay: optional. The decay factor used by stream samplers in this forest. **Default:** 0.0001.  
-* anomaly_rate: optional. The anomaly rate. **Default:** 0.005.  
-* time_field: mandatory. Specifies the time field for RCF to use as time-series data.  
-* date_format: optional. Used for formatting time_field. **Default:** "yyyy-MM-dd HH:mm:ss".  
-* time_zone: optional. Used for setting time zone for time_field. **Default:** "UTC".  
-* category_field: optional. Specifies the category field used to group inputs. Each category will be independently predicted.  
+- [Anomaly detection for time-series data](#anomaly-detection-for-time-series-data) using the fixed-in-time RCF algorithm
+- [Anomaly detection for non-time-series data](#anomaly-detection-for-non-time-series-data) using the batch RCF algorithm
+
+> **Note**: To use the `ad` command, `plugins.calcite.enabled` must be set to `false`.
+
+## Syntax
+
+The `ad` command has two different syntax variants, depending on the algorithm type.
+
+### Anomaly detection for time-series data
+
+Use this syntax to detect anomalies in time-series data. This method uses the fixed-in-time RCF algorithm, which is optimized for sequential data patterns.
+
+The fixed-in-time RCF `ad` command has the following syntax:
+
+```syntax
+ad [number_of_trees] [shingle_size] [sample_size] [output_after] [time_decay] [anomaly_rate] <time_field> [date_format] [time_zone] [category_field]
+```
+
+### Parameters
+
+The fixed-in-time RCF algorithm supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `time_field` | Required | The time field for RCF to use as time-series data. |
+| `number_of_trees` | Optional | The number of trees in the forest. Default is `30`. |
+| `shingle_size` | Optional | The number of records in a shingle. A shingle is a consecutive sequence of the most recent records. Default is `8`. |
+| `sample_size` | Optional | The sample size used by the stream samplers in this forest. Default is `256`. |
+| `output_after` | Optional | The number of points required by the stream samplers before results are returned. Default is `32`. |
+| `time_decay` | Optional | The decay factor used by the stream samplers in this forest. Default is `0.0001`. |
+| `anomaly_rate` | Optional | The anomaly rate. Default is `0.005`. |
+| `date_format` | Optional | The format used for the `time_field` field. Default is `yyyy-MM-dd HH:mm:ss`. |
+| `time_zone` | Optional | The time zone for the `time_field` field. Default is `UTC`. |
+| `category_field` | Optional | The category field used to group input values. The predict operation is applied to each category independently. |  
   
-## Batch RCF For Non-time-series Data  
 
+### Anomaly detection for non-time-series data
+
+Use this syntax to detect anomalies in data where the order doesn't matter. This method uses the batch RCF algorithm, which is optimized for independent data points.
+
+The batch RCF `ad` command has the following syntax:
+
+```syntax
 ad [number_of_trees] [sample_size] [output_after] [training_data_size] [anomaly_score_threshold] [category_field]
-* number_of_trees: optional. Number of trees in the forest. **Default:** 30.  
-* sample_size: optional. Number of random samples given to each tree from the training data set. **Default:** 256.  
-* output_after: optional. The number of points required by stream samplers before results are returned. **Default:** 32.  
-* training_data_size: optional. **Default:** size of your training data set.  
-* anomaly_score_threshold: optional. The threshold of anomaly score. **Default:** 1.0.  
-* category_field: optional. Specifies the category field used to group inputs. Each category will be independently predicted.  
-  
-## Example 1: Detecting events in New York City from taxi ridership data with time-series data  
+```
 
-This example trains an RCF model and uses the model to detect anomalies in the time-series ridership data.
+### Parameters
+
+The batch RCF algorithm supports the following parameters.
+
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `number_of_trees` | Optional | The number of trees in the forest. Default is `30`. |
+| `sample_size` | Optional | The number of random samples provided to each tree from the training dataset. Default is `256`. |
+| `output_after` | Optional | The number of points required by the stream samplers before results are returned. Default is `32`. |
+| `training_data_size` | Optional | The size of the training dataset. Default is the full dataset size. |
+| `anomaly_score_threshold` | Optional | The anomaly score threshold. Default is `1.0`. |
+| `category_field` | Optional | The category field used to group input values. The predict operation is applied to each category independently. |  
+  
+
+## Example 1: Detecting events in New York City taxi ridership time-series data
+
+The following examples use the `nyc_taxi` dataset, which contains New York City taxi ridership data with fields including `value` (number of rides), `timestamp` (time of measurement), and `category` (time period classifications such as 'day' and 'night').
+
+This example trains an RCF model and uses it to detect anomalies in time-series ridership data:
   
 ```ppl ignore
 source=nyc_taxi
@@ -40,7 +79,7 @@ source=nyc_taxi
 | where value=10844.0
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -51,9 +90,10 @@ fetched rows / total rows = 1/1
 +---------+---------------------+-------+---------------+
 ```
   
-## Example 2: Detecting events in New York City from taxi ridership data with time-series data independently with each category  
 
-This example trains an RCF model and uses the model to detect anomalies in the time-series ridership data with multiple category values.
+## Example 2: Detecting events in New York City taxi ridership time-series data by category
+
+This example trains an RCF model and uses it to detect anomalies in time-series ridership data across multiple category values:
   
 ```ppl ignore
 source=nyc_taxi
@@ -62,7 +102,7 @@ source=nyc_taxi
 | where value=10844.0 or value=6526.0
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -74,9 +114,10 @@ fetched rows / total rows = 2/2
 +----------+---------+---------------------+-------+---------------+
 ```
   
-## Example 3: Detecting events in New York City from taxi ridership data with non-time-series data  
 
-This example trains an RCF model and uses the model to detect anomalies in the non-time-series ridership data.
+## Example 3: Detecting events in New York City taxi ridership non-time-series data
+
+This example trains an RCF model and uses it to detect anomalies in non-time-series ridership data:
   
 ```ppl ignore
 source=nyc_taxi
@@ -85,7 +126,7 @@ source=nyc_taxi
 | where value=10844.0
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 1/1
@@ -96,9 +137,10 @@ fetched rows / total rows = 1/1
 +---------+-------+-----------+
 ```
   
-## Example 4: Detecting events in New York City from taxi ridership data with non-time-series data independently with each category  
 
-This example trains an RCF model and uses the model to detect anomalies in the non-time-series ridership data with multiple category values.
+## Example 4: Detecting events in New York City taxi ridership non-time-series data by category
+
+This example trains an RCF model and uses it to detect anomalies in non-time-series ridership data across multiple category values:
   
 ```ppl ignore
 source=nyc_taxi
@@ -107,7 +149,7 @@ source=nyc_taxi
 | where value=10844.0 or value=6526.0
 ```
   
-Expected output:
+The query returns the following results:
   
 ```text
 fetched rows / total rows = 2/2
@@ -119,6 +161,4 @@ fetched rows / total rows = 2/2
 +----------+---------+-------+-----------+
 ```
   
-## Limitations  
 
-The `ad` command can only work with `plugins.calcite.enabled=false`.
