@@ -219,11 +219,10 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
                 + " skills_not_array",
             INDEX);
 
-    ResponseException ex = assertThrows(ResponseException.class, () -> executeQuery(query));
-    Assertions.assertTrue(
-        ex.getMessage()
-            .contains(
-                "Cannot expand field 'skills_not_array': expected ARRAY type but found VARCHAR"));
+    JSONObject result = executeQuery(query);
+
+    verifyNumOfRows(result, 1);
+    verifyDataRows(result, rows("u1", "scala"));
   }
 
   @Test
@@ -288,17 +287,17 @@ public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testMvexpandOnIntegerFieldMappingThrowsSemantic() throws Exception {
+  public void testMvexpandOnIntegerFieldMapping() throws Exception {
     String query =
         String.format(
             "source=%s | mvexpand skills_int | where username='u_int' | fields username,"
                 + " skills_int",
             INDEX);
 
-    ResponseException ex = assertThrows(ResponseException.class, () -> executeQuery(query));
-    Assertions.assertTrue(
-        ex.getMessage().contains("Cannot expand field") || ex.getMessage().contains("Semantic"),
-        "Expected semantic error for non-array field, got: " + ex.getMessage());
+    JSONObject result = executeQuery(query);
+
+    verifyNumOfRows(result, 1);
+    verifyDataRows(result, rows("u_int", 5));
   }
 
   private static void createIndex(String index, String mappingJson) throws IOException {

@@ -3119,7 +3119,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Missing-field: produce no rows (but keep schema stable).
     final RelDataType inputType = relBuilder.peek().getRowType();
     final RelDataTypeField inputField =
-        inputType.getField(fieldName, /*caseSensitive*/ false, /*elideRecord*/ false);
+        inputType.getField(fieldName, /*caseSensitive*/ true, /*elideRecord*/ false);
+
     if (inputField == null) {
       return buildEmptyResultWithStableSchema(relBuilder, fieldName);
     }
