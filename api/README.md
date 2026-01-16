@@ -14,8 +14,10 @@ This module provides components organized into two main areas aligned with the [
 ### Unified Execution Runtime
 
 - **`UnifiedQueryCompiler`**: Compiles Calcite logical plans (`RelNode`) into executable JDBC `PreparedStatement` objects for separation of compilation and execution.
+- **`UnifiedFunction`**: Engine-agnostic function interface that enables functions to be evaluated across different execution engines without engine-specific code duplication.
+- **`UnifiedFunctionRepository`**: Repository for discovering and loading functions as `UnifiedFunction` instances, providing a bridge between function definitions and external execution engines.
 
-Together, these components enable complete workflows: parse PPL queries into logical plans, transpile those plans into target database SQL, or compile and execute queries directly for testing and conformance validation.
+Together, these components enable complete workflows: parse PPL queries into logical plans, transpile those plans into target database SQL, compile and execute queries directly, or export PPL functions for use in external execution engines.
 
 ### Experimental API Design
 
@@ -84,6 +86,58 @@ try (PreparedStatement statement = compiler.compile(plan)) {
         // Standard JDBC ResultSet access
     }
 }
+```
+
+### UnifiedFunction and UnifiedFunctionRepository
+
+The Unified Function API provides an engine-agnostic abstraction for functions, enabling them to be evaluated across different execution engines (Spark, Flink, Calcite, etc.) without engine-specific code duplication.
+
+#### Type System
+
+Types are represented as SQL type name strings for engine-agnostic serialization:
+
+- **Primitive types**: `"VARCHAR"`, `"INTEGER"`, `"BIGINT"`, `"DOUBLE"`, `"BOOLEAN"`, `"DATE"`, `"TIMESTAMP"`
+- **Array types**: `"ARRAY<ELEMENT_TYPE>"` (e.g., `"ARRAY<INTEGER>"`)
+- **Struct types**: `"STRUCT<field1:TYPE1, field2:TYPE2>"` (e.g., `"STRUCT<name:VARCHAR, age:INTEGER>"`)
+
+#### Loading Functions
+
+Use `UnifiedFunctionRepository` to discover and load unified functions:
+
+```java
+// Create repository with context
+UnifiedFunctionRepository repository = new UnifiedFunctionRepository(context);
+
+// Load all available functions
+List<UnifiedFunctionDescriptor> allFunctions = repository.loadFunctions();
+for (UnifiedFunctionDescriptor descriptor : allFunctions) {
+    String name = descriptor.getFunctionName();
+    UnifiedFunctionBuilder builder = descriptor.getBuilder();
+    // Use builder to create function instances
+}
+
+// Load a specific function by name
+UnifiedFunctionDescriptor upperDescriptor = repository.loadFunction("UPPER").orElseThrow();
+```
+
+#### Creating and Using Functions
+
+Functions are created using builders with specific input types:
+
+```java
+// Get function descriptor
+UnifiedFunctionDescriptor descriptor = repository.loadFunction("UPPER").orElseThrow();
+
+// Build function with specific input types
+UnifiedFunction upperFunc = descriptor.getBuilder().build(List.of("VARCHAR"));
+
+// Get function metadata
+String name = upperFunc.getFunctionName();        // "UPPER"
+List<String> inputTypes = upperFunc.getInputTypes();  // ["VARCHAR"]
+String returnType = upperFunc.getReturnType();    // "VARCHAR"
+
+// Evaluate function
+Object result = upperFunc.eval(List.of("hello")); // "HELLO"
 ```
 
 ### Complete Workflow Examples

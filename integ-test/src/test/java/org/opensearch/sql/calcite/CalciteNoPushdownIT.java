@@ -84,6 +84,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalcitePPLRenameIT.class,
   CalcitePPLScalarSubqueryIT.class,
   CalcitePPLSortIT.class,
+  CalcitePPLSpathCommandIT.class,
   CalcitePPLStringBuiltinFunctionIT.class,
   CalcitePPLTrendlineIT.class,
   CalcitePrometheusDataSourceCommandsIT.class,
