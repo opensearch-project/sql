@@ -105,6 +105,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.patterns.PatternUtils;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.datasource.DataSourceService;
@@ -959,10 +960,10 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     List<UnresolvedExpression> aggExprs =
         Stream.of(
                 new Alias(
-                    "pattern_count",
+                    PatternUtils.PATTERN_COUNT,
                     new AggregateFunction(BuiltinFunctionName.COUNT.name(), AllFields.of())),
                 new Alias(
-                    "sample_logs",
+                    PatternUtils.SAMPLE_LOGS,
                     new AggregateFunction(
                         BuiltinFunctionName.TAKE.name(),
                         node.getSourceField(),

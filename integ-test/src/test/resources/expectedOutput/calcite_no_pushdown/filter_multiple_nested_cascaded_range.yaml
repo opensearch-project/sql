@@ -1,0 +1,10 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(author=[$0])
+        LogicalFilter(condition=[AND(SEARCH($4, Sarg[[4..6)]), =($6, 'The Shining'))])
+          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_cascaded_nested]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..13=[{inputs}], expr#14=[Sarg[[4..6)]], expr#15=[SEARCH($t4, $t14)], expr#16=['The Shining':VARCHAR], expr#17=[=($t6, $t16)], expr#18=[AND($t15, $t17)], author=[$t0], $condition=[$t18])
+        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_cascaded_nested]])

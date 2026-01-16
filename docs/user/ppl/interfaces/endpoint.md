@@ -181,6 +181,14 @@ Expected output (trimmed):
          "optimize": { "time_ms": 18.2 },
          "execute": { "time_ms": 4.87 },
          "format": { "time_ms": 0.05 }
+      },
+      "plan": {
+         "node": "EnumerableCalc",
+         "time_ms": 4.82,
+         "rows": 2,
+         "children": [
+            { "node": "CalciteEnumerableIndexScan", "time_ms": 4.12, "rows": 2 }
+         ]
       }
    }
 }
@@ -190,3 +198,6 @@ Expected output (trimmed):
 
 - Profile output is only returned when the query finishes successfully.
 - Profiling runs only when Calcite is enabled.
+- Plan node names use Calcite physical operator names (for example, `EnumerableCalc` or `CalciteEnumerableIndexScan`).
+- Plan `time_ms` is inclusive of child operators and represents wall-clock time; overlapping work can make summed plan times exceed `summary.total_time_ms`.
+- Scan nodes reflect operator wall-clock time; background prefetch can make scan time smaller than total request latency.

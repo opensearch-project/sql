@@ -438,4 +438,59 @@ public class CalcitePPLLookupIT extends PPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifyNumOfRows(result, 6);
   }
+
+  @Test
+  public void testUidAsIdOutputDepartment() throws IOException {
+    // OUTPUT is a synonym for REPLACE (SPL compatibility)
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s"
+                    + "| LOOKUP %s uid AS id OUTPUT department"
+                    + "| fields id, name, occupation, country, salary, department",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+    verifySchema(
+        result,
+        schema("id", "int"),
+        schema("name", "string"),
+        schema("occupation", "string"),
+        schema("country", "string"),
+        schema("salary", "int"),
+        schema("department", "string"));
+    verifyDataRows(
+        result,
+        rows(1000, "Jake", "Engineer", "England", 100000, "IT"),
+        rows(1001, "Hello", "Artist", "USA", 70000, null),
+        rows(1002, "John", "Doctor", "Canada", 120000, "DATA"),
+        rows(1003, "David", "Doctor", null, 120000, "HR"),
+        rows(1004, "David", null, "Canada", 0, null),
+        rows(1005, "Jane", "Scientist", "Canada", 90000, "DATA"));
+  }
+
+  @Test
+  public void testUidAsIdOutputDepartmentAsCountry() throws IOException {
+    // OUTPUT with field aliasing (SPL compatibility)
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s"
+                    + "| LOOKUP %s uid AS id OUTPUT department AS country"
+                    + "| fields id, name, occupation, salary, country",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+    verifySchema(
+        result,
+        schema("id", "int"),
+        schema("name", "string"),
+        schema("occupation", "string"),
+        schema("salary", "int"),
+        schema("country", "string"));
+    verifyDataRows(
+        result,
+        rows(1000, "Jake", "Engineer", 100000, "IT"),
+        rows(1001, "Hello", "Artist", 70000, null),
+        rows(1002, "John", "Doctor", 120000, "DATA"),
+        rows(1003, "David", "Doctor", 120000, "HR"),
+        rows(1004, "David", null, 0, null),
+        rows(1005, "Jane", "Scientist", 90000, "DATA"));
+  }
 }

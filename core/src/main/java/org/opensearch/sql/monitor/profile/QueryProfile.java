@@ -7,6 +7,7 @@ package org.opensearch.sql.monitor.profile;
 
 import com.google.gson.annotations.SerializedName;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -20,6 +21,8 @@ public final class QueryProfile {
 
   private final Map<String, Phase> phases;
 
+  private final PlanNode plan;
+
   /**
    * Create a new query profile snapshot.
    *
@@ -27,8 +30,20 @@ public final class QueryProfile {
    * @param phases metric values keyed by {@link MetricName}
    */
   public QueryProfile(double totalTimeMillis, Map<MetricName, Double> phases) {
+    this(totalTimeMillis, phases, null);
+  }
+
+  /**
+   * Create a new query profile snapshot.
+   *
+   * @param totalTimeMillis total elapsed milliseconds for the query (rounded to two decimals)
+   * @param phases metric values keyed by {@link MetricName}
+   * @param plan plan tree profiling output
+   */
+  public QueryProfile(double totalTimeMillis, Map<MetricName, Double> phases, PlanNode plan) {
     this.summary = new Summary(totalTimeMillis);
     this.phases = buildPhases(phases);
+    this.plan = plan;
   }
 
   private Map<String, Phase> buildPhases(Map<MetricName, Double> phases) {
@@ -60,6 +75,26 @@ public final class QueryProfile {
 
     private Phase(double timeMillis) {
       this.timeMillis = timeMillis;
+    }
+  }
+
+  @Getter
+  public static final class PlanNode {
+
+    private final String node;
+
+    @SerializedName("time_ms")
+    private final double timeMillis;
+
+    private final long rows;
+
+    private final List<PlanNode> children;
+
+    public PlanNode(String node, double timeMillis, long rows, List<PlanNode> children) {
+      this.node = node;
+      this.timeMillis = timeMillis;
+      this.rows = rows;
+      this.children = children;
     }
   }
 }
