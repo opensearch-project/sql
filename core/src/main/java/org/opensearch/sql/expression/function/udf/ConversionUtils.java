@@ -12,22 +12,24 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class ConversionUtils {
 
-  private ConversionUtils() {
-    // Utility class - prevent instantiation
-  }
+  private ConversionUtils() {}
 
   private static final Pattern COMMA_PATTERN = Pattern.compile(",");
   private static final Pattern LEADING_NUMBER_WITH_UNIT_PATTERN =
       Pattern.compile("^([+-]?(?:\\d+\\.?\\d*|\\.\\d+)(?:[eE][+-]?\\d+)?)(.*)$");
   private static final Pattern CONTAINS_LETTER_PATTERN = Pattern.compile(".*[a-zA-Z].*");
   private static final Pattern STARTS_WITH_SIGN_OR_DIGIT = Pattern.compile("^[+-]?[\\d.].*");
+  private static final Pattern MEMK_PATTERN = Pattern.compile("^([+-]?\\d+\\.?\\d*)([kmgKMG])?$");
 
-  /** Conversion strategy for different convert functions. */
+  private static final double MB_TO_KB = 1024.0;
+  private static final double GB_TO_KB = 1024.0 * 1024.0;
+
   private enum ConversionStrategy {
-    STANDARD, // num() - fixed numeric conversion
-    COMPREHENSIVE, // auto() - extensible, will add new features later
-    COMMA_ONLY, // rmcomma() - only comma removal
-    UNIT_ONLY // rmunit() - only unit removal
+    STANDARD, // num()
+    COMPREHENSIVE, // auto()
+    COMMA_ONLY, // rmcomma()
+    UNIT_ONLY, // rmunit()
+    MEMK // memk()
   }
 
   private static String preprocessValue(Object value) {
@@ -55,14 +57,6 @@ public class ConversionUtils {
     return null;
   }
 
-  private static Double tryConvertWithUnitRemoval(String str) {
-    String leadingNumber = extractLeadingNumber(str);
-    if (leadingNumber != null) {
-      return tryParseDouble(leadingNumber);
-    }
-    return null;
-  }
-
   private static Double tryConvertWithCommaRemoval(String str) {
     String noCommas = COMMA_PATTERN.matcher(str).replaceAll("");
     return tryParseDouble(noCommas);
@@ -72,9 +66,26 @@ public class ConversionUtils {
     return STARTS_WITH_SIGN_OR_DIGIT.matcher(str).matches();
   }
 
+  /**
+   * Check if string has a valid unit suffix (not a malformed number).
+   */
+  private static boolean hasValidUnitSuffix(String str, String leadingNumber) {
+    if (leadingNumber == null || leadingNumber.length() >= str.length()) {
+      return false;
+    }
+    String suffix = str.substring(leadingNumber.length()).trim();
+    if (suffix.isEmpty()) {
+      return false;
+    }
+    char firstChar = suffix.charAt(0);
+    return !Character.isDigit(firstChar) && firstChar != '.';
+  }
+
   /** Unified conversion method that applies different strategies. */
   private static Object convert(Object value, ConversionStrategy strategy) {
-    if ((strategy == ConversionStrategy.STANDARD || strategy == ConversionStrategy.COMPREHENSIVE)
+    if ((strategy == ConversionStrategy.STANDARD
+            || strategy == ConversionStrategy.COMPREHENSIVE
+            || strategy == ConversionStrategy.MEMK)
         && value instanceof Number) {
       return ((Number) value).doubleValue();
     }
@@ -93,6 +104,8 @@ public class ConversionUtils {
         return convertCommaOnly(str);
       case UNIT_ONLY:
         return convertUnitOnly(str);
+      case MEMK:
+        return convertMemk(str);
       default:
         return null;
     }
@@ -108,16 +121,26 @@ public class ConversionUtils {
       return result;
     }
 
-    if (CONTAINS_LETTER_PATTERN.matcher(str).matches()) {
-      return tryConvertWithUnitRemoval(str);
+    if (str.contains(",")) {
+      result = tryConvertWithCommaRemoval(str);
+      if (result != null) {
+        return result;
+      }
     }
 
-    return tryConvertWithCommaRemoval(str);
+    String leadingNumber = extractLeadingNumber(str);
+    if (hasValidUnitSuffix(str, leadingNumber)) {
+      return tryParseDouble(leadingNumber);
+    }
+
+    return null;
   }
 
   private static Object convertComprehensive(String str) {
-    // Future: Add new conversion strategies here before delegating
-    // e.g., tryTimeConversion(str), etc
+    Object memkResult = convertMemk(str);
+    if (memkResult != null) {
+      return memkResult;
+    }
     return convertStandard(str);
   }
 
@@ -131,6 +154,32 @@ public class ConversionUtils {
   private static Object convertUnitOnly(String str) {
     String numberStr = extractLeadingNumber(str);
     return numberStr != null ? tryParseDouble(numberStr) : null;
+  }
+
+  private static Object convertMemk(String str) {
+    Matcher matcher = MEMK_PATTERN.matcher(str);
+    if (!matcher.matches()) {
+      return null;
+    }
+
+    Double number = tryParseDouble(matcher.group(1));
+    if (number == null) {
+      return null;
+    }
+
+    String unit = matcher.group(2);
+    if (unit == null || unit.equalsIgnoreCase("k")) {
+      return number;
+    }
+
+    double multiplier =
+        switch (unit.toLowerCase()) {
+          case "m" -> MB_TO_KB;
+          case "g" -> GB_TO_KB;
+          default -> 1.0;
+        };
+
+    return number * multiplier;
   }
 
   public static Object autoConvert(Object value) {
@@ -147,5 +196,9 @@ public class ConversionUtils {
 
   public static Object rmunitConvert(Object value) {
     return convert(value, ConversionStrategy.UNIT_ONLY);
+  }
+
+  public static Object memkConvert(Object value) {
+    return convert(value, ConversionStrategy.MEMK);
   }
 }

@@ -137,6 +137,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_P
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MD5;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MEDIAN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MEMK;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MICROSECOND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MINSPAN_BUCKET;
@@ -994,6 +995,7 @@ public class PPLFuncImpTable {
       registerOperator(NUM, PPLBuiltinOperators.NUM);
       registerOperator(RMCOMMA, PPLBuiltinOperators.RMCOMMA);
       registerOperator(RMUNIT, PPLBuiltinOperators.RMUNIT);
+      registerOperator(MEMK, PPLBuiltinOperators.MEMK);
       registerOperator(NONE, PPLBuiltinOperators.NONE);
 
       register(

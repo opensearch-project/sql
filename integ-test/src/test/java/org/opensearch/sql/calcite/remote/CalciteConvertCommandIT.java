@@ -120,6 +120,54 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testConvertMemkFunction() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | eval memory = '100m' | convert memk(memory) |"
+                    + " fields memory | head 1",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("memory", null, "double"));
+    verifyDataRows(result, rows(102400.0));
+  }
+
+  @Test
+  public void testConvertMemkWithDefaultKilobytes() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | eval memory = '100' | convert memk(memory) |"
+                    + " fields memory | head 1",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("memory", null, "double"));
+    verifyDataRows(result, rows(100.0));
+  }
+
+  @Test
+  public void testConvertMemkWithGigabytes() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | eval memory = '2g' | convert memk(memory) |"
+                    + " fields memory | head 1",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("memory", null, "double"));
+    verifyDataRows(result, rows(2097152.0));
+  }
+
+  @Test
+  public void testConvertMemkWithNegative() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | eval memory = '-100m' | convert memk(memory) |"
+                    + " fields memory | head 1",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("memory", null, "double"));
+    verifyDataRows(result, rows(-102400.0));
+  }
+
+  @Test
   public void testConvertNumWithNoNumbers() throws IOException {
     JSONObject result =
         executeQuery(
@@ -175,5 +223,41 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
                 TEST_INDEX_BANK));
     verifySchema(result, schema("avg(balance)", null, "double"), schema("gender", "string"));
     verifyNumOfRows(result, 2);
+  }
+
+  @Test
+  public void testConvertAutoWithMemorySizes() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | eval memory = '100m' | convert auto(memory) |"
+                    + " fields memory | head 1",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("memory", null, "double"));
+    verifyDataRows(result, rows(102400.0));
+  }
+
+  @Test
+  public void testConvertAutoWithMemorySizesKilobytes() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | eval memory = '100k' | convert auto(memory) |"
+                    + " fields memory | head 1",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("memory", null, "double"));
+    verifyDataRows(result, rows(100.0));
+  }
+
+  @Test
+  public void testConvertAutoWithMemorySizesGigabytes() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s | eval memory = '2g' | convert auto(memory) |"
+                    + " fields memory | head 1",
+                TEST_INDEX_BANK));
+    verifySchema(result, schema("memory", null, "double"));
+    verifyDataRows(result, rows(2097152.0));
   }
 }
