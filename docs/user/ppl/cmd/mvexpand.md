@@ -70,27 +70,28 @@ fetched rows / total rows = 3/3
 +-----+
 ```
 
-### Example 3: Empty Expansion
-This example demonstrates that mvexpand produces no rows when there are no matching input rows.
+### Example 3: Expand projects
+This example demonstrates expanding a multivalue `projects` field into one row per project.
 
 PPL query:
 ```ppl
 source=people
-| eval tags = array('dummy')
-| where false
-| fields tags
 | head 1
-| mvexpand tags
-| fields tags
+| fields projects
+| mvexpand projects
+| fields projects.name
 ```
 
 Expected output:
 ```text
-fetched rows / total rows = 0/0
-+------+
-| tags |
-|------|
-+------+
+fetched rows / total rows = 3/3
++--------------------------------+
+| projects.name                  |
+|--------------------------------|
+| AWS Redshift Spectrum querying |
+| AWS Redshift security          |
+| AWS Aurora security            |
++--------------------------------+
 ```
 
 ### Example 4: Single-value array (case "single")
@@ -117,7 +118,7 @@ fetched rows / total rows = 1/1
 ```
 
 ### Example 5: Missing Field
-If the field is missing in the document (case "missing"), no rows are produced.
+If the field does not exist in the input schema (for example, it is not mapped or was projected out earlier), mvexpand does not throw an error and produces no rows.
 
 PPL query:
 ```ppl

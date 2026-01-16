@@ -1,6 +1,0 @@
-{"case":"basic","tags":[{"value":"error"},{"value":"warning"},{"value":"info"}]}
-{"case":"empty","tags":[]}
-{"case":"null","tags":null}
-{"case":"single","tags":[{"value":"error"}]}
-{"case":"ids","ids":[{"value":1},{"value":2},{"value":3},{"value":4},{"value":5}]}
-{"case":"missing","other":[1,2]}
