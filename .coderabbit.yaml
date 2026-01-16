@@ -16,7 +16,6 @@ reviews:
   collapse_walkthrough: true
   path_filters:
     - '**/*'
-    - '**/gen/**'
     - '!**/test/**/gen/**'
     - '!**/.git/**'
     - '!**/target/**'
