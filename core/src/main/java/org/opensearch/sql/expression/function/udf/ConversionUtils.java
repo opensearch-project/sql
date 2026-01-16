@@ -66,9 +66,7 @@ public class ConversionUtils {
     return STARTS_WITH_SIGN_OR_DIGIT.matcher(str).matches();
   }
 
-  /**
-   * Check if string has a valid unit suffix (not a malformed number).
-   */
+  /** Check if string has a valid unit suffix (not a malformed number). */
   private static boolean hasValidUnitSuffix(String str, String leadingNumber) {
     if (leadingNumber == null || leadingNumber.length() >= str.length()) {
       return false;
