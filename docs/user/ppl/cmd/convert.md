@@ -1,138 +1,249 @@
-# Convert Command
+# convert
 
 The `convert` command applies conversion functions to transform field values into different data types and formats.
 
 ## Syntax
 
-```ppl
-... | convert <convert-function>(<field>) [AS <field>] [, <convert-function>(<field>) [AS <field>]]...
-```
+The `convert` command has the following syntax:
 
-## Conversion Functions
-
-### Numeric Conversions
-
-#### `auto(field)`
-Automatically converts fields to numbers using intelligent conversion:
-- Converts numeric strings to double precision numbers
-- Removes commas from numeric strings before conversion
-- Extracts leading numbers from strings starting with digits
-- Supports special values like `NaN`
-- Returns `null` for values that cannot be converted to a number
-
-**Roadmap:** Additional conversion formats are planned for future releases, including time duration formats (`dur2sec`), time formats (`mstime`), memory units (`memk`), and timestamp conversions (`ctime`, `mktime`). Once implemented, the `auto()` function will automatically detect and apply these conversions.
-
-**Examples:**
-```sql
-source=accounts | convert auto(balance)
-```
-- `"39,225"` → `39225.0`
-- `"1,,234"` → `1234.0` (handles consecutive commas)
-- `"2,12.0 sec"` → `2.0`
-- `"45.67 kg"` → `45.67`
-- `"1e5"` → `100000.0` (scientific notation)
-- `"hello"` → `null`
-- `"NaN"` → `null`
-- `"AAAA2.000"` → `null` (doesn't start with digit)
-
-#### `num(field)`
-Extracts leading numbers from strings. Handles commas and units intelligently:
-- For strings without letters: removes commas as thousands separators
-- For strings with letters: extracts leading number, stops at letters or commas
-- Returns `null` for non-convertible values
-
-**Examples:**
-```sql
-source=accounts | convert num(age)
-```
-- `"1,234"` → `1234.0`
-- `"1,,234"` → `1234.0` (handles consecutive commas)
-- `"32"` → `32.0`
-- `"212 sec"` → `212.0`
-- `"2,12.0 sec"` → `2.0`
-- `"1e5"` → `100000.0` (scientific notation)
-- `"no numbers"` → `null`
-- `"NaN"` → `null`
-
-#### `rmcomma(field)`
-Removes commas from field values and attempts to convert to a number. Returns `null` if the value contains letters.
-
-**Examples:**
-```sql
-source=accounts | convert rmcomma(balance)
-```
-- `"1,234"` → `1234.0`
-- `"1,,234"` → `1234.0` (handles consecutive commas)
-- `"1,234.56"` → `1234.56`
-- `"34,54,45"` → `345445.0`
-- `"abc"` → `null`
-- `"AAA3454,45"` → `null`
-
-#### `rmunit(field)`
-Extracts leading numeric values from strings. Stops at the first non-numeric character (including commas).
-
-**Examples:**
-```sql
-source=metrics | convert rmunit(duration)
-```
-- `"123 dollars"` → `123.0`
-- `"45.67 kg"` → `45.67`
-- `"2.000 sec"` → `2.0`
-- `"34,54,45"` → `34.0` (stops at first comma)
-- `"no numbers"` → `null`
-- `"AAAA2\\ sec"` → `null` (doesn't start with digit)
-
-### Utility Functions
-
-#### `none(field)`
-No-op function that preserves the original field value. Used for excluding specific fields from wildcard conversions.
-
-**Example:**
-```sql
-source=accounts | convert none(account_id)
+```syntax
+convert <convert-function>(<field>) [AS <field>] [, <convert-function>(<field>) [AS <field>]]...
 ```
 
 ## Parameters
 
-- `<convert-function>`: One of the conversion functions listed above
-- `<field>`: Single field name to convert, or `*` to convert all fields
-- `AS <field>`: (Optional) Create new field with converted value, preserving original
+The `convert` command supports the following parameters.
 
-## Examples
+| Parameter | Required/Optional | Description |
+| --- | --- | --- |
+| `<convert-function>` | Required | One of the conversion functions: `auto()`, `num()`, `rmcomma()`, `rmunit()`, `memk()`, or `none()`. |
+| `<field>` | Required | Single field name to convert, or `*` to convert all fields. |
+| `AS <field>` | Optional | Create new field with converted value, preserving original field. |
 
-### Basic Conversion
-```sql
-source=accounts | convert auto(balance)
+## Conversion Functions
+
+| Function | Description |
+| --- | --- |
+| `auto(field)` | Automatically converts fields to numbers using intelligent conversion. Handles memory sizes (k/m/g), commas, units, and scientific notation. Returns `null` for non-convertible values. |
+| `num(field)` | Extracts leading numbers from strings. For strings without letters: removes commas as thousands separators. For strings with letters: extracts leading number, stops at letters or commas. Returns `null` for non-convertible values. |
+| `rmcomma(field)` | Removes commas from field values and converts to a number. Returns `null` if the value contains letters. |
+| `rmunit(field)` | Extracts leading numeric values from strings. Stops at the first non-numeric character (including commas). Returns `null` for non-convertible values. |
+| `memk(field)` | Converts memory size strings to kilobytes. Accepts numbers with optional k/m/g suffix (case-insensitive). Default unit is kilobytes. Returns `null` for invalid formats. |
+| `none(field)` | No-op function that preserves the original field value. Used for excluding specific fields from wildcard conversions. |
+
+## Example 1: Basic auto() conversion
+
+The following query converts the `balance` field to a number using the `auto()` function:
+
+```ppl
+source=accounts
+| convert auto(balance)
+| fields account_number, balance
+| head 3
 ```
 
-### Multiple Conversions
-```sql
-source=data | convert auto(balance), num(age), rmcomma(description)
+The query returns the following results:
+
+```text
+fetched rows / total rows = 3/3
++----------------+---------+
+| account_number | balance |
+|----------------+---------|
+| 1              | 39225.0 |
+| 6              | 5686.0  |
+| 13             | 32838.0 |
++----------------+---------+
 ```
 
-### Using AS Clause
-```sql
-source=accounts | convert auto(balance) AS balance_num | fields account_number, balance_num
+## Example 2: Convert with commas using num()
+
+The following query converts a field containing comma-separated numbers:
+
+```ppl
+source=accounts
+| eval price='1,234'
+| convert num(price)
+| fields price
 ```
 
-### Complex Example
-```sql
-source=sales | convert auto(revenue) AS revenue_clean, rmunit(duration) AS duration_seconds | stats sum(revenue_clean) by product
+The query returns the following results:
+
+```text
+fetched rows / total rows = 1/1
++---------+
+| price   |
+|---------|
+| 1234.0  |
++---------+
 ```
+
+## Example 3: Memory size conversion with memk()
+
+The following query converts memory size strings to kilobytes:
+
+```ppl
+source=system_metrics
+| eval memory='100m'
+| convert memk(memory)
+| fields memory
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 1/1
++----------+
+| memory   |
+|----------|
+| 102400.0 |
++----------+
+```
+
+## Example 4: Multiple field conversions
+
+The following query converts multiple fields using different conversion functions:
+
+```ppl
+source=accounts
+| convert auto(balance), num(age)
+| fields account_number, balance, age
+| head 3
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 3/3
++----------------+---------+------+
+| account_number | balance | age  |
+|----------------+---------+------|
+| 1              | 39225.0 | 32.0 |
+| 6              | 5686.0  | 36.0 |
+| 13             | 32838.0 | 28.0 |
++----------------+---------+------+
+```
+
+## Example 5: Using AS clause to preserve original values
+
+The following query creates a new field with the converted value while preserving the original:
+
+```ppl
+source=accounts
+| convert auto(balance) AS balance_num
+| fields account_number, balance, balance_num
+| head 3
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 3/3
++----------------+---------+-------------+
+| account_number | balance | balance_num |
+|----------------+---------+-------------|
+| 1              | 39225   | 39225.0     |
+| 6              | 5686    | 5686.0      |
+| 13             | 32838   | 32838.0     |
++----------------+---------+-------------+
+```
+
+## Example 6: Extract numbers from strings with units
+
+The following query extracts numeric values from strings containing units:
+
+```ppl
+source=metrics
+| eval duration='2.000 sec'
+| convert rmunit(duration)
+| fields duration
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 1/1
++----------+
+| duration |
+|----------|
+| 2.0      |
++----------+
+```
+
+## Example 7: Integration with aggregation functions
+
+The following query converts values and uses them in aggregations:
+
+```ppl
+source=accounts
+| convert auto(balance)
+| stats avg(balance) by gender
+```
+
+The query returns the following results:
+
+```text
+fetched rows / total rows = 2/2
++--------------+--------+
+| avg(balance) | gender |
+|--------------+--------|
+| 25208.15     | M      |
+| 27992.571... | F      |
++--------------+--------+
+```
+
+## Conversion Function Details
+
+### auto() Function
+
+The `auto()` function provides the most comprehensive conversion:
+- Memory sizes: `"100k"` → `100.0`, `"50m"` → `51200.0`, `"2g"` → `2097152.0`
+- Comma formatting: `"39,225"` → `39225.0`, `"1,,234"` → `1234.0`
+- Units: `"2,12.0 sec"` → `2.0`, `"45.67 kg"` → `45.67`
+- Scientific notation: `"1e5"` → `100000.0`
+- Invalid values: `"hello"` → `null`, `"NaN"` → `null`
+
+**Roadmap:** Additional conversion formats are planned for future releases, including time duration formats (`dur2sec`), time formats (`mstime`), and timestamp conversions (`ctime`, `mktime`).
+
+### num() Function
+
+The `num()` function intelligently handles commas and units:
+- Without letters: `"1,234"` → `1234.0`, `"1,,234"` → `1234.0`
+- With letters: `"212 sec"` → `212.0`, `"2,12.0 sec"` → `2.0`
+- Scientific notation: `"1e5"` → `100000.0`
+- Invalid: `"no numbers"` → `null`
+
+### rmcomma() Function
+
+The `rmcomma()` function removes commas and converts:
+- Valid: `"1,234"` → `1234.0`, `"34,54,45"` → `345445.0`
+- Invalid: `"abc"` → `null`, `"AAA3454,45"` → `null`
+
+### rmunit() Function
+
+The `rmunit()` function extracts leading numbers:
+- Valid: `"123 dollars"` → `123.0`, `"2.000 sec"` → `2.0`
+- Stops at comma: `"34,54,45"` → `34.0`
+- Invalid: `"no numbers"` → `null`
+
+### memk() Function
+
+The `memk()` function converts memory sizes to kilobytes:
+- Kilobytes: `"100"` → `100.0`, `"100k"` → `100.0`
+- Megabytes: `"50m"` → `51200.0`
+- Gigabytes: `"2g"` → `2097152.0`, `"1.5g"` → `1572864.0`
+- Negative values: `"-100m"` → `-102400.0`
+- Invalid: `"100 m"` → `null` (spaces not allowed), `"abc100m"` → `null`
 
 ## Notes
 
-- Each conversion function accepts a single field name or the wildcard `*` to apply to all fields
-- To convert multiple specific fields, use multiple function calls separated by commas (e.g., `convert auto(balance), num(age)`)
-- All conversion functions (`auto()`, `num()`, `rmunit()`, `rmcomma()`) return `null` for values that cannot be converted to a number
-- All numeric conversion functions return double precision numbers to support use in aggregations like `avg()`, `sum()`, etc.
-- **Display Format**: All converted numbers display with decimal notation (e.g., `1234.0`, `1234.56`)
-- The `auto()` function is the most comprehensive and handles mixed data formats
-- Use `AS` clause to preserve original fields while creating converted versions
+- All conversion functions return `null` for values that cannot be converted to a number
+- All numeric conversion functions return double precision numbers to support aggregations
+- Converted numbers display with decimal notation (e.g., `1234.0`, `1234.56`)
+- Use the `AS` clause to preserve original fields while creating converted versions
 - Multiple conversions can be applied in a single command
 
 ## Limitations
 
-The `convert` command can only work with `plugins.calcite.enabled=true`. 
+The `convert` command can only work with `plugins.calcite.enabled=true`.
 
 When Calcite is disabled, attempting to use convert functions will result in an "unsupported function" error.
