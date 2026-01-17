@@ -78,6 +78,10 @@ public class FieldResolutionResult {
     return wildcard != NULL_WILDCARD;
   }
 
+  public boolean hasPartialWildcards() {
+    return wildcard != NULL_WILDCARD && wildcard != ANY_WILDCARD;
+  }
+
   public boolean hasRegularFields() {
     return !regularFields.isEmpty();
   }

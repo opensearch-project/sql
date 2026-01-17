@@ -14,6 +14,7 @@ import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
+import static org.opensearch.sql.calcite.plan.DynamicFieldsConstants.DYNAMIC_FIELDS_MAP;
 import static org.opensearch.sql.calcite.plan.rule.PPLDedupConvertRule.buildDedupNotNull;
 import static org.opensearch.sql.calcite.plan.rule.PPLDedupConvertRule.buildDedupOrNull;
 import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_FOR_MAIN;
@@ -422,7 +423,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           if (WildcardUtils.containsWildcard(fieldName)) {
             List<String> matchingFields =
                 WildcardUtils.expandWildcardPattern(fieldName, currentFields).stream()
-                    .filter(f -> !isMetadataField(f))
+                    .filter(f -> !isMetadataField(f) && !f.equals(DYNAMIC_FIELDS_MAP))
                     .filter(addedFields::add)
                     .toList();
             if (matchingFields.isEmpty()) {
@@ -714,12 +715,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     visitChildren(node, context);
 
     FieldResolutionResult resolutionResult = context.resolveFields(node);
-    if (resolutionResult.hasWildcards()) {
-      // Logic for handling wildcards (dynamic fields) will be implemented later.
-      throw new IllegalArgumentException(
-          "spath command failed to identify fields to extract. Use fields/stats command to specify"
-              + " output fields.");
-    }
 
     // 1. Extract all fields from JSON in `inField`
     RexNode inField = rexVisitor.analyze(AstDSL.field(node.getInField()), context);
@@ -748,8 +743,49 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       fields.add(context.relBuilder.alias(item, fieldName));
     }
 
+    // 3. Add _MAP field for dynamic fields when wildcards present
+    if (resolutionResult.hasWildcards()) {
+      RexNode dynamicMapField =
+          createDynamicMapField(map, resolutionResult.getRegularFields(), context);
+      fields.add(context.relBuilder.alias(dynamicMapField, "_MAP"));
+    }
+
     context.relBuilder.project(fields);
     return context.relBuilder.peek();
+  }
+
+  /**
+   * Creates a dynamic map field containing all JSON attributes not mapped to static fields.
+   *
+   * @param fullMap The complete map from JSON_EXTRACT_ALL
+   * @param regularFields Set of field names that are extracted as static columns
+   * @param context CalcitePlanContext
+   * @return RexNode representing MAP_REMOVE(fullMap, ARRAY[regularFields])
+   */
+  private RexNode createDynamicMapField(
+      RexNode fullMap, Set<String> regularFields, CalcitePlanContext context) {
+    // Build array of keys to remove: ARRAY['field1', 'field2', ...]
+    List<RexNode> keysToRemove =
+        regularFields.stream()
+            .sorted()
+            .map(name -> context.rexBuilder.makeLiteral(name))
+            .collect(Collectors.toList());
+
+    // Create ARRAY<VARCHAR> type
+    RelDataType arrayType =
+        context
+            .rexBuilder
+            .getTypeFactory()
+            .createArrayType(
+                context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), -1);
+
+    // Build ARRAY value constructor
+    RexNode keyArray =
+        context.rexBuilder.makeCall(
+            arrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, keysToRemove);
+
+    // MAP_REMOVE(fullMap, keyArray) → filtered map with only unmapped fields
+    return makeCall(context, BuiltinFunctionName.MAP_REMOVE, fullMap, keyArray);
   }
 
   private RexNode itemCall(RexNode node, String key, CalcitePlanContext context) {

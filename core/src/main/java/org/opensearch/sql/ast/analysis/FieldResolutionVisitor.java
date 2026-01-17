@@ -75,6 +75,8 @@ import org.opensearch.sql.expression.parse.RegexCommonUtils;
  */
 public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResolutionContext> {
 
+  private static final String ALL_FIELDS = "*";
+
   /**
    * Analyzes PPL query plan to determine required fields at each node.
    *
@@ -110,10 +112,10 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
 
   @Override
   public Node visitProject(Project node, FieldResolutionContext context) {
-    boolean isSelectAll =
-        node.getProjectList().stream().anyMatch(expr -> expr instanceof AllFields);
+    boolean isSingleSelectAll =
+        node.getProjectList().size() == 1 && node.getProjectList().getFirst() instanceof AllFields;
 
-    if (isSelectAll) {
+    if (isSingleSelectAll) {
       visitChildren(node, context);
     } else {
       Set<String> projectFields = new HashSet<>();
@@ -181,10 +183,9 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
       // set requirements for spath command;
       context.setResult(node, context.getCurrentRequirements());
       FieldResolutionResult requirements = context.getCurrentRequirements();
-      if (requirements.hasWildcards()) {
+      if (requirements.hasPartialWildcards()) {
         throw new IllegalArgumentException(
-            "Spath command cannot extract arbitrary fields. Please project fields explicitly by"
-                + " fields command without wildcard or stats command.");
+            "Spath command cannot be used with partial wildcard such as `prefix*`.");
       }
 
       context.pushRequirements(context.getCurrentRequirements().or(Set.of(node.getInField())));
@@ -237,6 +238,8 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
 
     if (expr instanceof Field field) {
       fields.add(field.getField().toString());
+    } else if (expr instanceof AllFields) {
+      fields.add(ALL_FIELDS);
     } else if (expr instanceof QualifiedName name) {
       fields.add(name.toString());
     } else if (expr instanceof Alias alias) {
@@ -619,6 +622,10 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
         }
       }
     }
-    return fields;
+    return excludeAllFieldsWildcard(fields);
+  }
+
+  private Set<String> excludeAllFieldsWildcard(Set<String> fields) {
+    return fields.stream().filter(f -> !f.equals(ALL_FIELDS)).collect(Collectors.toSet());
   }
 }

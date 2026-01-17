@@ -32,6 +32,7 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
     putItem(5, "join2", sj("{'key': 'k1', 'right': 'r1'}"));
     putItem(6, "join2", sj("{'key': 'k2', 'right': 'r2'}"));
     putItem(7, "overwrap", sj("{'a.b': 1, 'a': {'b': 2, 'c': 3}}"));
+    putItem(8, "types", sj("{'string': 'STRING', 'boolean': true, 'number': 10.1, 'null': null}"));
   }
 
   private void putItem(int id, String testCase, String json) throws Exception {
@@ -62,20 +63,52 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
     verifyDataRows(result, rows("1"), rows("1"));
   }
 
-  private static final String EXPECTED_ARBITRARY_FIELD_ERROR =
-      "Spath command cannot extract arbitrary fields. "
-          + "Please project fields explicitly by fields command without wildcard or stats command.";
-
-  @Test
-  public void testSpathWithoutFields() throws IOException {
-    verifyExplainException(
-        "source=test_spath | spath input=doc | eval a = 1", EXPECTED_ARBITRARY_FIELD_ERROR);
-  }
+  private static final String EXPECTED_SPATH_WILDCARD_ERROR =
+      "Spath command cannot be used with partial wildcard such as `prefix*`.";
 
   @Test
   public void testSpathWithWildcard() throws IOException {
     verifyExplainException(
-        "source=test_spath | spath input=doc | fields a, b*", EXPECTED_ARBITRARY_FIELD_ERROR);
+        "source=test_spath | spath input=doc | fields a, b*", EXPECTED_SPATH_WILDCARD_ERROR);
+  }
+
+  @Test
+  public void testSpathWithoutFields() throws IOException {
+    JSONObject result =
+        executeQuery("source=test_spath | where testCase='simple' | spath input=doc | head 1");
+    verifySchema(result, schema("a", "string"), schema("b", "string"), schema("c", "string"));
+    verifyDataRows(result, rows("1", "2", "3"));
+  }
+
+  @Test
+  public void testSpathWithOnlyWildcard() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_spath | where testCase='simple' | spath input=doc | fields * | head 1");
+    verifySchema(result, schema("a", "string"), schema("b", "string"), schema("c", "string"));
+    verifyDataRows(result, rows("1", "2", "3"));
+  }
+
+  @Test
+  public void testSpathWithFieldAndWildcard() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_spath | where testCase='simple' | spath input=doc | fields c, * | head 1");
+    verifySchema(result, schema("c", "string"), schema("a", "string"), schema("b", "string"));
+    verifyDataRows(result, rows("3", "1", "2"));
+  }
+
+  @Test
+  public void testSpathTypes() throws IOException {
+    JSONObject result =
+        executeQuery("source=test_spath | where testCase='types' | spath input=doc | head 1");
+    verifySchema(
+        result,
+        schema("boolean", "string"),
+        schema("null", "string"),
+        schema("number", "string"),
+        schema("string", "string"));
+    verifyDataRows(result, rows("true", null, "10.1", "STRING"));
   }
 
   private static final String EXPECTED_SUBQUERY_ERROR =

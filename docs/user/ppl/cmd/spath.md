@@ -15,7 +15,7 @@ The `spath` command extracts fields from structured JSON data. It supports two m
 spath input=<field> [output=<field>] [path=]<path>
 ```
 
-### Field Resolution-based Extraction (Experimental)
+### Auto Extraction (Experimental)
 
 ```syntax
 spath input=<field>
@@ -33,13 +33,14 @@ The `spath` command supports the following parameters.
 
 For more information about path syntax, see [json_extract](../functions/json.md#json_extract).
 
-### Field Resolution-based Extraction Notes
+### Auto Extraction Notes
 
-* Extracts only required fields based on downstream commands requirements (interim solution until full fields extraction is implemented)
-* **Limitation**: It raises error if extracted fields cannot be identified by following commands (i.e. `fields`, or `stats` command is needed)
-* **Limitation**: Cannot use wildcards (`*`) in field selection - only explicit field names are supported
-* **Limitation**: All extracted fields are returned as STRING type
-* **Limitation**: Filter with query (`where <field> in/exists [...]` ) is not supported after `spath` command
+* Automatically extracts all the fields from input field. If a field with the same name already exists, extracted values will be appended to existing field value.
+* **Limitation**: `fields` command with partial wildcard (e.g. `prefix*`, `*suffix`) is not supported after `spath` command.
+* **Limitation**: All extracted fields are returned as STRING type.
+* **Limitation**: Field order in the result could be inconsistent with query without `spath` command, and the behavior might change in the future version.
+* **Limitation**: Filter with subquery (`where <field> in/exists [...]` ) is not supported after `spath` command.
+* **Performance**: Filter records before `spath` command for best performance (see Example 8)
 
 ## Example 1: Basic field extraction
 
@@ -139,7 +140,7 @@ fetched rows / total rows = 3/3
 +-------+---+
 ```
 
-## Example 5: Field Resolution-based Extraction
+## Example 5: Full Extraction
 
 Extract multiple fields automatically based on downstream requirements. The `spath` command analyzes which fields are needed and extracts only those fields.
 
@@ -189,76 +190,39 @@ fetched rows / total rows = 1/1
 
 In this example, the JSON contains both `"a.b": 1` (direct field with dot) and `"a": {"b": 2}` (nested path). The `spath` command extracts both values and merges them into the array `[1, 2]`.
 
-## Example 7: Field Resolution with Eval
+## Example 7: Auto Extraction Limitations
 
-This example shows field resolution with computed fields. The `spath` command extracts only the fields needed by downstream commands.
+**Important**: It raises error if partial wildcard is used
 
 ```ppl
 source=structured
 | spath input=doc_multi
-| eval sum_ab = cast(a as int) + cast(b as int)
-| fields doc_multi, a, b, sum_ab
+| fields a, prefix*, b   # ERROR
+```
+
+**Important**: Even when wildcard is used at the middle, remaining fields will be returned at the end of fields.
+
+```ppl
+source=structured
+| spath input=doc_multi
+| fields doc_multi, *, b
 ```
 
 Expected output:
 
 ```text
 fetched rows / total rows = 3/3
-+--------------------------------------+----+----+--------+
-| doc_multi                            | a  | b  | sum_ab |
-|--------------------------------------+----+----+--------|
-| {"a": 10, "b": 20, "c": 30, "d": 40} | 10 | 20 | 30     |
-| {"a": 15, "b": 25, "c": 35, "d": 45} | 15 | 25 | 40     |
-| {"a": 11, "b": 21, "c": 31, "d": 41} | 11 | 21 | 32     |
-+--------------------------------------+----+----+--------+
++--------------------------------------+----+----+----+----+
+| doc_multi                            | b  | a  | c  | d  |
+|--------------------------------------+----+----+----+----|
+| {"a": 10, "b": 20, "c": 30, "d": 40} | 20 | 10 | 30 | 40 |
+| {"a": 15, "b": 25, "c": 35, "d": 45} | 25 | 15 | 35 | 45 |
+| {"a": 11, "b": 21, "c": 31, "d": 41} | 21 | 11 | 31 | 41 |
++--------------------------------------+----+----+----+----+
 ```
 
-The `spath` command extracts only fields `a` and `b` (needed by the `eval` command), which are then cast to integers and summed. Fields `c` and `d` are not extracted since they're not needed.
 
-## Example 8: Field Resolution with Stats
-
-This example demonstrates field resolution with aggregation. The `spath` command extracts only the fields needed for grouping and aggregation.
-
-```ppl
-source=structured
-| spath input=doc_multi
-| stats avg(cast(a as int)) as avg_a, sum(cast(b as int)) as sum_b by c
-```
-
-Expected output:
-
-```text
-fetched rows / total rows = 3/3
-+-------+-------+----+
-| avg_a | sum_b | c  |
-|-------+-------+----|
-| 10.0  | 20    | 30 |
-| 11.0  | 21    | 31 |
-| 15.0  | 25    | 35 |
-+-------+-------+----+
-```
-
-The `spath` command extracts fields `a`, `b`, and `c` (needed by the `stats` command for aggregation and grouping). Field `d` is not extracted since it's not used.
-
-## Example 9: Field Resolution Limitations
-
-**Important**: It raises error if extracted fields cannot be identified by following commands
-
-```ppl
-source=structured
-| spath input=doc_multi
-| eval x = a * b  # ERROR: Requires field selection (fields or stats command)
-```
-
-**Important**: Wildcards are not supported in field resolution mode:
-
-```ppl
-source=structured
-| spath input=doc_multi
-| fields a, b*  # ERROR: Spath command cannot extract arbitrary fields
-```
-
-## Example 10: Performance Considerations
+## Example 8: Performance Considerations
 
 **Important**: The `spath` command processes data on the coordinator node after retrieval from data nodes. Commands placed after `spath` cannot utilize OpenSearch index capabilities, which significantly impacts performance on large datasets.
 
