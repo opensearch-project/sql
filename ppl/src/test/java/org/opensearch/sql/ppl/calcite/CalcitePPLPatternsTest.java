@@ -395,9 +395,12 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-        "LogicalProject(patterns_field=[SAFE_CAST(ITEM($1, 'pattern'))],"
-            + " pattern_count=[SAFE_CAST(ITEM($1, 'pattern_count'))], tokens=[SAFE_CAST(ITEM($1,"
-            + " 'tokens'))], sample_logs=[SAFE_CAST(ITEM($1, 'sample_logs'))])\n"
+        "LogicalProject(patterns_field=[SAFE_CAST(ITEM(PATTERN_PARSER(SAFE_CAST(ITEM($1,"
+            + " 'pattern')), ITEM($1, 'sample_logs'), true), 'pattern'))],"
+            + " pattern_count=[SAFE_CAST(ITEM($1, 'pattern_count'))],"
+            + " tokens=[SAFE_CAST(ITEM(PATTERN_PARSER(SAFE_CAST(ITEM($1, 'pattern')), ITEM($1,"
+            + " 'sample_logs'), true), 'tokens'))], sample_logs=[SAFE_CAST(ITEM($1,"
+            + " 'sample_logs'))])\n"
             + "  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])\n"
             + "    LogicalAggregate(group=[{}], patterns_field=[pattern($0, $1, $2, $3)])\n"
             + "      LogicalProject(ENAME=[$1], $f8=[10], $f9=[100000], $f10=[true])\n"
@@ -408,11 +411,13 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT TRY_CAST(`t20`.`patterns_field`['pattern'] AS STRING) `patterns_field`,"
-            + " TRY_CAST(`t20`.`patterns_field`['pattern_count'] AS BIGINT) `pattern_count`,"
-            + " TRY_CAST(`t20`.`patterns_field`['tokens'] AS MAP< VARCHAR, VARCHAR ARRAY >)"
-            + " `tokens`, TRY_CAST(`t20`.`patterns_field`['sample_logs'] AS ARRAY< STRING >)"
-            + " `sample_logs`\n"
+        "SELECT TRY_CAST(PATTERN_PARSER(TRY_CAST(`t20`.`patterns_field`['pattern'] AS STRING),"
+            + " `t20`.`patterns_field`['sample_logs'], TRUE)['pattern'] AS STRING)"
+            + " `patterns_field`, TRY_CAST(`t20`.`patterns_field`['pattern_count'] AS BIGINT)"
+            + " `pattern_count`, TRY_CAST(PATTERN_PARSER(TRY_CAST(`t20`.`patterns_field`['pattern']"
+            + " AS STRING), `t20`.`patterns_field`['sample_logs'], TRUE)['tokens'] AS MAP< VARCHAR,"
+            + " VARCHAR ARRAY >) `tokens`, TRY_CAST(`t20`.`patterns_field`['sample_logs'] AS ARRAY<"
+            + " STRING >) `sample_logs`\n"
             + "FROM (SELECT `pattern`(`ENAME`, 10, 100000, TRUE) `patterns_field`\n"
             + "FROM `scott`.`EMP`) `$cor0`,\n"
             + "LATERAL UNNEST((SELECT `$cor0`.`patterns_field`\n"
@@ -460,9 +465,12 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-        "LogicalProject(DEPTNO=[$0], patterns_field=[SAFE_CAST(ITEM($2, 'pattern'))],"
-            + " pattern_count=[SAFE_CAST(ITEM($2, 'pattern_count'))], tokens=[SAFE_CAST(ITEM($2,"
-            + " 'tokens'))], sample_logs=[SAFE_CAST(ITEM($2, 'sample_logs'))])\n"
+        "LogicalProject(DEPTNO=[$0],"
+            + " patterns_field=[SAFE_CAST(ITEM(PATTERN_PARSER(SAFE_CAST(ITEM($2, 'pattern')),"
+            + " ITEM($2, 'sample_logs'), true), 'pattern'))], pattern_count=[SAFE_CAST(ITEM($2,"
+            + " 'pattern_count'))], tokens=[SAFE_CAST(ITEM(PATTERN_PARSER(SAFE_CAST(ITEM($2,"
+            + " 'pattern')), ITEM($2, 'sample_logs'), true), 'tokens'))],"
+            + " sample_logs=[SAFE_CAST(ITEM($2, 'sample_logs'))])\n"
             + "  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{1}])\n"
             + "    LogicalAggregate(group=[{1}], patterns_field=[pattern($0, $2, $3, $4)])\n"
             + "      LogicalProject(ENAME=[$1], DEPTNO=[$7], $f8=[10], $f9=[100000], $f10=[true])\n"
@@ -473,11 +481,14 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `$cor0`.`DEPTNO`, TRY_CAST(`t20`.`patterns_field`['pattern'] AS STRING)"
+        "SELECT `$cor0`.`DEPTNO`,"
+            + " TRY_CAST(PATTERN_PARSER(TRY_CAST(`t20`.`patterns_field`['pattern'] AS STRING),"
+            + " `t20`.`patterns_field`['sample_logs'], TRUE)['pattern'] AS STRING)"
             + " `patterns_field`, TRY_CAST(`t20`.`patterns_field`['pattern_count'] AS BIGINT)"
-            + " `pattern_count`, TRY_CAST(`t20`.`patterns_field`['tokens'] AS MAP< VARCHAR,"
-            + " VARCHAR ARRAY >) `tokens`, TRY_CAST(`t20`.`patterns_field`['sample_logs'] AS"
-            + " ARRAY< STRING >) `sample_logs`\n"
+            + " `pattern_count`, TRY_CAST(PATTERN_PARSER(TRY_CAST(`t20`.`patterns_field`['pattern']"
+            + " AS STRING), `t20`.`patterns_field`['sample_logs'], TRUE)['tokens'] AS MAP< VARCHAR,"
+            + " VARCHAR ARRAY >) `tokens`, TRY_CAST(`t20`.`patterns_field`['sample_logs'] AS ARRAY<"
+            + " STRING >) `sample_logs`\n"
             + "FROM (SELECT `DEPTNO`, `pattern`(`ENAME`, 10, 100000, TRUE) `patterns_field`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`) `$cor0`,\n"

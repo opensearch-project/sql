@@ -346,6 +346,11 @@ public enum BuiltinFunctionName {
   INTERNAL_PATTERN_PARSER(FunctionName.of("pattern_parser")),
   INTERNAL_PATTERN(FunctionName.of("pattern")),
   INTERNAL_UNCOLLECT_PATTERNS(FunctionName.of("uncollect_patterns")),
+  // Pattern aggregation UDFs for scripted metric pushdown
+  PATTERN_INIT_UDF(FunctionName.of("pattern_init_udf"), true),
+  PATTERN_ADD_UDF(FunctionName.of("pattern_add_udf"), true),
+  PATTERN_COMBINE_UDF(FunctionName.of("pattern_combine_udf"), true),
+  PATTERN_RESULT_UDF(FunctionName.of("pattern_result_udf"), true),
   INTERNAL_GROK(FunctionName.of("grok"), true),
   INTERNAL_PARSE(FunctionName.of("parse"), true),
   INTERNAL_REGEXP_REPLACE_PG_4(FunctionName.of("regexp_replace_pg_4"), true),

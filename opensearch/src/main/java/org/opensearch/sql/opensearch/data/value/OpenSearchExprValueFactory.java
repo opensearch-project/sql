@@ -195,6 +195,14 @@ public class OpenSearchExprValueFactory {
       return ExprNullValue.of();
     }
 
+    // Check for arrays first, even if field type is not defined in mapping.
+    // This handles nested arrays in aggregation results where inner fields
+    // (like sample_logs in pattern aggregation) may not have type mappings.
+    if (content.isArray() && (fieldType.isEmpty() || supportArrays)) {
+      ExprType type = fieldType.orElse(ARRAY);
+      return parseArray(content, field, type, supportArrays);
+    }
+
     // Field type may be not defined in mapping if users have disabled dynamic mapping.
     // Then try to parse content directly based on the value itself
     // Besides, sub-fields of generated objects are also of type UNDEFINED. We parse the content

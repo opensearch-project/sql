@@ -94,4 +94,18 @@ public class ScriptParameterHelper {
       }
     };
   }
+
+  /**
+   * Adds a special variable reference (like state or states in scripted metric aggregations) and
+   * returns the index.
+   *
+   * @param variableName The name of the special variable (e.g., "state", "states")
+   * @return The index in the sources/digests lists
+   */
+  public int addSpecialVariable(String variableName) {
+    int index = sources.size();
+    sources.add(3); // SPECIAL_VARIABLE = 3
+    digests.add(variableName);
+    return index;
+  }
 }

@@ -433,7 +433,6 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testPatternsBrainMethodWithAggPushDownExplain() throws IOException {
-    // TODO: Correct calcite expected result once pushdown is supported
     String expected = loadExpectedPlan("explain_patterns_brain_agg_push.yaml");
     assertYamlEqualsIgnoreId(
         expected,

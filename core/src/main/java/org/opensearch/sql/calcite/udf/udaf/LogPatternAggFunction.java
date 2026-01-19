@@ -20,7 +20,6 @@ import org.opensearch.sql.calcite.udf.udaf.LogPatternAggFunction.LogParserAccumu
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.patterns.BrainLogParser;
 import org.opensearch.sql.common.patterns.PatternUtils;
-import org.opensearch.sql.common.patterns.PatternUtils.ParseResult;
 
 public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAccumulator> {
   private int bufferLimit = 100000;
@@ -190,7 +189,6 @@ public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAc
       partialMerge(argList);
       clearBuffer();
 
-      Boolean showToken = (Boolean) argList[3];
       return patternGroupMap.values().stream()
           .sorted(
               Comparator.comparing(
@@ -201,24 +199,18 @@ public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAc
                 String pattern = (String) m.get(PatternUtils.PATTERN);
                 Long count = (Long) m.get(PatternUtils.PATTERN_COUNT);
                 List<String> sampleLogs = (List<String>) m.get(PatternUtils.SAMPLE_LOGS);
-                Map<String, List<String>> tokensMap = new HashMap<>();
-                ParseResult parseResult = null;
-                if (showToken) {
-                  parseResult = PatternUtils.parsePattern(pattern, PatternUtils.WILDCARD_PATTERN);
-                  for (String sampleLog : sampleLogs) {
-                    PatternUtils.extractVariables(
-                        parseResult, sampleLog, tokensMap, PatternUtils.WILDCARD_PREFIX);
-                  }
-                }
+                // For aggregation mode, always return pattern with wildcards (<*>, <*IP*>).
+                // The transformation to numbered tokens (<token1>, <token2>) and token
+                // extraction is done downstream by evalAggSamples in flattenParsedPattern.
+                // This ensures consistent behavior between UDAF pushdown and regular
+                // aggregation paths.
                 return ImmutableMap.of(
                     PatternUtils.PATTERN,
-                    showToken
-                        ? parseResult.toTokenOrderString(PatternUtils.WILDCARD_PREFIX)
-                        : pattern,
+                    pattern, // Always return original wildcard format
                     PatternUtils.PATTERN_COUNT,
                     count,
                     PatternUtils.TOKENS,
-                    showToken ? tokensMap : Collections.EMPTY_MAP,
+                    Collections.EMPTY_MAP, // Tokens computed downstream by evalAggSamples
                     PatternUtils.SAMPLE_LOGS,
                     sampleLogs);
               })

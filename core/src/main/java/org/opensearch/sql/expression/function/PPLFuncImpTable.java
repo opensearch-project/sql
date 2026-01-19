@@ -163,6 +163,10 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOTEQUA
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOW;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NULLIF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.OR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.PATTERN_ADD_UDF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.PATTERN_COMBINE_UDF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.PATTERN_INIT_UDF;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.PATTERN_RESULT_UDF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.PERCENTILE_APPROX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.PERIOD_ADD;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.PERIOD_DIFF;
@@ -981,6 +985,11 @@ public class PPLFuncImpTable {
       registerOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK);
 
       registerOperator(INTERNAL_PATTERN_PARSER, PPLBuiltinOperators.PATTERN_PARSER);
+      // Register pattern aggregation helper UDFs for scripted metric pushdown
+      registerOperator(PATTERN_INIT_UDF, PPLBuiltinOperators.PATTERN_INIT_UDF);
+      registerOperator(PATTERN_ADD_UDF, PPLBuiltinOperators.PATTERN_ADD_UDF);
+      registerOperator(PATTERN_COMBINE_UDF, PPLBuiltinOperators.PATTERN_COMBINE_UDF);
+      registerOperator(PATTERN_RESULT_UDF, PPLBuiltinOperators.PATTERN_RESULT_UDF);
       registerOperator(TONUMBER, PPLBuiltinOperators.TONUMBER);
       registerOperator(TOSTRING, PPLBuiltinOperators.TOSTRING);
       register(

@@ -69,26 +69,35 @@ public class PatternParserFunctionImpl extends ImplementorUDF {
           : "PATTERN_PARSER should have 2 or 3 arguments";
 
       RelDataType inputType = call.getOperands().get(1).getType();
-      Method method = resolveEvaluationMethod(inputType);
+      Method method = resolveEvaluationMethod(inputType, operandCount);
 
       ScalarFunctionImpl function = (ScalarFunctionImpl) ScalarFunctionImpl.create(method);
       return function.getImplementor().implement(translator, call, RexImpTable.NullAs.NULL);
     }
 
-    private Method resolveEvaluationMethod(RelDataType inputType) {
+    private Method resolveEvaluationMethod(RelDataType inputType, int operandCount) {
       if (inputType.getSqlTypeName() == SqlTypeName.VARCHAR) {
         return getMethod(String.class, "evalField");
       }
 
       RelDataType componentType = inputType.getComponentType();
-      return (componentType.getSqlTypeName() == SqlTypeName.MAP)
-          ? Types.lookupMethod(
-              PatternParserFunctionImpl.class,
-              "evalAgg",
-              String.class,
-              Objects.class,
-              Boolean.class)
-          : getMethod(List.class, "evalSamples");
+      if (componentType.getSqlTypeName() == SqlTypeName.MAP) {
+        // evalAgg: for label mode with aggregation results (array of maps)
+        return Types.lookupMethod(
+            PatternParserFunctionImpl.class, "evalAgg", String.class, Objects.class, Boolean.class);
+      } else if (operandCount == 3) {
+        // evalAggSamples: for UDAF pushdown aggregation mode
+        // Takes pattern (String), sample_logs (List<String>), showNumberedToken (Boolean)
+        return Types.lookupMethod(
+            PatternParserFunctionImpl.class,
+            "evalAggSamples",
+            String.class,
+            List.class,
+            Boolean.class);
+      } else {
+        // evalSamples: for simple pattern with sample logs (2 arguments)
+        return getMethod(List.class, "evalSamples");
+      }
     }
 
     private Method getMethod(Class<?> paramType, String methodName) {
@@ -126,13 +135,23 @@ public class PatternParserFunctionImpl extends ImplementorUDF {
     if (bestCandidate != null) {
       String bestCandidatePattern = String.join(" ", bestCandidate);
       Map<String, List<String>> tokensMap = new HashMap<>();
+      String outputPattern = bestCandidatePattern; // Default: return as-is
+
       if (showNumberedToken) {
+        // Parse pattern with wildcard format (<*>, <*IP*>, etc.)
+        // LogPatternAggFunction.value() returns patterns in wildcard format
         ParseResult parseResult =
-            PatternUtils.parsePattern(bestCandidatePattern, PatternUtils.TOKEN_PATTERN);
+            PatternUtils.parsePattern(bestCandidatePattern, PatternUtils.WILDCARD_PATTERN);
+
+        // Transform pattern from wildcards to numbered tokens (<token1>, <token2>, etc.)
+        outputPattern = parseResult.toTokenOrderString(PatternUtils.TOKEN_PREFIX);
+
+        // Extract token values from the field
         PatternUtils.extractVariables(parseResult, field, tokensMap, PatternUtils.TOKEN_PREFIX);
       }
+
       return ImmutableMap.of(
-          PatternUtils.PATTERN, bestCandidatePattern,
+          PatternUtils.PATTERN, outputPattern,
           PatternUtils.TOKENS, tokensMap);
     } else {
       return ImmutableMap.of();
@@ -174,6 +193,47 @@ public class PatternParserFunctionImpl extends ImplementorUDF {
         tokensMap);
   }
 
+  /**
+   * Extract tokens from aggregated pattern and sample logs for UDAF pushdown. Transforms the
+   * pattern from wildcard format (e.g., &lt;*&gt;) to numbered token format (e.g., &lt;token1&gt;,
+   * &lt;token2&gt;) when showNumberedToken is true.
+   *
+   * <p>This method is designed to be called after UDAF pushdown returns from OpenSearch. The UDAF
+   * returns patterns with wildcards, and this method transforms them to numbered tokens and
+   * extracts token values from sample logs.
+   *
+   * @param pattern The pattern string with wildcards (e.g., &lt;*&gt;, &lt;*IP*&gt;)
+   * @param sampleLogs List of sample log messages
+   * @param showNumberedToken Whether to transform to numbered tokens and extract token values
+   * @return Map containing pattern (possibly transformed) and tokens (if showNumberedToken is true)
+   */
+  public static Object evalAggSamples(
+      @Parameter(name = "pattern") String pattern,
+      @Parameter(name = "sample_logs") List<String> sampleLogs,
+      @Parameter(name = "showNumberedToken") Boolean showNumberedToken) {
+    if (Strings.isBlank(pattern)) {
+      return EMPTY_RESULT;
+    }
+
+    Map<String, List<String>> tokensMap = new HashMap<>();
+    String outputPattern = pattern; // Default: return pattern as-is (with wildcards)
+
+    if (Boolean.TRUE.equals(showNumberedToken)) {
+      // Parse pattern with wildcard format (<*>, <*IP*>, etc.)
+      ParseResult parseResult = PatternUtils.parsePattern(pattern, PatternUtils.WILDCARD_PATTERN);
+
+      // Transform pattern from wildcards to numbered tokens (<token1>, <token2>, etc.)
+      outputPattern = parseResult.toTokenOrderString(PatternUtils.TOKEN_PREFIX);
+
+      // Extract token values from sample logs
+      for (String sampleLog : sampleLogs) {
+        PatternUtils.extractVariables(parseResult, sampleLog, tokensMap, PatternUtils.TOKEN_PREFIX);
+      }
+    }
+
+    return ImmutableMap.of(PatternUtils.PATTERN, outputPattern, PatternUtils.TOKENS, tokensMap);
+  }
+
   private static List<String> findBestCandidate(
       List<List<String>> candidates, List<String> tokens) {
     return candidates.stream()
@@ -188,7 +248,8 @@ public class PatternParserFunctionImpl extends ImplementorUDF {
       String candidateToken = candidate.get(i);
       if (Objects.equals(preprocessedToken, candidateToken)) {
         score += 1;
-      } else if (preprocessedToken.startsWith("<*") && candidateToken.startsWith("<token")) {
+      } else if (preprocessedToken.startsWith("<*") && candidateToken.startsWith("<*")) {
+        // Both are wildcards (potentially different types like <*> vs <*IP*>)
         score += 1;
       }
     }

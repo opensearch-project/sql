@@ -3267,66 +3267,112 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       Boolean showNumberedToken) {
     List<RexNode> fattenedNodes = new ArrayList<>();
     List<String> projectNames = new ArrayList<>();
-    // Flatten map struct fields
+
+    // For aggregation mode with numbered tokens, we need to compute tokens locally
+    // using evalAggSamples. The UDAF returns pattern with wildcards and sample_logs,
+    // but NOT tokens (to avoid XContent serialization issues with nested Maps).
+    RexNode parsedPatternResult = null;
+    if (flattenPatternAggResult && showNumberedToken) {
+      // Extract pattern string (with wildcards) from UDAF result
+      RexNode patternStr =
+          PPLFuncImpTable.INSTANCE.resolve(
+              context.rexBuilder,
+              BuiltinFunctionName.INTERNAL_ITEM,
+              parsedNode,
+              context.rexBuilder.makeLiteral(PatternUtils.PATTERN));
+      // Extract sample_logs from UDAF result
+      RexNode sampleLogs =
+          PPLFuncImpTable.INSTANCE.resolve(
+              context.rexBuilder,
+              BuiltinFunctionName.INTERNAL_ITEM,
+              explicitMapType(context, parsedNode, SqlTypeName.VARCHAR),
+              context.rexBuilder.makeLiteral(PatternUtils.SAMPLE_LOGS));
+      RexNode showNumberedTokenLiteral = context.rexBuilder.makeLiteral(true);
+
+      // Call evalAggSamples to transform pattern (wildcards -> numbered tokens) and compute tokens
+      parsedPatternResult =
+          PPLFuncImpTable.INSTANCE.resolve(
+              context.rexBuilder,
+              BuiltinFunctionName.INTERNAL_PATTERN_PARSER,
+              patternStr,
+              sampleLogs,
+              showNumberedTokenLiteral);
+    }
+
+    // Flatten map struct fields - pattern
+    RelDataType varcharType =
+        context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+    RexNode patternSource = parsedPatternResult != null ? parsedPatternResult : parsedNode;
     RexNode patternExpr =
-        context.rexBuilder.makeCast(
-            context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
-            PPLFuncImpTable.INSTANCE.resolve(
-                context.rexBuilder,
-                BuiltinFunctionName.INTERNAL_ITEM,
-                parsedNode,
-                context.rexBuilder.makeLiteral(PatternUtils.PATTERN)),
-            true,
-            true);
+        extractAndCastMapField(context, patternSource, PatternUtils.PATTERN, varcharType);
     fattenedNodes.add(context.relBuilder.alias(patternExpr, originalPatternResultAlias));
     projectNames.add(originalPatternResultAlias);
+
     if (flattenPatternAggResult) {
+      RelDataType bigintType =
+          context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
       RexNode patternCountExpr =
-          context.rexBuilder.makeCast(
-              context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT),
-              PPLFuncImpTable.INSTANCE.resolve(
-                  context.rexBuilder,
-                  BuiltinFunctionName.INTERNAL_ITEM,
-                  parsedNode,
-                  context.rexBuilder.makeLiteral(PatternUtils.PATTERN_COUNT)),
-              true,
-              true);
+          extractAndCastMapField(context, parsedNode, PatternUtils.PATTERN_COUNT, bigintType);
       fattenedNodes.add(context.relBuilder.alias(patternCountExpr, PatternUtils.PATTERN_COUNT));
       projectNames.add(PatternUtils.PATTERN_COUNT);
     }
+
     if (showNumberedToken) {
+      // Create MAP<VARCHAR, ARRAY<VARCHAR>> type for tokens
+      RelDataType tokensType =
+          context
+              .rexBuilder
+              .getTypeFactory()
+              .createMapType(
+                  varcharType,
+                  context.rexBuilder.getTypeFactory().createArrayType(varcharType, -1));
+      RexNode tokensSource = parsedPatternResult != null ? parsedPatternResult : parsedNode;
       RexNode tokensExpr =
-          context.rexBuilder.makeCast(
-              UserDefinedFunctionUtils.tokensMap,
-              PPLFuncImpTable.INSTANCE.resolve(
-                  context.rexBuilder,
-                  BuiltinFunctionName.INTERNAL_ITEM,
-                  parsedNode,
-                  context.rexBuilder.makeLiteral(PatternUtils.TOKENS)),
-              true,
-              true);
+          extractAndCastMapField(context, tokensSource, PatternUtils.TOKENS, tokensType);
       fattenedNodes.add(context.relBuilder.alias(tokensExpr, PatternUtils.TOKENS));
       projectNames.add(PatternUtils.TOKENS);
     }
+
     if (flattenPatternAggResult) {
+      RelDataType sampleLogsArrayType =
+          context
+              .rexBuilder
+              .getTypeFactory()
+              .createArrayType(
+                  context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), -1);
       RexNode sampleLogsExpr =
-          context.rexBuilder.makeCast(
-              context
-                  .rexBuilder
-                  .getTypeFactory()
-                  .createArrayType(
-                      context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), -1),
-              PPLFuncImpTable.INSTANCE.resolve(
-                  context.rexBuilder,
-                  BuiltinFunctionName.INTERNAL_ITEM,
-                  explicitMapType(context, parsedNode, SqlTypeName.VARCHAR),
-                  context.rexBuilder.makeLiteral(PatternUtils.SAMPLE_LOGS)),
-              true,
-              true);
+          extractAndCastMapField(
+              context,
+              explicitMapType(context, parsedNode, SqlTypeName.VARCHAR),
+              PatternUtils.SAMPLE_LOGS,
+              sampleLogsArrayType);
       fattenedNodes.add(context.relBuilder.alias(sampleLogsExpr, PatternUtils.SAMPLE_LOGS));
       projectNames.add(PatternUtils.SAMPLE_LOGS);
     }
     projectPlusOverriding(fattenedNodes, projectNames, context);
+  }
+
+  /**
+   * Helper method to extract a field from a map and cast it to the specified type. Creates a
+   * SAFE_CAST (makeCast with safe=true) around an INTERNAL_ITEM call.
+   *
+   * @param context The Calcite plan context
+   * @param source The source RexNode containing the map
+   * @param fieldName The name of the field to extract from the map
+   * @param targetType The target type to cast to
+   * @return A RexNode representing SAFE_CAST(INTERNAL_ITEM(source, fieldName))
+   */
+  private RexNode extractAndCastMapField(
+      CalcitePlanContext context, RexNode source, String fieldName, RelDataType targetType) {
+    return context.rexBuilder.makeCast(
+        targetType,
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder,
+            BuiltinFunctionName.INTERNAL_ITEM,
+            source,
+            context.rexBuilder.makeLiteral(fieldName)),
+        true,
+        true);
   }
 
   private void buildExpandRelNode(
