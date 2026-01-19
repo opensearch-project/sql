@@ -9,6 +9,8 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ALIAS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CASCADED_NESTED;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DEEP_NESTED;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OTEL_LOGS;
@@ -26,8 +28,11 @@ import java.util.List;
 import java.util.Locale;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.ast.statement.ExplainMode;
+import org.opensearch.sql.common.setting.Settings.Key;
+import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.ExplainIT;
+import org.opensearch.sql.protocol.response.format.Format;
 
 public class CalciteExplainIT extends ExplainIT {
   @Override
@@ -46,6 +51,8 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.WORK_INFORMATION);
     loadIndex(Index.WEBLOG);
     loadIndex(Index.DATA_TYPE_ALIAS);
+    loadIndex(Index.DEEP_NESTED);
+    loadIndex(Index.CASCADED_NESTED);
   }
 
   @Override
@@ -383,7 +390,7 @@ public class CalciteExplainIT extends ExplainIT {
     String query =
         "source=opensearch-sql_test_index_account | where address = '671 Bristol Street' and age -"
             + " 2 = 30 | fields firstname, age, address";
-    var result = explainQueryYaml(query);
+    var result = explainQueryYaml(query, ExplainMode.EXTENDED);
     String expected = loadExpectedPlan("explain_skip_script_encoding.yaml");
     assertYamlEqualsIgnoreId(expected, result);
   }
@@ -1710,7 +1717,7 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryYaml(
             String.format("source=%s | rare 2 usenull=true state by gender", TEST_INDEX_ACCOUNT)));
     withSettings(
-        Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED,
+        Key.PPL_SYNTAX_LEGACY_PREFERRED,
         "false",
         () -> {
           try {
@@ -1737,7 +1744,7 @@ public class CalciteExplainIT extends ExplainIT {
         explainQueryYaml(
             String.format("source=%s | top 2 usenull=true state by gender", TEST_INDEX_ACCOUNT)));
     withSettings(
-        Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED,
+        Key.PPL_SYNTAX_LEGACY_PREFERRED,
         "false",
         () -> {
           try {
@@ -2205,7 +2212,8 @@ public class CalciteExplainIT extends ExplainIT {
             String.format(
                 "source=%s | eval age_range = case(age < 30, 'u30', age >= 30 and age <= 40, 'u40'"
                     + " else 'u100') | stats avg(age) as avg_age by age_range",
-                TEST_INDEX_BANK)));
+                TEST_INDEX_BANK),
+            ExplainMode.EXTENDED));
   }
 
   @Test
@@ -2308,5 +2316,124 @@ public class CalciteExplainIT extends ExplainIT {
         expected,
         explainQueryYaml(
             "source=opensearch-sql_test_index_bank | where age not between 30 and 39"));
+  }
+
+  @Test
+  public void testSpathWithoutPathExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_spath_without_path.yaml");
+    assertYamlEqualsIgnoreId(
+        expected, explainQueryYaml(source(TEST_INDEX_LOGS, "spath input=message | fields test")));
+  }
+
+  @Test
+  public void testExplainInVariousModeAndFormat() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        "source=opensearch-sql_test_index_account"
+            + "| where age > 30 "
+            + "| stats avg(age) AS avg_age by state, city "
+            + "| sort state "
+            + "| fields - city "
+            + "| eval age2 = avg_age + 2 "
+            + "| dedup age2 "
+            + "| fields age2";
+    ExplainMode[] explainModes =
+        new ExplainMode[] {
+          ExplainMode.SIMPLE, ExplainMode.STANDARD, ExplainMode.EXTENDED, ExplainMode.COST
+        };
+    for (ExplainMode explainMode : explainModes) {
+      String modeName = explainMode.getModeName().toLowerCase(Locale.ROOT);
+      assertYamlEqualsIgnoreId(
+          loadExpectedPlan(String.format("explain_output_%s.yaml", modeName)),
+          explainQueryYaml(query, explainMode));
+      assertJsonEqualsIgnoreId(
+          loadExpectedPlan(String.format("explain_output_%s.json", modeName)),
+          explainQueryToString(query, explainMode));
+    }
+  }
+
+  @Test
+  public void testExplainBWC() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        "source=opensearch-sql_test_index_account"
+            + "| where age > 30 "
+            + "| stats avg(age) AS avg_age by state, city "
+            + "| sort state "
+            + "| fields - city "
+            + "| eval age2 = avg_age + 2 "
+            + "| dedup age2 "
+            + "| fields age2";
+    Format[] formats = new Format[] {Format.SIMPLE, Format.STANDARD, Format.EXTENDED, Format.COST};
+    for (Format format : formats) {
+      String formatName = format.getFormatName().toLowerCase(Locale.ROOT);
+      assertJsonEqualsIgnoreId(
+          loadExpectedPlan(String.format("explain_output_%s.json", formatName)),
+          explainQueryToStringBWC(query, format));
+    }
+  }
+
+  @Test
+  public void testFilterOnComputedNestedFields() throws IOException {
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("filter_computed_nested.yaml"),
+        explainQueryYaml(
+            StringUtils.format(
+                "source=%s | eval proj_name_len=length(projects.name) | fields projects.name,"
+                    + " proj_name_len | where proj_name_len > 29",
+                TEST_INDEX_DEEP_NESTED)));
+  }
+
+  @Test
+  public void testFilterOnNestedAndRootFields() throws IOException {
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("filter_root_and_nested.yaml"),
+        // city is not in a nested object
+        explainQueryYaml(
+            StringUtils.format(
+                "source=%s | where city.name = 'Seattle' and length(projects.name) > 29",
+                TEST_INDEX_DEEP_NESTED)));
+  }
+
+  @Test
+  public void testFilterOnNestedFields() throws IOException {
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("filter_nested_term.yaml"),
+        // address is a nested object
+        explainQueryYaml(
+            StringUtils.format(
+                "source=%s | where address.city = 'New york city'", TEST_INDEX_NESTED_SIMPLE)));
+
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("filter_nested_terms.yaml"),
+        explainQueryYaml(
+            StringUtils.format(
+                "source=%s | where address.city in ('Miami', 'san diego')",
+                TEST_INDEX_NESTED_SIMPLE)));
+  }
+
+  @Test
+  public void testFilterOnMultipleCascadedNestedFields() throws IOException {
+    // 1. Access two different hierarchies of nested fields, one at author.books.reviews, another at
+    // author.books
+    // 2. One is pushed as nested range query, another is pushed as nested filter query.
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("filter_multiple_nested_cascaded_range.yaml"),
+        explainQueryYaml(
+            StringUtils.format(
+                "source=%s | where author.books.reviews.rating >=4 and author.books.reviews.rating"
+                    + " < 6 and author.books.title = 'The Shining'",
+                TEST_INDEX_CASCADED_NESTED)));
+  }
+
+  @Test
+  public void testAggFilterOnNestedFields() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("agg_filter_nested.yaml"),
+        explainQueryYaml(
+            StringUtils.format(
+                "source=%s | stats count(eval(author.name < 'K')) as george_and_jk",
+                TEST_INDEX_CASCADED_NESTED)));
   }
 }

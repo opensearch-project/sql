@@ -38,7 +38,7 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
         return new Explain(query, PPL, ctx.explainStatement().explainMode().getText());
       }
     } else {
-      return context.isExplain ? new Explain(query, PPL, context.format) : query;
+      return context.isExplain ? new Explain(query, PPL, context.explainMode) : query;
     }
   }
 
@@ -53,6 +53,7 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
     private final boolean isExplain;
     private final int fetchSize;
     private final String format;
+    private final String explainMode;
   }
 
   private UnresolvedPlan addSelectAll(UnresolvedPlan plan) {

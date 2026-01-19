@@ -26,8 +26,8 @@ import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
- * MapAppend function that merges two maps. All the values will be converted to list for type
- * consistency.
+ * MapAppend function that merges two maps. Value for the same key will be merged into an array by
+ * using {@link AppendCore}.
  */
 public class MapAppendFunctionImpl extends ImplementorUDF {
 
@@ -91,7 +91,7 @@ public class MapAppendFunctionImpl extends ImplementorUDF {
   static Map<String, Object> mapAppendImpl(Map<String, Object> map) {
     Map<String, Object> result = new HashMap<>();
     for (String key : map.keySet()) {
-      result.put(key, MVAppendCore.collectElements(map.get(key)));
+      result.put(key, AppendCore.collectElements(map.get(key)));
     }
     return result;
   }
@@ -101,7 +101,7 @@ public class MapAppendFunctionImpl extends ImplementorUDF {
     Map<String, Object> result = new HashMap<>();
 
     for (String key : mergeKeys(firstMap, secondMap)) {
-      result.put(key, MVAppendCore.collectElements(firstMap.get(key), secondMap.get(key)));
+      result.put(key, AppendCore.collectElements(firstMap.get(key), secondMap.get(key)));
     }
 
     return result;

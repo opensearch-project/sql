@@ -25,7 +25,10 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.tools.FrameworkConfig;
+import org.opensearch.sql.ast.analysis.FieldResolutionResult;
+import org.opensearch.sql.ast.analysis.FieldResolutionVisitor;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelBuilder;
 import org.opensearch.sql.calcite.validate.OpenSearchSparkSqlDialect;
@@ -80,6 +83,9 @@ public class CalcitePlanContext {
 
   /** Whether we're currently inside a lambda context. */
   @Getter @Setter private boolean inLambdaContext = false;
+
+  /** Root node of the AST tree. Used for field resolution */
+  @Setter private UnresolvedPlan rootNode;
 
   /**
    * -- SETTER -- Sets the SQL operator table provider. This must be called during initialization by
@@ -271,5 +277,25 @@ public class CalcitePlanContext {
     rexLambdaRefMap.put("__captured_" + captureIndex, lambdaRef);
 
     return lambdaRef;
+  }
+
+  /**
+   * Resolves required fields for a target node in the PPL query plan by analyzing the AST from
+   * root. Used for schema-on-read features like `spath` command.
+   *
+   * @param target the plan node to resolve field requirements for
+   * @return field resolution result with regular fields and wildcard patterns
+   * @throws IllegalStateException if root node not set via {@link #setRootNode}
+   */
+  public FieldResolutionResult resolveFields(UnresolvedPlan target) {
+    if (rootNode == null) {
+      throw new IllegalStateException("Failed to resolve fields. Root node is not set.");
+    }
+    FieldResolutionVisitor visitor = new FieldResolutionVisitor();
+    Map<UnresolvedPlan, FieldResolutionResult> result = visitor.analyze(rootNode);
+    if (!result.containsKey(target)) {
+      throw new IllegalStateException("Failed to resolve fields for node: " + target.toString());
+    }
+    return result.get(target);
   }
 }

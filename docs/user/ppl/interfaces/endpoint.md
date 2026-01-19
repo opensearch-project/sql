@@ -61,7 +61,8 @@ You can send HTTP explain request to endpoint **/_plugins/_ppl/_explain** with y
 ### Description  
 
 To translate your query, send it to explain endpoint. The explain output is OpenSearch domain specific language (DSL) in JSON format. You can just copy and paste it to your console to run it against OpenSearch directly.
-Explain output could be set different formats: `standard` (the default format), `simple`, `extended`, `dsl`.
+Explain API supports various mode: `standard` (the default format), `simple`, `extended`, `cost`.
+And the explain output could be shown in different formats: `json` (the default format), `yaml`
 ### Example 1 default (standard) format  
 
 Explain query
@@ -84,13 +85,13 @@ Expected output:
 
 ```
   
-### Example 2 simple format  
+### Example 2 simple mode  
 
 Explain query
   
 ```bash ppl
 curl -sS -H 'Content-Type: application/json' \
--X POST localhost:9200/_plugins/_ppl/_explain?format=simple \
+-X POST localhost:9200/_plugins/_ppl/_explain?mode=simple \
 -d '{"query" : "source=state_country | where age>30"}'
 ```
   
@@ -104,13 +105,13 @@ Expected output:
 }
 ```
   
-### Example 3 extended format  
+### Example 3 extended mode
 
 Explain query
   
 ```bash ppl
 curl -sS -H 'Content-Type: application/json' \
--X POST localhost:9200/_plugins/_ppl/_explain?format=extended \
+-X POST localhost:9200/_plugins/_ppl/_explain?mode=extended \
 -d '{"query" : "source=state_country | head 10 | where age>30"}'
 ```
   
@@ -130,7 +131,7 @@ Expected output:
 
    YAML explain output is an experimental feature and not intended for
    production use. The interface and output may change without notice.
-Return Explain response format in In `yaml` format.
+Return Explain response in `yaml` format.
 Explain query
   
 ```bash ppl
@@ -180,6 +181,14 @@ Expected output (trimmed):
          "optimize": { "time_ms": 18.2 },
          "execute": { "time_ms": 4.87 },
          "format": { "time_ms": 0.05 }
+      },
+      "plan": {
+         "node": "EnumerableCalc",
+         "time_ms": 4.82,
+         "rows": 2,
+         "children": [
+            { "node": "CalciteEnumerableIndexScan", "time_ms": 4.12, "rows": 2 }
+         ]
       }
    }
 }
@@ -189,3 +198,6 @@ Expected output (trimmed):
 
 - Profile output is only returned when the query finishes successfully.
 - Profiling runs only when Calcite is enabled.
+- Plan node names use Calcite physical operator names (for example, `EnumerableCalc` or `CalciteEnumerableIndexScan`).
+- Plan `time_ms` is inclusive of child operators and represents wall-clock time; overlapping work can make summed plan times exceed `summary.total_time_ms`.
+- Scan nodes reflect operator wall-clock time; background prefetch can make scan time smaller than total request latency.

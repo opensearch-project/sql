@@ -905,8 +905,10 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     if (inField == null) {
       throw new IllegalArgumentException("`input` parameter is required for `spath`");
     }
-    if (path == null) {
-      throw new IllegalArgumentException("`path` parameter is required for `spath`");
+
+    if (outField != null && path == null) {
+      throw new IllegalArgumentException(
+          "`path` parameter is required for `spath` when `output` is specified");
     }
 
     return new SPath(inField, outField, path);
@@ -972,6 +974,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitLookupCommand(OpenSearchPPLParser.LookupCommandContext ctx) {
     Relation lookupRelation = new Relation(this.internalVisitExpression(ctx.tableSource()));
+    // OUTPUT and REPLACE are synonyms - both overwrite existing fields
     Lookup.OutputStrategy strategy =
         ctx.APPEND() != null ? Lookup.OutputStrategy.APPEND : Lookup.OutputStrategy.REPLACE;
     java.util.Map<String, String> mappingAliasMap =

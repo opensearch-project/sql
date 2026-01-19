@@ -80,6 +80,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.HOUR_OF
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IFNULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ILIKE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_APPEND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_GROK;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_ITEM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_PARSE;
@@ -798,6 +799,7 @@ public class PPLFuncImpTable {
 
       registerOperator(ARRAY, PPLBuiltinOperators.ARRAY);
       registerOperator(MVAPPEND, PPLBuiltinOperators.MVAPPEND);
+      registerOperator(INTERNAL_APPEND, PPLBuiltinOperators.INTERNAL_APPEND);
       registerOperator(MVDEDUP, SqlLibraryOperators.ARRAY_DISTINCT);
       registerOperator(MVFIND, PPLBuiltinOperators.MVFIND);
       registerOperator(MVZIP, PPLBuiltinOperators.MVZIP);

@@ -41,7 +41,7 @@ import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.locationtech.jts.geom.Point;
-import org.opensearch.sql.ast.statement.Explain.ExplainFormat;
+import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
@@ -177,26 +177,26 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
   @Override
   public void explain(
       RelNode rel,
-      ExplainFormat format,
+      ExplainMode mode,
       CalcitePlanContext context,
       ResponseListener<ExplainResponse> listener) {
     client.schedule(
         () -> {
           try {
-            if (format == ExplainFormat.SIMPLE) {
+            if (mode == ExplainMode.SIMPLE) {
               String logical = RelOptUtil.toString(rel, SqlExplainLevel.NO_ATTRIBUTES);
               listener.onResponse(
                   new ExplainResponse(new ExplainResponseNodeV2(logical, null, null)));
             } else {
               SqlExplainLevel level =
-                  format == ExplainFormat.COST
+                  mode == ExplainMode.COST
                       ? SqlExplainLevel.ALL_ATTRIBUTES
                       : SqlExplainLevel.EXPPLAN_ATTRIBUTES;
               String logical = RelOptUtil.toString(rel, level);
               AtomicReference<String> physical = new AtomicReference<>();
               AtomicReference<String> javaCode = new AtomicReference<>();
               try (Hook.Closeable closeable = getPhysicalPlanInHook(physical, level)) {
-                if (format == ExplainFormat.EXTENDED) {
+                if (mode == ExplainMode.EXTENDED) {
                   getCodegenInHook(javaCode);
                   CalcitePlanContext.skipEncoding.set(true);
                 }
@@ -221,8 +221,14 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     client.schedule(
         () -> {
           try (PreparedStatement statement = OpenSearchRelRunners.run(context, rel)) {
+            ProfileMetric metric = QueryProfiling.current().getOrCreateMetric(MetricName.EXECUTE);
+            long execTime = System.nanoTime();
             ResultSet result = statement.executeQuery();
-            buildResultSet(result, rel.getRowType(), context.sysLimit.querySizeLimit(), listener);
+            QueryResponse response =
+                buildResultSet(result, rel.getRowType(), context.sysLimit.querySizeLimit());
+            metric.add(System.nanoTime() - execTime);
+            listener.onResponse(response);
+
           } catch (SQLException e) {
             throw new RuntimeException(e);
           }
@@ -261,14 +267,8 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     return value;
   }
 
-  private void buildResultSet(
-      ResultSet resultSet,
-      RelDataType rowTypes,
-      Integer querySizeLimit,
-      ResponseListener<QueryResponse> listener)
-      throws SQLException {
-    ProfileMetric metric = QueryProfiling.current().getOrCreateMetric(MetricName.EXECUTE);
-    long execTime = System.nanoTime();
+  private QueryResponse buildResultSet(
+      ResultSet resultSet, RelDataType rowTypes, Integer querySizeLimit) throws SQLException {
     // Get the ResultSet metadata to know about columns
     ResultSetMetaData metaData = resultSet.getMetaData();
     int columnCount = metaData.getColumnCount();
@@ -311,8 +311,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     }
     Schema schema = new Schema(columns);
     QueryResponse response = new QueryResponse(schema, values, null);
-    metric.add(System.nanoTime() - execTime);
-    listener.onResponse(response);
+    return response;
   }
 
   /** Registers opensearch-dependent functions */

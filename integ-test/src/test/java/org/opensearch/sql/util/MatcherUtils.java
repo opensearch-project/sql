@@ -301,6 +301,10 @@ public class MatcherUtils {
     };
   }
 
+  public static JSONArray array(Object... objects) {
+    return new JSONArray(objects);
+  }
+
   public static TypeSafeMatcher<JSONArray> closeTo(Object... values) {
     final double error = 1e-10;
     return new TypeSafeMatcher<JSONArray>() {
@@ -431,7 +435,8 @@ public class MatcherUtils {
   private static String eliminateRelId(String s) {
     return s.replaceAll("rel#\\d+", "rel#")
         .replaceAll("RelSubset#\\d+", "RelSubset#")
-        .replaceAll("LogicalProject#\\d+", "LogicalProject#");
+        .replaceAll("LogicalProject#\\d+", "LogicalProject#")
+        .replaceAll("id = \\d+", "id = *");
   }
 
   private static String eliminateRequestOptions(String s) {
@@ -517,7 +522,8 @@ public class MatcherUtils {
         .replaceAll("LogicalProject#\\d+", "LogicalProject#")
         .replaceAll("pitId=[^,]+,", "pitId=*,")
         .replaceAll(" needClean=true,", "")
-        .replaceAll(" searchDone=false,", "");
+        .replaceAll(" searchDone=false,", "")
+        .replaceAll("id = \\d+", "id = *");
   }
 
   private static String jsonToYaml(String json) {
