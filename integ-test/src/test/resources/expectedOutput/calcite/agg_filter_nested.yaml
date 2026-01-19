@@ -2,7 +2,7 @@ calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalAggregate(group=[{}], george_and_jk=[COUNT($0)])
-        LogicalProject($f1=[CASE(<($7, 'K'), 1, null:NULL)])
+        LogicalProject($f0=[CASE(<($7, 'K'), 1, null:INTEGER)])
           CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_cascaded_nested]])
   physical: |
     EnumerableLimit(fetch=[10000])
