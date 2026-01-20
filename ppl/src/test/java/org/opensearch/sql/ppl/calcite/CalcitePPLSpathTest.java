@@ -45,4 +45,19 @@ public class CalcitePPLSpathTest extends CalcitePPLAbstractTest {
         "SELECT JSON_EXTRACT(`ENAME`, 'src.path') `custom`\n" + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testSpathWithoutPath() {
+    String ppl = "source=EMP | spath input=ENAME | fields custom";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(custom=[CAST(ITEM(JSON_EXTRACT_ALL($1), 'custom')):VARCHAR NOT NULL])\n"
+            + //
+            "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT CAST(JSON_EXTRACT_ALL(`ENAME`)['custom'] AS STRING) `custom`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }

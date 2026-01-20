@@ -90,7 +90,6 @@ fetched rows / total rows = 3/3
 | {"list": [5, 6], "nest_out": {"nest_in": "a"}}       | 5             | [5,6]        | a      |
 +------------------------------------------------------+---------------+--------------+--------+
 ```
-  
 
 ## Example 3: Sum of inner elements  
 
@@ -103,7 +102,7 @@ source=structured
 | stats sum(n)
 | fields `sum(n)`
 ```
-  
+
 The query returns the following results. The `spath` command always returns inner values as strings:
   
 ```text

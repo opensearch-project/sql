@@ -1,0 +1,10 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalFilter(condition=[=($0, '200')])
+        LogicalProject(status=[CAST(ITEM(JSON_EXTRACT_ALL($3), 'status')):VARCHAR NOT NULL], _MAP=[map_remove(JSON_EXTRACT_ALL($3), ARRAY('status'))])
+          CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_logs]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..10=[{inputs}], expr#11=[JSON_EXTRACT_ALL($t3)], expr#12=['status'], expr#13=[ITEM($t11, $t12)], expr#14=[CAST($t13):VARCHAR NOT NULL], expr#15=[ARRAY($t12)], expr#16=[map_remove($t11, $t15)], expr#17=['200':VARCHAR], expr#18=[=($t14, $t17)], status=[$t14], _MAP=[$t16], $condition=[$t18])
+        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_logs]]

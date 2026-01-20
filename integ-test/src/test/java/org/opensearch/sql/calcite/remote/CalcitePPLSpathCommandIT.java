@@ -99,6 +99,18 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testSpathWithFieldAndWildcardAtMiddle() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_spath | where testCase='simple' | spath input=doc | fields c, *, b | head"
+                + " 1");
+    // Fields for `*` will be at the end (temporal behavior until field ordering for dynamic fields
+    // is implemented)
+    verifySchema(result, schema("c", "string"), schema("b", "string"), schema("a", "string"));
+    verifyDataRows(result, rows("3", "2", "1"));
+  }
+
+  @Test
   public void testSpathTypes() throws IOException {
     JSONObject result =
         executeQuery("source=test_spath | where testCase='types' | spath input=doc | head 1");

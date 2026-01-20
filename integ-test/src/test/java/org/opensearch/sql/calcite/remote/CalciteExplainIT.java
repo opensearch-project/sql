@@ -2334,6 +2334,14 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testSpathWithDynamicFieldsExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_spath_with_dynamic_fields.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(source(TEST_INDEX_LOGS, "spath input=message | where status = '200'")));
+  }
+
+  @Test
   public void testExplainInVariousModeAndFormat() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     String query =
