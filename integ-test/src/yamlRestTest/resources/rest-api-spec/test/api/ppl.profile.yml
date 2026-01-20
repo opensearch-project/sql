@@ -54,6 +54,8 @@ teardown:
   - gt: {profile.phases.optimize.time_ms: 0.0}
   - gt: {profile.phases.execute.time_ms: 0.0}
   - gt: {profile.phases.format.time_ms: 0.0}
+  - gt: {profile.plan.time_ms: 0.0}
+  - match: {profile.plan.rows: 2}
 
 ---
 "Profile ignored for explain api":

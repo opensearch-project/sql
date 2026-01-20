@@ -16,15 +16,28 @@ public class DefaultProfileContext implements ProfileContext {
   private final long startNanos = System.nanoTime();
   private boolean finished;
   private final Map<MetricName, DefaultMetricImpl> metrics = new ConcurrentHashMap<>();
+  private ProfilePlanNode planRoot;
   private QueryProfile profile;
 
   public DefaultProfileContext() {}
+
+  @Override
+  public boolean isEnabled() {
+    return true;
+  }
 
   /** {@inheritDoc} */
   @Override
   public ProfileMetric getOrCreateMetric(MetricName name) {
     Objects.requireNonNull(name, "name");
     return metrics.computeIfAbsent(name, key -> new DefaultMetricImpl(key.name()));
+  }
+
+  @Override
+  public synchronized void setPlanRoot(ProfilePlanNode planRoot) {
+    if (this.planRoot == null) {
+      this.planRoot = planRoot;
+    }
   }
 
   /** {@inheritDoc} */
@@ -38,15 +51,12 @@ public class DefaultProfileContext implements ProfileContext {
     Map<MetricName, Double> snapshot = new LinkedHashMap<>(MetricName.values().length);
     for (MetricName metricName : MetricName.values()) {
       DefaultMetricImpl metric = metrics.get(metricName);
-      double millis = metric == null ? 0d : roundToMillis(metric.value());
+      double millis = metric == null ? 0d : ProfileUtils.roundToMillis(metric.value());
       snapshot.put(metricName, millis);
     }
-    double totalMillis = roundToMillis(endNanos - startNanos);
-    profile = new QueryProfile(totalMillis, snapshot);
+    double totalMillis = ProfileUtils.roundToMillis(endNanos - startNanos);
+    QueryProfile.PlanNode planSnapshot = planRoot == null ? null : planRoot.snapshot();
+    profile = new QueryProfile(totalMillis, snapshot, planSnapshot);
     return profile;
-  }
-
-  private double roundToMillis(long nanos) {
-    return Math.round((nanos / 1_000_000.0d) * 100.0d) / 100.0d;
   }
 }
