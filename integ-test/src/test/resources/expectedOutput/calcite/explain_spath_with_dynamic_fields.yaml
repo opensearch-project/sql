@@ -7,4 +7,4 @@ calcite:
   physical: |
     EnumerableLimit(fetch=[10000])
       EnumerableCalc(expr#0..10=[{inputs}], expr#11=[JSON_EXTRACT_ALL($t3)], expr#12=['status'], expr#13=[ITEM($t11, $t12)], expr#14=[CAST($t13):VARCHAR NOT NULL], expr#15=[ARRAY($t12)], expr#16=[map_remove($t11, $t15)], expr#17=['200':VARCHAR], expr#18=[=($t14, $t17)], status=[$t14], _MAP=[$t16], $condition=[$t18])
-        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_logs]]
+        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_logs]])

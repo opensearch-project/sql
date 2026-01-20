@@ -9,5 +9,6 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class DynamicFieldsConstants {
-  public static String DYNAMIC_FIELDS_MAP = "_MAP";
+  /** Special field name for the map containing dynamic fields */
+  public static final String DYNAMIC_FIELDS_MAP = "_MAP";
 }

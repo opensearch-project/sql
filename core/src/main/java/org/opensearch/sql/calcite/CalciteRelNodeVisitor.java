@@ -764,6 +764,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
    */
   private RexNode createDynamicMapField(
       RexNode fullMap, Set<String> regularFields, CalcitePlanContext context) {
+    if (regularFields.isEmpty()) {
+      return fullMap;
+    }
     // Build array of keys to remove: ARRAY['field1', 'field2', ...]
     List<RexNode> keysToRemove =
         regularFields.stream()
