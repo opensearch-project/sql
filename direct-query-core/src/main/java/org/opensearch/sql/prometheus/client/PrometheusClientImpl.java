@@ -26,6 +26,7 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.sql.prometheus.exception.PrometheusClientException;
 import org.opensearch.sql.prometheus.model.MetricMetadata;
 
@@ -175,7 +176,7 @@ public class PrometheusClientImpl implements PrometheusClient {
             "%s/api/v1/metadata%s", prometheusUri.toString().replaceAll("/$", ""), queryString);
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = this.prometheusHttpClient.newCall(request).execute();
+    Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
     JSONObject jsonObject = readResponse(response);
     TypeReference<HashMap<String, List<MetricMetadata>>> typeRef = new TypeReference<>() {};
     return new ObjectMapper().readValue(jsonObject.getJSONObject("data").toString(), typeRef);
