@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
  */
 public class DebugUtils {
   // Update this to true while you are debugging. (Safe guard to avoid usage in production code. )
-  private static final boolean IS_DEBUG = true; // TODO
+  private static final boolean IS_DEBUG = false;
 
   public static <T> T debug(T obj, String message) {
     verifyDebug();

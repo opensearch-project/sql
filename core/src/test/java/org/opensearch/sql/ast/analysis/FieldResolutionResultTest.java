@@ -536,4 +536,22 @@ class FieldResolutionResultTest {
     assertEquals(and, result);
     assertTrue(result.matches("username"));
   }
+
+  @Test
+  void testHasPartialWildcardsWithNoWildcard() {
+    FieldResolutionResult result = new FieldResolutionResult(Set.of("field1", "field2"));
+    assertFalse(result.hasPartialWildcards());
+  }
+
+  @Test
+  void testHasPartialWildcardsWithAnyWildcard() {
+    FieldResolutionResult result = new FieldResolutionResult(Set.of("field1"), "*");
+    assertFalse(result.hasPartialWildcards());
+  }
+
+  @Test
+  void testHasPartialWildcardsWithSingleWildcard() {
+    FieldResolutionResult result = new FieldResolutionResult(Set.of("field1"), "user*");
+    assertTrue(result.hasPartialWildcards());
+  }
 }
