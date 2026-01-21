@@ -61,6 +61,7 @@ import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.utils.WildcardUtils;
 import org.opensearch.sql.common.patterns.PatternUtils;
@@ -525,6 +526,11 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
   @Override
   public Node visitLookup(Lookup node, FieldResolutionContext context) {
     throw new IllegalArgumentException("Lookup command cannot be used together with spath command");
+  }
+
+  @Override
+  public Node visitValues(Values node, FieldResolutionContext context) {
+    throw new IllegalArgumentException("Values command cannot be used together with spath command");
   }
 
   @Override
