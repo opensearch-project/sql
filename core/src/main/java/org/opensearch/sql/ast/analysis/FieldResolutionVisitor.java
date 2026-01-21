@@ -61,7 +61,6 @@ import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
-import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.utils.WildcardUtils;
 import org.opensearch.sql.common.patterns.PatternUtils;
@@ -493,43 +492,49 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
 
   @Override
   public Node visitFillNull(FillNull node, FieldResolutionContext context) {
+    if (node.isAgainstAllFields()) {
+      throw new IllegalArgumentException(
+          "Fillnull command requires fields when used together with spath command");
+    }
+    Set<String> fields = new HashSet<>();
+    node.getFields().forEach(field -> fields.addAll(extractFieldsFromExpression(field)));
+
+    context.pushRequirements(context.getCurrentRequirements().or(fields));
     visitChildren(node, context);
+    context.popRequirements();
     return node;
   }
 
   @Override
   public Node visitAppendCol(AppendCol node, FieldResolutionContext context) {
-    visitChildren(node, context);
-    return node;
+    throw new IllegalArgumentException(
+        "AppendCol command cannot be used together with spath command");
   }
 
   @Override
   public Node visitAppend(Append node, FieldResolutionContext context) {
-    visitChildren(node, context);
-    return node;
+    throw new IllegalArgumentException("Append command cannot be used together with spath command");
   }
 
   @Override
   public Node visitMultisearch(Multisearch node, FieldResolutionContext context) {
-    visitChildren(node, context);
-    return node;
+    throw new IllegalArgumentException(
+        "Multisearch command cannot be used together with spath command");
   }
 
   @Override
   public Node visitLookup(Lookup node, FieldResolutionContext context) {
-    visitChildren(node, context);
-    return node;
-  }
-
-  @Override
-  public Node visitValues(Values node, FieldResolutionContext context) {
-    visitChildren(node, context);
-    return node;
+    throw new IllegalArgumentException("Lookup command cannot be used together with spath command");
   }
 
   @Override
   public Node visitReplace(Replace node, FieldResolutionContext context) {
+    Set<String> fields = new HashSet<>();
+    node.getFieldList().forEach(field -> fields.addAll(extractFieldsFromExpression(field)));
+
+    context.pushRequirements(context.getCurrentRequirements().or(fields));
     visitChildren(node, context);
+    context.popRequirements();
     return node;
   }
 

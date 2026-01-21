@@ -2,9 +2,9 @@ calcite:
   logical: |
     LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
       LogicalFilter(condition=[=($0, '200')])
-        LogicalProject(status=[CAST(ITEM(JSON_EXTRACT_ALL($3), 'status')):VARCHAR NOT NULL], _MAP=[map_remove(JSON_EXTRACT_ALL($3), ARRAY('status'))])
+        LogicalProject(status=[CAST(ITEM(JSON_EXTRACT_ALL($3), 'status')):VARCHAR NOT NULL], _MAP=[map_append(MAP_FROM_ARRAYS(ARRAY('@timestamp', 'created_at', 'level', 'message', 'server'), ARRAY($2, $0, $4, $3, $1)), map_remove(JSON_EXTRACT_ALL($3), ARRAY('status')))])
           CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_logs]])
   physical: |
     EnumerableLimit(fetch=[10000])
-      EnumerableCalc(expr#0..10=[{inputs}], expr#11=[JSON_EXTRACT_ALL($t3)], expr#12=['status'], expr#13=[ITEM($t11, $t12)], expr#14=[CAST($t13):VARCHAR NOT NULL], expr#15=[ARRAY($t12)], expr#16=[map_remove($t11, $t15)], expr#17=['200':VARCHAR], expr#18=[=($t14, $t17)], status=[$t14], _MAP=[$t16], $condition=[$t18])
+      EnumerableCalc(expr#0..10=[{inputs}], expr#11=[JSON_EXTRACT_ALL($t3)], expr#12=['status'], expr#13=[ITEM($t11, $t12)], expr#14=[CAST($t13):VARCHAR NOT NULL], expr#15=['@timestamp'], expr#16=['created_at'], expr#17=['level'], expr#18=['message'], expr#19=['server'], expr#20=[ARRAY($t15, $t16, $t17, $t18, $t19)], expr#21=[ARRAY($t2, $t0, $t4, $t3, $t1)], expr#22=[MAP_FROM_ARRAYS($t20, $t21)], expr#23=[ARRAY($t12)], expr#24=[map_remove($t11, $t23)], expr#25=[map_append($t22, $t24)], expr#26=['200':VARCHAR], expr#27=[=($t14, $t26)], status=[$t14], _MAP=[$t25], $condition=[$t27])
         CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_logs]])

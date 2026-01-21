@@ -308,6 +308,34 @@ public class FieldResolutionVisitorTest {
   }
 
   @Test
+  public void testFillnull() {
+    assertSingleRelationFields(
+        "source=logs | fillnull with 'NULL' in a, b | fields c, *", Set.of("a", "b", "c"), "*");
+    assertSingleRelationFields(
+        "source=logs | fillnull using a = 'NULL', b = 'NULL' | fields c, *",
+        Set.of("a", "b", "c"),
+        "*");
+    assertSingleRelationFields(
+        "source=logs | fillnull value='NULL' a, b | fields c, *", Set.of("a", "b", "c"), "*");
+  }
+
+  @Test
+  public void testFillnullWithoutFields() {
+    assertThrows(
+        "Fillnull command requires fields when used together with spath command",
+        IllegalArgumentException.class,
+        () -> visitor.analyze(parse("source=logs | fillnull with 'NULL'")));
+  }
+
+  @Test
+  public void testReplaceCommand() {
+    assertSingleRelationFields(
+        "source=logs | replace 'IL' WITH 'Illinois' IN a, b | fields c, *",
+        Set.of("a", "b", "c"),
+        "*");
+  }
+
+  @Test
   public void testSpathCommand() {
     String query = "source=logs | spath input=json | fields a, *";
     assertSingleRelationFields(query, Set.of("a", "json"), "*");
