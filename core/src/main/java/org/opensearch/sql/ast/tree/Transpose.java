@@ -22,15 +22,17 @@ public class Transpose extends UnresolvedPlan {
   private final @NonNull java.util.Map<String, Argument> arguments;
   private UnresolvedPlan child;
   private static final int MAX_LIMIT_TRANSPOSE = 10000;
+  private int maxRows = 5;
+  private String columnName = "column";
 
   public Integer getMaxRows() {
-    Integer maxRows = 5;
+
     if (arguments.containsKey("number") && arguments.get("number").getValue() != null) {
       try {
         maxRows = Integer.parseInt(arguments.get("number").getValue().toString());
       } catch (NumberFormatException e) {
         // log warning and use default
-        maxRows = 5;
+
       }
     }
     if (maxRows > MAX_LIMIT_TRANSPOSE) {
@@ -41,7 +43,7 @@ public class Transpose extends UnresolvedPlan {
   }
 
   public String getColumnName() {
-    String columnName = "column";
+
     if (arguments.containsKey("columnName") && arguments.get("columnName").getValue() != null) {
       columnName = arguments.get("columnName").getValue().toString();
     }
