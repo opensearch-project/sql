@@ -29,6 +29,7 @@ import org.opensearch.common.collect.MapBuilder;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
+import org.opensearch.sql.common.utils.DebugUtils;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.util.RetryProcessor;
@@ -50,6 +51,7 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   }
 
   protected JSONObject executeQuery(String query) throws IOException {
+    DebugUtils.debug(explainQueryYaml(query));
     return jsonify(executeQueryToString(query));
   }
 

@@ -28,9 +28,9 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
     putItem(1, "simple", sj("{'a': 1, 'b': 2, 'c': 3}"));
     putItem(2, "simple", sj("{'a': 1, 'b': 2, 'c': 3}"));
     putItem(3, "nested", sj("{'nested': {'d': [1, 2, 3], 'e': 'str'}}"));
-    putItem(4, "join1", sj("{'key': 'k1', 'left': 'l'}"));
-    putItem(5, "join2", sj("{'key': 'k1', 'right': 'r1'}"));
-    putItem(6, "join2", sj("{'key': 'k2', 'right': 'r2'}"));
+    putItem(4, "join1", sj("{'key': 'k1', 'left': 'l', 'common': 'cLeft'}"));
+    putItem(5, "join2", sj("{'key': 'k1', 'right': 'r1', 'common': 'cRight'}"));
+    putItem(6, "join2", sj("{'key': 'k2', 'right': 'r2', 'common': 'cRight'}"));
     putItem(7, "overwrap", sj("{'a.b': 1, 'a': {'b': 2, 'c': 3}}"));
     putItem(8, "types", sj("{'string': 'STRING', 'boolean': true, 'number': 10.1, 'null': null}"));
   }
@@ -213,5 +213,51 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
     verifySchema(
         result, schema("key", "string"), schema("left", "string"), schema("right", "string"));
     verifyDataRows(result, rows("k1", "l", "r1"));
+  }
+
+  @Test
+  public void testSpathWithJoinWithFieldsAndDynamicFields() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_spath | where testCase='join1' | spath input=doc | "
+                + "join key [source=test_spath | where testCase='join2' | spath input=doc ]");
+    verifySchema(
+        result,
+        schema("key", "string"),
+        schema("common", "string"),
+        schema("left", "string"),
+        schema("right", "string"));
+    verifyDataRows(result, rows("k1", "cRight", "l", "r1"));
+  }
+
+  @Test
+  public void testSpathWithJoinOverwriteWithFieldsAndDynamicFields() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_spath | where testCase='join1' | spath input=doc | join overwrite=false"
+                + " key [source=test_spath | where testCase='join2' | spath input=doc ]");
+    verifySchema(
+        result,
+        schema("key", "string"),
+        schema("common", "string"),
+        schema("left", "string"),
+        schema("right", "string"));
+    verifyDataRows(result, rows("k1", "cLeft", "l", "r1"));
+  }
+
+  @Test
+  public void testSpathWithJoinWithCriteriaAndDynamicFields() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_spath | where testCase='join1' | spath input=doc | join left=l right=r on"
+                + " l.key = r.key [source=test_spath | where testCase='join2' | spath input=doc ]");
+    verifySchema(
+        result,
+        schema("key", "string"),
+        schema("r.key", "string"),
+        schema("common", "string"),
+        schema("left", "string"),
+        schema("right", "string"));
+    verifyDataRows(result, rows("k1", "k1", "cLeft", "l", "r1"));
   }
 }
