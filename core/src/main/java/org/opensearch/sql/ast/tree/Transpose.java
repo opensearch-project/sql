@@ -17,37 +17,37 @@ import org.opensearch.sql.common.utils.StringUtils;
 @Setter
 @ToString
 @EqualsAndHashCode(callSuper = false)
-@RequiredArgsConstructor
 public class Transpose extends UnresolvedPlan {
   private final @NonNull java.util.Map<String, Argument> arguments;
   private UnresolvedPlan child;
   private static final int MAX_LIMIT_TRANSPOSE = 10000;
-  private int maxRows = 5;
-  private String columnName = "column";
+  private static final int DEFAULT_MAX_ROWS = 5;
+  private static final String DEFAULT_COLUMN_NAME = "column";
+  private final int maxRows;
+  private final String columnName;
 
-  public Integer getMaxRows() {
+  public Transpose(java.util.Map<String, Argument> arguments) {
 
+    this.arguments = arguments;
+    int tempMaxRows = DEFAULT_MAX_ROWS;
     if (arguments.containsKey("number") && arguments.get("number").getValue() != null) {
       try {
-        maxRows = Integer.parseInt(arguments.get("number").getValue().toString());
+        tempMaxRows = Integer.parseInt(arguments.get("number").getValue().toString());
       } catch (NumberFormatException e) {
         // log warning and use default
 
       }
     }
+    maxRows = tempMaxRows;
     if (maxRows > MAX_LIMIT_TRANSPOSE) {
       throw new IllegalArgumentException(
           StringUtils.format("Maximum limit to transpose is %s", MAX_LIMIT_TRANSPOSE));
     }
-    return maxRows;
-  }
-
-  public String getColumnName() {
-
     if (arguments.containsKey("columnName") && arguments.get("columnName").getValue() != null) {
       columnName = arguments.get("columnName").getValue().toString();
+    } else {
+      columnName = DEFAULT_COLUMN_NAME;
     }
-    return columnName;
   }
 
   @Override
