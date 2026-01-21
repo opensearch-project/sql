@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.calcite.remote;
 
-import static org.opensearch.sql.util.MatcherUtils.array;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -76,8 +75,14 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
   public void testSpathWithoutFields() throws IOException {
     JSONObject result =
         executeQuery("source=test_spath | where testCase='simple' | spath input=doc | head 1");
-    verifySchema(result, schema("a", "string"), schema("b", "string"), schema("c", "string"));
-    verifyDataRows(result, rows("1", "2", "3"));
+    verifySchema(
+        result,
+        schema("a", "string"),
+        schema("b", "string"),
+        schema("c", "string"),
+        schema("doc", "string"),
+        schema("testCase", "string"));
+    verifyDataRows(result, rows("1", "2", "3", sj("{'a': 1, 'b': 2, 'c': 3}"), "simple"));
   }
 
   @Test
@@ -85,8 +90,14 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             "source=test_spath | where testCase='simple' | spath input=doc | fields * | head 1");
-    verifySchema(result, schema("a", "string"), schema("b", "string"), schema("c", "string"));
-    verifyDataRows(result, rows("1", "2", "3"));
+    verifySchema(
+        result,
+        schema("a", "string"),
+        schema("b", "string"),
+        schema("c", "string"),
+        schema("doc", "string"),
+        schema("testCase", "string"));
+    verifyDataRows(result, rows("1", "2", "3", sj("{'a': 1, 'b': 2, 'c': 3}"), "simple"));
   }
 
   @Test
@@ -94,8 +105,14 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             "source=test_spath | where testCase='simple' | spath input=doc | fields c, * | head 1");
-    verifySchema(result, schema("c", "string"), schema("a", "string"), schema("b", "string"));
-    verifyDataRows(result, rows("3", "1", "2"));
+    verifySchema(
+        result,
+        schema("c", "string"),
+        schema("a", "string"),
+        schema("b", "string"),
+        schema("doc", "string"),
+        schema("testCase", "string"));
+    verifyDataRows(result, rows("3", "1", "2", sj("{'a': 1, 'b': 2, 'c': 3}"), "simple"));
   }
 
   @Test
@@ -106,8 +123,14 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
                 + " 1");
     // Fields for `*` will be at the end (temporal behavior until field ordering for dynamic fields
     // is implemented)
-    verifySchema(result, schema("c", "string"), schema("b", "string"), schema("a", "string"));
-    verifyDataRows(result, rows("3", "2", "1"));
+    verifySchema(
+        result,
+        schema("c", "string"),
+        schema("b", "string"),
+        schema("a", "string"),
+        schema("doc", "string"),
+        schema("testCase", "string"));
+    verifyDataRows(result, rows("3", "2", "1", sj("{'a': 1, 'b': 2, 'c': 3}"), "simple"));
   }
 
   @Test
@@ -117,10 +140,20 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
     verifySchema(
         result,
         schema("boolean", "string"),
+        schema("doc", "string"),
         schema("null", "string"),
         schema("number", "string"),
-        schema("string", "string"));
-    verifyDataRows(result, rows("true", null, "10.1", "STRING"));
+        schema("string", "string"),
+        schema("testCase", "string"));
+    verifyDataRows(
+        result,
+        rows(
+            "true",
+            sj("{'string': 'STRING', 'boolean': true, 'number': 10.1, 'null': null}"),
+            null,
+            "10.1",
+            "STRING",
+            "types"));
   }
 
   private static final String EXPECTED_SUBQUERY_ERROR =
@@ -169,8 +202,25 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
         executeQuery(
             "source=test_spath | where testCase='simple' | spath input=doc | spath input=doc |"
                 + " fields a, doc | head 1");
-    verifySchema(result, schema("a", "array"), schema("doc", "string"));
-    verifyDataRows(result, rows(array("1", "1"), sj("{'a': 1, 'b': 2, 'c': 3}")));
+    verifySchema(result, schema("a", "string"), schema("doc", "string"));
+    verifyDataRows(result, rows("[1, 1]", sj("{'a': 1, 'b': 2, 'c': 3}")));
+  }
+
+  @Test
+  public void testSpathTwiceWithDynamicFields() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_spath | where testCase='simple' | spath input=doc | spath input=doc |"
+                + " fields b, * | head 1");
+    verifySchema(
+        result,
+        schema("b", "string"),
+        schema("a", "string"),
+        schema("c", "string"),
+        schema("doc", "string"),
+        schema("testCase", "string"));
+    verifyDataRows(
+        result, rows("[2, 2]", "[1, 1]", "[3, 3]", sj("{'a': 1, 'b': 2, 'c': 3}"), "simple"));
   }
 
   @Test
@@ -225,9 +275,19 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
         result,
         schema("key", "string"),
         schema("common", "string"),
+        schema("doc", "string"),
         schema("left", "string"),
-        schema("right", "string"));
-    verifyDataRows(result, rows("k1", "cRight", "l", "r1"));
+        schema("right", "string"),
+        schema("testCase", "string"));
+    verifyDataRows(
+        result,
+        rows(
+            "k1",
+            "cRight",
+            sj("{'key': 'k1', 'right': 'r1', 'common': 'cRight'}"),
+            "l",
+            "r1",
+            "join2"));
   }
 
   @Test
@@ -240,9 +300,19 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
         result,
         schema("key", "string"),
         schema("common", "string"),
+        schema("doc", "string"),
         schema("left", "string"),
-        schema("right", "string"));
-    verifyDataRows(result, rows("k1", "cLeft", "l", "r1"));
+        schema("right", "string"),
+        schema("testCase", "string"));
+    verifyDataRows(
+        result,
+        rows(
+            "k1",
+            "cLeft",
+            sj("{'key': 'k1', 'left': 'l', 'common': 'cLeft'}"),
+            "l",
+            "r1",
+            "join1"));
   }
 
   @Test
@@ -256,8 +326,19 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
         schema("key", "string"),
         schema("r.key", "string"),
         schema("common", "string"),
+        schema("doc", "string"),
         schema("left", "string"),
-        schema("right", "string"));
-    verifyDataRows(result, rows("k1", "k1", "cLeft", "l", "r1"));
+        schema("right", "string"),
+        schema("testCase", "string"));
+    verifyDataRows(
+        result,
+        rows(
+            "k1",
+            "k1",
+            "cLeft",
+            sj("{'key': 'k1', 'left': 'l', 'common': 'cLeft'}"),
+            "l",
+            "r1",
+            "join1"));
   }
 }

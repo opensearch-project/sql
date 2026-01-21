@@ -181,14 +181,14 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
       return visitEval(node.rewriteAsEval(), context);
     } else {
       // set requirements for spath command;
-      context.setResult(node, context.getCurrentRequirements());
       FieldResolutionResult requirements = context.getCurrentRequirements();
+      context.setResult(node, requirements);
       if (requirements.hasPartialWildcards()) {
         throw new IllegalArgumentException(
             "Spath command cannot be used with partial wildcard such as `prefix*`.");
       }
 
-      context.pushRequirements(context.getCurrentRequirements().or(Set.of(node.getInField())));
+      context.pushRequirements(requirements.or(Set.of(node.getInField())));
       visitChildren(node, context);
       context.popRequirements();
       return node;

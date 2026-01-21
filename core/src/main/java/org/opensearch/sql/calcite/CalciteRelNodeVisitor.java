@@ -33,6 +33,8 @@ import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -482,7 +484,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
   }
 
-  private boolean isMetadataField(String fieldName) {
+  private static boolean isMetadataField(String fieldName) {
     return OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(fieldName);
   }
 
@@ -722,16 +724,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RexNode map = makeCall(context, BuiltinFunctionName.JSON_EXTRACT_ALL, inField);
 
     // 2. Project items from FieldResolutionResult
-    Set<String> existingFields =
-        new HashSet<>(context.relBuilder.peek().getRowType().getFieldNames());
-    List<String> fieldNames =
+    Set<String> existingFields = new HashSet<>(getStaticFields(context));
+    List<String> regularFieldNames =
         resolutionResult.getRegularFields().stream().sorted().collect(Collectors.toList());
     List<RexNode> fields = new ArrayList<>();
-    for (String fieldName : fieldNames) {
-      RexNode item = itemCall(map, fieldName, context);
-      // Cast to string for type consistency. (This cast will be removed once functions are adopted
-      // to ANY type)
-      item = context.relBuilder.cast(item, SqlTypeName.VARCHAR);
+    for (String fieldName : regularFieldNames) {
+      RexNode item = getItemAsString(map, fieldName, context);
       // Append if field already exist
       if (existingFields.contains(fieldName)) {
         item =
@@ -740,6 +738,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 BuiltinFunctionName.INTERNAL_APPEND,
                 context.relBuilder.field(fieldName),
                 item);
+        item = castToString(item, context);
       }
       fields.add(context.relBuilder.alias(item, fieldName));
     }
@@ -748,56 +747,110 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (resolutionResult.hasWildcards()) {
       RexNode dynamicMapField =
           createDynamicMapField(map, resolutionResult.getRegularFields(), context);
-      fields.add(context.relBuilder.alias(dynamicMapField, "_MAP"));
+      List<String> remainingFields = getRemainingFields(existingFields, regularFieldNames);
+      if (!remainingFields.isEmpty()) {
+        // Add existing fields to map
+        RexNode existingFieldsMap = getFieldsAsMap(existingFields, regularFieldNames, context);
+        dynamicMapField =
+            makeCall(context, BuiltinFunctionName.MAP_APPEND, existingFieldsMap, dynamicMapField);
+      }
+      if (isDynamicFieldsExists(context)) {
+        RexNode existingMap = context.relBuilder.field(DYNAMIC_FIELDS_MAP);
+        dynamicMapField =
+            makeCall(context, BuiltinFunctionName.MAP_APPEND, existingMap, dynamicMapField);
+      }
+      fields.add(context.relBuilder.alias(dynamicMapField, DYNAMIC_FIELDS_MAP));
     }
 
     context.relBuilder.project(fields);
     return context.relBuilder.peek();
   }
 
-  /**
-   * Creates a dynamic map field containing all JSON attributes not mapped to static fields.
-   *
-   * @param fullMap The complete map from JSON_EXTRACT_ALL
-   * @param regularFields Set of field names that are extracted as static columns
-   * @param context CalcitePlanContext
-   * @return RexNode representing MAP_REMOVE(fullMap, ARRAY[regularFields])
-   */
+  private static List<String> getRemainingFields(
+      Collection<String> existingFields, Collection<String> excluded) {
+    List<String> keys = excludeMetaFields(existingFields);
+    keys.removeAll(excluded);
+    Collections.sort(keys);
+    return keys;
+  }
+
+  private static RexNode getFieldsAsMap(
+      Collection<String> existingFields, Collection<String> excluded, CalcitePlanContext context) {
+    List<String> keys = excludeMetaFields(existingFields);
+    keys.removeAll(excluded);
+    Collections.sort(keys); // sort for plan consistency
+    RexNode keysArray = getStringLiteralArray(keys, context);
+    List<RexNode> values =
+        keys.stream().map(key -> context.relBuilder.field(key)).collect(Collectors.toList());
+    RexNode valuesArray = makeStringArray(values, context);
+    return makeCall(context, BuiltinFunctionName.MAP_FROM_ARRAYS, keysArray, valuesArray);
+  }
+
+  private static List<String> excludeMetaFields(Collection<String> fields) {
+    return fields.stream().filter(field -> !isMetadataField(field)).collect(Collectors.toList());
+  }
+
+  private static RexNode getItemAsString(
+      RexNode map, String fieldName, CalcitePlanContext context) {
+    RexNode item = itemCall(map, fieldName, context);
+    // Cast to string for type consistency. (This cast will be removed once functions are adopted
+    // to ANY type)
+    return context.relBuilder.cast(item, SqlTypeName.VARCHAR);
+  }
+
+  private static RexNode castToString(RexNode node, CalcitePlanContext context) {
+    return context.relBuilder.cast(node, SqlTypeName.VARCHAR);
+  }
+
+  private static boolean isDynamicFieldsExists(CalcitePlanContext context) {
+    return context.relBuilder.peek().getRowType().getFieldNames().contains(DYNAMIC_FIELDS_MAP);
+  }
+
   private RexNode createDynamicMapField(
       RexNode fullMap, Set<String> regularFields, CalcitePlanContext context) {
     if (regularFields.isEmpty()) {
       return fullMap;
     }
-    // Build array of keys to remove: ARRAY['field1', 'field2', ...]
-    List<RexNode> keysToRemove =
-        regularFields.stream()
-            .sorted()
-            .map(name -> context.rexBuilder.makeLiteral(name))
-            .collect(Collectors.toList());
 
-    // Create ARRAY<VARCHAR> type
-    RelDataType arrayType =
-        context
-            .rexBuilder
-            .getTypeFactory()
-            .createArrayType(
-                context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), -1);
-
-    // Build ARRAY value constructor
-    RexNode keyArray =
-        context.rexBuilder.makeCall(
-            arrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, keysToRemove);
+    RexNode keyArray = getStringLiteralArray(regularFields, context);
 
     // MAP_REMOVE(fullMap, keyArray) → filtered map with only unmapped fields
     return makeCall(context, BuiltinFunctionName.MAP_REMOVE, fullMap, keyArray);
   }
 
-  private RexNode itemCall(RexNode node, String key, CalcitePlanContext context) {
+  private static RexNode getStringLiteralArray(
+      Collection<String> keys, CalcitePlanContext context) {
+    List<RexNode> stringLiteralList =
+        keys.stream()
+            .sorted()
+            .map(name -> context.rexBuilder.makeLiteral(name))
+            .collect(Collectors.toList());
+
+    return context.rexBuilder.makeCall(
+        getStringArrayType(context),
+        SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+        stringLiteralList);
+  }
+
+  private static RelDataType getStringArrayType(CalcitePlanContext context) {
+    return context
+        .rexBuilder
+        .getTypeFactory()
+        .createArrayType(
+            context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), -1);
+  }
+
+  private static RexNode makeStringArray(List<RexNode> items, CalcitePlanContext context) {
+    return context.rexBuilder.makeCall(
+        getStringArrayType(context), SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, items);
+  }
+
+  private static RexNode itemCall(RexNode node, String key, CalcitePlanContext context) {
     return makeCall(
         context, BuiltinFunctionName.INTERNAL_ITEM, node, context.rexBuilder.makeLiteral(key));
   }
 
-  private RexNode makeCall(
+  private static RexNode makeCall(
       CalcitePlanContext context, BuiltinFunctionName functionName, RexNode... args) {
     return PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, functionName, args);
   }
@@ -1356,8 +1409,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     children.forEach(c -> analyze(c, context));
     if (node.getJoinCondition().isEmpty()) {
       // join-with-field-list grammar
-      List<String> leftColumns = getLeftColumns(context);
-      List<String> rightColumns = getRightColumns(context);
+      List<String> leftColumns = getLeftStaticFields(context);
+      List<String> rightColumns = getRightStaticFields(context);
       List<String> duplicatedFieldNames =
           leftColumns.stream()
               .filter(column -> !isDynamicFieldMap(column) && rightColumns.contains(column))
@@ -1436,8 +1489,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       // column name with numeric suffix, e.g. ON t1.id = t2.id, the output contains `id` and `id0`
       // when a new project add to stack. To avoid `id0`, we will rename the `id0` to `alias.id`
       // or `tableIdentifier.id`:
-      List<String> leftColumns = getLeftColumns(context);
-      List<String> rightColumns = getRightColumns(context);
+      List<String> leftColumns = getLeftStaticFields(context);
+      List<String> rightColumns = getRightStaticFields(context);
       List<String> rightTableName =
           PlanUtils.findTable(context.relBuilder.peek()).getQualifiedName();
       // Using `table.column` instead of `catalog.database.table.column` as column prefix because
@@ -1486,12 +1539,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return DYNAMIC_FIELDS_MAP.equals(field);
   }
 
-  private static List<String> getLeftColumns(CalcitePlanContext context) {
+  private static List<String> getLeftStaticFields(CalcitePlanContext context) {
     return excludeDynamicFields(context.relBuilder.peek(1).getRowType().getFieldNames());
   }
 
-  private static List<String> getRightColumns(CalcitePlanContext context) {
+  private static List<String> getStaticFields(CalcitePlanContext context) {
     return excludeDynamicFields(context.relBuilder.peek().getRowType().getFieldNames());
+  }
+
+  private static List<String> getRightStaticFields(CalcitePlanContext context) {
+    return getStaticFields(context);
   }
 
   private static List<String> excludeDynamicFields(List<String> fieldNames) {
