@@ -154,13 +154,13 @@ Expected output:
 
 ```text
 fetched rows / total rows = 3/3
-+--------------------------------------+----+----+--------+
-| doc_multi                            | a  | b  | c      |
-|--------------------------------------+----+----+--------|
-| {"a": 10, "b": 20, "c": 30, "d": 40} | 10 | 20 | [1,30] |
-| {"a": 15, "b": 25, "c": 35, "d": 45} | 15 | 25 | [1,35] |
-| {"a": 11, "b": 21, "c": 31, "d": 41} | 11 | 21 | [1,31] |
-+--------------------------------------+----+----+--------+
++--------------------------------------+----+----+---------+
+| doc_multi                            | a  | b  | c       |
+|--------------------------------------+----+----+---------|
+| {"a": 10, "b": 20, "c": 30, "d": 40} | 10 | 20 | [1, 30] |
+| {"a": 15, "b": 25, "c": 35, "d": 45} | 15 | 25 | [1, 35] |
+| {"a": 11, "b": 21, "c": 31, "d": 41} | 11 | 21 | [1, 31] |
++--------------------------------------+----+----+---------+
 ```
 
 This extracts only fields `a`, `b`, and `c` from the JSON in `doc_multi` field, even though the JSON contains fields `d` as well. All extracted fields are returned as STRING type. As `c` in the example, extracted value is appended to organize an array if an extracted field already exists.
@@ -203,23 +203,22 @@ source=structured
 
 ```ppl
 source=structured
+| fields doc_multi
 | spath input=doc_multi
 | fields doc_multi, *, b
+| head 1
 ```
 
 Expected output:
 
 ```text
-fetched rows / total rows = 3/3
+fetched rows / total rows = 1/1
 +--------------------------------------+----+----+----+----+
 | doc_multi                            | b  | a  | c  | d  |
 |--------------------------------------+----+----+----+----|
 | {"a": 10, "b": 20, "c": 30, "d": 40} | 20 | 10 | 30 | 40 |
-| {"a": 15, "b": 25, "c": 35, "d": 45} | 25 | 15 | 35 | 45 |
-| {"a": 11, "b": 21, "c": 31, "d": 41} | 21 | 11 | 31 | 41 |
 +--------------------------------------+----+----+----+----+
 ```
-
 
 ## Example 8: Performance Considerations
 
