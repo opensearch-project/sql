@@ -40,6 +40,8 @@ For more information about path syntax, see [json_extract](../functions/json.md#
 * **Limitation**: All extracted fields are returned as STRING type.
 * **Limitation**: Field order in the result could be inconsistent with query without `spath` command, and the behavior might change in the future version.
 * **Limitation**: Filter with subquery (`where <field> in/exists [...]` ) is not supported after `spath` command.
+* **Limitation**: `fillnull` command requires to specify fields when used with `spath` command.
+* **Limitation**: Following commands cannot be used together with `spath` command: `append`, `appendcol`, `multisearch`, `lookup`
 * **Performance**: Filter records before `spath` command for best performance (see Example 8)
 
 ## Example 1: Basic field extraction
@@ -141,7 +143,7 @@ fetched rows / total rows = 3/3
 
 ## Example 5: Full Extraction
 
-Extract multiple fields automatically based on downstream requirements. The `spath` command analyzes which fields are needed and extracts only those fields.
+Extract multiple fields automatically based on downstream requirements.
 
 ```ppl
 source=structured
@@ -163,7 +165,7 @@ fetched rows / total rows = 3/3
 +--------------------------------------+----+----+---------+
 ```
 
-This extracts only fields `a`, `b`, and `c` from the JSON in `doc_multi` field, even though the JSON contains fields `d` as well. All extracted fields are returned as STRING type. As `c` in the example, extracted value is appended to organize an array if an extracted field already exists.
+All extracted fields are returned as STRING type. As `c` in the example, extracted value is appended to organize an array if an extracted field already exists.
 
 ## Example 6: Field Merge with Dotted Names
 
