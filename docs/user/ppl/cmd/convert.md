@@ -191,48 +191,55 @@ fetched rows / total rows = 2/2
 +--------------+--------+
 ```
 
-## Conversion Function Details
+## Example 8: Using none() to preserve field values
 
-### auto() Function
+The `none()` function acts as a pass-through, returning the field value unchanged. This is useful for explicitly preserving fields in multi-field conversions:
 
-The `auto()` function provides the most comprehensive conversion:
-- Memory sizes: `"100k"` → `100.0`, `"50m"` → `51200.0`, `"2g"` → `2097152.0`
-- Comma formatting: `"39,225"` → `39225.0`, `"1,,234"` → `1234.0`
-- Units: `"2,12.0 sec"` → `2.0`, `"45.67 kg"` → `45.67`
-- Scientific notation: `"1e5"` → `100000.0`
-- Invalid values: `"hello"` → `null`, `"NaN"` → `null`
+```ppl
+source=accounts
+| convert auto(balance), num(age), none(account_number)
+| fields account_number, balance, age
+| head 3
+```
 
-**Roadmap:** Additional conversion formats are planned for future releases, including time duration formats (`dur2sec`), time formats (`mstime`), and timestamp conversions (`ctime`, `mktime`).
+The query returns the following results:
 
-### num() Function
+```text
+fetched rows / total rows = 3/3
++----------------+---------+------+
+| account_number | balance | age  |
+|----------------+---------+------|
+| 1              | 39225.0 | 32.0 |
+| 6              | 5686.0  | 36.0 |
+| 13             | 32838.0 | 28.0 |
++----------------+---------+------+
+```
 
-The `num()` function intelligently handles commas and units:
-- Without letters: `"1,234"` → `1234.0`, `"1,,234"` → `1234.0`
-- With letters: `"212 sec"` → `212.0`, `"2,12.0 sec"` → `2.0`
-- Scientific notation: `"1e5"` → `100000.0`
-- Invalid: `"no numbers"` → `null`
+### Using none() with AS for field renaming
 
-### rmcomma() Function
+The `none()` function can be combined with the `AS` clause to rename a field without modifying its value:
 
-The `rmcomma()` function removes commas and converts:
-- Valid: `"1,234"` → `1234.0`, `"34,54,45"` → `345445.0`
-- Invalid: `"abc"` → `null`, `"AAA3454,45"` → `null`
+```ppl
+source=accounts
+| convert none(account_number) AS account_id
+| fields account_id, firstname, lastname
+| head 3
+```
 
-### rmunit() Function
+The query returns the following results:
 
-The `rmunit()` function extracts leading numbers:
-- Valid: `"123 dollars"` → `123.0`, `"2.000 sec"` → `2.0`
-- Stops at comma: `"34,54,45"` → `34.0`
-- Invalid: `"no numbers"` → `null`
+```text
+fetched rows / total rows = 3/3
++------------+-----------+----------+
+| account_id | firstname | lastname |
+|------------+-----------+----------|
+| 1          | Amber     | Duke     |
+| 6          | Hattie    | Bond     |
+| 13         | Nanette   | Bates    |
++------------+-----------+----------|
+```
 
-### memk() Function
-
-The `memk()` function converts memory sizes to kilobytes:
-- Kilobytes: `"100"` → `100.0`, `"100k"` → `100.0`
-- Megabytes: `"50m"` → `51200.0`
-- Gigabytes: `"2g"` → `2097152.0`, `"1.5g"` → `1572864.0`
-- Negative values: `"-100m"` → `-102400.0`
-- Invalid: `"100 m"` → `null` (spaces not allowed), `"abc100m"` → `null`
+**Note:** The `none()` function is particularly useful when wildcard support is implemented, allowing you to exclude specific fields from bulk conversions.
 
 ## Notes
 
