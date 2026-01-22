@@ -130,6 +130,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LookupPairContext
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsByClauseContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
+import org.opensearch.sql.ppl.utils.UnresolvedPlanHelper;
 
 /** Class of building the AST. Refines the visit path and build the AST nodes */
 public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
@@ -264,6 +265,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         ctx.joinOption().stream()
             .map(o -> (Argument) expressionBuilder.visit(o))
             .collect(Collectors.toList());
+    if (arguments.stream().noneMatch(arg -> arg.getArgName().equals("max"))
+        && !UnresolvedPlanHelper.legacyPreferred(settings)) {
+      arguments = new ArrayList<>(arguments);
+      arguments.add(new Argument("max", Literal.ONE));
+    }
     Argument.ArgumentMap argumentMap = Argument.ArgumentMap.of(arguments);
     if (argumentMap.get("type") != null) {
       Join.JoinType joinTypeFromArgument = ArgumentFactory.getJoinType(argumentMap);

@@ -20,7 +20,7 @@ The `join` command combines two datasets together. The left side could be an ind
 join [type=<joinType>] [overwrite=<bool>] [max=n] (\<join-field-list\> \| [leftAlias] [rightAlias] (on \| where) \<joinCriteria\>) \<right-dataset\>
 * type: optional. Join type using extended syntax. Options: `left`, `outer` (alias of `left`), `semi`, `anti`, and performance-sensitive types `right`, `full`, `cross`. **Default:** `inner`.  
 * overwrite: optional boolean. Only works with `join-field-list`. Specifies whether duplicate-named fields from right-dataset should replace corresponding fields in the main search results. **Default:** `true`.  
-* max: optional integer. Controls how many subsearch results could be joined against each row in main search. **Default:** 0 (unlimited).  
+* max: optional integer. Controls how many subsearch results could be joined against each row in main search. **Default:** 0 (unlimited) when plugins.ppl.syntax.legacy.preferred is `true`. When the setting is `false` the default value is `1`.
 * join-field-list: optional. The fields used to build the join criteria. The join field list must exist on both sides. If not specified, all fields common to both sides will be used as join keys.  
 * leftAlias: optional. Same as basic syntax when used with extended syntax.  
 * rightAlias: optional. Same as basic syntax when used with extended syntax.  

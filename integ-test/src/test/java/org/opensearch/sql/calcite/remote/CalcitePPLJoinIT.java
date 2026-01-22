@@ -20,6 +20,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.TestsConstants;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
@@ -890,6 +891,55 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
         rows("John", "Canada"),
         rows("Hello", "USA"),
         rows("David", "USA"));
+  }
+
+  @Test
+  public void testJoinWhenLegacyNotPreferred() throws IOException {
+    withSettings(
+        Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED,
+        "false",
+        () -> {
+          JSONObject actual = null;
+          try {
+            actual =
+                executeQuery(
+                    String.format(
+                        "source=%s | join type=inner name,year,month %s",
+                        TestsConstants.TEST_INDEX_STATE_COUNTRY,
+                        TestsConstants.TEST_INDEX_OCCUPATION));
+          } catch (IOException e) {
+            fail();
+          }
+          verifySchema(
+              actual,
+              schema("name", "string"),
+              schema("age", "int"),
+              schema("state", "string"),
+              schema("country", "string"),
+              schema("year", "int"),
+              schema("month", "int"),
+              schema("occupation", "string"),
+              schema("salary", "int"));
+          JSONObject actual2 = null;
+          try {
+            actual2 =
+                executeQuery(
+                    String.format(
+                        "source=%s | join type=inner max=1 name,year,month %s | fields name,"
+                            + " country",
+                        TestsConstants.TEST_INDEX_STATE_COUNTRY,
+                        TestsConstants.TEST_INDEX_OCCUPATION));
+          } catch (IOException e) {
+            fail();
+          }
+          verifyDataRows(
+              actual2,
+              rows("Jake", "England"),
+              rows("Jane", "Canada"),
+              rows("John", "Canada"),
+              rows("Hello", "USA"),
+              rows("David", "USA"));
+        });
   }
 
   @Test
