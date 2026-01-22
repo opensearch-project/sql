@@ -2338,6 +2338,18 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   private RelNode mergeTableAndResolveColumnConflict(
       RelNode mainNode, RelNode subqueryNode, CalcitePlanContext context) {
+    // Adjust fields for dynamic fields. (This can be eliminated once table scan adopted
+    // schema-on-read)
+    if (hasDynamicFields(mainNode) && !hasDynamicFields(subqueryNode)) {
+      subqueryNode =
+          adjustFieldsForDynamicFields(
+              subqueryNode, mainNode.getRowType().getFieldNames(), context);
+    } else if (!hasDynamicFields(mainNode) && hasDynamicFields(subqueryNode)) {
+      mainNode =
+          adjustFieldsForDynamicFields(
+              mainNode, subqueryNode.getRowType().getFieldNames(), context);
+    }
+
     // Use shared schema merging logic that handles type conflicts via field renaming
     List<RelNode> nodesToMerge = Arrays.asList(mainNode, subqueryNode);
     List<RelNode> projectedNodes =
@@ -2349,6 +2361,26 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     context.relBuilder.union(true);
     return context.relBuilder.peek();
+  }
+
+  private boolean hasDynamicFields(RelNode node) {
+    return node.getRowType().getFieldNames().contains(DYNAMIC_FIELDS_MAP);
+  }
+
+  private RelNode adjustFieldsForDynamicFields(
+      RelNode node, List<String> requiredFieldNames, CalcitePlanContext context) {
+    context.relBuilder.push(node);
+    List<String> existingFields = node.getRowType().getFieldNames();
+    List<RexNode> project = new ArrayList<>();
+    for (String existingField : existingFields) {
+      if (requiredFieldNames.contains(existingField)) {
+        project.add(context.rexBuilder.makeInputRef(node, existingFields.indexOf(existingField)));
+      }
+    }
+    project.add(
+        context.relBuilder.alias(
+            getFieldsAsMap(existingFields, requiredFieldNames, context), DYNAMIC_FIELDS_MAP));
+    return context.relBuilder.project(project).build();
   }
 
   @Override

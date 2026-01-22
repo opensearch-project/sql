@@ -513,7 +513,10 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
 
   @Override
   public Node visitAppend(Append node, FieldResolutionContext context) {
-    throw new IllegalArgumentException("Append command cannot be used together with spath command");
+    // dispatch requirements to subsearch and main
+    acceptAndVerifyNodeVisited(node.getSubSearch(), context);
+    visitChildren(node, context);
+    return node;
   }
 
   @Override

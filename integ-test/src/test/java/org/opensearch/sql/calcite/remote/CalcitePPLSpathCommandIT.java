@@ -330,4 +330,46 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
             "r1",
             "join1"));
   }
+
+  @Test
+  public void testAppendWithSpathInMainAndDynamicFields() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_spath | where testCase='simple' | spath input=doc | head 1 | append"
+                + " [source=test_spath | where testCase='simple' | eval d = 4 | head 1 ] | fields"
+                + " a, c, *");
+    verifySchema(
+        result,
+        schema("a", "string"),
+        schema("c", "string"),
+        schema("b", "string"),
+        schema("d", "string"),
+        schema("doc", "string"),
+        schema("testCase", "string"));
+    verifyDataRows(
+        result,
+        rows("1", "3", "2", null, sj("{'a': 1, 'b': 2, 'c': 3}"), "simple"),
+        rows(null, null, null, "4", sj("{'a': 1, 'b': 2, 'c': 3}"), "simple"));
+  }
+
+  @Test
+  public void testAppendWithSpathInSubsearchDynamicFields() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_spath | where testCase='simple' | eval d = 4 | head 1 | append"
+                + " [source=test_spath | where testCase='simple' | spath input=doc | head 1 ] |"
+                + " fields a, c, *");
+    verifySchema(
+        result,
+        schema("a", "string"),
+        schema("c", "string"),
+        schema("b", "string"),
+        schema("d", "string"),
+        schema("doc", "string"),
+        schema("testCase", "string"));
+    verifyDataRows(
+        result,
+        rows(null, null, null, "4", sj("{'a': 1, 'b': 2, 'c': 3}"), "simple"),
+        rows("1", "3", "2", null, sj("{'a': 1, 'b': 2, 'c': 3}"), "simple"));
+  }
 }

@@ -11,6 +11,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.junit.Before;
@@ -173,7 +174,7 @@ public class FieldResolutionVisitorTest {
 
   @Test
   public void testSimpleJoin() {
-    assertJoinRelationFields(
+    assertMultiRelationFields(
         "source=logs1 | join left=l right=r ON l.id = r.id logs2",
         Map.of(
             "logs1", new FieldResolutionResult(Set.of("id"), "*"),
@@ -182,7 +183,7 @@ public class FieldResolutionVisitorTest {
 
   @Test
   public void testJoinWithFilter() {
-    assertJoinRelationFields(
+    assertMultiRelationFields(
         "source=logs1 | where status > 200 | join left=l right=r ON l.id = r.id logs2",
         Map.of(
             "logs1", new FieldResolutionResult(Set.of("status", "id"), "*"),
@@ -191,7 +192,7 @@ public class FieldResolutionVisitorTest {
 
   @Test
   public void testJoinWithProject() {
-    assertJoinRelationFields(
+    assertMultiRelationFields(
         "source=logs1 | join left=l right=r ON l.id = r.id logs2 | fields l.name, r.value",
         Map.of(
             "logs1", new FieldResolutionResult(Set.of("name", "id")),
@@ -200,7 +201,7 @@ public class FieldResolutionVisitorTest {
 
   @Test
   public void testJoinWithNestedFields() {
-    assertJoinRelationFields(
+    assertMultiRelationFields(
         "source=logs1 | join left=l right=r ON l.id = r.id logs2 | fields l.name, r.value, field,"
             + " nested.field",
         Map.of(
@@ -236,7 +237,7 @@ public class FieldResolutionVisitorTest {
 
   @Test
   public void testJoinWithAggregation() {
-    assertJoinRelationFields(
+    assertMultiRelationFields(
         "source=logs1 | join left=l right=r ON l.id = r.id logs2 | stats count() by l.region",
         Map.of(
             "logs1", new FieldResolutionResult(Set.of("region", "id")),
@@ -245,7 +246,7 @@ public class FieldResolutionVisitorTest {
 
   @Test
   public void testJoinWithSubsearch() {
-    assertJoinRelationFields(
+    assertMultiRelationFields(
         "source=idx1 | where b > 1 | join a [source=idx2 | where c > 2 ] | eval result = c * d",
         Map.of(
             "idx1", new FieldResolutionResult(Set.of("a", "b", "c", "d"), "*"),
@@ -358,6 +359,44 @@ public class FieldResolutionVisitorTest {
         () -> visitor.analyze(parse("source=idx1 | kmeans centroids=3")));
   }
 
+  @Test
+  public void testAppend() {
+    String query =
+        "source=main | where testCase='simple' | eval c = 4 | "
+            + "append [source=sub | where testCase='simple' ] | fields a, c, *";
+    assertMultiRelationFields(
+        query,
+        Map.of(
+            "main", new FieldResolutionResult(Set.of("a", "testCase"), "*"),
+            "sub", new FieldResolutionResult(Set.of("a", "c", "testCase"), "*")));
+  }
+
+  @Test
+  public void testAppendWithSpathInMain() {
+    String query =
+        "source=main | where testCase='simple' | spath input=doc | "
+            + "append [source=sub | where testCase='simple' | eval d = 4] | fields a, c, *";
+    assertMultiRelationFields(
+        query,
+        Map.of(
+            "main", new FieldResolutionResult(Set.of("a", "c", "doc", "testCase"), "*"),
+            "sub", new FieldResolutionResult(Set.of("a", "c", "testCase"), "*")));
+    assertSingleSpathFields(query, Set.of("a", "c"), "*");
+  }
+
+  @Test
+  public void testAppendWithSpathSubquery() {
+    String query =
+        "source=main | where testCase='simple' | append [source=sub | where testCase='simple' |"
+            + " spath input=doc | eval c = 4] | fields a, c, *";
+    assertMultiRelationFields(
+        query,
+        Map.of(
+            "main", new FieldResolutionResult(Set.of("a", "c", "testCase"), "*"),
+            "sub", new FieldResolutionResult(Set.of("a", "doc", "testCase"), "*")));
+    assertSingleSpathFields(query, Set.of("a"), "*");
+  }
+
   private UnresolvedPlan parse(String query) {
     AstBuilder astBuilder = new AstBuilder(query, settings);
     return astBuilder.visit(parser.parse(query));
@@ -410,13 +449,12 @@ public class FieldResolutionVisitorTest {
     assertEquals(expectedWildcard, result.getWildcard().toString());
   }
 
-  private void assertJoinRelationFields(
+  private void assertMultiRelationFields(
       String query, Map<String, FieldResolutionResult> expectedResultsByTable) {
     UnresolvedPlan plan = parse(query);
     Map<UnresolvedPlan, FieldResolutionResult> results = visitor.analyze(plan);
 
-    assertEquals(expectedResultsByTable.size(), results.size());
-
+    Set<String> foundTables = new HashSet<>();
     for (Map.Entry<UnresolvedPlan, FieldResolutionResult> entry : results.entrySet()) {
       if (!(entry.getKey() instanceof Relation)) {
         continue;
@@ -427,7 +465,10 @@ public class FieldResolutionVisitorTest {
       if (expectedResult != null) {
         assertEquals(expectedResult.getRegularFields(), entry.getValue().getRegularFields());
         assertEquals(expectedResult.getWildcard(), entry.getValue().getWildcard());
+        foundTables.add(tableName);
       }
     }
+
+    assertEquals(expectedResultsByTable.size(), foundTables.size());
   }
 }
