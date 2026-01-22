@@ -44,6 +44,7 @@ import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Multisearch;
+import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
@@ -605,7 +606,17 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
     return node;
   }
 
-  private Set<String> extractFieldsFromAggregation(UnresolvedExpression expr) {
+    @Override
+    public Node visitMvCombine(MvCombine node, FieldResolutionContext context) {
+        Set<String> mvCombineFields = extractFieldsFromExpression(node.getField());
+        context.pushRequirements(context.getCurrentRequirements().or(mvCombineFields));
+        visitChildren(node, context);
+        context.popRequirements();
+        return node;
+    }
+
+
+    private Set<String> extractFieldsFromAggregation(UnresolvedExpression expr) {
     Set<String> fields = new HashSet<>();
     if (expr instanceof Alias alias) {
       return extractFieldsFromAggregation(alias.getDelegated());
