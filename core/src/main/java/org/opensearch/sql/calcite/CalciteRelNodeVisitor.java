@@ -1425,7 +1425,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitJoin(Join node, CalcitePlanContext context) {
     List<UnresolvedPlan> children = node.getChildren();
     children.forEach(c -> analyze(c, context));
-    adjustInputsForDynamicFields(node.getLeftAlias(), node.getRightAlias(), context);
+    adjustJoinInputsForDynamicFields(node.getLeftAlias(), node.getRightAlias(), context);
     if (node.getJoinCondition().isEmpty()) {
       // join-with-field-list grammar
       List<String> leftColumns = getLeftStaticFields(context);
@@ -1555,17 +1555,20 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   /** Adjust fields to align the static/dynamic fields for join. */
-  private static void adjustInputsForDynamicFields(
+  private static void adjustJoinInputsForDynamicFields(
       Optional<String> leftAlias, Optional<String> rightAlias, CalcitePlanContext context) {
-    RelNode left = context.relBuilder.build();
-    RelNode right = context.relBuilder.build();
-    left = adjustFieldsForDynamicFields(left, right, context);
-    right = adjustFieldsForDynamicFields(right, left, context);
-    context.relBuilder.push(right);
-    // `as(alias)` is needed since `build()` won't preserve alias
-    rightAlias.map(alias -> context.relBuilder.as(alias));
-    context.relBuilder.push(left);
-    leftAlias.map(alias -> context.relBuilder.as(alias));
+    if (hasDynamicFields(context.relBuilder.peek())
+        || hasDynamicFields(context.relBuilder.peek(1))) {
+      RelNode left = context.relBuilder.build();
+      RelNode right = context.relBuilder.build();
+      left = adjustFieldsForDynamicFields(left, right, context);
+      right = adjustFieldsForDynamicFields(right, left, context);
+      context.relBuilder.push(right);
+      // `as(alias)` is needed since `build()` won't preserve alias
+      rightAlias.map(alias -> context.relBuilder.as(alias));
+      context.relBuilder.push(left);
+      leftAlias.map(alias -> context.relBuilder.as(alias));
+    }
   }
 
   private static boolean isDynamicFieldMap(String field) {
