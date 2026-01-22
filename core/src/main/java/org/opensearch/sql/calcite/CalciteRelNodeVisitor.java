@@ -377,6 +377,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       return handleAllFieldsProject(node, context);
     }
 
+    if (isDynamicFieldsExists(context)) {
+      rejectWildcardNotAtTheEnd(node);
+    }
+
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
     List<RexNode> expandedFields =
         expandProjectFields(node.getProjectList(), currentFields, context);
@@ -391,6 +395,20 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       context.relBuilder.project(expandedFields);
     }
     return context.relBuilder.peek();
+  }
+
+  /**
+   * Reject if wildcard(`*`) is specified other than at the end, this is a limitation until field
+   * ordering for dynamic field is implemented.
+   */
+  private void rejectWildcardNotAtTheEnd(Project node) {
+    List<UnresolvedExpression> list = node.getProjectList();
+    for (int i = 0; i < list.size() - 1; i++) {
+      if (list.get(i) instanceof AllFields) {
+        throw new IllegalArgumentException(
+            "Wildcard can be placed only at the end of the fields list (limit of spath command).");
+      }
+    }
   }
 
   private boolean isSingleAllFieldsProject(Project node) {

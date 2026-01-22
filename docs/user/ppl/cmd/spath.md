@@ -36,10 +36,10 @@ For more information about path syntax, see [json_extract](../functions/json.md#
 ### Auto Extraction Notes
 
 * Automatically extracts all the fields from input field. If a field with the same name already exists, extracted values will be appended to existing field value.
-* **Limitation**: `fields` command with partial wildcard (e.g. `prefix*`, `*suffix`) is not supported after `spath` command.
+* **Limitation**: When `fields` command used together with `spath` command: partial wildcard (e.g. `prefix*`, `*suffix`) is not supported; and full wildcard (`*`) needs to be placed at the end of the fields list.
 * **Limitation**: All extracted fields are returned as STRING type.
 * **Limitation**: Field order in the result could be inconsistent with query without `spath` command, and the behavior might change in the future version.
-* **Limitation**: Filter with subquery (`where <field> in/exists [...]` ) is not supported after `spath` command.
+* **Limitation**: Filter with subquery (`where <field> in/exists [...]`) is not supported with `spath` command.
 * **Limitation**: `fillnull` command requires to specify fields when used with `spath` command.
 * **Limitation**: Following commands cannot be used together with `spath` command: `append`, `appendcol`, `multisearch`, `lookup`
 * **Performance**: Filter records before `spath` command for best performance (see Example 8)
@@ -143,7 +143,7 @@ fetched rows / total rows = 3/3
 
 ## Example 5: Full Extraction
 
-Extract multiple fields automatically.
+Extract multiple fields automatically. In case field already exists, extracted values are appended to the existing value.
 
 ```ppl
 source=structured
@@ -193,7 +193,7 @@ In this example, the JSON contains both `"a.b": 1` (direct field with dot) and `
 
 ## Example 7: Auto Extraction Limitations
 
-**Important**: It raises error if partial wildcard is used
+**Important**: It raises error if partial wildcard is used.
 
 ```ppl
 source=structured
@@ -201,14 +201,24 @@ source=structured
 | fields a, prefix*, b   # ERROR
 ```
 
-**Important**: Even when wildcard is used at the middle, remaining fields will be returned at the end of fields.
+**Important**: It raises error if wildcard is used in the middle of field list.
 
 ```ppl
 source=structured
 | fields doc_multi
-| spath input=doc_multi
-| fields doc_multi, *, b
 | head 1
+| spath input=doc_multi
+| fields doc_multi, *, b  # ERROR
+```
+
+It works when wildcard is placed at the end of field list.
+
+```ppl
+source=structured
+| fields doc_multi
+| head 1
+| spath input=doc_multi
+| fields doc_multi, b, *
 ```
 
 Expected output:

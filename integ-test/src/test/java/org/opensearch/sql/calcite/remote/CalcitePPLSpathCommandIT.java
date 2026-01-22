@@ -117,20 +117,9 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testSpathWithFieldAndWildcardAtMiddle() throws IOException {
-    JSONObject result =
-        executeQuery(
-            "source=test_spath | where testCase='simple' | spath input=doc | fields c, *, b | head"
-                + " 1");
-    // Fields for `*` will be at the end (temporal behavior until field ordering for dynamic fields
-    // is implemented)
-    verifySchema(
-        result,
-        schema("c", "string"),
-        schema("b", "string"),
-        schema("a", "string"),
-        schema("doc", "string"),
-        schema("testCase", "string"));
-    verifyDataRows(result, rows("3", "2", "1", sj("{'a': 1, 'b': 2, 'c': 3}"), "simple"));
+    verifyExplainException(
+        "source=test_spath | where testCase='simple' | spath input=doc | fields c, *, b",
+        "Wildcard can be placed only at the end of the fields list (limit of spath command).");
   }
 
   @Test
