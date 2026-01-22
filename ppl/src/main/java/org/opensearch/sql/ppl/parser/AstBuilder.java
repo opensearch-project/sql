@@ -1192,11 +1192,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   @Override
   public UnresolvedPlan visitConvertCommand(OpenSearchPPLParser.ConvertCommandContext ctx) {
-    if (settings == null
-        || !Boolean.TRUE.equals(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED))) {
-      throw getOnlyForCalciteException("Convert command");
-    }
-
     String timeformat = null;
     if (ctx.timeformatValue != null) {
       timeformat = ((Literal) internalVisitExpression(ctx.timeformatValue)).toString();
