@@ -33,8 +33,6 @@ import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -377,7 +375,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       return handleAllFieldsProject(node, context);
     }
 
-    if (isDynamicFieldsExists(context)) {
+    if (DynamicFieldsHelper.isDynamicFieldsExists(context)) {
       rejectWildcardNotAtTheEnd(node);
     }
 
@@ -743,123 +741,22 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // 2. Project items from FieldResolutionResult
     Set<String> existingFields = new HashSet<>(DynamicFieldsHelper.getStaticFields(context));
-    List<String> regularFieldNames =
+    List<String> sortedRegularFieldNames =
         resolutionResult.getRegularFields().stream().sorted().collect(Collectors.toList());
-    List<RexNode> fields = new ArrayList<>();
-    for (String fieldName : regularFieldNames) {
-      RexNode item = getItemAsString(map, fieldName, context);
-      // Append if field already exist
-      if (existingFields.contains(fieldName)) {
-        item =
-            context.rexBuilder.makeCall(
-                BuiltinFunctionName.INTERNAL_APPEND, context.relBuilder.field(fieldName), item);
-        item = castToString(item, context);
-      }
-      fields.add(context.relBuilder.alias(item, fieldName));
-    }
+    List<RexNode> fields =
+        DynamicFieldsHelper.buildRegularFieldProjections(
+            map, sortedRegularFieldNames, existingFields, context);
 
     // 3. Add _MAP field for dynamic fields when wildcards present
     if (resolutionResult.hasWildcards()) {
       RexNode dynamicMapField =
-          createDynamicMapField(map, resolutionResult.getRegularFields(), context);
-      List<String> remainingFields = getRemainingFields(existingFields, regularFieldNames);
-      if (!remainingFields.isEmpty()) {
-        // Add existing fields to map
-        RexNode existingFieldsMap = getFieldsAsMap(existingFields, regularFieldNames, context);
-        dynamicMapField =
-            context.rexBuilder.makeCall(
-                BuiltinFunctionName.MAP_APPEND, existingFieldsMap, dynamicMapField);
-      }
-      if (isDynamicFieldsExists(context)) {
-        RexNode existingMap = context.relBuilder.field(DYNAMIC_FIELDS_MAP);
-        dynamicMapField =
-            context.rexBuilder.makeCall(
-                BuiltinFunctionName.MAP_APPEND, existingMap, dynamicMapField);
-      }
+          DynamicFieldsHelper.buildDynamicMapFieldProjection(
+              map, sortedRegularFieldNames, existingFields, context);
       fields.add(context.relBuilder.alias(dynamicMapField, DYNAMIC_FIELDS_MAP));
     }
 
     context.relBuilder.project(fields);
     return context.relBuilder.peek();
-  }
-
-  private static List<String> getRemainingFields(
-      Collection<String> existingFields, Collection<String> excluded) {
-    List<String> keys = excludeMetaFields(existingFields);
-    keys.removeAll(excluded);
-    Collections.sort(keys);
-    return keys;
-  }
-
-  static RexNode getFieldsAsMap(
-      Collection<String> existingFields, Collection<String> excluded, CalcitePlanContext context) {
-    List<String> keys = excludeMetaFields(existingFields);
-    keys.removeAll(excluded);
-    Collections.sort(keys); // sort for plan consistency
-    RexNode keysArray = getStringLiteralArray(keys, context);
-    List<RexNode> values =
-        keys.stream().map(key -> context.relBuilder.field(key)).collect(Collectors.toList());
-    RexNode valuesArray = makeStringArray(values, context);
-    return context.rexBuilder.makeCall(BuiltinFunctionName.MAP_FROM_ARRAYS, keysArray, valuesArray);
-  }
-
-  private static List<String> excludeMetaFields(Collection<String> fields) {
-    return fields.stream().filter(field -> !isMetadataField(field)).collect(Collectors.toList());
-  }
-
-  private static RexNode getItemAsString(
-      RexNode map, String fieldName, CalcitePlanContext context) {
-    RexNode item = context.rexBuilder.itemCall(map, fieldName);
-    // Cast to string for type consistency. (This cast will be removed once functions are adopted
-    // to ANY type)
-    return context.relBuilder.cast(item, SqlTypeName.VARCHAR);
-  }
-
-  private static RexNode castToString(RexNode node, CalcitePlanContext context) {
-    return context.relBuilder.cast(node, SqlTypeName.VARCHAR);
-  }
-
-  private static boolean isDynamicFieldsExists(CalcitePlanContext context) {
-    return context.relBuilder.peek().getRowType().getFieldNames().contains(DYNAMIC_FIELDS_MAP);
-  }
-
-  private static RexNode createDynamicMapField(
-      RexNode fullMap, Set<String> regularFields, CalcitePlanContext context) {
-    if (regularFields.isEmpty()) {
-      return fullMap;
-    }
-
-    RexNode keyArray = getStringLiteralArray(regularFields, context);
-
-    // MAP_REMOVE(fullMap, keyArray) → filtered map with only unmapped fields
-    return context.rexBuilder.makeCall(BuiltinFunctionName.MAP_REMOVE, fullMap, keyArray);
-  }
-
-  private static RexNode getStringLiteralArray(
-      Collection<String> keys, CalcitePlanContext context) {
-    List<RexNode> stringLiteralList =
-        keys.stream()
-            .sorted()
-            .map(name -> context.rexBuilder.makeLiteral(name))
-            .collect(Collectors.toList());
-
-    return context.rexBuilder.makeCall(
-        getStringArrayType(context),
-        SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
-        stringLiteralList);
-  }
-
-  private static RelDataType getStringArrayType(CalcitePlanContext context) {
-    return context
-        .rexBuilder
-        .getTypeFactory()
-        .createArrayType(
-            context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), -1);
-  }
-
-  private static RexNode makeStringArray(List<RexNode> items, CalcitePlanContext context) {
-    return context.rexBuilder.makeCall(
-        getStringArrayType(context), SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, items);
   }
 
   @Override
