@@ -1559,15 +1559,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       Optional<String> leftAlias, Optional<String> rightAlias, CalcitePlanContext context) {
     if (hasDynamicFields(context.relBuilder.peek())
         || hasDynamicFields(context.relBuilder.peek(1))) {
-      RelNode left = context.relBuilder.build();
+      // build once to modify the inputs already in the stack.
       RelNode right = context.relBuilder.build();
+      RelNode left = context.relBuilder.build();
       left = adjustFieldsForDynamicFields(left, right, context);
       right = adjustFieldsForDynamicFields(right, left, context);
-      context.relBuilder.push(right);
-      // `as(alias)` is needed since `build()` won't preserve alias
-      rightAlias.map(alias -> context.relBuilder.as(alias));
       context.relBuilder.push(left);
+      // `as(alias)` is needed since `build()` won't preserve alias
       leftAlias.map(alias -> context.relBuilder.as(alias));
+      context.relBuilder.push(right);
+      rightAlias.map(alias -> context.relBuilder.as(alias));
     }
   }
 
