@@ -76,7 +76,7 @@ The extended `join` syntax supports the following parameters.
 | `type` | Optional | The join type when using extended syntax. Valid values are `left`, `outer` (same as `left`), `semi`, `anti`, and performance-sensitive types (`right`, `full`, and `cross`). Default is `inner`. |
 | `<join-field-list>` | Optional | A list of fields used to build the join criteria. These fields must exist in both datasets. If not specified, all fields common to both datasets are used as join keys. |
 | `overwrite` | Optional | Applicable only when `join-field-list` is specified. Specifies whether fields from the right dataset with duplicate names should replace corresponding fields in the main search results. Default is `true`. |
-| `max` | Optional | The maximum number of subsearch results to join with each row in the main search. Default is `0` (unlimited). |
+| `max` | Optional | The maximum number of subsearch results to join with each row in the main search. Default is `0` (unlimited) when plugins.ppl.syntax.legacy.preferred is `true`. When the setting is `false` the default value is `1`. |
 | `left` | Optional | An alias for the left dataset (typically a subsearch) used to avoid ambiguous field names. Specify as `left = <leftAlias>`. |
 | `right` | Optional | An alias for the right dataset (typically, a subsearch) used to avoid ambiguous field names. Specify as `right = <rightAlias>`. |
   

@@ -28,6 +28,7 @@ import java.util.Locale;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ast.statement.ExplainMode;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.ExplainIT;
@@ -111,6 +112,26 @@ public class CalciteExplainIT extends ExplainIT {
     var result = explainQueryYaml(query);
     String expected = loadExpectedPlan("explain_join_with_fields_max_option.yaml");
     assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  @Test
+  public void testJoinWhenLegacyNotPreferred() throws IOException {
+    withSettings(
+        Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED,
+        "false",
+        () -> {
+          String query =
+              "source=opensearch-sql_test_index_bank | join type=inner account_number"
+                  + " opensearch-sql_test_index_bank";
+          String result = null;
+          try {
+            result = explainQueryYaml(query);
+            String expected = loadExpectedPlan("explain_join_with_fields_max_option.yaml");
+            assertYamlEqualsIgnoreId(expected, result);
+          } catch (IOException e) {
+            fail();
+          }
+        });
   }
 
   // Only for Calcite
