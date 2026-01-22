@@ -165,7 +165,7 @@ fetched rows / total rows = 3/3
 +--------------------------------------+----+----+---------+
 ```
 
-All extracted fields are returned as STRING type. As `c` in the example, extracted value is appended to organize an array if an extracted field already exists.
+All extracted fields are returned as STRING type. As shown with field `c` in the example, the extracted value is appended to organize an array if an extracted field already exists.
 
 ## Example 6: Field Merge with Dotted Names
 

@@ -113,7 +113,7 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
   @Override
   public Node visitProject(Project node, FieldResolutionContext context) {
     boolean isSingleSelectAll =
-        node.getProjectList().size() == 1 && node.getProjectList().getFirst() instanceof AllFields;
+        node.getProjectList().size() == 1 && node.getProjectList().get(0) instanceof AllFields;
 
     if (isSingleSelectAll) {
       visitChildren(node, context);
