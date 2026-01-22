@@ -26,7 +26,8 @@ public class AstNodeUtils {
     if (expr instanceof SubqueryExpression) {
       return true;
     }
-    if (expr instanceof Let l) {
+    if (expr instanceof Let) {
+      Let l = (Let) expr;
       return containsSubqueryExpression(l.getExpression());
     }
     for (Node child : expr.getChild()) {

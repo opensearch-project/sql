@@ -235,23 +235,29 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
       return fields;
     }
 
-    if (expr instanceof Field field) {
+    if (expr instanceof Field) {
+      Field field = (Field) expr;
       fields.add(field.getField().toString());
-    } else if (expr instanceof QualifiedName name) {
+    } else if (expr instanceof QualifiedName) {
+      QualifiedName name = (QualifiedName) expr;
       fields.add(name.toString());
-    } else if (expr instanceof Alias alias) {
+    } else if (expr instanceof Alias) {
+      Alias alias = (Alias) expr;
       fields.addAll(extractFieldsFromExpression(alias.getDelegated()));
-    } else if (expr instanceof Function function) {
+    } else if (expr instanceof Function) {
+      Function function = (Function) expr;
       for (UnresolvedExpression arg : function.getFuncArgs()) {
         fields.addAll(extractFieldsFromExpression(arg));
       }
-    } else if (expr instanceof Span span) {
+    } else if (expr instanceof Span) {
+      Span span = (Span) expr;
       fields.addAll(extractFieldsFromExpression(span.getField()));
     } else if (expr instanceof Literal) {
       return fields;
     } else {
       for (Node child : expr.getChild()) {
-        if (child instanceof UnresolvedExpression childExpr) {
+        if (child instanceof UnresolvedExpression) {
+          UnresolvedExpression childExpr = (UnresolvedExpression) child;
           fields.addAll(extractFieldsFromExpression(childExpr));
         }
       }
@@ -607,9 +613,11 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
 
   private Set<String> extractFieldsFromAggregation(UnresolvedExpression expr) {
     Set<String> fields = new HashSet<>();
-    if (expr instanceof Alias alias) {
+    if (expr instanceof Alias) {
+      Alias alias = (Alias) expr;
       return extractFieldsFromAggregation(alias.getDelegated());
-    } else if (expr instanceof AggregateFunction aggFunc) {
+    } else if (expr instanceof AggregateFunction) {
+      AggregateFunction aggFunc = (AggregateFunction) expr;
       if (aggFunc.getField() != null) {
         fields.addAll(extractFieldsFromExpression(aggFunc.getField()));
       }
