@@ -12,6 +12,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.script.Script;
 import org.opensearch.search.aggregations.AggregationBuilder;
@@ -136,7 +137,7 @@ public interface ScriptedMetricUDAF {
      * @return RexNode representing the dynamic parameter reference
      */
     public RexNode addSpecialVariableRef(
-        String varName, org.apache.calcite.sql.type.SqlTypeName type) {
+        String varName, SqlTypeName type) {
       int index = paramHelper.addSpecialVariable(varName);
       return rexBuilder.makeDynamicParam(rexBuilder.getTypeFactory().createSqlType(type), index);
     }
