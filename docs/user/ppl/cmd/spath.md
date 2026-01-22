@@ -44,6 +44,8 @@ For more information about path syntax, see [json_extract](../functions/json.md#
 * **Limitation**: Following commands cannot be used together with `spath` command: `appendcol`, `multisearch`, `lookup`.
 * **Performance**: Filter records before `spath` command for best performance (see Example 8)
 
+* **Internal Implementation**: The auto extraction feature uses an internal `_MAP` system column to store dynamic fields during query processing. This column is automatically expanded into individual columns in the final results and users don't need to reference it directly. For more information, see [System Columns](../general/identifiers.md#system-columns).
+
 ## Example 1: Basic field extraction
 
 The basic use of `spath` extracts a single field from JSON data. The following query extracts the `n` field from JSON objects in the `doc_n` field:

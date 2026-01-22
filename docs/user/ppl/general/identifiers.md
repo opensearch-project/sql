@@ -185,4 +185,17 @@ fetched rows / total rows = 4/4
 | Dale      | Adams    | accounts | -2    |
 +-----------+----------+----------+-------+
 ```
-  
+
+
+## System Columns
+
+### Description
+
+PPL uses special system columns for internal processing. These columns are reserved and have special behavior:
+
+- `_MAP`: Internal system column used to store dynamic fields. This column is automatically expanded into individual columns in the final query results. Users don't need to reference this field directly, as it's handled transparently by the query engine.
+
+### Notes
+
+- System columns like `_MAP` are excluded from wildcard field selection
+- Unlike metadata fields, system columns are not meant to be explicitly selected by users
