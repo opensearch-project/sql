@@ -61,7 +61,7 @@ public class FieldResolutionContext {
     if (patterns.size() == 1) {
       return patterns.iterator().next();
     }
-    return String.join(" | ", patterns.stream().sorted().toList());
+    return String.join(" | ", patterns.stream().sorted().collect(Collectors.toList()));
   }
 
   @Override
