@@ -693,7 +693,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .orElseThrow(() -> new IllegalArgumentException("maxRows must be positive"));
 
     String columnName = node.getColumnName();
-    List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+    List<String> fieldNames =
+        context.relBuilder.peek().getRowType().getFieldNames().stream()
+            .filter(fieldName -> !isMetadataField(fieldName))
+            .toList();
 
     RelBuilder b = context.relBuilder;
     RexBuilder rx = context.rexBuilder;
