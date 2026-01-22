@@ -255,7 +255,7 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testSpathWithJoinWithFieldsAndDynamicFields() throws IOException {
+  public void testSpathWithJoinWithDynamicFields() throws IOException {
     JSONObject result =
         executeQuery(
             "source=test_spath | where testCase='join1' | spath input=doc | "
@@ -277,6 +277,47 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
             "l",
             "r1",
             "join2"));
+  }
+
+  @Test
+  public void testJoinWithLeftSpathWithDynamicFields() throws IOException {
+    // only left input has dynamic fields due to spath command
+    JSONObject result =
+        executeQuery(
+            "source=test_spath | where testCase='join1' | spath input=doc | join key"
+                + " [source=test_spath | where testCase='join2' | eval key='k1'] | fields key,"
+                + " common, doc, * | head 1");
+    verifySchema(
+        result,
+        schema("key", "string"),
+        schema("common", "string"),
+        schema("doc", "string"),
+        schema("left", "string"),
+        schema("testCase", "string"));
+    verifyDataRows(
+        result,
+        rows("k1", "cLeft", sj("{'key': 'k1', 'right': 'r1', 'common': 'cRight'}"), "l", "join2"));
+  }
+
+  @Test
+  public void testJoinWithRightSpathWithDynamicFields() throws IOException {
+    // only right input has dynamic fields due to spath command
+    JSONObject result =
+        executeQuery(
+            "source=test_spath | where testCase='join1' | eval key='k1' |join key"
+                + " [source=test_spath | where testCase='join2' | spath input=doc] | fields key,"
+                + " common, doc, * | head 1");
+    verifySchema(
+        result,
+        schema("key", "string"),
+        schema("common", "string"),
+        schema("doc", "string"),
+        schema("right", "string"),
+        schema("testCase", "string"));
+    verifyDataRows(
+        result,
+        rows(
+            "k1", "cRight", sj("{'key': 'k1', 'right': 'r1', 'common': 'cRight'}"), "r1", "join2"));
   }
 
   @Test

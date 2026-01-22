@@ -41,7 +41,7 @@ For more information about path syntax, see [json_extract](../functions/json.md#
 * **Limitation**: Field order in the result could be inconsistent with query without `spath` command, and the behavior might change in the future version.
 * **Limitation**: Filter with subquery (`where <field> in/exists [...]`) is not supported with `spath` command.
 * **Limitation**: `fillnull` command requires to specify fields when used with `spath` command.
-* **Limitation**: Following commands cannot be used together with `spath` command: `append`, `appendcol`, `multisearch`, `lookup`
+* **Limitation**: Following commands cannot be used together with `spath` command: `appendcol`, `multisearch`, `lookup`.
 * **Performance**: Filter records before `spath` command for best performance (see Example 8)
 
 ## Example 1: Basic field extraction

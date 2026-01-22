@@ -1425,6 +1425,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitJoin(Join node, CalcitePlanContext context) {
     List<UnresolvedPlan> children = node.getChildren();
     children.forEach(c -> analyze(c, context));
+    adjustInputsForDynamicFields(node.getLeftAlias(), node.getRightAlias(), context);
     if (node.getJoinCondition().isEmpty()) {
       // join-with-field-list grammar
       List<String> leftColumns = getLeftStaticFields(context);
@@ -1551,6 +1552,20 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           rightColumnsWithAliasIfConflict, leftColumns.size(), context);
     }
     return context.relBuilder.peek();
+  }
+
+  /** Adjust fields to align the static/dynamic fields for join. */
+  private static void adjustInputsForDynamicFields(
+      Optional<String> leftAlias, Optional<String> rightAlias, CalcitePlanContext context) {
+    RelNode left = context.relBuilder.build();
+    RelNode right = context.relBuilder.build();
+    left = adjustFieldsForDynamicFields(left, right, context);
+    right = adjustFieldsForDynamicFields(right, left, context);
+    context.relBuilder.push(right);
+    // `as(alias)` is needed since `build()` won't preserve alias
+    rightAlias.map(alias -> context.relBuilder.as(alias));
+    context.relBuilder.push(left);
+    leftAlias.map(alias -> context.relBuilder.as(alias));
   }
 
   private static boolean isDynamicFieldMap(String field) {
@@ -2338,17 +2353,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   private RelNode mergeTableAndResolveColumnConflict(
       RelNode mainNode, RelNode subqueryNode, CalcitePlanContext context) {
-    // Adjust fields for dynamic fields. (This can be eliminated once table scan adopted
-    // schema-on-read)
-    if (hasDynamicFields(mainNode) && !hasDynamicFields(subqueryNode)) {
-      subqueryNode =
-          adjustFieldsForDynamicFields(
-              subqueryNode, mainNode.getRowType().getFieldNames(), context);
-    } else if (!hasDynamicFields(mainNode) && hasDynamicFields(subqueryNode)) {
-      mainNode =
-          adjustFieldsForDynamicFields(
-              mainNode, subqueryNode.getRowType().getFieldNames(), context);
-    }
+    mainNode = adjustFieldsForDynamicFields(mainNode, subqueryNode, context);
+    subqueryNode = adjustFieldsForDynamicFields(subqueryNode, mainNode, context);
 
     // Use shared schema merging logic that handles type conflicts via field renaming
     List<RelNode> nodesToMerge = Arrays.asList(mainNode, subqueryNode);
@@ -2363,11 +2369,27 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-  private boolean hasDynamicFields(RelNode node) {
+  /** Adjust fields to align the static/dynamic fields in `target` to `theOtherInput` */
+  private static RelNode adjustFieldsForDynamicFields(
+      RelNode target, RelNode theOtherInput, CalcitePlanContext context) {
+    if (hasDynamicFields(theOtherInput) && !hasDynamicFields(target)) {
+      return adjustFieldsForDynamicFields(
+          target, theOtherInput.getRowType().getFieldNames(), context);
+    }
+    return target;
+  }
+
+  private static boolean hasDynamicFields(RelNode node) {
     return node.getRowType().getFieldNames().contains(DYNAMIC_FIELDS_MAP);
   }
 
-  private RelNode adjustFieldsForDynamicFields(
+  /**
+   * Project node's fields in `requiredFieldNames` as static field, and put other fields into `_MAP`
+   * (dynamic fields) This projection is needed when merging an input with dynamic fields and an
+   * input without dynamic fields. This process can be eliminated once we fully integrate
+   * schema-on-read (https://github.com/opensearch-project/sql/issues/4984)
+   */
+  private static RelNode adjustFieldsForDynamicFields(
       RelNode node, List<String> requiredFieldNames, CalcitePlanContext context) {
     context.relBuilder.push(node);
     List<String> existingFields = node.getRowType().getFieldNames();
