@@ -501,11 +501,13 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
           SqlFunctionCategory.NUMERIC) {
         @Override
         public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
-          SqlOperator op =
-              call.getOperandList().size() == 2
-                  ? SqlStdOperatorTable.ATAN2
-                  : SqlStdOperatorTable.ATAN;
-          ((SqlBasicCall) call).setOperator(op);
+          if (call instanceof SqlBasicCall) {
+            SqlOperator op =
+                call.getOperandList().size() == 2
+                    ? SqlStdOperatorTable.ATAN2
+                    : SqlStdOperatorTable.ATAN;
+            ((SqlBasicCall) call).setOperator(op);
+          }
           return call;
         }
       };

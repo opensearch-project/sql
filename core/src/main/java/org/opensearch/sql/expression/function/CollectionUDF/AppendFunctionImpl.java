@@ -47,7 +47,7 @@ public class AppendFunctionImpl extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return UDFOperandMetadata.wrap(OperandTypes.SAME_VARIADIC);
+    return UDFOperandMetadata.wrap(OperandTypes.VARIADIC);
   }
 
   public static class AppendImplementor implements NotNullImplementor {

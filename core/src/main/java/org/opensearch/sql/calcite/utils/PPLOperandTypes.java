@@ -75,8 +75,8 @@ public class PPLOperandTypes {
 
   public static final UDFOperandMetadata NUMERIC_STRING_OR_STRING_STRING =
       UDFOperandMetadata.wrap(
-          (OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING))
-              .or(OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING)));
+          (OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER))
+              .or(OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER)));
 
   public static final UDFOperandMetadata NUMERIC_NUMERIC_OPTIONAL_NUMERIC_SYMBOL =
       UDFOperandMetadata.wrap(
