@@ -143,7 +143,7 @@ fetched rows / total rows = 3/3
 
 ## Example 5: Full Extraction
 
-Extract multiple fields automatically based on downstream requirements.
+Extract multiple fields automatically.
 
 ```ppl
 source=structured

@@ -494,8 +494,7 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
   @Override
   public Node visitFillNull(FillNull node, FieldResolutionContext context) {
     if (node.isAgainstAllFields()) {
-      throw new IllegalArgumentException(
-          "Fillnull command requires fields when used together with spath command");
+      throw new IllegalArgumentException("Fields need to be specified with fillnull command");
     }
     Set<String> fields = new HashSet<>();
     node.getFields().forEach(field -> fields.addAll(extractFieldsFromExpression(field)));

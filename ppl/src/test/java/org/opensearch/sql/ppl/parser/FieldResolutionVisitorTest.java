@@ -322,7 +322,7 @@ public class FieldResolutionVisitorTest {
   @Test
   public void testFillnullWithoutFields() {
     assertThrows(
-        "Fillnull command requires fields when used together with spath command",
+        "Fields need to be specified with fillnull command",
         IllegalArgumentException.class,
         () -> visitor.analyze(parse("source=logs | fillnull with 'NULL'")));
   }
