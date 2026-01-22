@@ -606,17 +606,16 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
     return node;
   }
 
-    @Override
-    public Node visitMvCombine(MvCombine node, FieldResolutionContext context) {
-        Set<String> mvCombineFields = extractFieldsFromExpression(node.getField());
-        context.pushRequirements(context.getCurrentRequirements().or(mvCombineFields));
-        visitChildren(node, context);
-        context.popRequirements();
-        return node;
-    }
+  @Override
+  public Node visitMvCombine(MvCombine node, FieldResolutionContext context) {
+    Set<String> mvCombineFields = extractFieldsFromExpression(node.getField());
+    context.pushRequirements(context.getCurrentRequirements().or(mvCombineFields));
+    visitChildren(node, context);
+    context.popRequirements();
+    return node;
+  }
 
-
-    private Set<String> extractFieldsFromAggregation(UnresolvedExpression expr) {
+  private Set<String> extractFieldsFromAggregation(UnresolvedExpression expr) {
     Set<String> fields = new HashSet<>();
     if (expr instanceof Alias alias) {
       return extractFieldsFromAggregation(alias.getDelegated());
