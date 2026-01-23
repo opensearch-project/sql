@@ -51,21 +51,25 @@ class DynamicFieldsHelper {
   }
 
   /** Filter out dynamic fields map from field names list. */
-  static List<String> excludeDynamicFields(List<String> fieldNames) {
-    return fieldNames.stream()
-        .filter(fieldName -> !isDynamicFieldMap(fieldName))
-        .collect(Collectors.toList());
+  private static List<String> excludeDynamicFields(Collection<String> fields) {
+    return fields.stream().filter(field -> !isDynamicFieldMap(field)).collect(Collectors.toList());
   }
 
   /** Filter out metadata fields from field names collection. */
-  static List<String> excludeMetaFields(Collection<String> fields) {
+  private static List<String> excludeMetaFields(Collection<String> fields) {
     return fields.stream().filter(field -> !isMetadataField(field)).collect(Collectors.toList());
   }
 
+  private static List<String> excludeSpecialFields(Collection<String> fields) {
+    return fields.stream()
+        .filter(field -> !isMetadataField(field) && !isDynamicFieldMap(field))
+        .collect(Collectors.toList());
+  }
+
   /** Get remaining fields after excluding specified fields. */
-  static List<String> getRemainingFields(
+  private static List<String> getRemainingFields(
       Collection<String> existingFields, Collection<String> excluded) {
-    List<String> keys = excludeMetaFields(existingFields);
+    List<String> keys = excludeSpecialFields(existingFields);
     keys.removeAll(excluded);
     Collections.sort(keys);
     return keys;
@@ -77,7 +81,7 @@ class DynamicFieldsHelper {
   }
 
   /** Check if a RelNode has dynamic fields. */
-  static boolean hasDynamicFields(RelNode node) {
+  private static boolean hasDynamicFields(RelNode node) {
     return node.getRowType().getFieldNames().contains(DYNAMIC_FIELDS_MAP);
   }
 
@@ -134,7 +138,7 @@ class DynamicFieldsHelper {
   }
 
   /** Convert fields to map representation */
-  static RexNode getFieldsAsMap(
+  private static RexNode getFieldsAsMap(
       Collection<String> existingFields, Collection<String> excluded, CalcitePlanContext context) {
     List<String> keys = excludeMetaFields(existingFields);
     keys.removeAll(excluded);
@@ -147,7 +151,7 @@ class DynamicFieldsHelper {
   }
 
   /** Create dynamic map field by removing regular fields from full map */
-  static RexNode createDynamicMapField(
+  private static RexNode createDynamicMapField(
       RexNode fullMap, List<String> sortedRegularFields, CalcitePlanContext context) {
     if (sortedRegularFields.isEmpty()) {
       return fullMap;
@@ -184,7 +188,7 @@ class DynamicFieldsHelper {
   }
 
   /** Promote all the fields in requiredStaticFieldNames to static fields to prepare for join. */
-  static RelNode addRequiredStaticFields(
+  private static RelNode addRequiredStaticFields(
       RelNode node, List<String> requiredStaticFieldNames, CalcitePlanContext context) {
     List<String> existingFields = getStaticFields(node);
     List<String> missingFields =
@@ -240,7 +244,8 @@ class DynamicFieldsHelper {
   }
 
   /** Get map item as string with type casting. */
-  static RexNode getItemAsString(RexNode map, String fieldName, CalcitePlanContext context) {
+  private static RexNode getItemAsString(
+      RexNode map, String fieldName, CalcitePlanContext context) {
     RexNode item = context.rexBuilder.itemCall(map, fieldName);
     // Cast to string for type consistency. (This cast will be removed once functions are adopted
     // to ANY type)
@@ -248,7 +253,7 @@ class DynamicFieldsHelper {
   }
 
   /** Cast a RexNode to string type. */
-  static RexNode castToString(RexNode node, CalcitePlanContext context) {
+  private static RexNode castToString(RexNode node, CalcitePlanContext context) {
     return context.relBuilder.cast(node, SqlTypeName.VARCHAR);
   }
 
