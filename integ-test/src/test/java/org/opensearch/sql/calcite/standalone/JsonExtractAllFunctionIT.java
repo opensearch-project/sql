@@ -246,8 +246,7 @@ public class JsonExtractAllFunctionIT extends CalcitePPLRelNodeIntegTestCase {
           assertTrue(resultSet.next());
           verifyColumns(resultSet, RESULT_FIELD);
 
-          Map<String, Object> map = getMap(resultSet, 1);
-          assertTrue(map.isEmpty());
+          assertNull(resultSet.getObject(1));
         });
   }
 
