@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLPatternsIT extends PPLIntegTestCase {
@@ -535,145 +536,165 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
   public void testBrainAggregationMode_UDAFPushdown_NotShowNumberedToken() throws IOException {
     // Test UDAF pushdown for patterns BRAIN aggregation mode
     // This verifies that the query is pushed down to OpenSearch as a scripted metric aggregation
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | patterns content method=brain mode=aggregation"
-                    + " variable_count_threshold=5",
-                TEST_INDEX_HDFS_LOGS));
-    System.out.println(result.toString());
+    // UDAF pushdown is disabled by default, enable it for this test
+    updateClusterSettings(
+        new ClusterSetting(
+            "persistent", Settings.Key.CALCITE_UDAF_PUSHDOWN_ENABLED.getKeyValue(), "true"));
+    try {
+      JSONObject result =
+          executeQuery(
+              String.format(
+                  "source=%s | patterns content method=brain mode=aggregation"
+                      + " variable_count_threshold=5",
+                  TEST_INDEX_HDFS_LOGS));
+      System.out.println(result.toString());
 
-    // Verify schema matches expected output
-    verifySchema(
-        result,
-        schema("patterns_field", "string"),
-        schema("pattern_count", "bigint"),
-        schema("sample_logs", "array"));
+      // Verify schema matches expected output
+      verifySchema(
+          result,
+          schema("patterns_field", "string"),
+          schema("pattern_count", "bigint"),
+          schema("sample_logs", "array"));
 
-    // Verify data rows - should match the non-pushdown results
-    verifyDataRows(
-        result,
-        rows(
-            "Verification succeeded <*> blk_<*>",
-            2,
-            ImmutableList.of(
-                "Verification succeeded for blk_-1547954353065580372",
-                "Verification succeeded for blk_6996194389878584395")),
-        rows(
-            "BLOCK* NameSystem.addStoredBlock: blockMap updated: <*IP*> is added to blk_<*>"
-                + " size <*>",
-            2,
-            ImmutableList.of(
-                "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.31.85:50010 is added to"
-                    + " blk_-7017553867379051457 size 67108864",
-                "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.107.19:50010 is added"
-                    + " to blk_-3249711809227781266 size 67108864")),
-        rows(
-            "<*> NameSystem.allocateBlock:"
-                + " /user/root/sortrand/_temporary/_task_<*>_<*>_r_<*>_<*>/part<*>"
-                + " blk_<*>",
-            2,
-            ImmutableList.of(
-                "BLOCK* NameSystem.allocateBlock:"
-                    + " /user/root/sortrand/_temporary/_task_200811092030_0002_r_000296_0/part-00296."
-                    + " blk_-6620182933895093708",
-                "BLOCK* NameSystem.allocateBlock:"
-                    + " /user/root/sortrand/_temporary/_task_200811092030_0002_r_000318_0/part-00318."
-                    + " blk_2096692261399680562")),
-        rows(
-            "PacketResponder failed <*> blk_<*>",
-            2,
-            ImmutableList.of(
-                "PacketResponder failed for blk_6996194389878584395",
-                "PacketResponder failed for blk_-1547954353065580372")));
+      // Verify data rows - should match the non-pushdown results
+      verifyDataRows(
+          result,
+          rows(
+              "Verification succeeded <*> blk_<*>",
+              2,
+              ImmutableList.of(
+                  "Verification succeeded for blk_-1547954353065580372",
+                  "Verification succeeded for blk_6996194389878584395")),
+          rows(
+              "BLOCK* NameSystem.addStoredBlock: blockMap updated: <*IP*> is added to blk_<*>"
+                  + " size <*>",
+              2,
+              ImmutableList.of(
+                  "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.31.85:50010 is added"
+                      + " to blk_-7017553867379051457 size 67108864",
+                  "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.107.19:50010 is added"
+                      + " to blk_-3249711809227781266 size 67108864")),
+          rows(
+              "<*> NameSystem.allocateBlock:"
+                  + " /user/root/sortrand/_temporary/_task_<*>_<*>_r_<*>_<*>/part<*>"
+                  + " blk_<*>",
+              2,
+              ImmutableList.of(
+                  "BLOCK* NameSystem.allocateBlock:"
+                      + " /user/root/sortrand/_temporary/_task_200811092030_0002_r_000296_0/part-00296."
+                      + " blk_-6620182933895093708",
+                  "BLOCK* NameSystem.allocateBlock:"
+                      + " /user/root/sortrand/_temporary/_task_200811092030_0002_r_000318_0/part-00318."
+                      + " blk_2096692261399680562")),
+          rows(
+              "PacketResponder failed <*> blk_<*>",
+              2,
+              ImmutableList.of(
+                  "PacketResponder failed for blk_6996194389878584395",
+                  "PacketResponder failed for blk_-1547954353065580372")));
+    } finally {
+      updateClusterSettings(
+          new ClusterSetting(
+              "persistent", Settings.Key.CALCITE_UDAF_PUSHDOWN_ENABLED.getKeyValue(), "false"));
+    }
   }
 
   @Test
   public void testBrainAggregationMode_UDAFPushdown_ShowNumberedToken() throws IOException {
     // Test UDAF pushdown for patterns BRAIN aggregation mode with numbered tokens
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | patterns content method=brain mode=aggregation"
-                    + " show_numbered_token=true variable_count_threshold=5",
-                TEST_INDEX_HDFS_LOGS));
-    System.out.println(result.toString());
+    // UDAF pushdown is disabled by default, enable it for this test
+    updateClusterSettings(
+        new ClusterSetting(
+            "persistent", Settings.Key.CALCITE_UDAF_PUSHDOWN_ENABLED.getKeyValue(), "true"));
+    try {
+      JSONObject result =
+          executeQuery(
+              String.format(
+                  "source=%s | patterns content method=brain mode=aggregation"
+                      + " show_numbered_token=true variable_count_threshold=5",
+                  TEST_INDEX_HDFS_LOGS));
+      System.out.println(result.toString());
 
-    // Verify schema includes tokens field
-    verifySchema(
-        result,
-        schema("patterns_field", "string"),
-        schema("pattern_count", "bigint"),
-        schema("tokens", "struct"),
-        schema("sample_logs", "array"));
+      // Verify schema includes tokens field
+      verifySchema(
+          result,
+          schema("patterns_field", "string"),
+          schema("pattern_count", "bigint"),
+          schema("tokens", "struct"),
+          schema("sample_logs", "array"));
 
-    // Verify data rows with tokens
-    verifyDataRows(
-        result,
-        rows(
-            "Verification succeeded <token1> blk_<token2>",
-            2,
-            ImmutableMap.of(
-                "<token1>",
-                ImmutableList.of("for", "for"),
-                "<token2>",
-                ImmutableList.of("-1547954353065580372", "6996194389878584395")),
-            ImmutableList.of(
-                "Verification succeeded for blk_-1547954353065580372",
-                "Verification succeeded for blk_6996194389878584395")),
-        rows(
-            "BLOCK* NameSystem.addStoredBlock: blockMap updated: <token1> is added to blk_<token2>"
-                + " size <token3>",
-            2,
-            ImmutableMap.of(
-                "<token1>",
-                ImmutableList.of("10.251.31.85:50010", "10.251.107.19:50010"),
-                "<token3>",
-                ImmutableList.of("67108864", "67108864"),
-                "<token2>",
-                ImmutableList.of("-7017553867379051457", "-3249711809227781266")),
-            ImmutableList.of(
-                "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.31.85:50010 is added to"
-                    + " blk_-7017553867379051457 size 67108864",
-                "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.107.19:50010 is added"
-                    + " to blk_-3249711809227781266 size 67108864")),
-        rows(
-            "<token1> NameSystem.allocateBlock:"
-                + " /user/root/sortrand/_temporary/_task_<token2>_<token3>_r_<token4>_<token5>/part<token6>"
-                + " blk_<token7>",
-            2,
-            ImmutableMap.of(
-                "<token5>",
-                ImmutableList.of("0", "0"),
-                "<token4>",
-                ImmutableList.of("000296", "000318"),
-                "<token7>",
-                ImmutableList.of("-6620182933895093708", "2096692261399680562"),
-                "<token6>",
-                ImmutableList.of("-00296.", "-00318."),
-                "<token1>",
-                ImmutableList.of("BLOCK*", "BLOCK*"),
-                "<token3>",
-                ImmutableList.of("0002", "0002"),
-                "<token2>",
-                ImmutableList.of("200811092030", "200811092030")),
-            ImmutableList.of(
-                "BLOCK* NameSystem.allocateBlock:"
-                    + " /user/root/sortrand/_temporary/_task_200811092030_0002_r_000296_0/part-00296."
-                    + " blk_-6620182933895093708",
-                "BLOCK* NameSystem.allocateBlock:"
-                    + " /user/root/sortrand/_temporary/_task_200811092030_0002_r_000318_0/part-00318."
-                    + " blk_2096692261399680562")),
-        rows(
-            "PacketResponder failed <token1> blk_<token2>",
-            2,
-            ImmutableMap.of(
-                "<token1>",
-                ImmutableList.of("for", "for"),
-                "<token2>",
-                ImmutableList.of("6996194389878584395", "-1547954353065580372")),
-            ImmutableList.of(
-                "PacketResponder failed for blk_6996194389878584395",
-                "PacketResponder failed for blk_-1547954353065580372")));
+      // Verify data rows with tokens
+      verifyDataRows(
+          result,
+          rows(
+              "Verification succeeded <token1> blk_<token2>",
+              2,
+              ImmutableMap.of(
+                  "<token1>",
+                  ImmutableList.of("for", "for"),
+                  "<token2>",
+                  ImmutableList.of("-1547954353065580372", "6996194389878584395")),
+              ImmutableList.of(
+                  "Verification succeeded for blk_-1547954353065580372",
+                  "Verification succeeded for blk_6996194389878584395")),
+          rows(
+              "BLOCK* NameSystem.addStoredBlock: blockMap updated: <token1> is added to"
+                  + " blk_<token2> size <token3>",
+              2,
+              ImmutableMap.of(
+                  "<token1>",
+                  ImmutableList.of("10.251.31.85:50010", "10.251.107.19:50010"),
+                  "<token3>",
+                  ImmutableList.of("67108864", "67108864"),
+                  "<token2>",
+                  ImmutableList.of("-7017553867379051457", "-3249711809227781266")),
+              ImmutableList.of(
+                  "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.31.85:50010 is added"
+                      + " to blk_-7017553867379051457 size 67108864",
+                  "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.107.19:50010 is added"
+                      + " to blk_-3249711809227781266 size 67108864")),
+          rows(
+              "<token1> NameSystem.allocateBlock:"
+                  + " /user/root/sortrand/_temporary/_task_<token2>_<token3>_r_<token4>_<token5>/part<token6>"
+                  + " blk_<token7>",
+              2,
+              ImmutableMap.of(
+                  "<token5>",
+                  ImmutableList.of("0", "0"),
+                  "<token4>",
+                  ImmutableList.of("000296", "000318"),
+                  "<token7>",
+                  ImmutableList.of("-6620182933895093708", "2096692261399680562"),
+                  "<token6>",
+                  ImmutableList.of("-00296.", "-00318."),
+                  "<token1>",
+                  ImmutableList.of("BLOCK*", "BLOCK*"),
+                  "<token3>",
+                  ImmutableList.of("0002", "0002"),
+                  "<token2>",
+                  ImmutableList.of("200811092030", "200811092030")),
+              ImmutableList.of(
+                  "BLOCK* NameSystem.allocateBlock:"
+                      + " /user/root/sortrand/_temporary/_task_200811092030_0002_r_000296_0/part-00296."
+                      + " blk_-6620182933895093708",
+                  "BLOCK* NameSystem.allocateBlock:"
+                      + " /user/root/sortrand/_temporary/_task_200811092030_0002_r_000318_0/part-00318."
+                      + " blk_2096692261399680562")),
+          rows(
+              "PacketResponder failed <token1> blk_<token2>",
+              2,
+              ImmutableMap.of(
+                  "<token1>",
+                  ImmutableList.of("for", "for"),
+                  "<token2>",
+                  ImmutableList.of("6996194389878584395", "-1547954353065580372")),
+              ImmutableList.of(
+                  "PacketResponder failed for blk_6996194389878584395",
+                  "PacketResponder failed for blk_-1547954353065580372")));
+    } finally {
+      updateClusterSettings(
+          new ClusterSetting(
+              "persistent", Settings.Key.CALCITE_UDAF_PUSHDOWN_ENABLED.getKeyValue(), "false"));
+    }
   }
 }

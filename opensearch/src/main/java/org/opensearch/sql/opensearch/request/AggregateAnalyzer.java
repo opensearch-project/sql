@@ -142,6 +142,7 @@ public class AggregateAnalyzer {
     final RelOptCluster cluster;
     final boolean bucketNullable;
     final int queryBucketSize;
+    final boolean udafPushdownEnabled;
 
     <T extends ValuesSourceAggregationBuilder<T>> T build(RexNode node, T aggBuilder) {
       return build(node, aggBuilder::field, aggBuilder::script);
@@ -614,18 +615,24 @@ public class AggregateAnalyzer {
                       !args.isEmpty() ? args.getFirst().getKey() : null,
                       AggregationBuilders.cardinality(aggName)),
                   new SingleValueParser(aggName));
-          case INTERNAL_PATTERN ->
-              ScriptedMetricUDAFRegistry.INSTANCE
-                  .lookup(functionName)
-                  .map(
-                      udaf ->
-                          udaf.buildAggregation(
-                              args, aggName, helper.cluster, helper.rowType, helper.fieldTypes))
-                  .orElseThrow(
-                      () ->
-                          new AggregateAnalyzerException(
-                              String.format(
-                                  "No scripted metric UDAF registered for %s", functionName)));
+          case INTERNAL_PATTERN -> {
+            if (!helper.udafPushdownEnabled) {
+              throw new UnsupportedOperationException(
+                  "UDAF pushdown is disabled. Enable it via cluster setting"
+                      + " 'plugins.calcite.udaf_pushdown.enabled'");
+            }
+            yield ScriptedMetricUDAFRegistry.INSTANCE
+                .lookup(functionName)
+                .map(
+                    udaf ->
+                        udaf.buildAggregation(
+                            args, aggName, helper.cluster, helper.rowType, helper.fieldTypes))
+                .orElseThrow(
+                    () ->
+                        new AggregateAnalyzerException(
+                            String.format(
+                                "No scripted metric UDAF registered for %s", functionName)));
+          }
           default ->
               throw new AggregateAnalyzer.AggregateAnalyzerException(
                   String.format("Unsupported push-down aggregator %s", aggCall.getAggregation()));

@@ -433,24 +433,44 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testPatternsBrainMethodWithAggPushDownExplain() throws IOException {
-    String expected = loadExpectedPlan("explain_patterns_brain_agg_push.yaml");
-    assertYamlEqualsIgnoreId(
-        expected,
-        explainQueryYaml(
-            "source=opensearch-sql_test_index_account"
-                + "| patterns email method=brain mode=aggregation show_numbered_token=true"));
+    // UDAF pushdown is disabled by default, enable it for this test
+    Assume.assumeTrue(isCalciteEnabled());
+    updateClusterSettings(
+        new ClusterSetting(
+            "persistent", Settings.Key.CALCITE_UDAF_PUSHDOWN_ENABLED.getKeyValue(), "true"));
+    try {
+      String expected = loadExpectedPlan("explain_patterns_brain_agg_push.yaml");
+      assertYamlEqualsIgnoreId(
+          expected,
+          explainQueryYaml(
+              "source=opensearch-sql_test_index_account"
+                  + "| patterns email method=brain mode=aggregation show_numbered_token=true"));
+    } finally {
+      updateClusterSettings(
+          new ClusterSetting(
+              "persistent", Settings.Key.CALCITE_UDAF_PUSHDOWN_ENABLED.getKeyValue(), "false"));
+    }
   }
 
   @Test
   public void testPatternsBrainMethodWithAggGroupByPushDownExplain() throws IOException {
-    // Patterns with group by is only supported in Calcite mode
+    // Patterns with group by is only supported in Calcite mode with UDAF pushdown enabled
     Assume.assumeTrue(isCalciteEnabled());
-    String expected = loadExpectedPlan("explain_patterns_brain_agg_group_by_push.yaml");
-    assertYamlEqualsIgnoreId(
-        expected,
-        explainQueryYaml(
-            "source=opensearch-sql_test_index_account"
-                + "| patterns email by gender method=brain mode=aggregation show_numbered_token=true"));
+    updateClusterSettings(
+        new ClusterSetting(
+            "persistent", Settings.Key.CALCITE_UDAF_PUSHDOWN_ENABLED.getKeyValue(), "true"));
+    try {
+      String expected = loadExpectedPlan("explain_patterns_brain_agg_group_by_push.yaml");
+      assertYamlEqualsIgnoreId(
+          expected,
+          explainQueryYaml(
+              "source=opensearch-sql_test_index_account| patterns email by gender method=brain"
+                  + " mode=aggregation show_numbered_token=true"));
+    } finally {
+      updateClusterSettings(
+          new ClusterSetting(
+              "persistent", Settings.Key.CALCITE_UDAF_PUSHDOWN_ENABLED.getKeyValue(), "false"));
+    }
   }
 
   @Test
