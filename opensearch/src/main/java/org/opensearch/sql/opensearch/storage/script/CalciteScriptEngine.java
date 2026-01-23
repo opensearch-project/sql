@@ -237,8 +237,11 @@ public class CalciteScriptEngine implements ScriptEngine {
               throw new IllegalStateException(
                   "SPECIAL_VARIABLE " + digests.get(index) + " not supported in this context");
         };
+      } catch (IllegalStateException e) {
+        // Re-throw IllegalStateException (including SPECIAL_VARIABLE errors) to preserve context
+        throw e;
       } catch (Exception e) {
-        throw new IllegalStateException("Failed to get value for parameter " + name);
+        throw new IllegalStateException("Failed to get value for parameter " + name, e);
       }
     }
 
