@@ -588,43 +588,6 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
                 "PacketResponder failed for blk_-1547954353065580372")));
   }
 
-  // TODO: Re-enable this test once explain plan output format is validated
-  // The functional tests (testBrainAggregationMode_UDAFPushdown_NotShowNumberedToken and
-  // testBrainAggregationMode_UDAFPushdown_ShowNumberedToken) prove that UDAF pushdown works
-  // correctly. This test verifies the explain plan format, which may need adjustment.
-  @Test
-  public void testBrainAggregationMode_UDAFPushdown_VerifyPlan() throws IOException {
-    // Verify that UDAF pushdown is happening by checking the explain plan
-    String query =
-        String.format(
-            "source=%s | patterns content method=brain mode=aggregation"
-                + " variable_count_threshold=5",
-            TEST_INDEX_HDFS_LOGS);
-
-    // Get the explain plan
-    String explainResult = explainQueryYaml(query);
-    System.out.println(explainResult);
-
-    // Verify the plan contains evidence of UDAF pushdown
-    // When UDAF is pushed down, the plan should show:
-    // 1. CalciteLogicalIndexScan with AGGREGATION pushdown type
-    // 2. No LogicalAggregate node in the physical plan (it's pushed down)
-    assertTrue(
-        "Expected plan to contain CalciteLogicalIndexScan",
-        explainResult.contains("CalciteLogicalIndexScan"));
-    assertTrue(
-        "Expected plan to show AGGREGATION pushdown",
-        explainResult.contains("AGGREGATION") || explainResult.contains("aggregation"));
-
-    // The plan should NOT contain a separate Aggregate node above the scan
-    // since it's pushed down to OpenSearch
-    assertFalse(
-        "Expected no separate LogicalAggregate node when UDAF is pushed down",
-        explainResult.contains("LogicalAggregate")
-            && explainResult.indexOf("LogicalAggregate")
-                > explainResult.indexOf("CalciteLogicalIndexScan"));
-  }
-
   @Test
   public void testBrainAggregationMode_UDAFPushdown_ShowNumberedToken() throws IOException {
     // Test UDAF pushdown for patterns BRAIN aggregation mode with numbered tokens

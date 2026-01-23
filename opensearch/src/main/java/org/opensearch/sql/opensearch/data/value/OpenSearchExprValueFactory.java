@@ -198,7 +198,12 @@ public class OpenSearchExprValueFactory {
     // Check for arrays first, even if field type is not defined in mapping.
     // This handles nested arrays in aggregation results where inner fields
     // (like sample_logs in pattern aggregation) may not have type mappings.
-    if (content.isArray() && (fieldType.isEmpty() || supportArrays)) {
+    // Exclude GeoPoint types as they have special array handling (e.g., [lon, lat] format).
+    if (content.isArray()
+        && (fieldType.isEmpty() || supportArrays)
+        && !fieldType
+            .map(t -> t.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint)))
+            .orElse(false)) {
       ExprType type = fieldType.orElse(ARRAY);
       return parseArray(content, field, type, supportArrays);
     }

@@ -442,6 +442,18 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testPatternsBrainMethodWithAggGroupByPushDownExplain() throws IOException {
+    // Patterns with group by is only supported in Calcite mode
+    Assume.assumeTrue(isCalciteEnabled());
+    String expected = loadExpectedPlan("explain_patterns_brain_agg_group_by_push.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_account"
+                + "| patterns email by gender method=brain mode=aggregation show_numbered_token=true"));
+  }
+
+  @Test
   public void testStatsBySpan() throws IOException {
     String expected = loadExpectedPlan("explain_stats_by_span.json");
     assertJsonEqualsIgnoreId(

@@ -1,0 +1,21 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(gender=[$0], patterns_field=[SAFE_CAST(ITEM(PATTERN_PARSER(SAFE_CAST(ITEM($2, 'pattern')), ITEM($2, 'sample_logs'), true), 'pattern'))], pattern_count=[SAFE_CAST(ITEM($2, 'pattern_count'))], tokens=[SAFE_CAST(ITEM(PATTERN_PARSER(SAFE_CAST(ITEM($2, 'pattern')), ITEM($2, 'sample_logs'), true), 'tokens'))], sample_logs=[SAFE_CAST(ITEM($2, 'sample_logs'))])
+        LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{1}])
+          LogicalAggregate(group=[{0}], patterns_field=[pattern($1, $2, $3, $4)])
+            LogicalProject(gender=[$4], email=[$9], $f17=[10], $f18=[100000], $f19=[true])
+              CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+          Uncollect
+            LogicalProject(patterns_field=[$cor0.patterns_field])
+              LogicalValues(tuples=[[{ 0 }]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=['pattern'], expr#4=[ITEM($t2, $t3)], expr#5=[SAFE_CAST($t4)], expr#6=['sample_logs'], expr#7=[ITEM($t2, $t6)], expr#8=[true], expr#9=[PATTERN_PARSER($t5, $t7, $t8)], expr#10=[ITEM($t9, $t3)], expr#11=[SAFE_CAST($t10)], expr#12=['pattern_count'], expr#13=[ITEM($t2, $t12)], expr#14=[SAFE_CAST($t13)], expr#15=['tokens'], expr#16=[ITEM($t9, $t15)], expr#17=[SAFE_CAST($t16)], expr#18=[SAFE_CAST($t7)], gender=[$t0], patterns_field=[$t11], pattern_count=[$t14], tokens=[$t17], sample_logs=[$t18])
+        EnumerableCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{1}])
+          EnumerableAggregate(group=[{0}], patterns_field=[pattern($1, $2, $3, $4)])
+            EnumerableCalc(expr#0..16=[{inputs}], expr#17=[10], expr#18=[100000], expr#19=[true], gender=[$t4], email=[$t9], $f17=[$t17], $f18=[$t18], $f19=[$t19])
+              CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
+          EnumerableUncollect
+            EnumerableCalc(expr#0=[{inputs}], expr#1=[$cor0], expr#2=[$t1.patterns_field], patterns_field=[$t2])
+              EnumerableValues(tuples=[[{ 0 }]])
