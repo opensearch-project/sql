@@ -111,8 +111,7 @@ public class FieldResolutionResult {
   }
 
   /** Creates new result intersecting this result with another (intersection). */
-  public FieldResolutionResult and(Collection<String> regularFields, Collection<String> wildcards) {
-    FieldResolutionResult other = new FieldResolutionResult(regularFields, wildcards);
+  public FieldResolutionResult and(FieldResolutionResult other) {
     Set<String> combinedFields = new HashSet<>();
     combinedFields.addAll(this.and(other.regularFields));
     combinedFields.addAll(other.and(this.regularFields));

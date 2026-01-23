@@ -133,7 +133,8 @@ public class FieldResolutionVisitor extends AbstractNodeVisitor<Node, FieldResol
       }
 
       FieldResolutionResult current = context.getCurrentRequirements();
-      context.pushRequirements(current.and(projectFields, wildcardPatterns));
+      context.pushRequirements(
+          current.and(new FieldResolutionResult(projectFields, wildcardPatterns)));
       visitChildren(node, context);
       context.popRequirements();
     }
