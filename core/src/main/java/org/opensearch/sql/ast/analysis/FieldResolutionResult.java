@@ -28,17 +28,17 @@ public class FieldResolutionResult {
   @NonNull private final Set<String> regularFields;
   @NonNull private final Wildcard wildcard;
 
-  public FieldResolutionResult(Set<String> regularFields) {
+  public FieldResolutionResult(Collection<String> regularFields) {
     this.regularFields = new HashSet<>(regularFields);
     this.wildcard = NULL_WILDCARD;
   }
 
-  public FieldResolutionResult(Set<String> regularFields, Wildcard wildcard) {
+  public FieldResolutionResult(Collection<String> regularFields, Wildcard wildcard) {
     this.regularFields = new HashSet<>(regularFields);
     this.wildcard = wildcard;
   }
 
-  public FieldResolutionResult(Set<String> regularFields, String wildcard) {
+  public FieldResolutionResult(Collection<String> regularFields, String wildcard) {
     this.regularFields = new HashSet<>(regularFields);
     this.wildcard = getWildcard(wildcard);
   }
@@ -53,12 +53,12 @@ public class FieldResolutionResult {
     }
   }
 
-  public FieldResolutionResult(Set<String> regularFields, Set<String> wildcards) {
+  public FieldResolutionResult(Collection<String> regularFields, Collection<String> wildcards) {
     this.regularFields = new HashSet<>(regularFields);
     this.wildcard = createOrWildcard(wildcards);
   }
 
-  private static Wildcard createOrWildcard(Set<String> patterns) {
+  private static Wildcard createOrWildcard(Collection<String> patterns) {
     if (patterns == null || patterns.isEmpty()) {
       return NULL_WILDCARD;
     }
@@ -98,20 +98,21 @@ public class FieldResolutionResult {
   }
 
   /** Creates new result combining this result with additional fields (union). */
-  public FieldResolutionResult or(Set<String> fields) {
+  public FieldResolutionResult or(Collection<String> fields) {
     Set<String> combinedFields = new HashSet<>(this.regularFields);
     combinedFields.addAll(fields);
     return new FieldResolutionResult(combinedFields, this.wildcard);
   }
 
-  private Set<String> and(Set<String> fields) {
+  private Set<String> and(Collection<String> fields) {
     return fields.stream()
         .filter(field -> this.getRegularFields().contains(field) || this.wildcard.matches(field))
         .collect(Collectors.toSet());
   }
 
   /** Creates new result intersecting this result with another (intersection). */
-  public FieldResolutionResult and(FieldResolutionResult other) {
+  public FieldResolutionResult and(Collection<String> regularFields, Collection<String> wildcards) {
+    FieldResolutionResult other = new FieldResolutionResult(regularFields, wildcards);
     Set<String> combinedFields = new HashSet<>();
     combinedFields.addAll(this.and(other.regularFields));
     combinedFields.addAll(other.and(this.regularFields));
