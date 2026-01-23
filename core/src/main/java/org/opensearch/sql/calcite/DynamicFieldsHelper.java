@@ -112,13 +112,9 @@ class DynamicFieldsHelper {
   /** Adjust fields to align the static/dynamic fields in `target` to `theOtherInput` */
   static RelNode adjustFieldsForDynamicFields(
       RelNode target, RelNode theOtherInput, CalcitePlanContext context) {
-    if (hasDynamicFields(theOtherInput)) {
+    if (hasDynamicFields(theOtherInput) && !hasDynamicFields(target)) {
       List<String> requiredStaticFields = getStaticFields(theOtherInput);
-      if (!hasDynamicFields(target)) {
-        return adjustFieldsForDynamicFields(target, requiredStaticFields, context);
-      } else {
-        return addRequiredStaticFields(target, requiredStaticFields, context);
-      }
+      return adjustFieldsForDynamicFields(target, requiredStaticFields, context);
     }
     return target;
   }
@@ -143,40 +139,6 @@ class DynamicFieldsHelper {
         context.relBuilder.alias(
             getFieldsAsMap(existingFields, staticFieldNames, context), DYNAMIC_FIELDS_MAP));
     return context.relBuilder.project(project).build();
-  }
-
-  /** Promote all the fields in requiredStaticFieldNames to static fields to prepare for join. */
-  private static RelNode addRequiredStaticFields(
-      RelNode node, List<String> requiredStaticFieldNames, CalcitePlanContext context) {
-    List<String> existingFields = getStaticFields(node);
-    List<String> missingFields =
-        requiredStaticFieldNames.stream()
-            .filter(name -> !existingFields.contains(name))
-            .collect(Collectors.toList());
-    if (missingFields.isEmpty()) {
-      return node;
-    }
-
-    context.relBuilder.push(node);
-    List<RexNode> projectList = new ArrayList<>();
-    for (String existingField : existingFields) {
-      projectList.add(context.rexBuilder.makeInputRef(node, existingFields.indexOf(existingField)));
-    }
-    RexNode dynamicFieldMapRef = context.relBuilder.field(DYNAMIC_FIELDS_MAP);
-    for (String missingField : missingFields) {
-      // row[missingField] = ITEM(_MAP, missingField)
-      projectList.add(
-          context.relBuilder.alias(
-              context.rexBuilder.itemCall(dynamicFieldMapRef, missingField), missingField));
-    }
-    // row[`_MAP`] = MAP_REMOVE(_MAP, missingFields)
-    List<RexNode> keys = getStringLiteralList(missingFields, context);
-    RexNode newDynamicFieldsMap =
-        context.rexBuilder.makeCall(
-            BuiltinFunctionName.MAP_REMOVE, dynamicFieldMapRef, makeArray(keys, context));
-    projectList.add(context.relBuilder.alias(newDynamicFieldsMap, DYNAMIC_FIELDS_MAP));
-
-    return context.relBuilder.project(projectList).build();
   }
 
   /**
