@@ -8,7 +8,6 @@ package org.opensearch.sql.expression.function.jsonUDF;
 import static org.apache.calcite.sql.SqlJsonQueryEmptyOrErrorBehavior.NULL;
 import static org.apache.calcite.sql.SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY;
 import static org.opensearch.sql.calcite.utils.PPLReturnTypes.STRING_FORCE_NULLABLE;
-import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,6 +26,7 @@ import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.jspecify.annotations.NonNull;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
@@ -41,7 +41,7 @@ public class JsonExtractFunctionImpl extends ImplementorUDF {
   }
 
   @Override
-  public UDFOperandMetadata getOperandMetadata() {
+  public @NonNull UDFOperandMetadata getOperandMetadata() {
     return UDFOperandMetadata.wrap(OperandTypes.VARIADIC);
   }
 

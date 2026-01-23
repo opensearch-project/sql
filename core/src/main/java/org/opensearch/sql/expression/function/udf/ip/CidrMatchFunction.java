@@ -21,6 +21,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.jspecify.annotations.NonNull;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeUtil;
 import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -50,7 +51,7 @@ public class CidrMatchFunction extends ImplementorUDF {
   }
 
   @Override
-  public UDFOperandMetadata getOperandMetadata() {
+  public @NonNull UDFOperandMetadata getOperandMetadata() {
     // EXPR_IP is mapped to SqlTypeFamily.OTHER in
     // UserDefinedFunctionUtils.convertRelDataTypeToSqlTypeName
     // We use a specific type checker to serve

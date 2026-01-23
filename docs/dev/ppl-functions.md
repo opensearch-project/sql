@@ -86,88 +86,71 @@ SqlOperator myOperator = new MyCustomUDF().toUDF("FUNC_NAME");
 
 Type checking ensures that functions receive the correct argument types:
 
-- Each `SqlOperator` provides an operand type checker via its [
-  `getOperandTypeChecker`](https://calcite.apache.org/javadocAggregate/org/apache/calcite/sql/SqlOperator.html#getOperandTypeChecker())
-  method
-- Calcite's built-in operators come with predefined type checkers of type [`SqlOperandTypeChecker`](https://calcite.apache.org/javadocAggregate/org/apache/calcite/sql/type/SqlOperandTypeChecker.html)
-- For custom UDFs, the `UDFOperandMetadata` interface is used to feed function type information so that a
-  `SqlOperandTypeChecker` can be retrieved in the same way as Calcite's built-in operators. Most of the operand types
-  are defined in `PPLOperandTypes` as instances of `UDFOperandMetadata`. E.g. `PPLOperandTypes.NUMERIC_NUMERIC`
--  Since `SqlOperandTypeChecker` works on parsed SQL trees (which aren't directly accessible in our architecture), the
-  `PPLTypeChecker` interface was created to perform actual type checking. Most instances of `PPLTypeChecker` are created
-  by wrapping Calcite's built-in type checkers.
+- Each `SqlOperator` exposes an operand type checker via [`getOperandTypeChecker()`](https://calcite.apache.org/javadocAggregate/org/apache/calcite/sql/SqlOperator.html#getOperandTypeChecker())
+- Calcite's built-in operators include predefined type checkers of type [`SqlOperandTypeChecker`](https://calcite.apache.org/javadocAggregate/org/apache/calcite/sql/type/SqlOperandTypeChecker.html)
+- Custom UDFs define type checkers by implementing `getOperandMetadata()`, which returns a `UDFOperandMetadata`. This wrapper typically wraps a `SqlOperandTypeChecker`, allowing reuse of existing type checkers while remaining compatible with user-defined functions. Common operand type combinations are predefined in `PPLOperandTypes` (e.g., `PPLOperandTypes.NUMERIC_NUMERIC`)
 
-The following code snippet explains their relationships:
+The following example illustrates the relationship between `SqlOperandTypeChecker` and `UDFOperandMetadata`:
 
 ```java
-// For built-in Calcite operators
-SqlOperandTypeChecker cosSqlTypeChecker = SqlStdOperatorTable.COS.getOperandTypeChecker(); // FamilyOperandTypeChecker(NUMERIC)
+// Built-in Calcite operators have type checkers directly
+SqlOperandTypeChecker cosSqlTypeChecker = SqlStdOperatorTable.COS.getOperandTypeChecker();
+// -> FamilyOperandTypeChecker(NUMERIC)
 
-// For user defined functions
-// UDFOperandMetadata wraps a SqlOperandTypeChecker, so that the type information can be fed to a SqlUserDefinedFunction.
-// Refer to the javadoc of UDFOperandMetadata class for more details on why this workaround is necessary
-UDFOperandMetadata NUMERIC = UDFOperandMetadata.wrap((FamilyOperandTypeChecker) OperandTypes.NUMERIC);
-SqlOperator COSH =
-        adaptMathFunctionToUDF(
-                "cosh", ReturnTypes.DOUBLE_FORCE_NULLABLE, NullPolicy.ANY, NUMERIC)
-                .toUDF("COSH");
-SqlOperandTypeChecker coshTypeChecker = COSH.getOperandTypeChecker().getInnerTypeChecker(); // FamilyOperandTypeChecker(NUMERIC)
+// For UDFs, wrap a SqlOperandTypeChecker in UDFOperandMetadata.
+// This wrapper is necessary because SqlUserDefinedFunction requires a different interface.
+// See UDFOperandMetadata javadoc for details.
+UDFOperandMetadata NUMERIC = UDFOperandMetadata.wrap(OperandTypes.NUMERIC);
+SqlOperator COSH = adaptMathFunctionToUDF(
+        "cosh", ReturnTypes.DOUBLE_FORCE_NULLABLE, NullPolicy.ANY, NUMERIC)
+        .toUDF("COSH");
 
-// SqlOperandTypeChecker works on parsed SQL trees, which don't exist in our architecture, so it cannot be directly
-// applied to check operand types. We create another interface PPLTypeChecker to do the actual type checking.
-// It works by retrieving operand type information from a SqlOperandTypeChecker, then checking against actual argument types.
-PPLTypeChecker cosPplTypeChecker = PPLTypeChecker.wrapFamily(cosSqlTypeChecker);
-// Equivalently, PPL type checkers can be created by directly specifying expected operand types
-PPLTypeChecker numericTypeChecker = PPLTypeChecker.family(SqlTypeFamily.NUMERIC);
+// Extract the underlying type checker from a UDF
+SqlOperandTypeChecker coshTypeChecker = COSH.getOperandTypeChecker().getInnerTypeChecker();
+// -> FamilyOperandTypeChecker(NUMERIC)
 ```
 
 ### Registering UDFs
 
-#### Preferred registration API
+#### Preferred Registration API
 
-UDFs should be registered in `PPLFuncImpTable`. The preferred API is
+Register UDFs in `PPLFuncImpTable` using the preferred API:
 
 ```java
-AbstractBuilder::
-
-registerOperator(BuiltinFunctionName functionName, SqlOperator... operators)`
+registerOperator(BuiltinFunctionName functionName, SqlOperator operator);
 ```
 
-- It automatically extracts type checkers from operators and converts them to `PPLTypeChecker` instances
-- Multiple implementations can be registered to the same function name for overloading
-- The system will try to resolve functions based on argument types, with automatic coercion when needed
-
-For example, the following statement registers calcite's built-in `COS` operator as the cosine function in PPL. Under the
-hood, it first retrieves a `SqlOperandTypeChecker` from `SqlStdOperatorTable.COS`, then converts it to a `PPLTypeChecker`,
-finally registers it as `cos` function in PPL function registry.
+For example, the following registers Calcite's built-in `COS` operator as the cosine function in PPL:
 
 ```java
-registerOperator(COS, SqlStdOperatorTable.COS);
+registerOperator(BuiltinFunctionName.COS, SqlStdOperatorTable.COS);
 ```
 
-The following example shows how to register overloadings to the same function name. `+` operator is registered for both
-and number addition and string concatenation, controlled via type checkers. I.e. if both operands are number, they will
-be resolved to `SqlStdOperatorTable.PLUS` since the operand types does not pass the type checking of
-`SqlStdOperatorTable.CONCAT`,
-which requires two strings.
+#### Lower-Level Registration API
+
+For more control, use the lower-level `register` method to register multiple overloads under the same function name:
 
 ```java
-registerOperator(ADD, SqlStdOperatorTable.PLUS, SqlStdOperatorTable.CONCAT);
+register(BuiltinFunctionName functionName, FunctionImp functionImp);
 ```
 
-#### Lower-level registration API
+The following example registers the `+` operator for both numeric addition and string concatenation. The implementation examines the argument types at resolution time: if all operands are strings, it resolves to `SqlStdOperatorTable.CONCAT`; otherwise, it resolves to `SqlStdOperatorTable.PLUS` with arguments coerced to numbers.
 
 ```java
-AbstractBuilder::
-
-register(BuiltinFunctionName functionName, FunctionImp functionImp, PPLTypeChecker typeChecker)
+register(BuiltinFunctionName.ADD,
+         (builder, args) -> {
+            SqlOperator op =
+                (Stream.of(args).map(RexNode::getType).allMatch(OpenSearchTypeUtil::isCharacter))
+                    ? SqlStdOperatorTable.CONCAT
+                    : SqlStdOperatorTable.PLUS;
+            return builder.makeCall(op, args);
+          });
 ```
 
 Use this approach when:
 
-- You need a custom type checker
-- You want to customize an existing function by tweaking its arguments
-- Setting `typeChecker` to `null` will bypass type checking (use with caution)
+- You need to overload a function with different behavior based on argument types
+- You want to compose a new function from existing operators
 
 ### External Functions
 
@@ -209,7 +192,7 @@ For custom aggregation logic:
 - Use `AggBuilder::registerOperator(BuiltinFunctionName functionName, SqlAggFunction aggFunction)` for standard
   registration
 - For more control, use
-  `AggBuilder::register(BuiltinFunctionName functionName, AggHandler aggHandler, PPLTypeChecker typeChecker)`
+  `AggBuilder::register(BuiltinFunctionName functionName, AggHandler aggHandler)`
 - For functions dependent on data engines, use `PPLFuncImpTable::registerExternalAggOperator`
 
 ### Testing UDAFs

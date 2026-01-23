@@ -16,6 +16,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.jspecify.annotations.NonNull;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeUtil;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.binning.BinConstants;
@@ -58,7 +59,7 @@ public class WidthBucketFunction extends ImplementorUDF {
   }
 
   @Override
-  public UDFOperandMetadata getOperandMetadata() {
+  public @NonNull UDFOperandMetadata getOperandMetadata() {
     return PPLOperandTypes.WIDTH_BUCKET_OPERAND;
   }
 

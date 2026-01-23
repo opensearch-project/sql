@@ -23,6 +23,7 @@ import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.jspecify.annotations.NonNull;
 import org.opensearch.geospatial.action.IpEnrichmentActionClient;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeUtil;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -62,7 +63,7 @@ public class GeoIpFunction extends ImplementorUDF {
   }
 
   @Override
-  public UDFOperandMetadata getOperandMetadata() {
+  public @NonNull UDFOperandMetadata getOperandMetadata() {
     return UDFOperandMetadata.wrap(
         new SqlOperandTypeChecker() {
           @Override

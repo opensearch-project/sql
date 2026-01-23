@@ -39,6 +39,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Optionality;
+import org.jspecify.annotations.NonNull;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
@@ -213,7 +214,7 @@ public class UserDefinedFunctionUtils {
       String methodName,
       SqlReturnTypeInference returnTypeInference,
       NullPolicy nullPolicy,
-      @Nullable UDFOperandMetadata operandMetadata) {
+      @NonNull UDFOperandMetadata operandMetadata) {
     NotNullImplementor implementor =
         (translator, call, translatedOperands) -> {
           List<Expression> operands =
@@ -229,7 +230,7 @@ public class UserDefinedFunctionUtils {
       }
 
       @Override
-      public UDFOperandMetadata getOperandMetadata() {
+      public @NonNull UDFOperandMetadata getOperandMetadata() {
         return operandMetadata;
       }
     };
@@ -261,7 +262,7 @@ public class UserDefinedFunctionUtils {
       }
 
       @Override
-      public UDFOperandMetadata getOperandMetadata() {
+      public @NonNull UDFOperandMetadata getOperandMetadata() {
         return operandMetadata;
       }
     };
@@ -302,7 +303,7 @@ public class UserDefinedFunctionUtils {
       }
 
       @Override
-      public UDFOperandMetadata getOperandMetadata() {
+      public @NonNull UDFOperandMetadata getOperandMetadata() {
         return operandMetadata;
       }
     };

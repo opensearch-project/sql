@@ -28,6 +28,7 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.jspecify.annotations.NonNull;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
@@ -84,7 +85,7 @@ public class ReduceFunctionImpl extends ImplementorUDF {
   }
 
   @Override
-  public UDFOperandMetadata getOperandMetadata() {
+  public @NonNull UDFOperandMetadata getOperandMetadata() {
     return UDFOperandMetadata.wrap(
         OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.ANY, SqlTypeFamily.FUNCTION)
             .or(
