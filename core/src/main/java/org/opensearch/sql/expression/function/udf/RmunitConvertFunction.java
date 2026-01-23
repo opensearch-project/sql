@@ -9,6 +9,20 @@ package org.opensearch.sql.expression.function.udf;
 public class RmunitConvertFunction extends BaseConversionUDF {
 
   public RmunitConvertFunction() {
-    super("rmunitConvert");
+    super(RmunitConvertFunction.class);
+  }
+
+  public static Object convert(Object value) {
+    if (value instanceof Number) {
+      return ((Number) value).doubleValue();
+    }
+
+    String str = ConversionUtils.preprocessValue(value);
+    if (str == null) {
+      return null;
+    }
+
+    String numberStr = ConversionUtils.extractLeadingNumber(str);
+    return numberStr != null ? ConversionUtils.tryParseDouble(numberStr) : null;
   }
 }

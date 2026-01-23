@@ -65,7 +65,6 @@ import org.opensearch.sql.expression.function.jsonUDF.JsonSetFunctionImpl;
 import org.opensearch.sql.expression.function.udf.AutoConvertFunction;
 import org.opensearch.sql.expression.function.udf.CryptographicFunction;
 import org.opensearch.sql.expression.function.udf.MemkConvertFunction;
-import org.opensearch.sql.expression.function.udf.NoneConvertFunction;
 import org.opensearch.sql.expression.function.udf.NumConvertFunction;
 import org.opensearch.sql.expression.function.udf.ParseFunction;
 import org.opensearch.sql.expression.function.udf.RelevanceQueryFunction;
@@ -432,7 +431,6 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator RMCOMMA = new RmcommaConvertFunction().toUDF("RMCOMMA");
   public static final SqlOperator RMUNIT = new RmunitConvertFunction().toUDF("RMUNIT");
   public static final SqlOperator MEMK = new MemkConvertFunction().toUDF("MEMK");
-  public static final SqlOperator NONE = new NoneConvertFunction().toUDF("NONE");
 
   public static final SqlOperator WIDTH_BUCKET =
       new org.opensearch.sql.expression.function.udf.binning.WidthBucketFunction()

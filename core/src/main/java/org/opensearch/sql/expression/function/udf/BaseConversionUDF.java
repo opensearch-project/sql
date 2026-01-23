@@ -19,11 +19,11 @@ import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
-/** Base class for PPL conversion functions (auto, num, rmcomma, rmunit). */
+/** Base class for PPL conversion functions. */
 public abstract class BaseConversionUDF extends ImplementorUDF {
 
-  protected BaseConversionUDF(String conversionMethodName) {
-    super(new ConversionImplementor(conversionMethodName), NullPolicy.ANY);
+  protected BaseConversionUDF(Class<? extends BaseConversionUDF> functionClass) {
+    super(new ConversionImplementor(functionClass), NullPolicy.ANY);
   }
 
   @Override
@@ -39,10 +39,10 @@ public abstract class BaseConversionUDF extends ImplementorUDF {
   }
 
   public static class ConversionImplementor implements NotNullImplementor {
-    private final String methodName;
+    private final Class<? extends BaseConversionUDF> functionClass;
 
-    public ConversionImplementor(String methodName) {
-      this.methodName = methodName;
+    public ConversionImplementor(Class<? extends BaseConversionUDF> functionClass) {
+      this.functionClass = functionClass;
     }
 
     @Override
@@ -56,8 +56,9 @@ public abstract class BaseConversionUDF extends ImplementorUDF {
       }
 
       Expression fieldValue = translatedOperands.get(0);
-      Expression result =
-          Expressions.call(ConversionUtils.class, methodName, Expressions.box(fieldValue));
+
+      Expression result = Expressions.call(functionClass, "convert", Expressions.box(fieldValue));
+
       return Expressions.call(ConversionImplementor.class, "toDoubleOrNull", result);
     }
 

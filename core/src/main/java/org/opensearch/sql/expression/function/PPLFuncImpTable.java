@@ -160,7 +160,6 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVINDEX
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVJOIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVMAP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MVZIP;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.NONE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOTEQUAL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOW;
@@ -996,7 +995,6 @@ public class PPLFuncImpTable {
       registerOperator(RMCOMMA, PPLBuiltinOperators.RMCOMMA);
       registerOperator(RMUNIT, PPLBuiltinOperators.RMUNIT);
       registerOperator(MEMK, PPLBuiltinOperators.MEMK);
-      registerOperator(NONE, PPLBuiltinOperators.NONE);
 
       register(
           TOSTRING,

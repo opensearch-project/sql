@@ -1045,7 +1045,6 @@ public class PPLQueryDataAnonymizerTest {
 
   @Test
   public void testConvertCommand() {
-    when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
     assertEquals(
         "source=table | convert auto(identifier)", anonymize("source=t | convert auto(salary)"));
     assertEquals(
