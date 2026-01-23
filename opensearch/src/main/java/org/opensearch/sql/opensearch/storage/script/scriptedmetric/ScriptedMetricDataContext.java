@@ -60,18 +60,46 @@ public abstract class ScriptedMetricDataContext implements DataContext {
   }
 
   /**
+   * Merges the execution result into the state map. This is a common operation used in init_script
+   * and map_script phases to update the accumulator state.
+   *
+   * <p>If the result is a Map, its entries are merged into the state. Otherwise, the result is
+   * stored under the "accumulator" key.
+   *
+   * @param result The result array from function execution (may be null or empty)
+   * @param state The state map to update
+   */
+  @SuppressWarnings("unchecked")
+  public static void mergeResultIntoState(Object[] result, Map<String, Object> state) {
+    if (result != null && result.length > 0) {
+      if (result[0] instanceof Map) {
+        state.putAll((Map<String, Object>) result[0]);
+      } else {
+        state.put("accumulator", result[0]);
+      }
+    }
+  }
+
+  /**
    * Parse dynamic parameter index from name pattern "?N".
    *
    * @param name The parameter name (expected format: "?0", "?1", etc.)
    * @return The parameter index
-   * @throws IllegalArgumentException if name doesn't match expected pattern
+   * @throws IllegalArgumentException if name doesn't match expected pattern or is malformed
    */
   protected int parseDynamicParamIndex(String name) {
     if (!name.startsWith("?")) {
       throw new IllegalArgumentException(
           "Unexpected parameter name format: " + name + ". Expected '?N' pattern.");
     }
-    int index = Integer.parseInt(name.substring(1));
+    int index;
+    try {
+      index = Integer.parseInt(name.substring(1));
+    } catch (NumberFormatException e) {
+      throw new IllegalArgumentException(
+          "Malformed parameter name '" + name + "'. Expected '?N' pattern where N is an integer.",
+          e);
+    }
     if (index >= sources.size()) {
       throw new IllegalArgumentException(
           "Parameter index " + index + " out of bounds. Sources size: " + sources.size());

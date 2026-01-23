@@ -9,7 +9,6 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.function.Function1;
-import org.apache.calcite.rel.type.RelDataType;
 import org.opensearch.script.ScriptedMetricAggContexts;
 
 /**
@@ -21,12 +20,11 @@ public class CalciteScriptedMetricInitScriptFactory
     implements ScriptedMetricAggContexts.InitScript.Factory {
 
   private final Function1<DataContext, Object[]> function;
-  private final RelDataType outputType;
 
   @Override
   public ScriptedMetricAggContexts.InitScript newInstance(
       Map<String, Object> params, Map<String, Object> state) {
-    return new CalciteScriptedMetricInitScript(function, outputType, params, state);
+    return new CalciteScriptedMetricInitScript(function, params, state);
   }
 
   /** InitScript that executes compiled RexNode expression. */
@@ -34,16 +32,13 @@ public class CalciteScriptedMetricInitScriptFactory
       extends ScriptedMetricAggContexts.InitScript {
 
     private final Function1<DataContext, Object[]> function;
-    private final RelDataType outputType;
 
     public CalciteScriptedMetricInitScript(
         Function1<DataContext, Object[]> function,
-        RelDataType outputType,
         Map<String, Object> params,
         Map<String, Object> state) {
       super(params, state);
       this.function = function;
-      this.outputType = outputType;
     }
 
     @Override
@@ -53,19 +48,9 @@ public class CalciteScriptedMetricInitScriptFactory
       Map<String, Object> state = (Map<String, Object>) getState();
       DataContext dataContext = new ScriptedMetricDataContext.InitContext(getParams(), state);
 
-      // Execute the compiled RexNode expression
+      // Execute the compiled RexNode expression and merge result into state
       Object[] result = function.apply(dataContext);
-
-      // Store result in state
-      if (result != null && result.length > 0) {
-        // The init script typically initializes the state
-        // Result should be the initialized accumulator
-        if (result[0] instanceof Map) {
-          ((Map<String, Object>) getState()).putAll((Map<String, Object>) result[0]);
-        } else {
-          ((Map<String, Object>) getState()).put("accumulator", result[0]);
-        }
-      }
+      ScriptedMetricDataContext.mergeResultIntoState(result, state);
     }
   }
 }

@@ -617,7 +617,7 @@ public class AggregateAnalyzer {
                   new SingleValueParser(aggName));
           case INTERNAL_PATTERN -> {
             if (!helper.udafPushdownEnabled) {
-              throw new UnsupportedOperationException(
+              throw new AggregateAnalyzerException(
                   "UDAF pushdown is disabled. Enable it via cluster setting"
                       + " 'plugins.calcite.udaf_pushdown.enabled'");
             }

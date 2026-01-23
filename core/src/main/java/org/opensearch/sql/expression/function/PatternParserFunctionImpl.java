@@ -137,7 +137,7 @@ public class PatternParserFunctionImpl extends ImplementorUDF {
       Map<String, List<String>> tokensMap = new HashMap<>();
       String outputPattern = bestCandidatePattern; // Default: return as-is
 
-      if (showNumberedToken) {
+      if (Boolean.TRUE.equals(showNumberedToken)) {
         // Parse pattern with wildcard format (<*>, <*IP*>, etc.)
         // LogPatternAggFunction.value() returns patterns in wildcard format
         ParseResult parseResult =

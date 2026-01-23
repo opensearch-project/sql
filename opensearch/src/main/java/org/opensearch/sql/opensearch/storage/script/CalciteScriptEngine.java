@@ -120,16 +120,16 @@ public class CalciteScriptEngine implements ScriptEngine {
               .put(FieldScript.CONTEXT, CalciteFieldScriptFactory::new)
               .put(
                   ScriptedMetricAggContexts.InitScript.CONTEXT,
-                  CalciteScriptedMetricInitScriptFactory::new)
+                  (func, type) -> new CalciteScriptedMetricInitScriptFactory(func))
               .put(
                   ScriptedMetricAggContexts.MapScript.CONTEXT,
-                  CalciteScriptedMetricMapScriptFactory::new)
+                  (func, type) -> new CalciteScriptedMetricMapScriptFactory(func))
               .put(
                   ScriptedMetricAggContexts.CombineScript.CONTEXT,
-                  CalciteScriptedMetricCombineScriptFactory::new)
+                  (func, type) -> new CalciteScriptedMetricCombineScriptFactory(func))
               .put(
                   ScriptedMetricAggContexts.ReduceScript.CONTEXT,
-                  CalciteScriptedMetricReduceScriptFactory::new)
+                  (func, type) -> new CalciteScriptedMetricReduceScriptFactory(func))
               .build();
 
   @Override

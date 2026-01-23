@@ -9,7 +9,6 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.function.Function1;
-import org.apache.calcite.rel.type.RelDataType;
 import org.opensearch.script.ScriptedMetricAggContexts;
 
 /**
@@ -21,12 +20,11 @@ public class CalciteScriptedMetricCombineScriptFactory
     implements ScriptedMetricAggContexts.CombineScript.Factory {
 
   private final Function1<DataContext, Object[]> function;
-  private final RelDataType outputType;
 
   @Override
   public ScriptedMetricAggContexts.CombineScript newInstance(
       Map<String, Object> params, Map<String, Object> state) {
-    return new CalciteScriptedMetricCombineScript(function, outputType, params, state);
+    return new CalciteScriptedMetricCombineScript(function, params, state);
   }
 
   /** CombineScript that executes compiled RexNode expression. */
@@ -34,16 +32,13 @@ public class CalciteScriptedMetricCombineScriptFactory
       extends ScriptedMetricAggContexts.CombineScript {
 
     private final Function1<DataContext, Object[]> function;
-    private final RelDataType outputType;
 
     public CalciteScriptedMetricCombineScript(
         Function1<DataContext, Object[]> function,
-        RelDataType outputType,
         Map<String, Object> params,
         Map<String, Object> state) {
       super(params, state);
       this.function = function;
-      this.outputType = outputType;
     }
 
     @Override

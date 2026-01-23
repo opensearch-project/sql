@@ -13,7 +13,7 @@ The `patterns` command supports the following modes:
 
 The command identifies variable parts of log messages (such as timestamps, numbers, IP addresses, and unique identifiers) and replaces them with `<*>` placeholders to create reusable patterns. For example, email addresses like `amberduke@pyrami.com` and `hattiebond@netagy.com` are replaced with the pattern `<*>@<*>.<*>`.
 
-> **Note**: The `patterns` command is not executed on OpenSearch data nodes. It only groups log patterns from log messages that have been returned to the coordinator node.
+> **Note**: By default, the `patterns` command is not executed on OpenSearch data nodes. It only groups log patterns from log messages that have been returned to the coordinator node. However, when using `mode=aggregation` with `method=brain` and the `plugins.calcite.udaf_pushdown.enabled` cluster setting is set to `true`, the aggregation may be pushed down and executed on data nodes as a scripted metric aggregation for improved performance. See [Enabling UDAF pushdown for patterns aggregation](#enabling-udaf-pushdown-for-patterns-aggregation) for more details.
 
 ## Syntax
 

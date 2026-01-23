@@ -42,9 +42,12 @@ public class ScriptParameterHelper {
    *
    * <p>0 stands for DOC_VALUE
    *
-   * <p>1 stand for SOURCE
+   * <p>1 stands for SOURCE
    *
    * <p>2 stands for LITERAL
+   *
+   * <p>3 stands for SPECIAL_VARIABLE - retrieves value from special context variables (e.g., state,
+   * states in scripted metric aggregations)
    */
   List<Integer> sources;
 

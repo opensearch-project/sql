@@ -9,7 +9,6 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.function.Function1;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.lucene.index.LeafReaderContext;
 import org.opensearch.script.ScriptedMetricAggContexts;
 import org.opensearch.search.lookup.SearchLookup;
@@ -23,12 +22,11 @@ public class CalciteScriptedMetricMapScriptFactory
     implements ScriptedMetricAggContexts.MapScript.Factory {
 
   private final Function1<DataContext, Object[]> function;
-  private final RelDataType outputType;
 
   @Override
   public ScriptedMetricAggContexts.MapScript.LeafFactory newFactory(
       Map<String, Object> params, Map<String, Object> state, SearchLookup lookup) {
-    return new CalciteMapScriptLeafFactory(function, outputType, params, state, lookup);
+    return new CalciteMapScriptLeafFactory(function, params, state, lookup);
   }
 
   /** Leaf factory that creates MapScript instances for each segment. */
@@ -37,14 +35,13 @@ public class CalciteScriptedMetricMapScriptFactory
       implements ScriptedMetricAggContexts.MapScript.LeafFactory {
 
     private final Function1<DataContext, Object[]> function;
-    private final RelDataType outputType;
     private final Map<String, Object> params;
     private final Map<String, Object> state;
     private final SearchLookup lookup;
 
     @Override
     public ScriptedMetricAggContexts.MapScript newInstance(LeafReaderContext ctx) {
-      return new CalciteScriptedMetricMapScript(function, outputType, params, state, lookup, ctx);
+      return new CalciteScriptedMetricMapScript(function, params, state, lookup, ctx);
     }
   }
 
@@ -67,7 +64,6 @@ public class CalciteScriptedMetricMapScriptFactory
 
     public CalciteScriptedMetricMapScript(
         Function1<DataContext, Object[]> function,
-        RelDataType outputType,
         Map<String, Object> params,
         Map<String, Object> state,
         SearchLookup lookup,
@@ -82,19 +78,11 @@ public class CalciteScriptedMetricMapScriptFactory
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void execute() {
       // Execute the compiled RexNode expression (reusing the same DataContext)
       Object[] result = function.apply(dataContext);
-
-      // Update state with result
-      if (result != null && result.length > 0) {
-        // The map script typically updates the accumulator
-        if (result[0] instanceof Map) {
-          ((Map<String, Object>) getState()).putAll((Map<String, Object>) result[0]);
-        } else {
-          ((Map<String, Object>) getState()).put("accumulator", result[0]);
-        }
-      }
+      ScriptedMetricDataContext.mergeResultIntoState(result, (Map<String, Object>) getState());
     }
   }
 }

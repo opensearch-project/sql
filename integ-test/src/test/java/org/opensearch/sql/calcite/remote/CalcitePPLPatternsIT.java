@@ -547,7 +547,6 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
                   "source=%s | patterns content method=brain mode=aggregation"
                       + " variable_count_threshold=5",
                   TEST_INDEX_HDFS_LOGS));
-      System.out.println(result.toString());
 
       // Verify schema matches expected output
       verifySchema(
@@ -613,7 +612,6 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
                   "source=%s | patterns content method=brain mode=aggregation"
                       + " show_numbered_token=true variable_count_threshold=5",
                   TEST_INDEX_HDFS_LOGS));
-      System.out.println(result.toString());
 
       // Verify schema includes tokens field
       verifySchema(

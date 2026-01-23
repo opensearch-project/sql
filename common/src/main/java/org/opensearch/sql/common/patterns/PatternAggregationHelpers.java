@@ -268,8 +268,19 @@ public final class PatternAggregationHelpers {
     Map<String, Map<String, Object>> merged =
         PatternUtils.mergePatternGroups(patterns1, patterns2, maxSampleCount);
 
+    // Merge logMessages from both accumulators to preserve buffered messages
+    List<Object> logMessages1 = (List<Object>) acc1.get("logMessages");
+    List<Object> logMessages2 = (List<Object>) acc2.get("logMessages");
+    List<Object> mergedLogMessages = new ArrayList<>();
+    if (logMessages1 != null) {
+      mergedLogMessages.addAll(logMessages1);
+    }
+    if (logMessages2 != null) {
+      mergedLogMessages.addAll(logMessages2);
+    }
+
     Map<String, Object> result = new HashMap<>();
-    result.put("logMessages", new ArrayList<>());
+    result.put("logMessages", mergedLogMessages);
     result.put("patternGroupMap", merged);
     return result;
   }
